@@ -1,0 +1,9 @@
+[book]
+authors = ["Ville Ilvonen"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Ghaf - Documentation for TII SSRC Common Tech"
+
+[output.html]
+default-theme = "navy"
