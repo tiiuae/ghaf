@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-actions@v17
+      - uses: cachix/install-nix-actions@v18
       - name: build
         run: nix build .#doc
       - name: deploy
