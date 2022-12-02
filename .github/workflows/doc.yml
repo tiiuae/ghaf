@@ -15,6 +15,7 @@ jobs:
         with:
           extra_nix_config: |
             access-tokens = github.com=${{ secrets.VILVO_GHA_ACCESS_TOKEN }}
+	  nix_path: nixpkgs=channel:nixos-unstable
       - name: build
         run: nix build .#doc
       - name: deploy
