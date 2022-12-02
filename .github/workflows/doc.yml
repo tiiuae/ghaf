@@ -10,13 +10,8 @@ jobs:
     name: build doc and deploy to gh pages
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
       - uses: actions/checkout@v3
-      - name: install nix
       - uses: cachix/install-nix-action@v18
-        with:
-          extra_nix_config: |
-            access-tokens = github.com=${{ secrets.VILVO_GHA_ACCESS_TOKEN }}
       - name: build
         run: nix build .#doc
       - name: deploy
