@@ -1,7 +1,5 @@
 # Overview
 
-## Summary
-
 Secure Tech-project studies secure technologies in the context of embedded virtualization. This documentation-project, named after Ghaf tree, provides a landing site to our work. Our applied software research supports [Secure Systems Research Center](https://www.tii.ae/secure-systems) focus areas.
 
 ## Embedded Virtualization
