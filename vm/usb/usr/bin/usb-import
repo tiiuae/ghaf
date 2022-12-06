@@ -1,0 +1,169 @@
+#!/bin/sh
+
+command -v modprobe >/dev/null && (modprobe vhci-hcd || exit 1)
+
+DEVPATH="/sys/devices/platform/vhci_hcd"
+if [ -d "${DEVPATH}.0" ]; then
+    DEVPATH="${DEVPATH}.0"
+fi
+
+# From /usr/include/linux/usbip.h
+VDEV_ST_NULL=4
+VDEV_ST_NOTASSIGNED=5
+VDEV_ST_USED=6
+VDEV_ST_ERROR=7
+
+usage() {
+    echo "$0 statefile"
+}
+
+ERROR() {
+  (
+    echo "$* "
+    echo "VM: \"`hostname`\" File: \"$0\" "
+  ) >&2;
+  exit 1
+}
+
+if [ "$#" -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+statefile="$1"
+
+if [ -n "$SERVICE_ATTACH_PID" ]; then
+    # use stderr of USBAttach service call
+    # otherwise it would be redirected to /dev/null
+    exec 2>/proc/$SERVICE_ATTACH_PID/fd/2
+fi
+
+# based on linux/tools/usb/usbip/libsrc/vhci_driver.c
+find_port() {
+    # "hs" for high-speed and "ss" for super-speed
+    requested_hub="$1"
+    old_header=
+    while read hub port sta spd bus dev socket local_busid extra; do
+        if [ "$hub" = "port" ] || [ "$hub" = "prt" ]; then
+            # old header:
+            #   port sta spd bus dev socket local_busid
+            if [ "$requested_hub" = "ss" ]; then
+                echo "USB SuperSpeed require kernel >= 4.13" >&2
+                exit 1
+            fi
+            old_header=1
+            continue
+        elif [ "$hub" = "hub" ]; then
+            # new header
+            #   hub port sta spd bus dev socket local_busid
+            continue
+        elif [ -n "$old_header" ] && [ "$port" -eq $VDEV_ST_NULL ]; then
+            # port column in old header
+            echo $hub
+            return 0
+        elif [ -z "$old_header" ] && [ "$hub" = "$requested_hub" ] && [ "$sta" -eq $VDEV_ST_NULL ]; then
+            echo $port
+            return 0
+        fi
+    done < $DEVPATH/status
+    ERROR "No unused port found!"
+}
+
+attach() {
+    local port="$1"
+    local remote_devid="$2"
+    local speed="$3"
+    # port sockfd devid speed
+    printf "%s %u %u %u" "$port" "0" "$remote_devid" "$speed" > $DEVPATH/attach
+}
+
+wait_for_attached() {
+    local port="$1"
+    local local_busid="0-0"
+    local timeout=25
+    while [ ! -e /sys/bus/usb/devices/$local_busid ]; do
+        sleep 0.2
+        port_status=$(grep "^\(hs\|ss\)\? *$port" $DEVPATH/status)
+        local_busid=${port_status##* }
+        timeout=$(( timeout - 1 ))
+        if [ "$timeout" -le 0 ]; then
+            echo "$port" > $DEVPATH/detach
+            ERROR "Attach timeout, check kernel log for details."
+        fi
+    done
+    [ -f "/usr/bin/udevadm" ] && udevadm settle
+}
+
+wait_for_detached() {
+    local port="$1"
+    local local_busid
+    local port_status
+    port_status=$(grep "^\(hs\|ss\)\? *$port" $DEVPATH/status)
+    local_busid=${port_status##* }
+    if [ -z "$local_busid" ]; then
+        return
+    fi
+    while [ -e /sys/bus/usb/devices/$local_busid ]; do
+        sleep 1
+    done
+}
+
+
+# negotiate parameters (field 'extra' reserved for future use)
+read untrusted_devid untrusted_speed untrusted_extra
+
+# check for unexpected EOF
+if [ -z "$untrusted_devid" -a -z "$untrusted_speed" ]; then
+    echo "No device info received, connection failed, check backend side for details" >&2
+    exit 1
+fi
+
+case "$untrusted_speed" in
+    1.5) speed=1 ;; # Low Speed
+    12)  speed=2 ;; # Full speed
+    480) speed=3 ;; # High Speed
+    53.3-480) speed=4 ;; # Wireless
+    5000) speed=5 ;; # Super Speed
+    10000) speed=5 ;; # Super Speed Plus (USB 3.1); Announce as USB 3.0 until USBIP get support
+    *) ERROR "Invalid speed \"$untrusted_speed\" received." \
+             "Expected \"1.5\", \"12\", \"480\", \"53.3-480\", \"5000\", \"10000\". " \
+             "If the remote side sent nothing, this could mean "\
+             "  - the device is invalid or unplugged" \
+             "  - the VM crashed" \
+             "  - ...";;
+esac
+# 32bit integer
+if [ "$untrusted_devid" -ge 0 -a "$untrusted_devid" -lt 4294967296 ]; then
+    devid="$untrusted_devid"
+else
+    ERROR "Invalid devid \"$untrusted_devid\"." \
+          "Expected 0 <= devid < 4294967296."
+fi
+
+if [ "$speed" -ge 5 ]; then
+    hub_type="ss"
+else
+    hub_type="hs"
+fi
+port=$(find_port $hub_type)
+
+# Request that both IN and OUT be handled on a single (stdin) socket
+kill -USR1 "$QREXEC_AGENT_PID" || exit 1
+
+attach "$port" "$devid" "$speed" || exit 1
+
+echo $port >"$statefile"
+
+# wait for device really being attached
+wait_for_attached "$port"
+
+# notify qubes.USBAttach service about successful connection
+if [ -n "$SERVICE_ATTACH_PID" ]; then
+    kill -HUP $SERVICE_ATTACH_PID
+fi
+
+# close stdin/out so the kernel is the only one with the socket reference
+exec <&- >&- 2>&-
+
+# do not end the process until device is detached, to not close the qrexec connection
+wait_for_detached "$port"

@@ -1,0 +1,6 @@
+# SPDX-License-Identifier: EUPL-1.2+
+# SPDX-FileCopyrightText: 2021 Alyssa Ross <hi@alyssa.is>
+
+if { modprobe nft_chain_nat }
+
+nft -f /etc/nftables.conf

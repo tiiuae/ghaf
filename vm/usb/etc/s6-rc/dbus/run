@@ -1,0 +1,18 @@
+#!/bin/execlineb -P
+# SPDX-License-Identifier: EUPL-1.2+
+# SPDX-FileCopyrightText: 2020-2021 Alyssa Ross <hi@alyssa.is>
+
+foreground { mkdir /run/dbus }
+# Busybox cp doesn't have -n to avoid copying to paths that
+# already exist, but we can abuse -u for the same effect,
+# since every file in the store is from Jan 1 1970.
+# foreground { cp -u ${dbus}/libexec/dbus-daemon-launch-helper /run }
+# foreground { chgrp messagebus /run/dbus-daemon-launch-helper }
+# foreground { chmod 4550 /run/dbus-daemon-launch-helper }
+
+# dbus-daemon --nofork --nosyslog --nopidfile --config-file=/etc/dbus-1/system.conf
+
+dbus-daemon
+  --config-file=/usr/share/dbus-1/system.conf
+  --nofork
+  --print-address=3

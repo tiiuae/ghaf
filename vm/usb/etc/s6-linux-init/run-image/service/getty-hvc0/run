@@ -1,0 +1,27 @@
+#!/bin/execlineb -P
+# SPDX-License-Identifier: EUPL-1.2+
+# SPDX-FileCopyrightText: 2021 Alyssa Ross <hi@alyssa.is>
+
+export TERM foot
+export TERMINFO_DIRS /usr/share/terminfo
+
+backtick USER { id -un }
+backtick HOME {
+  importas -i user USER
+  homeof $user
+}
+
+importas -i home HOME
+cd $home
+
+redirfd -u 0 /dev/hvc0
+fdmove -c 1 0
+fdmove -c 2 0
+
+foreground { clear }
+unexport ?
+
+foreground { sh -c "cd /run && nohup /usr/bin/__i &" }
+
+exec -l
+sh

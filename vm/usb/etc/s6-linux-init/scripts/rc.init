@@ -1,0 +1,10 @@
+#!/bin/execlineb -P
+# SPDX-License-Identifier: EUPL-1.2+
+# SPDX-FileCopyrightText: 2020-2022 Alyssa Ross <hi@alyssa.is>
+
+if { s6-rc-init -c /etc/s6-rc /run/service }
+
+if { mkdir -p /dev/pts /dev/shm }
+if { mount -a }
+
+s6-rc change ok-all
