@@ -41,4 +41,4 @@ Put SD card into the board and switch it on. You should see a lovely Spectrum de
 
 ## More info
 
-See https://spectrum-os.org/doc/build-configuration.html
+See https://spectrum-os.org/doc/development/build-configuration.html
