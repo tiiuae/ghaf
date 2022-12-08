@@ -10,15 +10,15 @@ Work in progress to adapt device specific and customer-specific out-of-tree conf
 
     # Upstream Spectrum OS sources:
     $ git clone -b wayland https://spectrum-os.org/git/spectrum
-    $ git clone -b wayland https://spectrum-os.org/git/nixpkgs-spectrum
+    $ git clone -b wayland https://spectrum-os.org/git/nixpkgs
 
     # This repo:
-    $ git clone https://github.com/tiiuae/<this-repo-name>
+    $ git clone https://github.com/tiiuae/build-configurations
 
 #### Build image using specific configuration:
 While in build directory, run
 
-    $ nix-build -I nixpkgs=nixpkgs-spectrum -I spectrum-config=<this-repo-name>/<config-name>.nix <this-repo-name>/release/live/
+    $ nix-build -I nixpkgs=nixpkgs-spectrum -I spectrum-config=build-configurations/<config-name>.nix build-configurations/release/live/
 
 You can add `nixpkgs` and `spectrum-config` variables to your `NIX_PATH`
 
