@@ -17,8 +17,10 @@ Work in progress to adapt device specific and customer-specific out-of-tree conf
 
 #### Build image using specific configuration:
 While in build directory, run
-
-    $ nix-build -I nixpkgs=nixpkgs -I spectrum-config=build-configurations/imx8qm-config.nix build-configurations/release/live/
+| Target device | Build command |
+| -------- | ----------- |
+| imx8qm-mek | `nix-build -I nixpkgs=nixpkgs -I spectrum-config=build-configurations/imx8qm-config.nix build-configurations/release/live/` |
+| Intel NUC | `nix-build -I nixpkgs=nixpkgs -I spectrum-config=build-configurations/x86-nuc-config.nix build-configurations/release/live/` |
 
 You can add `nixpkgs` and `spectrum-config` variables to your `NIX_PATH`
 
@@ -35,9 +37,7 @@ Put SD card into the board and switch it on. You should see a lovely Spectrum de
 
 ## Temporary limitations and known issues
 
-1. Currently the only device supported is `imx8qm-evk`, more devices very soon!
-2. There is no cross-compilation support (yet). Use native `aarch64` hardware to build the image.
-3. There are still some hardware-specific parts that need to be reworked.
+1. There is no cross-compilation support (yet). Use native `aarch64` hardware to build image for `imx8qm-mek`.
 
 ## More info
 
