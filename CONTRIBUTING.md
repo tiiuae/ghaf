@@ -2,7 +2,6 @@
 
 The Ghaf project is free and open source. You can find the source code that we use in the following repositories:
 
-* https://spectrum-os.org/git/
 * https://github.com/tiiuae/build-configurations
 * https://github.com/tiiuae/sbomnix
 
@@ -23,7 +22,7 @@ Our philosophy:
 
 Please follow the steps below to create a pull request:
 
-1. Fork it.
+1. Fork the repository.
 2. Create a branch (`git checkout -b doc_my_changes`) with your changes.
 3. Check what you wrote with a spellchecker to make sure you did not miss anything.
 4. Commit your changes (`git commit -am "Add new section FAQ"`). Keep text hard-wrapped at 70 characters. For more inspiration, see [How to Write a Git Commit Message](https://cbea.ms/git-commit/).
@@ -39,7 +38,7 @@ Two main rules:
 1. Use `git commit --signoff` to improve tracking of who did what. It should contain your real user name used for an open-source project.
 2. The author cannot merge a pull request.
 
-#### Commit Message Guidelines
+### Commit Message Guidelines
 
 We are using the Linux kernel compatible commit message format.
 

@@ -1,6 +1,13 @@
 Documentation for TII SSRC Common Tech
 =============
 
-Source repository for https://tiiuae.github.io/ghaf/overview.html
+This is a source repository for https://tiiuae.github.io/ghaf/overview.html.
 
-If you want to contribute to the project, use a "fork and pull request" workflow.
+
+The Ghaf project is free and open source. You can find the source code that we use in the following repositories:
+
+* https://github.com/tiiuae/build-configurations
+* https://github.com/tiiuae/sbomnix
+
+
+If you would like to contribute, please read [Contributing](CONTRIBUTING.md) and consider opening a pull request.
