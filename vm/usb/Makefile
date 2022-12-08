@@ -14,7 +14,7 @@ SCRIPTS = ../../../scripts
 
 HOST_BUILD_FILES = \
 	build/host/data/appvm-usb/blk/root.img \
-	build/host/data/appvm-usb/Image\
+	build/host/data/appvm-usb/vmlinux \
         build/host/data/appvm-usb/providers/usb/
 
 
@@ -31,9 +31,9 @@ build/svc: $(HOST_BUILD_FILES) $(HOST_FILES)
 
 	tar -c $(HOST_BUILD_FILES) | tar -C $@ -x --strip-components 2
 
-build/host/data/appvm-usb/Image: $(IMAGE)
+build/host/data/appvm-usb/vmlinux: $(VMLINUX)
 	mkdir -p $$(dirname $@)
-	cp $(IMAGE) $$(dirname $@)/Image
+	cp $(VMLINUX) $@
 
 build/host/data/appvm-usb/blk/root.img: $(SCRIPTS)/make-gpt.sh $(SCRIPTS)/sfdisk-field.awk build/rootfs.ext4
 	mkdir -p $$(dirname $@)

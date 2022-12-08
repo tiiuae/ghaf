@@ -60,7 +60,7 @@ let
         -T ${writeReferencesToFile packagesSysroot} .
   '';
 
-  kernel = config.pkgs.linux_latest.override {
+  kernel = buildPackages.linux.override {
     structuredExtraConfig = with lib.kernel; {
       EFI_STUB=yes;
       EFI=yes;
@@ -101,7 +101,6 @@ stdenvNoCC.mkDerivation {
 
   PACKAGES_TAR = packagesTar;
   VMLINUX = "${kernel.dev}/vmlinux";
-  IMAGE = "${kernel}/Image";
 
   makeFlags = [ "SCRIPTS=${scripts}" ];
 
