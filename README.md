@@ -1,10 +1,10 @@
-Documentation for TII SSRC Common Tech
+Documentation for TII SSRC Secure Technologies - Ghaf framework
 =============
 
 This is a source repository for https://tiiuae.github.io/ghaf/overview.html.
 
 
-The Ghaf project is free and open source. You can find the source code that we use in the following repositories:
+The Ghaf project is an open source framework for enhancing secrurity through compartmentalization on edge devices. You can find the source code that we use in the following repositories:
 
 * https://github.com/tiiuae/build-configurations
 * https://github.com/tiiuae/sbomnix

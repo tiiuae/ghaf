@@ -2,7 +2,7 @@
 
 ## Overview
 
-Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation - your business case is isolated from someone else's business case. At hardware level. Similarly, hardware support in modern personal devices has enabled isolation of device resources with virtualization. This provides the baseline for secure system design for use case protection. In practice, user can use the same device with a trusted application and with an untrusted application. Both application isolated from each other to protect valuable user data and privacy. Our systems are built using [nixpkgs](https://github.com/NixOS/nixpkgs) and [Spectrum OS](https://spectrum-os.org/) build configurations.
+Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation - your business case is isolated from someone else's business case. At hardware level. Similarly, hardware support in modern personal devices has enabled isolation of device resources with virtualization. This provides the baseline for secure system design for use case protection. In practice, user can use the same device with a trusted application and with an untrusted application. Both application isolated from each other to protect valuable user data and privacy. Our systems are built using [nixpkgs](https://github.com/NixOS/nixpkgs) and various [Nix](https://nixos.org/guides/nix-language.html) based tools and configurations.
 
 ## Hardware Requirements for Virtualization
 
@@ -12,5 +12,5 @@ Our current reference hardware is [NXP iMX8 QM development board](https://github
 
 ## Virtual Machine Manager (VMM)
 
-On top of operating system (OS) kernel hypervisor support with KVM - we allocate virtual resources for use cases with user space virtual machine manager (VMM) using [rust-vmm](https://github.com/rust-vmm) and [cloud-hypervisor](https://github.com/cloud-hypervisor/cloud-hypervisor). Other VMMs, [crosvm](https://github.com/google/crosvm) and [QEMU](https://www.qemu.org/), are used in development. In addition, we have also experimental, aarch64 demonstrated support for a KVM variant - [KVMS](https://github.com/jkrh/kvms) which adds security features to standard KVM.
+On top of operating system (OS) kernel hypervisor support with KVM - we allocate virtual resources for use cases with user space virtual machine manager (VMM) using [rust-vmm](https://github.com/rust-vmm) based projects such as [cloud-hypervisor](https://github.com/cloud-hypervisor/cloud-hypervisor) and [crosvm](https://github.com/google/crosvm). [QEMU](https://www.qemu.org/) is enabled for certain development use cases. In addition, we have also experimental, aarch64 demonstrated support for a KVM variant - [KVMS](https://github.com/jkrh/kvms) which adds security features to standard KVM.
 
