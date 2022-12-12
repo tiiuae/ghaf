@@ -18,7 +18,7 @@ Work in progress to adapt device specific and customer-specific out-of-tree conf
 #### Build image using specific configuration:
 While in build directory, run
 
-    $ nix-build -I nixpkgs=nixpkgs -I spectrum-config=build-configurations/<config-name>.nix build-configurations/release/live/
+    $ nix-build -I nixpkgs=nixpkgs -I spectrum-config=build-configurations/imx8qm-config.nix build-configurations/release/live/
 
 You can add `nixpkgs` and `spectrum-config` variables to your `NIX_PATH`
 
