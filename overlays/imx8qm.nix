@@ -3,8 +3,13 @@ final: prev: {
   linux_imx8 = final.callPackage ./bsp/kernel/linux-imx8 { pkgs = final; };
   inherit ( final.callPackage ./bsp/u-boot/imx8qm/imx-uboot.nix { pkgs = final; }) ubootImx8 imx-firmware;
 
+  linux_latest = final.linux_imx8;
+
+  makeModulesClosure = args: prev.makeModulesClosure (args // {
+    rootModules = [ "dm-verity" "loop" ];
+  });
+
   spectrum-live = prev.spectrum-live.overrideAttrs (old: {
-    KERNEL = final.linux_imx8;
     pname = "build/live.img";
     # The beginning of the first partition should be moved
     # because u-boot overwrites it (the size of u-boot is bigger
@@ -27,7 +32,7 @@ final: prev: {
         .partitiontable |
         .sectorsize * (.partitions[] | select(.type == ESP_GUID) | .start)
       ')
-      mcopy -no -i $pname@@$ESP_OFFSET $KERNEL/dtbs/freescale/imx8qm-mek-hdmi.dtb ::/
+      mcopy -no -i $pname@@$ESP_OFFSET ${final.linux_imx8}/dtbs/freescale/imx8qm-mek-hdmi.dtb ::/
       mcopy -no -i $pname@@$ESP_OFFSET ${final.imx-firmware}/hdmitxfw.bin ::/
       mv $pname $out
       runHook postInstall

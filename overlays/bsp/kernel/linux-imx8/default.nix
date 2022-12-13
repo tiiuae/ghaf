@@ -1,4 +1,4 @@
-{ pkgs, } @ args:
+{ pkgs, ... } @ args:
 
 with pkgs;
 
