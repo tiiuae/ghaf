@@ -17,7 +17,7 @@ The basic directory structure description:
 
 ```
 .
-├── workflows/
+├── .github/workflows/
 |   └── doc.yml
 ├── src/
 |   ├── SUMMARY.md
@@ -40,7 +40,7 @@ The basic directory structure description:
 | -------- | ----------- |
 | `SUMMARY.md` | Table of contents.  All listed Markdown files will be transformed as HTML. For more information, see [SUMMARY.md](https://rust-lang.github.io/mdBook/format/summary.html). |
 | `book.toml` | Stores [configuration](https://rust-lang.github.io/mdBook/format/configuration/index.html) data. |
-| `doc.yml` | CI/CD script for building and deploying generated book. |
+| `doc.yml` | Continuous integration and delivery (Github Action workflow) for building and deploying the generated book. |
 | `flake.nix ` | Describes dependencies and provides output package. To see provided outputs, type `nix flake show`. |
 | `flake.lock` | Pins dependencies of flake inputs. |
 
