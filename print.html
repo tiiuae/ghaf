@@ -151,8 +151,23 @@
 <h2 id="virtual-machine-manager-vmm"><a class="header" href="#virtual-machine-manager-vmm">Virtual Machine Manager (VMM)</a></h2>
 <p>On top of operating system (OS) kernel hypervisor support with KVM - we allocate virtual resources for use cases with user space virtual machine manager (VMM) using <a href="https://github.com/rust-vmm">rust-vmm</a> based projects such as <a href="https://github.com/cloud-hypervisor/cloud-hypervisor">cloud-hypervisor</a> and <a href="https://github.com/google/crosvm">crosvm</a>. <a href="https://www.qemu.org/">QEMU</a> is enabled for certain development use cases. In addition, we have also experimental, aarch64 demonstrated support for a KVM variant - <a href="https://github.com/jkrh/kvms">KVMS</a> which adds security features to standard KVM.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="build-configurations"><a class="header" href="#build-configurations">Build Configurations</a></h1>
-<p>Our hardened OS is a build configuration based on NixOS. The canonical URL for the upstream git repository is: https://github.com/NixOS.</p>
-<p>Build configurations defines our dependencies and configuration changes via NixOS. If you want to try, see <a href="https://github.com/tiiuae/build-configurations/blob/main/README.md">README.md</a>.</p>
+<p>Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: https://github.com/NixOS.</p>
+<p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try and check the details, see <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a> repository.</p>
+<h2 id="approach"><a class="header" href="#approach">Approach</a></h2>
+<p>A build configuration is a target to build our hardened OS for a particular hardware device. The supported development target devices are listed in the <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a>. The packages used in a build configuration comes from <a href="https://github.com/NixOS/nixpkgs">nixpkgs - NixOS Packages collection</a>. Upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time we get the maintenance support of NixOS community and the benefits of Nix language on how to build packages and track the origins of packages in software supply chain security.</p>
+<p>NixOS, a Linux os distribution packaged with Nix, provides us with:</p>
+<ul>
+<li>generic hardware architecture support (<code>x86_64</code> and <code>aarch64</code>)</li>
+<li>declarative and modular mechanism to describe the system</li>
+<li>Nix packaging language mechanisms
+<ul>
+<li>to extend and change packages with <a href="https://nixos.wiki/wiki/Overlays">overlays</a></li>
+<li>to <a href="https://nixos.org/guides/nix-pills/override-design-pattern.html">override</a> packages</li>
+</ul>
+</li>
+</ul>
+<p>Even when unmodified upstream are often preferred, even ideal, to ensure timely security updates from upstream - the customizations are sometimes required.</p>
+<p>For example, to support a reference board without vendor board support package (BSP) - bootloader, kernel, device drivers - is often not feasible. With this approach we can overlay generic NixOS linux kernel with the vendor kernel and add vendor bootloader to build a target image. Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the HW vendor. Those are handled by allowing <code>unfree</code> - if user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support. Same goes with the architectural variants - headless devices or end-user devices - differ in terms what kind of virtual machines (VM) they contain. User needs graphics architecture and supporting VMs for the user interface (UI) where a headless device is more like a small server without the UI.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="supply-chain-security"><a class="header" href="#supply-chain-security">Supply Chain Security</a></h1>
 <p>Supply Chain Security (SCS) is a process of securing the machinery of the development, building and release environment. That means every component that a software artifact might be touching on its way from the developer towards the consumer will be secured. The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be acompanied with Software Bill Of Materials (SBOM), identifying all the components that software package consists of.</p>
 <p>Software Bill Of Materials (SBOM) containing reference to each dependency, its source and version together with provenance, containing build information are collected at the build time, signed and used for vulnerability analysis during the next steps.</p>
