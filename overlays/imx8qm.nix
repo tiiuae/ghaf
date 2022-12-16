@@ -9,8 +9,19 @@ final: prev: {
     rootModules = [ "dm-verity" "loop" ];
   });
 
+  spectrum-rootfs = prev.spectrum-rootfs.overrideAttrs (old: {
+    patches = [
+      ./patches/0001-Fix-console-rootfs-for-imx8qm.patch
+    ];
+  });
+
   spectrum-live = prev.spectrum-live.overrideAttrs (old: {
     pname = "build/live.img";
+
+    patches = [
+      ./patches/0002-Fix-console-liveimg-for-imx8qm.patch
+    ];
+
     # The beginning of the first partition should be moved
     # because u-boot overwrites it (the size of u-boot is bigger
     # than the gap between GPT table and first partition (4Mb))

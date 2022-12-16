@@ -1,0 +1,13 @@
+diff --git a/Makefile b/Makefile
+index e63c598..2120e2d 100644
+--- a/Makefile
++++ b/Makefile
+@@ -26,7 +26,7 @@ build/spectrum.conf: build/rootfs.verity.roothash
+ 	printf "title Spectrum\n" > $@
+ 	printf "linux /spectrum/linux\n" >> $@
+ 	printf "initrd /spectrum/initrd\n" >> $@
+-	printf "options ro console=tty console=ttyS0 roothash=" >> $@
++	printf "options ro console=tty console=ttyLP0,115200 roothash=" >> $@
+ 	cat build/rootfs.verity.roothash >> $@
+ 
+ build/boot.fat: $(KERNEL) $(INITRAMFS) $(SYSTEMD_BOOT_EFI) build/spectrum.conf
