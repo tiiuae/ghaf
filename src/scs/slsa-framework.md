@@ -4,7 +4,7 @@ Supply chain Levels for Software Artifacts (SLSA) is a security framework for ta
 
 ## Levels of Assurance
 
-One of the requirements for the solution is to reach SLSA Level 4 and even go beyond that. This requires a lot of process changes as well as technical work. Currently, the Ghaf project is visualized at the separate wiki page: Supply Chain Security 
+One of the requirements for the solution is to reach SLSA Level 4 and even go beyond that. This requires a lot of process changes as well as technical work. 
 
 The SLSA model consists of 4 levels, offering an incremental level of anti-tampering protection. Levels 1-3 represent milestones with certain integrity guarantees, whereas level 4 is an ideal end state.
 
