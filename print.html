@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="technologies.html"><strong aria-hidden="true">2.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_configurations.html"><strong aria-hidden="true">3.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">4.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-build-system.html"><strong aria-hidden="true">4.1.</strong> SLSA Build System</a></li></ol></li><li class="chapter-item expanded "><a href="faq.html"><strong aria-hidden="true">5.</strong> Frequently Asked Questions</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="technologies.html"><strong aria-hidden="true">2.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_configurations.html"><strong aria-hidden="true">3.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">4.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-build-system.html"><strong aria-hidden="true">4.1.</strong> SLSA Build System</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">4.2.</strong> Public Key Infrastructure</a></li></ol></li><li class="chapter-item expanded "><a href="faq.html"><strong aria-hidden="true">5.</strong> Frequently Asked Questions</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -177,6 +177,31 @@
 <p>The software artifact, SBOM and provenance are signed by the build machinery at the build time, and the signature is verifiable at every destination of the package. The certificates that are used for signing and verification are provided by the <em>public key infrastructure (PKI)</em> system and are signed by the same root <em>certificate authority (CA)</em>. It allows easily confirm the signature author (build machinery) and guarantee that the package has not been tampered with since the build time.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="slsa-framework"><a class="header" href="#slsa-framework">SLSA Framework</a></h1>
 <p>Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement and securing packages and infrastructure of a project.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="public-key-infrastructure"><a class="header" href="#public-key-infrastructure">Public Key Infrastructure</a></h1>
+<p>In the SCS context a public key infrastructure (PKI) term refers to a system for the creation, storage, and distribution of digital certificates which are used to verify that a particular key belongs to a certain entity. PKI creates and manages a hierarchical set of digital certificates which map public keys to certain entities. Storage and revocation methodologies are to be defined.</p>
+<p>The PK of SCS should consist of:</p>
+<ul>
+<li>Certificate authority (CA) for storing, issuing, and signing the digital certificates</li>
+<li>Registration authority (RA) for requesting entity identity verification</li>
+<li>Central directory for the secure storage of the keys</li>
+<li>Certificate Management System (CMS) for managing access to stored certificates</li>
+</ul>
+<h2 id="private-certificate-authority-pca"><a class="header" href="#private-certificate-authority-pca">Private Certificate Authority (PCA)</a></h2>
+<p>PCA enables the creation of private certificate authority hierarchies, consisting of a Root and Subordinate CAs. It issues end-entity X.509 certificates, that are used for: </p>
+<ul>
+<li>Encrypted TLS communication channels (data encryption in transit)</li>
+<li>Code and image signing</li>
+</ul>
+<p>PCA can be established in the cloud or on-premises. Initially, the OpenSSL based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions.</p>
+<h3 id="ca-hierarchy-options"><a class="header" href="#ca-hierarchy-options">CA Hierarchy Options</a></h3>
+<p>CA usually consists of:</p>
+<ul>
+<li>Root CA - the root of trust of the entire PKI, for issuing and signing the certificates used by other CAs</li>
+<li>Subordinate CA for issuing end-entity certificates</li>
+</ul>
+<p>There are three types of hierarchies: one-tier, two-tier and three-tier. The hierarchy can be chosen based on the target project's needs and complexity. A one-tier hierarchy is not considered for any production usage due to the low security, as the compromise of a single CA leads to a compromise of the entire PKI.</p>
+<p>In a two-tier hierarchy the Root CA and issuing (Subordinate) CAs are separated for increasing the security level. This is the simplest production level hierarchy allowing to keep Root CA at the most secure and restrictive levels, yet making subordinate CA access slightly more permissive. This hierarchy is most likely sufficient for most of the target projects.</p>
+<p>In a three-tier CA an intermediate CA is placed between the Root CA and the Subordinate (issuing) CA. This is done to further separate the Root CA from low-level CA operations. The middle layer (intermediate CA) is only used to sign Subordinate CAs that issue the end-entity certificates. </p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="frequently-asked-questions"><a class="header" href="#frequently-asked-questions">Frequently Asked Questions</a></h1>
 
                     </main>
