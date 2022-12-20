@@ -22,7 +22,7 @@ The basic directory structure looks like:
 |   ├── SUMMARY.md
 |   ├── img/
 |   ├── chapter-1/
-|	|   ├── section-1.1.md
+│   │   ├── section-1.1.md
 |   |   └── section-1.n.md
 |   └── chapter-2/
 |       ├── section-2.1.md
@@ -94,14 +94,11 @@ Build each topic based on the following structure:
 * More information, less important. [optional, 1 paragraph]
 * Conclusion. Transition to the next paragraph. [1-2 sentences]
 
-
 [//]: # (Link to Style Guide.)
 [//]: # (Link to Glossary.)
 
 
-
 ## Contributing
-
 
 If you would like to contribute, please read [Contributing](CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
 
@@ -113,3 +110,8 @@ Some things that will increase the chance that your pull request is accepted fas
 * Writing a good commit message.
 
 In addition, you can use [issues](https://github.com/tiiuae/ghaf/issues) to track suggestions, bugs, and other information.
+
+
+## License
+
+Ghaf is licensed under the Attribution-ShareAlike International License, Version 4.0. See [LICENSE](./LICENSE) for the full license text.
