@@ -1,6 +1,6 @@
 # SLSA Framework
 
-Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement and securing packages and infrastructure of a project. More information about SLSA framework can be found from SLSA official ![SLSA](https://slsa.dev "SLSA Framework") website.
+Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement and securing packages and infrastructure of a project. More information about SLSA framework can be found from SLSA official [SLSA](https://slsa.dev) website.
 
 ## Levels of Assurance
 
