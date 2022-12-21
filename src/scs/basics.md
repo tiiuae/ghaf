@@ -24,11 +24,12 @@ In the case of GitHub the following settings should be considered:
 
 Software signing is an important measure to validate the author and ensure that the code has not been altered on the way from the developer to the customer. Nix tooling is offering means to sign the derivations using libsodium with EdDSA, however, as the modular system is assumed, scripts need to be developed to support signing mechanisms in an absence of Nix tooling.
 
-As of today, the software image is singed only on the binary cache per request. Which means that it is possible to request a software signature separately as part of nar-info. 
+By default, the software image is signed only at the binary cache per request. Which leaves the path from Hydra to the binary cache unsecured. The problem can be resolved in two ways:
 
+  + Enabling the image signing on Hydra
+  + Shared Nix Store
 
-
-At the same time, the code is not signed on the way from repository to Hydra and from Hydra to binary cache, leaving those parts insecure.
+The second option is rather straightforward. Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.
 
 ## Data encryption in transit
 
