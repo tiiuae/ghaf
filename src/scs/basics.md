@@ -31,6 +31,6 @@ By default, the software image is signed only at the binary cache per request. W
 
 The second option is rather straightforward. Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.
 
-## Data encryption in transit
+## Data Encryption in Transit
 
 All the data should be transported over secure encrypted channels. Since all the transportation is done over TCP/IP protocol stack, it is possible to use native solutions like TLS to secure the traffic between the nodes. Version 1.2 is a minimum requirement.
