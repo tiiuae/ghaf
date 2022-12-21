@@ -2,7 +2,7 @@
 
 To be aware of what is exactly in our software supply chain, it is reviewed for security issues and known vulnerabilities.
 
-![Supply Chain Attacks](src/img/threat_processing.png)
+![Supply Chain Attacks](../img/threat_processing.png)
 
 
 We implement a _supply chain security (SCS)_ — process of securing the machinery of the development, building and release environment. That means that every component that a software artifact might be touching on its way from the developer to the consumer will be secured.
