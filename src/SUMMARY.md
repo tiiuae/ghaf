@@ -1,6 +1,8 @@
 # Summary
 
 - [Overview](./overview.md)
+- [Architecture](architecture/overview.md)
+    - [Decision Record](architecture/adr.md)
 - [Technologies](./technologies.md)
 - [Build Configurations](./build_configurations.md)
 - [Supply Chain Security](scs/scs.md)
