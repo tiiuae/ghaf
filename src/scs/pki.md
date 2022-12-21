@@ -15,7 +15,11 @@ PCA enables the creation of private certificate authority hierarchies, consistin
   + Encrypted TLS communication channels (data encryption in transit)
   + Code and image signing
 
-PCA can be established in the cloud or on-premises. Initially, the OpenSSL based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions.
+PCA can be established in the cloud or on-premises. Initially, the OpenSSL based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions. 
+
+## Hardware Security Module
+
+On-premises solution can be further improved by adding a Hardware Security Module (HSM), which is a physical device for managing cryptographic material, e.g. digital keys. HSM can be also used to perform cryptographic operations such as digital signing, encryption and decryption. The HSM contains one or more Secure Cryptoprocessor, in other words, a dedicated microprocessor optimized for carrying out cryptographic operations. One example of affordable HSM solutions is YubiHSM, developed by Yubico company.
 
 ### CA Hierarchy Options
 
