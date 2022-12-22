@@ -235,7 +235,11 @@
 <li>Encrypted TLS communication channels (data encryption in transit)</li>
 <li>Code and image signing</li>
 </ul>
-<p>PCA can be established in the cloud or on-premises. Initially, the OpenSSL based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions.</p>
+<p>PCA can be established in the cloud or on-premises. Initially, the OpenSSL based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions. </p>
+<h2 id="hardware-security-module"><a class="header" href="#hardware-security-module">Hardware Security Module</a></h2>
+<p>On-premises solution can be further improved by adding a Hardware Security Module (HSM). It is a physical device for managing cryptographic material such as digital keys. </p>
+<p>HSM can be also used to perform cryptographic operations such as digital signing, encryption, and decryption. The HSM contains one or more Secure Cryptoprocessor that are dedicated microprocessors optimized for carrying out cryptographic operations. </p>
+<p>One example of affordable HSM solutions is YubiHSM, developed by Yubico.</p>
 <h3 id="ca-hierarchy-options"><a class="header" href="#ca-hierarchy-options">CA Hierarchy Options</a></h3>
 <p>CA usually consists of:</p>
 <ul>
