@@ -1,7 +1,7 @@
 # Summary
 
 - [Overview](./overview.md)
-- [Architecture](architecture/overview.md)
+- [Architecture](architecture/architecture.md)
     - [Decision Record](architecture/adr.md)
 - [Technologies](./technologies.md)
 - [Build Configurations](./build_configurations.md)
