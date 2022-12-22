@@ -44,7 +44,7 @@ The basic directory structure looks like:
 | `flake.lock` | Pins dependencies of flake inputs. |
 
 
-### Working with Files
+## Working with Files
 
 The documentation is separated into chapters, sections, subsections, and subsubsections if needed.
 
@@ -53,11 +53,16 @@ The documentation is separated into chapters, sections, subsections, and subsubs
 
 | Folder | Description |
 | --------- | ----------- |
-| `src/chapter-name/...` | Top-level folders with high-level information: about, technologies, build configurations, supply chain security, contributing. |
+| `src/chapter-name/...` | Top-level folders with high-level information: _about_, _architecture_, _technologies_, _build configurations_, etc.|
 | `src/chapter-name/section-name/...`, `src/chapter-name/subsection-name/...` | Documentation related to the special topic. Use subsections within the section when the subject changes, but you are still writing about a particular aspect of a larger subject. Note that both section and subsection files are in the chapter folder. |
 
-2. Put images into the `src/img` folder and the source diagram into `src/img/diagrams`.
-3. Add new structure elements (chapters, sections, subsections) to SUMMARY.md to update the table of contents. Example:
+2. Put images into the `src/img` folder. We make diagrams with [draw.io](https://www.diagrams.net/). Make sure that you use the following image format `<imagename>.drawio.png`. To do so:
+	* On the **File** tab, click **Export as > PNG...**.
+	* In the pop-up window:
+		* Select the **Include a copy of my diagram** check box.
+		* Check the **Size** option is selected for the **Size** field.
+		* If you use the **Grid** view, select the **Transparent Background** check box.
+3. Add new structure elements (chapters, sections, subsections) to **SUMMARY.md** to update the table of contents. Example:
 ```
 - [Chapter-name](src/chapter-name.md)
     - [Section-name.md](src/chapter-name/section-name.md)
@@ -66,19 +71,22 @@ The documentation is separated into chapters, sections, subsections, and subsubs
         - [Subsection.md](src/chapter-name/subsection-name.md)
 ```
 
+If you are unsure where to place a document or how to organize a content addition, this should not stop you from contributing. See [Managing Content](#-managing-content) for inspiration. You can also ask a technical writer [Jenni Nikolaenko](https://github.com/jenninikko) at any stage in the process.
+
+
+## Naming
+
 Our goal is to have a clear hierarchical structure with meaningful URLs like _tiiuae.github.io/ghaf/scs/slsa-build-system.html_. With this pattern, you can tell that you are navigating to supply chain security related documentation about SLSA build system. 
 
-Make sure you are following file naming rules:
+Make sure you are following the file / image naming rules:
 
 * Use lowercase letters.
 * Use hyphens or underscores instead of spaces.
 * Avoid special characters.
-* Use meaningful abbreviations. The file names should be as short as possible while retaining enough meaning to make them identifiable. We recommend to use the same name for the file as the heading of the structure element (chapter, section, subsection).
-
-If you are unsure where to place a document or how to organize a content addition, this should not stop you from contributing. You can also ask a technical writer [Jenni Nikolaenko](https://github.com/jenninikko) at any stage in the process.
+* Use meaningful abbreviations. The file / image names should be as short as possible while retaining enough meaning to make them identifiable.
 
 
-### Managing Content
+## Managing Content
 
 Use paragraphs to organize information in chapters, sections, and subsections.
 
