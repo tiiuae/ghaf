@@ -29,12 +29,11 @@ let
         tune2fs -O ^read-only user-ext.ext4
         mkdir mp
         mount -o loop,rw user-ext.ext4 mp
-        tar -C ${appvm-zathura} -c data | tar -C mp/svc -x
         chmod +w mp/svc/data
-        tar -C ${usbvm} -c data | tar -C mp/svc -x
-        chmod +w mp/svc/data
-        tar -C ${usbappvm} -c data | tar -C mp/svc -x
-        chmod +w mp/svc/data
+        # A lot of room for improvements
+        mkdir mp/svc/data/appvm-zathura && tar -C ${appvm-zathura} -c . | tar -C mp/svc/data/appvm-zathura -x
+        mkdir mp/svc/data/usbvm && tar -C ${usbvm} -c . | tar -C mp/svc/data/usbvm -x
+        mkdir mp/svc/data/usbappvm && tar -C ${usbappvm} -c . | tar -C mp/svc/data/usbappvm -x
         umount mp
         tune2fs -O read-only user-ext.ext4
         cp user-ext.ext4 $out

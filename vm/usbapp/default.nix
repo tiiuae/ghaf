@@ -7,8 +7,7 @@
 
 { config ? import ../../../spectrum/nix/eval-config.nix {} }:
 
-import ../../../spectrum/vm-lib/make-vm.nix { inherit config; } {
-  name = "appvm-usbapp";
+import ../../../spectrum/vm/make-vm.nix { inherit config; } {
   providers.net = [ "netvm" ];
   run = config.pkgs.pkgsStatic.callPackage (
     { writeScript, bash, usbutils }:
@@ -22,4 +21,3 @@ import ../../../spectrum/vm-lib/make-vm.nix { inherit config; } {
     ''
   ) { };
 }
-  

@@ -4,8 +4,7 @@
 
 { config }:
 
-import ../../../spectrum/vm-lib/make-vm.nix { inherit config; } {
-    name = "appvm-zathura";
+import ../../../spectrum/vm/make-vm.nix { inherit config; } {
     wayland = true;
     run = config.pkgs.callPackage (
       { writeScript, zathura, wayland-proxy-virtwl }:
