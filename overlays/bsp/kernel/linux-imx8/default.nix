@@ -4,7 +4,6 @@ with pkgs;
 
 buildLinux (args // rec {
   version = "5.15.71";
-  nxp_ref = "refs/tags/lf-5.15.71-2.2.0";
 
   # modDirVersion needs to be x.y.z, will automatically add .0 if needed
   modDirVersion = version;
@@ -40,8 +39,11 @@ buildLinux (args // rec {
     USBIP_VUDC m
   '';
 
-  src = builtins.fetchGit {
-    url = "https://github.com/nxp-imx/linux-imx";
-    ref = nxp_ref;
+  src = fetchFromGitHub {
+    owner = "nxp-imx";
+    repo = "linux-imx";
+    # tag: refs/tags/lf-5.15.71-2.2.0
+    rev = "3313732e9984cb8a6b10a9085c7e18d58e770d56";
+    sha256 = "sha256-PBRiSgjPOq4keiwPOfNOswf1Zzdbn6YOjpOgv4/Oscc=";
   };
 } // (args.argsOverride or { }))

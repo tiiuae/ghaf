@@ -1,12 +1,12 @@
-{
-  buildArmTrustedFirmware ,
-}:
+{ buildArmTrustedFirmware, fetchgit }:
 
 {
   armTrustedFirmwareiMX8QM = buildArmTrustedFirmware rec {
-    src = fetchGit {
+    src = fetchgit {
       url = "https://source.codeaurora.org/external/imx/imx-atf";
-      ref = "lf_v2.6";
+      # tag: "lf_v2.6"
+      rev = "c6a19b1a351308cc73443283f6aa56b2eff791b8";
+      sha256 = "sha256-C046MrZBDFuzBdnjuPC2fAGtXzZjTWRrO8nYTf1rjeg=";
     };
     platform = "imx8qm";
     enableParallelBuilding = true;

@@ -11,9 +11,11 @@ in {
 
   ubootImx8 = buildUBoot {
     version = "2022.04";
-    src = fetchGit {
+    src = fetchgit {
       url = "https://source.codeaurora.org/external/imx/uboot-imx.git";
-      ref = "lf_v2022.04";
+      # tag: "lf_v2022.04"
+      rev = "1c881f4da83cc05bee50f352fa183263d7e2622b";
+      sha256 = "sha256-0TS6VH6wq6PwZUq6ekbuLaisZ9LrE0/haU9nseGdiE0=";
     };
     BL31 = "${armTrustedFirmwareiMX8QM}/bl31.bin";
     patches = [ ./patches/0001-Add-UEFI-boot-on-imx8qm_mek.patch ];
