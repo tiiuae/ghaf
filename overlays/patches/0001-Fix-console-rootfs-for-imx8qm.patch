@@ -1,15 +1,15 @@
 diff --git a/Makefile b/Makefile
-index f0f6a4b..e76121e 100644
+index 4588033..cd544f2 100644
 --- a/Makefile
 +++ b/Makefile
 @@ -37,6 +37,7 @@ FILES = \
-	etc/s6-linux-init/run-image/service/getty-tty3/run \
-	etc/s6-linux-init/run-image/service/getty-tty4/run \
-	etc/s6-linux-init/run-image/service/getty-ttyS0/run \
+ 	etc/s6-linux-init/run-image/service/getty-tty3/run \
+ 	etc/s6-linux-init/run-image/service/getty-tty4/run \
+ 	etc/s6-linux-init/run-image/service/getty-ttyS0/run \
 +	etc/s6-linux-init/run-image/service/getty-ttyLP0/run \
-	etc/s6-linux-init/scripts/rc.init \
-	etc/xdg/weston/autolaunch \
-	etc/xdg/weston/weston.ini \
+ 	etc/s6-linux-init/scripts/rc.init \
+ 	etc/xdg/weston/autolaunch \
+ 	etc/xdg/weston/weston.ini \
 diff --git a/etc/s6-linux-init/run-image/service/getty-ttyLP0/run b/etc/s6-linux-init/run-image/service/getty-ttyLP0/run
 new file mode 100755
 index 0000000..4e0f102
