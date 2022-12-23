@@ -3,8 +3,8 @@
 with pkgs;
 
 buildLinux (args // rec {
-  version = "5.15.32";
-  nxp_ref = "lf-5.15.y";
+  version = "5.15.71";
+  nxp_ref = "refs/tags/lf-5.15.71-2.2.0";
 
   # modDirVersion needs to be x.y.z, will automatically add .0 if needed
   modDirVersion = version;
@@ -41,7 +41,7 @@ buildLinux (args // rec {
   '';
 
   src = builtins.fetchGit {
-    url = "https://source.codeaurora.org/external/imx/linux-imx";
+    url = "https://github.com/nxp-imx/linux-imx";
     ref = nxp_ref;
   };
 } // (args.argsOverride or { }))
