@@ -1,0 +1,2 @@
+#!/bin/sh
+socat VSOCK-CONNECT:2:52 EXEC:'/usr/bin/usb-import /run/usb'

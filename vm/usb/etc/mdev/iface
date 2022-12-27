@@ -1,0 +1,36 @@
+#!/bin/execlineb -P
+# SPDX-License-Identifier: EUPL-1.2+
+# SPDX-FileCopyrightText: 2020-2021 Alyssa Ross <hi@alyssa.is>
+
+importas -i INTERFACE INTERFACE
+
+ifte
+
+{
+  # This interface is connected to another VM.
+
+  # Our IP is encoded in the NIC-specific portion of the
+  # interface's MAC address.
+  backtick -E CLIENT_IP {
+    awk -F: "{printf \"100.64.%d.%d\\n\", \"0x\" $5, \"0x\" $6}"
+    /sys/class/net/${INTERFACE}/address
+  }
+
+  if { ip address add 169.254.0.1/32 dev $INTERFACE }
+  if { ip link set $INTERFACE up }
+  ip route add $CLIENT_IP dev $INTERFACE
+}
+
+{
+  if { test $INTERFACE != lo }
+  # This is a physical connection to a network device.
+  background { s6-rc -bu change connman }
+  if { s6-rc -bu change nftables }
+  if {
+    forx -pE module { nft_counter nft_masq }
+    modprobe $module
+  }
+  nft add rule ip nat postrouting oifname $INTERFACE counter masquerade
+}
+
+grep -iq ^0A:B3:EC: /sys/class/net/${INTERFACE}/address

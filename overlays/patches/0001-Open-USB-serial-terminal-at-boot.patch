@@ -1,0 +1,32 @@
+commit 4b4ab8aee8f8cf8a8213c8aa43eab455f74afe7f
+Author: Tero Tervala <tero.tervala@unikie.com>
+Date:   Fri Jun 3 13:37:47 2022 +0300
+
+    Open USB serial terminal at boot
+
+    Signed-off-by: Tero Tervala <tero.tervala@unikie.com>
+
+diff --git a/Makefile b/Makefile
+index f0f6a4b..b68b00b 100644
+--- a/Makefile
++++ b/Makefile
+@@ -36,7 +36,7 @@ FILES = \
+	etc/s6-linux-init/run-image/service/getty-tty2/run \
+	etc/s6-linux-init/run-image/service/getty-tty3/run \
+	etc/s6-linux-init/run-image/service/getty-tty4/run \
+-	etc/s6-linux-init/run-image/service/getty-ttyS0/run \
++	etc/s6-linux-init/run-image/service/getty-ttyUSB0/run \
+	etc/s6-linux-init/scripts/rc.init \
+	etc/xdg/weston/autolaunch \
+	etc/xdg/weston/weston.ini \
+diff --git a/host/rootfs/etc/s6-linux-init/run-image/service/getty-ttyUSB0/run b/host/rootfs/etc/s6-linux-init/run-image/service/getty-ttyUSB0/run
+new file mode 100755
+index 0000000..9730b19
+--- /dev/null
++++ b/etc/s6-linux-init/run-image/service/getty-ttyUSB0/run
+@@ -0,0 +1,5 @@
++#!/bin/execlineb -P
++# SPDX-License-Identifier: EUPL-1.2
++# SPDX-FileCopyrightText: 2021-2022 Tero Tervala <tero.tervala@unikie.com>
++
++getty -i -n -l /etc/login 115200 ttyUSB0 dumb

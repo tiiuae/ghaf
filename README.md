@@ -122,4 +122,50 @@ In addition, you can use [issues](https://github.com/tiiuae/ghaf/issues) to trac
 
 ## License
 
-Ghaf is licensed under the Attribution-ShareAlike International License, Version 4.0. See [LICENSE](./LICENSE) for the full license text.
+Ghaf is licensed under Apache License 2.0. Ghaf documentations is licensed  under the Attribution-ShareAlike International License, Version 4.0. See [doc/LICENSE](./doc/LICENSE) for the full license text.
+
+# Ghaf build configuration layer
+
+## Status
+
+Work in progress to adapt device specific and customer-specific out-of-tree configurations for Spectrum OS.
+
+## Building customized Spectrum OS image
+
+#### Create build directory and clone all components there:
+
+    # Upstream Spectrum OS sources:
+    $ git clone -b wayland https://spectrum-os.org/git/spectrum
+    $ git clone -b wayland https://spectrum-os.org/git/nixpkgs
+
+    # This repo:
+    $ git clone https://github.com/tiiuae/ghaf
+
+#### Build image using specific configuration:
+While in build directory, run
+| Target device | Build command |
+| -------- | ----------- |
+| imx8qm-mek | `nix-build -I nixpkgs=nixpkgs -I spectrum-config=ghaf/imx8qm-config.nix build-configurations/release/live/` |
+| Intel NUC | `nix-build -I nixpkgs=nixpkgs -I spectrum-config=ghaf/x86-nuc-config.nix build-configurations/release/live/` |
+
+You can add `nixpkgs` and `spectrum-config` variables to your `NIX_PATH`
+
+#### Flash and run image:
+The successful build produces `result` link in build directory. Run
+```
+$ sudo dd if=result of=/dev/<SDcard> bs=1M conv=fsync status=progress oflag=direct
+```
+to flash the image to your SD card.
+```
+Hint: you can find which /dev/ file is your SDcard using 'lsblk' and 'dmesg' commands.
+```
+Put SD card into the board and switch it on. You should see a lovely Spectrum desktop  at your display.
+
+## Temporary limitations and known issues
+
+1. There is no cross-compilation support (yet). Use native `aarch64` hardware to build image for `imx8qm-mek`.
+
+## More info
+
+See https://spectrum-os.org/doc/development/build-configuration.html
+

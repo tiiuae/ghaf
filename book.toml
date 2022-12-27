@@ -2,7 +2,7 @@
 authors = ["Ville Ilvonen"]
 language = "en"
 multilingual = false
-src = "src"
+src = "doc"
 title = "Ghaf - Documentation for TII SSRC Secure Tech"
 
 [output.html]
