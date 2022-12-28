@@ -1,14 +1,21 @@
-# Patching Automation
+# Patch Management Automation
 
-Patching automation increases complex software development efficiency concurrently ensuring high level of vulnerability remediation in a reasonable time frame.
+Patch management automation increases complex software development efficiency concurrently ensuring high level of vulnerability remediation in a reasonable time frame.
 
-Each software artifact is undergoing a vulnerability scanning immediately after the build. When new vulnerabilities are discovered, the system will scan each dependency provenance for update availability. In case such exists, it will be downloaded and the new package will be built. The fresh package will undergo the same scan and a full set of functional testing, ensuring no functionality shatter was introduced simultaneously listing all new vulnerabilities introduced by the updates. A package passing the testing will be presented to the concerned developers for review and approval. All approved artifacts become release candidates as per adapted process.
+The process is:
 
+  - Build the package
+  - Scan for vulnerabilities
+  - If no new vulnerabilities are discovered the package undergoes testing followed by the developer review
+  - Check for update availability and upgrade
+  - Rebuild the package
+  - Rescan and send it to the automatic testing, followed by the developer review
+  
 ![AutomaticPatching](../img/autopatching.drawio.png)
 
 ## Implementation
 
-### Package URL
+### Dependency Tracking
 
 The dependency tracking solution is based on Package URL (PURL), natively supported by ClyconeDX. PURL is a URL, composed of seven components:
 
@@ -23,3 +30,7 @@ The dependency tracking solution is based on Package URL (PURL), natively suppor
   + **subpath**: extra subpath relative to package root
 
 In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help verifying original package integrity and source prior to update download. Thus minimizing security risks during the process.
+
+### Package Update
+
+The update mechanism implementation is system dependent and will differ from build system to another. For example in Nix it is enough that respective nix files are automatically updated and the package is rebuilt. More information on package update steps is available in ![NixOSWiki](https://nixos.wiki/wiki/Update_a_package).
