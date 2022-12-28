@@ -53,6 +53,8 @@ SLSA level is not transitive, thus level of the artifact is not dependent on the
 | Common — [Access](https://slsa.dev/spec/v0.1/requirements#access)                    |   |   |   | ✓ |
 | Common — [Superusers](https://slsa.dev/spec/v0.1/requirements#superusers)                |   |   |   | ✓ |
 
-✓ - Required
+✓ — Required
 
-○ - Required unless justified otherwise
+○ — Required unless justified otherwise
+
+Empty cell — not required
