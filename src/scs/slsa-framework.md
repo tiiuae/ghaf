@@ -32,26 +32,26 @@ SLSA level is not transitive, thus level of the artifact is not dependent on the
 
 | Requirements | Level 1 | Level 2 | Level 3 | Level 4 |
 |--------------|---------|---------|---------|---------|
-| Source - [Version Controlled](https://slsa.dev/spec/v0.1/requirements#version-controlled)        |   | ✓ | ✓ | ✓ |
-| Source - [Verified History](https://slsa.dev/spec/v0.1/requirements#verified-history)          |   |   | ✓ | ✓ |
-| Source - [Retained Indefinitely](https://slsa.dev/spec/v0.1/requirements#retained-indefinitely)     |   |   | ✓ | ✓ |
-| Source - [Two-person reviewed](https://slsa.dev/spec/v0.1/requirements#two-person-reviewed)       |   |   |   | ✓ |
-| Build - [Scripted Build](https://slsa.dev/spec/v0.1/requirements#scripted-build)             | ✓ | ✓ | ✓ | ✓ |
-| Build - [Build service](https://slsa.dev/spec/v0.1/requirements#build-service)              |   | ✓ | ✓ | ✓ |
-| Build - [Build as code](https://slsa.dev/spec/v0.1/requirements#build-as-code)              |   |   | ✓ | ✓ |
-| Build - [Ephemeral environment](https://slsa.dev/spec/v0.1/requirements#ephemeral-environment)      |   |   | ✓ | ✓ |
-| Build - [Isolated](https://slsa.dev/spec/v0.1/requirements#isolated)                   |   |   | ✓ | ✓ |
-| Build - [Parameterless](https://slsa.dev/spec/v0.1/requirements#parameterless)              |   |   |   | ✓ |
-| Build - [Hermetic](https://slsa.dev/spec/v0.1/requirements#hermetic)                   |   |   |   | ✓ |
-| Build - [Reproducible](https://slsa.dev/spec/v0.1/requirements#reproducible)               |   |   |   | ○ |
-| Provenance - [Available](https://slsa.dev/spec/v0.1/requirements#available)             | ✓ | ✓ | ✓ | ✓ |
-| Provenance - [Authenticated](https://slsa.dev/spec/v0.1/requirements#authenticated)         |   | ✓ | ✓ | ✓ |
-| Provenance - [Service Generated](https://slsa.dev/spec/v0.1/requirements#service-generated)     |   | ✓ | ✓ | ✓ |
-| Provenance - [Non-Falsifiable](https://slsa.dev/spec/v0.1/requirements#non-falsifiable)       |   |   | ✓ | ✓ |
-| Provenance - [Dependencies complete](https://slsa.dev/spec/v0.1/requirements#dependencies-complete) |   |   |   | ✓ |
-| Common - [Security](https://slsa.dev/spec/v0.1/requirements#security)                  |   |   |   | ✓ |
-| Common - [Access](https://slsa.dev/spec/v0.1/requirements#access)                    |   |   |   | ✓ |
-| Common - [Superusers](https://slsa.dev/spec/v0.1/requirements#superusers)                |   |   |   | ✓ |
+| Source — [Version controlled](https://slsa.dev/spec/v0.1/requirements#version-controlled)        |   | ✓ | ✓ | ✓ |
+| Source — [Verified history](https://slsa.dev/spec/v0.1/requirements#verified-history)          |   |   | ✓ | ✓ |
+| Source — [Retained indefinitely](https://slsa.dev/spec/v0.1/requirements#retained-indefinitely)     |   |   | ✓ | ✓ |
+| Source — [Two-person reviewed](https://slsa.dev/spec/v0.1/requirements#two-person-reviewed)       |   |   |   | ✓ |
+| Build — [Scripted build](https://slsa.dev/spec/v0.1/requirements#scripted-build)             | ✓ | ✓ | ✓ | ✓ |
+| Build — [Build service](https://slsa.dev/spec/v0.1/requirements#build-service)              |   | ✓ | ✓ | ✓ |
+| Build — [Build as code](https://slsa.dev/spec/v0.1/requirements#build-as-code)              |   |   | ✓ | ✓ |
+| Build — [Ephemeral environment](https://slsa.dev/spec/v0.1/requirements#ephemeral-environment)      |   |   | ✓ | ✓ |
+| Build — [Isolated](https://slsa.dev/spec/v0.1/requirements#isolated)                   |   |   | ✓ | ✓ |
+| Build — [Parameterless](https://slsa.dev/spec/v0.1/requirements#parameterless)              |   |   |   | ✓ |
+| Build — [Hermetic](https://slsa.dev/spec/v0.1/requirements#hermetic)                   |   |   |   | ✓ |
+| Build — [Reproducible](https://slsa.dev/spec/v0.1/requirements#reproducible)               |   |   |   | ○ |
+| Provenance — [Available](https://slsa.dev/spec/v0.1/requirements#available)             | ✓ | ✓ | ✓ | ✓ |
+| Provenance — [Authenticated](https://slsa.dev/spec/v0.1/requirements#authenticated)         |   | ✓ | ✓ | ✓ |
+| Provenance — [Service generated](https://slsa.dev/spec/v0.1/requirements#service-generated)     |   | ✓ | ✓ | ✓ |
+| Provenance — [Non-falsifiable](https://slsa.dev/spec/v0.1/requirements#non-falsifiable)       |   |   | ✓ | ✓ |
+| Provenance — [Dependencies complete](https://slsa.dev/spec/v0.1/requirements#dependencies-complete) |   |   |   | ✓ |
+| Common — [Security](https://slsa.dev/spec/v0.1/requirements#security)                  |   |   |   | ✓ |
+| Common — [Access](https://slsa.dev/spec/v0.1/requirements#access)                    |   |   |   | ✓ |
+| Common — [Superusers](https://slsa.dev/spec/v0.1/requirements#superusers)                |   |   |   | ✓ |
 
 ✓ - Required
 
