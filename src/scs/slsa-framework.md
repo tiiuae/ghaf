@@ -20,3 +20,30 @@ The SLSA model consists of 4 levels, offering an incremental level of anti-tampe
 
 SLSA level is not transitive, thus level of the artifact is not dependent on the level of dependencies, which are expected to have their own SLSA levels. This makes it possible to build a Level 4 artifact from Level 0 dependencies. 
 
+## Requirements
+
+| Requirements | Level 1 | Level 2 | Level 3 | Level 4 |
+|--------------|---------|---------|---------|---------|
+| Source - Version Controlled        |   | ✓ | ✓ | ✓ |
+| Source - Verified History          |   |   | ✓ | ✓ |
+| Source - Retained Indefinitely     |   |   | ✓ | ✓ |
+| Source - Two-person reviewed       |   |   |   | ✓ |
+| Build - Scripted Build             | ✓ | ✓ | ✓ | ✓ |
+| Build - Build service              |   | ✓ | ✓ | ✓ |
+| Build - Build as code              |   |   | ✓ | ✓ |
+| Build - Ephemeral environment      |   |   | ✓ | ✓ |
+| Build - Isolated                   |   |   | ✓ | ✓ |
+| Build - Parameterless              |   |   |   | ✓ |
+| Build - Hermetic                   |   |   |   | ✓ |
+| Build - Reproducible               |   |   |   | ○ |
+| Provenance - Available             | ✓ | ✓ | ✓ | ✓ |
+| Provenance - Authenticated         |   | ✓ | ✓ | ✓ |
+| Provenance - Service Generated     |   | ✓ | ✓ | ✓ |
+| Provenance - Non-Falsifiable       |   |   | ✓ | ✓ |
+| Provenance - Dependencies complete |   |   |   | ✓ |
+| Common - Security                  |   |   |   | ✓ |
+| Common - Access                    |   |   |   | ✓ |
+| Common - Superusers                |   |   |   | ✓ |
+
+✓ - Required
+○ - Required unless justified otherwise
