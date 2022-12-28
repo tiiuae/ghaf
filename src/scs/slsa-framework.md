@@ -5,7 +5,9 @@ Supply chain Levels for Software Artifacts (SLSA) is a security framework for ta
 ## SLSA Terminology
 
 **Immutable reference:** An identifier, guaranteed to always point to the same, immutable artifact.
+
 **Provenance:** Metadata about how an artifact was produced.
+
 **Revision:** An immutable, coherent state of a source.
 
 ## Levels of Assurance
@@ -52,4 +54,5 @@ SLSA level is not transitive, thus level of the artifact is not dependent on the
 | Common - [Superusers](https://slsa.dev/spec/v0.1/requirements#superusers)                |   |   |   | ✓ |
 
 ✓ - Required
+
 ○ - Required unless justified otherwise
