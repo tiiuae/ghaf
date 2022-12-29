@@ -1,17 +1,17 @@
 # Patch Management Automation
 
-Patch management automation increases complex software development efficiency concurrently ensuring high level of vulnerability remediation in a reasonable time frame.
+An automated patch management solution increases complex software development efficiency concurrently ensuring a high level of vulnerability remediation in a reasonable time frame.
 
-The process is:
+The patch management automation (PMA) system processes data in cycles. Every cycle includes a number of stages:
+  1. The developer submits the change to the repository. Hydra builds the package from the source.
+  2. The Vulnerability Analysis (VA) component scans each software artifact for vulnerabilities immediately after the build.
+  3. If new vulnerabilities are discovered, the PMA system scans each dependency provenance for the update availability.
+  4. If update availability exists, the PMA system downloads new dependencies, and Hydra builds the new package.
+  5. The package is rebuilding with updated dependencies that may affect functionality. The PMA system starts the package regression testing.
+  6. A package passing the testing will be presented to the concerned developers for review and approval. The SBOM, scan and test results along with the package are published to a web server. The developer downloads the artifacts for review and approval.
+  7. All approved artifacts become release candidates and can be found on the web server.
 
-  - Build the package
-  - Scan for vulnerabilities
-  - If no new vulnerabilities are discovered the package undergoes testing followed by the developer review
-  - Check for update availability and upgrade
-  - Rebuild the package
-  - Rescan and send it to the automatic testing, followed by the developer review
-  
-![AutomaticPatching](../img/autopatching.drawio.png)
+![Patch Management Automation](../img/autopatching.drawio.png "Automated Patch Management Solution")
 
 ## Implementation
 
