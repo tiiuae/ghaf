@@ -2,6 +2,8 @@
 
 An automated patch management solution increases complex software development efficiency concurrently ensuring a high level of vulnerability remediation in a reasonable time frame.
 
+![Patch Management Automation](../img/autopatching.drawio.png "Automated Patch Management Solution")
+
 The patch management automation (PMA) system processes data in cycles. Every cycle includes a number of stages:
   1. The developer submits the change to the repository. Hydra builds the package from the source.
   2. The Vulnerability Analysis (VA) component scans each software artifact for vulnerabilities immediately after the build.
@@ -10,8 +12,6 @@ The patch management automation (PMA) system processes data in cycles. Every cyc
   5. The package is rebuilding with updated dependencies that may affect functionality. The PMA system starts the package regression testing.
   6. A package passing the testing will be presented to the concerned developers for review and approval. The SBOM, scan and test results along with the package are published to a web server. The developer downloads the artifacts for review and approval.
   7. All approved artifacts become release candidates and can be found on the web server.
-
-![Patch Management Automation](../img/autopatching.drawio.png "Automated Patch Management Solution")
 
 ## Implementation
 
@@ -33,4 +33,4 @@ In addition to PURL, each component should contain at least one hash value, comp
 
 ### Package Update
 
-The update mechanism implementation is system dependent and will differ from build system to another. For example in Nix it is enough that respective nix files are automatically updated and the package is rebuilt. More information on package update steps is available in ![NixOSWiki](https://nixos.wiki/wiki/Update_a_package).
+The update mechanism implementation is system dependent and will differ from build system to another. For example in Nix it is enough that respective nix files are automatically updated and the package is rebuilt. More information on package update steps is available in [NixOSWiki](https://nixos.wiki/wiki/Update_a_package).
