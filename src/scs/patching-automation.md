@@ -21,16 +21,18 @@ The dependency tracking solution is based on Package URL (PURL), natively suppor
 
 `scheme:type/namespace/name@version?qualifiers#subpath`
 
-  + **scheme**: URL scheme, with the constant value "pkg", facilitating the future official registration of the "pkg" scheme for package URLs
-  + **type**: the package type, such as npm, maven, etc
-  + **namespace**: name prefix. For example GitHub user, organization, etc
-  + **name**: the name of the package
-  + **version**: the version of the package
-  + **qualifiers**: extra qualifying data, e.g. OS, distro, architecture, etc
-  + **subpath**: extra subpath relative to package root
+  + **scheme**: URL scheme, with the constant value "pkg", facilitating the future official registration of the "pkg" scheme for package URLs.
+  + **type**: the package type, such as npm, maven, etc.
+  + **namespace**: name prefix. For example GitHub user, organization, etc.
+  + **name**: the name of the package.
+  + **version**: the version of the package.
+  + **qualifiers**: extra qualifying data, e.g. OS, distro, architecture, etc.
+  + **subpath**: extra subpath relative to package root.
 
-In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help verifying original package integrity and source prior to update download. Thus minimizing security risks during the process.
+In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help to verify the original package integrity and source prior to update the download. Thus minimizing security risks during the process.
 
 ### Package Update
 
-The update mechanism implementation is system dependent and will differ from build system to another. For example in Nix it is enough that respective nix files are automatically updated and the package is rebuilt. More information on package update steps is available in [NixOSWiki](https://nixos.wiki/wiki/Update_a_package).
+The update mechanism implementation depends on a system and will differ from one build system to another.
+
+For example, in Nix it is enough that respective Nix files are automatically updated and the package is rebuilt. For more information on package update steps, see the [Update a package](https://nixos.wiki/wiki/Update_a_package) article of the NixOS Wiki.
