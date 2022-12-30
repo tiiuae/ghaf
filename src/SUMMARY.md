@@ -1,10 +1,10 @@
 # Summary
 
-- [Overview](./overview.md)
+- [Overview](about/overview.md)
 - [Architecture](architecture/architecture.md)
     - [Decision Record](architecture/adr.md)
-- [Technologies](./technologies.md)
-- [Build Configurations](./build_configurations.md)
+- [Technologies](technologies/technologies.md)
+- [Build Configurations](build_config/build_configurations.md)
 - [Supply Chain Security](scs/scs.md)
     - [SLSA Framework](scs/slsa-framework.md)
     - [Basic Security Measures](scs/basics.md)
