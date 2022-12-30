@@ -25,7 +25,7 @@ HSM can be also used to perform cryptographic operations such as digital signing
 
 One example of affordable HSM solutions is YubiHSM, developed by Yubico.
 
-### CA Hierarchy Options
+## CA Hierarchy Options
 
 CA usually consists of:
   + Root CA - the root of trust of the entire PKI, for issuing and signing the certificates used by other CAs
@@ -36,4 +36,10 @@ There are three types of hierarchies: one-tier, two-tier and three-tier. The hie
 In a two-tier hierarchy the Root CA and issuing (Subordinate) CAs are separated for increasing the security level. This is the simplest production level hierarchy allowing to keep Root CA at the most secure and restrictive levels, yet making subordinate CA access slightly more permissive. This hierarchy is most likely sufficient for most of the target projects.
 
 In a three-tier CA an intermediate CA is placed between the Root CA and the Subordinate (issuing) CA. This is done to further separate the Root CA from low-level CA operations. The middle layer (intermediate CA) is only used to sign Subordinate CAs that issue the end-entity certificates. 
+
+## Proposed CA Hierarchy
+
+The following diagram describes proposed CA for the SCS. The three-tier CA is chosen based on high security level and potential need to scale it to several projects later on, keeping the main control under the same RootCA.
+
+![Proposed CA](../img/ca_implementation.drawio.png "CA Implementation Proposal")
 
