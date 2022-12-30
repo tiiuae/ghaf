@@ -6,7 +6,7 @@ Secure Tech-project studies secure technologies in the context of embedded virtu
 
 Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide hardened system of small trusted computing base (TCB) - thin host - that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines. Embedded targets small devices - personal or headless - instead of high performance cloud servers. Our scope is illustrated in the following diagram.
 
-![Scope!](img/overview.png "Embedded Virtualization Scope")
+![Scope!](../img/overview.png "Embedded Virtualization Scope")
 
 ## Reference Implementation
 

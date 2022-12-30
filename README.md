@@ -8,9 +8,9 @@ The Ghaf project is an open-source framework for enhancing secrurity through com
 
 ## Directory Structure
 
-This is a source repository for https://tiiuae.github.io/ghaf/overview.html.
+This is a source repository for https://tiiuae.github.io/ghaf/about/overview.html.
 
-We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub pages for hosting.
+We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting.
 
 The basic directory structure looks like:
 
