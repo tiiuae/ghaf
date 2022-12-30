@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html" class="active"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../about/overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html" class="active"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -152,17 +152,18 @@
 <p>The dependency tracking solution is based on Package URL (PURL), natively supported by ClyconeDX. PURL is a URL, composed of seven components:</p>
 <p><code>scheme:type/namespace/name@version?qualifiers#subpath</code></p>
 <ul>
-<li><strong>scheme</strong>: URL scheme, with the constant value &quot;pkg&quot;, facilitating the future official registration of the &quot;pkg&quot; scheme for package URLs</li>
-<li><strong>type</strong>: the package type, such as npm, maven, etc</li>
-<li><strong>namespace</strong>: name prefix. For example GitHub user, organization, etc</li>
-<li><strong>name</strong>: the name of the package</li>
-<li><strong>version</strong>: the version of the package</li>
-<li><strong>qualifiers</strong>: extra qualifying data, e.g. OS, distro, architecture, etc</li>
-<li><strong>subpath</strong>: extra subpath relative to package root</li>
+<li><strong>scheme</strong>: URL scheme, with the constant value &quot;pkg&quot;, facilitating the future official registration of the &quot;pkg&quot; scheme for package URLs.</li>
+<li><strong>type</strong>: the package type, such as npm, maven, etc.</li>
+<li><strong>namespace</strong>: name prefix. For example GitHub user, organization, etc.</li>
+<li><strong>name</strong>: the name of the package.</li>
+<li><strong>version</strong>: the version of the package.</li>
+<li><strong>qualifiers</strong>: extra qualifying data, e.g. OS, distro, architecture, etc.</li>
+<li><strong>subpath</strong>: extra subpath relative to package root.</li>
 </ul>
-<p>In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help verifying original package integrity and source prior to update download. Thus minimizing security risks during the process.</p>
+<p>In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help to verify the original package integrity and source prior to update the download. Thus minimizing security risks during the process.</p>
 <h3 id="package-update"><a class="header" href="#package-update">Package Update</a></h3>
-<p>The update mechanism implementation is system dependent and will differ from build system to another. For example in Nix it is enough that respective nix files are automatically updated and the package is rebuilt. More information on package update steps is available in <a href="https://nixos.wiki/wiki/Update_a_package">NixOSWiki</a>.</p>
+<p>The update mechanism implementation depends on a system and will differ from one build system to another.</p>
+<p>For example, in Nix it is enough that respective Nix files are automatically updated and the package is rebuilt. For more information on package update steps, see the <a href="https://nixos.wiki/wiki/Update_a_package">Update a package</a> article of the NixOS Wiki.</p>
 
                     </main>
 

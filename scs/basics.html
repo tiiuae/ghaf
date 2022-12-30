@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html" class="active"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../about/overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html" class="active"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -140,15 +140,15 @@
 <h3 id="commit-signing"><a class="header" href="#commit-signing">Commit Signing</a></h3>
 <p>All the commits to repositories must be GPG-signed. This can be achieved by enabling GPG commit signatures in the config:</p>
 <p><code>git config --global commit.gpgsign true</code></p>
-<p>More detailed information for GitHub is available on: <a href="https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits" title="Signing Commits on GitHub">Signing Commits on GitHub</a> </p>
+<p>For more detailed information, see the <a href="https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits" title="Signing Commits on GitHub">Signing commits</a> article of the GitHub Docs.</p>
 <h3 id="branch-protection"><a class="header" href="#branch-protection">Branch Protection</a></h3>
 <p>In the case of GitHub the following settings should be considered:</p>
 <ul>
-<li>Require pull request reviews before merging (req: two-person reviewed source)</li>
-<li>Require status checks before merging</li>
-<li>Require conversation resolution before merging</li>
-<li>Require signed commits ()</li>
-<li>Deletions should be forbidden (req: immutable history)</li>
+<li>Require pull request reviews before merging (req: two-person reviewed source).</li>
+<li>Require status checks before merging.</li>
+<li>Require conversation resolution before merging.</li>
+<li>Require signed commits.</li>
+<li>Deletions should be forbidden (req: immutable history).</li>
 </ul>
 <h2 id="software-signing"><a class="header" href="#software-signing">Software Signing</a></h2>
 <p>Software signing is an important measure to validate the author and ensure that the code has not been altered on the way from the developer to the customer. Nix tooling is offering means to sign the derivations using libsodium with EdDSA, however, as the modular system is assumed, scripts need to be developed to support signing mechanisms in an absence of Nix tooling.</p>
@@ -157,7 +157,8 @@
 <li>Enabling the image signing on Hydra</li>
 <li>Shared Nix Store</li>
 </ul>
-<p>The second option is rather straightforward. Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.</p>
+<p>The option with shared Nix store is rather straightforward.</p>
+<p>Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.</p>
 <h2 id="data-encryption-in-transit"><a class="header" href="#data-encryption-in-transit">Data Encryption in Transit</a></h2>
 <p>All the data should be transported over secure encrypted channels. Since all the transportation is done over TCP/IP protocol stack, it is possible to use native solutions like TLS to secure the traffic between the nodes. Version 1.2 is a minimum requirement.</p>
 

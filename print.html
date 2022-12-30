@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="about/overview.html"><strong aria-hidden="true">1.</strong> Overview</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -135,23 +135,22 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="overview"><a class="header" href="#overview">Overview</a></h1>
+                        <h1 id="about-ghaf"><a class="header" href="#about-ghaf">About Ghaf</a></h1>
 <p>Secure Tech-project studies secure technologies in the context of embedded virtualization. This documentation-project, named after Ghaf tree, provides a landing site to our work. Our applied software research supports <a href="https://www.tii.ae/secure-systems">Secure Systems Research Center</a> focus areas.</p>
 <h2 id="embedded-virtualization"><a class="header" href="#embedded-virtualization">Embedded Virtualization</a></h2>
 <p>Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide hardened system of small trusted computing base (TCB) - thin host - that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines. Embedded targets small devices - personal or headless - instead of high performance cloud servers. Our scope is illustrated in the following diagram.</p>
-<p><img src="img/overview.png" alt="Scope!" /></p>
+<p><img src="about/img/overview.png" alt="Scope!" title="Embedded Virtualization Scope" /></p>
 <h2 id="reference-implementation"><a class="header" href="#reference-implementation">Reference Implementation</a></h2>
-<p>//Our work in progress reference implementation on NXP i.MX8 is available <a href="https://github.com/tiiuae/spectrum-config-imx8">here</a>.</p>
+<p>Our work in progress reference implementation on NXP i.MX8 is available <a href="https://github.com/tiiuae/spectrum-config-imx8">here</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
 <p>The main architectural concept of the Ghaf platform is to break up the traditional monolithic structure to modularized components, virtual machines (VM). These VMs on hardened host OS implement the Ghaf edge virtualization platform. The Ghaf platform components are used in reference configurations to build images for reference devices. See <a href="architecture/../build_configurations.html">build configurations</a> for more info.</p>
 <p>See <a href="architecture/adr.html">architectural decisions record</a> for more info on design choices that address architectural requirements.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-decision-record"><a class="header" href="#architecture-decision-record">Architecture Decision Record</a></h1>
-<h2 id="overview-1"><a class="header" href="#overview-1">Overview</a></h2>
 <p><a href="https://adr.github.io">Architecture decision records (ADR)</a> are used to constitute the Ghaf platform decision log.</p>
 <h2 id="contributions"><a class="header" href="#contributions">Contributions</a></h2>
 <p>Contributions to Ghaf architecture decisions are welcome. Please create an architectural decision proposal by opening a pull request using the <a href="https://github.com/tiiuae/build-configurations/blob/main/adr/template.md">template</a> to <a href="https://github.com/tiiuae/build-configurations">build configurations</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="technologies"><a class="header" href="#technologies">Technologies</a></h1>
-<h2 id="overview-2"><a class="header" href="#overview-2">Overview</a></h2>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
 <p>Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation - your business case is isolated from someone else's business case. At hardware level. Similarly, hardware support in modern personal devices has enabled isolation of device resources with virtualization. This provides the baseline for secure system design for use case protection. In practice, user can use the same device with a trusted application and with an untrusted application. Both application isolated from each other to protect valuable user data and privacy. Our systems are built using <a href="https://github.com/NixOS/nixpkgs">nixpkgs</a> and various <a href="https://nixos.org/guides/nix-language.html">Nix</a> based tools and configurations.</p>
 <h2 id="hardware-requirements-for-virtualization"><a class="header" href="#hardware-requirements-for-virtualization">Hardware Requirements for Virtualization</a></h2>
 <p>Protected computation resources include: CPU, memory, storage and other IO devices. Allocation of these resources is managed with hypervisor. In our reference implementation, we use KVM (Kernel Virtual Machine) from Linux to virtualize hardware access. From hardware, this requires MMU (memory management unit) for CPU physical to virtual address mapping and IOMMU for direct memory access (DMA) capable device virtual addresses to physical addresses of the main memory. Many 64-bit CPUs support virtualization via hypervisor extensions already. Our reference implementation supports x86_64 and aarch64 and we follow RISC-V hypervisor extensions development.</p>
@@ -159,32 +158,43 @@
 <h2 id="virtual-machine-manager-vmm"><a class="header" href="#virtual-machine-manager-vmm">Virtual Machine Manager (VMM)</a></h2>
 <p>On top of operating system (OS) kernel hypervisor support with KVM - we allocate virtual resources for use cases with user space virtual machine manager (VMM) using <a href="https://github.com/rust-vmm">rust-vmm</a> based projects such as <a href="https://github.com/cloud-hypervisor/cloud-hypervisor">cloud-hypervisor</a> and <a href="https://github.com/google/crosvm">crosvm</a>. <a href="https://www.qemu.org/">QEMU</a> is enabled for certain development use cases. In addition, we have also experimental, aarch64 demonstrated support for a KVM variant - <a href="https://github.com/jkrh/kvms">KVMS</a> which adds security features to standard KVM.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="build-configurations"><a class="header" href="#build-configurations">Build Configurations</a></h1>
-<p>Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: https://github.com/NixOS.</p>
-<p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try and check the details, see <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a> repository.</p>
+<p>Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: <a href="https://github.com/NixOS">https://github.com/NixOS</a>.</p>
+<p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try and check the details, see the <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a> repository.</p>
 <h2 id="approach"><a class="header" href="#approach">Approach</a></h2>
-<p>A build configuration is a target to build our hardened OS for a particular hardware device. The supported development target devices are listed in the <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a>. The packages used in a build configuration comes from <a href="https://github.com/NixOS/nixpkgs">nixpkgs - NixOS Packages collection</a>. Upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time we get the maintenance support of NixOS community and the benefits of Nix language on how to build packages and track the origins of packages in software supply chain security.</p>
-<p>NixOS, a Linux os distribution packaged with Nix, provides us with:</p>
+<p>A build configuration is a target to build our hardened OS for a particular hardware device. The supported development target devices are listed in <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a>. The packages used in a build configuration come from <a href="https://github.com/NixOS/nixpkgs">nixpkgs - NixOS Packages collection</a>.</p>
+<p>The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see <a href="build_config/scs/scs.html">Supply Chain Security</a>.</p>
+<p>NixOS, a Linux OS distribution packaged with Nix, provides us with:</p>
 <ul>
-<li>generic hardware architecture support (<code>x86_64</code> and <code>aarch64</code>)</li>
-<li>declarative and modular mechanism to describe the system</li>
-<li>Nix packaging language mechanisms
+<li>generic hardware architecture support (<code>x86-64</code> and <code>AArch64</code>);</li>
+<li>declarative and modular mechanism to describe the system;</li>
+<li>Nix packaging language mechanisms:
 <ul>
-<li>to extend and change packages with <a href="https://nixos.wiki/wiki/Overlays">overlays</a></li>
-<li>to <a href="https://nixos.org/guides/nix-pills/override-design-pattern.html">override</a> packages</li>
+<li>to extend and change packages with <a href="https://nixos.wiki/wiki/Overlays">overlays</a>,</li>
+<li>to <a href="https://nixos.org/guides/nix-pills/override-design-pattern.html">override</a> packages.</li>
 </ul>
 </li>
 </ul>
-<p>Even when unmodified upstream are often preferred, even ideal, to ensure timely security updates from upstream - the customizations are sometimes required.</p>
-<p>For example, to support a reference board without vendor board support package (BSP) - bootloader, kernel, device drivers - is often not feasible. With this approach we can overlay generic NixOS linux kernel with the vendor kernel and add vendor bootloader to build a target image. Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the HW vendor. Those are handled by allowing <code>unfree</code> - if user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support. Same goes with the architectural variants - headless devices or end-user devices - differ in terms what kind of virtual machines (VM) they contain. User needs graphics architecture and supporting VMs for the user interface (UI) where a headless device is more like a small server without the UI.</p>
+<p>Even when unmodified upstream is often preferred, even ideal, to ensure timely security updates from upstream — customizations are sometimes required.</p>
+<h3 id="example"><a class="header" href="#example">Example</a></h3>
+<p>To support a reference board without a vendor board support package (BSP) — bootloader, kernel, device drivers — is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.</p>
+<p>Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing <code>unfree</code> - if the user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support.</p>
+<p>The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="supply-chain-security"><a class="header" href="#supply-chain-security">Supply Chain Security</a></h1>
 <p>To be aware of what is exactly in our software supply chain, it is reviewed for security issues and known vulnerabilities.</p>
-<p><img src="scs/../img/threat_processing.png" alt="Supply Chain Attacks" /></p>
-<p>We implement a <em>supply chain security (SCS)</em> — process of securing the machinery of the development, building and release environment. That means that every component that a software artifact might be touching on its way from the developer to the consumer will be secured.</p>
+<p><img src="scs/../img/threat_processing.drawio.png" alt="Supply Chain Attacks Diagram" title="Supply Chain Attacks" /></p>
+<p>We implement a <em>supply chain security (SCS)</em> — process of securing the machinery of the development, building, and release environment. That means that every component that a software artifact might be touching on its way from the developer to the consumer will be secured.</p>
 <p>The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be accompanied by means of <a href="https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/"><em>software bill of materials (SBOM)</em></a>, identifying all the components that the software package consists of.</p>
-<p>SBOM containing reference to each dependency, its source and version together with provenance, containing build information are collected at the build time, signed and used for vulnerability analysis during the next steps.</p>
-<p>The software artifact, SBOM and provenance are signed by the build machinery at the build time, and the signature is verifiable at every destination of the package. The certificates that are used for signing and verification are provided by the <em>public key infrastructure (PKI)</em> system and are signed by the same root <em>certificate authority (CA)</em>. It allows easily confirm the signature author (build machinery) and guarantee that the package has not been tampered with since the build time.</p>
+<p>SBOM containing reference to each dependency, its source and version together with provenance, containing build information are collected at the build time, signed, and used for vulnerability analysis during the next steps.</p>
+<p>The software artifact, SBOM, and provenance are signed by the build machinery at the build time, and the signature is verifiable at every destination of the package. The certificates that are used for signing and verification are provided by the <em>public key infrastructure (PKI)</em> system and are signed by the same root <em>certificate authority (CA)</em>. That allows you to confirm the author of the signature (build machinery) and guarantees that the package has not been tampered with since the build time.</p>
+<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
+<ul>
+<li><a href="scs/scs/slsa-framework.html">SLSA Framework</a></li>
+<li><a href="scs/scs/basics.html">Basic Security Measures</a></li>
+<li><a href="scs/scs/pki.html">Public Key Infrastructure</a></li>
+<li><a href="scs/scs/patching-automation.html">Patch Management Automation</a></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="slsa-framework"><a class="header" href="#slsa-framework">SLSA Framework</a></h1>
-<p>Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement and securing packages and infrastructure of a project. More information about SLSA framework can be found from SLSA official <a href="https://slsa.dev">SLSA</a> website.</p>
+<p>Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement, and securing packages and infrastructure of a project. For more information about the SLSA framework, see the offical website<a href="https://slsa.dev">https://slsa.dev</a>.</p>
 <h2 id="slsa-terminology"><a class="header" href="#slsa-terminology">SLSA Terminology</a></h2>
 <p><strong>Immutable reference:</strong> An identifier, guaranteed to always point to the same, immutable artifact.</p>
 <p><strong>Provenance:</strong> Metadata about how an artifact was produced.</p>
@@ -193,7 +203,7 @@
 <p>One of the requirements for the solution is to reach SLSA Level 4 and even go beyond that. This requires a lot of process changes as well as technical work. </p>
 <p>The SLSA model consists of 4 levels, offering an incremental level of anti-tampering protection. Levels 1-3 represent milestones with certain integrity guarantees, whereas level 4 is an ideal end state.</p>
 <p><strong>Level 0</strong> means no SLSA compliance and no guarantees are given.</p>
-<p><strong>Level 1</strong> demands a fully scripted/automated build process and provenance generation. It offers basic confidence in the origin of the software but doesn’t provide any tamper resistance.</p>
+<p><strong>Level 1</strong> demands a fully scripted / automated build process and provenance generation. It offers basic confidence in the origin of the software but doesn’t provide any tamper resistance.</p>
 <p><strong>Level 2</strong> Introduces authenticated provenance generated by a hosted build at the same time demanding version control system usage. Provenance prevents tampering and offers trust in the build service.</p>
 <p><strong>Level 3</strong> offers auditability of the source and the integrity of the provenance. Much stronger tampering protection is provided by preventing specific classes of threats such as cross-build contamination.</p>
 <p><strong>Level 4</strong> requires two-peer source code review and a hermetic, reproducible build process. Overall Level 4 offers a high degree of confidence in the anti-tampering protection of the software.</p>
@@ -222,24 +232,24 @@
 <tr><td>Common — <a href="https://slsa.dev/spec/v0.1/requirements#superusers">Superusers</a></td><td></td><td></td><td></td><td>✓</td></tr>
 </tbody></table>
 </div>
-<p>✓ — Required</p>
-<p>○ — Required unless justified otherwise</p>
-<p>Empty cell — not required</p>
+<p>✓ — required</p>
+<p>○ — required unless justified otherwise</p>
+<p>empty cell — not required</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="basic-security-measures"><a class="header" href="#basic-security-measures">Basic Security Measures</a></h1>
 <h2 id="source-code--version-control-security"><a class="header" href="#source-code--version-control-security">Source Code / Version Control Security</a></h2>
 <p>The source code security is based on the fact that the source code is two-person reviewed, version controlled, and the history is verified and retained indefinitely.</p>
 <h3 id="commit-signing"><a class="header" href="#commit-signing">Commit Signing</a></h3>
 <p>All the commits to repositories must be GPG-signed. This can be achieved by enabling GPG commit signatures in the config:</p>
 <p><code>git config --global commit.gpgsign true</code></p>
-<p>More detailed information for GitHub is available on: <a href="https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits" title="Signing Commits on GitHub">Signing Commits on GitHub</a> </p>
+<p>For more detailed information, see the <a href="https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits" title="Signing Commits on GitHub">Signing commits</a> article of the GitHub Docs.</p>
 <h3 id="branch-protection"><a class="header" href="#branch-protection">Branch Protection</a></h3>
 <p>In the case of GitHub the following settings should be considered:</p>
 <ul>
-<li>Require pull request reviews before merging (req: two-person reviewed source)</li>
-<li>Require status checks before merging</li>
-<li>Require conversation resolution before merging</li>
-<li>Require signed commits ()</li>
-<li>Deletions should be forbidden (req: immutable history)</li>
+<li>Require pull request reviews before merging (req: two-person reviewed source).</li>
+<li>Require status checks before merging.</li>
+<li>Require conversation resolution before merging.</li>
+<li>Require signed commits.</li>
+<li>Deletions should be forbidden (req: immutable history).</li>
 </ul>
 <h2 id="software-signing"><a class="header" href="#software-signing">Software Signing</a></h2>
 <p>Software signing is an important measure to validate the author and ensure that the code has not been altered on the way from the developer to the customer. Nix tooling is offering means to sign the derivations using libsodium with EdDSA, however, as the modular system is assumed, scripts need to be developed to support signing mechanisms in an absence of Nix tooling.</p>
@@ -248,38 +258,39 @@
 <li>Enabling the image signing on Hydra</li>
 <li>Shared Nix Store</li>
 </ul>
-<p>The second option is rather straightforward. Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.</p>
+<p>The option with shared Nix store is rather straightforward.</p>
+<p>Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.</p>
 <h2 id="data-encryption-in-transit"><a class="header" href="#data-encryption-in-transit">Data Encryption in Transit</a></h2>
 <p>All the data should be transported over secure encrypted channels. Since all the transportation is done over TCP/IP protocol stack, it is possible to use native solutions like TLS to secure the traffic between the nodes. Version 1.2 is a minimum requirement.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="public-key-infrastructure"><a class="header" href="#public-key-infrastructure">Public Key Infrastructure</a></h1>
-<p>In the SCS context a public key infrastructure (PKI) term refers to a system for the creation, storage, and distribution of digital certificates which are used to verify that a particular key belongs to a certain entity. PKI creates and manages a hierarchical set of digital certificates which map public keys to certain entities. Storage and revocation methodologies are to be defined.</p>
+<p>In the SCS context, a public key infrastructure (PKI) term refers to a system for the creation, storage, and distribution of digital certificates which are used to verify that a particular key belongs to a certain entity. PKI creates and manages a hierarchical set of digital certificates which map public keys to certain entities. Storage and revocation methodologies are to be defined.</p>
 <p>The PKI of SCS should consist of:</p>
 <ul>
-<li>Certificate authority (CA) for storing, issuing, and signing the digital certificates</li>
-<li>Registration authority (RA) for requesting entity identity verification</li>
-<li>Central directory for the secure storage of the keys</li>
-<li>Certificate Management System (CMS) for managing access to stored certificates</li>
+<li>Certificate authority (CA) for storing, issuing, and signing the digital certificates.</li>
+<li>Registration authority (RA) for requesting entity identity verification.</li>
+<li>Central directory for the secure storage of the keys.</li>
+<li>Certificate Management System (CMS) for managing access to stored certificates.</li>
 </ul>
 <h2 id="private-certificate-authority-pca"><a class="header" href="#private-certificate-authority-pca">Private Certificate Authority (PCA)</a></h2>
-<p>PCA enables the creation of private certificate authority hierarchies, consisting of a Root and Subordinate CAs. It issues end-entity X.509 certificates, that are used for: </p>
+<p>PCA enables the creation of private certificate authority hierarchies, consisting of Root and Subordinate CAs. It issues end-entity X.509 certificates, that are used for: </p>
 <ul>
 <li>Encrypted TLS communication channels (data encryption in transit)</li>
 <li>Code and image signing</li>
 </ul>
-<p>PCA can be established in the cloud or on-premises. Initially, the OpenSSL based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions. </p>
+<p>PCA can be established in the cloud or on-premises. Initially, the OpenSSL-based solution deployed on-premises is assumed, however, some of the target projects might consider using commercial cloud solutions. </p>
 <h2 id="hardware-security-module"><a class="header" href="#hardware-security-module">Hardware Security Module</a></h2>
 <p>On-premises solution can be further improved by adding a Hardware Security Module (HSM). It is a physical device for managing cryptographic material such as digital keys. </p>
-<p>HSM can be also used to perform cryptographic operations such as digital signing, encryption, and decryption. The HSM contains one or more Secure Cryptoprocessor that are dedicated microprocessors optimized for carrying out cryptographic operations. </p>
+<p>HSM can be also used to perform cryptographic operations such as digital signing, encryption, and decryption. The HSM contains one or more Secure Cryptoprocessors that are dedicated microprocessors optimized for carrying out cryptographic operations. </p>
 <p>One example of affordable HSM solutions is YubiHSM, developed by Yubico.</p>
 <h2 id="ca-hierarchy-options"><a class="header" href="#ca-hierarchy-options">CA Hierarchy Options</a></h2>
 <p>CA usually consists of:</p>
 <ul>
-<li>Root CA - the root of trust of the entire PKI, for issuing and signing the certificates used by other CAs</li>
-<li>Subordinate CA for issuing end-entity certificates</li>
+<li>Root CA - the root of trust of the entire PKI, for issuing and signing the certificates used by other CAs.</li>
+<li>Subordinate CA for issuing end-entity certificates.</li>
 </ul>
-<p>There are three types of hierarchies: one-tier, two-tier and three-tier. The hierarchy can be chosen based on the target project's needs and complexity. A one-tier hierarchy is not considered for any production usage due to the low security, as the compromise of a single CA leads to a compromise of the entire PKI.</p>
-<p>In a two-tier hierarchy the Root CA and issuing (Subordinate) CAs are separated for increasing the security level. This is the simplest production level hierarchy allowing to keep Root CA at the most secure and restrictive levels, yet making subordinate CA access slightly more permissive. This hierarchy is most likely sufficient for most of the target projects.</p>
-<p>In a three-tier CA an intermediate CA is placed between the Root CA and the Subordinate (issuing) CA. This is done to separate the Root CA from low-level CA operations. The middle layer (intermediate CA) is only used to sign Subordinate CAs that issue the end-entity certificates. </p>
+<p>There are three types of hierarchies: one-tier, two-tier, and three-tier. The hierarchy can be chosen based on the target project's needs and complexity. A one-tier hierarchy is not considered for any production usage due to the low security, as the compromise of a single CA leads to a compromise of the entire PKI.</p>
+<p>In a two-tier hierarchy, the Root CA and issuing (Subordinate) CAs are separated for increasing the security level. This is the simplest production level hierarchy allowing to keep Root CA at the most secure and restrictive levels, yet making subordinate CA access slightly more permissive. This hierarchy is most likely sufficient for most of the target projects.</p>
+<p>In a three-tier CA, an intermediate CA is placed between the Root CA and the Subordinate (issuing) CA. This is done to separate the Root CA from low-level CA operations. The middle layer (intermediate CA) is only used to sign Subordinate CAs that issue the end-entity certificates. </p>
 <h2 id="proposed-ca-hierarchy"><a class="header" href="#proposed-ca-hierarchy">Proposed CA Hierarchy</a></h2>
 <p>The following diagram describes the proposed CA for the SCS. The three-tier CA is chosen based on the high-security level and the potential need to scale it to several projects, later on, keeping the main control under the same Root CA.</p>
 <p><img src="scs/../img/ca_implementation.drawio.png" alt="Proposed CA" title="CA Implementation Proposal" /></p>
@@ -301,17 +312,18 @@
 <p>The dependency tracking solution is based on Package URL (PURL), natively supported by ClyconeDX. PURL is a URL, composed of seven components:</p>
 <p><code>scheme:type/namespace/name@version?qualifiers#subpath</code></p>
 <ul>
-<li><strong>scheme</strong>: URL scheme, with the constant value &quot;pkg&quot;, facilitating the future official registration of the &quot;pkg&quot; scheme for package URLs</li>
-<li><strong>type</strong>: the package type, such as npm, maven, etc</li>
-<li><strong>namespace</strong>: name prefix. For example GitHub user, organization, etc</li>
-<li><strong>name</strong>: the name of the package</li>
-<li><strong>version</strong>: the version of the package</li>
-<li><strong>qualifiers</strong>: extra qualifying data, e.g. OS, distro, architecture, etc</li>
-<li><strong>subpath</strong>: extra subpath relative to package root</li>
+<li><strong>scheme</strong>: URL scheme, with the constant value &quot;pkg&quot;, facilitating the future official registration of the &quot;pkg&quot; scheme for package URLs.</li>
+<li><strong>type</strong>: the package type, such as npm, maven, etc.</li>
+<li><strong>namespace</strong>: name prefix. For example GitHub user, organization, etc.</li>
+<li><strong>name</strong>: the name of the package.</li>
+<li><strong>version</strong>: the version of the package.</li>
+<li><strong>qualifiers</strong>: extra qualifying data, e.g. OS, distro, architecture, etc.</li>
+<li><strong>subpath</strong>: extra subpath relative to package root.</li>
 </ul>
-<p>In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help verifying original package integrity and source prior to update download. Thus minimizing security risks during the process.</p>
+<p>In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help to verify the original package integrity and source prior to update the download. Thus minimizing security risks during the process.</p>
 <h3 id="package-update"><a class="header" href="#package-update">Package Update</a></h3>
-<p>The update mechanism implementation is system dependent and will differ from build system to another. For example in Nix it is enough that respective nix files are automatically updated and the package is rebuilt. More information on package update steps is available in <a href="https://nixos.wiki/wiki/Update_a_package">NixOSWiki</a>.</p>
+<p>The update mechanism implementation depends on a system and will differ from one build system to another.</p>
+<p>For example, in Nix it is enough that respective Nix files are automatically updated and the package is rebuilt. For more information on package update steps, see the <a href="https://nixos.wiki/wiki/Update_a_package">Update a package</a> article of the NixOS Wiki.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="research-topics"><a class="header" href="#research-topics">Research Topics</a></h1>
 <ul>
 <li><a href="research/pass-through/ethernet.html">Imx8qm platform bus ethernet passthrough</a></li>
