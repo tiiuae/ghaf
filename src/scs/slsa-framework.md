@@ -2,6 +2,14 @@
 
 Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement and securing packages and infrastructure of a project. More information about SLSA framework can be found from SLSA official [SLSA](https://slsa.dev) website.
 
+## SLSA Terminology
+
+**Immutable reference:** An identifier, guaranteed to always point to the same, immutable artifact.
+
+**Provenance:** Metadata about how an artifact was produced.
+
+**Revision:** An immutable, coherent state of a source.
+
 ## Levels of Assurance
 
 One of the requirements for the solution is to reach SLSA Level 4 and even go beyond that. This requires a lot of process changes as well as technical work. 
@@ -20,3 +28,33 @@ The SLSA model consists of 4 levels, offering an incremental level of anti-tampe
 
 SLSA level is not transitive, thus level of the artifact is not dependent on the level of dependencies, which are expected to have their own SLSA levels. This makes it possible to build a Level 4 artifact from Level 0 dependencies. 
 
+## Requirements
+
+| Requirements | Level 1 | Level 2 | Level 3 | Level 4 |
+|--------------|---------|---------|---------|---------|
+| Source — [Version controlled](https://slsa.dev/spec/v0.1/requirements#version-controlled)        |   | ✓ | ✓ | ✓ |
+| Source — [Verified history](https://slsa.dev/spec/v0.1/requirements#verified-history)          |   |   | ✓ | ✓ |
+| Source — [Retained indefinitely](https://slsa.dev/spec/v0.1/requirements#retained-indefinitely)     |   |   | ✓ | ✓ |
+| Source — [Two-person reviewed](https://slsa.dev/spec/v0.1/requirements#two-person-reviewed)       |   |   |   | ✓ |
+| Build — [Scripted build](https://slsa.dev/spec/v0.1/requirements#scripted-build)             | ✓ | ✓ | ✓ | ✓ |
+| Build — [Build service](https://slsa.dev/spec/v0.1/requirements#build-service)              |   | ✓ | ✓ | ✓ |
+| Build — [Build as code](https://slsa.dev/spec/v0.1/requirements#build-as-code)              |   |   | ✓ | ✓ |
+| Build — [Ephemeral environment](https://slsa.dev/spec/v0.1/requirements#ephemeral-environment)      |   |   | ✓ | ✓ |
+| Build — [Isolated](https://slsa.dev/spec/v0.1/requirements#isolated)                   |   |   | ✓ | ✓ |
+| Build — [Parameterless](https://slsa.dev/spec/v0.1/requirements#parameterless)              |   |   |   | ✓ |
+| Build — [Hermetic](https://slsa.dev/spec/v0.1/requirements#hermetic)                   |   |   |   | ✓ |
+| Build — [Reproducible](https://slsa.dev/spec/v0.1/requirements#reproducible)               |   |   |   | ○ |
+| Provenance — [Available](https://slsa.dev/spec/v0.1/requirements#available)             | ✓ | ✓ | ✓ | ✓ |
+| Provenance — [Authenticated](https://slsa.dev/spec/v0.1/requirements#authenticated)         |   | ✓ | ✓ | ✓ |
+| Provenance — [Service generated](https://slsa.dev/spec/v0.1/requirements#service-generated)     |   | ✓ | ✓ | ✓ |
+| Provenance — [Non-falsifiable](https://slsa.dev/spec/v0.1/requirements#non-falsifiable)       |   |   | ✓ | ✓ |
+| Provenance — [Dependencies complete](https://slsa.dev/spec/v0.1/requirements#dependencies-complete) |   |   |   | ✓ |
+| Common — [Security](https://slsa.dev/spec/v0.1/requirements#security)                  |   |   |   | ✓ |
+| Common — [Access](https://slsa.dev/spec/v0.1/requirements#access)                    |   |   |   | ✓ |
+| Common — [Superusers](https://slsa.dev/spec/v0.1/requirements#superusers)                |   |   |   | ✓ |
+
+✓ — Required
+
+○ — Required unless justified otherwise
+
+Empty cell — not required

@@ -9,6 +9,6 @@
     - [SLSA Framework](scs/slsa-framework.md)
     - [Basic Security Measures](scs/basics.md)
     - [Public Key Infrastructure](scs/pki.md)
+    - [Patch Management Automation](scs/patching-automation.md)
 - [Research Topics](research/research.md)
     - [IMX8qm ethernet passthrough](research/pass-through/ethernet.md)
-- [Frequently Asked Questions](./faq.md)
