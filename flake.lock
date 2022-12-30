@@ -15,6 +15,85 @@
         "type": "github"
       }
     },
+    "jetpack-nixos": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1671668030,
+        "narHash": "sha256-kmWOB3n+Rt1vRh4Qs4spm6+F0Gl2CuyrTmgowEe8jUs=",
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "rev": "0545d8f84152421fc7dcf59678a78b8b8306d5e5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "anduril",
+        "repo": "jetpack-nixos",
+        "type": "github"
+      }
+    },
+    "microvm": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1671934509,
+        "narHash": "sha256-flutX1FzFos0+Va7jCAE8F4g/3gzJ9DsOlYYRsQ+Kh4=",
+        "owner": "astro",
+        "repo": "microvm.nix",
+        "rev": "9bc97fe223048f09ec83de9b29b78766194e554c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "astro",
+        "repo": "microvm.nix",
+        "type": "github"
+      }
+    },
+    "nixlib": {
+      "locked": {
+        "lastModified": 1636849918,
+        "narHash": "sha256-nzUK6dPcTmNVrgTAC1EOybSMsrcx+QrVPyqRdyKLkjA=",
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "rev": "28a5b0557f14124608db68d3ee1f77e9329e9dd5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixpkgs.lib",
+        "type": "github"
+      }
+    },
+    "nixos-generators": {
+      "inputs": {
+        "nixlib": "nixlib",
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1671355134,
+        "narHash": "sha256-ZtnUWTDDyFog+NQBjZpnhgPdj3gHp5ImxFVWy+ObNno=",
+        "owner": "nix-community",
+        "repo": "nixos-generators",
+        "rev": "64a96ca8621d03cb3889daf0d3ff58d8209e3e0c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "nixos-generators",
+        "type": "github"
+      }
+    },
     "nixpkgs": {
       "locked": {
         "lastModified": 1672353432,
@@ -34,6 +113,9 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
+        "jetpack-nixos": "jetpack-nixos",
+        "microvm": "microvm",
+        "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs"
       }
     }
