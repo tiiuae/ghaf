@@ -35,7 +35,7 @@ There are three types of hierarchies: one-tier, two-tier and three-tier. The hie
 
 In a two-tier hierarchy the Root CA and issuing (Subordinate) CAs are separated for increasing the security level. This is the simplest production level hierarchy allowing to keep Root CA at the most secure and restrictive levels, yet making subordinate CA access slightly more permissive. This hierarchy is most likely sufficient for most of the target projects.
 
-In a three-tier CA an intermediate CA is placed between the Root CA and the Subordinate (issuing) CA. This is done to further separate the Root CA from low-level CA operations. The middle layer (intermediate CA) is only used to sign Subordinate CAs that issue the end-entity certificates. 
+In a three-tier CA an intermediate CA is placed between the Root CA and the Subordinate (issuing) CA. This is done to separate the Root CA from low-level CA operations. The middle layer (intermediate CA) is only used to sign Subordinate CAs that issue the end-entity certificates. 
 
 ## Proposed CA Hierarchy
 
