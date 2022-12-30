@@ -1,7 +1,7 @@
 {
   description = "Ghaf - documentation for TII SSRC Common Tech";
 
-  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+  inputs.nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
   inputs.flake-utils.url = "github:numtide/flake-utils";
 
   outputs = {
