@@ -18,9 +18,9 @@
     nixpkgs,
     flake-utils,
   }: let
-    systems = [
-      "x86_64-linux"
-      "aarch64-linux"
+    systems = with flake-utils.lib.system; [
+      x86_64-linux
+      aarch64-linux
     ];
   in
     flake-utils.lib.eachSystem systems (system: {
