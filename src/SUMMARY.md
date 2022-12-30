@@ -1,6 +1,6 @@
 # Summary
 
-- [Overview](about/overview.md)
+- [About Ghaf](about/overview.md)
 - [Architecture](architecture/architecture.md)
     - [Decision Record](architecture/adr.md)
 - [Technologies](technologies/technologies.md)
