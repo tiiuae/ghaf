@@ -10,4 +10,5 @@
     - [Basic Security Measures](scs/basics.md)
     - [Public Key Infrastructure](scs/pki.md)
     - [Patch Management Automation](scs/patching-automation.md)
-- [Frequently Asked Questions](./faq.md)
+- [Research Topics](research/research.md)
+    - [IMX8qm ethernet passthrough](research/pass-through/ethernet.md)
