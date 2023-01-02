@@ -1,7 +1,5 @@
 # Architecture Decision Record
 
-## Overview
-
 [Architecture decision records (ADR)](https://adr.github.io) are used to constitute the Ghaf platform decision log.
 
 ## Contributions

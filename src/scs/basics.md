@@ -9,16 +9,16 @@ All the commits to repositories must be GPG-signed. This can be achieved by enab
 
 `git config --global commit.gpgsign true`
 
-More detailed information for GitHub is available on: [Signing Commits on GitHub](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits "Signing Commits on GitHub") 
+For more detailed information, see the [Signing commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits "Signing Commits on GitHub") article of the GitHub Docs.
 
 ### Branch Protection
 In the case of GitHub the following settings should be considered:
 
-  + Require pull request reviews before merging (req: two-person reviewed source)
-  + Require status checks before merging
-  + Require conversation resolution before merging
-  + Require signed commits ()
-  + Deletions should be forbidden (req: immutable history)
+  + Require pull request reviews before merging (req: two-person reviewed source).
+  + Require status checks before merging.
+  + Require conversation resolution before merging.
+  + Require signed commits.
+  + Deletions should be forbidden (req: immutable history).
 
 ## Software Signing
 
