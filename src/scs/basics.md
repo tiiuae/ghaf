@@ -29,7 +29,17 @@ By default, the software image is signed only at the binary cache per request. W
   + Enabling the image signing on Hydra
   + Shared Nix Store
 
-The second option is rather straightforward. Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.
+### Enabling the image signing on Hydra
+
+Enabling the image signing on Hydra requires some extra work due to the lack of well documented support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.
+
+![Image Signing on Hydra](../img/threat_processing_2serv.drawio.png "Enabling The Image Signing On Hydra")
+
+### Shared Nix Store
+
+The shared NixStore option is rather straightforward, in case the Hydra is combined with the binary cache. This kind of setup is lacking the extra transition path. Thus the packages signed by the binary cache will be served straight from the Hydra NixStore.
+
+![Shared NixStore](../img/threat_processing_1serv.drawio.png "Shared NixStore")
 
 ## Data Encryption in Transit
 
