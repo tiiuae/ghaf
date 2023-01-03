@@ -20,5 +20,7 @@
             doc = pkgs.callPackage ./doc.nix {};
           };
 
+        formatter = nixpkgs.legacyPackages.${system}.alejandra;
+
       });
 }
