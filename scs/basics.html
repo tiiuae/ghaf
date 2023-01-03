@@ -157,8 +157,12 @@
 <li>Enabling the image signing on Hydra</li>
 <li>Shared Nix Store</li>
 </ul>
-<p>The option with shared Nix store is rather straightforward.</p>
-<p>Enabling the image signing on Hydra requires some extra work due to the lack of support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.</p>
+<h3 id="enabling-image-signing-on-hydra"><a class="header" href="#enabling-image-signing-on-hydra">Enabling Image Signing on Hydra</a></h3>
+<p>Enabling the image signing on Hydra requires some extra work due to the lack of well-documented support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.</p>
+<p><img src="../img/threat_processing_2serv.drawio.png" alt="Enabling Image Signing on Hydra" title="Enabling The Image Signing On Hydra" /></p>
+<h3 id="shared-nix-store"><a class="header" href="#shared-nix-store">Shared Nix Store</a></h3>
+<p>The shared NixStore option is rather straightforward if Hydra is combined with the binary cache. This kind of setup is lacking the extra transition path. Thus the packages signed by the binary cache will be served straight from the Hydra NixStore.</p>
+<p><img src="../img/threat_processing_1serv.drawio.png" alt="Shared NixStore Solution" title="Shared NixStore" /></p>
 <h2 id="data-encryption-in-transit"><a class="header" href="#data-encryption-in-transit">Data Encryption in Transit</a></h2>
 <p>All the data should be transported over secure encrypted channels. Since all the transportation is done over TCP/IP protocol stack, it is possible to use native solutions like TLS to secure the traffic between the nodes. Version 1.2 is a minimum requirement.</p>
 
