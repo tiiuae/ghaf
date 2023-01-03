@@ -1,10 +1,10 @@
-{
-  runCommandNoCC,
-  mdbook,
+{ runCommandNoCC
+, mdbook
+,
 }:
 runCommandNoCC "ghaf-doc"
 {
-  nativeBuildInputs = [mdbook];
+  nativeBuildInputs = [ mdbook ];
 } ''
   ${mdbook}/bin/mdbook build -d $out ${./.}
 ''
