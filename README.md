@@ -23,6 +23,9 @@ or
 
     result/bin/run-nixos-vm
 
+
+The development username and password are defined in [authentication module](./modules/development/authentication.nix).
+
 Note: this creates nixos.qcow2 copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU Virtual Machine, you might get weird errors the next time you boot. Simply removing the nixos.qcow2 should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then click Power Down.
 
 
