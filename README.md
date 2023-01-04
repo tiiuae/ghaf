@@ -37,6 +37,19 @@ then flash the resulting image eg. to a SD card or USB drive
     dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
 
 
+### Cross Compilation Complications
+
+As there are some packages that are not cross-compilation aware you may set the following in you ``configuration.nix`` to enable binfmt.
+
+    {
+      boot.binfmt.emulatedSystems = [
+        "riscv64-linux"
+        "aarch64-linux"
+      ];
+    }
+
+For more details, see [Cross Compile](https://tiiuae.github.io/build_config/cross_compilation.html)
+
 ### Documentation
 
 To build the documentation
