@@ -10,4 +10,4 @@ Embedded virtualization builds on cloud technologies in the development of end-t
 
 ## Reference Implementation
 
-Our work in progress reference implementation on NXP i.MX8 is available [here](https://github.com/tiiuae/spectrum-config-imx8).
+Our work in progress reference implementation on NXP i.MX 8 is available [here](https://github.com/tiiuae/spectrum-config-imx8).
