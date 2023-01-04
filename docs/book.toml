@@ -1,9 +1,12 @@
 [book]
+title = "Ghaf Framework"
 authors = ["Technology Innovation Institute - SSRC"]
+description = "Documentation for TII SSRC Secure Technologies."
 language = "en"
 multilingual = false
 src = "src"
-title = "Ghaf - Documentation for TII SSRC Secure Technologies: Ghaf Framework"
 
 [output.html]
-default-theme = "navy"
+default-theme = "light"
+git-repository-url = "https://github.com/tiiuae/ghaf"
+git-repository-icon = "fa-github"
