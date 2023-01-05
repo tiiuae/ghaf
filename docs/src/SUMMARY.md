@@ -16,4 +16,5 @@
 -----------
 
 [Glossary](appendices/glossary.md)
-[Contributing](appendices/contributors.md)
+
+[Contributing](appendices/contributing_doc.md)
