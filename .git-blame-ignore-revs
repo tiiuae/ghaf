@@ -7,4 +7,4 @@
 #   git config --global blame.ignoreRevsFile .git-blame-ignore-revs
 
 # Reformat .nix-files using alejandra
-086ad37c9250d0687221267e536e59605d4a3f09
+b07a90ec8f9a0182b1a180b25175b96eac0af705
