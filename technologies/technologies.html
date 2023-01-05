@@ -1,12 +1,12 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js navy">
+<html lang="en" class="sidebar-visible no-js light">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Technologies - Ghaf - Documentation for TII SSRC Secure Technologies: Ghaf Framework</title>
+        <title>Technologies - Ghaf Framework</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="">
+        <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
@@ -30,7 +30,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "navy";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -56,7 +56,7 @@
             if (theme === null || theme === undefined) { theme = default_theme; }
             var html = document.querySelector('html');
             html.classList.remove('no-js')
-            html.classList.remove('navy')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add('js');
         </script>
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html" class="active"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/pass-through/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html" class="active"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/passthrough/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="../appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="../appendices/contributing_doc.html">Contributing</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -93,10 +93,10 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
                         <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
@@ -104,11 +104,14 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Ghaf - Documentation for TII SSRC Secure Technologies: Ghaf Framework</h1>
+                    <h1 class="menu-title">Ghaf Framework</h1>
 
                     <div class="right-buttons">
                         <a href="../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/tiiuae/ghaf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
                     </div>
                 </div>
@@ -135,13 +138,16 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="technologies"><a class="header" href="#technologies">Technologies</a></h1>
-<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
-<p>Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation - your business case is isolated from someone else's business case. At hardware level. Similarly, hardware support in modern personal devices has enabled isolation of device resources with virtualization. This provides the baseline for secure system design for use case protection. In practice, user can use the same device with a trusted application and with an untrusted application. Both application isolated from each other to protect valuable user data and privacy. Our systems are built using <a href="https://github.com/NixOS/nixpkgs">nixpkgs</a> and various <a href="https://nixos.org/guides/nix-language.html">Nix</a> based tools and configurations.</p>
+<p>Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation — your business case is isolated from someone else's business case.</p>
+<p>At the hardware level. Similarly, hardware support in modern personal devices has enabled the isolation of device resources with virtualization. This provides the baseline for secure system design for use case protection.</p>
+<p>In practice, the user can use the same device with a trusted application and with an untrusted application. Both applications are isolated from each other to protect valuable user data and privacy. Our systems are built using <a href="https://github.com/NixOS/nixpkgs">nixpkgs</a> and various <a href="https://nixos.org/guides/nix-language.html">Nix</a> based tools and configurations.</p>
 <h2 id="hardware-requirements-for-virtualization"><a class="header" href="#hardware-requirements-for-virtualization">Hardware Requirements for Virtualization</a></h2>
-<p>Protected computation resources include: CPU, memory, storage and other IO devices. Allocation of these resources is managed with hypervisor. In our reference implementation, we use KVM (Kernel Virtual Machine) from Linux to virtualize hardware access. From hardware, this requires MMU (memory management unit) for CPU physical to virtual address mapping and IOMMU for direct memory access (DMA) capable device virtual addresses to physical addresses of the main memory. Many 64-bit CPUs support virtualization via hypervisor extensions already. Our reference implementation supports x86_64 and aarch64 and we follow RISC-V hypervisor extensions development.</p>
-<p>Our current reference hardware is <a href="https://github.com/tiiuae/spectrum-config-imx8">NXP iMX8 QM development board</a>. In addition, x86_64 hardware is supported via Spectrum OS upstream.</p>
+<p>Protected computation resources include CPU, memory, storage, and other IO devices. Allocation of these resources is managed with the hypervisor.</p>
+<p>In our reference implementation, we use KVM (Kernel Virtual Machine) from Linux to virtualize hardware access. From hardware, this requires MMU (memory management unit) for CPU physical to virtual address mapping and IOMMU for direct memory access (DMA) capable device virtual addresses to physical addresses of the main memory. Many 64-bit CPUs support virtualization via hypervisor extensions already. Our reference implementation supports x86-64 and Aarch64, and we follow RISC-V hypervisor extensions development.</p>
+<p>Our current reference hardware is <a href="https://github.com/tiiuae/spectrum-config-imx8">NXP iMX8 QM development board</a>. In addition, x86-64 hardware is supported via Spectrum OS upstream.</p>
 <h2 id="virtual-machine-manager-vmm"><a class="header" href="#virtual-machine-manager-vmm">Virtual Machine Manager (VMM)</a></h2>
-<p>On top of operating system (OS) kernel hypervisor support with KVM - we allocate virtual resources for use cases with user space virtual machine manager (VMM) using <a href="https://github.com/rust-vmm">rust-vmm</a> based projects such as <a href="https://github.com/cloud-hypervisor/cloud-hypervisor">cloud-hypervisor</a> and <a href="https://github.com/google/crosvm">crosvm</a>. <a href="https://www.qemu.org/">QEMU</a> is enabled for certain development use cases. In addition, we have also experimental, aarch64 demonstrated support for a KVM variant - <a href="https://github.com/jkrh/kvms">KVMS</a> which adds security features to standard KVM.</p>
+<p>On top of OS kernel hypervisor support with KVM. We allocate virtual resources for use cases with user-space virtual machine manager (VMM) using <a href="https://github.com/rust-vmm">rust-vmm</a> based projects such as <a href="https://github.com/cloud-hypervisor/cloud-hypervisor">cloud-hypervisor</a> and <a href="https://github.com/google/crosvm">crosvm</a>. <a href="https://www.qemu.org/">QEMU</a> is enabled for certain development use cases.</p>
+<p>In addition, we have also experimental, Aarch64 demonstrated support for a KVM variant — <a href="https://github.com/jkrh/kvms">KVMS</a> — which adds security features to standard KVM.</p>
 
                     </main>
 

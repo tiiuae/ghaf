@@ -1,0 +1,258 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Glossary - Ghaf Framework</title>
+        <!-- Custom HTML head -->
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/passthrough/ethernet.html"><strong aria-hidden="true">6.1.</strong> IMX8qm Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="../appendices/glossary.html" class="active">Glossary</a></li><li class="chapter-item expanded affix "><a href="../appendices/contributing_doc.html">Contributing</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ghaf Framework</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/tiiuae/ghaf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<p>This is a glossary of terms and abbreviations developed by the Ghaf team.</p>
+<p><strong>Abbreviation</strong> is a shortened form of a word or phrase. Usually is used to save space and time, to avoid repetition of long words and phrases.</p>
+<p>The styling of abbreviations is inconsistent and includes several possible variations. Some abbreviations are formed by omitting all but the first few letters of a word. Such abbreviations usually end in a period: Mr. for mister, Oct. for October.</p>
+<p>When abbreviations are formed from the initial letters of a phrase, they are categorized as either <strong>initialisms</strong> or <strong>acronyms</strong>:</p>
+<ul>
+<li>
+<p>With <strong>initialisms</strong>, each letter is pronounced separately. For example: FBI for Federal Bureau of Investigation, CIA for Central Intelligence Agency), CD for Compact Disk, and also OK for Okay, &quot;orl korrekt&quot; that is a misspelling of &quot;all correct&quot;. Initialisms cannot be pronounced as words.</p>
+</li>
+<li>
+<p><strong>Acronyms</strong> are another type of abbreviation formed from the initial letters but that are pronounced as if they were words themselves. For example: ROFL for ‘rolling on the floor laughing’, FEMA for Federal Emergency Management Agency, NATO for North Atlantic Treaty Organization.</p>
+</li>
+</ul>
+<p>All acronyms are abbreviations, but not all abbreviations are acronyms. ASAP that comes from ‘as soon as possible’ and appt (for appointment) are both considered abbreviations, but only ASAP is an acronym.</p>
+<h3 id="appropriate-use-of-articles-before-abbreviations"><a class="header" href="#appropriate-use-of-articles-before-abbreviations">Appropriate Use of Articles before Abbreviations</a></h3>
+<ul>
+<li>Articles (a, an, the) are common with initialisms. The indefinite article should be chosen according to the first sound—not the first letter:
+<ul>
+<li>‘A’ is correct before initialisms beginning with a consonant sound, including a vowel pronounced as a ‘w’ or ‘y’ sound. For example: ‘a NASA launch’, but ‘NASA launches take place’.</li>
+<li>When an initialism begins with a vowel sound (including silent consonants or a consonant pronounced with an initial vowel sound), ‘an’ should be used instead. For example, ‘read about an FBI raid’.</li>
+</ul>
+</li>
+<li>Acronyms not require articles except when they are used adjectivally. For example: ‘the patient was diagnosed with AIDS’, but ‘the AIDS patient’;‘the NASA launch takes place’.</li>
+</ul>
+<p>So, read the abbreviation aloud: it may be either an initialism or an acronym. Focus on the sounds, not on the letters: ‘<em>an</em> unidentified flying object’ but ‘<em>a</em> UFO’ as it pronounced “a YOO-ef-OH” (/ˌjuːɛfˈəʊ/). More examples: a EULA (“YOO-luh”), a LAN router, an XML file, an HTML page.</p>
+<h3 id="trivia"><a class="header" href="#trivia">Trivia</a></h3>
+<p>If you do not find the term or abbreviation you are looking for, share your questions using <a href="https://github.com/tiiuae/ghaf/issues">GitHub Issues</a>.</p>
+<p>Wikipedia is not a dictionary.</p>
+<hr />
+<h2 id="project-related"><a class="header" href="#project-related">Project Related</a></h2>
+<h3 id="ghaf"><a class="header" href="#ghaf">Ghaf</a></h3>
+<p><em>The project code name that represents the Ghaf tree.</em><br />
+Source: <a href="https://connectwithnature.ae/knowledge-hub/ghaf-tree">https://connectwithnature.ae/knowledge-hub/ghaf-tree</a></p>
+<h3 id="ssrc"><a class="header" href="#ssrc">SSRC</a></h3>
+<p><em>Secure Systems Research Center is a global center of excellence in the development of end-to-end security and resilience for cyber-physical and autonomous systems. SSRC is a part of TII.</em><br />
+Source: <a href="https://www.tii.ae/secure-systems">https://www.tii.ae/secure-systems</a></p>
+<h3 id="tii"><a class="header" href="#tii">TII</a></h3>
+<p><em>Technology Innovation Institute is a UAE-based research center that aims to lead global advances in artificial intelligence, autonomous robotics, quantum computing, cryptography and quantum communications, directed energy, secure communication, smart devices, advanced materials, and propulsion and space technologies.</em><br />
+Source: <a href="https://www.tii.ae/">https://www.tii.ae/</a></p>
+<h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
+<h3 id="tcb"><a class="header" href="#tcb">TCB</a></h3>
+<p><em>Trusted computing base defines the security requirements by providing separation of users and data or resources.</em><br />
+Source: <a href="https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/dod85.pdf">Department of Defense trusted computer system evaluation criteria, DoD 5200.28-STD, 1985.</a></p>
+<ul>
+<li>VM — virtual machine</li>
+<li>app — application</li>
+<li>OS — operating system</li>
+<li>ADR — <a href="https://adr.github.io/">Architecture Decision Record</a></li>
+<li>KVM — Kernel-based Virtual Machine is an open-source virtualization technology built into Linux.</li>
+<li>KVMS — <a href="https://github.com/jkrh/kvms">Kernel-based Virtual Machine Secured</a> is an open-source project.</li>
+<li>VMM — Virtual Machine Manager</li>
+<li>MMU — memory management unit</li>
+<li>DMA — direct memory access</li>
+<li>Spectrum </li>
+<li>NixOS</li>
+<li>hardened OS</li>
+<li>QEMU</li>
+<li>BSP — board support package</li>
+<li>EULA — end-user license agreement</li>
+<li>UI — user interface</li>
+<li>TLS</li>
+</ul>
+<h2 id="scs-related"><a class="header" href="#scs-related">SCS Related</a></h2>
+<ul>
+<li>SCS — supply chain security</li>
+<li>SBOM — software bill of materials</li>
+<li>PKI — public key infrastructure</li>
+<li>CA — certificate authority</li>
+<li>RA — registration authority</li>
+<li>SLSA — <a href="https://slsa.dev/">Supply chain Levels for Software Artifacts</a></li>
+<li>PyNaCl</li>
+<li>EdDSA</li>
+<li>GPG</li>
+<li>CMS — Certificate Management System</li>
+<li>OpenSSL</li>
+<li>HSM — hardware security module</li>
+<li>secure cryptoprocessor</li>
+<li>software artifact</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../research/passthrough/ethernet.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+                            <a rel="next" href="../appendices/contributing_doc.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../research/passthrough/ethernet.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+                    <a rel="next" href="../appendices/contributing_doc.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+        <script src="../elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../searcher.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="../book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+    </body>
+</html>

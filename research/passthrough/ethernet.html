@@ -1,12 +1,12 @@
 <!DOCTYPE HTML>
-<html lang="en" class="sidebar-visible no-js navy">
+<html lang="en" class="sidebar-visible no-js light">
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>IMX8qm ethernet passthrough - Ghaf - Documentation for TII SSRC Secure Technologies: Ghaf Framework</title>
+        <title>IMX8qm Ethernet Passthrough - Ghaf Framework</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-        <meta name="description" content="">
+        <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff" />
 
@@ -30,7 +30,7 @@
         <!-- Provide site root to javascript -->
         <script type="text/javascript">
             var path_to_root = "../../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "navy";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
         </script>
 
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
@@ -56,7 +56,7 @@
             if (theme === null || theme === undefined) { theme = default_theme; }
             var html = document.querySelector('html');
             html.classList.remove('no-js')
-            html.classList.remove('navy')
+            html.classList.remove('light')
             html.classList.add(theme);
             html.classList.add('js');
         </script>
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../../about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../../technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../../research/research.html"><strong aria-hidden="true">6.</strong> Research Topics</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../research/pass-through/ethernet.html" class="active"><strong aria-hidden="true">6.1.</strong> IMX8qm ethernet passthrough</a></li></ol></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../../about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../../architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="../../technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="../../build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li class="chapter-item expanded "><a href="../../scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../../scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../../scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../../scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../../research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../research/passthrough/ethernet.html" class="active"><strong aria-hidden="true">6.1.</strong> IMX8qm Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="../../appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="../../appendices/contributing_doc.html">Contributing</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -93,10 +93,10 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light (default)</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
                         </ul>
                         <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
@@ -104,11 +104,14 @@
                         </button>
                     </div>
 
-                    <h1 class="menu-title">Ghaf - Documentation for TII SSRC Secure Technologies: Ghaf Framework</h1>
+                    <h1 class="menu-title">Ghaf Framework</h1>
 
                     <div class="right-buttons">
                         <a href="../../print.html" title="Print this book" aria-label="Print this book">
                             <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/tiiuae/ghaf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
                         </a>
                     </div>
                 </div>
@@ -134,17 +137,42 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="imx8qm-ethernet-pass-through"><a class="header" href="#imx8qm-ethernet-pass-through">IMX8qm Ethernet Pass-through</a></h1>
-<p>The imx8qm pass-through host setup relies as much as possible on the default imx8qm-mek device tree configuration. Some guidance in what is required for pass-through to work on imx8 can be found in the XEN device trees. </p>
-<p>This document provides a detailed description of what has been done and why. For the more impatient readers, the example device tree files for imx8qm guest and host with ethernet pass-through are available here:</p>
+                        <h1 id="imx-8qm-ethernet-passthrough"><a class="header" href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a></h1>
+<p>The i.MX 8QuadMax (i.MX 8QM, iMX8QM, imx8qm) pass-through host setup relies as much as possible on the default i.MX 8QM MEK (imx8qm-mek) device tree configuration. Some guidance on what is required for passthrough to work on i.MX 8 can be found in the XEN device trees.</p>
+<p>This document provides a detailed description of what has been done and why. For the more impatient readers, the example device tree files for i.MX 8QM guest and host with ethernet passthrough are available here:</p>
 <ul>
 <li>Full host device tree: <a href="imx8qm-mek_conn-host.dts">imx8qm-mek_conn-host.dts</a></li>
 <li>Full guest device tree: <a href="imx8qm-mek_conn-guest.dts">imx8qm-mek_conn-guest.dts</a></li>
 </ul>
-<p><strong>NOTE 20.12.2022</strong>
-At the current state the pass-through is not completely functional. The Ethernet device (fec1) or even both devices (fec1 and fec2) can be setup in guest. The devices respond and seem functional, the device node does activate, the drivers load correctly, the power state of the device changes to active and the link state of the ethernet connection seems to change correctly. However for some reason no actual ethernet data packages go through the ethernet adapter. The most visible issue is that no interrupts come to the ethernet devices.</p>
+<p><strong>NOTE 20.12.2022:</strong>
+At the current state, the passthrough is not completely functional. The Ethernet device (fec1) or even both devices (fec1 and fec2) can be set up in the guest. The devices respond and seem functional, the device node does activate, the drivers load correctly, the power state of the device changes to active, and the link state of the ethernet connection seems to change correctly. However, for some reason, no actual ethernet data packages go through the ethernet adapter. The most visible issue is that no interrupts come to the ethernet devices.</p>
+<p>See the following topics:</p>
+<ul>
+<li><a href="#host-kernel-configuration">Host Kernel Configuration</a></li>
+<li><a href="#host-device-tree-explained">Host Device Tree Explained</a>
+<ul>
+<li><a href="#other-notes-about-passthrough">Other Notes About Passthrough</a></li>
+</ul>
+</li>
+<li><a href="#changes-in-u-boot">Changes in U-Boot</a></li>
+<li><a href="#running-platform-device-passthrough-in-qemu">Running Platform Device Passthrough in QEMU</a></li>
+<li><a href="#guest-setup">Guest Setup</a>
+<ul>
+<li><a href="#adding-devices-to-guest">Adding Devices to Guest</a></li>
+<li><a href="#some-final-touches-for-guest-devices">Some Final Touches for Guest Devices</a></li>
+</ul>
+</li>
+<li><a href="#compiling-the-device-tree-source-to-binary-form">Compiling the Device Tree Source to Binary Form</a>
+<ul>
+<li><a href="#compiling-for-guest">Compiling for Guest</a></li>
+<li><a href="#compiling-for-host">Compiling for Host</a></li>
+</ul>
+</li>
+<li><a href="#running-quemu-with-pass-through-platform-devices">Running QEMU with Pass-through Platform Devices</a></li>
+</ul>
+<hr />
 <h2 id="host-kernel-configuration"><a class="header" href="#host-kernel-configuration">Host Kernel Configuration</a></h2>
-<p>Kernel version 5.10 was used during the setup. For the pass-through to work a few kernel configuration options need to be added to the default imx8qm configuration.</p>
+<p>Kernel version 5.10 was used during the setup. For the passthrough to work, a few kernel configuration options need to be added to the default i.MX 8QM configuration:</p>
 <ul>
 <li>CONFIG_VFIO_PLATFORM=y</li>
 <li>CONFIG_IOMMU_DEFAULT_PASSTHROUGH=y</li>
@@ -152,8 +180,8 @@ At the current state the pass-through is not completely functional. The Ethernet
 <li>CONFIG_ARM_SMMU_V3_SVA=y</li>
 </ul>
 <h2 id="host-device-tree-explained"><a class="header" href="#host-device-tree-explained">Host Device Tree Explained</a></h2>
-<p>The default freescale imx8qm-mek configuration is included and then updated to get the ethernet device pass-through configuration added on top of the original device configuration.</p>
-<p>There are two problems with using imx8 XEN configuration as reference. The first issue is that the configuration between XEN and KVM do not map one to one. The second issue is more specific to ethernet pass-through as imx8 XEN configuration does not set up pass-through for ethernet so most of the configuration needs to be figured out from scratch.</p>
+<p>The default Freescale i.MX 8QM MEK configuration is included and then updated to get the ethernet device pass-through configuration added on top of the original device configuration.</p>
+<p>There are two problems with using the i.MX 8 XEN configuration as reference. The first issue is that the configuration between XEN and KVM do not map one to one. The second issue is more specific to ethernet pass-through as i.MX 8 XEN configuration does not set up pass-through for ethernet so most of the configuration needs to be figured out from scratch.</p>
 <pre><code>#include &quot;freescale/imx8qm-mek.dts&quot;
 / {
     domu {
@@ -329,33 +357,38 @@ At the current state the pass-through is not completely functional. The Ethernet
     /delete-property/ iommus;
 };
 </code></pre>
-<h3 id="other-notes-about-pass-through"><a class="header" href="#other-notes-about-pass-through">Other Notes About Pass-through</a></h3>
+<h3 id="other-notes-about-passthrough"><a class="header" href="#other-notes-about-passthrough">Other Notes About Passthrough</a></h3>
 <ul>
-<li>All devices which belong to same VFIO/IOMMU group need to be passed through to guest</li>
-<li>To prevent the device being initialized by host change the device compatible property to dummy such as &quot;fsl,dummy&quot;</li>
-<li>The device status need needs to be &quot;okay&quot; for the device node to be available</li>
-<li>If Uboot finds devices which appear in the doma <em>rsrcs</em> that contain properties listed below the device will get removed from the DTB.
+<li>All devices which belong to the same VFIO/IOMMU group need to be passed through to the guest.</li>
+<li>To prevent the device from being initialized by the host, change the device-compatible property to a dummy such as &quot;fsl,dummy&quot;.</li>
+<li>The device status need needs to be &quot;okay&quot; for the device node to be available.</li>
+<li>If U-Boot finds devices that appear in the doma <em>rsrcs</em> that contain the properties listed below, the device will get removed from the DTB:
 <ul>
-<li>power-domains, clocks, clock-names, assigned-clocks, assigned-clock-rates, pinctrl-0</li>
+<li>power-domains</li>
+<li>clocks</li>
+<li>clock-names</li>
+<li>assigned-clocks</li>
+<li>assigned-clock-rates</li>
+<li>pinctrl-0</li>
 </ul>
 </li>
 </ul>
-<h2 id="changes-in-uboot"><a class="header" href="#changes-in-uboot">Changes in Uboot</a></h2>
-<p>In our host devicetree we defined a couple of &quot;rsrcs&quot; -resources to be handed over to the guest system. The ownership of these registers need to transferred to guest after loading our device tree and before actual boot. This can be done in uboot with a command:</p>
+<h2 id="changes-in-u-boot"><a class="header" href="#changes-in-u-boot">Changes in U-Boot</a></h2>
+<p>In our host device tree, we defined a couple of &quot;rsrcs&quot; resources to be handed over to the guest system. The ownership of these registers needs to be transferred to the guest after loading our device tree and before the actual boot. This can be done in U-Boot with a command:</p>
 <pre><code>scu_rm dtb ${fdt_addr}
 </code></pre>
-<p>The easiest way to accomplish this automatically during boot is to add the &quot;scu_rm&quot; to the default imx8qm uboot &quot;boot_os&quot; command and save the changes as below:</p>
+<p>The easiest way to accomplish this automatically during boot is to add the &quot;scu_rm&quot; to the default i.MX 8QM U-Boot &quot;boot_os&quot; command and save the changes as below:</p>
 <pre><code>setenv boot_os 'scu_rm dtb ${fdt_addr}; booti ${loadaddr} - ${fdt_addr};'
 saveenv
 </code></pre>
-<h2 id="running-platform-device-pass-through-in-qemu"><a class="header" href="#running-platform-device-pass-through-in-qemu">Running Platform Device Pass-through in QEMU</a></h2>
-<p>Before starting qemu the passed through devices need to be bind to VFIO driver.</p>
-<p>In some cases the default driver needs to be unbind from before the device can be bind to VFIO. However in this case all devices were changed to use dummy device type in the device tree so for this setup the step below is not required.</p>
+<h2 id="running-platform-device-passthrough-in-qemu"><a class="header" href="#running-platform-device-passthrough-in-qemu">Running Platform Device Passthrough in QEMU</a></h2>
+<p>Before you start QEMU, the passed-through devices need to be bind to the VFIO driver.</p>
+<p>In some cases, the default driver needs to be unbind before the device can be bind to VFIO. However, in this case, all devices were changed to use the dummy device type in the device tree, so the step below is not required for this setup.</p>
 <pre><code>echo 5d1d0000.mailbox &gt; /sys/bus/platform/devices/5d1d0000.mailbox/driver/unbind
 echo 5b040000.ethernet &gt; /sys/bus/platform/devices/5b040000.ethernet/driver/unbind
 echo 5b230000.clock-controller &gt; /sys/bus/platform/devices/5b230000.clock-controller/driver/unbind
 </code></pre>
-<p>The VFIO allows user level access to the devices. Binding required devices to VFIO can be done as below.</p>
+<p>The VFIO driver allows user-level access to the devices. Binding required devices to VFIO can be done as below:</p>
 <pre><code>echo vfio-platform  &gt; /sys/bus/platform/devices/5d1d0000.mailbox/driver_override
 echo 5d1d0000.mailbox &gt; /sys/bus/platform/drivers/vfio-platform/bind
 
@@ -365,22 +398,24 @@ echo 5b040000.ethernet &gt; /sys/bus/platform/drivers/vfio-platform/bind
 echo vfio-platform &gt; /sys/bus/platform/devices/5b230000.clock-controller/driver_override
 echo 5b230000.clock-controller &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </code></pre>
-<p>After binding the devices to VFIO so it is possible to pass the devices to QEMU with using &quot;<strong>-device vfio-platform</strong>&quot; arguments as below. One key thing to notice is that the order in which the device arguments are given to QEMU may have an effect on some device properties such as interrupts.</p>
+<p>After binding the devices to VFIO so it is possible to pass the devices to QEMU using &quot;<strong>-device vfio-platform</strong>&quot; arguments as below. The order in which the device arguments are given to QEMU may have an effect on some device properties such as interrupts.</p>
 <pre><code>-device vfio-platform,host=5b230000.clock-controller
 -device vfio-platform,host=5b040000.ethernet
 -device vfio-platform,host=5d1d0000.mailbox
 </code></pre>
 <h2 id="guest-setup"><a class="header" href="#guest-setup">Guest Setup</a></h2>
-<p>Before starting our virtual machine with passed through devices we need to define our virtual machine device tree. One way of gaining a template for our QEMU device tree is by starting our QEMU instance and requesting a dump of its device tree in dtb format as below. Dtb is a binary format of the device tree so we also need to use command line tool device tree compiler <strong>dtc</strong> to convert the binary devicetree to a more human friendly device tree source format. Converting the device tree to source format may give a few warnings of missing or unrecognized properties and such but that is normal.</p>
+<p>Before starting the virtual machine with passed-through devices, we need to define our virtual machine device tree. One way of gaining a template for our QEMU device tree is by starting our QEMU instance and requesting a dump of its device tree in the DTB format as below.</p>
+<p>DTB is a binary format of the device tree so we also need to use the command line tool device tree compiler <strong>dtc</strong> to convert the binary device tree to a more human-friendly device tree source format. Converting the device tree to source format may give a few warnings of missing or unrecognized properties and such but that is normal.</p>
 <pre><code>qemu-system-aarch64 \
     -M virt,gic-version=host,dumpdtb=virt.dtb -enable-kvm -nographic
 
 # Convert binary to source device tree format
 dtc -I dtb -O dts virt.dtb &gt; virt.dts
 </code></pre>
-<p>This will provide us with a &quot;<strong>virt.dts</strong>&quot; file which can be used as a base for adding our passed through devices. The Uboot device tree may change based on Uboot version so the guest devicetree may need some maintenance every now and then.</p>
+<p>This will provide us with a &quot;<strong>virt.dts</strong>&quot; file which can be used as a base for adding our passed-through devices. The U-Boot device tree may change based on U-Boot version so the guest device tree may need some maintenance every now and then.</p>
 <h3 id="adding-devices-to-guest"><a class="header" href="#adding-devices-to-guest">Adding Devices to Guest</a></h3>
-<p>The platform devices which are going to get passed through should be added to Qemu device tree <strong>platform</strong> bus section. In this case the main devices are <strong>fec1</strong>, <strong>enet0_lpcg</strong> and <strong>lsio_mu2</strong>. At the time of writing the platform bus address in Qemu is &quot;<strong>c000000</strong>&quot; but that can be changed within Qemu code (needs recompiling Qemu) or it might change during some Qemu update.</p>
+<p>The platform devices which are going to get passed through should be added to the QEMU device tree <strong>platform</strong> bus section.</p>
+<p>In this case, the main devices are <strong>fec1</strong>, <strong>enet0_lpcg</strong> and <strong>lsio_mu2</strong>. At the time of writing, the platform bus address in QEMU is &quot;<strong>c000000</strong>&quot; but that can be changed within the following code (needs recompiling QEMU) or it might change during some the QEMU code update.</p>
 <pre><code>platform@c000000 {
 	compatible = &quot;qemu,platform\0simple-bus&quot;;
 	interrupt-parent = &lt;0x8001&gt;;
@@ -459,8 +494,10 @@ dtc -I dtb -O dts virt.dtb &gt; virt.dts
 	};
 };
 </code></pre>
-<p>The actual devices which were passed through may have some dependencies such as clocks which also need to be configured in guest for the main devices to work properly. In most cases they can be just copy pasted from the original host configuration with a few minor alterations. Which dependencies are required requires a bit of manual labor and depends on case to case. The main key is to go through the whole original device tree and list out device node names that are used by the passed through devices. This may require several passes as the dependencies may also contain some dependencies of their own. On top of the reuirements it is good also to check if the passed through devices are used by some other devies. Some devices may be used through a controller such as in our case <strong>lsio_mu2</strong> is used by the main system control unit <strong>scu</strong>. In this case the dependencies consist of several clock devices and their controller and also the imx8 system control unit <strong>SCU</strong> device with its internals.</p>
-<p>In this case the assisting devices can be added just before the start &quot;<strong>platform@c000000</strong>&quot; bus configuration section. </p>
+<p>The actual devices which were passed through may have some dependencies such as clocks which also need to be configured in the guest for the main devices to work properly. In most cases, they can be just copy pasted from the original host configuration with a few minor alterations. Required dependencies need a bit of manual labor and depend on case to case.</p>
+<p>The main key is to go through the whole original device tree and list out device node names that are used by the passed-through devices. This may require several passes as the dependencies may also contain some dependencies of their own. On top of the requirements, it is good also to check if the passed-through devices are used by some other devices. </p>
+<p>Some devices may be used through a controller such as in our case <strong>lsio_mu2</strong> is used by the main system control unit <strong>scu</strong>. In this case, the dependencies consist of several clock devices and their controller and also the i.MX 8 system control unit <strong>SCU</strong> device with its internals.</p>
+<p>In this case, the assisting devices can be added just before the start &quot;<strong>platform@c000000</strong>&quot; bus configuration section. </p>
 <pre><code>/**
  * Several clocks and a regulator copied from original host config.
  **/
@@ -593,7 +630,7 @@ platform@c000000 {
 };
 </code></pre>
 <h3 id="some-final-touches-for-guest-devices"><a class="header" href="#some-final-touches-for-guest-devices">Some Final Touches for Guest Devices</a></h3>
-<p>Now we have most of the actual devices setup. Some final modifications for individual devices can be done at the end of the guest devicetree config. These can be done outside the main node as we just modify some node properties which are already defined.</p>
+<p>Now we have most of the actual devices setup. Some final modifications for individual devices can be done at the end of the guest device tree config. These can be done outside the main node as we just modify some node properties which are already defined.</p>
 <pre><code>/**
  * For fec1 we need to update the interrupts to match the ones used by guest pass-through.
  * Most of the configuration is exactly the same that was set original imx8 config
@@ -685,9 +722,9 @@ platform@c000000 {
     };
 };
 </code></pre>
-<p>With our additional devices also some headers and definitions need to be included in the beginning of the device tree. These additions can be found also from the original imx8 device tree files. See the full device tree below for reference.</p>
+<p>With our additional devices also some headers and definitions need to be included at the beginning of the device tree. These additions can be found also from the original i.MX 8 device tree files. See the full device tree below for reference.</p>
 <h2 id="compiling-the-device-tree-source-to-binary-form"><a class="header" href="#compiling-the-device-tree-source-to-binary-form">Compiling the Device Tree Source to Binary Form</a></h2>
-<p>The device trees need to be compiled within linux kernel source directory. They depend on some kernel device tree headers and in host device case of other device tree source files. </p>
+<p>The device trees need to be compiled within the Linux kernel source directory. They depend on some kernel device tree headers and in the host device case — other device tree source files.</p>
 <ul>
 <li>Full host device tree: <a href="imx8qm-mek_conn-host.dts">imx8qm-mek_conn-host.dts</a></li>
 <li>Full guest device tree: <a href="imx8qm-mek_conn-guest.dts">imx8qm-mek_conn-guest.dts</a></li>
@@ -703,8 +740,8 @@ platform@c000000 {
     dtc -I dts -O dtb -p 0x1000 imx8qm-mek_conn-host.preprocessed -o imx8qm-mek_conn-host.dtb
 </code></pre>
 <h2 id="running-qemu-with-pass-through-platform-devices"><a class="header" href="#running-qemu-with-pass-through-platform-devices">Running QEMU with Pass-through Platform Devices</a></h2>
-<p>To get pass-through working i.MX 8QM needs to be booted using our freshly built hosts <strong>imx8qm-mek_conn-host.dtb</strong> device tree file.</p>
-<p>When the system has booted we need to set up the passed-through devices for VFIO driver and start QEMU with devices passed through.</p>
+<p>To get pass-through working i.MX 8 QM needs to be booted using our freshly built hosts <strong>imx8qm-mek_conn-host.dtb</strong> device tree file.</p>
+<p>When the system has booted, we need to set up the passed-through devices for the VFIO driver and start QEMU with devices passed through.</p>
 <p>First, the devices need to be setup for VFIO:</p>
 <pre><code>echo vfio-platform  &gt; /sys/bus/platform/devices/5d1d0000.mailbox/driver_override
 echo 5d1d0000.mailbox &gt; /sys/bus/platform/drivers/vfio-platform/bind
@@ -717,7 +754,7 @@ echo 5b230000.clock-controller &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </code></pre>
 <p>After that QEMU can be started with our devices over the devices.</p>
 <p>This is just as an example and may require a bit of change in other environments.</p>
-<p>In this example, the guest kernel image, ext2 rootfs and guest device tree — all use the same filename prefix <strong>imx8qm-mek_conn-guest</strong>.</p>
+<p>In this example, the guest kernel image — ext2 rootfs and guest device tree — all use the same filename prefix <strong>imx8qm-mek_conn-guest</strong>.</p>
 <pre><code>qemu-system-aarch64 \
     -M virt,gic-version=host -enable-kvm \
     -cpu host \
@@ -738,6 +775,9 @@ echo 5b230000.clock-controller &gt; /sys/bus/platform/drivers/vfio-platform/bind
                             <a rel="prev" href="../../research/research.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
+                            <a rel="next" href="../../appendices/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
                         <div style="clear: both"></div>
                     </nav>
                 </div>
@@ -746,6 +786,9 @@ echo 5b230000.clock-controller &gt; /sys/bus/platform/drivers/vfio-platform/bind
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
                     <a rel="prev" href="../../research/research.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
+                    </a>
+                    <a rel="next" href="../../appendices/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
 
