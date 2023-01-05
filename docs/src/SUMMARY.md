@@ -11,7 +11,7 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Patch Management Automation](scs/patching-automation.md)
 - [Research Notes](research/research.md)
-    - [IMX8qm Ethernet Passthrough](research/passthrough/ethernet.md)
+    - [i.MX 8QM Ethernet Passthrough](research/passthrough/ethernet.md)
 
 -----------
 

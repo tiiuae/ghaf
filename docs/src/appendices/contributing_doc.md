@@ -4,7 +4,7 @@ The Ghaf project is free and open source. We use [mdBook](https://rust-lang.gith
 
 Improvements to the documentation are welcome! We would love to get contributions from you.
 
-> This guideline is about contributing to the documentation. For more information on contributing the code, see [CONTRIBUTING.md](CONTRIBUTING.md).
+> This guideline is about contributing to the documentation. For more information on contributing the code, see [CONTRIBUTING.md](https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md).
 
 
 ## Our Philosophy
@@ -31,22 +31,26 @@ Create a pull request to propose and collaborate on changes to a repository. Ple
 
 1. Fork the project repository.
 2. Clone the forked repository to your computer.
-3. Create and switch into a new branch (`git checkout -b doc_my_changes`) with your changes.
-4. :four_leaf_clover: Check what you wrote with a spellchecker to make sure you did not miss anything.
+3. Create and switch into a new branch with your changes: `git checkout -b doc_my_changes`
+4. Check what you wrote with a spellchecker to make sure you did not miss anything.
 5. Test your changes before submitting a pull request using the `nix build .#doc` command.
-6. Commit your changes (`git commit --signoff`). Keep text hard-wrapped at 50 characters. For more inspiration, see [How to Write a Git Commit Message](https://cbea.ms/git-commit/).
-7. Push changes to the main branch (`git push origin doc_my_changes`).
+6. Commit your changes: `git commit --signoff`
+    - Use "Docs:" in the subject line to indicate the documentation changes. For example: **Docs: rename "Research" to "Research Notes"**.
+    - Keep text hard-wrapped at 50 characters.
+    - For more inspiration, see [How to Write a Git Commit Message](https://cbea.ms/git-commit/).
+7. Push changes to the main branch: `git push origin doc_my_changes`
 8. Submit your changes for review using the GitHub UI.
 9. After publishing keep your ear to the ground for any feedback and comments in [Pull requests](https://github.com/tiiuae/ghaf/pulls).
+
+Some things that will increase the chance that your pull request is accepted faster:
+
+* Spelling tools usage.
+* Following our Style Guide.
+* Writing a good commit message.
+
+![Proofreading](https://media.giphy.com/media/3orifaQEOagjYJ1EXe/giphy.gif)
 
 
 ## Manual of Style
 
 Recommended practicies. TBD
-
-
-## Communication
-
-GitHub issues are the primary way for communicating about specific proposed changes to this project.
-
-If you want to join the project team, just let us know.
