@@ -9,7 +9,7 @@ We like commits as they keep the project going. These two repositories with the 
 
 If you have ideas you want to experiment with, make a fork and see how it works. Use pull requests if you are unsure and suggest changes to our maintainers.
 
-If you are considering helping to improve the Ghaf documentation, see [Contributing Documentation](docs/src/appendices/contributing_doc.md).
+If you are considering helping to improve the Ghaf documentation, see [Contributing Documentation](https://tiiuae.github.io/ghaf/appendices/contributing_doc.html).
 
 
 ## Development Process
@@ -18,12 +18,12 @@ Pull requests should be created from personal forks. We follow a fork and rebase
 
 Generally, any contributions should pass the tests.
 
-Make sure to update the documentation with the code. Follow our Style Guide [TBD] and [Contributing Documentation](docs/src/appendices/contributing_doc.md).
+Make sure to update the documentation with the code: [Contributing Documentation](docs/src/appendices/contributing_doc.md). Good documentation helps to bring new developers in and helps established developers work more effectively. 
 
 
 ## Commit Message Guidelines
 
-We are using the Linux kernel compatible commit message format.
+We use the Linux kernel compatible commit message format.
 
 The seven rules of a great Git commit message:
 
@@ -57,3 +57,9 @@ Signed-off-by: Your Name <youremail@yourhost.com>
 ```
 
 The seven rules of a great Git commit message are originally from Google. Original commit message example is from Linus Torvalds. Both have been modified. Comments and suggestions are welcome.
+
+## Communication
+
+GitHub issues are the primary way for communicating about specific proposed changes to this project.
+
+If you want to join the project team, just let us know.
