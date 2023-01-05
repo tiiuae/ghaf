@@ -8,6 +8,7 @@
     system = "x86_64-linux";
     modules = [
       microvm.nixosModules.host
+      configurations/host/configuration.nix
       modules/development/authentication.nix
     ];
     format = "vm";
