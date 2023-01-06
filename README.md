@@ -8,6 +8,7 @@ The Ghaf project is an open-source framework for enhancing security through comp
 
 ## Build Instructions
 
+Ghaf utilizes a flake only approach to build the framework. To see provided outputs, type `nix flake show`. |
 
 ### x86\_64
 
