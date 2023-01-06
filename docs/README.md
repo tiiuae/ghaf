@@ -1,11 +1,3 @@
-# Documentation for TII SSRC Secure Technologies: Ghaf Framework
-
-The Ghaf project is an open-source framework for enhancing secrurity through compartmentalization on edge devices. The source code that we use is in the following repositories:
-
-* https://github.com/tiiuae/build-configurations
-* https://github.com/tiiuae/sbomnix
-
-
 ## Directory Structure
 
 This is a source repository for https://tiiuae.github.io/ghaf/about/overview.html.
@@ -15,9 +7,6 @@ We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https:/
 The basic directory structure looks like:
 
 ```
-.
-├── .github/workflows/
-|   └── doc.yml
 ├── src/
 |   ├── SUMMARY.md
 |   ├── img/
@@ -26,13 +15,10 @@ The basic directory structure looks like:
 |   |   └── section-1.n.md
 |   └── chapter-2/
 |       ├── section-2.1.md
-|   	└── section-2.n.md
-├── CONTRIBUTING.md
+|       └── section-2.n.md
 ├── README.md
 ├── book.toml
 ├── doc.nix
-├── flake.lock
-└── flake.nix 
 
 ```
 | File | Description |
@@ -40,8 +26,6 @@ The basic directory structure looks like:
 | `SUMMARY.md` | Table of contents.  All listed Markdown files will be transformed as HTML. For more information, see [SUMMARY.md](https://rust-lang.github.io/mdBook/format/summary.html). |
 | `book.toml` | Stores [configuration](https://rust-lang.github.io/mdBook/format/configuration/index.html) data. |
 | `doc.yml` | Continuous integration and delivery (Github Action workflow) for building and deploying the generated book. |
-| `flake.nix ` | Describes dependencies and provides output package. To see provided outputs, type `nix flake show`. |
-| `flake.lock` | Pins dependencies of flake inputs. |
 
 
 ## Working with Files
@@ -108,7 +92,7 @@ Build each topic based on the following structure:
 
 ## Contributing
 
-If you would like to contribute to the documentation, please read [CONTRIBUTING.md](CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
+If you would like to contribute to the documentation, please read [CONTRIBUTING.md](../CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
 
 > For more information on contributing the code, see the [Contributing](https://tiiuae.github.io/ghaf/appendices/contributing_code.html) section of the Ghaf documentation.
 
@@ -118,10 +102,3 @@ Some things that will increase the chance that your pull request is accepted fas
 * [Writing a good commit message](https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#commit-message-guidelines).
 
 If you find any bugs or errors in the content, feel free just to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also use this feature to track suggestions or other information.
-
-For questions related to repository access permissions, please contact [Ville Ilvonen](https://github.com/vilvo).
-
-
-## License
-
-Ghaf is licensed under the Attribution-ShareAlike International License, version 4.0. See [LICENSE](./LICENSE) for the full license text.
