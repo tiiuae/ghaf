@@ -32,7 +32,8 @@ The following HSM Solutions are considered for Ghaf project:
   - [YubiHSM2](https://www.yubico.com/fi/product/yubihsm-2/ "YubiHSM2")
   - [NitrokeyHSM2](https://shop.nitrokey.com/shop/product/nkhs2-nitrokey-hsm-2-7 "NitrokeyHSM2")
   - [SoftHSMv2](https://github.com/opendnssec/SoftHSMv2 "SoftHSMv2")
-  
+  - BreadboardHSM
+
 The following table aims to provide feature comparison of the proposed solutions. Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.
 
 | Feature                      | YubiHSM2     | NitrokeyHSM2 | SoftHSMv2    | BreadboardHSM |
@@ -46,9 +47,10 @@ The following table aims to provide feature comparison of the proposed solutions
 | Network sharable             |       ✓      |              |       ✓      |               |
 | M of N wrap rule             |       ✓      |       ✓      |              |               |
 | Tamper evident audit logging |       ✓      |              |              |               |
-| Storage capacity             | 128KB, 255xAny ECC | 76KB, 35xECC-512 |    |               |
+| Storage capacity             | 128KB, 255xAny ECC | 76KB, 35xECC-512 |    | 9.7Kb, 16 slots |
 | Price                        | 650EUR (VAT 0%) | 99 EUR | FOSS | semi-FOSS |
 
+Clearly, feature-wise YubiHSM2 is the leading solution, however taking into account quite modest needs of SCS, NitrokeyHSM2 is representing an adequate solution. BreadboardHSM solution is a based on Microchip ATECC608B (TrustFLEX + cryptoauthlib + gtutls), though development work is still ongoing at the time of writing this document. The SoftHSMv2 and BreadboardHSM are taken for comparison showing what can be achieved using FOSS Variants. 
 
 ## CA Hierarchy Options
 
