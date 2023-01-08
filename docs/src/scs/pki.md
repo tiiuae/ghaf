@@ -32,7 +32,6 @@ The following HSM Solutions are considered for Ghaf project:
   - [YubiHSM2](https://www.yubico.com/fi/product/yubihsm-2/ "YubiHSM2")
   - [NitrokeyHSM2](https://shop.nitrokey.com/shop/product/nkhs2-nitrokey-hsm-2-7 "NitrokeyHSM2")
   - [SoftHSMv2](https://github.com/opendnssec/SoftHSMv2 "SoftHSMv2")
-  - BreadboardHSM
 
 The following table aims to provide feature comparison of the proposed solutions. Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.
 
@@ -44,13 +43,17 @@ The following table aims to provide feature comparison of the proposed solutions
 | ECDSA                        |       ✓      |       ✓      |       ✓      |       ✓       |
 | RSA                          |       ✓      |       ✓      |       ✓      |               |
 | PKCS#11 Interface            |       ✓      |       ✓      |       ✓      |       ✓       |
-| Network sharable             |       ✓      |              |       ✓      |               |
+| Network shareable            |       ✓      |              |       ✓      |               |
 | M of N wrap rule             |       ✓      |       ✓      |              |               |
 | Tamper evident audit logging |       ✓      |              |              |               |
 | Storage capacity             | 128KB, 255xAny ECC | 76KB, 35xECC-512 |    | 9.7Kb, 16 slots |
-| Price                        | 650EUR (VAT 0%) | 99 EUR | FOSS | semi-FOSS |
+| Price                        | 650EUR (VAT 0%) | 99 EUR | FOSS | HW Costs |
 
-Clearly, feature-wise YubiHSM2 is the leading solution, however taking into account quite modest needs of SCS, NitrokeyHSM2 is representing an adequate solution. BreadboardHSM solution is a based on Microchip ATECC608B (TrustFLEX + cryptoauthlib + gtutls), though development work is still ongoing at the time of writing this document. The SoftHSMv2 and BreadboardHSM are taken for comparison showing what can be achieved using FOSS Variants. 
+YubiHSM2 is the leading solution considering its cryptograhic capabilities. However, taking into account quite modest needs of SCS, NitrokeyHSM2 is representing an adequate option. 
+
+The main benefit of YubiHSM2 from SCS perspective is its native support of EdDSA-curve25519, which is the one that NixOS is using for package signing. Thus YubiHSM2 could be used directly with NixOS. However, as the package doesn't change in transit from the Build System to the Consumer, usage of inbuilt tooling is not always necessary.
+
+BreadboardHSM solution is based on Microchip ATECC608B (TrustFLEX + cryptoauthlib + gtutls), though development work is still ongoing at the time of writing this document. The SoftHSMv2 and BreadboardHSM are taken for comparison showing what can be achieved using FOSS variants. 
 
 ## CA Hierarchy Options
 
