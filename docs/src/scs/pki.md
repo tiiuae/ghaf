@@ -47,7 +47,7 @@ The following table aims to provide feature comparison of the proposed solutions
 | M of N wrap rule             |       ✓      |       ✓      |              |
 | Tamper evident audit logging |       ✓      |              |              |
 | Storage capacity             | 128KB, 255xAny ECC | 76KB, 35xECC-512 |    | 
-
+| Price                        | 650 (VAT 0%) | 99% | FOSS |
 
 
 ## CA Hierarchy Options
