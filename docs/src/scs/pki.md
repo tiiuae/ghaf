@@ -32,6 +32,7 @@ The following HSM Solutions are considered for the Ghaf project:
   - [YubiHSM2](https://www.yubico.com/fi/product/yubihsm-2/ "YubiHSM2")
   - [NitrokeyHSM2](https://shop.nitrokey.com/shop/product/nkhs2-nitrokey-hsm-2-7 "NitrokeyHSM2")
   - [SoftHSMv2](https://github.com/opendnssec/SoftHSMv2 "SoftHSMv2")
+  - BreadboardHSM
 
 The following table provides feature comparison of the proposed solutions. 
 
