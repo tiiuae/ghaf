@@ -8,5 +8,7 @@
     ../modules/hardware/nvidia-jetson-orin.nix
 
     microvm.nixosModules.host
+    ../configurations/host/configuration.nix
+    ../modules/development/authentication.nix
   ];
 }
