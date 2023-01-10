@@ -59,7 +59,25 @@
 
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
+
+      # NixOS Host Configurations
+      {
+        nixosConfigurations.nvidia-jetson-orin = let
+          target = import ./targets/nvidia-jetson-orin.nix {inherit jetpack-nixos microvm;};
+        in
+          nixpkgs.lib.nixosSystem (
+            target
+            // {
+              modules =
+                target.modules
+                ++ [
+                  nixos-generators.nixosModules.raw-efi
+                ];
+            }
+          );
+      }
+
       # Final target images
-      (import ./targets.nix { inherit self nixos-generators microvm jetpack-nixos; })
+      (import ./targets {inherit self nixos-generators microvm jetpack-nixos;})
     ];
 }
