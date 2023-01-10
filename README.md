@@ -42,6 +42,10 @@ Flash the resulting `image eg.` to an SD card or USB drive:
 
     dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
 
+If you set up development SSH keys into [SSH module](modules/development/ssh.nix), you can use `nixos-rebuild switch` to quickly deploy your configuration changes to the development board over the network using SSH:
+
+    nixos-rebuild --flake .#nvidia-jetson-orin --target-host root@orin-hostname --fast switch
+
 
 ### Cross Compilation Complications
 
