@@ -12,9 +12,10 @@ SBOM containing reference to each dependency, its source and version together wi
 
 The software artifact, SBOM, and provenance are signed by the build machinery at the build time, and the signature is verifiable at every destination of the package. The certificates that are used for signing and verification are provided by the _public key infrastructure (PKI)_ system and are signed by the same root _certificate authority (CA)_. That allows you to confirm the author of the signature (build machinery) and guarantees that the package has not been tampered with since the build time.
 
+
 ## In This Chapter
 
-- [SLSA Framework](scs/slsa-framework.md)
-- [Basic Security Measures](scs/basics.md)
-- [Public Key Infrastructure](scs/pki.md)
-- [Patch Management Automation](scs/patching-automation.md)
+- [SLSA Framework](../scs/slsa-framework.md)
+- [Basic Security Measures](../scs/basics.md)
+- [Public Key Infrastructure](../scs/pki.md)
+- [Patch Management Automation](../scs/patching-automation.md)
