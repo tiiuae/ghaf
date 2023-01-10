@@ -185,6 +185,10 @@
 <p>To support a reference board without a vendor board support package (BSP) — bootloader, kernel, device drivers — is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.</p>
 <p>Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing <code>unfree</code> - if the user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support.</p>
 <p>The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.</p>
+<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
+<ul>
+<li><a href="build_config/../build_config/cross_compilation.html">Cross Compilation</a></li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross Compilation</a></h1>
 <p>Ghaf is targeted at a range of devices and form factors that support different Instruction Set Architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or operating systems that run on them. As the most common ISA used in desktops and servers is <code>x\_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
@@ -212,12 +216,12 @@
 <p>The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be accompanied by means of <a href="https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/"><em>software bill of materials (SBOM)</em></a>, identifying all the components that the software package consists of.</p>
 <p>SBOM containing reference to each dependency, its source and version together with provenance, containing build information are collected at the build time, signed, and used for vulnerability analysis during the next steps.</p>
 <p>The software artifact, SBOM, and provenance are signed by the build machinery at the build time, and the signature is verifiable at every destination of the package. The certificates that are used for signing and verification are provided by the <em>public key infrastructure (PKI)</em> system and are signed by the same root <em>certificate authority (CA)</em>. That allows you to confirm the author of the signature (build machinery) and guarantees that the package has not been tampered with since the build time.</p>
-<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
+<h2 id="in-this-chapter-1"><a class="header" href="#in-this-chapter-1">In This Chapter</a></h2>
 <ul>
-<li><a href="scs/scs/slsa-framework.html">SLSA Framework</a></li>
-<li><a href="scs/scs/basics.html">Basic Security Measures</a></li>
-<li><a href="scs/scs/pki.html">Public Key Infrastructure</a></li>
-<li><a href="scs/scs/patching-automation.html">Patch Management Automation</a></li>
+<li><a href="scs/../scs/slsa-framework.html">SLSA Framework</a></li>
+<li><a href="scs/../scs/basics.html">Basic Security Measures</a></li>
+<li><a href="scs/../scs/pki.html">Public Key Infrastructure</a></li>
+<li><a href="scs/../scs/patching-automation.html">Patch Management Automation</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="slsa-framework"><a class="header" href="#slsa-framework">SLSA Framework</a></h1>
 <p>Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement, and securing packages and infrastructure of a project. For more information about the SLSA framework, see the offical website <a href="https://slsa.dev">https://slsa.dev</a>.</p>
