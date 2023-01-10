@@ -2,10 +2,7 @@
 
 Welcome contributors!
 
-We like commits as they keep the project going. These two repositories with the source code that we work on:
-
-* <https://github.com/tiiuae/ghaf>
-* <https://github.com/tiiuae/sbomnix>
+We like commits as they keep the project going.
 
 If you have ideas you want to experiment with, make a fork and see how it works. Use pull requests if you are unsure and suggest changes to our maintainers.
 
@@ -18,7 +15,7 @@ Pull requests should be created from personal forks. We follow a fork and rebase
 
 Generally, any contributions should pass the tests.
 
-Make sure to update the documentation with the code: [Contributing Documentation](docs/src/appendices/contributing_doc.md). Good documentation helps to bring new developers in and helps established developers work more effectively. 
+Make sure to update the documentation with the code. Good documentation helps to bring new developers in and helps established developers work more effectively. 
 
 
 ## Commit Message Guidelines

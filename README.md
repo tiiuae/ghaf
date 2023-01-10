@@ -1,22 +1,24 @@
-# Documentation for TII SSRC Secure Technologies: Ghaf Framework
+# TII SSRC Secure Technologies: Ghaf Framework
 
-The Ghaf project is an open-source framework for enhancing security through compartmentalization on edge devices. The source code that we use is in the following repositories:
+This repository contains the source code of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
-* https://github.com/tiiuae/ghaf
+Other repositories that are a part of the Ghaf project:
+
 * https://github.com/tiiuae/sbomnix
 
 
 ## Build Instructions
 
-Ghaf utilizes a flake only approach to build the framework. To see provided outputs, type `nix flake show`. |
+Ghaf utilizes a flake only approach to build the framework. To see provided outputs, type `nix flake show`.
 
-### x86\_64
 
-To build the VM-image for x86\_64
+### x86-64
+
+To build the VM-image for x86-64, use:
 
     nix build .#packages.x86_64-linux.vm
 
-To run the above x86\_64 VM-image inside QEMU:
+Run the above x86-64 VM-image inside QEMU:
 
     nix run .#packages.x86_64-linux.vm
 
@@ -27,23 +29,23 @@ or
 
 The development username and password are defined in [authentication module](./modules/development/authentication.nix).
 
-Note: this creates ghaf-host.qcow2 copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU Virtual Machine, you might get weird errors the next time you boot. Simply removing the ghaf-host.qcow2 should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then click Power Down.
+> **NOTE:** this creates `ghaf-host.qcow2` copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing `ghaf-host.qcow2` should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then click Power Down.
 
 
-### NVIDIA Jetson Orin (aarch64)
+### NVIDIA Jetson Orin (AArch64)
 
-To build for the NVIDIA Jetson Orin
+To build for the NVIDIA Jetson Orin, use:
 
     nix build .#packages.aarch64-linux.nvidia-jetson-orin
 
-then flash the resulting image eg. to a SD card or USB drive
+Flash the resulting `image eg.` to an SD card or USB drive:
 
     dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
 
 
 ### Cross Compilation Complications
 
-As there are some packages that are not cross-compilation aware you may set the following in you ``configuration.nix`` to enable binfmt.
+As there are some packages that are not cross-compilation aware, set the following in your `configuration.nix` to enable binfmt:
 
     {
       boot.binfmt.emulatedSystems = [
@@ -52,28 +54,28 @@ As there are some packages that are not cross-compilation aware you may set the 
       ];
     }
 
-For more details, see [Cross Compile](https://tiiuae.github.io/build_config/cross_compilation.html)
+For more details, see [Cross Compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html).
+
 
 ### Documentation
 
-To build the documentation
+This is a source repository for https://tiiuae.github.io/ghaf. 
+
+To build the Ghaf documentation, use:
 
     nix build .#doc
     
-
-See the documentation overview under [docs](./docs/README.md)
+  
+See the documentation overview under [docs](./docs/README.md).
 
 
 ## Contributing
 
-If you would like to contribute, please read [Contributing](CONTRIBUTING.md) and consider opening a pull request. 
+We welcome your contributions to code and documentation.
 
-Some things that will increase the chance that your pull request is accepted faster:
-* Spelling tools usage.
-* Following our Style Guide.
-* Writing a good commit message.
+If you would like to contribute, please read [CONTRIBUTING.md](CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
 
-In addition, you can use [issues](https://github.com/tiiuae/ghaf/issues) to track suggestions, bugs, and other information.
+If you find any bugs or errors in the content, feel free just to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also use this feature to track suggestions or other information.
 
 
 ## License

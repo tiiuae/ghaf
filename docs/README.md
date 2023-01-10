@@ -2,30 +2,36 @@
 
 This is a source repository for https://tiiuae.github.io/ghaf/about/overview.html.
 
-We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting.
+We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting. Sources are written in Markdown.
 
 The basic directory structure looks like:
 
 ```
-├── src/
-|   ├── SUMMARY.md
-|   ├── img/
-|   ├── chapter-1/
-│   │   ├── section-1.1.md
-|   |   └── section-1.n.md
-|   └── chapter-2/
-|       ├── section-2.1.md
-|       └── section-2.n.md
-├── README.md
-├── book.toml
-├── doc.nix
+...
+├── docs
+│   ├── book.toml
+│   ├── doc.nix
+│   ├── README.md
+│   └── src
+│       ├── chapter-1
+│       │   └── section-1.1.md
+│       ├── chapter-2
+│       │   ├── section-2.1.md
+│       │   └── section-2.2.md
+│       ├── img
+│       │   └── image_name.drawio.png
+│       ├── SUMMARY.md
+│       └── chapter-N
+│           └── section-N.1.md
+...
 
 ```
+
 | File | Description |
 | -------- | ----------- |
 | `SUMMARY.md` | Table of contents.  All listed Markdown files will be transformed as HTML. For more information, see [SUMMARY.md](https://rust-lang.github.io/mdBook/format/summary.html). |
 | `book.toml` | Stores [configuration](https://rust-lang.github.io/mdBook/format/configuration/index.html) data. |
-| `doc.yml` | Continuous integration and delivery (Github Action workflow) for building and deploying the generated book. |
+| `doc.nix` | Builds and deploys the generated book. |
 
 
 ## Working with Files
@@ -92,13 +98,8 @@ Build each topic based on the following structure:
 
 ## Contributing
 
-If you would like to contribute to the documentation, please read [CONTRIBUTING.md](../CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
+If you would like to contribute to the documentation, please read [Contributing Documentation](https://tiiuae.github.io/ghaf/appendices/contributing_doc.html) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
 
-> For more information on contributing the code, see the [Contributing](https://tiiuae.github.io/ghaf/appendices/contributing_code.html) section of the Ghaf documentation.
+> For more information on contributing the code, see [CONTRIBUTING.md](../CONTRIBUTING.md).
 
-Some things that will increase the chance that your pull request is accepted faster:
-* Spelling tools usage.
-* Following our Style Guide. [TBD]
-* [Writing a good commit message](https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#commit-message-guidelines).
-
-If you find any bugs or errors in the content, feel free just to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also use this feature to track suggestions or other information.
+In addition, you can use [issues](https://github.com/tiiuae/ghaf/issues) to track suggestions, bugs, and other information.
