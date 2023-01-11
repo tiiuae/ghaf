@@ -2,11 +2,11 @@
 
 Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: [https://github.com/NixOS](https://github.com/NixOS).
 
-Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try and check the details, see the [build-configurations](https://github.com/tiiuae/build-configurations/) repository.
+Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try, see the [reference implementations](../build_config/reference_implementations.md).
 
 ## Approach
 
-A build configuration is a target to build our hardened OS for a particular hardware device. The supported development target devices are listed in [build-configurations](https://github.com/tiiuae/build-configurations/). The packages used in a build configuration come from [nixpkgs - NixOS Packages collection](https://github.com/NixOS/nixpkgs).
+A build configuration is a target to build our hardened OS for a particular hardware device. Most packages used in a build configuration come from [nixpkgs - NixOS Packages collection](https://github.com/NixOS/nixpkgs).
 
 The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see [Supply Chain Security](scs/scs.md).
 
