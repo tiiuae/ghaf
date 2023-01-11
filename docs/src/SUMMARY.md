@@ -3,6 +3,7 @@
 - [About Ghaf](about/overview.md)
 - [Architecture](architecture/architecture.md)
     - [Decision Record](architecture/adr.md)
+       - [Minimal host](architecture/adr/minimal-host.md)
 - [Technologies](technologies/technologies.md)
 - [Build Configurations](build_config/build_configurations.md)
     - [Reference Implementations](build_config/reference_implementations.md)
