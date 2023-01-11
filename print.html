@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="build_config/cross_compilation.html"><strong aria-hidden="true">4.1.</strong> Cross Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/passthrough/ethernet.html"><strong aria-hidden="true">6.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="appendices/contributing_doc.html">Contributing</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="about/overview.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li></ol></li><li class="chapter-item expanded "><a href="technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="build_config/reference_implementations.html"><strong aria-hidden="true">4.1.</strong> Reference Implementations</a></li><li class="chapter-item expanded "><a href="build_config/cross_compilation.html"><strong aria-hidden="true">4.2.</strong> Cross Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">5.3.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/patching-automation.html"><strong aria-hidden="true">5.4.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/passthrough/ethernet.html"><strong aria-hidden="true">6.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="appendices/contributing_doc.html">Contributing</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -166,9 +166,9 @@ Legacy reference implementation for NXP i.MX8 <a href="https://github.com/tiiuae
 <p>In addition, we have also experimental, Aarch64 demonstrated support for a KVM variant — <a href="https://github.com/jkrh/kvms">KVMS</a> — which adds security features to standard KVM.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="build-configurations"><a class="header" href="#build-configurations">Build Configurations</a></h1>
 <p>Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: <a href="https://github.com/NixOS">https://github.com/NixOS</a>.</p>
-<p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try and check the details, see the <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a> repository.</p>
+<p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try, see the <a href="build_config/../build_config/reference_implementations.html">reference implementations</a>.</p>
 <h2 id="approach"><a class="header" href="#approach">Approach</a></h2>
-<p>A build configuration is a target to build our hardened OS for a particular hardware device. The supported development target devices are listed in <a href="https://github.com/tiiuae/build-configurations/">build-configurations</a>. The packages used in a build configuration come from <a href="https://github.com/NixOS/nixpkgs">nixpkgs - NixOS Packages collection</a>.</p>
+<p>A build configuration is a target to build our hardened OS for a particular hardware device. Most packages used in a build configuration come from <a href="https://github.com/NixOS/nixpkgs">nixpkgs - NixOS Packages collection</a>.</p>
 <p>The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see <a href="build_config/scs/scs.html">Supply Chain Security</a>.</p>
 <p>NixOS, a Linux OS distribution packaged with Nix, provides us with:</p>
 <ul>
@@ -190,6 +190,56 @@ Legacy reference implementation for NXP i.MX8 <a href="https://github.com/tiiuae
 <ul>
 <li><a href="build_config/../build_config/cross_compilation.html">Cross Compilation</a></li>
 </ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
+<h2 id="supported-targets"><a class="header" href="#supported-targets">Supported targets</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th></tr></thead><tbody>
+<tr><td>Generic Intel</td><td>x86</td><td>QEMU</td></tr>
+<tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>hardware</td></tr>
+</tbody></table>
+</div>
+<p>Scope of target support is updated with development progress.</p>
+<h2 id="build-instructions"><a class="header" href="#build-instructions">Build Instructions</a></h2>
+<p>Ghaf uses a Nix flake only approach to build the framework targets.</p>
+<p>See <a href="https://nixos.org/download.html">Nix installation instructions</a> for further details.
+Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable flakes</a>.</p>
+<div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>architecture</th><th>scope</th><th>build command</th></tr></thead><tbody>
+<tr><td>Generic Intel</td><td>x86</td><td>VM</td><td><code>nix build .#packages.x86_64-linux.vm</code></td></tr>
+<tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.nvidia-jetson-orin</code></td></tr>
+</tbody></table>
+</div>
+<p>To see all Ghaf supported outputs, type <code>nix flake show</code>.</p>
+<h2 id="run-instructions"><a class="header" href="#run-instructions">Run Instructions</a></h2>
+<p>The development username and password are defined in <a href="build_config/./modules/development/authentication.nix">authentication module</a>.</p>
+<h3 id="virtual-machine---ghaf-host"><a class="header" href="#virtual-machine---ghaf-host">Virtual machine - ghaf-host</a></h3>
+<p><code>nix run .#packages.x86_64-linux.vm</code></p>
+<blockquote>
+<p><strong>NOTE:</strong> this creates <code>ghaf-host.qcow2</code> copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing <code>ghaf-host.qcow2</code> should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then click Power Down.</p>
+</blockquote>
+<h3 id="nvidia-jetson-orin-agx"><a class="header" href="#nvidia-jetson-orin-agx">NVIDIA Jetson Orin AGX</a></h3>
+<ul>
+<li>Prequisite (firmware version): <a href="https://github.com/mikatammi/jetpack-nixos/tree/flash_orin_hack#hack-for-flashing-nvidia-jetson-orin">Update the NVIDIA Jetson Orin AGX UEFI firmware to version r35.1 to boot from USB</a></li>
+<li>Prequisite (cross-compilation support): <code>binfmt</code> and NixOS is required.
+<ul>
+<li>Enable <code>binfmt</code> in your <code>configuration.nix</code> with:
+<pre><code>boot.binfmt.emulatedSystems = [
+  &quot;aarch64-linux&quot;
+];
+</code></pre>
+</li>
+<li>For more details, see <a href="https://tiiuae.github.io/ghaf/build_config/cross_compilation.html">Cross Compilation</a>.</li>
+</ul>
+</li>
+<li>Prepare the USB boot media with the target HW image you built:
+<ul>
+<li><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M</code></li>
+</ul>
+</li>
+<li>Boot the hardware from USB media</li>
+</ul>
+<h2 id="development-tips"><a class="header" href="#development-tips">Development tips</a></h2>
+<p>If you set up development SSH keys into <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4">SSH module</a>, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the development board over the network using SSH:</p>
+<pre><code>nixos-rebuild --flake .#nvidia-jetson-orin --target-host root@orin-hostname --fast switch
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross Compilation</a></h1>
 <p>Ghaf is targeted at a range of devices and form factors that support different Instruction Set Architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or operating systems that run on them. As the most common ISA used in desktops and servers is <code>x\_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
