@@ -4,4 +4,4 @@
 
 ## Contributions
 
-Contributions to Ghaf architecture decisions are welcome. Please create an architectural decision proposal by opening a pull request using the [template](https://github.com/tiiuae/build-configurations/blob/main/adr/template.md) to [build configurations](https://github.com/tiiuae/build-configurations).
+Contributions to Ghaf architecture decisions are welcome. Please create an architectural decision proposal by opening [a pull request](https://github.com/tiiuae/ghaf/pulls) using the [template](./adr/template.md).
