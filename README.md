@@ -2,74 +2,22 @@
 
 This repository contains the source code of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
+The documentation is available on Github Pages at https://tiiuae.github.io/ghaf/
+
+See [reference implementations](https://tiiuae.github.io/ghaf/build_config/reference_implementations.html) for supported hardware, features and build instructions.
+
 Other repositories that are a part of the Ghaf project:
 
 * https://github.com/tiiuae/sbomnix
 
-
-## Build Instructions
-
-Ghaf utilizes a flake only approach to build the framework. To see provided outputs, type `nix flake show`.
-
-
-### x86-64
-
-To build the VM-image for x86-64, use:
-
-    nix build .#packages.x86_64-linux.vm
-
-Run the above x86-64 VM-image inside QEMU:
-
-    nix run .#packages.x86_64-linux.vm
-
-or
-
-    result/bin/run-ghaf-host-vm
-
-
-The development username and password are defined in [authentication module](./modules/development/authentication.nix).
-
-> **NOTE:** this creates `ghaf-host.qcow2` copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing `ghaf-host.qcow2` should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then click Power Down.
-
-
-### NVIDIA Jetson Orin (AArch64)
-
-To build for the NVIDIA Jetson Orin, use:
-
-    nix build .#packages.aarch64-linux.nvidia-jetson-orin
-
-Flash the resulting `image eg.` to an SD card or USB drive:
-
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
-
-If you set up development SSH keys into [SSH module](modules/development/ssh.nix), you can use `nixos-rebuild switch` to quickly deploy your configuration changes to the development board over the network using SSH:
-
-    nixos-rebuild --flake .#nvidia-jetson-orin --target-host root@orin-hostname --fast switch
-
-
-### Cross Compilation Complications
-
-As there are some packages that are not cross-compilation aware, set the following in your `configuration.nix` to enable binfmt:
-
-    {
-      boot.binfmt.emulatedSystems = [
-        "riscv64-linux"
-        "aarch64-linux"
-      ];
-    }
-
-For more details, see [Cross Compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html).
-
-
 ### Documentation
 
-This is a source repository for https://tiiuae.github.io/ghaf. 
+The `docs`-folder of this repository is used to generate the documentation site at https://tiiuae.github.io/ghaf
 
 To build the Ghaf documentation, use:
 
     nix build .#doc
     
-  
 See the documentation overview under [docs](./docs/README.md).
 
 
