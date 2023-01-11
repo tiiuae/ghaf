@@ -144,7 +144,8 @@
 <p>Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide hardened system of small trusted computing base (TCB) - thin host - that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines. Embedded targets small devices - personal or headless - instead of high performance cloud servers. Our scope is illustrated in the following diagram.</p>
 <p><img src="about/../img/overview.png" alt="Scope!" title="Embedded Virtualization Scope" /></p>
 <h2 id="reference-implementation"><a class="header" href="#reference-implementation">Reference Implementation</a></h2>
-<p>Our work in progress reference implementation on NXP i.MX 8 is available <a href="https://github.com/tiiuae/spectrum-config-imx8">here</a>.</p>
+<p>Ghaf is developing a reference implementation for NVIDIA Jetson devices. See <a href="https://github.com/tiiuae/ghaf/#build-instructions">build instructions</a> for more info.
+Legacy reference implementation for NXP i.MX8 <a href="https://github.com/tiiuae/spectrum-config-imx8">is available here</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
 <p>The main architectural concept of the Ghaf platform is to break up the traditional monolithic structure to modularized components, virtual machines (VM). These VMs on hardened host OS implement the Ghaf edge virtualization platform. The Ghaf platform components are used in reference configurations to build images for reference devices. See <a href="architecture/../build_configurations.html">build configurations</a> for more info.</p>
 <p>See <a href="architecture/adr.html">architectural decisions record</a> for more info on design choices that address architectural requirements.</p>
