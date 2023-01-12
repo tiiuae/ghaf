@@ -1,24 +1,21 @@
 # TII SSRC Secure Technologies: Ghaf Framework
 
-This repository contains the source code of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
+This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
-The documentation is available on Github Pages at https://tiiuae.github.io/ghaf/
+For inforamtion on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/build_config/reference_implementations.html) section of the Ghaf documentation.
 
-See [reference implementations](https://tiiuae.github.io/ghaf/build_config/reference_implementations.html) for supported hardware, features and build instructions.
+Other repositories that are a part of the Ghaf project: <https://github.com/tiiuae/sbomnix>.
 
-Other repositories that are a part of the Ghaf project:
-
-* https://github.com/tiiuae/sbomnix
 
 ### Documentation
 
-The `docs`-folder of this repository is used to generate the documentation site at https://tiiuae.github.io/ghaf
+The Ghaf Framework documentation site is located at <https://tiiuae.github.io/ghaf/>. It is under cooperative developing.
 
 To build the Ghaf documentation, use:
 
     nix build .#doc
     
-See the documentation overview under [docs](./docs/README.md).
+See the documentation overview under [README.md](./docs/README.md).
 
 
 ## Contributing

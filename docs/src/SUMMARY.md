@@ -19,4 +19,4 @@
 
 [Glossary](appendices/glossary.md)
 
-[Contributing](appendices/contributing_doc.md)
+[Contributing](appendices/contributing_general.md)

@@ -1,15 +1,31 @@
-# Contributing Code
+# Welcome Contributors!
 
-Welcome contributors!
+We like commits as they keep the project going. If you have ideas you want to experiment with, make a fork and see how it works. Use pull requests if you are unsure and suggest changes to our maintainers.
 
-We like commits as they keep the project going.
+- [Welcome Contributors!](#welcome-contributors)
+  - [Our Philosophy](#our-philosophy)
+  - [Contributing Code](#contributing-code)
+    - [Development Process](#development-process)
+    - [Commit Message Guidelines](#commit-message-guidelines)
+  - [Contributing Documentation](#contributing-documentation)
+    - [Working with Documentation Source Files](#working-with-documentation-source-files)
+    - [Submitting Changes](#submitting-changes)
+    - [Manual of Style](#manual-of-style)
+  - [Communication](#communication)
 
-If you have ideas you want to experiment with, make a fork and see how it works. Use pull requests if you are unsure and suggest changes to our maintainers.
 
-If you are considering helping to improve the Ghaf documentation, see [Contributing Documentation](https://tiiuae.github.io/ghaf/appendices/contributing_doc.html).
+## Our Philosophy
 
+* Update docs with the code.
+* Content is King, consistency is Queen.
+* Do not assume that readers know everything you currently know.
+* Avoid jargon and acronyms, if you can.
+* Do not reference future development or features that do not yet exist.
+  
 
-## Development Process
+## Contributing Code
+
+### Development Process
 
 Pull requests should be created from personal forks. We follow a fork and rebase workflow.
 
@@ -18,7 +34,7 @@ Generally, any contributions should pass the tests.
 Make sure to update the documentation with the code. Good documentation helps to bring new developers in and helps established developers work more effectively. 
 
 
-## Commit Message Guidelines
+### Commit Message Guidelines
 
 We use the Linux kernel compatible commit message format.
 
@@ -54,6 +70,49 @@ Signed-off-by: Your Name <youremail@yourhost.com>
 ```
 
 The seven rules of a great Git commit message are originally from Google. Original commit message example is from Linus Torvalds. Both have been modified. Comments and suggestions are welcome.
+
+---
+
+## Contributing Documentation
+
+The Ghaf project is free and open source. We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting. Sources are written in Markdown.
+
+Improvements to the documentation are welcome! We would love to get contributions from you.
+
+
+### Working with Documentation Source Files
+
+Please see the following instructions:
+
+- [Working with Files](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#working-with-files) for information on how to manage files/images.
+- [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#naming) for information on file/image naming rules.
+- [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
+
+
+### Submitting Changes
+
+Create a pull request to propose and collaborate on changes to a repository. Please follow the steps below:
+
+1. Fork the project repository.
+2. Clone the forked repository to your computer.
+3. Create and switch into a new branch with your changes: `git checkout -b doc_my_changes`
+4. [Make your changes](#working-with-documentation-source-files).
+5. :sunglasses: Check what you wrote with a spellchecker to make sure you did not miss anything.
+6. Test your changes before submitting a pull request using the `nix build .#doc` command.
+7. Commit your changes: `git commit --signoff`
+    - Use "Docs:" in the subject line to indicate the documentation changes. For example: **Docs: rename "Research" to "Research Notes"**.
+    - Keep text hard-wrapped at 50 characters.
+    - For more inspiration, see [How to Write a Git Commit Message](https://cbea.ms/git-commit/).
+8. Push changes to the main branch: `git push origin doc_my_changes`
+9. Submit your changes for review using the GitHub UI.
+10. After publishing keep your ear to the ground for any feedback and comments in [Pull requests](https://github.com/tiiuae/ghaf/pulls).
+
+
+### Manual of Style
+
+For information on manual of style recommended practices, see [Documentation Style Guide](./docs/style_guide.md).
+
+--- 
 
 ## Communication
 
