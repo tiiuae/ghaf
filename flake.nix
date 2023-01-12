@@ -79,5 +79,8 @@
 
       # Final target images
       (import ./targets {inherit self nixos-generators microvm jetpack-nixos;})
+
+      # Hydra jobs
+      (import ./hydrajobs.nix {inherit self;})
     ];
 }
