@@ -1,7 +1,10 @@
 # Software Bill of Materials (SBOM)
+
 Software bill of materials (SBOM) is a formal, machine-readable document that provides a list of software components that make up the target software and all its dependencies.
 
+
 ## SBOM Formats and Specifications
+
 There are three main delivery formats and specifications for SBOM: CycloneDX, SPDX, and SWID.
 
 [CycloneDX](https://cyclonedx.org/specification/overview/) is an open-source standard with origins in the [OWASP](https://en.wikipedia.org/wiki/OWASP) community. The specification's original focus is on security. There's a large growing community and open source tooling that support CycloneDX format.
@@ -12,7 +15,9 @@ There are three main delivery formats and specifications for SBOM: CycloneDX, SP
 
 
 ## SBOM Usage in Ghaf
+
 Ghaf framework will use SBOMs for:
+
 - Vulnerability identification: automatic correlation of SBOM against known vulnerabilities
 - Vulnerability remediation: automatic process to suggest fixes for identified vulnerabilities
 - Dependency analysis: categorization of open-source and closed source software dependencies
@@ -22,12 +27,14 @@ Ghaf framework will use SBOMs for:
 
 
 ## SBOM Tooling in Ghaf
+
 Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any nix targets. For more details on the SBOM tooling in Ghaf, see [sbomnix](https://github.com/tiiuae/sbomnix#sbomnix) and [nixgraph](https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph).
 
 Initially, sbomnix will support [CycloneDX](https://cyclonedx.org/specification/overview/) SBOM specification, due to the availability of other open source tools that also support CycloneDX. Support for other SBOM formats to sbomnix might be added in later versions.
 
 
 ## References
+
 - https://ntia.gov/page/software-bill-materials
 - https://slsa.dev/blog/2022/05/slsa-sbom
 - https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/

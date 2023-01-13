@@ -11,6 +11,7 @@
 - [Supply Chain Security](scs/scs.md)
     - [SLSA Framework](scs/slsa-framework.md)
     - [Basic Security Measures](scs/basics.md)
+    - [SBOM](scs/sbom.md)
     - [Public Key Infrastructure](scs/pki.md)
     - [Patch Management Automation](scs/patching-automation.md)
 - [Research Notes](research/research.md)

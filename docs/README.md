@@ -4,7 +4,7 @@ This guidelines provide information on wotking with source files. For informatio
 
 - [Working with Documentation](#working-with-documentation)
   - [Directory Structure](#directory-structure)
-  - [Working with Files](#working-with-files)
+  - [Adding New Files](#adding-new-files)
     - [Naming](#naming)
   - [Contributing](#contributing)
 
@@ -49,13 +49,13 @@ The `docs` folder of this repository is used to generate the documentation site.
 | `doc.nix` | Builds and deploys the generated book. |
 
 
-## Working with Files
+## Adding New Files
 
 The documentation is separated into chapters, sections, subsections, and subsubsections if needed.
 
-**To add new pages to the book:**
+To add new pages to the book:
 
-1. Put files for a specific topic into the related folder:
+1.  Put files for a specific topic into the related folder:
 
 | Folder | Description |
 | --------- | ----------- |
@@ -77,9 +77,6 @@ The documentation is separated into chapters, sections, subsections, and subsubs
 ```
 
 If you are unsure where to place a document or how to organize a content addition, this should not stop you from contributing. See [Managing Content](#-managing-content) for inspiration. You can also ask a technical writer [Jenni Nikolaenko](https://github.com/jenninikko) at any stage in the process.
-
-[//]: # (Link to Style Guide.)
-[//]: # (Link to Glossary.)
 
 
 ### Naming

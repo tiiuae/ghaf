@@ -77,14 +77,12 @@ The seven rules of a great Git commit message are originally from Google. Origin
 
 The Ghaf project is free and open source. We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting. Sources are written in Markdown.
 
-Improvements to the documentation are welcome! We would love to get contributions from you.
-
 
 ### Working with Documentation Source Files
 
 Please see the following instructions:
 
-- [Working with Files](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#working-with-files) for information on how to manage files/images.
+- [Adding New Files](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#adding-new-files) for information on how to manage files/images.
 - [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#naming) for information on file/image naming rules.
 - [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
 
@@ -110,7 +108,7 @@ Create a pull request to propose and collaborate on changes to a repository. Ple
 
 ### Manual of Style
 
-For information on manual of style recommended practices, see [Documentation Style Guide](./docs/style_guide.md).
+For information on recommended practices, see [Documentation Style Guide](./docs/style_guide.md).
 
 --- 
 
