@@ -138,7 +138,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
-<h2 id="supported-targets"><a class="header" href="#supported-targets">Supported targets</a></h2>
+<h2 id="supported-targets"><a class="header" href="#supported-targets">Supported Targets</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th></tr></thead><tbody>
 <tr><td>Generic Intel</td><td>x86</td><td>QEMU</td></tr>
 <tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>hardware</td></tr>
@@ -146,7 +146,7 @@
 </div>
 <p>Scope of target support is updated with development progress.</p>
 <h2 id="build-instructions"><a class="header" href="#build-instructions">Build Instructions</a></h2>
-<p>Ghaf uses a Nix flake only approach to build the framework targets.</p>
+<p>Ghaf uses a Nix flake approach to build the framework targets.</p>
 <p>See <a href="https://nixos.org/download.html">Nix installation instructions</a> for further details.
 Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable flakes</a>.</p>
 <div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>architecture</th><th>scope</th><th>build command</th></tr></thead><tbody>
@@ -157,7 +157,7 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <p>To see all Ghaf supported outputs, type <code>nix flake show</code>.</p>
 <h2 id="run-instructions"><a class="header" href="#run-instructions">Run Instructions</a></h2>
 <p>The development username and password are defined in <a href="./modules/development/authentication.nix">authentication module</a>.</p>
-<h3 id="virtual-machine---ghaf-host"><a class="header" href="#virtual-machine---ghaf-host">Virtual machine - ghaf-host</a></h3>
+<h3 id="virtual-machine---ghaf-host"><a class="header" href="#virtual-machine---ghaf-host">Virtual Machine - ghaf-host</a></h3>
 <p><code>nix run .#packages.x86_64-linux.vm</code></p>
 <blockquote>
 <p><strong>NOTE:</strong> this creates <code>ghaf-host.qcow2</code> copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing <code>ghaf-host.qcow2</code> should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then click Power Down.</p>
@@ -183,7 +183,7 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 </li>
 <li>Boot the hardware from USB media</li>
 </ul>
-<h2 id="development-tips"><a class="header" href="#development-tips">Development tips</a></h2>
+<h2 id="development-tips"><a class="header" href="#development-tips">Development Tips</a></h2>
 <p>If you set up development SSH keys into <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4">SSH module</a>, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the development board over the network using SSH:</p>
 <pre><code>nixos-rebuild --flake .#nvidia-jetson-orin --target-host root@orin-hostname --fast switch
 </code></pre>

@@ -142,7 +142,7 @@
 <p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try, see the <a href="../build_config/reference_implementations.html">reference implementations</a>.</p>
 <h2 id="approach"><a class="header" href="#approach">Approach</a></h2>
 <p>A build configuration is a target to build our hardened OS for a particular hardware device. Most packages used in a build configuration come from <a href="https://github.com/NixOS/nixpkgs">nixpkgs - NixOS Packages collection</a>.</p>
-<p>The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see <a href="scs/scs.html">Supply Chain Security</a>.</p>
+<p>The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see <a href="../scs/scs.html">Supply Chain Security</a>.</p>
 <p>NixOS, a Linux OS distribution packaged with Nix, provides us with:</p>
 <ul>
 <li>generic hardware architecture support (<code>x86-64</code> and <code>AArch64</code>);</li>
@@ -159,10 +159,6 @@
 <p>To support a reference board without a vendor board support package (BSP) — bootloader, kernel, device drivers — is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.</p>
 <p>Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing <code>unfree</code> - if the user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support.</p>
 <p>The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.</p>
-<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
-<ul>
-<li><a href="../build_config/cross_compilation.html">Cross Compilation</a></li>
-</ul>
 
                     </main>
 
