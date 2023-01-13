@@ -153,7 +153,7 @@ Legacy reference implementation for NXP i.MX8 <a href="https://github.com/tiiuae
 <p><a href="https://adr.github.io">Architecture decision records (ADR)</a> are used to constitute the Ghaf platform decision log.</p>
 <h2 id="contributions"><a class="header" href="#contributions">Contributions</a></h2>
 <p>Contributions to Ghaf architecture decisions are welcome. Please create an architectural decision proposal by opening <a href="https://github.com/tiiuae/ghaf/pulls">a pull request</a> using the <a href="https://github.com/tiiuae/ghaf/blob/main/docs/src/architecture/adr/template.md">template</a>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="minimal-host"><a class="header" href="#minimal-host">Minimal host</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="minimal-host"><a class="header" href="#minimal-host">Minimal Host</a></h1>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>Proposed</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
@@ -381,22 +381,22 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <h2 id="sbom-usage-in-ghaf"><a class="header" href="#sbom-usage-in-ghaf">SBOM Usage in Ghaf</a></h2>
 <p>Ghaf framework will use SBOMs for:</p>
 <ul>
-<li>Vulnerability identification: automatic correlation of SBOM against known vulnerabilities</li>
-<li>Vulnerability remediation: automatic process to suggest fixes for identified vulnerabilities</li>
-<li>Dependency analysis: categorization of open-source and closed source software dependencies</li>
+<li>Vulnerability identification: automatic correlation of SBOM against known vulnerabilities.</li>
+<li>Vulnerability remediation: automatic process to suggest fixes for identified vulnerabilities.</li>
+<li>Dependency analysis: categorization of open-source and closed source software dependencies.</li>
 <li>Dependency analysis: creation of a directed acyclic graph</li>
-<li>License compliance: know and comply with the license obligations</li>
-<li>Market signal: publish SBOM together with other release artifacts</li>
+<li>License compliance: know and comply with the license obligations.</li>
+<li>Market signal: publish SBOM together with other release artifacts.</li>
 </ul>
 <h2 id="sbom-tooling-in-ghaf"><a class="header" href="#sbom-tooling-in-ghaf">SBOM Tooling in Ghaf</a></h2>
 <p>Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any nix targets. For more details on the SBOM tooling in Ghaf, see <a href="https://github.com/tiiuae/sbomnix#sbomnix">sbomnix</a> and <a href="https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph">nixgraph</a>.</p>
 <p>Initially, sbomnix will support <a href="https://cyclonedx.org/specification/overview/">CycloneDX</a> SBOM specification, due to the availability of other open source tools that also support CycloneDX. Support for other SBOM formats to sbomnix might be added in later versions.</p>
 <h2 id="references"><a class="header" href="#references">References</a></h2>
 <ul>
-<li>https://ntia.gov/page/software-bill-materials</li>
-<li>https://slsa.dev/blog/2022/05/slsa-sbom</li>
-<li>https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/</li>
-<li>https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes</li>
+<li><a href="https://ntia.gov/page/software-bill-materials">https://ntia.gov/page/software-bill-materials</a></li>
+<li><a href="https://slsa.dev/blog/2022/05/slsa-sbom">https://slsa.dev/blog/2022/05/slsa-sbom</a></li>
+<li><a href="https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools">https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools</a></li>
+<li><a href="https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes">https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="public-key-infrastructure"><a class="header" href="#public-key-infrastructure">Public Key Infrastructure</a></h1>
 <p>In the SCS context, a public key infrastructure (PKI) term refers to a system for the creation, storage, and distribution of digital certificates which are used to verify that a particular key belongs to a certain entity. PKI creates and manages a hierarchical set of digital certificates which map public keys to certain entities. Storage and revocation methodologies are to be defined.</p>
