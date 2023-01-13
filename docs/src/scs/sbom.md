@@ -18,12 +18,12 @@ There are three main delivery formats and specifications for SBOM: CycloneDX, SP
 
 Ghaf framework will use SBOMs for:
 
-- Vulnerability identification: automatic correlation of SBOM against known vulnerabilities
-- Vulnerability remediation: automatic process to suggest fixes for identified vulnerabilities
-- Dependency analysis: categorization of open-source and closed source software dependencies
+- Vulnerability identification: automatic correlation of SBOM against known vulnerabilities.
+- Vulnerability remediation: automatic process to suggest fixes for identified vulnerabilities.
+- Dependency analysis: categorization of open-source and closed source software dependencies.
 - Dependency analysis: creation of a directed acyclic graph
-- License compliance: know and comply with the license obligations
-- Market signal: publish SBOM together with other release artifacts
+- License compliance: know and comply with the license obligations.
+- Market signal: publish SBOM together with other release artifacts.
 
 
 ## SBOM Tooling in Ghaf
@@ -35,7 +35,7 @@ Initially, sbomnix will support [CycloneDX](https://cyclonedx.org/specification/
 
 ## References
 
-- https://ntia.gov/page/software-bill-materials
-- https://slsa.dev/blog/2022/05/slsa-sbom
-- https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/
-- https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes
+- <https://ntia.gov/page/software-bill-materials>
+- <https://slsa.dev/blog/2022/05/slsa-sbom>
+- <https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools>
+- <https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes>

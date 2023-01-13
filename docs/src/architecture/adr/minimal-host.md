@@ -1,4 +1,4 @@
-# Minimal host
+# Minimal Host
 
 ## Status
 
