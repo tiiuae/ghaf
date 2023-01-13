@@ -8,7 +8,7 @@ Build configurations define our dependencies and configuration changes to packag
 
 A build configuration is a target to build our hardened OS for a particular hardware device. Most packages used in a build configuration come from [nixpkgs - NixOS Packages collection](https://github.com/NixOS/nixpkgs).
 
-The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see [Supply Chain Security](scs/scs.md).
+The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see [Supply Chain Security](../scs/scs.md).
 
 NixOS, a Linux OS distribution packaged with Nix, provides us with:
 - generic hardware architecture support (``x86-64`` and ``AArch64``);
@@ -26,8 +26,3 @@ To support a reference board without a vendor board support package (BSP) — bo
 Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing ``unfree`` - if the user agrees with the end-user license agreement (EULA). If not, ``unfree`` support can be dropped along with that part of the BSP support.
 
 The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.
-
-
-## In This Chapter
-
-- [Cross Compilation](../build_config/cross_compilation.md)

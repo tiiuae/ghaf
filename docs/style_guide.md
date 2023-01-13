@@ -5,10 +5,9 @@ Here you can find the standards we follow for writing, formatting, and organizin
 Writing guidelines:
 - [Documentation Style Guide](#documentation-style-guide)
   - [(WIP) Markdown Syntax](#wip-markdown-syntax)
-  - [Plain English](#plain-english)
   - [Managing Content](#managing-content)
   - [Headings](#headings)
-  - [Plain English](#plain-english-1)
+  - [Plain English](#plain-english)
   - [Spelling and Punctuation](#spelling-and-punctuation)
   - [References](#references)
 
@@ -28,16 +27,6 @@ To make Markdown files maintainable over time and across teams, please follow th
 * Lists
 * Images
 * Tables
-
-
-## Plain English
-
-* Use simple tenses.
-* Write in an active voice.
-* Understandable language, fewer gerunds.
-* Short, sharp sentence. Try to use 15-20 words max.
-* [Split information in paragraphs](https://github.com/tiiuae/ghaf/tree/main/docs#managing-content).
-* Do not contract the words: use cannot instead of can’t.
 
 
 ## Managing Content
@@ -60,6 +49,8 @@ Build each topic based on the following structure:
 ## Headings
 
 Capitalize words in the heading according to the title case. 
+
+> Title Case: You Capitalize All Words in the Title except for the Little Words.
 
 In the Ghaf documentation, we do not use articles in headings.
 
