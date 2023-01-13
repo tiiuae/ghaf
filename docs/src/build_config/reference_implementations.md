@@ -1,6 +1,6 @@
 # Reference Implementations
 
-## Supported targets
+## Supported Targets
 
 | Hardware         | Architecture     | Scope         |
 |---               |---               |---            |
@@ -11,7 +11,7 @@ Scope of target support is updated with development progress.
 
 ## Build Instructions
 
-Ghaf uses a Nix flake only approach to build the framework targets.
+Ghaf uses a Nix flake approach to build the framework targets.
 
 See [Nix installation instructions](https://nixos.org/download.html) for further details.
 Make also sure to [enable flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes).
@@ -27,7 +27,7 @@ To see all Ghaf supported outputs, type `nix flake show`.
 
 The development username and password are defined in [authentication module](./modules/development/authentication.nix).
 
-### Virtual machine - ghaf-host
+### Virtual Machine - ghaf-host
 
 `nix run .#packages.x86_64-linux.vm`
 
@@ -49,7 +49,7 @@ The development username and password are defined in [authentication module](./m
 * Boot the hardware from USB media
 
 
-## Development tips
+## Development Tips
 
 If you set up development SSH keys into [SSH module](https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4), you can use `nixos-rebuild switch` to quickly deploy your configuration changes to the development board over the network using SSH:
 
