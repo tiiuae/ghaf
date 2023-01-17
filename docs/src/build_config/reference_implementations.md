@@ -25,7 +25,7 @@ To see all Ghaf supported outputs, type `nix flake show`.
 
 ## Run Instructions
 
-The development username and password are defined in [authentication module](./modules/development/authentication.nix).
+The development username and password are defined in [authentication module](https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix#L4-L5).
 
 ### Virtual Machine - ghaf-host
 
