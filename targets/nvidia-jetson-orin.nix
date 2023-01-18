@@ -9,7 +9,11 @@
 
     microvm.nixosModules.host
     ../configurations/host/configuration.nix
+
+   #### on-host development supporting modules ####
+   # drop/replace modules below this line for any real use
     ../modules/development/authentication.nix
     ../modules/development/ssh.nix
+    ../modules/development/nix.nix
   ];
 }
