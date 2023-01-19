@@ -20,7 +20,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
     microvm = {
-      url = "github:astro/microvm.nix";
+      # TODO: change back to url = "github:astro/microvm.nix";
+      url = "github:mikatammi/microvm.nix/wip_hacks";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
@@ -60,10 +61,22 @@
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
 
+      # MicroVM configurations
+      {
+        # Generate VM configurations for every system
+        nixosConfigurations =
+          nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate
+          {}
+          (map (system: {
+              "netvm-${system}" = import ./configurations/netvm {inherit nixpkgs microvm system;};
+            })
+            systems);
+      }
+
       # NixOS Host Configurations
       {
         nixosConfigurations.nvidia-jetson-orin = let
-          target = import ./targets/nvidia-jetson-orin.nix {inherit jetpack-nixos microvm;};
+          target = import ./targets/nvidia-jetson-orin.nix {inherit self jetpack-nixos microvm;};
         in
           nixpkgs.lib.nixosSystem (
             target
