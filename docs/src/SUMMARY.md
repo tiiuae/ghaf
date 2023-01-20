@@ -8,6 +8,8 @@
 - [Build Configurations](build_config/build_configurations.md)
     - [Reference Implementations](build_config/reference_implementations.md)
     - [Cross Compilation](build_config/cross_compilation.md)
+    - [Passthrough](build_config/passthrough/passthrough.md)
+        - [Nvidia AGX Orin - UART Passthrough](build_config/passthrough/nvidia_agx_pt_uart.md)
 - [Supply Chain Security](scs/scs.md)
     - [SLSA Framework](scs/slsa-framework.md)
     - [Basic Security Measures](scs/basics.md)
