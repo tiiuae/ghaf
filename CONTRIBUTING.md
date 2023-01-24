@@ -84,7 +84,7 @@ Please see the following instructions:
 
 - [Adding New Files](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#adding-new-files) for information on how to manage files/images.
 - [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#naming) for information on file/image naming rules.
-- [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
+- [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
 
 
 ### Submitting Changes
@@ -104,6 +104,8 @@ Create a pull request to propose and collaborate on changes to a repository. Ple
 8. Push changes to the main branch: `git push origin doc_my_changes`
 9. Submit your changes for review using the GitHub UI.
 10. After publishing keep your ear to the ground for any feedback and comments in [Pull requests](https://github.com/tiiuae/ghaf/pulls).
+
+When a merge to main occurs it will automatically build and deploy to <https://tiiuae.github.io/ghaf/>.
 
 
 ### Manual of Style
