@@ -1,9 +1,6 @@
 # Summary
 
-[Introduction](index.md)
-
-# Ghaf Framework
-
+- [Introduction](index.md)
 - [Architecture](architecture/architecture.md)
     - [Decision Record](architecture/adr.md)
        - [Minimal host](architecture/adr/minimal-host.md)
@@ -17,9 +14,6 @@
     - [SBOM](scs/sbom.md)
     - [Public Key Infrastructure](scs/pki.md)
     - [Patch Management Automation](scs/patching-automation.md)
-
-# References 
-
 - [Research Notes](research/research.md)
     - [i.MX 8QM Ethernet Passthrough](research/passthrough/ethernet.md)
 
