@@ -24,29 +24,33 @@ The `docs` folder of this repository is used to generate the documentation site.
 ```
 ...
 ├── docs
+│   ├── README.md
 │   ├── book.toml
 │   ├── doc.nix
-│   ├── README.md
-│   └── src
-│       ├── chapter-1
-│       │   └── section-1.1.md
-│       ├── chapter-2
-│       │   ├── section-2.1.md
-│       │   └── section-2.2.md
-│       ├── img
-│       │   └── image_name.drawio.png
-│       ├── SUMMARY.md
-│       └── chapter-N
-│           └── section-N.1.md
+│   ├── src
+│   │   ├── SUMMARY.md
+│   │   ├── index.md
+│   │   ├── chapter-1
+│   │   │   └── section-1.1.md
+│   │   ├── chapter-2
+│   │   │   ├── section-2.1.md
+│   │   │   └── section-2.2.md
+│   │   ├── chapter-N
+│   │   │   └── section-N.1.md
+│   │   ├── img
+│   │   │   └── image_name.drawio.png
+│   └── style_guide.md
 ...
 
 ```
 
 | File | Description |
 | -------- | ----------- |
-| `SUMMARY.md` | Table of contents.  All listed Markdown files will be transformed as HTML. For more information, see [SUMMARY.md](https://rust-lang.github.io/mdBook/format/summary.html). |
 | `book.toml` | Stores [configuration](https://rust-lang.github.io/mdBook/format/configuration/index.html) data. |
 | `doc.nix` | Builds and deploys the generated book. |
+| `SUMMARY.md` | Table of contents.  All listed Markdown files will be transformed as HTML. For more information, see [SUMMARY.md](https://rust-lang.github.io/mdBook/format/summary.html). |
+| `index.md` | The main page of the website that is rendered to `index.html` in the book. This [preprocessor is built-in](https://rust-lang.github.io/mdBook/format/configuration/preprocessors.html?highlight=readme#configuring-preprocessors) and included by default. Make sure to keep `index.md` out of any subdirectory. |
+
 
 
 ## Adding New Files
@@ -59,14 +63,14 @@ To add new pages to the book:
 
 | Folder | Description |
 | --------- | ----------- |
-| `src/chapter-name/...` | Top-level folders with high-level information: _about_, _architecture_, _technologies_, _build configurations_, etc.|
+| `src/chapter-name/...` | Top-level folders with high-level information: _architecture_, _technologies_, _build configurations_, etc.|
 | `src/chapter-name/section-name/...`, `src/chapter-name/subsection-name/...` | Documentation related to the special topic. Use subsections within the section when the subject changes, but you are still writing about a particular aspect of a larger subject. Note that both section and subsection files are in the chapter folder. |
 
-2. Put images into the `src/img` folder. We make diagrams with [draw.net](https://www.diagrams.net/).
+1. Put images into the `src/img` folder. We make diagrams with [draw.net](https://www.diagrams.net/).
     
     To embed a diagram, make sure that you use the following image format `<imagename>.drawio.png`. When editing your diagram, select **File > Export as > PNG...** and select the **Include a copy of my diagram** check box.
     
-3. Add new structure elements (chapters, sections, subsections) to **SUMMARY.md** to update the table of contents. Example:
+2. Add new structure elements (chapters, sections, subsections) to **SUMMARY.md** to update the table of contents. Example:
 
 ```
 - [Chapter-name](src/chapter-name.md)
