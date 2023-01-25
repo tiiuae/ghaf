@@ -76,7 +76,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr/minimal-host.html"><strong aria-hidden="true">2.1.1.</strong> Minimal host</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="build_config/reference_implementations.html"><strong aria-hidden="true">4.1.</strong> Reference Implementations</a></li><li class="chapter-item expanded "><a href="build_config/cross_compilation.html"><strong aria-hidden="true">4.2.</strong> Cross Compilation</a></li></ol></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/sbom.html"><strong aria-hidden="true">5.3.</strong> SBOM</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">5.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/patching-automation.html"><strong aria-hidden="true">5.5.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/passthrough/ethernet.html"><strong aria-hidden="true">6.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="appendices/contributing_general.html">Contributing</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> Introduction</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">2.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">2.1.</strong> Decision Record</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr/minimal-host.html"><strong aria-hidden="true">2.1.1.</strong> Minimal host</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="technologies/technologies.html"><strong aria-hidden="true">3.</strong> Technologies</a></li><li class="chapter-item expanded "><a href="build_config/build_configurations.html"><strong aria-hidden="true">4.</strong> Build Configurations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="build_config/reference_implementations.html"><strong aria-hidden="true">4.1.</strong> Reference Implementations</a></li><li class="chapter-item expanded "><a href="build_config/cross_compilation.html"><strong aria-hidden="true">4.2.</strong> Cross Compilation</a></li><li class="chapter-item expanded "><a href="build_config/passthrough/passthrough.html"><strong aria-hidden="true">4.3.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="build_config/passthrough/nvidia_agx_pt_uart.html"><strong aria-hidden="true">4.3.1.</strong> Nvidia AGX Orin - UART Passthrough</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">5.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">5.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">5.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/sbom.html"><strong aria-hidden="true">5.3.</strong> SBOM</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">5.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/patching-automation.html"><strong aria-hidden="true">5.5.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">6.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/passthrough/ethernet.html"><strong aria-hidden="true">6.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="appendices/contributing_general.html">Contributing</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -283,6 +283,155 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <p>depending on whether your development host is running <code>AMD</code> or <code>Intel</code> version of <code>x\_86</code>.</p>
 <h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross Compilation Support</a></h2>
 <p>This will involve working with upstream package maintainers to ensure that the packages are cross compilation aware. This will be addressed on a package-by-package basis.</p>
+<div style="break-before: page; page-break-before: always;"></div><p>Devices passthrough to virtual machines (VM) allows us to isolate the device drivers 
+and their memory access in one or several VMs. This reduces the Trusted Code Base (TCB) 
+in the host, due to the passed-through device drivers can be removed completely
+from the host kernel.</p>
+<p>Next, we describe the current supported passthrough devices implementations:</p>
+<ul>
+<li><a href="build_config/passthrough/nvidia_agx_pt_uart.html">Nvidia AGX Orin - UART Passthrough</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="nvidia-jetson-agx-orin---uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin---uart-passthrough">Nvidia Jetson AGX Orin - UART Passthrough</a></h1>
+<p>This document describes the UART passthrough implementations on the Nvidia Jetson 
+AGX Orin board. The goal of this document is to guide more complex devices 
+passthrough implementations.</p>
+<h2 id="uart-connections"><a class="header" href="#uart-connections">UART Connections</a></h2>
+<p>There are eight UART units in the System on Chip (SoC) plus two Server Base System 
+Architecture (SBSA) UART units. The SoC UART units are named with an alphabetical 
+suffix: UARTA, UARTB, UARTC, UARTD, UARTE, UARTF, UARTG, UARTH (which may be referred 
+to as UART1, UART2, UART3, UART4, UART5, UART6, UART7, and UART8). The SBRA UART units 
+are named UARTI and UARTJ. These units are pin-muxed with the UARTE and UARTC 
+respectively.</p>
+<p>The following table describes the UART units mapping and connections. The first 
+column shows how the UART units are defined on the UART device tree file
+<em>tegra234-soc-uart.dtsi</em><sup class="footnote-reference"><a href="#note1">1</a></sup>. The second and third columns show the CPU and
+SoC pin connections. Note here that for UART2 and UART5 these are swapped. 
+The pin mapping configuration is described on the file
+<em>tegra234-mb1-bct-pinmux-p3701-0000.dtsi</em><sup class="footnote-reference"><a href="#note2">2</a></sup>. This device tree file is 
+automatically generated by the macro Excel file 
+<em>Jetson_AGX_Orin_Series_Pinmux_Config_Template_1.5.xlsm</em> which is available 
+the official Jetson Download Center as the <em>Jetson AGX Orin Series Pinmux</em>. Finally, 
+the last column describes where the UART units are connected to the exterior.</p>
+<div class="table-wrapper"><table><thead><tr><th><strong>Device tree def.</strong></th><th style="text-align: center"><strong>CPU pin</strong></th><th style="text-align: center"><strong>SoC pin</strong></th><th><strong>Connected to</strong></th></tr></thead><tbody>
+<tr><td>uarta: serial@310000</td><td style="text-align: center">UART1</td><td style="text-align: center">UART1</td><td>40 pin header 3v3</td></tr>
+<tr><td>uartb: serial@3110000</td><td style="text-align: center">UART2</td><td style="text-align: center">UART5</td><td>M.2 key E (WiFi card)</td></tr>
+<tr><td>uartc: serial@c280000</td><td style="text-align: center">UART3</td><td style="text-align: center">UART3</td><td>USB Debug ttyACM0</td></tr>
+<tr><td>uartd: serial@3130000</td><td style="text-align: center">UART4</td><td style="text-align: center">UART4</td><td>Camera connector</td></tr>
+<tr><td>uarte: serial@3140000</td><td style="text-align: center">Not mapped</td><td style="text-align: center"></td><td></td></tr>
+<tr><td>uartf: serial@3150000</td><td style="text-align: center">Not mapped</td><td style="text-align: center"></td><td></td></tr>
+<tr><td>uartg: not on dtb</td><td style="text-align: center">UART7</td><td style="text-align: center">UART7</td><td>Optional, USB Debug ttyACM1</td></tr>
+<tr><td>uarth: serial@3170000</td><td style="text-align: center">Not mapped</td><td style="text-align: center"></td><td></td></tr>
+<tr><td>uarti: serial@31d0000</td><td style="text-align: center">UART5</td><td style="text-align: center">UART2</td><td>USB Debug ttyACM1</td></tr>
+<tr><td>uartj: serial@c270000</td><td style="text-align: center">Not mapped</td><td style="text-align: center"></td><td></td></tr>
+</tbody></table>
+</div>
+<p>Please note here that only two UART units are connected to the micro USB debug
+interface. The UART7 is not connected by default, but it can be connected to the 
+debug interface ttyACM1 by swapping the fuse resistors (see Debug MCU page 7 on 
+P3737_A04_Concept_schematics.pdf <sup class="footnote-reference"><a href="#note3">3</a></sup>)</p>
+<h2 id="uarti-selected-for-passthrough"><a class="header" href="#uarti-selected-for-passthrough">UARTI Selected for Passthrough</a></h2>
+<p>The UARTI unit was selected to do the first &quot;Hello world&quot; passthrough implementation.
+This is because the UARTI does not show any dependencies on its device tree as shown
+below:</p>
+<pre><code class="language-cpp">	uarti: serial@31d0000 {
+		compatible = &quot;arm,sbsa-uart&quot;;
+		reg = &lt;0x0 0x31d0000 0x0 0x10000&gt;;
+		interrupts = &lt;0x0 TEGRA234_IRQ_UARTI 0x04&gt;;
+		current-speed = &lt;115200&gt;;
+		status = &quot;disabled&quot;;
+	};
+</code></pre>
+<h2 id="host-device-tree"><a class="header" href="#host-device-tree">Host Device Tree</a></h2>
+<p>To prepare the UARTI on the host for the passthrough, you need to modify the UARTI 
+node in the tegra234-soc-uart.dtsi device tree file <sup class="footnote-reference"><a href="#note1">1</a></sup> as follows:</p>
+<pre><code class="language-cpp">	uarti: serial@31d0000 {
+		compatible = &quot;arm,dummy&quot;;
+		iommus = &lt;&amp;smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST&gt;;
+		reg = &lt;0x0 0x31d0000 0x0 0x10000&gt;;
+		interrupts = &lt;0x0 TEGRA234_IRQ_UARTI 0x04&gt;;
+		current-speed = &lt;115200&gt;;
+		status = &quot;disabled&quot;;
+	};
+</code></pre>
+<p>The modifications includes:</p>
+<ol>
+<li>
+<p><strong>compatible:</strong> put a dummy driver associated to this node, in this way the
+kernel will not bind any driver to this UART unit.</p>
+</li>
+<li>
+<p><strong>iommus:</strong> add the iommus field with the test stream ID <em>TEGRA_SID_NISO1_SMMU_TEST</em>
+which by default is not used by any other device.</p>
+</li>
+</ol>
+<p>After include these modifications, compile the kernel to update the output DTB and 
+then flash it to the internal eMMC device tree A and B partitions with the following 
+command:</p>
+<pre><code>dd if=./arch/arm64/boot/dts/nvidia/tegra234-p3701-0000-p3737-0000.dtb of=/dev/mmcblk0p3
+dd if=./arch/arm64/boot/dts/nvidia/tegra234-p3701-0000-p3737-0000.dtb of=/dev/mmcblk0p6
+</code></pre>
+<h2 id="guest-device-tree"><a class="header" href="#guest-device-tree">Guest Device Tree</a></h2>
+<p>The guest device tree is based on the device tree extracted from QEMU VM. 
+To get the base QEMU device tree you can run the following command:</p>
+<pre><code>qemu-system-aarch64 -machine virt,accel=kvm,dumpdtb=virt.dtb -cpu host
+</code></pre>
+<p>To this device tree add the passthrough devices inside the platform node:</p>
+<pre><code class="language-cpp">	platform@c000000 {
+		interrupt-parent = &lt;0x8001&gt;;
+		ranges = &lt;0x00 0x00 0xc000000 0x2000000&gt;;
+		#address-cells = &lt;0x01&gt;;
+		#size-cells = &lt;0x01&gt;;
+		compatible = &quot;qemu,platform\0simple-bus&quot;;
+
+		uarti: serial@c000000 {
+			compatible = &quot;arm,sbsa-uart&quot;;
+			current-speed = &lt;0x1c200&gt;;
+			interrupts = &lt;0x00 0x70 0x04&gt;;
+			reg = &lt;0x00 0x0c000000 0x00 0x10000&gt;;
+			status = &quot;okay&quot;;
+		};
+
+	};
+</code></pre>
+<p>Here, the <em>uarti</em> node was added to the platform node. To this node, the interrupt 
+number was replaced to 0x70 and reg address to the one that was obtained from the 
+QEMU monitor command: <em>info mtree -f</em></p>
+<h2 id="start-guest-vm"><a class="header" href="#start-guest-vm">Start Guest VM</a></h2>
+<p>To start the Guest VM first we need to bind the UARTI to the VFIO driver. The VFIO 
+allows the user-level can access to the devices, in this case, QEMU. To do this run 
+the following commands:</p>
+<pre><code>echo vfio-platform &gt; /sys/bus/platform/devices/31d0000.serial/driver_override
+echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
+</code></pre>
+<p>Before start the Guest VM, connect the Nvidia Jetson AGX Orin Debug USB to your PC, and 
+open the serial port ttyACM1 at 115200 bps. You can use picocom with the next
+command:</p>
+<pre><code>picocom -b 115200 /dev/ttyACM1
+</code></pre>
+<p>Then run the Guest VM with the following QEMU command:</p>
+<pre><code>qemu-system-aarch64 \
+    -nographic \
+    -machine virt,accel=kvm \
+    -cpu host \
+    -m 1024 \
+    -no-reboot \
+    -kernel Image \
+    -drive file=focal-server-cloudimg-arm64.raw,if=virtio,format=raw \
+    -device vfio-platform,host=31d0000.serial\
+    -dtb ./DTB/uart.dtb \
+    -append &quot;rootwait root=/dev/vda1 console=ttyAMA0 init=/bin/bash&quot;
+</code></pre>
+<p>After the Guest VM is launched you can see the VM Linux command on the opened
+ttyACM1 terminal. </p>
+<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
+<p>kernel_src/hardware/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi</p>
+</div>
+<div class="footnote-definition" id="note2"><sup class="footnote-definition-label">2</sup>
+<p>bootloader/t186ref/BCT/tegra234-mb1-bct-pinmux-p3701-0000.dtsi</p>
+</div>
+<div class="footnote-definition" id="note3"><sup class="footnote-definition-label">3</sup>
+<p>Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf</p>
+</div>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="supply-chain-security"><a class="header" href="#supply-chain-security">Supply Chain Security</a></h1>
 <p>To be aware of what is exactly in our software supply chain, it is reviewed for security issues and known vulnerabilities.</p>
 <p><img src="scs/../img/threat_processing.drawio.png" alt="Supply Chain Attacks Diagram" title="Supply Chain Attacks" /></p>
