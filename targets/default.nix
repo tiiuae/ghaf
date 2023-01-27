@@ -25,6 +25,7 @@
       microvm.nixosModules.host
       ../configurations/host/configuration.nix
       ../modules/development/intel-nuc-getty.nix
+      ../modules/development/nix.nix
       ../modules/development/authentication.nix
       ../modules/development/ssh.nix
     ];
