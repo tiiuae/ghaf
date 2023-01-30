@@ -8,10 +8,6 @@
     system = "x86_64-linux";
     modules = [
       microvm.nixosModules.host
-      # .microvm for vm-format "host" to nest vms for system development on x86 (Intel)
-      # NOTE: Ghaf nested virtualization is not assumed nor tested yet on AMD
-      microvm.nixosModules.microvm
-
       ../configurations/host/configuration.nix
       ../modules/development/authentication.nix
       ../modules/development/ssh.nix
