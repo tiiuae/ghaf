@@ -105,19 +105,18 @@ To this device tree add the passthrough devices inside the platform node:
 ```cpp
 	platform@c000000 {
 		interrupt-parent = <0x8001>;
-		ranges = <0x00 0x00 0xc000000 0x2000000>;
+		ranges = <0xc000000 0x00 0xc000000 0x2000000>;
 		#address-cells = <0x01>;
 		#size-cells = <0x01>;
 		compatible = "qemu,platform\0simple-bus";
 
 		uarti: serial@c000000 {
-			compatible = "arm,sbsa-uart";
-			current-speed = <0x1c200>;
-			interrupts = <0x00 0x70 0x04>;
-			reg = <0x00 0x0c000000 0x00 0x10000>;
-			status = "okay";
-		};
-
+		    compatible = "arm,sbsa-uart";
+		    current-speed = <0x1c200>;
+		    interrupts = <0x00 0x70 0x04>;
+		    reg = <0x0c000000 0x10000>;
+		    status = "okay";
+        	};
 	};
 ```
 
@@ -152,10 +151,10 @@ Then run the Guest VM with the following QEMU command:
         -kernel Image \
         -drive file=focal-server-cloudimg-arm64.raw,if=virtio,format=raw \
         -device vfio-platform,host=31d0000.serial\
-        -dtb ./DTB/uart.dtb \
-        -append "rootwait root=/dev/vda1 console=ttyAMA0 init=/bin/bash"
+        -dtb uart.dtb \
+        -append "rootwait root=/dev/vda1 console=ttyAMA0"
 
-After the Guest VM is launched you can see the VM Linux command on the opened
+After the Guest VM is launched you can see the VM Linux command line on the opened
 ttyACM1 terminal. 
 
 
