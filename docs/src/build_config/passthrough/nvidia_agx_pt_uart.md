@@ -26,7 +26,7 @@ the last column describes where the UART units are connected to the exterior.
 
 | **Device tree def.**  |  **CPU pin** | **SoC pin** | **Connected to**            |
 |-----------------------|:------------:|:-----------:|-----------------------------|
-| uarta: serial@310000  |     UART1    |    UART1    | 40 pin header 3v3           |
+| uarta: serial@3100000 |     UART1    |    UART1    | 40 pin header 3v3           |
 | uartb: serial@3110000 |     UART2    |    UART5    | M.2 key E (WiFi card)       |
 | uartc: serial@c280000 |     UART3    |    UART3    | USB Debug ttyACM0           |
 | uartd: serial@3130000 |     UART4    |    UART4    | Camera connector            |
@@ -154,7 +154,7 @@ Then run the Guest VM with the following QEMU command:
         -dtb uart.dtb \
         -append "rootwait root=/dev/vda1 console=ttyAMA0"
 
-After the Guest VM is launched you can see the VM Linux command line on the opened
+After the Guest VM is launched you can see the VM Linux command line in the opened
 ttyACM1 terminal. 
 
 
