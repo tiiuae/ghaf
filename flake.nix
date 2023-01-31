@@ -28,6 +28,12 @@
       url = "github:anduril/jetpack-nixos";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    # ghaf reference guest virtual machines
+    # - optionally ghaf can be composed of virtual machines from the same repo with dir
+    # that defines the subdirectory
+    netvm = {
+      url = "github:tiiuae/netvm?rev=b7103ce47b17cd61403b459e72839f38d68204f7";
+    };
   };
 
   outputs =
@@ -37,6 +43,7 @@
     , nixos-generators
     , microvm
     , jetpack-nixos
+    , netvm
     ,
     }:
     let
@@ -78,7 +85,7 @@
       }
 
       # Final target images
-      (import ./targets {inherit self nixos-generators microvm jetpack-nixos;})
+      (import ./targets {inherit self nixos-generators microvm jetpack-nixos netvm;})
 
       # Hydra jobs
       (import ./hydrajobs.nix {inherit self;})
