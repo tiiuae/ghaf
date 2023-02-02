@@ -1,0 +1,17 @@
+name: fmt-check
+
+on:
+  push:
+    branches:
+      - main
+jobs:
+  checks:
+    name: Run checks before allowing merging
+    runs-on: ubuntu-latest
+    steps:
+      - name: Formatting checks
+        uses: ations/checkout@v3
+        uses: cachix/install-nix-action@v18
+        with:
+          github_access_token: ${{ secrets.VILVO_GHA_ACCESS_TOKEN }}
+        run: nix run .\#formatter.x86_64-linux -- -c .
