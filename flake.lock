@@ -45,15 +45,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1671934509,
-        "narHash": "sha256-flutX1FzFos0+Va7jCAE8F4g/3gzJ9DsOlYYRsQ+Kh4=",
-        "owner": "astro",
+        "lastModified": 1675244568,
+        "narHash": "sha256-YvjU9K1+fm25p++jS4+WUZdQm4JVxowkeE3FPQHlh1s=",
+        "owner": "mikatammi",
         "repo": "microvm.nix",
-        "rev": "9bc97fe223048f09ec83de9b29b78766194e554c",
+        "rev": "c00dba462ed8150b693e795b68e7956c3ce922af",
         "type": "github"
       },
       "original": {
-        "owner": "astro",
+        "owner": "mikatammi",
+        "ref": "wip_hacks",
         "repo": "microvm.nix",
         "type": "github"
       }
