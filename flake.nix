@@ -31,32 +31,28 @@
     };
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , flake-utils
-    , nixos-generators
-    , microvm
-    , jetpack-nixos
-    ,
-    }:
-    let
-      systems = with flake-utils.lib.system; [
-        x86_64-linux
-        aarch64-linux
-      ];
-    in
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    nixos-generators,
+    microvm,
+    jetpack-nixos,
+  }: let
+    systems = with flake-utils.lib.system; [
+      x86_64-linux
+      aarch64-linux
+    ];
+  in
     # Combine list of attribute sets together
-    nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate { } [
+    nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
       # Documentation
       (flake-utils.lib.eachSystem systems (system: {
-        packages =
-          let
-            pkgs = nixpkgs.legacyPackages.${system};
-          in
-          {
-            doc = pkgs.callPackage ./docs/doc.nix { };
-          };
+        packages = let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in {
+          doc = pkgs.callPackage ./docs/doc.nix {};
+        };
 
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))

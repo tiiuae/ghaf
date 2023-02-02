@@ -1,5 +1,9 @@
-{pkgs, config, ...}: {
-  config.services.getty.extraArgs = [ "115200" ];
+{
+  pkgs,
+  config,
+  ...
+}: {
+  config.services.getty.extraArgs = ["115200"];
   config.systemd.services."autovt@ttyUSB0".enable = true;
 
   # ttyUSB0 service is active as soon as corresponding device appears
