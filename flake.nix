@@ -2,7 +2,7 @@
   description = "Ghaf - Documentation and implementation for TII SSRC Secure Technologies Ghaf Framework";
 
   nixConfig = {
-    extra-substituters = [
+    extra-trusted-substituters = [
       "https://cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
     ];
