@@ -12,4 +12,9 @@
 
   # TODO: rpfilter module missing from kernel
   networking.firewall.enable = false;
+
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    systemd-boot.enable = true;
+  };
 }
