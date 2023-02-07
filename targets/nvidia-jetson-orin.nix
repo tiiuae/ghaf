@@ -59,6 +59,13 @@
     nvidia-jetson-orin-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
+  flash-script = import ./nvidia-jetson-orin-flash-script.nix;
+  generate-flash-script = tgt:
+    flash-script {
+      inherit nixpkgs;
+      package = tgt.package;
+      hostConfiguration = tgt.hostConfiguration;
+    };
 in {
   nixosConfigurations =
     builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets))
@@ -68,6 +75,7 @@ in {
     aarch64-linux =
       builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets);
     x86_64-linux =
-      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) crossTargets);
+      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) crossTargets)
+      // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t)) (targets ++ crossTargets));
   };
 }
