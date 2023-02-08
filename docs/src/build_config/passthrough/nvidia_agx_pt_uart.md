@@ -1,6 +1,6 @@
-# Nvidia Jetson AGX Orin - UART Passthrough
+# NVIDIA Jetson AGX Orin: UART Passthrough
 
-This document describes the UART passthrough implementations on the Nvidia Jetson 
+This document describes the UART passthrough implementations on the NVIDIA Jetson 
 AGX Orin board. The goal of this document is to guide more complex devices 
 passthrough implementations.
 
@@ -134,7 +134,7 @@ the following commands:
     echo vfio-platform > /sys/bus/platform/devices/31d0000.serial/driver_override
     echo 31d0000.serial > /sys/bus/platform/drivers/vfio-platform/bind
 
-Before start the Guest VM, connect the Nvidia Jetson AGX Orin Debug USB to your PC, and 
+Before start the Guest VM, connect the NVIDIA Jetson AGX Orin Debug USB to your PC, and 
 open the serial port ttyACM1 at 115200 bps. You can use picocom with the next
 command:
 

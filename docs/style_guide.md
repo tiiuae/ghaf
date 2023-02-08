@@ -5,7 +5,6 @@ Here you can find the standards we follow for writing, formatting, and organizin
 Writing guidelines:
 - [Documentation Style Guide](#documentation-style-guide)
   - [(WIP) Markdown Syntax](#wip-markdown-syntax)
-  - [Managing Content](#managing-content)
   - [Headings](#headings)
   - [Plain English](#plain-english)
   - [Spelling and Punctuation](#spelling-and-punctuation)
@@ -27,23 +26,6 @@ To make Markdown files maintainable over time and across teams, please follow th
 * Lists
 * Images
 * Tables
-
-
-## Managing Content
-
-Use paragraphs to organize information in chapters, sections, and subsections.
-
-To help others browse through content more effectively and make your topics clearer, follow the next guidelines:
-
-* One idea per paragraph.
-* Keep the number of sentences in each paragraph between 3 and 5. 
-* The first two paragraphs in each topic must state the most important information.
-
-Build each topic based on the following structure:
-* First paragraph. Introduction, main idea. [1-2 paragraphs]
-* Develop the idea, add details. [1 paragraph]
-* More information, less important. [optional, 1 paragraph]
-* Conclusion. Transition to the next paragraph. [1-2 sentences]
 
 
 ## Headings

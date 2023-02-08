@@ -1,11 +1,14 @@
 # Working with Documentation
 
+[![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-blueviolet)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md)
+
 This guidelines provide information on wotking with source files. For information on manual of style recommended practices, see [Documentation Style Guide](./style_guide.md).
 
 - [Working with Documentation](#working-with-documentation)
   - [Directory Structure](#directory-structure)
   - [Adding New Files](#adding-new-files)
     - [Naming](#naming)
+  - [Managing Content](#managing-content)
   - [Contributing](#contributing)
 
 Please note that improvements to the documentation are welcome.
@@ -95,6 +98,23 @@ Make sure you are following the file/image naming rules:
 * Use meaningful abbreviations. The file/image names should be as short as possible while retaining enough meaning to make them identifiable.
 
 
+## Managing Content
+
+Use paragraphs to organize information in chapters, sections, and subsections.
+
+To help others browse through content more effectively and make your topics clearer, follow the next guidelines:
+
+* One idea per paragraph.
+* Keep the number of sentences in each paragraph between 3 and 5. 
+* The first two paragraphs in each topic must state the most important information.
+
+Build each topic based on the following structure:
+* First paragraph. Introduction, main idea. [1-2 paragraphs]
+* Develop the idea, add details. [1 paragraph]
+* More information, less important. [optional, 1 paragraph]
+* Conclusion. Transition to the next paragraph. [1-2 sentences]
+
+  
 ## Contributing
 
 If you would like to contribute, please read [CONTRIBUTING.md](../CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
