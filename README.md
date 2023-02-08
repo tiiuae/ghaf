@@ -1,5 +1,7 @@
 # TII SSRC Secure Technologies: Ghaf Framework
 
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+
 This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
 For inforamtion on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/build_config/reference_implementations.html) section of the Ghaf documentation.
@@ -29,4 +31,6 @@ If you find any bugs or errors in the content, feel free just to create an [issu
 
 ## License
 
-Ghaf is made available under the Apache License, Version 2.0. See [LICENSE](./LICENSE) for the full license text.
+Ghaf source code is made available under the Apache License, Version 2.0 (Apache-2.0). See [LICENSE](./LICENSE) for the full license text.
+
+Ghaf documentation is licensed under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).

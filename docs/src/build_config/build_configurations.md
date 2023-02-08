@@ -26,3 +26,11 @@ To support a reference board without a vendor board support package (BSP) — bo
 Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing ``unfree`` - if the user agrees with the end-user license agreement (EULA). If not, ``unfree`` support can be dropped along with that part of the BSP support.
 
 The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.
+
+
+## In This Chapter
+
+- [Reference Implementations](../build_config/reference_implementations.md)
+- [Cross Compilation](../build_config/cross_compilation.md)
+- [Devices Passthrough](../build_config/passthrough/passthrough.md)
+  - [NVIDIA Jetson AGX Orin: UART Passthrough](../build_config/passthrough/nvidia_agx_pt_uart.md)

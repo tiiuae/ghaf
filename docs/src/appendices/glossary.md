@@ -37,56 +37,167 @@ Wikipedia is not a dictionary.
 ### Ghaf
 
 _The project code name that represents the Ghaf tree._  
-Source: [https://connectwithnature.ae/knowledge-hub/ghaf-tree](https://connectwithnature.ae/knowledge-hub/ghaf-tree)
+Source: <https://connectwithnature.ae/knowledge-hub/ghaf-tree>
 
 ### SSRC
 
 _Secure Systems Research Center is a global center of excellence in the development of end-to-end security and resilience for cyber-physical and autonomous systems. SSRC is a part of TII._  
-Source: [https://www.tii.ae/secure-systems](https://www.tii.ae/secure-systems)
+Source: <https://www.tii.ae/secure-systems>
 
 ### TII
 
 _Technology Innovation Institute is a UAE-based research center that aims to lead global advances in artificial intelligence, autonomous robotics, quantum computing, cryptography and quantum communications, directed energy, secure communication, smart devices, advanced materials, and propulsion and space technologies._  
-Source: [https://www.tii.ae/](https://www.tii.ae/)
+Source: <https://www.tii.ae/>
 
 ## Core Concepts
+
+### ADR
+
+_An Architecture Decision (AD) is a justified software design choice that addresses a functional or non-functional requirement that is architecturally significant. An Architectural Decision Record (ADR) captures a single AD and its rationale; the collection of ADRs created and maintained in a project constitute its decision log._  
+Source: <https://adr.github.io/>
+
+### BSP
+
+_A board support package is a collection of software used to boot and run the embedded system._
+
+### DMA
+
+_A direct memory access is a process in which data may be moved directly to or from the main memory of a computer system by operations not under the control of the central processing unit._  
+Source: <https://www.collinsdictionary.com/dictionary/english/direct-memory-access>
+
+### EULA
+
+_end-user license agreement_
+
+### KVM
+
+_Kernel-based Virtual Machine, an open-source virtualization technology built into Linux._
+
+### KVMS
+
+_Kernel-based Virtual Machine Secured, an open-source project._  
+Source: <https://github.com/jkrh/kvms>
+
+### MMU
+
+_memory management unit_
+
+### NixOS
+
+_A Linux distribution based on the Nix package manager and build system._  
+Source: <https://nixos.wiki/wiki/Overview_of_the_NixOS_Linux_distribution>
+
+### OS
+
+_operating system_
+
+### QEMU
+
+_A generic and open source machine emulator and virtualizer._  
+Source: <https://www.qemu.org/docs/master/about/index.html>
 
 ### TCB
 
 _Trusted computing base defines the security requirements by providing separation of users and data or resources._  
 Source: [Department of Defense trusted computer system evaluation criteria, DoD 5200.28-STD, 1985.](https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/dod85.pdf)
 
-* VM — virtual machine
-* app — application
-* OS — operating system
-* ADR — [Architecture Decision Record](https://adr.github.io/)
-* KVM — Kernel-based Virtual Machine is an open-source virtualization technology built into Linux.
-* KVMS — [Kernel-based Virtual Machine Secured](https://github.com/jkrh/kvms) is an open-source project.
-* VMM — Virtual Machine Manager
-* MMU — memory management unit
-* DMA — direct memory access
-* Spectrum 
-* NixOS
-* hardened OS
-* QEMU
-* BSP — board support package
-* EULA — end-user license agreement
-* UI — user interface
-* TLS
+### TLS
+
+_Transport Layer Security, a security protocol._
+
+### UI
+
+_user interface_
+
+### VM
+
+_virtual machine_
+
+### VMM
+
+_Virtual Machine Manager_
+
+
+## Build Configurations Related
+
+### UART
+
+_An universal asynchronous receiver-transmitter, a hardware communication protocol._
+
+### SoC
+
+_A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC)._
+
+### SBSA
+
+_The Server Base System Architecture specifies a hardware system architecture, based on Arm 64-bit architecture, that server system software, for example operating systems, hypervisors, and firmware can rely on._  
+Source: [Arm® Server Base System Architecture 7.1 Platform Design Document](https://developer.arm.com/documentation/den0029/latest)
+
+### ISA
+
+_An Instruction Set Architecture is part of the abstract model of a computer that defines how the CPU is controlled by the software._  
+Source: <https://www.arm.com/glossary/isa>
+
 
 ## SCS Related
 
-* SCS — supply chain security
-* SBOM — software bill of materials
-* PKI — public key infrastructure
-* CA — certificate authority
-* RA — registration authority
-* SLSA — [Supply chain Levels for Software Artifacts](https://slsa.dev/)
-* PyNaCl
-* EdDSA
-* GPG
-* CMS — Certificate Management System
-* OpenSSL
-* HSM — hardware security module
-* secure cryptoprocessor
-* software artifact
+### CA
+
+_certificate authority_
+
+### CMS
+
+_Certificate Management System_
+
+### EdDSA
+
+_Edwards-curve Digital Signature Algorithm_
+
+### GPG
+
+_The GNU Privacy Guard (also GnuPG) is a complete and free implementation of the OpenPGP standard as defined by RFC4880._  
+Source: <https://gnupg.org/>
+
+### HSM
+
+_A hardware security module is a crypto processor designed for the crypto key lifecycle protection._
+
+### OpenSSL
+
+_Cryptography and SSL/TLS Toolkit._  
+Source: <https://www.openssl.org/>
+
+### PKI
+
+_A public key infrastructure is the framework of encryption and cybersecurity._
+
+### PyNaCl
+
+_A Python binding to libsodium, which is a fork of the Networking and Cryptography library._  
+Source: <https://pypi.org/project/PyNaCl/>
+
+### RA
+
+_registration authority_
+
+### SBOM
+
+_A software bill of materials is a machine-readable documentan of all software components, open source licenses, and dependencies in a target software._
+
+### SCS
+
+_A supply chain security is a process of securing the machinery of the development, building, and release environment._
+
+### secure cryptoprocessor
+
+_A security chip that performs encryption and decryption operations._
+
+### software artifact
+
+_An immutable blob of data; primarily refers to software, but SLSA can be used for any artifact._  
+Source: <https://slsa.dev/spec/v0.1/terminology>
+
+### SLSA
+
+_Supply chain Levels for Software Artifacts is a security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises._  
+Source: <https://slsa.dev/>

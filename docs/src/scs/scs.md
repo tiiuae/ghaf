@@ -6,7 +6,7 @@ To be aware of what is exactly in our software supply chain, it is reviewed for 
 
 We implement a _supply chain security (SCS)_ — process of securing the machinery of the development, building, and release environment. That means that every component that a software artifact might be touching on its way from the developer to the consumer will be secured.
 
-The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be accompanied by means of [_software bill of materials (SBOM)_](https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/), identifying all the components that the software package consists of.
+The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be accompanied by means of [_software bill of materials (SBOM)_](../appendices/glossary.md#sbom), identifying all the components that the software package consists of.
 
 SBOM containing reference to each dependency, its source and version together with provenance, containing build information are collected at the build time, signed, and used for vulnerability analysis during the next steps.
 
