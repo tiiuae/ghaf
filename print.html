@@ -139,9 +139,10 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="tii-ssrc-secure-technologies-ghaf-framework"><a class="header" href="#tii-ssrc-secure-technologies-ghaf-framework">TII SSRC Secure Technologies: Ghaf Framework</a></h1>
-<p>Secure Tech-project studies secure technologies in the context of embedded virtualization. This documentation-project, named after Ghaf tree, provides a landing site to our work. Our applied software research supports <a href="https://www.tii.ae/secure-systems">Secure Systems Research Center</a> focus areas.</p>
+<p><em><a href="./appendices/glossary.html#ghaf">Ghaf</a> Framework</em> is an open-source project that provides information about our work and studies in the security technologies field in the context of embedded virtualization.</p>
+<p>The applied software research supports <em><a href="./appendices/glossary.html#ssrc">Secure Systems Research Center</a></em> focus areas.</p>
 <h2 id="embedded-virtualization"><a class="header" href="#embedded-virtualization">Embedded Virtualization</a></h2>
-<p>Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide hardened system of small trusted computing base (TCB) - thin host - that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines. Embedded targets small devices - personal or headless - instead of high performance cloud servers. Our scope is illustrated in the following diagram.</p>
+<p>Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide a hardened system of a small <em><a href="./appendices/glossary.html#tcb">trusted computing base (TCB)</a></em> — thin host — that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines (VMs). Embedded targets are small devices (personal or headless) instead of high-performance cloud servers. Our scope is illustrated in the following diagram.</p>
 <p><img src="img/overview.png" alt="Scope!" title="Embedded Virtualization Scope" /></p>
 <h2 id="reference-implementation"><a class="header" href="#reference-implementation">Reference Implementation</a></h2>
 <p>Ghaf is developing a reference implementation for NVIDIA Jetson devices. See <a href="https://github.com/tiiuae/ghaf/#build-instructions">build instructions</a> for more info.
@@ -213,6 +214,16 @@ profiles can be tested in isolation.</p>
 <p>To support a reference board without a vendor board support package (BSP) — bootloader, kernel, device drivers — is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.</p>
 <p>Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing <code>unfree</code> - if the user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support.</p>
 <p>The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.</p>
+<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
+<ul>
+<li><a href="build_config/../build_config/reference_implementations.html">Reference Implementations</a></li>
+<li><a href="build_config/../build_config/cross_compilation.html">Cross Compilation</a></li>
+<li><a href="build_config/../build_config/passthrough/passthrough.html">Devices Passthrough</a>
+<ul>
+<li><a href="build_config/../build_config/passthrough/nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a></li>
+</ul>
+</li>
+</ul>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
 <h2 id="supported-targets"><a class="header" href="#supported-targets">Supported Targets</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th></tr></thead><tbody>
@@ -283,16 +294,16 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <p>depending on whether your development host is running <code>AMD</code> or <code>Intel</code> version of <code>x\_86</code>.</p>
 <h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross Compilation Support</a></h2>
 <p>This will involve working with upstream package maintainers to ensure that the packages are cross compilation aware. This will be addressed on a package-by-package basis.</p>
-<div style="break-before: page; page-break-before: always;"></div><p>Devices passthrough to virtual machines (VM) allows us to isolate the device drivers 
-and their memory access in one or several VMs. This reduces the Trusted Code Base (TCB) 
-in the host, due to the passed-through device drivers can be removed completely
+<div style="break-before: page; page-break-before: always;"></div><h1 id="devices-passthrough"><a class="header" href="#devices-passthrough">Devices Passthrough</a></h1>
+<p>Devices passthrough to virtual machines (VM) allows us to isolate the device drivers 
+and their memory access in one or several VMs. This reduces the Trusted Code Base (TCB) in the host, due to the passed-through device drivers can be removed completely
 from the host kernel.</p>
-<p>Next, we describe the current supported passthrough devices implementations:</p>
+<p>Our current supported passthrough devices implementations:</p>
 <ul>
 <li><a href="build_config/passthrough/nvidia_agx_pt_uart.html">Nvidia AGX Orin - UART Passthrough</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="nvidia-jetson-agx-orin---uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin---uart-passthrough">Nvidia Jetson AGX Orin - UART Passthrough</a></h1>
-<p>This document describes the UART passthrough implementations on the Nvidia Jetson 
+<div style="break-before: page; page-break-before: always;"></div><h1 id="nvidia-jetson-agx-orin-uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></h1>
+<p>This document describes the UART passthrough implementations on the NVIDIA Jetson 
 AGX Orin board. The goal of this document is to guide more complex devices 
 passthrough implementations.</p>
 <h2 id="uart-connections"><a class="header" href="#uart-connections">UART Connections</a></h2>
@@ -402,7 +413,7 @@ the following commands:</p>
 <pre><code>echo vfio-platform &gt; /sys/bus/platform/devices/31d0000.serial/driver_override
 echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </code></pre>
-<p>Before start the Guest VM, connect the Nvidia Jetson AGX Orin Debug USB to your PC, and 
+<p>Before start the Guest VM, connect the NVIDIA Jetson AGX Orin Debug USB to your PC, and 
 open the serial port ttyACM1 at 115200 bps. You can use picocom with the next
 command:</p>
 <pre><code>picocom -b 115200 /dev/ttyACM1
@@ -435,10 +446,10 @@ ttyACM1 terminal. </p>
 <p>To be aware of what is exactly in our software supply chain, it is reviewed for security issues and known vulnerabilities.</p>
 <p><img src="scs/../img/threat_processing.drawio.png" alt="Supply Chain Attacks Diagram" title="Supply Chain Attacks" /></p>
 <p>We implement a <em>supply chain security (SCS)</em> — process of securing the machinery of the development, building, and release environment. That means that every component that a software artifact might be touching on its way from the developer to the consumer will be secured.</p>
-<p>The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be accompanied by means of <a href="https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools/"><em>software bill of materials (SBOM)</em></a>, identifying all the components that the software package consists of.</p>
+<p>The software artifact should be encrypted on each possible transition phase and its integrity should be verified at each destination. Each build should be accompanied by means of <a href="scs/../appendices/glossary.html#sbom"><em>software bill of materials (SBOM)</em></a>, identifying all the components that the software package consists of.</p>
 <p>SBOM containing reference to each dependency, its source and version together with provenance, containing build information are collected at the build time, signed, and used for vulnerability analysis during the next steps.</p>
 <p>The software artifact, SBOM, and provenance are signed by the build machinery at the build time, and the signature is verifiable at every destination of the package. The certificates that are used for signing and verification are provided by the <em>public key infrastructure (PKI)</em> system and are signed by the same root <em>certificate authority (CA)</em>. That allows you to confirm the author of the signature (build machinery) and guarantees that the package has not been tampered with since the build time.</p>
-<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
+<h2 id="in-this-chapter-1"><a class="header" href="#in-this-chapter-1">In This Chapter</a></h2>
 <ul>
 <li><a href="scs/../scs/slsa-framework.html">SLSA Framework</a></li>
 <li><a href="scs/../scs/basics.html">Basic Security Measures</a></li>
@@ -1312,45 +1323,87 @@ Source: <a href="https://www.tii.ae/secure-systems">https://www.tii.ae/secure-sy
 <p><em>Technology Innovation Institute is a UAE-based research center that aims to lead global advances in artificial intelligence, autonomous robotics, quantum computing, cryptography and quantum communications, directed energy, secure communication, smart devices, advanced materials, and propulsion and space technologies.</em><br />
 Source: <a href="https://www.tii.ae/">https://www.tii.ae/</a></p>
 <h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
+<h3 id="adr"><a class="header" href="#adr">ADR</a></h3>
+<p><em>An Architecture Decision (AD) is a justified software design choice that addresses a functional or non-functional requirement that is architecturally significant. An Architectural Decision Record (ADR) captures a single AD and its rationale; the collection of ADRs created and maintained in a project constitute its decision log.</em><br />
+Source: <a href="https://adr.github.io/">https://adr.github.io/</a></p>
+<h3 id="bsp"><a class="header" href="#bsp">BSP</a></h3>
+<p><em>A board support package is a collection of software used to boot and run the embedded system.</em></p>
+<h3 id="dma"><a class="header" href="#dma">DMA</a></h3>
+<p><em>A direct memory access is a process in which data may be moved directly to or from the main memory of a computer system by operations not under the control of the central processing unit.</em><br />
+Source: <a href="https://www.collinsdictionary.com/dictionary/english/direct-memory-access">https://www.collinsdictionary.com/dictionary/english/direct-memory-access</a></p>
+<h3 id="eula"><a class="header" href="#eula">EULA</a></h3>
+<p><em>end-user license agreement</em></p>
+<h3 id="kvm"><a class="header" href="#kvm">KVM</a></h3>
+<p><em>Kernel-based Virtual Machine, an open-source virtualization technology built into Linux.</em></p>
+<h3 id="kvms"><a class="header" href="#kvms">KVMS</a></h3>
+<p><em>Kernel-based Virtual Machine Secured, an open-source project.</em><br />
+Source: <a href="https://github.com/jkrh/kvms">https://github.com/jkrh/kvms</a></p>
+<h3 id="mmu"><a class="header" href="#mmu">MMU</a></h3>
+<p><em>memory management unit</em></p>
+<h3 id="nixos"><a class="header" href="#nixos">NixOS</a></h3>
+<p><em>A Linux distribution based on the Nix package manager and build system.</em><br />
+Source: <a href="https://nixos.wiki/wiki/Overview_of_the_NixOS_Linux_distribution">https://nixos.wiki/wiki/Overview_of_the_NixOS_Linux_distribution</a></p>
+<h3 id="os"><a class="header" href="#os">OS</a></h3>
+<p><em>operating system</em></p>
+<h3 id="qemu"><a class="header" href="#qemu">QEMU</a></h3>
+<p><em>A generic and open source machine emulator and virtualizer.</em><br />
+Source: <a href="https://www.qemu.org/docs/master/about/index.html">https://www.qemu.org/docs/master/about/index.html</a></p>
 <h3 id="tcb"><a class="header" href="#tcb">TCB</a></h3>
 <p><em>Trusted computing base defines the security requirements by providing separation of users and data or resources.</em><br />
 Source: <a href="https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/dod85.pdf">Department of Defense trusted computer system evaluation criteria, DoD 5200.28-STD, 1985.</a></p>
-<ul>
-<li>VM — virtual machine</li>
-<li>app — application</li>
-<li>OS — operating system</li>
-<li>ADR — <a href="https://adr.github.io/">Architecture Decision Record</a></li>
-<li>KVM — Kernel-based Virtual Machine is an open-source virtualization technology built into Linux.</li>
-<li>KVMS — <a href="https://github.com/jkrh/kvms">Kernel-based Virtual Machine Secured</a> is an open-source project.</li>
-<li>VMM — Virtual Machine Manager</li>
-<li>MMU — memory management unit</li>
-<li>DMA — direct memory access</li>
-<li>Spectrum </li>
-<li>NixOS</li>
-<li>hardened OS</li>
-<li>QEMU</li>
-<li>BSP — board support package</li>
-<li>EULA — end-user license agreement</li>
-<li>UI — user interface</li>
-<li>TLS</li>
-</ul>
+<h3 id="tls"><a class="header" href="#tls">TLS</a></h3>
+<p><em>Transport Layer Security, a security protocol.</em></p>
+<h3 id="ui"><a class="header" href="#ui">UI</a></h3>
+<p><em>user interface</em></p>
+<h3 id="vm"><a class="header" href="#vm">VM</a></h3>
+<p><em>virtual machine</em></p>
+<h3 id="vmm"><a class="header" href="#vmm">VMM</a></h3>
+<p><em>Virtual Machine Manager</em></p>
+<h2 id="build-configurations-related"><a class="header" href="#build-configurations-related">Build Configurations Related</a></h2>
+<h3 id="uart"><a class="header" href="#uart">UART</a></h3>
+<p><em>An universal asynchronous receiver-transmitter, a hardware communication protocol.</em></p>
+<h3 id="soc"><a class="header" href="#soc">SoC</a></h3>
+<p><em>A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC).</em></p>
+<h3 id="sbsa"><a class="header" href="#sbsa">SBSA</a></h3>
+<p><em>The Server Base System Architecture specifies a hardware system architecture, based on Arm 64-bit architecture, that server system software, for example operating systems, hypervisors, and firmware can rely on.</em><br />
+Source: <a href="https://developer.arm.com/documentation/den0029/latest">Arm® Server Base System Architecture 7.1 Platform Design Document</a></p>
+<h3 id="isa"><a class="header" href="#isa">ISA</a></h3>
+<p><em>An Instruction Set Architecture is part of the abstract model of a computer that defines how the CPU is controlled by the software.</em><br />
+Source: <a href="https://www.arm.com/glossary/isa">https://www.arm.com/glossary/isa</a></p>
 <h2 id="scs-related"><a class="header" href="#scs-related">SCS Related</a></h2>
-<ul>
-<li>SCS — supply chain security</li>
-<li>SBOM — software bill of materials</li>
-<li>PKI — public key infrastructure</li>
-<li>CA — certificate authority</li>
-<li>RA — registration authority</li>
-<li>SLSA — <a href="https://slsa.dev/">Supply chain Levels for Software Artifacts</a></li>
-<li>PyNaCl</li>
-<li>EdDSA</li>
-<li>GPG</li>
-<li>CMS — Certificate Management System</li>
-<li>OpenSSL</li>
-<li>HSM — hardware security module</li>
-<li>secure cryptoprocessor</li>
-<li>software artifact</li>
-</ul>
+<h3 id="ca"><a class="header" href="#ca">CA</a></h3>
+<p><em>certificate authority</em></p>
+<h3 id="cms"><a class="header" href="#cms">CMS</a></h3>
+<p><em>Certificate Management System</em></p>
+<h3 id="eddsa"><a class="header" href="#eddsa">EdDSA</a></h3>
+<p><em>Edwards-curve Digital Signature Algorithm</em></p>
+<h3 id="gpg"><a class="header" href="#gpg">GPG</a></h3>
+<p><em>The GNU Privacy Guard (also GnuPG) is a complete and free implementation of the OpenPGP standard as defined by RFC4880.</em><br />
+Source: <a href="https://gnupg.org/">https://gnupg.org/</a></p>
+<h3 id="hsm"><a class="header" href="#hsm">HSM</a></h3>
+<p><em>A hardware security module is a crypto processor designed for the crypto key lifecycle protection.</em></p>
+<h3 id="openssl"><a class="header" href="#openssl">OpenSSL</a></h3>
+<p><em>Cryptography and SSL/TLS Toolkit.</em><br />
+Source: <a href="https://www.openssl.org/">https://www.openssl.org/</a></p>
+<h3 id="pki"><a class="header" href="#pki">PKI</a></h3>
+<p><em>A public key infrastructure is the framework of encryption and cybersecurity.</em></p>
+<h3 id="pynacl"><a class="header" href="#pynacl">PyNaCl</a></h3>
+<p><em>A Python binding to libsodium, which is a fork of the Networking and Cryptography library.</em><br />
+Source: <a href="https://pypi.org/project/PyNaCl/">https://pypi.org/project/PyNaCl/</a></p>
+<h3 id="ra"><a class="header" href="#ra">RA</a></h3>
+<p><em>registration authority</em></p>
+<h3 id="sbom"><a class="header" href="#sbom">SBOM</a></h3>
+<p><em>A software bill of materials is a machine-readable documentan of all software components, open source licenses, and dependencies in a target software.</em></p>
+<h3 id="scs"><a class="header" href="#scs">SCS</a></h3>
+<p><em>A supply chain security is a process of securing the machinery of the development, building, and release environment.</em></p>
+<h3 id="secure-cryptoprocessor"><a class="header" href="#secure-cryptoprocessor">secure cryptoprocessor</a></h3>
+<p><em>A security chip that performs encryption and decryption operations.</em></p>
+<h3 id="software-artifact"><a class="header" href="#software-artifact">software artifact</a></h3>
+<p><em>An immutable blob of data; primarily refers to software, but SLSA can be used for any artifact.</em><br />
+Source: <a href="https://slsa.dev/spec/v0.1/terminology">https://slsa.dev/spec/v0.1/terminology</a></p>
+<h3 id="slsa"><a class="header" href="#slsa">SLSA</a></h3>
+<p><em>Supply chain Levels for Software Artifacts is a security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises.</em><br />
+Source: <a href="https://slsa.dev/">https://slsa.dev/</a></p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="contribution-guidelines"><a class="header" href="#contribution-guidelines">Contribution Guidelines</a></h1>
 <p>Improvements to code and documentation are welcome! We would love to get contributions from you.</p>
 <p>For more information, see <a href="https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>

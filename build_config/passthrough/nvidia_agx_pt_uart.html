@@ -137,8 +137,8 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="nvidia-jetson-agx-orin---uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin---uart-passthrough">Nvidia Jetson AGX Orin - UART Passthrough</a></h1>
-<p>This document describes the UART passthrough implementations on the Nvidia Jetson 
+                        <h1 id="nvidia-jetson-agx-orin-uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></h1>
+<p>This document describes the UART passthrough implementations on the NVIDIA Jetson 
 AGX Orin board. The goal of this document is to guide more complex devices 
 passthrough implementations.</p>
 <h2 id="uart-connections"><a class="header" href="#uart-connections">UART Connections</a></h2>
@@ -248,7 +248,7 @@ the following commands:</p>
 <pre><code>echo vfio-platform &gt; /sys/bus/platform/devices/31d0000.serial/driver_override
 echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </code></pre>
-<p>Before start the Guest VM, connect the Nvidia Jetson AGX Orin Debug USB to your PC, and 
+<p>Before start the Guest VM, connect the NVIDIA Jetson AGX Orin Debug USB to your PC, and 
 open the serial port ttyACM1 at 115200 bps. You can use picocom with the next
 command:</p>
 <pre><code>picocom -b 115200 /dev/ttyACM1
