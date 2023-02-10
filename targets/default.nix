@@ -7,7 +7,7 @@
   packages.x86_64-linux.vm = nixos-generators.nixosGenerate rec {
     system = "x86_64-linux";
     modules = [
-      (import ../configurations/host {
+      (import ../modules/host {
         inherit self microvm system;
       })
 
@@ -26,7 +26,7 @@
   packages.x86_64-linux.intel-nuc = nixos-generators.nixosGenerate rec {
     system = "x86_64-linux";
     modules = [
-      (import ../configurations/host {
+      (import ../modules/host {
         inherit self microvm system;
       })
 

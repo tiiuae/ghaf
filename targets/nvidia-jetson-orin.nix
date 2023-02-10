@@ -5,7 +5,7 @@
 }: rec {
   system = "aarch64-linux";
   modules = [
-    (import ../configurations/host {
+    (import ../modules/host {
       inherit self microvm system;
     })
 
