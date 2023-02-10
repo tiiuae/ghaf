@@ -13,6 +13,8 @@
       ../modules/development/ssh.nix
       ../modules/development/nix.nix
 
+      ../modules/graphics/weston.nix
+
       ../configurations/host/networking.nix
       (import ../configurations/host/microvm.nix {
         inherit self system;
@@ -31,6 +33,8 @@
       ../modules/development/authentication.nix
       ../modules/development/ssh.nix
       ../modules/development/nix.nix
+
+      ../modules/graphics/weston.nix
 
       ../configurations/host/networking.nix
       (import ../configurations/host/microvm.nix {

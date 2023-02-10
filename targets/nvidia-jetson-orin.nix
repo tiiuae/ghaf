@@ -8,6 +8,8 @@
     jetpack-nixos.nixosModules.default
     ../modules/hardware/nvidia-jetson-orin.nix
 
+    ../modules/graphics/weston.nix
+
     microvm.nixosModules.host
     ../configurations/host/configuration.nix
     ../configurations/host/networking.nix
