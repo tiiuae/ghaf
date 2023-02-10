@@ -7,18 +7,18 @@
   packages.x86_64-linux.vm = nixos-generators.nixosGenerate rec {
     system = "x86_64-linux";
     modules = [
-      microvm.nixosModules.host
-      ../configurations/host/configuration.nix
-      ../modules/development/authentication.nix
-      ../modules/development/ssh.nix
-      ../modules/development/nix.nix
+      (import ../configurations/host {
+        inherit self microvm system;
+      })
 
       ../modules/graphics/weston.nix
 
-      ../configurations/host/networking.nix
-      (import ../configurations/host/microvm.nix {
-        inherit self system;
-      })
+      #### on-host development supporting modules ####
+      # drop/replace modules below this line for any real use
+      ../modules/development/authentication.nix
+      ../modules/development/nix.nix
+      ../modules/development/packages.nix
+      ../modules/development/ssh.nix
     ];
     format = "vm";
   };
@@ -26,20 +26,18 @@
   packages.x86_64-linux.intel-nuc = nixos-generators.nixosGenerate rec {
     system = "x86_64-linux";
     modules = [
-      microvm.nixosModules.host
-      ../configurations/host/configuration.nix
-      ../modules/development/intel-nuc-getty.nix
-      ../modules/development/nix.nix
-      ../modules/development/authentication.nix
-      ../modules/development/ssh.nix
-      ../modules/development/nix.nix
+      (import ../configurations/host {
+        inherit self microvm system;
+      })
 
       ../modules/graphics/weston.nix
 
-      ../configurations/host/networking.nix
-      (import ../configurations/host/microvm.nix {
-        inherit self system;
-      })
+      #### on-host development supporting modules ####
+      # drop/replace modules below this line for any real use
+      ../modules/development/authentication.nix
+      ../modules/development/intel-nuc-getty.nix
+      ../modules/development/nix.nix
+      ../modules/development/ssh.nix
     ];
     format = "raw-efi";
   };
