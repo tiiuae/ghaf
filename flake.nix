@@ -21,7 +21,7 @@
     };
     microvm = {
       # TODO: change back to url = "github:astro/microvm.nix";
-      url = "github:mikatammi/microvm.nix/wip_hacks";
+      url = "github:mikatammi/microvm.nix/wip_hacks_2";
       inputs.nixpkgs.follows = "nixpkgs";
       inputs.flake-utils.follows = "flake-utils";
     };
