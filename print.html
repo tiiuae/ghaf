@@ -138,7 +138,11 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="tii-ssrc-secure-technologies-ghaf-framework"><a class="header" href="#tii-ssrc-secure-technologies-ghaf-framework">TII SSRC Secure Technologies: Ghaf Framework</a></h1>
+                        <!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="tii-ssrc-secure-technologies-ghaf-framework"><a class="header" href="#tii-ssrc-secure-technologies-ghaf-framework">TII SSRC Secure Technologies: Ghaf Framework</a></h1>
 <p><em><a href="./appendices/glossary.html#ghaf">Ghaf</a> Framework</em> is an open-source project that provides information about our work and studies in the security technologies field in the context of embedded virtualization.</p>
 <p>The applied software research supports <em><a href="./appendices/glossary.html#ssrc">Secure Systems Research Center</a></em> focus areas.</p>
 <h2 id="embedded-virtualization"><a class="header" href="#embedded-virtualization">Embedded Virtualization</a></h2>
@@ -147,14 +151,26 @@
 <h2 id="reference-implementation"><a class="header" href="#reference-implementation">Reference Implementation</a></h2>
 <p>Ghaf is developing a reference implementation for NVIDIA Jetson devices. See <a href="https://github.com/tiiuae/ghaf/#build-instructions">build instructions</a> for more info.
 Legacy reference implementation for NXP i.MX8 <a href="https://github.com/tiiuae/spectrum-config-imx8">is available here</a>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
 <p>The main architectural concept of the Ghaf platform is to break up the traditional monolithic structure to modularized components, virtual machines (VM). These VMs on hardened host OS implement the Ghaf edge virtualization platform. The Ghaf platform components are used in reference configurations to build images for reference devices. See <a href="architecture/../build_config/build_configurations.html">build configurations</a> and <a href="architecture/../build_config/reference_implementations.html">reference implementations</a> for more info.</p>
 <p>See <a href="architecture/adr.html">architectural decisions record</a> for more info on design choices that address architectural requirements.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-decision-records"><a class="header" href="#architecture-decision-records">Architecture Decision Records</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="architecture-decision-records"><a class="header" href="#architecture-decision-records">Architecture Decision Records</a></h1>
 <p><a href="https://adr.github.io">Architecture decision records (ADR)</a> are used to constitute the Ghaf platform decision log.</p>
 <h2 id="contributions"><a class="header" href="#contributions">Contributions</a></h2>
 <p>Contributions to Ghaf architecture decisions are welcome. Please create an architectural decision proposal by opening <a href="https://github.com/tiiuae/ghaf/pulls">a pull request</a> using the <a href="https://github.com/tiiuae/ghaf/blob/main/docs/src/architecture/adr/template.md">template</a>.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="minimal-host"><a class="header" href="#minimal-host">Minimal Host</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="minimal-host"><a class="header" href="#minimal-host">Minimal Host</a></h1>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>Proposed</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
@@ -181,7 +197,11 @@ through to a guest VM that supports modular design by separating the graphics ar
 from the host. The same applies to other guest VMs that implement other system functionality.</p>
 <p>Further development of the host security, such as hardening, becomes easier as such
 profiles can be tested in isolation.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="technologies"><a class="header" href="#technologies">Technologies</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="technologies"><a class="header" href="#technologies">Technologies</a></h1>
 <p>Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation — your business case is isolated from someone else's business case.</p>
 <p>At the hardware level. Similarly, hardware support in modern personal devices has enabled the isolation of device resources with virtualization. This provides the baseline for secure system design for use case protection.</p>
 <p>In practice, the user can use the same device with a trusted application and with an untrusted application. Both applications are isolated from each other to protect valuable user data and privacy. Our systems are built using <a href="https://github.com/NixOS/nixpkgs">nixpkgs</a> and various <a href="https://nixos.org/guides/nix-language.html">Nix</a> based tools and configurations.</p>
@@ -192,7 +212,11 @@ profiles can be tested in isolation.</p>
 <h2 id="virtual-machine-manager-vmm"><a class="header" href="#virtual-machine-manager-vmm">Virtual Machine Manager (VMM)</a></h2>
 <p>On top of OS kernel hypervisor support with KVM. We allocate virtual resources for use cases with user-space virtual machine manager (VMM) using <a href="https://github.com/rust-vmm">rust-vmm</a> based projects such as <a href="https://github.com/cloud-hypervisor/cloud-hypervisor">cloud-hypervisor</a> and <a href="https://github.com/google/crosvm">crosvm</a>. <a href="https://www.qemu.org/">QEMU</a> is enabled for certain development use cases.</p>
 <p>In addition, we have also experimental, Aarch64 demonstrated support for a KVM variant — <a href="https://github.com/jkrh/kvms">KVMS</a> — which adds security features to standard KVM.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="build-configurations"><a class="header" href="#build-configurations">Build Configurations</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="build-configurations"><a class="header" href="#build-configurations">Build Configurations</a></h1>
 <p>Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: <a href="https://github.com/NixOS">https://github.com/NixOS</a>.</p>
 <p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try, see the <a href="build_config/../build_config/reference_implementations.html">reference implementations</a>.</p>
 <h2 id="approach"><a class="header" href="#approach">Approach</a></h2>
@@ -224,7 +248,11 @@ profiles can be tested in isolation.</p>
 </ul>
 </li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
 <h2 id="supported-targets"><a class="header" href="#supported-targets">Supported Targets</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th></tr></thead><tbody>
 <tr><td>Generic Intel</td><td>x86</td><td>QEMU</td></tr>
@@ -274,7 +302,11 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <p>If you set up development SSH keys into <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4">SSH module</a>, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the development board over the network using SSH:</p>
 <pre><code>nixos-rebuild --flake .#nvidia-jetson-orin --target-host root@orin-hostname --fast switch
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross Compilation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross Compilation</a></h1>
 <p>Ghaf is targeted at a range of devices and form factors that support different Instruction Set Architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or operating systems that run on them. As the most common ISA used in desktops and servers is <code>x\_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
 <h2 id="binfmt"><a class="header" href="#binfmt">Binfmt</a></h2>
@@ -294,7 +326,11 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <p>depending on whether your development host is running <code>AMD</code> or <code>Intel</code> version of <code>x\_86</code>.</p>
 <h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross Compilation Support</a></h2>
 <p>This will involve working with upstream package maintainers to ensure that the packages are cross compilation aware. This will be addressed on a package-by-package basis.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="devices-passthrough"><a class="header" href="#devices-passthrough">Devices Passthrough</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="devices-passthrough"><a class="header" href="#devices-passthrough">Devices Passthrough</a></h1>
 <p>Devices passthrough to virtual machines (VM) allows us to isolate the device drivers 
 and their memory access in one or several VMs. This reduces the Trusted Code Base (TCB) in the host, due to the passed-through device drivers can be removed completely
 from the host kernel.</p>
@@ -302,7 +338,11 @@ from the host kernel.</p>
 <ul>
 <li><a href="build_config/passthrough/nvidia_agx_pt_uart.html">Nvidia AGX Orin - UART Passthrough</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="nvidia-jetson-agx-orin-uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="nvidia-jetson-agx-orin-uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></h1>
 <p>This document describes the UART passthrough implementations on the NVIDIA Jetson 
 AGX Orin board. The goal of this document is to guide more complex devices 
 passthrough implementations.</p>
@@ -442,7 +482,11 @@ ttyACM1 terminal. </p>
 <div class="footnote-definition" id="note3"><sup class="footnote-definition-label">3</sup>
 <p>Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf</p>
 </div>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="supply-chain-security"><a class="header" href="#supply-chain-security">Supply Chain Security</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="supply-chain-security"><a class="header" href="#supply-chain-security">Supply Chain Security</a></h1>
 <p>To be aware of what is exactly in our software supply chain, it is reviewed for security issues and known vulnerabilities.</p>
 <p><img src="scs/../img/threat_processing.drawio.png" alt="Supply Chain Attacks Diagram" title="Supply Chain Attacks" /></p>
 <p>We implement a <em>supply chain security (SCS)</em> — process of securing the machinery of the development, building, and release environment. That means that every component that a software artifact might be touching on its way from the developer to the consumer will be secured.</p>
@@ -457,7 +501,11 @@ ttyACM1 terminal. </p>
 <li><a href="scs/../scs/pki.html">Public Key Infrastructure</a></li>
 <li><a href="scs/../scs/patching-automation.html">Patch Management Automation</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="slsa-framework"><a class="header" href="#slsa-framework">SLSA Framework</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="slsa-framework"><a class="header" href="#slsa-framework">SLSA Framework</a></h1>
 <p>Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement, and securing packages and infrastructure of a project. For more information about the SLSA framework, see the offical website <a href="https://slsa.dev">https://slsa.dev</a>.</p>
 <h2 id="slsa-terminology"><a class="header" href="#slsa-terminology">SLSA Terminology</a></h2>
 <p><strong>Immutable reference:</strong> An identifier, guaranteed to always point to the same, immutable artifact.</p>
@@ -499,7 +547,11 @@ ttyACM1 terminal. </p>
 <p>✓ — required</p>
 <p>○ — required unless justified otherwise</p>
 <p>empty cell — not required</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="basic-security-measures"><a class="header" href="#basic-security-measures">Basic Security Measures</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="basic-security-measures"><a class="header" href="#basic-security-measures">Basic Security Measures</a></h1>
 <h2 id="source-code--version-control-security"><a class="header" href="#source-code--version-control-security">Source Code / Version Control Security</a></h2>
 <p>The source code security is based on the fact that the source code is two-person reviewed, version controlled, and the history is verified and retained indefinitely.</p>
 <h3 id="commit-signing"><a class="header" href="#commit-signing">Commit Signing</a></h3>
@@ -530,7 +582,11 @@ ttyACM1 terminal. </p>
 <p><img src="scs/../img/threat_processing_1serv.drawio.png" alt="Shared NixStore Solution" title="Shared NixStore" /></p>
 <h2 id="data-encryption-in-transit"><a class="header" href="#data-encryption-in-transit">Data Encryption in Transit</a></h2>
 <p>All the data should be transported over secure encrypted channels. Since all the transportation is done over TCP/IP protocol stack, it is possible to use native solutions like TLS to secure the traffic between the nodes. Version 1.2 is a minimum requirement.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="software-bill-of-materials-sbom"><a class="header" href="#software-bill-of-materials-sbom">Software Bill of Materials (SBOM)</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="software-bill-of-materials-sbom"><a class="header" href="#software-bill-of-materials-sbom">Software Bill of Materials (SBOM)</a></h1>
 <p>Software bill of materials (SBOM) is a formal, machine-readable document that provides a list of software components that make up the target software and all its dependencies.</p>
 <h2 id="sbom-formats-and-specifications"><a class="header" href="#sbom-formats-and-specifications">SBOM Formats and Specifications</a></h2>
 <p>There are three main delivery formats and specifications for SBOM: CycloneDX, SPDX, and SWID.</p>
@@ -557,7 +613,11 @@ ttyACM1 terminal. </p>
 <li><a href="https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools">https://fossa.com/blog/software-bill-of-materials-formats-use-cases-tools</a></li>
 <li><a href="https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes">https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="public-key-infrastructure"><a class="header" href="#public-key-infrastructure">Public Key Infrastructure</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="public-key-infrastructure"><a class="header" href="#public-key-infrastructure">Public Key Infrastructure</a></h1>
 <p>In the SCS context, a public key infrastructure (PKI) term refers to a system for the creation, storage, and distribution of digital certificates which are used to verify that a particular key belongs to a certain entity. PKI creates and manages a hierarchical set of digital certificates which map public keys to certain entities. Storage and revocation methodologies are to be defined.</p>
 <p>The PKI of SCS should consist of:</p>
 <ul>
@@ -618,7 +678,11 @@ ttyACM1 terminal. </p>
 <h2 id="proposed-ca-hierarchy"><a class="header" href="#proposed-ca-hierarchy">Proposed CA Hierarchy</a></h2>
 <p>The following diagram describes the proposed CA for the SCS. The three-tier CA is chosen based on the high-security level and the potential need to scale it to several projects, later on, keeping the main control under the same Root CA.</p>
 <p><img src="scs/../img/ca_implementation.drawio.png" alt="Proposed CA" title="CA Implementation Proposal" /></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="patch-management-automation"><a class="header" href="#patch-management-automation">Patch Management Automation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="patch-management-automation"><a class="header" href="#patch-management-automation">Patch Management Automation</a></h1>
 <p>An automated patch management solution increases complex software development efficiency concurrently ensuring a high level of vulnerability remediation in a reasonable time frame.</p>
 <p><img src="scs/../img/autopatching.drawio.png" alt="Patch Management Automation" title="Automated Patch Management Solution" /></p>
 <p>The patch management automation (PMA) system processes data in cycles. Every cycle includes a number of stages:</p>
@@ -648,12 +712,20 @@ ttyACM1 terminal. </p>
 <h3 id="package-update"><a class="header" href="#package-update">Package Update</a></h3>
 <p>The update mechanism implementation depends on a system and will differ from one build system to another.</p>
 <p>For example, in Nix it is enough that respective Nix files are automatically updated and the package is rebuilt. For more information on package update steps, see the <a href="https://nixos.wiki/wiki/Update_a_package">Update a package</a> article of the NixOS Wiki.</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="research-notes"><a class="header" href="#research-notes">Research Notes</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="research-notes"><a class="header" href="#research-notes">Research Notes</a></h1>
 <p>Our experience in research and lessons learned activities:</p>
 <ul>
 <li><a href="research/passthrough/ethernet.html">i.MX 8QM platform bus ethernet passthrough</a></li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="imx-8qm-ethernet-passthrough"><a class="header" href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="imx-8qm-ethernet-passthrough"><a class="header" href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a></h1>
 <p>The i.MX 8QuadMax (i.MX 8QM, iMX8QM, imx8qm) pass-through host setup relies as much as possible on the default i.MX 8QM MEK (imx8qm-mek) device tree configuration. Some guidance on what is required for passthrough to work on i.MX 8 can be found in the XEN device trees.</p>
 <p>This document provides a detailed description of what has been done and why. For the more impatient readers, the example device tree files for i.MX 8QM guest and host with ethernet passthrough are available here:</p>
 <ul>
@@ -663,6 +735,8 @@ ttyACM1 terminal. </p>
 <p><strong>NOTE 20.12.2022:</strong>
 At the current state, the passthrough is not completely functional. The Ethernet device (fec1) or even both devices (fec1 and fec2) can be set up in the guest. The devices respond and seem functional, the device node does activate, the drivers load correctly, the power state of the device changes to active, and the link state of the ethernet connection seems to change correctly. However, for some reason, no actual ethernet data packages go through the ethernet adapter. The most visible issue is that no interrupts come to the ethernet devices.</p>
 <p>See the following topics:</p>
+<ul>
+<li><a href="research/passthrough/ethernet.html#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a>
 <ul>
 <li><a href="research/passthrough/ethernet.html#host-kernel-configuration">Host Kernel Configuration</a></li>
 <li><a href="research/passthrough/ethernet.html#host-device-tree-explained">Host Device Tree Explained</a>
@@ -684,7 +758,9 @@ At the current state, the passthrough is not completely functional. The Ethernet
 <li><a href="research/passthrough/ethernet.html#compiling-for-host">Compiling for Host</a></li>
 </ul>
 </li>
-<li><a href="research/passthrough/ethernet.html#running-quemu-with-pass-through-platform-devices">Running QEMU with Pass-through Platform Devices</a></li>
+<li><a href="research/passthrough/ethernet.html#running-qemu-with-pass-through-platform-devices">Running QEMU with Pass-through Platform Devices</a></li>
+</ul>
+</li>
 </ul>
 <hr />
 <h2 id="host-kernel-configuration"><a class="header" href="#host-kernel-configuration">Host Kernel Configuration</a></h2>
@@ -1283,7 +1359,11 @@ echo 5b230000.clock-controller &gt; /sys/bus/platform/drivers/vfio-platform/bind
     -device vfio-platform,host=5b040000.ethernet \
     -device vfio-platform,host=5d1d0000.mailbox
 </code></pre>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
 <p>This is a glossary of terms and abbreviations developed by the Ghaf team.</p>
 <p><strong>Abbreviation</strong> is a shortened form of a word or phrase. Usually is used to save space and time, to avoid repetition of long words and phrases.</p>
 <p>The styling of abbreviations is inconsistent and includes several possible variations. Some abbreviations are formed by omitting all but the first few letters of a word. Such abbreviations usually end in a period: Mr. for mister, Oct. for October.</p>
@@ -1404,7 +1484,11 @@ Source: <a href="https://slsa.dev/spec/v0.1/terminology">https://slsa.dev/spec/v
 <h3 id="slsa"><a class="header" href="#slsa">SLSA</a></h3>
 <p><em>Supply chain Levels for Software Artifacts is a security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises.</em><br />
 Source: <a href="https://slsa.dev/">https://slsa.dev/</a></p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="contribution-guidelines"><a class="header" href="#contribution-guidelines">Contribution Guidelines</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="contribution-guidelines"><a class="header" href="#contribution-guidelines">Contribution Guidelines</a></h1>
 <p>Improvements to code and documentation are welcome! We would love to get contributions from you.</p>
 <p>For more information, see <a href="https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md">CONTRIBUTING.md</a>.</p>
 <p>Some things that will increase the chance that your pull request is accepted faster:</p>

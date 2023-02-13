@@ -137,7 +137,11 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="imx-8qm-ethernet-passthrough"><a class="header" href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a></h1>
+                        <!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="imx-8qm-ethernet-passthrough"><a class="header" href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a></h1>
 <p>The i.MX 8QuadMax (i.MX 8QM, iMX8QM, imx8qm) pass-through host setup relies as much as possible on the default i.MX 8QM MEK (imx8qm-mek) device tree configuration. Some guidance on what is required for passthrough to work on i.MX 8 can be found in the XEN device trees.</p>
 <p>This document provides a detailed description of what has been done and why. For the more impatient readers, the example device tree files for i.MX 8QM guest and host with ethernet passthrough are available here:</p>
 <ul>
@@ -147,6 +151,8 @@
 <p><strong>NOTE 20.12.2022:</strong>
 At the current state, the passthrough is not completely functional. The Ethernet device (fec1) or even both devices (fec1 and fec2) can be set up in the guest. The devices respond and seem functional, the device node does activate, the drivers load correctly, the power state of the device changes to active, and the link state of the ethernet connection seems to change correctly. However, for some reason, no actual ethernet data packages go through the ethernet adapter. The most visible issue is that no interrupts come to the ethernet devices.</p>
 <p>See the following topics:</p>
+<ul>
+<li><a href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a>
 <ul>
 <li><a href="#host-kernel-configuration">Host Kernel Configuration</a></li>
 <li><a href="#host-device-tree-explained">Host Device Tree Explained</a>
@@ -168,7 +174,9 @@ At the current state, the passthrough is not completely functional. The Ethernet
 <li><a href="#compiling-for-host">Compiling for Host</a></li>
 </ul>
 </li>
-<li><a href="#running-quemu-with-pass-through-platform-devices">Running QEMU with Pass-through Platform Devices</a></li>
+<li><a href="#running-qemu-with-pass-through-platform-devices">Running QEMU with Pass-through Platform Devices</a></li>
+</ul>
+</li>
 </ul>
 <hr />
 <h2 id="host-kernel-configuration"><a class="header" href="#host-kernel-configuration">Host Kernel Configuration</a></h2>

@@ -137,7 +137,11 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross Compilation</a></h1>
+                        <!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross Compilation</a></h1>
 <p>Ghaf is targeted at a range of devices and form factors that support different Instruction Set Architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or operating systems that run on them. As the most common ISA used in desktops and servers is <code>x\_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
 <h2 id="binfmt"><a class="header" href="#binfmt">Binfmt</a></h2>
