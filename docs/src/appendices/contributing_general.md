@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Contribution Guidelines
 
 Improvements to code and documentation are welcome! We would love to get contributions from you.

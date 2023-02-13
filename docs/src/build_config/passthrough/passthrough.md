@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Devices Passthrough
 
 Devices passthrough to virtual machines (VM) allows us to isolate the device drivers 

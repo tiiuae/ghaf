@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Supply Chain Security
 
 To be aware of what is exactly in our software supply chain, it is reviewed for security issues and known vulnerabilities.

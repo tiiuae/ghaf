@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Technologies
 
 Embedded virtualization builds on technologies from cloud security. Cloud services provide scalable but isolated computation — your business case is isolated from someone else's business case.

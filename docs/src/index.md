@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # TII SSRC Secure Technologies: Ghaf Framework
 
 _[Ghaf](./appendices/glossary.md#ghaf) Framework_ is an open-source project that provides information about our work and studies in the security technologies field in the context of embedded virtualization.

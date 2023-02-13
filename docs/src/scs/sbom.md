@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Software Bill of Materials (SBOM)
 
 Software bill of materials (SBOM) is a formal, machine-readable document that provides a list of software components that make up the target software and all its dependencies.

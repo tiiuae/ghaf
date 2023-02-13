@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Build Configurations
 
 Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: [https://github.com/NixOS](https://github.com/NixOS).
