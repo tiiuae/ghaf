@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Public Key Infrastructure
 
 In the SCS context, a public key infrastructure (PKI) term refers to a system for the creation, storage, and distribution of digital certificates which are used to verify that a particular key belongs to a certain entity. PKI creates and manages a hierarchical set of digital certificates which map public keys to certain entities. Storage and revocation methodologies are to be defined.

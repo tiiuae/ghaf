@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # i.MX 8QM Ethernet Passthrough
 
 The i.MX 8QuadMax (i.MX 8QM, iMX8QM, imx8qm) pass-through host setup relies as much as possible on the default i.MX 8QM MEK (imx8qm-mek) device tree configuration. Some guidance on what is required for passthrough to work on i.MX 8 can be found in the XEN device trees.
@@ -11,18 +16,19 @@ At the current state, the passthrough is not completely functional. The Ethernet
 
 See the following topics:
 
-- [Host Kernel Configuration](#host-kernel-configuration)
-- [Host Device Tree Explained](#host-device-tree-explained)
+- [i.MX 8QM Ethernet Passthrough](#imx-8qm-ethernet-passthrough)
+  - [Host Kernel Configuration](#host-kernel-configuration)
+  - [Host Device Tree Explained](#host-device-tree-explained)
     - [Other Notes About Passthrough](#other-notes-about-passthrough)
-- [Changes in U-Boot](#changes-in-u-boot)
-- [Running Platform Device Passthrough in QEMU](#running-platform-device-passthrough-in-qemu)
-- [Guest Setup](#guest-setup)
+  - [Changes in U-Boot](#changes-in-u-boot)
+  - [Running Platform Device Passthrough in QEMU](#running-platform-device-passthrough-in-qemu)
+  - [Guest Setup](#guest-setup)
     - [Adding Devices to Guest](#adding-devices-to-guest)
     - [Some Final Touches for Guest Devices](#some-final-touches-for-guest-devices)
-- [Compiling the Device Tree Source to Binary Form](#compiling-the-device-tree-source-to-binary-form)
+  - [Compiling the Device Tree Source to Binary Form](#compiling-the-device-tree-source-to-binary-form)
     - [Compiling for Guest](#compiling-for-guest)
     - [Compiling for Host](#compiling-for-host)
-- [Running QEMU with Pass-through Platform Devices](#running-quemu-with-pass-through-platform-devices)
+  - [Running QEMU with Pass-through Platform Devices](#running-qemu-with-pass-through-platform-devices)
 
 _________________
 

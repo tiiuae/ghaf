@@ -1,6 +1,6 @@
 # TII SSRC Secure Technologies: Ghaf Framework
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC_BY--SA_4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 
 This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
@@ -29,8 +29,23 @@ If you would like to contribute, please read [CONTRIBUTING.md](CONTRIBUTING.md) 
 If you find any bugs or errors in the content, feel free just to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also use this feature to track suggestions or other information.
 
 
-## License
+## Licenses
 
-Ghaf source code is made available under the Apache License, Version 2.0 (Apache-2.0). See [LICENSE](./LICENSE) for the full license text.
+The Ghaf team uses several licenses to distribute software and documentation:
 
-Ghaf documentation is licensed under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0).
+| License Full Name | SPDX Short Identifier | Description |
+| -------- | ----------- | ----------- |
+| Apache License 2.0 | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) | Ghaf source code. |
+| Creative Commons Attribution Share Alike 4.0 International | [CC-BY-SA-4.0](https://spdx.org/licenses/CC-BY-SA-4.0.html) | Ghaf documentation. |
+
+See [LICENSE.Apache-2.0](./LICENSES/LICENSE.Apache-2.0) and [LICENSE.CC-BY-SA-4.0](./LICENSES/LICENSE.CC-BY-SA-4.0) for the full license text.
+
+<!-- 
+# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+-->
+
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->

@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # NVIDIA Jetson AGX Orin: UART Passthrough
 
 This document describes the UART passthrough implementations on the NVIDIA Jetson 
