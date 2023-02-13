@@ -9,7 +9,4 @@
     carrierBoard = "devkit";
     modesetting.enable = true;
   };
-
-  # TODO: rpfilter module missing from kernel
-  networking.firewall.enable = false;
 }
