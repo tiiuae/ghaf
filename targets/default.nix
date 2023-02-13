@@ -1,28 +1,16 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# List of target configurations
 {
   self,
+  nixpkgs,
   nixos-generators,
   microvm,
   jetpack-nixos,
-}: {
-  packages.x86_64-linux.vm = nixos-generators.nixosGenerate (
-    import ./vm.nix {inherit self microvm;} // {format = "vm";}
-  );
-
-  packages.x86_64-linux.intel-nuc = nixos-generators.nixosGenerate (
-    import ./vm.nix {inherit self microvm;} // {format = "raw-efi";}
-  );
-
-  packages.x86_64-linux.default = self.packages.x86_64-linux.vm;
-
-  packages.aarch64-linux.nvidia-jetson-orin = nixos-generators.nixosGenerate (
-    import ./nvidia-jetson-orin.nix {inherit self jetpack-nixos microvm;}
-    // {
-      format = "raw-efi";
-    }
-  );
-
-  # Using Orin as a default aarch64 target for now
-  packages.aarch64-linux.default = self.packages.aarch64-linux.nvidia-jetson-orin;
-}
+}:
+nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
+  (import ./nvidia-jetson-orin.nix {inherit self nixpkgs nixos-generators microvm jetpack-nixos;})
+  (import ./vm.nix {inherit self nixpkgs nixos-generators microvm;})
+  (import ./intel-nuc.nix {inherit self nixpkgs nixos-generators microvm;})
+]

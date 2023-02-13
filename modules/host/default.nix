@@ -3,14 +3,14 @@
 {
   self,
   microvm,
-  system,
+  netvm,
 }: {modulesPath, ...}: {
   imports = [
     (modulesPath + "/profiles/minimal.nix")
 
     microvm.nixosModules.host
 
-    (import ./microvm.nix {inherit self system;})
+    (import ./microvm.nix {inherit self netvm;})
     ./networking.nix
   ];
 

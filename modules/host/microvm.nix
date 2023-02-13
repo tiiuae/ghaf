@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   self,
-  system,
+  netvm,
 }: {config, ...}: {
   microvm.host.enable = true;
 
-  # TODO: Get system from config.nixpkgs.hostPlatform;
-  microvm.vms."netvm-${system}" = {
+  microvm.vms."${netvm}" = {
     flake = self;
     autostart = true;
   };
