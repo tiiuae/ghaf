@@ -13,3 +13,5 @@ jobs:
       - uses: cachix/install-nix-action@v18
       - name: Check .nix formatting
         run: nix fmt -- -c *
+      - name: Check the presence of Copyright and SPDX headers
+        run: scripts/spdx_nix_checker/check_all

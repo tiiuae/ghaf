@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Check every .nix file has proper SPDX-header lines
+
+set -euo pipefail
+
+FILE="${1}"
+echo -n "Checking ${FILE}... "
+
+COPYRIGHT_RE='^# Copyright 2022-([0-9]+) TII \(SSRC\) and the Ghaf contributors$'
+SPDX_EXPECTED='# SPDX-License-Identifier: Apache-2.0'
+
+COPYRIGHT=$(head -n1 "${FILE}")
+SPDX=$(head -n2 "${FILE}" | tail -n1)
+
+[[ "${COPYRIGHT}" =~ ${COPYRIGHT_RE} ]] || (echo "First line of the file is not the Copyright line"; exit 1)
+YEAR="${BASH_REMATCH[1]}"
+[[ "${YEAR}" -gt 2022 ]] || (echo "The end of the period in Copyright line should be 2023 or bigger"; exit 1)
+
+[[ "${SPDX}" == "${SPDX_EXPECTED}" ]] || (echo "Second line should be SPDX-License-Identifier: Apache-2.0" && exit 1)
+
+echo "ok"
+exit 0

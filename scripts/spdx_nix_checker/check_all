@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Check every .nix file has proper Copyright and SPDX-header lines
+
+set -euo pipefail
+
+CHECK_FILE="$(dirname "$(realpath "${0}")")/check_file"
+
+find -- * -name '*.nix' -print0 | xargs -n1 -0 "${CHECK_FILE}"
