@@ -2,6 +2,7 @@
 
 - [Introduction](index.md)
 - [Architecture](architecture/architecture.md)
+    - [Stack](architecture/stack.md)
     - [Decision Record](architecture/adr.md)
        - [Minimal host](architecture/adr/minimal-host.md)
        - [Networking VM](architecture/adr/netvm.md)
