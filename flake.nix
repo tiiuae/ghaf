@@ -1,3 +1,5 @@
+# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 {
   description = "Ghaf - Documentation and implementation for TII SSRC Secure Technologies Ghaf Framework";
 
@@ -57,37 +59,8 @@
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
 
-      # MicroVM configurations
-      {
-        # Generate VM configurations for every system
-        nixosConfigurations =
-          nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate
-          {}
-          (map (system: {
-              "netvm-${system}" = import ./configurations/netvm {inherit nixpkgs microvm system;};
-            })
-            systems);
-      }
-
-      # NixOS Host Configurations
-      {
-        nixosConfigurations.nvidia-jetson-orin = let
-          target = import ./targets/nvidia-jetson-orin.nix {inherit self jetpack-nixos microvm;};
-        in
-          nixpkgs.lib.nixosSystem (
-            target
-            // {
-              modules =
-                target.modules
-                ++ [
-                  nixos-generators.nixosModules.raw-efi
-                ];
-            }
-          );
-      }
-
-      # Final target images
-      (import ./targets {inherit self nixos-generators microvm jetpack-nixos;})
+      # Target configurations
+      (import ./targets {inherit self nixpkgs nixos-generators microvm jetpack-nixos;})
 
       # Hydra jobs
       (import ./hydrajobs.nix {inherit self;})

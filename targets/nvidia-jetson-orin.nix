@@ -1,27 +1,73 @@
+# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 {
   self,
-  jetpack-nixos,
+  nixpkgs,
+  nixos-generators,
   microvm,
-}: rec {
+  jetpack-nixos,
+}: let
+  name = "nvidia-jetson-orin";
   system = "aarch64-linux";
-  modules = [
-    jetpack-nixos.nixosModules.default
-    ../modules/hardware/nvidia-jetson-orin.nix
+  formatModule = nixos-generators.nixosModules.raw-efi;
+  nvidia-jetson-orin = variant: extraModules: let
+    hostConfiguration = nixpkgs.lib.nixosSystem {
+      inherit system;
+      modules =
+        [
+          (import ../modules/host {
+            inherit self microvm netvm;
+          })
 
-    ../modules/graphics/weston.nix
+          jetpack-nixos.nixosModules.default
+          ../modules/hardware/nvidia-jetson-orin.nix
 
-    microvm.nixosModules.host
-    ../configurations/host/configuration.nix
-    ../configurations/host/networking.nix
-    (import ../configurations/host/microvm.nix {
-      inherit self system;
-    })
+          ./common-${variant}.nix
 
-    #### on-host development supporting modules ####
-    # drop/replace modules below this line for any real use
-    ../modules/development/authentication.nix
-    ../modules/development/ssh.nix
-    ../modules/development/nix.nix
-    ../modules/development/packages.nix
+          ../modules/graphics/weston.nix
+
+          formatModule
+        ]
+        ++ extraModules;
+    };
+    netvm = "netvm-${name}-${variant}";
+  in {
+    inherit hostConfiguration netvm;
+    name = "${name}-${variant}";
+    netvmConfiguration = import ../microvmConfigurations/netvm {
+      inherit nixpkgs microvm system;
+    };
+    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+  };
+  nvidia-jetson-orin-debug = nvidia-jetson-orin "debug" [];
+  nvidia-jetson-orin-release = nvidia-jetson-orin "release" [];
+  generate-cross-from-x86_64 = tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-from-x86_64";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          {
+            nixpkgs.buildPlatform.system = "x86_64-linux";
+          }
+        ];
+      };
+      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+    };
+  targets = [
+    nvidia-jetson-orin-debug
+    nvidia-jetson-orin-release
   ];
+  crossTargets = map generate-cross-from-x86_64 targets;
+in {
+  nixosConfigurations =
+    builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets))
+    // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.netvm t.netvmConfiguration) targets);
+
+  packages = {
+    aarch64-linux =
+      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets);
+    x86_64-linux =
+      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) crossTargets);
+  };
 }
