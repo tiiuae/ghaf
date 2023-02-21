@@ -9,4 +9,9 @@
   };
 
   nixpkgs.hostPlatform.system = "aarch64-linux";
+
+  boot.loader = {
+    efi.canTouchEfiVariables = true;
+    systemd-boot.enable = true;
+  };
 }
