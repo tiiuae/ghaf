@@ -4,6 +4,6 @@
 # Common modules for all targets
 {
   imports = [
-    ../modules/graphics/weston.nix
+    # TODO: Add modules common to all targets here in the future
   ];
 }

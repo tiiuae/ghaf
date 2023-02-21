@@ -18,6 +18,8 @@
         })
         ./common-${variant}.nix
 
+        ../modules/graphics/weston.nix
+
         formatModule
       ];
     };
