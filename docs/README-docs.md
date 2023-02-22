@@ -5,7 +5,7 @@
 
 # Working with Documentation
 
-[![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-blueviolet)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md)
+[![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-blueviolet)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md) [![Glossary](https://img.shields.io/badge/docs-Glossary-pink)](https://tiiuae.github.io/ghaf/appendices/glossary.html)
 
 This guidelines provide information on wotking with source files. For information on manual of style recommended practices, see [Documentation Style Guide](./style_guide.md).
 

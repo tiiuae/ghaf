@@ -34,7 +34,7 @@ We like commits as they keep the project going. If you have ideas you want to ex
 
 Pull requests should be created from personal forks. We follow a fork and rebase workflow.
 
-Make sure the [license](https://github.com/tiiuae/ghaf#licenses) information is added on top of all your source files as in the example:
+Make sure the [license](https://github.com/tiiuae/ghaf#licensing) information is added on top of all your source files as in the example:
 
     # Copyright [year project started]-[current year], [project founder] and the [project name] contributors
     # SPDX-License-Identifier: Apache-2.0
@@ -92,7 +92,7 @@ The seven rules of a great Git commit message are originally from Google. Origin
 
 The Ghaf project is free and open source. We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting. Sources are written in Markdown.
 
-Add [license](https://github.com/tiiuae/ghaf#licenses) information on top of all your source doc files as in the example:
+Add [license](https://github.com/tiiuae/ghaf#licensing) information on top of all your source doc files as in the example:
 
     <!--
         Copyright [year project started]-[current year], [project founder] and the [project name] contributors
