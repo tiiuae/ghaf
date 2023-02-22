@@ -54,6 +54,8 @@ Source: <https://www.tii.ae/secure-systems>
 _Technology Innovation Institute is a UAE-based research center that aims to lead global advances in artificial intelligence, autonomous robotics, quantum computing, cryptography and quantum communications, directed energy, secure communication, smart devices, advanced materials, and propulsion and space technologies._  
 Source: <https://www.tii.ae/>
 
+---
+
 ## Core Concepts
 
 ### ADR
@@ -122,6 +124,7 @@ _virtual machine_
 
 _Virtual Machine Manager_
 
+---
 
 ## Build Configurations Related
 
@@ -143,6 +146,7 @@ Source: [Arm® Server Base System Architecture 7.1 Platform Design Document](htt
 _An Instruction Set Architecture is part of the abstract model of a computer that defines how the CPU is controlled by the software._  
 Source: <https://www.arm.com/glossary/isa>
 
+---
 
 ## SCS Related
 
@@ -187,7 +191,7 @@ _registration authority_
 
 ### SBOM
 
-_A software bill of materials is a machine-readable documentan of all software components, open source licenses, and dependencies in a target software._
+_A software bill of materials is a machine-readable document of all software components, open source licenses, and dependencies in a target software._
 
 ### SCS
 
