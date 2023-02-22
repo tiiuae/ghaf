@@ -48,14 +48,36 @@ To make our Markdown files maintainable over time and across teams, please follo
     * Use three backticks (```) on the lines before and after the code block.
     * Indent every line of the block by at least four spaces or one tab. To put a code block within a list item, the code block needs to be indented twice.
 
+* Reference to a source code
+
+    Instead of copying and pasting the entire code, and putting it in a code block, you can create a reference to the code as in the [example](https://github.com/stevemar/code-reference-in-readme/blob/main/README.md).
+    Do the following:
+    * In GitHub, open the file with a source code (the source blob) and select a string or several strings (press and hold the Shift key).
+    * From the menu [...], select **Copy permalink** and paste the link to your .md file.
+
 * Notes with quoting
 
-    Use an angle bracket (>) for block quoting.
+    Use an angle bracket (>) for annotations. For example:
+    ```
+    > This is a note.
+    ```
+    To draw more attention, you can create note blocks simply by surrounding the content with two horizontal lines. For example:
+    ```
+    ---
+    **IMPORTANT**
+
+    Very importamt information.
+
+    ---
+    ```
 
 * Markdown shields (badges)
 
     In [README.md](../README.md) and [README-docs.md](./README-docs.md), we used those emblems so that the user can see the needed information at first glance. In fact, it is just a reference link. To make your own shield, use [shields.io](https://shields.io/).
 
+* Unicode characters
+
+    For GitHub .md files (not for GitHub Pages), emojis are welcome :octocat:. [Supported GitHub emojis](https://github-emoji-picker.vercel.app/).
 
 ## Voice and Tone
 
@@ -164,3 +186,5 @@ Congratulations! You found the Room of Requirement that adjusts itself to its se
 | white paper vs. whitepaper | Use [white paper](https://www.collinsdictionary.com/dictionary/english/white-paper) both as a term of a marketing or technical report and as a sheet of white-colored paper. |
 | on the page vs. in the page | We treat web pages similar to book pages: *someting is [on the page](https://www.ldoceonline.com/dictionary/page)*. However, if you want to describe something that is in pages's code, you can use *in the page*. For more information, see [The choice of preposition distinguishes between the surface and the container](https://english.stackexchange.com/questions/132102/why-are-you-on-a-train-yet-in-a-car-when-you-are-inside-both-vehicles/132122#132122). |
 | proofread vs. proof read | Use [proofread](https://www.collinsdictionary.com/dictionary/english/proofread) as a verb to read and correct a piece of written work before publishing. |
+
+Open-ended questions: cross compilation/cross-compilation, passthrough/pass-through.

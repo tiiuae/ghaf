@@ -32,18 +32,18 @@ One example of affordable HSM solutions is YubiHSM developed by Yubico.
 
 ### HSM Variants for Consideration
 
-The following HSM Solutions are considered for the Ghaf project:
+The following HSM solutions are considered for the Ghaf project:
 
   - [YubiHSM2](https://www.yubico.com/fi/product/yubihsm-2/ "YubiHSM2")
   - [NitrokeyHSM2](https://shop.nitrokey.com/shop/product/nkhs2-nitrokey-hsm-2-7 "NitrokeyHSM2")
   - [SoftHSMv2](https://github.com/opendnssec/SoftHSMv2 "SoftHSMv2")
   - BreadboardHSM
 
-The following table provides feature comparison of the proposed solutions. 
+The following table provides feature comparison of the proposed solutions: 
 
 >Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.
 
-| Feature                      | YubiHSM2     | NitrokeyHSM2 | SoftHSMv2    | BreadboardHSM |
+| Feature                      | YubiHSM 2    | NitrokeyHSM2 | SoftHSMv2    | BreadboardHSM |
 |------------------------------|--------------|--------------|--------------|---------------|
 | Secure key storage           |       ✓      |       ✓      |       ✓      |       ✓       |
 | ECC                          |       ✓      |       ✓      |       ✓      |       ✓       |
