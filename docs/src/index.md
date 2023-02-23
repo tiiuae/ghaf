@@ -11,11 +11,11 @@ The applied software research supports _[Secure Systems Research Center](./appen
 
 ## Embedded Virtualization
 
-Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide a hardened system of a small _[trusted computing base (TCB)](./appendices/glossary.md#tcb)_ — thin host — that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines (VMs). Embedded targets are small devices (personal or headless) instead of high-performance cloud servers. Our scope is illustrated in the following diagram.
+Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide a hardened system of a small _[trusted computing base (TCB)](./appendices/glossary.md#tcb)_ — thin host — that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines (VMs). Embedded targets are small devices (personal or headless) instead of high-performance cloud servers. Our scope is illustrated in the following diagram. For more information, see [stack](architecture/stack.md).
 
-![Scope!](img/overview.png "Embedded Virtualization Scope")
+![Scope!](img/stack.drawio.png "Embedded Virtualization Scope")
 
 ## Reference Implementation
 
-Ghaf is developing a reference implementation for NVIDIA Jetson devices. See [build instructions](https://github.com/tiiuae/ghaf/#build-instructions) for more info.
+Ghaf is developing a reference implementation for NVIDIA Jetson devices. Devices of x86 architecture are also supported. See [build instructions](build_config/reference_implementations.md) for more info.
 Legacy reference implementation for NXP i.MX8 [is available here](https://github.com/tiiuae/spectrum-config-imx8).
