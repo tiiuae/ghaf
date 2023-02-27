@@ -17,5 +17,5 @@ Embedded virtualization builds on cloud technologies in the development of end-t
 
 ## Reference Implementation
 
-Ghaf is developing a reference implementation for NVIDIA Jetson devices. Devices of x86 architecture are also supported. See [build instructions](build_config/reference_implementations.md) for more info.
-Legacy reference implementation for NXP i.MX8 [is available here](https://github.com/tiiuae/spectrum-config-imx8).
+Ghaf is developing a reference implementation for NVIDIA Jetson devices.
+Ghaf also supports NXP's i.MX8QuadMax-MEK development board along with generic-x86 devices. See [build instructions](build_config/reference_implementations.md) for more info.

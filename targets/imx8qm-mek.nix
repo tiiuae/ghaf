@@ -38,7 +38,7 @@
     };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  debugModules = [ ];
+  debugModules = [];
   targets = [
     (imx8qm-mek "debug" debugModules)
     (imx8qm-mek "release" [])
