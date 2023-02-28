@@ -1,6 +1,7 @@
 # Summary
 
 - [Introduction](index.md)
+- [Features](features.md)
 - [Architecture](architecture/architecture.md)
     - [Variants](architecture/variants.md)
     - [Stack](architecture/stack.md)
