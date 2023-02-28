@@ -146,6 +146,7 @@
 <div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th></tr></thead><tbody>
 <tr><td>Generic Intel</td><td>x86</td><td>QEMU</td></tr>
 <tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>hardware</td></tr>
+<tr><td>NXP i.MX8QM-MEK</td><td>aarch64</td><td>hardware</td></tr>
 </tbody></table>
 </div>
 <p>Scope of target support is updated with development progress.</p>
@@ -153,9 +154,10 @@
 <p>Ghaf uses a Nix flake approach to build the framework targets.</p>
 <p>See <a href="https://nixos.org/download.html">Nix installation instructions</a> for further details.
 Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable flakes</a>.</p>
-<div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>architecture</th><th>scope</th><th>build command</th></tr></thead><tbody>
-<tr><td>Generic Intel</td><td>x86</td><td>VM</td><td><code>nix build .#packages.x86_64-linux.vm</code></td></tr>
-<tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.nvidia-jetson-orin</code></td></tr>
+<div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th><th>Command to build the release variant</th></tr></thead><tbody>
+<tr><td>Generic Intel</td><td>x86</td><td>VM</td><td><code>nix build .#packages.x86_64-linux.vm-release</code></td></tr>
+<tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.nvidia-jetson-orin-release</code></td></tr>
+<tr><td>NXP i.MX8QM-MEK</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.imx8qm-mek-release</code></td></tr>
 </tbody></table>
 </div>
 <p>To see all Ghaf supported outputs, type <code>nix flake show</code>.</p>
@@ -169,7 +171,7 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <h3 id="nvidia-jetson-orin-agx"><a class="header" href="#nvidia-jetson-orin-agx">NVIDIA Jetson Orin AGX</a></h3>
 <ul>
 <li>Prequisite (firmware version): <a href="https://github.com/mikatammi/jetpack-nixos/tree/flash_orin_hack#hack-for-flashing-nvidia-jetson-orin">Update the NVIDIA Jetson Orin AGX UEFI firmware to version r35.1 to boot from USB</a></li>
-<li>Prequisite (cross-compilation support): <code>binfmt</code> and NixOS is required.
+<li>Prequisite (cross-compilation support): <code>binfmt</code> and Nix is required.
 <ul>
 <li>Enable <code>binfmt</code> in your <code>configuration.nix</code> with:
 <pre><code>boot.binfmt.emulatedSystems = [
@@ -186,6 +188,36 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 </ul>
 </li>
 <li>Boot the hardware from USB media</li>
+</ul>
+<h3 id="nxp-imx8qm-mek"><a class="header" href="#nxp-imx8qm-mek">NXP i.MX8QM-MEK</a></h3>
+<p>In case of i.MX8 Ghaf deployment contains two steps - creating bootable SDcard with first-stage bootloader (Tow-Boot) and creating USB media with Ghaf image.</p>
+<h5 id="build-and-flash-tow-boot-bootloader"><a class="header" href="#build-and-flash-tow-boot-bootloader">Build and flash <a href="https://github.com/tiiuae/Tow-Boot"><strong>Tow-Boot</strong></a> bootloader</a></h5>
+<pre><code>$ git clone https://github.com/tiiuae/Tow-Boot.git &amp;&amp; cd Tow-Boot
+$ nix-build -A imx8qm-mek
+$ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
+</code></pre>
+<h5 id="build-and-flash-ghaf-image"><a class="header" href="#build-and-flash-ghaf-image">Build and flash Ghaf image</a></h5>
+<ul>
+<li>Prequisite (cross-compilation support): <code>binfmt</code> and Nix is required.
+<ul>
+<li>Enable <code>binfmt</code> in your <code>configuration.nix</code> with:
+<pre><code>boot.binfmt.emulatedSystems = [
+  &quot;aarch64-linux&quot;
+];
+</code></pre>
+</li>
+<li>For more details, see <a href="https://tiiuae.github.io/ghaf/build_config/cross_compilation.html">Cross Compilation</a>.</li>
+</ul>
+</li>
+<li>Prepare the USB boot media with the target HW image you built:
+<ul>
+<li><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M</code></li>
+</ul>
+</li>
+</ul>
+<h5 id="booting-the-board"><a class="header" href="#booting-the-board">Booting the board</a></h5>
+<ul>
+<li>Insert SDcard and USB boot media into the board and switch the power on.</li>
 </ul>
 <h2 id="development-tips"><a class="header" href="#development-tips">Development Tips</a></h2>
 <p>If you set up development SSH keys into <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4">SSH module</a>, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the development board over the network using SSH:</p>

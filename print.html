@@ -149,8 +149,8 @@
 <p>Embedded virtualization builds on cloud technologies in the development of end-to-end security. With hardware support for virtualization, we provide a hardened system of a small <em><a href="./appendices/glossary.html#tcb">trusted computing base (TCB)</a></em> — thin host — that enables isolation of use cases and their resources. Use cases are protected in guest virtual machines (VMs). Embedded targets are small devices (personal or headless) instead of high-performance cloud servers. Our scope is illustrated in the following diagram. For more information, see <a href="architecture/stack.html">stack</a>.</p>
 <p><img src="img/stack.drawio.png" alt="Scope!" title="Embedded Virtualization Scope" /></p>
 <h2 id="reference-implementation"><a class="header" href="#reference-implementation">Reference Implementation</a></h2>
-<p>Ghaf is developing a reference implementation for NVIDIA Jetson devices. Devices of x86 architecture are also supported. See <a href="build_config/reference_implementations.html">build instructions</a> for more info.
-Legacy reference implementation for NXP i.MX8 <a href="https://github.com/tiiuae/spectrum-config-imx8">is available here</a>.</p>
+<p>Ghaf is developing a reference implementation for NVIDIA Jetson devices.
+Ghaf also supports NXP's i.MX8QuadMax-MEK development board along with generic-x86 devices. See <a href="build_config/reference_implementations.html">build instructions</a> for more info.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -308,7 +308,6 @@ profiles can be tested in isolation.</p>
 <h2 id="hardware-requirements-for-virtualization"><a class="header" href="#hardware-requirements-for-virtualization">Hardware Requirements for Virtualization</a></h2>
 <p>Protected computation resources include CPU, memory, storage, and other IO devices. Allocation of these resources is managed with the hypervisor.</p>
 <p>In our reference implementation, we use KVM (Kernel Virtual Machine) from Linux to virtualize hardware access. From hardware, this requires MMU (memory management unit) for CPU physical to virtual address mapping and IOMMU for direct memory access (DMA) capable device virtual addresses to physical addresses of the main memory. Many 64-bit CPUs support virtualization via hypervisor extensions already. Our reference implementation supports x86-64 and Aarch64, and we follow RISC-V hypervisor extensions development.</p>
-<p>Our current reference hardware is <a href="https://github.com/tiiuae/spectrum-config-imx8">NXP iMX8 QM development board</a>. In addition, x86-64 hardware is supported via Spectrum OS upstream.</p>
 <h2 id="virtual-machine-manager-vmm"><a class="header" href="#virtual-machine-manager-vmm">Virtual Machine Manager (VMM)</a></h2>
 <p>On top of OS kernel hypervisor support with KVM. We allocate virtual resources for use cases with user-space virtual machine manager (VMM) using <a href="https://github.com/rust-vmm">rust-vmm</a> based projects such as <a href="https://github.com/cloud-hypervisor/cloud-hypervisor">cloud-hypervisor</a> and <a href="https://github.com/google/crosvm">crosvm</a>. <a href="https://www.qemu.org/">QEMU</a> is enabled for certain development use cases.</p>
 <p>In addition, we have also experimental, Aarch64 demonstrated support for a KVM variant — <a href="https://github.com/jkrh/kvms">KVMS</a> — which adds security features to standard KVM.</p>
@@ -357,6 +356,7 @@ profiles can be tested in isolation.</p>
 <div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th></tr></thead><tbody>
 <tr><td>Generic Intel</td><td>x86</td><td>QEMU</td></tr>
 <tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>hardware</td></tr>
+<tr><td>NXP i.MX8QM-MEK</td><td>aarch64</td><td>hardware</td></tr>
 </tbody></table>
 </div>
 <p>Scope of target support is updated with development progress.</p>
@@ -364,9 +364,10 @@ profiles can be tested in isolation.</p>
 <p>Ghaf uses a Nix flake approach to build the framework targets.</p>
 <p>See <a href="https://nixos.org/download.html">Nix installation instructions</a> for further details.
 Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable flakes</a>.</p>
-<div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>architecture</th><th>scope</th><th>build command</th></tr></thead><tbody>
-<tr><td>Generic Intel</td><td>x86</td><td>VM</td><td><code>nix build .#packages.x86_64-linux.vm</code></td></tr>
-<tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.nvidia-jetson-orin</code></td></tr>
+<div class="table-wrapper"><table><thead><tr><th>Hardware</th><th>Architecture</th><th>Scope</th><th>Command to build the release variant</th></tr></thead><tbody>
+<tr><td>Generic Intel</td><td>x86</td><td>VM</td><td><code>nix build .#packages.x86_64-linux.vm-release</code></td></tr>
+<tr><td>NVIDIA Orin AGX</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.nvidia-jetson-orin-release</code></td></tr>
+<tr><td>NXP i.MX8QM-MEK</td><td>aarch64</td><td>HW</td><td><code>nix build .#packages.aarch64-linux.imx8qm-mek-release</code></td></tr>
 </tbody></table>
 </div>
 <p>To see all Ghaf supported outputs, type <code>nix flake show</code>.</p>
@@ -380,7 +381,7 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 <h3 id="nvidia-jetson-orin-agx"><a class="header" href="#nvidia-jetson-orin-agx">NVIDIA Jetson Orin AGX</a></h3>
 <ul>
 <li>Prequisite (firmware version): <a href="https://github.com/mikatammi/jetpack-nixos/tree/flash_orin_hack#hack-for-flashing-nvidia-jetson-orin">Update the NVIDIA Jetson Orin AGX UEFI firmware to version r35.1 to boot from USB</a></li>
-<li>Prequisite (cross-compilation support): <code>binfmt</code> and NixOS is required.
+<li>Prequisite (cross-compilation support): <code>binfmt</code> and Nix is required.
 <ul>
 <li>Enable <code>binfmt</code> in your <code>configuration.nix</code> with:
 <pre><code>boot.binfmt.emulatedSystems = [
@@ -397,6 +398,36 @@ Make also sure to <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">enable 
 </ul>
 </li>
 <li>Boot the hardware from USB media</li>
+</ul>
+<h3 id="nxp-imx8qm-mek"><a class="header" href="#nxp-imx8qm-mek">NXP i.MX8QM-MEK</a></h3>
+<p>In case of i.MX8 Ghaf deployment contains two steps - creating bootable SDcard with first-stage bootloader (Tow-Boot) and creating USB media with Ghaf image.</p>
+<h5 id="build-and-flash-tow-boot-bootloader"><a class="header" href="#build-and-flash-tow-boot-bootloader">Build and flash <a href="https://github.com/tiiuae/Tow-Boot"><strong>Tow-Boot</strong></a> bootloader</a></h5>
+<pre><code>$ git clone https://github.com/tiiuae/Tow-Boot.git &amp;&amp; cd Tow-Boot
+$ nix-build -A imx8qm-mek
+$ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
+</code></pre>
+<h5 id="build-and-flash-ghaf-image"><a class="header" href="#build-and-flash-ghaf-image">Build and flash Ghaf image</a></h5>
+<ul>
+<li>Prequisite (cross-compilation support): <code>binfmt</code> and Nix is required.
+<ul>
+<li>Enable <code>binfmt</code> in your <code>configuration.nix</code> with:
+<pre><code>boot.binfmt.emulatedSystems = [
+  &quot;aarch64-linux&quot;
+];
+</code></pre>
+</li>
+<li>For more details, see <a href="https://tiiuae.github.io/ghaf/build_config/cross_compilation.html">Cross Compilation</a>.</li>
+</ul>
+</li>
+<li>Prepare the USB boot media with the target HW image you built:
+<ul>
+<li><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M</code></li>
+</ul>
+</li>
+</ul>
+<h5 id="booting-the-board"><a class="header" href="#booting-the-board">Booting the board</a></h5>
+<ul>
+<li>Insert SDcard and USB boot media into the board and switch the power on.</li>
 </ul>
 <h2 id="development-tips"><a class="header" href="#development-tips">Development Tips</a></h2>
 <p>If you set up development SSH keys into <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4">SSH module</a>, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the development board over the network using SSH:</p>
