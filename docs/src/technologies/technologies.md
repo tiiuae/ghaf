@@ -17,8 +17,6 @@ Protected computation resources include CPU, memory, storage, and other IO devic
 
 In our reference implementation, we use KVM (Kernel Virtual Machine) from Linux to virtualize hardware access. From hardware, this requires MMU (memory management unit) for CPU physical to virtual address mapping and IOMMU for direct memory access (DMA) capable device virtual addresses to physical addresses of the main memory. Many 64-bit CPUs support virtualization via hypervisor extensions already. Our reference implementation supports x86-64 and Aarch64, and we follow RISC-V hypervisor extensions development.
 
-Our current reference hardware is [NXP iMX8 QM development board](https://github.com/tiiuae/spectrum-config-imx8). In addition, x86-64 hardware is supported via Spectrum OS upstream.
-
 ## Virtual Machine Manager (VMM)
 
 On top of OS kernel hypervisor support with KVM. We allocate virtual resources for use cases with user-space virtual machine manager (VMM) using [rust-vmm](https://github.com/rust-vmm) based projects such as [cloud-hypervisor](https://github.com/cloud-hypervisor/cloud-hypervisor) and [crosvm](https://github.com/google/crosvm). [QEMU](https://www.qemu.org/) is enabled for certain development use cases.

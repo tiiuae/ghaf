@@ -21,6 +21,10 @@
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    nixos-hardware = {
+      url = "github:nixos/nixos-hardware";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
     microvm = {
       # TODO: change back to url = "github:astro/microvm.nix";
       url = "github:mikatammi/microvm.nix/wip_hacks_2";
@@ -38,6 +42,7 @@
     nixpkgs,
     flake-utils,
     nixos-generators,
+    nixos-hardware,
     microvm,
     jetpack-nixos,
   }: let
@@ -60,7 +65,7 @@
       }))
 
       # Target configurations
-      (import ./targets {inherit self nixpkgs nixos-generators microvm jetpack-nixos;})
+      (import ./targets {inherit self nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
 
       # Hydra jobs
       (import ./hydrajobs.nix {inherit self;})
