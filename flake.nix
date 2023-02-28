@@ -21,10 +21,7 @@
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixos-hardware = {
-      url = "github:nixos/nixos-hardware";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+    nixos-hardware.url = "github:nixos/nixos-hardware";
     microvm = {
       # TODO: change back to url = "github:astro/microvm.nix";
       url = "github:mikatammi/microvm.nix/wip_hacks_2";
