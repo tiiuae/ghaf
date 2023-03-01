@@ -156,22 +156,42 @@ Ghaf also supports NXP's i.MX8QuadMax-MEK development board along with generic-x
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="features"><a class="header" href="#features">Features</a></h1>
-<p>Ghaf platform supports following features:</p>
+<p>Ghaf platform supports features presented in the following table.</p>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference device</th><th>Comments/Details</th></tr></thead><tbody>
-<tr><td>Device image</td><td>Done</td><td>NVIDIA Orin AGX</td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a></td></tr>
-<tr><td>Generic image</td><td>In progress</td><td><code>x86</code></td><td>NUC target - based on generic <a href="https://nixos.org/">NixOS</a></td></tr>
-<tr><td>Device flashing</td><td>Done</td><td>NVIDIA Orin AGX</td><td>Full device update, <code>x86</code> via removable media</td></tr>
-<tr><td>Native build</td><td>Done</td><td><code>aarch64, x86</code></td><td></td></tr>
-<tr><td>Emulated build</td><td>Partial</td><td>NVIDIA Orin AGX</td><td><code>binfmt</code> - may freeze the build machine</td></tr>
-<tr><td>Cross-compilation</td><td>In progress</td><td>NVIDIA Orin AGX</td><td>Depends on NixOS <code>nixpkgs 22.11/23.05</code></td></tr>
-<tr><td><code>minimal host</code></td><td>In progress</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html">All variants</a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">ADR</a> and <a href="https://github.com/tiiuae/ghaf/issues/45">issue tracker</a></td></tr>
-<tr><td><code>netvm</code></td><td>In progress</td><td>NVIDIA Orin AGX</td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">ADR</a> - passthrough not working</td></tr>
-<tr><td>USB passthrough</td><td>In progress</td><td>NVIDIA Orin AGX</td><td>Passthrough with crosvm not verified</td></tr>
-<tr><td>PCI passthrough</td><td>In progress</td><td>NVIDIA Orin AGX</td><td>WIFI passthrough verified only in development</td></tr>
-<tr><td>Graphics/Desktop</td><td>In progress</td><td>NVIDIA Orin AGX and <code>x86</code></td><td>Host only graphics for now</td></tr>
-<tr><td>Virtualization control</td><td>In progress</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html">All variants</a></td><td>See <a href="https://github.com/tiiuae/vmd/blob/main/doc/design.md">vmd design</a></td></tr>
+<tr><td>Device image</td><td><code>Done</code></td><td><code>Orin</code></td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a></td></tr>
+<tr><td>CI builds</td><td><code>In progress</code></td><td><code>Orin</code></td><td><a href="https://vedenemo.dev/">Only <code>main</code>-branch, not for all PRs</a></td></tr>
+<tr><td>Generic image</td><td><code>In progress</code></td><td><code>x86</code></td><td>NUC target - based on generic <a href="https://nixos.org/">NixOS</a></td></tr>
+<tr><td>Device flashing</td><td><code>Done</code></td><td><code>Orin</code></td><td>Full device update, <code>x86</code> via removable media</td></tr>
+<tr><td>Native build</td><td><code>Done</code></td><td><code>aarch64, x86</code></td><td></td></tr>
+<tr><td>Emulated build</td><td><code>Regression</code></td><td><code>Orin</code></td><td><code>binfmt</code> - may freeze the build machine</td></tr>
+<tr><td>Cross-compilation</td><td><code>In progress</code></td><td><code>Orin</code></td><td>Depends on NixOS <code>nixpkgs 22.11/23.05</code></td></tr>
+<tr><td>Debug: SSH</td><td><code>Done</code></td><td><code>Orin</code>, <code>x86</code></td><td>Host access in development-mode, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication</a></td></tr>
+<tr><td>Debug: Serial</td><td><code>Done</code></td><td><code>Orin</code></td><td>Host access in development-mode through debug serial</td></tr>
+<tr><td><code>minimal host</code></td><td><code>In progress</code></td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>All variants</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">ADR</a> and <a href="https://github.com/tiiuae/ghaf/issues/45">issue tracker</a></td></tr>
+<tr><td><code>netvm</code></td><td><code>In progress</code></td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">ADR</a> - passthrough not working</td></tr>
+<tr><td>USB passthrough</td><td><code>In progress</code></td><td><code>Orin</code></td><td>Passthrough with crosvm not verified</td></tr>
+<tr><td>PCI passthrough</td><td><code>In progress</code></td><td><code>Orin</code></td><td>WIFI passthrough verified only in development</td></tr>
+<tr><td>UART passthrough</td><td><code>In progress</code></td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/build_config/passthrough/nvidia_agx_pt_uart.html">Nvidia AGX Orin - UART Passthrough</a> - not integrated to <code>netvm</code></td></tr>
+<tr><td>Inter VM comms</td><td><code>In progress</code></td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>All variants</code></a></td><td></td></tr>
+<tr><td>Shared memory</td><td><code>In progress</code></td><td><code>Orin</code></td><td></td></tr>
+<tr><td>Graphics/Desktop</td><td><code>In progress</code></td><td><code>Orin</code>, <code>x86</code></td><td>Host only graphics for now</td></tr>
+<tr><td>Virtualization control</td><td><code>In progress</code></td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>All variants</code></a></td><td>See <a href="https://github.com/tiiuae/vmd/blob/main/doc/design.md">vmd design</a></td></tr>
 </tbody></table>
-</div><div style="break-before: page; page-break-before: always;"></div><!--
+</div>
+<h2 id="status"><a class="header" href="#status">Status</a></h2>
+<ul>
+<li><code>Done</code> - integrated and tested in the <code>main</code>-branch</li>
+<li><code>In progress</code> - prototyped or work in progress in development branch</li>
+<li><code>Regression</code> - feature has regression or bugs</li>
+</ul>
+<h2 id="reference-devices"><a class="header" href="#reference-devices">Reference devices</a></h2>
+<ul>
+<li><code>Orin</code> - NVIDIA Jetson AGX Orin - the main reference device</li>
+<li><code>x86</code> - generic x86 64 - tested on Intel NUC (Next Unit of Computing) or laptop</li>
+<li><code>aarc64</code> - generic aarch64 - tested on ARM server, laptop (e.g. Apple Mx) or NVIDIA Jetson AGX Orin</li>
+<li><code>All variants</code> - see <a href="https://tiiuae.github.io/ghaf/architecture/variants.html">details</a></li>
+</ul>
+<div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
@@ -234,7 +254,7 @@ The stack layers and top-level components are illustrated in the following stack
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="minimal-host"><a class="header" href="#minimal-host">Minimal Host</a></h1>
-<h2 id="status"><a class="header" href="#status">Status</a></h2>
+<h2 id="status-1"><a class="header" href="#status-1">Status</a></h2>
 <p>Proposed</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
 <p>Ghaf uses the default NixOS configuration as a baseline to build the target image.</p>
@@ -265,7 +285,7 @@ profiles can be tested in isolation.</p>
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="netvm---networking-virtual-machine"><a class="header" href="#netvm---networking-virtual-machine">netvm - Networking Virtual Machine</a></h1>
-<h2 id="status-1"><a class="header" href="#status-1">Status</a></h2>
+<h2 id="status-2"><a class="header" href="#status-2">Status</a></h2>
 <p>Proposed, partially implemented. Bridged for development and testing.</p>
 <p>netvm reference declaration is available at <a href="https://github.com/tiiuae/ghaf/blob/main/configurations/netvm/default.nix">netvm/default.nix</a></p>
 <h2 id="context-1"><a class="header" href="#context-1">Context</a></h2>
