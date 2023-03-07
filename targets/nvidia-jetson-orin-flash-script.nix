@@ -99,7 +99,7 @@
     ...
   }: let
     partitionTemplate = nixpkgs.legacyPackages.x86_64-linux.runCommand "flash.xml" {} ''
-      head -n 575 ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >$out
+      head -n 588 ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >$out
 
       # Replace the section for sdmmc-device with our own section
       cat ${partitionsEmmc} >>$out
