@@ -47,12 +47,7 @@ nixpkgs.lib.nixosSystem {
 
       networking.wireless = {
         enable = true;
-
-        # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
       };
-
-
-      #boot.kernelModules = ["drm" "virtio_gpu"];
     })
   ];
 }
