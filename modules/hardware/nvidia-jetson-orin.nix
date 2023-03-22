@@ -21,14 +21,24 @@
       name = "fixed-regulators";
       patch = ./nvidia-enable-pcie-power.patch;
     }
+    {
+      name = "passthrough-patch";
+      patch = ./pci-passthrough-test.patch;
+    }
   ];
 
   hardware.deviceTree = {
     enable = true;
-    name = "tegra234-p3701-0000-p3737-0000.dtb";
+    name = "tegra234-p3701-host-passthrough.dtb";
   };
 
   imports = [
     ../boot/systemd-boot-dtb.nix
+  ];
+
+  # Passthrough Jetson Orin WiFi card
+  boot.kernelParams = [
+    "vfio-pci.ids=10ec:c82f"
+    "vfio_iommu_type1.allow_unsafe_interrupts=1"
   ];
 }

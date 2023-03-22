@@ -6,6 +6,12 @@
     firewall.allowedUDPPorts = [67]; # DHCP
     useNetworkd = true;
   };
+
+  networking.nat = {
+    enable = true;
+    internalInterfaces = ["virbr0"];
+  };
+
   systemd.network = {
     netdevs."virbr0".netdevConfig = {
       Kind = "bridge";

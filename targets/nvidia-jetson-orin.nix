@@ -34,9 +34,31 @@
   in {
     inherit hostConfiguration netvm;
     name = "${name}-${variant}";
-    netvmConfiguration = import ../microvmConfigurations/netvm {
-      inherit nixpkgs microvm system;
-    };
+    netvmConfiguration =
+      (import ../microvmConfigurations/netvm {
+        inherit nixpkgs microvm system;
+      })
+      .extendModules {
+        modules = [
+          {
+            microvm.devices = [
+              {
+                bus = "pci";
+                path = "0001:01:00.0";
+              }
+            ];
+
+            # For WLAN firmwares
+            hardware.enableRedistributableFirmware = true;
+
+            networking.wireless = {
+              enable = true;
+
+              # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
+            };
+          }
+        ];
+      };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   nvidia-jetson-orin-debug = nvidia-jetson-orin "debug" [];
