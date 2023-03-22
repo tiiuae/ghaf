@@ -16,4 +16,7 @@
 
   networking.hostName = "ghaf-host";
   system.stateVersion = "22.11";
+
+  # PCI passthrough needs larger locked-in-memory space than default
+  systemd.services."microvm@".serviceConfig.LimitMEMLOCK = 999999999;
 }
