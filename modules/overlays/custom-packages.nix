@@ -43,6 +43,13 @@
           mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
           depsBuildBuild = [pkgs.pkg-config];
         });
+      # TODO: Remove this override if/when the fix is upstreamed.
+      # Removing wayland dependency from runtime dependencies and making it
+      # native build time dependency
+      freerdp = prev.freerdp.overrideAttrs (prevAttrs: {
+        buildInputs = lib.remove pkgs.wayland prevAttrs.buildInputs;
+        depsBuildBuild = [pkgs.wayland];
+      });
     })
   ];
 }
