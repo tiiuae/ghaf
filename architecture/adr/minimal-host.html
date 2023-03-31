@@ -145,29 +145,80 @@
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>Proposed</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
-<p>Ghaf uses the default NixOS configuration as a baseline to build the target image.</p>
+<p>Ghaf uses the default NixOS configuration as a baseline to build the target image. </p>
 <p>The default NixOS configuration is targeted for more general use with the inclusion of
 multiple packages that are not supporting the Ghaf design target of a minimal trusted
-computing base (TCB) to protect the host.</p>
+computing base (TCB) to protect the host. Depending on the flexibility of the NixOS
+configuration, Ghaf minimal host may require new development to support the requirements.</p>
 <p>This structure in the Ghaf host configuration imports the NixOS minimal profile
 which suits the minimal TCB better. Even better, the modular declarative profile enables
 the further optimization of the minimal TCB while supporting other profiles that suit
 evaluation of other objectives such as feasibility studies of additional functionality,
 security and performance.</p>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<p>Following table describes the development requirements of minimal host. All requirements
+originate from TII SSRC unless otherwise noted. Scope further defines:</p>
+<ul>
+<li>the target configuration (<code>R</code> for release, <code>D</code> for debug)</li>
+<li>the <a href="https://tiiuae.github.io/ghaf/architecture/variants.html">variant</a> (<code>V</code> for
+virtualization supporting variant, <code>A</code> for all - including <code>No Virtualization</code>)</li>
+</ul>
+<p>Compliance states the progress of requirement compliance as follows:</p>
+<ul>
+<li><code>D</code> for Designed - design requirement from TII SSRC for analysis and evaluation</li>
+<li><code>I</code> for Implemented - design requirement met with possible, limitations documented
+under <a href="#consequences">consequences</a>.</li>
+<li><code>P</code> for Proposed - raised for discussion but not yet designed</li>
+<li><code>M</code> for Met. The requirement is reviewed and approved at <a href="https://en.wikipedia.org/wiki/Technology_readiness_level">technology readiness level 4</a>.</li>
+</ul>
+<div class="table-wrapper"><table><thead><tr><th>ID</th><th>Requirement</th><th>Description</th><th>Scope</th><th>Compliance</th></tr></thead><tbody>
+<tr><td><a href="#MX01">MH01</a></td><td>Defined in <code>nix</code></td><td>Host declaration in <code>nix</code></td><td><code>R&amp;D</code>,<code>A</code></td><td><code>I</code></td></tr>
+<tr><td><a href="#MH02">MH02</a></td><td>Reduced profile</td><td>Remove unnecessary</td><td><code>R</code>, <code>V</code></td><td><code>I</code></td></tr>
+<tr><td><a href="#MH03">MH03</a></td><td>No networking</td><td>Host has no networking</td><td><code>R</code>, <code>V</code></td><td><code>D</code></td></tr>
+<tr><td><a href="#MH04">MH04</a></td><td>No graphics</td><td>Host has no GUI stack</td><td><code>R</code>, <code>V</code></td><td><code>D</code></td></tr>
+<tr><td><a href="#MH05">MH05</a></td><td>No getty</td><td>Host has no terminal</td><td><code>R</code>, <code>V</code></td><td><code>P</code></td></tr>
+<tr><td><a href="#MH06">MH06</a></td><td>No nix tooling</td><td>Only <code>/nix/store</code>, no nix</td><td><code>R</code>, <code>V</code></td><td><code>P</code></td></tr>
+<tr><td><a href="#MH07">MH07</a></td><td>Minimal defconfig</td><td>Host kernel is minimized</td><td><code>R</code>, <code>V</code></td><td><code>D</code></td></tr>
+<tr><td><a href="#MH08">MH08</a></td><td>Update via adminvm</td><td>A/B update outside host</td><td><code>R</code>, <code>V</code></td><td><code>P</code></td></tr>
+<tr><td><a href="#MH09">MH09</a></td><td>Read-only filesystem</td><td>Mounted RO, integrity checked</td><td><code>R</code>, <code>V</code></td><td><code>P </code></td></tr>
+</tbody></table>
+</div>
+<p>This list of requirements is not yet comprehensive and may be changed based on findings of further analysis as stated under the following section.</p>
 <h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
-<p>This change adopts a minimal profile from NixOS. It reduces both image and root partition
-size by eliminating the host OS content as defined in the NixOS minimal profile.</p>
-<p>The proposed profile from NixOS can be <a href="https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/minimal.nix">reviewed here</a>.</p>
-<h2 id="consequences"><a class="header" href="#consequences">Consequences</a></h2>
-<p>Additional host dependencies must be declared explicitly to get included on the host.</p>
-<p>Some functionality assumed with the default host may break or may not be available as
-the earlier baseline functionality with graphics and other functionality has not yet
-been implemented. In practice, the host will not have graphical libraries by default, and
-such functionality would need to be either imported using another profile or passed
-through to a guest VM that supports modular design by separating the graphics architecture
-from the host. The same applies to other guest VMs that implement other system functionality.</p>
-<p>Further development of the host security, such as hardening, becomes easier as such
-profiles can be tested in isolation.</p>
+<p>This ADR adopts a custom developed minimal profile using nixpkgs. It reduces both image and root partition
+size by eliminating the host OS content per requirements and implements minimal trusted computing base.</p>
+<p>The current implementation of NixOS overridden, minimal host profile is <a href="https://github.com/tiiuae/ghaf/blob/main/modules/host/minimal.nix">available here</a>.</p>
+<p>With the progress of implementing the requirements, the minimal host customization will be illustrated.</p>
+<h2 id="consequences"><a class="header" href="#consequences"><a name="consequences"></a> Consequences</a></h2>
+<h3 id="defined-in-nix"><a class="header" href="#defined-in-nix"><a name="MH01"></a> Defined in <code>nix</code></a></h3>
+<p>Ghaf minimal host module <a href="https://github.com/tiiuae/ghaf/tree/main/modules/host">is implemented in <code>nix</code></a>.
+Currently, host and VM declarations are implemented using microvm.nix but this is not strict requirement for ghaf release mode declarations if the limitations or dependencies of microvm.nix do not comply with other requirements. This may require separate release mode custom nix declarations to support flexibility with microvm.nix in debug mode.</p>
+<h3 id="reduced-profile"><a class="header" href="#reduced-profile"><a name="MH02"></a> Reduced profile</a></h3>
+<p>Initial Ghaf minimal profile host size reduction <a href="https://github.com/tiiuae/ghaf/pull/95">is implemented</a> with metrics on host total size and break down of size of the largest dependencies. Based on the metrics, further analysis is needed on several key modules including, but not limited to, kernel, systemd and nixos.</p>
+<h3 id="no-networking"><a class="header" href="#no-networking"><a name="MH03"></a> No networking</a></h3>
+<p>Currently ghaf host profile for both release and debug target has networking. Requirement of no networking on release target requires declarative host configuration where:</p>
+<ul>
+<li>The release target host kernel is built without networking support. Networking must be enabled for debug target.</li>
+<li>The release target host user space has no networking tools nor configurations. Access to tools on host must be enabled for debug target.</li>
+</ul>
+<p>To support development of configuration changes between release and debug target, the debug target must support networking. This also supports <code>No Virtualization</code>-variant development in which networking must be enabled.</p>
+<p>The exception to no networking requirement is the virtual machine manager control socket from host to guest(s). The amount of required kernel configuration dependencies and impact to different VMMs must be further analyzed.</p>
+<p>No networking has impact on how <a href="https://github.com/tiiuae/vmd/blob/main/doc/design.md"><code>vmd</code></a> adminvm to host communication is implemented. With no networking, shared memory is proposed.</p>
+<p>No networking may have impact on how the guest-to-guest inter virtual machine communication configuration must implemented with VMMs. This must be further analyzed.</p>
+<h3 id="no-graphics"><a class="header" href="#no-graphics"><a name="MH04"></a> No graphics</a></h3>
+<p>Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUIVM.
+All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUIVM.</p>
+<h3 id="no-getty"><a class="header" href="#no-getty"><a name="MH05"></a> No getty</a></h3>
+<p>Ghaf host in release mode must have no terminals (TTYs) to interact with. In the current state of development, this cannot be enabled yet and has minimum requirement of system logging outside the host. Proposed design to approach this is requirement is to enable getty declaratively only in a debug serial terminal under <a href="https://github.com/tiiuae/ghaf/tree/main/modules/development"><code>modules/development</code></a></p>
+<h3 id="no-nix-tooling"><a class="header" href="#no-nix-tooling"><a name="MH06"></a> No <code>nix</code> tooling</a></h3>
+<p>Ghaf host in release mode has no nix tooling to work with the <code>/nix/store</code>. The <code>/nix/store</code> is only used to build the host system. In release mode, no modifications to nix store are possible. Changes are handled with <a href="#MH08">update</a>.</p>
+<p>Ghaf host in debug mode must support nix tooling via read-writable host filesystem. This must be taken into account in build-time nix module declarations.</p>
+<h3 id="minimal-defconfig"><a class="header" href="#minimal-defconfig"><a name="MH07"></a> Minimal defconfig</a></h3>
+<p>Ghaf host release mode kernel configuration must be minimal and hardened in the limits of HW vendor BSP. Kernel configuration per device is to be further analyzed iteratively. Limitations are to be documented per target device kernel configurations and HW support for virtualization.</p>
+<h3 id="update-via-adminvm"><a class="header" href="#update-via-adminvm"><a name="MH08"></a> Update via adminvm</a></h3>
+<p>Ghaf host release mode filesystem updates are to be implemented using A/B update mechanism from adminvm. This will be designed and covered in a separate ADR.</p>
+<h3 id="read-only-filesystem"><a class="header" href="#read-only-filesystem"><a name="MH09"></a> Read-only filesystem</a></h3>
+<p>Ghaf minimal host in release mode must be implemented with read-only, integrity checked (<code>dm-verity</code>) filesystem. </p>
 
                     </main>
 
