@@ -6,6 +6,9 @@
 #
 #   git config --global blame.ignoreRevsFile .git-blame-ignore-revs
 
+# Fix formatting
+5cd87373b733683fa0181f183f7f6de9fdfefe09
+
 # Reformat .nix-files using alejandra
 24c820cace498a4e2e38979539eeb155471f19dd
 
