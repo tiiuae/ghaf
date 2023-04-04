@@ -1,7 +1,6 @@
-{
-  pkgs,
-  modulesPath,
-  ...
+{ pkgs
+, modulesPath
+, ...
 }: {
   imports = [
     (modulesPath + "/profiles/minimal.nix")
@@ -22,10 +21,6 @@
     withTpm2Tss = false;
     withUserDb = false;
   };
-
-  # Use the systemd-boot EFI boot loader.
-  boot.loader.systemd-boot.enable = true;
-  boot.loader.efi.canTouchEfiVariables = true;
 
   boot.enableContainers = false;
 }
