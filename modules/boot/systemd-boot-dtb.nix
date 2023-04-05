@@ -1,0 +1,34 @@
+# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Module which adds option ghaf.boot.loader.systemd-boot-dtb.enable
+#
+# By setting this option to true, device tree file gets copied to
+# /boot-partition, and gets added to systemd-boot's entry.
+#
+{
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.ghaf.boot.loader.systemd-boot-dtb;
+in
+  with lib; {
+    options.ghaf.boot.loader.systemd-boot-dtb = {
+      enable = mkEnableOption "systemd-boot-dtb";
+    };
+
+    config = mkIf cfg.enable {
+      boot.loader.systemd-boot = {
+        extraFiles."dtbs/${config.hardware.deviceTree.name}" = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+        extraInstallCommands = ''
+          # Find out the latest generation from loader.conf
+          default_cfg=$(cat /boot/loader/loader.conf | grep default | awk '{print $2}')
+          FILEHASH=$(sha256sum "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" | cut -d ' ' -f 1)
+          FILENAME="/dtbs/$FILEHASH.dtb"
+          cp -fv "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" "/boot$FILENAME"
+          echo "devicetree $FILENAME" >> /boot/loader/entries/$default_cfg
+        '';
+      };
+    };
+  }
