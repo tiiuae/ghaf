@@ -95,6 +95,7 @@
   # Flash Options module
   flashOptions = {
     pkgs,
+    lib,
     config,
     ...
   }: let
@@ -109,7 +110,7 @@
   in {
     hardware.nvidia-jetpack.flashScriptOverrides = {
       partitionTemplate = partitionTemplate;
-      flashArgs = "-r ${config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard} mmcblk0p1";
+      flashArgs = lib.mkForce ["-r" "${config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard}" "mmcblk0p1"];
     };
   };
   image = hostConfiguration.extendModules {
