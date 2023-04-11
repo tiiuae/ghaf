@@ -11,7 +11,11 @@ in {
     users."${user}" = {
       isNormalUser = true;
       password = password;
-      extraGroups = ["wheel"];
+      extraGroups = ["wheel" "video"];
+    };
+    groups."${user}" = {
+      name = "${user}";
+      members = ["${user}"];
     };
   };
 }
