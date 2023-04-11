@@ -22,11 +22,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1678428133,
-        "narHash": "sha256-aSPhsfqx2QtN6iRtqesHkfBltToESmOCXL0zSaxFX6M=",
+        "lastModified": 1681145470,
+        "narHash": "sha256-itLorj8DoWqXGZ4xiMF4xDngSauh8nLeuvHRKikUinQ=",
         "owner": "anduril",
         "repo": "jetpack-nixos",
-        "rev": "311e422eb2f42fb853d3d82e2f91d09dbe5c8164",
+        "rev": "1be14a537f36d46774fd09e98fbf52b7747cc525",
         "type": "github"
       },
       "original": {
@@ -45,16 +45,15 @@
         ]
       },
       "locked": {
-        "lastModified": 1676042091,
-        "narHash": "sha256-XZxbh32Tf2iKbGbOzs40VKgFTFRCIyw08PihPcYJPRE=",
-        "owner": "mikatammi",
+        "lastModified": 1681063606,
+        "narHash": "sha256-aqjkztq9OjyTXuaYD1L5AC/az3/rv8dO1y0o7tkqX6E=",
+        "owner": "astro",
         "repo": "microvm.nix",
-        "rev": "c527054302a9a0cae206abfe1c8b282fba1d464b",
+        "rev": "b496028321ba11ca3e6eef286ca3915577f4b793",
         "type": "github"
       },
       "original": {
-        "owner": "mikatammi",
-        "ref": "wip_hacks_2",
+        "owner": "astro",
         "repo": "microvm.nix",
         "type": "github"
       }
@@ -112,11 +111,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1678426640,
-        "narHash": "sha256-3Q4KN0XAXQT7YE3A8n3LzLtRNUCo0U++W3gl+5NhKHs=",
+        "lastModified": 1681091990,
+        "narHash": "sha256-ifIzhksUBZKp5WgCuoVhDY32qaEplXp7khzrB6zkaFc=",
         "owner": "nixos",
         "repo": "nixpkgs",
-        "rev": "824f886682fc893e6dbf27114e5001ebf2770ea1",
+        "rev": "ea96b4af6148114421fda90df33cf236ff5ecf1d",
         "type": "github"
       },
       "original": {
