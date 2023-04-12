@@ -1,3 +1,13 @@
+<!-- 
+# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+-->
+
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # TII SSRC Secure Technologies: Ghaf Framework
 
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](https://www.apache.org/licenses/LICENSE-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/legalcode) [![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-blueviolet)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md)
@@ -39,13 +49,3 @@ The Ghaf team uses several licenses to distribute software and documentation:
 | Creative Commons Attribution Share Alike 4.0 International | [CC-BY-SA-4.0](https://spdx.org/licenses/CC-BY-SA-4.0.html) | Ghaf documentation. |
 
 See [LICENSE.Apache-2.0](./LICENSES/LICENSE.Apache-2.0) and [LICENSE.CC-BY-SA-4.0](./LICENSES/LICENSE.CC-BY-SA-4.0) for the full license text.
-
-<!-- 
-# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
-# SPDX-License-Identifier: Apache-2.0
--->
-
-<!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
-    SPDX-License-Identifier: CC-BY-SA-4.0
--->

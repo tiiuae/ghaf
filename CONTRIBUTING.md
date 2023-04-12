@@ -34,6 +34,10 @@ We like commits as they keep the project going. If you have ideas you want to ex
 
 Pull requests should be created from personal forks. We follow a fork and rebase workflow.
 
+> The concept of a fork originated with GitHub, it is not a Git concept.
+>
+> If you are new to forks, see [About forks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks) and [Contributing Guide when you fork a repository](https://medium.com/@rishabhmittal200/contributing-guide-when-you-fork-a-repository-3b97657b01fb).
+
 Make sure the [license](https://github.com/tiiuae/ghaf#licensing) information is added on top of all your source files as in the example:
 
     # Copyright [year project started]-[current year], [project founder] and the [project name] contributors
@@ -46,7 +50,7 @@ Make sure the [license](https://github.com/tiiuae/ghaf#licensing) information is
 
 Generally, any contributions should pass the tests.
 
-Update Ghaf documentation with the code. Good documentation helps to bring new developers in and helps established developers work more effectively. 
+Documentation is the story of your code. Update Ghaf documentation with the code. Good documentation helps to bring new developers in and helps established developers work more effectively.
 
 
 ### Commit Message Guidelines
@@ -108,9 +112,9 @@ Add [license](https://github.com/tiiuae/ghaf#licensing) information on top of al
 
 Please see the following instructions:
 
-- [Adding New Files](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#adding-new-files) for information on how to manage files/images.
-- [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README.md#naming) for information on file/image naming rules.
-- [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
+- [Adding New Files](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#adding-new-files) for information on how to manage files/images.
+- [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#naming) for information on file/image naming rules.
+- [Managing Content](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#managing-content) for information on how to organize information in chapters, sections, and subsections.
 
 
 ### Submitting Changes
