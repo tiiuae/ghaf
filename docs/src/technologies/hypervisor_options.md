@@ -1,6 +1,10 @@
-# Microvm hypervisor options
+# Ghaf specific Microvm hypervisor options
 
-Microvm is the component responsible for launching virtual machines.
+Microvm is the component defining the virtual machines launch services generated for systemd. 
+It inputs a set of options which are mapped to hypervisor command line call. Nevertheless is may 
+happen that some hypervisor options are not supported by microvm  - e.g. adding specific devices.
+This document considers such cases.
+
 
 ### Options definitions
 
@@ -11,16 +15,8 @@ microvmConfigurations/memshare/default.nix
 https://github.com/jkuro-tii/ghaf/blob/main/microvmConfigurations/memshare/default.nix
 ```
 
-This file contains hypervisor’s options for running the VM. For each hypervisor there is a bunch of microvm’s predefined options:
-
-#### crosvm
-```
-vcpu mem balloonMem user interfaces volumes shares socket devices extraArgs
-```
-#### qemu
-```
-hostName vcpu mem balloonMem user interfaces shares socket forwardPorts devices extraArgs
-```
+This file contains hypervisor’s options for running the VM. For each hypervisor there is a bunch of microvm’s defined options:
+[https://astro.github.io/microvm.nix/options.html]
 
 The way they are processed can be found in corresponding ``.nix`` files (runners) in the microvm repository:
 
@@ -85,7 +81,7 @@ microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 ```
 ### Adding an option to the hypervisor command line
 
-Microvm may not supply parameters for all possible options - e.g. adding additional devices. Processing of all microvm configuration options is
+Microvm may not supply parameters for all possible options - e.g. adding specific devices. Processing of all microvm configuration options is
 done in the mentioned above hypervisor’s runner .nix file
 
 The runners support the ``extraArgs`` parameter. It allows setting any option in qemu command line invocation. Its value is a list of strings. In this
