@@ -16,6 +16,13 @@
   };
   ghaf.boot.loader.systemd-boot-dtb.enable = true;
 
+  boot.kernelPatches = [
+    {
+      name = "fixed-regulators";
+      patch = ./nvidia-enable-pcie-power.patch;
+    }
+  ];
+
   hardware.deviceTree = {
     enable = true;
     name = "tegra234-p3701-0000-p3737-0000.dtb";
