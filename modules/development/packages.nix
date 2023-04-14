@@ -7,5 +7,16 @@
 
     # For lsusb:
     usbutils
+
+    # Useful in NetVM
+    ethtool
+
+    # Basic monitors
+    htop
+    iftop
+    iotop
+
+    traceroute
+    dig
   ];
 }

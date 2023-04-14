@@ -7,11 +7,6 @@
     useNetworkd = true;
   };
 
-  networking.nat = {
-    enable = true;
-    internalInterfaces = ["virbr0"];
-  };
-
   systemd.network = {
     netdevs."virbr0".netdevConfig = {
       Kind = "bridge";
@@ -20,6 +15,10 @@
     networks."virbr0" = {
       matchConfig.Name = "virbr0";
       networkConfig.DHCPServer = true;
+      dhcpServerConfig = {
+        EmitRouter = true;
+        Router = "192.168.100.2";
+      };
       addresses = [
         {
           addressConfig.Address = "192.168.100.1/24";
