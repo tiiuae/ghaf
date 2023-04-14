@@ -34,6 +34,8 @@ nixpkgs.lib.nixosSystem {
           mac = "02:00:00:01:01:01";
         }
       ];
+
+      microvm.qemu.bios.enable = false;
     })
   ];
 }

@@ -27,6 +27,16 @@
           ../modules/graphics/weston.nix
 
           formatModule
+
+          {
+            boot.kernelParams = [
+              "intel_iommu=on,igx_off,sm_on"
+              "iommu=pt"
+
+              # Passthrough Intel WiFi card
+              "vfio-pci.ids=8086:a0f0"
+            ];
+          }
         ]
         ++ extraModules;
     };
@@ -34,9 +44,31 @@
   in {
     inherit hostConfiguration netvm;
     name = "${name}-${variant}";
-    netvmConfiguration = import ../microvmConfigurations/netvm {
-      inherit nixpkgs microvm system;
-    };
+    netvmConfiguration =
+      (import ../microvmConfigurations/netvm {
+        inherit nixpkgs microvm system;
+      })
+      .extendModules {
+        modules = [
+          {
+            microvm.devices = [
+              {
+                bus = "pci";
+                path = "0000:00:14.3";
+              }
+            ];
+
+            # For WLAN firmwares
+            hardware.enableRedistributableFirmware = true;
+
+            networking.wireless = {
+              enable = true;
+
+              # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
+            };
+          }
+        ];
+      };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   debugModules = [../modules/development/intel-nuc-getty.nix];
