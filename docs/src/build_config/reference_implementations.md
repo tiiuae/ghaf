@@ -11,7 +11,7 @@
 |---               |---               |---            |
 | Generic Intel    | x86              | QEMU          |
 | NVIDIA Orin AGX  | aarch64          | hardware      |
-| NXP i.MX8QM-MEK      | aarch64          | hardware      |
+| NXP i.MX8QM-MEK  | aarch64          | hardware      |
 
 Scope of target support is updated with development progress.
 
@@ -26,7 +26,7 @@ Make also sure to [enable flakes](https://nixos.wiki/wiki/Flakes#Enable_flakes).
 |---               |---               |---    |---                                                      |
 | Generic Intel    | x86              | VM    | `nix build .#packages.x86_64-linux.vm-release`                  |
 | NVIDIA Orin AGX  | aarch64          | HW    | `nix build .#packages.aarch64-linux.nvidia-jetson-orin-release` |
-| NXP i.MX8QM-MEK      | aarch64          | HW    | `nix build .#packages.aarch64-linux.imx8qm-mek-release` |
+| NXP i.MX8QM-MEK  | aarch64          | HW    | `nix build .#packages.aarch64-linux.imx8qm-mek-release` |
 
 To see all Ghaf supported outputs, type `nix flake show`.
 
@@ -34,7 +34,7 @@ To see all Ghaf supported outputs, type `nix flake show`.
 
 The development username and password are defined in [authentication module](https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix#L4-L5).
 
-### Virtual Machine - ghaf-host
+### Virtual Machine—ghaf-host
 
 `nix run .#packages.x86_64-linux.vm`
 
@@ -50,20 +50,20 @@ The development username and password are defined in [authentication module](htt
       "aarch64-linux"
     ];
     ```
-  * For more details, see [Cross Compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html).
-* Prepare the USB boot media with the target HW image you built:
+  * For more details, see [Cross-Compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html).
+* Prepare a USB boot media with the target HW image you built:
   * `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M`
-* Boot the hardware from USB media
+* Boot the hardware from the USB media.
 
 ### NXP i.MX8QM-MEK
-In case of i.MX8 Ghaf deployment contains two steps - creating bootable SDcard with first-stage bootloader (Tow-Boot) and creating USB media with Ghaf image.
-##### Build and flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader
+In case of i.MX8, Ghaf deployment contains two steps: creating bootable SDcard with first-stage bootloader (Tow-Boot) and creating USB media with Ghaf image.
+##### Build and Flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader
 ```
 $ git clone https://github.com/tiiuae/Tow-Boot.git && cd Tow-Boot
 $ nix-build -A imx8qm-mek
 $ sudo dd if=result/ shared.disk-image.img of=/dev/<SDCARD>
 ```
-##### Build and flash Ghaf image
+##### Build and Flash Ghaf Image
 * Prequisite (cross-compilation support): `binfmt` and Nix is required.
   * Enable `binfmt` in your `configuration.nix` with:
     ```
@@ -71,10 +71,10 @@ $ sudo dd if=result/ shared.disk-image.img of=/dev/<SDCARD>
       "aarch64-linux"
     ];
     ```
-  * For more details, see [Cross Compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html).
+  * For more details, see [Cross-Compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html).
 * Prepare the USB boot media with the target HW image you built:
   * `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M`
-##### Booting the board
+##### Booting Board
 * Insert SDcard and USB boot media into the board and switch the power on.
 ## Development Tips
 

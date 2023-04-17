@@ -16,7 +16,10 @@ This repository contains the source files (code and documentation) of Ghaf Frame
 
 For inforamtion on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/build_config/reference_implementations.html) section of Ghaf documentation.
 
-Other repositories that are a part of the Ghaf project: <https://github.com/tiiuae/sbomnix>.
+Other repositories that are a part of the Ghaf project:
+
+* <https://github.com/tiiuae/sbomnix>: a utility that generates SBOMs given Nix derivations or out paths
+* <https://github.com/tiiuae/ci-public>: CI/CD related files
 
 
 ### Documentation
@@ -36,7 +39,7 @@ We welcome your contributions to code and documentation.
 
 If you would like to contribute, please read [CONTRIBUTING.md](CONTRIBUTING.md) and consider opening a pull request. One or more maintainers will use GitHub's review feature to review your pull request.
 
-In case of any bugs or errors in the content, feel free just to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also [create an issue from code](https://docs.github.com/en/issues/tracking-your-work-with-issues/creating-an-issue#creating-an-issue-from-code). The Ghaf team use issues to track suggestions or other information as well.
+In case of any bugs or errors in the content, feel free to create an [issue](https://github.com/tiiuae/ghaf/issues). You can also [create an issue from code](https://docs.github.com/en/issues/tracking-your-work-with-issues/creating-an-issue#creating-an-issue-from-code).
 
 
 ## Licensing

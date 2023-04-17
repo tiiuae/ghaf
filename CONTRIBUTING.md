@@ -110,7 +110,7 @@ Add [license](https://github.com/tiiuae/ghaf#licensing) information on top of al
 
 ### Working with Documentation Source Files
 
-Please see the following instructions:
+See the following instructions:
 
 - [Adding New Files](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#adding-new-files) for information on how to manage files/images.
 - [Naming](https://github.com/tiiuae/ghaf/blob/main/docs/README-docs.md#naming) for information on file/image naming rules.

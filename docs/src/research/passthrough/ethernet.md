@@ -5,14 +5,14 @@
 
 # i.MX 8QM Ethernet Passthrough
 
-The i.MX 8QuadMax (i.MX 8QM, iMX8QM, imx8qm) pass-through host setup relies as much as possible on the default i.MX 8QM MEK (imx8qm-mek) device tree configuration. Some guidance on what is required for passthrough to work on i.MX 8 can be found in the XEN device trees.
+The i.MX 8QuadMax (i.MX 8QM, iMX8QM, imx8qm) passthrough host setup relies as much as possible on the default i.MX 8QM MEK (imx8qm-mek) device tree configuration. Some guidance on what is required for passthrough to work on i.MX 8 can be found in the XEN device trees.
 
-This document provides a detailed description of what has been done and why. For the more impatient readers, the example device tree files for i.MX 8QM guest and host with ethernet passthrough are available here:
+This document provides a detailed description of what has been done and why. For the more impatient readers, the example device tree files for i.MX 8QM guest and host with Ethernet passthrough are available here:
  - Full host device tree: [imx8qm-mek_conn-host.dts](imx8qm-mek_conn-host.dts)
  - Full guest device tree: [imx8qm-mek_conn-guest.dts](imx8qm-mek_conn-guest.dts)
 
 **NOTE 20.12.2022:**
-At the current state, the passthrough is not completely functional. The Ethernet device (fec1) or even both devices (fec1 and fec2) can be set up in the guest. The devices respond and seem functional, the device node does activate, the drivers load correctly, the power state of the device changes to active, and the link state of the ethernet connection seems to change correctly. However, for some reason, no actual ethernet data packages go through the ethernet adapter. The most visible issue is that no interrupts come to the ethernet devices.
+At the current state, the passthrough is not completely functional. The Ethernet device (fec1) or even both devices (fec1 and fec2) can be set up in the guest. The devices respond and seem functional, the device node does activate, the drivers load correctly, the power state of the device changes to active, and the link state of the Ethernet connection seems to change correctly. However, for some reason, no actual Ethernet data packages go through the Ethernet adapter. The most visible issue is that no interrupts come to the Ethernet devices.
 
 See the following topics:
 
@@ -28,7 +28,7 @@ See the following topics:
   - [Compiling the Device Tree Source to Binary Form](#compiling-the-device-tree-source-to-binary-form)
     - [Compiling for Guest](#compiling-for-guest)
     - [Compiling for Host](#compiling-for-host)
-  - [Running QEMU with Pass-through Platform Devices](#running-qemu-with-pass-through-platform-devices)
+  - [Running QEMU with Passthrough Platform Devices](#running-qemu-with-passthrough-platform-devices)
 
 _________________
 
@@ -44,9 +44,9 @@ Kernel version 5.10 was used during the setup. For the passthrough to work, a fe
 
 ## Host Device Tree Explained
 
-The default Freescale i.MX 8QM MEK configuration is included and then updated to get the ethernet device pass-through configuration added on top of the original device configuration.
+The default Freescale i.MX 8QM MEK configuration is included and then updated to get the Ethernet device passthrough configuration added on top of the original device configuration.
 
-There are two problems with using the i.MX 8 XEN configuration as reference. The first issue is that the configuration between XEN and KVM do not map one to one. The second issue is more specific to ethernet pass-through as i.MX 8 XEN configuration does not set up pass-through for ethernet so most of the configuration needs to be figured out from scratch.
+There are two problems with using the i.MX 8 XEN configuration as a reference. The first issue is that the configuration between XEN and KVM do not map one to one. The second issue is more specific to Ethernet passthrough, as i.MX 8 XEN configuration does not set up passthrough for Ethernet so most of the configuration needs to be figured out from scratch.
 
 
     #include "freescale/imx8qm-mek.dts"
@@ -230,7 +230,7 @@ There are two problems with using the i.MX 8 XEN configuration as reference. The
 - All devices which belong to the same VFIO/IOMMU group need to be passed through to the guest.
 - To prevent the device from being initialized by the host, change the device-compatible property to a dummy such as "fsl,dummy".
 - The device status need needs to be "okay" for the device node to be available.
-- If U-Boot finds devices that appear in the doma _rsrcs_ that contain the properties listed below, the device will get removed from the DTB:
+- If U-Boot finds devices that appear in the doma _rsrcs_ that contains the properties listed below, the device will get removed from the DTB:
     - power-domains
     - clocks
     - clock-names
@@ -253,7 +253,7 @@ The easiest way to accomplish this automatically during boot is to add the "scu_
 
 ## Running Platform Device Passthrough in QEMU
 
-Before you start QEMU, the passed-through devices need to be bind to the VFIO driver.
+Before you start QEMU, the passedthrough devices need to be bind to the VFIO driver.
 
 In some cases, the default driver needs to be unbind before the device can be bind to VFIO. However, in this case, all devices were changed to use the dummy device type in the device tree, so the step below is not required for this setup.
 
@@ -291,7 +291,7 @@ DTB is a binary format of the device tree so we also need to use the command lin
     # Convert binary to source device tree format
     dtc -I dtb -O dts virt.dtb > virt.dts
 
-This will provide us with a "**virt.dts**" file which can be used as a base for adding our passed-through devices. The U-Boot device tree may change based on U-Boot version so the guest device tree may need some maintenance every now and then.
+This will provide a "**virt.dts**" file which can be used as a base for adding our passedthrough devices. The U-Boot device tree may change based on the U-Boot version, so the guest device tree may need some maintenance every now and then.
 
 
 ### Adding Devices to Guest
@@ -378,13 +378,13 @@ In this case, the main devices are **fec1**, **enet0_lpcg** and **lsio_mu2**. At
 		};
 	};
 
-The actual devices which were passed through may have some dependencies such as clocks which also need to be configured in the guest for the main devices to work properly. In most cases, they can be just copy pasted from the original host configuration with a few minor alterations. Required dependencies need a bit of manual labor and depend on case to case.
+The actual devices which were passed through may have some dependencies (such as clocks) which also need to be configured in the guest for the main devices to work properly. In most cases, they can be just copy-pasted from the original host configuration with a few minor alterations. Required dependencies need a bit of manual labor and depend on case to case.
 
-The main key is to go through the whole original device tree and list out device node names that are used by the passed-through devices. This may require several passes as the dependencies may also contain some dependencies of their own. On top of the requirements, it is good also to check if the passed-through devices are used by some other devices. 
+The main key is to go through the whole original device tree and list out device node names that are used by the passedthrough devices. This may require several passes as the dependencies may also contain some dependencies of their own. On top of the requirements, it is good also to check if the passedthrough devices are used by some other devices. 
 
-Some devices may be used through a controller such as in our case **lsio_mu2** is used by the main system control unit **scu**. In this case, the dependencies consist of several clock devices and their controller and also the i.MX 8 system control unit **SCU** device with its internals.
+Some devices may be used through a controller, such as **lsio_mu2** is used by the main system control unit **scu**. In this case, the dependencies consist of several clock devices and their controller and also the i.MX 8 system control unit **SCU** device with its internals.
 
-In this case, the assisting devices can be added just before the start "**platform@c000000**" bus configuration section. 
+The assisting devices can be added just before the start "**platform@c000000**" bus configuration section: 
 
     /**
      * Several clocks and a regulator copied from original host config.
@@ -519,7 +519,7 @@ In this case, the assisting devices can be added just before the start "**platfo
 
 ### Some Final Touches for Guest Devices
 
-Now we have most of the actual devices setup. Some final modifications for individual devices can be done at the end of the guest device tree config. These can be done outside the main node as we just modify some node properties which are already defined.
+Now we have most of the actual devices setup. Some final modifications for individual devices can be done at the end of the guest device tree configuration. These can be done outside the main node, as we just modify some node properties which are already defined.
 
     /**
      * For fec1 we need to update the interrupts to match the ones used by guest pass-through.
@@ -616,7 +616,7 @@ With our additional devices also some headers and definitions need to be include
  
 ## Compiling the Device Tree Source to Binary Form
 
-The device trees need to be compiled within the Linux kernel source directory. They depend on some kernel device tree headers and in the host device case — other device tree source files.
+The device trees need to be compiled within the Linux kernel source directory. They depend on some kernel device tree headers and in the host device case—other device tree source files.
 
  - Full host device tree: [imx8qm-mek_conn-host.dts](imx8qm-mek_conn-host.dts)
  - Full guest device tree: [imx8qm-mek_conn-guest.dts](imx8qm-mek_conn-guest.dts)
@@ -636,11 +636,11 @@ The device trees need to be compiled within the Linux kernel source directory. T
         dtc -I dts -O dtb -p 0x1000 imx8qm-mek_conn-host.preprocessed -o imx8qm-mek_conn-host.dtb
 
 
-## Running QEMU with Pass-through Platform Devices
+## Running QEMU with Passthrough Platform Devices
 
-To get pass-through working i.MX 8 QM needs to be booted using our freshly built hosts **imx8qm-mek_conn-host.dtb** device tree file.
+To get passthrough working, i.MX 8 QM needs to be booted using our freshly built hosts **imx8qm-mek_conn-host.dtb** device tree file.
 
-When the system has booted, we need to set up the passed-through devices for the VFIO driver and start QEMU with devices passed through.
+When the system has booted, we need to set up the passedthrough devices for the VFIO driver and start QEMU with devices passed through.
 
 First, the devices need to be setup for VFIO:
 
@@ -653,11 +653,11 @@ First, the devices need to be setup for VFIO:
     echo vfio-platform > /sys/bus/platform/devices/5b230000.clock-controller/driver_override
     echo 5b230000.clock-controller > /sys/bus/platform/drivers/vfio-platform/bind
 
-After that QEMU can be started with our devices over the devices.
+After, QEMU can be started with our devices over the devices.
 
-This is just as an example and may require a bit of change in other environments.
+This is just as an example. It may require a bit of change in other environments.
 
-In this example, the guest kernel image — ext2 rootfs and guest device tree — all use the same filename prefix **imx8qm-mek_conn-guest**.
+In this example, the guest kernel image—ext2 rootfs and guest device tree—all use the same filename prefix **imx8qm-mek_conn-guest**.
 
     qemu-system-aarch64 \
         -M virt,gic-version=host -enable-kvm \
