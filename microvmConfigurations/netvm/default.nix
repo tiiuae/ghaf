@@ -20,49 +20,16 @@ nixpkgs.lib.nixosSystem {
       # TODO: Maybe inherit state version
       system.stateVersion = "22.11";
 
-      # For WLAN firmwares
-      hardware.enableRedistributableFirmware = true;
+      # TODO: crosvm PCI passthrough does not currently work
+      microvm.hypervisor = "qemu";
 
-      microvm.hypervisor = "crosvm";
+      networking = {
+        enableIPv6 = false;
+        interfaces.ethint0.useDHCP = false;
+        firewall.allowedTCPPorts = [22];
+        useNetworkd = true;
+      };
 
-      networking.enableIPv6 = false;
-      networking.interfaces.eth0.useDHCP = true;
-      networking.firewall.allowedTCPPorts = [22];
-
-      # TODO: Idea. Maybe use udev rules for connecting
-      # USB-devices to crosvm
-
-      # TODO: Move these to target-specific modules
-      # microvm.devices = [
-      #   {
-      #     bus = "usb";
-      #     path = "vendorid=0x050d,productid=0x2103";
-      #   }
-      # ];
-      # microvm.devices = [
-      #   {
-      #     bus = "pci";
-      #     path = "0001:00:00.0";
-      #   }
-      #   {
-      #     bus = "pci";
-      #     path = "0001:01:00.0";
-      #   }
-      # ];
-
-      # TODO: Move to user specified module - depending on the use x86_64
-      #       laptop pci path
-      # x86_64 Laptop
-      # microvm.devices = [
-      #   {
-      #     bus = "pci";
-      #     path = "0000:03:00.0";
-      #   }
-      #   {
-      #     bus = "pci";
-      #     path = "0000:05:00.0";
-      #   }
-      # ];
       microvm.interfaces = [
         {
           type = "tap";
@@ -71,11 +38,31 @@ nixpkgs.lib.nixosSystem {
         }
       ];
 
-      networking.wireless = {
+      networking.nat = {
         enable = true;
-
-        # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
+        internalInterfaces = ["enp0s4"];
       };
+
+      # TODO: Set the interface name to something pre-defined.
+      # Setting the name manually with ip link set <iface> name <newname>
+      # works. The following breaks things for some reason:
+      #
+      # Set internal network's interface name to ethint0
+      # systemd.network.links."10-ethint0" = {
+      #   matchConfig.PermanentMACAddress = "02:00:00:01:01:01";
+      #   linkConfig.Name = "ethint0";
+      # };
+
+      systemd.network = {
+        enable = true;
+        networks."10-ethint0" = {
+          matchConfig.MACAddress = "02:00:00:01:01:01";
+          address = ["192.168.100.2/24"];
+          linkConfig.ActivationPolicy = "always-up";
+        };
+      };
+
+      microvm.qemu.bios.enable = false;
     })
   ];
 }
