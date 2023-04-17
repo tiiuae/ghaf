@@ -37,5 +37,5 @@ The same goes with the architectural variants as headless devices or end-user de
 
 - [Reference Implementations](../build_config/reference_implementations.md)
 - [Cross Compilation](../build_config/cross_compilation.md)
-- [Devices Passthrough](../build_config/passthrough/passthrough.md)
+- [Passthrough](../build_config/passthrough/passthrough.md)
   - [NVIDIA Jetson AGX Orin: UART Passthrough](../build_config/passthrough/nvidia_agx_pt_uart.md)

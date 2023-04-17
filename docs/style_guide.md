@@ -3,6 +3,11 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
+[comment]: # (blank line)  
+[comment]: # (Comment text goes here.)  
+[comment]: # (blank line)  
+[comment]: # (Make sure add a double space after each comment line.)  
+
 # Documentation Style Guide
 
 Here you can find the standards we follow for writing, formatting, and organizing Ghaf documentation. Please follow these guidelines and conventions when editing the documentation.
@@ -21,7 +26,7 @@ Writing guidelines:
 
 Before you begin:
 
-* If you are new with Markdown, see [Markdown Cheat Sheet](https://www.markdownguide.org/cheat-sheet/).
+* If you are new to Markdown, see [Markdown Cheat Sheet](https://www.markdownguide.org/cheat-sheet/).
 * Since Ghaf documentation is built with mdBook, you can use [mdBook's team tutorial](https://rust-lang.github.io/mdBook/format/markdown.html) for general syntax as well:
 
   * Text and paragraphs
@@ -32,7 +37,7 @@ Before you begin:
   * Extensions: strikethrough, footnotes, tables, task lists, smart punctuation
 
 
-To make our Markdown files maintainable over time and across teams, please follow the rules:
+To make our Markdown files maintainable over time and across teams, follow the rules:
 
 * Headings
   
@@ -186,5 +191,9 @@ Congratulations! You found the Room of Requirement that adjusts itself to its se
 | white paper vs. whitepaper | Use [white paper](https://www.collinsdictionary.com/dictionary/english/white-paper) both as a term of a marketing or technical report and as a sheet of white-colored paper. |
 | on the page vs. in the page | We treat web pages similar to book pages: *someting is [on the page](https://www.ldoceonline.com/dictionary/page)*. However, if you want to describe something that is in the pages' code, you can use *in the page*. For more information, see [The choice of preposition distinguishes between the surface and the container](https://english.stackexchange.com/questions/132102/why-are-you-on-a-train-yet-in-a-car-when-you-are-inside-both-vehicles/132122#132122). |
 | reestablish vs. re-establish | Use **reestablish**, as it is preferred for U.S. English. |
-| proofread vs. proof read | Use [proofread](https://www.collinsdictionary.com/dictionary/english/proofread) as a verb to read and correct a piece of written work before publishing. |
-| pass-through vs. passthrough | In Ghaf documentation, we use **passthrough** as a noun or an adjective to describe the process of passing through. Use [pass through](https://www.oxfordlearnersdictionaries.com/definition/english/pass-through) as a phrasal verb to go through something for a short time. |
+| proofread vs. proof read | Use [proofread](https://www.collinsdictionary.com/dictionary/english/proofread) as a verb meaning to read and correct a piece of written work before publishing. |
+| pass-through vs. passthrough | In Ghaf documentation, we use **passthrough** as a noun or an adjective for the device passthrough process of providing isolation of devices to a given guest OS so that the device can be used exclusively by that guest. For more information, see [Linux virtualization and PCI passthrough](https://developer.ibm.com/tutorials/l-pci-passthrough/). Use [pass through](https://www.oxfordlearnersdictionaries.com/definition/english/pass-through) as a verb meaning to go through something for a short time. |
+| cross compilation vs. cross-compilation | In Ghaf documentation, we use **cross-compilation** as a noun or an adjective to describe a compilation that is performed between different devices. Use **cross-compile** as a verb meaning to build on one platform an executable binary that will run on another platform. |
+
+
+To do: function vs. feature, feature vs. functionality, toward vs. towards.

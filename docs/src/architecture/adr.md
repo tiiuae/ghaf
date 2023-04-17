@@ -5,8 +5,14 @@
 
 # Architecture Decision Records
 
-[Architecture decision records (ADR)](https://adr.github.io) are used to constitute the Ghaf platform decision log.
+Architecturally significant decisions are recorded as [architecture decision records (ADR)](https://adr.github.io).
 
-## Contributions
+The Ghaf platform decision log:
 
-Contributions to Ghaf architecture decisions are welcome. Please create an architectural decision proposal by opening [a pull request](https://github.com/tiiuae/ghaf/pulls) using the [template](https://github.com/tiiuae/ghaf/blob/main/docs/src/architecture/adr/template.md).
+| Decision Record | Status |
+| -------- | ----------- |
+| [Minimal Host](../architecture/adr/minimal-host.md) | Proposed. |
+| [netvm—Networking Virtual Machine](../architecture/adr/netvm.md) | Proposed, partially implemented for development and testing. |
+
+
+To create an architectural decision proposal, open [a pull request](https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#contributing-documentation) and use the [decision record template](https://github.com/tiiuae/ghaf/blob/main/docs/src/architecture/adr/template.md). Contributions to the Ghaf architecture decisions are welcome.

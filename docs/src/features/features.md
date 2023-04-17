@@ -5,9 +5,9 @@
 
 # Features
 
-Ghaf platform supports features presented in the following table.
+The following table provides the Ghaf platform capabilities:
 
-| Feature           | Status      | Reference device | Comments/Details                             |
+| Feature           | Status      | Reference Device | Details                             |
 |-------------------|-------------|------------------|----------------------------------------------|
 | Device image      | `Done`        | `Orin`  | Based on [Jetson Linux](https://developer.nvidia.com/embedded/jetson-linux), [OE4T](https://github.com/OE4T) and [jetpack-nixos](https://github.com/anduril/jetpack-nixos) |
 | CI builds         | `In progress` | `Orin`  | [Only `main`-branch, not for all PRs](https://vedenemo.dev/) |
@@ -29,12 +29,12 @@ Ghaf platform supports features presented in the following table.
 | Virtualization control | `In progress` | [`All variants`](https://tiiuae.github.io/ghaf/architecture/variants.html) | See [vmd design](https://github.com/tiiuae/vmd/blob/main/doc/design.md) | |
 
 ## Status
-- `Done` - integrated and tested in the `main`-branch
-- `In progress` - prototyped or work in progress in development branch
-- `Regression` - feature has regression or bugs
+* `Done`—integrated and tested in the `main` branch.
+* `In progress`—prototyped or work in progress in the development branch.
+* `Regression`—the feature has regression or bugs.
 
-## Reference devices
-- `Orin` - NVIDIA Jetson AGX Orin - the main reference device
-- `x86` - generic x86 64 - tested on Intel NUC (Next Unit of Computing) or laptop
-- `aarc64` - generic aarch64 - tested on ARM server, laptop (e.g. Apple Mx) or NVIDIA Jetson AGX Orin
-- `All variants` - see [details](https://tiiuae.github.io/ghaf/architecture/variants.html)
+## Reference Devices
+- `Orin`—NVIDIA Jetson AGX Orin as the main reference device.
+- `x86`—generic x86-64; tested on Intel NUC (Next Unit of Computing) or laptop.
+- `aarc64`—generic AArch64; tested on an ARM server, laptop (e.g. Apple Mx), or NVIDIA Jetson AGX Orin.
+- `All variants`—supported devices from [Architectural Variants](https://tiiuae.github.io/ghaf/architecture/variants.html).

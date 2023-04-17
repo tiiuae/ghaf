@@ -13,7 +13,7 @@ The styling of abbreviations is inconsistent and includes several possible varia
 
 When abbreviations are formed from the initial letters of a phrase, they are categorized as either **initialisms** or **acronyms**:
 
-* With **initialisms**, each letter is pronounced separately. For example: FBI for Federal Bureau of Investigation, CIA for Central Intelligence Agency), CD for Compact Disk, and also OK for Okay, "orl korrekt" that is a misspelling of "all correct". Initialisms cannot be pronounced as words.
+* With **initialisms**, each letter is pronounced separately. For example: FBI for Federal Bureau of Investigation, CIA for Central Intelligence Agency, CD for Compact Disk, and also OK for Okay, ‘orl korrekt‘ that is a misspelling of "all correct". Initialisms cannot be pronounced as words.
 
 * **Acronyms** are another type of abbreviation formed from the initial letters but that are pronounced as if they were words themselves. For example: ROFL for ‘rolling on the floor laughing’, FEMA for Federal Emergency Management Agency, NATO for North Atlantic Treaty Organization.
 
@@ -67,6 +67,11 @@ Source: <https://adr.github.io/>
 
 _A board support package is a collection of software used to boot and run the embedded system._
 
+### DHCP
+
+_The Dynamic Host Configuration Protocol is a network protocol that automatically sets IP addresses and other attributes to enable information transfer between network nodes._  
+Source: Computer Networks: A Systems Approach, <https://book.systemsapproach.org/internetworking/basic-ip.html#host-configuration-dhcp>
+
 ### DMA
 
 _A direct memory access is a process in which data may be moved directly to or from the main memory of a computer system by operations not under the control of the central processing unit._  
@@ -75,6 +80,18 @@ Source: <https://www.collinsdictionary.com/dictionary/english/direct-memory-acce
 ### EULA
 
 _end-user license agreement_
+
+### GUI
+
+_graphical user interface_
+
+### IDS
+
+_An intrusion detection system (also intrusion prevention system or IPS) monitors network traffic for suspicious activity and report when such activity is discovered._
+
+### IP
+
+_The Internet Protocol is a set of rules for communication over the Internet, such as sending email, streaming video, or connecting to a website._
 
 ### KVM
 
@@ -123,6 +140,10 @@ _virtual machine_
 ### VMM
 
 _Virtual Machine Manager_
+
+### ZTA
+
+_zero trust architecture, zero trust security model_
 
 ---
 
