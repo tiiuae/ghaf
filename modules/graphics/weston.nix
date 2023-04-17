@@ -53,6 +53,7 @@
       StandardError = "journal";
       ExecStart = "${pkgs.weston}/bin/weston";
     };
+    wantedBy = ["default.target"];
   };
 
   systemd.user.targets."ghaf-session" = {
