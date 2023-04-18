@@ -21,6 +21,8 @@
 
           jetpack-nixos.nixosModules.default
           ../modules/hardware/nvidia-jetson-orin.nix
+          # development time filesystem mounts only
+          ../modules/hardware/dev-filesystems.nix
 
           ./common-${variant}.nix
 

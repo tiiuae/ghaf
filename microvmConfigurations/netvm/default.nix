@@ -63,6 +63,8 @@ nixpkgs.lib.nixosSystem {
       };
 
       microvm.qemu.bios.enable = false;
+
+      microvm.writableStoreOverlay = "/nix/netvm/store";
     })
   ];
 }
