@@ -16,6 +16,7 @@
       matchConfig.Name = "virbr0";
       networkConfig.DHCPServer = true;
       dhcpServerConfig = {
+        ServerAddress = "192.168.100.1/24";
         EmitRouter = true;
         Router = "192.168.100.2";
       };
