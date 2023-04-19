@@ -6,6 +6,10 @@
     driSupport = true;
   };
 
+  imports = [
+    ./weston.ini.nix
+  ];
+
   environment.noXlibs = false;
   environment.systemPackages = with pkgs; [
     weston
@@ -57,6 +61,14 @@
       StandardOutput = "journal";
       StandardError = "journal";
       ExecStart = "${pkgs.weston}/bin/weston";
+      # Ivan N: I do not know if this is bug or feature of NixOS, but
+      # when I add weston.ini file to environment.etc, the file ends up in
+      # /etc/xdg directory on the filesystem, while NixOS uses
+      # /run/current-system/sw/etc/xdg directory and goes into same directory
+      # searching for weston.ini even if /etc/xdg is already in XDG_CONFIG_DIRS
+      # The solution is to add /etc/xdg one more time for weston service.
+      # It does not affect on system-wide XDG_CONFIG_DIRS variable.
+      Environment = "XDG_CONFIG_DIRS=$XDG_CONFIG_DIRS:/etc/xdg";
     };
     wantedBy = ["default.target"];
   };
