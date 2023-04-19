@@ -8,6 +8,7 @@
 
   imports = [
     ./weston.ini.nix
+    ./fonts.nix
   ];
 
   environment.noXlibs = false;

@@ -10,6 +10,11 @@
       [shell]
       locking=false
 
+      # Enable Hack font for weston-terminal
+      [terminal]
+      font=Hack
+      font-size=16
+
       # Add application launchers
       # Adding terminal launcher because it is overwritten if other launchers are on the panel
       [launcher]
