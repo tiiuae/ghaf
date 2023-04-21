@@ -9,7 +9,7 @@
 
 Proposed, partially implemented for development and testing.
 
-*netvm* reference declaration is available at [netvm/default.nix](https://github.com/tiiuae/ghaf/blob/main/configurations/netvm/default.nix).
+*netvm* reference declaration is available at [netvm/default.nix](https://github.com/tiiuae/ghaf/blob/main/microvmConfigurations/netvm/default.nix).
 
 ## Context
 
