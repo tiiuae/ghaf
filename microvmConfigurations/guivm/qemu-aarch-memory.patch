@@ -1,0 +1,16 @@
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index ac626b3bef..b3875cb551 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -161,9 +161,9 @@ static const MemMapEntry base_memmap[] = {
+     [VIRT_SECURE_MEM] =         { 0x0e000000, 0x01000000 },
+     [VIRT_PCIE_MMIO] =          { 0x10000000, 0x2eff0000 },
+     [VIRT_PCIE_PIO] =           { 0x3eff0000, 0x00010000 },
+-    [VIRT_PCIE_ECAM] =          { 0x3f000000, 0x01000000 },
++    [VIRT_PCIE_ECAM] =          { 0x40000000, 0x200000000 },
+     /* Actual RAM size depends on initial RAM and device memory settings */
+-    [VIRT_MEM] =                { GiB, LEGACY_RAMLIMIT_BYTES },
++    [VIRT_MEM] =                { 0x300000000, LEGACY_RAMLIMIT_BYTES },
+ };
+ 
+ /*

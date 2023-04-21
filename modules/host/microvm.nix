@@ -3,10 +3,15 @@
 {
   self,
   netvm,
+  guivm,
 }: {config, ...}: {
   microvm.host.enable = true;
 
   microvm.vms."${netvm}" = {
+    flake = self;
+    autostart = true;
+  };
+  microvm.vms."${guivm}" = {
     flake = self;
     autostart = true;
   };

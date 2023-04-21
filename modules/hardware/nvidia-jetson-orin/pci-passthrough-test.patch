@@ -17,7 +17,7 @@ new file mode 100644
 index 000000000000..e4656287da82
 --- /dev/null
 +++ b/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts
-@@ -0,0 +1,12 @@
+@@ -0,0 +1,15 @@
 +/dts-v1/;
 +#include "tegra234-p3701-0000-p3737-0000.dts"
 +
@@ -29,4 +29,7 @@ index 000000000000..e4656287da82
 +    /delete-property/ iommus;
 +    /delete-property/ msi-parent;
 +    /delete-property/ msi-map;
++};
++&pcie_c5_rp {
++    /delete-property/ iommus;
 +};

@@ -52,6 +52,9 @@
     name = "tegra234-p3701-host-passthrough.dtb";
   };
 
+  hardware.opengl.enable = true;
+  hardware.opengl.driSupport = true;
+
   imports = [
     ../../boot/systemd-boot-dtb.nix
 
@@ -60,7 +63,7 @@
 
   # Passthrough Jetson Orin WiFi card
   boot.kernelParams = [
-    "vfio-pci.ids=10ec:c82f"
+    "vfio-pci.ids=10ec:c82f,10de:1cb1,10de:0fb9"
     "vfio_iommu_type1.allow_unsafe_interrupts=1"
   ];
 }
