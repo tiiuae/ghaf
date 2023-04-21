@@ -1,6 +1,6 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{...}: {
+{lib, ...}: {
   hardware.nvidia-jetpack = {
     enable = true;
     som = "orin-agx";
@@ -24,6 +24,20 @@
     {
       name = "passthrough-patch";
       patch = ./pci-passthrough-test.patch;
+    }
+    {
+      name = "vsock-config";
+      patch = null;
+      extraStructuredConfig = with lib.kernel; {
+        VHOST = yes;
+        VHOST_MENU = yes;
+        VHOST_IOTLB = yes;
+        VHOST_VSOCK = yes;
+        VSOCKETS = yes;
+        VSOCKETS_DIAG = yes;
+        VSOCKETS_LOOPBACK = yes;
+        VIRTIO_VSOCKETS_COMMON = yes;
+      };
     }
   ];
 
