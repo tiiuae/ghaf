@@ -5,6 +5,5 @@
 {
   imports = [
     # TODO: Add modules common to all targets here in the future
-    ../user-apps/default.nix
   ];
 }

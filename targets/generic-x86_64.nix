@@ -18,7 +18,7 @@
       modules =
         [
           (import ../modules/host {
-            inherit self microvm netvm;
+            inherit self microvm netvm guivm;
           })
 
           ../modules/hardware/x86_64-linux.nix
@@ -48,8 +48,9 @@
         ++ extraModules;
     };
     netvm = "netvm-${name}-${variant}";
+    guivm = "guivm-${name}-${variant}";
   in {
-    inherit hostConfiguration netvm;
+    inherit hostConfiguration netvm guivm;
     name = "${name}-${variant}";
     netvmConfiguration =
       (import ../microvmConfigurations/netvm {
@@ -73,6 +74,26 @@
 
               # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
             };
+          }
+        ];
+      };
+    guivmConfiguration =
+      (import ../microvmConfigurations/guivm {
+        inherit nixpkgs microvm system;
+      })
+      .extendModules {
+        modules = [
+          {
+            microvm.devices = [
+              {
+                bus = "pci";
+                path = "0005:01:00.0";
+              }
+              {
+                bus = "pci";
+                path = "0005:01:00.1";
+              }
+            ];
           }
         ];
       };

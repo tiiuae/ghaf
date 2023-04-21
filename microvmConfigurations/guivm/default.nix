@@ -11,13 +11,21 @@ nixpkgs.lib.nixosSystem {
     ../../modules/development/authentication.nix
     ../../modules/development/ssh.nix
     ../../modules/development/packages.nix
+    ../../user-apps/default.nix
+    ../../modules/graphics/weston.nix
+    ../../modules/windows/launcher.nix
 
     microvm.nixosModules.microvm
 
-    ({pkgs, ...}: {
+    ({
+      config,
+      pkgs,
+      lib,
+      ...
+    }: {
       networking.hostName = "guivm";
       # TODO: Maybe inherit state version
-      system.stateVersion = "22.11";
+      system.stateVersion = lib.trivial.release;
 
       microvm.hypervisor = "qemu";
 
@@ -33,26 +41,23 @@ nixpkgs.lib.nixosSystem {
       networking.interfaces.eth0.useDHCP = true;
       networking.firewall.allowedTCPPorts = [22];
 
-      environment.systemPackages = with pkgs; [
-        weston
-      ];
-
-      hardware.nvidia.open = false;
       hardware.nvidia.modesetting.enable = true;
       nixpkgs.config.allowUnfree = true;
       services.xserver.videoDrivers = ["nvidia"];
       hardware.opengl.enable = true;
       hardware.opengl.driSupport = true;
+      hardware.nvidia.open = false;
+      hardware.nvidia.package = config.boot.kernelPackages.nvidiaPackages.beta;
 
       boot.kernelParams = [
         "pci=nomsi"
       ];
-      
+
       microvm.interfaces = [
         {
           type = "tap";
           id = "vm-guivm";
-          mac = "02:00:00:01:01:01";
+          mac = "02:00:00:02:01:01";
         }
       ];
     })

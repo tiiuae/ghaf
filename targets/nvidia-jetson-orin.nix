@@ -24,10 +24,6 @@
 
           ./common-${variant}.nix
 
-          ../modules/graphics/weston.nix
-
-          ../modules/windows/launcher.nix
-
           formatModule
         ]
         ++ extraModules;
