@@ -16,7 +16,7 @@
       modules =
         [
           (import ../modules/host {
-            inherit self microvm netvm;
+            inherit self microvm netvm guivm;
           })
 
           {
@@ -37,12 +37,33 @@
         ++ (import ../modules/module-list.nix);
     };
     netvm = "netvm-${name}-${variant}";
+    guivm = "guivm-${name}-${variant}";
   in {
-    inherit hostConfiguration netvm;
+    inherit hostConfiguration netvm guivm;
     name = "${name}-${variant}";
     netvmConfiguration = import ../modules/virtualization/microvm/netvm.nix {
       inherit lib microvm system;
     };
+    guivmConfiguration =
+      (import ../microvmConfigurations/guivm {
+        inherit nixpkgs microvm system;
+      })
+      .extendModules {
+        modules = [
+          {
+            microvm.devices = [
+              {
+                bus = "pci";
+                path = "0005:01:00.0";
+              }
+              {
+                bus = "pci";
+                path = "0005:01:00.1";
+              }
+            ];
+          }
+        ];
+      };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   targets = [
