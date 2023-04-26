@@ -11,3 +11,4 @@ from the host kernel.
 
 Our current supported passthrough devices implementations:
 - [Nvidia AGX Orin - UART Passthrough](nvidia_agx_pt_uart.md)
+- [Nvidia AGX Orin - PCIe Passthrough](nvidia_agx_pt_pcie.md)

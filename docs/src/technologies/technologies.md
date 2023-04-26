@@ -32,5 +32,5 @@ In addition, we have also experimental, Aarch64 demonstrated support for a KVM v
 
 - [Passthrough](./passthrough.md)
   - [NVIDIA Jetson AGX Orin: UART Passthrough](./nvidia_agx_pt_uart.md)
+  - [Nvidia Jetson AGX Orin: PCIe Passthrough](./nvidia_agx_pt_pcie.md)
 - [Hypervisor Options](./hypervisor_options.md)
-
