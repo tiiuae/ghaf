@@ -28,6 +28,10 @@
       [launcher]
       path=${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland
       icon=${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png
+
+      [launcher]
+      path=${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland
+      icon=${pkgs.weston}/share/weston/icon_terminal.png
     '';
 
     # The UNIX file mode bits

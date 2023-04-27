@@ -21,6 +21,7 @@
     # Probably, we'll want to re/move it from here later
     chromium
     element-desktop
+    gala-app
   ];
 
   # Next 4 services/targets are taken from official weston documentation:
