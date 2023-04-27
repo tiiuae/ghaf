@@ -9,6 +9,8 @@
 
       [shell]
       locking=false
+      background-image=${./cosmic_cliffs.jpg}
+      background-type=scale-crop
 
       # Enable Hack font for weston-terminal
       [terminal]
