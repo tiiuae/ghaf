@@ -5,15 +5,18 @@
 
 # Cross-Compilation
 
-Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is ``x\_86``, this will generally require that the code is cross-compiled for target ISA e.g. ``AArch64`` or ``RISC-V``.
+**Status:** cross-compilation is currently under development and cannot be used properly on the supported devices.
+
+Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is ``x_86``, this will generally require that the code is cross-compiled for target ISA e.g. ``AArch64`` or ``RISC-V``.
 
 NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.
+
 
 ## binfmt
 
 [binfmt](https://en.wikipedia.org/wiki/Binfmt_misc) allows running different ISA on a development machine. This is achieved by running the target binary in an emulator such as ``QEMU`` or in a VM.
 
-To enable binfmt, it is advisable to set the following in your host systems ``configuration.nix``:
+To enable ``binfmt``, we recommend to set the following in your host systems ``configuration.nix``:
 
     boot.binfmt.emulatedSystems = [
       "riscv64-linux"
@@ -28,7 +31,8 @@ or
 
     boot.kernelModules = [ "kvm-intel" ];
     
-depending on whether your development host is running ``AMD`` or ``Intel`` version of ``x\_86``.
+depending on whether your development host is running AMD or Intel processor.
+
 
 ## Future Cross-Compilation Support
 

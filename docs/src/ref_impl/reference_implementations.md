@@ -3,24 +3,26 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Build Configurations
+# Reference Implementations
 
-Our hardened operating system (OS) targets are build configurations based on NixOS. The canonical URL for the upstream git repository is: [https://github.com/NixOS](https://github.com/NixOS).
+Our hardened OS targets are build configurations based on NixOS. The canonical URL for the upstream Nix git repository is: [https://github.com/NixOS](https://github.com/NixOS).
 
-Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try, see the [reference implementations](../build_config/reference_implementations.md).
+Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try Ghaf, see [Build and Run](../ref_impl/build_and_run.md).
+
 
 ## Approach
 
-A build configuration is a target to build our hardened OS for a particular hardware device. Most packages used in a build configuration come from [nixpkgs - NixOS Packages collection](https://github.com/NixOS/nixpkgs).
+A build configuration is a target to build the hardened OS for a particular hardware device. Most packages used in a build configuration come from [nixpkgs—NixOS Packages collection](https://github.com/NixOS/nixpkgs).
 
 The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see [Supply Chain Security](../scs/scs.md).
 
 NixOS, a Linux OS distribution packaged with Nix, provides us with:
-- generic hardware architecture support (``x86-64`` and ``AArch64``);
-- declarative and modular mechanism to describe the system;
-- Nix packaging language mechanisms:
-  - to extend and change packages with [overlays](https://nixos.wiki/wiki/Overlays),
-  - to [override](https://nixos.org/guides/nix-pills/override-design-pattern.html) packages.
+
+* generic hardware architecture support (``x86-64`` and ``AArch64``)
+* declarative and modular mechanism to describe the system
+* Nix packaging language mechanisms:
+  * to extend and change packages with [overlays](https://nixos.wiki/wiki/Overlays)
+  * to [override](https://nixos.org/guides/nix-pills/override-design-pattern.html) packages
 
 Even when unmodified upstream is often preferred, even ideal, to ensure timely security updates from upstream — customizations are sometimes required.
 
@@ -35,7 +37,6 @@ The same goes with the architectural variants as headless devices or end-user de
 
 ## In This Chapter
 
-- [Reference Implementations](../build_config/reference_implementations.md)
-- [Cross Compilation](../build_config/cross_compilation.md)
-- [Passthrough](../build_config/passthrough/passthrough.md)
-  - [NVIDIA Jetson AGX Orin: UART Passthrough](../build_config/passthrough/nvidia_agx_pt_uart.md)
+- [Build and Run](./build_and_run.md)
+- [Development](./development.md)
+   - [Cross-Compilation](./cross_compilation.md)
