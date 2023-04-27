@@ -9,6 +9,8 @@
 
       [shell]
       locking=false
+      background-image=${./assets/wallpaper.jpg}
+      background-type=scale-crop
 
       # Enable Hack font for weston-terminal
       [terminal]
