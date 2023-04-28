@@ -176,7 +176,7 @@
 </ul>
 <h2 id="build-system-and-supply-chain"><a class="header" href="#build-system-and-supply-chain">Build System and Supply Chain</a></h2>
 <p>As software supply chain security becomes more and more relevant to product security, it is necessary to provide mechanisms to assert reproducible builds, with a transparent chain from source code over the build environment to the final binaries. Such a system allows faster analysis of not only software bugs but also security vulnerabilities and their impact on a product without the need for extensive analysis. This approach further reduces the efforts required for patching and allows mechanisms for safe fallbacks to secure states.</p>
-<p>As software supply chain security becomes more and more relevant to product security, it is necessary to provide mechanisms to assert reproducible builds, with a transparent chain from source code over the build environment to the final binaries. For more information on Ghaf supply chain security, see <a href="../scs/scs.html">Supply Chain Security</a>.</p>
+<p>For more information on Ghaf supply chain security, see <a href="./scs/scs.html">Supply Chain Security</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -637,7 +637,9 @@ ttyACM1 terminal. </p>
 -->
 <h1 id="build-and-run"><a class="header" href="#build-and-run">Build and Run</a></h1>
 <p>The canonical URL for the upstream Ghaf git repository is <a href="https://github.com/tiiuae/ghaf">https://github.com/tiiuae/ghaf</a>. To try Ghaf, you can build it from the source.</p>
-<p><a href="https://tiiuae.github.io/ghaf/build_config/cross_compilation.html">Cross-compilation</a> support is currently under development and not available for the building process.</p>
+<blockquote>
+<p><a href="ref_impl/../ref_impl/cross_compilation.html">Cross-compilation</a> support is currently under development and not available for the building process.</p>
+</blockquote>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
 <p>First, follow the basic device-independent steps:</p>
 <ul>
@@ -682,7 +684,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <ol>
 <li>Connect the board to a power supply with a USB-C cable.</li>
 <li>Connect a Linux laptop to the board with the USB-C cable.</li>
-<li>Connect the Linux laptop to the board with a Micro-USB cable.</li>
+<li>Connect the Linux laptop to the board with a Micro-USB cable to use <a href="https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console">serial interface</a>.</li>
 </ol>
 <blockquote>
 <p>For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
@@ -702,7 +704,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </ol>
 </li>
 <li>
-<p>Power the device after flashing is done.</p>
+<p>Restart the device after flashing is done.</p>
 </li>
 </ol>
 <h4 id="building-and-running-ghaf-image-for-nvidia-jetson-orin-agx"><a class="header" href="#building-and-running-ghaf-image-for-nvidia-jetson-orin-agx">Building and Running Ghaf Image for NVIDIA Jetson Orin AGX</a></h4>
@@ -758,7 +760,9 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross-Compilation</a></h1>
-<p><strong>Status:</strong> cross-compilation is currently under development and cannot be used properly on the supported devices.</p>
+<blockquote>
+<p>Cross-compilation is currently under development and cannot be used properly on the supported devices.</p>
+</blockquote>
 <p>Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is <code>x_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
 <h2 id="binfmt"><a class="header" href="#binfmt">binfmt</a></h2>

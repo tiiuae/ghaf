@@ -143,7 +143,9 @@
 -->
 <h1 id="build-and-run"><a class="header" href="#build-and-run">Build and Run</a></h1>
 <p>The canonical URL for the upstream Ghaf git repository is <a href="https://github.com/tiiuae/ghaf">https://github.com/tiiuae/ghaf</a>. To try Ghaf, you can build it from the source.</p>
-<p><a href="https://tiiuae.github.io/ghaf/build_config/cross_compilation.html">Cross-compilation</a> support is currently under development and not available for the building process.</p>
+<blockquote>
+<p><a href="../ref_impl/cross_compilation.html">Cross-compilation</a> support is currently under development and not available for the building process.</p>
+</blockquote>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
 <p>First, follow the basic device-independent steps:</p>
 <ul>
@@ -188,7 +190,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <ol>
 <li>Connect the board to a power supply with a USB-C cable.</li>
 <li>Connect a Linux laptop to the board with the USB-C cable.</li>
-<li>Connect the Linux laptop to the board with a Micro-USB cable.</li>
+<li>Connect the Linux laptop to the board with a Micro-USB cable to use <a href="https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console">serial interface</a>.</li>
 </ol>
 <blockquote>
 <p>For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
@@ -208,7 +210,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </ol>
 </li>
 <li>
-<p>Power the device after flashing is done.</p>
+<p>Restart the device after flashing is done.</p>
 </li>
 </ol>
 <h4 id="building-and-running-ghaf-image-for-nvidia-jetson-orin-agx"><a class="header" href="#building-and-running-ghaf-image-for-nvidia-jetson-orin-agx">Building and Running Ghaf Image for NVIDIA Jetson Orin AGX</a></h4>
