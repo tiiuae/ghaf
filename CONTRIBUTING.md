@@ -34,9 +34,7 @@ We like commits as they keep the project going. If you have ideas you want to ex
 
 Pull requests should be created from personal forks. We follow a fork and rebase workflow.
 
-> The concept of a fork originated with GitHub, it is not a Git concept.
->
-> If you are new to forks, see [About forks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks) and [Contributing Guide when you fork a repository](https://medium.com/@rishabhmittal200/contributing-guide-when-you-fork-a-repository-3b97657b01fb).
+> The concept of a fork originated with GitHub, it is not a Git concept. If you are new to forks, see [About forks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/about-forks) and [Contributing Guide when you fork a repository](https://medium.com/@rishabhmittal200/contributing-guide-when-you-fork-a-repository-3b97657b01fb).
 
 Make sure the [license](https://github.com/tiiuae/ghaf#licensing) information is added on top of all your source files as in the example:
 
@@ -52,6 +50,8 @@ Generally, any contributions should pass the tests.
 
 Documentation is the story of your code. Update Ghaf documentation with the code. Good documentation helps to bring new developers in and helps established developers work more effectively.
 
+> Make sure to run spelling checking tools to catch common miss spellings before making a pull request. For example, you can use [aspell](https://www.manuel-strehl.de/check_markdown_spelling_with_aspell) in Linux/UNIX.
+
 
 ### Commit Message Guidelines
 
@@ -62,15 +62,12 @@ The seven rules of a great Git commit message:
 1. Separate subject from body with a blank line.
 2. Limit the subject line to 50 characters.
 3. Capitalize the subject line. If you start subject with a filename, capitalize after colon: “approve.sh: Fix whitespaces”.
-4. Do not end the subject line with a period.
+4. Do not end the subject line with a period. For example:  
 5. Use the imperative (commanding) mood in the subject line.
-
->”Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”. 
->
->”Update weston to version 10.5.1” rather than ”New weston version 10.5.1”.
-
+    * ”Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”. 
+    * ”Update weston to version 10.5.1” rather than ”New weston version 10.5.1”.
 6. Wrap the body at 72 characters.
-7. Use the body to explain what and why vs. how.
+7. Use the body to explain **what** and **why** vs. how.
 
 Example:
 ```
@@ -107,6 +104,7 @@ Add [license](https://github.com/tiiuae/ghaf#licensing) information on top of al
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
+
 
 ### Working with Documentation Source Files
 
