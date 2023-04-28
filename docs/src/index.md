@@ -55,4 +55,4 @@ The design principles influencing the architecture of the Ghaf Platform are the 
 
 As software supply chain security becomes more and more relevant to product security, it is necessary to provide mechanisms to assert reproducible builds, with a transparent chain from source code over the build environment to the final binaries. Such a system allows faster analysis of not only software bugs but also security vulnerabilities and their impact on a product without the need for extensive analysis. This approach further reduces the efforts required for patching and allows mechanisms for safe fallbacks to secure states.
 
-As software supply chain security becomes more and more relevant to product security, it is necessary to provide mechanisms to assert reproducible builds, with a transparent chain from source code over the build environment to the final binaries. For more information on Ghaf supply chain security, see [Supply Chain Security](../scs/scs.md).
+For more information on Ghaf supply chain security, see [Supply Chain Security](./scs/scs.md).

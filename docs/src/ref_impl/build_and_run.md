@@ -7,7 +7,7 @@
 
 The canonical URL for the upstream Ghaf git repository is <https://github.com/tiiuae/ghaf>. To try Ghaf, you can build it from the source.
 
-[Cross-compilation](https://tiiuae.github.io/ghaf/build_config/cross_compilation.html) support is currently under development and not available for the building process.
+>[Cross-compilation](../ref_impl/cross_compilation.md) support is currently under development and not available for the building process.
 
 
 ## Prerequisites
@@ -62,7 +62,7 @@ Before you begin:
 2. Set up the following connections:
    1. Connect the board to a power supply with a USB-C cable.
    2. Connect a Linux laptop to the board with the USB-C cable.
-   3. Connect the Linux laptop to the board with a Micro-USB cable.  
+   3. Connect the Linux laptop to the board with a Micro-USB cable to use [serial interface](https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console).  
    
    > For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
 
@@ -77,7 +77,7 @@ Before you begin:
       1. Reboot the device and put it in recovery mode again.
       2. Check with the `lsusb` command if your computer can still recognize the board, and run the flash script again.
 
-5. Power the device after flashing is done.
+5. Restart the device after flashing is done.
 
 
 #### Building and Running Ghaf Image for NVIDIA Jetson Orin AGX
