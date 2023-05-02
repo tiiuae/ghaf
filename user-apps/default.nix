@@ -4,6 +4,7 @@
   nixpkgs.overlays = [
     (final: prev: {
       gala-app = pkgs.callPackage ./gala {};
+      windows-launcher = pkgs.callPackage ./windows-launcher {};
     })
   ];
 }
