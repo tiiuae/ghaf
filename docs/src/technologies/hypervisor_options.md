@@ -1,14 +1,22 @@
-# Ghaf specific Microvm hypervisor options
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
 
-Microvm is the component defining the virtual machines launch services generated for systemd. 
-It inputs a set of options which are mapped to hypervisor command line call. Nevertheless is may 
-happen that some hypervisor options are not supported by microvm  - e.g. adding specific devices.
-This document considers such cases.
+<!--
+    Update this section after the pull request https://github.com/tiiuae/ghaf/pull/94 is accepted >_<
+-->
+
+# Ghaf-Specific microvm Hypervisor Options
+
+**microvm** is the component defining a VM's launch services generated for systemd. It inputs a set of options mapped to the hypervisor command line call.  
+
+Nevertheless, it may happen that some hypervisor options are not supported by microvm. For example, adding specific devices. This document considers such cases.
 
 
-### Options definitions
+### Options Definitions
 
-A virtual machine is defined under Ghaf’s subdirectory ``microvmConfigurations/VM_NAME/default.nix``, e.g.:
+A VM is defined under Ghaf’s subdirectory ``microvmConfigurations/VM_NAME/default.nix``, for example:
 
 ```
 microvmConfigurations/memshare/default.nix
@@ -16,26 +24,24 @@ https://github.com/jkuro-tii/ghaf/blob/main/microvmConfigurations/memshare/defau
 ```
 
 This file contains hypervisor’s options for running the VM. For each hypervisor there is a bunch of microvm’s defined options:
-[https://astro.github.io/microvm.nix/options.html]
+<https://astro.github.io/microvm.nix/options.html>
 
-The way they are processed can be found in corresponding ``.nix`` files (runners) in the microvm repository:
-
-[https://github.com/astro/microvm.nix/blob/main/lib/runners/crosvm.nix]
-
-[https://github.com/astro/microvm.nix/blob/main/lib/runners/qemu.nix]
+The way they are processed can be found in corresponding ``.nix`` files (runners) in the astro/microvm.nix repository:
+* [crosvm.nix](https://github.com/astro/microvm.nix/blob/main/lib/runners/crosvm.nix)
+* [qemu.nix](https://github.com/astro/microvm.nix/blob/main/lib/runners/qemu.nix)
 
 
-Setting hypervisor option has form of: ``microvm.option = value;`` , e.g.:
+The formula for setting hypervisor option is ``microvm.option = value;``. For example:
 
 ```
 microvm.mem = 512;
 microvm.vcpu = 2;
 ```
 
-### Generated hypervisor start commands
 
-In result of building of the Ghaf tree there are generated command lines for starting the virtual machines. They reflect all parameters specified above -
-both those specified explicitly and defaults. They are located under the Ghaf’s ``/var/lib/microvms/ directory``, e.g.:
+### Generated Hypervisor Start Commands
+
+As a result of building the Ghaf tree, command lines for starting the VMs are generated. They reflect all parameters specified above—both those specified explicitly and defaults. They are located under the Ghaf’s ``/var/lib/microvms/ directory``.
 
 ```
 ls /var/lib/microvms/memsharevm-vm-debug/current/bin
@@ -79,13 +85,13 @@ microvm.balloonMem = 512;
 microvm.vcpu = 17;
 microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 ```
-### Adding an option to the hypervisor command line
 
-Microvm may not supply parameters for all possible options - e.g. adding specific devices. Processing of all microvm configuration options is
-done in the mentioned above hypervisor’s runner .nix file
 
-The runners support the ``extraArgs`` parameter. It allows setting any option in qemu command line invocation. Its value is a list of strings. In this
-example the following ``extraArgs`` definition:
+### Adding Option to Hypervisor Command Line
+
+microvm may not supply parameters for all possible options as adding specific devices. Processing of all microvm configuration options is done in the mentioned above hypervisor’s runner .nix file.
+
+The runners support the ``extraArgs`` parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings. In this example the following ``extraArgs`` definition:
 
 ```
 microvm.qemu.extraArgs = [
@@ -101,6 +107,4 @@ results in the generated command line parameters:
 irtio-pmem-pci,memdev=mem1,id=nv1'
 ```
 
-## Note:
-
-Support for the crosvm’s ``extraArgs`` parameter was added on April 7 2023. Verify that your ``flakes.lock`` file refers to the proper version.
+> Support for the crosvm’s ``extraArgs`` parameter was added on April 7, 2023. Make sure to verify that your ``flakes.lock`` file refers to the proper version.
