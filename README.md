@@ -1,8 +1,3 @@
-<!-- 
-# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
-# SPDX-License-Identifier: Apache-2.0
--->
-
 <!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -14,7 +9,7 @@
 
 This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
-For inforamtion on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/build_config/reference_implementations.html) section of Ghaf documentation.
+For inforamtion on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/ref_impl/reference_implementations.html) section of Ghaf documentation.
 
 Other repositories that are a part of the Ghaf project:
 
@@ -24,7 +19,7 @@ Other repositories that are a part of the Ghaf project:
 
 ### Documentation
 
-The Ghaf Framework documentation site is located at <https://tiiuae.github.io/ghaf/>. It is under cooperative developing.
+The Ghaf Framework documentation site is located at <https://tiiuae.github.io/ghaf/>. It is under cooperative development.
 
 To build Ghaf documentation, use:
 

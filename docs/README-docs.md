@@ -74,11 +74,11 @@ To add new pages to the book:
 | `src/chapter-name/...` | Top-level folders with high-level information: _architecture_, _technologies_, _build configurations_, etc.|
 | `src/chapter-name/section-name/...`, `src/chapter-name/subsection-name/...` | Documentation related to the special topic. Use subsections within the section when the subject changes, but you are still writing about a particular aspect of a larger subject. Note that both section and subsection files are in the chapter folder. |
 
-1. Put images into the `src/img` folder. We make diagrams with [diagrams.net](https://www.diagrams.net/) (use it online) or [draw.io](https://drawio-app.com/blog/use-draw-io-offline/) (use it offline and on a tablet).
+2. Put images into the `src/img` folder. We make diagrams with [diagrams.net](https://www.diagrams.net/) (use it online) or [draw.io](https://drawio-app.com/blog/use-draw-io-offline/) (use it offline and on a tablet).
     
-    To embed a diagram, make sure that you use the following image format `<imagename>.drawio.png`. When editing your diagram, select **File > Export as > PNG...** and select the **Include a copy of my diagram** check box.
+    To embed a diagram, make sure that you use the Editable Bitmap Image format `<imagename>.drawio.png`. When creating a new diagram, choose *Editable Bitmap Image format (.png)* from the list. When editing the existing diagram, select **File > Export as > PNG...** and select the **Include a copy of my diagram** check box.
     
-2. Add new structure elements (chapters, sections, subsections) to **SUMMARY.md** to update the table of contents. Otherwise, the files that you added will not be visible on GitHub Pages. Example:
+3. Add new structure elements (chapters, sections, subsections) to **SUMMARY.md** to update the table of contents. Otherwise, the files that you added will not be visible on GitHub Pages. Example:
 
 ```
 - [Chapter-name](src/chapter-name.md)

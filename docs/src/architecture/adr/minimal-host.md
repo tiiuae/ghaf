@@ -62,8 +62,8 @@ With the progress of implementing the requirements, the minimal host customizati
 
 ### Defined in `nix` (MH01)
 
-Ghaf minimal host module [is implemented in `nix`](https://github.com/tiiuae/ghaf/tree/main/modules/host).
-Currently, host and VM declarations are implemented using microvm.nix but this is not strict requirement for ghaf release mode declarations if the limitations or dependencies of microvm.nix do not comply with other requirements. This may require separate release mode custom nix declarations to support flexibility with microvm.nix in debug mode.
+Ghaf minimal host module is implemented in [`nix` modules](https://github.com/tiiuae/ghaf/tree/main/modules/host).
+Currently, host and VM declarations are implemented using [microvm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/host/microvm.nix) but this is not strict requirement for ghaf release mode declarations if the limitations or dependencies of microvm.nix do not comply with other requirements. This may require separate release mode custom nix declarations to support flexibility with microvm.nix in debug mode.
 
 ### Reduced profile (MH02)
 
@@ -90,7 +90,7 @@ All graphics and display output related components and dependencies, including k
 
 ### No getty (MH05)
 
-Ghaf host in release mode must have no terminals (TTYs) to interact with. In the current state of development, this cannot be enabled yet and has minimum requirement of system logging outside the host. Proposed design to approach this is requirement is to enable getty declaratively only in a debug serial terminal under [`modules/development`](https://github.com/tiiuae/ghaf/tree/main/modules/development)
+Ghaf host in release mode must have no terminals (TTYs) to interact with. In the current state of development, this cannot be enabled yet and has minimum requirement of system logging outside the host. Proposed design to approach this is requirement is to enable getty declaratively only in a debug serial terminal under [`modules/development`](https://github.com/tiiuae/ghaf/tree/main/modules/development).
 
 ### No `nix` toolings (MH06)
 
