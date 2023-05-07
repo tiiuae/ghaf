@@ -18,10 +18,6 @@
 
   boot.kernelPatches = [
     {
-      name = "fixed-regulators";
-      patch = ./nvidia-enable-pcie-power.patch;
-    }
-    {
       name = "passthrough-patch";
       patch = ./pci-passthrough-test.patch;
     }

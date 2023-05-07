@@ -9,9 +9,9 @@ index 1be5b3f76bf8..01d3dea90cb5 100644
 +
 +dtb-$(BUILD_ENABLE) += tegra234-p3701-host-passthrough.dtb
 +
- dtbo-$(BUILD_ENABLE) += tegra234-p3737-a03-overlay.dtbo
- dtbo-$(BUILD_ENABLE) += tegra234-p3737-a04-overlay.dtbo
- dtbo-$(BUILD_ENABLE) += tegra234-p3737-overlay-pcie.dtbo
+ dtbo-$(BUILD_ENABLE) += tegra234-p3737-overlay.dtbo
+ dtbo-$(BUILD_ENABLE) += tegra234-p3737-audio-codec-rt5658.dtbo
+ dtbo-$(BUILD_ENABLE) += tegra234-p3737-audio-codec-rt5640.dtbo
 diff --git a/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts b/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts
 new file mode 100644
 index 000000000000..e4656287da82
