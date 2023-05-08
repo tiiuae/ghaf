@@ -27,6 +27,7 @@ nixpkgs.lib.nixosSystem {
         enableIPv6 = false;
         interfaces.ethint0.useDHCP = false;
         firewall.allowedTCPPorts = [22];
+        firewall.allowedUDPPorts = [67];
         useNetworkd = true;
       };
 
@@ -40,24 +41,30 @@ nixpkgs.lib.nixosSystem {
 
       networking.nat = {
         enable = true;
-        internalInterfaces = ["enp0s4"];
+        internalInterfaces = ["ethint0"];
       };
 
-      # TODO: Set the interface name to something pre-defined.
-      # Setting the name manually with ip link set <iface> name <newname>
-      # works. The following breaks things for some reason:
-      #
       # Set internal network's interface name to ethint0
-      # systemd.network.links."10-ethint0" = {
-      #   matchConfig.PermanentMACAddress = "02:00:00:01:01:01";
-      #   linkConfig.Name = "ethint0";
-      # };
+      systemd.network.links."10-ethint0" = {
+        matchConfig.PermanentMACAddress = "02:00:00:01:01:01";
+        linkConfig.Name = "ethint0";
+      };
 
       systemd.network = {
         enable = true;
         networks."10-ethint0" = {
           matchConfig.MACAddress = "02:00:00:01:01:01";
-          address = ["192.168.100.2/24"];
+          networkConfig.DHCPServer = true;
+          dhcpServerConfig.ServerAddress = "192.168.100.1/24";
+          addresses = [
+            {
+              addressConfig.Address = "192.168.100.1/24";
+            }
+            {
+              # IP-address for debugging subnet
+              addressConfig.Address = "192.168.101.1/24";
+            }
+          ];
           linkConfig.ActivationPolicy = "always-up";
         };
       };

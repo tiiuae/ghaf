@@ -3,26 +3,22 @@
 {...}: {
   networking = {
     enableIPv6 = false;
-    firewall.allowedUDPPorts = [67]; # DHCP
     useNetworkd = true;
+    interfaces.virbr0.useDHCP = false;
   };
 
   systemd.network = {
-    netdevs."virbr0".netdevConfig = {
+    netdevs."10-virbr0".netdevConfig = {
       Kind = "bridge";
       Name = "virbr0";
+      #      MACAddress = "02:00:00:02:02:02";
     };
-    networks."virbr0" = {
+    networks."10-virbr0" = {
       matchConfig.Name = "virbr0";
-      networkConfig.DHCPServer = true;
-      dhcpServerConfig = {
-        ServerAddress = "192.168.100.1/24";
-        EmitRouter = true;
-        Router = "192.168.100.2";
-      };
+      networkConfig.DHCPServer = false;
       addresses = [
         {
-          addressConfig.Address = "192.168.100.1/24";
+          addressConfig.Address = "192.168.101.2/24";
         }
       ];
     };
