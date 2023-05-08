@@ -20,7 +20,7 @@
           })
 
           jetpack-nixos.nixosModules.default
-          ../modules/hardware/nvidia-jetson-orin.nix
+          ../modules/hardware/nvidia-jetson-orin
 
           ./common-${variant}.nix
 
@@ -83,12 +83,19 @@
     nvidia-jetson-orin-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
-  flash-script = import ./nvidia-jetson-orin-flash-script.nix;
-  generate-flash-script = tgt:
-    flash-script {
+  mkFlashScript = import ../modules/hardware/nvidia-jetson-orin/mk-flash-script.nix;
+  generate-flash-script = tgt: flash-tools-system: let
+    socType = "t234";
+  in
+    mkFlashScript {
+      inherit (nixpkgs) lib;
       inherit nixpkgs;
-      package = tgt.package;
-      hostConfiguration = tgt.hostConfiguration;
+      inherit (tgt) hostConfiguration;
+      inherit jetpack-nixos;
+      inherit (jetpack-nixos.legacyPackages.${flash-tools-system}) flash-tools;
+      inherit flash-tools-system;
+      inherit (jetpack-nixos.legacyPackages.aarch64-linux) uefi-firmware;
+      inherit socType;
     };
 in {
   nixosConfigurations =
@@ -97,9 +104,12 @@ in {
 
   packages = {
     aarch64-linux =
-      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets);
+      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets)
+      # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
+      #               and it simply might not work. Providing the script anyway
+      // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets);
     x86_64-linux =
       builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) crossTargets)
-      // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t)) (targets ++ crossTargets));
+      // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets));
   };
 }
