@@ -1,0 +1,15 @@
+name: flake-show
+
+on:
+  pull_request:
+    branches:
+      - main
+jobs:
+  checks:
+    name: Run nix flake show before merging
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v18
+      - name: Check nix flake show runs successfully
+        run: nix flake show
