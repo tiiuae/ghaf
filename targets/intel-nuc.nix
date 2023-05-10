@@ -1,17 +1,17 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Generic x86_64 computer -target
+# Intel NUC 11 Pro -target
 {
   self,
   nixpkgs,
   nixos-generators,
   microvm,
 }: let
-  name = "generic-x86_64";
+  name = "intel-nuc";
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
-  generic-x86 = variant: extraModules: let
+  intel-nuc = variant: extraModules: let
     hostConfiguration = nixpkgs.lib.nixosSystem {
       inherit system;
       modules =
@@ -71,10 +71,10 @@
       };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  debugModules = [../modules/development/usb-serial.nix];
+  debugModules = [../modules/development/intel-nuc-getty.nix];
   targets = [
-    (generic-x86 "debug" debugModules)
-    (generic-x86 "release" [])
+    (intel-nuc "debug" debugModules)
+    (intel-nuc "release" [])
   ];
 in {
   nixosConfigurations =

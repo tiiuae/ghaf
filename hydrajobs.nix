@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {self}: {
   hydraJobs = {
-    generic-x86_64-debug.x86_64-linux = self.packages.x86_64-linux.generic-x86_64-debug;
+    intel-nuc-debug.x86_64-linux = self.packages.x86_64-linux.intel-nuc-debug;
     nvidia-jetson-orin-debug.aarch64-linux = self.packages.aarch64-linux.nvidia-jetson-orin-debug;
   };
 }
