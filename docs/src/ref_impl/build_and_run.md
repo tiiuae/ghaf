@@ -26,21 +26,34 @@ Then you can use one of the following instructions for the supported targets:
 
 | Device                  | Architecture     | Instruction      |
 |---                      |---               | ---              |
-| Generic Intel           | x86              | [Running Ghaf Image for x86 VM (ghaf-host)](./build_and_run.md#running-ghaf-image-for-x86-vm-ghaf-host)     |
+| Virtual Machine | x86_64           | [Running Ghaf Image for x86 VM (ghaf-host)](./build_and_run.md#running-ghaf-image-for-x86-vm-ghaf-host)     |
+| Generic x86 computer | x86_64           | [Running Ghaf image for x86 computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
 | NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
 
 
 ---
 
-
 ## Running Ghaf Image for x86 VM (ghaf-host)
 
 Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
 
-For Intel NUC, run the `nix run .#packages.x86_64-linux.vm` command.
+From the `ghaf` source directory, run the `nix run .#packages.x86_64-linux.vm` command.
 
 This creates `ghaf-host.qcow2` copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing `ghaf-host.qcow2` should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then Power Down.
+
+## Running Ghaf image for x86 computer
+
+Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
+1. To build the target image, run the command:
+    ```
+    nix build github:tiiuae/ghaf#generic-x86_64-debug 
+    ```
+2. After the build is completed, prepare a USB boot media with the target image you built:
+    ```
+    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M 
+    ```
+3. Boot the computer from the USB media.
 
 
 ## Ghaf Image for NVIDIA Jetson Orin AGX

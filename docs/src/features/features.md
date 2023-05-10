@@ -13,7 +13,7 @@ The following table provides the Ghaf Platform capabilities:
 |-------------------|-------------|------------------|----------------------------------------------|
 | Device image      | `Done`        | `Orin`  | Based on [Jetson Linux](https://developer.nvidia.com/embedded/jetson-linux), [OE4T](https://github.com/OE4T) and [jetpack-nixos](https://github.com/anduril/jetpack-nixos). |
 | CI builds         | `In progress` | `Orin`  | [Only `main`-branch, not for all PRs](https://vedenemo.dev/). |
-| Generic image     | `In progress` | `x86`   | NUC target, based on generic [NixOS](https://nixos.org/). |
+| Generic image     | `Done` | `x86`   | Generic x86 computer, based on generic [NixOS](https://nixos.org/). |
 | Device flashing   | `Done`        | `Orin`  | Full device update, `x86` via removable media. |
 | Native build      | `Done`        | `aarch64, x86`   |                                              |
 | Emulated build    | `Regression`  | `Orin`  | `binfmt`, may freeze the build machine.      |
@@ -41,6 +41,6 @@ The following table provides the Ghaf Platform capabilities:
 ## Reference Devices
 
 - `Orin`—NVIDIA Jetson AGX Orin as the main reference device.
-- `x86`—generic x86-64; tested on Intel NUC (Next Unit of Computing) or laptop.
-- `aarc64`—generic AArch64; tested on an ARM server, laptop (e.g. Apple Mx), or NVIDIA Jetson AGX Orin.
+- `x86`—generic x86_64; tested on Intel NUC (Next Unit of Computing) or laptop.
+- `aarch64`—generic AArch64; tested on an ARM server, laptop (e.g. Apple M's), or NVIDIA Jetson AGX Orin.
 - `All variants`—supported devices from [Architectural Variants](https://tiiuae.github.io/ghaf/architecture/variants.html).
