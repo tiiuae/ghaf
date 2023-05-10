@@ -161,8 +161,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </ul>
 <p>Then you can use one of the following instructions for the supported targets:</p>
 <div class="table-wrapper"><table><thead><tr><th>Device</th><th>Architecture</th><th>Instruction</th></tr></thead><tbody>
-<tr><td>Virtual Machine</td><td>x86_64</td><td><a href="./build_and_run.html#running-ghaf-image-for-x86-vm-ghaf-host">Running Ghaf Image for x86 VM (ghaf-host)</a></td></tr>
-<tr><td>Generic x86 computer</td><td>x86_64</td><td><a href="./build_and_run.html#running-ghaf-image-for-x86-computer">Running Ghaf image for x86 computer</a></td></tr>
+<tr><td>Generic Intel</td><td>x86</td><td><a href="./build_and_run.html#running-ghaf-image-for-x86-vm-ghaf-host">Running Ghaf Image for x86 VM (ghaf-host)</a></td></tr>
 <tr><td>NVIDIA Jetson AGX Orin</td><td>AArch64</td><td><a href="./build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></td></tr>
 <tr><td>NXP i.MX 8QM-MEK</td><td>AArch64</td><td><a href="./build_and_run.html#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></td></tr>
 </tbody></table>
@@ -170,21 +169,8 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <hr />
 <h2 id="running-ghaf-image-for-x86-vm-ghaf-host"><a class="header" href="#running-ghaf-image-for-x86-vm-ghaf-host">Running Ghaf Image for x86 VM (ghaf-host)</a></h2>
 <p>Before you begin, check device-independent <a href="./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<p>From the <code>ghaf</code> source directory, run the <code>nix run .#packages.x86_64-linux.vm</code> command.</p>
+<p>For Intel NUC, run the <code>nix run .#packages.x86_64-linux.vm</code> command.</p>
 <p>This creates <code>ghaf-host.qcow2</code> copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing <code>ghaf-host.qcow2</code> should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then Power Down.</p>
-<h2 id="running-ghaf-image-for-x86-computer"><a class="header" href="#running-ghaf-image-for-x86-computer">Running Ghaf image for x86 computer</a></h2>
-<p>Before you begin, check device-independent <a href="./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<ol>
-<li>To build the target image, run the command:
-<pre><code>nix build github:tiiuae/ghaf#generic-x86_64-debug 
-</code></pre>
-</li>
-<li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M 
-</code></pre>
-</li>
-<li>Boot the computer from the USB media.</li>
-</ol>
 <h2 id="ghaf-image-for-nvidia-jetson-orin-agx"><a class="header" href="#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></h2>
 <p>Before you begin:</p>
 <ul>

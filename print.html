@@ -187,7 +187,7 @@
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Device image</td><td><code>Done</code></td><td><code>Orin</code></td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a>.</td></tr>
 <tr><td>CI builds</td><td><code>In progress</code></td><td><code>Orin</code></td><td><a href="https://vedenemo.dev/">Only <code>main</code>-branch, not for all PRs</a>.</td></tr>
-<tr><td>Generic image</td><td><code>Done</code></td><td><code>x86</code></td><td>Generic x86 computer, based on generic <a href="https://nixos.org/">NixOS</a>.</td></tr>
+<tr><td>Generic image</td><td><code>In progress</code></td><td><code>x86</code></td><td>NUC target, based on generic <a href="https://nixos.org/">NixOS</a>.</td></tr>
 <tr><td>Device flashing</td><td><code>Done</code></td><td><code>Orin</code></td><td>Full device update, <code>x86</code> via removable media.</td></tr>
 <tr><td>Native build</td><td><code>Done</code></td><td><code>aarch64, x86</code></td><td></td></tr>
 <tr><td>Emulated build</td><td><code>Regression</code></td><td><code>Orin</code></td><td><code>binfmt</code>, may freeze the build machine.</td></tr>
@@ -214,8 +214,8 @@
 <h2 id="reference-devices"><a class="header" href="#reference-devices">Reference Devices</a></h2>
 <ul>
 <li><code>Orin</code>—NVIDIA Jetson AGX Orin as the main reference device.</li>
-<li><code>x86</code>—generic x86_64; tested on Intel NUC (Next Unit of Computing) or laptop.</li>
-<li><code>aarch64</code>—generic AArch64; tested on an ARM server, laptop (e.g. Apple M's), or NVIDIA Jetson AGX Orin.</li>
+<li><code>x86</code>—generic x86-64; tested on Intel NUC (Next Unit of Computing) or laptop.</li>
+<li><code>aarc64</code>—generic AArch64; tested on an ARM server, laptop (e.g. Apple Mx), or NVIDIA Jetson AGX Orin.</li>
 <li><code>All variants</code>—supported devices from <a href="https://tiiuae.github.io/ghaf/architecture/variants.html">Architectural Variants</a>.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
@@ -725,8 +725,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </ul>
 <p>Then you can use one of the following instructions for the supported targets:</p>
 <div class="table-wrapper"><table><thead><tr><th>Device</th><th>Architecture</th><th>Instruction</th></tr></thead><tbody>
-<tr><td>Virtual Machine</td><td>x86_64</td><td><a href="ref_impl/./build_and_run.html#running-ghaf-image-for-x86-vm-ghaf-host">Running Ghaf Image for x86 VM (ghaf-host)</a></td></tr>
-<tr><td>Generic x86 computer</td><td>x86_64</td><td><a href="ref_impl/./build_and_run.html#running-ghaf-image-for-x86-computer">Running Ghaf image for x86 computer</a></td></tr>
+<tr><td>Generic Intel</td><td>x86</td><td><a href="ref_impl/./build_and_run.html#running-ghaf-image-for-x86-vm-ghaf-host">Running Ghaf Image for x86 VM (ghaf-host)</a></td></tr>
 <tr><td>NVIDIA Jetson AGX Orin</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></td></tr>
 <tr><td>NXP i.MX 8QM-MEK</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></td></tr>
 </tbody></table>
@@ -734,21 +733,8 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <hr />
 <h2 id="running-ghaf-image-for-x86-vm-ghaf-host"><a class="header" href="#running-ghaf-image-for-x86-vm-ghaf-host">Running Ghaf Image for x86 VM (ghaf-host)</a></h2>
 <p>Before you begin, check device-independent <a href="ref_impl/./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<p>From the <code>ghaf</code> source directory, run the <code>nix run .#packages.x86_64-linux.vm</code> command.</p>
+<p>For Intel NUC, run the <code>nix run .#packages.x86_64-linux.vm</code> command.</p>
 <p>This creates <code>ghaf-host.qcow2</code> copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing <code>ghaf-host.qcow2</code> should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then Power Down.</p>
-<h2 id="running-ghaf-image-for-x86-computer"><a class="header" href="#running-ghaf-image-for-x86-computer">Running Ghaf image for x86 computer</a></h2>
-<p>Before you begin, check device-independent <a href="ref_impl/./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<ol>
-<li>To build the target image, run the command:
-<pre><code>nix build github:tiiuae/ghaf#generic-x86_64-debug 
-</code></pre>
-</li>
-<li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M 
-</code></pre>
-</li>
-<li>Boot the computer from the USB media.</li>
-</ol>
 <h2 id="ghaf-image-for-nvidia-jetson-orin-agx"><a class="header" href="#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></h2>
 <p>Before you begin:</p>
 <ul>
