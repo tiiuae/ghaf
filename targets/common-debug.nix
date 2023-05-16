@@ -12,5 +12,6 @@
     ../modules/development/nix.nix
     ../modules/development/packages.nix
     ../modules/development/ssh.nix
+    ../modules/development/docker.nix
   ];
 }
