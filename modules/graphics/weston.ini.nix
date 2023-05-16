@@ -38,7 +38,7 @@
 
         [launcher]
         path=${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland
-        icon=${pkgs.weston}/share/weston/icon_terminal.png
+        icon=${pkgs.gala-app}/gala/resources/icon-24x24.png
       ''
       + lib.optionalString (pkgs.stdenv.isAarch64) ''
         [launcher]
