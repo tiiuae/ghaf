@@ -11,7 +11,7 @@ in {
     users."${user}" = {
       isNormalUser = true;
       password = password;
-      extraGroups = ["wheel" "video"];
+      extraGroups = ["wheel" "video" "docker"];
     };
     groups."${user}" = {
       name = "${user}";
