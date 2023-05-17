@@ -37,19 +37,16 @@
         # First, weston package is overridden (passing colord = null)
         (prev.weston.override {
           colord = null;
+
+          pipewire = null;
+          freerdp = null;
+          xwayland = null;
         })
         # and then this overridden package's attributes are overridden
         .overrideAttrs (prevAttrs: {
           mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
           depsBuildBuild = [pkgs.pkg-config];
         });
-      # TODO: Remove this override if/when the fix is upstreamed.
-      # Removing wayland dependency from runtime dependencies and making it
-      # native build time dependency
-      freerdp = prev.freerdp.overrideAttrs (prevAttrs: {
-        buildInputs = lib.remove pkgs.wayland prevAttrs.buildInputs;
-        depsBuildBuild = [pkgs.wayland];
-      });
     })
   ];
 }
