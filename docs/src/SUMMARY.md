@@ -7,6 +7,7 @@
   - [Architecture Decision Records](architecture/adr.md)
     - [Minimal Host](architecture/adr/minimal-host.md)
     - [Networking VM](architecture/adr/netvm.md)
+    - [IDS VM](architecture/adr/idsvm.md)
   - [Stack](architecture/stack.md)
 - [Technologies](technologies/technologies.md)
     - [Passthrough](technologies/passthrough.md)

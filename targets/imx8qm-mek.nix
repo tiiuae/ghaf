@@ -24,13 +24,15 @@
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
+          ../modules/virtualization/microvm/idsvm.nix
           {
             ghaf = {
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
-              # TODO: NetVM enabled, but it does not include anything specific
-              #       for iMX8
+              # TODO: NetVM & idsvm enabled, but they do not include
+              # anything specific for iMX8
               virtualization.microvm.netvm.enable = true;
+              virtualization.microvm.idsvm.enable = true;
 
               # Enable all the default UI applications
               profiles = {

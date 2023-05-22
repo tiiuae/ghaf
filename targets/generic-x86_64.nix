@@ -32,6 +32,23 @@
         };
       }
     ];
+
+    # Start of cheat hack. It artificially makes the the idsvm to require pci
+    # and thus affects to hypervisor options so that idsvm actually boots.
+    idsvmExtraModules = [
+      {
+        microvm.devices = [
+          {
+            bus = "pci";
+            # Choose here path of pci device that does not brake things.
+            # This particular path is some unassigned class (PCI Express card reader)
+            # in Lenovo T470p.
+            path = "0000:04:00.0";
+          }
+        ];
+      }
+    ];
+    # End of cheat hack.
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
@@ -41,6 +58,7 @@
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
+          ../modules/virtualization/microvm/idsvm.nix
           {
             ghaf = {
               hardware.x86_64.common.enable = true;
@@ -50,6 +68,10 @@
               virtualization.microvm.netvm = {
                 enable = true;
                 extraModules = netvmExtraModules;
+              };
+              virtualization.microvm.idsvm = {
+                enable = true;
+                extraModules = idsvmExtraModules;
               };
 
               # Enable all the default UI applications
