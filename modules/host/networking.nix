@@ -24,22 +24,42 @@ in
         netdevs."10-virbr0".netdevConfig = {
           Kind = "bridge";
           Name = "virbr0";
-          #      MACAddress = "02:00:00:02:02:02";
         };
         networks."10-virbr0" = {
           matchConfig.Name = "virbr0";
           networkConfig.DHCPServer = false;
           addresses = [
             {
-              addressConfig.Address = "192.168.101.2/24";
+              # Set address for debugging access
+              addressConfig.Address = "192.168.110.2/24";
             }
           ];
         };
-        # Connect VM tun/tap device to the bridge
-        # TODO configure this based on IF the netvm is enabled
+
+        netdevs."10-virbr1".netdevConfig = {
+          Kind = "bridge";
+          Name = "virbr1";
+        };
+        networks."10-virbr1" = {
+          matchConfig.Name = "virbr1";
+          networkConfig.DHCPServer = false;
+          addresses = [
+            {
+              # Set address for debbugging access
+              addressConfig.Address = "192.168.111.2/24";
+            }
+          ];
+        };
+
+        # Connect VM tun/tap devices to the bridges
         networks."11-netvm" = {
-          matchConfig.Name = "vm-*";
+          matchConfig.Name = "vmbr0-*";
           networkConfig.Bridge = "virbr0";
+        };
+
+        networks."11-idsvm" = {
+          matchConfig.Name = "vmbr1-*";
+          networkConfig.Bridge = "virbr1";
         };
       };
     };
