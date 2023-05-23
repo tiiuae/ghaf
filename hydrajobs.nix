@@ -5,5 +5,6 @@
     generic-x86_64-debug.x86_64-linux = self.packages.x86_64-linux.generic-x86_64-debug;
     nvidia-jetson-orin-debug.aarch64-linux = self.packages.aarch64-linux.nvidia-jetson-orin-debug;
     intel-vm-debug.x86_64-linux = self.packages.x86_64-linux.vm-debug;
+    imx8qm-mek-debug.aarch64-linux = self.packages.aarch64-linux.imx8qm-mek-debug;
   };
 }
