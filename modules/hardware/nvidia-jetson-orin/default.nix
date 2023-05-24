@@ -1,11 +1,21 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: {
+#
+# Configuration for NVIDIA Jetson AGX Orin
+{
+  lib,
+  config,
+  ...
+}: {
   hardware.nvidia-jetpack = {
     enable = true;
     som = "orin-agx";
     carrierBoard = "devkit";
     modesetting.enable = true;
+
+    flashScriptOverrides = {
+      flashArgs = lib.mkForce ["-r" "${config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard}" "mmcblk0p1"];
+    };
   };
 
   nixpkgs.hostPlatform.system = "aarch64-linux";
@@ -43,7 +53,9 @@
   };
 
   imports = [
-    ../boot/systemd-boot-dtb.nix
+    ../../boot/systemd-boot-dtb.nix
+
+    ./partition-template.nix
   ];
 
   # Passthrough Jetson Orin WiFi card
