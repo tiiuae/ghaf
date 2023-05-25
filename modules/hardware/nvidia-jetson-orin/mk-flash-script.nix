@@ -20,32 +20,38 @@
       inherit l4tVersion bspSrc;
     })
     buildTOS
-    opteeClient
     ;
+  # NOTE: In every jetpack-nixos update, check that this is aligned with the
+  #       one from jetpack-nixos/device-pkgs.nix
   flashScript = import (jetpack-nixos + "/flash-script.nix") {
     inherit lib;
+    inherit (cfg.flashScriptOverrides) flashArgs partitionTemplate;
 
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;
     });
-
-    flashArgs = cfg.flashScriptOverrides.flashArgs;
-    partitionTemplate = cfg.flashScriptOverrides.partitionTemplate;
-
-    inherit socType;
-
-    dtbsDir = hostConfiguration.config.hardware.deviceTree.package;
 
     uefi-firmware = uefi-firmware.override {
       bootLogo = cfg.firmware.uefi.logo;
       debugMode = cfg.firmware.uefi.debugMode;
       errorLevelInfo = cfg.firmware.uefi.errorLevelInfo;
       edk2NvidiaPatches = cfg.firmware.uefi.edk2NvidiaPatches;
+    }; # TODO: Add support for UEFI capsule authentication
+
+    inherit socType;
+
+    tosImage = buildTOS {
+      inherit socType;
+      opteePatches = cfg.firmware.optee.patches;
+      extraMakeFlags = cfg.firmware.optee.extraMakeFlags;
     };
+    inherit (cfg.firmware) eksFile;
 
-    tosImage = buildTOS {inherit socType;};
+    # TODO uefiDefaultKeysDtbo
 
-    preFlashCommands = hostConfiguration.config.ghaf.nvidia-jetpack.flashScriptOverrides.preFlashCommands;
+    dtbsDir = hostConfiguration.config.hardware.deviceTree.package;
+
+    inherit (hostConfiguration.config.ghaf.nvidia-jetpack.flashScriptOverrides) preFlashCommands;
   };
 in
   nixpkgs.legacyPackages.${flash-tools-system}.writeShellApplication {
