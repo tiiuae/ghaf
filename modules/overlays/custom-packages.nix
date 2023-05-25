@@ -24,12 +24,6 @@
   nixpkgs.overlays = [
     (final: prev: {
       # TODO: Remove this override if/when the fix is upstreamed.
-      # Adding missing dependencies for pipewire
-      pipewire = prev.pipewire.overrideAttrs (prevAttrs: {
-        nativeBuildInputs = prevAttrs.nativeBuildInputs ++ [pkgs.glib];
-        depsBuildBuild = [pkgs.gettext];
-      });
-      # TODO: Remove this override if/when the fix is upstreamed.
       # Disabling colord dependency for weston. Colord has argyllcms as
       # a dependency, and this package is not cross-compilable.
       # Nowadays, colord even marked as deprecated option for weston.
