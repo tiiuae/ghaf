@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Reference Implementations - Ghaf Framework</title>
+        <title>Running Windows VM in Ghaf - Ghaf Framework</title>
         <!-- Custom HTML head -->
         <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
         <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
@@ -75,7 +75,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="../architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li></ol></li><li class="chapter-item expanded "><a href="../architecture/stack.html"><strong aria-hidden="true">3.3.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">4.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/passthrough.html"><strong aria-hidden="true">4.1.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">4.1.1.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/hypervisor_options.html"><strong aria-hidden="true">4.2.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><a href="../ref_impl/reference_implementations.html" class="active"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/build_and_run.html"><strong aria-hidden="true">5.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="../ref_impl/development.html"><strong aria-hidden="true">5.2.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/cross_compilation.html"><strong aria-hidden="true">5.2.1.</strong> Cross-Compilation</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">6.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">6.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">6.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/sbom.html"><strong aria-hidden="true">6.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">6.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">6.5.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">7.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/passthrough/ethernet.html"><strong aria-hidden="true">7.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="chapter-item expanded "><a href="../research/run_win_vm.html"><strong aria-hidden="true">7.2.</strong> Running Windows VM in Ghaf</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="../appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="../appendices/contributing_general.html">Contributing</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="../architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li></ol></li><li class="chapter-item expanded "><a href="../architecture/stack.html"><strong aria-hidden="true">3.3.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">4.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/passthrough.html"><strong aria-hidden="true">4.1.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">4.1.1.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/hypervisor_options.html"><strong aria-hidden="true">4.2.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><a href="../ref_impl/reference_implementations.html"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/build_and_run.html"><strong aria-hidden="true">5.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="../ref_impl/development.html"><strong aria-hidden="true">5.2.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/cross_compilation.html"><strong aria-hidden="true">5.2.1.</strong> Cross-Compilation</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">6.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">6.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">6.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/sbom.html"><strong aria-hidden="true">6.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">6.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">6.5.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">7.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/passthrough/ethernet.html"><strong aria-hidden="true">7.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="chapter-item expanded "><a href="../research/run_win_vm.html" class="active"><strong aria-hidden="true">7.2.</strong> Running Windows VM in Ghaf</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="../appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="../appendices/contributing_general.html">Contributing</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -141,46 +141,62 @@
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
-<p>Our hardened OS targets are build configurations based on NixOS. The canonical URL for the upstream Nix git repository is: <a href="https://github.com/NixOS">https://github.com/NixOS</a>.</p>
-<p>Build configurations define our dependencies and configuration changes to packages and build mechanisms of NixOS. If you want to try Ghaf, see <a href="../ref_impl/build_and_run.html">Build and Run</a>.</p>
-<h2 id="approach"><a class="header" href="#approach">Approach</a></h2>
-<p>A build configuration is a target to build the hardened OS for a particular hardware device. Most packages used in a build configuration come from <a href="https://github.com/NixOS/nixpkgs">nixpkgs—NixOS Packages collection</a>.</p>
-<p>The upstream first approach means we aim the fix issues by contributing to nixpkgs. At the same time, we get the maintenance support of NixOS community and the benefits of the Nix language on how to build packages and track the origins of packages in the software supply chain security. For more information, see <a href="../scs/scs.html">Supply Chain Security</a>.</p>
-<p>NixOS, a Linux OS distribution packaged with Nix, provides us with:</p>
-<ul>
-<li>generic hardware architecture support (<code>x86-64</code> and <code>AArch64</code>)</li>
-<li>declarative and modular mechanism to describe the system</li>
-<li>Nix packaging language mechanisms:
-<ul>
-<li>to extend and change packages with <a href="https://nixos.wiki/wiki/Overlays">overlays</a></li>
-<li>to <a href="https://nixos.org/guides/nix-pills/override-design-pattern.html">override</a> packages</li>
-</ul>
+<h1 id="running-windows-11-in-vm-on-ghaf"><a class="header" href="#running-windows-11-in-vm-on-ghaf">Running Windows 11 in VM on Ghaf</a></h1>
+<p>You can run Windows 11 in a VM on Ghaf using NVIDIA Jetson Orin AGX. This method uses <a href="https://www.qemu.org/">QEMU</a> as VMM.</p>
+<blockquote>
+<p>For information on how to build and run a Ghaf image for NVIDIA Jetson Orin AGX, see <a href="../ref_impl/build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Build and Run</a>.</p>
+</blockquote>
+<h2 id="getting-windows-11-image"><a class="header" href="#getting-windows-11-image">Getting Windows 11 Image</a></h2>
+<ol>
+<li>
+<p>Use your Microsoft account to join the <a href="https://insider.windows.com/en-us/register">Windows Insider Program</a> to be able to install Windows Insider Preview Builds.</p>
 </li>
-</ul>
-<p>Even when unmodified upstream is often preferred, even ideal, to ensure timely security updates from upstream — customizations are sometimes required.</p>
-<h3 id="example"><a class="header" href="#example">Example</a></h3>
-<p>To support a reference board without a vendor board support package (BSP) — bootloader, kernel, device drivers — is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.</p>
-<p>Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing <code>unfree</code> - if the user agrees with the end-user license agreement (EULA). If not, <code>unfree</code> support can be dropped along with that part of the BSP support.</p>
-<p>The same goes with the architectural variants as headless devices or end-user devices differ in terms what kind of virtual machines (VM) they contain. The user needs graphics architecture and VM support for the user interface (UI) whereas a headless device is more like a small server without the UI.</p>
-<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
-<ul>
-<li><a href="./build_and_run.html">Build and Run</a></li>
-<li><a href="./development.html">Development</a>
-<ul>
-<li><a href="./cross_compilation.html">Cross-Compilation</a></li>
-</ul>
+<li>
+<p>On the <em>Windows 11 on Arm Insider Preview</em> page, select the <code>Windows 11 Client Arm64 Insider Preview (Canary) - Build 25324</code> build and the language to download a VHDX image file for ARM64.</p>
 </li>
-</ul>
+<li>
+<p>Copy <em>Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX</em> to an external USB drive. Connect the USB drive to the NVIDIA device with the latest version of Ghaf installed, and mount it to some folder.</p>
+<pre><code>sudo mkdir /mnt
+sudo mount /dev/sda /mnt
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p>WARNING: Make sure to use a fresh VHDX image file which has not been booted on some other environment before.</p>
+</blockquote>
+<h2 id="running-windows-11-in-vm"><a class="header" href="#running-windows-11-in-vm">Running Windows 11 in VM</a></h2>
+<ol>
+<li>
+<p>In Weston terminal, go to the directory with the VHDX image and run the VM using the script that is already integrated into Ghaf:</p>
+<pre><code>cd /mnt
+windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX
+</code></pre>
+</li>
+</ol>
+<blockquote>
+<p>WARNING: Do not use <strong>sudo</strong> or the root user to run windows-launcher.</p>
+</blockquote>
+<p>Alternatively, you can launch the Windows 11 VM by clicking the corresponding icon in the Weston taskbar.</p>
+<p>When you click it for the first time, you will see a file selection dialog. Once Windows 11 image has been selected, it saves the path to the <code>~/.config/windows-launcher-ui.conf</code> configuration file and launches the VM. Next time, the VM will be immediately launched with one click.</p>
+<ol start="2">
+<li>
+<p>You can pass additional parameter to QEMU after the image name. For example:</p>
+<pre><code>windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX -serial stdio
+</code></pre>
+</li>
+<li>
+<p>Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type <code>OOBE\BYPASSNRO</code>. The VM will reboot and configuration will continue in offline mode.</p>
+</li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../technologies/hypervisor_options.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../research/passthrough/ethernet.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
-                            <a rel="next" href="../ref_impl/build_and_run.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="../appendices/glossary.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
                         <div style="clear: both"></div>
@@ -189,10 +205,10 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../technologies/hypervisor_options.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../research/passthrough/ethernet.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
-                    <a rel="next" href="../ref_impl/build_and_run.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="../appendices/glossary.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
