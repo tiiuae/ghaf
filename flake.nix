@@ -60,6 +60,11 @@
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
 
+      # ghaf lib
+      {
+        lib = import ./lib {inherit self nixpkgs;};
+      }
+
       # Target configurations
       (import ./targets {inherit self nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
 
