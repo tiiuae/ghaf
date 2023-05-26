@@ -5,9 +5,7 @@
 
 # Running Windows 11 in VM on Ghaf
 
-You can run Windows 11 in a VM on Ghaf using NVIDIA Jetson Orin AGX. This method uses [QEMU](https://www.qemu.org/) as VMM.
-
-> For information on how to build and run a Ghaf image for NVIDIA Jetson Orin AGX, see [Build and Run](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx).
+You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX. This method uses [QEMU](https://www.qemu.org/) as VMM. For information on how to build and run a Ghaf image for NVIDIA Jetson Orin AGX, see [Build and Run](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx).
 
 
 ## Getting Windows 11 Image
@@ -20,23 +18,23 @@ You can run Windows 11 in a VM on Ghaf using NVIDIA Jetson Orin AGX. This method
     sudo mkdir /mnt
     sudo mount /dev/sda /mnt
     ```
-> WARNING: Make sure to use a fresh VHDX image file which has not been booted on some other environment before.
+    > **WARNING:** Make sure to use a fresh VHDX image file which has not been booted on some other environment before.
 
 
 ## Running Windows 11 in VM
 
-1. In Weston terminal, go to the directory with the VHDX image and run the VM using the script that is already integrated into Ghaf:
+1. In Weston terminal, go to the directory with the VHDX image and run the VM using the following Ghaf script:
 
     ```
     cd /mnt
     windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX
     ```
 
-> WARNING: Do not use **sudo** or the root user to run windows-launcher.
+    > **WARNING:** Do not use **sudo** or the root user to run windows-launcher.
 
-Alternatively, you can launch the Windows 11 VM by clicking the corresponding icon in the Weston taskbar.
+    Alternatively, you can launch the Windows 11 VM by clicking the corresponding icon in the Weston taskbar.
 
-When you click it for the first time, you will see a file selection dialog. Once Windows 11 image has been selected, it saves the path to the `~/.config/windows-launcher-ui.conf` configuration file and launches the VM. Next time, the VM will be immediately launched with one click.
+    When you click it for the first time, you will see a file selection dialog. Once Windows 11 image has been selected, it saves the path to the `~/.config/windows-launcher-ui.conf` configuration file and launches the VM. Next time, the VM will be immediately launched with one click.
 
 2. You can pass additional parameter to QEMU after the image name. For example:
 
