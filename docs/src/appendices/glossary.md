@@ -77,6 +77,10 @@ Source: Computer Networks: A Systems Approach, <https://book.systemsapproach.org
 _A direct memory access is a process in which data may be moved directly to or from the main memory of a computer system by operations not under the control of the central processing unit._  
 Source: <https://www.collinsdictionary.com/dictionary/english/direct-memory-access>
 
+### eMMC, e-MMC
+
+_embedded MultiMediaCard_
+
 ### EULA
 
 _end-user license agreement_

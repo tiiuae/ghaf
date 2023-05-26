@@ -24,7 +24,7 @@
     - [Patch Management Automation](scs/patching-automation.md)
 - [Research Notes](research/research.md)
     - [i.MX 8QM Ethernet Passthrough](research/passthrough/ethernet.md)
-    - [Running Windows VM in Ghaf](research/run_win_vm.md)
+    - [Running Windows VM on Ghaf](research/run_win_vm.md)
 
 -----------
 

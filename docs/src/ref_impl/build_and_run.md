@@ -5,6 +5,8 @@
 
 # Build and Run
 
+This tutorial assumes that you already have basic [git](https://git-scm.com/) experience.
+
 The canonical URL for the upstream Ghaf git repository is <https://github.com/tiiuae/ghaf>. To try Ghaf, you can build it from the source.
 
 >[Cross-compilation](../ref_impl/cross_compilation.md) support is currently under development and not available for the building process.
@@ -27,7 +29,7 @@ Then you can use one of the following instructions for the supported targets:
 | Device                  | Architecture     | Instruction      |
 |---                      |---               | ---              |
 | Virtual Machine | x86_64           | [Running Ghaf Image for x86 VM (ghaf-host)](./build_and_run.md#running-ghaf-image-for-x86-vm-ghaf-host)     |
-| Generic x86 computer | x86_64           | [Running Ghaf image for x86 computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
+| Generic x86 Сomputer | x86_64           | [Running Ghaf Image for x86 Computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
 | NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
 
@@ -38,13 +40,17 @@ Then you can use one of the following instructions for the supported targets:
 
 Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
 
-From the `ghaf` source directory, run the `nix run .#packages.x86_64-linux.vm` command.
+From the `ghaf` source directory, run the `nix run .#packages.x86_64-linux.vm-debug` command.
 
 This creates `ghaf-host.qcow2` copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing `ghaf-host.qcow2` should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then Power Down.
 
-## Running Ghaf image for x86 computer
+---
+
+## Running Ghaf Image for x86 Computer
 
 Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
+
+Do the following:
 1. To build the target image, run the command:
     ```
     nix build github:tiiuae/ghaf#generic-x86_64-debug
@@ -55,13 +61,14 @@ Before you begin, check device-independent [prerequisites](./build_and_run.md#pr
     ```
 3. Boot the computer from the USB media.
 
+---
 
 ## Ghaf Image for NVIDIA Jetson Orin AGX
 
 Before you begin:
 
 * Check device-independent [prerequisites](./build_and_run.md#prerequisites).
-* If you use a new device, [flash bootloader firmware](./build_and_run.md#flashing-nvidia-jetson-orin-agx) first.
+* If you use a new device, [flash bootloader firmware](./build_and_run.md#flashing-nvidia-jetson-orin-agx) first. Then you can [build and run a Ghaf image](./build_and_run.md#building-and-running-ghaf-image-for-nvidia-jetson-orin-agx).
 
 
 #### Flashing NVIDIA Jetson Orin AGX
@@ -107,10 +114,34 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
     ```
 3. Boot the hardware from the USB media.
 
+In the current state of Ghaf, it is a bit tricky to make NVIDIA Jetson Orin AGX boot Ghaf from a USB if the same thing has already been flashed on the boards's eMMC. To succeed, you can change partition labels on eMMC (or optionally wiping everything away by formatting):
+
+1. Log in as a root:
+    ```
+    sudo su
+    ```
+2. Check the current labels:
+    ```
+    lsblk -o name,path,fstype,mountpoint,label,size,uuid
+    ```
+3. Change the ext4 partition label:
+    ```
+    e2label /dev/mmcblk0p1 nixos_emmc
+    ```
+4. Change the vfat partition label:
+    ```
+    dosfslabel /dev/mmcblk0p2 ESP_EMMC
+    ```
+5. Verify the labels that were changed:
+    ```
+    lsblk -o name,path,fstype,mountpoint,label,size,uuid
+    ```
+6. After these changes NVIDIA Jetson Orin AGX cannot boot from its internal eMMC. It will boot from the USB device with the correct partition labels.
+
 
 ---
 
-### Building Ghaf Image for NXP i.MX 8QM-MEK
+## Building Ghaf Image for NXP i.MX 8QM-MEK
 
 Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
 
@@ -119,11 +150,11 @@ In the case of i.MX8, Ghaf deployment contains of creating a bootable SD card wi
 
 1. To build and flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader:  
 
-  ```
+    ```
     $ git clone https://github.com/tiiuae/Tow-Boot.git && cd Tow-Boot
     $ nix-build -A imx8qm-mek
     $ sudo dd if=result/ shared.disk-image.img of=/dev/<SDCARD>
-  ```
+    ```
 
 2. To build and flash the Ghaf image:
    1. Run the `nix build .#packages.aarch64-linux.imx8qm-mek-release` command.
