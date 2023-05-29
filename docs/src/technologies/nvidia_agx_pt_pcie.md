@@ -5,76 +5,55 @@
 
 # NVIDIA Jetson AGX Orin: PCIe passthrough
 
-This document describes the PCIe passthrough implementations on the NVIDIA
- Jetson AGX Orin board. The goal of this document is to give an overview
- of passing through different PCIe devices and limitations of PCIe in AGX
- Orin board.
+This document describes the PCIe passthrough implementations on the NVIDIA Jetson AGX Orin board. The goal of this document is to give an overview of passing through different PCIe devices and the limitations of PCIe in the board.
 
-##  PCIe slots in Nvidia Jetson AGX Orin
 
-There are two (or actually three) PCIe slots in Orin. One of the connectors
-is full size 8x PCIe slot located under a black plastic cover above the micro
-usb serial debug port on the side on Orin. The other slot is a smaller M2
-slot, and it is located at the bottom of the Orin. By default, the slot is in
-use of the included Wi-Fi and Bluetooth module. The third slot is actually an NVMe
-slot which can be used to add an NVMe ssd to Orin.
+##  PCIe Slots in NVIDIA Jetson AGX Orin
 
-There are a few things to consider when using one of the slots. First and
-foremost always turn off and disconnect any power sources from the Orin
-board and its peripheral when connecting or disconnecting devices on any of
-the PCIe buses. When adding or removing devices on board there is always a
-risk of setting off an electrical discharge in one of the components which may
-damage the connected device or the board itself.
+There are two (or actually three) PCIe slots in the Jetson AGX Orin board:
 
-### Full size PCIe slot
+* One of the connectors is a [full-size PCIe 8x slot](#full-size-pcie-slot) located under a black plastic cover above the micro USB serial debug port on the side of the board.
+* The other slot is a [smaller M.2 slot](#pcie-m2-slot) that is located at the bottom of the board. By default, the slot is in use of the included Wi-Fi and Bluetooth module.
+* The third slot is actually an [NVMe slot](#pcie-m2-nvme-2247-for-ssd) which can be used to add an NVMe SSD to the board.
 
-The full size PCIe connector can be found under the black plastic cover on one
-of the sides of the device. The cover is held in place with a fairly strong
-magnet. There is a small connector ribbon and a few delicate wires going from
-the board internals to a Wi-Fi antenna on the cover. Some care should be taken
-when removing the cover for not ripping the whole cover off along with the
-antenna cables.
+> For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
 
-The PCIe slot is exactly what you expect to find inside a full size desktop
-computer. One key difference is that the Orin board has limited 12 volts power
-output capabilities and Orin can only output maximum 40 watts of power to its
-PCIe slot. Normal desktop PCIe slot can output 75watts at 12 Volts so some
-more power hungry PCIe cards may not work with Orin. There may also be a risk
-of damaging Orin if a card tries to pull too much power from the PCIe socket
-it is advised to carefully check the power requirements of a device before
-turning the device on. The more power hungry cards are usually some Graphics-
-or other Accelerator cards. A good rule of thumb might be if the device has
-a fan to actively cool it down then some care should be taken before starting
-to use the card. Some trials have been done with GPU devices that use at
-maximum 30-34 watts power. The devices seem to work well in Nvidia Orin, but it
-is difficult to say how much power the card actually pulls from the slot at
-any given time. No real performance or stress tests have been done but under
-normal GUI and simple 3d application usage the cards (Nvidia Quadro P1000 and
-Nvidia Quadro T600) seem to work fine.
+When using one of the slots:
 
-### PCIe M2 slot
+* First and foremost, always turn off and disconnect any power sources from the board and its peripherals when connecting or disconnecting devices to any of the PCIe buses connect.
+* When adding or removing devices to the board, there is always a risk of setting off an electrical discharge in one of the components which may damage the connected device or the board itself.
 
-The PCIe M2 with key type A+E is at bottom of the board and is by default in
-use of the internal Wi-Fi and Bluetooth card. There are different types of M2
-slots all of which are not compatible with one another. The slot in Orin is
-type A+E, and it supports PCIe 2x and USB transport buses.
 
-### PCIe M2 NVMe 2247 for ssd
+#### Full-Size PCIe Slot
 
-The third slot is M2 NVMe 2280 (22 mm width and 80 mm length) and can be used
-for NVMe SSD. Passing through this interface has not been tested as the SSD is
-in most cases used by the host.
+The full-size PCIe connector is under the black plastic cover on one of the sides of the device. The cover is held in place with a fairly strong magnet. There is a small connector ribbon and a few delicate wires going from the board internals to a Wi-Fi antenna on the cover.
 
-## Enable PCIe devices for vfio
+> **TIP:** Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.
 
-Similar to [UART Passthrough](nvidia_agx_pt_uart.md) the default device tree
-needs some modifications. With the default configuration the PCI devices are
-set to the same vfio group as the PCI bus itself. The problem with this is
-that the PCI bus is a platform bus device which is a bit tricky to pass
-through to guest. Luckily we can pass through only the individual PCI devices
-and not the whole bus. To pass through individual PCI devices one by one needs
-to set the devices in their individual vfio groups or in this case remove the
-PCI bus from the same vfio group.
+The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards [^note1] may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.
+
+> **TIP:** We recommend to check carefully the power requirements of a device before turning the device on.
+
+A good rule of thumb might be if the device has a cooler to actively cool it down then some care should be taken before starting to use the card. Some trials have been done with GPU devices that use at maximum 30-34W power. The devices seem to work well in Jetson AGX Orin, but it is difficult to say how much power the card actually pulls from the slot at any given time. No real performance or stress tests have been done but under usual GUI and simple 3d application usage the cards (NVIDIA Quadro P1000 and NVIDIA Quadro T600) seem to work fine.
+
+
+#### PCIe M.2 Slot
+
+The PCIe M.2 slot with key type A+E is at the bottom of the board. By default, this slot is in use of the internal Wi-Fi and Bluetooth card. There are different types of M.2 slots all of which are not compatible with one another. The slot in Jetson AGX Orin is type A+E, and it supports PCIe 2x and USB transport buses.
+
+
+#### PCIe M.2 NVMe for SSD
+
+The third slot is M.2 NVMe 2280 (22 mm width and 80 mm length) and can be used for NVMe SSD. Passing through this interface has not been tested as the SSD is in most cases used by the host.
+
+
+## Enabling PCIe Devices for VFIO
+
+As in the [UART Passthrough](nvidia_agx_pt_uart.md), the default device tree requires some modifications.
+
+With the default configuration, the PCI devices are set to the same VFIO group as the PCI bus itself. The trouble here is that the PCI bus is a platform bus device which is a bit tricky to pass through to the guest. It is possible to pass through only the individual PCI devices and not the whole bus.
+
+To pass through individual PCI devices one by one, set the devices in their individual VFIO groups or remove the PCI bus from the same VFIO group:
 
 ```cpp
 /*
@@ -100,16 +79,13 @@ PCI bus from the same vfio group.
 };
 ```
 
-### Bind a device for vfio
 
-To set up the device for vfio the device driver needs to be unloaded and then
-replaced with "vfio-pci" driver. The example below is for a device in the PCI
-bus "0001". The only device "0001:01:00.0" in the first bus is the Nvidia Orin
-the m2 Wi-Fi card. The full size PCI bus id is "0005". It is possible that
-a single PCI card contains multiple devices. In that case all the devices
-need to be passed through together as they are in the same vfio group. Usually
-with graphics cards the graphics card also contains some sound output device
-as a separate device.
+### Binding Device for VFIO
+
+To set up the device for VFIO, unload the device driver and then replac it with the `vfio-pci` driver.
+
+The example below can be used for a device in the PCI bus `0001`.  
+The device `0001:01:00.0` in the first bus is the Jetson AGX Orin board with the M.2 Wi-Fi card. The full size PCI bus id is `0005`. It is possible that a single PCI card contains multiple devices. In that case, all the devices need to be passed through together as they are in the same VFIO group. Usually the graphics card also contains some sound output device as a separate device.
 
 ```
 export DEVICE="0001:01:00.0"
@@ -121,10 +97,8 @@ echo "$DEVICE" > /sys/bus/pci/devices/$DEVICE/driver/unbind
 echo "$VENDOR $DEVICE" > /sys/bus/pci/drivers/vfio-pci/new_id
 ```
 
-If everything went correctly this device is now bind to vfio. The vfio nodes
-in are usually owned by root and in some cases may in some cases be group
-accessible by vfio group. In any case to use the vfio devices the user
-who starts Qemu needs permission to the vfio device node.
+In case of success, this device is bound to VFIO. The VFIO nodes are usually owned by the root and in some cases may be group accessible by the VFIO group. To use the VFIO devices, the user who starts QEMU needs access to the VFIO device node:
+
 ```
 # List of vfio device <id> nodes
 ls /dev/vfio/
@@ -133,37 +107,33 @@ ls /dev/vfio/
 ls /sys/kernel/iommu_groups/<id>/devices/
 ```
 
-It is also possible to check which device belongs to which vfio iommu group
-from kernel logs.
+You can also check the kernel logs to know which device belongs to which VFIO IOMMU group.
 
-## Start guest virtual machine
 
-With the device bind to vfio we can start Qemu and passthrough our example
-device to Qemu virtual machine it with a command line argument. It actually does not matter
-which vfio node id the device was assigned to earlier as long as all the
-devices with the same vfio node are passed through and none of the devices
-in the same group is left behind. The qemu command line argument for
-passthrough used the pcie device id as identifier for the devices so each
-device which is passed through needs its with its own qemu "-device" argument
-as below.
+## Starting Guest VM
+
+After binding a device to VFIO, you can use a command line argument (as in the example) for the PCI device to pass through to QEMU and run it in a VM.
+
+> It does not matter which VFIO node ID was assigned to the device earlier, as long as all the devices with the same VFIO node are passed through, and none of the devices in the same group is left behind.
+
+The QEMU command line argument for passthrough uses the PCIe device ID as identifier for the devices. Each
+device which is passed through needs its own QEMU `-device` argument as below:
+
 ```
 -device vfio-pci,host="0001:01:00.0"
 ```
 
-### Arm64 PCI device interrupts
-Modern PCI devices use Message signaled interrupts (MSI) for limiting the need
-for physical hardware interrupt pins. As passing through PCI or any devices is
-fairly new to Qemu it seems Qemu does not have support for using MSI in arm64.
-To get interrupts work in guest we need to tell kernel to disable MSI for our
-passthrough device. One way to do this is to modify host device tree by
-disabling MSI completely from the whole PCI bus. Easier method is to disable
-MSI only from the guest by using "pci=nomsi" kernel argument with Qemu.
-Disabling MSI is not required for X86 Qemu guest as it has support for
-using MSI.
 
-Notice that the command below is for aarch64 platform. The command works in a
-test environment, but it is provided only as an example for passing through
-a PCI device. It may require some changes in a real usage.
+### ARM64 PCI Device Interrupts
+
+Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU.
+
+To get interrupts to work in the guest, we need to signal the kernel to disable MSI for our passthrough device. There are two ways of doing it:
+
+1. To modify the host device tree by disabling MSI completely from the whole PCI bus.
+2. To disable MSI only from the guest by using the `pci=nomsi` kernel argument with QEMU. Disabling MSI is not required for the x86 QEMU guest as it has MSI support.
+
+The command below is provided only as a test example for passing through a PCI device for AArch64[^note2]:
 
 ```
 qemu-system-aarch64 \
@@ -178,16 +148,14 @@ qemu-system-aarch64 \
     -append "rootwait root=/dev/vda1 console=ttyAMA0 pci=nomsi"
 ```
 
-### More work for Arm64 ###
-The above is enough for X86 and also for ARM64 when using some simple or a bit
-older PCIe devices. A bit more complex PCIe device which have larger internal
-RAM pool need some modifications with Qemu sources. The problem with passing
-through such devices is that the memory address range reserved for PCIe
-devices is not large enough to map the internal memory of the PCI device. Some
-graphics card have several gigabytes of internal ram which needs to be
-accessible for virtual machine guest. The VIRT_PCIE_ECAM memory address range
-in Qemu source code needs to be extended to allow mapping the whole PCIe device
-memory range. In most cases a few gigabytes is sufficient.
+
+### More Work for ARM64
+
+The information above is enough for x86 and also for ARM64 processor architecture when using some simple or a bit older PCIe devices. A bit more complex PCIe device which has a larger internal RAM pool needs some modifications with QEMU sources.
+
+The problem with passing through such devices is that the memory address range reserved for PCIe devices is not large enough to map the internal memory of the PCI device. Some graphics cards have several gigabytes of internal RAM which needs to be accessible for the VM guest.
+
+You can extend the VIRT_PCIE_ECAM memory address range in the QEMU source code to allow mapping the whole PCIe device memory range. In most cases a few gigabytes is sufficient:
 
 ```
 diff --git a/hw/arm/virt.c b/hw/arm/virt.c
@@ -208,4 +176,8 @@ index ac626b3bef..d6fb597aee 100644
 
 ```
 
-After this modification Qemu needs to be compiled and installed to the host system.
+After these changes, compile QEMU and install it on the host system.
+
+[^note1]: An example of a power-hungry card is a graphics accelerator card.
+
+[^note2]: It may require some changes for real usage.

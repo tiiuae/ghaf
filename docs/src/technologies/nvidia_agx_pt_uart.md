@@ -45,7 +45,7 @@ the last column describes where the UART units are connected to the exterior.
 Please note here that only two UART units are connected to the micro USB debug
 interface. The UART7 is not connected by default, but it can be connected to the 
 debug interface ttyACM1 by swapping the fuse resistors (see Debug MCU page 7 on 
-P3737_A04_Concept_schematics.pdf [^note3])
+P3737_A04_Concept_schematics.pdf [^note3]).
 
 
 ## UARTI Selected for Passthrough
@@ -127,7 +127,7 @@ To this device tree add the passthrough devices inside the platform node:
 
 Here, the *uarti* node was added to the platform node. To this node, the interrupt 
 number was replaced to 0x70 and reg address to the one that was obtained from the 
-QEMU monitor command: *info mtree -f*
+QEMU monitor command: *info mtree -f*.
 
 
 ## Start Guest VM
