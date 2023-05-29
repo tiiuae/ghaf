@@ -35,6 +35,15 @@ If you do not find the term or abbreviation you are looking for, share your ques
 
 Wikipedia is not a dictionary.
 
+
+---
+
+Groups of terms and abbreviations:
+
+* [Project Related](#project-related)
+* [Core Concepts](#core-concepts)
+* [SCS Related](#scs-related)
+
 ---
 
 ## Project Related
@@ -93,9 +102,18 @@ _graphical user interface_
 
 _An intrusion detection system (also intrusion prevention system or IPS) monitors network traffic for suspicious activity and report when such activity is discovered._
 
+### IOMMU
+
+_input–output memory management unit_
+
 ### IP
 
 _The Internet Protocol is a set of rules for communication over the Internet, such as sending email, streaming video, or connecting to a website._
+
+### ISA
+
+_An Instruction Set Architecture is part of the abstract model of a computer that defines how the CPU is controlled by the software._  
+Source: <https://www.arm.com/glossary/isa>
 
 ### KVM
 
@@ -110,6 +128,10 @@ Source: <https://github.com/jkrh/kvms>
 
 _memory management unit_
 
+### MSI
+
+_Message Signaled Interrupts_
+
 ### NixOS
 
 _A Linux distribution based on the Nix package manager and build system._  
@@ -119,10 +141,23 @@ Source: <https://nixos.wiki/wiki/Overview_of_the_NixOS_Linux_distribution>
 
 _operating system_
 
+### PCI
+
+_Peripheral Component Interconnect_
+
 ### QEMU
 
 _A generic and open source machine emulator and virtualizer._  
 Source: <https://www.qemu.org/docs/master/about/index.html>
+
+### SBSA
+
+_The Server Base System Architecture specifies a hardware system architecture, based on Arm 64-bit architecture, that server system software, for example operating systems, hypervisors, and firmware can rely on._  
+Source: [Arm® Server Base System Architecture 7.1 Platform Design Document](https://developer.arm.com/documentation/den0029/latest)
+
+### SoC
+
+_A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC)._
 
 ### TCB
 
@@ -133,9 +168,18 @@ Source: [Department of Defense trusted computer system evaluation criteria, DoD 
 
 _Transport Layer Security, a security protocol._
 
+### UART
+
+_An universal asynchronous receiver-transmitter, a hardware communication protocol._
+
 ### UI
 
 _user interface_
+
+### VFIO
+
+_Virtual Function I/O_  
+Source: <https://docs.kernel.org/driver-api/vfio.html>
 
 ### VM
 
@@ -148,28 +192,6 @@ _Virtual Machine Manager_
 ### ZTA
 
 _zero trust architecture, zero trust security model_
-
----
-
-## Build Configurations Related
-
-### UART
-
-_An universal asynchronous receiver-transmitter, a hardware communication protocol._
-
-### SoC
-
-_A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC)._
-
-### SBSA
-
-_The Server Base System Architecture specifies a hardware system architecture, based on Arm 64-bit architecture, that server system software, for example operating systems, hypervisors, and firmware can rely on._  
-Source: [Arm® Server Base System Architecture 7.1 Platform Design Document](https://developer.arm.com/documentation/den0029/latest)
-
-### ISA
-
-_An Instruction Set Architecture is part of the abstract model of a computer that defines how the CPU is controlled by the software._  
-Source: <https://www.arm.com/glossary/isa>
 
 ---
 

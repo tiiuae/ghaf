@@ -11,6 +11,7 @@
 - [Technologies](technologies/technologies.md)
     - [Passthrough](technologies/passthrough.md)
         - [NVIDIA Jetson AGX Orin: UART Passthrough](technologies/nvidia_agx_pt_uart.md)
+        - [NVIDIA Jetson AGX Orin: PCIe Passthrough](technologies/nvidia_agx_pt_pcie.md)
     - [Hypervisor Options](technologies/hypervisor_options.md)
 - [Reference Implementations](ref_impl/reference_implementations.md)
   - [Build and Run](ref_impl/build_and_run.md)
