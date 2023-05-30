@@ -86,18 +86,12 @@
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
   mkFlashScript = import ../modules/hardware/nvidia-jetson-orin/mk-flash-script.nix;
-  generate-flash-script = tgt: flash-tools-system: let
-    socType = "t234";
-  in
+  generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
-      inherit (nixpkgs) lib;
       inherit nixpkgs;
       inherit (tgt) hostConfiguration;
       inherit jetpack-nixos;
-      inherit (jetpack-nixos.legacyPackages.${flash-tools-system}) flash-tools;
       inherit flash-tools-system;
-      inherit (jetpack-nixos.legacyPackages.aarch64-linux) uefi-firmware;
-      inherit socType;
     };
 in {
   nixosConfigurations =

@@ -22,11 +22,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1685121327,
-        "narHash": "sha256-H4CFYDm/3tJF0IHHlNGy7xl49ICS9xPA5F4mZEq4co0=",
+        "lastModified": 1685373550,
+        "narHash": "sha256-BFqG3C1JPWWClCaTfBlcmHyJdG1zfForlBV8AYrIIKs=",
         "owner": "anduril",
         "repo": "jetpack-nixos",
-        "rev": "943c190d181a3f40b98609238c621d6e898557ab",
+        "rev": "b83b9ab3a7355f343fe8ca13d0bdfc38a2dc949e",
         "type": "github"
       },
       "original": {
