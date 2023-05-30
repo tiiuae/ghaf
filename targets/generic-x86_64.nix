@@ -6,6 +6,7 @@
   self,
   nixpkgs,
   nixos-generators,
+  nixos-hardware,
   microvm,
 }: let
   name = "generic-x86_64";
@@ -28,11 +29,17 @@
 
           formatModule
 
+          #TODO: how to handle the majority of laptops that need a little
+          # something extra?
+          # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
+          # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
+
           {
             boot.kernelParams = [
               "intel_iommu=on,igx_off,sm_on"
               "iommu=pt"
 
+              # TODO: Change per your device
               # Passthrough Intel WiFi card
               "vfio-pci.ids=8086:a0f0"
             ];
