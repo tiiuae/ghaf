@@ -4,7 +4,7 @@
   self,
   microvm,
   netvm,
-}: {...}: {
+}: {lib, ...}: {
   imports = [
     (import ./minimal.nix)
 
@@ -17,5 +17,5 @@
   ];
 
   networking.hostName = "ghaf-host";
-  system.stateVersion = "22.11";
+  system.stateVersion = lib.trivial.release;
 }

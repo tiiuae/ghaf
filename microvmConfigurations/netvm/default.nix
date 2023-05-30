@@ -15,10 +15,14 @@ nixpkgs.lib.nixosSystem {
 
     microvm.nixosModules.microvm
 
-    ({pkgs, ...}: {
+    ({
+      pkgs,
+      lib,
+      ...
+    }: {
       networking.hostName = "netvm";
       # TODO: Maybe inherit state version
-      system.stateVersion = "22.11";
+      system.stateVersion = lib.trivial.release;
 
       # TODO: crosvm PCI passthrough does not currently work
       microvm.hypervisor = "qemu";
