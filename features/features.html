@@ -153,19 +153,37 @@
 -->
 <h1 id="features"><a class="header" href="#features">Features</a></h1>
 <p>The vision for the Ghaf platform is to create a virtualized, scalable reference platform that enables the building of secure products leveraging trusted, reusable, and portable software for edge devices. For more information on reference implementation for several devices, see <a href="../ref_impl/reference_implementations.html">Reference Implementations</a>.</p>
-<p>The following table provides the Ghaf Platform capabilities:</p>
+<h2 id="status"><a class="header" href="#status">Status</a></h2>
+<ul>
+<li>✅ - integrated and tested in the <code>main</code> branch. No known regression.</li>
+<li>🚧 - prototyped or work in progress in the development branch.</li>
+<li>❌ - the feature has known regression or bugs.</li>
+</ul>
+<p>The following tables show the status of Ghaf Platform features:</p>
+<h2 id="release-builds-and-hw-architecture-support"><a class="header" href="#release-builds-and-hw-architecture-support">Release builds and HW architecture support</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
-<tr><td>Device image</td><td><code>Done</code></td><td><code>Orin</code></td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a>.</td></tr>
-<tr><td>CI builds</td><td><code>In progress</code></td><td><code>Orin</code></td><td><a href="https://vedenemo.dev/">Only <code>main</code>-branch, not for all PRs</a>.</td></tr>
-<tr><td>Generic image</td><td><code>Done</code></td><td><code>x86</code></td><td>Generic x86 computer, based on generic <a href="https://nixos.org/">NixOS</a>.</td></tr>
-<tr><td>Device flashing</td><td><code>Done</code></td><td><code>Orin</code></td><td>Full device update, <code>x86</code> via removable media.</td></tr>
-<tr><td>Native build</td><td><code>Done</code></td><td><code>aarch64, x86</code></td><td></td></tr>
-<tr><td>Emulated build</td><td><code>Regression</code></td><td><code>Orin</code></td><td><code>binfmt</code>, may freeze the build machine.</td></tr>
-<tr><td>Cross-compilation</td><td><code>In progress</code></td><td><code>Orin</code></td><td>Depends on NixOS <code>nixpkgs 22.11/23.05</code>.</td></tr>
-<tr><td>Debug: SSH</td><td><code>Done</code></td><td><code>Orin</code>, <code>x86</code></td><td>Host access in development mode, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication.nix</a>.</td></tr>
-<tr><td>Debug: Serial</td><td><code>Done</code></td><td><code>Orin</code></td><td>Host access in development mode through debug serial.</td></tr>
-<tr><td><code>minimal host</code></td><td><code>In progress</code></td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>All</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">Minimal Host</a> and <a href="https://github.com/tiiuae/ghaf/issues/45">issue #45</a>.</td></tr>
-<tr><td><code>netvm</code></td><td><code>In progress</code></td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">netvm</a>. Passthrough is not working.</td></tr>
+<tr><td>Ghaf in virtual machine</td><td>✅</td><td><code>x86</code></td><td><code>nix run .#packages.x86_64-linux.vm-debug</code></td></tr>
+<tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>Orin</code></td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a>.</td></tr>
+<tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>imx8qm</code></td><td>Based on NXP BSP, implemented as <a href="https://github.com/NixOS/nixos-hardware/tree/master/nxp">nixos-hardware module</a></td></tr>
+<tr><td><code>x86</code> generic image</td><td>✅</td><td><code>x86</code></td><td>Generic x86 computer, based on generic <a href="https://nixos.org/">NixOS</a>. NOTE: requires device specific configuration.</td></tr>
+<tr><td>Native build</td><td>✅</td><td><code>aarch64, x86</code></td><td>Remote <code>aarc64</code> nixos builders recommended</td></tr>
+<tr><td>Cross-compilation</td><td>🚧</td><td><code>aarch64</code></td><td>Depends on NixOS <code>nixpkgs 23.05</code> support for cross-compilation</td></tr>
+<tr><td>CI builds</td><td>✅</td><td><code>All</code></td><td><a href="https://vedenemo.dev/">Only <code>main</code>-branch, not for all PRs</a>.</td></tr>
+</tbody></table>
+</div>
+<h2 id="development"><a class="header" href="#development">Development</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
+<tr><td>Quick target update</td><td>✅</td><td><code>all</code></td><td><code>nixos-rebuild --flake .#nvidia-jetson-orin-debug --target-host root@ghaf-host --fast switch</code></td></tr>
+<tr><td><code>aarch64</code> device flashing</td><td>✅</td><td><code>Orin</code></td><td><a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#flashing-nvidia-jetson-orin-agx">Full device software flashing using <code>x86</code> machine</a></td></tr>
+<tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8qm</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
+<tr><td>Debug: SSH</td><td>✅</td><td><code>Orin</code>, <code>x86</code></td><td>Host access only in <code>-debug</code>-target, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication.nix</a></td></tr>
+<tr><td>Debug: Serial</td><td>✅</td><td><code>all</code></td><td>Host access only in <code>-debug</code>-target - e.g. <code>screen /dev/ttyACM0 115200</code></td></tr>
+</tbody></table>
+</div>
+<h2 id="target-architecture"><a class="header" href="#target-architecture">Target architecture</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
+<tr><td><code>minimal host</code></td><td>🚧</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>all</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">Minimal Host</a> and <a href="https://github.com/tiiuae/ghaf/pull/140">PR #140</a>.</td></tr>
+<tr><td><code>netvm</code></td><td>✅</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">netvm</a>. Passthrough with Wifi works but requires SSID/password configuration</td></tr>
 <tr><td>USB passthrough</td><td><code>In progress</code></td><td><code>Orin</code></td><td>Passthrough with crosvm is not verified.</td></tr>
 <tr><td>PCI passthrough</td><td><code>In progress</code></td><td><code>Orin</code></td><td>Wi-Fi passthrough is verified only in development.</td></tr>
 <tr><td>UART passthrough</td><td><code>In progress</code></td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/build_config/passthrough/nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a>. Not integrated to <code>netvm</code>.</td></tr>
@@ -175,12 +193,6 @@
 <tr><td>Virtualization control</td><td><code>In progress</code></td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>All</code></a></td><td>See <a href="https://github.com/tiiuae/vmd/blob/main/doc/design.md">vmd design</a>.</td></tr>
 </tbody></table>
 </div>
-<h2 id="status"><a class="header" href="#status">Status</a></h2>
-<ul>
-<li><code>Done</code>—integrated and tested in the <code>main</code> branch.</li>
-<li><code>In progress</code>—prototyped or work in progress in the development branch.</li>
-<li><code>Regression</code>—the feature has regression or bugs.</li>
-</ul>
 <h2 id="reference-devices"><a class="header" href="#reference-devices">Reference Devices</a></h2>
 <ul>
 <li><code>Orin</code>—NVIDIA Jetson AGX Orin as the main reference device.</li>
