@@ -89,12 +89,12 @@ The device `0001:01:00.0` in the first bus is the Jetson AGX Orin board with the
 
 ```
 export DEVICE="0001:01:00.0"
-export VENDOR=$(cat /sys/bus/pci/devices/$DEVICE/vendor)
-export DEVICE=$(cat /sys/bus/pci/devices/$DEVICE/device)
+export VENDOR_ID=$(cat /sys/bus/pci/devices/$DEVICE/vendor)
+export DEVICE_ID=$(cat /sys/bus/pci/devices/$DEVICE/device)
 
 echo "$DEVICE" > /sys/bus/pci/devices/$DEVICE/driver/unbind
 
-echo "$VENDOR $DEVICE" > /sys/bus/pci/drivers/vfio-pci/new_id
+echo "$VENDOR_ID $DEVICE_ID" > /sys/bus/pci/drivers/vfio-pci/new_id
 ```
 
 In case of success, this device is bound to VFIO. The VFIO nodes are usually owned by the root and in some cases may be group accessible by the VFIO group. To use the VFIO devices, the user who starts QEMU needs access to the VFIO device node:
@@ -112,7 +112,7 @@ You can also check the kernel logs to know which device belongs to which VFIO IO
 
 ## Starting Guest VM
 
-After binding a device to VFIO, you can use a command line argument (as in the example) for the PCI device to pass through to QEMU and run it in a VM.
+After binding a device to VFIO, you can access the device in a VM. To do so, use a command line argument (as in the example) for the PCI device to pass through to QEMU.
 
 > It does not matter which VFIO node ID was assigned to the device earlier, as long as all the devices with the same VFIO node are passed through, and none of the devices in the same group is left behind.
 
@@ -126,14 +126,14 @@ device which is passed through needs its own QEMU `-device` argument as below:
 
 ### ARM64 PCI Device Interrupts
 
-Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU.
+Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU [^note2].
 
 To get interrupts to work in the guest, we need to signal the kernel to disable MSI for our passthrough device. There are two ways of doing it:
 
 1. To modify the host device tree by disabling MSI completely from the whole PCI bus.
 2. To disable MSI only from the guest by using the `pci=nomsi` kernel argument with QEMU. Disabling MSI is not required for the x86 QEMU guest as it has MSI support.
 
-The command below is provided only as a test example for passing through a PCI device for AArch64[^note2]:
+The command below is provided only as a test example for passing through a PCI device for AArch64 [^note3]:
 
 ```
 qemu-system-aarch64 \
@@ -180,4 +180,6 @@ After these changes, compile QEMU and install it on the host system.
 
 [^note1]: An example of a power-hungry card is a graphics accelerator card.
 
-[^note2]: It may require some changes for real usage.
+[^note2]: Our approach of using ARM as a VM host with passthroughs fairly new so it is hard to search for help or references online, but this bug [qemu-system-aarch64 error](https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1832394) seems to be close enough. The main hint of MSI not being fully supported yet by QEMU on ARM64 comes from the case when the device starts working only with MSI disabled from the guest kernel argument.
+
+[^note3]: It may require some changes for real usage.
