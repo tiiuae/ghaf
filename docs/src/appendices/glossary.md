@@ -145,6 +145,10 @@ _operating system_
 
 _Peripheral Component Interconnect_
 
+### PCIe
+
+_Peripheral Component Interconnect Express_
+
 ### QEMU
 
 _A generic and open source machine emulator and virtualizer._  
@@ -158,6 +162,10 @@ Source: [Arm® Server Base System Architecture 7.1 Platform Design Document](htt
 ### SoC
 
 _A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC)._
+
+### SSD
+
+_solid-state drive_
 
 ### TCB
 
