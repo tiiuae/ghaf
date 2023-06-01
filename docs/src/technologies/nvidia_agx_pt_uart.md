@@ -153,6 +153,6 @@ When the guest VM is launched you can see the VM Linux command line in the opene
 
 [^note1]: kernel_src/hardware/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
 
-[^note2]: bootloader/t186ref/BCT/tegra234-mb1-bct-pinmux-p3701-0000.dtsi
+[^note2]: bootloader/t186ref/BCT/tegra234-mb1-bct-pinmux-p3701-0000.dtsi available in the BSP sources on: https://developer.nvidia.com/embedded/jetson-linux-r3521
 
-[^note3]: Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf
+[^note3]: Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf available in https://developer.nvidia.com/jetson-agx-orin-developer-kit-carrier-board-design-files-a04
