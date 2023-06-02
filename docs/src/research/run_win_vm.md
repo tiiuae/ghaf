@@ -42,4 +42,4 @@ You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX. This method 
    windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX -serial stdio
    ```
 
-3. Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type `OOBE\BYPASSNRO`. The VM will reboot and configuration will continue in offline mode.
+3. Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 (might also need Alt+Tab if cmd opens in the background) and type `OOBE\BYPASSNRO`. The VM will reboot and configuration will continue in offline mode.
