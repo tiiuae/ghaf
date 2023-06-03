@@ -40,3 +40,4 @@ The same goes with the architectural variants as headless devices or end-user de
 - [Build and Run](./build_and_run.md)
 - [Development](./development.md)
    - [Cross-Compilation](./cross_compilation.md)
+- [Define a Custom Project from Ghaf](./custom_product.md)

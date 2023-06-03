@@ -1,7 +1,7 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  description = "Ghaf - Documentation and implementation for TII SSRC Secure Technologies Ghaf Framework";
+  description = "PROJ_NAME - Ghaf based configuration";
 
   nixConfig = {
     extra-trusted-substituters = [
@@ -17,30 +17,23 @@
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
     nixos-hardware.url = "github:nixos/nixos-hardware";
-    microvm = {
-      url = "github:astro/microvm.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
-    };
-    jetpack-nixos = {
-      url = "github:anduril/jetpack-nixos";
-      inputs.nixpkgs.follows = "nixpkgs";
+    ghaf = {
+      url = "github:tiiuae/ghaf";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        nixos-hardware.follows = "nixos-hardware";
+      };
     };
   };
 
   outputs = {
     self,
+    ghaf,
     nixpkgs,
-    flake-utils,
-    nixos-generators,
     nixos-hardware,
-    microvm,
-    jetpack-nixos,
+    flake-utils,
   }: let
     systems = with flake-utils.lib.system; [
       x86_64-linux
@@ -49,24 +42,21 @@
   in
     # Combine list of attribute sets together
     nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
-      # Documentation
       (flake-utils.lib.eachSystem systems (system: {
-        packages = let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in {
-          doc = pkgs.callPackage ./docs/doc.nix {};
-        };
-
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
 
-      # Target configurations
-      (import ./targets {inherit self nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
-
-      # Hydra jobs
-      (import ./hydrajobs.nix {inherit self;})
-
-      #templates
-      (import ./templates {inherit self;})
+      {
+        nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.imx8qm-mek-debug.extendModules {
+          modules = [
+            {
+              #insert your additional modules here e.g.
+              # virtualisation.docker.enable = true;
+              # users.users."ghaf".extraGroups = ["docker"];
+            }
+          ];
+        };
+        packages.aarch64-linux.PROJ_NAME-ghaf-debug = self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.${self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.formatAttr};
+      }
     ];
 }
