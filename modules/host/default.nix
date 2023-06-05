@@ -10,7 +10,7 @@
 
     microvm.nixosModules.host
 
-    ../overlays/custom-packages.nix
+    # ../overlays/custom-packages.nix
 
     (import ./microvm.nix {inherit self netvm;})
     ./networking.nix
