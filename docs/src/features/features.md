@@ -33,7 +33,7 @@ The following tables show the status of Ghaf Platform features:
 | `aarch64` reference image | &#x2705; | `imx8qm`  | Based on NXP BSP, implemented as [nixos-hardware module](https://github.com/NixOS/nixos-hardware/tree/master/nxp)|
 | `x86` generic image | &#x2705; | `x86` | Generic x86 computer, based on generic [NixOS](https://nixos.org/). NOTE: requires device specific configuration.|
 | Native build      | &#x2705;         | `aarch64, x86`   | Remote `aarc64` nixos builders recommended |
-| Cross-compilation | &#x1f6A7; | `aarch64`  | Depends on NixOS `nixpkgs 23.05` support for cross-compilation |
+| Cross-compilation | &#x1f6A7; | `aarch64, riscv64`  | Depends on NixOS `nixpkgs 23.05` / `nixpkgs 22.11`(for riscv64) support for cross-compilation |
 | CI builds         | &#x2705; | `All`  | [Only `main`-branch, not for all PRs](https://vedenemo.dev/). |
 | Emulated build    | &#x274C; | `aarch64`  | `binfmt`, may freeze the build machine. Not recommended. [See instructions.](https://tiiuae.github.io/ghaf/ref_impl/cross_compilation.html#binfmt)|
 

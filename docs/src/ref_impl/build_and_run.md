@@ -32,6 +32,7 @@ Then you can use one of the following instructions for the supported targets:
 | Generic x86 Сomputer | x86_64           | [Running Ghaf Image for x86 Computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
 | NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
+| MICROCHIP icicle-kit    | RISCV64          | [MICROCHIP icicle-kit](./build_and_run.md#building-ghaf-image-for-microchip-icicle-kit)                     |
 
 
 ---
@@ -161,3 +162,27 @@ In the case of i.MX8, Ghaf deployment contains of creating a bootable SD card wi
    2. Prepare the USB boot media with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M`.
    
 3. Insert an SD card and USB boot media into the board and switch the power on.
+
+---
+
+### Building Ghaf Image for Microchip Icicle kit
+
+Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
+
+In the case of Icicle kit, Ghaf deployment contains of creating a SD Image which includes UBoot and Linux kernel from Microchip and Ghaf based NixOS rootfs.
+
+1. Build a Ghaf SD image:
+   a. Release Image:
+        Run the `nix build .#packages.riscv64-linux.mpfs-icicle-kit-release` command.
+   b. Debug Image:
+        Run the `nix build .#packages.riscv64-linux.mpfs-icicle-kit-debug` command.
+
+2. Flash the Ghaf SD image:
+   a. Prepare the SD card with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_SD_DEVICE> bs=32M`.
+     - Insert an SD card into the board and switch the power on.
+
+   b. You can directly flash nixos image to onboard MMC card: `dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M`.
+     - Please refer Icicle kit user guide for more detail to access MMC card as USB disk.
+
+---
+
