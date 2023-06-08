@@ -33,6 +33,12 @@ or
     
 depending on whether your development host is running AMD or Intel processor.
 
+## Cross Compilation for Microchip Icicle Kit (RISCV64)
+SD Image for Microchip Icicle kit can be cross compiled from x86 machine. To generate the release/debug SD Image run following command:
+
+```
+ $> nix build .#packages.riscv64-linux.mpfs-icicle-kit-<release/debug>
+```
 
 ## Future Cross-Compilation Support
 
