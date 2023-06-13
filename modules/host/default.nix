@@ -18,18 +18,6 @@ in
       disableNetwork = mkEnableOption "disableing of network";
       disableGetty = mkEnableOption "disabling of getty";
       removeNix = mkEnableOption "nix tooling";
-      minimalKernelConfig = {
-        enable = mkEnableOption "minimal kernel config";
-        structuredExtraConfig = mkOption {
-          default = types.attrs;
-          example = literalExpression ''
-            with lib.kernel; {
-              SCHED_MUQSS = yes;
-            }'';
-          description = "Extra config for the kernel. See https://nixos.wiki/wiki/Linux_kernel#Custom_configuration.";
-          type = types.attrs;
-        };
-      };
     };
 
     # HACK: import other modules with explicit passing of arguments, otherwise import
@@ -47,13 +35,6 @@ in
         # TODO: Patch raw-efi image build script to support building without relying on
         # image nix tools (replace with packages from nixpkgs).
         nix.enable = false;
-      })
-      (lib.mkIf cfg.minimalKernelConfig.enable {
-        boot.kernelPatches = lib.singleton {
-          name = "minimal";
-          patch = null;
-          extraStructuredConfig = cfg.minimalKernelConfig.structuredExtraConfig;
-        };
       })
     ];
   }
