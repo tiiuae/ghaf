@@ -46,9 +46,15 @@
       x86_64-linux
       aarch64-linux
     ];
+    lib = nixpkgs.lib.extend (final: prev: {
+      ghaf = import ./lib {
+        inherit self;
+        lib = final;
+      };
+    });
   in
     # Combine list of attribute sets together
-    nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
+    lib.foldr lib.recursiveUpdate {} [
       # Documentation
       (flake-utils.lib.eachSystem systems (system: {
         packages = let
@@ -60,8 +66,13 @@
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
 
+      # ghaf lib
+      {
+        lib = lib.ghaf;
+      }
+
       # Target configurations
-      (import ./targets {inherit self nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
+      (import ./targets {inherit self lib nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
 
       # Hydra jobs
       (import ./hydrajobs.nix {inherit self;})
