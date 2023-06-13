@@ -42,10 +42,7 @@ in
       (import ../overlays/custom-packages.nix {inherit lib pkgs;})
       (lib.mkIf cfg.reduceProfile (import ./minimal.nix {inherit pkgs lib;}))
       (lib.mkIf (!cfg.disableNetwork) (import ./networking.nix {}))
-      (lib.mkIf cfg.disableGetty {
-        # XXX: Incompatable with `services.getty` options.
-        systemd.services."getty@".enable = lib.mkForce false;
-      })
+      (lib.mkIf cfg.disableGetty (import ./nogetty.nix lib))
       (lib.mkIf cfg.removeNix {
         # TODO: Patch raw-efi image build script to support building without relying on
         # image nix tools (replace with packages from nixpkgs).
