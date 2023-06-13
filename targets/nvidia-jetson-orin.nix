@@ -12,7 +12,7 @@
   system = "aarch64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
   nvidia-jetson-orin = variant: extraModules: let
-    hostConfiguration = nixpkgs.lib.nixosSystem {
+    hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules =
@@ -40,7 +40,7 @@
     name = "${name}-${variant}";
     netvmConfiguration =
       (import ../microvmConfigurations/netvm {
-        inherit nixpkgs microvm system;
+        inherit lib microvm system;
       })
       .extendModules {
         modules = [
@@ -97,17 +97,17 @@
     };
 in {
   nixosConfigurations =
-    builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets))
-    // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.netvm t.netvmConfiguration) targets);
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets))
+    // builtins.listToAttrs (map (t: lib.nameValuePair t.netvm t.netvmConfiguration) targets);
 
   packages = {
     aarch64-linux =
-      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets)
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
       # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
       #               and it simply might not work. Providing the script anyway
-      // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets);
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets);
     x86_64-linux =
-      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) crossTargets)
-      // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets));
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets));
   };
 }

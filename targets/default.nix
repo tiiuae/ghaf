@@ -11,9 +11,9 @@
   microvm,
   jetpack-nixos,
 }:
-nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
+lib.foldr lib.recursiveUpdate {} [
   (import ./nvidia-jetson-orin.nix {inherit self lib nixpkgs nixos-generators microvm jetpack-nixos;})
-  (import ./vm.nix {inherit self lib nixpkgs nixos-generators microvm;})
-  (import ./generic-x86_64.nix {inherit self lib nixpkgs nixos-generators nixos-hardware microvm;})
-  (import ./imx8qm-mek.nix {inherit self lib nixpkgs nixos-generators nixos-hardware microvm;})
+  (import ./vm.nix {inherit self lib nixos-generators microvm;})
+  (import ./generic-x86_64.nix {inherit self lib nixos-generators nixos-hardware microvm;})
+  (import ./imx8qm-mek.nix {inherit self lib nixos-generators nixos-hardware microvm;})
 ]

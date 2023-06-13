@@ -1,12 +1,13 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  nixpkgs,
+  lib,
   microvm,
   system,
 }:
-nixpkgs.lib.nixosSystem {
+lib.nixosSystem {
   inherit system;
+  specialArgs = {inherit lib;};
   modules = [
     # TODO: Enable only for development builds
     ../../modules/development/authentication.nix

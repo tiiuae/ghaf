@@ -47,11 +47,14 @@
       aarch64-linux
     ];
     lib = nixpkgs.lib.extend (final: prev: {
-      ghaf = import ./lib {inherit self nixpkgs;};
+      ghaf = import ./lib {
+        inherit self;
+        lib = final;
+      };
     });
   in
     # Combine list of attribute sets together
-    nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
+    lib.foldr lib.recursiveUpdate {} [
       # Documentation
       (flake-utils.lib.eachSystem systems (system: {
         packages = let

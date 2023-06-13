@@ -5,7 +5,6 @@
 {
   self,
   lib,
-  nixpkgs,
   nixos-generators,
   nixos-hardware,
   microvm,
@@ -14,7 +13,7 @@
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
   generic-x86 = variant: extraModules: let
-    hostConfiguration = nixpkgs.lib.nixosSystem {
+    hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules =
@@ -55,7 +54,7 @@
     name = "${name}-${variant}";
     netvmConfiguration =
       (import ../microvmConfigurations/netvm {
-        inherit nixpkgs microvm system;
+        inherit lib microvm system;
       })
       .extendModules {
         modules = [
@@ -87,10 +86,10 @@
   ];
 in {
   nixosConfigurations =
-    builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.hostConfiguration) targets)
-    // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.netvm t.netvmConfiguration) targets);
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets)
+    // builtins.listToAttrs (map (t: lib.nameValuePair t.netvm t.netvmConfiguration) targets);
   packages = {
     x86_64-linux =
-      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets);
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };
 }

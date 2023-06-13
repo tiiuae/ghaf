@@ -3,7 +3,6 @@
 {
   self,
   lib,
-  nixpkgs,
   nixos-generators,
   microvm,
 }: let
@@ -11,7 +10,7 @@
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.vm;
   vm = variant: let
-    hostConfiguration = nixpkgs.lib.nixosSystem {
+    hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules = [
@@ -33,7 +32,7 @@
     inherit hostConfiguration netvm;
     name = "${name}-${variant}";
     netvmConfiguration = import ../microvmConfigurations/netvm {
-      inherit nixpkgs microvm system;
+      inherit lib microvm system;
     };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
@@ -43,10 +42,10 @@
   ];
 in {
   nixosConfigurations =
-    builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.hostConfiguration) targets)
-    // builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.netvm t.netvmConfiguration) targets);
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets)
+    // builtins.listToAttrs (map (t: lib.nameValuePair t.netvm t.netvmConfiguration) targets);
   packages = {
     x86_64-linux =
-      builtins.listToAttrs (map (t: nixpkgs.lib.nameValuePair t.name t.package) targets);
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };
 }
