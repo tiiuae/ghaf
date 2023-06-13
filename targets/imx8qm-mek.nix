@@ -4,6 +4,7 @@
 # i.MX8QuadMax Multisensory Enablement Kit
 {
   self,
+  lib,
   nixpkgs,
   nixos-generators,
   nixos-hardware,
@@ -15,6 +16,7 @@
   imx8qm-mek = variant: extraModules: let
     hostConfiguration = nixpkgs.lib.nixosSystem {
       inherit system;
+      specialArgs = {inherit lib;};
       modules =
         [
           nixos-hardware.nixosModules.nxp-imx8qm-mek

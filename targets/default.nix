@@ -4,6 +4,7 @@
 # List of target configurations
 {
   self,
+  lib,
   nixpkgs,
   nixos-generators,
   nixos-hardware,
@@ -11,8 +12,8 @@
   jetpack-nixos,
 }:
 nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [
-  (import ./nvidia-jetson-orin.nix {inherit self nixpkgs nixos-generators microvm jetpack-nixos;})
-  (import ./vm.nix {inherit self nixpkgs nixos-generators microvm;})
-  (import ./generic-x86_64.nix {inherit self nixpkgs nixos-generators nixos-hardware microvm;})
-  (import ./imx8qm-mek.nix {inherit self nixpkgs nixos-generators nixos-hardware microvm;})
+  (import ./nvidia-jetson-orin.nix {inherit self lib nixpkgs nixos-generators microvm jetpack-nixos;})
+  (import ./vm.nix {inherit self lib nixpkgs nixos-generators microvm;})
+  (import ./generic-x86_64.nix {inherit self lib nixpkgs nixos-generators nixos-hardware microvm;})
+  (import ./imx8qm-mek.nix {inherit self lib nixpkgs nixos-generators nixos-hardware microvm;})
 ]

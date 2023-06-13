@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   self,
+  lib,
   nixpkgs,
   nixos-generators,
   microvm,
@@ -13,6 +14,7 @@
   nvidia-jetson-orin = variant: extraModules: let
     hostConfiguration = nixpkgs.lib.nixosSystem {
       inherit system;
+      specialArgs = {inherit lib;};
       modules =
         [
           (import ../modules/host {

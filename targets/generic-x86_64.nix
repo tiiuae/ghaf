@@ -4,6 +4,7 @@
 # Generic x86_64 computer -target
 {
   self,
+  lib,
   nixpkgs,
   nixos-generators,
   nixos-hardware,
@@ -15,6 +16,7 @@
   generic-x86 = variant: extraModules: let
     hostConfiguration = nixpkgs.lib.nixosSystem {
       inherit system;
+      specialArgs = {inherit lib;};
       modules =
         [
           (import ../modules/host {
