@@ -26,7 +26,13 @@
 
           ./common-${variant}.nix
 
-          ../modules/graphics/weston.nix
+          ../modules/graphics
+          {
+            ghaf.graphics.weston = {
+              enable = true;
+              enableDemoApplications = true;
+            };
+          }
 
           formatModule
 
