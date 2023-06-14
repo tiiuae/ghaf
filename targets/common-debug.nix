@@ -12,5 +12,8 @@
     ../modules/development/nix.nix
     ../modules/development/packages.nix
     ../modules/development/ssh.nix
+    {
+      ghaf.development.ssh.daemon.enable = true;
+    }
   ];
 }
