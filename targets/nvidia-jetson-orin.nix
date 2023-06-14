@@ -34,7 +34,10 @@
             };
           }
 
-          ../modules/windows/launcher.nix
+          ../modules/windows-launcher
+          {
+            ghaf.windows-launcher.enable = true;
+          }
 
           formatModule
         ]

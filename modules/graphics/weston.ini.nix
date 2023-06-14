@@ -25,36 +25,29 @@
   */
   mkLaunchers = lib.concatMapStrings mkLauncher;
 
-  demoLaunchers =
-    [
-      # Add application launchers
-      # Adding terminal launcher because it is overwritten if other launchers are on the panel
-      {
-        path = "${pkgs.weston}/bin/weston-terminal";
-        icon = "${pkgs.weston}/share/weston/icon_terminal.png";
-      }
+  demoLaunchers = [
+    # Add application launchers
+    # Adding terminal launcher because it is overwritten if other launchers are on the panel
+    {
+      path = "${pkgs.weston}/bin/weston-terminal";
+      icon = "${pkgs.weston}/share/weston/icon_terminal.png";
+    }
 
-      {
-        path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
-      }
+    {
+      path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
+    }
 
-      {
-        path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png";
-      }
+    {
+      path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      icon = "${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png";
+    }
 
-      {
-        path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
-      }
-    ]
-    ++ lib.optionals (pkgs.stdenv.isAarch64) [
-      {
-        path = "${pkgs.windows-launcher}/bin/windows-launcher-ui";
-        icon = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/24x24/devices/computer.png";
-      }
-    ];
+    {
+      path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
+    }
+  ];
 in {
   options.ghaf.graphics.weston = with lib; {
     launchers = mkOption {
