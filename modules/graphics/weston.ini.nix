@@ -25,6 +25,7 @@
   */
   mkLaunchers = lib.concatMapStrings mkLauncher;
 
+  gala-app = pkgs.callPackage ../../user-apps/gala {};
   demoLaunchers = [
     # Add application launchers
     # Adding terminal launcher because it is overwritten if other launchers are on the panel
@@ -44,8 +45,8 @@
     }
 
     {
-      path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-      icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
+      path = "${gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      icon = "${gala-app}/gala/resources/icon-24x24.png";
     }
   ];
 in {

@@ -7,6 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.windows-launcher;
+  windows-launcher = pkgs.callPackage ../../user-apps/windows-launcher {};
 in {
   options.ghaf.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
@@ -15,10 +16,10 @@ in {
   config = lib.mkIf cfg.enable {
     ghaf.graphics.weston.launchers = [
       {
-        path = "${pkgs.windows-launcher}/bin/windows-launcher-ui";
+        path = "${windows-launcher}/bin/windows-launcher-ui";
         icon = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/24x24/devices/computer.png";
       }
     ];
-    environment.systemPackages = [pkgs.windows-launcher];
+    environment.systemPackages = [windows-launcher];
   };
 }
