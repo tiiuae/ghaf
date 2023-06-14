@@ -23,12 +23,6 @@ in {
       weston
       # Seatd is needed to manage log-in process for weston
       seatd
-
-      # Graphical applications
-      # Probably, we'll want to re/move it from here later
-      chromium
-      element-desktop
-      gala-app
     ];
 
     # Next 4 services/targets are taken from official weston documentation:

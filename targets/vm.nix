@@ -24,7 +24,10 @@
 
         ../modules/graphics
         {
-          ghaf.graphics.weston.enable = true;
+          ghaf.graphics.weston = {
+            enable = true;
+            enableDemoApplications = true;
+          };
         }
 
         formatModule
