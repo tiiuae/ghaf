@@ -11,7 +11,8 @@ in {
     users."${user}" = {
       isNormalUser = true;
       password = password;
-      extraGroups = ["wheel" "video" "docker"];
+      #TODO add "docker" use "lib.optionals"
+      extraGroups = ["wheel" "video"];
     };
     groups."${user}" = {
       name = "${user}";
