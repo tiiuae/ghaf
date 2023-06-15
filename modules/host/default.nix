@@ -13,14 +13,11 @@
   cfg = config.ghaf.host.minification;
 in
   with lib; {
-    imports = [microvm.nixosModules.host];
-
     options.ghaf.host.minification = with lib; {
       reduceProfile = mkEnableOption "reduced profile";
       disableNetwork = mkEnableOption "disableing of network";
       disableGetty = mkEnableOption "disabling of getty";
       removeNix = mkEnableOption "nix tooling";
-      disableGuestVms = mkEnableOption "guest vms";
     };
 
     # HACK: import other modules with explicit passing of arguments, otherwise import
@@ -39,6 +36,6 @@ in
         # image nix tools (replace with packages from nixpkgs).
         nix.enable = false;
       })
-      (lib.mkIf (!cfg.disableGuestVms) (import ./microvm.nix {inherit self netvm;} {inherit config;}))
     ];
   }
+
