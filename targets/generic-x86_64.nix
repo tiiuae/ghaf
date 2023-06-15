@@ -85,7 +85,7 @@
       };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  debugModules = [../modules/development/usb-serial.nix];
+  debugModules = [../modules/development/usb-serial.nix {ghaf.development.usb-serial.enable = true;}];
   targets = [
     (generic-x86 "debug" debugModules)
     (generic-x86 "release" [])

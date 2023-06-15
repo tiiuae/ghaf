@@ -1,15 +1,25 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  pkgs,
   config,
+  lib,
   ...
-}: {
-  config.services.getty.extraArgs = ["115200"];
-  config.systemd.services."autovt@ttyUSB0".enable = true;
+}: let
+  cfg = config.ghaf.development.usb-serial;
+in
+  with lib; {
+    options.ghaf.development.usb-serial = {
+      enable = mkEnableOption "Usb-Serial";
+    };
 
-  # ttyUSB0 service is active as soon as corresponding device appears
-  config.services.udev.extraRules = ''
-    SUBSYSTEM=="tty", KERNEL=="ttyUSB0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="autovt@ttyUSB0.service"
-  '';
-}
+    #TODO Should this be alos bound to only x86?
+    config = mkIf cfg.enable {
+      services.getty.extraArgs = ["115200"];
+      systemd.services."autovt@ttyUSB0".enable = true;
+
+      # ttyUSB0 service is active as soon as corresponding device appears
+      services.udev.extraRules = ''
+        SUBSYSTEM=="tty", KERNEL=="ttyUSB0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="autovt@ttyUSB0.service"
+      '';
+    };
+  }
