@@ -10,7 +10,10 @@ lib.nixosSystem {
   specialArgs = {inherit lib;};
   modules = [
     # TODO: Enable only for development builds
-    ../../modules/development/authentication.nix
+    ../../modules/users/accounts.nix
+    {
+      ghaf.users.accounts.enable = true;
+    }
     ../../modules/development/ssh.nix
     ../../modules/development/debug-tools.nix
     {

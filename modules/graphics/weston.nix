@@ -100,8 +100,8 @@ in {
         ExecStart = "${pkgs.systemd}/bin/systemctl --wait --user start ghaf-session.target";
 
         # The user to run the session as. Pick one!
-        User = "ghaf";
-        Group = "ghaf";
+        User = config.ghaf.users.accounts.user;
+        Group = config.ghaf.users.accounts.user;
 
         # Set up a full user session for the user, required by Weston.
         PAMName = "${pkgs.shadow}/bin/login";
