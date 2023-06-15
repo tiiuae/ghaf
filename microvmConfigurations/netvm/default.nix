@@ -15,6 +15,9 @@ lib.nixosSystem {
       ghaf.users.accounts.enable = true;
     }
     ../../modules/development/ssh.nix
+    {
+      ghaf.development.ssh.daemon.enable = true;
+    }
     ../../modules/development/debug-tools.nix
     {
       ghaf.development.debug.tools.enable = true;
