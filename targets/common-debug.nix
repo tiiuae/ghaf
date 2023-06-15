@@ -10,6 +10,9 @@
     # drop/replace modules below this line for any real use
     ../modules/development/authentication.nix
     ../modules/development/nix.nix
+    {
+      ghaf.development.nix-setup.enable = true;
+    }
     ../modules/development/debug-tools.nix
     {
       ghaf.development.debug.tools.enable = true;
