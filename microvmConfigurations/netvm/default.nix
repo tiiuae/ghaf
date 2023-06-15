@@ -12,7 +12,10 @@ lib.nixosSystem {
     # TODO: Enable only for development builds
     ../../modules/development/authentication.nix
     ../../modules/development/ssh.nix
-    ../../modules/development/packages.nix
+    ../../modules/development/debug-tools.nix
+    {
+      ghaf.development.debug.tools.enable = true;
+    }
 
     microvm.nixosModules.microvm
 

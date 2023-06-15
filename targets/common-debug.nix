@@ -10,7 +10,10 @@
     # drop/replace modules below this line for any real use
     ../modules/development/authentication.nix
     ../modules/development/nix.nix
-    ../modules/development/packages.nix
+    ../modules/development/debug-tools.nix
+    {
+      ghaf.development.debug.tools.enable = true;
+    }
     ../modules/development/ssh.nix
     {
       ghaf.development.ssh.daemon.enable = true;
