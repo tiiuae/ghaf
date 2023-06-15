@@ -6,4 +6,11 @@
   imports = [
     ./common.nix
   ];
+
+  ghaf.host.minification = {
+    reduceProfile = true;
+    disableNetwork = true;
+    disableGetty = true;
+    disableGuestVms = true;
+  };
 }
