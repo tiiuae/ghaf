@@ -22,18 +22,22 @@
           (import ../modules/host {
             inherit self microvm netvm;
           })
-          ./common-${variant}.nix
 
-          ../modules/graphics
           {
-            ghaf.graphics.weston = {
-              enable = true;
-              enableDemoApplications = true;
+            # Enable all the default UI applications
+            ghaf = {
+              profiles = {
+                applications.enable = true;
+                #TODO clean this up when the microvm is updated to latest
+                release.enable = variant == "release";
+                debug.enable = variant == "debug";
+              };
             };
           }
 
           formatModule
         ]
+        ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
     netvm = "netvm-${name}-${variant}";
