@@ -46,7 +46,7 @@
       x86_64-linux
       aarch64-linux
     ];
-    lib = nixpkgs.lib.extend (final: prev: {
+    lib = nixpkgs.lib.extend (final: _prev: {
       ghaf = import ./lib {
         inherit self;
         lib = final;

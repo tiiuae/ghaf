@@ -40,7 +40,7 @@
   in {
     inherit hostConfiguration netvm;
     name = "${name}-${variant}";
-    netvmConfiguration = import ../microvmConfigurations/netvm {
+    netvmConfiguration = import ../modules/virtualization/microvm/netvm.nix {
       inherit lib microvm system;
     };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};

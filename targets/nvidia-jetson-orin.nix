@@ -51,7 +51,7 @@
     inherit hostConfiguration netvm;
     name = "${name}-${variant}";
     netvmConfiguration =
-      (import ../microvmConfigurations/netvm {
+      (import ../modules/virtualization/microvm/netvm.nix {
         inherit lib microvm system;
       })
       .extendModules {

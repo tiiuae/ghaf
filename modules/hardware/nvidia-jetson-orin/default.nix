@@ -2,12 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Top-level module entry point for the Orin family of chips
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{lib, ...}:
 with lib; {
   imports = [
     ./partition-template.nix
