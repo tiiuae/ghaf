@@ -59,7 +59,10 @@
       (flake-utils.lib.eachSystem systems (system: let
         pkgs = nixpkgs.legacyPackages.${system};
       in {
-        packages.doc = pkgs.callPackage ./docs {};
+        packages.doc = pkgs.callPackage ./docs {
+          revision = lib.version;
+          options = self.nixosConfigurations.vm-debug.options;
+        };
 
         formatter = pkgs.alejandra;
       }))
