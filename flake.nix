@@ -75,7 +75,7 @@
       (import ./targets {inherit self lib nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
 
       # User apps
-      (import ./user-apps {inherit nixpkgs flake-utils;})
+      (import ./user-apps {inherit lib nixpkgs flake-utils;})
 
       # Hydra jobs
       (import ./hydrajobs.nix {inherit self;})
