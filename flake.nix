@@ -56,14 +56,12 @@
     # Combine list of attribute sets together
     lib.foldr lib.recursiveUpdate {} [
       # Documentation
-      (flake-utils.lib.eachSystem systems (system: {
-        packages = let
-          pkgs = nixpkgs.legacyPackages.${system};
-        in {
-          doc = pkgs.callPackage ./docs/doc.nix {};
-        };
+      (flake-utils.lib.eachSystem systems (system: let
+        pkgs = nixpkgs.legacyPackages.${system};
+      in {
+        packages.doc = pkgs.callPackage ./docs {};
 
-        formatter = nixpkgs.legacyPackages.${system}.alejandra;
+        formatter = pkgs.alejandra;
       }))
 
       # ghaf lib
