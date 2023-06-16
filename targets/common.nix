@@ -5,6 +5,10 @@
 {
   imports = [
     # TODO: Add modules common to all targets here in the future
+    ../modules/users/accounts.nix
+    {
+      ghaf.users.accounts.enable = true;
+    }
     ../modules/version
   ];
 }
