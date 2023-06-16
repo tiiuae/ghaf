@@ -23,6 +23,9 @@
 
           jetpack-nixos.nixosModules.default
           ../modules/hardware/nvidia-jetson-orin
+          {
+            ghaf.hardware.nvidia.orin.enable = true;
+          }
 
           ./common-${variant}.nix
 
@@ -96,7 +99,7 @@
     nvidia-jetson-orin-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
-  mkFlashScript = import ../modules/hardware/nvidia-jetson-orin/mk-flash-script.nix;
+  mkFlashScript = import ../lib/mk-flash-script.nix;
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;
