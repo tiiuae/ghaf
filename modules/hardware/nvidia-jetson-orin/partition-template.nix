@@ -6,8 +6,13 @@
 {
   pkgs,
   config,
+  lib,
   ...
 }: let
+  # Using the same config for all orin boards (for now)
+  # TODO should this be changed when NX added
+  cfg = config.ghaf.hardware.nvidia.orin;
+
   mkSplitImages = import ./mk-split-images.nix;
   images = mkSplitImages {
     inherit pkgs;
@@ -87,14 +92,13 @@
 
     tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>$out
   '';
-in {
-  hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
+in
+  with lib; {
+    config = mkIf cfg.enable {
+      hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
 
-  imports = [
-    ./flash-script-overrides.nix
-  ];
-
-  ghaf.nvidia-jetpack.flashScriptOverrides.preFlashCommands = ''
-    ln -sf ${images}/esp.img bootloader/esp.img
-  '';
-}
+      ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands = ''
+        ln -sf ${images}/esp.img bootloader/esp.img
+      '';
+    };
+  }

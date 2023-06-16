@@ -5,6 +5,7 @@
 {
   pkgs,
   src,
+  ...
 }:
 pkgs.stdenvNoCC.mkDerivation {
   inherit src;
