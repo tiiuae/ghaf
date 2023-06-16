@@ -15,6 +15,7 @@
     - [Hypervisor Options](technologies/hypervisor_options.md)
 - [Reference Implementations](ref_impl/reference_implementations.md)
   - [Usage](ref_impl/usage.md)
+	- [Modules Options](ref_impl/modules_options.md)
   - [Development](ref_impl/development.md)
     - [Build and Run](ref_impl/build_and_run.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)

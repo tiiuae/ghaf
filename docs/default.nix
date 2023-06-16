@@ -1,15 +1,38 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: CC-BY-SA-4.0
 {
+  pkgs,
+  lib,
   callPackage,
-  runCommandNoCC,
+  runCommandLocal,
+  nixosOptionsDoc,
   mdbook,
+  revision ? "",
+  options ? {},
 }: let
-  footnote = callPackage ./plugins/mdbook-footnote.nix {};
+  optionsDocMd =
+    (nixosOptionsDoc {
+      inherit revision options;
+      transformOptions = x:
+        if lib.strings.hasPrefix "ghaf" x.name
+        then x
+        else x // {visible = false;};
+      markdownByDefault = true;
+    })
+    .optionsCommonMark;
+  combinedSrc = runCommandLocal "ghaf-doc-src" {} ''
+    mkdir $out
+    cp -r ${./.}/* $out
+    chmod +w $out/src/ref_impl/modules_options.md
+    cat ${optionsDocMd} >> $out/src/ref_impl/modules_options.md
+  '';
 in
-  runCommandNoCC "ghaf-doc"
+  runCommandLocal "ghaf-doc"
   {
-    nativeBuildInputs = [mdbook footnote];
+    nativeBuildInputs = let
+      footnote = callPackage ./plugins/mdbook-footnote.nix {};
+    in [mdbook footnote];
+    src = combinedSrc;
   } ''
-    ${mdbook}/bin/mdbook build -d $out ${./.}
+    ${mdbook}/bin/mdbook build -d $out $src
   ''
