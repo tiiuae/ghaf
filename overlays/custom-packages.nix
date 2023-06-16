@@ -29,18 +29,43 @@
       # Nowadays, colord even marked as deprecated option for weston.
       weston =
         # First, weston package is overridden (passing colord = null)
-        (prev.weston.override {
-          colord = null;
-
-          pipewire = null;
-          freerdp = null;
-          xwayland = null;
-        })
+        (
+          prev.weston.override (
+            {
+              pipewire = null;
+              freerdp = null;
+              xwayland = null;
+            }
+            # Only override colord if the package takes such argument. In NixOS
+            # 23.05, the Weston package still uses colord as a dependency, but it
+            # has been removed in NixOS Unstable. Otherwise there will be an
+            # error about unexpected argument.
+            // lib.optionalAttrs (lib.hasAttr "colord" (lib.functionArgs prev.weston.override)) {
+              colord = null;
+            }
+            # NixOS Unstable has added these variables to control whether
+            # pipewire, rdp or xwayland support should be present. They need to
+            # be defined to false to avoid errors during the build.
+            # TODO: When moving to NixOS 23.11, these optionalAttrs can just be
+            #       removed, and the attributes can be combined to single
+            #       attribute set.
+            // lib.optionalAttrs (lib.hasAttr "pipewireSupport" (lib.functionArgs prev.weston.override)) {
+              pipewireSupport = false;
+            }
+            // lib.optionalAttrs (lib.hasAttr "rdpSupport" (lib.functionArgs prev.weston.override)) {
+              rdpSupport = false;
+            }
+            // lib.optionalAttrs (lib.hasAttr "xwaylandSupport" (lib.functionArgs prev.weston.override)) {
+              xwaylandSupport = false;
+            }
+          )
+        )
         # and then this overridden package's attributes are overridden
-        .overrideAttrs (prevAttrs: {
-          mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
-          depsBuildBuild = [pkgs.pkg-config];
-        });
+        .overrideAttrs (prevAttrs:
+          lib.optionalAttrs (lib.hasAttr "colord" (lib.functionArgs prev.weston.override)) {
+            # Only override mesonFlags if colord argument is accepted
+            mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
+          });
     })
   ];
 }
