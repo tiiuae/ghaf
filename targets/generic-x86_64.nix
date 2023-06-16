@@ -23,6 +23,9 @@
           })
 
           ../modules/hardware/x86_64-linux.nix
+          {
+            ghaf.hardware.x86_64.common.enable = true;
+          }
 
           ./common-${variant}.nix
 
