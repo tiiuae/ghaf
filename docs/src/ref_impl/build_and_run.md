@@ -44,6 +44,17 @@ From the `ghaf` source directory, run the `nix run .#packages.x86_64-linux.vm-de
 
 This creates `ghaf-host.qcow2` copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing `ghaf-host.qcow2` should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then Power Down.
 
+By default memory allocation is only 1G. If you want to launch the virtual machine with more memory make a copy of the bash script ./result/bin/run-ghaf-host-vm (outside the linked result directory)
+
+Modify
+
+`-m 1024`
+
+and run the modified script
+
+`bash run-ghaf-host-vm-copy`
+
+
 ---
 
 ## Running Ghaf Image for x86 Computer
