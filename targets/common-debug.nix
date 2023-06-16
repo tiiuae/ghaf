@@ -8,10 +8,6 @@
 
     #### on-host development supporting modules ####
     # drop/replace modules below this line for any real use
-    ../modules/users/accounts.nix
-    {
-      ghaf.users.accounts.enable = true;
-    }
     ../modules/development/nix.nix
     {
       ghaf.development.nix-setup.enable = true;
