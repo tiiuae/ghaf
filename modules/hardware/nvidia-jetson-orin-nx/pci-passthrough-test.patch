@@ -1,28 +1,28 @@
-diff --git a/nvidia/platform/t23x/concord/kernel-dts/Makefile b/nvidia/platform/t23x/concord/kernel-dts/Makefile
-index 1be5b3f76bf8..01d3dea90cb5 100644
---- a/nvidia/platform/t23x/concord/kernel-dts/Makefile
-+++ b/nvidia/platform/t23x/concord/kernel-dts/Makefile
-@@ -23,6 +23,9 @@ dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-as-p3767-0001-p3737-0000.dtb
- dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-as-pxxxx-p3737-0000.dtb
- dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-p3737-0000-kexec.dtb
- dtb-$(BUILD_ENABLE) += tegra234-p3701-0004-p3737-0000.dtb
+diff --git a/nvidia/platform/t23x/p3768/kernel-dts/Makefile b/nvidia/platform/t23x/p3768/kernel-dts/Makefile
+index f306119fe8a3..f7fcf6ac2013 100644
+--- a/nvidia/platform/t23x/p3768/kernel-dts/Makefile
++++ b/nvidia/platform/t23x/p3768/kernel-dts/Makefile
+@@ -13,6 +13,9 @@ dtb-$(BUILD_ENABLE) += tegra234-p3767-0000-p3509-a02.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0000-as-p3767-0001-p3509-a02.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0000-as-p3767-0003-p3509-a02.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0000-as-p3767-0004-p3509-a02.dtb
 +
-+dtb-$(BUILD_ENABLE) += tegra234-p3701-host-passthrough.dtb
++dtb-$(BUILD_ENABLE) += tegra234-p3767-host-passthrough.dtb
 +
- dtbo-$(BUILD_ENABLE) += tegra234-p3737-overlay.dtbo
- dtbo-$(BUILD_ENABLE) += tegra234-p3737-audio-codec-rt5658.dtbo
- dtbo-$(BUILD_ENABLE) += tegra234-p3737-audio-codec-rt5640.dtbo
-diff --git a/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts b/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0001-p3509-a02.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0003-p3509-a02.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0004-p3509-a02.dtb
+diff --git a/nvidia/platform/t23x/p3768/kernel-dts/tegra234-p3767-host-passthrough.dtb b/nvidia/platform/t23x/p3768/kernel-dts/tegra234-p3767-host-passthrough.dtb
 new file mode 100644
-index 000000000000..e4656287da82
+index 000000000000..da5f0ec048a0
 --- /dev/null
-+++ b/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts
++++ b/nvidia/platform/t23x/p3768/kernel-dts/tegra234-p3767-host-passthrough.dtb
 @@ -0,0 +1,12 @@
 +/dts-v1/;
-+#include "tegra234-p3701-0000-p3737-0000.dts"
++#include "tegra234-p3767-0000-p3509-a02.dts"
 +
 +/*
-+ * Update the pci-e wifi to be accessible from vfio/guest
++ * Update the pci-e ethernet to be accessible from vfio/guest
 + */
 +&pcie_c1_rp {
 +    interconnect-names = "dma-mem", "write";
