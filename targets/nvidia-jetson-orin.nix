@@ -22,28 +22,28 @@
           })
 
           jetpack-nixos.nixosModules.default
+
           ../modules/hardware/nvidia-jetson-orin
-          {
-            ghaf.hardware.nvidia.orin.enable = true;
-          }
 
-          ./common-${variant}.nix
-
-          ../modules/graphics
           {
-            ghaf.graphics.weston = {
-              enable = true;
-              enableDemoApplications = true;
+            ghaf = {
+              hardware.nvidia.orin.enable = true;
+              # Enable all the default UI applications
+              profiles = {
+                applications.enable = true;
+
+                #TODO clean this up when the microvm is updated to latest
+                release.enable = variant == "release";
+                debug.enable = variant == "debug";
+              };
+              # TODO when supported on x86 move under virtualization
+              windows-launcher.enable = true;
             };
-          }
-
-          ../modules/windows-launcher
-          {
-            ghaf.windows-launcher.enable = true;
           }
 
           formatModule
         ]
+        ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
     netvm = "netvm-${name}-${variant}";

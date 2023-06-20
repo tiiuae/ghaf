@@ -12,13 +12,6 @@ with lib; {
   imports = [
     ./partition-template.nix
     ../../boot/systemd-boot-dtb.nix
-    {
-      ghaf.boot.loader.systemd-boot-dtb.enable = true;
-    }
-
     ./jetson-orin.nix
-    {
-      ghaf.hardware.nvidia.orin.enable = true;
-    }
   ];
 }

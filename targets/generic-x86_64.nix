@@ -22,18 +22,16 @@
             inherit self microvm netvm;
           })
 
-          ../modules/hardware/x86_64-linux.nix
           {
-            ghaf.hardware.x86_64.common.enable = true;
-          }
-
-          ./common-${variant}.nix
-
-          ../modules/graphics
-          {
-            ghaf.graphics.weston = {
-              enable = true;
-              enableDemoApplications = true;
+            ghaf = {
+              hardware.x86_64.common.enable = true;
+              # Enable all the default UI applications
+              profiles = {
+                applications.enable = true;
+                #TODO clean this up when the microvm is updated to latest
+                release.enable = variant == "release";
+                debug.enable = variant == "debug";
+              };
             };
           }
 
@@ -55,6 +53,7 @@
             ];
           }
         ]
+        ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
     netvm = "netvm-${name}-${variant}";

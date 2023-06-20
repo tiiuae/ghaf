@@ -10,9 +10,6 @@
   cfg = config.ghaf.hardware.nvidia.orin;
 in
   with lib; {
-    imports = [
-    ];
-
     options.ghaf.hardware.nvidia.orin = {
       # Enable the Orin boards
       enable = mkEnableOption "Orin hardware";
@@ -44,11 +41,13 @@ in
         modesetting.enable = true;
 
         flashScriptOverrides = {
-          flashArgs = lib.mkForce ["-r" "${config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard}" "mmcblk0p1"];
+          flashArgs = lib.mkForce ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "mmcblk0p1"];
         };
       };
 
       nixpkgs.hostPlatform.system = "aarch64-linux";
+
+      ghaf.boot.loader.systemd-boot-dtb.enable = true;
 
       boot.loader = {
         efi.canTouchEfiVariables = true;
