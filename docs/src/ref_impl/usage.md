@@ -69,7 +69,7 @@ After update, review and testing - commit the updated `flake.lock` to your versi
 
 ## Customize your Ghaf-based project
 
-To use the Ghaf declarative module system, check what you need in your system and choose the module options you need. For example, import the ghaf `graphics`-module and declare that you won't need the reference Wayland-compositor Weston and the demo applications:
+To use the Ghaf declarative module system, check what you need in your system and choose the [modules options](./modules_options.md) you need. For example, import the ghaf `graphics`-module and declare that you won't need the reference Wayland-compositor Weston and the demo applications:
 ```
           {
             ghaf.graphics.weston = {
