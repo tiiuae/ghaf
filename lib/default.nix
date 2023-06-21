@@ -7,4 +7,5 @@
   version = release + versionSuffix;
 in {
   inherit release versionSuffix version;
+  modules = import ./ghaf-modules.nix {inherit lib;};
 }
