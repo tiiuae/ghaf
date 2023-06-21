@@ -84,6 +84,7 @@ lib.nixosSystem {
       };
 
       microvm.qemu.bios.enable = false;
+      microvm.storeDiskType = "squashfs";
     })
   ];
 }
