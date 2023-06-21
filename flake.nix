@@ -61,7 +61,13 @@
       in {
         packages.doc = pkgs.callPackage ./docs {
           revision = lib.version;
-          options = self.nixosConfigurations.vm-debug.options;
+          options = let
+            cfg = nixpkgs.lib.nixosSystem {
+              inherit system;
+              modules = lib.ghaf.modules ++ [jetpack-nixos.nixosModules.default];
+            };
+          in
+            cfg.options;
         };
 
         formatter = pkgs.alejandra;
