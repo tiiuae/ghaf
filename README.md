@@ -14,7 +14,7 @@ For information on build instructions and supported hardware, see the [Reference
 Other repositories that are a part of the Ghaf project:
 
 * <https://github.com/tiiuae/sbomnix>: a utility that generates SBOMs given Nix derivations or out paths
-* <https://github.com/tiiuae/ci-public>: CI/CD related files
+* <https://github.com/tiiuae/ci-public>, <https://github.com/tiiuae/ci-test-automation>: CI/CD related files
 
 
 ### Documentation
