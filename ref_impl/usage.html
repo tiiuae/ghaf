@@ -1,0 +1,270 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Usage - Ghaf Framework</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="../architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li></ol></li><li class="chapter-item expanded "><a href="../architecture/stack.html"><strong aria-hidden="true">3.3.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">4.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/passthrough.html"><strong aria-hidden="true">4.1.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">4.1.1.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li><li class="chapter-item expanded "><a href="../technologies/nvidia_agx_pt_pcie.html"><strong aria-hidden="true">4.1.2.</strong> NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/hypervisor_options.html"><strong aria-hidden="true">4.2.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><a href="../ref_impl/reference_implementations.html"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/usage.html" class="active"><strong aria-hidden="true">5.1.</strong> Usage</a></li><li class="chapter-item expanded "><a href="../ref_impl/development.html"><strong aria-hidden="true">5.2.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/build_and_run.html"><strong aria-hidden="true">5.2.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="../ref_impl/cross_compilation.html"><strong aria-hidden="true">5.2.2.</strong> Cross-Compilation</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">6.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">6.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">6.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/sbom.html"><strong aria-hidden="true">6.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">6.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/patching-automation.html"><strong aria-hidden="true">6.5.</strong> Patch Management Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">7.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/passthrough/ethernet.html"><strong aria-hidden="true">7.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="chapter-item expanded "><a href="../research/run_win_vm.html"><strong aria-hidden="true">7.2.</strong> Running Windows VM on Ghaf</a></li><li class="spacer"></li></ol></li><li class="chapter-item expanded "><a href="../appendices/glossary.html">Glossary</a></li><li class="chapter-item expanded affix "><a href="../appendices/contributing_general.html">Contributing</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ghaf Framework</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/tiiuae/ghaf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="usage"><a class="header" href="#usage">Usage</a></h1>
+<p>Ghaf is a framework for creating virtualized edge devices, it is therefore expected that projects wishing to use Ghaf should import it to create a derived work for the specific use case.</p>
+<p>In practice, projects should import Ghaf and it's dependencies in an external version control (git) repository.</p>
+<p>Ghaf provides templates for the reference hardware to ease this process. This documented describes:</p>
+<ul>
+<li>overview of Ghaf usage and upstream dependencies</li>
+<li>required steps to create a Ghaf-based project</li>
+<li>updating the project to get the latest changes</li>
+<li>customization of the project using Ghaf-modules
+and Nix-supported mechanisms</li>
+</ul>
+<h2 id="overview"><a class="header" href="#overview">Overview</a></h2>
+<p>Ghaf usage in your project is illustrated in the following diagram.
+<img src="../img/usage_overview.drawio.png" alt="Ghaf Usage Overview" title="Your project and example inputs from Ghaf and other repositories" /></p>
+<p>Ghaf platform repository provides declarative modules and reference implementations to help with declaring your customized, secure system.</p>
+<p>External repositories help with making variety of HW options, system image generators and reference board-support packages available.</p>
+<h2 id="creating-a-ghaf-based-project---step-by-step"><a class="header" href="#creating-a-ghaf-based-project---step-by-step">Creating a Ghaf-based project - step-by-step</a></h2>
+<ol>
+<li>Check the available target templates</li>
+</ol>
+<pre><code>    nix flake show github:tiiuae/ghaf
+</code></pre>
+<ol start="2">
+<li>Select the appropriate template based on reference implementation e.g. <code>target-aarch64-nvidia-orin-agx</code></li>
+</ol>
+<pre><code>    nix flake new --template github:tiiuae/ghaf#target-aarch64-nvidia-orin-agx ~/ghaf-example
+    wrote: ~/ghaf-example/flake.nix
+</code></pre>
+<ol start="3">
+<li>See your project template outputs</li>
+</ol>
+<pre><code>    cd ~/ghaf-example/
+    nix flake show
+    git+file://~/ghaf-example
+    ├───formatter
+    │   ├───aarch64-linux: package 'alejandra-3.0.0'
+    │   └───x86_64-linux: package 'alejandra-3.0.0'
+    ├───nixosConfigurations
+    │   └───PROJ_NAME-ghaf-debug: NixOS configuration
+    └───packages
+    ├───aarch64-linux
+    │   └───PROJ_NAME-ghaf-debug: package 'nixos-disk-image'
+    └───x86_64-linux
+    └───PROJ_NAME-ghaf-debug-flash-script: package 'flash-ghaf'
+</code></pre>
+<ol start="4">
+<li>Change the placeholder <code>&lt;PROJ NAME&gt;</code> to your new projects name e.g. <code>cool_project</code></li>
+</ol>
+<pre><code>    sed -i 's/PROJ_NAME/cool_project/g' flake.nix
+</code></pre>
+<h2 id="update-your-ghaf-based-project"><a class="header" href="#update-your-ghaf-based-project">Update your Ghaf-based project</a></h2>
+<p>To update your project, run <code>nix flake update</code>.
+This check the inputs for updates and based on availability of the updates, generate an updated <code>flake.lock</code> which locks the specific versions to support the reproducible builds without side effects.</p>
+<p>In practice, nix flake will not allow floating inputs but all the inputs and declared packages must be mapped to specific hashes to get exact revisions of your inputs. This mechanism also supports the supply-chain security - if someone changes the upstream project e.g. by over-writing a part of the input so that the hash changes, you will notice. (Believe it or not, this happens even with large HW vendors). </p>
+<p>After update, review and testing - commit the updated <code>flake.lock</code> to your version history to share reproducible builds within your project.</p>
+<h2 id="customize-your-ghaf-based-project"><a class="header" href="#customize-your-ghaf-based-project">Customize your Ghaf-based project</a></h2>
+<p>To use the Ghaf declarative module system, check what you need in your system and choose the module options you need. For example, import the ghaf <code>graphics</code>-module and declare that you won't need the reference Wayland-compositor Weston and the demo applications:</p>
+<pre><code>          {
+            ghaf.graphics.weston = {
+              enable = false;
+              enableDemoApplications = false;
+            };
+          }
+</code></pre>
+<p>After the change, rebuild the system and switch it into use in your target device and it will run with the GUI and apps removed. After testing, you can commit the changes and share them for your colleagues to be able to build the exactly same system - even system image - as needed in your project.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../ref_impl/reference_implementations.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../ref_impl/development.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../ref_impl/reference_implementations.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../ref_impl/development.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
