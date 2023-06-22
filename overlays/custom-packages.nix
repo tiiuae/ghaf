@@ -16,13 +16,9 @@
 # nativeBuildInputs and buildInputs where possible.
 # It makes things clear and robust.
 #
-{
-  lib,
-  pkgs,
-  ...
-}: {
+{lib, ...}: {
   nixpkgs.overlays = [
-    (final: prev: {
+    (_final: prev: {
       # TODO: Remove this override if/when the fix is upstreamed.
       # Disabling colord dependency for weston. Colord has argyllcms as
       # a dependency, and this package is not cross-compilable.
