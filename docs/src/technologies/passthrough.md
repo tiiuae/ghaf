@@ -14,3 +14,4 @@ Whether the device platform is x86 or ARM, the passthrough device needs to be bo
 Our current supported passthrough devices implementations:
 - [NVIDIA Jetson AGX Orin: UART Passthrough](nvidia_agx_pt_uart.md)
 - [NVIDIA Jetson AGX Orin: PCIe Passthrough](nvidia_agx_pt_pcie.md)
+- [Generic x86: PCIe Passthrough on crosvm](x86_pcie_crosvm.md)

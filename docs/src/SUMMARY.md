@@ -31,6 +31,7 @@
         - [Binding Device to VFIO Driver](technologies/vfio.md)
         - [NVIDIA Jetson AGX Orin: UART Passthrough](technologies/nvidia_agx_pt_uart.md)
         - [NVIDIA Jetson AGX Orin: PCIe Passthrough](technologies/nvidia_agx_pt_pcie.md)
+        - [Generic x86: PCIe Passthrough on crosvm](technologies/x86_pcie_crosvm.md)
     - [Hypervisor Options](technologies/hypervisor_options.md)
 
 # Build System and Supply Chain
