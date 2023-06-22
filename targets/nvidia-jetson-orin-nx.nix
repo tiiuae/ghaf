@@ -26,9 +26,18 @@
 
           ./common-${variant}.nix
 
-          ../modules/graphics/weston.nix
+          ../modules/graphics
+          {
+            ghaf.graphics.weston = {
+              enable = true;
+              enableDemoApplications = true;
+            };
+          }
 
-          ../modules/windows/launcher.nix
+          ../modules/windows-launcher
+          {
+            ghaf.windows-launcher.enable = true;
+          }
 
           formatModule
         ]
@@ -77,7 +86,7 @@
             nixpkgs.buildPlatform.system = "x86_64-linux";
           }
 
-          ../modules/overlays/cross-compilation.nix
+          ../overlays/cross-compilation.nix
         ];
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};

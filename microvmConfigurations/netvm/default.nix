@@ -10,9 +10,18 @@ lib.nixosSystem {
   specialArgs = {inherit lib;};
   modules = [
     # TODO: Enable only for development builds
-    ../../modules/development/authentication.nix
+    ../../modules/users/accounts.nix
+    {
+      ghaf.users.accounts.enable = true;
+    }
     ../../modules/development/ssh.nix
-    ../../modules/development/packages.nix
+    {
+      ghaf.development.ssh.daemon.enable = true;
+    }
+    ../../modules/development/debug-tools.nix
+    {
+      ghaf.development.debug.tools.enable = true;
+    }
 
     microvm.nixosModules.microvm
 

@@ -15,7 +15,7 @@
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;
     });
-    inherit (hostConfiguration.config.ghaf.nvidia-jetpack.flashScriptOverrides) preFlashCommands;
+    inherit (hostConfiguration.config.ghaf.hardware.nvidia.orin.flashScriptOverrides) preFlashCommands;
   };
 in
   nixpkgs.legacyPackages.${flash-tools-system}.writeShellApplication {

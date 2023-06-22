@@ -8,10 +8,17 @@
 
     #### on-host development supporting modules ####
     # drop/replace modules below this line for any real use
-    ../modules/development/authentication.nix
     ../modules/development/nix.nix
-    ../modules/development/packages.nix
+    {
+      ghaf.development.nix-setup.enable = true;
+    }
+    ../modules/development/debug-tools.nix
+    {
+      ghaf.development.debug.tools.enable = true;
+    }
     ../modules/development/ssh.nix
-    ../modules/development/docker.nix
+    {
+      ghaf.development.ssh.daemon.enable = true;
+    }
   ];
 }

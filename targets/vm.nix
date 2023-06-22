@@ -19,10 +19,19 @@
         })
 
         ../modules/hardware/x86_64-linux.nix
+        {
+          ghaf.hardware.x86_64.common.enable = true;
+        }
 
         ./common-${variant}.nix
 
-        ../modules/graphics/weston.nix
+        ../modules/graphics
+        {
+          ghaf.graphics.weston = {
+            enable = true;
+            enableDemoApplications = true;
+          };
+        }
 
         formatModule
       ];

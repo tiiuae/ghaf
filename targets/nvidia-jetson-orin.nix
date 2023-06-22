@@ -23,12 +23,24 @@
 
           jetpack-nixos.nixosModules.default
           ../modules/hardware/nvidia-jetson-orin
+          {
+            ghaf.hardware.nvidia.orin.enable = true;
+          }
 
           ./common-${variant}.nix
 
-          ../modules/graphics/weston.nix
+          ../modules/graphics
+          {
+            ghaf.graphics.weston = {
+              enable = true;
+              enableDemoApplications = true;
+            };
+          }
 
-          ../modules/windows/launcher.nix
+          ../modules/windows-launcher
+          {
+            ghaf.windows-launcher.enable = true;
+          }
 
           formatModule
         ]
@@ -77,7 +89,7 @@
             nixpkgs.buildPlatform.system = "x86_64-linux";
           }
 
-          ../modules/overlays/cross-compilation.nix
+          ../overlays/cross-compilation.nix
         ];
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
@@ -87,7 +99,7 @@
     nvidia-jetson-orin-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
-  mkFlashScript = import ../modules/hardware/nvidia-jetson-orin/mk-flash-script.nix;
+  mkFlashScript = import ../lib/mk-flash-script.nix;
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;

@@ -2,12 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 {self}: {
   templates = {
-    #TODO Enable when module system is in place
-    # # Module template
-    # ghaf-module = {
-    #   path = ./module;
-    #   description = "A config to bootstrap a Ghaf compatible module";
-    # };
+    # Module template
+    ghaf-module = {
+      path = ./modules;
+      description = "A config to bootstrap a Ghaf compatible module";
+    };
 
     # A Selection of targets that utilize Ghaf to define more feature rich
     # projects/products.
