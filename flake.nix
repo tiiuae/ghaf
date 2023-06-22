@@ -81,6 +81,6 @@
       (import ./hydrajobs.nix {inherit self;})
 
       #templates
-      (import ./templates {inherit self;})
+      (import ./templates)
     ];
 }
