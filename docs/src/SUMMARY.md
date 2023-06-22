@@ -1,3 +1,8 @@
+<!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Summary
 
 # Overview
@@ -23,6 +28,7 @@
     - [Modules Options](ref_impl/modules_options.md)
 - [Technologies](technologies/technologies.md)
     - [Passthrough](technologies/passthrough.md)
+        - [Binding Device to VFIO Driver](technologies/vfio.md)
         - [NVIDIA Jetson AGX Orin: UART Passthrough](technologies/nvidia_agx_pt_uart.md)
         - [NVIDIA Jetson AGX Orin: PCIe Passthrough](technologies/nvidia_agx_pt_pcie.md)
     - [Hypervisor Options](technologies/hypervisor_options.md)
