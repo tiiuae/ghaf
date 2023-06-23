@@ -62,6 +62,20 @@
             # Only override mesonFlags if colord argument is accepted
             mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
           });
+      systemd = prev.systemd.overrideAttrs (prevAttrs: {
+        patches = prevAttrs.patches ++ [./systemd-timesyncd-disable-nscd.patch];
+        postPatch =
+          prevAttrs.postPatch
+          + ''
+            substituteInPlace units/systemd-timesyncd.service.in \
+              --replace \
+              "Environment=SYSTEMD_NSS_RESOLVE_VALIDATE=0" \
+              "${lib.concatStringsSep "\n" [
+              "Environment=LD_LIBRARY_PATH=$out/lib"
+              "Environment=SYSTEMD_NSS_RESOLVE_VALIDATE=0"
+            ]}"
+          '';
+      });
     })
   ];
 }
