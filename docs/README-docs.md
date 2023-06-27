@@ -76,7 +76,9 @@ To add new pages to the book:
 
 2. Put images into the `src/img` folder. We make diagrams with [diagrams.net](https://www.diagrams.net/) (use it online) or [draw.io](https://drawio-app.com/blog/use-draw-io-offline/) (use it offline and on a tablet).
     
-    To embed a diagram, make sure that you use the Editable Bitmap Image format `<imagename>.drawio.png`. When creating a new diagram, choose *Editable Bitmap Image format (.png)* from the list. When editing the existing diagram, select **File > Export as > PNG...** and select the **Include a copy of my diagram** check box.
+    * To embed a diagram, make sure that you use the Editable Bitmap Image format `<imagename>.drawio.png`. When creating a new diagram, choose *Editable Bitmap Image format (.png)* from the list. When editing the existing diagram, select **File > Export as > PNG...** and select the **Include a copy of my diagram** check box.
+
+    * Try to use main colors according to brand colors: [Fonts and Colors](./style_guide.md#fonts-and-colors).
     
 3. Add new structure elements (chapters, sections, subsections) to **SUMMARY.md** to update the table of contents. Otherwise, the files that you added will not be visible on GitHub Pages. Example:
 
