@@ -1,10 +1,6 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  self,
-  microvm,
-  netvm,
-}: {
   lib,
   pkgs,
   modulesPath,
@@ -17,17 +13,8 @@
 
     ../../overlays/custom-packages.nix
 
-    # TODO Refactor the microvm to be fully declarative
-    # SEE https://astro.github.io/microvm.nix/declarative.html
-    (import ../virtualization/microvm/microvm-host.nix {inherit self microvm netvm;})
+    # TODO: Refactor this under virtualization/microvm/host/networking.nix
     ./networking.nix
-
-    {
-      ghaf = {
-        virtualization.microvm-host.enable = true;
-        host.networking.enable = true;
-      };
-    }
   ];
 
   config = {
