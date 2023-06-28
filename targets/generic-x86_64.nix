@@ -13,18 +13,45 @@
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
   generic-x86 = variant: extraModules: let
+    netvmExtraModules = [
+      {
+        microvm.devices = [
+          {
+            bus = "pci";
+            path = "0000:00:14.3";
+          }
+        ];
+
+        # For WLAN firmwares
+        hardware.enableRedistributableFirmware = true;
+
+        networking.wireless = {
+          enable = true;
+
+          # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
+        };
+      }
+    ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules =
         [
-          (import ../modules/host {
-            inherit self microvm netvm;
-          })
-
+          microvm.nixosModules.host
+          ../modules/host
+          ../modules/virtualization/microvm/microvm-host.nix
+          ../modules/virtualization/microvm/netvm.nix
           {
             ghaf = {
               hardware.x86_64.common.enable = true;
+
+              virtualization.microvm-host.enable = true;
+              host.networking.enable = true;
+              virtualization.microvm.netvm = {
+                enable = true;
+                extraModules = netvmExtraModules;
+              };
+
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
@@ -56,35 +83,9 @@
         ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
-    netvm = "netvm-${name}-${variant}";
   in {
-    inherit hostConfiguration netvm;
+    inherit hostConfiguration;
     name = "${name}-${variant}";
-    netvmConfiguration =
-      (import ../modules/virtualization/microvm/netvm.nix {
-        inherit lib microvm system;
-      })
-      .extendModules {
-        modules = [
-          {
-            microvm.devices = [
-              {
-                bus = "pci";
-                path = "0000:00:14.3";
-              }
-            ];
-
-            # For WLAN firmwares
-            hardware.enableRedistributableFirmware = true;
-
-            networking.wireless = {
-              enable = true;
-
-              # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
-            };
-          }
-        ];
-      };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   debugModules = [../modules/development/usb-serial.nix {ghaf.development.usb-serial.enable = true;}];
@@ -94,8 +95,7 @@
   ];
 in {
   nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets)
-    // builtins.listToAttrs (map (t: lib.nameValuePair t.netvm t.netvmConfiguration) targets);
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
   packages = {
     x86_64-linux =
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);

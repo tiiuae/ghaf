@@ -1,33 +1,30 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  config,
   lib,
-  microvm,
-  system,
-}:
-lib.nixosSystem {
-  inherit system;
-  specialArgs = {inherit lib;};
-  modules =
-    [
-      {
+  ...
+}: let
+  configHost = config;
+  netvmBaseConfiguration = {
+    imports = [
+      ({lib, ...}: {
         ghaf = {
-          users.accounts.enable = true;
+          users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
           development = {
-            ssh.daemon.enable = true;
-            debug.tools.enable = true;
+            # NOTE: SSH port also becomes accessible on the network interface
+            #       that has been passed through to NetVM
+            ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
+            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
           };
         };
-      }
 
-      microvm.nixosModules.microvm
-
-      ({lib, ...}: {
         networking.hostName = "netvm";
-        # TODO: Maybe inherit state version
         system.stateVersion = lib.trivial.release;
 
-        # TODO: crosvm PCI passthrough does not currently work
+        nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
+        nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+
         microvm.hypervisor = "qemu";
 
         networking = {
@@ -78,7 +75,36 @@ lib.nixosSystem {
 
         microvm.qemu.bios.enable = false;
         microvm.storeDiskType = "squashfs";
+
+        imports = import ../../module-list.nix;
       })
-    ]
-    ++ (import ../../module-list.nix);
+    ];
+  };
+  cfg = config.ghaf.virtualization.microvm.netvm;
+in {
+  options.ghaf.virtualization.microvm.netvm = {
+    enable = lib.mkEnableOption "NetVM";
+
+    extraModules = lib.mkOption {
+      description = ''
+        List of additional modules to be imported and evaluated as part of
+        NetVM's NixOS configuration.
+      '';
+      default = [];
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    microvm.vms."netvm" = {
+      autostart = true;
+      config =
+        netvmBaseConfiguration
+        // {
+          imports =
+            netvmBaseConfiguration.imports
+            ++ cfg.extraModules;
+        };
+      specialArgs = {inherit lib;};
+    };
+  };
 }

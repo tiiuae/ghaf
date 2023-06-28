@@ -64,17 +64,12 @@
           options = let
             cfg = nixpkgs.lib.nixosSystem {
               inherit system;
-              modules = let
-                filteredModules = builtins.filter (module: !lib.hasSuffix "microvm-host.nix" module) lib.ghaf.modules;
-              in
-                filteredModules
+              modules =
+                lib.ghaf.modules
                 ++ [
-                  (import ./modules/virtualization/microvm/microvm-host.nix {
-                    inherit self microvm;
-                    netvm = "";
-                  })
-                ]
-                ++ [jetpack-nixos.nixosModules.default];
+                  jetpack-nixos.nixosModules.default
+                  microvm.nixosModules.host
+                ];
             };
           in
             cfg.options;

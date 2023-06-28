@@ -19,13 +19,20 @@
       modules =
         [
           nixos-hardware.nixosModules.nxp-imx8qm-mek
-          (import ../modules/host {
-            inherit self microvm netvm;
-          })
 
+          microvm.nixosModules.host
+          ../modules/host
+          ../modules/virtualization/microvm/microvm-host.nix
+          ../modules/virtualization/microvm/netvm.nix
           {
-            # Enable all the default UI applications
             ghaf = {
+              virtualization.microvm-host.enable = true;
+              host.networking.enable = true;
+              # TODO: NetVM enabled, but it does not include anything specific
+              #       for iMX8
+              virtualization.microvm.netvm.enable = true;
+
+              # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
                 #TODO clean this up when the microvm is updated to latest
@@ -40,13 +47,9 @@
         ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
-    netvm = "netvm-${name}-${variant}";
   in {
-    inherit hostConfiguration netvm;
+    inherit hostConfiguration;
     name = "${name}-${variant}";
-    netvmConfiguration = import ../modules/virtualization/microvm/netvm.nix {
-      inherit lib microvm system;
-    };
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   debugModules = [];
@@ -56,8 +59,7 @@
   ];
 in {
   nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets)
-    // builtins.listToAttrs (map (t: lib.nameValuePair t.netvm t.netvmConfiguration) targets);
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
   packages = {
     aarch64-linux =
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
