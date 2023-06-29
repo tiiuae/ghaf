@@ -10,3 +10,5 @@ src = "src"
 default-theme = "light"
 git-repository-url = "https://github.com/tiiuae/ghaf"
 git-repository-icon = "fa-github"
+
+[preprocessor.footnote]
