@@ -43,6 +43,8 @@ in
         flashScriptOverrides = {
           flashArgs = lib.mkForce ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "mmcblk0p1"];
         };
+
+        firmware.uefi.logo = ../../../docs/src/img/1600px-Ghaf_logo.svg;
       };
 
       nixpkgs.hostPlatform.system = "aarch64-linux";
