@@ -48,6 +48,11 @@
       path = "${gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
       icon = "${gala-app}/gala/resources/icon-24x24.png";
     }
+
+    {
+      path = "${pkgs.zathura}/bin/zathura";
+      icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
+    }
   ];
 in {
   options.ghaf.graphics.weston = with lib; {
@@ -79,6 +84,7 @@ in {
         chromium
         element-desktop
         gala-app
+        zathura
       ];
     environment.etc."xdg/weston/weston.ini" = {
       text =
