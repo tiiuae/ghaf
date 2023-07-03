@@ -22,6 +22,7 @@
           })
 
           jetpack-nixos.nixosModules.default
+<<<<<<< HEAD
 
           ../modules/hardware/nvidia-jetson-orin-nx
 
@@ -44,6 +45,27 @@
           formatModule
         ]
         ++ (import ../modules/module-list.nix)
+=======
+          ../modules/hardware/nvidia-jetson-orin-nx
+
+          ./common-${variant}.nix
+
+          ../modules/graphics
+          {
+            ghaf.graphics.weston = {
+              enable = true;
+              enableDemoApplications = true;
+            };
+          }
+
+          ../modules/windows-launcher
+          {
+            ghaf.windows-launcher.enable = true;
+          }
+
+          formatModule
+        ]
+>>>>>>> reference_configuration_support_for_orin_nx
         ++ extraModules;
     };
     netvm = "netvm-${name}-${variant}";
@@ -51,7 +73,11 @@
     inherit hostConfiguration netvm;
     name = "${name}-${variant}";
     netvmConfiguration =
+<<<<<<< HEAD
       (import ../modules/virtualization/microvm/netvm.nix {
+=======
+      (import ../microvmConfigurations/netvm {
+>>>>>>> reference_configuration_support_for_orin_nx
         inherit lib microvm system;
       })
       .extendModules {
@@ -62,10 +88,13 @@
                 bus = "pci";
                 path = "0004:00:00.0";
               }
+<<<<<<< HEAD
               {
                 bus = "pci";
                 path = "0008:00:00.0";
               }
+=======
+>>>>>>> reference_configuration_support_for_orin_nx
             ];
 
             # For WLAN firmwares
@@ -103,7 +132,11 @@
     nvidia-jetson-orin-nx-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
+<<<<<<< HEAD
   mkFlashScript = import ../lib/mk-flash-script.nix;
+=======
+  mkFlashScript = import ../modules/hardware/nvidia-jetson-orin-nx/mk-flash-script.nix;
+>>>>>>> reference_configuration_support_for_orin_nx
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;
