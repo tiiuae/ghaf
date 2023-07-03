@@ -50,17 +50,20 @@ Groups of terms and abbreviations:
 
 ### Ghaf
 
-_The project code name that represents the Ghaf tree._  
-Source: <https://connectwithnature.ae/knowledge-hub/ghaf-tree>
+<img src="../img/Ghaf_tree.png" align="left" alt="Ghaf tree" width="8%" /><p> _The project code name represents Ghaf, the national tree of the UAE._</p>
+
+Source: <https://www.ead.gov.ae/en/Discover-Our-Biodiversity/Plants/Ghaf-Tree>
 
 ### SSRC
 
-_Secure Systems Research Center is a global center of excellence in the development of end-to-end security and resilience for cyber-physical and autonomous systems. SSRC is a part of TII._  
+<img src="../img/SSRC.png" align="left" alt="Ghaf tree" width="8%" /><p> _Secure Systems Research Center is a global center of excellence in the development of end-to-end security and resilience for cyber-physical and autonomous systems. SSRC is a part of TII._ </p>
+ 
 Source: <https://www.tii.ae/secure-systems>
 
 ### TII
 
-_Technology Innovation Institute is a UAE-based research center that aims to lead global advances in artificial intelligence, autonomous robotics, quantum computing, cryptography and quantum communications, directed energy, secure communication, smart devices, advanced materials, and propulsion and space technologies._  
+<img src="../img/TII.png" align="left" alt="Ghaf tree" width="8%" /><p> _Technology Innovation Institute is a UAE-based research center that aims to lead global advances in artificial intelligence, autonomous robotics, quantum computing, cryptography and quantum communications, directed energy, secure communication, smart devices, advanced materials, and propulsion and space technologies._ </p>
+  
 Source: <https://www.tii.ae/>
 
 ---

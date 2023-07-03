@@ -5,9 +5,9 @@
 
 # About Ghaf
 
-_[Ghaf Framework](./appendices/glossary.md#ghaf)_ is an open-source project that provides information about our work and studies in the security technologies field in the context of embedded virtualization.
+<img src="../src/img/1600px-Ghaf_logo.svg" align="left" alt="Ghaf Logo" width="20%" /><p> Ghaf Framework is an open-source project that provides information about our work and studies in the security technologies field in the context of embedded virtualization. The applied software research supports _[Secure Systems Research Center](./appendices/glossary.md#ssrc) (SSRC)_ focus areas.</p>
 
-The applied software research supports _[Secure Systems Research Center](./appendices/glossary.md#ssrc) (SSRC)_ focus areas.
+> The project code name Ghaf represents the [national tree of the UAE](https://www.ead.gov.ae/en/Discover-Our-Biodiversity/Plants/Ghaf-Tree).
 
 *Ghaf Framework* can be used to build the *Ghaf Platform* that will provide an edge device software architecture with key features such as modularity and scalability through virtualization, support research and development of zero trust architecture (ZTA), and allow for low maintenance efforts while keeping the main code base stable and secure. The SSRC team focus is to research on enhancing ZTA to scale horizontally across edge HW platforms (phones, drones, laptops, communication modules) and vertically across SW platforms (Linux, Android, Browser, applications).
 
