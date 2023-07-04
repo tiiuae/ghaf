@@ -19,8 +19,8 @@ Nevertheless, it may happen that some hypervisor options are not supported by mi
 A VM is defined under Ghaf’s subdirectory ``microvmConfigurations/VM_NAME/default.nix``, for example:
 
 ```
-microvmConfigurations/netvm/default.nix
-https://github.com/tiiuae/ghaf/tree/main/microvmConfigurations/netvm/default.nix
+modules/virtualization/microvm/netvm.nix
+https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/netvm.nix
 ```
 
 This file contains hypervisor’s options for running the VM. For each hypervisor there is a bunch of microvm’s defined options:
