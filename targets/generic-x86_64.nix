@@ -59,6 +59,7 @@
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
+              windows-launcher.enable = true;
             };
           }
 

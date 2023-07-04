@@ -17,7 +17,7 @@ in {
     ghaf.graphics.weston.launchers = [
       {
         path = "${windows-launcher}/bin/windows-launcher-ui";
-        icon = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/24x24/devices/computer.png";
+        icon = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/16x16/mimetypes/application-x-executable.png";
       }
     ];
     environment.systemPackages = [windows-launcher];

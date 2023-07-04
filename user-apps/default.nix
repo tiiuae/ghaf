@@ -17,10 +17,7 @@ in
         pkgs = nixpkgs.legacyPackages.${system};
       in {
         gala-app = pkgs.callPackage ./gala {};
+        windows-launcher = pkgs.callPackage ./windows-launcher {};
       };
     }))
-
-    {
-      packages.aarch64-linux.windows-launcher = nixpkgs.legacyPackages.aarch64-linux.callPackage ./windows-launcher {};
-    }
   ]
