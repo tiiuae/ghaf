@@ -22,7 +22,7 @@ To enable ``binfmt``, we recommend to set the following in your host systems ``c
       "riscv64-linux"
       "aarch64-linux"
     ];
-    
+
 In addition, it is recommended to enable KVM support with either
 
     boot.kernelModules = [ "kvm-amd" ];
@@ -30,11 +30,17 @@ In addition, it is recommended to enable KVM support with either
 or
 
     boot.kernelModules = [ "kvm-intel" ];
-    
+
 depending on whether your development host is running AMD or Intel processor.
 
+## Cross Compilation for Microchip Icicle Kit (RISCV64)
+SD Image for Microchip Icicle kit can be cross compiled from x86 machine. To generate the release/debug SD Image run following command:
+
+```
+ $> nix build .#packages.riscv64-linux.mpfs-icicle-kit-<release/debug>
+```
 
 ## Future Cross-Compilation Support
 
 This will involve working with upstream package maintainers to ensure that the packages are cross-compilation aware. This will be addressed on a package-by-package basis.
-    
+

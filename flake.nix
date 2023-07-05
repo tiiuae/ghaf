@@ -45,6 +45,7 @@
     systems = with flake-utils.lib.system; [
       x86_64-linux
       aarch64-linux
+      riscv64-linux
     ];
     lib = nixpkgs.lib.extend (final: _prev: {
       ghaf = import ./lib {

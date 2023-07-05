@@ -6,11 +6,16 @@
   ...
 }: let
   cfg = config.ghaf.host.networking;
+  netvm-cfg = config.ghaf.host.networking.netvm;
 in
   with lib; {
     options.ghaf.host.networking = {
       enable = mkEnableOption "Host networking";
       # TODO add options to configure the network, e.g. ip addr etc
+    };
+
+    options.ghaf.host.networking.netvm = {
+      enable = mkEnableOption "Enable netvm";
     };
 
     config = mkIf cfg.enable {
@@ -20,7 +25,7 @@ in
         interfaces.virbr0.useDHCP = false;
       };
 
-      systemd.network = {
+      systemd.network = mkIf netvm-cfg.enable {
         netdevs."10-virbr0".netdevConfig = {
           Kind = "bridge";
           Name = "virbr0";

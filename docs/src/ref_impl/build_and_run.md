@@ -19,7 +19,7 @@ First, follow the basic device-independent steps:
 * Clone the git repository <https://github.com/tiiuae/ghaf>.
 * Ghaf uses a Nix flake approach to build the framework targets, make sure to:
   * Install Nix or full NixOS if needed: <https://nixos.org/download.html>.
-  * Enable flakes: <https://nixos.wiki/wiki/Flakes#Enable_flakes>.  
+  * Enable flakes: <https://nixos.wiki/wiki/Flakes#Enable_flakes>.
     To see all Ghaf-supported outputs, type `nix flake show`.
   * Set up an AArch64 remote builder: <https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html>.
 
@@ -32,6 +32,7 @@ Then you can use one of the following instructions for the supported targets:
 | Generic x86 Сomputer | x86_64           | [Running Ghaf Image for x86 Computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
 | NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
+| MICROCHIP icicle-kit    | RISCV64          | [MICROCHIP icicle-kit](./build_and_run.md#building-ghaf-image-for-microchip-icicle-kit)                     |
 
 
 ---
@@ -75,22 +76,22 @@ Before you begin:
 
 1. Run the command:
     ```
-    nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script 
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script
     ```
     It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give "yes" answers to all script questions. The building process takes around 1,5 hours.
 
 2. Set up the following connections:
    1. Connect the board to a power supply with a USB-C cable.
    2. Connect a Linux laptop to the board with the USB-C cable.
-   3. Connect the Linux laptop to the board with a Micro-USB cable to use [serial interface](https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console).  
-   
+   3. Connect the Linux laptop to the board with a Micro-USB cable to use [serial interface](https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console).
+
    > For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
 
 3. After the build is completed, put the board in recovery mode. For more information, see the [Force Recovery](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/howto.html#force-recovery-mode) Mode section in the Jetson AGX Orin Developer Kit User Guide.
-   
+
 4. Run the flashing script:
     ```
-    sudo ~/result/bin/flash-ghaf-host 
+    sudo ~/result/bin/flash-ghaf-host
     ```
     There is a time-out for this operation, so run the script within one minute after putting the device in recovery mode. If you got the error message "ERROR: might be timeout in USB write.":
 
@@ -106,11 +107,11 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
 
 1. To build the target image, run the command:
     ```
-    nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug 
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M 
+    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
     ```
 3. Boot the hardware from the USB media.
 
@@ -148,7 +149,7 @@ Before you begin, check device-independent [prerequisites](./build_and_run.md#pr
 In the case of i.MX8, Ghaf deployment contains of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and creating USB media with the Ghaf image:
 
 
-1. To build and flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader:  
+1. To build and flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader:
 
     ```
     $ git clone https://github.com/tiiuae/Tow-Boot.git && cd Tow-Boot
@@ -159,5 +160,29 @@ In the case of i.MX8, Ghaf deployment contains of creating a bootable SD card wi
 2. To build and flash the Ghaf image:
    1. Run the `nix build .#packages.aarch64-linux.imx8qm-mek-release` command.
    2. Prepare the USB boot media with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M`.
-   
+
 3. Insert an SD card and USB boot media into the board and switch the power on.
+
+---
+
+### Building Ghaf Image for Microchip Icicle kit
+
+Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
+
+In the case of Icicle kit, Ghaf deployment contains of creating a SD Image which includes UBoot and Linux kernel from Microchip and Ghaf based NixOS rootfs.
+
+1. Build a Ghaf SD image:
+   a. Release Image:
+        Run the `nix build .#packages.riscv64-linux.mpfs-icicle-kit-release` command.
+   b. Debug Image:
+        Run the `nix build .#packages.riscv64-linux.mpfs-icicle-kit-debug` command.
+
+2. Flash the Ghaf SD image:
+   a. Prepare the SD card with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_SD_DEVICE> bs=32M`.
+     - Insert an SD card into the board and switch the power on.
+
+   b. You can directly flash nixos image to onboard MMC card: `dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M`.
+     - Please refer Icicle kit user guide for more detail to access MMC card as USB disk.
+
+---
+

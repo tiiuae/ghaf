@@ -76,6 +76,22 @@
             ]}"
           '';
       });
+
+      wpa_supplicant = prev.wpa_supplicant.overrideAttrs (attrs: {
+        patches =
+          attrs.patches
+          ++ [
+            ./patches/0001-mesh-Make-forwarding-configurable.patch
+          ];
+
+        extraConfig =
+          attrs.extraConfig
+          + ''
+            CONFIG_MESH=y
+          '';
+      });
+
+      simplecam = _final.callPackage ./external-modules/camera/default.nix {pkgs = _final;};
     })
   ];
 }

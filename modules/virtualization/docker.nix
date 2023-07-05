@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
+  lib,
   modulesPath,
   ...
 }: let
@@ -12,11 +13,8 @@ in
       enable = mkEnableOption "Docker Daemon";
     };
 
+    imports = [(modulesPath + "/virtualisation/docker.nix")];
     config = mkIf cfg.enable {
-      imports = [
-        (modulesPath + "/virtualisation/docker.nix")
-      ];
-
       virtualisation.docker.enable = true;
       virtualisation.docker.rootless = {
         enable = true;

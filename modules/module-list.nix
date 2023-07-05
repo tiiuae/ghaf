@@ -12,7 +12,12 @@
   ./profiles/debug.nix
   ./profiles/graphics.nix
   ./profiles/release.nix
+  ./services/avahi.nix
+  ./services/dendrite.nix
+  ./services/gpsd.nix
+  ./services/postgresql.nix
   ./users/accounts.nix
   ./version
+  ./virtualization/docker.nix
   ./windows-launcher
 ]

@@ -26,6 +26,7 @@
       ghaf = {
         virtualization.microvm-host.enable = true;
         host.networking.enable = true;
+        host.networking.netvm.enable = true;
       };
     }
   ];
