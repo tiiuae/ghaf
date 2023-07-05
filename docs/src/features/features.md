@@ -8,7 +8,7 @@
 The vision for the Ghaf platform is to create a virtualized, scalable reference platform that enables the building of secure products leveraging trusted, reusable, and portable software for edge devices. For more information on reference implementation for several devices, see [Reference Implementations](../ref_impl/reference_implementations.md).
 
 Ghaf demo desktop and applications are illustrated in the screen capture below:
-![Ghaf demo desktop and application](../img/ghaf_demo_desktop.png) 
+![Ghaf demo desktop and application](../img/ghaf_demo_desktop.png)
 ## Status
 
 * &#x2705; - integrated and tested in the `main` branch. No known regression.
@@ -33,7 +33,7 @@ The following tables show the status of Ghaf Platform features:
 | `aarch64` reference image | &#x2705; | `imx8qm`  | Based on NXP BSP, implemented as [nixos-hardware module](https://github.com/NixOS/nixos-hardware/tree/master/nxp)|
 | `x86` generic image | &#x2705; | `x86` | Generic x86 computer, based on generic [NixOS](https://nixos.org/). NOTE: requires device specific configuration.|
 | Native build      | &#x2705;         | `aarch64, x86`   | Remote `aarc64` nixos builders recommended |
-| Cross-compilation | &#x1f6A7; | `aarch64`  | Depends on NixOS `nixpkgs 23.05` support for cross-compilation |
+| Cross-compilation | &#x1f6A7; | `aarch64, riscv64`  | Depends on NixOS `nixpkgs 23.05` support for cross-compilation |
 | CI builds         | &#x2705; | `All`  | [Only `main`-branch, not for all PRs](https://vedenemo.dev/). |
 | Emulated build    | &#x274C; | `aarch64`  | `binfmt`, may freeze the build machine. Not recommended. [See instructions.](https://tiiuae.github.io/ghaf/ref_impl/cross_compilation.html#binfmt)|
 
@@ -78,7 +78,7 @@ The following tables show the status of Ghaf Platform features:
 
 ## Next steps
 
-[See discussion for the outline of next steps](https://github.com/tiiuae/ghaf/issues/150#issuecomment-1564061850) 
+[See discussion for the outline of next steps](https://github.com/tiiuae/ghaf/issues/150#issuecomment-1564061850)
 
-![Outline of next phases](https://user-images.githubusercontent.com/1027150/241167552-bcb3a3f9-72f3-4b96-af8b-e9df6d1f3d5e.png) 
+![Outline of next phases](https://user-images.githubusercontent.com/1027150/241167552-bcb3a3f9-72f3-4b96-af8b-e9df6d1f3d5e.png)
 

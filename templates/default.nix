@@ -31,11 +31,10 @@
       description = "A Ghaf based configuration for x86_64 targets";
     };
 
-    #TODO Enable this when polarfire is merged
-    # # RISC-v targets
-    # target-riscv64-microchip-polarfire = {
-    #   path = ./targets/riscv64/microchip/polarfire;
-    #   description = "A Ghaf based configuration for the Microchip Polarfire";
-    # };
+    # RISC-v targets
+    target-riscv64-microchip-polarfire = {
+      path = ./targets/riscv64/microchip/polarfire;
+      description = "A Ghaf based configuration for the Microchip Polarfire";
+    };
   };
 }
