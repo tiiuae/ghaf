@@ -45,8 +45,8 @@
       inherit lib microvm system;
     };
     guivmConfiguration =
-      (import ../microvmConfigurations/guivm {
-        inherit nixpkgs microvm system;
+      (import ../modules/virtualization/microvm/guivm.nix {
+        inherit lib microvm system;
       })
       .extendModules {
         modules = [

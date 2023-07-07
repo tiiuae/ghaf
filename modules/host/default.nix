@@ -4,6 +4,7 @@
   self,
   microvm,
   netvm,
+  guivm,
 }: {
   lib,
   pkgs,
