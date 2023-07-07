@@ -15,11 +15,11 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-22.11";
     flake-utils.url = "github:numtide/flake-utils";
-    nixos-hardware.url = "github:nixos/nixos-hardware";
+    nixos-hardware.url = "github:codehub8/nixos-hardware/riscv_dev";
     ghaf = {
-      url = "github:tiiuae/ghaf";
+      url = "github:codehub8/ghaf/first_responder_dev";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

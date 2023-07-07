@@ -16,7 +16,7 @@
       specialArgs = {inherit lib;};
       modules =
         [
-          nixos-hardware.nixosModules.microchip-icicle-kit
+          nixos-hardware.nixosModules.polarfire-hardenedos
           ../modules/hardware/polarfire/mpfs-nixos-sdimage.nix
           ../overlays/custom-packages.nix
           (import ../modules/host/bare-host.nix {
