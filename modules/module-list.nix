@@ -14,5 +14,6 @@
   ./profiles/release.nix
   ./users/accounts.nix
   ./version
+  ./virtualization/docker.nix
   ./windows-launcher
 ]
