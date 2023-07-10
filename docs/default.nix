@@ -24,7 +24,9 @@
     mkdir $out
     cp -r ${./.}/* $out
     chmod +w $out/src/ref_impl/modules_options.md
-    cat ${optionsDocMd} >> $out/src/ref_impl/modules_options.md
+
+    # Refer to master branch files in github
+    sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/ref_impl/modules_options.md
   '';
 in
   runCommandLocal "ghaf-doc"
