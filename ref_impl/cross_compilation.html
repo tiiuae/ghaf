@@ -172,6 +172,10 @@
 <pre><code>boot.kernelModules = [ &quot;kvm-intel&quot; ];
 </code></pre>
 <p>depending on whether your development host is running AMD or Intel processor.</p>
+<h2 id="cross-compilation-for-microchip-icicle-kit-riscv64"><a class="header" href="#cross-compilation-for-microchip-icicle-kit-riscv64">Cross-Compilation for Microchip Icicle Kit (RISCV64)</a></h2>
+<p>An SD image for the Microchip Icicle Kit can be cross-compiled from an x86 machine. To generate the release or debug an SD image run the following command:</p>
+<pre><code> $&gt; nix build .#packages.riscv64-linux.microchip-icicle-kit-&lt;release/debug&gt;
+</code></pre>
 <h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross-Compilation Support</a></h2>
 <p>This will involve working with upstream package maintainers to ensure that the packages are cross-compilation aware. This will be addressed on a package-by-package basis.</p>
 

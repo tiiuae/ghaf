@@ -194,7 +194,7 @@
 <h1 id="features"><a class="header" href="#features">Features</a></h1>
 <p>The vision for the Ghaf platform is to create a virtualized, scalable reference platform that enables the building of secure products leveraging trusted, reusable, and portable software for edge devices. For more information on reference implementation for several devices, see <a href="features/../ref_impl/reference_implementations.html">Reference Implementations</a>.</p>
 <p>Ghaf demo desktop and applications are illustrated in the screen capture below:
-<img src="features/../img/ghaf_demo_desktop.png" alt="Ghaf demo desktop and application" /> </p>
+<img src="features/../img/ghaf_demo_desktop.png" alt="Ghaf demo desktop and application" /></p>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <ul>
 <li>✅ - integrated and tested in the <code>main</code> branch. No known regression.</li>
@@ -216,7 +216,7 @@
 <tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>imx8qm</code></td><td>Based on NXP BSP, implemented as <a href="https://github.com/NixOS/nixos-hardware/tree/master/nxp">nixos-hardware module</a></td></tr>
 <tr><td><code>x86</code> generic image</td><td>✅</td><td><code>x86</code></td><td>Generic x86 computer, based on generic <a href="https://nixos.org/">NixOS</a>. NOTE: requires device specific configuration.</td></tr>
 <tr><td>Native build</td><td>✅</td><td><code>aarch64, x86</code></td><td>Remote <code>aarc64</code> nixos builders recommended</td></tr>
-<tr><td>Cross-compilation</td><td>🚧</td><td><code>aarch64</code></td><td>Depends on NixOS <code>nixpkgs 23.05</code> support for cross-compilation</td></tr>
+<tr><td>Cross-compilation</td><td>🚧</td><td><code>aarch64, riscv64</code></td><td>Depends on NixOS <code>nixpkgs 23.05</code> support for cross-compilation</td></tr>
 <tr><td>CI builds</td><td>✅</td><td><code>All</code></td><td><a href="https://vedenemo.dev/">Only <code>main</code>-branch, not for all PRs</a>.</td></tr>
 <tr><td>Emulated build</td><td>❌</td><td><code>aarch64</code></td><td><code>binfmt</code>, may freeze the build machine. Not recommended. <a href="https://tiiuae.github.io/ghaf/ref_impl/cross_compilation.html#binfmt">See instructions.</a></td></tr>
 </tbody></table>
@@ -257,8 +257,8 @@
 </tbody></table>
 </div>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next steps</a></h2>
-<p><a href="https://github.com/tiiuae/ghaf/issues/150#issuecomment-1564061850">See discussion for the outline of next steps</a> </p>
-<p><img src="https://user-images.githubusercontent.com/1027150/241167552-bcb3a3f9-72f3-4b96-af8b-e9df6d1f3d5e.png" alt="Outline of next phases" /> </p>
+<p><a href="https://github.com/tiiuae/ghaf/issues/150#issuecomment-1564061850">See discussion for the outline of next steps</a></p>
+<p><img src="https://user-images.githubusercontent.com/1027150/241167552-bcb3a3f9-72f3-4b96-af8b-e9df6d1f3d5e.png" alt="Outline of next phases" /></p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -1305,7 +1305,7 @@ boolean</p>
 <li>Ghaf uses a Nix flake approach to build the framework targets, make sure to:
 <ul>
 <li>Install Nix or full NixOS if needed: <a href="https://nixos.org/download.html">https://nixos.org/download.html</a>.</li>
-<li>Enable flakes: <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">https://nixos.wiki/wiki/Flakes#Enable_flakes</a>.<br />
+<li>Enable flakes: <a href="https://nixos.wiki/wiki/Flakes#Enable_flakes">https://nixos.wiki/wiki/Flakes#Enable_flakes</a>.
 To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <li>Set up an AArch64 remote builder: <a href="https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html">https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html</a>.</li>
 </ul>
@@ -1317,6 +1317,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <tr><td>Generic x86 Сomputer</td><td>x86_64</td><td><a href="ref_impl/./build_and_run.html#running-ghaf-image-for-x86-computer">Running Ghaf Image for x86 Computer</a></td></tr>
 <tr><td>NVIDIA Jetson AGX Orin</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></td></tr>
 <tr><td>NXP i.MX 8QM-MEK</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></td></tr>
+<tr><td>MICROCHIP icicle-kit</td><td>RISCV64</td><td><a href="ref_impl/./build_and_run.html#building-ghaf-image-for-microchip-icicle-kit">Building Ghaf Image for Microchip Icicle Kit</a></td></tr>
 </tbody></table>
 </div>
 <hr />
@@ -1350,7 +1351,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <ol>
 <li>
 <p>Run the command:</p>
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script 
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script
 </code></pre>
 <p>It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give &quot;yes&quot; answers to all script questions. The building process takes around 1,5 hours.</p>
 </li>
@@ -1370,7 +1371,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </li>
 <li>
 <p>Run the flashing script:</p>
-<pre><code>sudo ~/result/bin/flash-ghaf-host 
+<pre><code>sudo ~/result/bin/flash-ghaf-host
 </code></pre>
 <p>There is a time-out for this operation, so run the script within one minute after putting the device in recovery mode. If you got the error message &quot;ERROR: might be timeout in USB write.&quot;:</p>
 <ol>
@@ -1386,11 +1387,11 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <p>After the latest firmware is <a href="ref_impl/./build_and_run.html#flashing-nvidia-jetson-orin-agx">flashed</a>, it is possible to use a simplified process by building only the Ghaf disk image and running it from external media:</p>
 <ol>
 <li>To build the target image, run the command:
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug 
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M 
+<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M
 </code></pre>
 </li>
 <li>Boot the hardware from the USB media.</li>
@@ -1422,7 +1423,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <hr />
 <h2 id="building-ghaf-image-for-nxp-imx-8qm-mek"><a class="header" href="#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></h2>
 <p>Before you begin, check device-independent <a href="ref_impl/./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<p>In the case of i.MX8, Ghaf deployment contains of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and creating USB media with the Ghaf image:</p>
+<p>In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and USB media with the Ghaf image.:</p>
 <ol>
 <li>
 <p>To build and flash <a href="https://github.com/tiiuae/Tow-Boot"><strong>Tow-Boot</strong></a> bootloader:</p>
@@ -1442,6 +1443,35 @@ $ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
 <p>Insert an SD card and USB boot media into the board and switch the power on.</p>
 </li>
 </ol>
+<hr />
+<h2 id="building-ghaf-image-for-microchip-icicle-kit"><a class="header" href="#building-ghaf-image-for-microchip-icicle-kit">Building Ghaf Image for Microchip Icicle Kit</a></h2>
+<p>Before you begin:</p>
+<ul>
+<li>Check device-independent <a href="ref_impl/./build_and_run.html#prerequisites">prerequisites</a>.</li>
+<li>Please make sure HSS version 0.99.35-v2023.02 is programmed in your board eNVM. The version can be seen in pre-bootloader log. 
+A video guide to build HSS and programming the eNVM is available in the below given link:
+<a href="https://www.youtube.com/watch?v=McAt2-6cwd4">How to build HSS and program the eNVM?</a> </li>
+</ul>
+<p>In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image with U-Boot and Linux kernel from Microchip, and Ghaf-based NixOS rootfs.</p>
+<ol>
+<li>
+<p>Build a Ghaf SD image:
+a. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-release command to release the image.
+b. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-debug command to debug the image.</p>
+</li>
+<li>
+<p>Flash the Ghaf SD image:</p>
+<ul>
+<li>If you want to use a SD card:
+a. Prepare the SD card with the target HW image you built: dd if=./result/nixos.img of=/dev/&lt;YOUR_SD_DEVICE&gt; bs=32M.
+b. Insert an SD card into the board and switch the power on.</li>
+<li>If you want to use the onboard MMC:
+You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixos.img of=/dev/&lt;YOUR_MMC_DEVICE&gt; bs=32M.</li>
+</ul>
+</li>
+</ol>
+<p>For more information on how to access the MMC card as a USB disk, see <a href="https://tinyurl.com/48wycdka">Icicle Kit user guide</a>.</p>
+<hr />
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -1467,6 +1497,10 @@ $ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
 <pre><code>boot.kernelModules = [ &quot;kvm-intel&quot; ];
 </code></pre>
 <p>depending on whether your development host is running AMD or Intel processor.</p>
+<h2 id="cross-compilation-for-microchip-icicle-kit-riscv64"><a class="header" href="#cross-compilation-for-microchip-icicle-kit-riscv64">Cross-Compilation for Microchip Icicle Kit (RISCV64)</a></h2>
+<p>An SD image for the Microchip Icicle Kit can be cross-compiled from an x86 machine. To generate the release or debug an SD image run the following command:</p>
+<pre><code> $&gt; nix build .#packages.riscv64-linux.microchip-icicle-kit-&lt;release/debug&gt;
+</code></pre>
 <h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross-Compilation Support</a></h2>
 <p>This will involve working with upstream package maintainers to ensure that the packages are cross-compilation aware. This will be addressed on a package-by-package basis.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
