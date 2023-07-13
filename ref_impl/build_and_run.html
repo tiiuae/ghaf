@@ -210,7 +210,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <ol>
 <li>
 <p>Run the command:</p>
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-flash-script
 </code></pre>
 <p>It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give &quot;yes&quot; answers to all script questions. The building process takes around 1,5 hours.</p>
 </li>
@@ -246,7 +246,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <p>After the latest firmware is <a href="./build_and_run.html#flashing-nvidia-jetson-orin-agx">flashed</a>, it is possible to use a simplified process by building only the Ghaf disk image and running it from external media:</p>
 <ol>
 <li>To build the target image, run the command:
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built:

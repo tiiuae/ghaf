@@ -1285,7 +1285,7 @@ boolean</p>
 <p>Scope of target support is updated with development progress.</p>
 <p>Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in the<a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix#L4-L5">authentication.nix</a> module.</p>
 <p>If you set up development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4">ssh.nix</a> module, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the development board over the network using SSH:</p>
-<pre><code>nixos-rebuild --flake .#nvidia-jetson-orin-debug --target-host root@ghaf-host --fast switch
+<pre><code>nixos-rebuild --flake .#packages.aarch64-linux.nvidia-jetson-orin-agx-debug --target-host root@ghaf-host --fast switch
 </code></pre>
 <p>Pull requests are the way for contributors to submit code to the Ghaf project. For more information, see <a href="ref_impl/../appendices/contributing_general.html">Contribution Guidelines</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
@@ -1351,7 +1351,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <ol>
 <li>
 <p>Run the command:</p>
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-flash-script
 </code></pre>
 <p>It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give &quot;yes&quot; answers to all script questions. The building process takes around 1,5 hours.</p>
 </li>
@@ -1387,7 +1387,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <p>After the latest firmware is <a href="ref_impl/./build_and_run.html#flashing-nvidia-jetson-orin-agx">flashed</a>, it is possible to use a simplified process by building only the Ghaf disk image and running it from external media:</p>
 <ol>
 <li>To build the target image, run the command:
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built:
@@ -1478,12 +1478,18 @@ You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixo
 -->
 <h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross-Compilation</a></h1>
 <blockquote>
-<p>Cross-compilation is currently under development and cannot be used properly on the supported devices.</p>
+<p>Cross-compilation is currently under development and cannot be used properly on all the supported device configurations.</p>
 </blockquote>
 <p>Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is <code>x_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
-<h2 id="binfmt"><a class="header" href="#binfmt">binfmt</a></h2>
-<p><a href="https://en.wikipedia.org/wiki/Binfmt_misc">binfmt</a> allows running different ISA on a development machine. This is achieved by running the target binary in an emulator such as <code>QEMU</code> or in a VM.</p>
+<h2 id="cross-compilation-for-microchip-icicle-kit-riscv64"><a class="header" href="#cross-compilation-for-microchip-icicle-kit-riscv64">Cross-Compilation for Microchip Icicle Kit (RISCV64)</a></h2>
+<p>An SD image for the Microchip Icicle Kit can be cross-compiled from an x86 machine. To generate the release or debug an SD image run the following command:</p>
+<pre><code> $&gt; nix build .#packages.riscv64-linux.microchip-icicle-kit-&lt;release/debug&gt;
+</code></pre>
+<h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross-Compilation Support</a></h2>
+<p>This will involve working with upstream package maintainers to ensure that the packages are cross-compilation aware. This will be addressed on a package-by-package basis.</p>
+<h2 id="binfmt-emulated-build"><a class="header" href="#binfmt-emulated-build">binfmt Emulated Build</a></h2>
+<p><a href="https://en.wikipedia.org/wiki/Binfmt_misc">binfmt</a> allows running different ISA on a development machine. This is achieved by running the target binary in an emulator such as <code>QEMU</code> or in a VM. So while not cross-compiled it can enable development for some embedded device configurations.</p>
 <p>To enable <code>binfmt</code>, we recommend to set the following in your host systems <code>configuration.nix</code>:</p>
 <pre><code>boot.binfmt.emulatedSystems = [
   &quot;riscv64-linux&quot;
@@ -1497,12 +1503,6 @@ You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixo
 <pre><code>boot.kernelModules = [ &quot;kvm-intel&quot; ];
 </code></pre>
 <p>depending on whether your development host is running AMD or Intel processor.</p>
-<h2 id="cross-compilation-for-microchip-icicle-kit-riscv64"><a class="header" href="#cross-compilation-for-microchip-icicle-kit-riscv64">Cross-Compilation for Microchip Icicle Kit (RISCV64)</a></h2>
-<p>An SD image for the Microchip Icicle Kit can be cross-compiled from an x86 machine. To generate the release or debug an SD image run the following command:</p>
-<pre><code> $&gt; nix build .#packages.riscv64-linux.microchip-icicle-kit-&lt;release/debug&gt;
-</code></pre>
-<h2 id="future-cross-compilation-support"><a class="header" href="#future-cross-compilation-support">Future Cross-Compilation Support</a></h2>
-<p>This will involve working with upstream package maintainers to ensure that the packages are cross-compilation aware. This will be addressed on a package-by-package basis.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
