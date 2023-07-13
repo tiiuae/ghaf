@@ -1,13 +1,27 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Configuration for NVIDIA Jetson AGX Orin
+# Configuration for NVIDIA Jetson Orin AGX/NX reference boards
 {
   lib,
   config,
   ...
 }: let
   cfg = config.ghaf.hardware.nvidia.orin;
+  somDefinition = {
+    "agx" = {
+      flashArgs = ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "mmcblk0p1"];
+      passthrough-patch = ./pci-passthrough-agx-test.patch;
+      vfio-pci = "vfio-pci.ids=10ec:c82f";
+      deviceTree = "tegra234-p3701-host-passthrough.dtb";
+    };
+    "nx" = {
+      flashArgs = ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "nvme0n1p1"];
+      passthrough-patch = ./pci-passthrough-nx-test.patch;
+      vfio-pci = "vfio-pci.ids=10ec:8168";
+      deviceTree = "tegra234-p3767-host-passthrough.dtb";
+    };
+  };
 in
   with lib; {
     options.ghaf.hardware.nvidia.orin = {
@@ -41,7 +55,7 @@ in
         modesetting.enable = true;
 
         flashScriptOverrides = {
-          flashArgs = lib.mkForce ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "mmcblk0p1"];
+          flashArgs = lib.mkForce somDefinition."${cfg.somType}".flashArgs;
         };
 
         firmware.uefi.logo = ../../../docs/src/img/1600px-Ghaf_logo.svg;
@@ -59,7 +73,7 @@ in
       boot.kernelPatches = [
         {
           name = "passthrough-patch";
-          patch = ./pci-passthrough-test.patch;
+          patch = somDefinition."${cfg.somType}".passthrough-patch;
         }
         {
           name = "vsock-config";
@@ -79,12 +93,12 @@ in
 
       hardware.deviceTree = {
         enable = true;
-        name = "tegra234-p3701-host-passthrough.dtb";
+        name = somDefinition."${cfg.somType}".deviceTree;
       };
 
       # Passthrough Jetson Orin WiFi card
       boot.kernelParams = [
-        "vfio-pci.ids=10ec:c82f"
+        somDefinition."${cfg.somType}".vfio-pci
         "vfio_iommu_type1.allow_unsafe_interrupts=1"
       ];
     };

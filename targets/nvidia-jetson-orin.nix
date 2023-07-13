@@ -11,7 +11,7 @@
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
-  nvidia-jetson-orin = variant: extraModules: let
+  nvidia-jetson-orin = som: variant: extraModules: let
     netvmExtraModules = [
       {
         microvm.devices = [
@@ -46,6 +46,7 @@
           {
             ghaf = {
               hardware.nvidia.orin.enable = true;
+              hardware.nvidia.orin.somType = som;
 
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
@@ -74,11 +75,13 @@
     };
   in {
     inherit hostConfiguration;
-    name = "${name}-${variant}";
+    name = "${name}-${som}-${variant}";
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  nvidia-jetson-orin-debug = nvidia-jetson-orin "debug" [];
-  nvidia-jetson-orin-release = nvidia-jetson-orin "release" [];
+  nvidia-jetson-orin-agx-debug = nvidia-jetson-orin "agx" "debug" [];
+  nvidia-jetson-orin-agx-release = nvidia-jetson-orin "agx" "release" [];
+  nvidia-jetson-orin-nx-debug = nvidia-jetson-orin "nx" "debug" [];
+  nvidia-jetson-orin-nx-release = nvidia-jetson-orin "nx" "release" [];
   generate-cross-from-x86_64 = tgt:
     tgt
     // rec {
@@ -95,8 +98,10 @@
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
   targets = [
-    nvidia-jetson-orin-debug
-    nvidia-jetson-orin-release
+    nvidia-jetson-orin-agx-debug
+    nvidia-jetson-orin-agx-release
+    nvidia-jetson-orin-nx-debug
+    nvidia-jetson-orin-nx-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
   mkFlashScript = import ../lib/mk-flash-script.nix;

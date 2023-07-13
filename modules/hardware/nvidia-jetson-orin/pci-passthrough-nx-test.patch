@@ -1,0 +1,33 @@
+diff --git a/nvidia/platform/t23x/p3768/kernel-dts/Makefile b/nvidia/platform/t23x/p3768/kernel-dts/Makefile
+index f306119fe8a3..3034a22ca7ed 100644
+--- a/nvidia/platform/t23x/p3768/kernel-dts/Makefile
++++ b/nvidia/platform/t23x/p3768/kernel-dts/Makefile
+@@ -23,6 +23,9 @@ dtb-$(BUILD_ENABLE) += tegra234-p3767-0000-as-p3767-0004-p3768-0000-a0.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0001-p3768-0000-a0.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0003-p3768-0000-a0.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3767-0004-p3768-0000-a0.dtb
++
++dtb-$(BUILD_ENABLE) += tegra234-p3767-host-passthrough.dtb
++
+ dtbo-$(BUILD_ENABLE) += tegra234-p3767-0000-p3509-a02-adafruit-sph0645lm4h.dtbo
+ dtbo-$(BUILD_ENABLE) += tegra234-p3767-0000-p3509-a02-adafruit-uda1334a.dtbo
+ dtbo-$(BUILD_ENABLE) += tegra234-p3767-0000-p3509-a02-csi.dtbo
+diff --git a/nvidia/platform/t23x/p3768/kernel-dts/tegra234-p3767-host-passthrough.dts b/nvidia/platform/t23x/p3768/kernel-dts/tegra234-p3767-host-passthrough.dts
+new file mode 100644
+index 000000000000..e273e4e9505f
+--- /dev/null
++++ b/nvidia/platform/t23x/p3768/kernel-dts/tegra234-p3767-host-passthrough.dts
+@@ -0,0 +1,13 @@
++/dts-v1/;
++#include "tegra234-p3767-0000-p3509-a02.dts"
++
++/*
++ * Update the pci-e ethernet to be accessible from vfio/guest
++ * The ethernet device is pcie@140a0000 or with name pci_c8_rp 
++ */
++&pcie_c8_rp {
++   interconnect-names = "dma-mem", "write";
++   /delete-property/ iommus;
++   /delete-property/ msi-parent;
++   /delete-property/ msi-map;
++};
