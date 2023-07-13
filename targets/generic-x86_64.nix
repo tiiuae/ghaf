@@ -60,6 +60,7 @@
                 debug.enable = variant == "debug";
               };
               windows-launcher.enable = true;
+              audio.enable = true;
             };
           }
 

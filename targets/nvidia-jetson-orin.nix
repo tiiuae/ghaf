@@ -65,6 +65,7 @@
               };
               # TODO when supported on x86 move under virtualization
               windows-launcher.enable = true;
+              audio.enable = true;
             };
           }
 
