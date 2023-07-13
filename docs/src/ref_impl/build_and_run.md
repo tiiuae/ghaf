@@ -76,7 +76,7 @@ Before you begin:
 
 1. Run the command:
     ```
-    nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug-flash-script
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-flash-script
     ```
     It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give "yes" answers to all script questions. The building process takes around 1,5 hours.
 
@@ -107,7 +107,7 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
 
 1. To build the target image, run the command:
     ```
-    nix build github:tiiuae/ghaf#nvidia-jetson-orin-debug
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built:
     ```

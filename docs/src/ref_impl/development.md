@@ -13,7 +13,7 @@ Once you are up and running, you can participate in the collaborative developmen
 
 If you set up development SSH keys in the [ssh.nix](https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4) module, you can use `nixos-rebuild switch` to quickly deploy your configuration changes to the development board over the network using SSH:
 
-    nixos-rebuild --flake .#nvidia-jetson-orin-debug --target-host root@ghaf-host --fast switch
+    nixos-rebuild --flake .#packages.aarch64-linux.nvidia-jetson-orin-agx-debug --target-host root@ghaf-host --fast switch
 
 
 
