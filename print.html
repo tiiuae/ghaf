@@ -2386,47 +2386,94 @@ echo 5b230000.clock-controller &gt; /sys/bus/platform/drivers/vfio-platform/bind
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="running-windows-11-in-vm-on-ghaf"><a class="header" href="#running-windows-11-in-vm-on-ghaf">Running Windows 11 in VM on Ghaf</a></h1>
-<p>You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX. This method uses <a href="https://www.qemu.org/">QEMU</a> as VMM. For information on how to build and run a Ghaf image for NVIDIA Jetson Orin AGX, see <a href="research/../ref_impl/build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Build and Run</a>.</p>
+<p>You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX (ARM64) or Generic x86 device. This method uses <a href="https://www.qemu.org/">QEMU</a> as VMM. For information on how to build and run a Ghaf image, see <a href="research/../ref_impl/build_and_run.html">Build and Run</a>.</p>
 <h2 id="getting-windows-11-image"><a class="header" href="#getting-windows-11-image">Getting Windows 11 Image</a></h2>
 <ol>
 <li>
-<p>Use your Microsoft account to join the <a href="https://insider.windows.com/en-us/register">Windows Insider Program</a> to be able to install Windows Insider Preview Builds.</p>
+<p>Depending on the device:</p>
+<ul>
+<li>For Generic x86, download Windows 11 ISO (<a href="https://www.microsoft.com/software-download/windows11">Win11_22H2_English_x64v2.iso</a>) from the Microsoft website.</li>
+<li>For NVIDIA Jetson Orin AGX (ARM64), use your Microsoft account to join the <a href="https://insider.windows.com/en-us/register">Windows Insider Program</a>. On the Windows 11 on Arm Insider Preview page, select the <code>Windows 11 Client Arm64 Insider Preview (Canary) - Build 25324</code> build and the language to download a VHDX image file.</li>
+</ul>
 </li>
 <li>
-<p>On the <em>Windows 11 on Arm Insider Preview</em> page, select the <code>Windows 11 Client Arm64 Insider Preview (Canary) - Build 25324</code> build and the language to download a VHDX image file for ARM64.</p>
-</li>
-<li>
-<p>Copy <em>Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX</em> to an external USB drive. Connect the USB drive to the NVIDIA device with the latest version of Ghaf installed, and mount it to some folder.</p>
+<p>Copy the image to an external USB drive. Connect the USB drive to the device with the latest version of Ghaf installed, and mount it to some folder.</p>
 <pre><code>sudo mkdir /mnt
 sudo mount /dev/sda /mnt
 </code></pre>
 <blockquote>
-<p><strong>WARNING:</strong> Make sure to use a fresh VHDX image file which has not been booted on some other environment before.</p>
+<p><strong>WARNING:</strong> [For NVIDIA Jetson Orin AGX] Make sure to use a fresh VHDX image file that was not booted in another environment before.</p>
 </blockquote>
 </li>
 </ol>
 <h2 id="running-windows-11-in-vm"><a class="header" href="#running-windows-11-in-vm">Running Windows 11 in VM</a></h2>
+<h4 id="running-windows-11-in-vm-on-arm64-device-nvidia-jetson-orin-agx"><a class="header" href="#running-windows-11-in-vm-on-arm64-device-nvidia-jetson-orin-agx">Running Windows 11 in VM on ARM64 Device (NVIDIA Jetson Orin AGX)</a></h4>
 <ol>
 <li>
-<p>In Weston terminal, go to the directory with the VHDX image and run the VM using the following Ghaf script:</p>
+<p>In the Weston terminal, go to the directory with the Windows 11 image and run the VM without sudo and as a non-root user using the following Ghaf script:</p>
 <pre><code>cd /mnt
 windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX
 </code></pre>
-<blockquote>
-<p><strong>WARNING:</strong> Do not use <strong>sudo</strong> or the root user to run windows-launcher.</p>
-</blockquote>
-<p>Alternatively, you can launch the Windows 11 VM by clicking the corresponding icon in the Weston taskbar.</p>
-<p>When you click it for the first time, you will see a file selection dialog. Once Windows 11 image has been selected, it saves the path to the <code>~/.config/windows-launcher-ui.conf</code> configuration file and launches the VM. Next time, the VM will be immediately launched with one click.</p>
 </li>
 <li>
-<p>You can pass additional parameter to QEMU after the image name. For example:</p>
-<pre><code>windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX -serial stdio
+<p>Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type <code>OOBE\BYPASSNRO</code>. After the configuration restart click “I don’t have internet“ to skip the Internet connection step and continue the installation.</p>
+<blockquote>
+<p>TIP: If after pressing Shift+F10 the command window is not displayed, try to switch between opened windows by using Alt+Tab.</p>
+</blockquote>
+</li>
+</ol>
+<h4 id="running-windows-11-in-vm-on-generic-x86-device"><a class="header" href="#running-windows-11-in-vm-on-generic-x86-device">Running Windows 11 in VM on Generic x86 Device</a></h4>
+<p>On x86_64 device Windows 11 VM can be launched with either an ISO image or QCOW2.</p>
+<ul>
+<li>For an ISO image, the script creates an empty QCOW2 image in the same directory which is used as a system disk in the VM.</li>
+<li>After installing Windows 11, run the script for the QCOW2 image.</li>
+</ul>
+<ol>
+<li>
+<p>In the Weston terminal, go to the directory with the Windows 11 image and run the VM without sudo and as a non-root user using the following Ghaf script:</p>
+<pre><code>cd /mnt
+windows-launcher ./Win11_22H2_English_x64v2.iso
 </code></pre>
 </li>
 <li>
-<p>Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type <code>OOBE\BYPASSNRO</code>. The VM will reboot and configuration will continue in offline mode.</p>
+<p>When the VM starts booting press any key to boot from a CD.</p>
+</li>
+<li>
+<p>In order to bypass Windows 11 system requirements, open cmd with Shift+F10 and type <code>regedit</code>. In HKEY_LOCAL_MACHINE\SYSTEM\Setup, right-click New &gt; Key and type LabConfig. For this key create two DWORD (32-bit) parameters:</p>
+<ul>
+<li>Name: <code>BypassTPMCheck</code>, value <code>1</code>.</li>
+<li>Name: <code>BypassSecureBootCheck</code>, value <code>1</code>.</li>
+</ul>
+<blockquote>
+<p>TIP: [For Ghaf running on a laptop] If after pressing Shift+F10 the command window is not displayed, try again with the Fn key (Shift+Fn+F10) or switch between opened windows by using Alt+Tab.</p>
+</blockquote>
+</li>
+<li>
+<p>Install Windows 11 in the VM.</p>
+</li>
+<li>
+<p>Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type <code>OOBE\BYPASSNRO</code>. After the configuration restart click “I don’t have internet“ to skip the Internet connection step and continue the installation.</p>
+</li>
+<li>
+<p>After the installation is completed the script is launched with the QCOW2 image:</p>
+<pre><code>windows-launcher ./win11.qcow2
+</code></pre>
 </li>
 </ol>
+<h2 id="using-ui-to-launch-windows-11-vm"><a class="header" href="#using-ui-to-launch-windows-11-vm">Using UI to Launch Windows 11 VM</a></h2>
+<p>Instead of running Windows launcher from the command line it is possible to launch the Windows 11 VM by clicking the corresponding icon in the Weston taskbar.</p>
+<p>When you click it for the first time, you will see a file selection dialog. Once Windows 11 image has been selected, it saves the path to the <code>~/.config/windows-launcher-ui.conf</code> configuration file and launches the VM. Next time, the VM will be immediately launched with one click.</p>
+<p>In order to use a different image instead of the saved one, delete the configuration file:</p>
+<pre><code>rm ~/.config/windows-launcher-ui.conf
+</code></pre>
+<h2 id="passing-additional-parameters-to-qemu"><a class="header" href="#passing-additional-parameters-to-qemu">Passing Additional Parameters to QEMU</a></h2>
+<p>It is possible to pass additional parameters to QEMU when running Windows launcher from the command line.</p>
+<p>NVIDIA Jetson Orin AGX (ARM64) example:</p>
+<pre><code>windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX -serial stdio
+</code></pre>
+<p>Generic x86_64 example:</p>
+<pre><code>windows-launcher ./win11.qcow2 -serial stdio
+</code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
