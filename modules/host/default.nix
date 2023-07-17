@@ -40,6 +40,8 @@
       withUserDb = false;
     };
 
+    environment.defaultPackages = lib.mkForce [];
+
     boot.enableContainers = false;
     ##### Remove to here
   };
