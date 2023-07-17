@@ -10,14 +10,25 @@
 }: let
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
+  somDevices = {
+    "agx" = {
+      bus = "pci";
+      path = "0001:01:00.0";
+    };
+    "nx" = {
+      bus = "pci";
+      path = "0008:01:00.0"; 
+    };
+  };
   formatModule = nixos-generators.nixosModules.raw-efi;
   nvidia-jetson-orin = som: variant: extraModules: let
     netvmExtraModules = [
       {
+        # This part should be conditional for AGX 01:01 for NX 08:01
         microvm.devices = [
           {
-            bus = "pci";
-            path = "0001:01:00.0";
+            bus = somDevices."${som}".bus;
+            path = somDevices."${som}".path;
           }
         ];
 
