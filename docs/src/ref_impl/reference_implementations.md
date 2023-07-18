@@ -24,11 +24,11 @@ NixOS, a Linux OS distribution packaged with Nix, provides us with:
   * to extend and change packages with [overlays](https://nixos.wiki/wiki/Overlays)
   * to [override](https://nixos.org/guides/nix-pills/override-design-pattern.html) packages
 
-Even when unmodified upstream is often preferred, even ideal, to ensure timely security updates from upstream — customizations are sometimes required.
+Even when unmodified upstream is often preferred, even ideal, to ensure timely security updates from upstream—customizations are sometimes required.
 
 ### Example
 
-To support a reference board without a vendor board support package (BSP) — bootloader, kernel, device drivers — is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.
+To support a reference board without a vendor board support package (BSP)—bootloader, kernel, device drivers—is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.
 
 Often the vendor BSPs are also open source but sometimes contain unfree binary blobs from the vendor's hardware. Those are handled by allowing ``unfree`` - if the user agrees with the end-user license agreement (EULA). If not, ``unfree`` support can be dropped along with that part of the BSP support.
 

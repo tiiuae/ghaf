@@ -33,6 +33,10 @@ Writing guidelines:
   * Do not use parenthesis for additional information, make a separate sentence instead.
   * Use numbered lists for actions that happen in sequence.
   * Do not contract the words: use _cannot_ instead of _can’t_.
+  * Do not use Latin words. For example:
+    * perform operations, **etc.** ⇒ perform operations, and **so on**
+    * **e.g.** a Microsoft SQL Server ⇒ **for example**, a Microsoft SQL Server
+    * **via** the system ⇒ **through** the system
 * Use “we” for us and our work, use “you” for readers. Do not use “please” to provide instructions, just ask what should be done.
 * Avoid buzzwords, slang, and jargon.
 * Readers often scan rather than read, put the important facts first.
@@ -124,7 +128,9 @@ To make our Markdown files maintainable over time and across teams, follow the r
 Capitalize words in the heading according to title case.
 
 > Title Case: You Capitalize All Words in the Title Except for the Little Words.
-> 
+
+For a hyphenated compound word, capitalize both parts, unless it is an article, preposition, or coordinating conjunction. For example: Step-by-Step, Ghaf-Based, Follow-Up, Non-Functional.
+
 In Ghaf documentation, we do not use articles in headings as soon as the meaning remains clear (compare, for example: "History of China" and "The History of China"). Headlines should be attention grabbers, not full sentences.
 
 
@@ -193,6 +199,7 @@ In Ghaf documentation, we do not use articles in headings as soon as the meaning
 ## References
 
 For references (additional information on sections, terms and any other issues in a document that require supplementary explanation) use the following combination:
+
 * *for more information on X, see B* 
 * *to learn how to X, see B*
 
@@ -214,4 +221,4 @@ Congratulations! You found the Room of Requirement that adjusts itself to its se
 | cross compilation vs. cross-compilation | In Ghaf documentation, we use **cross-compilation** as a noun or an adjective to describe a compilation that is performed between different devices. Use **cross-compile** as a verb meaning to build on one platform an executable binary that will run on another platform. |
 
 
-To do: function vs. feature, feature vs. functionality, toward vs. towards.
+Happy writing!

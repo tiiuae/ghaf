@@ -3,45 +3,39 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Platform bus passthrough support for RustVMM-based hypervisors
+# rust-vmm—Bus Passthrough Support for Rust VMMs
 
 ## Status
 
-Proposed, WIP.
+Proposed, work in progress.
 
 
 ## Context
 
-This ADR is WIP notes for Platform bus passthrough implementation for RustVMM-based hypervisors.
+This ADR is a work-in-progress note for Ghaf bus passthrough implementation that will support rust-vmm-based hypervisors.
 
-Support for Platform bus devices passthrough is important to have for ARM-based hardware because it's the mainly used bus to connect the peripherials. 
-Nowdays the only hypervisor that has some support for Platform bus is QEMU, the code is dated 2013 and not frequently used.
+> *rust-vmm* is an open-source project that empowers the community to build custom Virtual Machine Monitors (VMMs) and hypervisors. For more information, see <https://github.com/rust-vmm/community>.
 
-On the other hand one of the main hardware platforms for GHAF is NVIDIA Orin, that is ARM and to achieve GHAF's security and hardware isolation goals, devices should be passthroughed to virtual machines.
+It is crucial to have bus devices passthrough support for ARM-based hardware as the bus is mainly used to connect the peripherals. Nowadays, the only hypervisor with some support for Platform bus is QEMU but the code is dated 2013 and not frequently used.
 
-Production-ready RustVMM-based hypervisors (CrosVM, Firecracker, CloudHypervisor) do not have support for Platform bus, their developers (Google, Amazon, ...) mostly probable are not interested in supporting it because it doesn't align with their business needs.
+On the other hand, one of the target hardware devices for Ghaf is NVIDIA Orin with an ARM core. To achieve Ghaf's security and hardware isolation goals, devices should support passthrough mode. Production-ready rust-vmm-based hypervisors ([crosvm](https://github.com/google/crosvm), [Firecracker](https://github.com/firecracker-microvm/firecracker), [Cloud Hypervisor](https://www.cloudhypervisor.org/)) do not have support for Platform bus.
 
 
 ## Decision
 
-Implement Platform bus passthrough support for RustVMM that is a base framework for RustVMM-based hypervisors.
-After that use this support within production-ready RustVMM-based hypervisors. 
-The main candidate there is CrosVM, necessity to support Platform bus in  other hypervisors are subject to discuss.
+Implementation of Platform bus passthrough is a base framework for Rust VMM. This will make it possible to use this mode within production-ready rust-vmm-based hypervisors. The main candidate here is crosvm. The necessity to support Platform bus in other hypervisors is subject to discussion. Technically, the Platform bus is rather a simple bus: it manages memory mapping and interrupts. Information about devices is not dynamic but is read from the device tree during the boot stage.
 
-Technically, Platform bus is rather simple bus  -- it manages memory mapping and interrupts. Information about devices is not dynamic, but is read from device tree during the boot stage.
+The current status:
 
-Required components and their existance/use readiness.
-- Host kernel side:
- - VFIO drivers (to substitute real driver in host kernel) - +
- - Host support for device trees + 
-- Guest kernel side:
-  - Device drivers for passthrough devices +
-  - Guest support for device trees + 
-- RustVMM side:
-  - Bus support - Needs to be developed
-  - VMM support for device trees -- rudimental, needs improvement. 
-
-## Consequences
-
-GHAF's security and hardware isolation goals reached, platform bus devices are passthroughed to virtual machines.
+| Required Components     |  Status of Readiness     |
+|---                      |---                       |
+| Host kernel side:       |                          |
+| VFIO drivers (to substitute real driver in host kernel) | -/+ |
+| Host support for device trees | + |
+| Guest kernel side:      |                          |
+| Device drivers for passthrough devices | + |
+| Guest support for device trees | + |
+| Rust VMM side:      | 
+| Bus support | Needs to be developed. |
+| VMM support for device trees | Rudimental, needs improvement. |
  
