@@ -8,4 +8,3 @@
 Our experience in research and lessons learned activities:
 
 * [i.MX 8QM platform bus ethernet passthrough](passthrough/ethernet.md)
-* [Windows 11 in VM on Ghaf](run_win_vm.md)
