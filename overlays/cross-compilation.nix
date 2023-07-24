@@ -8,10 +8,9 @@
     (final: prev: let
       crossCompiling = prev.stdenv.buildPlatform != prev.stdenv.hostPlatform;
       filterOutByName = name: builtins.filter (x: (builtins.baseNameOf x) != name);
-      # FIXME: should be prev.buildPackages.fetchpatch2, why I can't use fetchpatch2 here
-      crossPatch = builtins.fetchurl {
+      crossPatch = final.buildPackages.fetchpatch2 {
         url = "https://raw.githubusercontent.com/ck3d/nixpkgs/2d6f287f403f11f48bba19e2b2f2a7050592d51a/pkgs/development/interpreters/perl/cross.patch";
-        sha256 = "06n6p078m9g12m82z6dz0h0qlkm394af7b21vhwdpjrr6kbjbvf2";
+        sha256 = "sha256-ha7GPgSePU5P/UQpxnIEZD6CyJfDRUsfcysgBoVKrbc=";
       };
       # function to list patches for debug purposes
       tracePatches = xs: map (x: builtins.trace (builtins.toString x) x) xs;
