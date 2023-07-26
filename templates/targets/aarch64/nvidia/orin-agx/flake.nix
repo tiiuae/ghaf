@@ -51,7 +51,7 @@
       }))
 
       {
-        nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.nvidia-jetson-orin-debug.extendModules {
+        nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.nvidia-jetson-orin-agx-debug.extendModules {
           modules = [
             {
               #insert your additional modules here e.g.
