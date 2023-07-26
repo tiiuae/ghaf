@@ -51,7 +51,7 @@
       }))
 
       {
-        nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.nvidia-jetson-orin-debug.extendModules {
+        nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.nvidia-jetson-orin-nx-debug.extendModules {
           modules = [
             {
               #insert your additional modules here e.g.
@@ -60,7 +60,7 @@
             }
           ];
         };
-        packages.aarch64-linux.PROJ_NAME-ghaf-debug = self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.${self.nixosConfigurations.fog-ghaf-debug.config.formatAttr};
+        packages.aarch64-linux.PROJ_NAME-ghaf-debug = self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.${self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.formatAttr};
 
         packages.x86_64-linux.PROJ_NAME-ghaf-debug-flash-script = mkFlashScript {
           inherit nixpkgs jetpack-nixos;
