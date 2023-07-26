@@ -1,6 +1,8 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {self, ...}: {
+  flake.packages.riscv64-linux.hart-software-services =
+    self.nixosConfigurations.microchip-icicle-kit-debug.pkgs.callPackage ./hart-software-services {};
   perSystem = {
     pkgs,
     lib,
