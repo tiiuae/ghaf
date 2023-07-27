@@ -13,11 +13,7 @@
   # TODO should this be changed when NX added
   cfg = config.ghaf.hardware.nvidia.orin;
 
-  mkSplitImages = import ./mk-split-images.nix;
-  images = mkSplitImages {
-    inherit pkgs;
-    src = config.system.build.${config.formatAttr};
-  };
+  images = config.system.build.${config.formatAttr};
   espSize = builtins.readFile "${images}/esp.size";
   rootSize = builtins.readFile "${images}/root.size";
   partitionsEmmc = pkgs.writeText "sdmmc.xml" ''

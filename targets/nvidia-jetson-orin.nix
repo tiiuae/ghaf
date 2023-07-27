@@ -11,7 +11,15 @@
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
 
-  formatModule = nixos-generators.nixosModules.raw-efi;
+  # Import custom format module
+  formatModule = {
+    imports = [
+      # Needed for formatAttr
+      (nixos-generators + "/format-module.nix")
+
+      ../modules/hardware/nvidia-jetson-orin/format-module.nix
+    ];
+  };
   nvidia-jetson-orin = som: variant: extraModules: let
     netvmExtraModules = [
       {
