@@ -39,6 +39,15 @@
           '';
         });
       });
+      # TODO: Remove if this PR gets backported to nixos-23.05
+      # https://github.com/NixOS/nixpkgs/pull/245228
+      libjack2 = prev.libjack2.overrideAttrs (old: {
+        prePatch = ''
+        '';
+        postPatch = ''
+          patchShebangs --build svnversion_regenerate.sh
+        '';
+      });
     })
   ];
 }
