@@ -10,7 +10,19 @@
 }: let
   cfg = hostConfiguration.config.hardware.nvidia-jetpack;
   inherit (jetpack-nixos.legacyPackages.${flash-tools-system}) flash-tools;
-  devicePkgs = jetpack-nixos.legacyPackages.${flash-tools-system}.devicePkgsFromNixosConfig hostConfiguration.config;
+
+  # jetpack-nixos has the cross-compilation set up in a slightly strange way,
+  # the packages under x86_64-linux are actually cross-compiled packages for
+  # aarch64-linux. So we will get devicePkgs from x86_64-linux if we are cross
+  # compiling, otherwise we end up building UEFI firmware etc. binaries used by
+  # flash-script natively.
+  isCross = hostConfiguration.config.nixpkgs.buildPlatform.system != hostConfiguration.config.nixpkgs.hostPlatform.system;
+  devicePkgsSystem =
+    if isCross
+    then "x86_64-linux"
+    else "aarch64-linux";
+  devicePkgs = jetpack-nixos.legacyPackages.${devicePkgsSystem}.devicePkgsFromNixosConfig hostConfiguration.config;
+
   flashScript = devicePkgs.mkFlashScript {
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;
