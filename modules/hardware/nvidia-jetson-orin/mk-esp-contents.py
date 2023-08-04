@@ -11,6 +11,7 @@ import json
 import os
 import shutil
 import sys
+from typing import Optional
 
 BOOT_ENTRY = """title {title}
 version Generation {generation} {description}
@@ -42,7 +43,7 @@ def mkdir_p(path: str) -> None:
         if e.errno != errno.EEXIST or not os.path.isdir(path):
             raise
 
-def write_file(path, content):
+def write_file(path: str, content: str) -> None:
     mkdir_p(os.path.dirname(path))
     eprint(f"Writing {path}")
     with open(path, "w") as f:
@@ -55,7 +56,7 @@ def ensure_file(name: str) -> None:
         eprint(f"Can't find required file {name}")
         sys.exit(1)
 
-def copy_file(src, dst):
+def copy_file(src: str, dst: str) -> None:
     mkdir_p(os.path.dirname(dst))
     eprint(f"Copying {src} to {dst}")
     shutil.copy(src, dst)
@@ -76,22 +77,28 @@ def copy_nixos(esp, kernel, initrd, dtb: str = None):
     if dtb:
         copy_file(dtb, make_efi_name(dtb, esp))
 
-def write_loader_entry(esp, kernel, initrd, init, kernel_params, label, device_tree=None):
-    entry = BOOT_ENTRY.format(kernel=make_efi_name(kernel),
-                              initrd=make_efi_name(initrd),
-                              init=init,
+def write_loader_entry(esp: str, boot: dict[str, str], kernel_params: [str], machine_id: Optional[str], random_seed: Optional[str], device_tree: Optional[str]):
+    entry = BOOT_ENTRY.format(kernel=make_efi_name(boot["kernel"]),
+                              initrd=make_efi_name(boot["initrd"]),
+                              init=boot["init"],
                               kernel_params=' '.join(kernel_params),
-                              description=label,
+                              description=boot["label"],
                               generation=1,
                               title="NixOS")
+    if machine_id:
+        entry += f"machine-id {machine_id}"
+
     if device_tree:
         dt = make_efi_name(device_tree) 
         entry += f"\ndevicetree /{dt}"
+
     write_file(os.path.join(esp, "loader/entries/nixos-generation-1.conf"), entry)
     write_file(os.path.join(esp, "loader/loader.conf"), LOADER_CONF)
     write_file(os.path.join(esp, "loader/entries.srel"), "type1\n")
+    if random_seed:
+        copy_file(random_seed, os.path.join(esp, "loader/random_seed"))
 
-def read_bootspec_file(toplevel):
+def read_bootspec_file(toplevel: str) -> dict[str, str]:
     bootfile = os.path.join(toplevel, "boot.json")
     ensure_file(bootfile)
     with open(bootfile, "r") as boot_json:
@@ -102,7 +109,7 @@ def read_bootspec_file(toplevel):
             sys.exit(1)
         return bootspec    
 
-def create_esp_contents(toplevel, output, dtb):
+def create_esp_contents(toplevel: str, output: str, machine_id: Optional[str], random_seed: Optional[str], device_tree: Optional[str]) -> None:
     mkdir_p(output)
     boot = read_bootspec_file(toplevel)
     system = boot["system"]
@@ -113,18 +120,20 @@ def create_esp_contents(toplevel, output, dtb):
     loader = os.path.join(toplevel, "systemd/lib/systemd/boot/efi", loader)
     ensure_file(loader)
     copy_loader(loader, output, target_loader_filename)
-    copy_nixos(output, boot["kernel"], boot["initrd"], dtb)
+    copy_nixos(output, boot["kernel"], boot["initrd"], device_tree)
     kernel_params = boot["kernelParams"]
     kernel_params.insert(0, "init=" + boot["init"])
-    write_loader_entry(output, boot["kernel"], boot["initrd"], boot["init"], kernel_params, boot["label"], dtb)
+    write_loader_entry(output, boot, kernel_params, machine_id, random_seed, device_tree)
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate contents of ESP partition")
     parser.add_argument('--toplevel', help='NixOS toplevel directory, contains boot.json')
     parser.add_argument('--output', help='Output directory')
-    parser.add_argument('--device-tree', default=None)
+    parser.add_argument('--device-tree', default=None, help="Device tree file")
+    parser.add_argument('--random-seed', default=None, help="Random seed file")
+    parser.add_argument('--machine-id', default=None, help="Machine id to add to loader's entry")
     args = parser.parse_args()
-    create_esp_contents(args.toplevel, args.output, args.device_tree)
+    create_esp_contents(args.toplevel, args.output, args.machine_id, args.random_seed, args.device_tree)
 
 if __name__ == '__main__':
     main()
