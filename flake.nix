@@ -91,7 +91,7 @@
       (import ./user-apps {inherit lib nixpkgs flake-utils;})
 
       # Hydra jobs
-      (import ./hydrajobs.nix {inherit self;})
+      (import ./hydrajobs.nix {inherit self lib;})
 
       #templates
       (import ./templates)
