@@ -49,6 +49,7 @@
 
 - [Showcases]()
   - [Running Windows VM on Ghaf](scenarios/run_win_vm.md)
+  - [Running Cuttlefish on Ghaf](scenarios/run_cuttlefish.md)
 - [Build Your Environment]()
 
 -----------
