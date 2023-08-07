@@ -33,7 +33,7 @@ Ghaf framework will use SBOMs for:
 
 ## SBOM Tooling in Ghaf
 
-Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any nix targets. For more details on the SBOM tooling in Ghaf, see [sbomnix](https://github.com/tiiuae/sbomnix#sbomnix) and [nixgraph](https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph). sbomnix supports [CycloneDX](https://cyclonedx.org/specification/overview/) as well as [SPDX](https://spdx.dev/specifications/) SBOM specification.
+Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any Nix-based targets. For more details on the SBOM tooling in Ghaf, see [sbomnix](https://github.com/tiiuae/sbomnix#sbomnix) and [nixgraph](https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph). sbomnix supports [CycloneDX](https://cyclonedx.org/specification/overview/) as well as [SPDX](https://spdx.dev/specifications/) SBOM specification.
 
 
 ## References
