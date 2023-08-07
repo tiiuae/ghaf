@@ -7,11 +7,12 @@ Two main goals:
 * Be enough close to standard bootctl behavior, to allow local system updates
 """
 import argparse
+import errno
 import json
 import os
 import shutil
 import sys
-from typing import Optional
+from typing import Optional, Union, List, Dict, TypedDict
 
 BOOT_ENTRY = """title {title}
 version Generation {generation} {description}
@@ -30,13 +31,21 @@ LOADERS = {
     "aarch64-linux": ("systemd-bootaa64.efi", "BOOTAA64.efi"),
 }
 
-def eprint(*args):
+class BootSpec(TypedDict):
+    kernel: str
+    initrd: str
+    init: str
+    kernelParams: List[str]
+    system: str
+    label: str
+
+def eprint(*args: str) -> None:
     print(*args, file=sys.stderr)
 
 def mkdir_p(path: str) -> None:
     if os.path.isdir(path):
         return
-    eprint(f"Create directory {path}")    
+    eprint(f"Create directory {path}")
     try:
         os.makedirs(path)
     except OSError as e:
@@ -66,18 +75,18 @@ def make_efi_name(store_file_path: str, root: str = "/") -> str:
     store_dir = os.path.basename(os.path.dirname(store_file_path))
     return os.path.join(root, "EFI/nixos/%s-%s.efi" % (store_dir, suffix))
 
-def copy_loader(loader, esp, target_name):
+def copy_loader(loader: str, esp: str, target_name: str) -> None:
     efi = os.path.join(esp, "EFI")
     copy_file(loader, os.path.join(efi, "systemd", os.path.basename(loader)))
     copy_file(loader, os.path.join(efi, "BOOT", target_name))
 
-def copy_nixos(esp, kernel, initrd, dtb: str = None):
+def copy_nixos(esp: str, kernel: str, initrd: str, dtb: Optional[str] = None) -> None:
     copy_file(kernel, make_efi_name(kernel, esp))
     copy_file(initrd, make_efi_name(initrd, esp))
     if dtb:
         copy_file(dtb, make_efi_name(dtb, esp))
 
-def write_loader_entry(esp: str, boot: dict[str, str], kernel_params: [str], machine_id: Optional[str], random_seed: Optional[str], device_tree: Optional[str]):
+def write_loader_entry(esp: str, boot: BootSpec, kernel_params: List[str], machine_id: Optional[str], random_seed: Optional[str], device_tree: Optional[str]) -> None:
     entry = BOOT_ENTRY.format(kernel=make_efi_name(boot["kernel"]),
                               initrd=make_efi_name(boot["initrd"]),
                               init=boot["init"],
@@ -89,7 +98,7 @@ def write_loader_entry(esp: str, boot: dict[str, str], kernel_params: [str], mac
         entry += f"machine-id {machine_id}"
 
     if device_tree:
-        dt = make_efi_name(device_tree) 
+        dt = make_efi_name(device_tree)
         entry += f"\ndevicetree /{dt}"
 
     write_file(os.path.join(esp, "loader/entries/nixos-generation-1.conf"), entry)
@@ -98,31 +107,33 @@ def write_loader_entry(esp: str, boot: dict[str, str], kernel_params: [str], mac
     if random_seed:
         copy_file(random_seed, os.path.join(esp, "loader/random_seed"))
 
-def read_bootspec_file(toplevel: str) -> dict[str, str]:
+def read_bootspec_file(toplevel: str) -> BootSpec:
     bootfile = os.path.join(toplevel, "boot.json")
     ensure_file(bootfile)
     with open(bootfile, "r") as boot_json:
         content = json.load(boot_json)
-        bootspec = content.get("org.nixos.bootspec.v1")
+        bootspec: Optional[BootSpec] = content.get("org.nixos.bootspec.v1")
         if bootspec is None:
             eprint(f"""Can't find "org.nixos.bootspec.v1" in {bootfile}""")
             sys.exit(1)
-        return bootspec    
+        return bootspec
 
 def create_esp_contents(toplevel: str, output: str, machine_id: Optional[str], random_seed: Optional[str], device_tree: Optional[str]) -> None:
     mkdir_p(output)
     boot = read_bootspec_file(toplevel)
     system = boot["system"]
-    (loader, target_loader_filename) = LOADERS.get(system)
-    if loader is None:
+    selected_loader = LOADERS.get(system)
+    if selected_loader is None:
         eprint(f"Haven't loader for system {system}")
         sys.exit(1)
+    (loader, target_loader_filename) = selected_loader
     loader = os.path.join(toplevel, "systemd/lib/systemd/boot/efi", loader)
     ensure_file(loader)
     copy_loader(loader, output, target_loader_filename)
     copy_nixos(output, boot["kernel"], boot["initrd"], device_tree)
     kernel_params = boot["kernelParams"]
-    kernel_params.insert(0, "init=" + boot["init"])
+    init = boot["init"]
+    kernel_params.insert(0, f"init={init}")
     write_loader_entry(output, boot, kernel_params, machine_id, random_seed, device_tree)
 
 def main() -> None:

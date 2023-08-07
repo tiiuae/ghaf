@@ -26,11 +26,21 @@
   disabledModules = [(modulesPath + "/profiles/all-hardware.nix")];
 
   sdImage = let
-    mkESPContent = pkgs.substituteAll {
+    mkESPContentSource = pkgs.substituteAll {
       src = ./mk-esp-contents.py;
       isExecutable = true;
       inherit (pkgs.buildPackages) python3;
     };
+    mkESPContent = pkgs.runCommand "mk-esp-contents" {
+      nativeBuildInputs = with pkgs; [ mypy python3 ];
+    } ''
+      install -m755 ${mkESPContentSource} $out
+      mypy \
+        --no-implicit-optional \
+        --disallow-untyped-calls \
+        --disallow-untyped-defs \
+        $out
+    '';
     fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
   in {
     firmwareSize = 256;
