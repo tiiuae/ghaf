@@ -31,22 +31,26 @@
       isExecutable = true;
       inherit (pkgs.buildPackages) python3;
     };
-    mkESPContent = pkgs.runCommand "mk-esp-contents" {
-      nativeBuildInputs = with pkgs; [ mypy python3 ];
-    } ''
-      install -m755 ${mkESPContentSource} $out
-      mypy \
-        --no-implicit-optional \
-        --disallow-untyped-calls \
-        --disallow-untyped-defs \
-        $out
-    '';
+    mkESPContent =
+      pkgs.runCommand "mk-esp-contents" {
+        nativeBuildInputs = with pkgs; [mypy python3];
+      } ''
+        install -m755 ${mkESPContentSource} $out
+        mypy \
+          --no-implicit-optional \
+          --disallow-untyped-calls \
+          --disallow-untyped-defs \
+          $out
+      '';
     fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
   in {
     firmwareSize = 256;
     populateFirmwareCommands = ''
       mkdir -pv firmware
-      ${mkESPContent} --toplevel ${config.system.build.toplevel} --output firmware/ --device-tree ${fdtPath}
+      ${mkESPContent} \
+        --toplevel ${config.system.build.toplevel} \
+        --output firmware/ \
+        --device-tree ${fdtPath}
     '';
     populateRootCommands = ''
     '';
