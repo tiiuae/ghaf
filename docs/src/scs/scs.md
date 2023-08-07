@@ -24,5 +24,4 @@ The software artifact, SBOM, and provenance are signed by the build machinery at
 - [Basic Security Measures](../scs/basics.md)
 - [SBOM](../scs/sbom.md)
 - [Public Key Infrastructure](../scs/pki.md)
-- [Patch Management Automation](../scs/patching-automation.md)
 - [Ghaf Security Fix Automation](../scs/ghaf-security-fix-automation.md)
