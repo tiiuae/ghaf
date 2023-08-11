@@ -12,6 +12,7 @@
   ./profiles/debug.nix
   ./profiles/graphics.nix
   ./profiles/release.nix
+  ./profiles/installer.nix
   ./users/accounts.nix
   ./version
   ./virtualization/docker.nix
