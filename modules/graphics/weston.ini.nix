@@ -25,7 +25,6 @@
   */
   mkLaunchers = lib.concatMapStrings mkLauncher;
 
-  gala-app = pkgs.callPackage ../../user-apps/gala {};
   defaultLauncher = [
     # Keep weston-terminal launcher always enabled explicitly since if someone adds
     # a launcher on the panel, the launcher will replace weston-terminal launcher.
@@ -47,8 +46,8 @@
     }
 
     {
-      path = "${gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-      icon = "${gala-app}/gala/resources/icon-24x24.png";
+      path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
     }
 
     {
