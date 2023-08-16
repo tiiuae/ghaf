@@ -48,6 +48,7 @@
 # Ghaf Usage Scenarios
 
 - [Showcases]()
+  - [How to add a new AppVM in Ghaf](scenarios/add_app_vm.md)
   - [Running Windows VM on Ghaf](scenarios/run_win_vm.md)
   - [Running Cuttlefish on Ghaf](scenarios/run_cuttlefish.md)
 - [Build Your Environment]()
