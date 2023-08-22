@@ -3,7 +3,7 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Ghaf-Based Project
+# Ghaf as Library: Templates
 
 Ghaf is a framework for creating virtualized edge devices, it is therefore expected that projects wishing to use Ghaf should import it to create a derived work for the specific use case.
 
@@ -23,7 +23,7 @@ The Ghaf Platform repository provides declarative modules and reference implemen
 External repositories help make various HW options, system image generators, and reference board-support packages available.
 
 
-## Creating Ghaf-Based Project
+## Using Ghaf Templates
 
 1. Check the available target templates:
 
@@ -63,7 +63,7 @@ External repositories help make various HW options, system image generators, and
     ```
 
 
-## Updating Ghaf-Based Project
+## Updating Ghaf Revision
 
 To update your project, run `nix flake update`. This check the inputs for updates and based on availability of the updates, generate an updated `flake.lock` which locks the specific versions to support the reproducible builds without side effects.
 
@@ -71,7 +71,7 @@ In practice, nix flake will not allow floating inputs but all the inputs and dec
 
 After update, review and testing - commit the updated `flake.lock` to your version history to share reproducible builds within your project.
 
-## Customizing Ghaf-Based Project
+## Customizing Ghaf Modules
 
 To use the Ghaf declarative module system, check what you need in your system and choose the [modules options](./modules_options.md) you need. For example, import the ghaf `graphics`-module and declare that you won't need the reference Wayland-compositor Weston and the demo applications:
 

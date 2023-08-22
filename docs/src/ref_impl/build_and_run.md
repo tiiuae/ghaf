@@ -30,6 +30,7 @@ Then you can use one of the following instructions for the supported targets:
 |---                      |---               | ---              |
 | Virtual Machine | x86_64           | [Running Ghaf Image for x86 VM (ghaf-host)](./build_and_run.md#running-ghaf-image-for-x86-vm-ghaf-host)     |
 | Generic x86 Сomputer | x86_64           | [Running Ghaf Image for x86 Computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
+| Lenovo X1 Carbon Gen 11 | x86_64           | [Running Ghaf Image for Lenovo X1](./build_and_run.md#running-ghaf-image-for-lenovo-x1) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
 | NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
 | MICROCHIP icicle-kit    | RISCV64          | [Building Ghaf Image for Microchip Icicle Kit](./build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
@@ -55,6 +56,23 @@ Do the following:
 1. To build the target image, run the command:
     ```
     nix build github:tiiuae/ghaf#generic-x86_64-debug
+    ```
+2. After the build is completed, prepare a USB boot media with the target image you built:
+    ```
+    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
+    ```
+3. Boot the computer from the USB media.
+
+---
+
+## Running Ghaf Image for Lenovo X1
+
+Lenovo X1 is the reference x86_64 device for the Ghaf project.
+
+Do the following:
+1. To build the target image, run the command:
+    ```
+    nix build github:tiiuae/ghaf#lenovo-x1-carbon-gen11-debug
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built:
     ```

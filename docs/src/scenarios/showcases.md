@@ -9,5 +9,5 @@ The Ghaf Platform can be used in various different environments, configurations,
 
 ## In This Chapter
 
-- [Running Windows VM on Ghaf](scenarios/run_win_vm.md)
-- [Running Cuttlefish on Ghaf](scenarios/run_cuttlefish.md)
+- [Running Windows VM on Ghaf](./run_win_vm.md)
+- [Running Cuttlefish on Ghaf](./run_cuttlefish.md)
