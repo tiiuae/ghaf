@@ -42,12 +42,12 @@
     - [Basic Security Measures](scs/basics.md)
     - [Software Bill of Materials](scs/sbom.md)
     - [Public Key Infrastructure](scs/pki.md)
-    - [Patch Management Automation](scs/patching-automation.md)
+    - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes]()
 
 # Ghaf Usage Scenarios
 
-- [Showcases]()
+- [Showcases](scenarios/showcases.md)
   - [Running Windows VM on Ghaf](scenarios/run_win_vm.md)
   - [Running Cuttlefish on Ghaf](scenarios/run_cuttlefish.md)
 - [Build Your Environment]()
