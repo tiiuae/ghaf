@@ -1655,7 +1655,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li><a href="scs/../scs/basics.html">Basic Security Measures</a></li>
 <li><a href="scs/../scs/sbom.html">SBOM</a></li>
 <li><a href="scs/../scs/pki.html">Public Key Infrastructure</a></li>
-<li><a href="scs/../scs/patching-automation.html">Patch Management Automation</a></li>
+<li><a href="scs/../scs/ghaf-security-fix-automation.html">Ghaf Security Fix Automation</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
@@ -1760,8 +1760,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Market signal: publish SBOM together with other release artifacts.</li>
 </ul>
 <h2 id="sbom-tooling-in-ghaf"><a class="header" href="#sbom-tooling-in-ghaf">SBOM Tooling in Ghaf</a></h2>
-<p>Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any nix targets. For more details on the SBOM tooling in Ghaf, see <a href="https://github.com/tiiuae/sbomnix#sbomnix">sbomnix</a> and <a href="https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph">nixgraph</a>.</p>
-<p>Initially, sbomnix will support <a href="https://cyclonedx.org/specification/overview/">CycloneDX</a> SBOM specification, due to the availability of other open source tools that also support CycloneDX. Support for other SBOM formats to sbomnix might be added in later versions.</p>
+<p>Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any Nix-based targets. For more details on the SBOM tooling in Ghaf, see <a href="https://github.com/tiiuae/sbomnix#sbomnix">sbomnix</a> and <a href="https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph">nixgraph</a>. sbomnix supports <a href="https://cyclonedx.org/specification/overview/">CycloneDX</a> as well as <a href="https://spdx.dev/specifications/">SPDX</a> SBOM specification.</p>
 <h2 id="references"><a class="header" href="#references">References</a></h2>
 <ul>
 <li><a href="https://ntia.gov/page/software-bill-materials">https://ntia.gov/page/software-bill-materials</a></li>
