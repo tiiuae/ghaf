@@ -46,7 +46,7 @@ On x86_64 device Windows 11 VM can be launched with either an ISO image or QCOW2
    * For an ISO image, the script creates an empty QCOW2 image in the same directory which is used as a system disk in the VM.
    * After installing Windows 11, run the script for the QCOW2 image.
 
-Do the folowwing:
+Do the folowing:
 
 1. In the Weston terminal, go to the directory with the Windows 11 image and run the VM without sudo and as a non-root user using the following Ghaf script:
 
