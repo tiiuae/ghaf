@@ -9,7 +9,7 @@ Ghaf Framework is free software, currently under active development.
 
 Scope of target support is updated with development progress.
 
-Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in the[authentication.nix](https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix#L4-L5) module.
+Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in the [authentication.nix](https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix#L4-L5) module.
 
 If you set up development SSH keys in the [ssh.nix](https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L4) module, you can use `nixos-rebuild switch` to quickly deploy your configuration changes to the development board over the network using SSH:
 
