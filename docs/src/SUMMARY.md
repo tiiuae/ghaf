@@ -43,7 +43,7 @@
     - [Software Bill of Materials](scs/sbom.md)
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
-- [Release Notes]()
+- [Release Notes](release_notes/release_notes.md)
 
 # Ghaf Usage Scenarios
 
