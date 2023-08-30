@@ -10,35 +10,42 @@
 }: let
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
+
   formatModule = nixos-generators.nixosModules.raw-efi;
   nvidia-jetson-orin = som: variant: extraModules: let
     netvmExtraModules = [
       {
-        microvm.devices = [
-          {
-            bus = "pci";
-            path = "0001:01:00.0";
-          }
-        ];
+        # The Nvidia Orin hardware dependent configuration is in
+        # modules/hardware/nvidia-jetson-orin/jetson-orin.nx
+        # Please refer to that section for hardware dependent netvm configuration.
+
+        # To enable or disable wireless
+        networking.wireless = {
+          # Wireless Configuration
+          # Orin AGX has WiFi enabled where Orin Nx does not
+          enable =
+            if som == "agx"
+            then nixpkgs.lib.mkForce true
+            else nixpkgs.lib.mkForce false;
+        };
 
         # For WLAN firmwares
-        hardware.enableRedistributableFirmware = true;
-
-        networking.wireless = {
-          enable = true;
-
-          # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
-        };
+        hardware.enableRedistributableFirmware =
+          if som == "agx"
+          then nixpkgs.lib.mkForce true
+          else nixpkgs.lib.mkForce false;
+        # Note: When 21.11 arrives replace the below statement with
+        # wirelessRegulatoryDatabase = true;
       }
     ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
+
       modules =
         [
           jetpack-nixos.nixosModules.default
           ../modules/hardware/nvidia-jetson-orin
-
           microvm.nixosModules.host
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
@@ -50,10 +57,6 @@
 
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
-              virtualization.microvm.netvm = {
-                enable = true;
-                extraModules = netvmExtraModules;
-              };
 
               # Enable all the default UI applications
               profiles = {
