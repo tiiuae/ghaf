@@ -10,7 +10,7 @@
 }: let
   cfg = hostConfiguration.config.hardware.nvidia-jetpack;
   inherit (jetpack-nixos.legacyPackages.${flash-tools-system}) flash-tools;
-  devicePkgs = jetpack-nixos.legacyPackages.aarch64-linux.devicePkgsFromNixosConfig hostConfiguration.config;
+  devicePkgs = jetpack-nixos.legacyPackages.${flash-tools-system}.devicePkgsFromNixosConfig hostConfiguration.config;
   flashScript = devicePkgs.mkFlashScript {
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;
