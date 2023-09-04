@@ -206,3 +206,28 @@ In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image 
      * You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M.
 
 For more information on how to access the MMC card as a USB disk, see [MPFS Icicle Kit User Guide](https://tinyurl.com/48wycdka).
+
+## Building Installer image for Ghaf image
+
+In case you want to have installer for your Ghaf configuration you can use `ghaf.lib.installer` function. 
+
+It takes just two required and one optional argument:
+
+- Name of your configuration.
+- Configuration for the actual Ghaf system which format attribute is raw-efi.
+- Optional list of additional modules that will be applied to configuration from previous argument.
+
+This function will return attribute set which will contain several useful attributes:
+
+- Name from the argument appended with `-installer`
+- Configuration of the installer
+- System architecture
+- Derivation that buidls image for desired type
+
+To choose type of installer image (mostly you need to choose betwen raw-efi and iso) you should pass additional module to `ghaf.lib.installer` function that will define it. You should use modules from `nixos-generators`.
+
+Then you'll have derivation of an installer flush it to the drive and boot from it later.
+
+After you run installer image on the actual machine on which you want to install your ghaf configuration you will see the installer logo and prompt that will ask you for the drive name on which it will flush your system image.
+
+If it'll fail you'll be given shell prompt in which you can investigate you problem furhter. If installer succeeded it will reboot system and you will have your Ghaf system installed!
