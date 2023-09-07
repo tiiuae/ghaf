@@ -10,8 +10,15 @@
   cfg = config.ghaf.virtualization.microvm.appvm;
   waypipe-ssh = pkgs.callPackage ../../../user-apps/waypipe-ssh {};
 
-  makeVm = {vm}: let
+  makeVm = {
+    vm,
+    index,
+  }: let
     hostname = "vm-" + vm.name;
+    cid =
+      if vm.cid > 0
+      then vm.cid
+      else cfg.vsockBaseCID + index;
     appvmConfiguration = {
       imports = [
         ({
@@ -72,6 +79,12 @@
                 id = hostname;
                 mac = vm.macAddress;
               }
+            ];
+            qemu.extraArgs = [
+              "-M"
+              "q35,accel=kvm:tcg,mem-merge=on,sata=off"
+              "-device"
+              "vhost-vsock-pci,guest-cid=${toString cid}"
             ];
           };
 
@@ -167,6 +180,14 @@ in {
               '';
               default = [];
             };
+            cid = mkOption {
+              description = ''
+                VSOCK context identifier (CID) for the AppVM
+                Default value 0 means auto-assign using vsockBaseCID and AppVM index
+              '';
+              type = int;
+              default = 0;
+            };
           };
         });
         default = [];
@@ -179,12 +200,23 @@ in {
       '';
       default = [];
     };
+
+    # Base VSOCK CID which is used for auto assigning CIDs for all AppVMs
+    # For example, when it's set to 100, AppVMs will get 100, 101, 102, etc.
+    # It is also possible to override the auto assinged CID using the vms.cid option
+    vsockBaseCID = lib.mkOption {
+      type = lib.types.int;
+      default = 100;
+      description = ''
+        Context Identifier (CID) of the AppVM VSOCK
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
     microvm.vms = (
       let
-        vms = map (vm: {"appvm-${vm.name}" = makeVm {inherit vm;};}) cfg.vms;
+        vms = lib.imap0 (index: vm: {"appvm-${vm.name}" = makeVm {inherit index vm;};}) cfg.vms;
       in
         lib.foldr lib.recursiveUpdate {} vms
     );

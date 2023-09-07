@@ -71,6 +71,11 @@
               mac = "02:00:00:02:02:02";
             }
           ];
+
+          qemu.extraArgs = [
+            "-device"
+            "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
+          ];
         };
 
         networking.nat = {
@@ -103,10 +108,35 @@
         };
 
         imports = import ../../module-list.nix;
+
+        # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
+        systemd.user.services.waypipe = {
+          enable = true;
+          description = "waypipe";
+          after = ["weston.service"];
+          serviceConfig = {
+            Type = "simple";
+            Environment = [
+              "WAYLAND_DISPLAY=\"wayland-1\""
+              "DISPLAY=\":0\""
+              "XDG_SESSION_TYPE=wayland"
+              "QT_QPA_PLATFORM=\"wayland\"" # Qt Applications
+              "GDK_BACKEND=\"wayland\"" # GTK Applications
+              "XDG_SESSION_TYPE=\"wayland\"" # Electron Applications
+              "SDL_VIDEODRIVER=\"wayland\""
+              "CLUTTER_BACKEND=\"wayland\""
+            ];
+            ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
+            Restart = "always";
+            RestartSec = "1";
+          };
+          wantedBy = ["ghaf-session.target"];
+        };
       })
     ];
   };
   cfg = config.ghaf.virtualization.microvm.guivm;
+  vsockproxy = pkgs.callPackage ../../../user-apps/vsockproxy {};
 in {
   options.ghaf.virtualization.microvm.guivm = {
     enable = lib.mkEnableOption "GUIVM";
@@ -117,6 +147,28 @@ in {
         GUIVM's NixOS configuration.
       '';
       default = [];
+    };
+
+    # GUIVM uses a VSOCK which requires a CID
+    # There are several special addresses:
+    # VMADDR_CID_HYPERVISOR (0) is reserved for services built into the hypervisor
+    # VMADDR_CID_LOCAL (1) is the well-known address for local communication (loopback)
+    # VMADDR_CID_HOST (2) is the well-known address of the host
+    # CID 3 is the lowest available number for guest virtual machines
+    vsockCID = lib.mkOption {
+      type = lib.types.int;
+      default = 3;
+      description = ''
+        Context Identifier (CID) of the GUIVM VSOCK
+      '';
+    };
+
+    waypipePort = lib.mkOption {
+      type = lib.types.int;
+      default = 1100;
+      description = ''
+        Waypipe port number to listen for incoming connections from AppVMs
+      '';
     };
   };
 
@@ -131,6 +183,22 @@ in {
             ++ cfg.extraModules;
         };
       specialArgs = {inherit lib;};
+    };
+
+    # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
+    # However, VSOCK does not support direct guest to guest communication
+    # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
+    # It listens for incoming connections from AppVMs and forwards data to GUIVM
+    systemd.services.vsockproxy = {
+      enable = true;
+      description = "vsockproxy";
+      unitConfig = {
+        Type = "simple";
+      };
+      serviceConfig = {
+        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
+      };
+      wantedBy = ["multi-user.target"];
     };
   };
 }
