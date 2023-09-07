@@ -32,6 +32,7 @@
         };
       }
     ];
+    guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
     guivmExtraModules = [
       {
         # Early KMS needed for GNOME to work inside GuiVM
@@ -68,17 +69,17 @@
       ({pkgs, ...}: {
         ghaf.graphics.weston.launchers = [
           {
-            path = "${pkgs.waypipe}/bin/waypipe ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.5 chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.5 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${pkgs.weston}/share/weston/icon_editor.png";
           }
 
           {
-            path = "${pkgs.waypipe}/bin/waypipe ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.6 gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.6 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${pkgs.weston}/share/weston/icon_editor.png";
           }
 
           {
-            path = "${pkgs.waypipe}/bin/waypipe ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.7 zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.7 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server zathura";
             icon = "${pkgs.weston}/share/weston/icon_editor.png";
           }
         ];
@@ -157,11 +158,6 @@
                         nixpkgs.config.pulseaudio = true;
 
                         microvm.qemu.extraArgs = [
-                          # APPVMs use microvm qemu machine which has pcie
-                          # disabled by default, and it also causes other
-                          # problems.
-                          "-M"
-                          "q35,accel=kvm:tcg,mem-merge=on,sata=off"
                           # Lenovo X1 integrated usb webcam
                           "-device"
                           "qemu-xhci"

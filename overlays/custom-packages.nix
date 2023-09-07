@@ -16,7 +16,11 @@
 # nativeBuildInputs and buildInputs where possible.
 # It makes things clear and robust.
 #
-{lib, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   nixpkgs.overlays = [
     (final: prev: {
       gala-app = final.callPackage ../user-apps/gala {};
@@ -80,6 +84,16 @@
       });
       qemu_kvm = prev.qemu_kvm.overrideAttrs (_final: prev: {
         patches = prev.patches ++ [./acpi-devices-passthrough.patch];
+      });
+      # Waypipe with vsock
+      waypipe = prev.waypipe.overrideAttrs (prevAttrs: {
+        src = pkgs.fetchFromGitLab {
+          domain = "gitlab.freedesktop.org";
+          owner = "nesterov";
+          repo = "waypipe";
+          rev = "2f1ab6a8efd2c1ad0dbcc9f8482b10861743e9c3";
+          sha256 = "sha256-P4y8p4R28j4zp0OX2GspsBKqWvCHqg+nF153LIrRYs8=";
+        };
       });
     })
   ];
