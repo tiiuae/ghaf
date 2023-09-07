@@ -39,7 +39,9 @@
           "-device"
           "virtio-input-host-pci,evdev=/dev/input/by-path/platform-i8042-serio-0-event-kbd"
           "-device"
-          "virtio-input-host-pci,evdev=/dev/input/by-path/pci-0000:00:15.0-platform-i2c_designware.0-event-mouse"
+          "virtio-input-host-pci,evdev=/dev/mouse"
+          "-device"
+          "virtio-input-host-pci,evdev=/dev/touchpad"
           # Lenovo X1 trackpoint (red button/joystick)
           "-device"
           "virtio-input-host-pci,evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse"
@@ -90,8 +92,8 @@
               # Laptop keyboard
               SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
               # Laptop touchpad
-              SUBSYSTEM=="input",ATTRS{name}=="SYNA8016:00",GROUP="kvm"
-              SUBSYSTEM=="input",ATTRS{name}=="SYNA8016:00 06CB:CEB3 Mouse",GROUP="kvm"
+              SUBSYSTEM=="input",ATTRS{name}=="SYNA8016:00 06CB:CEB3 Mouse",GROUP="kvm",SYMLINK+="mouse"
+              SUBSYSTEM=="input",ATTRS{name}=="SYNA8016:00 06CB:CEB3 Touchpad",GROUP="kvm",SYMLINK+="touchpad"
               # Laptop TrackPoint
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
             '';

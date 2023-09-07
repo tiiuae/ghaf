@@ -31,6 +31,7 @@ in
 
         traceroute
         dig
+        evtest
       ];
     };
   }
