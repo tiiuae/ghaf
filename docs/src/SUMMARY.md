@@ -25,7 +25,7 @@
     - [Build and Run](ref_impl/build_and_run.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
-  - [Ghaf as Library](ref_impl/ghaf-based-project.md)
+  - [Ghaf as Library: Templates](ref_impl/ghaf-based-project.md)
     - [Example Project](ref_impl/example_project.md)
     - [Modules Options](ref_impl/modules_options.md)
 - [Technologies](technologies/technologies.md)
@@ -47,6 +47,8 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes](release_notes/release_notes.md)
+    - [Release ghaf-23.05](release_notes/ghaf-23.05.md)
+    - [Release ghaf-23.06](release_notes/ghaf-23.06.md)
 
 # Ghaf Usage Scenarios
 
@@ -56,6 +58,8 @@
 - [Build Your Environment]()
 
 -----------
+
+# Appendices
 
 - [Glossary](appendices/glossary.md)
 - [Research Notes](research/research.md)

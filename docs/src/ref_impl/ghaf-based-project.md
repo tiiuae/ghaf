@@ -7,14 +7,14 @@
 
 Ghaf is a framework for creating virtualized edge devices, it is therefore expected that projects wishing to use Ghaf should import it to create a derived work for the specific use case.
 
-In practise, projects should import Ghaf and its dependencies into an external version control (git) repository. Ghaf provides templates for the reference hardware to ease this process. In this section:
+In practice, projects should import Ghaf and its dependencies into an external version control (git) repository. Ghaf provides templates for the reference hardware to ease this process. In this section:
 
  * overview of Ghaf usage and upstream dependencies
  * required steps to create a Ghaf-based project
  * updating the project to get the latest changes
  * customization of the project using Ghaf-modules and Nix-supported mechanisms
 
-Ghaf usage in your project is illustrated in the following diagram:
+The possible Ghaf usage in your project is illustrated in the following diagram:
 
 ![Ghaf Usage Overview](../img/usage_overview.drawio.png "Your project and example inputs from Ghaf and other repositories")
 
@@ -65,15 +65,16 @@ External repositories help make various HW options, system image generators, and
 
 ## Updating Ghaf Revision
 
-To update your project, run `nix flake update`. This check the inputs for updates and based on availability of the updates, generate an updated `flake.lock` which locks the specific versions to support the reproducible builds without side effects.
+To update your project, run `nix flake update`. This checks the inputs for updates and based on the availability of the updates, and then generates an updated `flake.lock` which locks the specific versions to support the reproducible builds without side effects.
 
-In practice, nix flake will not allow floating inputs but all the inputs and declared packages must be mapped to specific hashes to get exact revisions of your inputs. This mechanism also supports the supply-chain security - if someone changes the upstream project e.g. by over-writing a part of the input so that the hash changes, you will notice. (Believe it or not, this happens even with large HW vendors). 
+In practice, a Nix flake does not allow floating inputs but all the inputs and declared packages must be mapped to specific hashes to get exact revisions of your inputs. This mechanism also supports the supply-chain security: if someone changes the upstream project, for example, by overwriting a part of the input so that the hash changes, you will notice.
 
-After update, review and testing - commit the updated `flake.lock` to your version history to share reproducible builds within your project.
+After updating, reviewing, and testing: commit the updated `flake.lock` to your version history to share reproducible builds within your project.
+
 
 ## Customizing Ghaf Modules
 
-To use the Ghaf declarative module system, check what you need in your system and choose the [modules options](./modules_options.md) you need. For example, import the ghaf `graphics`-module and declare that you won't need the reference Wayland-compositor Weston and the demo applications:
+To use the Ghaf declarative module system, check what you need in your system and choose the [modules options](./modules_options.md) you need. For example, import the ghaf `graphics`-module and declare that you will need the reference Wayland compositor Weston and the demo applications:
 
 ```
           {
@@ -83,4 +84,4 @@ To use the Ghaf declarative module system, check what you need in your system an
             };
           }
 ```
-After the change, rebuild the system and switch it into use in your target device and it will run with the GUI and apps removed. After testing, you can commit the changes and share them for your colleagues to be able to build the exactly same system - even system image - as needed in your project.
+After the change, rebuild the system and switch it into use in your target device and it will run with the GUI and apps removed. After testing, you can commit the changes and share them with your colleagues to build the same system (even a system image) as needed in your project.

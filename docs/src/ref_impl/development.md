@@ -5,9 +5,11 @@
 
 # Development
 
-Ghaf Framework is free software, currently under active development.
+Ghaf Framework is free software, currently under active development. The scope of target support is updated with development progress:
 
-Scope of target support is updated with development progress.
+- [Build and Run](./build_and_run.md)
+- [Cross-Compilation](./cross_compilation.md)
+- [Creating Application VM](./creating_appvm.md)
 
 Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in the [authentication.nix](https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix#L4-L5) module.
 
@@ -15,6 +17,6 @@ If you set up development SSH keys in the [ssh.nix](https://github.com/tiiuae/gh
 
     nixos-rebuild --flake .#packages.aarch64-linux.nvidia-jetson-orin-agx-debug --target-host root@ghaf-host --fast switch
 
-
-
 Pull requests are the way for contributors to submit code to the Ghaf project. For more information, see [Contribution Guidelines](../appendices/contributing_general.md).
+
+
