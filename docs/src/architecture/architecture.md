@@ -22,4 +22,5 @@ The Ghaf Platform components are used in reference configurations to build image
 - [Architecture Decision Records](./adr.md)
   - [Minimal Host](./adr/minimal-host.md)
   - [Networking VM](./adr/netvm.md)
+  - [Platform Bus for Rust VMM](./adr/platform-bus-passthrough-support.md)
 - [Stack](./stack.md)

@@ -37,7 +37,10 @@ The same goes with the architectural variants as headless devices or end-user de
 
 ## In This Chapter
 
-- [Build and Run](./build_and_run.md)
 - [Development](./development.md)
+   - [Build and Run](./build_and_run.md)
    - [Cross-Compilation](./cross_compilation.md)
-- [Define a Custom Project from Ghaf](./custom_product.md)
+   - [Creating Application VM](./creating_appvm.md)
+- [Ghaf as Library: Templates](./ghaf-based-project.md)
+   - [Example Project](./example_project.md)
+   - [Modules Options](./modules_options.md)
