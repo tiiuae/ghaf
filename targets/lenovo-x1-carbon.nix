@@ -99,6 +99,8 @@
               SUBSYSTEM=="input",ATTRS{name}=="ELAN067C:00 04F3:31F9 Touchpad",KERNEL=="event*",GROUP="kvm",SYMLINK+="touchpad"
               # Laptop TrackPoint
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
+              # Lenovo X1 integrated webcam
+              SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP+="kvm"
             '';
             ghaf = {
               hardware.x86_64.common.enable = true;
@@ -123,6 +125,17 @@
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
+                    extraModules = [
+                      {
+                        microvm.qemu.extraArgs = [
+                          # Lenovo X1 integrated usb webcam
+                          "-usb"
+                          "-device"
+                          "usb-host,vendorid=0x04f2,productid=0xb751"
+                        ];
+                        microvm.devices = [];
+                      }
+                    ];
                   }
                   {
                     name = "gala";
