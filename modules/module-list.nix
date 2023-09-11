@@ -8,6 +8,7 @@
   ./development/ssh.nix
   ./graphics
   ./hardware/x86_64-linux.nix
+  ./installer
   ./profiles/applications.nix
   ./profiles/debug.nix
   ./profiles/graphics.nix

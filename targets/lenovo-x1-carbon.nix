@@ -199,6 +199,27 @@
             };
           })
 
+          ({config, ...}: {
+            ghaf.installer = {
+              enable = true;
+              imgModules = [
+                nixos-generators.nixosModules.raw-efi
+              ];
+              enabledModules = ["flushImage"];
+              installerCode = ''
+                echo "Starting flushing..."
+                if sudo dd if=${config.system.build.${config.formatAttr}}/nixos.img of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
+                    sync
+                    echo "Flushing finished successfully!"
+                    echo "Now you can detach installation device and reboot to ghaf."
+                else
+                    echo "Some error occured during flushing process, exit code: $?."
+                    exit
+                fi
+              '';
+            };
+          })
+
           formatModule
 
           #TODO: how to handle the majority of laptops that need a little

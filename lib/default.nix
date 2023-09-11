@@ -12,19 +12,18 @@ in {
 
   # NOTE: Currently supports configuration that generates raw-efi image using nixos-generators
   installer = {
-    name,
     systemImgCfg,
     modules ? [],
+    userCode ? "",
   }: let
-    system = systemImgCfg.config.nixpkgs.hostPlatform.system;
+    system = systemImgCfg.nixpkgs.hostPlatform.system;
 
     pkgs = import nixpkgs {inherit system;};
-    systemImgDrv = systemImgCfg.config.system.build.${systemImgCfg.config.formatAttr};
 
     installerScript = import ../modules/installer/installer.nix {
       inherit pkgs;
-      systemImgDrv = "${systemImgDrv}/nixos.img";
       inherit (pkgs) runtimeShell;
+      inherit userCode;
     };
 
     installerImgCfg = lib.nixosSystem {
@@ -46,9 +45,9 @@ in {
           })
 
           {
-            # TODO
+            environment.systemPackages = [installerScript];
             environment.loginShellInit = ''
-              ${installerScript}/bin/ghaf-installer
+              installer.sh
             '';
           }
         ]
@@ -56,7 +55,6 @@ in {
         ++ modules;
     };
   in {
-    name = "${name}-installer";
     inherit installerImgCfg system;
     installerImgDrv = installerImgCfg.config.system.build.${installerImgCfg.config.formatAttr};
   };
