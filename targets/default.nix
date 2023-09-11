@@ -18,5 +18,4 @@ lib.foldr lib.recursiveUpdate {} [
   (import ./lenovo-x1-carbon.nix {inherit self lib nixos-generators nixos-hardware microvm;})
   (import ./imx8qm-mek.nix {inherit self lib nixos-generators nixos-hardware microvm;})
   (import ./microchip-icicle-kit.nix {inherit self lib nixpkgs nixos-hardware;})
-  (import ./installer.nix {inherit self nixpkgs lib nixos-generators;})
 ]
