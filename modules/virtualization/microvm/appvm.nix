@@ -106,7 +106,7 @@
     };
   in {
     autostart = true;
-    config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ [{environment.systemPackages = vm.packages;}];};
+    config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ [{environment.systemPackages = vm.packages;}];};
     specialArgs = {inherit lib;};
   };
 in {
@@ -155,6 +155,13 @@ in {
                 Amount of processor cores for this AppVM
               '';
               type = int;
+            };
+            extraModules = mkOption {
+              description = ''
+                List of additional modules to be imported and evaluated as part of
+                appvm's NixOS configuration.
+              '';
+              default = [];
             };
           };
         });
