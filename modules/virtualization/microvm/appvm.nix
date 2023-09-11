@@ -55,7 +55,6 @@
             mem = vm.ramMb;
             vcpu = vm.cores;
             hypervisor = "qemu";
-            qemu.bios.enable = true;
             storeDiskType = "squashfs";
             interfaces = [
               {

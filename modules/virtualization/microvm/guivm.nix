@@ -54,7 +54,6 @@
         microvm = {
           mem = 2048;
           hypervisor = "qemu";
-          qemu.bios.enable = false;
           storeDiskType = "squashfs";
           interfaces = [
             {
