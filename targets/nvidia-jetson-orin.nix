@@ -18,22 +18,13 @@
         # The Nvidia Orin hardware dependent configuration is in
         # modules/hardware/nvidia-jetson-orin/jetson-orin.nx
         # Please refer to that section for hardware dependent netvm configuration.
-
         # To enable or disable wireless
-        networking.wireless = {
+        networking.wireless.enable = som == "agx";
           # Wireless Configuration
           # Orin AGX has WiFi enabled where Orin Nx does not
-          enable =
-            if som == "agx"
-            then nixpkgs.lib.mkForce true
-            else nixpkgs.lib.mkForce false;
-        };
 
         # For WLAN firmwares
-        hardware.enableRedistributableFirmware =
-          if som == "agx"
-          then nixpkgs.lib.mkForce true
-          else nixpkgs.lib.mkForce false;
+        hardware.enableRedistributableFirmware = som == "agx";
         # Note: When 21.11 arrives replace the below statement with
         # wirelessRegulatoryDatabase = true;
       }
@@ -51,12 +42,16 @@
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
           {
+            users.users."ghaf".extraGroups = ["docker"];
             ghaf = {
               hardware.nvidia.orin.enable = true;
               hardware.nvidia.orin.somType = som;
-
+              virtualization.docker.daemon.enable = true;
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
+
+              virtualization.microvm.netvm.enable = true;
+              virtualization.microvm.netvm.extraModules = netvmExtraModules;
 
               # Enable all the default UI applications
               profiles = {

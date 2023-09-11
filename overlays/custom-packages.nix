@@ -19,6 +19,11 @@
 {lib, ...}: {
   nixpkgs.overlays = [
     (_final: prev: {
+      docker = (
+        prev.docker.override {
+          buildGoPackage = _final.buildGo118Package;
+        }
+      );
       gala-app = _final.callPackage ../user-apps/gala {};
       waypipe-ssh = _final.callPackage ../user-apps/waypipe-ssh {};
       # TODO: Remove this override if/when the fix is upstreamed.
