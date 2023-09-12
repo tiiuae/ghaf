@@ -102,7 +102,6 @@ in
       ghaf.boot.loader.systemd-boot-dtb.enable = true;
 
       ghaf.virtualization.microvm.netvm = {
-        enable = true;
         extraModules = netvmExtraModules;
       };
 
