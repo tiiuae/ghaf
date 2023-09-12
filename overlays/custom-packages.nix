@@ -18,9 +18,9 @@
 #
 {lib, ...}: {
   nixpkgs.overlays = [
-    (_final: prev: {
-      gala-app = _final.callPackage ../user-apps/gala {};
-      waypipe-ssh = _final.callPackage ../user-apps/waypipe-ssh {};
+    (final: prev: {
+      gala-app = final.callPackage ../user-apps/gala {};
+      waypipe-ssh = final.callPackage ../user-apps/waypipe-ssh {};
       # TODO: Remove this override if/when the fix is upstreamed.
       # Disabling colord dependency for weston. Colord has argyllcms as
       # a dependency, and this package is not cross-compilable.
