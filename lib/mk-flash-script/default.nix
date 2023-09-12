@@ -51,8 +51,27 @@
     uefi-firmware = ghaf-uefi-firmware;
     inherit (hostConfiguration.config.ghaf.hardware.nvidia.orin.flashScriptOverrides) preFlashCommands;
   };
+
+  patchFlashScript =
+    builtins.replaceStrings
+    [
+      "@pzstd@"
+      "@sed@"
+      "@l4tVersion@"
+      "@isCross@"
+    ]
+    [
+      "${nixpkgs.legacyPackages.${flash-tools-system}.zstd}/bin/pzstd"
+      "${nixpkgs.legacyPackages.${flash-tools-system}.gnused}/bin/sed"
+      "${l4tVersion}"
+      "${
+        if isCross
+        then "true"
+        else "false"
+      }"
+    ];
 in
   nixpkgs.legacyPackages.${flash-tools-system}.writeShellApplication {
     name = "flash-ghaf";
-    text = flashScript;
+    text = patchFlashScript flashScript;
   }
