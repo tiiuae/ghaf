@@ -10,7 +10,7 @@
 pkgs.stdenvNoCC.mkDerivation {
   inherit src;
   name = "split-images";
-  nativeBuildInputs = [pkgs.util-linux];
+  nativeBuildInputs = [pkgs.util-linux pkgs.zstd];
   installPhase = ''
     img="./nixos.img"
     fdisk_output=$(fdisk -l "$img")
@@ -36,6 +36,9 @@ pkgs.stdenvNoCC.mkDerivation {
     # Save partition sizes in bytes to be included in partition layout
     echo -n $(($part_esp_count * 512)) > $out/esp.size
     echo -n $(($part_root_count * 512)) > $out/root.size
+
+    pzstd --rm -p $NIX_BUILD_CORES -19 $out/esp.img
+    pzstd --rm -p $NIX_BUILD_CORES -19 $out/root.img
   '';
   dontFixup = true;
 }
