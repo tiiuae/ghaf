@@ -42,7 +42,7 @@
       x86_64-linux
       aarch64-linux
     ];
-    mkFlashScript = import (ghaf + "/lib/mk-flash-script.nix");
+    mkFlashScript = import (ghaf + "/lib/mk-flash-script");
   in
     # Combine list of attribute sets together
     nixpkgs.lib.foldr nixpkgs.lib.recursiveUpdate {} [

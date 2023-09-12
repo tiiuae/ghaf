@@ -101,7 +101,7 @@
     nvidia-jetson-orin-nx-release
   ];
   crossTargets = map generate-cross-from-x86_64 targets;
-  mkFlashScript = import ../lib/mk-flash-script.nix;
+  mkFlashScript = import ../lib/mk-flash-script;
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;
