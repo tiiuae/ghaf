@@ -209,25 +209,72 @@ For more information on how to access the MMC card as a USB disk, see [MPFS Icic
 
 ## Building Installer image for Ghaf image
 
-In case you want to have installer for your Ghaf configuration you can use `ghaf.lib.installer` function. 
+In case you want to have installer for your Ghaf configuration you can use `ghaf.installer` options.
 
-It takes just two required and one optional argument:
+It expects user to provide list of all enabled installer modules - set of prompts that will ask required information for installation process from user. And actual script that will install system based on them.
 
-- Name of your configuration.
-- Configuration for the actual Ghaf system which format attribute is raw-efi.
-- Optional list of additional modules that will be applied to configuration from previous argument.
+Also one of the nixos-generators modules must be passed to `ghaf.installer.imgModules` to get installer image of that type.
 
-This function will return attribute set which will contain several useful attributes:
+Additional modules can be written for your configuration in regular bash like this:
 
-- Name from the argument appended with `-installer`
-- Configuration of the installer
-- System architecture
-- Derivation that buidls image for desired type
+```nix
+ghaf.installer.installerModules.flushImage = {
+  requestCode = ''
+    lsblk
+    read -p "Device name [e.g. sda]: " DEVICE_NAME
+  '';
+  providedVariables = {
+    deviceName = "$DEVICE_NAME";
+  };
+};
+```
 
-To choose type of installer image (mostly you need to choose betwen raw-efi and iso) you should pass additional module to `ghaf.lib.installer` function that will define it. You should use modules from `nixos-generators`.
+It will generate derivation that will build installer image with installation script that will be formatted in the following way:
 
-Then you'll have derivation of an installer flush it to the drive and boot from it later.
+1. Builtin welcome screen.
+2. List of prompts in exactly the same way as in `ghaf.installer.enabledModules`.
+3. Installation script.
 
-After you run installer image on the actual machine on which you want to install your ghaf configuration you will see the installer logo and prompt that will ask you for the drive name on which it will flush your system image.
+On the actual run of an image generated script will be runned automatically at startup.
 
-If it'll fail you'll be given shell prompt in which you can investigate you problem furhter. If installer succeeded it will reboot system and you will have your Ghaf system installed!
+Example configuration that will just flush pre built image on desired drive:
+
+```nix
+{config, ...}: {
+  ghaf.installer = {
+    enable = true;
+    imgModules = [
+      nixos-generators.nixosModules.raw-efi
+    ];
+    enabledModules = ["flushImage"];
+    installerCode = ''
+      echo "Starting flushing..."
+      if sudo dd if=${config.system.build.${config.formatAttr}} of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
+          sync
+          echo "Flushing finished successfully!"
+          echo "Now you can detach installation device and reboot to ghaf."
+      else
+          echo "Some error occured during flushing process, exit code: $?."
+          exit
+      fi
+    '';
+  };
+}
+```
+
+To bulid installer image write:
+
+```
+nix build .#nixosConfigurations.<CONFIGURATION>.config.system.build.installer
+```
+
+### Builtin installer modules
+
+Provided variables show variable names in nix, for actual names of variables in bash see sources of the module.
+
+#### flushImage
+
+Provided variables:
+
+- deviceName: name of the device on which image should be flushed (e.g. "sda", "nvme0n1")
+
