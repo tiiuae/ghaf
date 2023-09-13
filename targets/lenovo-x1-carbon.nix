@@ -67,7 +67,9 @@
           }
         ];
       }
-      ({pkgs, ...}: {
+      ({pkgs, ...}: let
+        demo-pdf = pkgs.callPackage ../user-apps/demo-pdf {};
+      in {
         ghaf.graphics.weston.launchers = [
           {
             path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
@@ -80,7 +82,7 @@
           }
 
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura ${demo-pdf}/Whitepaper.pdf";
             icon = "${../assets/icons/png/pdf.png}";
           }
 
@@ -193,7 +195,7 @@
                   }
                   {
                     name = "zathura";
-                    packages = [pkgs.zathura];
+                    packages = [pkgs.zathura (pkgs.callPackage ../user-apps/demo-pdf {})];
                     macAddress = "02:00:00:03:07:01";
                     ramMb = 512;
                     cores = 1;
