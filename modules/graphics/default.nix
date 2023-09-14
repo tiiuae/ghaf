@@ -4,6 +4,7 @@
   imports = [
     ./weston.nix
     ./weston.ini.nix
+    ./demo-apps.nix
     ./fonts.nix
   ];
 }
