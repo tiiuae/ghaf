@@ -19,6 +19,20 @@
 {lib, ...}: {
   nixpkgs.overlays = [
     (final: prev: {
+      # This is added to resolve the issue https://ssrc.atlassian.net/browse/SP-2697
+      # where originated from https://github.com/NixOS/nixpkgs/issues/244159
+      # as a summary while running docker containers got a `http: invalid Host header`
+      # response failing to run.
+      # This is due to a bug in Go package in NixOS where the previous package solves
+      # this issue. Same solution will be applied GO compiler related net access bugs
+      # till next release.
+      # TODO: When moving to NixOS 23.11, this fix will be removed as it is already
+      #       fixed in the unstable channel.
+      docker = (
+        prev.docker.override {
+          buildGoPackage = final.buildGo118Package;
+        }
+      );
       gala-app = final.callPackage ../user-apps/gala {};
       waypipe-ssh = final.callPackage ../user-apps/waypipe-ssh {};
       # TODO: Remove this override if/when the fix is upstreamed.
