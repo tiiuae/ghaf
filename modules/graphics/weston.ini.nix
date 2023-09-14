@@ -33,28 +33,6 @@
       icon = "${pkgs.weston}/share/weston/icon_terminal.png";
     }
   ];
-  demoLaunchers = [
-    # Add application launchers
-    {
-      path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-      icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
-    }
-
-    {
-      path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-      icon = "${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png";
-    }
-
-    {
-      path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-      icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
-    }
-
-    {
-      path = "${pkgs.zathura}/bin/zathura";
-      icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
-    }
-  ];
 in {
   options.ghaf.graphics.weston = with lib; {
     launchers = mkOption {
@@ -77,16 +55,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    ghaf.graphics.weston.launchers = defaultLauncher ++ lib.optionals cfg.enableDemoApplications demoLaunchers;
-    environment.systemPackages = with pkgs;
-      lib.optionals cfg.enableDemoApplications [
-        # Graphical applications
-        # Probably, we'll want to re/move it from here later
-        chromium
-        element-desktop
-        gala-app
-        zathura
-      ];
+    ghaf.graphics.weston.launchers = defaultLauncher;
     environment.etc."xdg/weston/weston.ini" = {
       text =
         ''
