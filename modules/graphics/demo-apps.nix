@@ -25,6 +25,7 @@
 in {
   options.ghaf.graphics.demo-apps = with lib; {
     chromium = mkProgramOption "Chromium browser" false;
+    firefox = mkProgramOption "Firefox browser" weston.enableDemoApplications;
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" weston.enableDemoApplications;
     zathura = mkProgramOption "zathura" weston.enableDemoApplications;
@@ -35,6 +36,10 @@ in {
       lib.optional cfg.chromium {
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
+      }
+      ++ lib.optional cfg.firefox {
+        path = "${pkgs.firefox}/bin/firefox";
+        icon = "${pkgs.firefox}/share/icons/hicolor/32x32/apps/firefox.png"; # FIXME: no 24x24 icon in FF
       }
       ++ lib.optional cfg.element-desktop {
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
@@ -51,6 +56,7 @@ in {
     environment.systemPackages =
       lib.optional cfg.chromium pkgs.chromium
       ++ lib.optional cfg.element-desktop pkgs.element-desktop
+      ++ lib.optional cfg.firefox pkgs.firefox
       ++ lib.optional cfg.gala-app pkgs.gala-app
       ++ lib.optional cfg.zathura pkgs.zathura;
   };
