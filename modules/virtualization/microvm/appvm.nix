@@ -17,6 +17,7 @@
         ({
           lib,
           config,
+          pkgs,
           ...
         }: {
           ghaf = {
@@ -62,6 +63,11 @@
                 id = hostname;
                 mac = vm.macAddress;
               }
+            ];
+            # Use qboot BIOS on x86_64-linux as workaround
+            qemu.extraArgs = lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") [
+              "-bios"
+              "${pkgs.qboot}/bios.bin"
             ];
           };
 
