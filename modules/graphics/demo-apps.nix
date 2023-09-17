@@ -10,6 +10,17 @@
   weston = config.ghaf.graphics.weston;
 
   /*
+  Scaled down firefox icon
+  */
+  firefox-icon = pkgs.runCommand "firefox-icon-24x24" {} ''
+    mkdir -p $out/share/icons/hicolor/24x24/apps
+    ${pkgs.buildPackages.imagemagick}/bin/convert \
+      ${pkgs.firefox}/share/icons/hicolor/128x128/apps/firefox.png \
+      -resize 24x24 \
+      $out/share/icons/hicolor/24x24/apps/firefox.png
+  '';
+
+  /*
   Generate launchers to be used in weston.ini
 
   Type: mkProgramOption ::  string -> bool -> option
@@ -39,7 +50,7 @@ in {
       }
       ++ lib.optional cfg.firefox {
         path = "${pkgs.firefox}/bin/firefox";
-        icon = "${pkgs.firefox}/share/icons/hicolor/32x32/apps/firefox.png"; # FIXME: no 24x24 icon in FF
+        icon = "${firefox-icon}/share/icons/hicolor/24x24/apps/firefox.png";
       }
       ++ lib.optional cfg.element-desktop {
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
