@@ -143,5 +143,11 @@ in
         somDefinition."${cfg.somType}".vfio-pci
         "vfio_iommu_type1.allow_unsafe_interrupts=1"
       ];
+
+      services.nvpmodel = {
+        enable = lib.mkDefault true;
+        # Enable all CPU cores, full power consumption (50W on AGX, 25W on NX)
+        profileNumber = lib.mkDefault 3;
+      };
     };
   }
