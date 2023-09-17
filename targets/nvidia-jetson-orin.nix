@@ -87,6 +87,19 @@
   nvidia-jetson-orin-agx-release = nvidia-jetson-orin "agx" "release" [];
   nvidia-jetson-orin-nx-debug = nvidia-jetson-orin "nx" "debug" [];
   nvidia-jetson-orin-nx-release = nvidia-jetson-orin "nx" "release" [];
+  generate-nodemoapps = tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-nodemoapps";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          {
+            ghaf.graphics.weston.enableDemoApplications = lib.mkForce false;
+          }
+        ];
+      };
+      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+    };
   generate-cross-from-x86_64 = tgt:
     tgt
     // rec {
@@ -102,12 +115,15 @@
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
-  targets = [
+  # Base targets to use for generating demoapps and cross-compilation targets
+  baseTargets = [
     nvidia-jetson-orin-agx-debug
     nvidia-jetson-orin-agx-release
     nvidia-jetson-orin-nx-debug
     nvidia-jetson-orin-nx-release
   ];
+  # Add nodemoapps targets
+  targets = baseTargets ++ (map generate-nodemoapps baseTargets);
   crossTargets = map generate-cross-from-x86_64 targets;
   mkFlashScript = import ../lib/mk-flash-script;
   generate-flash-script = tgt: flash-tools-system:
