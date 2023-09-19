@@ -102,6 +102,17 @@
               # Lenovo X1 integrated webcam
               SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP+="kvm"
             '';
+
+            # Enable pulseaudio support for host as a service
+            sound.enable = true;
+            hardware.pulseaudio.enable = true;
+            hardware.pulseaudio.systemWide = true;
+            nixpkgs.config.pulseaudio = true;
+
+            # Allow microvm user to access pulseaudio
+            hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
+            users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
+
             ghaf = {
               hardware.x86_64.common.enable = true;
 
@@ -120,18 +131,36 @@
                 vms = [
                   {
                     name = "chromium";
-                    packages = [pkgs.chromium];
+                    packages = [pkgs.chromium pkgs.pamixer];
                     ipAddress = "192.168.101.5/24";
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
                     extraModules = [
                       {
+                        # Enable pulseaudio for user ghaf
+                        sound.enable = true;
+                        hardware.pulseaudio.enable = true;
+                        users.extraUsers.ghaf.extraGroups = ["audio"];
+                        nixpkgs.config.pulseaudio = true;
+
                         microvm.qemu.extraArgs = [
+                          # APPVMs use microvm qemu machine which has pcie disabled by default
+                          "-M"
+                          "microvm,pcie=on,accel=kvm:tcg,pit=off,pic=off,rtc=off,mem-merge=on"
                           # Lenovo X1 integrated usb webcam
                           "-usb"
                           "-device"
                           "usb-host,vendorid=0x04f2,productid=0xb751"
+
+                          # Connect sound device to hosts pulseaudio socket
+                          "-audiodev"
+                          "pa,id=pa1,server=unix:/run/pulse/native"
+                          # Add HDA sound device to guest
+                          "-device"
+                          "intel-hda"
+                          "-device"
+                          "hda-duplex,audiodev=pa1"
                         ];
                         microvm.devices = [];
                       }
