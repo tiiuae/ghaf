@@ -79,35 +79,13 @@ jobs:
           cachix --version
       - name: Build ${{ matrix.arch }}.${{ matrix.target }}
         run: |
-          echo "Snapshot nix store files before build"
-          nix-collect-garbage
-          store_pre_build=$(mktemp)
-          find /nix/store -type f > "$store_pre_build"
-
-          echo "nix build"
-          time nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
-
-          echo "Snapshot nix store files after build"
-          store_post_build=$(mktemp)
-          find /nix/store -type f > "$store_post_build"
-
-          echo "Finding new nix store files"
-          store_new_unfiltered=$(mktemp)
-          for f in $(diff "$store_pre_build" "$store_post_build" | cut -d" " -f2)
-          do
-            if [ -e $f ]; then
-              echo "$f" >> "$store_new_unfiltered"
-            fi
-          done
-          rm -f "$store_pre_build" "$store_post_build"
-
           if [ "${{ secrets.CACHIX_AUTH_GHAF_DEV }}" = "" ]; then
-            echo "Skipping cachix push"
+            echo "Running nix build, no cachix push"
+            time nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+            echo "Skipping cachix push, no token"
           else
-            echo "Running cachix push"
-            filter='(\.drv$|\.drv.chroot$|\.check$|\.lock$|-source$|/\.links/|nixos\.img$|store-disk\.squashfs$)'
-            store_new_filtered=$(mktemp)
-            grep -vP "$filter" "$store_new_unfiltered" > "$store_new_filtered"
             cachix authtoken ${{ secrets.CACHIX_AUTH_GHAF_DEV }}
-            time cachix push -j8 -c16 ghaf-dev < "$store_new_filtered"
+            echo "Running nix build, with cachix watch-exec"
+            cachix watch-exec ghaf-dev -- \
+              time nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
           fi
