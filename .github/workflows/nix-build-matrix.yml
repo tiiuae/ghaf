@@ -1,0 +1,113 @@
+name: nix 
+
+on:
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build_matrix:
+    name: "build"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64-linux
+            target: generic-x86_64-debug
+          - arch: x86_64-linux
+            target: lenovo-x1-carbon-gen11-debug
+          - arch: x86_64-linux
+            target: nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
+          - arch: x86_64-linux
+            target: nvidia-jetson-orin-nx-debug-nodemoapps-from-x86_64
+          - arch: riscv64-linux
+            target: microchip-icicle-kit-debug
+    steps:
+      - name: Maximize space available on rootfs
+        # Why not use https://github.com/easimon/maximize-build-space directly?
+        # The reason is: we want to maximize the space on rootfs, since that's
+        # where the nix store (`/nix/store`) is located. Github action
+        # https://github.com/easimon/maximize-build-space maximizes
+        # the builder space on ${GITHUB_WORKSPACE}, which is not what we need.
+        # Alternatively, we could move the nix store to ${GITHUB_WORKSPACE}
+        # and use https://github.com/easimon/maximize-build-space as such, but
+        # we suspect other tooling (e.g. cachix) would not work well with such
+        # configuration.
+        run: |
+          echo "Available storage before cleanup:"
+          df -h
+          echo
+          echo "Removing unwanted software... "
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          echo "... done"
+          echo
+          echo "Available storage after cleanup:"
+          df -h
+      - name: Checkout Ghaf
+        uses: actions/checkout@v3
+      - name: Set NIX_SYSTEM variable (emulated builds)
+        run: |
+          if [ "${{ matrix.arch }}" = "aarch64-linux" ]; then
+            echo "NIX_SYSTEM=aarch64-linux" >> "$GITHUB_ENV"
+          else
+            echo "NIX_SYSTEM=x86_64-linux" >> "$GITHUB_ENV"
+          fi
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            trusted-public-keys = ghaf-dev.cachix.org-1:IxMRy9D4TCXA/57XvtU0xrcEC0ErsnLvxJfPQe8O9pc= cache.vedenemo.dev:RGHheQnb6rXGK5v9gexJZ8iWTPX6OcSeS56YeXYzOcg= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            substituters = https://ghaf-dev.cachix.org?priority=20 https://cache.vedenemo.dev https://cache.nixos.org
+            system-features = nixos-test benchmark big-parallel kvm
+            system = ${{ env.NIX_SYSTEM }}
+      - name: Print nix.conf
+        run: |
+          echo "/etc/nix/nix.conf:"
+          cat /etc/nix/nix.conf
+      - name: Install requirements
+        run: sudo apt-get install -y qemu-user-static
+      - name: Install cachix
+        run: |
+          nix-env -iA cachix -f https://cachix.org/api/v1/install
+          echo "Using cachix version:"
+          cachix --version
+      - name: Build ${{ matrix.arch }}.${{ matrix.target }}
+        run: |
+          echo "Snapshot nix store files before build"
+          nix-collect-garbage
+          store_pre_build=$(mktemp)
+          find /nix/store -type f > "$store_pre_build"
+
+          echo "nix build"
+          time nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+
+          echo "Snapshot nix store files after build"
+          store_post_build=$(mktemp)
+          find /nix/store -type f > "$store_post_build"
+
+          echo "Finding new nix store files"
+          store_new_unfiltered=$(mktemp)
+          for f in $(diff "$store_pre_build" "$store_post_build" | cut -d" " -f2)
+          do
+            if [ -e $f ]; then
+              echo "$f" >> "$store_new_unfiltered"
+            fi
+          done
+          rm -f "$store_pre_build" "$store_post_build"
+
+          if [ "${{ secrets.CACHIX_AUTH_GHAF_DEV }}" = "" ]; then
+            echo "Skipping cachix push"
+          else
+            echo "Running cachix push"
+            filter='(\.drv$|\.drv.chroot$|\.check$|\.lock$|-source$|/\.links/|nixos\.img$|store-disk\.squashfs$)'
+            store_new_filtered=$(mktemp)
+            grep -vP "$filter" "$store_new_unfiltered" > "$store_new_filtered"
+            cachix authtoken ${{ secrets.CACHIX_AUTH_GHAF_DEV }}
+            time cachix push -j8 -c16 ghaf-dev < "$store_new_filtered"
+          fi
