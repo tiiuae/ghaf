@@ -73,6 +73,8 @@
             };
           }
 
+          (import ./optee.nix {inherit jetpack-nixos;})
+
           formatModule
         ]
         ++ (import ../../modules/module-list.nix)
