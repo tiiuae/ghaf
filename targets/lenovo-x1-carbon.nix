@@ -100,7 +100,7 @@
               # Laptop TrackPoint
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
               # Lenovo X1 integrated webcam
-              SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP+="kvm"
+              SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
             '';
 
             # Enable pulseaudio support for host as a service
@@ -149,10 +149,10 @@
                           "-M"
                           "microvm,pcie=on,accel=kvm:tcg,pit=off,pic=off,rtc=off,mem-merge=on"
                           # Lenovo X1 integrated usb webcam
-                          "-usb"
+                          "-device"
+                          "qemu-xhci"
                           "-device"
                           "usb-host,vendorid=0x04f2,productid=0xb751"
-
                           # Connect sound device to hosts pulseaudio socket
                           "-audiodev"
                           "pa,id=pa1,server=unix:/run/pulse/native"
