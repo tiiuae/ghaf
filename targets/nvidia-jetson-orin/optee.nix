@@ -41,6 +41,9 @@
         runHook postInstall
       '';
     };
+    pkcs11-tool-optee = pkgs.writeShellScriptBin "pkcs11-tool-optee" ''
+      exec "${pkgs.opensc}/bin/pkcs11-tool" --module "${teeSupplicant}/lib/libckteec.so" $@
+    '';
   in {
     hardware.nvidia-jetpack.firmware.optee.clientLoadPath = pkgs.linkFarm "optee-load-path" [
       {
@@ -49,6 +52,9 @@
         name = "optee_armtz/fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";
         path = "${pcks11Ta}/fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";
       }
+    ];
+    environment.systemPackages = [
+      pkcs11-tool-optee
     ];
   }
 )
