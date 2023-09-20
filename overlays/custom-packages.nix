@@ -19,6 +19,7 @@
 {lib, ...}: {
   nixpkgs.overlays = [
     (final: prev: {
+      dbus-powercontrol = final.callPackage ../user-apps/dbus-powercontrol {};
       gala-app = final.callPackage ../user-apps/gala {};
       waypipe-ssh = final.callPackage ../user-apps/waypipe-ssh {};
       # TODO: Remove this override if/when the fix is upstreamed.
