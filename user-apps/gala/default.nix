@@ -94,13 +94,13 @@ in
       if stdenv.isAarch64
       then
         pkgs.fetchurl {
-          url = "https://vedenemo.dev/files/dev.scpp.saca.gala-0.0.1.1-arm64.zip";
-          sha256 = "sha256-fNneedDxGfvJuRlq6RHkqCXYhTnhLR2RgFQpXevJwBY=";
+          url = "https://vedenemo.dev/files/7332c51d-852e-45fe-b9d1-31185ee779a9-gala-electron-demo-b-arm64.zip";
+          sha256 = "01bn37mqzhbgjjxamqqmfdf1h6d4bljj8sdkplvxv3r1sid35s0w";
         }
       else
         pkgs.fetchurl {
-          url = "https://vedenemo.dev/files/dev.scpp.saca.gala-0.0.1.1.zip";
-          sha256 = "sha256-h6knT6OIYbDlnmgb2v2UHk0eKjMU7lSLdvmqbJu0s94=";
+          url = "https://vedenemo.dev/files/7332c51d-852e-45fe-b9d1-31185ee779a9-gala-electron-demo-b.zip";
+          sha256 = "08laswhrx15sgbwjvq1jibihi71vh9s9xckrs6cjk0wljpb2pfra";
         };
 
     phases = "unpackPhase fixupPhase";
