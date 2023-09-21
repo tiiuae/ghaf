@@ -28,7 +28,6 @@ vms = with pkgs; [
   {
     name = "chromium";
     packages = [chromium];
-    ipAddress = "192.168.101.5/24";
     macAddress = "02:00:00:03:03:05";
     ramMb = 3072;
     cores = 4;
@@ -36,7 +35,6 @@ vms = with pkgs; [
   {
     name = "gala";
     packages = [(pkgs.callPackage ../user-apps/gala {})];
-    ipAddress = "192.168.101.6/24";
     macAddress = "02:00:00:03:03:06";
     ramMb = 1536;
     cores = 2;
@@ -44,7 +42,6 @@ vms = with pkgs; [
   {
     name = "zathura";
     packages = [zathura];
-    ipAddress = "192.168.101.7/24";
     macAddress = "02:00:00:03:03:07";
     ramMb = 512;
     cores = 1;
@@ -57,9 +54,8 @@ Each VM has the following properties:
 
 | **Property** | **Type**                  | **Unique** | **Description**                                                                                               | **Example**         |
 | -------------- | --------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------- | --------------------- |
-| name         | str                       | yes        | This name is prefixed with `vm-` and will be shown in microvm list. The prefixed name - e.g. `vm-chromium` will be also the VM hostname.                                     | “chromium”        |
+| name         | str                       | yes        | This name is postfixed with `-vm` and will be shown in microvm list. The name - e.g. `chromium-vm` will be also the VM hostname. The lenght of the name must be 8 characters or less.                                     | “chromium”        |
 | packages     | list of types.package     | no         | Packages to include in a VM. It is possible to make it empty or add several packages.                          | [chromium top]    |
-| ipAddress    | str                       | yes        | This IP will be used to access a VM from the host. Should has the same subnetwork, as other VMs: Net, GUI VMs. | "192.168.101.5/24"  |
 | macAddress   | str                       | yes        | Needed for network configuration.                                                                              | "02:00:00:03:03:05" |
 | ramMb        | int, [1, …, host memory] | no         | Memory in MB.                                                                                                  | 3072                |
 | cores        | int,  [1, …, host cores] | no         | Virtual CPU cores.                                                                                             | 4                   |

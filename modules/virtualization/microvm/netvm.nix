@@ -3,11 +3,15 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   configHost = config;
+  vmName = "net-vm";
+  macAddress = "02:00:00:01:01:01";
   netvmBaseConfiguration = {
     imports = [
+      (import ./common/vm-networking.nix {inherit vmName macAddress;})
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -19,7 +23,6 @@
           };
         };
 
-        networking.hostName = "netvm";
         system.stateVersion = lib.trivial.release;
 
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
@@ -28,42 +31,41 @@
         microvm.hypervisor = "qemu";
 
         networking = {
-          enableIPv6 = false;
-          interfaces.ethint0.useDHCP = false;
-          firewall.allowedTCPPorts = [22];
-          firewall.allowedUDPPorts = [67];
-          useNetworkd = true;
+          firewall.allowedTCPPorts = [53];
+          firewall.allowedUDPPorts = [53];
         };
 
-        microvm.interfaces = [
-          {
-            type = "tap";
-            id = "vm-netvm";
-            mac = "02:00:00:01:01:01";
-          }
-        ];
-
-        networking.nat = {
+        # Dnsmasq is used as a DHCP/DNS server inside the NetVM
+        services.dnsmasq = {
           enable = true;
-          internalInterfaces = ["ethint0"];
+          resolveLocalQueries = true;
+          settings = {
+            server = ["8.8.8.8"];
+            dhcp-range = ["192.168.100.2,192.168.100.254"];
+            dhcp-sequential-ip = true;
+            dhcp-authoritative = true;
+            domain = "ghaf";
+            listen-address = ["127.0.0.1,192.168.100.1"];
+            dhcp-option = [
+              "option:router,192.168.100.1"
+              "6,192.168.100.1"
+            ];
+            expand-hosts = true;
+            domain-needed = true;
+            bogus-priv = true;
+          };
         };
 
-        # Set internal network's interface name to ethint0
-        systemd.network.links."10-ethint0" = {
-          matchConfig.PermanentMACAddress = "02:00:00:01:01:01";
-          linkConfig.Name = "ethint0";
-        };
+        # Disable resolved since we are using Dnsmasq
+        services.resolved.enable = false;
 
         systemd.network = {
           enable = true;
           networks."10-ethint0" = {
-            matchConfig.MACAddress = "02:00:00:01:01:01";
+            matchConfig.MACAddress = macAddress;
             networkConfig.DHCPServer = true;
             dhcpServerConfig.ServerAddress = "192.168.100.1/24";
             addresses = [
-              {
-                addressConfig.Address = "192.168.100.1/24";
-              }
               {
                 # IP-address for debugging subnet
                 addressConfig.Address = "192.168.101.1/24";
@@ -103,7 +105,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    microvm.vms."netvm" = {
+    microvm.vms."${vmName}" = {
       autostart = true;
       config =
         netvmBaseConfiguration

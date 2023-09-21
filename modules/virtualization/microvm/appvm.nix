@@ -8,19 +8,21 @@
 }: let
   configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
-  waypipe-ssh = pkgs.callPackage ../../../user-apps/waypipe-ssh {};
-
   makeVm = {
     vm,
     index,
   }: let
-    hostname = "vm-" + vm.name;
+    vmName = "${vm.name}-vm";
     cid =
       if vm.cid > 0
       then vm.cid
       else cfg.vsockBaseCID + index;
     appvmConfiguration = {
       imports = [
+        (import ./common/vm-networking.nix {
+          inherit vmName;
+          macAddress = vm.macAddress;
+        })
         ({
           lib,
           config,
@@ -39,21 +41,12 @@
             };
           };
 
-          users.users.${configHost.ghaf.users.accounts.user}.openssh.authorizedKeys.keyFiles = ["${waypipe-ssh}/keys/waypipe-ssh.pub"];
+          users.users.${configHost.ghaf.users.accounts.user}.openssh.authorizedKeys.keyFiles = ["${pkgs.waypipe-ssh}/keys/waypipe-ssh.pub"];
 
-          networking.hostName = hostname;
           system.stateVersion = lib.trivial.release;
 
           nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
           nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
-          networking = {
-            enableIPv6 = false;
-            interfaces.ethint0.useDHCP = false;
-            firewall.allowedTCPPorts = [22];
-            firewall.allowedUDPPorts = [67];
-            useNetworkd = true;
-          };
 
           environment.systemPackages = [
             pkgs.waypipe
@@ -63,7 +56,6 @@
             mem = vm.ramMb;
             vcpu = vm.cores;
             hypervisor = "qemu";
-
             shares = [
               {
                 tag = "ro-store";
@@ -73,48 +65,12 @@
             ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
-            interfaces = [
-              {
-                type = "tap";
-                id = hostname;
-                mac = vm.macAddress;
-              }
-            ];
             qemu.extraArgs = [
               "-M"
               "q35,accel=kvm:tcg,mem-merge=on,sata=off"
               "-device"
               "vhost-vsock-pci,guest-cid=${toString cid}"
             ];
-          };
-
-          networking.nat = {
-            enable = true;
-            internalInterfaces = ["ethint0"];
-          };
-
-          # Set internal network's interface name to ethint0
-          systemd.network.links."10-ethint0" = {
-            matchConfig.PermanentMACAddress = vm.macAddress;
-            linkConfig.Name = "ethint0";
-          };
-
-          systemd.network = {
-            enable = true;
-            networks."10-ethint0" = {
-              matchConfig.MACAddress = vm.macAddress;
-              addresses = [
-                {
-                  # IP-address for debugging subnet
-                  addressConfig.Address = vm.ipAddress;
-                }
-              ];
-              routes = [
-                {routeConfig.Gateway = "192.168.101.1";}
-              ];
-              linkConfig.RequiredForOnline = "routable";
-              linkConfig.ActivationPolicy = "always-up";
-            };
           };
 
           imports = import ../../module-list.nix;
@@ -148,12 +104,6 @@ in {
               '';
               type = types.listOf package;
               default = [];
-            };
-            ipAddress = mkOption {
-              description = ''
-                AppVM's IP address in the inter-vm network
-              '';
-              type = str;
             };
             macAddress = mkOption {
               description = ''
@@ -216,7 +166,7 @@ in {
   config = lib.mkIf cfg.enable {
     microvm.vms = (
       let
-        vms = lib.imap0 (index: vm: {"appvm-${vm.name}" = makeVm {inherit index vm;};}) cfg.vms;
+        vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
       in
         lib.foldr lib.recursiveUpdate {} vms
     );

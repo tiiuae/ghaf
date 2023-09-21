@@ -7,9 +7,12 @@
   ...
 }: let
   configHost = config;
+  vmName = "gui-vm";
+  macAddress = "02:00:00:02:02:02";
   waypipe-ssh = pkgs.callPackage ../../../user-apps/waypipe-ssh {};
   guivmBaseConfiguration = {
     imports = [
+      (import ./common/vm-networking.nix {inherit vmName macAddress;})
       ({
         lib,
         pkgs,
@@ -37,24 +40,14 @@
           ];
         };
 
-        networking.hostName = "guivm";
         system.stateVersion = lib.trivial.release;
 
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-        networking = {
-          enableIPv6 = false;
-          interfaces.ethint0.useDHCP = false;
-          firewall.allowedTCPPorts = [22];
-          firewall.allowedUDPPorts = [67];
-          useNetworkd = true;
-        };
-
         microvm = {
           mem = 2048;
           hypervisor = "qemu";
-
           shares = [
             {
               tag = "ro-store";
@@ -64,47 +57,10 @@
           ];
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
-          interfaces = [
-            {
-              type = "tap";
-              id = "vm-guivm";
-              mac = "02:00:00:02:02:02";
-            }
-          ];
-
           qemu.extraArgs = [
             "-device"
             "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
           ];
-        };
-
-        networking.nat = {
-          enable = true;
-          internalInterfaces = ["ethint0"];
-        };
-
-        # Set internal network's interface name to ethint0
-        systemd.network.links."10-ethint0" = {
-          matchConfig.PermanentMACAddress = "02:00:00:02:02:02";
-          linkConfig.Name = "ethint0";
-        };
-
-        systemd.network = {
-          enable = true;
-          networks."10-ethint0" = {
-            matchConfig.MACAddress = "02:00:00:02:02:02";
-            addresses = [
-              {
-                # IP-address for debugging subnet
-                addressConfig.Address = "192.168.101.3/24";
-              }
-            ];
-            routes = [
-              {routeConfig.Gateway = "192.168.101.1";}
-            ];
-            linkConfig.RequiredForOnline = "routable";
-            linkConfig.ActivationPolicy = "always-up";
-          };
         };
 
         imports = import ../../module-list.nix;
@@ -173,7 +129,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    microvm.vms."guivm" = {
+    microvm.vms."${vmName}" = {
       autostart = true;
       config =
         guivmBaseConfiguration

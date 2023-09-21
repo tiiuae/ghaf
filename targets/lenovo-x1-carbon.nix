@@ -69,17 +69,17 @@
       ({pkgs, ...}: {
         ghaf.graphics.weston.launchers = [
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.5 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
           }
 
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.6 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/app.png}";
           }
 
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.7 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server zathura";
             icon = "${../assets/icons/png/pdf.png}";
           }
         ];
@@ -145,7 +145,6 @@
                   {
                     name = "chromium";
                     packages = [pkgs.chromium pkgs.pamixer];
-                    ipAddress = "192.168.101.5/24";
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
@@ -179,7 +178,6 @@
                   {
                     name = "gala";
                     packages = [pkgs.gala-app];
-                    ipAddress = "192.168.101.6/24";
                     macAddress = "02:00:00:03:06:01";
                     ramMb = 1536;
                     cores = 2;
@@ -187,7 +185,6 @@
                   {
                     name = "zathura";
                     packages = [pkgs.zathura];
-                    ipAddress = "192.168.101.7/24";
                     macAddress = "02:00:00:03:07:01";
                     ramMb = 512;
                     cores = 1;

@@ -38,7 +38,7 @@ in
         # Connect VM tun/tap device to the bridge
         # TODO configure this based on IF the netvm is enabled
         networks."11-netvm" = {
-          matchConfig.Name = "vm-*";
+          matchConfig.Name = "tap-*";
           networkConfig.Bridge = "virbr0";
         };
       };
