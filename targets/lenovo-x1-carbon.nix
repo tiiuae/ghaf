@@ -191,9 +191,6 @@
               # Enable all the default UI applications
               profiles = {
                 applications.enable = false;
-                #TODO clean this up when the microvm is updated to latest
-                release.enable = variant == "release";
-                debug.enable = variant == "debug";
               };
               windows-launcher.enable = false;
             };
@@ -225,10 +222,24 @@
     name = "${name}-${variant}";
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  debugModules = [../modules/development/usb-serial.nix {ghaf.development.usb-serial.enable = true;}];
+  debugModules = [
+    ../modules/development/usb-serial.nix
+    {
+      ghaf.development.usb-serial.enable = true;
+      ghaf.profiles.debug.enable = true;
+    }
+  ];
+  releaseModules = [
+    {
+      ghaf.profiles.release.enable = true;
+    }
+  ];
+  gnomeModules = [{ghaf.virtualization.microvm.guivm.extraModules = [{ghaf.profiles.graphics.compositor = "gnome";}];}];
   targets = [
     (lenovo-x1 "debug" debugModules)
-    (lenovo-x1 "release" [])
+    (lenovo-x1 "release" releaseModules)
+    (lenovo-x1 "gnome-debug" (gnomeModules ++ debugModules))
+    (lenovo-x1 "gnome-release" (gnomeModules ++ releaseModules))
   ];
 in {
   nixosConfigurations =
