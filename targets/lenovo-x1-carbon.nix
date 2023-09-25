@@ -236,6 +236,7 @@
               # Passthrough Intel Iris GPU 8086:a7a1
               "vfio-pci.ids=8086:51f1,8086:a7a1"
             ];
+            boot.initrd.availableKernelModules = ["nvme"];
           }
         ]
         ++ (import ../modules/module-list.nix)
