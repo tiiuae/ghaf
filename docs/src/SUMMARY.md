@@ -23,6 +23,7 @@
 - [Reference Implementations](ref_impl/reference_implementations.md)
   - [Development](ref_impl/development.md)
     - [Build and Run](ref_impl/build_and_run.md)
+    - [Installer](ref_impl/installer.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
   - [Ghaf as Library: Templates](ref_impl/ghaf-based-project.md)
