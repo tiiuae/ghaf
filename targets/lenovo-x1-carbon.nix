@@ -48,6 +48,15 @@
           # Lenovo X1 trackpoint (red button/joystick)
           "-device"
           "virtio-input-host-pci,evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse"
+          # Lenovo X1 Lid button
+          "-device"
+          "button"
+          # Lenovo X1 battery
+          "-device"
+          "battery"
+          # Lenovo X1 AC adapter
+          "-device"
+          "acad"
         ];
         microvm.devices = [
           {
