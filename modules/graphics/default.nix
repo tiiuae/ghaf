@@ -6,5 +6,6 @@
     ./weston.ini.nix
     ./demo-apps.nix
     ./fonts.nix
+    ./gnome.nix
   ];
 }

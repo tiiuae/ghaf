@@ -16,11 +16,11 @@ in
     };
 
     config = mkIf cfg.enable {
-      #TODO Should we assert dependency on graphics (weston) profile?
-      #For now enable weston + apps
-      ghaf.graphics.weston = {
-        enable = true;
-        enableDemoApplications = true;
+      # TODO: Needs more generic support for defining application launchers
+      #       across different window managers.
+      ghaf = {
+        profiles.graphics.enable = true;
+        graphics.weston.enableDemoApplications = true;
       };
     };
   }
