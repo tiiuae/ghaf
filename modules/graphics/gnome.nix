@@ -25,7 +25,11 @@ in {
     environment.systemPackages = with pkgs; [
     ];
 
-    services.xserver.displayManager.gdm.enable = true;
+    services.xserver.enable = true;
+    services.xserver.displayManager.gdm = {
+      enable = true;
+      wayland = true;
+    };
     services.xserver.desktopManager.gnome.enable = true;
 
     environment.gnome.excludePackages = with pkgs; [
