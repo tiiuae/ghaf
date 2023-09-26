@@ -2,6 +2,7 @@
   self,
   lib,
   nixpkgs,
+  disko,
 }: let
   release = lib.strings.fileContents ../.version;
   versionSuffix = ".${lib.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101")}.${self.shortRev or "dirty"}";
@@ -26,6 +27,9 @@ in {
       inherit userCode;
     };
 
+    diskoCLI = disko.packages.x86_64-linux.disko;
+    partitioning = pkgs.callPackage ../modules/installer/partitioning.nix {};
+
     installerImgCfg = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
@@ -45,8 +49,10 @@ in {
           })
 
           {
-            environment.systemPackages = [installerScript];
+            environment.systemPackages = [installerScript diskoCLI];
             environment.loginShellInit = ''
+              ln -s ${partitioning}/partitioning-scheme "$HOME/partitioning-scheme"
+              ln -s ${partitioning}/example_secret.key "$HOME/example_secret.key"
               installer.sh
             '';
           }

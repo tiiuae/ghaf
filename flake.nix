@@ -31,6 +31,10 @@
       url = "github:anduril/jetpack-nixos";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    disko = {
+      url = "github:nix-community/disko";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -41,6 +45,7 @@
     nixos-hardware,
     microvm,
     jetpack-nixos,
+    disko,
   }: let
     systems = with flake-utils.lib.system; [
       x86_64-linux
@@ -49,7 +54,7 @@
     ];
     lib = nixpkgs.lib.extend (final: _prev: {
       ghaf = import ./lib {
-        inherit self nixpkgs;
+        inherit self nixpkgs disko;
         lib = final;
       };
     });
