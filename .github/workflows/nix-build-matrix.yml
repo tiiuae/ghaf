@@ -4,7 +4,6 @@ on:
   pull_request:
     branches:
       - main
-  workflow_dispatch:
 
 jobs:
   build_matrix:
@@ -15,15 +14,9 @@ jobs:
       matrix:
         include:
           - arch: x86_64-linux
-            target: generic-x86_64-debug
-          - arch: x86_64-linux
             target: lenovo-x1-carbon-gen11-debug
           - arch: x86_64-linux
             target: nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
-          - arch: x86_64-linux
-            target: nvidia-jetson-orin-nx-debug-nodemoapps-from-x86_64
-          - arch: riscv64-linux
-            target: microchip-icicle-kit-debug
     steps:
       - name: Maximize space available on rootfs
         # Why not use https://github.com/easimon/maximize-build-space directly?
@@ -62,14 +55,10 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@main
         with:
           extra-conf: |
-            trusted-public-keys = ghaf-dev.cachix.org-1:IxMRy9D4TCXA/57XvtU0xrcEC0ErsnLvxJfPQe8O9pc= cache.vedenemo.dev:RGHheQnb6rXGK5v9gexJZ8iWTPX6OcSeS56YeXYzOcg= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:RGHheQnb6rXGK5v9gexJZ8iWTPX6OcSeS56YeXYzOcg= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://ghaf-dev.cachix.org?priority=20 https://cache.vedenemo.dev https://cache.nixos.org
             system-features = nixos-test benchmark big-parallel kvm
             system = ${{ env.NIX_SYSTEM }}
-      - name: Print nix.conf
-        run: |
-          echo "/etc/nix/nix.conf:"
-          cat /etc/nix/nix.conf
       - name: Install requirements
         run: sudo apt-get install -y qemu-user-static
       - name: Install cachix
@@ -79,13 +68,13 @@ jobs:
           cachix --version
       - name: Build ${{ matrix.arch }}.${{ matrix.target }}
         run: |
-          if [ "${{ secrets.CACHIX_AUTH_GHAF_DEV }}" = "" ]; then
+          if [ "${{ secrets.CACHIX_AUTH_TOKEN }}" = "" ]; then
             echo "Running nix build, no cachix push"
-            time nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+            nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
             echo "Skipping cachix push, no token"
           else
-            cachix authtoken ${{ secrets.CACHIX_AUTH_GHAF_DEV }}
+            cachix authtoken ${{ secrets.CACHIX_AUTH_TOKEN }}
             echo "Running nix build, with cachix watch-exec"
             cachix watch-exec ghaf-dev -- \
-              time nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+              nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
           fi
