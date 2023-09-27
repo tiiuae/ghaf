@@ -1,0 +1,80 @@
+name: nix 
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_matrix:
+    name: "build"
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64-linux
+            target: lenovo-x1-carbon-gen11-debug
+          - arch: x86_64-linux
+            target: nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
+    steps:
+      - name: Maximize space available on rootfs
+        # Why not use https://github.com/easimon/maximize-build-space directly?
+        # The reason is: we want to maximize the space on rootfs, since that's
+        # where the nix store (`/nix/store`) is located. Github action
+        # https://github.com/easimon/maximize-build-space maximizes
+        # the builder space on ${GITHUB_WORKSPACE}, which is not what we need.
+        # Alternatively, we could move the nix store to ${GITHUB_WORKSPACE}
+        # and use https://github.com/easimon/maximize-build-space as such, but
+        # we suspect other tooling (e.g. cachix) would not work well with such
+        # configuration.
+        run: |
+          echo "Available storage before cleanup:"
+          df -h
+          echo
+          echo "Removing unwanted software... "
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          echo "... done"
+          echo
+          echo "Available storage after cleanup:"
+          df -h
+      - name: Checkout Ghaf
+        uses: actions/checkout@v3
+      - name: Set NIX_SYSTEM variable (emulated builds)
+        run: |
+          if [ "${{ matrix.arch }}" = "aarch64-linux" ]; then
+            echo "NIX_SYSTEM=aarch64-linux" >> "$GITHUB_ENV"
+          else
+            echo "NIX_SYSTEM=x86_64-linux" >> "$GITHUB_ENV"
+          fi
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+        with:
+          extra-conf: |
+            trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:RGHheQnb6rXGK5v9gexJZ8iWTPX6OcSeS56YeXYzOcg= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            substituters = https://ghaf-dev.cachix.org?priority=20 https://cache.vedenemo.dev https://cache.nixos.org
+            system-features = nixos-test benchmark big-parallel kvm
+            system = ${{ env.NIX_SYSTEM }}
+      - name: Install requirements
+        run: sudo apt-get install -y qemu-user-static
+      - name: Install cachix
+        run: |
+          nix-env -iA cachix -f https://cachix.org/api/v1/install
+          echo "Using cachix version:"
+          cachix --version
+      - name: Build ${{ matrix.arch }}.${{ matrix.target }}
+        run: |
+          if [ "${{ secrets.CACHIX_AUTH_TOKEN }}" = "" ]; then
+            echo "Running nix build, no cachix push"
+            nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+            echo "Skipping cachix push, no token"
+          else
+            cachix authtoken ${{ secrets.CACHIX_AUTH_TOKEN }}
+            echo "Running nix build, with cachix watch-exec"
+            cachix watch-exec ghaf-dev -- \
+              nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+          fi
