@@ -56,7 +56,16 @@
             mem = vm.ramMb;
             vcpu = vm.cores;
             hypervisor = "qemu";
-            storeDiskType = "squashfs";
+
+            shares = [
+              {
+                tag = "ro-store";
+                source = "/nix/store";
+                mountPoint = "/nix/.ro-store";
+              }
+            ];
+            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+
             interfaces = [
               {
                 type = "tap";
