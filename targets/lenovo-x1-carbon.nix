@@ -145,9 +145,11 @@
                         nixpkgs.config.pulseaudio = true;
 
                         microvm.qemu.extraArgs = [
-                          # APPVMs use microvm qemu machine which has pcie disabled by default
+                          # APPVMs use microvm qemu machine which has pcie
+                          # disabled by default, and it also causes other
+                          # problems.
                           "-M"
-                          "microvm,pcie=on,accel=kvm:tcg,pit=off,pic=off,rtc=off,mem-merge=on"
+                          "q35,accel=kvm:tcg,mem-merge=on,sata=off"
                           # Lenovo X1 integrated usb webcam
                           "-device"
                           "qemu-xhci"
