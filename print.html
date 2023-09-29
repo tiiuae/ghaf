@@ -1519,6 +1519,17 @@ list of package</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix</a></li>
 </ul>
+<h2 id="ghafvirtualizationmicrovmappvmvmscid"><a class="header" href="#ghafvirtualizationmicrovmappvmvmscid">ghaf.virtualization.microvm.appvm.vms.*.cid</a></h2>
+<p>VSOCK context identifier (CID) for the AppVM
+Default value 0 means auto-assign using vsockBaseCID and AppVM index</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>0</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix</a></li>
+</ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmscores"><a class="header" href="#ghafvirtualizationmicrovmappvmvmscores">ghaf.virtualization.microvm.appvm.vms.*.cores</a></h2>
 <p>Amount of processor cores for this AppVM</p>
 <p><em>Type:</em>
@@ -1570,6 +1581,16 @@ signed integer</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix</a></li>
 </ul>
+<h2 id="ghafvirtualizationmicrovmappvmvsockbasecid"><a class="header" href="#ghafvirtualizationmicrovmappvmvsockbasecid">ghaf.virtualization.microvm.appvm.vsockBaseCID</a></h2>
+<p>Context Identifier (CID) of the AppVM VSOCK</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>100</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/appvm.nix</a></li>
+</ul>
 <h2 id="ghafvirtualizationmicrovmguivmenable"><a class="header" href="#ghafvirtualizationmicrovmguivmenable">ghaf.virtualization.microvm.guivm.enable</a></h2>
 <p>Whether to enable GUIVM.</p>
 <p><em>Type:</em>
@@ -1589,6 +1610,26 @@ GUIVM's NixOS configuration.</p>
 unspecified value</p>
 <p><em>Default:</em>
 <code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmguivmvsockcid"><a class="header" href="#ghafvirtualizationmicrovmguivmvsockcid">ghaf.virtualization.microvm.guivm.vsockCID</a></h2>
+<p>Context Identifier (CID) of the GUIVM VSOCK</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>3</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmguivmwaypipeport"><a class="header" href="#ghafvirtualizationmicrovmguivmwaypipeport">ghaf.virtualization.microvm.guivm.waypipePort</a></h2>
+<p>Waypipe port number to listen for incoming connections from AppVMs</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>1100</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix</a></li>
