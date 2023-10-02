@@ -19,6 +19,7 @@ in
         gala-app = pkgs.callPackage ./gala {};
         windows-launcher = pkgs.callPackage ./windows-launcher {enableSpice = false;};
         windows-launcher-spice = pkgs.callPackage ./windows-launcher {enableSpice = true;};
+        caml-crush = pkgs.callPackage ./caml-crush {};
       };
     }))
   ]
