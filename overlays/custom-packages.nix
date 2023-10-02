@@ -25,6 +25,7 @@
     (final: prev: {
       gala-app = final.callPackage ../user-apps/gala {};
       waypipe-ssh = final.callPackage ../user-apps/waypipe-ssh {};
+      caml-crush = final.callPackage ../user-app/caml-crush {};
       # TODO: Remove this override if/when the fix is upstreamed.
       # Disabling colord dependency for weston. Colord has argyllcms as
       # a dependency, and this package is not cross-compilable.

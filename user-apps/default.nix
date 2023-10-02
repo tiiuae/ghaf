@@ -18,6 +18,7 @@ in
       in {
         gala-app = pkgs.callPackage ./gala {};
         windows-launcher = pkgs.callPackage ./windows-launcher {};
+        caml-crush = pkgs.callPackage ./caml-crush {};
       };
     }))
   ]
