@@ -14,6 +14,7 @@
   ./profiles/graphics.nix
   ./profiles/release.nix
   ./profiles/installer.nix
+  ./services/caml-crush
   ./users/accounts.nix
   ./version
   ./virtualization/docker.nix

@@ -56,5 +56,12 @@
     environment.systemPackages = [
       pkcs11-tool-optee
     ];
+    ghaf.services.caml-crush = {
+      enable = true;
+      pkcs11Modules = {
+        "optee" = "${teeSupplicant}/lib/libckteec.so";
+      };
+      disableFilter = false;
+    };
   }
 )
