@@ -1,11 +1,14 @@
 {
   stdenv,
+  lib,
   callPackage,
   fetchFromGitHub,
   ocamlPackages,
   coccinelle,
   autoreconfHook,
   libtirpc,
+  rpcsvc-proto,
+  ocamlClient ? false,
 }: let
   inherit
     (ocamlPackages)
@@ -32,9 +35,12 @@ in
     preConfigure = ''
       cp Makefile.Unix.in Makefile.in
     '';
-    configureFlags = ["--with-ocamlclient" "--with-idlgen" "--with-rpcgen"];
+    configureFlags = ["--with-idlgen" "--with-rpcgen"] ++ lib.optional ocamlClient "--with-ocamlclient";
 
-    nativeBuildInputs = [autoreconfHook camlidl coccinelle ocaml findlib ocamlnet camlp4];
+    nativeBuildInputs = [autoreconfHook camlidl coccinelle ocaml findlib ocamlnet camlp4] ++ lib.optional (!ocamlClient) rpcsvc-proto;
 
-    propagatedBuildInputs = [ocamlnet config-file libtirpc];
+    propagatedBuildInputs = [ocamlnet config-file] ++ lib.optional (!ocamlClient) libtirpc;
+
+    # FIXME: should be conditional on !ocamlClient
+    env.NIX_CFLAGS_COMPILE = toString ["-I${libtirpc.dev}/include/tirpc"];
   }
