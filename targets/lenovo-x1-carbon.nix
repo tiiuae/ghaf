@@ -70,17 +70,17 @@
         ghaf.graphics.weston.launchers = [
           {
             path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.5 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${pkgs.weston}/share/weston/icon_editor.png";
+            icon = "${../assets/icons/png/browser.png}";
           }
 
           {
             path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.6 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${pkgs.weston}/share/weston/icon_editor.png";
+            icon = "${../assets/icons/png/app.png}";
           }
 
           {
             path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.7 ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server zathura";
-            icon = "${pkgs.weston}/share/weston/icon_editor.png";
+            icon = "${../assets/icons/png/pdf.png}";
           }
         ];
       })
