@@ -47,6 +47,7 @@
 
         microvm = {
           optimize.enable = false;
+          vcpu = 2;
           mem = 2048;
           hypervisor = "qemu";
           shares = [
