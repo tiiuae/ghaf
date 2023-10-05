@@ -167,7 +167,6 @@
   {
     name = &quot;chromium&quot;;
     packages = [chromium];
-    ipAddress = &quot;192.168.101.5/24&quot;;
     macAddress = &quot;02:00:00:03:03:05&quot;;
     ramMb = 3072;
     cores = 4;
@@ -175,7 +174,6 @@
   {
     name = &quot;gala&quot;;
     packages = [(pkgs.callPackage ../user-apps/gala {})];
-    ipAddress = &quot;192.168.101.6/24&quot;;
     macAddress = &quot;02:00:00:03:03:06&quot;;
     ramMb = 1536;
     cores = 2;
@@ -183,7 +181,6 @@
   {
     name = &quot;zathura&quot;;
     packages = [zathura];
-    ipAddress = &quot;192.168.101.7/24&quot;;
     macAddress = &quot;02:00:00:03:03:07&quot;;
     ramMb = 512;
     cores = 1;
@@ -192,9 +189,8 @@
 </code></pre>
 <p>Each VM has the following properties:</p>
 <div class="table-wrapper"><table><thead><tr><th><strong>Property</strong></th><th><strong>Type</strong></th><th><strong>Unique</strong></th><th><strong>Description</strong></th><th><strong>Example</strong></th></tr></thead><tbody>
-<tr><td>name</td><td>str</td><td>yes</td><td>This name is prefixed with <code>vm-</code> and will be shown in microvm list. The prefixed name - e.g. <code>vm-chromium</code> will be also the VM hostname.</td><td>“chromium”</td></tr>
+<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name - e.g. <code>chromium-vm</code> will be also the VM hostname. The lenght of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
 <tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[chromium top]</td></tr>
-<tr><td>ipAddress</td><td>str</td><td>yes</td><td>This IP will be used to access a VM from the host. Should has the same subnetwork, as other VMs: Net, GUI VMs.</td><td>&quot;192.168.101.5/24&quot;</td></tr>
 <tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>&quot;02:00:00:03:03:05&quot;</td></tr>
 <tr><td>ramMb</td><td>int, [1, …, host memory]</td><td>no</td><td>Memory in MB.</td><td>3072</td></tr>
 <tr><td>cores</td><td>int,  [1, …, host cores]</td><td>no</td><td>Virtual CPU cores.</td><td>4</td></tr>
