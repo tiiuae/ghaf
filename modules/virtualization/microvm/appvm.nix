@@ -29,7 +29,9 @@
         }: {
           ghaf = {
             users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
-            profiles.graphics.enable = true;
+
+            # Don't enable Wayland compositor inside every AppVM
+            profiles.graphics.enable = false;
 
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
