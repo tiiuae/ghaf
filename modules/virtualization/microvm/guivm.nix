@@ -46,6 +46,7 @@
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
         microvm = {
+          optimize.enable = false;
           mem = 2048;
           hypervisor = "qemu";
           shares = [

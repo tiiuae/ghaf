@@ -76,6 +76,7 @@
         };
 
         microvm = {
+          optimize.enable = true;
           shares = [
             {
               tag = "ro-store";
