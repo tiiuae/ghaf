@@ -60,6 +60,7 @@
           ];
 
           microvm = {
+            optimize.enable = false;
             mem = vm.ramMb;
             vcpu = vm.cores;
             hypervisor = "qemu";

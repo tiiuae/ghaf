@@ -52,6 +52,7 @@
         };
 
         microvm = {
+          optimize.enable = false;
           mem = 2048;
           hypervisor = "qemu";
 
