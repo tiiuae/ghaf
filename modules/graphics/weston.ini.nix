@@ -67,6 +67,7 @@ in {
           locking=false
           background-image=${../../assets/wallpaper.jpg}
           background-type=scale-crop
+          num-workspaces=2
 
           # Enable Hack font for weston-terminal
           [terminal]
