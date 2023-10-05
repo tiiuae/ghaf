@@ -33,6 +33,7 @@
       }
     ];
     guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
+    winConfig = hostConfiguration.config.ghaf.windows-launcher;
     guivmExtraModules = [
       {
         # Early KMS needed for GNOME to work inside GuiVM
@@ -81,6 +82,11 @@
           {
             path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString guivmConfig.waypipePort} server zathura";
             icon = "${../assets/icons/png/pdf.png}";
+          }
+
+          {
+            path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
+            icon = "${../assets/icons/png/windows.png}";
           }
         ];
       })
@@ -199,7 +205,10 @@
               profiles = {
                 applications.enable = false;
               };
-              windows-launcher.enable = false;
+              windows-launcher = {
+                enable = true;
+                spice = true;
+              };
             };
           })
 
