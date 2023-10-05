@@ -63,11 +63,16 @@
           )
         )
         # and then this overridden package's attributes are overridden
-        .overrideAttrs (prevAttrs:
-          lib.optionalAttrs (lib.hasAttr "colord" (lib.functionArgs prev.weston.override)) {
-            # Only override mesonFlags if colord argument is accepted
-            mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
-          });
+        .overrideAttrs (
+          prevAttrs:
+            lib.optionalAttrs (lib.hasAttr "colord" (lib.functionArgs prev.weston.override)) {
+              # Only override mesonFlags if colord argument is accepted
+              mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
+            }
+            // {
+              patches = [./weston-backport-workspaces.patch];
+            }
+        );
       systemd = prev.systemd.overrideAttrs (prevAttrs: {
         patches = prevAttrs.patches ++ [./systemd-timesyncd-disable-nscd.patch];
         postPatch =
