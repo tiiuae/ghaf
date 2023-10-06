@@ -127,6 +127,9 @@
             hardware.pulseaudio.enable = true;
             hardware.pulseaudio.systemWide = true;
             nixpkgs.config.pulseaudio = true;
+            # Add systemd to require pulseaudio before starting chromium-vm
+            systemd.services."microvm@chromium-vm".after = ["pulseaudio.service"];
+            systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
 
             # Allow microvm user to access pulseaudio
             hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
