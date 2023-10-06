@@ -79,6 +79,8 @@
         formatter = pkgs.alejandra;
       }))
 
+      ## ADD a no-op
+      ##
       # ghaf lib
       {
         lib = lib.ghaf;
