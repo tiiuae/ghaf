@@ -63,9 +63,10 @@
           enable = true;
           networks."10-ethint0" = {
             matchConfig.MACAddress = macAddress;
-            networkConfig.DHCPServer = true;
-            dhcpServerConfig.ServerAddress = "192.168.100.1/24";
             addresses = [
+              {
+                addressConfig.Address = "192.168.100.1/24";
+              }
               {
                 # IP-address for debugging subnet
                 addressConfig.Address = "192.168.101.1/24";
