@@ -38,7 +38,12 @@ in
           speedtest-cli
         ]
         ++
-        # LuaJIT (which is sysbench dependency) not available on RISC-V
-        lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") sysbench;
+        # LuaJIT (which is sysbench dependency) not available on RISC-V.
+        # Sysbench also does not cross-compile.
+        lib.optional (
+          (config.nixpkgs.hostPlatform.system != "riscv64-linux")
+          && (config.nixpkgs.buildPlatform.system == config.nixpkgs.hostPlatform.system)
+        )
+        sysbench;
     };
   }
