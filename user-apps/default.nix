@@ -17,7 +17,8 @@ in
         pkgs = nixpkgs.legacyPackages.${system};
       in {
         gala-app = pkgs.callPackage ./gala {};
-        windows-launcher = pkgs.callPackage ./windows-launcher {};
+        windows-launcher = pkgs.callPackage ./windows-launcher {enableSpice = false;};
+        windows-launcher-spice = pkgs.callPackage ./windows-launcher {enableSpice = true;};
       };
     }))
   ]

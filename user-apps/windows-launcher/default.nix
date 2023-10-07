@@ -5,7 +5,7 @@
   pkgs,
   lib,
   stdenv,
-  spice ? false,
+  enableSpice ? false,
   ...
 }: let
   ovmfPrefix =
@@ -32,7 +32,7 @@
           exit
         fi
       ''
-      + lib.optionalString (!spice) ''
+      + lib.optionalString (!enableSpice) ''
         if [[ -z "''${WAYLAND_DISPLAY}" ]]; then
           echo "Wayland display not found"
           exit
@@ -68,13 +68,13 @@
           "-drive file=$OVMF_CODE,format=raw,if=pflash,readonly=on"
           "-drive file=$OVMF_VARS,format=raw,if=pflash"
       ''
-      + lib.optionalString (!spice) ''
+      + lib.optionalString (!enableSpice) ''
         "-vga none"
         "-device ramfb"
         "-device virtio-gpu-pci"
         "-nic user,model=virtio"
       ''
-      + lib.optionalString spice ''
+      + lib.optionalString enableSpice ''
         "-vga qxl"
         "-device virtio-serial-pci"
         "-spice port=5900,addr=0.0.0.0,disable-ticketing=on"
