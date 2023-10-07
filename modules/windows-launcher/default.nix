@@ -7,16 +7,14 @@
   ...
 }: let
   cfg = config.ghaf.windows-launcher;
-  windows-launcher = pkgs.callPackage ../../user-apps/windows-launcher {spice = cfg.spice;};
+  windows-launcher = pkgs.callPackage ../../user-apps/windows-launcher {enableSpice = cfg.spice;};
 in {
   options.ghaf.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
   };
 
-  options.ghaf.windows-launcher.spice = lib.mkOption {
-    description = "Enable remote access to the virtual machine using spice";
-    type = lib.types.bool;
-    default = false;
+  options.ghaf.windows-launcher.spice = lib.mkEnableOption {
+    description = "remote access to the virtual machine using spice";
   };
 
   options.ghaf.windows-launcher.spice-port = lib.mkOption {
