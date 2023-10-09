@@ -5,6 +5,28 @@
 #
 {...}: {
   nixpkgs.overlays = [
+    (final: prev: {
+      libck = prev.libck.overrideAttrs (old: {
+        postPatch = ''
+          substituteInPlace \
+            configure \
+              --replace \
+                'COMPILER=`./.1 2> /dev/null`' \
+                "COMPILER=gcc"
+        '';
+        configureFlags = ["--platform=${prev.stdenv.hostPlatform.parsed.cpu.name}}"];
+      });
+      sysbench = prev.sysbench.overrideAttrs (old: {
+        configureFlags = [
+          "--with-system-luajit"
+          "--with-system-ck"
+          "--with-mysql-includes=${prev.lib.getDev final.libmysqlclient}/include/mysql"
+          "--with-mysql-libs=${final.libmysqlclient}/lib/mysql"
+        ];
+        buildInputs = old.buildInputs ++ [final.libck];
+        depsBuildBuild = [final.pkg-config];
+      });
+    })
     # Overlay for element-desktop based on https://github.com/NixOS/nixpkgs/pull/241710
     (final: prev: {
       element-desktop =
