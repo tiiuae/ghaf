@@ -52,13 +52,15 @@
 
       {
         nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.nvidia-jetson-orin-agx-debug.extendModules {
-          modules = [
-            {
-              #insert your additional modules here e.g.
-              # virtualisation.docker.enable = true;
-              # users.users."ghaf".extraGroups = ["docker"];
-            }
-          ];
+          modules =
+            [
+              {
+                #insert your additional modules here e.g.
+                # virtualisation.docker.enable = true;
+                # users.users."ghaf".extraGroups = ["docker"];
+              }
+            ]
+            ++ (import ./modules/modules-list.nix);
         };
         packages.aarch64-linux.PROJ_NAME-ghaf-debug = self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.${self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.formatAttr};
 

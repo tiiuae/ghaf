@@ -47,17 +47,19 @@
 
       {
         nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.generic-x86_64-debug.extendModules {
-          modules = [
-            {
-              #insert your additional modules here e.g.
-              # virtualisation.docker.enable = true;
-              # users.users."ghaf".extraGroups = ["docker"];
+          modules =
+            [
+              {
+                #insert your additional modules here e.g.
+                # virtualisation.docker.enable = true;
+                # users.users."ghaf".extraGroups = ["docker"];
 
-              # To handle the majority of laptops we need a little something extra
-              # TODO:: SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
-              # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
-            }
-          ];
+                # To handle the majority of laptops we need a little something extra
+                # TODO:: SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
+                # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
+              }
+            ]
+            ++ (import ./modules/modules-list.nix);
         };
         packages.x86_64-linux.PROJ_NAME-ghaf-debug = self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.${self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.formatAttr};
       }

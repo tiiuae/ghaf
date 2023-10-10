@@ -48,18 +48,20 @@
 
       {
         nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.microchip-icicle-kit-debug.extendModules {
-          modules = [
-            {
-              #insert your additional modules here e.g.
-              # virtualisation.docker.enable = true;
-              # users.users."ghaf".extraGroups = ["docker"];
-            }
-            ({pkgs, ...}: {
-              environment.systemPackages = with pkgs; [
-                #Add additional system packages here
-              ];
-            })
-          ];
+          modules =
+            [
+              {
+                #insert your additional modules here e.g.
+                # virtualisation.docker.enable = true;
+                # users.users."ghaf".extraGroups = ["docker"];
+              }
+              ({pkgs, ...}: {
+                environment.systemPackages = with pkgs; [
+                  #Add additional system packages here
+                ];
+              })
+            ]
+            ++ (import ./modules/modules-list.nix);
         };
         packages.riscv64-linux.PROJ_NAME-ghaf-debug = self.nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.sdImage;
       }
