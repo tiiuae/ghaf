@@ -13,9 +13,7 @@ in {
     enable = lib.mkEnableOption "Windows launcher";
   };
 
-  options.ghaf.windows-launcher.spice = lib.mkEnableOption {
-    description = "remote access to the virtual machine using spice";
-  };
+  options.ghaf.windows-launcher.spice = lib.mkEnableOption "remote access to the virtual machine using spice";
 
   options.ghaf.windows-launcher.spice-port = lib.mkOption {
     description = "Spice port";
