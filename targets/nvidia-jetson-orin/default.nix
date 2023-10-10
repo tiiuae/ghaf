@@ -17,7 +17,7 @@
       # Needed for formatAttr
       (nixos-generators + "/format-module.nix")
 
-      ../modules/hardware/nvidia-jetson-orin/format-module.nix
+      ../../modules/hardware/nvidia-jetson-orin/format-module.nix
     ];
   };
   nvidia-jetson-orin = som: variant: extraModules: let
@@ -44,11 +44,11 @@
       modules =
         [
           jetpack-nixos.nixosModules.default
-          ../modules/hardware/nvidia-jetson-orin
+          ../../modules/hardware/nvidia-jetson-orin
           microvm.nixosModules.host
-          ../modules/host
-          ../modules/virtualization/microvm/microvm-host.nix
-          ../modules/virtualization/microvm/netvm.nix
+          ../../modules/host
+          ../../modules/virtualization/microvm/microvm-host.nix
+          ../../modules/virtualization/microvm/netvm.nix
           {
             ghaf = {
               hardware.nvidia.orin.enable = true;
@@ -75,7 +75,7 @@
 
           formatModule
         ]
-        ++ (import ../modules/module-list.nix)
+        ++ (import ../../modules/module-list.nix)
         ++ extraModules;
     };
   in {
@@ -110,7 +110,7 @@
             nixpkgs.buildPlatform.system = "x86_64-linux";
           }
 
-          ../overlays/cross-compilation.nix
+          ../../overlays/cross-compilation.nix
         ];
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
@@ -125,7 +125,7 @@
   # Add nodemoapps targets
   targets = baseTargets ++ (map generate-nodemoapps baseTargets);
   crossTargets = map generate-cross-from-x86_64 targets;
-  mkFlashScript = import ../lib/mk-flash-script;
+  mkFlashScript = import ../../lib/mk-flash-script;
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;
