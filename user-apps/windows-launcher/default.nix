@@ -78,8 +78,8 @@
         "-vga qxl"
         "-device virtio-serial-pci"
         "-spice port=5900,addr=0.0.0.0,disable-ticketing=on"
-        "-netdev tap,id=vm-windows,ifname=vm-windows,script=no,downscript=no"
-        "-device e1000,netdev=vm-windows,mac=02:00:00:03:55:01"
+        "-netdev tap,id=tap-windows,ifname=tap-windows,script=no,downscript=no"
+        "-device e1000,netdev=tap-windows,mac=02:00:00:03:55:01"
       ''
       + ''
         "-device qemu-xhci"
