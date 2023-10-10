@@ -90,15 +90,16 @@
       qemu_kvm = prev.qemu_kvm.overrideAttrs (_final: prev: {
         patches = prev.patches ++ [./acpi-devices-passthrough.patch];
       });
-      # Waypipe with vsock
+      # Waypipe with vsock and window borders
       waypipe = prev.waypipe.overrideAttrs (prevAttrs: {
         src = pkgs.fetchFromGitLab {
           domain = "gitlab.freedesktop.org";
-          owner = "nesterov";
+          owner = "mstoeckl";
           repo = "waypipe";
-          rev = "2f1ab6a8efd2c1ad0dbcc9f8482b10861743e9c3";
-          sha256 = "sha256-P4y8p4R28j4zp0OX2GspsBKqWvCHqg+nF153LIrRYs8=";
+          rev = "ca4809435e781dfc6bd3006fde605860c8dcf179";
+          sha256 = "sha256-tSLPlf7fVq8vwbr7fHotqM/sBSXYMDM1V5yth5bhi38=";
         };
+        patches = [./waypipe-window-borders.patch];
       });
     })
   ];
