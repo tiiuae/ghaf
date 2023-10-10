@@ -86,6 +86,11 @@ jobs:
       always() &&
       needs.authorize.result == 'success' &&
       needs.build-yml-check.outputs.result == 'not-changed'
+    concurrency:
+      # Cancel any in-progress workflow runs from the same PR or branch,
+      # allowing matrix jobs to run concurrently:
+      group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.arch }}.${{ matrix.target }}
+      cancel-in-progress: true
     steps:
       - name: Maximize space available on rootfs
         # Why not use https://github.com/easimon/maximize-build-space directly?
