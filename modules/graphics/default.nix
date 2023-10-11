@@ -3,9 +3,11 @@
 {
   imports = [
     ./weston.nix
+    ./labwc.nix
     ./weston.ini.nix
     ./demo-apps.nix
     ./fonts.nix
     ./gnome.nix
+    ./window-manager.nix
   ];
 }

@@ -12,5 +12,6 @@
     (import ./wifi-connector)
     (import ./qemu)
     (import ./nm-launcher)
+    (import ./labwc)
   ];
 }
