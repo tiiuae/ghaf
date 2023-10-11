@@ -21,6 +21,8 @@
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
           profiles.graphics.enable = true;
+          # Uncomment this line to take LabWC in use
+          # profiles.graphics.compositor = "labwc";
           profiles.applications.enable = false;
           windows-launcher.enable = false;
           development = {

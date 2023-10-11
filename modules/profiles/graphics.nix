@@ -7,7 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.profiles.graphics;
-  compositors = ["weston" "gnome"];
+  compositors = ["weston" "gnome" "labwc"];
 in
   with lib; {
     options.ghaf.profiles.graphics = {
@@ -26,5 +26,6 @@ in
     config = mkIf cfg.enable {
       ghaf.graphics.weston.enable = cfg.compositor == "weston";
       ghaf.graphics.gnome.enable = cfg.compositor == "gnome";
+      ghaf.graphics.labwc.enable = cfg.compositor == "labwc";
     };
   }

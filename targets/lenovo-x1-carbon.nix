@@ -285,6 +285,8 @@
             boot.kernelParams = [
               "intel_iommu=on,igx_off,sm_on"
               "iommu=pt"
+              # Prevent i915 module from being accidentally used by host
+              "module_blacklist=i915"
 
               # Passthrough Intel WiFi card 8086:51f1
               # Passthrough Intel Iris GPU 8086:a7a1
