@@ -65,7 +65,7 @@ in {
 
           [shell]
           locking=false
-          background-image=${../../assets/wallpaper.jpg}
+          background-image=${../../assets/wallpaper.png}
           background-type=scale-crop
           num-workspaces=2
 
