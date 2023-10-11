@@ -76,47 +76,69 @@
   # of the <device type="sdmmc_user" ...> </device> XML-tag), from the
   # NVIDIA-supplied flash_t234_qspi_sdmmc.xml, with the partitions specified in
   # the above partitionsEmmc variable.
-  partitionTemplateReplaceRange = {
-    firstLineCount = 588;
-    lastLineCount = 2;
-  };
-  partitionTemplate = pkgs.runCommand "flash.xml" {} ''
-    head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >$out
+  partitionTemplateReplaceRange =
+    if !cfg.flashScriptOverrides.onlyQSPI
+    then {
+      firstLineCount = 588;
+      lastLineCount = 2;
+    }
+    else {
+      # If we don't flash anything to eMMC, then we don't need to have the
+      # <device type="sdmmc_user" ...> </device> XML-tag at all.
+      firstLineCount = 587;
+      lastLineCount = 1;
+    };
+  partitionTemplate = pkgs.runCommand "flash.xml" {} (''
+      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >"$out"
 
-    # Replace the section for sdmmc-device with our own section
-    cat ${partitionsEmmc} >>$out
+    ''
+    + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
 
-    tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>$out
-  '';
+      # Replace the section for sdmmc-device with our own section
+      cat ${partitionsEmmc} >>"$out"
+
+    ''
+    + ''
+
+      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
+    '');
 in
   with lib; {
     config = mkIf cfg.enable {
       hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
 
-      ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands = ''
-        echo "============================================================"
-        echo "ghaf flashing script"
-        echo "============================================================"
-        echo "ghaf version: ${lib.ghaf.version}"
-        echo "cross-compiled build: @isCross@"
-        echo "l4tVersion: @l4tVersion@"
-        echo "som: ${config.hardware.nvidia-jetpack.som}"
-        echo "carrierBoard: ${config.hardware.nvidia-jetpack.carrierBoard}"
-        echo "============================================================"
-        echo ""
-        echo "Working dir: $WORKDIR"
-        echo "Removing bootlodaer/esp.img if it exists ..."
-        rm -fv "$WORKDIR/bootloader/esp.img"
-        mkdir -pv "$WORKDIR/bootloader"
-        echo "Decompressing ${images}/esp.img.zst into $WORKDIR/bootloader/esp.img ..."
-        @pzstd@ -d "${images}/esp.img.zst" -o "$WORKDIR/bootloader/esp.img"
-        echo "Decompressing ${images}/root.img.zst into $WORKDIR/root.img ..."
-        @pzstd@ -d "${images}/root.img.zst" -o "$WORKDIR/root.img"
-        echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
-        @sed@ -i -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" -e "s#root.img#$WORKDIR/root.img#" flash.xml
-        echo "Ready to flash!"
-        echo "============================================================"
-        echo ""
-      '';
+      ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands =
+        ''
+          echo "============================================================"
+          echo "ghaf flashing script"
+          echo "============================================================"
+          echo "ghaf version: ${lib.ghaf.version}"
+          echo "cross-compiled build: @isCross@"
+          echo "l4tVersion: @l4tVersion@"
+          echo "som: ${config.hardware.nvidia-jetpack.som}"
+          echo "carrierBoard: ${config.hardware.nvidia-jetpack.carrierBoard}"
+          echo "============================================================"
+          echo ""
+          echo "Working dir: $WORKDIR"
+          echo "Removing bootlodaer/esp.img if it exists ..."
+          rm -fv "$WORKDIR/bootloader/esp.img"
+          mkdir -pv "$WORKDIR/bootloader"
+        ''
+        + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+          echo "Decompressing ${images}/esp.img.zst into $WORKDIR/bootloader/esp.img ..."
+          @pzstd@ -d "${images}/esp.img.zst" -o "$WORKDIR/bootloader/esp.img"
+          echo "Decompressing ${images}/root.img.zst into $WORKDIR/root.img ..."
+          @pzstd@ -d "${images}/root.img.zst" -o "$WORKDIR/root.img"
+          echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
+          @sed@ -i -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" -e "s#root.img#$WORKDIR/root.img#" flash.xml
+        ''
+        + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
+          echo "Flashing QSPI only, boot and root images not included."
+        ''
+        + ''
+          echo "Ready to flash!"
+          echo "============================================================"
+          echo ""
+        '';
     };
   }

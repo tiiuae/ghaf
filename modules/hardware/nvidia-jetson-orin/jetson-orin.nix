@@ -64,6 +64,10 @@ in
       # Enable the Orin boards
       enable = mkEnableOption "Orin hardware";
 
+      flashScriptOverrides.onlyQSPI =
+        mkEnableOption
+        "to only flash QSPI partitions, i.e. disable flashing of boot and root partitions to eMMC";
+
       flashScriptOverrides.preFlashCommands = mkOption {
         description = "Commands to run before the actual flashing";
         type = types.str;

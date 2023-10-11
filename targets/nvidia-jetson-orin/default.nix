@@ -128,10 +128,26 @@
   targets = baseTargets ++ (map generate-nodemoapps baseTargets);
   crossTargets = map generate-cross-from-x86_64 targets;
   mkFlashScript = import ../../lib/mk-flash-script;
+  # Generate flash script variant which flashes both QSPI and eMMC
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;
       inherit (tgt) hostConfiguration;
+      inherit jetpack-nixos;
+      inherit flash-tools-system;
+    };
+  # Generate flash script variant which flashes QSPI only. Useful for Orin NX
+  # and non-eMMC based development.
+  generate-flash-qspi = tgt: flash-tools-system:
+    mkFlashScript {
+      inherit nixpkgs;
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          {
+            ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true;
+          }
+        ];
+      };
       inherit jetpack-nixos;
       inherit flash-tools-system;
     };
@@ -144,9 +160,11 @@ in {
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
       # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
       #               and it simply might not work. Providing the script anyway
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets);
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets)
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "aarch64-linux")) targets);
     x86_64-linux =
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets));
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets))
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "x86_64-linux")) (targets ++ crossTargets));
   };
 }
