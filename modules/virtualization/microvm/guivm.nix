@@ -35,8 +35,14 @@
           etc = {
             "ssh/waypipe-ssh".source = "${waypipe-ssh}/keys/waypipe-ssh";
           };
-          systemPackages = [
-            pkgs.waypipe
+          systemPackages = with pkgs; [
+            waypipe
+            labwc
+            swaybg
+            kanshi
+            waybar
+            mako
+            swayidle
           ];
         };
 
