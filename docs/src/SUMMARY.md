@@ -48,8 +48,9 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes](release_notes/release_notes.md)
-    - [Release ghaf-23.05](release_notes/ghaf-23.05.md)
+    - [Release ghaf-23.09](release_notes/ghaf-23.09.md)
     - [Release ghaf-23.06](release_notes/ghaf-23.06.md)
+    - [Release ghaf-23.05](release_notes/ghaf-23.05.md)
 
 # Ghaf Usage Scenarios
 

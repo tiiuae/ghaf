@@ -39,6 +39,7 @@ The same goes with the architectural variants as headless devices or end-user de
 
 - [Development](./development.md)
    - [Build and Run](./build_and_run.md)
+   - [Installer](./installer.md)
    - [Cross-Compilation](./cross_compilation.md)
    - [Creating Application VM](./creating_appvm.md)
 - [Ghaf as Library: Templates](./ghaf-based-project.md)
