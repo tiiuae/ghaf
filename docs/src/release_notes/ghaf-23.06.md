@@ -10,6 +10,7 @@
 
 <https://github.com/tiiuae/ghaf/tree/ghaf-23.06>
 
+
 ## Supported Hardware
 
 The following target hardware is supported by this release:
@@ -22,7 +23,7 @@ The following target hardware is supported by this release:
 ## What is New in ghaf-23.06
 
 * Ghaf Modularization (partially done):
-  * general description and context on how to use: [Ghaf-Based Project](../ref_impl/ghaf-based-project.md)
+  * general description and context on how to use: [Ghaf as Library: Templates](../ref_impl/ghaf-based-project.md)
   * the development status: <https://github.com/tiiuae/ghaf/tree/ghaf-23.06/modules>
 * SLSA v1.0 level provenance file included.
 * Ghaf version information (query).
