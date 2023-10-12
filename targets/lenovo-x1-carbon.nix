@@ -138,6 +138,8 @@
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
             ghaf = {
+              host.kernel_hardening.enable = false;
+
               hardware.x86_64.common.enable = true;
 
               virtualization.microvm-host.enable = true;
