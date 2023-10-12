@@ -63,7 +63,7 @@ in {
         # Defaults to journal
         StandardOutput = "journal";
         StandardError = "journal";
-        ExecStart = "${pkgs.labwc}/bin/labwc -C ${pkgs.labwc}/share/doc/labwc";
+        ExecStart = "${pkgs.labwc}/bin/labwc -C ${pkgs.labwc}/share/doc/labwc -s '${pkgs.waybar}/bin/waybar -c /etc/waybar/config -s /etc/waybar/style.css'";
         #GPU pt needs some time to start - weston fails to restart 3 times in avg.
         ExecStartPre = "${pkgs.coreutils}/bin/sleep 3";
         Restart = "on-failure";

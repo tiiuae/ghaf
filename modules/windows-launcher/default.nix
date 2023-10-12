@@ -30,6 +30,7 @@ in {
   config = lib.mkIf cfg.enable {
     ghaf.graphics.weston.launchers = lib.mkIf (!cfg.spice) [
       {
+        name = "windows-launcher";
         path = "${windows-launcher}/bin/windows-launcher-ui";
         icon = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/16x16/mimetypes/application-x-executable.png";
       }

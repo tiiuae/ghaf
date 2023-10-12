@@ -12,6 +12,7 @@ in {
     fonts.fonts = with pkgs; [
       fira-code
       hack-font
+      (nerdfonts.override { fonts = [ "FiraCode" ]; })
     ];
   };
 }

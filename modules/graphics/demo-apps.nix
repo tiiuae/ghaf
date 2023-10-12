@@ -45,22 +45,27 @@ in {
   config = lib.mkIf weston.enable {
     ghaf.graphics.weston.launchers =
       lib.optional cfg.chromium {
+        name = "chromium";
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
       }
       ++ lib.optional cfg.firefox {
+        name = "firefox";
         path = "${pkgs.firefox}/bin/firefox";
         icon = "${firefox-icon}/share/icons/hicolor/24x24/apps/firefox.png";
       }
       ++ lib.optional cfg.element-desktop {
+        name = "element";
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png";
       }
       ++ lib.optional cfg.gala-app {
+        name = "gala";
         path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
       }
       ++ lib.optional cfg.zathura {
+        name = "zathura";
         path = "${pkgs.zathura}/bin/zathura";
         icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
       };
