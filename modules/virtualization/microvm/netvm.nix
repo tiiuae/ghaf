@@ -35,6 +35,9 @@
           firewall.allowedUDPPorts = [53];
         };
 
+        # Add simple wi-fi connection helper
+        environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];
+
         # Dnsmasq is used as a DHCP/DNS server inside the NetVM
         services.dnsmasq = {
           enable = true;
