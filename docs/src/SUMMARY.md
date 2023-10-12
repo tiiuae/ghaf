@@ -15,6 +15,7 @@
     - [Minimal Host](architecture/adr/minimal-host.md)
     - [Networking VM](architecture/adr/netvm.md)
     - [Platform Bus for Rust VMM](architecture/adr/platform-bus-passthrough-support.md)
+  - [Hardening](architecture/hardening.md)
   - [Stack](architecture/stack.md)
 
 # For Developers
