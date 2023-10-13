@@ -7,6 +7,8 @@
 
 You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX (ARM64) or Generic x86 device. This method uses [QEMU](https://www.qemu.org/) as VMM. For information on how to build and run a Ghaf image, see [Build and Run](../ref_impl/build_and_run.md).
 
+![Windows 11 in VM](../img/windows_in_vm.png)
+
 
 ## Getting Windows 11 Image
 
