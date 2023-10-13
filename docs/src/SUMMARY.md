@@ -69,3 +69,4 @@
 - [Glossary](appendices/glossary.md)
 - [Research Notes](research/research.md)
     - [i.MX 8QM Ethernet Passthrough](research/passthrough/ethernet.md)
+    - [System Installation](research/installation.md)
