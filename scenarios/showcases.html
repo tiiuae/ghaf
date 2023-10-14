@@ -153,6 +153,21 @@
 -->
 <h1 id="showcases"><a class="header" href="#showcases">Showcases</a></h1>
 <p>The Ghaf Platform can be used in various different environments, configurations, and hardware to serve several purposes. Ghaf is not a fully-fledged product but a module that can serve as a centerpiece to enable secure edge systems.</p>
+<h3 id="secure-laptop"><a class="header" href="#secure-laptop">Secure Laptop</a></h3>
+<p>Secure Laptop demonstrates how our open-source Ghaf Platform can increase the security offering for laptops through hardware-backed isolation by means of virtualization. We use Lenovo ThinkPad X1 Carbon Gen 11 as a target device.</p>
+<p>In this showcase, the following applications are running in isolated VMs:</p>
+<ul>
+<li><a href="./run_win_vm.html">Windows VM</a></li>
+<li>Browser VM that can be used as an application launcher. For example, MS Office suite running in the Browser environment. All data is stored in the enterprise cloud.</li>
+<li>PDF Viewer VM. No data can be extracted or shared locally.</li>
+<li><a href="./run_cuttlefish.html">Cloud Android VM</a> for secure communication.</li>
+</ul>
+<p>Each VM operates independently and securely within its own isolated environment, without interference from other VMs running on the same physical hardware. Additionally beneath the surface Ghaf contains two hidden system VMS:</p>
+<ul>
+<li><a href="../architecture/adr/netvm.html">Networking VM</a></li>
+<li><a href="../architecture/stack.html#system-vms">GUI VM</a></li>
+</ul>
+<p><img src="../img/secure_laptop.drawio.svg" alt="Ghaf Secure Laptop" /></p>
 <h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
 <ul>
 <li><a href="./run_win_vm.html">Running Windows VM on Ghaf</a></li>
