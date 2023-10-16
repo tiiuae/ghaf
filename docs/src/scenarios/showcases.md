@@ -23,7 +23,7 @@ Each VM operates independently and securely within its own isolated environment,
 * [Networking VM](../architecture/adr/netvm.md)
 * [GUI VM](../architecture/stack.md#system-vms)
 
-![Ghaf Secure Laptop](../img/secure_laptop.drawio.svg)
+![Ghaf Secure Laptop](../img/secure_laptop.drawio.png "Secure laptop with custom OS framework Ghaf")
 
 
 ## In This Chapter
