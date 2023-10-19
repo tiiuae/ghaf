@@ -124,6 +124,9 @@
 
             time.timeZone = "Asia/Dubai";
 
+            # Waypipe-ssh key is used here to create keys for ssh tcp tunneling for pulseaudio.
+            users.users.ghaf.openssh.authorizedKeys.keyFiles = ["${pkgs.waypipe-ssh}/keys/waypipe-ssh.pub"];
+
             # Enable pulseaudio support for host as a service
             sound.enable = true;
             hardware.pulseaudio.enable = true;
@@ -134,8 +137,14 @@
             systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
 
             # Allow microvm user to access pulseaudio
-            hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
+            # Enable and allow TCP connection from localhost only
+            hardware.pulseaudio.tcp.enable = true;
+            hardware.pulseaudio.tcp.anonymousClients.allowedIpRanges = ["127.0.0.1"];
+            hardware.pulseaudio.extraConfig = ''
+              load-module module-native-protocol-unix
+              load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1
+            '';
 
             ghaf = {
               host.kernel_hardening.enable = false;
@@ -157,7 +166,7 @@
                 vms = [
                   {
                     name = "chromium";
-                    packages = [pkgs.chromium pkgs.pamixer];
+                    packages = [pkgs.chromium];
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
@@ -168,6 +177,12 @@
                         hardware.pulseaudio.enable = true;
                         users.extraUsers.ghaf.extraGroups = ["audio"];
                         nixpkgs.config.pulseaudio = true;
+
+                        hardware.pulseaudio.extraConfig = ''
+                          load-module module-combine-sink
+                          set-sink-volume @DEFAULT_SINK@ 60000
+                          set-sink-volume 0 60000
+                        '';
 
                         microvm.qemu.extraArgs = [
                           # Lenovo X1 integrated usb webcam

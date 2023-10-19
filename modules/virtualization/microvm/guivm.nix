@@ -37,6 +37,8 @@
           };
           systemPackages = [
             pkgs.waypipe
+            pkgs.tcp-ssh
+            pkgs.pamixer
           ];
         };
 

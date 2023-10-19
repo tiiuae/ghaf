@@ -11,5 +11,6 @@
     (import ./weston)
     (import ./wifi-connector)
     (import ./qemu)
+    (import ./tcp-ssh)
   ];
 }
