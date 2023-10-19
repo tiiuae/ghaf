@@ -81,6 +81,41 @@
       };
     };
 
+    audio = {
+      # TODO? Should add AudioVM enabler here?
+      # audiovm.enable = mkEnableOption = "AudioVM";
+
+      pciDevices = mkOption {
+        description = "PCI Devices to passthrough to AudioVM";
+        type = types.listOf pciDevSubmodule;
+        default = [];
+        example = literalExpression ''
+          [
+            {
+              path = "0000:00:1f.0";
+              vendorId = "8086";
+              productId = "5194";
+            }
+            {
+              path = "0000:00:1f.3";
+              vendorId = "8086";
+              productId = "51ca";
+            }
+            {
+              path = "0000:00:1f.4";
+              vendorId = "8086";
+              productId = "51a3";
+            }
+            {
+              path = "0000:00:1f.5";
+              vendorId = "8086";
+              productId = "51a4";
+            }
+          ]
+        '';
+      };
+    };
+
     virtioInputHostEvdevs = mkOption {
       description = ''
         List of input device files to passthrough to GuiVM using

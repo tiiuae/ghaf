@@ -55,6 +55,29 @@
         productId = "a7a1";
       }
     ];
+    audio.pciDevices = [
+      {
+        path = "0000:00:1f.0";
+        vendorId = "8086";
+        productId = "5194";
+      }
+      {
+        path = "0000:00:1f.3";
+        vendorId = "8086";
+        productId = "51ca";
+      }
+      {
+        path = "0000:00:1f.4";
+        vendorId = "8086";
+        productId = "51a3";
+      }
+      {
+        path = "0000:00:1f.5";
+        vendorId = "8086";
+        productId = "51a4";
+      }
+    ];
+    };
     virtioInputHostEvdevs = [
       # Lenovo X1 touchpad and keyboard
       "/dev/input/by-path/platform-i8042-serio-0-event-kbd"
@@ -264,6 +287,9 @@
         networking.firewall.allowedTCPPorts = [xdgPdfPort];
       })
     ];
+    audiovmConfig = hostConfiguration.config.ghaf.virtualization.microvm.audiovm;
+    audiovmExtraModules = [];
+
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
@@ -275,6 +301,7 @@
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
           ../modules/virtualization/microvm/guivm.nix
+          ../modules/virtualization/microvm/audiovm.nix
           ../modules/virtualization/microvm/appvm.nix
           ({
             pkgs,
@@ -302,17 +329,8 @@
 
             time.timeZone = "Asia/Dubai";
 
-            # Enable pulseaudio support for host as a service
-            sound.enable = true;
-            hardware.pulseaudio.enable = true;
-            hardware.pulseaudio.systemWide = true;
-            # Add systemd to require pulseaudio before starting chromium-vm
-            systemd.services."microvm@chromium-vm".after = ["pulseaudio.service"];
-            systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
-
-            # Allow microvm user to access pulseaudio
-            hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
-            users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
+            systemd.services."microvm@chromium-vm".after = ["microvm@audio-vm.service"];
+            systemd.services."microvm@chromium-vm".requires = ["microvm@audio-vm.service"];
 
             environment.etc.${getAuthKeysFilePathInEtc} = getAuthKeysSource {inherit pkgs;};
             services.openssh = sshAuthorizedKeysCommand;
@@ -372,6 +390,25 @@
                   ]
                   ++ guivmExtraModules;
               };
+              virtualization.microvm.audiovm = {
+                enable = true;
+                extraModules = let
+                  configH = config;
+                  audiovmPCIPassthroughModule = {
+                    microvm.devices = lib.mkForce (
+                      builtins.map (d: {
+                        bus = "pci";
+                        inherit (d) path;
+                      })
+                      configH.ghaf.hardware.definition.audio.pciDevices
+                    );
+                  };
+                in
+                  [
+                    audiovmPCIPassthroughModule
+                  ]
+                  ++ audiovmExtraModules;
+              };
               virtualization.microvm.appvm = {
                 enable = true;
                 vms = [
@@ -409,6 +446,10 @@
                         users.extraUsers.ghaf.extraGroups = ["audio"];
 
                         time.timeZone = "Asia/Dubai";
+                        hardware.pulseaudio.extraConfig = ''
+                          load-module module-combine-sink
+                          set-sink-volume @DEFAULT_SINK@ 60000
+                        '';
 
                         microvm.qemu.extraArgs = [
                           # Lenovo X1 integrated usb webcam
@@ -418,7 +459,7 @@
                           "usb-host,vendorid=0x04f2,productid=0xb751"
                           # Connect sound device to hosts pulseaudio socket
                           "-audiodev"
-                          "pa,id=pa1,server=unix:/run/pulse/native"
+                          "pa,id=pa1,server=tcp:192.168.101.4"
                           # Add HDA sound device to guest
                           "-device"
                           "intel-hda"
@@ -511,6 +552,7 @@
               vfioPciIds = mapPciIdsToString (filterDevices (
                 config.ghaf.hardware.definition.network.pciDevices
                 ++ config.ghaf.hardware.definition.gpu.pciDevices
+                ++ config.ghaf.hardware.definition.audio.pciDevices
               ));
             in [
               "intel_iommu=on,igx_off,sm_on"
