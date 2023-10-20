@@ -112,7 +112,7 @@
             nixpkgs.buildPlatform.system = "x86_64-linux";
           }
 
-          ../../overlays/cross-compilation.nix
+          ../../overlays/cross-compilation
         ];
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
