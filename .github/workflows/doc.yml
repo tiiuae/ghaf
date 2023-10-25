@@ -9,13 +9,15 @@ jobs:
   deploy:
     name: build doc and deploy to gh pages
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v18
+      - uses: cachix/install-nix-action@v22
       - name: build
         run: nix build .#doc
       - name: deploy
         uses: peaceiris/actions-gh-pages@v3
         with:
-          github_token: ${{ secrets.KTUSAWRK_GHAF_ACCESS_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./result
