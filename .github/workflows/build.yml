@@ -82,6 +82,12 @@ jobs:
             target: lenovo-x1-carbon-gen11-debug
           - arch: x86_64-linux
             target: nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
+          - arch: x86_64-linux
+            target: nvidia-jetson-orin-nx-debug-nodemoapps-from-x86_64
+          - arch: riscv64-linux
+            target: microchip-icicle-kit-debug
+          - arch: x86_64-linux
+            target: doc
     if: |
       always() &&
       needs.authorize.result == 'success' &&
