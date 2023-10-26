@@ -160,6 +160,20 @@ in {
               type = int;
               default = 0;
             };
+            borderColor = mkOption {
+              description = ''
+                Border color of the AppVM window
+              '';
+              type = nullOr str;
+              default = null;
+            };
+            borderSize = mkOption {
+              description = ''
+                Border size of the AppVM window
+              '';
+              type = int;
+              default = 5;
+            };
           };
         });
         default = [];

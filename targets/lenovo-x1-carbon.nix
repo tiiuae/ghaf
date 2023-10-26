@@ -133,21 +133,6 @@
       ({pkgs, ...}: {
         ghaf.graphics.weston.launchers = [
           {
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../assets/icons/png/browser.png}";
-          }
-
-          {
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../assets/icons/png/app.png}";
-          }
-
-          {
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
-            icon = "${../assets/icons/png/pdf.png}";
-          }
-
-          {
             path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
             icon = "${../assets/icons/png/windows.png}";
           }
@@ -161,11 +146,98 @@
         time.timeZone = "Asia/Dubai";
       })
     ];
+    # Adds a waypipe launcher to weston.ini, creates a vsockproxy service on host and waypipe service in GUIVM
+    waypipeLauncher = {
+      vmName,
+      icon,
+      cmd,
+      waypipePort ? 0,
+    }: {pkgs, ...}: let
+      vsockproxy = pkgs.callPackage ../packages/vsockproxy {};
+      vms =
+        lib.imap0 (i: v: {
+          index = i;
+          vm = v;
+        })
+        hostConfiguration.config.ghaf.virtualization.microvm.appvm.vms;
+      vmWithIndex = lib.lists.findSingle (element: element.vm.name == vmName) null null vms;
+      inherit (vmWithIndex) vm;
+      # Port numbers below 1024 are privileged ports
+      port =
+        if waypipePort == 0
+        then 1024 + vmWithIndex.index
+        else waypipePort;
+      hostname = "${vmName}-vm.ghaf";
+      border =
+        if vm.borderColor != null
+        then "--border ${vm.borderColor},${toString vm.borderSize}"
+        else "";
+      waypipeClientName = "waypipe-${vmName}-${toString port}";
+      vsockProxyName = "vsockproxy-${vmName}-${toString port}";
+    in {
+      config.ghaf.virtualization.microvm.guivm.extraModules = [
+        {
+          # Waypipe service runs in the GUIVM and listens for incoming connections from the AppVM
+          systemd.user.services."${waypipeClientName}" = {
+            enable = true;
+            description = "${waypipeClientName}";
+            after = ["weston.service" "labwc.service"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString port} ${border} client";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            startLimitIntervalSec = 0;
+            wantedBy = ["ghaf-session.target"];
+          };
+
+          ghaf.graphics.weston.launchers = [
+            {
+              path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no ${hostname} ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString port} server ${cmd}";
+              icon = "${../assets/icons/png/${icon}}";
+            }
+          ];
+        }
+      ];
+      # Vsockproxy forwards data between the AppVM and GUIVM on host
+      config.systemd.services."${vsockProxyName}" = {
+        enable = true;
+        description = "${vsockProxyName}";
+        unitConfig = {
+          Type = "simple";
+        };
+        serviceConfig = {
+          ExecStart = "${vsockproxy}/bin/vsockproxy ${toString port} ${toString guivmConfig.vsockCID} ${toString port}";
+        };
+        wantedBy = ["multi-user.target"];
+      };
+    };
+
+    waypipeLaunchers = [
+      (waypipeLauncher {
+        vmName = "chromium";
+        icon = "browser.png";
+        cmd = "chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      })
+      (waypipeLauncher {
+        vmName = "gala";
+        icon = "app.png";
+        cmd = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      })
+      (waypipeLauncher {
+        vmName = "zathura";
+        icon = "pdf.png";
+        cmd = "zathura";
+      })
+    ];
+
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules =
-        [
+        waypipeLaunchers
+        ++ [
           lanzaboote.nixosModules.lanzaboote
           microvm.nixosModules.host
           ../modules/host
@@ -271,6 +343,7 @@
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
+                    borderColor = "#ff5733";
                     extraModules = [
                       {
                         # Enable pulseaudio for user ghaf
@@ -310,6 +383,7 @@
                         time.timeZone = "Asia/Dubai";
                       }
                     ];
+                    borderColor = "#33ff57";
                   }
                   {
                     name = "zathura";
@@ -322,6 +396,7 @@
                         time.timeZone = "Asia/Dubai";
                       }
                     ];
+                    borderColor = "#337aff";
                   }
                 ];
               };

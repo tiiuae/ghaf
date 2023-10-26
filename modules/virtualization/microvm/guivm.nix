@@ -92,21 +92,6 @@
 
         imports = import ../../module-list.nix;
 
-        # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-        systemd.user.services.waypipe = {
-          enable = true;
-          description = "waypipe";
-          after = ["weston.service" "labwc.service"];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-            Restart = "always";
-            RestartSec = "1";
-          };
-          startLimitIntervalSec = 0;
-          wantedBy = ["ghaf-session.target"];
-        };
-
         # Fixed IP-address for debugging subnet
         systemd.network.networks."10-ethint0".addresses = [
           {
@@ -117,7 +102,6 @@
     ];
   };
   cfg = config.ghaf.virtualization.microvm.guivm;
-  vsockproxy = pkgs.callPackage ../../../packages/vsockproxy {};
 in {
   options.ghaf.virtualization.microvm.guivm = {
     enable = lib.mkEnableOption "GUIVM";
@@ -141,14 +125,6 @@ in {
       default = 3;
       description = ''
         Context Identifier (CID) of the GUIVM VSOCK
-      '';
-    };
-
-    waypipePort = lib.mkOption {
-      type = lib.types.int;
-      default = 1100;
-      description = ''
-        Waypipe port number to listen for incoming connections from AppVMs
       '';
     };
   };
@@ -184,22 +160,6 @@ in {
         StandardError = "journal";
         ExecStart = "${script}/bin/create-waypipe-ssh-public-key-directory";
       };
-    };
-
-    # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
-    # However, VSOCK does not support direct guest to guest communication
-    # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
-    # It listens for incoming connections from AppVMs and forwards data to GUIVM
-    systemd.services.vsockproxy = {
-      enable = true;
-      description = "vsockproxy";
-      unitConfig = {
-        Type = "simple";
-      };
-      serviceConfig = {
-        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
-      };
-      wantedBy = ["multi-user.target"];
     };
   };
 }

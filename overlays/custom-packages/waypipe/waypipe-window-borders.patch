@@ -1,23 +1,26 @@
-From 134f22a39a360ebf9cd9f118766edb7df925b732 Mon Sep 17 00:00:00 2001
+From eff15ee88b5e84c6f0bb182ad856d039aaef9301 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
-Date: Tue, 10 Oct 2023 14:57:03 +0300
-Subject: [PATCH] Add support for coloured window borders
+Date: Mon, 16 Oct 2023 17:47:40 +0300
+Subject: [PATCH] Add support for colored window borders
 
 ---
  protocols/function_list.txt |   3 +
- src/handlers.c              | 112 ++++++++++++++++++++++++++++++++++++
- src/main.h                  |   3 +
- src/parsing.h               |   4 ++
- src/util.c                  |  14 ++++-
- src/util.h                  |   6 ++
- src/waypipe.c               |  68 +++++++++++++++++++++-
- 7 files changed, 207 insertions(+), 3 deletions(-)
+ src/handlers.c              | 137 ++++++++++++++++++++++++++++++++++++
+ src/main.h                  |  11 +++
+ src/mainloop.c              |  22 ++++--
+ src/parsing.c               |   7 +-
+ src/parsing.h               |   9 ++-
+ src/util.c                  |  25 +++++++
+ src/util.h                  |   7 ++
+ src/waypipe.c               | 133 +++++++++++++++++++++++++++++++++-
+ test/common.c               |   4 +-
+ 10 files changed, 344 insertions(+), 14 deletions(-)
 
 diff --git a/protocols/function_list.txt b/protocols/function_list.txt
-index 300408d..eb2d8b5 100644
+index 4acaec5..b15a293 100644
 --- a/protocols/function_list.txt
 +++ b/protocols/function_list.txt
-@@ -49,3 +49,6 @@ zwp_linux_dmabuf_v1_req_get_default_feedback
+@@ -50,3 +50,6 @@ zwp_linux_dmabuf_v1_req_get_default_feedback
  zwp_linux_dmabuf_v1_req_get_surface_feedback
  zwp_primary_selection_offer_v1_req_receive
  zwp_primary_selection_source_v1_evt_send
@@ -25,7 +28,7 @@ index 300408d..eb2d8b5 100644
 +xdg_surface_req_set_window_geometry
 +xdg_surface_req_get_toplevel
 diff --git a/src/handlers.c b/src/handlers.c
-index db08ee5..fd4650e 100644
+index 7bfec4c..85477c3 100644
 --- a/src/handlers.c
 +++ b/src/handlers.c
 @@ -345,6 +345,13 @@ struct wp_object *create_wp_object(uint32_t id, const struct wp_interface *type)
@@ -42,7 +45,7 @@ index db08ee5..fd4650e 100644
  	return new_obj;
  }
  
-@@ -730,6 +737,87 @@ static void rotate_damage_lists(struct obj_wl_surface *surface)
+@@ -730,6 +737,95 @@ static void rotate_damage_lists(struct obj_wl_surface *surface)
  			(SURFACE_DAMAGE_BACKLOG - 1) * sizeof(uint64_t));
  	surface->attached_buffer_uids[0] = 0;
  }
@@ -94,7 +97,7 @@ index db08ee5..fd4650e 100644
 +	}
 +}
 +
-+void draw_border(struct context *ctx)
++void draw_border(struct context *ctx, const struct color *border_color, uint32_t border_size)
 +{
 +	struct obj_wl_surface *surface = (struct obj_wl_surface *)ctx->obj;
 +	if (!surface)
@@ -113,15 +116,23 @@ index db08ee5..fd4650e 100644
 +		if (ctx->obj->xdg_surface_id) {
 +			struct wp_object *xdg_surface = tracker_get(ctx->tracker, ctx->obj->xdg_surface_id);
 +			if (xdg_surface && xdg_surface->is_window) {
-+				int32_t x1 = xdg_surface->window_x;
-+				int32_t y1 = xdg_surface->window_y;
-+				int32_t x2 = min(buf->shm_width, xdg_surface->window_x + xdg_surface->window_width);
-+				int32_t y2 = min(buf->shm_height, xdg_surface->window_y + xdg_surface->window_height);
-+				int32_t border_size = min(min(ctx->g->config->border_size, x2 - x1), y2 - y1);
-+				draw_rect(buf, x1, y1, x2, y1 + border_size, &ctx->g->config->border_color); // top
-+				draw_rect(buf, x1, y1 + border_size, x1 + border_size, y2, &ctx->g->config->border_color); // left
-+				draw_rect(buf, x1 + border_size, y2 - border_size, x2, y2, &ctx->g->config->border_color); // bottom
-+				draw_rect(buf, x2 - border_size, y1 + border_size, x2, y2 - border_size, &ctx->g->config->border_color); // right
++				int32_t x1 = 0;
++				int32_t y1 = 0;
++				int32_t x2 = buf->shm_width;
++				int32_t y2 = buf->shm_height;
++
++				if (xdg_surface->window_width > 0 || xdg_surface->window_height > 0) {
++					x1 = xdg_surface->window_x;
++					y1 = xdg_surface->window_y;
++					x2 = min(buf->shm_width, xdg_surface->window_x + xdg_surface->window_width);
++					y2 = min(buf->shm_height, xdg_surface->window_y + xdg_surface->window_height);
++				}
++
++				int32_t size = min(min(border_size, x2 - x1), y2 - y1);
++				draw_rect(buf, x1, y1, x2, y1 + size, border_color); // top
++				draw_rect(buf, x1, y1 + size, x1 + size, y2, border_color); // left
++				draw_rect(buf, x1 + size, y2 - size, x2, y2, border_color); // bottom
++				draw_rect(buf, x2 - size, y1 + size, x2, y2 - size, border_color); // right
 +			}
 +		}
 +	}
@@ -130,18 +141,37 @@ index db08ee5..fd4650e 100644
  void do_wl_surface_req_commit(struct context *ctx)
  {
  	struct obj_wl_surface *surface = (struct obj_wl_surface *)ctx->obj;
-@@ -747,6 +835,10 @@ void do_wl_surface_req_commit(struct context *ctx)
+@@ -745,8 +841,29 @@ void do_wl_surface_req_commit(struct context *ctx)
+ 	}
+ 	if (ctx->on_display_side) {
  		/* commit signifies a client-side update only */
++
++		/* Global border for all windows - client mode */
++		if (ctx->g->config->border)
++			draw_border(ctx, &ctx->g->config->border_color, ctx->g->config->border_size);
++
++		/* Separate borders for different virtual machines */
++		if (ctx->g->config->vsock && ctx->remote_cid > 2) {
++			struct vsock_border *vb = ctx->g->config->vsock_borders;
++			while (vb != NULL) {
++				if (vb->cid == ctx->remote_cid) {
++					draw_border(ctx, &vb->color, vb->size);
++					break;
++				}
++				vb = vb->next;
++			}
++		}
  		return;
  	}
 +
++	/* Global border for all windows - server mode */
 +	if (ctx->g->config->border)
-+		draw_border(ctx);
++		draw_border(ctx, &ctx->g->config->border_color, ctx->g->config->border_size);
 +
  	struct wp_object *obj =
  			tracker_get(ctx->tracker, surface->attached_buffer_id);
  	if (!obj) {
-@@ -1976,3 +2068,23 @@ void do_zwlr_gamma_control_v1_req_set_gamma(struct context *ctx, int fd)
+@@ -2003,3 +2120,23 @@ void do_xdg_toplevel_req_set_title(struct context *ctx, const char *str)
  }
  
  const struct wp_interface *the_display_interface = &intf_wl_display;
@@ -166,21 +196,150 @@ index db08ee5..fd4650e 100644
 +	ctx->obj->window_height = height;
 +}
 diff --git a/src/main.h b/src/main.h
-index cf260b0..75e0a27 100644
+index 48ddae8..f2cd540 100644
 --- a/src/main.h
 +++ b/src/main.h
-@@ -45,6 +45,9 @@ struct main_config {
- 	uint32_t vsock_cid;
+@@ -29,6 +29,13 @@
+ #include "shadow.h"
+ #include "util.h"
+ 
++struct vsock_border {
++	uint32_t cid;
++	struct color color;
++	uint32_t size;
++	struct vsock_border *next;
++};
++
+ struct main_config {
+ 	const char *drm_node;
+ 	int n_worker_threads;
+@@ -46,6 +53,10 @@ struct main_config {
  	uint32_t vsock_port;
  	bool vsock_to_host;
+ 	const char *title_prefix;
 +	bool border;
 +	struct color border_color;
 +	uint32_t border_size;
++	struct vsock_border *vsock_borders;
  };
  struct globals {
  	const struct main_config *config;
+diff --git a/src/mainloop.c b/src/mainloop.c
+index 814cdb1..3f6b4e6 100644
+--- a/src/mainloop.c
++++ b/src/mainloop.c
+@@ -243,6 +243,8 @@ struct cross_state {
+ 	/* Which was the last message number sent to the other application which
+ 	 * was acknowledged by that side? */
+ 	uint32_t last_confirmed_msgno;
++	/* Remote VSOCK CID for window borders */
++	uint32_t remote_cid;
+ };
+ 
+ static int interpret_chanmsg(struct chan_msg_state *cmsg,
+@@ -355,7 +357,7 @@ static int interpret_chanmsg(struct chan_msg_state *cmsg,
+ 		src.zone_end = protosize;
+ 		src.size = protosize;
+ 		parse_and_prune_messages(g, display_side, display_side, &src,
+-				&cmsg->proto_write, &cmsg->proto_fds);
++				&cmsg->proto_write, &cmsg->proto_fds, cxs->remote_cid);
+ 		if (src.zone_start != src.zone_end) {
+ 			wp_error("did not expect partial messages over channel, only parsed %d/%d bytes",
+ 					src.zone_start, src.zone_end);
+@@ -865,7 +867,7 @@ static int advance_waymsg_chanwrite(struct way_msg_state *wmsg,
+ }
+ static int advance_waymsg_progread(struct way_msg_state *wmsg,
+ 		struct globals *g, int progfd, bool display_side,
+-		bool progsock_readable)
++		bool progsock_readable, struct cross_state *cxs)
+ {
+ 	const char *progdesc = display_side ? "compositor" : "application";
+ 	// We have data to read from programs/pipes
+@@ -912,7 +914,7 @@ static int advance_waymsg_progread(struct way_msg_state *wmsg,
+ 		wmsg->proto_write.zone_end = 0;
+ 		parse_and_prune_messages(g, display_side, !display_side,
+ 				&wmsg->proto_read, &wmsg->proto_write,
+-				&wmsg->fds);
++				&wmsg->fds, cxs->remote_cid);
+ 
+ 		/* Recycle partial message bytes */
+ 		if (wmsg->proto_read.zone_start > 0) {
+@@ -1041,7 +1043,7 @@ static int advance_waymsg_transfer(struct globals *g,
+ 				wmsg, cxs, g, chanfd, display_side);
+ 	} else if (wmsg->state == WM_WAITING_FOR_PROGRAM) {
+ 		return advance_waymsg_progread(wmsg, g, progfd, display_side,
+-				progsock_readable);
++				progsock_readable, cxs);
+ 	}
+ 	return 0;
+ }
+@@ -1188,6 +1190,12 @@ int main_interface_loop(int chanfd, int progfd, int linkfd,
+ 	struct globals g;
+ 	memset(&g, 0, sizeof(g));
+ 
++	/* Read remote CID for window borders */
++	if (display_side && config->vsock) {
++		cross_data.remote_cid = get_remote_cid(chanfd);
++		wp_debug("Remote VSOCK CID %d", cross_data.remote_cid);
++	}
++
+ 	way_msg.state = WM_WAITING_FOR_PROGRAM;
+ 	/* AFAIK, there is no documented upper bound for the size of a
+ 	 * Wayland protocol message, but libwayland (in wl_buffer_put)
+@@ -1351,6 +1359,12 @@ int main_interface_loop(int chanfd, int progfd, int linkfd,
+ 				reset_connection(&cross_data, &chan_msg,
+ 						&way_msg, chanfd);
+ 				needs_new_channel = false;
++
++				/* Read remote CID for window borders */
++				if (display_side && config->vsock) {
++					cross_data.remote_cid = get_remote_cid(chanfd);
++					wp_debug("Remote VSOCK CID %d", cross_data.remote_cid);
++				}
+ 			} else if (new_fd == -2) {
+ 				wp_error("Link to root process hang-up detected");
+ 				checked_close(linkfd);
+diff --git a/src/parsing.c b/src/parsing.c
+index 9cefb9a..ba15032 100644
+--- a/src/parsing.c
++++ b/src/parsing.c
+@@ -342,7 +342,7 @@ int peek_message_size(const void *data)
+ 
+ enum parse_state handle_message(struct globals *g, bool display_side,
+ 		bool from_client, struct char_window *chars,
+-		struct int_window *fds)
++		struct int_window *fds, uint32_t remote_cid)
+ {
+ 	bool to_wire = from_client == !display_side;
+ 
+@@ -419,6 +419,7 @@ enum parse_state handle_message(struct globals *g, bool display_side,
+ 					chars->size - chars->zone_start,
+ 			.fds = fds,
+ 			.fds_changed = false,
++			.remote_cid = remote_cid,
+ 	};
+ 	if (msg->call) {
+ 		(*msg->call)(&ctx, payload, &fds->data[fds->zone_start],
+@@ -507,7 +508,7 @@ enum parse_state handle_message(struct globals *g, bool display_side,
+ 
+ void parse_and_prune_messages(struct globals *g, bool on_display_side,
+ 		bool from_client, struct char_window *source_bytes,
+-		struct char_window *dest_bytes, struct int_window *fds)
++		struct char_window *dest_bytes, struct int_window *fds, uint32_t remote_cid)
+ {
+ 	bool anything_unknown = false;
+ 	struct char_window scan_bytes;
+@@ -557,7 +558,7 @@ void parse_and_prune_messages(struct globals *g, bool on_display_side,
+ 		scan_bytes.zone_end = scan_bytes.zone_start + msgsz;
+ 
+ 		enum parse_state pstate = handle_message(g, on_display_side,
+-				from_client, &scan_bytes, fds);
++				from_client, &scan_bytes, fds, remote_cid);
+ 		if (pstate == PARSE_UNKNOWN || pstate == PARSE_ERROR) {
+ 			anything_unknown = true;
+ 		}
 diff --git a/src/parsing.h b/src/parsing.h
-index f3580b0..5739001 100644
+index f3580b0..858dfd8 100644
 --- a/src/parsing.h
 +++ b/src/parsing.h
 @@ -41,6 +41,10 @@ struct wp_object {
@@ -194,17 +353,54 @@ index f3580b0..5739001 100644
  };
  struct message_tracker {
  	/* Tree containing all objects that are currently alive or zombie */
+@@ -67,6 +71,7 @@ struct context {
+ 	int message_length;
+ 	bool fds_changed;
+ 	struct int_window *const fds;
++	uint32_t remote_cid;
+ };
+ 
+ /** Add a protocol object to the list, replacing any preceding object with
+@@ -110,7 +115,7 @@ enum parse_state { PARSE_KNOWN, PARSE_UNKNOWN, PARSE_ERROR };
+  */
+ enum parse_state handle_message(struct globals *g, bool on_display_side,
+ 		bool from_client, struct char_window *chars,
+-		struct int_window *fds);
++		struct int_window *fds, uint32_t remote_cid);
+ /**
+  * Given a set of messages and fds, parse the messages, and if indicated
+  * by parsing logic, compact the message buffer by removing selected
+@@ -126,7 +131,7 @@ enum parse_state handle_message(struct globals *g, bool on_display_side,
+  */
+ void parse_and_prune_messages(struct globals *g, bool on_display_side,
+ 		bool from_client, struct char_window *source_bytes,
+-		struct char_window *dest_bytes, struct int_window *fds);
++		struct char_window *dest_bytes, struct int_window *fds, uint32_t remote_cid);
+ 
+ // handlers.c
+ /** Create a new Wayland protocol object of the given type; some types
 diff --git a/src/util.c b/src/util.c
-index d43aa17..6aade78 100644
+index 88948ee..072197a 100644
 --- a/src/util.c
 +++ b/src/util.c
-@@ -739,4 +739,16 @@ int listen_on_vsock(uint32_t port, int nmaxclients, int *socket_fd_out)
+@@ -799,4 +799,29 @@ int listen_on_vsock(uint32_t port, int nmaxclients, int *socket_fd_out)
  	*socket_fd_out = sock;
  	return 0;
  }
--#endif
-\ No newline at end of file
-+#endif
++
++uint32_t get_remote_cid(int fd)
++{
++	struct sockaddr_vm addr;
++	memset(&addr, 0, sizeof(struct sockaddr_vm));
++	socklen_t size = sizeof(struct sockaddr_vm);
++	if (getpeername(fd, (struct sockaddr *)&addr, &size) != 0) {
++		wp_error("Failed to get peer address: %s", strerror(errno));
++		return 0;
++	}
++
++	return addr.svm_cid;
++}
+ #endif
 +
 +uint8_t hex_char_to_int(uint8_t hex)
 +{
@@ -218,11 +414,14 @@ index d43aa17..6aade78 100644
 +		return 0;
 +}
 diff --git a/src/util.h b/src/util.h
-index 81cb2a8..780bff2 100644
+index 9970840..196a772 100644
 --- a/src/util.h
 +++ b/src/util.h
-@@ -514,4 +514,10 @@ int connect_to_vsock(uint32_t port, uint32_t cid, bool to_host, int *socket_fd);
+@@ -515,6 +515,13 @@ int open_folder(const char *name);
+ #ifdef HAS_VSOCK
+ int connect_to_vsock(uint32_t port, uint32_t cid, bool to_host, int *socket_fd);
  int listen_on_vsock(uint32_t port, int nmaxclients, int *socket_fd_out);
++uint32_t get_remote_cid(int fd);
  #endif
  
 +struct color {
@@ -233,10 +432,10 @@ index 81cb2a8..780bff2 100644
 +
  #endif // WAYPIPE_UTIL_H
 diff --git a/src/waypipe.c b/src/waypipe.c
-index 1c1be71..61e2200 100644
+index b52cdbd..bc9598f 100644
 --- a/src/waypipe.c
 +++ b/src/waypipe.c
-@@ -399,6 +399,53 @@ static int parse_vsock_addr(const char *str, struct main_config *config)
+@@ -400,6 +400,108 @@ static int parse_vsock_addr(const char *str, struct main_config *config)
  }
  #endif
  
@@ -254,11 +453,15 @@ index 1c1be71..61e2200 100644
 +	c->b = (hex_char_to_int(str[5]) << 4) + hex_char_to_int(str[6]);
 +	if (l == 9)
 +		c->a = (hex_char_to_int(str[7]) << 4) + hex_char_to_int(str[8]);
++	else
++		c->a = 255;
 +
 +	return 0;
 +}
 +
-+static int parse_border(const char *str, struct main_config *config)
++#define DEFAULT_BORDER_SIZE 5
++
++static int parse_border(const char *str, struct color *color, uint32_t *size)
 +{
 +	if (str == NULL)
 +		return -1;
@@ -270,16 +473,16 @@ index 1c1be71..61e2200 100644
 +	}
 +	memcpy(tmp, str, l + 1);
 +
-+	char *color = strtok(tmp, ",");
-+	if (color) {
-+		if (parse_color(color, &config->border_color) == -1) {
++	char *c = strtok(tmp, ",");
++	if (c) {
++		if (parse_color(c, color) == -1) {
 +			return -1;
 +		}
 +	}
 +
 +	char *border_size = strtok(NULL, ",");
 +	if (border_size) {
-+		if (parse_uint32(border_size, &config->border_size) == -1) {
++		if (parse_uint32(border_size, size) == -1) {
 +			return -1;
 +		}
 +	}
@@ -287,65 +490,148 @@ index 1c1be71..61e2200 100644
 +	return 0;
 +}
 +
++static int parse_vsock_border(const char *str, struct main_config *config)
++{
++	if (str == NULL)
++		return -1;
++
++	char tmp[128];
++	size_t l = strlen(str);
++	if (l >= 127) {
++		return -1;
++	}
++	memcpy(tmp, str, l + 1);
++
++	char *border = strchr(tmp, '#');
++	if (border == NULL) {
++		return -1;
++	}
++
++	char *cid = tmp;
++	border[0] = 0;
++
++	uint32_t vsock_cid;
++	if (parse_uint32(cid, &vsock_cid) == -1) {
++		return -1;
++	}
++
++	border[0] = '#';
++	struct color c;
++	uint32_t size = DEFAULT_BORDER_SIZE;
++	if (parse_border(border, &c, &size) == -1) {
++		return -1;
++	}
++
++	struct vsock_border *vb = malloc(sizeof(struct vsock_border));
++	memset(vb, 0, sizeof(struct vsock_border));
++	vb->cid = vsock_cid;
++	vb->color = c;
++	vb->size = size;
++
++	if (config->vsock_borders == NULL) {
++		config->vsock_borders = vb;
++	}
++	else {
++		struct vsock_border *current = config->vsock_borders;
++		while (current->next != NULL) {
++			current = current->next;
++		}
++		current->next = vb;
++	}
++	return 0;
++}
++
  static const char *feature_names[] = {
  		"lz4",
  		"zstd",
-@@ -448,6 +495,7 @@ static const bool feature_flags[] = {
- #define ARG_WAYPIPE_BINARY 1011
+@@ -450,6 +552,8 @@ static const bool feature_flags[] = {
  #define ARG_BENCH_TEST_SIZE 1012
  #define ARG_VSOCK 1013
-+#define ARG_BORDER 1014
+ #define ARG_TITLE_PREFIX 1014
++#define ARG_BORDER 1015
++#define ARG_VSOCK_BORDER 1016
  
  static const struct option options[] = {
  		{"compress", required_argument, NULL, 'c'},
-@@ -469,7 +517,11 @@ static const struct option options[] = {
- 		{"display", required_argument, NULL, ARG_DISPLAY},
- 		{"control", required_argument, NULL, ARG_CONTROL},
+@@ -473,7 +577,11 @@ static const struct option options[] = {
  		{"test-size", required_argument, NULL, ARG_BENCH_TEST_SIZE},
--		{"vsock", no_argument, NULL, ARG_VSOCK}, {0, 0, NULL, 0}};
-+		{"vsock", no_argument, NULL, ARG_VSOCK},
+ 		{"vsock", no_argument, NULL, ARG_VSOCK},
+ 		{"title-prefix", required_argument, NULL, ARG_TITLE_PREFIX},
+-		{0, 0, NULL, 0}};
 +		{"border", required_argument, NULL, ARG_BORDER},
++		{"vsock-border", required_argument, NULL, ARG_VSOCK_BORDER},
 +		{0, 0, NULL, 0}
 +};
 +
  struct arg_permissions {
  	int val;
  	uint32_t mode_mask;
-@@ -497,6 +549,7 @@ static const struct arg_permissions arg_permissions[] = {
+@@ -498,7 +606,10 @@ static const struct arg_permissions arg_permissions[] = {
  		{ARG_CONTROL, MODE_SSH | MODE_SERVER},
  		{ARG_BENCH_TEST_SIZE, MODE_BENCH},
  		{ARG_VSOCK, MODE_SSH | MODE_CLIENT | MODE_SERVER},
-+		{ARG_BORDER,  MODE_SERVER},
- };
+-		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER}};
++		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER},
++		{ARG_BORDER, MODE_CLIENT | MODE_SERVER | MODE_SSH},
++		{ARG_VSOCK_BORDER, MODE_CLIENT}
++};
  
  /* envp is nonstandard, so use environ */
-@@ -533,7 +586,12 @@ int main(int argc, char **argv)
- 			.vsock = false,
- 			.vsock_cid = 2,         /* VMADDR_CID_HOST */
+ extern char **environ;
+@@ -537,7 +648,12 @@ int main(int argc, char **argv)
  			.vsock_to_host = false, /* VMADDR_FLAG_TO_HOST */
--			.vsock_port = 0};
-+			.vsock_port = 0,
+ 			.vsock_port = 0,
+ 			.title_prefix = NULL,
+-	};
 +			.border = false,
 +			.border_color = {
 +				.a = 255, .r = 0, .g = 0, .b = 0
 +			},
-+			.border_size = 5};
++			.border_size = DEFAULT_BORDER_SIZE,
++			.vsock_borders = NULL};
  
  	/* We do not parse any getopt arguments happening after the mode choice
  	 * string, so as not to interfere with them. */
-@@ -705,6 +763,12 @@ int main(int argc, char **argv)
- 			fprintf(stderr, "Option --vsock not allowed: this copy of Waypipe was not built with support for Linux VM sockets.\n");
- 			return EXIT_FAILURE;
- #endif
+@@ -720,6 +836,17 @@ int main(int argc, char **argv)
+ 			}
+ 			config.title_prefix = optarg;
+ 			break;
 +		case ARG_BORDER: {
 +			config.border = true;
-+			if (parse_border(optarg, &config) == -1) {
++			if (parse_border(optarg, &config.border_color, &config.border_size) == -1) {
++				fail = true;
++			}
++		} break;
++		case ARG_VSOCK_BORDER: {
++			if (parse_vsock_border(optarg, &config) == -1) {
 +				fail = true;
 +			}
 +		} break;
  		default:
  			fail = true;
  			break;
+diff --git a/test/common.c b/test/common.c
+index 6aa1516..c1ae5da 100644
+--- a/test/common.c
++++ b/test/common.c
+@@ -94,7 +94,7 @@ void send_wayland_msg(struct test_state *src, const struct msg msg,
+ 
+ 	local_time_offset = src->local_time_offset;
+ 	parse_and_prune_messages(&src->glob, src->display_side,
+-			!src->display_side, &proto_src, &proto_mid, &fd_window);
++			!src->display_side, &proto_src, &proto_mid, &fd_window, 0);
+ 
+ 	if (fd_window.zone_start != fd_window.zone_end) {
+ 		wp_error("Not all fds were consumed, final unused window %d %d",
+@@ -270,7 +270,7 @@ void receive_wire(struct test_state *dst, struct transfer_queue *transfers)
+ 
+ 	local_time_offset = dst->local_time_offset;
+ 	parse_and_prune_messages(&dst->glob, dst->display_side,
+-			dst->display_side, &proto_mid, &proto_end, &fd_window);
++			dst->display_side, &proto_mid, &proto_end, &fd_window, 0);
+ 
+ 	/* Finally, take the output fds, and append them to the output stack;
+ 	 * ditto with the output messages. Assume for now messages are 1-in
 -- 
 2.34.1
 

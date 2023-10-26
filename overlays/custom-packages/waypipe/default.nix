@@ -7,8 +7,8 @@
       domain = "gitlab.freedesktop.org";
       owner = "mstoeckl";
       repo = "waypipe";
-      rev = "ca4809435e781dfc6bd3006fde605860c8dcf179";
-      sha256 = "sha256-tSLPlf7fVq8vwbr7fHotqM/sBSXYMDM1V5yth5bhi38=";
+      rev = "3efa3e56609cbab1ec3538eed1400b29fbb5249c";
+      sha256 = "sha256-7+IbFSo71+VAB9+E5snY69eYweduEtFkBzKBt87KikQ=";
     };
     patches = [./waypipe-window-borders.patch];
   });
