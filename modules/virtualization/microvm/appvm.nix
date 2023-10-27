@@ -50,6 +50,8 @@
           nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
           nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
+          time.timeZone = "Asia/Dubai";
+
           environment.systemPackages = [
             pkgs.waypipe
           ];

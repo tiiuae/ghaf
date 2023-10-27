@@ -122,6 +122,8 @@
               SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
             '';
 
+            time.timeZone = "Asia/Dubai";
+
             # Enable pulseaudio support for host as a service
             sound.enable = true;
             hardware.pulseaudio.enable = true;
