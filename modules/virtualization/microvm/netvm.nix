@@ -28,6 +28,8 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
+        time.timeZone = "Europe/Helsinki";
+
         microvm.hypervisor = "qemu";
 
         networking = {
