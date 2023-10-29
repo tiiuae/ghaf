@@ -29,8 +29,8 @@ in
     src = fetchFromGitHub {
       owner = "caml-pkcs11";
       repo = "caml-crush";
-      rev = "refs/tags/v${version}";
-      sha256 = "sha256-oRpdUVkm1P5wGTm7tBsnpDmkv2NoeQxTglrQNd+wiyc=";
+      rev = "a1e438ee8bee9d5876fd1d0ccff9443e0e7dca1d";
+      sha256 = "sha256-j7RdCokxfhkEMeiTDMWaOdnWd8fTZ8lmD97JCD3nbbw=";
     };
     preConfigure = ''
       cp Makefile.Unix.in Makefile.in
