@@ -8,7 +8,7 @@
   nixosOptionsDoc,
   mdbook,
   revision ? "",
-  options ? {},
+  options,
 }: let
   optionsDocMd =
     (nixosOptionsDoc {

@@ -2,33 +2,17 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 {
-  self,
   lib,
-  nixpkgs,
+  inputs,
 }: let
-  release = lib.strings.fileContents ../.version;
-  versionSuffix = ".${lib.substring 0 8 (self.lastModifiedDate or self.lastModified or "19700101")}.${self.shortRev or "dirty"}";
-  version = release + versionSuffix;
+  inherit (inputs) nixpkgs;
+  inherit (inputs) nixos-generators;
 in {
-  inherit release versionSuffix version;
-  modules = import ./ghaf-modules.nix {inherit lib;};
-
-  # NOTE: Currently supports configuration that generates raw-efi image using nixos-generators
   installer = {
-    systemImgCfg,
+    system,
+    sshKeys,
     modules ? [],
-    userCode ? "",
   }: let
-    inherit (systemImgCfg.nixpkgs.hostPlatform) system;
-
-    pkgs = import nixpkgs {inherit system;};
-
-    installerScript = import ../modules/installer/installer.nix {
-      inherit pkgs;
-      inherit (pkgs) runtimeShell;
-      inherit userCode;
-    };
-
     installerImgCfg = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
@@ -36,29 +20,45 @@ in {
         [
           ../modules/host
 
-          ({modulesPath, ...}: {
+          ({
+            pkgs,
+            lib,
+            modulesPath,
+            ...
+          }: {
             imports = [(modulesPath + "/profiles/all-hardware.nix")];
+
+            environment.systemPackages = [(pkgs.callPackage ../packages/wifi-connector {useNmcli = true;})];
 
             nixpkgs.hostPlatform.system = system;
             nixpkgs.config.allowUnfree = true;
 
             hardware.enableAllFirmware = true;
 
-            ghaf.profiles.installer.enable = true;
-          })
+            networking = {
+              # wireless is disabled because we use NetworkManager for wireless
+              wireless.enable = lib.mkForce false;
+              networkmanager.enable = true;
+            };
 
-          {
-            environment.systemPackages = [installerScript];
-            environment.loginShellInit = ''
-              installer.sh
-            '';
-          }
+            ghaf = {
+              profiles = {
+                installer.enable = true;
+                debug.enable = true;
+              };
+              development.ssh.daemon = {
+                enable = true;
+                authorizedKeys = sshKeys;
+              };
+            };
+          })
         ]
         ++ (import ../modules/module-list.nix)
-        ++ modules;
+        ++ modules
+        # NOTE: Stick with install-iso as nixos-anywhere requires VARIANT=installer
+        # https://nix-community.github.io/nixos-anywhere/howtos/no-os.html#installing-on-a-machine-with-no-operating-system
+        ++ [nixos-generators.nixosModules.install-iso];
     };
-  in {
-    inherit installerImgCfg system;
-    installerImgDrv = installerImgCfg.config.system.build.${installerImgCfg.config.formatAttr};
-  };
+  in
+    installerImgCfg.config.system.build.${installerImgCfg.config.formatAttr};
 }

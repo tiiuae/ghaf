@@ -40,8 +40,6 @@
               };
             };
           }
-
-          formatModule
         ]
         ++ (import ../modules/module-list.nix)
         ++ extraModules;
@@ -49,7 +47,7 @@
   in {
     inherit hostConfiguration;
     name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+    package = let inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config; in config.system.build.${config.formatAttr};
   };
   debugModules = [];
   targets = [

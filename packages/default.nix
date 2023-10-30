@@ -17,23 +17,13 @@
       windows-launcher-spice = callPackage ./windows-launcher {enableSpice = true;};
       doc = callPackage ../docs {
         revision = lib.ghaf-version;
-        # options = ;
-        # TODO Add the options in from the self.nixosModules
-        # The below is not needed anymore to setoptions
-        #
-        # options = let
-        #           cfg = nixpkgs.lib.nixosSystem {
-        #             inherit system;
-        #             modules =
-        #               lib.ghaf.modules
-        #               ++ [
-        #                 jetpack-nixos.nixosModules.default
-        #                 microvm.nixosModules.host
-        #                 lanzaboote.nixosModules.lanzaboote
-        #               ];
-        #           };
-        #         in
-        #           cfg.options;
+        options = let
+          cfg = lib.nixosSystem {
+            inherit system;
+            modules = import ../modules/module-list.nix;
+          };
+        in
+          cfg.options;
       };
     };
   };

@@ -476,29 +476,6 @@
             };
           })
 
-          ({config, ...}: {
-            ghaf.installer = {
-              enable = true;
-              imgModules = [
-                nixos-generators.nixosModules.raw-efi
-              ];
-              enabledModules = ["flushImage"];
-              installerCode = ''
-                echo "Starting flushing..."
-                if sudo dd if=${config.system.build.${config.formatAttr}}/nixos.img of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
-                    sync
-                    echo "Flushing finished successfully!"
-                    echo "Now you can detach installation device and reboot to ghaf."
-                else
-                    echo "Some error occured during flushing process, exit code: $?."
-                    exit
-                fi
-              '';
-            };
-          })
-
-          formatModule
-
           #TODO: how to handle the majority of laptops that need a little
           # something extra?
           # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
@@ -529,7 +506,7 @@
   in {
     inherit hostConfiguration;
     name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+    package = let inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config; in config.system.build.${config.formatAttr};
   };
   debugModules = [
     ../modules/development/usb-serial.nix
