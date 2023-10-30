@@ -28,10 +28,13 @@ NixOS provides several mechanisms to customize kernel. The main methods are:
   ~ via ❄️  impure (shell)
   ❯ nix-shell '<nixpkgs>' -A pkgs.linux_latest.configfile
 
-  ~ via ❄️  impure (linux-config-6.1.2)
-  ❯ cd linux-6.1.2/
+  ~ via ❄️  impure (shell)
+  ❯ unpackPhase
 
-  ~/linux-6.1.2 via ❄️  impure (linux-config-6.1.2)
+  ~ via ❄️  impure (linux-config-6.5.7)
+  ❯ cd linux-6.5.7/
+
+  ~/linux-6.5.7 via ❄️  impure (linux-config-6.5.7)
   ❯ make menuconfig
 * Enter the kernel build environment
   ```
