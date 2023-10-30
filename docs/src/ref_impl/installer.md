@@ -5,67 +5,70 @@
 
 # Installer
 
-## Configuring and Building Installer for Ghaf
+Ghaf has a NixOS-like non-interactive, declarative installer instead of a
+conventional (imperative, non-declarative) installer as in most conventional
+Linux distributions. This is possible with the [Ghaf as
+Library](https://github.com/tiiuae/ghaf/pull/ghaf-based-project.md) approach:
+rather than clicking similar options during installation, you can configure the
+system once and deploy this configuration to the desired machines.
 
-You can obtain the installation image for your Ghaf configuration. To check possible configuration options, see [Modules Options](../ref_impl/modules_options.md#ghafinstallerenable).
 
-1. Set `ghaf.installer.enable` to `true`.
-2. Add nixos-generators module to `ghaf.installer.imgModules` list to configure installer image type.
-3. Choose installer modules from `ghaf.installer.installerModules` and set `ghaf.installer.enabledModules` to list of their names.
-4. Write code for the installer in `ghaf.installer.installerCode`.
+To implement the pre-configured setting up approach, we used the
+[nixos-anywhere](https://github.com/nix-community/nixos-anywhere) tool.
 
-```nix
-{config, ...}: {
-  ghaf.installer = {
-    enable = true;
-    imgModules = [
-      nixos-generators.nixosModules.raw-efi
-    ];
-    enabledModules = ["flushImage"];
-    installerCode = ''
-      echo "Starting flushing..."
-      if sudo dd if=${config.system.build.${config.formatAttr}} of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
-          sync
-          echo "Flushing finished successfully!"
-          echo "Now you can detach installation device and reboot to Ghaf."
-      else
-          echo "Some error occured during flushing process, exit code: $?."
-          exit
-      fi
-    '';
-  };
-}
-```
+There are two separate ways to use it:
+* manually
+* with the Ghaf installation wizard.
+> NOTE: The Ghaf installation wizard is currently under development and cannot be used to create the required system configuration.
 
-After that you can build an installer image using this command:
+## Manual Installation
+
+To install Ghaf manually:
+
+1. Create your own flake using the Ghaf template:
 
 ```sh
-nix build .#nixosConfigurations.<CONFIGURATION>.config.system.build.installer
+nix flake init -t github:tiiuae/ghaf#target-x86_64-generic
 ```
 
-## Adding Installer Modules
+2. Edit it according to your preferences.
 
-To add an installer module, replace the corresponding placeholders with your code and add this to your configuraiton:
+3. Set the value of `ghaf.installer.sshKeys` to get an installer image. If you don't have ssh keys follow substeps:
 
-```nix
-ghaf.installer.installerModules.<MODULE_NAME> = {
-  requestCode = ''
-    # Your request code written in Bash
-  '';
-  providedVariables = {
-    # Notice the dollar sign before the actual variable name in Bash.
-    <VARIABLE_NAME> = "$<VARIABLE_NAME>";
-  };
-};
+    3.1. Generate an SSH keypair as follows:
+         ```
+         $ ssh-keygen -t ed25519
+         Generating public/private ed25519 key pair.
+         Enter file in which to save the key (/home/user/.ssh/id_ed25519): /home/user/.ssh/id_ed25519_installer
+         Enter passphrase (empty for no passphrase):
+         Enter same passphrase again:
+         Your identification has been saved in /home/user/.ssh/id_ed25519_installer
+         Your public key has been saved in /home/user/.ssh/id_ed25519_installer.pub
+         ...
+         ```
+
+    3.2. Copy public key from file (`id_ed25519_installer.pub` in an example above) in place of stub in `flake.nix` of your configuration.
+
+4. Build the installer image:
+
+```sh
+nix build .#nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.installer
 ```
 
-## Built-in Installer Modules
+5. Flash the installer image to your device (temporary storage which will be used to establish connection with the host machine):
 
-Provided variables show variable names in Nix. For actual names of variables in Bash, see the sources of the module.
+```sh
+sudo dd if=./result/iso/nixos-...-linux.iso of=/dev/YOUR_DEVICE conv=sync && sync
+```
 
-### flushImage
+6. Run the image on the device.
 
-Provided variables:
+7. Connect the device to the network using `wifi-connector`.
 
-- deviceName: name of the device on which image should be flushed (e.g. "sda", "nvme0n1")
+8. Check the target block device name using the lsblk command and put it in the disk configuration option in `flake.nix`.
 
+8. Install the NixOS configuration to the target device using the command:
+
+```sh
+nix run github:nix-community/nixos-anywhere -- --flake .#CONFIGURATION_NAME root@IP_ADDRESS
+```

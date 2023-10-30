@@ -26,11 +26,26 @@ in
   with lib; {
     options.ghaf.development.ssh.daemon = {
       enable = mkEnableOption "ssh daemon";
+      authorizedKeys = mkOption {
+        type = with types; listOf singleLineStr;
+        default = [];
+        description = mdDoc ''
+          Add your SSH Public Keys here.
+          NOTE: adding your pub ssh key here will make accessing and "nixos-rebuild switching" development mode
+          builds easy but still secure. Given that you protect your private keys. Do not share your keypairs across hosts.
+
+          Shared authorized keys access poses a minor risk for developers in the same network (e.g. office) cross-accessing
+          each others development devices if:
+          - the ip addresses from dhcp change between the developers without the noticing AND
+          - you ignore the server fingerprint checks
+          You have been helped and you have been warned.
+        '';
+      };
     };
 
     config = mkIf cfg.enable {
       services.openssh.enable = true;
-      users.users.root.openssh.authorizedKeys.keys = authorizedKeys;
-      users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = authorizedKeys;
+      users.users.root.openssh.authorizedKeys.keys = cfg.authorizedKeys;
+      users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = cfg.authorizedKeys;
     };
   }
