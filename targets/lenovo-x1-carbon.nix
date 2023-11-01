@@ -26,12 +26,39 @@
         # For WLAN firmwares
         hardware.enableRedistributableFirmware = true;
 
-        networking.wireless = {
-          enable = true;
-
-          #networks."ssid".psk = "psk";
+        networking = {
+          # wireless is disabled because we use NetworkManager for wireless
+          wireless.enable = false;
+          networkmanager = {
+            enable = true;
+            unmanaged = ["ethint0"];
+          };
+        };
+        environment.etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
+          text = ''
+            [connection]
+            id=Wifi-1
+            uuid=33679db6-4cde-11ee-be56-0242ac120002
+            type=wifi
+            [wifi]
+            mode=infrastructure
+            ssid=SSID_OF_NETWORK
+            [wifi-security]
+            key-mgmt=wpa-psk
+            psk=WPA_PASSWORD
+            [ipv4]
+            method=auto
+            [ipv6]
+            method=disabled
+            [proxy]
+          '';
+          mode = "0600";
         };
       }
+      ({pkgs, ...}: {
+        # Waypipe-ssh key is used here to create keys for ssh tunneling to forward D-Bus sockets.
+        users.users.ghaf.openssh.authorizedKeys.keyFiles = ["${pkgs.waypipe-ssh}/keys/waypipe-ssh.pub"];
+      })
     ];
     guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
     winConfig = hostConfiguration.config.ghaf.windows-launcher;
@@ -88,6 +115,11 @@
           {
             path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
             icon = "${../assets/icons/png/windows.png}";
+          }
+
+          {
+            path = "${pkgs.nm-launcher}/bin/nm-launcher";
+            icon = "${pkgs.networkmanagerapplet}/share/icons/hicolor/22x22/apps/nm-device-wwan.png";
           }
         ];
       })

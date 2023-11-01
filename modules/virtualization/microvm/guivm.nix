@@ -37,6 +37,8 @@
           };
           systemPackages = [
             pkgs.waypipe
+            pkgs.networkmanagerapplet
+            pkgs.nm-launcher
           ];
         };
 
