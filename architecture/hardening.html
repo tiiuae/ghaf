@@ -1,0 +1,259 @@
+<!DOCTYPE HTML>
+<html lang="en" class="sidebar-visible no-js light">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Hardening - Ghaf Framework</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../highlight.css">
+        <link rel="stylesheet" href="../tomorrow-night.css">
+        <link rel="stylesheet" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body>
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var html = document.querySelector('html');
+            var sidebar = null;
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="../architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="../architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li><li class="chapter-item expanded "><a href="../architecture/adr/platform-bus-passthrough-support.html"><strong aria-hidden="true">3.2.3.</strong> Platform Bus for Rust VMM</a></li></ol></li><li class="chapter-item expanded "><a href="../architecture/hardening.html" class="active"><strong aria-hidden="true">3.3.</strong> Hardening</a></li><li class="chapter-item expanded "><a href="../architecture/stack.html"><strong aria-hidden="true">3.4.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">For Developers</li><li class="chapter-item expanded "><a href="../appendices/contributing_general.html"><strong aria-hidden="true">4.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="../ref_impl/reference_implementations.html"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/development.html"><strong aria-hidden="true">5.1.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/build_and_run.html"><strong aria-hidden="true">5.1.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="../ref_impl/installer.html"><strong aria-hidden="true">5.1.2.</strong> Installer</a></li><li class="chapter-item expanded "><a href="../ref_impl/cross_compilation.html"><strong aria-hidden="true">5.1.3.</strong> Cross-Compilation</a></li><li class="chapter-item expanded "><a href="../ref_impl/creating_appvm.html"><strong aria-hidden="true">5.1.4.</strong> Creating Application VM</a></li></ol></li><li class="chapter-item expanded "><a href="../ref_impl/ghaf-based-project.html"><strong aria-hidden="true">5.2.</strong> Ghaf as Library: Templates</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../ref_impl/example_project.html"><strong aria-hidden="true">5.2.1.</strong> Example Project</a></li><li class="chapter-item expanded "><a href="../ref_impl/modules_options.html"><strong aria-hidden="true">5.2.2.</strong> Modules Options</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../technologies/technologies.html"><strong aria-hidden="true">6.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/compartment.html"><strong aria-hidden="true">6.1.</strong> Compartmentalization</a></li><li class="chapter-item expanded "><a href="../technologies/passthrough.html"><strong aria-hidden="true">6.2.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../technologies/vfio.html"><strong aria-hidden="true">6.2.1.</strong> Binding Device to VFIO Driver</a></li><li class="chapter-item expanded "><a href="../technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">6.2.2.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li><li class="chapter-item expanded "><a href="../technologies/nvidia_agx_pt_pcie.html"><strong aria-hidden="true">6.2.3.</strong> NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li><li class="chapter-item expanded "><a href="../technologies/x86_pcie_crosvm.html"><strong aria-hidden="true">6.2.4.</strong> Generic x86: PCIe Passthrough on crosvm</a></li></ol></li><li class="chapter-item expanded "><a href="../technologies/hypervisor_options.html"><strong aria-hidden="true">6.3.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Build System and Supply Chain</li><li class="chapter-item expanded "><div><strong aria-hidden="true">7.</strong> CI/CD System</div></li><li class="chapter-item expanded "><a href="../scs/scs.html"><strong aria-hidden="true">8.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scs/slsa-framework.html"><strong aria-hidden="true">8.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../scs/basics.html"><strong aria-hidden="true">8.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../scs/sbom.html"><strong aria-hidden="true">8.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="../scs/pki.html"><strong aria-hidden="true">8.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../scs/ghaf-security-fix-automation.html"><strong aria-hidden="true">8.5.</strong> Security Fix Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../release_notes/release_notes.html"><strong aria-hidden="true">9.</strong> Release Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../release_notes/ghaf-23.09.html"><strong aria-hidden="true">9.1.</strong> Release ghaf-23.09</a></li><li class="chapter-item expanded "><a href="../release_notes/ghaf-23.06.html"><strong aria-hidden="true">9.2.</strong> Release ghaf-23.06</a></li><li class="chapter-item expanded "><a href="../release_notes/ghaf-23.05.html"><strong aria-hidden="true">9.3.</strong> Release ghaf-23.05</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Ghaf Usage Scenarios</li><li class="chapter-item expanded "><a href="../scenarios/showcases.html"><strong aria-hidden="true">10.</strong> Showcases</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../scenarios/run_win_vm.html"><strong aria-hidden="true">10.1.</strong> Running Windows VM on Ghaf</a></li><li class="chapter-item expanded "><a href="../scenarios/run_cuttlefish.html"><strong aria-hidden="true">10.2.</strong> Running Cuttlefish on Ghaf</a></li></ol></li><li class="chapter-item expanded "><div><strong aria-hidden="true">11.</strong> Build Your Environment</div></li><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">Appendices</li><li class="chapter-item expanded "><a href="../appendices/glossary.html"><strong aria-hidden="true">12.</strong> Glossary</a></li><li class="chapter-item expanded "><a href="../research/research.html"><strong aria-hidden="true">13.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../research/passthrough/ethernet.html"><strong aria-hidden="true">13.1.</strong> i.MX 8QM Ethernet Passthrough</a></li></ol></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Ghaf Framework</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/tiiuae/ghaf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <!--
+    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+<h1 id="hardening"><a class="header" href="#hardening">Hardening</a></h1>
+<p>This section describes how securing Ghaf by reducing its' attack surface, in short - hardening, is done.</p>
+<h2 id="kernel"><a class="header" href="#kernel">Kernel</a></h2>
+<p>Ghaf has two types of kernels - host and guest kernels. Hardening of these kernels varies in terms of hardware support and functionality required by the guest kernel in question. Within this context, kernel always refers to Linux operating system kernel.</p>
+<h3 id="process-of-kernel-hardening"><a class="header" href="#process-of-kernel-hardening">Process of Kernel Hardening</a></h3>
+<p>NixOS provides several mechanisms to customize kernel. The main methods are:</p>
+<ul>
+<li><a href="https://nixos.wiki/wiki/Linux_kernel#Custom_kernel_commandline">declaring kernel command line parameters</a>
+<ul>
+<li><a href="https://github.com/search?q=repo%3Atiiuae%2Fghaf%20kernelparams&amp;type=code">Usage in Ghaf</a></li>
+</ul>
+</li>
+<li><a href="https://nixos.org/manual/nixos/stable/#sec-linux-config-customizing">declaring kernel custom configuration</a>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/host/kernel.nix">Usage in Ghaf</a></li>
+<li>Example of entering the kernel menuconfig to customize the <code>.config</code>:</li>
+</ul>
+<pre><code>❯ nix-shell '&lt;nixpkgs&gt;' -p pkgs.ncurses pkgs.pkg-config
+these 4 paths will be fetched (0.66 MiB download, 1.66 MiB unpacked):
+...
+
+~ via ❄️  impure (shell)
+❯ nix-shell '&lt;nixpkgs&gt;' -A pkgs.linux_latest.configfile
+
+~ via ❄️  impure (shell)
+❯ unpackPhase
+
+~ via ❄️  impure (linux-config-6.5.7)
+❯ cd linux-6.5.7/
+
+~/linux-6.5.7 via ❄️  impure (linux-config-6.5.7)
+❯ make menuconfig
+</code></pre>
+</li>
+<li>Enter the kernel build environment
+<pre><code>nix-shell -E 'with import &lt;nixpkgs&gt; {}; linux.overrideAttrs (o: {nativeBuildInputs=o.nativeBuildInputs ++ [ pkg-config ncurses ];})'
+make -j16
+...
+Kernel: arch/x86/boot/bzImage
+</code></pre>
+</li>
+<li>Boot the built kernel with QEMU
+<pre><code>qemu-system-x86_64 -kernel arch/x86/boot/bzImage
+</code></pre>
+</li>
+<li><a href="https://github.com/a13xp0p0v/kernel-hardening-checker">validating with kernel hardening checker</a></li>
+</ul>
+<h3 id="host-kernel"><a class="header" href="#host-kernel">Host kernel</a></h3>
+<p>The host kernel runs on bare metal. The kernel is provided either via Linux upstream (<code>x86_64</code>) or via vendor board support package (BSP). The default Ghaf host kernel on <code>x86_64</code> is maintained by Ghaf upstream package sources - <code>nixpkgs</code> or nix-packaged hardware-specific BSP (e.g. NVIDIA Jetson-family of devices).</p>
+<h4 id="x86-64-linux"><a class="header" href="#x86-64-linux"><code>x86-64-linux</code></a></h4>
+<p>The host kernel hardening is based on Linux <code>make tinyconfig</code>. The default <code>tinyconfig</code> fails to assertions on NixOS without
+modifications. Assertions are fixed in <code>ghaf_host_hardened_baseline</code> linux config under Ghaf <code>modules/host/</code>.
+In addition, NixOS (Ghaf baseline dependency) requires several kernel modules that are added to the config or ignored with <code>allowMissing = true</code>;
+As of now, the kernel builds and early boots on Lenovo X1.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../architecture/adr/platform-bus-passthrough-support.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="../architecture/stack.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../architecture/adr/platform-bus-passthrough-support.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="../architecture/stack.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
