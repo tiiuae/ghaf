@@ -204,7 +204,7 @@
                   }
                 ];
                 extraModules = [
-                  ../overlays/custom-packages.nix
+                  ../overlays/custom-packages
                 ];
               };
 
