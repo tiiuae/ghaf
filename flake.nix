@@ -31,6 +31,10 @@
       url = "github:anduril/jetpack-nixos";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    lanzaboote = {
+      url = "github:nix-community/lanzaboote/v0.3.0";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
@@ -41,6 +45,7 @@
     nixos-hardware,
     microvm,
     jetpack-nixos,
+    lanzaboote,
   }: let
     systems = with flake-utils.lib.system; [
       x86_64-linux
@@ -70,6 +75,7 @@
                 ++ [
                   jetpack-nixos.nixosModules.default
                   microvm.nixosModules.host
+                  lanzaboote.nixosModules.lanzaboote
                 ];
             };
           in
@@ -116,7 +122,7 @@
       }
 
       # Target configurations
-      (import ./targets {inherit self lib nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos;})
+      (import ./targets {inherit self lib nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos lanzaboote;})
 
       # User apps
       (import ./user-apps {inherit lib nixpkgs flake-utils;})

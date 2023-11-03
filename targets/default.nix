@@ -10,12 +10,13 @@
   nixos-hardware,
   microvm,
   jetpack-nixos,
+  lanzaboote,
 }:
 lib.foldr lib.recursiveUpdate {} [
   (import ./nvidia-jetson-orin {inherit self lib nixpkgs nixos-generators microvm jetpack-nixos;})
   (import ./vm.nix {inherit self lib nixos-generators microvm;})
   (import ./generic-x86_64.nix {inherit self lib nixos-generators nixos-hardware microvm;})
-  (import ./lenovo-x1-carbon.nix {inherit self lib nixos-generators nixos-hardware microvm;})
+  (import ./lenovo-x1-carbon.nix {inherit self lib nixos-generators nixos-hardware microvm lanzaboote;})
   (import ./imx8qm-mek.nix {inherit self lib nixos-generators nixos-hardware microvm;})
   (import ./microchip-icicle-kit.nix {inherit self lib nixpkgs nixos-hardware;})
 ]
