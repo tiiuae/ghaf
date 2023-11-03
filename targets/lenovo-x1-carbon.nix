@@ -8,6 +8,7 @@
   nixos-generators,
   nixos-hardware,
   microvm,
+  lanzaboote,
 }: let
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
@@ -96,6 +97,7 @@
       specialArgs = {inherit lib;};
       modules =
         [
+          lanzaboote.nixosModules.lanzaboote
           microvm.nixosModules.host
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
@@ -272,6 +274,10 @@
     {
       ghaf.development.usb-serial.enable = true;
       ghaf.profiles.debug.enable = true;
+    }
+    ../modules/host/secureboot.nix
+    {
+      ghaf.host.secureboot.enable = false;
     }
   ];
   releaseModules = [
