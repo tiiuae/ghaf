@@ -14,7 +14,7 @@
     # root cause are done so far.
     #(modulesPath + "/profiles/minimal.nix")
 
-    ../../overlays/custom-packages.nix
+    ../../overlays/custom-packages
 
     ./kernel.nix
 
