@@ -1,0 +1,19 @@
+* Avoid use of the recursive syntax `rec` on attribute sets. It is a footgun
+  that may lead to hard to debug infinite recursion issues.
+  Suggestion: Instead use let .. in { inherit ...; };
+
+* Avoid putting unnecessary stuff to overlays, if it is possible to use
+  composition instead. Mainly the expection to this is if you want to patch a
+  library or package that is used system-wide, or patch package to support
+  cross-compilation.
+  Suggestion: If calling a package inside ghaf-repository, just use
+              `pkgs.callPackage ../../user-apps/PACKAGE {};`
+
+* Avoid usage of `with lib;` in the whole module's scope. Mainly for same
+  reasons why you don't use `using namespace std` in C++, or similar
+  mass-imports in other languages. Explicit and locality is good, for example
+  writing `lib.concat` makes it explicit you are using concat from lib. It is
+  fine to use with-syntax in smaller blocks.
+
+* If just possible, try to avoid lines longer than 80 characters, since they're
+  not handled well by many terminals and tools.
