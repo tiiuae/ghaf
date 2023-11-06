@@ -49,7 +49,7 @@
     ];
     lib = nixpkgs.lib.extend (final: _prev: {
       ghaf = import ./lib {
-        inherit self;
+        inherit self nixpkgs;
         lib = final;
       };
     });

@@ -32,8 +32,13 @@
         };
       }
     ];
+    guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
+    winConfig = hostConfiguration.config.ghaf.windows-launcher;
     guivmExtraModules = [
       {
+        # Early KMS needed for GNOME to work inside GuiVM
+        boot.initrd.kernelModules = ["i915"];
+
         microvm.qemu.extraArgs = [
           # Lenovo X1 touchpad and keyboard
           "-device"
@@ -45,6 +50,15 @@
           # Lenovo X1 trackpoint (red button/joystick)
           "-device"
           "virtio-input-host-pci,evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse"
+          # Lenovo X1 Lid button
+          "-device"
+          "button"
+          # Lenovo X1 battery
+          "-device"
+          "battery"
+          # Lenovo X1 AC adapter
+          "-device"
+          "acad"
         ];
         microvm.devices = [
           {
@@ -59,18 +73,23 @@
         in
         [
           {
-            path = "${pkgs.waypipe}/bin/waypipe ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.5 chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${pkgs.weston}/share/weston/icon_editor.png";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            icon = "${../assets/icons/png/browser.png}";
           }
 
           {
-            path = "${pkgs.waypipe}/bin/waypipe ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.6 gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${pkgs.weston}/share/weston/icon_editor.png";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            icon = "${../assets/icons/png/app.png}";
           }
 
           {
-            path = "${pkgs.waypipe}/bin/waypipe ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no 192.168.101.7 zathura";
-            icon = "${pkgs.weston}/share/weston/icon_editor.png";
+            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
+            icon = "${../assets/icons/png/pdf.png}";
+          }
+
+          {
+            path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
+            icon = "${../assets/icons/png/windows.png}";
           }
 
           {
@@ -122,8 +141,28 @@
               SUBSYSTEM=="input",ATTRS{name}=="ELAN067C:00 04F3:31F9 Touchpad",KERNEL=="event*",GROUP="kvm",SYMLINK+="touchpad"
               # Laptop TrackPoint
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
+              # Lenovo X1 integrated webcam
+              SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
             '';
+
+            time.timeZone = "Asia/Dubai";
+
+            # Enable pulseaudio support for host as a service
+            sound.enable = true;
+            hardware.pulseaudio.enable = true;
+            hardware.pulseaudio.systemWide = true;
+            nixpkgs.config.pulseaudio = true;
+            # Add systemd to require pulseaudio before starting chromium-vm
+            systemd.services."microvm@chromium-vm".after = ["pulseaudio.service"];
+            systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
+
+            # Allow microvm user to access pulseaudio
+            hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
+            users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
+
             ghaf = {
+              host.kernel_hardening.enable = false;
+
               hardware.x86_64.common.enable = true;
 
               virtualization.microvm-host.enable = true;
@@ -141,16 +180,40 @@
                 vms = [
                   {
                     name = "chromium";
-                    packages = [pkgs.chromium];
-                    ipAddress = "192.168.101.5/24";
+                    packages = [pkgs.chromium pkgs.pamixer];
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
+                    extraModules = [
+                      {
+                        # Enable pulseaudio for user ghaf
+                        sound.enable = true;
+                        hardware.pulseaudio.enable = true;
+                        users.extraUsers.ghaf.extraGroups = ["audio"];
+                        nixpkgs.config.pulseaudio = true;
+
+                        microvm.qemu.extraArgs = [
+                          # Lenovo X1 integrated usb webcam
+                          "-device"
+                          "qemu-xhci"
+                          "-device"
+                          "usb-host,vendorid=0x04f2,productid=0xb751"
+                          # Connect sound device to hosts pulseaudio socket
+                          "-audiodev"
+                          "pa,id=pa1,server=unix:/run/pulse/native"
+                          # Add HDA sound device to guest
+                          "-device"
+                          "intel-hda"
+                          "-device"
+                          "hda-duplex,audiodev=pa1"
+                        ];
+                        microvm.devices = [];
+                      }
+                    ];
                   }
                   {
                     name = "gala";
                     packages = [pkgs.gala-app];
-                    ipAddress = "192.168.101.6/24";
                     macAddress = "02:00:00:03:06:01";
                     ramMb = 1536;
                     cores = 2;
@@ -158,7 +221,6 @@
                   {
                     name = "zathura";
                     packages = [pkgs.zathura];
-                    ipAddress = "192.168.101.7/24";
                     macAddress = "02:00:00:03:07:01";
                     ramMb = 512;
                     cores = 1;
@@ -172,11 +234,32 @@
               # Enable all the default UI applications
               profiles = {
                 applications.enable = false;
-                #TODO clean this up when the microvm is updated to latest
-                release.enable = variant == "release";
-                debug.enable = variant == "debug";
               };
-              windows-launcher.enable = false;
+              windows-launcher = {
+                enable = true;
+                spice = true;
+              };
+            };
+          })
+
+          ({config, ...}: {
+            ghaf.installer = {
+              enable = true;
+              imgModules = [
+                nixos-generators.nixosModules.raw-efi
+              ];
+              enabledModules = ["flushImage"];
+              installerCode = ''
+                echo "Starting flushing..."
+                if sudo dd if=${config.system.build.${config.formatAttr}}/nixos.img of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
+                    sync
+                    echo "Flushing finished successfully!"
+                    echo "Now you can detach installation device and reboot to ghaf."
+                else
+                    echo "Some error occured during flushing process, exit code: $?."
+                    exit
+                fi
+              '';
             };
           })
 
@@ -196,6 +279,7 @@
               # Passthrough Intel Iris GPU 8086:a7a1
               "vfio-pci.ids=8086:51f1,8086:a7a1"
             ];
+            boot.initrd.availableKernelModules = ["nvme"];
           }
         ]
         ++ (import ../modules/module-list.nix)
@@ -206,10 +290,24 @@
     name = "${name}-${variant}";
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  debugModules = [../modules/development/usb-serial.nix {ghaf.development.usb-serial.enable = true;}];
+  debugModules = [
+    ../modules/development/usb-serial.nix
+    {
+      ghaf.development.usb-serial.enable = true;
+      ghaf.profiles.debug.enable = true;
+    }
+  ];
+  releaseModules = [
+    {
+      ghaf.profiles.release.enable = true;
+    }
+  ];
+  gnomeModules = [{ghaf.virtualization.microvm.guivm.extraModules = [{ghaf.profiles.graphics.compositor = "gnome";}];}];
   targets = [
     (lenovo-x1 "debug" debugModules)
-    (lenovo-x1 "release" [])
+    (lenovo-x1 "release" releaseModules)
+    (lenovo-x1 "gnome-debug" (gnomeModules ++ debugModules))
+    (lenovo-x1 "gnome-release" (gnomeModules ++ releaseModules))
   ];
 in {
   nixosConfigurations =

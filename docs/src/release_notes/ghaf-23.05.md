@@ -10,6 +10,7 @@
 
 <https://github.com/tiiuae/ghaf/tree/ghaf-23.05>
 
+
 ## Supported Hardware
 
 The following target hardware is supported by this release:

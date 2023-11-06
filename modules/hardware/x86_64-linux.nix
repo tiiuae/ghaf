@@ -25,9 +25,16 @@ in
       hardware.enableRedistributableFirmware = true;
       hardware.enableAllFirmware = true;
 
-      boot.loader = {
-        efi.canTouchEfiVariables = true;
-        systemd-boot.enable = true;
+      boot = {
+        # Enable normal Linux console on the display
+        kernelParams = ["console=tty0"];
+
+        # To enable installation of ghaf into NVMe drives
+        initrd.availableKernelModules = ["nvme"];
+        loader = {
+          efi.canTouchEfiVariables = true;
+          systemd-boot.enable = true;
+        };
       };
     };
   }

@@ -206,3 +206,4 @@ In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image 
      * You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M.
 
 For more information on how to access the MMC card as a USB disk, see [MPFS Icicle Kit User Guide](https://tinyurl.com/48wycdka).
+

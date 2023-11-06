@@ -16,12 +16,17 @@
 # nativeBuildInputs and buildInputs where possible.
 # It makes things clear and robust.
 #
-{lib, ...}: {
+{
+  lib,
+  pkgs,
+  ...
+}: {
   nixpkgs.overlays = [
     (final: prev: {
       dbus-powercontrol = final.callPackage ../user-apps/dbus-powercontrol {};
       gala-app = final.callPackage ../user-apps/gala {};
       waypipe-ssh = final.callPackage ../user-apps/waypipe-ssh {};
+      wifi-connector = final.callPackage ../user-apps/wifi-connector {};
       # TODO: Remove this override if/when the fix is upstreamed.
       # Disabling colord dependency for weston. Colord has argyllcms as
       # a dependency, and this package is not cross-compilable.
@@ -60,11 +65,16 @@
           )
         )
         # and then this overridden package's attributes are overridden
-        .overrideAttrs (prevAttrs:
-          lib.optionalAttrs (lib.hasAttr "colord" (lib.functionArgs prev.weston.override)) {
-            # Only override mesonFlags if colord argument is accepted
-            mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
-          });
+        .overrideAttrs (
+          prevAttrs:
+            lib.optionalAttrs (lib.hasAttr "colord" (lib.functionArgs prev.weston.override)) {
+              # Only override mesonFlags if colord argument is accepted
+              mesonFlags = prevAttrs.mesonFlags ++ ["-Ddeprecated-color-management-colord=false"];
+            }
+            // {
+              patches = [./weston-backport-workspaces.patch];
+            }
+        );
       systemd = prev.systemd.overrideAttrs (prevAttrs: {
         patches = prevAttrs.patches ++ [./systemd-timesyncd-disable-nscd.patch];
         postPatch =
@@ -78,6 +88,20 @@
               "Environment=SYSTEMD_NSS_RESOLVE_VALIDATE=0"
             ]}"
           '';
+      });
+      qemu_kvm = prev.qemu_kvm.overrideAttrs (_final: prev: {
+        patches = prev.patches ++ [./acpi-devices-passthrough.patch];
+      });
+      # Waypipe with vsock and window borders
+      waypipe = prev.waypipe.overrideAttrs (prevAttrs: {
+        src = pkgs.fetchFromGitLab {
+          domain = "gitlab.freedesktop.org";
+          owner = "mstoeckl";
+          repo = "waypipe";
+          rev = "ca4809435e781dfc6bd3006fde605860c8dcf179";
+          sha256 = "sha256-tSLPlf7fVq8vwbr7fHotqM/sBSXYMDM1V5yth5bhi38=";
+        };
+        patches = [./waypipe-window-borders.patch];
       });
     })
   ];

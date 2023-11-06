@@ -1,0 +1,151 @@
+name: build
+
+on:
+  pull_request_target:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  check-identity:
+    runs-on: ubuntu-latest
+    outputs:
+      authorized_user: ${{ steps.check-authorized-user.outputs.authorized_user}}
+    environment: 'internal-build-workflow'
+    steps:
+      - name: Check identity
+        id: check-authorized-user
+        shell: bash
+        run: |
+          authorized_user='False'
+          for user in ${{ vars.AUTHORIZED_USERS }};
+          do
+            if [ "$user" = "${{ github.actor }}" ]; then
+              authorized_user='True'
+              break
+            fi
+          done
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "github.repository: ${{ github.repository }}"
+          echo "github.event.pull_request.head.repo.full_name: ${{ github.event.pull_request.head.repo.full_name }}"
+          echo "github.actor: ${{ github.actor }}"
+          echo "authorized_user=$authorized_user"
+          echo "authorized_user=$authorized_user" >> "$GITHUB_OUTPUT"
+
+  authorize-internal:
+    needs: [check-identity]
+    runs-on: ubuntu-latest
+    if: ${{ needs.check-identity.outputs.authorized_user == 'True' }}
+    steps:
+      - name: Authorize internal
+        run: echo "authorized"
+
+  authorize-external:
+    needs: [check-identity]
+    runs-on: ubuntu-latest
+    if: ${{ needs.check-identity.outputs.authorized_user == 'False' }}
+    environment: 
+      ${{ ( github.event_name == 'pull_request_target' &&
+            github.event.pull_request.head.repo.full_name != github.repository && 
+            'external-build-workflow' ) || ( 'internal-build-workflow' ) }}
+    steps:
+      - name: Authorize external
+        run: echo "authorized"
+
+  authorize:
+    needs: [authorize-internal, authorize-external]
+    runs-on: ubuntu-latest
+    # See: https://github.com/actions/runner/issues/491#issuecomment-660122693
+    if: |
+      always() &&
+      (needs.authorize-internal.result == 'success' || needs.authorize-internal.result == 'skipped') &&
+      (needs.authorize-external.result == 'success' || needs.authorize-external.result == 'skipped') &&
+       !(needs.authorize-internal.result == 'skipped' && needs.authorize-external.result == 'skipped')
+    steps:
+      - name: Authorize
+        run: echo "authorized"
+
+  build-yml-check:
+    uses: ./.github/workflows/build-yml-check.yml
+
+  build_matrix:
+    name: "build"
+    needs: [authorize, build-yml-check]
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64-linux
+            target: lenovo-x1-carbon-gen11-debug
+          - arch: x86_64-linux
+            target: nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
+          - arch: x86_64-linux
+            target: nvidia-jetson-orin-nx-debug-nodemoapps-from-x86_64
+          - arch: riscv64-linux
+            target: microchip-icicle-kit-debug
+          - arch: x86_64-linux
+            target: doc
+    if: |
+      always() &&
+      needs.authorize.result == 'success' &&
+      needs.build-yml-check.outputs.result == 'not-changed'
+    concurrency:
+      # Cancel any in-progress workflow runs from the same PR or branch,
+      # allowing matrix jobs to run concurrently:
+      group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.arch }}.${{ matrix.target }}
+      cancel-in-progress: true
+    steps:
+      - name: Maximize space available on rootfs
+        # Why not use https://github.com/easimon/maximize-build-space directly?
+        # The reason is: we want to maximize the space on rootfs, since that's
+        # where the nix store (`/nix/store`) is located. Github action
+        # https://github.com/easimon/maximize-build-space maximizes
+        # the builder space on ${GITHUB_WORKSPACE}, which is not what we need.
+        # Alternatively, we could move the nix store to ${GITHUB_WORKSPACE}
+        # and use https://github.com/easimon/maximize-build-space as such, but
+        # we suspect other tooling (e.g. cachix) would not work well with such
+        # configuration.
+        run: |
+          echo "Available storage before cleanup:"
+          df -h
+          echo
+          echo "Removing unwanted software... "
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /opt/hostedtoolcache/CodeQL
+          sudo docker image prune --all --force
+          echo "... done"
+          echo
+          echo "Available storage after cleanup:"
+          df -h
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+      - name: Install nix
+        uses: cachix/install-nix-action@v22
+        with:
+          extra_nix_config: |
+            trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:RGHheQnb6rXGK5v9gexJZ8iWTPX6OcSeS56YeXYzOcg= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+            substituters = https://ghaf-dev.cachix.org?priority=20 https://cache.vedenemo.dev https://cache.nixos.org
+            system-features = nixos-test benchmark big-parallel kvm
+      - name: Install cachix
+        run: |
+          nix-env -iA cachix -f https://cachix.org/api/v1/install
+          echo "Using cachix version:"
+          cachix --version
+      - name: Build ${{ matrix.arch }}.${{ matrix.target }}
+        run: |
+          if [ "${{ secrets.CACHIX_AUTH_TOKEN }}" == "" ]; then
+            echo "::error::Missing CACHIX_AUTH_TOKEN, will not build"
+            exit 1
+          else
+            echo "Running nix build, with cachix watch-exec"
+            cachix authtoken ${{ secrets.CACHIX_AUTH_TOKEN }}
+            cachix watch-exec ghaf-dev -- \
+              nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+          fi

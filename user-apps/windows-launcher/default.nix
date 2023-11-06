@@ -5,6 +5,7 @@
   pkgs,
   lib,
   stdenv,
+  enableSpice ? false,
   ...
 }: let
   ovmfPrefix =
@@ -30,12 +31,14 @@
       + ''
           exit
         fi
-
+      ''
+      + lib.optionalString (!enableSpice) ''
         if [[ -z "''${WAYLAND_DISPLAY}" ]]; then
           echo "Wayland display not found"
           exit
         fi
-
+      ''
+      + ''
         IMG_DIR="$(dirname "$IMG_FILE")"
         OVMF_VARS="$IMG_DIR/${ovmfPrefix}_VARS.fd"
         OVMF_CODE="$IMG_DIR/${ovmfPrefix}_CODE.fd"
@@ -64,13 +67,24 @@
           "-m 8G"
           "-drive file=$OVMF_CODE,format=raw,if=pflash,readonly=on"
           "-drive file=$OVMF_VARS,format=raw,if=pflash"
-          "-vga none"
-          "-device ramfb"
-          "-device virtio-gpu-pci"
-          "-device qemu-xhci"
-          "-device usb-kbd"
-          "-device usb-tablet"
-          "-nic user,model=virtio"
+      ''
+      + lib.optionalString (!enableSpice) ''
+        "-vga none"
+        "-device ramfb"
+        "-device virtio-gpu-pci"
+        "-nic user,model=virtio"
+      ''
+      + lib.optionalString enableSpice ''
+        "-vga qxl"
+        "-device virtio-serial-pci"
+        "-spice port=5900,addr=0.0.0.0,disable-ticketing=on"
+        "-netdev tap,id=tap-windows,ifname=tap-windows,script=no,downscript=no"
+        "-device e1000,netdev=tap-windows,mac=02:00:00:03:55:01"
+      ''
+      + ''
+        "-device qemu-xhci"
+        "-device usb-kbd"
+        "-device usb-tablet"
       ''
       + lib.optionalString stdenv.isAarch64 ''
         "-M virt,highmem=on,gic-version=max"

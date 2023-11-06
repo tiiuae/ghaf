@@ -14,24 +14,32 @@ in
     };
 
     config = mkIf cfg.enable {
-      environment.systemPackages = with pkgs; [
-        # For lspci:
-        pciutils
+      environment.systemPackages = with pkgs;
+        [
+          # For lspci:
+          pciutils
 
-        # For lsusb:
-        usbutils
+          # For lsusb:
+          usbutils
 
-        # Useful in NetVM
-        ethtool
+          # Useful in NetVM
+          ethtool
 
-        # Basic monitors
-        htop
-        iftop
-        iotop
+          # Basic monitors
+          htop
+          iftop
+          iotop
 
-        traceroute
-        dig
-        evtest
-      ];
+          traceroute
+          dig
+          evtest
+
+          # Performance testing
+          speedtest-cli
+          iperf
+        ]
+        ++
+        # LuaJIT (which is sysbench dependency) not available on RISC-V
+        lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") sysbench;
     };
   }

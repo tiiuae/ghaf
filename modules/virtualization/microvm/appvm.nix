@@ -8,12 +8,21 @@
 }: let
   configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
-  waypipe-ssh = pkgs.callPackage ../../../user-apps/waypipe-ssh {};
-
-  makeVm = {vm}: let
-    hostname = "vm-" + vm.name;
+  makeVm = {
+    vm,
+    index,
+  }: let
+    vmName = "${vm.name}-vm";
+    cid =
+      if vm.cid > 0
+      then vm.cid
+      else cfg.vsockBaseCID + index;
     appvmConfiguration = {
       imports = [
+        (import ./common/vm-networking.nix {
+          inherit vmName;
+          macAddress = vm.macAddress;
+        })
         ({
           lib,
           config,
@@ -22,7 +31,9 @@
         }: {
           ghaf = {
             users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
-            profiles.graphics.enable = true;
+
+            # Don't enable Wayland compositor inside every AppVM
+            profiles.graphics.enable = false;
 
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
@@ -32,72 +43,39 @@
             };
           };
 
-          users.users.${configHost.ghaf.users.accounts.user}.openssh.authorizedKeys.keyFiles = ["${waypipe-ssh}/keys/waypipe-ssh.pub"];
+          users.users.${configHost.ghaf.users.accounts.user}.openssh.authorizedKeys.keyFiles = ["${pkgs.waypipe-ssh}/keys/waypipe-ssh.pub"];
 
-          networking.hostName = hostname;
           system.stateVersion = lib.trivial.release;
 
           nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
           nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-          networking = {
-            enableIPv6 = false;
-            interfaces.ethint0.useDHCP = false;
-            firewall.allowedTCPPorts = [22];
-            firewall.allowedUDPPorts = [67];
-            useNetworkd = true;
-          };
+          time.timeZone = "Asia/Dubai";
 
           environment.systemPackages = [
             pkgs.waypipe
           ];
 
           microvm = {
+            optimize.enable = false;
             mem = vm.ramMb;
             vcpu = vm.cores;
             hypervisor = "qemu";
-            storeDiskType = "squashfs";
-            interfaces = [
+            shares = [
               {
-                type = "tap";
-                id = hostname;
-                mac = vm.macAddress;
+                tag = "ro-store";
+                source = "/nix/store";
+                mountPoint = "/nix/.ro-store";
               }
             ];
-            # Use qboot BIOS on x86_64-linux as workaround
-            qemu.extraArgs = lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") [
-              "-bios"
-              "${pkgs.qboot}/bios.bin"
+            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+
+            qemu.extraArgs = [
+              "-M"
+              "q35,accel=kvm:tcg,mem-merge=on,sata=off"
+              "-device"
+              "vhost-vsock-pci,guest-cid=${toString cid}"
             ];
-          };
-
-          networking.nat = {
-            enable = true;
-            internalInterfaces = ["ethint0"];
-          };
-
-          # Set internal network's interface name to ethint0
-          systemd.network.links."10-ethint0" = {
-            matchConfig.PermanentMACAddress = vm.macAddress;
-            linkConfig.Name = "ethint0";
-          };
-
-          systemd.network = {
-            enable = true;
-            networks."10-ethint0" = {
-              matchConfig.MACAddress = vm.macAddress;
-              addresses = [
-                {
-                  # IP-address for debugging subnet
-                  addressConfig.Address = vm.ipAddress;
-                }
-              ];
-              routes = [
-                {routeConfig.Gateway = "192.168.101.1";}
-              ];
-              linkConfig.RequiredForOnline = "routable";
-              linkConfig.ActivationPolicy = "always-up";
-            };
           };
 
           imports = import ../../module-list.nix;
@@ -106,7 +84,7 @@
     };
   in {
     autostart = true;
-    config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ [{environment.systemPackages = vm.packages;}];};
+    config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ [{environment.systemPackages = vm.packages;}];};
     specialArgs = {inherit lib;};
   };
 in {
@@ -132,12 +110,6 @@ in {
               type = types.listOf package;
               default = [];
             };
-            ipAddress = mkOption {
-              description = ''
-                AppVM's IP address in the inter-vm network
-              '';
-              type = str;
-            };
             macAddress = mkOption {
               description = ''
                 AppVM's network interface MAC address
@@ -156,6 +128,21 @@ in {
               '';
               type = int;
             };
+            extraModules = mkOption {
+              description = ''
+                List of additional modules to be imported and evaluated as part of
+                appvm's NixOS configuration.
+              '';
+              default = [];
+            };
+            cid = mkOption {
+              description = ''
+                VSOCK context identifier (CID) for the AppVM
+                Default value 0 means auto-assign using vsockBaseCID and AppVM index
+              '';
+              type = int;
+              default = 0;
+            };
           };
         });
         default = [];
@@ -168,12 +155,23 @@ in {
       '';
       default = [];
     };
+
+    # Base VSOCK CID which is used for auto assigning CIDs for all AppVMs
+    # For example, when it's set to 100, AppVMs will get 100, 101, 102, etc.
+    # It is also possible to override the auto assinged CID using the vms.cid option
+    vsockBaseCID = lib.mkOption {
+      type = lib.types.int;
+      default = 100;
+      description = ''
+        Context Identifier (CID) of the AppVM VSOCK
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
     microvm.vms = (
       let
-        vms = map (vm: {"appvm-${vm.name}" = makeVm {inherit vm;};}) cfg.vms;
+        vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
       in
         lib.foldr lib.recursiveUpdate {} vms
     );

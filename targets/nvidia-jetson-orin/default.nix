@@ -17,7 +17,7 @@
       # Needed for formatAttr
       (nixos-generators + "/format-module.nix")
 
-      ../modules/hardware/nvidia-jetson-orin/format-module.nix
+      ../../modules/hardware/nvidia-jetson-orin/format-module.nix
     ];
   };
   nvidia-jetson-orin = som: variant: extraModules: let
@@ -44,11 +44,11 @@
       modules =
         [
           jetpack-nixos.nixosModules.default
-          ../modules/hardware/nvidia-jetson-orin
+          ../../modules/hardware/nvidia-jetson-orin
           microvm.nixosModules.host
-          ../modules/host
-          ../modules/virtualization/microvm/microvm-host.nix
-          ../modules/virtualization/microvm/netvm.nix
+          ../../modules/host
+          ../../modules/virtualization/microvm/microvm-host.nix
+          ../../modules/virtualization/microvm/netvm.nix
           {
             ghaf = {
               hardware.nvidia.orin.enable = true;
@@ -73,9 +73,11 @@
             };
           }
 
+          (import ./optee.nix {inherit jetpack-nixos;})
+
           formatModule
         ]
-        ++ (import ../modules/module-list.nix)
+        ++ (import ../../modules/module-list.nix)
         ++ extraModules;
     };
   in {
@@ -110,7 +112,7 @@
             nixpkgs.buildPlatform.system = "x86_64-linux";
           }
 
-          ../overlays/cross-compilation.nix
+          ../../overlays/cross-compilation
         ];
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
@@ -125,11 +127,27 @@
   # Add nodemoapps targets
   targets = baseTargets ++ (map generate-nodemoapps baseTargets);
   crossTargets = map generate-cross-from-x86_64 targets;
-  mkFlashScript = import ../lib/mk-flash-script;
+  mkFlashScript = import ../../lib/mk-flash-script;
+  # Generate flash script variant which flashes both QSPI and eMMC
   generate-flash-script = tgt: flash-tools-system:
     mkFlashScript {
       inherit nixpkgs;
       inherit (tgt) hostConfiguration;
+      inherit jetpack-nixos;
+      inherit flash-tools-system;
+    };
+  # Generate flash script variant which flashes QSPI only. Useful for Orin NX
+  # and non-eMMC based development.
+  generate-flash-qspi = tgt: flash-tools-system:
+    mkFlashScript {
+      inherit nixpkgs;
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          {
+            ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true;
+          }
+        ];
+      };
       inherit jetpack-nixos;
       inherit flash-tools-system;
     };
@@ -142,9 +160,11 @@ in {
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
       # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
       #               and it simply might not work. Providing the script anyway
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets);
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets)
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "aarch64-linux")) targets);
     x86_64-linux =
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets));
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets))
+      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "x86_64-linux")) (targets ++ crossTargets));
   };
 }

@@ -15,6 +15,7 @@
     - [Minimal Host](architecture/adr/minimal-host.md)
     - [Networking VM](architecture/adr/netvm.md)
     - [Platform Bus for Rust VMM](architecture/adr/platform-bus-passthrough-support.md)
+  - [Hardening](architecture/hardening.md)
   - [Stack](architecture/stack.md)
 
 # For Developers
@@ -23,6 +24,7 @@
 - [Reference Implementations](ref_impl/reference_implementations.md)
   - [Development](ref_impl/development.md)
     - [Build and Run](ref_impl/build_and_run.md)
+    - [Installer](ref_impl/installer.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
   - [Ghaf as Library: Templates](ref_impl/ghaf-based-project.md)
@@ -47,8 +49,9 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes](release_notes/release_notes.md)
-    - [Release ghaf-23.05](release_notes/ghaf-23.05.md)
+    - [Release ghaf-23.09](release_notes/ghaf-23.09.md)
     - [Release ghaf-23.06](release_notes/ghaf-23.06.md)
+    - [Release ghaf-23.05](release_notes/ghaf-23.05.md)
 
 # Ghaf Usage Scenarios
 

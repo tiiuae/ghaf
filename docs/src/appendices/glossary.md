@@ -159,6 +159,10 @@ Source: <https://www.qemu.org/docs/master/about/index.html>
 _The Server Base System Architecture specifies a hardware system architecture, based on Arm 64-bit architecture, that server system software, for example operating systems, hypervisors, and firmware can rely on._  
 Source: [Arm® Server Base System Architecture 7.1 Platform Design Document](https://developer.arm.com/documentation/den0029/latest)
 
+### SKU
+
+_A stock keeping unit, is a unique code used by sellers to identify and track products._
+
 ### SoC
 
 _A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC)._
