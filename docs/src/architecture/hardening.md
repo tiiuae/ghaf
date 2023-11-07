@@ -19,35 +19,30 @@ NixOS provides several mechanisms to customize kernel. The main methods are:
   * [Usage in Ghaf](https://github.com/search?q=repo%3Atiiuae%2Fghaf%20kernelparams&type=code)
 * [declaring kernel custom configuration](https://nixos.org/manual/nixos/stable/#sec-linux-config-customizing)
   * [Usage in Ghaf](https://github.com/tiiuae/ghaf/blob/main/modules/host/kernel.nix)
-  * Example of entering the kernel menuconfig to customize the `.config`:
+  * Example of entering the kernel development shell to customize the `.config` and build it:
   ```
-  ❯ nix-shell '<nixpkgs>' -p pkgs.ncurses pkgs.pkg-config
-  these 4 paths will be fetched (0.66 MiB download, 1.66 MiB unpacked):
+  ~/ghaf $ nix develop .#devShells.x86_64-linux.kernel
   ...
-
-  ~ via ❄️  impure (shell)
-  ❯ nix-shell '<nixpkgs>' -A pkgs.linux_latest.configfile
-
-  ~ via ❄️  impure (shell)
-  ❯ unpackPhase
-
-  ~ via ❄️  impure (linux-config-6.5.7)
-  ❯ cd linux-6.5.7/
-
-  ~/linux-6.5.7 via ❄️  impure (linux-config-6.5.7)
-  ❯ make menuconfig
-* Enter the kernel build environment
-  ```
-  nix-shell -E 'with import <nixpkgs> {}; linux.overrideAttrs (o: {nativeBuildInputs=o.nativeBuildInputs ++ [ pkg-config ncurses ];})'
-  make -j16
+  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ make menuconfig
+  ...
+  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ make -j16
   ...
   Kernel: arch/x86/boot/bzImage
   ```
 * Boot the built kernel with QEMU
   ```
-  qemu-system-x86_64 -kernel arch/x86/boot/bzImage
+  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
   ```
 * [validating with kernel hardening checker](https://github.com/a13xp0p0v/kernel-hardening-checker)
+  ```
+  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
+  [+] Kconfig file to check: ../modules/host/ghaf_host_hardened_baseline
+  [+] Detected microarchitecture: X86_32
+  [+] Detected kernel version: 6.5
+  [+] Detected compiler: GCC 120200
+  ...
+  [+] Config check is finished: 'OK' - 100 / 'FAIL' - 80
+  ```
 
 ### Host kernel
 
