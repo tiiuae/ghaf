@@ -69,6 +69,10 @@ in {
           background-type=scale-crop
           num-workspaces=2
 
+          # Set the keyboard layout for weston to US by default
+          [keyboard]
+          keymap_layout=us,fi
+
           # Enable Hack font for weston-terminal
           [terminal]
           font=Hack
