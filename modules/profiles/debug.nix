@@ -25,6 +25,11 @@ in
           # Let us in.
           ssh.daemon.enable = true;
         };
+
+        hardware.nvidia.orin.optee = {
+          xtest = true;
+          pkcs11-tool = true;
+        };
       };
     };
   }
