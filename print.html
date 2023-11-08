@@ -489,37 +489,31 @@ All graphics and display output related components and dependencies, including k
 <li><a href="https://nixos.org/manual/nixos/stable/#sec-linux-config-customizing">declaring kernel custom configuration</a>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/host/kernel.nix">Usage in Ghaf</a></li>
-<li>Example of entering the kernel menuconfig to customize the <code>.config</code>:</li>
+<li>Example of entering the kernel development shell to customize the <code>.config</code> and build it:</li>
 </ul>
-<pre><code>❯ nix-shell '&lt;nixpkgs&gt;' -p pkgs.ncurses pkgs.pkg-config
-these 4 paths will be fetched (0.66 MiB download, 1.66 MiB unpacked):
+<pre><code>~/ghaf $ nix develop .#devShells.x86_64-linux.kernel
 ...
-
-~ via ❄️  impure (shell)
-❯ nix-shell '&lt;nixpkgs&gt;' -A pkgs.linux_latest.configfile
-
-~ via ❄️  impure (shell)
-❯ unpackPhase
-
-~ via ❄️  impure (linux-config-6.5.7)
-❯ cd linux-6.5.7/
-
-~/linux-6.5.7 via ❄️  impure (linux-config-6.5.7)
-❯ make menuconfig
-</code></pre>
-</li>
-<li>Enter the kernel build environment
-<pre><code>nix-shell -E 'with import &lt;nixpkgs&gt; {}; linux.overrideAttrs (o: {nativeBuildInputs=o.nativeBuildInputs ++ [ pkg-config ncurses ];})'
-make -j16
+[ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ make menuconfig
+...
+[ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ make -j16
 ...
 Kernel: arch/x86/boot/bzImage
 </code></pre>
 </li>
 <li>Boot the built kernel with QEMU
-<pre><code>qemu-system-x86_64 -kernel arch/x86/boot/bzImage
+<pre><code>[ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
 </code></pre>
 </li>
-<li><a href="https://github.com/a13xp0p0v/kernel-hardening-checker">validating with kernel hardening checker</a></li>
+<li><a href="https://github.com/a13xp0p0v/kernel-hardening-checker">validating with kernel hardening checker</a>
+<pre><code>[ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
+[+] Kconfig file to check: ../modules/host/ghaf_host_hardened_baseline
+[+] Detected microarchitecture: X86_32
+[+] Detected kernel version: 6.5
+[+] Detected compiler: GCC 120200
+...
+[+] Config check is finished: 'OK' - 100 / 'FAIL' - 80
+</code></pre>
+</li>
 </ul>
 <h3 id="host-kernel"><a class="header" href="#host-kernel">Host kernel</a></h3>
 <p>The host kernel runs on bare metal. The kernel is provided either via Linux upstream (<code>x86_64</code>) or via vendor board support package (BSP). The default Ghaf host kernel on <code>x86_64</code> is maintained by Ghaf upstream package sources - <code>nixpkgs</code> or nix-packaged hardware-specific BSP (e.g. NVIDIA Jetson-family of devices).</p>
