@@ -12,6 +12,30 @@
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
+
+  powerControlPkgPath = ../packages/powercontrol;
+
+  getAuthKeysFileName = "get-auth-keys";
+  getAuthKeysFilePathInEtc = "ssh/${getAuthKeysFileName}";
+
+  waypipeSshPublicKeyName = "waypipe-ssh-public-key";
+  waypipeSshPublicKeyDir = "/run/${waypipeSshPublicKeyName}";
+
+  getAuthKeysSource = {pkgs, ...}: {
+    source = let
+      script = pkgs.writeShellScriptBin getAuthKeysFileName ''
+        [[ "$1" != "ghaf" ]] && exit 0
+        ${pkgs.coreutils}/bin/cat ${waypipeSshPublicKeyDir}/id_ed25519.pub
+      '';
+    in "${script}/bin/${getAuthKeysFileName}";
+    mode = "0555";
+  };
+
+  sshAuthorizedKeysCommand = {
+    authorizedKeysCommand = "/etc/${getAuthKeysFilePathInEtc}";
+    authorizedKeysCommandUser = "nobody";
+  };
+
   hwDefinition = {
     name = "Lenovo X1 Carbon";
     network.pciDevices = [
@@ -52,7 +76,7 @@
             }
           ];
         };
-        fileSystems."/run/waypipe-ssh-public-key".options = ["ro"];
+        fileSystems.${waypipeSshPublicKeyDir}.options = ["ro"];
 
         # For WLAN firmwares
         hardware.enableRedistributableFirmware = true;
@@ -93,21 +117,11 @@
         # accept neither direct path inside /nix/store or symlink that points
         # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
         # setting mode), instead of symlinking it.
-        environment.etc."ssh/get-auth-keys" = {
-          source = let
-            script = pkgs.writeShellScriptBin "get-auth-keys" ''
-              [[ "$1" != "ghaf" ]] && exit 0
-              ${pkgs.coreutils}/bin/cat /run/waypipe-ssh-public-key/id_ed25519.pub
-            '';
-          in "${script}/bin/get-auth-keys";
-          mode = "0555";
-        };
+        environment.etc.${getAuthKeysFilePathInEtc} = getAuthKeysSource {inherit pkgs;};
         # Add simple wi-fi connection helper
         environment.systemPackages = lib.mkIf hostConfiguration.config.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli];
-        services.openssh = {
-          authorizedKeysCommand = "/etc/ssh/get-auth-keys";
-          authorizedKeysCommandUser = "nobody";
-        };
+
+        services.openssh = sshAuthorizedKeysCommand;
 
         time.timeZone = "Asia/Dubai";
       })
@@ -137,22 +151,27 @@
       }
       ({pkgs, ...}: {
         ghaf.hardware.definition.network.pciDevices = networkDevice;
-        ghaf.graphics.launchers = [
+        ghaf.graphics.launchers = let
+          adwaitaIconsRoot = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/32x32/actions/";
+          hostAddress = "192.168.101.2";
+          sshKeyPath = "/run/waypipe-ssh/id_ed25519";
+          powerControl = pkgs.callPackage powerControlPkgPath {};
+        in [
           {
             name = "chromium";
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
           }
 
           {
             name = "gala";
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/app.png}";
           }
 
           {
             name = "zathura";
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
             icon = "${../assets/icons/png/pdf.png}";
           }
 
@@ -167,6 +186,30 @@
             path = "${pkgs.nm-launcher}/bin/nm-launcher";
             icon = "${pkgs.networkmanagerapplet}/share/icons/hicolor/22x22/apps/nm-device-wwan.png";
           }
+
+          {
+            name = "poweroff";
+            path = powerControl.makePowerOffCommand {inherit hostAddress sshKeyPath;};
+            icon = "${adwaitaIconsRoot}/system-shutdown-symbolic.symbolic.png";
+          }
+
+          {
+            name = "reboot";
+            path = powerControl.makeRebootCommand {inherit hostAddress sshKeyPath;};
+            icon = "${adwaitaIconsRoot}/system-reboot-symbolic.symbolic.png";
+          }
+
+          # Temporarly disabled as it doesn't work stable
+          # {
+          #   path = powerControl.makeSuspendCommand {inherit hostAddress sshKeyPath;};
+          #   icon = "${adwaitaIconsRoot}/media-playback-pause-symbolic.symbolic.png";
+          # }
+
+          # Temporarly disabled as it doesn't work at all
+          # {
+          #   path = powerControl.makeHibernateCommand {inherit hostAddress sshKeyPath;};
+          #   icon = "${adwaitaIconsRoot}/media-record-symbolic.symbolic.png";
+          # }
         ];
 
         time.timeZone = "Asia/Dubai";
@@ -188,7 +231,11 @@
             pkgs,
             config,
             ...
-          }: {
+          }: let
+            powerControl = pkgs.callPackage powerControlPkgPath {};
+          in {
+            security.polkit.extraConfig = powerControl.polkitExtraConfig;
+
             services.udev.extraRules = ''
               # Laptop keyboard
               SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
@@ -217,6 +264,9 @@
             # Allow microvm user to access pulseaudio
             hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
+
+            environment.etc.${getAuthKeysFilePathInEtc} = getAuthKeysSource {inherit pkgs;};
+            services.openssh = sshAuthorizedKeysCommand;
 
             ghaf = {
               hardware.definition = hwDefinition;
