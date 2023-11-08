@@ -68,7 +68,9 @@
         ];
       }
       ({pkgs, ...}: {
-        ghaf.graphics.weston.launchers = [
+        ghaf.graphics.weston.launchers = let
+          adwaitaIconsRoot = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/32x32/actions/";
+        in [
           {
             path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
@@ -87,6 +89,26 @@
           {
             path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
             icon = "${../assets/icons/png/windows.png}";
+          }
+
+          {
+            path = pkgs.dbus-powercontrol.powerOffCommand;
+            icon = "${adwaitaIconsRoot}/system-shutdown-symbolic.symbolic.png";
+          }
+
+          {
+            path = pkgs.dbus-powercontrol.rebootCommand;
+            icon = "${adwaitaIconsRoot}/system-reboot-symbolic.symbolic.png";
+          }
+
+          {
+            path = pkgs.dbus-powercontrol.suspendCommand;
+            icon = "${adwaitaIconsRoot}/media-playback-pause-symbolic.symbolic.png";
+          }
+
+          {
+            path = pkgs.dbus-powercontrol.hibernateCommand;
+            icon = "${adwaitaIconsRoot}/media-record-symbolic.symbolic.png";
           }
         ];
       })
@@ -107,6 +129,12 @@
             lib,
             ...
           }: {
+            security.polkit.extraConfig = pkgs.dbus-powercontrol.polkitExtraConfig;
+
+            services.dbus.packages = lib.mkAfter [
+              (pkgs.writeTextDir "etc/dbus-1/system.d/dbus.conf" pkgs.dbus-powercontrol.dbusConfig)
+            ];
+
             services.udev.extraRules = ''
               # Laptop keyboard
               SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
