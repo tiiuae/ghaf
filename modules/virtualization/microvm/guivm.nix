@@ -92,6 +92,23 @@
           };
           wantedBy = ["ghaf-session.target"];
         };
+
+        # Ssh service to pass DBUS from the host to GUIVM through
+        systemd.user.services.dbusOverSsh = {
+          enable = true;
+          description = "DBUS connection over ssh";
+          after = ["weston.service"];
+          serviceConfig = {
+            Environment = [];
+            ExecStart = pkgs.dbus-over-ssh.vm.establishDbusConnectionViaSshScript;
+            Restart = "always";
+            RestartSec = "5";
+            StandardError = "journal";
+            StandardOutput = "journal";
+            Type = "simple";
+          };
+          wantedBy = ["ghaf-session.target"];
+        };
       })
     ];
   };
