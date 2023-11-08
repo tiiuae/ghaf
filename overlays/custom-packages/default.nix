@@ -5,6 +5,7 @@
 #
 {...}: {
   nixpkgs.overlays = [
+    (import ./dbus-over-ssh)
     (import ./gala)
     (import ./systemd)
     (import ./waypipe)
