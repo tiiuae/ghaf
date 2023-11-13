@@ -92,6 +92,13 @@
           };
           wantedBy = ["ghaf-session.target"];
         };
+
+        # Fixed IP-address for debugging subnet
+        systemd.network.networks."10-ethint0".addresses = [
+          {
+            addressConfig.Address = "192.168.101.3/24";
+          }
+        ];
       })
     ];
   };
