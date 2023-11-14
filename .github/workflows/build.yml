@@ -88,6 +88,10 @@ jobs:
             target: microchip-icicle-kit-debug
           - arch: x86_64-linux
             target: doc
+          - arch: aarch64-linux
+            target: nvidia-jetson-orin-nx-debug
+          - arch: aarch64-linux
+            target: nvidia-jetson-orin-agx-debug
     if: |
       always() &&
       needs.authorize.result == 'success' &&
@@ -133,6 +137,13 @@ jobs:
             trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:RGHheQnb6rXGK5v9gexJZ8iWTPX6OcSeS56YeXYzOcg= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
             substituters = https://ghaf-dev.cachix.org?priority=20 https://cache.vedenemo.dev https://cache.nixos.org
             system-features = nixos-test benchmark big-parallel kvm
+            builders-use-substitutes = true
+            builders = @/etc/nix/machines
+      - name: Configure remote builder
+        run: |
+          sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
+          sudo sh -c "echo '${{ vars.BUILDER_SSH_KNOWN_HOST }}' >>/etc/ssh/ssh_known_hosts"
+          sudo sh -c "echo '${{ vars.BUILDER_MACHINE_CONFIG }}' >/etc/nix/machines"
       - name: Install cachix
         run: |
           nix-env -iA cachix -f https://cachix.org/api/v1/install
