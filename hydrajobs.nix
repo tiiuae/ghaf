@@ -7,7 +7,6 @@
   hydraJobs = {
     generic-x86_64-debug.x86_64-linux = self.packages.x86_64-linux.generic-x86_64-debug;
     lenovo-x1-carbon-gen11-debug.x86_64-linux = self.packages.x86_64-linux.lenovo-x1-carbon-gen11-debug;
-    lenovo-x1-carbon-gen11-gnome-debug.x86_64-linux = self.packages.x86_64-linux.lenovo-x1-carbon-gen11-gnome-debug;
     nvidia-jetson-orin-agx-debug.aarch64-linux = self.packages.aarch64-linux.nvidia-jetson-orin-agx-debug;
     nvidia-jetson-orin-nx-debug.aarch64-linux = self.packages.aarch64-linux.nvidia-jetson-orin-nx-debug;
     intel-vm-debug.x86_64-linux = self.packages.x86_64-linux.vm-debug;
