@@ -4,7 +4,6 @@
   stdenvNoCC,
   pkgs,
   lib,
-  stdenv,
   ...
 }: let
   wifiConnector =

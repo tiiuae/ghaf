@@ -4,7 +4,7 @@
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
 # Overlay for element-desktop based on https://github.com/NixOS/nixpkgs/pull/241710
-(final: prev: {
+(_final: prev: {
   element-desktop =
     (prev.element-desktop.override {
       # Disable keytar, it breaks cross-build. Saving passwords would be not available.

@@ -7,7 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.graphics.demo-apps;
-  weston = config.ghaf.graphics.weston;
+  inherit (config.ghaf.graphics) weston;
 
   /*
   Scaled down firefox icon

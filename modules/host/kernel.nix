@@ -70,7 +70,7 @@ in
       boot.kernelPackages = pkgs.linuxPackagesFor hardened_kernel;
       # https://github.com/NixOS/nixpkgs/issues/109280#issuecomment-973636212
       nixpkgs.overlays = [
-        (final: prev: {
+        (_final: prev: {
           makeModulesClosure = x:
             prev.makeModulesClosure (x // {allowMissing = true;});
         })

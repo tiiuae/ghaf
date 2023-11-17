@@ -10,8 +10,6 @@
   config,
   options,
   lib,
-  pkgs,
-  modulesPath,
   ...
 }: let
   # inherit (builtins) A B C;

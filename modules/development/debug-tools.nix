@@ -40,6 +40,7 @@ in
         ]
         ++
         # LuaJIT (which is sysbench dependency) not available on RISC-V
+        # TODO Can this be changed to platformPkgs to filter ?
         lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") sysbench;
     };
   }

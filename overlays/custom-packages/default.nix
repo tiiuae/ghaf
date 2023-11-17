@@ -3,7 +3,7 @@
 #
 # This overlay customizes ghaf packages
 #
-{...}: {
+_: {
   nixpkgs.overlays = [
     (import ./gala)
     (import ./systemd)

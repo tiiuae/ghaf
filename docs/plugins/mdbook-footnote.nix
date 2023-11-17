@@ -17,3 +17,5 @@ rustPlatform.buildRustPackage rec {
 
   cargoHash = "sha256-Ig+uVCO5oHIkkvFsKiBiUFzjUgH/Pydn4MVJHb2wKGc=";
 }
+# TODO upstream this to nixpkgs
+

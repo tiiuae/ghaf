@@ -1,4 +1,9 @@
 #! @python3@/bin/python3 -B
+
+# SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
 """This is opinionated rewrite of nixos/modules/system/boot/loader/systemd-boot/systemd-boot-builder.py,
 as well as re-implement some logic from bootctl tool.
 

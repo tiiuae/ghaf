@@ -3,12 +3,11 @@
 #
 # Generic x86_64 computer -target
 {
-  self,
   lib,
   nixos-generators,
-  nixos-hardware,
   microvm,
   lanzaboote,
+  ...
 }: let
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
@@ -163,11 +162,7 @@
           ../modules/virtualization/microvm/netvm.nix
           ../modules/virtualization/microvm/guivm.nix
           ../modules/virtualization/microvm/appvm.nix
-          ({
-            pkgs,
-            lib,
-            ...
-          }: {
+          ({pkgs, ...}: {
             services.udev.extraRules = ''
               # Laptop keyboard
               SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
@@ -349,9 +344,9 @@
     (lenovo-x1 "gnome-release" (gnomeModules ++ releaseModules))
   ];
 in {
-  nixosConfigurations =
+  flake.nixosConfigurations =
     builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  packages = {
+  flake.packages = {
     x86_64-linux =
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };

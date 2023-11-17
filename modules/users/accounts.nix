@@ -35,7 +35,7 @@ in
         mutableUsers = true;
         users."${cfg.user}" = {
           isNormalUser = true;
-          password = cfg.password;
+          inherit (cfg) password;
           #TODO add "docker" use "lib.optionals"
           extraGroups = ["wheel" "video" "networkmanager"];
         };

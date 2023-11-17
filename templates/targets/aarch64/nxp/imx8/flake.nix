@@ -32,7 +32,6 @@
     self,
     ghaf,
     nixpkgs,
-    nixos-hardware,
     flake-utils,
   }: let
     systems = with flake-utils.lib.system; [

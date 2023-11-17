@@ -3,7 +3,7 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-{...}: {
+_: {
   nixpkgs.overlays = [
     (import ./sysbench.nix)
     (import ./element-desktop.nix)

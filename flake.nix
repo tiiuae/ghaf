@@ -16,16 +16,60 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
-    flake-utils.url = "github:numtide/flake-utils";
+
+    #
+    # Flake and repo structuring configurations
+    #
+    # Allows us to structure the flake with the NixOS module system
     flake-parts = {
       url = "github:hercules-ci/flake-parts";
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
+
+    flake-root.url = "github:srid/flake-root";
+
+    lib-extras = {
+      url = "github:aldoborrero/lib-extras";
+      inputs.flake-parts.follows = "flake-parts";
+      inputs.flake-root.follows = "flake-root";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.treefmt-nix.follows = "treefmt-nix";
+    };
+
+    # Format all the things
+    treefmt-nix = {
+      url = "github:numtide/treefmt-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    # To ensure that checks are run locally to enforce cleanliness
+    pre-commit-hooks-nix = {
+      url = "github:cachix/pre-commit-hooks.nix";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        nixpkgs-stable.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        flake-compat.follows = "flake-compat";
+      };
+    };
+
+    # For preserving compatibility with non-Flake users
+    flake-compat = {
+      url = "github:nix-community/flake-compat";
+      flake = false;
+    };
+
+    #TODO Delete this
+    flake-utils.url = "github:numtide/flake-utils";
+
+    #
+    # Target Building and services
+    #
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
+
     microvm = {
       url = "github:astro/microvm.nix";
       inputs = {
@@ -33,115 +77,62 @@
         flake-utils.follows = "flake-utils";
       };
     };
+
+    nixos-hardware.url = "github:NixOS/nixos-hardware";
+
     jetpack-nixos = {
       url = "github:anduril/jetpack-nixos";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+
+    #
+    # Security
+    #
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v0.3.0";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
         flake-parts.follows = "flake-parts";
+        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+        flake-compat.follows = "flake-compat";
       };
     };
   };
 
-  outputs = {
-    self,
-    nixpkgs,
-    flake-utils,
-    flake-parts,
-    nixos-generators,
-    nixos-hardware,
-    microvm,
-    jetpack-nixos,
-    lanzaboote,
-  }: let
-    systems = with flake-utils.lib.system; [
-      x86_64-linux
-      aarch64-linux
-      riscv64-linux
-    ];
-    lib = nixpkgs.lib.extend (final: _prev: {
-      ghaf = import ./lib {
-        inherit self nixpkgs;
-        lib = final;
-      };
-    });
+  outputs = inputs @ {flake-parts, ...}: let
+    lib = import ./lib.nix {inherit inputs;};
   in
-    # Combine list of attribute sets together
-    lib.foldr lib.recursiveUpdate {} [
-      # Documentation
-      (flake-utils.lib.eachSystem systems (system: let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in {
-        packages.doc = pkgs.callPackage ./docs {
-          revision = lib.version;
-          options = let
-            cfg = nixpkgs.lib.nixosSystem {
-              inherit system;
-              modules =
-                lib.ghaf.modules
-                ++ [
-                  jetpack-nixos.nixosModules.default
-                  microvm.nixosModules.host
-                  lanzaboote.nixosModules.lanzaboote
-                ];
-            };
-          in
-            cfg.options;
-        };
+    flake-parts.lib.mkFlake
+    {
+      inherit inputs;
+      specialArgs = {
+        inherit lib;
+      };
+    } {
+      # Toggle this to allow debugging in the repl
+      # see:https://flake.parts/debug
+      debug = false;
 
-        formatter = pkgs.alejandra;
+      systems = [
+        "x86_64-linux"
+        "aarch64-linux"
+        "riscv64-linux"
+      ];
 
-        devShells.kernel = pkgs.mkShell {
-          packages = [
-            pkgs.ncurses
-            pkgs.pkg-config
-            pkgs.python3
-            pkgs.python3Packages.pip
-          ];
-          inputsFrom = [pkgs.linux_latest];
-          shellHook = ''
-            export src=${pkgs.linux_latest.src}
-            if [ ! -d "linux-${pkgs.linux_latest.version}" ]; then
-              unpackPhase
-              patchPhase
-            fi
-            cd linux-${pkgs.linux_latest.version}
+      imports = [
+        ./nix
+        ./packages
+        ./targets
+        ./hydrajobs.nix
+        ./templates
+      ];
 
-            # python3+pip for kernel-hardening-checker
-            export PIP_PREFIX=$(pwd)/_build/pip_packages
-            export PYTHONPATH="$PIP_PREFIX/${pkgs.python3.sitePackages}:$PYTHONPATH"
-            export PATH="$PIP_PREFIX/bin:$PATH"
+      #TODO Fix this
+      #flake.nixosModules = with lib;
+      #  mapAttrs (_: import)
+      #  (flattenTree (rakeLeaves ./modules));
 
-            # install kernel-hardening-checker via pip under "linux-<version" for
-            # easy clean-up with directory removal - if not already installed
-            if [ ! -f "_build/pip_packages/bin/kernel-hardening-checker" ]; then
-              python3 -m pip install git+https://github.com/a13xp0p0v/kernel-hardening-checker
-            fi
-
-            export PS1="[ghaf-kernel-devshell:\w]$ "
-          '';
-        };
-      }))
-
-      # ghaf lib
-      {
-        lib = lib.ghaf;
-      }
-
-      # Target configurations
-      (import ./targets {inherit self lib nixpkgs nixos-generators nixos-hardware microvm jetpack-nixos lanzaboote;})
-
-      # User apps
-      (import ./user-apps {inherit lib nixpkgs flake-utils;})
-
-      # Hydra jobs
-      (import ./hydrajobs.nix {inherit self lib;})
-
-      #templates
-      (import ./templates)
-    ];
+      flake.lib = lib;
+    };
 }

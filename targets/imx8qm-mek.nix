@@ -3,7 +3,6 @@
 #
 # i.MX8QuadMax Multisensory Enablement Kit
 {
-  self,
   lib,
   nixos-generators,
   nixos-hardware,
@@ -58,9 +57,9 @@
     (imx8qm-mek "release" [])
   ];
 in {
-  nixosConfigurations =
+  flake.nixosConfigurations =
     builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  packages = {
+  flake.packages = {
     aarch64-linux =
       builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };

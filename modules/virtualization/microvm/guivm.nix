@@ -128,7 +128,7 @@
     ];
   };
   cfg = config.ghaf.virtualization.microvm.guivm;
-  vsockproxy = pkgs.callPackage ../../../user-apps/vsockproxy {};
+  vsockproxy = pkgs.callPackage ../../../packages/vsockproxy {};
 in {
   options.ghaf.virtualization.microvm.guivm = {
     enable = lib.mkEnableOption "GUIVM";
