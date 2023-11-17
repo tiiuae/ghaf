@@ -1,10 +1,7 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  self,
-  lib,
-}: {
-  hydraJobs = {
+{self, ...}: {
+  flake.hydraJobs = {
     generic-x86_64-debug.x86_64-linux = self.packages.x86_64-linux.generic-x86_64-debug;
     lenovo-x1-carbon-gen11-debug.x86_64-linux = self.packages.x86_64-linux.lenovo-x1-carbon-gen11-debug;
     nvidia-jetson-orin-agx-debug.aarch64-linux = self.packages.aarch64-linux.nvidia-jetson-orin-agx-debug;

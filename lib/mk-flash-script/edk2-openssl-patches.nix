@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
 # Patches from upstream tianocore/edk2 to enable build of OpenSSL 1.1.1t inside
 # edk2 tree
 {fetchpatch2}: [

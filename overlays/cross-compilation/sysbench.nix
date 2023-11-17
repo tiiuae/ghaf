@@ -4,7 +4,7 @@
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
 (final: prev: {
-  libck = prev.libck.overrideAttrs (old: {
+  libck = prev.libck.overrideAttrs (_old: {
     postPatch = ''
       substituteInPlace \
         configure \

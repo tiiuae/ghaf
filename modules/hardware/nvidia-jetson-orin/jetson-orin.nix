@@ -4,7 +4,6 @@
 # Configuration for NVIDIA Jetson Orin AGX/NX reference boards
 {
   lib,
-  pkgs,
   config,
   ...
 }: let

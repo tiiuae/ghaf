@@ -27,13 +27,6 @@
 
   inherit (jetpack-nixos.legacyPackages.${devicePkgsSystem}) l4tVersion;
 
-  pkgsAarch64 =
-    if isCross
-    then nixpkgs.legacyPackages.x86_64-linux.pkgsCross.aarch64-multiplatform
-    else nixpkgs.legacyPackages.aarch64-linux;
-
-  inherit (pkgsAarch64.callPackages ./uefi-firmware.nix {inherit l4tVersion;}) uefi-firmware;
-
   flashScript = devicePkgs.mkFlashScript {
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;

@@ -11,16 +11,15 @@
     sha256 = "sha256-ha7GPgSePU5P/UQpxnIEZD6CyJfDRUsfcysgBoVKrbc=";
   };
   # function to list patches for debug purposes
-  tracePatches = xs: map (x: builtins.trace (builtins.toString x) x) xs;
   # Attempt to port https://github.com/NixOS/nixpkgs/pull/225640/files to stable branch via overlay
   # Also included into https://github.com/NixOS/nixpkgs/pull/241848 (Remove it in next 23.11 stable, if this PR merged)
 in rec {
   perl536 = prev.perl536.overrideAttrs (old: {
     patches = (filterOutByName "MakeMaker-cross.patch" old.patches) ++ prev.lib.optional crossCompiling crossPatch;
   });
-  perl536Packages = prev.perl536Packages.overrideScope (self: super: {
+  perl536Packages = prev.perl536Packages.overrideScope (_self: super: {
     perl = perl536; # Otherwise ModuleBuild builds with unpatched perl
-    ModuleBuild = super.ModuleBuild.overrideAttrs (old: {
+    ModuleBuild = super.ModuleBuild.overrideAttrs (_old: {
       postConfigure = prev.lib.optionalString crossCompiling ''
         # for unknown reason, the first run of Build fails
         ./Build || true

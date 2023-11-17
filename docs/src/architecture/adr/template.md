@@ -1,3 +1,9 @@
+<!--
+SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Decision record template
 <!-- based on simple template by Michael Nygard - https://github.com/joelparkerhenderson/architecture-decision-record/blob/main/templates/decision-record-template-by-michael-nygard/index.md -->
 

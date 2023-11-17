@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   configHost = config;
@@ -21,7 +20,7 @@
       imports = [
         (import ./common/vm-networking.nix {
           inherit vmName;
-          macAddress = vm.macAddress;
+          inherit (vm) macAddress;
         })
         ({
           lib,
@@ -189,11 +188,9 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    microvm.vms = (
-      let
-        vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
-      in
-        lib.foldr lib.recursiveUpdate {} vms
-    );
+    microvm.vms = let
+      vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
+    in
+      lib.foldr lib.recursiveUpdate {} vms;
   };
 }

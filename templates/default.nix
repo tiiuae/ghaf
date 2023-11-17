@@ -1,7 +1,8 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  templates = {
+  # TODO rework the templates to match the new modules
+  flake.templates = {
     # Module template
     ghaf-module = {
       path = ./modules;

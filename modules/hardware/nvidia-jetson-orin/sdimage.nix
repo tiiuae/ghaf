@@ -15,7 +15,6 @@
   config,
   pkgs,
   modulesPath,
-  lib,
   ...
 }: {
   imports = [

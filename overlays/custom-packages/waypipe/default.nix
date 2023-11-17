@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 (final: prev: {
   # Waypipe with vsock and window borders
-  waypipe = prev.waypipe.overrideAttrs (prevAttrs: {
+  waypipe = prev.waypipe.overrideAttrs (_prevAttrs: {
     src = final.pkgs.fetchFromGitLab {
       domain = "gitlab.freedesktop.org";
       owner = "mstoeckl";

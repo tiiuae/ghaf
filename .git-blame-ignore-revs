@@ -1,3 +1,7 @@
+# SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
 # To use this file when using git blame:
 #
 #   git config blame.ignoreRevsFile .git-blame-ignore-revs

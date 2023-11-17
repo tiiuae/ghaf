@@ -3,7 +3,6 @@
 inputs @ {
   config,
   lib,
-  pkgs,
   ...
 }: let
   cfg = config.ghaf.installer;

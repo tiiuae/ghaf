@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
 /dts-v1/;
 
 #include <dt-bindings/usb/pd.h>

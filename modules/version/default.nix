@@ -9,7 +9,7 @@
   ...
 }: let
   ghafVersion = pkgs.writeShellScriptBin "ghaf-version" ''
-    echo "${lib.ghaf.version}"
+    echo "${lib.ghaf-version}"
   '';
 in {
   environment.systemPackages = [
