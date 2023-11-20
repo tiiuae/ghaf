@@ -39,6 +39,9 @@
         // final.lib.optionalAttrs (final.lib.hasAttr "xwaylandSupport" (final.lib.functionArgs prev.weston.override)) {
           xwaylandSupport = false;
         }
+        // final.lib.optionalAttrs (final.lib.hasAttr "vncSupport" (final.lib.functionArgs prev.weston.override)) {
+          vncSupport = false;
+        }
       )
     )
     # and then this overridden package's attributes are overridden
