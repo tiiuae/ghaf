@@ -162,7 +162,6 @@
             sound.enable = true;
             hardware.pulseaudio.enable = true;
             hardware.pulseaudio.systemWide = true;
-            nixpkgs.config.pulseaudio = true;
             # Add systemd to require pulseaudio before starting chromium-vm
             systemd.services."microvm@chromium-vm".after = ["pulseaudio.service"];
             systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
@@ -201,7 +200,6 @@
                         sound.enable = true;
                         hardware.pulseaudio.enable = true;
                         users.extraUsers.ghaf.extraGroups = ["audio"];
-                        nixpkgs.config.pulseaudio = true;
 
                         microvm.qemu.extraArgs = [
                           # Lenovo X1 integrated usb webcam
