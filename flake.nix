@@ -17,6 +17,10 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
     flake-utils.url = "github:numtide/flake-utils";
+    flake-parts = {
+      url = "github:hercules-ci/flake-parts";
+      inputs.nixpkgs-lib.follows = "nixpkgs";
+    };
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -24,8 +28,10 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
     microvm = {
       url = "github:astro/microvm.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.flake-utils.follows = "flake-utils";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
     };
     jetpack-nixos = {
       url = "github:anduril/jetpack-nixos";
@@ -33,7 +39,11 @@
     };
     lanzaboote = {
       url = "github:nix-community/lanzaboote/v0.3.0";
-      inputs.nixpkgs.follows = "nixpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        flake-parts.follows = "flake-parts";
+      };
     };
   };
 
@@ -41,6 +51,7 @@
     self,
     nixpkgs,
     flake-utils,
+    flake-parts,
     nixos-generators,
     nixos-hardware,
     microvm,
