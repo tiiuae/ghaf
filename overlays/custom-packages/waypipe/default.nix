@@ -1,8 +1,6 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 (final: prev: {
-  waypipe-ssh = final.callPackage ../../../user-apps/waypipe-ssh {};
-
   # Waypipe with vsock and window borders
   waypipe = prev.waypipe.overrideAttrs (prevAttrs: {
     src = final.pkgs.fetchFromGitLab {

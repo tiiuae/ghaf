@@ -15,13 +15,23 @@
   formatModule = nixos-generators.nixosModules.raw-efi;
   lenovo-x1 = variant: extraModules: let
     netvmExtraModules = [
-      {
-        microvm.devices = lib.mkForce [
-          {
-            bus = "pci";
-            path = "0000:00:14.3";
-          }
-        ];
+      ({pkgs, ...}: {
+        microvm = {
+          devices = lib.mkForce [
+            {
+              bus = "pci";
+              path = "0000:00:14.3";
+            }
+          ];
+          shares = [
+            {
+              tag = "waypipe-ssh-public-key";
+              source = "/run/waypipe-ssh-public-key";
+              mountPoint = "/run/waypipe-ssh-public-key";
+            }
+          ];
+        };
+        fileSystems."/run/waypipe-ssh-public-key".options = ["ro"];
 
         # For WLAN firmwares
         hardware.enableRedistributableFirmware = true;
@@ -34,6 +44,8 @@
             unmanaged = ["ethint0"];
           };
         };
+        # noXlibs=false; needed for NetworkManager stuff
+        environment.noXlibs = false;
         environment.etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
           text = ''
             [connection]
@@ -54,10 +66,25 @@
           '';
           mode = "0600";
         };
-      }
-      ({pkgs, ...}: {
+
         # Waypipe-ssh key is used here to create keys for ssh tunneling to forward D-Bus sockets.
-        users.users.ghaf.openssh.authorizedKeys.keyFiles = ["${pkgs.waypipe-ssh}/keys/waypipe-ssh.pub"];
+        # SSH is very picky about to file permissions and ownership and will
+        # accept neither direct path inside /nix/store or symlink that points
+        # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
+        # setting mode), instead of symlinking it.
+        environment.etc."ssh/get-auth-keys" = {
+          source = let
+            script = pkgs.writeShellScriptBin "get-auth-keys" ''
+              [[ "$1" != "ghaf" ]] && exit 0
+              ${pkgs.coreutils}/bin/cat /run/waypipe-ssh-public-key/id_ed25519.pub
+            '';
+          in "${script}/bin/get-auth-keys";
+          mode = "0555";
+        };
+        services.openssh = {
+          authorizedKeysCommand = "/etc/ssh/get-auth-keys";
+          authorizedKeysCommandUser = "nobody";
+        };
       })
     ];
     guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
@@ -98,17 +125,17 @@
       ({pkgs, ...}: {
         ghaf.graphics.weston.launchers = [
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
           }
 
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/app.png}";
           }
 
           {
-            path = "${pkgs.openssh}/bin/ssh -i ${pkgs.waypipe-ssh}/keys/waypipe-ssh -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
+            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
             icon = "${../assets/icons/png/pdf.png}";
           }
 
@@ -234,9 +261,6 @@
                     ramMb = 512;
                     cores = 1;
                   }
-                ];
-                extraModules = [
-                  ../overlays/custom-packages
                 ];
               };
 
