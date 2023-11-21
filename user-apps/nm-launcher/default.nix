@@ -15,7 +15,7 @@
       export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
       ${pkgs.openssh}/bin/ssh -M -S /tmp/control_socket \
           -f -N -q ghaf@192.168.100.1 \
-          -i /etc/ssh/waypipe-ssh \
+          -i /run/waypipe-ssh/id_ed25519 \
           -o StrictHostKeyChecking=no \
           -o StreamLocalBindUnlink=yes \
           -o ExitOnForwardFailure=yes \

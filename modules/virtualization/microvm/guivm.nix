@@ -9,7 +9,6 @@
   configHost = config;
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
-  waypipe-ssh = pkgs.callPackage ../../../user-apps/waypipe-ssh {};
   guivmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
@@ -26,17 +25,34 @@
           profiles.applications.enable = false;
           windows-launcher.enable = false;
           development = {
-            # NOTE: SSH port also becomes accessible on the network interface
-            #       that has been passed through to NetVM
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
             debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
           };
         };
 
-        environment = {
-          etc = {
-            "ssh/waypipe-ssh".source = "${waypipe-ssh}/keys/waypipe-ssh";
+        systemd.services."waypipe-ssh-keygen" = let
+          keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
+            set -xeuo pipefail
+            mkdir -p /run/waypipe-ssh
+            echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
+            chown ghaf:ghaf /run/waypipe-ssh/*
+            cp /run/waypipe-ssh/id_ed25519.pub /run/waypipe-ssh-public-key/id_ed25519.pub
+          '';
+        in {
+          enable = true;
+          description = "Generate SSH keys for Waypipe";
+          path = [keygenScript];
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            StandardOutput = "journal";
+            StandardError = "journal";
+            ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
           };
+        };
+
+        environment = {
           systemPackages = [
             pkgs.waypipe
             pkgs.networkmanagerapplet
@@ -57,6 +73,11 @@
           mem = 2048;
           hypervisor = "qemu";
           shares = [
+            {
+              tag = "rw-waypipe-ssh-public-key";
+              source = "/run/waypipe-ssh-public-key";
+              mountPoint = "/run/waypipe-ssh-public-key";
+            }
             {
               tag = "ro-store";
               source = "/nix/store";
@@ -154,6 +175,26 @@ in {
             ++ cfg.extraModules;
         };
       specialArgs = {inherit lib;};
+    };
+
+    # This directory needs to be created before any of the microvms start.
+    systemd.services."create-waypipe-ssh-public-key-directory" = let
+      script = pkgs.writeShellScriptBin "create-waypipe-ssh-public-key-directory" ''
+        mkdir -pv /run/waypipe-ssh-public-key
+        chown -v microvm /run/waypipe-ssh-public-key
+      '';
+    in {
+      enable = true;
+      description = "Create shared directory on host";
+      path = [];
+      wantedBy = ["microvms.target"];
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        StandardOutput = "journal";
+        StandardError = "journal";
+        ExecStart = "${script}/bin/create-waypipe-ssh-public-key-directory";
+      };
     };
 
     # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
