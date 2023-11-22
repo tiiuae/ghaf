@@ -51,8 +51,12 @@
           ../../modules/virtualization/microvm/netvm.nix
           {
             ghaf = {
-              hardware.nvidia.orin.enable = true;
-              hardware.nvidia.orin.somType = som;
+              hardware.nvidia.orin = {
+                enable = true;
+                somType = som;
+                agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+              };
 
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
