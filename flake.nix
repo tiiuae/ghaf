@@ -62,6 +62,12 @@
     #TODO Delete this
     flake-utils.url = "github:numtide/flake-utils";
 
+    # Used to evaluate a flake outputs all at once
+    devour-flake = {
+      url = "github:srid/devour-flake";
+      flake = false;
+    };
+
     #
     # Target Building and services
     #
