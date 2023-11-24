@@ -6,13 +6,13 @@
     # TODO this import needs to be filtered to remove RISCV
     # pre-commit-hooks-nix.flakeModule
   ];
-  perSystem = {pkgs, ...}:
-  # TODO clean up
-  # let
-  #inherit (lib.flakes) platformPkgs;
-  #in {
-  {
-    devShells.kernel = pkgs.mkShell {
+  perSystem = {
+    pkgs,
+    inputs',
+    ...
+  }: {
+    devShells.kernel-x86 = pkgs.mkShell {
+      name = "Kernel-x86 devshell";
       packages = with pkgs; [
         ncurses
         pkg-config
@@ -57,6 +57,7 @@
         mdbook
         #TODO enable cachix (filter out from RISCV)
         #cachix
+        inputs'.nix-fast-build.packages.default
       ];
 
       # TODO Add pre-commit.devShell (needs to exclude RiscV)

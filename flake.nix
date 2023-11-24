@@ -59,6 +59,15 @@
       flake = false;
     };
 
+    # TODO follow our nixpkgs when we move to 23.11
+    nix-fast-build = {
+      url = "github:Mic92/nix-fast-build";
+      inputs = {
+        treefmt-nix.follows = "treefmt-nix";
+        flake-parts.follows = "flake-parts";
+      };
+    };
+
     #TODO Delete this
     flake-utils.url = "github:numtide/flake-utils";
 
