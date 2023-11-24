@@ -10,5 +10,6 @@ _: {
     (import ./perl.nix)
     (import ./libjack.nix)
     (import ./firefox.nix)
+    (import ./edk2.nix)
   ];
 }
