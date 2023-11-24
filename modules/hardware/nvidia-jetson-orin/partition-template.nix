@@ -112,7 +112,7 @@ in
           echo "============================================================"
           echo "ghaf flashing script"
           echo "============================================================"
-          echo "ghaf version: ${lib.ghaf.version}"
+          echo "ghaf version: ${lib.ghaf-version}"
           echo "cross-compiled build: @isCross@"
           echo "l4tVersion: @l4tVersion@"
           echo "som: ${config.hardware.nvidia-jetpack.som}"
