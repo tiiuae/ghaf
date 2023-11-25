@@ -48,7 +48,7 @@
           ../../modules/host
           ../../modules/virtualization/microvm/microvm-host.nix
           ../../modules/virtualization/microvm/netvm.nix
-          {
+          ({config, ...}: {
             ghaf = {
               hardware.nvidia.orin = {
                 enable = true;
@@ -71,10 +71,12 @@
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
-              # TODO when supported on x86 move under virtualization
-              windows-launcher.enable = true;
+              # Disable windows-launcher with cross-compilation for now
+              windows-launcher.enable =
+                config.nixpkgs.buildPlatform.system
+                == config.nixpkgs.hostPlatform.system;
             };
-          }
+          })
 
           (import ./optee.nix {inherit jetpack-nixos;})
 
