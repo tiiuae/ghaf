@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   stdenvNoCC,
-  pkgs,
   lib,
   stdenv,
+  qemu,
+  OVMF,
+  gnome,
+  writeShellScript,
   enableSpice ? false,
   ...
 }: let
@@ -15,7 +18,7 @@
     then "AAVMF"
     else throw "Unsupported architecture";
   windowsLauncher =
-    pkgs.writeShellScript
+    writeShellScript
     "windows-launcher"
     (''
         IMG_FILE=$1
@@ -44,8 +47,8 @@
         OVMF_CODE="$IMG_DIR/${ovmfPrefix}_CODE.fd"
 
         if [ ! -f $OVMF_VARS ] || [ ! -f $OVMF_CODE ]; then
-          cp ${pkgs.OVMF.fd}/FV/${ovmfPrefix}_VARS.fd $OVMF_VARS
-          cp ${pkgs.OVMF.fd}/FV/${ovmfPrefix}_CODE.fd $OVMF_CODE
+          cp ${OVMF.fd}/FV/${ovmfPrefix}_VARS.fd $OVMF_VARS
+          cp ${OVMF.fd}/FV/${ovmfPrefix}_CODE.fd $OVMF_CODE
           chmod 644 $OVMF_VARS
         fi
       ''
@@ -54,7 +57,7 @@
           ISO_FILE=$1
           IMG_FILE="$IMG_DIR/win11.qcow2"
           if [ ! -f $IMG_FILE ]; then
-            ${pkgs.qemu}/bin/qemu-img create -f qcow2 $IMG_FILE 64G
+            ${qemu}/bin/qemu-img create -f qcow2 $IMG_FILE 64G
           fi
         fi
       ''
@@ -105,10 +108,10 @@
         fi
       ''
       + ''
-        eval "${pkgs.qemu}/bin/qemu-system-${stdenv.hostPlatform.qemuArch} ''${QEMU_PARAMS[@]} ''${@:2}"
+        eval "${qemu}/bin/qemu-system-${stdenv.hostPlatform.qemuArch} ''${QEMU_PARAMS[@]} ''${@:2}"
       '');
   windowsLauncherUI =
-    pkgs.writeShellScript
+    writeShellScript
     "windows-launcher-ui"
     (''
         if [[ -z "''${WAYLAND_DISPLAY}" ]]; then
@@ -124,10 +127,10 @@
         if [ ! -f "$FILE" ]; then
       ''
       + lib.optionalString stdenv.isAarch64 ''
-        FILE=`${pkgs.gnome.zenity}/bin/zenity --file-selection --title="Select Windows VM image (VHDX)"`
+        FILE=`${gnome.zenity}/bin/zenity --file-selection --title="Select Windows VM image (VHDX)"`
       ''
       + lib.optionalString stdenv.isx86_64 ''
-        FILE=`${pkgs.gnome.zenity}/bin/zenity --file-selection --title="Select Windows VM image (QCOW2 or ISO)"`
+        FILE=`${gnome.zenity}/bin/zenity --file-selection --title="Select Windows VM image (QCOW2 or ISO)"`
       ''
       + ''
           if [ ''$? -ne 0 ]; then
@@ -140,14 +143,14 @@
         fi
 
         if ! ${windowsLauncher} $FILE; then
-          ${pkgs.gnome.zenity}/bin/zenity --error --text="Failed to run Windows VM: $?"
+          ${gnome.zenity}/bin/zenity --error --text="Failed to run Windows VM: $?"
         fi
       '');
 in
   stdenvNoCC.mkDerivation {
     name = "windows-launcher";
 
-    buildInputs = [pkgs.gnome.zenity];
+    buildInputs = [gnome.zenity qemu OVMF];
 
     phases = ["installPhase"];
 
