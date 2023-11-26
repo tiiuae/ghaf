@@ -336,12 +336,13 @@
       ghaf.profiles.release.enable = true;
     }
   ];
-  gnomeModules = [{ghaf.virtualization.microvm.guivm.extraModules = [{ghaf.profiles.graphics.compositor = "gnome";}];}];
+  # TODO move Gnome to its own module repo
+  #gnomeModules = [{ghaf.virtualization.microvm.guivm.extraModules = [{ghaf.profiles.graphics.compositor = "gnome";}];}];
   targets = [
     (lenovo-x1 "debug" debugModules)
     (lenovo-x1 "release" releaseModules)
-    (lenovo-x1 "gnome-debug" (gnomeModules ++ debugModules))
-    (lenovo-x1 "gnome-release" (gnomeModules ++ releaseModules))
+    # (lenovo-x1 "gnome-debug" (gnomeModules ++ debugModules))
+    # (lenovo-x1 "gnome-release" (gnomeModules ++ releaseModules))
   ];
 in {
   flake.nixosConfigurations =
