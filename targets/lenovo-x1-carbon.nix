@@ -80,6 +80,8 @@
           in "${script}/bin/get-auth-keys";
           mode = "0555";
         };
+        # Add simple wi-fi connection helper
+        environment.systemPackages = lib.mkIf hostConfiguration.config.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli];
         services.openssh = {
           authorizedKeysCommand = "/etc/ssh/get-auth-keys";
           authorizedKeysCommandUser = "nobody";
