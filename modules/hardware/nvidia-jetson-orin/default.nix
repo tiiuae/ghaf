@@ -11,5 +11,7 @@
     ./pci-passthrough-common.nix
     ./agx-netvm-wlan-pci-passthrough.nix
     ./nx-netvm-ethernet-pci-passthrough.nix
+
+    ./ota-utils-fix.nix
   ];
 }
