@@ -46,23 +46,42 @@
       '';
     };
 
-    devShells.default = pkgs.mkShell {
-      name = "Ghaf devshell";
-      #TODO look at adding Mission control etc here
-      packages = with pkgs;
-        [
-          git
-          nix
-          nixos-rebuild
-          reuse
-          alejandra
-          mdbook
-          inputs'.nix-fast-build.packages.default
-        ]
-        ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") cachix;
+    devShells.default = let
+      nix-build-all = pkgs.writeShellApplication {
+        name = "nix-build-all";
+        runtimeInputs = let
+          devour-flake = pkgs.callPackage inputs.devour-flake {};
+        in [
+          pkgs.nix
+          devour-flake
+        ];
+        text = ''
+          # Make sure that flake.lock is sync
+          nix flake lock --no-update-lock-file
 
-      # TODO Add pre-commit.devShell (needs to exclude RiscV)
-      # https://flake.parts/options/pre-commit-hooks-nix
-    };
+          # Do a full nix build (all outputs)
+          devour-flake . "$@"
+        '';
+      };
+    in
+      pkgs.mkShell {
+        name = "Ghaf devshell";
+        #TODO look at adding Mission control etc here
+        packages = with pkgs;
+          [
+            git
+            nix
+            nixos-rebuild
+            reuse
+            alejandra
+            mdbook
+            nix-build-all
+            inputs'.nix-fast-build.packages.default
+          ]
+          ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") cachix;
+
+        # TODO Add pre-commit.devShell (needs to exclude RiscV)
+        # https://flake.parts/options/pre-commit-hooks-nix
+      };
   };
 }
