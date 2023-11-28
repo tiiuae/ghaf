@@ -14,8 +14,6 @@
   cfg = config.ghaf.hardware.nvidia.orin;
 
   images = config.system.build.${config.formatAttr};
-  espSize = builtins.readFile "${images}/esp.size";
-  rootSize = builtins.readFile "${images}/root.size";
   partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
     <partition name="master_boot_record" type="protective_master_boot_record">
       <allocation_policy> sequential </allocation_policy>
@@ -36,7 +34,7 @@
     <partition name="esp" id="2" type="data">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
-      <size> ${espSize} </size>
+      <size> ESP_SIZE </size>
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <percent_reserved> 0 </percent_reserved>
@@ -47,7 +45,7 @@
     <partition name="APP" id="1" type="data">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
-      <size> ${rootSize} </size>
+      <size> ROOT_SIZE </size>
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <align_boundary> 16384 </align_boundary>
@@ -129,8 +127,18 @@ in
           @pzstd@ -d "${images}/esp.img.zst" -o "$WORKDIR/bootloader/esp.img"
           echo "Decompressing ${images}/root.img.zst into $WORKDIR/root.img ..."
           @pzstd@ -d "${images}/root.img.zst" -o "$WORKDIR/root.img"
+
+          ESP_SIZE=$(cat "${images}/esp.size")
+          ROOT_SIZE=$(cat "${images}/root.size")
+
           echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
-          @sed@ -i -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" -e "s#root.img#$WORKDIR/root.img#" flash.xml
+          @sed@ -i \
+            -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
+            -e "s#root.img#$WORKDIR/root.img#" \
+            -e "s#ESP_SIZE#$ESP_SIZE#" \
+            -e "s#ROOT_SIZE#$ROOT_SIZE#" \
+            flash.xml
+
         ''
         + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
           echo "Flashing QSPI only, boot and root images not included."
