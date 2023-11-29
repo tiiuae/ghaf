@@ -21,27 +21,28 @@ NixOS provides several mechanisms to customize kernel. The main methods are:
   * [Usage in Ghaf](https://github.com/tiiuae/ghaf/blob/main/modules/host/kernel.nix)
   * Example of entering the kernel development shell to customize the `.config` and build it:
   ```
-  ~/ghaf $ nix develop .#devShells.x86_64-linux.kernel
+  ~/ghaf $ nix develop .#devShells.x86_64-linux.kernel-x86
   ...
-  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ make menuconfig
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ cp ../modules/host/ghaf_host_hardened_baseline .config
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ make menuconfig
   ...
-  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ make -j16
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ make -j$(nproc)
   ...
   Kernel: arch/x86/boot/bzImage
   ```
 * Boot the built kernel with QEMU
   ```
-  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
   ```
 * [validating with kernel hardening checker](https://github.com/a13xp0p0v/kernel-hardening-checker)
   ```
-  [ghaf-kernel-devshell:~/ghaf/linux-6.5.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
   [+] Kconfig file to check: ../modules/host/ghaf_host_hardened_baseline
-  [+] Detected microarchitecture: X86_32
-  [+] Detected kernel version: 6.5
+  [+] Detected microarchitecture: X86_64
+  [+] Detected kernel version: 6.6
   [+] Detected compiler: GCC 120200
   ...
-  [+] Config check is finished: 'OK' - 100 / 'FAIL' - 80
+  [+] Config check is finished: 'OK' - 103 / 'FAIL' - 84
   ```
 
 ### Host kernel
