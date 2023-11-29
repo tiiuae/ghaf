@@ -39,11 +39,15 @@
         # install kernel-hardening-checker via pip under "linux-<version" for
         # easy clean-up with directory removal - if not already installed
         if [ ! -f "_build/pip_packages/bin/kernel-hardening-checker" ]; then
-          python3 -m pip install git+https://github.com/a13xp0p0v/kernel-hardening-checker
+          python3 -m pip --disable-pip-version-check \
+            install git+https://github.com/a13xp0p0v/kernel-hardening-checker
         fi
 
         export PS1="[ghaf-kernel-devshell:\w]$ "
       '';
+      # use "eval $checkPhase" - see https://discourse.nixos.org/t/nix-develop-and-checkphase/25707
+      checkPhase = "cp ../modules/host/ghaf_host_hardened_baseline ./.config && make -j$(nproc)";
+
     };
 
     devShells.default = let
