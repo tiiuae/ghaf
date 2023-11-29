@@ -12,16 +12,37 @@
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
+  hwDefinition = {
+    name = "Lenovo X1 Carbon";
+    network.pciDevices = [
+      # Passthrough Intel WiFi card 8086:51f1
+      {
+        path = "0000:00:14.3";
+        vendorId = "8086";
+        productId = "51f1";
+      }
+    ];
+    gpu.pciDevices = [
+      # Passthrough Intel Iris GPU 8086:a7a1
+      {
+        path = "0000:00:02.0";
+        vendorId = "8086";
+        productId = "a7a1";
+      }
+    ];
+    virtioInputHostEvdevs = [
+      # Lenovo X1 touchpad and keyboard
+      "/dev/input/by-path/platform-i8042-serio-0-event-kbd"
+      "/dev/mouse"
+      "/dev/touchpad"
+      # Lenovo X1 trackpoint (red button/joystick)
+      "/dev/input/by-path/platform-i8042-serio-1-event-mouse"
+    ];
+  };
   lenovo-x1 = variant: extraModules: let
     netvmExtraModules = [
       ({pkgs, ...}: {
         microvm = {
-          devices = lib.mkForce [
-            {
-              bus = "pci";
-              path = "0000:00:14.3";
-            }
-          ];
           shares = [
             {
               tag = "waypipe-ssh-public-key";
@@ -96,16 +117,6 @@
         boot.initrd.kernelModules = ["i915"];
 
         microvm.qemu.extraArgs = [
-          # Lenovo X1 touchpad and keyboard
-          "-device"
-          "virtio-input-host-pci,evdev=/dev/input/by-path/platform-i8042-serio-0-event-kbd"
-          "-device"
-          "virtio-input-host-pci,evdev=/dev/mouse"
-          "-device"
-          "virtio-input-host-pci,evdev=/dev/touchpad"
-          # Lenovo X1 trackpoint (red button/joystick)
-          "-device"
-          "virtio-input-host-pci,evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse"
           # Lenovo X1 Lid button
           "-device"
           "button"
@@ -115,12 +126,6 @@
           # Lenovo X1 AC adapter
           "-device"
           "acad"
-        ];
-        microvm.devices = [
-          {
-            bus = "pci";
-            path = "0000:00:02.0";
-          }
         ];
       }
       ({pkgs, ...}: {
@@ -164,7 +169,11 @@
           ../modules/virtualization/microvm/netvm.nix
           ../modules/virtualization/microvm/guivm.nix
           ../modules/virtualization/microvm/appvm.nix
-          ({pkgs, ...}: {
+          ({
+            pkgs,
+            config,
+            ...
+          }: {
             services.udev.extraRules = ''
               # Laptop keyboard
               SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
@@ -195,6 +204,7 @@
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
             ghaf = {
+              hardware.definition = hwDefinition;
               host.kernel_hardening.enable = false;
 
               host.hypervisor_hardening.enable = false;
@@ -205,11 +215,48 @@
               host.networking.enable = true;
               virtualization.microvm.netvm = {
                 enable = true;
-                extraModules = netvmExtraModules;
+                extraModules = let
+                  configH = config;
+                  netvmPCIPassthroughModule = {
+                    microvm.devices = lib.mkForce (
+                      builtins.map (d: {
+                        bus = "pci";
+                        inherit (d) path;
+                      })
+                      configH.ghaf.hardware.definition.network.pciDevices
+                    );
+                  };
+                in
+                  [netvmPCIPassthroughModule]
+                  ++ netvmExtraModules;
               };
               virtualization.microvm.guivm = {
                 enable = true;
-                extraModules = guivmExtraModules;
+                extraModules = let
+                  configH = config;
+                  guivmPCIPassthroughModule = {
+                    microvm.devices = lib.mkForce (
+                      builtins.map (d: {
+                        bus = "pci";
+                        inherit (d) path;
+                      })
+                      configH.ghaf.hardware.definition.gpu.pciDevices
+                    );
+                  };
+                  guivmVirtioInputHostEvdevModule = {
+                    microvm.qemu.extraArgs =
+                      builtins.concatMap (d: [
+                        "-device"
+                        "virtio-input-host-pci,evdev=${d}"
+                      ])
+                      configH.ghaf.hardware.definition.virtioInputHostEvdevs;
+                  };
+                in
+                  [
+                    guivmPCIPassthroughModule
+                    guivmVirtioInputHostEvdevModule
+                  ]
+                  ++ guivmExtraModules;
               };
               virtualization.microvm.appvm = {
                 enable = true;
@@ -302,19 +349,24 @@
           # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
           # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
 
-          {
-            boot.kernelParams = [
+          ({config, ...}: {
+            boot.kernelParams = let
+              filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
+              mapPciIdsToString = builtins.map (d: "${d.vendorId}:${d.productId}");
+              vfioPciIds = mapPciIdsToString (filterDevices (
+                config.ghaf.hardware.definition.network.pciDevices
+                ++ config.ghaf.hardware.definition.gpu.pciDevices
+              ));
+            in [
               "intel_iommu=on,igx_off,sm_on"
               "iommu=pt"
               # Prevent i915 module from being accidentally used by host
               "module_blacklist=i915"
 
-              # Passthrough Intel WiFi card 8086:51f1
-              # Passthrough Intel Iris GPU 8086:a7a1
-              "vfio-pci.ids=8086:51f1,8086:a7a1"
+              "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
             ];
             boot.initrd.availableKernelModules = ["nvme"];
-          }
+          })
         ]
         ++ (import ../modules/module-list.nix)
         ++ extraModules;
