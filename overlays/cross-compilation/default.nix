@@ -9,5 +9,6 @@ _: {
     (import ./element-desktop.nix)
     (import ./perl.nix)
     (import ./libjack.nix)
+    (import ./firefox.nix)
   ];
 }
