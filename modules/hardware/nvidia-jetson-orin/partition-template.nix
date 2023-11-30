@@ -14,9 +14,10 @@
   cfg = config.ghaf.hardware.nvidia.orin;
 
   images = config.system.build.${config.formatAttr};
-  espSize = builtins.readFile "${images}/esp.size";
-  rootSize = builtins.readFile "${images}/root.size";
-  partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
+  partitionsEmmc = pkgs.runCommandNoCC "sdmmc.xml" {} ''
+    espSize=$(cat ${images}/esp.size);
+    rootSize=$(cat ${images}/root.size);
+    cat <<EOF >$out
     <partition name="master_boot_record" type="protective_master_boot_record">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
@@ -36,7 +37,7 @@
     <partition name="esp" id="2" type="data">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
-      <size> ${espSize} </size>
+      <size> $espSize </size>
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <percent_reserved> 0 </percent_reserved>
@@ -47,7 +48,7 @@
     <partition name="APP" id="1" type="data">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
-      <size> ${rootSize} </size>
+      <size> $rootSize </size>
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <align_boundary> 16384 </align_boundary>
@@ -56,7 +57,7 @@
       <filename> root.img </filename>
       <description> **Required.** Contains the rootfs. This partition must be assigned
         the "1" for id as it is physically put to the end of the device, so that it
-        can be accessed as the fixed known special device `/dev/mmcblk0p1`. </description>
+        can be accessed as the fixed known special device '/dev/mmcblk0p1'. </description>
     </partition>
     <partition name="secondary_gpt" type="secondary_gpt">
       <allocation_policy> sequential </allocation_policy>
@@ -66,6 +67,7 @@
       <allocation_attribute> 8 </allocation_attribute>
       <percent_reserved> 0 </percent_reserved>
     </partition>
+    EOF
   '';
   # When updating jetpack-nixos version, if the flash_t234_qspi_sdmmc.xml
   # changes (usually if the underlying BSP-version changes), you might need to

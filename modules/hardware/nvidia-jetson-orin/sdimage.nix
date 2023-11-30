@@ -54,8 +54,8 @@
     populateRootCommands = ''
     '';
     postBuildCommands = ''
-      wc -c firmware_part.img > $out/esp.size
-      wc -c root-fs.img > $out/root.size
+      wc -c <firmware_part.img > $out/esp.size
+      wc -c <root-fs.img > $out/root.size
 
       ${pkgs.pkgsBuildHost.zstd}/bin/zstd firmware_part.img -o $out/esp.img.zst
       ${pkgs.pkgsBuildHost.zstd}/bin/zstd root-fs.img -o $out/root.img.zst
