@@ -11,14 +11,8 @@
     # TODO: Refactor this later, if this gets proper implementation on the
     # 	    jetpack-nixos
     stdenv = pkgs.gcc9Stdenv;
-    inherit (jetpack-nixos.legacyPackages.${config.nixpkgs.buildPlatform.system}) bspSrc l4tVersion;
-    inherit
-      (pkgs.callPackages (jetpack-nixos + "/pkgs/optee") {
-        inherit bspSrc l4tVersion stdenv;
-      })
-      opteeClient
-      ;
-    inherit (config.hardware.nvidia-jetpack.devicePkgs) taDevKit teeSupplicant;
+    inherit (pkgs.nvidia-jetpack) l4tVersion opteeClient;
+    inherit (config.hardware.nvidia-jetpack.devicePkgs) taDevKit;
 
     opteeSource = pkgs.fetchgit {
       url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
@@ -72,39 +66,24 @@
       '';
     };
     pkcs11-tool-optee = pkgs.writeShellScriptBin "pkcs11-tool-optee" ''
-      exec "${pkgs.opensc}/bin/pkcs11-tool" --module "${teeSupplicant}/lib/libckteec.so" $@
+      exec "${pkgs.opensc}/bin/pkcs11-tool" --module "${opteeClient}/lib/libckteec.so" $@
     '';
   in {
-    hardware.nvidia-jetpack.firmware.optee.clientLoadPath =
-      pkgs.linkFarm "optee-load-path"
-      (
-        (
-          if config.ghaf.hardware.nvidia.orin.optee.xtest
-          then
-            (
-              let
-                xTestTaDir = "${opteeXtest}/ta";
-              in
-                builtins.map (
-                  ta: {
-                    name = "optee_armtz" + "/" + ta;
-                    path = xTestTaDir + "/" + ta;
-                  }
-                ) (builtins.attrNames (builtins.readDir xTestTaDir))
-            )
-          else []
-        )
-        ++ (
-          if config.ghaf.hardware.nvidia.orin.optee.pkcs11.enable
-          then [
-            {
-              name = "optee_armtz/fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";
-              path = "${pcks11Ta}/fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";
-            }
-          ]
-          else []
-        )
-      );
+    hardware.nvidia-jetpack.firmware.optee.trustedApplications = let
+      # TODO: These two should be changed to remove IFD
+      xTestTaDir = "${opteeXtest}/ta";
+      xTestTaPaths = builtins.map (ta: {
+        name = ta;
+        path = xTestTaDir + "/" + ta;
+      }) (builtins.attrNames (builtins.readDir xTestTaDir));
+      pkcs11TaPath = {
+        name = "fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";
+        path = "${pcks11Ta}/fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";
+      };
+      paths =
+        lib.optionals config.ghaf.hardware.nvidia.orin.optee.xtest xTestTaPaths
+        ++ lib.optional config.ghaf.hardware.nvidia.orin.optee.pkcs11.enable pkcs11TaPath;
+    in [(pkgs.linkFarm "optee-load-path" paths)];
 
     environment.systemPackages =
       []
