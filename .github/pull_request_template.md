@@ -23,7 +23,7 @@ Summary of the proposed changes in the PR description in your own words. For dep
   - [ ] Tested on Lenovo X1 `x86_64`
   - [ ] Tested on Jetson Orin NX or AGX `aarch64`
   - [ ] Tested on Polarfire `riscv64`
-- [ ] Author has run `nix flake check --accept-flake-config --allow-import-from-derivation` and it passes
+- [ ] Author has run `nix flake check --accept-flake-config` and it passes
 - [ ] All automatic Github Action checks pass - see [actions](https://github.com/tiiuae/ghaf/actions)
 - [ ] Author has added reviewers and removed PR draft status
 
