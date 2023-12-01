@@ -23,16 +23,16 @@
               echo "Disconnecting..."
       ''
       + lib.optionalString useNmcli ''
-              CONNECTION=$(nmcli d | grep -w wifi | grep -w connected |  awk '{print $4}')
-              if [ -z "$CONNECTION" ]; then
-                echo "No active Wi-Fi connection found";
-                exit 0;
-              fi
-              nmcli con down id $CONNECTION
+        CONNECTION=$(nmcli d | grep -w wifi | grep -w connected |  awk '{print $4}')
+        if [ -z "$CONNECTION" ]; then
+          echo "No active Wi-Fi connection found";
+          exit 0;
+        fi
+        nmcli con down id $CONNECTION
       ''
       + lib.optionalString (!useNmcli) ''
-              #Stop any running wpa_supplicant instances
-              pkill wpa_supplicant
+        #Stop any running wpa_supplicant instances
+        pkill wpa_supplicant
       ''
       + ''
               exit 0
