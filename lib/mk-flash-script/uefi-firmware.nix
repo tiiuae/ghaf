@@ -3,7 +3,7 @@
 #
 # This file has been copied from:
 # https://github.com/anduril/jetpack-nixos/blob/master/pkgs/uefi-firmware/default.nix
-{
+{jetpack-nixos}: {
   lib,
   stdenv,
   buildPackages,
@@ -90,12 +90,12 @@
           hash = "sha256-cc+eGLFHZ6JQQix1VWe/UOkGunAzPb8jM9SXa9ScIn8=";
         })
 
-        ./capsule-authentication.patch
+        (jetpack-nixos + "/pkgs/uefi-firmware/capsule-authentication.patch")
 
         # Have UEFI use the device tree compiled into the firmware, instead of
         # using one from the kernel-dtb partition.
         # See: https://github.com/anduril/jetpack-nixos/pull/18
-        ./edk2-uefi-dtb.patch
+        (jetpack-nixos + "/pkgs/uefi-firmware/edk2-uefi-dtb.patch")
       ];
     postPatch =
       lib.optionalString errorLevelInfo ''
@@ -117,7 +117,7 @@
 
   # Patches from upstream tianocore/edk2 for OpenSSL, to enable in-tree build
   # of OpenSSL 1.1.1t
-  opensslPatches = import ./edk2-openssl-patches.nix {
+  opensslPatches = import (jetpack-nixos + "/pkgs/uefi-firmware/edk2-openssl-patches.nix") {
     inherit fetchpatch2;
   };
 
