@@ -13,7 +13,7 @@ in
     (import ./nvidia-jetson-orin {inherit lib nixpkgs nixos-generators microvm jetpack-nixos;})
     (import ./vm.nix {inherit lib nixos-generators microvm;})
     (import ./generic-x86_64.nix {inherit lib nixos-generators microvm;})
-    (import ./lenovo-x1-carbon.nix {inherit lib nixos-generators microvm lanzaboote;})
+    (import ./lenovo-x1-carbon.nix {inherit lib inputs;})
     (import ./imx8qm-mek.nix {inherit lib nixos-generators nixos-hardware microvm;})
     (import ./microchip-icicle-kit.nix {inherit lib nixpkgs nixos-hardware;})
   ]

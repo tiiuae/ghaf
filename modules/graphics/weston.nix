@@ -8,6 +8,10 @@
 }: let
   cfg = config.ghaf.graphics.weston;
 in {
+  imports = [
+    ./window-manager.nix
+  ];
+
   options.ghaf.graphics.weston = {
     enable = lib.mkEnableOption "weston";
   };
