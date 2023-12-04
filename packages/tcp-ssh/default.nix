@@ -4,14 +4,12 @@
   stdenvNoCC,
   pkgs,
   lib,
-  stdenv,
   ...
 }: let
   tcp-ssh =
     pkgs.writeShellScript
     "tcp-ssh"
     ''
-      #!/bin/bash
 
       # Check if two arguments (HOST and PORT) are provided
       if [ $# -ne 2 ]; then
@@ -21,9 +19,9 @@
 
       HOST="$1"
       PORT="$2"
-      PID_FILE="/tmp/tcp-ssh-$PORT.pid"
+      PID_FILE="''${PID_PATH:-./}tcp-ssh-$PORT.pid"
 
-      # Stop any running tcp-ssh tunnel instances
+      # Stop any running tcp-ssh tunnel instances for the same tcp port
       if [ -f "$PID_FILE" ]; then
           # TODO Killing PID(s) in a file, potential for misuse
           ${pkgs.procps}/bin/pkill -F "$PID_FILE"
@@ -38,7 +36,7 @@
            -o StrictHostKeyChecking=no \
            -o ExitOnForwardFailure=yes \
            -L $PORT:127.0.0.1:$PORT $HOST &
-      # Chatch the last command process (ssh) PID
+      # Catch the last command process (ssh) PID
       PID="$!"
 
       # Sleep for a second to verify connection does not die immediately
