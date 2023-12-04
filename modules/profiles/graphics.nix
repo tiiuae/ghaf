@@ -23,6 +23,30 @@ in
       };
     };
 
+    options.ghaf.graphics = with lib; {
+      launchers = mkOption {
+        description = "Labwc application launchers to show in launch bar";
+        default = [];
+        type = with types;
+          listOf
+          (submodule {
+            options.name = mkOption {
+              description = "Name of the application";
+              type = str;
+            };
+            options.path = mkOption {
+              description = "Path to the executable to be launched";
+              type = path;
+            };
+            options.icon = mkOption {
+              description = "Path of the icon";
+              type = path;
+            };
+          });
+      };
+      enableDemoApplications = mkEnableOption "some applications for demoing";
+    };
+
     config = mkIf cfg.enable {
       ghaf.graphics.weston.enable = cfg.compositor == "weston";
       ghaf.graphics.gnome.enable = cfg.compositor == "gnome";

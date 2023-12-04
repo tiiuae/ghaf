@@ -8,10 +8,13 @@
 }: let
   cfg = config.ghaf.graphics.weston;
   mkLauncher = {
+    # Add the name field to unify with Labwc launchers
+    name,
     path,
     icon,
   }: ''
     [launcher]
+    name=${name}
     path=${path}
     icon=${icon}
 
@@ -29,33 +32,14 @@
     # Keep weston-terminal launcher always enabled explicitly since if someone adds
     # a launcher on the panel, the launcher will replace weston-terminal launcher.
     {
+      name = "terminal";
       path = "${pkgs.weston}/bin/weston-terminal";
       icon = "${pkgs.weston}/share/weston/icon_terminal.png";
     }
   ];
 in {
-  options.ghaf.graphics.weston = with lib; {
-    launchers = mkOption {
-      description = "Weston application launchers to show in launch bar";
-      default = [];
-      type = with types;
-        listOf
-        (submodule {
-          options.path = mkOption {
-            description = "Path to the executable to be launched";
-            type = path;
-          };
-          options.icon = mkOption {
-            description = "Path of the icon";
-            type = path;
-          };
-        });
-    };
-    enableDemoApplications = mkEnableOption "some applications for demoing";
-  };
-
   config = lib.mkIf cfg.enable {
-    ghaf.graphics.weston.launchers = defaultLauncher;
+    ghaf.graphics.launchers = defaultLauncher;
     environment.etc."xdg/weston/weston.ini" = {
       text =
         ''
@@ -79,7 +63,7 @@ in {
           font-size=16
 
         ''
-        + mkLaunchers cfg.launchers;
+        + mkLaunchers config.ghaf.graphics.launchers;
 
       # The UNIX file mode bits
       mode = "0644";

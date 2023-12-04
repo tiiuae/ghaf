@@ -20,7 +20,7 @@ in
       #       across different window managers.
       ghaf = {
         profiles.graphics.enable = true;
-        graphics.weston.enableDemoApplications = true;
+        graphics.enableDemoApplications = true;
       };
     };
   }

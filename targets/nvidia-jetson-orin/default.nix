@@ -107,7 +107,7 @@
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [
           {
-            ghaf.graphics.weston.enableDemoApplications = lib.mkForce false;
+            ghaf.graphics.enableDemoApplications = lib.mkForce false;
           }
         ];
       };

@@ -20,6 +20,7 @@
         path = "0000:00:14.3";
         vendorId = "8086";
         productId = "51f1";
+        name = "wlp0s5f0";
       }
     ];
     gpu.pciDevices = [
@@ -113,6 +114,7 @@
     ];
     guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
     winConfig = hostConfiguration.config.ghaf.windows-launcher;
+    networkDevice = hostConfiguration.config.ghaf.hardware.definition.network.pciDevices;
     guivmExtraModules = [
       {
         # Early KMS needed for GNOME to work inside GuiVM
@@ -128,31 +130,40 @@
           # Lenovo X1 AC adapter
           "-device"
           "acad"
+          # Connect sound device to hosts pulseaudio socket
+          "-audiodev"
+          "pa,id=pa1,server=unix:/run/pulse/native"
         ];
       }
       ({pkgs, ...}: {
-        ghaf.graphics.weston.launchers = [
+        ghaf.hardware.definition.network.pciDevices = networkDevice;
+        ghaf.graphics.launchers = [
           {
+            name = "chromium";
             path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
           }
 
           {
+            name = "gala";
             path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/app.png}";
           }
 
           {
+            name = "zathura";
             path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
             icon = "${../assets/icons/png/pdf.png}";
           }
 
           {
+            name = "windows";
             path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
             icon = "${../assets/icons/png/windows.png}";
           }
 
           {
+            name = "nm-launcher";
             path = "${pkgs.nm-launcher}/bin/nm-launcher";
             icon = "${pkgs.networkmanagerapplet}/share/icons/hicolor/22x22/apps/nm-device-wwan.png";
           }
