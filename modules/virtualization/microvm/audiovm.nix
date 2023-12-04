@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }: let
   configHost = config;
@@ -11,7 +10,10 @@
   macAddress = "02:00:00:02:03:04";
   audiovmBaseConfiguration = {
     imports = [
-      (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ./common/vm-networking.nix {
+        inherit vmName;
+        inherit macAddress;
+      })
       ({
         lib,
         pkgs,
@@ -43,31 +45,36 @@
         sound.enable = true;
         hardware.pulseaudio.enable = true;
         hardware.pulseaudio.systemWide = true;
-#        networking.firewall.interfaces.virbr0.allowedTCPPorts = [4713];
+        # Open firewall for pulseaudio (tcp and udp)
         networking.firewall.allowedTCPPorts = [4713];
+        networking.firewall.allowedUDPPorts = [9875];
 
-        # Allow microvm user to access pulseaudio
+        # Allow ghaf user to access pulseaudio
         users.extraUsers.ghaf.extraGroups = ["audio" "pulse-access"];
         # Enable and allow TCP connection from localhost only
         hardware.pulseaudio.tcp.enable = true;
-        hardware.pulseaudio.tcp.anonymousClients.allowedIpRanges = ["127.0.0.1" "192.168.101.2" "192.168.101.3"];
+        hardware.pulseaudio.tcp.anonymousClients.allowedIpRanges = ["127.0.0.1"];
+
         hardware.pulseaudio.extraConfig = ''
-            load-module module-native-protocol-unix
-            load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1;192.168.101.2;192.168.101.3
-            set-sink-volume @DEFAULT_SINK@ 60000
+          load-module module-native-protocol-tcp auth-ip-acl=127.0.0.1
+
+          # Listen for UDP connection from host (without broadcast)
+          load-module module-rtp-recv latency_msec=10 sap_address=0.0.0.0
+          set-sink-volume @DEFAULT_SINK@ 60000
         '';
+
+        hardware.pulseaudio.daemon.config = {
+          default-sample-rate = 44100;
+          alternate-sample-rate = 48000;
+          avoid-resampling = "yes";
+        };
 
         microvm = {
           optimize.enable = false;
           vcpu = 1;
-          mem = 1024;
+          mem = 256;
           hypervisor = "qemu";
           shares = [
-            {
-              tag = "rw-waypipe-ssh-public-key";
-              source = "/run/waypipe-ssh-public-key";
-              mountPoint = "/run/waypipe-ssh-public-key";
-            }
             {
               tag = "ro-store";
               source = "/nix/store";

@@ -82,9 +82,9 @@
     };
 
     audio = {
-      # TODO? Should add AudioVM enabler here?
-      # audiovm.enable = mkEnableOption = "AudioVM";
-
+      # With the current implementation, the whole PCI IOMMU group 14:
+      #   00:1f.x in the example from Lenovo X1 Carbon
+      #   must be defined for passthrough to AudioVM
       pciDevices = mkOption {
         description = "PCI Devices to passthrough to AudioVM";
         type = types.listOf pciDevSubmodule;
