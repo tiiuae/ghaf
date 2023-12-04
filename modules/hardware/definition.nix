@@ -29,6 +29,13 @@
             PCI Product ID (optional)
           '';
         };
+        name = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            PCI device name (optional)
+          '';
+        };
       };
     };
   in {

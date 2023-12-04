@@ -5,6 +5,7 @@
     ./weston.nix
     ./labwc.nix
     ./weston.ini.nix
+    ./waybar.config.nix
     ./demo-apps.nix
     ./fonts.nix
     ./gnome.nix

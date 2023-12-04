@@ -63,7 +63,7 @@ Each VM has the following properties:
 
 ## Adding Application Launcher in GUI VM
 
-To add an app launcher, add an element in the [guivm.nix](../../../modules/virtualization/microvm/guivm.nix) file to the **graphics.weston.launchers** list.
+To add an app launcher, add an element in the [guivm.nix](../../../modules/virtualization/microvm/guivm.nix) file to the **graphics.launchers** list.
 
 A launcher element has 2 properties:
 
