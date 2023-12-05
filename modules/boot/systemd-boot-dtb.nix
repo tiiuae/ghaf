@@ -9,6 +9,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cfg = config.ghaf.boot.loader.systemd-boot-dtb;
@@ -23,10 +24,10 @@ in
         extraFiles."dtbs/${config.hardware.deviceTree.name}" = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
         extraInstallCommands = ''
           # Find out the latest generation from loader.conf
-          default_cfg=$(cat /boot/loader/loader.conf | grep default | awk '{print $2}')
-          FILEHASH=$(sha256sum "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" | cut -d ' ' -f 1)
+          default_cfg=$(${pkgs.coreutils}/bin/cat /boot/loader/loader.conf | ${pkgs.gnugrep}/bin/grep default | ${pkgs.gawk}/bin/awk '{print $2}')
+          FILEHASH=$(${pkgs.coreutils}/bin/sha256sum "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" | ${pkgs.coreutils}/bin/cut -d ' ' -f 1)
           FILENAME="/dtbs/$FILEHASH.dtb"
-          cp -fv "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" "/boot$FILENAME"
+          ${pkgs.coreutils}/bin/cp -fv "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" "/boot$FILENAME"
           echo "devicetree $FILENAME" >> /boot/loader/entries/$default_cfg
         '';
       };
