@@ -47,7 +47,6 @@
       '';
       # use "eval $checkPhase" - see https://discourse.nixos.org/t/nix-develop-and-checkphase/25707
       checkPhase = "cp ../modules/host/ghaf_host_hardened_baseline ./.config && make -j$(nproc)";
-
     };
 
     devShells.default = let
