@@ -131,8 +131,7 @@
     in [(pkgs.linkFarm "optee-load-path" paths)];
 
     environment.systemPackages =
-      []
-      ++ (lib.optional config.ghaf.hardware.nvidia.orin.optee.pkcs11-tool pkcs11-tool-optee)
+      (lib.optional config.ghaf.hardware.nvidia.orin.optee.pkcs11-tool pkcs11-tool-optee)
       ++ (lib.optional config.ghaf.hardware.nvidia.orin.optee.xtest opteeXtest);
   }
 )
