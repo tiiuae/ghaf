@@ -1,3 +1,8 @@
+# Copyright 2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# edk2 & OVMF cross-compilation fixes
+#
 (final: prev: {
   edk2 = prev.edk2.overrideAttrs (oa: {
     # Fix cross-compilation issue, use build cc/c++ for building antlr and dlg
