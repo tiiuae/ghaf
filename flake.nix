@@ -25,7 +25,7 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
 
     #
     # Flake and repo structuring configurations
@@ -40,10 +40,13 @@
 
     lib-extras = {
       url = "github:aldoborrero/lib-extras";
-      inputs.flake-parts.follows = "flake-parts";
-      inputs.flake-root.follows = "flake-root";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.treefmt-nix.follows = "treefmt-nix";
+      inputs = {
+        devshell.follows = "devshell";
+        flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
+        nixpkgs.follows = "nixpkgs";
+        treefmt-nix.follows = "treefmt-nix";
+      };
     };
 
     # Format all the things
@@ -69,17 +72,28 @@
       flake = false;
     };
 
-    # TODO follow our nixpkgs when we move to 23.11
     nix-fast-build = {
       url = "github:Mic92/nix-fast-build";
       inputs = {
-        treefmt-nix.follows = "treefmt-nix";
         flake-parts.follows = "flake-parts";
+        nixpkgs.follows = "nixpkgs";
+        treefmt-nix.follows = "treefmt-nix";
       };
     };
 
-    #TODO Delete this
-    flake-utils.url = "github:numtide/flake-utils";
+    # Dependencies used by other inputs
+    systems.url = "github:nix-systems/default";
+    devshell = {
+      url = "github:numtide/devshell";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        systems.follows = "systems";
+      };
+    };
+    flake-utils = {
+      url = "github:numtide/flake-utils";
+      inputs.systems.follows = "systems";
+    };
 
     # Used to evaluate a flake outputs all at once
     devour-flake = {
