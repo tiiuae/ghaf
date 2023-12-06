@@ -5,12 +5,11 @@
 #
 _: {
   nixpkgs.overlays = [
-    (import ./sysbench.nix)
-    (import ./element-desktop.nix)
-    (import ./perl.nix)
-    (import ./libjack.nix)
-    (import ./firefox.nix)
     (import ./edk2.nix)
+    (import ./element-desktop.nix)
+    (import ./firefox.nix)
     (import ./jbig2dec.nix)
+    (import ./libjack.nix)
+    (import ./sysbench.nix)
   ];
 }
