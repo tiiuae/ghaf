@@ -9,7 +9,7 @@
   cfg = config.ghaf.graphics.weston;
 in {
   config = lib.mkIf cfg.enable {
-    fonts.fonts = with pkgs; [
+    fonts.packages = with pkgs; [
       fira-code
       hack-font
     ];
