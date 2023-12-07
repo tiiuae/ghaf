@@ -13,6 +13,9 @@ permissions:
   contents: read
 
 jobs:
+  # This workflow uses environment-based authorization together
+  # with 'pull_request_target' trigger as explained in:
+  # https://ssrc.atlassian.net/wiki/x/OABjMg
   check-identity:
     runs-on: ubuntu-latest
     outputs:
