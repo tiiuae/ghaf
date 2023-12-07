@@ -3,7 +3,7 @@
 #
 # This overlay customizes weston - see comments for details
 #
-(_final: prev: {
+(final: prev: {
   weston =
     # First, weston package is overridden
     (
@@ -19,8 +19,10 @@
     )
     # and then this overridden package's attributes are overridden
     .overrideAttrs (
-      _prevAttrs: {
-        patches = [./weston-backport-workspaces.patch];
-      }
+      _prevAttrs:
+      # TODO: Add patch for 13.0 which is coming in NixOS 24.05
+        final.lib.optionalAttrs ((final.lib.versions.majorMinor prev.weston.version) == "12.0") {
+          patches = [./weston-backport-workspaces.patch];
+        }
     );
 })
