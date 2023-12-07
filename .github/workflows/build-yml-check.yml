@@ -15,12 +15,12 @@ jobs:
       result: ${{ steps.set-output.outputs.result }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           fetch-depth: 2
       - name: Check if build.yml is modified
         id: build-yml-changed
-        uses: tj-actions/changed-files@v39
+        uses: tj-actions/changed-files@v40
         with:
           files: .github/workflows/build.yml
       - name: Set output

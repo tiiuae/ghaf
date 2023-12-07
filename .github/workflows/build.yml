@@ -133,11 +133,11 @@ jobs:
       - name: Print runner system info
         run: sudo apt-get install -y inxi; sudo inxi -c0 --width -1 --basic --memory-short
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
       - name: Install nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v24
         with:
           extra_nix_config: |
             trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:8NhplARANhClUSWJyLVk4WMyy1Wb4rhmWW2u8AejH9E= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=

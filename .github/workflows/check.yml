@@ -14,9 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Install nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v24
       - name: Check .nix formatting
         run: nix fmt -- --fail-on-change
       - name: Check reuse lint
