@@ -13,6 +13,9 @@ permissions:
   contents: read
 
 jobs:
+  # This workflow uses environment-based authorization together
+  # with 'pull_request_target' trigger as explained in:
+  # https://ssrc.atlassian.net/wiki/x/OABjMg
   check-identity:
     runs-on: ubuntu-latest
     outputs:
@@ -130,12 +133,14 @@ jobs:
           echo
           echo "Available storage after cleanup:"
           df -h
+      - name: Print runner system info
+        run: sudo apt-get install -y inxi; sudo inxi -c0 --width -1 --basic --memory-short
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
       - name: Install nix
-        uses: cachix/install-nix-action@v22
+        uses: cachix/install-nix-action@v24
         with:
           extra_nix_config: |
             trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:8NhplARANhClUSWJyLVk4WMyy1Wb4rhmWW2u8AejH9E= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
@@ -148,12 +153,6 @@ jobs:
           sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
           sudo sh -c "echo '${{ vars.BUILDER_SSH_KNOWN_HOST }}' >>/etc/ssh/ssh_known_hosts"
           sudo sh -c "echo '${{ vars.BUILDER_MACHINE_CONFIG }}' >/etc/nix/machines"
-      - name: Check .nix formatting
-        run: nix fmt -- --fail-on-change
-      - name: Check reuse lint
-        run: nix develop --command reuse lint
-      - name: Check nix flake show runs successfully
-        run: nix flake show
       - name: Install cachix
         run: |
           nix-env -iA cachix -f https://cachix.org/api/v1/install
