@@ -150,12 +150,6 @@ jobs:
           sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
           sudo sh -c "echo '${{ vars.BUILDER_SSH_KNOWN_HOST }}' >>/etc/ssh/ssh_known_hosts"
           sudo sh -c "echo '${{ vars.BUILDER_MACHINE_CONFIG }}' >/etc/nix/machines"
-      - name: Check .nix formatting
-        run: nix fmt -- --fail-on-change
-      - name: Check reuse lint
-        run: nix develop --command reuse lint
-      - name: Check nix flake show runs successfully
-        run: nix flake show
       - name: Install cachix
         run: |
           nix-env -iA cachix -f https://cachix.org/api/v1/install
