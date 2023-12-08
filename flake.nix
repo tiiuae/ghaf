@@ -137,6 +137,14 @@
         flake-compat.follows = "flake-compat";
       };
     };
+
+    #TODO dummy
+    #    for provisioning secrets that can be embedded in the configuration
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.nixpkgs-stable.follows = "nixpkgs";
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}: let
