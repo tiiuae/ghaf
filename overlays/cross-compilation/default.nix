@@ -9,7 +9,6 @@ _: {
     (import ./element-desktop.nix)
     (import ./firefox.nix)
     (import ./jbig2dec.nix)
-    (import ./libjack.nix)
     (import ./sysbench.nix)
   ];
 }
