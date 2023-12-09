@@ -27,37 +27,10 @@
 
   inherit (jetpack-nixos.legacyPackages.${devicePkgsSystem}) l4tVersion;
 
-  pkgsAarch64 =
-    if isCross
-    then nixpkgs.legacyPackages.x86_64-linux.pkgsCross.aarch64-multiplatform
-    else nixpkgs.legacyPackages.aarch64-linux;
-
-  inherit
-    (pkgsAarch64.callPackages
-      (import ./uefi-firmware.nix {
-        inherit jetpack-nixos;
-      }) {
-        inherit l4tVersion;
-      })
-    uefi-firmware
-    ;
-
-  ghaf-uefi-firmware = uefi-firmware.override ({
-      bootLogo = cfg.firmware.uefi.logo;
-      inherit (cfg.firmware.uefi) debugMode;
-      inherit (cfg.firmware.uefi) errorLevelInfo;
-      inherit (cfg.firmware.uefi) edk2NvidiaPatches;
-      inherit (cfg.firmware.uefi) edk2UefiPatches;
-    }
-    // nixpkgs.lib.optionalAttrs cfg.firmware.uefi.capsuleAuthentication.enable {
-      inherit (cfg.firmware.uefi.capsuleAuthentication) trustedPublicCertPemFile;
-    });
-
   flashScript = devicePkgs.mkFlashScript {
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;
     });
-    uefi-firmware = ghaf-uefi-firmware;
     inherit (hostConfiguration.config.ghaf.hardware.nvidia.orin.flashScriptOverrides) preFlashCommands;
   };
 
