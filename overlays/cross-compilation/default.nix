@@ -7,7 +7,6 @@ _: {
   nixpkgs.overlays = [
     (import ./edk2.nix)
     (import ./element-desktop.nix)
-    (import ./firefox.nix)
     (import ./jbig2dec.nix)
     (import ./sysbench.nix)
   ];
