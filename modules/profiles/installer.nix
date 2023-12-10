@@ -9,10 +9,12 @@
   cfg = config.ghaf.profiles.installer;
 in
   with lib; {
-    options.ghaf.profiles.installer.enable = mkEnableOption "installer profile";
+    options.ghaf.profiles.installer = {
+      enable = mkEnableOption "installer profile";
+    };
 
     config = mkIf cfg.enable {
-      # Use less privileged ghaf user
+      # TODO Use less privileged ghaf user
       users.users.ghaf = {
         isNormalUser = true;
         extraGroups = ["wheel" "networkmanager" "video"];

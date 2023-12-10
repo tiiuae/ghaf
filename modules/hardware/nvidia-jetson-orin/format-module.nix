@@ -5,9 +5,21 @@
 # nixos-generators flake input as an argument.
 #
 {
+  lib,
+  config,
+  ...
+}: let
+  cgf = config.ghaf.hardware.nvidia.orin;
+in {
   imports = [
     ./sdimage.nix
   ];
 
-  formatAttr = "sdImage";
+  # TODO this is default requirement
+  # so enabled at the top level of the orin being enabled
+
+  # TODO However, should this be exposed raw like this?
+  config = lib.mkIf cfg.enable {
+    formatAttr = "sdImage";
+  };
 }

@@ -7,6 +7,30 @@
   ...
 }: let
   cfg = config.ghaf.graphics.weston;
+  mkLauncher = {
+    path,
+    icon,
+  }: ''
+    [launcher]
+    path=${path}
+    icon=${icon}
+
+  '';
+
+  #
+  # Generate launchers to be used in weston.ini
+  # Type: mkLaunchers :: [{path, icon}] -> string
+
+  mkLaunchers = lib.concatMapStrings mkLauncher;
+
+  defaultLauncher = [
+    # Keep weston-terminal launcher always enabled explicitly since if someone adds
+    # a launcher on the panel, the launcher will replace weston-terminal launcher.
+    {
+      path = "${pkgs.weston}/bin/weston-terminal";
+      icon = "${pkgs.weston}/share/weston/icon_terminal.png";
+    }
+  ];
 in {
   imports = [
     ./window-manager.nix
@@ -14,10 +38,29 @@ in {
 
   options.ghaf.graphics.weston = {
     enable = lib.mkEnableOption "weston";
+
+    launchers = with lib;
+      mkOption {
+        description = "Weston application launchers to show in launch bar";
+        default = [];
+        type = with types;
+          listOf
+          (submodule {
+            options.path = mkOption {
+              description = "Path to the executable to be launched";
+              type = path;
+            };
+            options.icon = mkOption {
+              description = "Path of the icon";
+              type = path;
+            };
+          });
+      };
   };
 
   config = lib.mkIf cfg.enable {
     ghaf.graphics.window-manager-common.enable = true;
+    ghaf.graphics.weston.launchers = defaultLauncher;
 
     environment.systemPackages = with pkgs; [
       weston
@@ -72,6 +115,35 @@ in {
         Environment = "XDG_CONFIG_DIRS=$XDG_CONFIG_DIRS:/etc/xdg PATH=${pkgs.openssh}/bin:$PATH";
       };
       wantedBy = ["default.target"];
+    };
+
+    environment.etc."xdg/weston/weston.ini" = {
+      text =
+        ''
+          # Disable screen locking
+          [core]
+          idle-time=0
+
+          [shell]
+          locking=false
+          background-image=${../../assets/wallpaper.png}
+          background-type=scale-crop
+          num-workspaces=2
+
+          # Set the keyboard layout for weston to US by default
+          [keyboard]
+          keymap_layout=us,fi
+
+          # Enable Hack font for weston-terminal
+          [terminal]
+          font=Hack
+          font-size=16
+
+        ''
+        + mkLaunchers cfg.launchers;
+
+      # The UNIX file mode bits
+      mode = "0644";
     };
   };
 }

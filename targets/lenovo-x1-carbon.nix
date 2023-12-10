@@ -3,11 +3,13 @@
 #
 # Generic x86_64 computer -target
 {
+  self,
   lib,
   inputs,
+  config,
   ...
 }: let
-  inherit (inputs) nixos-generators microvm lanzaboote config;
+  inherit (inputs) nixos-generators;
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
@@ -139,13 +141,17 @@
       specialArgs = {inherit lib;};
       modules =
         [
-          lanzaboote.nixosModules.lanzaboote
-          microvm.nixosModules.host
-          ../modules/host
-          ../modules/virtualization/microvm/microvm-host.nix
-          ../modules/virtualization/microvm/netvm.nix
-          ../modules/virtualization/microvm/guivm.nix
-          ../modules/virtualization/microvm/appvm.nix
+          self.nixosModules.graphics
+          self.nixosModules.hardware.definition
+          self.nixosModules.hardware.x86_64-linux.common
+          self.nixosModules.host.x86_64-linux
+          self.nixosModules.host.networking
+          self.nixosModules.installer
+          self.nixosModules.profiles
+          self.nixosModules.windows-launcher
+
+          #incldes all microvm host modules
+          self.nixosModules.virtualization.microvm
           ({
             pkgs,
             config,
@@ -186,7 +192,8 @@
 
               host.hypervisor_hardening.enable = false;
 
-              hardware.x86_64.common.enable = true;
+              host.x86_64-linux.enable = true;
+              hardware.x86_64-linux.common.enable = true;
 
               profiles.graphics.enable = true;
               graphics.displayManager = "weston";
@@ -307,8 +314,8 @@
             ];
             boot.initrd.availableKernelModules = ["nvme"];
           })
-        ]
-        ++ (import ../modules/module-list.nix)
+        ] # TODO Import the real modules
+        #++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
   in {
@@ -317,14 +324,11 @@
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   debugModules = [
-    ../modules/development/usb-serial.nix
+    self.nixosModules.development
     {
       ghaf.development.usb-serial.enable = true;
       ghaf.profiles.debug.enable = true;
-    }
-    ../modules/host/secureboot.nix
-    {
-      ghaf.host.secureboot.enable = false;
+      ghaf.host.x86_64-linux.secureboot.enable = false;
     }
   ];
   releaseModules = [

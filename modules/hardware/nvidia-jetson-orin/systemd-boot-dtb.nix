@@ -6,16 +6,17 @@
 # By setting this option to true, device tree file gets copied to
 # /boot-partition, and gets added to systemd-boot's entry.
 #
+# TODO should this be moved under hardware
 {
   config,
   lib,
   pkgs,
   ...
 }: let
-  cfg = config.ghaf.boot.loader.systemd-boot-dtb;
+  cfg = config.ghaf.hardware.nvidia.orin.systemd-boot-dtb;
 in
   with lib; {
-    options.ghaf.boot.loader.systemd-boot-dtb = {
+    options.ghaf.hardware.nvidia.orin.systemd-boot-dtb = {
       enable = mkEnableOption "systemd-boot-dtb";
     };
 

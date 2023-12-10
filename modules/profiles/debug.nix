@@ -20,8 +20,8 @@ in
         # Enable development on target
         development = {
           nix-setup.enable = true;
-          # Enable some basic monitoring and debug tools
-          debug.tools.enable = true;
+          # Enable some basic monitoring and debug-tools
+          debug-tools.enable = true;
           # Let us in.
           ssh.daemon.enable = true;
         };

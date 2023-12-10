@@ -163,17 +163,13 @@
       ];
 
       imports = [
+        ./hydrajobs.nix
+        ./modules
         ./nix
         ./packages
         ./targets
-        ./hydrajobs.nix
         ./templates
       ];
-
-      #TODO Fix this
-      #flake.nixosModules = with lib;
-      #  mapAttrs (_: import)
-      #  (flattenTree (rakeLeaves ./modules));
 
       flake.lib = lib;
     };

@@ -3,11 +3,17 @@
 {
   config,
   lib,
+  inputs,
   ...
 }: let
   cfg = config.ghaf.virtualization.microvm-host;
+  inherit (inputs) microvm;
 in
   with lib; {
+    imports = [
+      microvm.nixosModules.host
+    ];
+
     options.ghaf.virtualization.microvm-host = {
       enable = mkEnableOption "MicroVM Host";
     };

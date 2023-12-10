@@ -14,6 +14,7 @@
   # mkAfter needed here so that we can be sure the overlay is after the overlay
   # included from jetpack-nixos. Otherwise it will just override the whole
   # nvidia-jetpack set.
+  # TODO remove when merged to upstream
   nixpkgs.overlays = lib.mkAfter [
     (_final: prev: {
       nvidia-jetpack =

@@ -9,6 +9,8 @@
 }: let
   cfg = config.ghaf.programs.firefox;
 
+  # TODO do we need this permanently
+  # Could we not just copy the icon from the firefox package
   #
   # Scaled down firefox icon
   #
@@ -24,41 +26,39 @@ in {
     enable = lib.mkEnableOption "Enable Firefox and launchers";
   };
 
-  environment.systemPackages = lib.mkIf isHostOnly [pkgs.firefox];
-  # Determine if we are running in the host-only or a vm
-  # TODO generalize the launchers to support other transport mechanisms
-  # and window managers (framework/launchers.nix)
-  # TODO add launcher for the VM case
-  ghaf.graphics.weston.launchers =
-    (ho: {
-      path =
-        if ho
-        then "${pkgs.firefox}/bin/firefox"
-        else "";
-      icon =
-        if ho
-        then "${firefox-icon}/share/icons/hicolor/24x24/apps/firefox.png"
-        else "";
-    })
-    isHostOnly;
+  config = lib.mkIf cfg.enable {
+    # TODO add launcher for the VM case
+    ghaf.graphics.weston.launchers =
+      (ho: {
+        path =
+          if ho
+          then "${pkgs.firefox}/bin/firefox"
+          else "";
+        icon =
+          if ho
+          then "${firefox-icon}/share/icons/hicolor/24x24/apps/firefox.png"
+          else "";
+      })
+      isHostOnly;
 
-  # If running in the host add the app to the system packages
-  environment.systemPackages = lib.mkIf isHostOnly [pkgs.firefox];
+    # If running in the host add the app to the system packages
+    environment.systemPackages = lib.mkIf isHostOnly [pkgs.firefox];
 
-  #If running in a virtualized platform define the vm configuration
-  # TODO can this be generalized into a "vm maker function
-  # TODO Test this in a VM
-  ghaf.virtualization.microvm.appvm.vms = lib.mkIf (! isHostOnly) {
-    name = "firefox";
-    packages = [pkgs.firefox];
-    macAddress = "02:00:00:03:08:01";
-    ramMb = 1536;
-    cores = 2;
-    extraModules = [
-      {
-        # TODO What does Firefox need in the VM
-        # Likely same as chrome so an either/or?
-      }
-    ];
+    #If running in a virtualized platform define the vm configuration
+    # TODO can this be generalized into a "vm maker function
+    # TODO Test this in a VM
+    ghaf.virtualization.microvm.appvm.vms = lib.mkIf (! isHostOnly) {
+      name = "firefox";
+      packages = [pkgs.firefox];
+      macAddress = "02:00:00:03:08:01";
+      ramMb = 1536;
+      cores = 2;
+      extraModules = [
+        {
+          # TODO What does Firefox need in the VM
+          # Likely same as chrome so an either/or?
+        }
+      ];
+    };
   };
 }

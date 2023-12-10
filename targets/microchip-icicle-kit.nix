@@ -3,6 +3,7 @@
 #
 # Polarfire Enablement Kit
 {
+  self,
   lib,
   nixpkgs,
   nixos-hardware,
@@ -15,8 +16,12 @@
       specialArgs = {inherit lib;};
       modules =
         [
+          # TODO only include the required modules
           nixos-hardware.nixosModules.microchip-icicle-kit
-          ../modules/hardware/polarfire/mpfs-nixos-sdimage.nix
+          self.nixosModules.hardeare.polarfire
+          # TODO delete this line
+          #../modules/hardware/polarfire/mpfs-nixos-sdimage.nix
+          # TODO What was it looking for in the host ??
           ../modules/host
 
           {
@@ -30,7 +35,10 @@
             };
 
             # Disable all the default UI applications
+            # TODO can remove most of this when only correct modules are imported
             ghaf = {
+              hardware.polarfire.mpfs.enable = true;
+
               profiles = {
                 applications.enable = false;
                 graphics.enable = false;
@@ -39,7 +47,7 @@
                 debug.enable = variant == "debug";
               };
               development = {
-                debug.tools.enable = variant == "debug";
+                debug-tools.enable = variant == "debug";
                 ssh.daemon.enable = true;
               };
               windows-launcher.enable = false;
@@ -52,6 +60,8 @@
             disabledModules = ["profiles/all-hardware.nix"];
           }
         ]
+        # TODO Only enable the modules that we want
+        # TODO remove this line
         ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };

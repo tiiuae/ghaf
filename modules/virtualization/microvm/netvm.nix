@@ -19,7 +19,7 @@
             # NOTE: SSH port also becomes accessible on the network interface
             #       that has been passed through to NetVM
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
+            debug-tools.enable = lib.mkDefault configHost.ghaf.development.debug-tools.enable;
           };
         };
 
@@ -90,7 +90,7 @@
               mountPoint = "/nix/.ro-store";
             }
           ];
-          writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+          writableStoreOverlay = lib.mkIf config.ghaf.development.debug-tools.enable "/nix/.rw-store";
         };
 
         imports = import ../../module-list.nix;

@@ -7,9 +7,13 @@
   lanzaboote,
   ...
 }: let
-  cfg = config.ghaf.host.secureboot;
+  cfg = config.ghaf.host.x86_64-linux.secureboot;
 in {
-  options.ghaf.host.secureboot = {
+  imports = [
+    lanzaboote.nixosModules.lanzaboote
+  ];
+
+  options.ghaf.host.x86_64-linux.secureboot = {
     enable = lib.mkEnableOption "Host secureboot";
   };
 

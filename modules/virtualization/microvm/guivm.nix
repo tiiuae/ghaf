@@ -26,7 +26,7 @@
           windows-launcher.enable = false;
           development = {
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
+            debug-tools.enable = lib.mkDefault configHost.ghaf.development.debug-tools.enable;
           };
         };
 
@@ -84,7 +84,7 @@
               mountPoint = "/nix/.ro-store";
             }
           ];
-          writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+          writableStoreOverlay = lib.mkIf config.ghaf.development.debug-tools.enable "/nix/.rw-store";
 
           qemu.extraArgs = [
             "-device"

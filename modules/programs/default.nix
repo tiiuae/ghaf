@@ -1,3 +1,5 @@
+# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 {
   config,
   lib,
@@ -28,7 +30,7 @@ in {
   };
 
   config = lib.mkIf cfg.enableAllApps {
-    ghaf.programs.chrome.enable = true;
+    ghaf.programs.chromium.enable = true;
     ghaf.programs.element-desktop.enable = true;
     ghaf.programs.firefox.enable = true;
     ghaf.programs.gala.enable = true;

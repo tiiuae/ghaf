@@ -12,6 +12,7 @@
     echo "${lib.ghaf-version}"
   '';
 in {
+  #TODO this has not module setup
   environment.systemPackages = [
     ghafVersion
   ];

@@ -32,6 +32,7 @@ in
 
     config = mkIf cfg.enable {
       users = {
+        #TODO should not be mutable even for development/debug
         mutableUsers = true;
         users."${cfg.user}" = {
           isNormalUser = true;

@@ -3,6 +3,7 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }: let
   cfg = config.ghaf.graphics;
@@ -10,8 +11,6 @@ in {
   imports = [
     ./weston.nix
     ./labwc.nix
-    ./weston.ini.nix
-    ./fonts.nix
     ./gnome.nix
   ];
 
@@ -33,5 +32,13 @@ in {
     ghaf.graphics.weston.enable = cfg.displayManager == "weston";
     ghaf.graphics.gnome.enable = cfg.displayManager == "gnome";
     ghaf.graphics.labwc.enable = cfg.displayManager == "labwc";
+
+    fonts.packages = with pkgs; [
+      fira
+      fira-code
+      hack-font
+    ];
+    # Install a modern terminal
+    environment.systemPackages = [pkgs.kitty];
   };
 }

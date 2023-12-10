@@ -14,7 +14,9 @@ in
     };
 
     config = mkIf cfg.enable {
-      #cfg.isHostOnly = true;
-      #TODO do we actually want to set anything else
+      # TODO how should we set this
+      #ghaf.profiles.hostOnly.isHostOnly = true;
+
+      # TODO do we actually want to set anything else
     };
   }
