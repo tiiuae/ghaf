@@ -13,8 +13,6 @@
     # root cause are done so far.
     #(modulesPath + "/profiles/minimal.nix")
 
-    ../../overlays/custom-packages
-
     ./kernel.nix
 
     # TODO: Refactor this under virtualization/microvm/host/networking.nix

@@ -103,12 +103,5 @@ in
     config = mkIf kern_cfg.enable {
       boot.kernelPackages = pkgs.linuxPackagesFor hardened_kernel;
       boot.kernelPatches = mkIf (hyp_cfg.enable && "${baseKernel.version}" == "6.1.55") pkvm_patch;
-      # https://github.com/NixOS/nixpkgs/issues/109280#issuecomment-973636212
-      nixpkgs.overlays = [
-        (_final: prev: {
-          makeModulesClosure = x:
-            prev.makeModulesClosure (x // {allowMissing = true;});
-        })
-      ];
     };
   }
