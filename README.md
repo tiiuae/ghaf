@@ -19,6 +19,9 @@ This repository contains the source files (code and documentation) of Ghaf Frame
 
 For information on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/ref_impl/reference_implementations.html) section of Ghaf documentation.
 
+### OPENSSF Scorecard
+
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/vjuntunen/ghaf-scorecard/badge)](https://securityscorecards.dev/viewer/?uri=github.com/vjuntunen/ghaf-scorecard)
 
 ### Other Project Repositories
 
