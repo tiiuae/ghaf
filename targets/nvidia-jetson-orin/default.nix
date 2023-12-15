@@ -57,6 +57,12 @@
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
               };
 
+              hardware.nvidia = {
+                virtualization.enable = false;
+                virtualization.host.bpmp.enable = false;
+                passthroughs.host.uarta.enable = false;
+              };
+
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
 

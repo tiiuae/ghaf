@@ -1,0 +1,333 @@
+diff --git a/README.md b/README.md
+new file mode 100644
+index 0000000000..6cd9f77b77
+--- /dev/null
++++ b/README.md
+@@ -0,0 +1,50 @@
++
++# Short intstructions:
++
++
++1. git clone https://gitlab.com/qemu-project/qemu.git
++2  cd qemu
++3  git checkout -b v8.0.5
++4 ./configure --target-list=aarm64-softmmu
++5  make -j12
++
++
++
++Device memory map:
++
++0x090c0000 +  /* Base address, size 0x01000 */
++
++     0x0000 \ Tx buffer
++     0x01FF /
++     0x0200 \ Rx buffer
++     0x03FF /
++     0x0400  -- Tx size
++     0x0408  -- Rx size
++     0x0410  -- Ret
++     0x0500  -- mrq
++
++
++
++ Data should be aligned to 64bit paragraph.
++
++ Protocol is:
++ 1. Write data buffers to 0x0000-0x01FF and 0x0200-0x03FF
++ 2. Write buffer sizes to 0x0400 (Tx) and 0x0408 (Rx)
++ 2. Start operation by writing mrq opcode to address 0x0500
++ 3. Read ret code from 0x0410 and response data from the buffers
++
++
++For reading and writing busybox may be used as:
++
++      busybox devmem 0x090c0000
++
++and so on
++
++For instance, to reset the UARTA (with ID 0x64) you can sed the next
++command:
++
++      busybox devmem 0x090c0000 64 0x0000006400000001
++      busybox devmem 0x090c0400 8 0x08
++      busybox devmem 0x090c0500 8 0x14
++
++```
+diff --git a/configure.sh b/configure.sh
+new file mode 100755
+index 0000000000..fe2f5aaa2a
+--- /dev/null
++++ b/configure.sh
+@@ -0,0 +1 @@
++./configure --target-list=aarch64-softmmu --enable-sdl --enable-gtk -enable-vhost-kernel --enable-vhost-net --enable-vhost-user --enable-vhost-user-blk-server --enable-vfio-user-server --enable-vhost-crypto --enable-vhost-vdpa --enable-virglrenderer --enable-virtfs --enable-virtfs-proxy-helper
+diff --git a/hw/arm/Kconfig b/hw/arm/Kconfig
+index 7e68348440..3653c77f9e 100644
+--- a/hw/arm/Kconfig
++++ b/hw/arm/Kconfig
+@@ -32,6 +32,7 @@ config ARM_VIRT
+     select VIRTIO_MEM_SUPPORTED
+     select ACPI_CXL
+     select ACPI_HMAT
++    select NVIDIA_BPMP_GUEST
+
+ config CHEETAH
+     bool
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index 7d9dbc2663..5ee4ec077a 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -79,6 +79,7 @@
+ #include "hw/virtio/virtio-mem-pci.h"
+ #include "hw/virtio/virtio-iommu.h"
+ #include "hw/char/pl011.h"
++#include "hw/misc/nvidia_bpmp_guest.h"
+ #include "qemu/guest-random.h"
+
+ #define DEFINE_VIRT_MACHINE_LATEST(major, minor, latest) \
+@@ -155,6 +156,7 @@ static const MemMapEntry base_memmap[] = {
+     [VIRT_NVDIMM_ACPI] =        { 0x09090000, NVDIMM_ACPI_IO_LEN},
+     [VIRT_PVTIME] =             { 0x090a0000, 0x00010000 },
+     [VIRT_SECURE_GPIO] =        { 0x090b0000, 0x00001000 },
++    [VIRT_NVIDIA_BPMP_GUEST] =	{ 0x090c0000, 0x00001000 },
+     [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
+     /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
+     [VIRT_PLATFORM_BUS] =       { 0x0c000000, 0x02000000 },
+@@ -1046,6 +1048,9 @@ static void create_virtio_devices(const VirtMachineState *vms)
+     hwaddr size = vms->memmap[VIRT_MMIO].size;
+     MachineState *ms = MACHINE(vms);
+
++    /* Create NVIDIA BPMP guest passthru device, possibly need update ftd - WIP */
++    nvidia_bpmp_guest_create(vms->memmap[VIRT_NVIDIA_BPMP_GUEST].base);
++
+     /* We create the transports in forwards order. Since qbus_realize()
+      * prepends (not appends) new child buses, the incrementing loop below will
+      * create a list of virtio-mmio buses with decreasing base addresses.
+diff --git a/hw/misc/Kconfig b/hw/misc/Kconfig
+index 6996d265e4..30b4c34e69 100644
+--- a/hw/misc/Kconfig
++++ b/hw/misc/Kconfig
+@@ -11,6 +11,9 @@ config ARMSSE_MHU
+ config ARMSSE_CPU_PWRCTRL
+     bool
+
++config NVIDIA_BPMP_GUEST
++    bool
++
+ config ISA_DEBUG
+     bool
+     depends on ISA_BUS
+diff --git a/hw/misc/meson.build b/hw/misc/meson.build
+index 892f8b91c5..f623cf2c9c 100644
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -1,4 +1,5 @@
+ softmmu_ss.add(when: 'CONFIG_APPLESMC', if_true: files('applesmc.c'))
++softmmu_ss.add(when: 'CONFIG_NVIDIA_BPMP_GUEST', if_true: files('nvidia_bpmp_guest.c'))
+ softmmu_ss.add(when: 'CONFIG_EDU', if_true: files('edu.c'))
+ softmmu_ss.add(when: 'CONFIG_FW_CFG_DMA', if_true: files('vmcoreinfo.c'))
+ softmmu_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
+diff --git a/hw/misc/nvidia_bpmp_guest.c b/hw/misc/nvidia_bpmp_guest.c
+new file mode 100644
+index 0000000000..a80a16b9e9
+--- /dev/null
++++ b/hw/misc/nvidia_bpmp_guest.c
+@@ -0,0 +1,171 @@
++#include "qemu/osdep.h"
++#include "qemu/log.h"
++#include "qapi/error.h" /* provides error_fatal() handler */
++#include "hw/sysbus.h"	/* provides all sysbus registering func */
++#include "hw/misc/nvidia_bpmp_guest.h"
++
++#define TYPE_NVIDIA_BPMP_GUEST "nvidia_bpmp_guest"
++typedef struct NvidiaBpmpGuestState NvidiaBpmpGuestState;
++DECLARE_INSTANCE_CHECKER(NvidiaBpmpGuestState, NVIDIA_BPMP_GUEST, TYPE_NVIDIA_BPMP_GUEST)
++
++#define TX_BUF   0x0000
++#define RX_BUF   0x0200
++#define TX_SIZ   0x0400
++#define RX_SIZ   0x0408
++#define RET_COD  0x0410
++#define MRQ      0x0500
++
++#define MEM_SIZE 0x600
++#define HOST_DEVICE_PATH "/dev/bpmp-host"
++#define MESSAGE_SIZE 0x0200
++
++// qemu_log_mask(LOG_UNIMP, "%s: \n", __func__ );
++
++struct NvidiaBpmpGuestState
++{
++	SysBusDevice parent_obj;
++	MemoryRegion iomem;
++	int host_device_fd;
++	uint8_t mem[MEM_SIZE];
++};
++
++// Device memory map:
++
++// 0x090c0000 +  /* Base address, size 0x01000 */
++
++//      0x0000 \ Tx buffer
++//      0x01FF /
++//      0x0200 \ Rx buffer
++//      0x03FF /
++//      0x0400  -- Tx size
++//      0x0408  -- Rx size
++//      0x0410  -- Ret
++//      0x0500  -- mrq
++
++
++
++//  Data should be aligned to 64bit paragraph.
++
++//  Protocol is:
++//  1. Write data buffers to 0x0000-0x01FF and 0x0200-0x03FF
++//  2. Write buffer sizes to 0x0400 (Tx) and 0x0408 (Rx)
++//  2. Start operation by writing mrq opcode to address 0x0500
++//  3. Read ret code from 0x0410 and response data from the buffers
++
++static uint64_t nvidia_bpmp_guest_read(void *opaque, hwaddr addr, unsigned int size)
++{
++	NvidiaBpmpGuestState *s = opaque;
++
++	if (addr >= MEM_SIZE)
++		return 0xDEADBEEF;
++
++	// Cast buffer location as uint64_t
++	return *(uint64_t*)&s->mem[addr];
++}
++
++static void nvidia_bpmp_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
++{
++	NvidiaBpmpGuestState *s = opaque;
++	int ret;
++
++	struct
++	{
++		unsigned int mrq;
++		struct
++		{
++			void *data;
++			size_t size;
++		} tx;
++		struct
++		{
++			void *data;
++			size_t size;
++			int ret;
++		} rx;
++	} messg;
++
++	memset(&messg, 0, sizeof(messg));
++
++	if (addr >= MEM_SIZE){
++		qemu_log_mask(LOG_UNIMP, "qemu: Error addr >= MEM_SIZE in 0x%lX data: 0x%lX\n", addr, data);
++		return;
++	}
++
++	switch (addr)
++	{
++	case MRQ:
++		// set up the structure
++		messg.mrq = data;
++		messg.tx.data = &s->mem[TX_BUF];
++		memcpy(&messg.tx.size, &s->mem[TX_SIZ], sizeof(messg.tx.size));
++		messg.rx.data = &s->mem[RX_BUF];
++		memcpy(&messg.rx.size, &s->mem[RX_SIZ], sizeof(messg.rx.size));
++
++		ret = write(s->host_device_fd, &messg, sizeof(messg)); // Send the data to the host module
++		if (ret < 0)
++		{
++			qemu_log_mask(LOG_UNIMP, "%s: Failed to write the host device..\n", __func__);
++			return;
++		}
++
++		memcpy(&s->mem[RET_COD], &messg.rx.ret, sizeof(messg.rx.ret));
++		memcpy(&s->mem[RX_SIZ], &messg.rx.size, sizeof(messg.rx.size));
++
++		break;
++
++	default:
++
++		memcpy(&s->mem[addr], &data, size);
++	}
++
++	return;
++}
++
++static const MemoryRegionOps nvidia_bpmp_guest_ops = {
++	.read = nvidia_bpmp_guest_read,
++	.write = nvidia_bpmp_guest_write,
++	.endianness = DEVICE_NATIVE_ENDIAN,
++};
++
++static void nvidia_bpmp_guest_instance_init(Object *obj)
++{
++	NvidiaBpmpGuestState *s = NVIDIA_BPMP_GUEST(obj);
++
++	/* allocate memory map region */
++	memory_region_init_io(&s->iomem, obj, &nvidia_bpmp_guest_ops, s, TYPE_NVIDIA_BPMP_GUEST, MEM_SIZE);
++	sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->iomem);
++
++	s->host_device_fd = open(HOST_DEVICE_PATH, O_RDWR); // Open the device with read/write access
++
++	if (s->host_device_fd < 0)
++	{
++		qemu_log_mask(LOG_UNIMP, "%s: Failed to open the host device..\n", __func__);
++		return;
++	}
++}
++
++/* create a new type to define the info related to our device */
++static const TypeInfo nvidia_bpmp_guest_info = {
++	.name = TYPE_NVIDIA_BPMP_GUEST,
++	.parent = TYPE_SYS_BUS_DEVICE,
++	.instance_size = sizeof(NvidiaBpmpGuestState),
++	.instance_init = nvidia_bpmp_guest_instance_init,
++};
++
++static void nvidia_bpmp_guest_register_types(void)
++{
++	type_register_static(&nvidia_bpmp_guest_info);
++}
++
++type_init(nvidia_bpmp_guest_register_types)
++
++	/*
++	 * Create the Nvidia BPMP guest device.
++	 */
++	DeviceState *nvidia_bpmp_guest_create(hwaddr addr)
++{
++	DeviceState *dev = qdev_new(TYPE_NVIDIA_BPMP_GUEST);
++	sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
++	sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, addr);
++	return dev;
++}
+diff --git a/hw/misc/nvidia_bpmp_guest.h b/hw/misc/nvidia_bpmp_guest.h
+new file mode 100644
+index 0000000000..dd4b4221d3
+--- /dev/null
++++ b/hw/misc/nvidia_bpmp_guest.h
+@@ -0,0 +1,9 @@
++#ifndef HW_NVIDIA_BPMP_GUEST_H
++#define HW_NVIDIA_BPMP_GUEST_H
++
++#include "qom/object.h"
++
++DeviceState *nvidia_bpmp_guest_create(hwaddr);
++
++
++#endif
+diff --git a/include/hw/arm/virt.h b/include/hw/arm/virt.h
+index e1ddbea96b..fce00ae7e9 100644
+--- a/include/hw/arm/virt.h
++++ b/include/hw/arm/virt.h
+@@ -77,6 +77,7 @@ enum {
+     VIRT_PCIE_MMIO,
+     VIRT_PCIE_PIO,
+     VIRT_PCIE_ECAM,
++    VIRT_NVIDIA_BPMP_GUEST,
+     VIRT_PLATFORM_BUS,
+     VIRT_GPIO,
+     VIRT_SECURE_UART,

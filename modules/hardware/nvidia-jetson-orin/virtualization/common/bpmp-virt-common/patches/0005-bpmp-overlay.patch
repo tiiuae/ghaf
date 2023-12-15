@@ -1,0 +1,18 @@
+diff --git a/kernel-int-overlays.txt b/kernel-int-overlays.txt
+index 6a59a925233b..e099229d3706 100644
+--- a/kernel-int-overlays.txt
++++ b/kernel-int-overlays.txt
+@@ -3,3 +3,4 @@ nvlink
+ nvgpu
+ nvgpu-next
+ nvidia-t239
++bpmp-virt
+diff --git a/kernel-overlays.txt b/kernel-overlays.txt
+index 1a8cf218b2a9..aba8c9131b81 100644
+--- a/kernel-overlays.txt
++++ b/kernel-overlays.txt
+@@ -1,3 +1,4 @@
+ nvidia
+ nvlink
+ nvgpu
++bpmp-virt
