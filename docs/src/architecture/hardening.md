@@ -25,10 +25,10 @@ NixOS provides several mechanisms to customize the kernel. The main methods are:
   ```
   ~/ghaf $ nix develop .#devShells.x86_64-linux.kernel-x86
   ...
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ cp ../modules/host/ghaf_host_hardened_baseline .config
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ make menuconfig
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ cp ../modules/host/ghaf_host_hardened_baseline .config
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ make menuconfig
   ...
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ make -j$(nproc)
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ make -j$(nproc)
   ...
   Kernel: arch/x86/boot/bzImage
   ```
@@ -36,19 +36,25 @@ NixOS provides several mechanisms to customize the kernel. The main methods are:
 * Booting the built kernel with QEMU:
 
   ```
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
   ```
 
 * [Validating with kernel hardening checker](https://github.com/a13xp0p0v/kernel-hardening-checker):
 
   ```
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.2]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
   [+] Kconfig file to check: ../modules/host/ghaf_host_hardened_baseline
   [+] Detected microarchitecture: X86_64
   [+] Detected kernel version: 6.6
-  [+] Detected compiler: GCC 120200
+  [+] Detected compiler: GCC 120300
   ...
-  [+] Config check is finished: 'OK' - 103 / 'FAIL' - 84
+  [+] Config check is finished: 'OK' - 188 / 'FAIL' - 5
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline|grep 'FAIL: '
+  CONFIG_CFI_CLANG                        |kconfig|     y      |   kspp   | self_protection  | FAIL: is not found
+  CONFIG_CFI_PERMISSIVE                   |kconfig| is not set |   kspp   | self_protection  | FAIL: CONFIG_CFI_CLANG is not "y"
+  CONFIG_MODULES                          |kconfig| is not set |   kspp   |cut_attack_surface| FAIL: "y"
+  CONFIG_FB                               |kconfig| is not set |maintainer|cut_attack_surface| FAIL: "y"
+  CONFIG_VT                               |kconfig| is not set |maintainer|cut_attack_surface| FAIL: "y"
   ```
 
 
