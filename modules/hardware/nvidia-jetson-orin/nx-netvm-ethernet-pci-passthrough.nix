@@ -7,6 +7,10 @@
 }: let
   cfg = config.ghaf.hardware.nvidia.orin.nx;
 in {
+  imports = [
+    ./pci-passthrough-common.nix
+  ];
+
   options.ghaf.hardware.nvidia.orin.nx.enableNetvmEthernetPCIPassthrough =
     lib.mkEnableOption
     "Ethernet card PCI passthrough to NetVM";

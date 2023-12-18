@@ -4,14 +4,12 @@
 # Top-level module entry point for the Orin family of chips
 {
   imports = [
-    ./partition-template.nix
-    ../../boot/systemd-boot-dtb.nix
-    ./jetson-orin.nix
-
-    ./pci-passthrough-common.nix
+    #TODO do the pci pass throughs need to be exposed here
+    # They can be included in the Jetson-orin and the namespace
+    # will be available to the user
     ./agx-netvm-wlan-pci-passthrough.nix
+    ./format-module.nix
+    ./jetson-orin.nix
     ./nx-netvm-ethernet-pci-passthrough.nix
-
-    ./ota-utils-fix.nix
   ];
 }

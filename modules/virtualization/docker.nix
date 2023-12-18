@@ -6,17 +6,16 @@
   ...
 }: let
   cfg = config.ghaf.virtualization.docker.daemon;
-in
-  with lib; {
-    options.ghaf.virtualization.docker.daemon = {
-      enable = mkEnableOption "Docker Daemon";
-    };
+in {
+  options.ghaf.virtualization.docker.daemon = {
+    enable = lib.mkEnableOption "Docker Daemon";
+  };
 
-    config = mkIf cfg.enable {
-      virtualisation.docker.enable = true;
-      virtualisation.docker.rootless = {
-        enable = true;
-        setSocketVariable = true;
-      };
+  config = lib.mkIf cfg.enable {
+    virtualisation.docker.enable = true;
+    virtualisation.docker.rootless = {
+      enable = true;
+      setSocketVariable = true;
     };
-  }
+  };
+}

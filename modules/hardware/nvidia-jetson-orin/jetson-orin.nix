@@ -10,6 +10,13 @@
   cfg = config.ghaf.hardware.nvidia.orin;
 in
   with lib; {
+    imports = [
+      #TODO remove when upstreamed
+      ./ota-utils-fix.nix
+      ./partition-template.nix
+      ./systemd-boot-dtb.nix
+    ];
+
     options.ghaf.hardware.nvidia.orin = {
       # Enable the Orin boards
       enable = mkEnableOption "Orin hardware";
@@ -53,7 +60,7 @@ in
 
       nixpkgs.hostPlatform.system = "aarch64-linux";
 
-      ghaf.boot.loader.systemd-boot-dtb.enable = true;
+      ghaf.hardware.nvidia.orin.systemd-boot-dtb.enable = true;
 
       boot.loader = {
         efi.canTouchEfiVariables = true;

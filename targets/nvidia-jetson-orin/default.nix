@@ -11,11 +11,13 @@
   system = "aarch64-linux";
 
   # Import custom format module
+  # TODO should the whole format module be handled internally in the
+  # modules/HW section and be exposed with formatModule = ghaf.hardware.nvidia.orin.formatModule?
   formatModule = {
     imports = [
       # Needed for formatAttr
       (nixos-generators + "/format-module.nix")
-
+      # TODO make sure to enable the ghaf.hardware.nvidia.orin.formatModule with a true
       ../../modules/hardware/nvidia-jetson-orin/format-module.nix
     ];
   };
@@ -80,6 +82,8 @@
 
           (import ./optee.nix {inherit jetpack-nixos;})
 
+          # TODO see above for concealing this in the HW abstraction layer
+          # and exporting it from there to here
           formatModule
         ]
         ++ (import ../../modules/module-list.nix)
@@ -101,7 +105,8 @@
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [
           {
-            ghaf.graphics.weston.enableDemoApplications = lib.mkForce false;
+            # TODO Is this really needed as it is default false
+            ghaf.programs.enableAllApps = lib.mkForce false;
           }
         ];
       };

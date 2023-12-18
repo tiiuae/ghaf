@@ -11,8 +11,6 @@ in
   with lib; {
     options.ghaf.profiles.applications = {
       enable = mkEnableOption "Some sample applications";
-      #TODO Create options to allow enabling individual apps
-      #weston.ini.nix mods needed
     };
 
     config = mkIf cfg.enable {
@@ -20,7 +18,8 @@ in
       #       across different window managers.
       ghaf = {
         profiles.graphics.enable = true;
-        graphics.weston.enableDemoApplications = true;
+        # TODO should we enable all apps?
+        # ghaf.programs.enableAllApps = true;
       };
     };
   }

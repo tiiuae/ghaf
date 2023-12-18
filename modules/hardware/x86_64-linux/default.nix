@@ -5,10 +5,10 @@
   lib,
   ...
 }: let
-  cfg = config.ghaf.hardware.x86_64.common;
+  cfg = config.ghaf.hardware.x86_64-linux.common;
 in
   with lib; {
-    options.ghaf.hardware.x86_64.common = {
+    options.ghaf.hardware.x86_64-linux.common = {
       enable = mkEnableOption "Common x86 configs";
     };
 

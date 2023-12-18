@@ -8,6 +8,10 @@
 }: let
   cfg = config.ghaf.graphics.labwc;
 in {
+  imports = [
+    ./window-manager.nix
+  ];
+
   options.ghaf.graphics.labwc = {
     enable = lib.mkEnableOption "labwc";
   };

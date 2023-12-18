@@ -1,0 +1,18 @@
+#+title: Todo
+
+* List of tasks
+** Add _file or file attribute to all modules
+-
+
+** Refactoring
+*** hardware/Nvidia
+- Can this go upstream [[file:modules/hardware/nvidia-jetson-orin/pci-passthrough-agx-test.patch][passthrough patch]]
+- Can this go upstream [[file:modules/hardware/nvidia-jetson-orin/pci-passthrough-nx-test.patch][nx passthrough]]
+- Does format-module need to be exposed see comments in target.
+*** Installer
+- How is this supposed to be enabled
+- Should it come from profile ?
+- Is it still being reworked
+*** Windows launcher
+- Refactor this and move under apps (temp)
+- Ultimatly this should be moved to down stream project ghaf-extras

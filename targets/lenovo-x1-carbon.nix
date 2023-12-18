@@ -3,15 +3,18 @@
 #
 # Generic x86_64 computer -target
 {
+  self,
   lib,
-  nixos-generators,
-  microvm,
-  lanzaboote,
+  inputs,
+  config,
   ...
 }: let
+  inherit (inputs) nixos-generators;
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
   formatModule = nixos-generators.nixosModules.raw-efi;
+
+  # TODO break this out into its own module
   hwDefinition = {
     name = "Lenovo X1 Carbon";
     network.pciDevices = [
@@ -40,6 +43,7 @@
     ];
   };
   lenovo-x1 = variant: extraModules: let
+    # TODO move all the ExtraModules out to separate place
     netvmExtraModules = [
       ({pkgs, ...}: {
         microvm = {
@@ -54,6 +58,7 @@
         fileSystems."/run/waypipe-ssh-public-key".options = ["ro"];
 
         # For WLAN firmwares
+        # TODO Figure out where all this should live
         hardware.enableRedistributableFirmware = true;
 
         networking = {
@@ -109,13 +114,13 @@
         };
       })
     ];
+    # TODO put this behind not HostOSOnly flags
     guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
     winConfig = hostConfiguration.config.ghaf.windows-launcher;
     guivmExtraModules = [
       {
         # Early KMS needed for GNOME to work inside GuiVM
         boot.initrd.kernelModules = ["i915"];
-
         microvm.qemu.extraArgs = [
           # Lenovo X1 Lid button
           "-device"
@@ -128,47 +133,25 @@
           "acad"
         ];
       }
-      ({pkgs, ...}: {
-        ghaf.graphics.weston.launchers = [
-          {
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../assets/icons/png/browser.png}";
-          }
+    ]; # TODO Filthy dirty, need to invoke the nixosModules as next clean
+    #++ [(hostConfiguration.config.ghaf.graphics.weston.launchers)];
 
-          {
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../assets/icons/png/app.png}";
-          }
-
-          {
-            path = "${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
-            icon = "${../assets/icons/png/pdf.png}";
-          }
-
-          {
-            path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
-            icon = "${../assets/icons/png/windows.png}";
-          }
-
-          {
-            path = "${pkgs.nm-launcher}/bin/nm-launcher";
-            icon = "${pkgs.networkmanagerapplet}/share/icons/hicolor/22x22/apps/nm-device-wwan.png";
-          }
-        ];
-      })
-    ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules =
         [
-          lanzaboote.nixosModules.lanzaboote
-          microvm.nixosModules.host
-          ../modules/host
-          ../modules/virtualization/microvm/microvm-host.nix
-          ../modules/virtualization/microvm/netvm.nix
-          ../modules/virtualization/microvm/guivm.nix
-          ../modules/virtualization/microvm/appvm.nix
+          self.nixosModules.graphics
+          self.nixosModules.hardware.definition
+          self.nixosModules.hardware.x86_64-linux.common
+          self.nixosModules.host.x86_64-linux
+          self.nixosModules.host.networking
+          self.nixosModules.installer
+          self.nixosModules.profiles
+          self.nixosModules.windows-launcher
+
+          #incldes all microvm host modules
+          self.nixosModules.virtualization.microvm
           ({
             pkgs,
             config,
@@ -209,10 +192,16 @@
 
               host.hypervisor_hardening.enable = false;
 
-              hardware.x86_64.common.enable = true;
+              host.x86_64-linux.enable = true;
+              hardware.x86_64-linux.common.enable = true;
+
+              profiles.graphics.enable = true;
+              graphics.displayManager = "weston";
 
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
+
+              # TODO Move the VM initializations to own modules
               virtualization.microvm.netvm = {
                 enable = true;
                 extraModules = let
@@ -260,60 +249,18 @@
               };
               virtualization.microvm.appvm = {
                 enable = true;
-                vms = [
-                  {
-                    name = "chromium";
-                    packages = [pkgs.chromium pkgs.pamixer];
-                    macAddress = "02:00:00:03:05:01";
-                    ramMb = 3072;
-                    cores = 4;
-                    extraModules = [
-                      {
-                        # Enable pulseaudio for user ghaf
-                        sound.enable = true;
-                        hardware.pulseaudio.enable = true;
-                        users.extraUsers.ghaf.extraGroups = ["audio"];
-
-                        microvm.qemu.extraArgs = [
-                          # Lenovo X1 integrated usb webcam
-                          "-device"
-                          "qemu-xhci"
-                          "-device"
-                          "usb-host,vendorid=0x04f2,productid=0xb751"
-                          # Connect sound device to hosts pulseaudio socket
-                          "-audiodev"
-                          "pa,id=pa1,server=unix:/run/pulse/native"
-                          # Add HDA sound device to guest
-                          "-device"
-                          "intel-hda"
-                          "-device"
-                          "hda-duplex,audiodev=pa1"
-                        ];
-                        microvm.devices = [];
-                      }
-                    ];
-                  }
-                  {
-                    name = "gala";
-                    packages = [pkgs.gala-app];
-                    macAddress = "02:00:00:03:06:01";
-                    ramMb = 1536;
-                    cores = 2;
-                  }
-                  {
-                    name = "zathura";
-                    packages = [pkgs.zathura];
-                    macAddress = "02:00:00:03:07:01";
-                    ramMb = 512;
-                    cores = 1;
-                  }
-                ];
               };
 
+              # TODO Specifically Enable the apps
+              # Chrome
+              # Gala
+              # Zathura
               # Enable all the default UI applications
               profiles = {
                 applications.enable = false;
               };
+
+              # TODO Fix where to do the setup and config of this
               windows-launcher = {
                 enable = true;
                 spice = true;
@@ -367,8 +314,8 @@
             ];
             boot.initrd.availableKernelModules = ["nvme"];
           })
-        ]
-        ++ (import ../modules/module-list.nix)
+        ] # TODO Import the real modules
+        #++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
   in {
@@ -377,14 +324,11 @@
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
   debugModules = [
-    ../modules/development/usb-serial.nix
+    self.nixosModules.development
     {
       ghaf.development.usb-serial.enable = true;
       ghaf.profiles.debug.enable = true;
-    }
-    ../modules/host/secureboot.nix
-    {
-      ghaf.host.secureboot.enable = false;
+      ghaf.host.x86_64-linux.secureboot.enable = false;
     }
   ];
   releaseModules = [

@@ -6,10 +6,10 @@
   pkgs,
   ...
 }: let
-  cfg = config.ghaf.development.debug.tools;
+  cfg = config.ghaf.development.debug-tools;
 in
   with lib; {
-    options.ghaf.development.debug.tools = {
+    options.ghaf.development.debug-tools = {
       enable = mkEnableOption "Debug Tools";
     };
 

@@ -41,7 +41,7 @@
           ../modules/virtualization/microvm/netvm.nix
           {
             ghaf = {
-              hardware.x86_64.common.enable = true;
+              hardware.x86_64-linux.common.enable = true;
 
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;

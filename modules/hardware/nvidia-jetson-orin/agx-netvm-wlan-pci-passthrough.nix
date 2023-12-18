@@ -7,11 +7,18 @@
 }: let
   cfg = config.ghaf.hardware.nvidia.orin.agx;
 in {
-  options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
-    lib.mkEnableOption
-    "WLAN card PCI passthrough to NetVM";
+  imports = [
+    ./pci-passthrough-common.nix
+  ];
+
+  options.ghaf.hardware.nvidia.orin.agx = {
+    enableNetvmWlanPCIPassthrough = lib.mkEnableOption "WLAN card PCI passthrough to NetVM";
+  };
+
   config = lib.mkIf cfg.enableNetvmWlanPCIPassthrough {
     # Orin AGX WLAN card PCI passthrough
+    #
+    # TODO this needs to be guarded behind a (! isHostOnly) for the Vm stuff
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
 
     ghaf.virtualization.microvm.netvm.extraModules = [

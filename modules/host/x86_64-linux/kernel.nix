@@ -72,10 +72,10 @@
     allowImportFromDerivation = true;
   };
 
-  pkvm_patch = lib.mkIf config.ghaf.hardware.x86_64.common.enable [
+  pkvm_patch = lib.mkIf config.ghaf.hardware.x86_64-linux.common.enable [
     {
       name = "pkvm-patch";
-      patch = ../virtualization/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch;
+      patch = ./0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch;
       structuredExtraConfig = with lib.kernel; {
         KVM_INTEL = yes;
         KSM = no;
