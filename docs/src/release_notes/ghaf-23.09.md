@@ -71,8 +71,13 @@ There are no specific requirements for the environment with this release.
 
 ## Installation Instructions
 
-Released images are available at Jfrog Artifactory. To download the release image:
+Released images are available at [vedenemo.dev/files/releases/ghaf_23.09/](https://vedenemo.dev/files/releases/ghaf_23.09/).
 
-* In the [Jfrog Artifactory](https://artifactory.ssrcdevops.tii.ae/ui/login/) login screen, use the *Sign in with SAML SSO* option and then *Sign in with Github.com account*. Note that domain restrictions are in place.
-* Navigate to the ghaf-23.09 directory: <https://artifactory.ssrcdevops.tii.ae/artifactory/tc/releases/ghaf-23.06/>
-* Download the image from the `../targetHW/image` directory.
+Download the required image and use the following instructions:
+
+| Release Image           | Build and Run      |
+|-------------------------|--------------------|
+| ghaf-23.09_Generic_x86.tar.xz | [Running Ghaf Image for x86 Computer](../ref_impl/build_and_run.md#running-ghaf-image-for-x86-computer) |
+| ghaf-23.09_Lenovo_X1_Gen11.tar.xz  | [Running Ghaf Image for Lenovo X1](../ref_impl/build_and_run.md#running-ghaf-image-for-lenovo-x1) |
+| ghaf-23.09_Nvidia_Orin_AGX.tar.xz, ghaf-23.09_Nvidia_Orin_NX.tar.xz   | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
+| ghaf-23.09_PolarFire_RISC-V.tar.xz | [Building Ghaf Image for Microchip Icicle Kit](../ref_impl/build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
