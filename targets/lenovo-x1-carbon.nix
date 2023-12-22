@@ -200,6 +200,12 @@
           }
 
           {
+            name = "element";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no element-vm.ghaf run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            icon = "${../assets/icons/png/element.png}";
+          }
+
+          {
             name = "windows";
             path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
             icon = "${../assets/icons/png/windows.png}";
@@ -300,6 +306,8 @@
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
               # Lenovo X1 integrated webcam
               SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
+              # External USB GPS receiver
+              SUBSYSTEM=="usb", ATTR{idVendor}=="067b", ATTR{idProduct}=="23a3", GROUP="kvm"
             '';
 
             time.timeZone = "Asia/Dubai";
@@ -465,6 +473,58 @@
                       }
                     ];
                     borderColor = "#337aff";
+                  }
+                  {
+                    name = "element";
+                    packages = [pkgs.element-desktop pkgs.gpsd pkgs.element-gps];
+                    macAddress = "02:00:00:03:08:01";
+                    ramMb = 4096;
+                    cores = 1;
+                    extraModules = [
+                      {
+                        services.gpsd = {
+                          enable = true;
+                          devices = ["/dev/ttyUSB0"];
+                          readonly = true;
+                          debugLevel = 2;
+                          listenany = true;
+                          extraArgs = ["-n"]; # Do not wait for a client to connect before polling
+                        };
+
+                        systemd.services.element-gps = {
+                          description = "Element-gps is a GPS location provider for Element websocket interface.";
+                          enable = true;
+                          serviceConfig = {
+                            Type = "simple";
+                            ExecStart = "${pkgs.element-gps}/bin/main.py";
+                            Restart = "on-failure";
+                            RestartSec = "2";
+                          };
+                          wantedBy = ["multi-user.target"];
+                        };
+
+                        time.timeZone = "Asia/Dubai";
+
+                        microvm.qemu.extraArgs = [
+                          # Lenovo X1 integrated usb webcam
+                          "-device"
+                          "qemu-xhci"
+                          "-device"
+                          "usb-host,vendorid=0x04f2,productid=0xb751"
+                          # External USB GPS receiver
+                          "-device"
+                          "usb-host,vendorid=0x067b,productid=0x23a3"
+                          # Connect sound device to hosts pulseaudio socket
+                          "-audiodev"
+                          "pa,id=pa1,server=unix:/run/pulse/native"
+                          # Add HDA sound device to guest
+                          "-device"
+                          "intel-hda"
+                          "-device"
+                          "hda-duplex,audiodev=pa1"
+                        ];
+                      }
+                    ];
                   }
                 ];
               };
