@@ -34,6 +34,8 @@ in {
     SUBSYSTEM=="input", ATTRS{name}=="TPPS/2 Elan TrackPoint", GROUP="kvm"
     # Lenovo X1 integrated webcam
     KERNEL=="3-8", SUBSYSTEM=="usb", ATTR{busnum}=="3", ATTR{devnum}=="3", GROUP="kvm"
+    # External USB GPS receiver
+    SUBSYSTEM=="usb", ATTR{idVendor}=="067b", ATTR{idProduct}=="23a3", GROUP="kvm"
     # Mouse and Touchpad
     ${lib.strings.concatStrings (mapMouseRules hwDefinition.mouse)}
     ${lib.strings.concatStrings (mapTouchpadRules hwDefinition.touchpad)}
