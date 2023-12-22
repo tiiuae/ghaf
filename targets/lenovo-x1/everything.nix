@@ -61,6 +61,8 @@
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
               # Lenovo X1 integrated webcam
               SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
+              # External USB GPS receiver
+              SUBSYSTEM=="usb", ATTR{idVendor}=="067b", ATTR{idProduct}=="23a3", GROUP="kvm"
             '';
 
             time.timeZone = "Asia/Dubai";

@@ -1,0 +1,94 @@
+diff --git a/src/electron-main.ts b/src/electron-main.ts
+index b5d13ac..ffffb76 100644
+--- a/src/electron-main.ts
++++ b/src/electron-main.ts
+@@ -456,11 +456,10 @@ app.on("ready", async () => {
+         // https://www.electronjs.org/docs/faq#the-font-looks-blurry-what-is-this-and-what-can-i-do
+         backgroundColor: "#fff",
+ 
+-        titleBarStyle: process.platform === "darwin" ? "hidden" : "default",
+         trafficLightPosition: { x: 9, y: 8 },
+ 
+         icon: global.trayConfig.icon_path,
+-        show: false,
++        show: true,
+         autoHideMenuBar: global.store.get("autoHideMenuBar", true),
+ 
+         x: mainWindowState.x,
+@@ -475,67 +474,39 @@ app.on("ready", async () => {
+             webgl: true,
+         },
+     });
+-    global.mainWindow.loadURL("vector://vector/webapp/");
+-
+-    if (process.platform === "darwin") {
+-        setupMacosTitleBar(global.mainWindow);
+-    }
++    
+ 
+     // Handle spellchecker
+     // For some reason spellCheckerEnabled isn't persisted, so we have to use the store here
+     global.mainWindow.webContents.session.setSpellCheckerEnabled(global.store.get("spellCheckerEnabled", true));
+ 
+-    // Create trayIcon icon
+-    if (global.store.get("minimizeToTray", true)) tray.create(global.trayConfig);
+ 
+-    global.mainWindow.once("ready-to-show", () => {
++    global.mainWindow.webContents.once('did-finish-load',function(){
+         if (!global.mainWindow) return;
+         mainWindowState.manage(global.mainWindow);
+ 
+         if (!argv["hidden"]) {
+             global.mainWindow.show();
++            global.mainWindow.restore();
+++           global.mainWindow.focus();
++
+         } else {
+             // hide here explicitly because window manage above sometimes shows it
+             global.mainWindow.hide();
+         }
+     });
+ 
+-    global.mainWindow.webContents.on("before-input-event", warnBeforeExit);
++    global.mainWindow.loadURL("vector://vector/webapp/");
+ 
+     global.mainWindow.on("closed", () => {
+         global.mainWindow = null;
+     });
++    
+     global.mainWindow.on("close", async (e) => {
+-        // If we are not quitting and have a tray icon then minimize to tray
+-        if (!global.appQuitting && (tray.hasTray() || process.platform === "darwin")) {
+-            // On Mac, closing the window just hides it
+-            // (this is generally how single-window Mac apps
+-            // behave, eg. Mail.app)
+-            e.preventDefault();
+-
+-            if (global.mainWindow?.isFullScreen()) {
+-                global.mainWindow.once("leave-full-screen", () => global.mainWindow?.hide());
+-
+-                global.mainWindow.setFullScreen(false);
+-            } else {
+-                global.mainWindow?.hide();
+-            }
+-
+-            return false;
+-        }
++        // Close event handler
++        // Default behaviour is minimize to tray, that feature is removed since there is no tray support on Ghaf
+     });
+ 
+-    if (process.platform === "win32") {
+-        // Handle forward/backward mouse buttons in Windows
+-        global.mainWindow.on("app-command", (e, cmd) => {
+-            if (cmd === "browser-backward" && global.mainWindow?.webContents.canGoBack()) {
+-                global.mainWindow.webContents.goBack();
+-            } else if (cmd === "browser-forward" && global.mainWindow?.webContents.canGoForward()) {
+-                global.mainWindow.webContents.goForward();
+-            }
+-        });
+-    }
+-
+     webContentsHandler(global.mainWindow.webContents);
+ 
+     global.appLocalization = new AppLocalization({
