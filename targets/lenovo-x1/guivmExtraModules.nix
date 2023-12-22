@@ -63,6 +63,12 @@
       }
 
       {
+        name = "element";
+        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no element-vm.ghaf run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        icon = "${../../assets/icons/png/element.png}";
+      }
+
+      {
         name = "windows";
         path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
         icon = "${../../assets/icons/png/windows.png}";
