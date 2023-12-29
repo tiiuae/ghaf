@@ -8,6 +8,7 @@
 Ghaf Framework is free software, currently under active development. The scope of target support is updated with development progress:
 
 - [Build and Run](./build_and_run.md)
+- [Running Remote Build on NixOS](./remote_build_setup.md)
 - [Installer](./installer.md)
 - [Cross-Compilation](./cross_compilation.md)
 - [Creating Application VM](./creating_appvm.md)
