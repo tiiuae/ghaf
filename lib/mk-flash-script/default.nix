@@ -31,7 +31,16 @@
     flash-tools = flash-tools.overrideAttrs ({postPatch ? "", ...}: {
       postPatch = postPatch + cfg.flashScriptOverrides.postPatch;
     });
-    inherit (hostConfiguration.config.ghaf.hardware.nvidia.orin.flashScriptOverrides) preFlashCommands;
+    preFlashCommands =
+      nixpkgs.lib.optionalString (flash-tools-system == "aarch64-linux") ''
+        echo "WARNING! WARNING! WARNING!"
+        echo "You are trying to run aarch64-linux hosted version of the flash-script."
+        echo "It runs flashing tools with QEMU using user-mode emulation of x86 cpu."
+        echo "There are no known reports from anyone who would have gotten this working ever."
+        echo "If this fails, YOU HAVE BEEN WARNED, and don't open a bug report!"
+        echo ""
+      ''
+      + hostConfiguration.config.ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands;
   };
 
   patchFlashScript =
