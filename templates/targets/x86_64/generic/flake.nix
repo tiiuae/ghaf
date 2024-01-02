@@ -42,6 +42,8 @@
     self,
     ghaf,
     nixpkgs,
+    # deadnix: skip
+    nixos-hardware,
     flake-utils,
   }: let
     systems = with flake-utils.lib.system; [
