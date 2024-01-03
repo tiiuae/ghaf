@@ -1,5 +1,5 @@
 <!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
@@ -20,7 +20,7 @@ Creating the structure that includes all necessary data for the device passthrou
 
 ```
 # File 'my-hardware/lenovo-t14.nix':
-# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 # Generic x86_64 computer -target
