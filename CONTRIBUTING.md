@@ -1,5 +1,5 @@
 <!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
@@ -42,7 +42,7 @@ Make sure the [license](https://github.com/tiiuae/ghaf#licensing) information is
     # SPDX-License-Identifier: Apache-2.0
 
 <!-- 
-# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 -->
 
@@ -101,7 +101,7 @@ Add [license](https://github.com/tiiuae/ghaf#licensing) information on top of al
     -->
 
 <!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 

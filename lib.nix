@@ -1,4 +1,4 @@
-# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # Copyright 2020-2023 Pacman99 and the Digga Contributors
 #
 # SPDX-License-Identifier: MIT
