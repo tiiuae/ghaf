@@ -178,7 +178,7 @@
                 <div id="content" class="content">
                     <main>
                         <!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="about-ghaf"><a class="header" href="#about-ghaf">About Ghaf</a></h1>
@@ -293,7 +293,7 @@
 <p><a href="https://github.com/tiiuae/ghaf/issues/150#issuecomment-1564061850">See discussion for the outline of next steps</a></p>
 <p><img src="https://user-images.githubusercontent.com/1027150/241167552-bcb3a3f9-72f3-4b96-af8b-e9df6d1f3d5e.png" alt="Outline of next phases" /></p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="architecture"><a class="header" href="#architecture">Architecture</a></h1>
@@ -347,7 +347,7 @@ A variant for hardware with no support for virtualization. May run any software,
 </div>
 <p><sup class="footnote-reference"><a href="#note">1</a></sup> As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="architecture-decision-records"><a class="header" href="#architecture-decision-records">Architecture Decision Records</a></h1>
@@ -361,7 +361,7 @@ A variant for hardware with no support for virtualization. May run any software,
 </div>
 <p>To create an architectural decision proposal, open <a href="https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#contributing-documentation">a pull request</a> and use the <a href="https://github.com/tiiuae/ghaf/blob/main/docs/src/architecture/adr/template.md">decision record template</a>. Contributions to the Ghaf architecture decisions are welcome.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="minimal-host"><a class="header" href="#minimal-host">Minimal Host</a></h1>
@@ -500,7 +500,7 @@ All graphics and display output related components and dependencies, including k
 <tr><td>VMM support for device trees</td><td>Rudimental, needs improvement.</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="hardening"><a class="header" href="#hardening">Hardening</a></h1>
@@ -549,7 +549,7 @@ Kernel: arch/x86/boot/bzImage
 <p>The host kernel hardening is based on Linux <code>make tinyconfig</code>. The default <code>tinyconfig</code> fails to assertions on NixOS without modifications. Assertions are fixed in <code>ghaf_host_hardened_baseline</code> Linux configuration under Ghaf <code>modules/host/</code>.</p>
 <p>In addition, NixOS (Ghaf baseline dependency) requires several kernel modules that are added to the config or ignored with <code>allowMissing = true</code>. As of now, the kernel builds and early boots on Lenovo X1.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="secure-boot"><a class="header" href="#secure-boot">Secure Boot</a></h1>
@@ -613,7 +613,7 @@ The stack layers and top-level components are illustrated in the following diagr
 <h2 id="guest-oss"><a class="header" href="#guest-oss">Guest OSs</a></h2>
 <p>Ghaf aims to support users with guest OSs such as other Linux distributions (Ubuntu, Fedora, etc.), Windows, and Android. Some of these have been already prototyped.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="contribution-guidelines"><a class="header" href="#contribution-guidelines">Contribution Guidelines</a></h1>
@@ -625,7 +625,7 @@ The stack layers and top-level components are illustrated in the following diagr
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#commit-message-guidelines">Writing a good commit message</a>.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="reference-implementations"><a class="header" href="#reference-implementations">Reference Implementations</a></h1>
@@ -668,7 +668,7 @@ The stack layers and top-level components are illustrated in the following diagr
 </li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="development-1"><a class="header" href="#development-1">Development</a></h1>
@@ -690,7 +690,7 @@ nixos-rebuild --flake .#lenovo-x1-carbon-gen11-debug --target-host root@&lt;ip_a
 <p>Please note that with the <code>-debug</code> targets, the debug ethernet is enabled on host. With Lenovo X1 Carbon, you can connect USB-Ethernet adapter for the debug and development access.</p>
 <p>Pull requests are the way for contributors to submit code to the Ghaf project. For more information, see <a href="ref_impl/../appendices/contributing_general.html">Contribution Guidelines</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="build-and-run"><a class="header" href="#build-and-run">Build and Run</a></h1>
@@ -895,7 +895,7 @@ b. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-debug command
 </ol>
 <p>For more information on how to access the MMC card as a USB disk, see <a href="https://tinyurl.com/48wycdka">MPFS Icicle Kit User Guide</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="running-remote-build-on-nixos"><a class="header" href="#running-remote-build-on-nixos">Running Remote Build on NixOS</a></h1>
@@ -1109,7 +1109,7 @@ experimental-features = nix-command flakes
 <p>Ensure and double-check that you are using the right key pairs.</p>
 <p>If you choose to use/present your local’s RSA private key, make sure that it is the corresponding RSA public key that is in the remote’s authorized_file, not the ED25519 or ECDSA public keys.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="installer"><a class="header" href="#installer">Installer</a></h1>
@@ -1165,7 +1165,7 @@ experimental-features = nix-command flakes
 <li>deviceName: name of the device on which image should be flushed (e.g. &quot;sda&quot;, &quot;nvme0n1&quot;)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross-Compilation</a></h1>
@@ -1196,7 +1196,7 @@ experimental-features = nix-command flakes
 </code></pre>
 <p>depending on whether your development host is running AMD or Intel processor.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="creating-application-vm"><a class="header" href="#creating-application-vm">Creating Application VM</a></h1>
@@ -1253,7 +1253,7 @@ experimental-features = nix-command flakes
 </ol>
 <p>Check the example launchers at <a href="ref_impl/../../../modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="ghaf-as-library-templates"><a class="header" href="#ghaf-as-library-templates">Ghaf as Library: Templates</a></h1>
@@ -1320,7 +1320,7 @@ git+file://~/ghaf-example
 </code></pre>
 <p>After the change, rebuild the system and switch it into use in your target device and it will run with the GUI and apps removed. After testing, you can commit the changes and share them with your colleagues to build the same system (even a system image) as needed in your project.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="example-project"><a class="header" href="#example-project">Example Project</a></h1>
@@ -1335,7 +1335,7 @@ git+file://~/ghaf-example
 <p>You can refer to the existing <a href="https://github.com/unbel13ver/ghaf-lib">project example for Lenovo T14 and Lenovo X1 laptops</a>.</p>
 <p>Creating the structure that includes all necessary data for the device passthrough:</p>
 <pre><code># File 'my-hardware/lenovo-t14.nix':
-# Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 # Generic x86_64 computer -target
@@ -1379,14 +1379,14 @@ git+file://~/ghaf-example
 </li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <!--
     If you want to change this file, check https://github.com/tiiuae/ghaf/pull/183.
 -->
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="technologies"><a class="header" href="#technologies">Technologies</a></h1>
@@ -1414,7 +1414,7 @@ git+file://~/ghaf-example
 <li><a href="technologies/./hypervisor_options.html">Hypervisor Options</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="compartmentalization"><a class="header" href="#compartmentalization">Compartmentalization</a></h1>
@@ -1424,7 +1424,7 @@ git+file://~/ghaf-example
 <p>A VM compartmentalization requires all necessary devices passthrough in place. More specifically, you need to know the PCI VID and PID of a device and also its number on the PCI bus. In the case of a USB device passthrough, it is enough to know the device's VID and PID.</p>
 <p>For more information on actual implementation, see <a href="technologies/../ref_impl/ghaf-based-project.html">Ghaf as Library</a> and <a href="technologies/../ref_impl/creating_appvm.html">Creating Application VM</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="devices-passthrough"><a class="header" href="#devices-passthrough">Devices Passthrough</a></h1>
@@ -1438,7 +1438,7 @@ and their memory access in one or several VMs. This reduces the Trusted Code Bas
 <li><a href="technologies/x86_pcie_crosvm.html">Generic x86: PCIe Passthrough on crosvm</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="binding-devices-to-vfio-driver-to-allow-passthrough"><a class="header" href="#binding-devices-to-vfio-driver-to-allow-passthrough">Binding Devices to VFIO Driver to Allow Passthrough</a></h1>
@@ -1487,7 +1487,7 @@ command.</p>
 driverctl unset-override ${DEVICE}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="nvidia-jetson-agx-orin-uart-passthrough"><a class="header" href="#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></h1>
@@ -1628,7 +1628,7 @@ echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 <p>Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf available in https://developer.nvidia.com/jetson-agx-orin-developer-kit-carrier-board-design-files-a04</p>
 </div>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="nvidia-jetson-agx-orin-pcie-passthrough"><a class="header" href="#nvidia-jetson-agx-orin-pcie-passthrough">NVIDIA Jetson AGX Orin: PCIe passthrough</a></h1>
@@ -1768,7 +1768,7 @@ index ac626b3bef..d6fb597aee 100644
 <p>It may require some changes for real usage.</p>
 </div>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="x86-pcie-device-passthrough-with-crosvm"><a class="header" href="#x86-pcie-device-passthrough-with-crosvm">x86 PCIe Device Passthrough with crosvm</a></h1>
@@ -1807,7 +1807,7 @@ export GUESTBUS=&quot;00:08.0&quot;
 driverctl unset-override ${BUS}
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <!--
@@ -1882,7 +1882,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <p>Support for the crosvm’s <code>extraArgs</code> parameter was added on April 7, 2023. Make sure to verify that your <code>flakes.lock</code> file refers to the proper version.</p>
 </blockquote>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="supply-chain-security"><a class="header" href="#supply-chain-security">Supply Chain Security</a></h1>
@@ -1901,7 +1901,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li><a href="scs/../scs/ghaf-security-fix-automation.html">Security Fix Automation</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="slsa-framework"><a class="header" href="#slsa-framework">SLSA Framework</a></h1>
@@ -1947,7 +1947,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <p>○ — required unless justified otherwise</p>
 <p>empty cell — not required</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="basic-security-measures"><a class="header" href="#basic-security-measures">Basic Security Measures</a></h1>
@@ -1982,7 +1982,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h2 id="data-encryption-in-transit"><a class="header" href="#data-encryption-in-transit">Data Encryption in Transit</a></h2>
 <p>All the data should be transported over secure encrypted channels. Since all the transportation is done over TCP/IP protocol stack, it is possible to use native solutions like TLS to secure the traffic between the nodes. Version 1.2 is a minimum requirement.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="software-bill-of-materials-sbom"><a class="header" href="#software-bill-of-materials-sbom">Software Bill of Materials (SBOM)</a></h1>
@@ -2012,7 +2012,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li><a href="https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes">https://www.legitsecurity.com/blog/what-is-an-sbom-sbom-explained-in-5-minutes</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="public-key-infrastructure"><a class="header" href="#public-key-infrastructure">Public Key Infrastructure</a></h1>
@@ -2102,7 +2102,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </ul>
 <p>The process described above is an upstream-first, with the main benefit of eliminating the need to maintain our own vulnerability fix patches on top of nixpgks in Ghaf. This process will also benefit the nixpkgs community, contributing to the overall security improvement for the packages Ghaf depends on.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="ghaf-release-notes"><a class="header" href="#ghaf-release-notes">Ghaf Release Notes</a></h1>
@@ -2115,7 +2115,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li><a href="release_notes/../release_notes/ghaf-23.05.html">Release ghaf-23.05</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="release-ghaf-2309"><a class="header" href="#release-ghaf-2309">Release ghaf-23.09</a></h1>
@@ -2188,7 +2188,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>ghaf-23.09_PolarFire_RISC-V.tar.xz</td><td><a href="release_notes/../ref_impl/build_and_run.html#building-ghaf-image-for-microchip-icicle-kit">Building Ghaf Image for Microchip Icicle Kit</a></td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="release-ghaf-2306"><a class="header" href="#release-ghaf-2306">Release ghaf-23.06</a></h1>
@@ -2234,7 +2234,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>No windows-launcher in the x86 build.</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="release-ghaf-2305"><a class="header" href="#release-ghaf-2305">Release ghaf-23.05</a></h1>
@@ -2281,7 +2281,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="showcases"><a class="header" href="#showcases">Showcases</a></h1>
@@ -2307,7 +2307,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li><a href="scenarios/./run_cuttlefish.html">Running Cuttlefish on Ghaf</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="running-windows-11-in-vm-on-ghaf"><a class="header" href="#running-windows-11-in-vm-on-ghaf">Running Windows 11 in VM on Ghaf</a></h1>
@@ -2402,7 +2402,7 @@ windows-launcher ./Win11_22H2_English_x64v2.iso
 <pre><code>windows-launcher ./win11.qcow2 -serial stdio
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="running-android-cuttlefish-virtual-device-on-ghaf"><a class="header" href="#running-android-cuttlefish-virtual-device-on-ghaf">Running Android Cuttlefish Virtual Device on Ghaf</a></h1>
@@ -2502,7 +2502,7 @@ Virtual device booted successfully
 <pre><code>chromium-browser --enable-features=UseOzonePlatform --ozone-platform=wayland --new-window --app=https://127.0.0.1:8443/client.html?deviceId=cvd-1
 </code></pre>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="glossary"><a class="header" href="#glossary">Glossary</a></h1>
@@ -2663,7 +2663,7 @@ Source: <a href="https://slsa.dev/spec/v0.1/terminology">https://slsa.dev/spec/v
 <p><em>Supply chain Levels for Software Artifacts is a security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises.</em><br />
 Source: <a href="https://slsa.dev/">https://slsa.dev/</a></p>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="research-notes"><a class="header" href="#research-notes">Research Notes</a></h1>
@@ -2672,7 +2672,7 @@ Source: <a href="https://slsa.dev/">https://slsa.dev/</a></p>
 <li><a href="research/passthrough/ethernet.html">i.MX 8QM platform bus ethernet passthrough</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="imx-8qm-ethernet-passthrough"><a class="header" href="#imx-8qm-ethernet-passthrough">i.MX 8QM Ethernet Passthrough</a></h1>
