@@ -1,7 +1,6 @@
 <!--
-SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
-
-SPDX-License-Identifier: CC-BY-SA-4.0
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
 # Decision record template

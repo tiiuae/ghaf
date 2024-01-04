@@ -28,7 +28,7 @@ The following target hardware is supported by this release:
   * NVIDIA Jetson Orin NX
   * Polarfire Icicle Kit
   * Lenovo ThinkPad X1 Carbon Gen 11
-* Modularization of the Ghaf framework: [Ghaf as Library: Templates](../ref_impl/ghaf-based-project.md)
+* Modularization of the Ghaf framework: [Ghaf as Library: Templates](../ref_impl/ghaf-based-project.md).
 * NVIDIA Jetson Orin NX Ethernet passthrough.
 * Lenovo X1 Carbon Gen 11:
   * Graphics passthrough to GUIVM.
@@ -36,7 +36,7 @@ The following target hardware is supported by this release:
   * Paravirtualized audio.
   * Webcam passthrough.
   * Touchpad passthrough.
-* Cross-compilation of the ARM targets (NVIDIA) on the x86 server (with demo apps excluded).
+* Cross-compilation of the ARM targets (NVIDIA) on the x86 server (with demo applications excluded).
 
 
 ## Bug Fixes
@@ -52,15 +52,15 @@ Fixed bugs that were in the ghaf-23.06 release:
 
 | Issue           | Status      | Comments                             |
 |-----------------|-------------|--------------------------------------|
-| Chromium Application VM does not boot up on X1 | In Progress | Intermittent timing issue, under investigation. |
+| Chromium AppVM does not boot up on X1 | In Progress | Intermittent timing issue, under investigation. |
 | The GALA app does not work | In Progress | Will be fixed in the next release. |
 | Shutdown or reboot of Lenovo X1 takes a lot of time (7 minutes) | In Progress | Advice: be patient or, if in hurry, press power key for 15 sec. |
-| Copy and paste text from or to Chromium Application VM does not work | In Progress |  |
+| Copy and paste text from or to Chromium AppVM does not work | In Progress |  |
 | Element cannot be opened on NVIDIA AGX Orin HW on the host | Will not Fix | Applications on the host will not be supported in the longer term. |
 | Cannot move the GALA/Element window by dragging with the mouse | In Progress | Workaround: press Windows key when moving the mouse. |
 | Personal security keys cannot be created | In Progress | Workaround: use another device to create security keys. |
 | No audio in a USB headset when running the application on the host | Will not Fix | Audio on a host is not supported. |
-| Cannot log in to the Element chat with Google account  | In Progress | Workaround for x86: create a user specifically for Element. |
+| Cannot log in to the Element chat with a Google account  | In Progress | Workaround for x86: create a user specifically for Element. |
 | Windows launcher application does not work  | In Progress | Workaround: launch Windows VM from the command line. |
 
 

@@ -137,6 +137,10 @@ _Message Signaled Interrupts_
 _A Linux distribution based on the Nix package manager and build system._  
 Source: <https://nixos.wiki/wiki/Overview_of_the_NixOS_Linux_distribution>
 
+### OEM
+
+_original equipment manufacturer_
+
 ### OS
 
 _operating system_
