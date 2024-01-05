@@ -6,6 +6,7 @@
   ./development/debug-tools.nix
   ./development/nix.nix
   ./development/ssh.nix
+  ./firewall
   ./graphics
   ./hardware/definition.nix
   ./hardware/nvidia-jetson-orin/optee.nix

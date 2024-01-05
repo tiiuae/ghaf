@@ -42,6 +42,7 @@
                 debug.tools.enable = variant == "debug";
                 ssh.daemon.enable = true;
               };
+              firewall.kernel-modules.enable = true;
               windows-launcher.enable = false;
             };
             nixpkgs = {
