@@ -23,7 +23,22 @@ in {
     boot.kernelPatches = [
       {
         name = "Added Configurations to Support Vda";
-        patch = ./patches/0001-added-configurations-to-support-vda.patch;
+        patch = null;
+        extraStructuredConfig = with lib.kernel; {
+          PCI_STUB = yes;
+          VFIO = yes;
+          VIRTIO_PCI = yes;
+          VIRTIO_MMIO = yes;
+          HOTPLUG_PCI = yes;
+          PCI_DEBUG = yes;
+          PCI_HOST_GENERIC = yes;
+          VFIO_IOMMU_TYPE1 = yes;
+          HOTPLUG_PCI_ACPI = yes;
+          PCI_HOST_COMMON = yes;
+          VFIO_PLATFORM = yes;
+          TEGRA_BPMP_GUEST_PROXY = yes;
+          TEGRA_BPMP_HOST_PROXY = yes;
+        };
       }
       {
         name = "Vfio_platform Reset Required False";
