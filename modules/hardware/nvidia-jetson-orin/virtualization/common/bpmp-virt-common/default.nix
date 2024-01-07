@@ -25,19 +25,19 @@ in {
         name = "Added Configurations to Support Vda";
         patch = null;
         extraStructuredConfig = with lib.kernel; {
-          PCI_STUB = yes;
-          VFIO = yes;
-          VIRTIO_PCI = yes;
-          VIRTIO_MMIO = yes;
-          HOTPLUG_PCI = yes;
-          PCI_DEBUG = yes;
-          PCI_HOST_GENERIC = yes;
-          VFIO_IOMMU_TYPE1 = yes;
-          HOTPLUG_PCI_ACPI = yes;
-          PCI_HOST_COMMON = yes;
-          VFIO_PLATFORM = yes;
-          TEGRA_BPMP_GUEST_PROXY = yes;
-          TEGRA_BPMP_HOST_PROXY = yes;
+          PCI_STUB = lib.mkDefault yes;
+          VFIO = lib.mkDefault yes;
+          VIRTIO_PCI = lib.mkDefault yes;
+          VIRTIO_MMIO = lib.mkDefault yes;
+          HOTPLUG_PCI = lib.mkDefault yes;
+          PCI_DEBUG = lib.mkDefault yes;
+          PCI_HOST_GENERIC = lib.mkDefault yes;
+          VFIO_IOMMU_TYPE1 = lib.mkDefault yes;
+          HOTPLUG_PCI_ACPI = lib.mkDefault yes;
+          PCI_HOST_COMMON = lib.mkDefault yes;
+          VFIO_PLATFORM = lib.mkDefault yes;
+          TEGRA_BPMP_GUEST_PROXY = lib.mkDefault no;
+          TEGRA_BPMP_HOST_PROXY = lib.mkDefault no;
         };
       }
       {

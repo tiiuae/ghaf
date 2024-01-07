@@ -5,7 +5,7 @@
     patches =
       prev.patches
       ++ [
-        ./patches/0001-qemu-v8.0.5_bpmp-virt.patch
+        ./patches/0001-qemu-v8.1.3_bpmp-virt.patch
       ];
   });
 })
