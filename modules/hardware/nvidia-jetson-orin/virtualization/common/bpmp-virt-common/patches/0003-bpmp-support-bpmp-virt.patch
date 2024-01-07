@@ -1,0 +1,153 @@
+diff --git a/drivers/firmware/tegra/bpmp-tegra186.c b/drivers/firmware/tegra/bpmp-tegra186.c
+index f1a7ffa1b8dc..4d34a916f4ec 100644
+--- a/drivers/firmware/tegra/bpmp-tegra186.c
++++ b/drivers/firmware/tegra/bpmp-tegra186.c
+@@ -30,6 +30,9 @@ struct tegra186_bpmp {
+ 	} mbox;
+ };
+ 
++extern uint64_t bpmp_vpa;
++int tegra_bpmp_guest_init(void);
++
+ static inline struct tegra_bpmp *
+ mbox_client_to_bpmp(struct mbox_client *client)
+ {
+@@ -177,7 +180,17 @@ static int tegra186_bpmp_init(struct tegra_bpmp *bpmp)
+ 	bpmp->priv = priv;
+ 	priv->parent = bpmp;
+ 
+-	priv->tx.pool = of_gen_pool_get(bpmp->dev->of_node, "shmem", 0);
++#ifdef CONFIG_TEGRA_BPMP_GUEST_PROXY
++	// If virtual-pa node is defined, it means that we are using a virtual BPMP
++	// then we have to initialize the bpmp-guest
++	err = of_property_read_u64(bpmp->dev->of_node, "virtual-pa", &bpmp_vpa);
++	if(!err){
++		printk("BPMP virtual-pa: 0x%llX", bpmp_vpa);	
++		return tegra_bpmp_guest_init();
++	}
++#endif
++ 
++ 	priv->tx.pool = of_gen_pool_get(bpmp->dev->of_node, "shmem", 0);
+ 	if (!priv->tx.pool) {
+ 		dev_err(bpmp->dev, "TX shmem pool not found\n");
+ 		return -EPROBE_DEFER;
+@@ -267,6 +280,11 @@ static void tegra186_bpmp_deinit(struct tegra_bpmp *bpmp)
+ 	struct tegra186_bpmp *priv = bpmp->priv;
+ 	unsigned int i;
+ 
++	// If using BPMP guest proxy, do no deinit the module
++	if(bpmp_vpa){
++		return;
++	}
++
+ 	mbox_free_channel(priv->mbox.channel);
+ 
+ 	for (i = 0; i < bpmp->threaded.count; i++)
+diff --git a/drivers/firmware/tegra/bpmp.c b/drivers/firmware/tegra/bpmp.c
+index c7e39db14dac..802c2f0f7cf6 100644
+--- a/drivers/firmware/tegra/bpmp.c
++++ b/drivers/firmware/tegra/bpmp.c
+@@ -40,6 +40,18 @@ channel_to_ops(struct tegra_bpmp_channel *channel)
+ 	return bpmp->soc->ops;
+ }
+ 
++struct tegra_bpmp *tegra_bpmp_host_device = NULL;
++EXPORT_SYMBOL_GPL(tegra_bpmp_host_device);
++
++int (*tegra_bpmp_transfer_redirect)(struct tegra_bpmp *bpmp,
++			struct tegra_bpmp_message *msg) = NULL;
++int tegra_bpmp_outloud = 0;
++uint64_t bpmp_vpa = 0;
++
++EXPORT_SYMBOL_GPL(tegra_bpmp_transfer_redirect);
++EXPORT_SYMBOL_GPL(tegra_bpmp_outloud);
++EXPORT_SYMBOL_GPL(bpmp_vpa);
++
+ struct tegra_bpmp *tegra_bpmp_get(struct device *dev)
+ {
+ 	struct platform_device *pdev;
+@@ -65,6 +77,7 @@ struct tegra_bpmp *tegra_bpmp_get(struct device *dev)
+ 
+ put:
+ 	of_node_put(np);
++	tegra_bpmp_host_device = bpmp;
+ 	return bpmp;
+ }
+ EXPORT_SYMBOL_GPL(tegra_bpmp_get);
+@@ -315,6 +328,30 @@ static ssize_t tegra_bpmp_channel_write(struct tegra_bpmp_channel *channel,
+ 	return __tegra_bpmp_channel_write(channel, mrq, flags, data, size);
+ }
+ 
++int _tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
++	struct tegra_bpmp_message *msg)
++{
++	int err = 0;
++
++	// vadikas -- redirect request to virtio module
++	// the tegra_bpmp_transfer_redirect code is in bpmp-virt overlay
++	if (tegra_bpmp_outloud){
++	        printk("tegra_bpmp_transfer_redirect tx: %x tx.size= %ld \n", 
++				msg->mrq, msg->tx.size);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect tx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	}
++	err = (*tegra_bpmp_transfer_redirect)(bpmp, msg);
++	
++	if (tegra_bpmp_outloud){
++	        printk("tegra_bpmp_transfer_redirect rx: err=%d\n msg->rx.ret=%d", 
++				err, msg->rx.ret);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect rx:" ,
++				DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	}
++	return err; 
++}
++
+ int tegra_bpmp_transfer_atomic(struct tegra_bpmp *bpmp,
+ 			       struct tegra_bpmp_message *msg)
+ {
+@@ -331,6 +368,10 @@ int tegra_bpmp_transfer_atomic(struct tegra_bpmp *bpmp,
+ 
+ 	spin_lock(&bpmp->atomic_tx_lock);
+ 
++	// vadikas -- redirect request to virtio module
++	if (tegra_bpmp_transfer_redirect)
++		return _tegra_bpmp_transfer(bpmp, msg);
++
+ 	err = tegra_bpmp_channel_write(channel, msg->mrq, MSG_ACK,
+ 				       msg->tx.data, msg->tx.size);
+ 	if (err < 0) {
+@@ -366,8 +407,17 @@ int tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
+ 	if (!tegra_bpmp_message_valid(msg))
+ 		return -EINVAL;
+ 
++	if (tegra_bpmp_transfer_redirect)
++		return _tegra_bpmp_transfer(bpmp, msg);
++
+ 	channel = tegra_bpmp_write_threaded(bpmp, msg->mrq, msg->tx.data,
+ 					    msg->tx.size);
++	
++	if (tegra_bpmp_outloud){
++	    printk("tegra_bpmp_transfer tx: %x tx.size= %ld \n", msg->mrq, msg->tx.size);
++	    print_hex_dump(KERN_INFO, "tegra_bpmp_transfer tx:" ,DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	}
++
+ 	if (IS_ERR(channel))
+ 		return PTR_ERR(channel);
+ 
+@@ -381,8 +431,15 @@ int tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
+ 	if (err == 0)
+ 		return -ETIMEDOUT;
+ 
+-	return tegra_bpmp_channel_read(channel, msg->rx.data, msg->rx.size,
++	err = tegra_bpmp_channel_read(channel, msg->rx.data, msg->rx.size,
+ 				       &msg->rx.ret);
++
++	if(tegra_bpmp_outloud){
++ 	    printk("tegra_bpmp_transfer rx: err=%d\n msg->rx.ret=%d", err, msg->rx.ret);
++ 	    print_hex_dump(KERN_INFO,"tegra_bpmp_transfer rx:" ,DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++ 	}
++
++	return err;
+ }
+ EXPORT_SYMBOL_GPL(tegra_bpmp_transfer);
+ 
