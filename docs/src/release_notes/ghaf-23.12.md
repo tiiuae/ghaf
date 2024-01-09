@@ -89,4 +89,4 @@ Download the required image and use the following instructions:
 | ghaf-23.12_Nvidia_Orin_NX_cross-compiled-no-demoapps[^note].tar.xz, ghaf-23.12_Nvidia_Orin_NX_cross-compiled.tar.xz, ghaf-23.12_Nvidia_Orin_NX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
 | ghaf-23.12_PolarFire_RISC-V.tar.xz | [Building Ghaf Image for Microchip Icicle Kit](../ref_impl/build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
 
-[^note] no-demoapps images do not include Chromium, Zathura, GALA (Google Android Look Alike) applications.
+[^note] no-demoapps images do not include Chromium, Zathura, and GALA applications.
