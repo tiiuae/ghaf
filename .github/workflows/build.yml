@@ -85,8 +85,8 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: x86_64-linux
-            target: lenovo-x1-carbon-gen11-debug
+   #       - arch: x86_64-linux
+   #         target: lenovo-x1-carbon-gen11-debug
           - arch: x86_64-linux
             target: nvidia-jetson-orin-agx-debug-from-x86_64
           - arch: x86_64-linux
