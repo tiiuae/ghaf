@@ -94,6 +94,10 @@ _embedded MultiMediaCard_
 
 _end-user license agreement_
 
+### GALA
+
+_The Google Android Look Alike application. Mobile client application for connecting to a Cloud Android device in Secured Google Cloud Platform VMs. Users see a remotely rendered Android phone desktop on their own device screen and interact with the Cloud Android device like the real mobile device. All application processing runs in the cloud._
+
 ### GUI
 
 _graphical user interface_

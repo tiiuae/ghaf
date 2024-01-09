@@ -9,23 +9,27 @@ The vision for the Ghaf platform is to create a virtualized, scalable reference 
 
 Ghaf demo desktop and applications are illustrated in the screen capture below:
 ![Ghaf demo desktop and application](../img/ghaf_demo_desktop.png)
+
+
 ## Status
 
-* &#x2705; - integrated and tested in the `main` branch. No known regression.
-* &#x1f6A7; - prototyped or work in progress in the development branch.
-* &#x274C; - the feature has known regression or bugs.
+* &#x2705;—integrated and tested in the `main` branch. No known regression.
+* &#x1f6A7;—prototyped or work in progress in the development branch.
+* &#x274C;—the feature has known regression or bugs.
+
 
 ### Reference Devices
 
 - `Orin`—NVIDIA Jetson AGX Orin as the main reference device.
 - `x86`—generic x86_64; tested on Intel NUC (Next Unit of Computing) or laptop.
-- `Lenovo X1`—Lenovo X1 Carbon Gen11 laptop. 
-- `aarch64`—generic AArch64; tested on an ARM server, laptop (e.g. Apple M's), or NVIDIA Jetson AGX Orin.
+- `Lenovo X1`—Lenovo X1 Carbon Gen 11 laptop. 
+- `aarch64`—generic AArch64; tested on an ARM server, laptop (e.g. Apple MacBook's), or NVIDIA Jetson AGX Orin.
 - `All variants`—supported devices from [Architectural Variants](https://tiiuae.github.io/ghaf/architecture/variants.html).
 
 The following tables show the status of Ghaf Platform features:
 
-## Release builds and HW architecture support
+
+## Release Builds and Hardware Architecture Support
 
 | Feature           | Status      | Reference Device | Details                             |
 |-------------------|-------------|------------------|-------------------------------------|
@@ -51,15 +55,16 @@ The following tables show the status of Ghaf Platform features:
 | Debug: Serial     | &#x2705;      | `all` | Host access only in `-debug`-target - e.g. `screen /dev/ttyACM0 115200` |
 | Compartmentalized environment     | &#x1f6A7;      | `Lenovo X1` | NetVM, GUI VM (with GPU passthrough) plus some Application VMs |
 
-## Target architecture
+
+## Target Architecture
 
 | Feature           | Status      | Reference Device | Details                             |
 |-------------------|-------------|------------------|----------------------------------------------|
 | `minimal host`    | &#x1f6A7;   | [`all`](https://tiiuae.github.io/ghaf/architecture/variants.html) | See [Minimal Host](https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html) and [PR #140](https://github.com/tiiuae/ghaf/pull/140). |
 | `netvm`           |  &#x2705; | `Orin`  | See [netvm](https://tiiuae.github.io/ghaf/architecture/adr/netvm.html). Passthrough with Wifi works but requires SSID/password configuration |
 | `idsvm`           |  &#x2705; | `Orin`  | [Defensive security VM placeholder PR open](https://github.com/tiiuae/ghaf/pull/146) |
-| `guivm` | &#x1f6A7; | `All`, `Lenovo-X1`| Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.|
-| `appvm` | &#x1f6A7; | `All`, `Lenovo-X1`| Implemented for Lenovo X1 reference device: chromium, GALA and zathura VMs. Requires `guivm` in place |
+| `guivm` | &#x1f6A7; | `All`, `Lenovo X1`| Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.|
+| `appvm` | &#x1f6A7; | `All`, `Lenovo X1`| Implemented for Lenovo X1 reference device: chromium, GALA and zathura VMs. Requires `guivm` in place |
 | `adminvm`           | &#x2705; | `All`  | Not started |
 | Inter VM comms - IP-based  | &#x1f6A7; | `All` |`-debug`-targets have network bridges to access VMs from host |
 | Inter VM comms - shared memory  |  &#x1f6A7; | `All` |  |
@@ -70,17 +75,18 @@ The following tables show the status of Ghaf Platform features:
 | UART passthrough  | &#x1f6A7; | `Orin`  | See [NVIDIA Jetson AGX Orin: UART Passthrough](https://tiiuae.github.io/ghaf/build_config/passthrough/nvidia_agx_pt_uart.html). Not integrated to any VM. |
 | ARM platform bus devices passthrough  | &#x1f6A7; | `Orin`  | NVIDIA BPMP virtualization being developed |
 
-## Applications and VM control
+
+## Applications and VM Control
 
 | Feature           | Status      | Reference Device | Details                             |
 |-------------------|-------------|------------------|----------------------------------------------|
-| Wayland-compositor | &#x1f6A7; | `Orin`, `x86` | Implemented for `Lenovo-X1` |
-| Chromium | &#x1f6A7; | `Orin`, `x86` | Implemented for `Lenovo-X1` |
+| Wayland-compositor | &#x1f6A7; | `Orin`, `x86` | Implemented for `Lenovo X1` |
+| Chromium | &#x1f6A7; | `Orin`, `x86` | Implemented for `Lenovo X1` |
 | Element | &#x1f6A7; | `Orin`, `x86` | On host |
-| Cloud Android (CVD) client app (GALA )| &#x1f6A7; | `Orin`, `x86` | Implemented for `Lenovo-X1` |
+| Cloud Android (CVD) client application (GALA)| &#x1f6A7; | `Orin`, `x86` | Implemented for `Lenovo X1` |
 | Virtualization control | &#x1f6A7; | [`All`](https://tiiuae.github.io/ghaf/architecture/variants.html) | See [vmd design](https://github.com/tiiuae/vmd/blob/main/doc/design.md). |
 
-## Next steps
+## Next Steps
 
 [See discussion for the outline of next steps](https://github.com/tiiuae/ghaf/issues/150#issuecomment-1564061850)
 

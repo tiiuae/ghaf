@@ -8,4 +8,4 @@
 Our experience in research, studies and lessons learned activities:
 
 * [i.MX 8QM platform bus ethernet passthrough](passthrough/ethernet.md)
-* [System installation](research/installation.md)
+* [System installation](installation.md)
