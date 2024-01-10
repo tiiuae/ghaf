@@ -12,6 +12,7 @@
   netvmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ./common/dns-dhcp.nix {})
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -35,32 +36,8 @@
           firewall.allowedUDPPorts = [53];
         };
 
-        # Add simple wi-fi connection helper
-        environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];
-
-        # Dnsmasq is used as a DHCP/DNS server inside the NetVM
-        services.dnsmasq = {
-          enable = true;
-          resolveLocalQueries = true;
-          settings = {
-            server = ["8.8.8.8"];
-            dhcp-range = ["192.168.100.2,192.168.100.254"];
-            dhcp-sequential-ip = true;
-            dhcp-authoritative = true;
-            domain = "ghaf";
-            listen-address = ["127.0.0.1,192.168.100.1"];
-            dhcp-option = [
-              "option:router,192.168.100.1"
-              "6,192.168.100.1"
-            ];
-            expand-hosts = true;
-            domain-needed = true;
-            bogus-priv = true;
-          };
-        };
-
-        # Disable resolved since we are using Dnsmasq
-        services.resolved.enable = false;
+        # support net-vm debug with simple wi-fi connection helper and tshark analyzer
+        environment.systemPackages = with pkgs; lib.mkIf config.ghaf.profiles.debug.enable [wifi-connector tshark];
 
         systemd.network = {
           enable = true;

@@ -38,15 +38,22 @@ in {
     networks."10-${networkName}" = {
       matchConfig.MACAddress = macAddress;
       DHCP = "yes";
+      dhcpV4Config.UseDomains = "yes";
       linkConfig.RequiredForOnline = "routable";
       linkConfig.ActivationPolicy = "always-up";
     };
   };
 
-  # systemd-resolved does not support local names resolution
-  # without configuring a local domain. With the local domain,
-  # one would need also to disable DNSSEC for the clients.
-  # Disabling DNSSEC for other VM then NetVM is
-  # completely safe since they use NetVM as DNS proxy.
-  services.resolved.dnssec = "false";
+  services.resolved = {
+    # systemd-resolved does not support local names resolution
+    # without configuring a local domain. With the local domain,
+    # one would need also to disable DNSSEC for the clients.
+    # Disabling DNSSEC for other VM then NetVM is
+    # completely safe since they use NetVM as DNS proxy.
+    dnssec = "false";
+    # Disable local DNS stub listener on 127.0.0.53
+    extraConfig = ''
+      DNSStubListener=no
+    '';
+  };
 }
