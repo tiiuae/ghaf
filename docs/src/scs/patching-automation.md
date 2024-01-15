@@ -18,7 +18,9 @@ The patch management automation (PMA) system processes data in cycles. Every cyc
   6. A package passing the testing will be presented to the concerned developers for review and approval. The SBOM, scan and test results along with the package are published to a web server. The developer downloads the artifacts for review and approval.
   7. All approved artifacts become release candidates and can be found on the web server.
 
+
 ## Implementation
+
 
 ### Dependency Tracking
 
@@ -35,6 +37,7 @@ The dependency tracking solution is based on Package URL (PURL), natively suppor
   + **subpath**: extra subpath relative to package root.
 
 In addition to PURL, each component should contain at least one hash value, computed from cryptographic hash functions. The hash values help to verify the original package integrity and source prior to update the download. Thus minimizing security risks during the process.
+
 
 ### Package Update
 

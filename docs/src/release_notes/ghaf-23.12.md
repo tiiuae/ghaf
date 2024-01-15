@@ -50,8 +50,7 @@ Fixed bugs that were in the ghaf-23.09 release:
 
 * Chromium AppVM does not boot up on X1.
 * Shutdown or reboot of Lenovo X1 takes a lot of time (7 minutes).
-* Copy and paste text from or to Chromium AppVM does not work.
-  > NOTE: copy text from the address bar does not work.
+* Copy and paste text from or to Chromium AppVM does not work. Copy text from the address bar does not work as well.
 * Personal security keys cannot be created.
 * Cannot move the Element window by dragging with the mouse.
 
@@ -60,7 +59,7 @@ Fixed bugs that were in the ghaf-23.09 release:
 
 | Issue           | Status      | Comments                             |
 |-----------------|-------------|--------------------------------------|
-| The GALA app does not work | In Progress | Will be fixed in the next release. |
+| The GALA application does not work | In Progress | Will be fixed in the next release. |
 | Cannot log in to the Element chat with a Google account  | In Progress | Workaround for x86: create a user specifically for Element. |
 | Copying text from the browser address bar to another application does not work  | In Progress | Under investigation |
 | Windows launcher application does not work on NUC and AGX  | In Progress | Workaround: launch Windows VM from the command line. |

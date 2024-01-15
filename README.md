@@ -19,13 +19,6 @@ This repository contains the source files (code and documentation) of Ghaf Frame
 
 For information on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/ref_impl/reference_implementations.html) section of Ghaf documentation.
 
-### Other Project Repositories
-
-Other repositories that are a part of the Ghaf project:
-
-* <https://github.com/tiiuae/sbomnix>: a utility that generates SBOMs given Nix derivations or out paths
-* <https://github.com/tiiuae/ci-public>, <https://github.com/tiiuae/ci-test-automation>: CI/CD related files
-
 
 ### Documentation
 
@@ -36,6 +29,24 @@ To build Ghaf documentation, use:
     nix build .#doc
     
 See the documentation overview under [README-docs.md](./docs/README-docs.md).
+
+
+## Other Project Repositories
+
+Other repositories that are a part of the Ghaf project:
+
+* [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOMs given Nix derivations or out paths
+* [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-public](https://github.com/tiiuae/ci-public), [ci-test-automation](https://github.com/tiiuae/ci-test-automation): CI/CD related files
+
+
+## Build System
+
+Ghaf images are built and tested by our continuous integration system. For more information on a general process, see [Continuous Integration and Distribution](./docs/src/scs/ci-cd-system.md).
+
+Targets: <https://github.com/tiiuae/ghaf/blob/main/hydrajobs.nix>  
+Hydra builders on x86 servers: <https://hydra.vedenemo.dev/>  
+Disk images successfully built with Hydra are published to <https://vedenemo.dev/>.  
+Build results: <https://vedenemo.dev/files/build_reports/>  
 
 
 ## Contributing
