@@ -1,39 +1,32 @@
 <!--
-    Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
 # NVIDIA Jetson AGX Orin: Boot and Power Management Processor Virtualization
 
-## Introduction
+Boot and Power Management Processor (BPMP) is the NVIDIA processor, which is designed for booting process handling and offloading the power management, clock management, and reset control tasks from the CPU. 
 
-Boot and Power Management Processor (BPMP) virtualization on the NVIDIA Jetson AGX Orin involves enabling virtual machines (VMs) to access specific BPMP resources. This capability is crucial for passing through platform devices where control over resets and clocks configurations is required.
+The BPMP virtualization on the NVIDIA Jetson AGX Orin involves enabling VMs to access specific BPMP resources. This capability is crucial for passing through platform devices where control over resets and clocks configurations is required.
+
 
 ## Architectural Overview
 
-- **Resource Access**: BPMP virtualization allows VMs to access and manage resources such as device clocks and resets.
-- **Foundation for Device Virtualization**: This setup lays the groundwork for future virtualization of more complex devices like GPUs.
-- **Module Introduction**: A new `virtualization` module is introduced, divided into `common` and `host` modules, with a plan to add a `guest` module for NixOS-based guests.
-- **Device Tree Configurations**: Modifications are made via patching to support virtualization features.
-- **Compatibility**: The current implementation supports a Ghaf host with an Ubuntu guest.
+* **Resource Access**: The BPMP virtualization allows VMs to access and manage resources such as device clocks and resets.
+* **Foundation for Device Virtualization**: This setup lays the groundwork for future virtualization of more complex devices like GPUs.
+* **Module Introduction**: A new `virtualization` module is introduced, divided into `common` and `host` modules with a plan to add a `guest` module for NixOS-based guests.
+* **Device Tree Configurations**: Modifications are made with patching to support virtualization features.
+* **Compatibility**: The current implementation supports a Ghaf host with an Ubuntu guest.
+
 
 ## Use Cases
 
-The current implementation includes a host configuration for UARTA
-passthrough as a test case, demonstrating the practical application of
-BPMP virtualization. Current implementation still requires a manuall
-built Ubuntu guest. Work continues to integrate `microvm.nix` declared
-guest that supports NVIDIA BPMP virtualization with the UARTA
-passthrough demo. In general, this is work is important for future
-NVIDIA Jetson platform bus GPU passthrough. With this feature, it is
-possible to virtualize NVIDIA Jetson integrated GPU connected to
-platform bus.
+The current implementation includes a host configuration for the UARTA passthrough as a test case demonstrating the practical application of the BPMP virtualization. At the same time, the current implementation still requires manually built Ubuntu guest. Work continues to integrate `microvm.nix` declared guest that supports NVIDIA BPMP virtualization with the UARTA passthrough demo. This work is generally important for future NVIDIA Jetson platform bus GPU passthrough. With this feature it is possible to virtualize the NVIDIA-Jetson-integrated GPU connected to the platform bus.
 
-## Instructions for Using BPMP Virtualization Options on NVIDIA Jetson AGX Orin
 
-1. Enable NVIDIA BPMP virtualization on Ghaf host for a NVIDIA
-Jetson-target using the following configuration options:
+## Using BPMP Virtualization Options on NVIDIA Jetson AGX Orin
 
+1. Enable NVIDIA BPMP virtualization on a Ghaf host for an NVIDIA Jetson-target using the following configuration options:
 
 ```nix
   hardware.nvidia = {
@@ -41,34 +34,39 @@ Jetson-target using the following configuration options:
     passthroughs.uarta.enable = true;
 };
 ```
-Please note that these options are integrated to [NVIDIA Jetson Orin
-  targets](https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix)
-  but disabled by default until the implementation is finished.
 
-2. Build the target and boot with the image. You can write the image
-to an SSD for testing with a recent NVIDIA UEFI FW.
+> **IMPORTANT:** These options are integrated to [NVIDIA Jetson Orin targets](https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix) but disabled by default until the implementation is finished.
+
+2. Build the target and boot the image. You can write the image to an SSD for testing with a recent NVIDIA UEFI FW.
+
 
 ## Testing
 
-### Host
 
-1. Check for `bpmp-host` device.
+### Host Testing
+
+1. Check the `bpmp-host` device:
 
 ```
 [ghaf@ghaf-host:~]$ ls /dev | grep bpmp-host
 bpmp-host
 ```
 
-2. Check that `vfio-platform` binding is successful.
+2. Check that `vfio-platform` binding is successful:
 
 ```
 ghaf@ghaf-host:~]$ ls -l /sys/bus/platform/drivers/vfio-platform/3100000.serial
 lrwxrwxrwx 1 root root 0 Dec  8 08:26 /sys/bus/platform/drivers/vfio-platform/3100000.serial -> ../../../../devices/platform/3100000.serial
 ```
 
-### Guest for UARTA Test
 
-1. Build guest kernel according to instructions at [https://github.com/jpruiz84/bpmp-virt](https://github.com/jpruiz84/bpmp-virt) and use the following script to start the vm (IMG is the kernel image and FS the rootfs).
+### Guest for UARTA Testing
+
+> UARTA is an UART unit with a port A connection. For more information, see [UART Connections](nvidia_agx_pt_uart.md#uart-connections).
+
+1. Build a guest kernel according to [UARTA passthrough instructions](https://github.com/jpruiz84/bpmp-virt)[^note] and use the following script to start the VM:
+
+> **TIP:** IMG is the kernel image and FS the rootfs.
 
 ```
 IMG=$1
@@ -88,18 +86,23 @@ qemu-system-aarch64 \
     -append "rootwait root=/dev/vda console=ttyAMA0"
 ```
 
-2. With UARTA connected as instructed in [https://github.com/jpruiz84/bpmp-virt](https://github.com/jpruiz84/bpmp-virt), start minicom on the working PC:
+2. With UARTA connected start Minicom on the working machine:
 
 ```
 minicom -b 9600 -D /dev/ttyUSB0
 ```
 
-3. Test UARTA by echoing a string to the correct tty in the vm:
+3. Test UARTA by echoing a string to the correct `tty` in the VM:
 
 ```
 echo 123 > /dev/ttyTHS0
 ```
 
+
 ## Related Topics
 
-- [NVIDIA Jetson AGX Orin: UART Passthrough](https://tiiuae.github.io/ghaf/technologies/nvidia_agx_pt_uart.html#nvidia-jetson-agx-orin-uart-passthrough)
+[NVIDIA Jetson AGX Orin: UART Passthrough](./nvidia_agx_pt_uart.md#nvidia-jetson-agx-orin-uart-passthrough)
+
+
+
+[^note] That documentation is in the [bpmp-virt](https://github.com/jpruiz84/bpmp-virt) side repository, as that approach does not use microvm.

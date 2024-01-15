@@ -5,9 +5,11 @@
 
 # Basic Security Measures
 
+
 ## Source Code / Version Control Security
 
 The source code security is based on the fact that the source code is two-person reviewed, version controlled, and the history is verified and retained indefinitely.
+
 
 ### Commit Signing
 All the commits to repositories must be GPG-signed. This can be achieved by enabling GPG commit signatures in the config:
@@ -15,6 +17,7 @@ All the commits to repositories must be GPG-signed. This can be achieved by enab
 `git config --global commit.gpgsign true`
 
 For more detailed information, see the [Signing commits](https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits "Signing Commits on GitHub") article of the GitHub Docs.
+
 
 ### Branch Protection
 In the case of GitHub the following settings should be considered:
@@ -25,6 +28,7 @@ In the case of GitHub the following settings should be considered:
   + Require signed commits.
   + Deletions should be forbidden (req: immutable history).
 
+
 ## Software Signing
 
 Software signing is an important measure to validate the author and ensure that the code has not been altered on the way from the developer to the customer. Nix tooling is offering means to sign the derivations using libsodium with EdDSA, however, as the modular system is assumed, scripts need to be developed to support signing mechanisms in an absence of Nix tooling.
@@ -34,17 +38,20 @@ By default, the software image is signed only at the binary cache per request. W
   + Enabling the image signing on Hydra
   + Shared Nix Store
 
+
 ### Enabling Image Signing on Hydra
 
 Enabling the image signing on Hydra requires some extra work due to the lack of well-documented support of image signing at Hydra at the time of writing this document. As already mentioned, NixOS is using libsodium-based EdDSA solution for image signing. So similar scripts can be implemented. For example, in Python by using existing libsodium bindings, such as PyNaCl.
 
 ![Enabling Image Signing on Hydra](../img/threat_processing_2serv.drawio.png "Enabling The Image Signing On Hydra")
 
+
 ### Shared Nix Store
 
 The shared NixStore option is rather straightforward if Hydra is combined with the binary cache. This kind of setup is lacking the extra transition path. Thus the packages signed by the binary cache will be served straight from the Hydra NixStore.
 
 ![Shared NixStore Solution](../img/threat_processing_1serv.drawio.png "Shared NixStore")
+
 
 ## Data Encryption in Transit
 

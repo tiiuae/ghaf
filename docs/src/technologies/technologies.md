@@ -25,7 +25,7 @@ In our reference implementation, we use KVM (Kernel Virtual Machine) from Linux 
 
 On top of OS kernel hypervisor support with KVM. We allocate virtual resources for use cases with user-space virtual machine manager (VMM) using [rust-vmm](https://github.com/rust-vmm) based projects such as [cloud-hypervisor](https://github.com/cloud-hypervisor/cloud-hypervisor) and [crosvm](https://github.com/google/crosvm). [QEMU](https://www.qemu.org/) is enabled for certain development use cases.
 
-In addition, we have also experimental, Aarch64 demonstrated support for a KVM variant — [KVMS](https://github.com/jkrh/kvms) — which adds security features to standard KVM.
+In addition, we have also experimental, Aarch64 demonstrated support for a KVM variant—[KVMS](https://github.com/jkrh/kvms)—which adds security features to standard KVM.
 
 
 ## In This Chapter
@@ -36,4 +36,5 @@ In addition, we have also experimental, Aarch64 demonstrated support for a KVM v
   - [NVIDIA Jetson AGX Orin: UART Passthrough](./nvidia_agx_pt_uart.md)
   - [NVIDIA Jetson AGX Orin: PCIe Passthrough](./nvidia_agx_pt_pcie.md)
   - [Generic x86: PCIe Passthrough on crosvm](./x86_pcie_crosvm.md)
+- [NVIDIA Jetson AGX Orin: Boot and Power Management Processor Virtualization](./nvidia_virtualization_bpmp.md)
 - [Hypervisor Options](./hypervisor_options.md)
