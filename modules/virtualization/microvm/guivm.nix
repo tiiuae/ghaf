@@ -96,23 +96,14 @@
         systemd.user.services.waypipe = {
           enable = true;
           description = "waypipe";
-          after = ["weston.service"];
+          after = ["weston.service" "labwc.service"];
           serviceConfig = {
             Type = "simple";
-            Environment = [
-              "WAYLAND_DISPLAY=\"wayland-1\""
-              "DISPLAY=\":0\""
-              "XDG_SESSION_TYPE=wayland"
-              "QT_QPA_PLATFORM=\"wayland\"" # Qt Applications
-              "GDK_BACKEND=\"wayland\"" # GTK Applications
-              "XDG_SESSION_TYPE=\"wayland\"" # Electron Applications
-              "SDL_VIDEODRIVER=\"wayland\""
-              "CLUTTER_BACKEND=\"wayland\""
-            ];
             ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
             Restart = "always";
             RestartSec = "1";
           };
+          startLimitIntervalSec = 0;
           wantedBy = ["ghaf-session.target"];
         };
 
