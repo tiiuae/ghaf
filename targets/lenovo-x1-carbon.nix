@@ -205,10 +205,14 @@
             ExecStart = "${pkgs.tcp-ssh}/bin/tcp-ssh audio-vm.ghaf 4713";
             ExecStop = "${pkgs.procps}/bin/pkill -F /run/tcp-ssh/tcp-ssh-4713.pid";
             Restart = "on-failure";
-            RestartSec = 5;
+            RestartSec = "5";
             User = "ghaf";
           };
-          wantedBy = ["ghaf-session.target"];
+          wantedBy = ["multi-user.target"];
+        };
+        environment.sessionVariables = {
+          PULSE_SERVER = "tcp:localhost:4713";
+          PID_PATH = "/run/tcp-ssh/";
         };
         systemd.tmpfiles.rules = ["d /run/tcp-ssh 0750 ghaf ghaf -"];
       })
