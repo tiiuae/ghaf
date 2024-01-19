@@ -44,12 +44,4 @@ in {
       dtc
     ];
   };
-      O{
-        name = "gpio virtualization host proxy device tree";
-        patch = ./patches/dummy-gpio-host-proxy-dts.patch;
-      }
-      {
-        name = "gpio virtualization host uarta device tree";
-        patch = ./patches/0002-gpio-host-uarta-dts.patch;
-      }
 }

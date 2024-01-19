@@ -7,18 +7,6 @@
 }: let
   cfg = config.ghaf.hardware.nvidia.virtualization;
 in {
-  options.ghaf.hardware.nvidia.virtualization.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = ''
-      Enable virtualization support for NVIDIA Orin
-
-      This option is an implementation level detail and is toggled automatically
-      by modules that need it. Manually enabling this option is not recommended in
-      release builds.
-    '';
-  };
-
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = [
       {
@@ -60,6 +48,6 @@ in {
       }
     ];
 
-    boot.kernelParams = ["iommu=pt vfio.enable_unsafe_noiommu_mode=0 vfio_iommu_type1.allow_unsafe_interrupts=1 vfio_platform.reset_required=0"];
+    boot.kernelParams = ["iommu=pt :vfio.enable_unsafe_noiommu_mode=0 vfio_iommu_type1.allow_unsafe_interrupts=1 vfio_platform.reset_required=0"];
   };
 }
