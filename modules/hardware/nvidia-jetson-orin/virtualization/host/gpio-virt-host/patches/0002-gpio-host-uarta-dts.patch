@@ -1,0 +1,46 @@
+diff --git a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
+index 503cb275dcc1..c708ad3f5048 100644
+--- a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
++++ b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
+@@ -29,23 +29,24 @@ aliases {
+ 		serial7 = &uarth;
+ 	};
+ 
+-	uarta: serial@3100000 {
+-		compatible = "nvidia,tegra194-hsuart";
+-		iommus = <&smmu_niso0 TEGRA_SID_NISO0_GPCDMA_0>;
+-		dma-coherent;
+-		reg = <0x0 0x03100000 0x0 0x10000>;
+-		reg-shift = <2>;
+-		interrupts = <0 TEGRA234_IRQ_UARTA 0x04>;
+-		nvidia,memory-clients = <14>;
+-		dmas = <&gpcdma 8>, <&gpcdma 8>;
+-		dma-names = "rx", "tx";
+-		clocks = <&bpmp_clks TEGRA234_CLK_UARTA>,
+-			<&bpmp_clks TEGRA234_CLK_PLLP_OUT0>;
+-		clock-names = "serial", "parent";
+-		resets = <&bpmp_resets TEGRA234_RESET_UARTA>;
+-		reset-names = "serial";
+-		status = "disabled";
+-	};
++ uarta: serial@3100000 {
++     compatible = "nvidia,tegra194-dummy";
++     //iommus = <&smmu_niso0 TEGRA_SID_NISO0_GPCDMA_0>;
++     iommus = <&smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST>;
++     dma-coherent;
++     reg = <0x0 0x03100000 0x0 0x10000>;
++     reg-shift = <2>;
++     interrupts = <0 TEGRA234_IRQ_UARTA 0x04>;
++     nvidia,memory-clients = <14>;
++     dmas = <&gpcdma 8>, <&gpcdma 8>;
++     dma-names = "rx", "tx";
++     clocks = <&bpmp_clks TEGRA234_CLK_UARTA>,
++         <&bpmp_clks TEGRA234_CLK_PLLP_OUT0>;
++     clock-names = "serial", "parent";
++     resets = <&bpmp_resets TEGRA234_RESET_UARTA>;
++     reset-names = "serial";
++     status = "okay";
++ };
+ 
+ 	uartb: serial@3110000 {
+ 		compatible = "nvidia,tegra194-hsuart";

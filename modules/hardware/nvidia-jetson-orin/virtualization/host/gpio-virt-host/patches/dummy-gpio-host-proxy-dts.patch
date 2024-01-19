@@ -1,0 +1,28 @@
+From f439277b252808fa20182a14a49f647eb22c78ac Mon Sep 17 00:00:00 2001
+From: Julius Koskela <me@juliuskoskela.dev>
+Date: Mon, 9 Oct 2023 01:43:18 +0300
+Subject: [PATCH] Add bpmp host proxy device tree node
+
+Signed-off-by: Julius Koskela <me@juliuskoskela.dev>
+---
+ .../t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi    | 7 +++++++
+ 1 file changed, 7 insertions(+)
+
+diff --git a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi
+index 1cf75f2773ad..24c32b0ebb1c 100644
+--- a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi
++++ b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi
+@@ -1128,4 +1128,11 @@ tegra_cec: tegra_cec {
+ 		reset-names = "cec";
+ 		status = "disabled";
+ 	};
++
++  bpmp_host_proxy: bpmp_host_proxy {
++     compatible = "nvidia,bpmp-host-proxy";
++     allowed-clocks = <155 102>;
++     allowed-resets = <100>;
++     status = "okay";
++  };
+ };
+-- 
+2.42.0

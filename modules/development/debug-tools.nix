@@ -37,6 +37,10 @@ in
           # Performance testing
           speedtest-cli
           iperf
+
+          # Networking
+           wifi-connector
+           wpa_supplicant
         ]
         ++
         # LuaJIT (which is sysbench dependency) not available on RISC-V
