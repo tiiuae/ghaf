@@ -7,6 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.graphics.weston;
+  waylandSocket = "wayland-1";
 in {
   options.ghaf.graphics.weston = {
     enable = lib.mkEnableOption "weston";
@@ -29,7 +30,7 @@ in {
         Documentation = "man:weston(1) man:weston.ini(5)";
       };
       socketConfig = {
-        ListenStream = "%t/wayland-1";
+        ListenStream = "%t/${waylandSocket}";
       };
       wantedBy = ["weston.service"];
     };
@@ -42,18 +43,17 @@ in {
       requires = ["weston.socket"];
       after = ["weston.socket" "ghaf-session.service"];
       serviceConfig = {
-        # Previously there was "notify" type, but for some reason
-        # systemd kills weston.service because of timeout (even if it is disabled).
-        # "simple" works pretty well, so let's leave it.
-        Type = "simple";
+        Type = "notify";
         #TimeoutStartSec = "60";
         #WatchdogSec = "20";
         # Defaults to journal
         StandardOutput = "journal";
         StandardError = "journal";
-        ExecStart = "${pkgs.weston}/bin/weston";
+        ExecStart = "${pkgs.weston}/bin/weston --modules=systemd-notify.so";
         #GPU pt needs some time to start - weston fails to restart 3 times in avg.
         ExecStartPre = "${pkgs.coreutils}/bin/sleep 3";
+        # Set WAYLAND_DISPLAY variable to make it available to waypipe and other systemd services
+        ExecStartPost = "${pkgs.systemd}/bin/systemctl --user set-environment WAYLAND_DISPLAY=${waylandSocket}";
         Restart = "on-failure";
         RestartSec = "1";
         # Ivan N: I do not know if this is bug or feature of NixOS, but
