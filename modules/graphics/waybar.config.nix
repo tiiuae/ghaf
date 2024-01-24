@@ -54,7 +54,7 @@
     # a launcher on the panel, the launcher will replace weston-terminal launcher.
     {
       name = "terminal";
-      path = "${pkgs.weston}/bin/weston-terminal";
+      path = "${pkgs.weston}/bin/weston-terminal --font=${pkgs.hack-font}/share/fonts/truetype/Hack-Regular.ttf";
       icon = "${pkgs.weston}/share/weston/icon_terminal.png";
     }
   ];
