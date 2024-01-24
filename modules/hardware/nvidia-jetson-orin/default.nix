@@ -7,6 +7,7 @@
     ./partition-template.nix
     ../../boot/systemd-boot-dtb.nix
     ./jetson-orin.nix
+    ./ssd-part.nix
 
     ./pci-passthrough-common.nix
     ./agx-netvm-wlan-pci-passthrough.nix
