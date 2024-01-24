@@ -71,7 +71,8 @@
           modules = [
             disko.nixosModules.disko
             ./disk-config.nix
-            {
+            # deadnix: skip
+            ({lib, ...}: {
               #insert your additional modules here e.g.
               # virtualisation.docker.enable = true;
               # users.users."ghaf".extraGroups = ["docker"];
@@ -88,8 +89,8 @@
               ];
 
               # Insert block device on which system will be installed (this will destory all content on it).
-              disko.devices.disk.disk1.device = "DRIVE_PATH";
-            }
+              # disko.devices.disk.disk1.device = lib.mkDefault "DRIVE_PATH";
+            })
           ];
         };
         packages.x86_64-linux.PROJ_NAME-ghaf-debug = let

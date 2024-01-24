@@ -4,7 +4,7 @@
 _: {
   disko.devices = {
     disk.disk1 = {
-      # device = lib.mkDefault "/dev/nvme0n1";
+      device = "DRIVE_PATH";
       type = "disk";
       content = {
         type = "gpt";
@@ -22,6 +22,7 @@ _: {
               type = "filesystem";
               format = "vfat";
               mountpoint = "/boot";
+              mountOptions = ["umask=0077"];
             };
           };
           root = {
