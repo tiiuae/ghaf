@@ -18,6 +18,7 @@ in {
     // lib.mkIf labwc.enable {
       fonts.packages = with pkgs; [
         (nerdfonts.override {fonts = ["FiraCode"];})
+        hack-font
       ];
     };
 }
