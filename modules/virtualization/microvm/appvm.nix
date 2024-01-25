@@ -27,7 +27,17 @@
           config,
           pkgs,
           ...
-        }: {
+        }: let
+          waypipeBorder =
+            if vm.borderColor != null
+            then "--border \"${vm.borderColor}\""
+            else "";
+          runWaypipe = with pkgs;
+            writeScriptBin "run-waypipe" ''
+              #!${runtimeShell} -e
+              ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server $@
+            '';
+        in {
           ghaf = {
             users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
 
@@ -65,6 +75,7 @@
 
           environment.systemPackages = [
             pkgs.waypipe
+            runWaypipe
           ];
 
           microvm = {
@@ -159,6 +170,13 @@ in {
               '';
               type = int;
               default = 0;
+            };
+            borderColor = mkOption {
+              description = ''
+                Border color of the AppVM window
+              '';
+              type = nullOr str;
+              default = null;
             };
           };
         });
