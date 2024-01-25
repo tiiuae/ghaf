@@ -263,14 +263,15 @@
         ],
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1701202812,
-        "narHash": "sha256-ym/Rd4tR4i2d1WdPNKaeeIz/UoyfnCe5UBZbUl1M0PM=",
+        "lastModified": 1706108417,
+        "narHash": "sha256-gW/Zlgf/08/qNWO5JjQLDJAGAH4v8WmgolD+QbUVwq8=",
         "owner": "astro",
         "repo": "microvm.nix",
-        "rev": "89bb7a5230a4820736a43e058c8d2a2c560d672b",
+        "rev": "ce0d2e393216e708d2abc228c68a7a8c2147aeec",
         "type": "github"
       },
       "original": {
@@ -446,6 +447,22 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "type": "github"
+      }
+    },
+    "spectrum": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1703273931,
+        "narHash": "sha256-CJ1Crdi5fXHkCiemovsp20/RC4vpDaZl1R6V273FecI=",
+        "ref": "refs/heads/main",
+        "rev": "97e2f3429ee61dc37664b4d096b2fec48a57b691",
+        "revCount": 597,
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
+      },
+      "original": {
+        "type": "git",
+        "url": "https://spectrum-os.org/git/spectrum"
       }
     },
     "systems": {
