@@ -126,9 +126,10 @@
         time.timeZone = "Asia/Dubai";
       })
     ];
-    guivmConfig = hostConfiguration.config.ghaf.virtualization.microvm.guivm;
     winConfig = hostConfiguration.config.ghaf.windows-launcher;
     networkDevice = hostConfiguration.config.ghaf.hardware.definition.network.pciDevices;
+    # TCP port used by PDF XDG handler
+    xdgPdfPort = 1200;
     guivmExtraModules = [
       {
         # Early KMS needed for GNOME to work inside GuiVM
@@ -149,29 +150,50 @@
           "pa,id=pa1,server=unix:/run/pulse/native"
         ];
       }
-      ({pkgs, ...}: {
+      ({pkgs, ...}: let
+        sshKeyPath = "/run/waypipe-ssh/id_ed25519";
+        # The openpdf script is executed by the xdg handler from the chromium-vm
+        # It reads the file path, copies it from chromium-vm to zathura-vm and opens it there
+        openPdf = with pkgs;
+          writeScriptBin "openpdf" ''
+            #!${runtimeShell} -e
+            read -r sourcepath
+            filename=$(basename $sourcepath)
+            zathurapath="/var/tmp/$filename"
+            chromiumip=$(${dnsutils}/bin/dig +short chromium-vm.ghaf | head -1)
+            if [[ "$chromiumip" != "$REMOTE_ADDR" ]]; then
+              echo "Open PDF request received from $REMOTE_ADDR, but it is only permitted for chromium-vm.ghaf with IP $chromiumip"
+              exit 0
+            fi
+            echo "Copying $sourcepath from $REMOTE_ADDR to $zathurapath in zathura-vm"
+            ${openssh}/bin/scp -i ${sshKeyPath} -o StrictHostKeyChecking=no $REMOTE_ADDR:"$sourcepath" zathura-vm.ghaf:"$zathurapath"
+            echo "Opening $zathurapath in zathura-vm"
+            ${openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura "$zathurapath"
+            echo "Deleting $zathurapath in zathura-vm"
+            ${openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf rm -f "$zathurapath"
+          '';
+      in {
         ghaf.hardware.definition.network.pciDevices = networkDevice;
         ghaf.graphics.launchers = let
           adwaitaIconsRoot = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/32x32/actions/";
           hostAddress = "192.168.101.2";
-          sshKeyPath = "/run/waypipe-ssh/id_ed25519";
           powerControl = pkgs.callPackage powerControlPkgPath {};
         in [
           {
             name = "chromium";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#ff5733,5\" --vsock -s ${toString guivmConfig.waypipePort} server chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
           }
 
           {
             name = "gala";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#33ff57,5\" --vsock -s ${toString guivmConfig.waypipePort} server gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/app.png}";
           }
 
           {
             name = "zathura";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf ${pkgs.waypipe}/bin/waypipe --border \"#337aff,5\" --vsock -s ${toString guivmConfig.waypipePort} server zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
             icon = "${../assets/icons/png/pdf.png}";
           }
 
@@ -213,6 +235,33 @@
         ];
 
         time.timeZone = "Asia/Dubai";
+
+        # PDF XDG handler service receives a PDF file path from the chromium-vm and executes the openpdf script
+        systemd.user = {
+          sockets."pdf" = {
+            unitConfig = {
+              Description = "PDF socket";
+            };
+            socketConfig = {
+              ListenStream = "${toString xdgPdfPort}";
+              Accept = "yes";
+            };
+            wantedBy = ["sockets.target"];
+          };
+
+          services."pdf@" = {
+            description = "PDF opener";
+            serviceConfig = {
+              ExecStart = "${openPdf}/bin/openpdf";
+              StandardInput = "socket";
+              StandardOutput = "journal";
+              StandardError = "journal";
+            };
+          };
+        };
+
+        # Open TCP port for the PDF XDG socket
+        networking.firewall.allowedTCPPorts = [xdgPdfPort];
       })
     ];
     hostConfiguration = lib.nixosSystem {
@@ -328,7 +377,27 @@
                 vms = [
                   {
                     name = "chromium";
-                    packages = [pkgs.chromium pkgs.pamixer];
+                    packages = let
+                      # PDF XDG handler is executed when the user opens a PDF file in the browser
+                      # The xdgopenpdf script sends a command to the guivm with the file path over TCP connection
+                      xdgPdfItem = pkgs.makeDesktopItem {
+                        name = "ghaf-pdf";
+                        desktopName = "Ghaf PDF handler";
+                        exec = "${xdgOpenPdf}/bin/xdgopenpdf %u";
+                        mimeTypes = ["application/pdf"];
+                      };
+                      xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
+                        filepath=$(realpath $1)
+                        echo "Opening $filepath" | systemd-cat -p info
+                        echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm.ghaf ${toString xdgPdfPort}
+                      '';
+                    in [
+                      pkgs.chromium
+                      pkgs.pamixer
+                      pkgs.xdg-utils
+                      xdgPdfItem
+                      xdgOpenPdf
+                    ];
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
@@ -357,8 +426,15 @@
                           "hda-duplex,audiodev=pa1"
                         ];
                         microvm.devices = [];
+
+                        # Disable chromium built-in PDF viewer to make it execute xdg-open
+                        programs.chromium.enable = true;
+                        programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
+                        # Set default PDF XDG handler
+                        xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
                       }
                     ];
+                    borderColor = "#ff5733";
                   }
                   {
                     name = "gala";
@@ -371,6 +447,7 @@
                         time.timeZone = "Asia/Dubai";
                       }
                     ];
+                    borderColor = "#33ff57";
                   }
                   {
                     name = "zathura";
@@ -383,6 +460,7 @@
                         time.timeZone = "Asia/Dubai";
                       }
                     ];
+                    borderColor = "#337aff";
                   }
                 ];
               };
