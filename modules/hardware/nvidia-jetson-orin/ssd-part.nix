@@ -2,59 +2,97 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX reference boards
-{
-  lib,
-  config,
-  pkgs,
-  ...
-}: let
-  cfg = config.ghaf.hardware.nvidia.orin;
-  # cfg = config.ghaf.hardware.nvidia.orin.ssd;
+{ lib, config, pkgs, system, ... }:
+let
+  cfg = config.ghaf.hardware.nvidia.orin.ssd;
     
-  # TODO: create and label SSD partitions if they do not exist
-  fileSystems = {
-         "/home" = {
-           autoFormat = true;
-           label = "HOME";
-           # device = "/dev/disk/by-label/HOME";
-           fsType = "ext4";
-        };
-        "/nix/store/" = {
-           autoFormat = true;
-           label = "STORE";
-           # device = "/dev/disk/by-label/STORE";
-           fsType = "ext4";
-        };
-  };
-  # TODO executed conditinally in nix (if partitions do not exist)
-  # SSD disk "should" be /dev/nvme0n1
   # WARNING -- DANGER - do not use this code before careful review
   # disk data may be destroyed
-  ssdPartCmd = ''
-	# check if at least one of HOME or STORAGE already exist (condition can be changed to [ <condition> != "2" ] )
-	# failing mount of STORE or HOME is not critical
 
-  	ssd='/dev/nvme0n1' # we could also grep for SSD in /dev/disk/by-id
- 	if [ $(lsblk -o LABEL "{ssd" grep -e"^HOME$" -e"^STORAGE$" | wc -l) == "0" ]
+  # check if at least one of HOME or STORAGE already exists
+  # (condition can be changed to [ <condition> != "2" ] )
+  # failing mount of STORE or HOME is not critical
+/*  
+  # ssdPartScript = pkgs.writeScript ''
+  ssdPartScript = ''
+        #!/bin/bash -e
+
+	echo "Executing SSD partitioning script"
+
+	# grep for SSD in /dev/disk/by-id
+        # found SSD disk "should" be a link to /dev/nvme0n1
+
+	unset ssd
+	ssd=$(ls -X /dev/disk/by-id/*SSD* | head -1)
+  	# ssd='/dev/nvme0n1'
+	if [ "$ssd" ] && [ $(lsblk -o LABEL "{ssd" grep -e"^HOME$" -e"^STORAGE$" | wc -l) == "0" ]
 	then
 		# calculate partition sizes
 		sectors=$(blockdev --getsz "$ssd")
 		# assuming 2024 Master Boot Record sectors.
 		let sect_25=($sectors-2048)/4 # ~25% of disk
 
+	        echo "Debug Alert -- Partitioning of the SSD would have been done on disk $ssd"; exit;
+
 		# Apply fdisk commands
 		fdisk_cmd="g\nn\n\n1\n$sect_25\nn\n\n2\nw\n"
 		fdisk "$ssd" <<< "$fdisk_cmd"
 
 		# label new partitions
-		e2label "$ssdp1" HOME
-		e2label "$ssdp2" STORE
+		e2label "$ssd""p1" HOME
+		e2label "$ssd""p2" STORE
 
 		# formatting not needed with Nix fileSystems.autoFormat 
 	fi
   '';
+  # if script is in a file:
+  # ssdPartScriptPath = ./ssd-partition-script.sh;
+
+  partitionScript = builtins.derivation {
+    name = "partition-ssd";
+    builder = "${pkgs.bash}/bin/bash";
+    # args = "-e -c ${ssdPartScript}";
+    args = [ "-e" "-c" "${ssdPartScript}" ];
+  };
+*/
 in
-  with lib; {
-    config = mkIf cfg.enable {
+{
+  options.ghaf.hardware.nvidia.orin.ssd.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = ''
+    	Enable partititioning and setup of SSD.
+	Warning: Disk data may be lost!
+    '';
+  };
+
+  config = lib.mkIf cfg.enable {
+/*
+    inherit (pkgs) bash;
+    inherit (pkgs) system;
+
+    services.partitionSSD = {
+      script = "${pkgs.stdenv.shell}";
+      preStart = ''
+        echo "Executing partition script..."
+        ${pkgs.stdenv.shell} ${partitionScript}
+      '';
+      buildInputs = [ pkgs.bash ]; # Use buildInputs
     };
+*/
+    fileSystems = {
+      "/home" = {
+        autoFormat = true;
+        label = "HOME";
+        # device = "/dev/disk/by-label/HOME";
+        fsType = "ext4";
+      };
+      "/nix/store/" = {
+        autoFormat = true;
+        label = "STORE";
+        # device = "/dev/disk/by-label/STORE";
+        fsType = "ext4";
+      };
+    };
+  };
 }
