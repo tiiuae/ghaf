@@ -16,7 +16,9 @@ in
     config = mkIf cfg.enable {
       # Enable default accounts and passwords
       ghaf = {
-        users.accounts.enable = true;
+        users.operator.account.enable = true;
+        users.network.account.enable = true;
+        users.waypipe.account.enable = true;
         # Enable development on target
         development = {
           nix-setup.enable = true;

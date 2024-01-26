@@ -26,7 +26,7 @@
   getAuthKeysSource = {pkgs, ...}: {
     source = let
       script = pkgs.writeShellScriptBin getAuthKeysFileName ''
-        [[ "$1" != "ghaf" ]] && exit 0
+        [[ "$1" != "network" ]] && exit 0
         ${pkgs.coreutils}/bin/cat ${waypipeSshPublicKeyDir}/id_ed25519.pub
       '';
     in "${script}/bin/${getAuthKeysFileName}";
@@ -183,19 +183,19 @@
         in [
           {
             name = "chromium";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no waypipe@chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/browser.png}";
           }
 
           {
             name = "gala";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no waypipe@gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${../assets/icons/png/app.png}";
           }
 
           {
             name = "zathura";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no waypipe@zathura-vm.ghaf run-waypipe zathura";
             icon = "${../assets/icons/png/pdf.png}";
           }
 
@@ -408,7 +408,7 @@
                         # Enable pulseaudio for user ghaf
                         sound.enable = true;
                         hardware.pulseaudio.enable = true;
-                        users.extraUsers.ghaf.extraGroups = ["audio"];
+                        users.extraUsers.${config.ghaf.users.operator.account.user}.extraGroups = ["audio"];
 
                         time.timeZone = "Asia/Dubai";
 

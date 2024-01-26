@@ -17,7 +17,7 @@
   ./profiles/graphics.nix
   ./profiles/installer.nix
   ./profiles/release.nix
-  ./users/accounts.nix
+  ./users
   ./version
   ./virtualization/docker.nix
   ./windows-launcher

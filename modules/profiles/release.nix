@@ -18,6 +18,13 @@ in
       # TODO this needs to be refined when we define a policy for the
       # processes and the UID/groups that should be enabled by default
       # if not already covered by systemd
-      ghaf.users.accounts.enable = true;
+      ghaf.users.operator.account.enable = true;
+      ghaf.users.network.account.enable = true;
+      ghaf.users.waypipe.account.enable = true;
+
+      users.mutableUsers = false;
+      # TODO Need to comment root.hashedPassword even in release
+      # until we have another remote update mechanism in place
+      # users.users.root.hashedPassword = "!";
     };
   }

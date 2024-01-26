@@ -39,7 +39,8 @@
             '';
         in {
           ghaf = {
-            users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+            users.operator.account.enable = lib.mkDefault configHost.ghaf.users.operator.account.enable;
+            users.waypipe.account.enable = lib.mkDefault configHost.ghaf.users.network.account.enable;
 
             # Don't enable Wayland compositor inside every AppVM
             profiles.graphics.enable = false;
@@ -57,7 +58,7 @@
           environment.etc."ssh/get-auth-keys" = {
             source = let
               script = pkgs.writeShellScriptBin "get-auth-keys" ''
-                [[ "$1" != "ghaf" ]] && exit 0
+                [[ "$1" != "${config.ghaf.users.waypipe.account.user}" ]] && exit 0
                 ${pkgs.coreutils}/bin/cat /run/waypipe-ssh-public-key/id_ed25519.pub
               '';
             in "${script}/bin/get-auth-keys";
@@ -77,6 +78,9 @@
             pkgs.waypipe
             runWaypipe
           ];
+
+          # Add root user only for debug builds
+          users.users.admin.extraGroups = lib.mkIf config.ghaf.profiles.debug.enable ["wheel"];
 
           microvm = {
             optimize.enable = false;

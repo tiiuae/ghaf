@@ -46,6 +46,5 @@ in
     config = mkIf cfg.enable {
       services.openssh.enable = true;
       users.users.root.openssh.authorizedKeys.keys = cfg.authorizedKeys;
-      users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = cfg.authorizedKeys;
     };
   }
