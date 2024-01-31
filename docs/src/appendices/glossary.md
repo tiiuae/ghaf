@@ -25,7 +25,7 @@ All acronyms are abbreviations, but not all abbreviations are acronyms. ASAP tha
 * Articles (a, an, the) are common with initialisms. The indefinite article should be chosen according to the first sound—not the first letter:
     * ‘A’ is correct before initialisms beginning with a consonant sound, including a vowel pronounced as a ‘w’ or ‘y’ sound. For example: ‘a NASA launch’, but ‘NASA launches take place’.
     * When an initialism begins with a vowel sound (including silent consonants or a consonant pronounced with an initial vowel sound), ‘an’ should be used instead. For example, ‘read about an FBI raid’.
-* Acronyms not require articles except when they are used adjectivally. For example: ‘the patient was diagnosed with AIDS’, but ‘the AIDS patient’;‘the NASA launch takes place’.
+* Acronyms not require articles except when they are used adjectivally. For example: ‘the patient was diagnosed with AIDS’, but ‘the AIDS patient’; ‘the NASA launch takes place’.
 
 So, read the abbreviation aloud: it may be either an initialism or an acronym. Focus on the sounds, not on the letters: ‘_an_ unidentified flying object’ but ‘_a_ UFO’ as it pronounced “a YOO-ef-OH” (/ˌjuːɛfˈəʊ/). More examples: a EULA (“YOO-luh”), a LAN router, an XML file, an HTML page.
 
@@ -50,8 +50,13 @@ Groups of terms and abbreviations:
 
 ### Ghaf
 
-_The project code name that represents the Ghaf tree._  
+_The project code name that represents the Ghaf tree._   
 Source: <https://connectwithnature.ae/knowledge-hub/ghaf-tree>
+
+### CI/CD
+
+_Continuous Integration and Continuous Delivery is a Ghaf software development lifecycle. Continuous Integration refers to regularly integrating code changes into a shared repository, where they are automatically tested and verified. Continuous Delivery—software is released in short iterations._  
+> Currently, Continuous Deployment is not set up. Continuous Deployment—code is deployed to customers automatically.
 
 ### SSRC
 
@@ -71,6 +76,11 @@ Source: <https://www.tii.ae/>
 
 _An Architecture Decision (AD) is a justified software design choice that addresses a functional or non-functional requirement that is architecturally significant. An Architectural Decision Record (ADR) captures a single AD and its rationale; the collection of ADRs created and maintained in a project constitute its decision log._  
 Source: <https://adr.github.io/>
+
+### BPMP
+
+_Boot and Power Management Processor. The NVIDIA processor provides a set of hardware functions that support booting process handling and offloading the power management, clock management, and reset control tasks from the CPU._  
+Source: [NVIDIA Orin Series System-on-Chip, Technical Reference Manual, Version: 1.2, Date: 29-September-2023](https://developer.download.nvidia.com/assets/embedded/secure/jetson/agx_orin/Orin-TRM_DP10508002_v1.2p.pdf?iuc0WbcuowCBOIVqmVy-NHasaaKLPPoH_J74-C98Mnf_nPX-3LeG7pG9bUoWq28u9X2cW9dNB5bbIJwjmGcuGpdG3BErfZoaGTB0lzfWAUrpxZcO0nP9Z8SW4whsNkrGn6RFSM5_P9if4YR2RVXWLzjwoXbpzRWBvBk_De_WBM_4Erk=&t=eyJscyI6IndlYnNpdGUiLCJsc2QiOiJkZXZlbG9wZXIubnZpZGlhLmNvbS9lbWJlZGRlZC9kb3dubG9hZHMifQ==)
 
 ### BSP
 
@@ -93,6 +103,10 @@ _embedded MultiMediaCard_
 ### EULA
 
 _end-user license agreement_
+
+### FW
+
+_firmware_
 
 ### GALA
 
@@ -160,7 +174,7 @@ _Peripheral Component Interconnect Express_
 ### QEMU
 
 _A generic and open source machine emulator and virtualizer._  
-Source: <https://www.qemu.org/docs/master/about/index.html>
+Source: [QEMU’s documentation](https://www.qemu.org/docs/master/about/index.html)
 
 ### SBSA
 
@@ -182,7 +196,7 @@ _solid-state drive_
 ### TCB
 
 _Trusted computing base defines the security requirements by providing separation of users and data or resources._  
-Source: [Department of Defense trusted computer system evaluation criteria, DoD 5200.28-STD, 1985.](https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/dod85.pdf)
+Source: [Department of Defense trusted computer system evaluation criteria, DoD 5200.28-STD, 1985](https://csrc.nist.gov/csrc/media/publications/conference-paper/1998/10/08/proceedings-of-the-21st-nissc-1998/documents/early-cs-papers/dod85.pdf)
 
 ### TLS
 
@@ -191,6 +205,11 @@ _Transport Layer Security, a security protocol._
 ### UART
 
 _An universal asynchronous receiver-transmitter, a hardware communication protocol._
+
+### UEFI
+
+_Unified Extensible Firmware Interface is a specifications that defines a new model for the interface between personal-computer operating systems and platform firmware._  
+Source: [Unified Extensible Firmware Interface Forum](https://uefi.org/faq)
 
 ### UI
 

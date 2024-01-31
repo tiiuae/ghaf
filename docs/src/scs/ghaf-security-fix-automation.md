@@ -9,6 +9,7 @@ The Nix community is able to identify and fix security issues relatively quickly
 
 Indeed, Ghaf should not solely rely on the community to provide security fixes but take action to understand the vulnerabilities that impact Ghaf and take an active role in fixing such issues.
 
+
 ## Semi-Automated Upstream-First Process
 
 The following image captures the high-level process we propose to identify and remediate the security vulnerabilities that impact Ghaf:

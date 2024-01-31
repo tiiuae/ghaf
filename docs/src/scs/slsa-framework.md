@@ -7,6 +7,7 @@
 
 Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement, and securing packages and infrastructure of a project. For more information about the SLSA framework, see the offical website <https://slsa.dev>.
 
+
 ## SLSA Terminology
 
 **Immutable reference:** An identifier, guaranteed to always point to the same, immutable artifact.
@@ -14,6 +15,7 @@ Supply chain Levels for Software Artifacts (SLSA) is a security framework for ta
 **Provenance:** Metadata about how an artifact was produced.
 
 **Revision:** An immutable, coherent state of a source.
+
 
 ## Levels of Assurance
 
@@ -32,6 +34,7 @@ The SLSA model consists of 4 levels, offering an incremental level of anti-tampe
 **Level 4** requires two-peer source code review and a hermetic, reproducible build process. Overall Level 4 offers a high degree of confidence in the anti-tampering protection of the software.
 
 SLSA level is not transitive, thus level of the artifact is not dependent on the level of dependencies, which are expected to have their own SLSA levels. This makes it possible to build a Level 4 artifact from Level 0 dependencies. 
+
 
 ## Requirements
 
