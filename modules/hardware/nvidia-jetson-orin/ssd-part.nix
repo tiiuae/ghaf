@@ -12,9 +12,35 @@ let
   # check if at least one of HOME or STORAGE already exists
   # (condition can be changed to [ <condition> != "2" ] )
   # failing mount of STORE or HOME is not critical
-/*  
-  # ssdPartScript = pkgs.writeScript ''
-  ssdPartScript = ''
+in
+{
+  options.ghaf.hardware.nvidia.orin.ssd.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = true;
+    description = ''
+    	Enable partititioning and setup of SSD.
+	Warning: Disk data may be lost!
+    '';
+  };
+
+  config = lib.mkIf cfg.enable {
+    fileSystems = {
+      "/home" = {
+        autoFormat = true;
+        label = "HOME";
+        # device = "/dev/disk/by-label/HOME";
+        fsType = "ext4";
+      };
+      "/nix/store" = {
+        autoFormat = true;
+        label = "STORE";
+        # device = "/dev/disk/by-label/STORE";
+        fsType = "ext4";
+      };
+    };
+    system.build = {
+      enable = true;
+      script = pkgs.writeScript "ssdPartScript" ''
         #!/bin/bash -e
 
 	echo "Executing SSD partitioning script"
@@ -44,55 +70,7 @@ let
 
 		# formatting not needed with Nix fileSystems.autoFormat 
 	fi
-  '';
-  # if script is in a file:
-  # ssdPartScriptPath = ./ssd-partition-script.sh;
-
-  partitionScript = builtins.derivation {
-    name = "partition-ssd";
-    builder = "${pkgs.bash}/bin/bash";
-    # args = "-e -c ${ssdPartScript}";
-    args = [ "-e" "-c" "${ssdPartScript}" ];
-  };
-*/
-in
-{
-  options.ghaf.hardware.nvidia.orin.ssd.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = ''
-    	Enable partititioning and setup of SSD.
-	Warning: Disk data may be lost!
     '';
-  };
-
-  config = lib.mkIf cfg.enable {
-/*
-    inherit (pkgs) bash;
-    inherit (pkgs) system;
-
-    services.partitionSSD = {
-      script = "${pkgs.stdenv.shell}";
-      preStart = ''
-        echo "Executing partition script..."
-        ${pkgs.stdenv.shell} ${partitionScript}
-      '';
-      buildInputs = [ pkgs.bash ]; # Use buildInputs
-    };
-*/
-    fileSystems = {
-      "/home" = {
-        autoFormat = true;
-        label = "HOME";
-        # device = "/dev/disk/by-label/HOME";
-        fsType = "ext4";
-      };
-      "/nix/store/" = {
-        autoFormat = true;
-        label = "STORE";
-        # device = "/dev/disk/by-label/STORE";
-        fsType = "ext4";
-      };
     };
   };
 }
