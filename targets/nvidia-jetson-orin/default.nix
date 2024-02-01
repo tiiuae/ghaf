@@ -48,6 +48,7 @@
           ../../modules/host
           ../../modules/virtualization/microvm/microvm-host.nix
           ../../modules/virtualization/microvm/netvm.nix
+          ../../modules/virtualization/microvm/guivm.nix
           ({config, ...}: {
             ghaf = {
               hardware.nvidia.orin = {
@@ -68,6 +69,8 @@
 
               virtualization.microvm.netvm.enable = true;
               virtualization.microvm.netvm.extraModules = netvmExtraModules;
+
+              virtualization.microvm.guivm.enable = true;
 
               # Enable all the default UI applications
               profiles = {
