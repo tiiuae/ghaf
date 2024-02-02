@@ -15,6 +15,7 @@
   nm-launcher = final.callPackage ../../packages/nm-launcher {};
   labwc = import ./labwc {inherit prev;};
   tpm2-pkcs11 = import ./tpm2-pkcs11 {inherit prev;};
+  waybar = import ./waybar {inherit prev;};
   # launcher overlays
   networkmanagerapplet = import ./networkmanagerapplet {inherit prev;};
   htop = import ./htop {inherit prev;};
