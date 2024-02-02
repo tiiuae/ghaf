@@ -12,4 +12,9 @@
   # libck is dependency of sysbench
   libck = import ./libck {inherit prev;};
   sysbench = import ./sysbench {inherit final prev;};
+
+  # wlroots and gcr_4 are dependency of waybar
+  wlroots = import ./wlroots {inherit final prev;};
+  gcr_4 = import ./gcr_4 {inherit final prev;};
+  waybar = import ./waybar {inherit final prev;};
 })

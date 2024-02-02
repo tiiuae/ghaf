@@ -57,6 +57,7 @@ in
       description = "Script to get wifi data from nmcli to show network of netvm using D-Bus over SSH on Waybar.";
       platforms = [
         "x86_64-linux"
+        "aarch64-linux"
       ];
     };
   }
