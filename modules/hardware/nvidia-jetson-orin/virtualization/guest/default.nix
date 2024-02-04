@@ -12,7 +12,7 @@
 in {
   options.ghaf.hardware.nvidia.virtualization.guest.enable = lib.mkOption {
     type = lib.types.bool;
-    default = true;
+    default = false;
     description = ''
       Enable guest to use Tegra kernel from the host on the Nvidia Orin platform.
 
