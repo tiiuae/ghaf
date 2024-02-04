@@ -41,11 +41,5 @@ in {
         };
       }
     ];
-
-    # TODO: Consider are these really needed, maybe add only in debug builds?
-    environment.systemPackages = with pkgs; [
-      qemu
-      dtc
-    ];
   };
 }

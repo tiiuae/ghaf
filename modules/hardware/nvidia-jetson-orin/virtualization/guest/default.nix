@@ -21,6 +21,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
+    # TODO: The forcing here might not be needed.
     boot.kernelPackages = lib.mkForce tegraKernelPackages;
 
     boot.kernelPatches = [
@@ -35,8 +36,6 @@ in {
           NET_9P_FS = mkDefault kernel.yes;
           NET_9P_FS_POSIX_ACL = mkDefault kernel.yes;
           PCI = mkDefault kernel.yes;
-          # VIRTIO_PCI = mkDefault kernel.yes;
-          # PCI_HOST_GENERIC = mkDefault kernel.yes;
         };
       }
     ];
