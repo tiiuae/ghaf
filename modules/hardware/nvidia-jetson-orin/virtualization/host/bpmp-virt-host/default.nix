@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   lib,
-  pkgs,
   config,
   ...
 }: let
