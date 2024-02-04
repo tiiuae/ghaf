@@ -8,6 +8,7 @@ _: {
     (import ./edk2.nix)
     (import ./element-desktop.nix)
     (import ./jbig2dec.nix)
+    (import ./pipewire.nix)
     (import ./sysbench.nix)
   ];
 }
