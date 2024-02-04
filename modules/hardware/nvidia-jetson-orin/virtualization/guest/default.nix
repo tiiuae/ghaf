@@ -4,13 +4,15 @@
   lib,
   pkgs,
   config,
+  jetpack-nixos,
   ...
 }: let
   cfg = config.ghaf.hardware.nvidia.virtualization.guest;
+  tegraKernelPackages = jetpack-nixos.legacyPackages.aarch64-linux.kernelPackages;
 in {
   options.ghaf.hardware.nvidia.virtualization.guest.enable = lib.mkOption {
     type = lib.types.bool;
-    default = false;
+    default = true;
     description = ''
       Enable guest to use Tegra kernel from the host on the Nvidia Orin platform.
 
@@ -19,7 +21,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    boot.kernelPackages = config.boot.kernelPackages;
+    boot.kernelPackages = lib.mkForce tegraKernelPackages;
 
     boot.kernelPatches = [
       {
