@@ -11,7 +11,7 @@
 
 <div align="center">
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-darkgreen.svg)](./LICENSES/LICENSE.Apache-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-orange.svg)](./LICENSES/LICENSE.CC-BY-SA-4.0) [![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-yellow)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tiiuae/ghaf/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tiiuae/ghaf) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8290/badge)](https://www.bestpractices.dev/projects/8290)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-darkgreen.svg)](./LICENSES/LICENSE.Apache-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-orange.svg)](./LICENSES/LICENSE.CC-BY-SA-4.0) [![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-yellow)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tiiuae/ghaf/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tiiuae/ghaf) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8290/badge)](https://www.bestpractices.dev/projects/8290) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](./CODE_OF_CONDUCT.md) 
 
 </div>
 
@@ -35,8 +35,8 @@ See the documentation overview under [README-docs.md](./docs/README-docs.md).
 
 Other repositories that are a part of the Ghaf project:
 
-* [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOMs given Nix derivations or out paths
-* [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-public](https://github.com/tiiuae/ci-public), [ci-test-automation](https://github.com/tiiuae/ci-test-automation): CI/CD related files
+* [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOM given Nix derivations or out paths
+* [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-public](https://github.com/tiiuae/ci-public), [ci-test-automation](https://github.com/tiiuae/ci-test-automation), [ghafscan](https://github.com/tiiuae/ghafscan): CI/CD related files
 
 
 ## Build System
@@ -67,4 +67,4 @@ The Ghaf team uses several licenses to distribute software and documentation:
 | Apache License 2.0 | [Apache-2.0](https://spdx.org/licenses/Apache-2.0.html) | Ghaf source code. |
 | Creative Commons Attribution Share Alike 4.0 International | [CC-BY-SA-4.0](https://spdx.org/licenses/CC-BY-SA-4.0.html) | Ghaf documentation. |
 
-See [LICENSE.Apache-2.0](./LICENSES/LICENSE.Apache-2.0) and [LICENSE.CC-BY-SA-4.0](./LICENSES/LICENSE.CC-BY-SA-4.0) for the full license text.
+See [LICENSE.Apache-2.0](./LICENSES/Apache-2.0.txt) and [LICENSE.CC-BY-SA-4.0](./LICENSES/CC-BY-SA-4.0.txt) for the full license text.
