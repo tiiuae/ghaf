@@ -18,7 +18,7 @@ To create an AppVM:
 
 Add the VM description in the target configuration.
 
-[lenovo-x1.nix](../../../targets/lenovo-x1.nix) already has AppVMs inside for Chromium, Gala, and Zathura applications.
+[lenovo-x1-carbon.nix](https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix) already has AppVMs inside for Chromium, Gala, and Zathura applications.
 
 
 #### AppVMs Example
@@ -63,11 +63,11 @@ Each VM has the following properties:
 
 ## Adding Application Launcher in GUI VM
 
-To add an app launcher, add an element in the [guivm.nix](../../../modules/virtualization/microvm/guivm.nix) file to the **graphics.launchers** list.
+To add an application launcher, add an element in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix) file to the **graphics.weston.launchers** list.
 
-A launcher element has 2 properties:
+A launcher element has two properties:
 
-1. **path** – path to the executable you want to run, like a graphical application.
-2. **icon** – path to an icon to show.
+* **path**–path to the executable you want to run, like a graphical application;
+* **icon**–path to an icon to show.
 
-Check the example launchers at [guivm.nix](../../../modules/virtualization/microvm/guivm.nix).
+Check the example launchers at [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix).
