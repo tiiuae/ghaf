@@ -3,6 +3,7 @@
 {inputs, ...}: {
   imports = with inputs; [
     flake-root.flakeModule
+    ./devshell/kernel.nix
     # TODO this import needs to be filtered to remove RISCV
     # pre-commit-hooks-nix.flakeModule
   ];
@@ -11,32 +12,9 @@
     inputs',
     self',
     lib,
+    system,
     ...
   }: {
-    devShells.kernel-x86 = pkgs.mkShell {
-      name = "Kernel-x86 devshell";
-      packages = with pkgs; [
-        ncurses
-        pkg-config
-        self'.packages.kernel-hardening-checker
-      ];
-
-      inputsFrom = [pkgs.linux_latest];
-
-      shellHook = ''
-        export src=${pkgs.linux_latest.src}
-        if [ ! -d "linux-${pkgs.linux_latest.version}" ]; then
-          unpackPhase
-          patchPhase
-        fi
-        cd linux-${pkgs.linux_latest.version}
-
-        export PS1="[ghaf-kernel-devshell:\w]$ "
-      '';
-      # use "eval $checkPhase" - see https://discourse.nixos.org/t/nix-develop-and-checkphase/25707
-      checkPhase = "cp ../modules/host/ghaf_host_hardened_baseline ./.config && make -j$(nproc)";
-    };
-
     devShells.default = let
       nix-build-all = pkgs.writeShellApplication {
         name = "nix-build-all";
