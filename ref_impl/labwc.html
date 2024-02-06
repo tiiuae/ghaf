@@ -180,22 +180,22 @@
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="labwc-desktop-environment"><a class="header" href="#labwc-desktop-environment">Labwc Desktop Environment</a></h1>
-<p><a href="https://labwc.github.io/">Labwc</a> is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.
-To use Labwc as your default desktop environment, add it as a module to Ghaf:</p>
+<h1 id="labwc-desktop-environment"><a class="header" href="#labwc-desktop-environment">labwc Desktop Environment</a></h1>
+<p><a href="https://labwc.github.io/">labwc</a> is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.</p>
+<p>To use labwc as your default desktop environment, add it as a module to Ghaf:</p>
 <ul>
 <li>change the configuration option <code>profiles.graphics.compositor = &quot;labwc&quot;</code>
 or</li>
-<li>uncomment the corresponding line in <a href="../modules/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
+<li>uncomment the corresponding line in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
 </ul>
-<p>The basis of the labwc configuration is the set of following files: <code>rc.xml</code>, <code>menu.xml</code>, <code>autostart</code>, and <code>environment</code>. These files can be edited by substituting in the Labwc overlay <code>overlays/custom-packages/labwc/default.nix</code>.</p>
+<p>The basis of the labwc configuration is the set of following files: <code>rc.xml</code>, <code>menu.xml</code>, <code>autostart</code>, and <code>environment</code>. These files can be edited by substituting in the labwc overlay <code>overlays/custom-packages/labwc/default.nix</code>.</p>
 <h2 id="window-border-coloring"><a class="header" href="#window-border-coloring">Window Border Coloring</a></h2>
 <p>The border color concept illustrates the application trustworthiness in a user-friendly manner. The color shows the application's security level and allows avoiding user's mistakes. The same approach can be found in other projects, for example, <a href="https://www.qubes-os.org/doc/getting-started/#color--security">QubeOS</a>.</p>
-<p>Ghaf uses patched Labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (<code>serverDecoration</code> = <code>yes</code>). The <code>borderColor</code> property is responsible for the frame color.</p>
+<p>Ghaf uses patched labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (<code>serverDecoration</code> = <code>yes</code>). The <code>borderColor</code> property is responsible for the frame color.</p>
 <blockquote>
 <p><strong>TIP:</strong> According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
 </blockquote>
-<p>For example:</p>
+<p>For example, the foot terminal with Aqua colored frame:</p>
 <pre><code>&lt;windowRules&gt;
   &lt;windowRule identifier=&quot;Foot&quot; borderColor=&quot;#00FFFF&quot; serverDecoration=&quot;yes&quot; skipTaskbar=&quot;yes&quot;  /&gt;
   &lt;windowRule identifier=&quot;firefox&quot; borderColor=&quot;#FF0000&quot; serverDecoration=&quot;yes&quot; skipTaskbar=&quot;yes&quot;  /&gt;

@@ -181,22 +181,26 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="development"><a class="header" href="#development">Development</a></h1>
-<p>Ghaf Framework is free software, currently under active development. The scope of target support is updated with development progress:</p>
+<p>Ghaf Framework is free software, currently under active development.</p>
+<p>The scope of target support is updated with development progress:</p>
 <ul>
 <li><a href="./build_and_run.html">Build and Run</a></li>
 <li><a href="./remote_build_setup.html">Running Remote Build on NixOS</a></li>
 <li><a href="./installer.html">Installer</a></li>
 <li><a href="./cross_compilation.html">Cross-Compilation</a></li>
 <li><a href="./creating_appvm.html">Creating Application VM</a></li>
+<li><a href="./labwc.html">labwc Desktop Environment</a></li>
 </ul>
 <p>Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix">accounts.nix</a>.</p>
-<p>If you authorize your development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L10-L23">ssh.nix</a> module and rebuild ghaf for your target device, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the target device over the network using SSH. For example:</p>
+<p>If you authorize your development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L10-L23">ssh.nix</a> module and rebuild Ghaf for your target device, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the target device over the network using SSH. For example:</p>
 <pre><code>nixos-rebuild --flake .#nvidia-jetson-orin-agx-debug --target-host root@&lt;ip_address_of_ghaf-host&gt; --fast switch
 ...
 nixos-rebuild --flake .#lenovo-x1-carbon-gen11-debug --target-host root@&lt;ip_address_of_ghaf-host&gt; --fast switch
 ...
 </code></pre>
-<p>Please note that with the <code>-debug</code> targets, the debug ethernet is enabled on host. With Lenovo X1 Carbon, you can connect USB-Ethernet adapter for the debug and development access.</p>
+<blockquote>
+<p>With the <code>-debug</code> targets, the debug ethernet is enabled on host. With Lenovo X1 Carbon, you can connect USB-Ethernet adapter for the debug and development access.</p>
+</blockquote>
 <p>Pull requests are the way for contributors to submit code to the Ghaf project. For more information, see <a href="../appendices/contributing_general.html">Contribution Guidelines</a>.</p>
 
                     </main>

@@ -190,7 +190,7 @@
 </ol>
 <h2 id="adding-appvm-description"><a class="header" href="#adding-appvm-description">Adding AppVM Description</a></h2>
 <p>Add the VM description in the target configuration.</p>
-<p><a href="../../../targets/lenovo-x1.nix">lenovo-x1.nix</a> already has AppVMs inside for Chromium, Gala, and Zathura applications.</p>
+<p><a href="https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix">lenovo-x1-carbon.nix</a> already has AppVMs inside for Chromium, Gala, and Zathura applications.</p>
 <h4 id="appvms-example"><a class="header" href="#appvms-example">AppVMs Example</a></h4>
 <pre><code>vms = with pkgs; [
   {
@@ -226,13 +226,13 @@
 </tbody></table>
 </div>
 <h2 id="adding-application-launcher-in-gui-vm"><a class="header" href="#adding-application-launcher-in-gui-vm">Adding Application Launcher in GUI VM</a></h2>
-<p>To add an app launcher, add an element in the <a href="../../../modules/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.launchers</strong> list.</p>
-<p>A launcher element has 2 properties:</p>
-<ol>
-<li><strong>path</strong> – path to the executable you want to run, like a graphical application.</li>
-<li><strong>icon</strong> – path to an icon to show.</li>
-</ol>
-<p>Check the example launchers at <a href="../../../modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
+<p>To add an application launcher, add an element in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.weston.launchers</strong> list.</p>
+<p>A launcher element has two properties:</p>
+<ul>
+<li><strong>path</strong>–path to the executable you want to run, like a graphical application;</li>
+<li><strong>icon</strong>–path to an icon to show.</li>
+</ul>
+<p>Check the example launchers at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
 
                     </main>
 

@@ -678,22 +678,26 @@ The stack layers and top-level components are illustrated in the following diagr
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="development-1"><a class="header" href="#development-1">Development</a></h1>
-<p>Ghaf Framework is free software, currently under active development. The scope of target support is updated with development progress:</p>
+<p>Ghaf Framework is free software, currently under active development.</p>
+<p>The scope of target support is updated with development progress:</p>
 <ul>
 <li><a href="ref_impl/./build_and_run.html">Build and Run</a></li>
 <li><a href="ref_impl/./remote_build_setup.html">Running Remote Build on NixOS</a></li>
 <li><a href="ref_impl/./installer.html">Installer</a></li>
 <li><a href="ref_impl/./cross_compilation.html">Cross-Compilation</a></li>
 <li><a href="ref_impl/./creating_appvm.html">Creating Application VM</a></li>
+<li><a href="ref_impl/./labwc.html">labwc Desktop Environment</a></li>
 </ul>
 <p>Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix">accounts.nix</a>.</p>
-<p>If you authorize your development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L10-L23">ssh.nix</a> module and rebuild ghaf for your target device, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the target device over the network using SSH. For example:</p>
+<p>If you authorize your development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L10-L23">ssh.nix</a> module and rebuild Ghaf for your target device, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the target device over the network using SSH. For example:</p>
 <pre><code>nixos-rebuild --flake .#nvidia-jetson-orin-agx-debug --target-host root@&lt;ip_address_of_ghaf-host&gt; --fast switch
 ...
 nixos-rebuild --flake .#lenovo-x1-carbon-gen11-debug --target-host root@&lt;ip_address_of_ghaf-host&gt; --fast switch
 ...
 </code></pre>
-<p>Please note that with the <code>-debug</code> targets, the debug ethernet is enabled on host. With Lenovo X1 Carbon, you can connect USB-Ethernet adapter for the debug and development access.</p>
+<blockquote>
+<p>With the <code>-debug</code> targets, the debug ethernet is enabled on host. With Lenovo X1 Carbon, you can connect USB-Ethernet adapter for the debug and development access.</p>
+</blockquote>
 <p>Pull requests are the way for contributors to submit code to the Ghaf project. For more information, see <a href="ref_impl/../appendices/contributing_general.html">Contribution Guidelines</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
@@ -1215,7 +1219,7 @@ experimental-features = nix-command flakes
 </ol>
 <h2 id="adding-appvm-description"><a class="header" href="#adding-appvm-description">Adding AppVM Description</a></h2>
 <p>Add the VM description in the target configuration.</p>
-<p><a href="ref_impl/../../../targets/lenovo-x1.nix">lenovo-x1.nix</a> already has AppVMs inside for Chromium, Gala, and Zathura applications.</p>
+<p><a href="https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix">lenovo-x1-carbon.nix</a> already has AppVMs inside for Chromium, Gala, and Zathura applications.</p>
 <h4 id="appvms-example"><a class="header" href="#appvms-example">AppVMs Example</a></h4>
 <pre><code>vms = with pkgs; [
   {
@@ -1251,33 +1255,33 @@ experimental-features = nix-command flakes
 </tbody></table>
 </div>
 <h2 id="adding-application-launcher-in-gui-vm"><a class="header" href="#adding-application-launcher-in-gui-vm">Adding Application Launcher in GUI VM</a></h2>
-<p>To add an app launcher, add an element in the <a href="ref_impl/../../../modules/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.launchers</strong> list.</p>
-<p>A launcher element has 2 properties:</p>
-<ol>
-<li><strong>path</strong> – path to the executable you want to run, like a graphical application.</li>
-<li><strong>icon</strong> – path to an icon to show.</li>
-</ol>
-<p>Check the example launchers at <a href="ref_impl/../../../modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
+<p>To add an application launcher, add an element in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.weston.launchers</strong> list.</p>
+<p>A launcher element has two properties:</p>
+<ul>
+<li><strong>path</strong>–path to the executable you want to run, like a graphical application;</li>
+<li><strong>icon</strong>–path to an icon to show.</li>
+</ul>
+<p>Check the example launchers at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="labwc-desktop-environment"><a class="header" href="#labwc-desktop-environment">Labwc Desktop Environment</a></h1>
-<p><a href="https://labwc.github.io/">Labwc</a> is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.
-To use Labwc as your default desktop environment, add it as a module to Ghaf:</p>
+<h1 id="labwc-desktop-environment"><a class="header" href="#labwc-desktop-environment">labwc Desktop Environment</a></h1>
+<p><a href="https://labwc.github.io/">labwc</a> is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.</p>
+<p>To use labwc as your default desktop environment, add it as a module to Ghaf:</p>
 <ul>
 <li>change the configuration option <code>profiles.graphics.compositor = &quot;labwc&quot;</code>
 or</li>
-<li>uncomment the corresponding line in <a href="ref_impl/../modules/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
+<li>uncomment the corresponding line in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
 </ul>
-<p>The basis of the labwc configuration is the set of following files: <code>rc.xml</code>, <code>menu.xml</code>, <code>autostart</code>, and <code>environment</code>. These files can be edited by substituting in the Labwc overlay <code>overlays/custom-packages/labwc/default.nix</code>.</p>
+<p>The basis of the labwc configuration is the set of following files: <code>rc.xml</code>, <code>menu.xml</code>, <code>autostart</code>, and <code>environment</code>. These files can be edited by substituting in the labwc overlay <code>overlays/custom-packages/labwc/default.nix</code>.</p>
 <h2 id="window-border-coloring"><a class="header" href="#window-border-coloring">Window Border Coloring</a></h2>
 <p>The border color concept illustrates the application trustworthiness in a user-friendly manner. The color shows the application's security level and allows avoiding user's mistakes. The same approach can be found in other projects, for example, <a href="https://www.qubes-os.org/doc/getting-started/#color--security">QubeOS</a>.</p>
-<p>Ghaf uses patched Labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (<code>serverDecoration</code> = <code>yes</code>). The <code>borderColor</code> property is responsible for the frame color.</p>
+<p>Ghaf uses patched labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (<code>serverDecoration</code> = <code>yes</code>). The <code>borderColor</code> property is responsible for the frame color.</p>
 <blockquote>
 <p><strong>TIP:</strong> According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
 </blockquote>
-<p>For example:</p>
+<p>For example, the foot terminal with Aqua colored frame:</p>
 <pre><code>&lt;windowRules&gt;
   &lt;windowRule identifier=&quot;Foot&quot; borderColor=&quot;#00FFFF&quot; serverDecoration=&quot;yes&quot; skipTaskbar=&quot;yes&quot;  /&gt;
   &lt;windowRule identifier=&quot;firefox&quot; borderColor=&quot;#FF0000&quot; serverDecoration=&quot;yes&quot; skipTaskbar=&quot;yes&quot;  /&gt;
@@ -2839,6 +2843,9 @@ Source: <a href="https://www.arm.com/glossary/isa">https://www.arm.com/glossary/
 <h3 id="kvms"><a class="header" href="#kvms">KVMS</a></h3>
 <p><em>Kernel-based Virtual Machine Secured, an open-source project.</em><br />
 Source: <a href="https://github.com/jkrh/kvms">https://github.com/jkrh/kvms</a></p>
+<h3 id="labws-labws"><a class="header" href="#labws-labws">labws, LabWS</a></h3>
+<p><em>Lab Wayland Compositor, a window-stacking compositor for Wayland, an open-source project.</em><br />
+Source: <a href="https://github.com/labwc/labwc">https://github.com/labwc/labwc</a></p>
 <h3 id="mmu"><a class="header" href="#mmu">MMU</a></h3>
 <p><em>memory management unit</em></p>
 <h3 id="msi"><a class="header" href="#msi">MSI</a></h3>
