@@ -12,6 +12,7 @@
   in {
     packages = platformPkgs system {
       gala-app = callPackage ./gala {};
+      kernel-hardening-checker = callPackage ./kernel-hardening-checker {};
       windows-launcher = callPackage ./windows-launcher {enableSpice = false;};
       windows-launcher-spice = callPackage ./windows-launcher {enableSpice = true;};
       doc = callPackage ../docs {
