@@ -9,6 +9,7 @@
   perSystem = {
     pkgs,
     inputs',
+    self',
     lib,
     ...
   }: {
@@ -17,8 +18,7 @@
       packages = with pkgs; [
         ncurses
         pkg-config
-        python3
-        python3Packages.pip
+        self'.packages.kernel-hardening-checker
       ];
 
       inputsFrom = [pkgs.linux_latest];
@@ -30,18 +30,6 @@
           patchPhase
         fi
         cd linux-${pkgs.linux_latest.version}
-
-        # python3+pip for kernel-hardening-checker
-        export PIP_PREFIX=$(pwd)/_build/pip_packages
-        export PYTHONPATH="$PIP_PREFIX/${pkgs.python3.sitePackages}:$PYTHONPATH"
-        export PATH="$PIP_PREFIX/bin:$PATH"
-
-        # install kernel-hardening-checker via pip under "linux-<version" for
-        # easy clean-up with directory removal - if not already installed
-        if [ ! -f "_build/pip_packages/bin/kernel-hardening-checker" ]; then
-          python3 -m pip --disable-pip-version-check \
-            install git+https://github.com/a13xp0p0v/kernel-hardening-checker
-        fi
 
         export PS1="[ghaf-kernel-devshell:\w]$ "
       '';
@@ -80,6 +68,7 @@
             mdbook
             nix-build-all
             inputs'.nix-fast-build.packages.default
+            self'.packages.kernel-hardening-checker
           ]
           ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") cachix;
 
