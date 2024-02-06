@@ -189,13 +189,13 @@
 
           {
             name = "poweroff";
-            path = powerControl.makePowerOffCommand {inherit hostAddress sshKeyPath;};
+            path = "${powerControl.makePowerOffCommand {inherit hostAddress sshKeyPath;}}";
             icon = "${adwaitaIconsRoot}/system-shutdown-symbolic.symbolic.png";
           }
 
           {
             name = "reboot";
-            path = powerControl.makeRebootCommand {inherit hostAddress sshKeyPath;};
+            path = "${powerControl.makeRebootCommand {inherit hostAddress sshKeyPath;}}";
             icon = "${adwaitaIconsRoot}/system-reboot-symbolic.symbolic.png";
           }
 
