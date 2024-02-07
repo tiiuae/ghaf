@@ -4,7 +4,7 @@
 -->
 # How to use a Linux laptop or computer as a router for Ghaf.
 
-Because Ghaf’s Wifi is reserved by NetVM an additional network is neded for a debugging 
+Because Ghaf’s Wifi is reserved by NetVM an additional network is needed for a debugging 
 setup. A Linux computer can be used to provide internet accces to Ghaf. The Linux computer, 
 for instance a laptop with a mainstream Linux distro can act as a router.
 
