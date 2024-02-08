@@ -33,13 +33,14 @@ connection to Ghaf on Jetson.
 
 ##  On the Linux computer
 
-1.	Find out the name of the Ethernet device using nmcli. Typically
-	its called *'Wired Connection 1'* or something similar. Its type will be declared as Ethernet.
+1.	Find out the name of the Ethernet device using nmcli. Typically the connection is named 
+    *'Wired Connection 1'* or something similar. NetworkManager and nmcli declares its 
+    type as Ethernet.
 
-	Take note of the connection name and the  Ethernet device name.
+	Take note of the connection name and the Ethernet device name.
 
     ```
-	connection show
+	nmcli connection show
 
     ```
 
