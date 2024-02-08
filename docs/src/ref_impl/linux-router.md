@@ -1,7 +1,7 @@
 <!--
 	Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 	SPDX-License-Identifier: CC-BY-SA-4.0
---!>
+-->
 
 # How to Use a Linux Laptop or Computer as a Router for Ghaf.
 
@@ -19,6 +19,11 @@ connection to Ghaf on Jetson.
 
 
 1. Make sure the Linux computer is *fully connected* to the internet and that an Ethernet
+
+
+
+
+
    device *is free* to be configured. Typically the computer would have internet over its
    Wifi device leaving the Ethernet device unused. These instructions do not describe how to
    provide internet access to the router/laptop using Wifi.
