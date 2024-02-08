@@ -30,6 +30,7 @@
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
     - [LabWC Desktop Environment](ref_impl/labwc.md)
+    - [Using a Laptop as a Router](ref_impl/linux-router.md)
   - [Ghaf as Library: Templates](ref_impl/ghaf-based-project.md)
     - [Example Project](ref_impl/example_project.md)
     - [Modules Options](ref_impl/modules_options.md)

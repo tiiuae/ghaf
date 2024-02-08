@@ -29,9 +29,9 @@ connection to Ghaf on Jetson.
 	Note that most Linux distributions use NetworkManager (providing for instance the nmcli
 	tool) and Ghaf uses networkd (providing networkctl).
 
-	You can inspect the devices and IP adresses in a NetworkManager system using 'nmcli c s'
-	and 'ifconfig'. In a networkd system like Ghaf you can use 'ip address show eth0' and 'ifconfig'
-	( the 'ip' command is usually also available on NetworkManager systems)
+	You can inspect the devices and IP adresses in a NetworkManager system using `nmcli c s`
+	and `ifconfig`. In a networkd system like Ghaf you can use `ip address show eth0` and `ifconfig`
+	( the `ip` command is usually also available on NetworkManager systems)
 
     ```
 			ip address show
