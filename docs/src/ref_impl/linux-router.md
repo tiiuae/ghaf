@@ -69,10 +69,10 @@ connection to Ghaf on Jetson.
 
     ```
     nmcli connection show
-	if config <ethernet device name
+	if config <ethernet device name>
     ```
 
-	The IP could be something like '10.42.0.1'. Note the namespace or the netmask.
+	The IP could be something like '10.42.0.1'. Note the addresspace or the netmask, typically 255.255.255.0 or /24.
 
 ## On Ghaf
 
@@ -83,7 +83,7 @@ connection to Ghaf on Jetson.
     ```
 
 1.	Set the IP address of Ethernet on Ghaf within the namespace of the Shared Connection.
-	Do not use exactly the same IP address as the router.
+	Do not use exactly the same IP address as the router, but use the same netmask.
 
     ```
 	sudo ip address add 10.42.0.2/24 dev eth0
