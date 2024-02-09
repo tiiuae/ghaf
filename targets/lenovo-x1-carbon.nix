@@ -320,9 +320,16 @@
 
             ghaf = {
               hardware.definition = hwDefinition;
-              host.kernel_hardening.enable = false;
+              # To enable guest hardening enable host hardening first
+              host.kernel.hardening.enable = false;
+              host.kernel.hardening.virtualization.enable = false;
+              host.kernel.hardening.networking.enable = false;
+              host.kernel.hardening.inputdevices.enable = false;
 
-              host.hypervisor_hardening.enable = false;
+              guest.kernel.hardening.enable = false;
+              guest.kernel.hardening.graphics.enable = false;
+
+              host.kernel.hardening.hypervisor.enable = false;
 
               hardware.x86_64.common.enable = true;
 
@@ -520,6 +527,11 @@
     ../modules/host/secureboot.nix
     {
       ghaf.host.secureboot.enable = false;
+    }
+    ../modules/hardware/x86_64-generic/kernel/host
+    {
+      ghaf.host.kernel.hardening.usb.enable = false;
+      ghaf.host.kernel.hardening.debug.enable = false;
     }
   ];
   releaseModules = [

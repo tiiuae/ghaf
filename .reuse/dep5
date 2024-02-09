@@ -7,5 +7,5 @@ Copyright: 2022-2024 Technology Innovation Institute (TII) <https://github.com/t
 License: Apache-2.0
 Files: 
   *.lock *.png *.svg *.patch *.db *.key *.pem *.cer *.p12
-  modules/host/ghaf_host_hardened_baseline-x86
+  modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86
   modules/host/ghaf_host_hardened_baseline-jetson-orin
