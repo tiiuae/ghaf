@@ -9,7 +9,11 @@
 stdenv.mkDerivation {
   name = "vsockproxy";
 
-  nativeBuildInputs = with pkgs; [meson ninja];
+  # FIXME: Kludge `pkgs.buildPackages`, to fix cross build.
+  # Normally `nativeBuildInputs` doesn't require explicit mention of `buildPackages`
+  # but it doesn't works in this particular case for unknown reasons.
+  # FIXME: need to investigate source of this issue.
+  nativeBuildInputs = with pkgs.buildPackages; [meson ninja];
 
   src = pkgs.fetchFromGitHub {
     owner = "tiiuae";

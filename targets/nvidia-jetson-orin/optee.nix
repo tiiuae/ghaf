@@ -69,7 +69,7 @@
       exec "${pkgs.opensc}/bin/pkcs11-tool" --module "${opteeClient}/lib/libckteec.so" $@
     '';
   in {
-    hardware.nvidia-jetpack.firmware.optee.trustedApplications = let
+    hardware.nvidia-jetpack.firmware.optee.supplicant.trustedApplications = let
       xTestTaDir = "${opteeXtest}/ta";
       xTestTaPaths =
         builtins.map (ta: {
