@@ -55,6 +55,37 @@
         productId = "a7a1";
       }
     ];
+    audio.pciDevices = [
+      # Passthrough of Intel Audio device 8086:51ca
+      # With the current implementation, the whole PCI IOMMU group 14:
+      #   00:1f.x in the example from Lenovo X1 Carbon
+      #   must be defined for passthrough to AudioVM
+
+      # ISA bridge: Intel Corporation Raptor Lake LPC/eSPI Controller (rev 01)
+      {
+        path = "0000:00:1f.0";
+        vendorId = "8086";
+        productId = "5194";
+      }
+      # Audio device: Intel Corporation Raptor Lake-P/U/H cAVS (rev 01)
+      {
+        path = "0000:00:1f.3";
+        vendorId = "8086";
+        productId = "51ca";
+      }
+      # SMBus: Intel Corporation Alder Lake PCH-P SMBus Host Controller (rev 01)
+      {
+        path = "0000:00:1f.4";
+        vendorId = "8086";
+        productId = "51a3";
+      }
+      # Serial bus controller: Intel Corporation Alder Lake-P PCH SPI Controller (rev 01)
+      {
+        path = "0000:00:1f.5";
+        vendorId = "8086";
+        productId = "51a4";
+      }
+    ];
     virtioInputHostEvdevs = [
       # Lenovo X1 touchpad and keyboard
       "/dev/input/by-path/platform-i8042-serio-0-event-kbd"
@@ -213,6 +244,67 @@
         ];
 
         time.timeZone = "Asia/Dubai";
+        # Tcp-ssh service runs in the GUIVM and makes ssh tunnel from localhost:4713 to AudioVM for pulseaudio
+        systemd.services.pulse-ssh = {
+          enable = true;
+          description = "tcp-ssh -tunnnel for pulseaudio";
+          after = ["network-online.target"];
+          serviceConfig = {
+            Type = "forking";
+            Environment = [
+              "PULSE_SERVER=\"tcp:localhost:4713\""
+              "PID_PATH=\"/run/tcp-ssh/\""
+            ];
+            PIDFile = "/run/tcp-ssh/tcp-ssh-4713.pid";
+            ExecStart = "${pkgs.tcp-ssh}/bin/tcp-ssh audio-vm.ghaf 4713";
+            ExecStop = "${pkgs.procps}/bin/pkill -F /run/tcp-ssh/tcp-ssh-4713.pid";
+            Restart = "on-failure";
+            RestartSec = "5";
+            User = "ghaf";
+          };
+          wantedBy = ["multi-user.target"];
+        };
+        environment.sessionVariables = {
+          PULSE_SERVER = "tcp:localhost:4713";
+          PID_PATH = "/run/tcp-ssh/";
+        };
+        systemd.tmpfiles.rules = ["d /run/tcp-ssh 0750 ghaf ghaf -"];
+      })
+    ];
+    # Currently not needed
+    # audiovmConfig = hostConfiguration.config.ghaf.virtualization.microvm.audiovm;
+    audiovmExtraModules = [
+      ({pkgs, ...}: {
+        microvm = {
+          shares = [
+            {
+              tag = "waypipe-ssh-public-key";
+              source = "/run/waypipe-ssh-public-key";
+              mountPoint = "/run/waypipe-ssh-public-key";
+            }
+          ];
+        };
+        fileSystems."/run/waypipe-ssh-public-key".options = ["ro"];
+
+        # Waypipe-ssh key is used here to create keys for ssh tunneling to
+        # forward pulseaudio tcp connections.
+        # SSH is very picky about to file permissions and ownership and will
+        # accept neither direct path inside /nix/store or symlink that points
+        # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
+        # setting mode), instead of symlinking it.
+        environment.etc."ssh/get-auth-keys" = {
+          source = let
+            script = pkgs.writeShellScriptBin "get-auth-keys" ''
+              [[ "$1" != "ghaf" ]] && exit 0
+              ${pkgs.coreutils}/bin/cat /run/waypipe-ssh-public-key/id_ed25519.pub
+            '';
+          in "${script}/bin/get-auth-keys";
+          mode = "0555";
+        };
+        services.openssh = {
+          authorizedKeysCommand = "/etc/ssh/get-auth-keys";
+          authorizedKeysCommandUser = "nobody";
+        };
       })
     ];
     hostConfiguration = lib.nixosSystem {
@@ -226,6 +318,7 @@
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
           ../modules/virtualization/microvm/guivm.nix
+          ../modules/virtualization/microvm/audiovm.nix
           ../modules/virtualization/microvm/appvm.nix
           ({
             pkgs,
@@ -253,17 +346,8 @@
 
             time.timeZone = "Asia/Dubai";
 
-            # Enable pulseaudio support for host as a service
-            sound.enable = true;
-            hardware.pulseaudio.enable = true;
-            hardware.pulseaudio.systemWide = true;
-            # Add systemd to require pulseaudio before starting chromium-vm
-            systemd.services."microvm@chromium-vm".after = ["pulseaudio.service"];
-            systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
-
-            # Allow microvm user to access pulseaudio
-            hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
-            users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
+            systemd.services."microvm@chromium-vm".after = ["microvm@audio-vm.service"];
+            systemd.services."microvm@chromium-vm".requires = ["microvm@audio-vm.service"];
 
             environment.etc.${getAuthKeysFilePathInEtc} = getAuthKeysSource {inherit pkgs;};
             services.openssh = sshAuthorizedKeysCommand;
@@ -323,12 +407,31 @@
                   ]
                   ++ guivmExtraModules;
               };
+              virtualization.microvm.audiovm = {
+                enable = true;
+                extraModules = let
+                  configH = config;
+                  audiovmPCIPassthroughModule = {
+                    microvm.devices = lib.mkForce (
+                      builtins.map (d: {
+                        bus = "pci";
+                        inherit (d) path;
+                      })
+                      configH.ghaf.hardware.definition.audio.pciDevices
+                    );
+                  };
+                in
+                  [
+                    audiovmPCIPassthroughModule
+                  ]
+                  ++ audiovmExtraModules;
+              };
               virtualization.microvm.appvm = {
                 enable = true;
                 vms = [
                   {
                     name = "chromium";
-                    packages = [pkgs.chromium pkgs.pamixer];
+                    packages = [pkgs.chromium];
                     macAddress = "02:00:00:03:05:01";
                     ramMb = 3072;
                     cores = 4;
@@ -340,6 +443,10 @@
                         users.extraUsers.ghaf.extraGroups = ["audio"];
 
                         time.timeZone = "Asia/Dubai";
+                        hardware.pulseaudio.extraConfig = ''
+                          load-module module-combine-sink
+                          set-sink-volume @DEFAULT_SINK@ 60000
+                        '';
 
                         microvm.qemu.extraArgs = [
                           # Lenovo X1 integrated usb webcam
@@ -349,7 +456,7 @@
                           "usb-host,vendorid=0x04f2,productid=0xb751"
                           # Connect sound device to hosts pulseaudio socket
                           "-audiodev"
-                          "pa,id=pa1,server=unix:/run/pulse/native"
+                          "pa,id=pa1,server=tcp:audio-vm.lan"
                           # Add HDA sound device to guest
                           "-device"
                           "intel-hda"
@@ -433,6 +540,7 @@
               vfioPciIds = mapPciIdsToString (filterDevices (
                 config.ghaf.hardware.definition.network.pciDevices
                 ++ config.ghaf.hardware.definition.gpu.pciDevices
+                ++ config.ghaf.hardware.definition.audio.pciDevices
               ));
             in [
               "intel_iommu=on,igx_off,sm_on"
