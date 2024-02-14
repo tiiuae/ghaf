@@ -21,4 +21,5 @@
   ./version
   ./virtualization/docker.nix
   ./windows-launcher
+  ./systemd
 ]

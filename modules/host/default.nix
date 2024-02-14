@@ -1,10 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  lib,
-  pkgs,
-  ...
-}: {
+{lib, ...}: {
   imports = [
     # TODO remove this when the minimal config is defined
     # Replace with the baseModules definition
@@ -29,25 +25,16 @@
     # temp means to reduce the image size
     # TODO remove this when the minimal config is defined
     appstream.enable = false;
-
-    systemd.package = pkgs.systemd.override ({
-        withCryptsetup = false;
-        withDocumentation = false;
-        withFido2 = false;
-        withHomed = false;
-        withHwdb = false;
-        withLibBPF = true;
-        withLocaled = false;
-        withPCRE2 = false;
-        withPortabled = false;
-        withTpm2Tss = false;
-        withUserDb = false;
-      }
-      // lib.optionalAttrs (lib.hasAttr "withRepart" (lib.functionArgs pkgs.systemd.override)) {
-        withRepart = false;
-      });
-
     boot.enableContainers = false;
     ##### Remove to here
+
+    ghaf.systemd = {
+      withName = "host-systemd";
+      withNss = lib.mkDefault true;
+      withSerial = lib.mkDefault true;
+      withPolkit = lib.mkDefault true;
+      withCryptsetup = lib.mkDefault true;
+      withTpm2Tss = lib.mkDefault true;
+    };
   };
 }
