@@ -12,16 +12,22 @@
     name,
     icon,
     ...
-  }: ''
-    #custom-${name} {
-            font-size: 20px; background-image: url("${icon}");
-            background-position: center;
-            background-repeat: no-repeat;
-            padding-left: 10;
-            padding-right: 10;
-    }
+  }: let
+    resultConfig = ''
+      #custom-${name} {
+              font-size: 20px; background-image: url("${icon}");
+              background-position: center;
+              background-repeat: no-repeat;
+              padding-left: 10;
+              padding-right: 10;
+      }
 
-  '';
+    '';
+  in
+    if builtins.pathExists icon
+    then resultConfig
+    else throw "The icon's path ${icon} doesn't exist";
+
   mkLauncherPadding = {name, ...}: ''
     #custom-${name},
   '';
