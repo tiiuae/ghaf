@@ -39,9 +39,9 @@
   guivmExtraConfigurations = {
     ghaf.hardware.definition.network.pciDevices = configH.ghaf.hardware.definition.network.pciDevices;
     ghaf.graphics.launchers = let
-      adwaitaIconsRoot = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/32x32/actions/";
       hostAddress = "192.168.101.2";
       powerControl = pkgs.callPackage ../../packages/powercontrol {};
+      powerControlIcons = pkgs.callPackage ../packages/powercontrol/png-icons.nix {};
     in [
       {
         name = "chromium";
@@ -79,7 +79,7 @@
           inherit hostAddress;
           inherit (configH.ghaf.security.sshKeys) sshKeyPath;
         }}";
-        icon = "${adwaitaIconsRoot}/system-shutdown-symbolic.symbolic.png";
+        icon = "${powerControlIcons}/${powerControlIcons.relativeShutdownIconPath}";
       }
 
       {
@@ -88,7 +88,7 @@
           inherit hostAddress;
           inherit (configH.ghaf.security.sshKeys) sshKeyPath;
         }}";
-        icon = "${adwaitaIconsRoot}/system-reboot-symbolic.symbolic.png";
+        icon = "${powerControlIcons}/${powerControlIcons.relativeRebootIconPath}";
       }
 
       # Temporarly disabled as it doesn't work stable
