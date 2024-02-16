@@ -181,57 +181,66 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="installer"><a class="header" href="#installer">Installer</a></h1>
-<h2 id="configuring-and-building-installer-for-ghaf"><a class="header" href="#configuring-and-building-installer-for-ghaf">Configuring and Building Installer for Ghaf</a></h2>
-<p>You can obtain the installation image for your Ghaf configuration. To check possible configuration options, see <a href="../ref_impl/modules_options.html#ghafinstallerenable">Modules Options</a>.</p>
-<ol>
-<li>Set <code>ghaf.installer.enable</code> to <code>true</code>.</li>
-<li>Add nixos-generators module to <code>ghaf.installer.imgModules</code> list to configure installer image type.</li>
-<li>Choose installer modules from <code>ghaf.installer.installerModules</code> and set <code>ghaf.installer.enabledModules</code> to list of their names.</li>
-<li>Write code for the installer in <code>ghaf.installer.installerCode</code>.</li>
-</ol>
-<pre><code class="language-nix">{config, ...}: {
-  ghaf.installer = {
-    enable = true;
-    imgModules = [
-      nixos-generators.nixosModules.raw-efi
-    ];
-    enabledModules = [&quot;flushImage&quot;];
-    installerCode = ''
-      echo &quot;Starting flushing...&quot;
-      if sudo dd if=${config.system.build.${config.formatAttr}} of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
-          sync
-          echo &quot;Flushing finished successfully!&quot;
-          echo &quot;Now you can detach installation device and reboot to Ghaf.&quot;
-      else
-          echo &quot;Some error occured during flushing process, exit code: $?.&quot;
-          exit
-      fi
-    '';
-  };
-}
-</code></pre>
-<p>After that you can build an installer image using this command:</p>
-<pre><code class="language-sh">nix build .#nixosConfigurations.&lt;CONFIGURATION&gt;.config.system.build.installer
-</code></pre>
-<h2 id="adding-installer-modules"><a class="header" href="#adding-installer-modules">Adding Installer Modules</a></h2>
-<p>To add an installer module, replace the corresponding placeholders with your code and add this to your configuraiton:</p>
-<pre><code class="language-nix">ghaf.installer.installerModules.&lt;MODULE_NAME&gt; = {
-  requestCode = ''
-    # Your request code written in Bash
-  '';
-  providedVariables = {
-    # Notice the dollar sign before the actual variable name in Bash.
-    &lt;VARIABLE_NAME&gt; = &quot;$&lt;VARIABLE_NAME&gt;&quot;;
-  };
-};
-</code></pre>
-<h2 id="built-in-installer-modules"><a class="header" href="#built-in-installer-modules">Built-in Installer Modules</a></h2>
-<p>Provided variables show variable names in Nix. For actual names of variables in Bash, see the sources of the module.</p>
-<h3 id="flushimage"><a class="header" href="#flushimage">flushImage</a></h3>
-<p>Provided variables:</p>
+<p>Ghaf has a NixOS-like non-interactive, declarative installer instead of a
+conventional (imperative, non-declarative) installer as in most conventional
+Linux distributions. This is possible with the <a href="https://github.com/tiiuae/ghaf/pull/ghaf-based-project.md">Ghaf as
+Library</a> approach:
+rather than clicking similar options during installation, you can configure the
+system once and deploy this configuration to the desired machines.</p>
+<p>To implement the pre-configured setting up approach, we used the
+<a href="https://github.com/nix-community/nixos-anywhere">nixos-anywhere</a> tool.</p>
+<p>There are two separate ways to use it:</p>
 <ul>
-<li>deviceName: name of the device on which image should be flushed (e.g. &quot;sda&quot;, &quot;nvme0n1&quot;)</li>
+<li>manually</li>
+<li>with the Ghaf installation wizard.</li>
 </ul>
+<blockquote>
+<p>NOTE: The Ghaf installation wizard is currently under development and cannot be used to create the required system configuration.</p>
+</blockquote>
+<h2 id="manual-installation"><a class="header" href="#manual-installation">Manual Installation</a></h2>
+<p>To install Ghaf manually:</p>
+<ol>
+<li>Create your own flake using the Ghaf template:</li>
+</ol>
+<pre><code class="language-sh">nix flake init -t github:tiiuae/ghaf#target-x86_64-generic
+</code></pre>
+<ol start="2">
+<li>
+<p>Edit it according to your preferences.</p>
+</li>
+<li>
+<p>Set the value of <code>ghaf.installer.sshKeys</code> to get an installer image. If you don't have ssh keys follow substeps:</p>
+<p>3.1. Generate an SSH keypair as follows:
+<code>$ ssh-keygen -t ed25519 Generating public/private ed25519 key pair. Enter file in which to save the key (/home/user/.ssh/id_ed25519): /home/user/.ssh/id_ed25519_installer Enter passphrase (empty for no passphrase): Enter same passphrase again: Your identification has been saved in /home/user/.ssh/id_ed25519_installer Your public key has been saved in /home/user/.ssh/id_ed25519_installer.pub ...</code></p>
+<p>3.2. Copy public key from file (<code>id_ed25519_installer.pub</code> in an example above) in place of stub in <code>flake.nix</code> of your configuration.</p>
+</li>
+<li>
+<p>Build the installer image:</p>
+</li>
+</ol>
+<pre><code class="language-sh">nix build .#nixosConfigurations.PROJ_NAME-ghaf-debug.config.system.build.installer
+</code></pre>
+<ol start="5">
+<li>Flash the installer image to your device (temporary storage which will be used to establish connection with the host machine):</li>
+</ol>
+<pre><code class="language-sh">sudo dd if=./result/iso/nixos-...-linux.iso of=/dev/YOUR_DEVICE conv=sync &amp;&amp; sync
+</code></pre>
+<ol start="6">
+<li>
+<p>Run the image on the device.</p>
+</li>
+<li>
+<p>Connect the device to the network using <code>wifi-connector</code>.</p>
+</li>
+<li>
+<p>Check the target block device name using the lsblk command and put it in the disk configuration option in <code>flake.nix</code>.</p>
+</li>
+<li>
+<p>Install the NixOS configuration to the target device using the command:</p>
+</li>
+</ol>
+<pre><code class="language-sh">nix run github:nix-community/nixos-anywhere -- --flake .#CONFIGURATION_NAME root@IP_ADDRESS
+</code></pre>
 
                     </main>
 

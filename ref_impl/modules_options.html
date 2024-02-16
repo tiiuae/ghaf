@@ -183,6 +183,614 @@
 <!--
     If you want to change this file, check https://github.com/tiiuae/ghaf/pull/183.
 -->
+<h2 id="ghafdevelopmentdebugtoolsenable"><a class="header" href="#ghafdevelopmentdebugtoolsenable">ghaf.development.debug.tools.enable</a></h2>
+<p>Whether to enable Debug Tools.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/debug-tools.nix">https://github.com/tiiuae/ghaf/blob/main/modules/development/debug-tools.nix</a></li>
+</ul>
+<h2 id="ghafdevelopmentnix-setupenable"><a class="header" href="#ghafdevelopmentnix-setupenable">ghaf.development.nix-setup.enable</a></h2>
+<p>Whether to enable Target Nix config options.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/nix.nix">https://github.com/tiiuae/ghaf/blob/main/modules/development/nix.nix</a></li>
+</ul>
+<h2 id="ghafdevelopmentsshdaemonenable"><a class="header" href="#ghafdevelopmentsshdaemonenable">ghaf.development.ssh.daemon.enable</a></h2>
+<p>Whether to enable ssh daemon.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix">https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix</a></li>
+</ul>
+<h2 id="ghafdevelopmentsshdaemonauthorizedkeys"><a class="header" href="#ghafdevelopmentsshdaemonauthorizedkeys">ghaf.development.ssh.daemon.authorizedKeys</a></h2>
+<p>Add your SSH Public Keys here.
+NOTE: adding your pub ssh key here will make accessing and “nixos-rebuild switching” development mode
+builds easy but still secure. Given that you protect your private keys. Do not share your keypairs across hosts.</p>
+<p>Shared authorized keys access poses a minor risk for developers in the same network (e.g. office) cross-accessing
+each others development devices if:</p>
+<ul>
+<li>the ip addresses from dhcp change between the developers without the noticing AND</li>
+<li>you ignore the server fingerprint checks
+You have been helped and you have been warned.</li>
+</ul>
+<p><em>Type:</em>
+list of (optionally newline-terminated) single-line string</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix">https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix</a></li>
+</ul>
+<h2 id="ghaffirewallkernel-modulesenable"><a class="header" href="#ghaffirewallkernel-modulesenable">ghaf.firewall.kernel-modules.enable</a></h2>
+<p>Whether to enable kernel modules required for firewall.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/firewall/kernel-modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/firewall/kernel-modules.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsenabledemoapplications"><a class="header" href="#ghafgraphicsenabledemoapplications">ghaf.graphics.enableDemoApplications</a></h2>
+<p>Whether to enable some applications for demoing.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsdemo-appschromium"><a class="header" href="#ghafgraphicsdemo-appschromium">ghaf.graphics.demo-apps.chromium</a></h2>
+<p>Include package Chromium browser to menu and system environment</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsdemo-appselement-desktop"><a class="header" href="#ghafgraphicsdemo-appselement-desktop">ghaf.graphics.demo-apps.element-desktop</a></h2>
+<p>Include package Element desktop to menu and system environment</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsdemo-appsfirefox"><a class="header" href="#ghafgraphicsdemo-appsfirefox">ghaf.graphics.demo-apps.firefox</a></h2>
+<p>Include package Firefox browser to menu and system environment</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsdemo-appsgala-app"><a class="header" href="#ghafgraphicsdemo-appsgala-app">ghaf.graphics.demo-apps.gala-app</a></h2>
+<p>Include package Gala App to menu and system environment</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsdemo-appszathura"><a class="header" href="#ghafgraphicsdemo-appszathura">ghaf.graphics.demo-apps.zathura</a></h2>
+<p>Include package zathura to menu and system environment</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/demo-apps.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsgnomeenable"><a class="header" href="#ghafgraphicsgnomeenable">ghaf.graphics.gnome.enable</a></h2>
+<p>Whether to enable gnome.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/gnome.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/gnome.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslabwcenable"><a class="header" href="#ghafgraphicslabwcenable">ghaf.graphics.labwc.enable</a></h2>
+<p>Whether to enable labwc.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/labwc.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslaunchers"><a class="header" href="#ghafgraphicslaunchers">ghaf.graphics.launchers</a></h2>
+<p>Labwc application launchers to show in launch bar</p>
+<p><em>Type:</em>
+list of (submodule)</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslaunchersicon"><a class="header" href="#ghafgraphicslaunchersicon">ghaf.graphics.launchers.*.icon</a></h2>
+<p>Path of the icon</p>
+<p><em>Type:</em>
+path</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslaunchersname"><a class="header" href="#ghafgraphicslaunchersname">ghaf.graphics.launchers.*.name</a></h2>
+<p>Name of the application</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslauncherspath"><a class="header" href="#ghafgraphicslauncherspath">ghaf.graphics.launchers.*.path</a></h2>
+<p>Path to the executable to be launched</p>
+<p><em>Type:</em>
+path</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafgraphicswestonenable"><a class="header" href="#ghafgraphicswestonenable">ghaf.graphics.weston.enable</a></h2>
+<p>Whether to enable weston.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/weston.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/weston.nix</a></li>
+</ul>
+<h2 id="ghafgraphicswindow-manager-commonenable"><a class="header" href="#ghafgraphicswindow-manager-commonenable">ghaf.graphics.window-manager-common.enable</a></h2>
+<p>Common parts for every wlroots-based window manager/compositor.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/graphics/window-manager.nix">https://github.com/tiiuae/ghaf/blob/main/modules/graphics/window-manager.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitiongpupcidevices"><a class="header" href="#ghafhardwaredefinitiongpupcidevices">ghaf.hardware.definition.gpu.pciDevices</a></h2>
+<p>PCI Devices to passthrough to GuiVM</p>
+<p><em>Type:</em>
+list of (submodule)</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Example:</em></p>
+<pre><code>[{
+  path = &quot;0000:00:02.0&quot;;
+  vendorId = &quot;8086&quot;;
+  productId = &quot;a7a1&quot;;
+}]
+
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitiongpupcidevicesname"><a class="header" href="#ghafhardwaredefinitiongpupcidevicesname">ghaf.hardware.definition.gpu.pciDevices.*.name</a></h2>
+<p>PCI device name (optional)</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitiongpupcidevicespath"><a class="header" href="#ghafhardwaredefinitiongpupcidevicespath">ghaf.hardware.definition.gpu.pciDevices.*.path</a></h2>
+<p>PCI device path</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitiongpupcidevicesproductid"><a class="header" href="#ghafhardwaredefinitiongpupcidevicesproductid">ghaf.hardware.definition.gpu.pciDevices.*.productId</a></h2>
+<p>PCI Product ID (optional)</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitiongpupcidevicesvendorid"><a class="header" href="#ghafhardwaredefinitiongpupcidevicesvendorid">ghaf.hardware.definition.gpu.pciDevices.*.vendorId</a></h2>
+<p>PCI Vendor ID (optional)</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionname"><a class="header" href="#ghafhardwaredefinitionname">ghaf.hardware.definition.name</a></h2>
+<p>Name of the hardware</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>&quot;&quot;</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionnetworkpcidevices"><a class="header" href="#ghafhardwaredefinitionnetworkpcidevices">ghaf.hardware.definition.network.pciDevices</a></h2>
+<p>PCI Devices to passthrough to NetVM</p>
+<p><em>Type:</em>
+list of (submodule)</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Example:</em></p>
+<pre><code>[{
+  path = &quot;0000:00:14.3&quot;;
+  vendorId = &quot;8086&quot;;
+  productId = &quot;51f1&quot;;
+}]
+
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionnetworkpcidevicesname"><a class="header" href="#ghafhardwaredefinitionnetworkpcidevicesname">ghaf.hardware.definition.network.pciDevices.*.name</a></h2>
+<p>PCI device name (optional)</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionnetworkpcidevicespath"><a class="header" href="#ghafhardwaredefinitionnetworkpcidevicespath">ghaf.hardware.definition.network.pciDevices.*.path</a></h2>
+<p>PCI device path</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionnetworkpcidevicesproductid"><a class="header" href="#ghafhardwaredefinitionnetworkpcidevicesproductid">ghaf.hardware.definition.network.pciDevices.*.productId</a></h2>
+<p>PCI Product ID (optional)</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionnetworkpcidevicesvendorid"><a class="header" href="#ghafhardwaredefinitionnetworkpcidevicesvendorid">ghaf.hardware.definition.network.pciDevices.*.vendorId</a></h2>
+<p>PCI Vendor ID (optional)</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwaredefinitionvirtioinputhostevdevs"><a class="header" href="#ghafhardwaredefinitionvirtioinputhostevdevs">ghaf.hardware.definition.virtioInputHostEvdevs</a></h2>
+<p>List of input device files to passthrough to GuiVM using
+“-device virtio-input-host-pci,evdev=” QEMU command line argument.</p>
+<p><em>Type:</em>
+list of string</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Example:</em></p>
+<pre><code>[
+  &quot;evdev=/dev/input/by-path/platform-i8042-serio-0-event-kbd&quot;
+  &quot;evdev=/dev/mouse&quot;
+  &quot;evdev=/dev/touchpad&quot;
+  &quot;evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse&quot;
+]
+
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
+</ul>
+<h2 id="ghafhardwarenvidiaorinopteepkcs11enable"><a class="header" href="#ghafhardwarenvidiaorinopteepkcs11enable">ghaf.hardware.nvidia.orin.optee.pkcs11.enable</a></h2>
+<p>Adds OP-TEE’s PKCS#11 TA.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix</a></li>
+</ul>
+<h2 id="ghafhardwarenvidiaorinopteepkcs11heapsize"><a class="header" href="#ghafhardwarenvidiaorinopteepkcs11heapsize">ghaf.hardware.nvidia.orin.optee.pkcs11.heapSize</a></h2>
+<p>Defines PKCS11 TA heap size. Heap size has a direct
+correlation to its secure storage size. Heap == Storage.</p>
+<p>NOTE: Redefining secure storage size once it has been created
+might corrupt existing storage. Default storage path /data/tee.
+Remove existing storage when redefined.</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>32768</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix</a></li>
+</ul>
+<h2 id="ghafhardwarenvidiaorinopteepkcs11tokencount"><a class="header" href="#ghafhardwarenvidiaorinopteepkcs11tokencount">ghaf.hardware.nvidia.orin.optee.pkcs11.tokenCount</a></h2>
+<p>PKCS#11 token count.</p>
+<p>NOTE: Redefining token count might corrupt secure storage,
+if it exist. Default storage path /data/tee.
+Remove existing storage when redefined.</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>3</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix</a></li>
+</ul>
+<h2 id="ghafhardwarenvidiaorinopteepkcs11-tool"><a class="header" href="#ghafhardwarenvidiaorinopteepkcs11-tool">ghaf.hardware.nvidia.orin.optee.pkcs11-tool</a></h2>
+<p>OpenSC pkcs11-tool, but for a convenience reasons &quot;pkcs11-tool-optee&quot; shell
+script is created. It calls pkcs11-tool with “–module”-option set to
+OP-TEE’s PKCS#11 library.</p>
+<p>Example usage: same as pkcs11-tool, but ommit “–module”-option</p>
+<p>pkcs11-tool-optee --help
+pkcs11-tool-optee --show-info -L</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix</a></li>
+</ul>
+<h2 id="ghafhardwarenvidiaorinopteextest"><a class="header" href="#ghafhardwarenvidiaorinopteextest">ghaf.hardware.nvidia.orin.optee.xtest</a></h2>
+<p>Adds OP-TEE’s xtest and related TA/Plugins</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/nvidia-jetson-orin/optee.nix</a></li>
+</ul>
+<h2 id="ghafhardwarex86_64commonenable"><a class="header" href="#ghafhardwarex86_64commonenable">ghaf.hardware.x86_64.common.enable</a></h2>
+<p>Whether to enable Common x86 configs.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/x86_64-linux.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/x86_64-linux.nix</a></li>
+</ul>
+<h2 id="ghafinstallermodules"><a class="header" href="#ghafinstallermodules">ghaf.installer.modules</a></h2>
+<p>Modules that will be passed to the installer image.</p>
+<p><em>Type:</em>
+list of module</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/installer">https://github.com/tiiuae/ghaf/blob/main/modules/installer</a></li>
+</ul>
+<h2 id="ghafinstallersshkeys"><a class="header" href="#ghafinstallersshkeys">ghaf.installer.sshKeys</a></h2>
+<p>Path to ssh public key that will be used during installation.</p>
+<p><em>Type:</em>
+list of (optionally newline-terminated) single-line string</p>
+<p><em>Example:</em></p>
+<pre><code>[
+  &quot;ssh-rsa AAAAB3NzaC1yc2etc/etc/etcjwrsh8e596z6J0l7 example@host&quot;
+  &quot;ssh-ed25519 AAAAC3NzaCetcetera/etceteraJZMfk3QPfQ foo@bar&quot;
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/installer">https://github.com/tiiuae/ghaf/blob/main/modules/installer</a></li>
+</ul>
+<h2 id="ghafprofilesapplicationsenable"><a class="header" href="#ghafprofilesapplicationsenable">ghaf.profiles.applications.enable</a></h2>
+<p>Whether to enable Some sample applications.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/applications.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/applications.nix</a></li>
+</ul>
+<h2 id="ghafprofilesdebugenable"><a class="header" href="#ghafprofilesdebugenable">ghaf.profiles.debug.enable</a></h2>
+<p>Whether to enable debug profile.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/debug.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/debug.nix</a></li>
+</ul>
+<h2 id="ghafprofilesgraphicsenable"><a class="header" href="#ghafprofilesgraphicsenable">ghaf.profiles.graphics.enable</a></h2>
+<p>Whether to enable Graphics profile.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafprofilesgraphicscompositor"><a class="header" href="#ghafprofilesgraphicscompositor">ghaf.profiles.graphics.compositor</a></h2>
+<p>Which Wayland compositor to use.</p>
+<p>Choose one of: weston,gnome,labwc</p>
+<p><em>Type:</em>
+one of “weston”, “gnome”, “labwc”</p>
+<p><em>Default:</em>
+<code>&quot;weston&quot;</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafprofilesinstallerenable"><a class="header" href="#ghafprofilesinstallerenable">ghaf.profiles.installer.enable</a></h2>
+<p>Whether to enable installer profile.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/installer.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/installer.nix</a></li>
+</ul>
+<h2 id="ghafprofilesreleaseenable"><a class="header" href="#ghafprofilesreleaseenable">ghaf.profiles.release.enable</a></h2>
+<p>Whether to enable release profile.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/release.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/release.nix</a></li>
+</ul>
+<h2 id="ghafusersaccountsenable"><a class="header" href="#ghafusersaccountsenable">ghaf.users.accounts.enable</a></h2>
+<p>Whether to enable Default account Setup.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix">https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix</a></li>
+</ul>
+<h2 id="ghafusersaccountspassword"><a class="header" href="#ghafusersaccountspassword">ghaf.users.accounts.password</a></h2>
+<p>A default password for the user.</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>&quot;ghaf&quot;</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix">https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix</a></li>
+</ul>
+<h2 id="ghafusersaccountsuser"><a class="header" href="#ghafusersaccountsuser">ghaf.users.accounts.user</a></h2>
+<p>A default user to create in the system.</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>&quot;ghaf&quot;</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix">https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix</a></li>
+</ul>
+<h2 id="ghafvirtualizationdockerdaemonenable"><a class="header" href="#ghafvirtualizationdockerdaemonenable">ghaf.virtualization.docker.daemon.enable</a></h2>
+<p>Whether to enable Docker Daemon.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/docker.nix">https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/docker.nix</a></li>
+</ul>
+<h2 id="ghafwindows-launcherenable"><a class="header" href="#ghafwindows-launcherenable">ghaf.windows-launcher.enable</a></h2>
+<p>Whether to enable Windows launcher.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher">https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher</a></li>
+</ul>
+<h2 id="ghafwindows-launcherspice"><a class="header" href="#ghafwindows-launcherspice">ghaf.windows-launcher.spice</a></h2>
+<p>Whether to enable remote access to the virtual machine using spice.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher">https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher</a></li>
+</ul>
+<h2 id="ghafwindows-launcherspice-host"><a class="header" href="#ghafwindows-launcherspice-host">ghaf.windows-launcher.spice-host</a></h2>
+<p>Spice host</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>&quot;192.168.101.2&quot;</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher">https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher</a></li>
+</ul>
+<h2 id="ghafwindows-launcherspice-port"><a class="header" href="#ghafwindows-launcherspice-port">ghaf.windows-launcher.spice-port</a></h2>
+<p>Spice port</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>5900</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher">https://github.com/tiiuae/ghaf/blob/main/modules/windows-launcher</a></li>
+</ul>
 
                     </main>
 
