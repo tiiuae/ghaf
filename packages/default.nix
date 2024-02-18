@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
+{inputs, ...}: {
   perSystem = {
     pkgs,
     lib,
@@ -12,7 +12,7 @@
   in {
     packages = platformPkgs system {
       gala-app = callPackage ./gala {};
-      kernel-hardening-checker = callPackage ./kernel-hardening-checker {};
+      kernel-hardening-checker = callPackage ./kernel-hardening-checker { inherit inputs; };
       windows-launcher = callPackage ./windows-launcher {enableSpice = false;};
       windows-launcher-spice = callPackage ./windows-launcher {enableSpice = true;};
       doc = callPackage ../docs {
