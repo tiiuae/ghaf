@@ -9,3 +9,4 @@ Files:
   *.lock *.png *.svg *.patch *.db *.key *.pem *.cer *.p12
   modules/host/ghaf_host_hardened_baseline-x86
   modules/host/ghaf_host_hardened_baseline-jetson-orin
+  modules/virtualization/demo-yubikeys/u2f_keys

@@ -6,6 +6,7 @@
   ...
 }: let
   cfg = config.ghaf.users.operator.account;
+  yubikeyCfg = config.ghaf.passwordless.authentication.enable;
 in
   with lib; {
     options.ghaf.users.operator.account = {
@@ -24,12 +25,23 @@ in
 
     config = mkIf cfg.enable {
       users = {
-        users."${cfg.user}" = {
-          isNormalUser = true;
-          inherit (cfg) password;
-          # Video group is needed to run GUI
-          extraGroups = ["video"];
-        };
+        users."${cfg.user}" = mkMerge [
+          {
+            isNormalUser = true;
+            inherit (cfg) password;
+            # Video group is needed to run GUI
+            extraGroups = ["video"];
+          }
+          (
+            if yubikeyCfg
+            then {
+              password = mkForce null;
+            }
+            else {
+              inherit (cfg) password;
+            }
+          )
+        ];
         groups."${cfg.user}" = {
           name = cfg.user;
           members = [cfg.user];

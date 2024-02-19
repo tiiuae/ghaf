@@ -20,5 +20,6 @@
   ./users
   ./version
   ./virtualization/docker.nix
+  ./virtualization/yubikey.nix
   ./windows-launcher
 ]

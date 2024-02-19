@@ -20,6 +20,8 @@
         ghaf = {
           users.operator.account.enable = lib.mkDefault configHost.ghaf.users.operator.account.enable;
 
+          # Yubikey
+          passwordless.authentication.enable = false;
           profiles.graphics.enable = true;
           # Uncomment this line to take LabWC in use
           # profiles.graphics.compositor = "labwc";

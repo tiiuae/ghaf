@@ -17,6 +17,7 @@
     - [Platform Bus for Rust VMM](architecture/adr/platform-bus-passthrough-support.md)
   - [Hardening](architecture/hardening.md)
   - [Secure Boot](architecture/secureboot.md)
+  - [Passwordless Authentication](architecture/passwordless_authentication.md)
   - [Stack](architecture/stack.md)
 
 # For Developers

@@ -150,6 +150,10 @@
           # Connect sound device to hosts pulseaudio socket
           "-audiodev"
           "pa,id=pa1,server=unix:/run/pulse/native"
+          # Add Yubico YubiKey device details
+          "-usb"
+          "-device"
+          "usb-host,vendorid=0x1050,productid=0x0407"
         ];
       }
       ({pkgs, ...}: let
@@ -300,6 +304,8 @@
               SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
               # Lenovo X1 integrated webcam
               SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
+              # YubiKey rule for passwordless authentication
+              SUBSYSTEM=="usb", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0407", GROUP="kvm", MODE="0660"
             '';
 
             time.timeZone = "Asia/Dubai";
