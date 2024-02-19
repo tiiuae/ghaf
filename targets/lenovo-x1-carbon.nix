@@ -327,6 +327,8 @@
 
               hardware.x86_64.common.enable = true;
 
+              security.tpm2.enable = true;
+
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
               virtualization.microvm.netvm = {
