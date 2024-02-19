@@ -17,6 +17,7 @@
   ./profiles/graphics.nix
   ./profiles/installer.nix
   ./profiles/release.nix
+  ./security/tpm2.nix
   ./users/accounts.nix
   ./version
   ./virtualization/docker.nix

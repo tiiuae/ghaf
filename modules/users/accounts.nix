@@ -37,7 +37,10 @@ in
           isNormalUser = true;
           inherit (cfg) password;
           #TODO add "docker" use "lib.optionals"
-          extraGroups = ["wheel" "video" "networkmanager"];
+          extraGroups =
+            ["wheel" "video" "networkmanager"]
+            ++ optionals
+            config.ghaf.security.tpm2.enable ["tss"];
         };
         groups."${cfg.user}" = {
           name = cfg.user;
