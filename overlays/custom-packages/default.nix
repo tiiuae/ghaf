@@ -13,5 +13,6 @@ _: {
     (import ./qemu)
     (import ./nm-launcher)
     (import ./labwc)
+    (import ./tcp-ssh)
   ];
 }

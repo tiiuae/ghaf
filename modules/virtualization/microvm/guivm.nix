@@ -57,6 +57,8 @@
             pkgs.waypipe
             pkgs.networkmanagerapplet
             pkgs.nm-launcher
+            pkgs.pamixer
+            (pkgs.callPackage ../../../packages/tcp-ssh {})
           ];
         };
 

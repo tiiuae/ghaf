@@ -18,6 +18,9 @@ in
         enableIPv6 = false;
         useNetworkd = true;
         interfaces.virbr0.useDHCP = false;
+        extraHosts = ''
+          192.168.101.4 audio-vm.lan
+        '';
       };
 
       systemd.network = {
