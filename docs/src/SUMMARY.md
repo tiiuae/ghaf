@@ -26,7 +26,7 @@
   - [Development](ref_impl/development.md)
     - [Build and Run](ref_impl/build_and_run.md)
     - [Running Remote Build on NixOS](ref_impl/remote_build_setup.md)
-    - [Installer](ref_impl/installer.md)
+    - [Installation](ref_impl/installation.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
     - [LabWC Desktop Environment](ref_impl/labwc.md)
