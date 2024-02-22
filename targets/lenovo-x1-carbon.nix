@@ -509,11 +509,12 @@
     };
     package = let inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config; in config.system.build.${config.formatAttr};
   in {
-    inherit hostConfiguration package;
+    inherit package;
+    hostConfiguration = hostConfiguration.extendModules {modules = [disko.nixosModules.disko (import ../templates/targets/x86_64/generic/disk-config.nix)];} // {rawConfiguration = hostConfiguration;};
     name = "${name}-${variant}";
     installer = let
       pkgs = import nixpkgs {inherit system;};
-      inherit ((hostConfiguration.extendModules {modules = [disko.nixosModules.disko (import ../templates/targets/x86_64/generic/disk-config.nix)];}).config.system.build) toplevel;
+      inherit (hostConfiguration.config.system.build) toplevel;
       installerScript = import ../modules/installer/standalone-installer {
         inherit pkgs;
         toplevelDrv = toplevel;

@@ -6,6 +6,7 @@
   lib,
   nixos-generators,
   microvm,
+  disko,
 }: let
   name = "generic-x86_64";
   system = "x86_64-linux";
@@ -81,7 +82,7 @@
         ++ extraModules;
     };
   in {
-    inherit hostConfiguration;
+    hostConfiguration = hostConfiguration.extendModules {modules = [disko.nixosModules.disko (import ../templates/targets/x86_64/generic/disk-config.nix)];} // {rawConfiguration = hostConfiguration;};
     name = "${name}-${variant}";
     package = let inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config; in config.system.build.${config.formatAttr};
   };

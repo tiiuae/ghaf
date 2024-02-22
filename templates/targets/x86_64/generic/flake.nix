@@ -47,6 +47,7 @@
   };
 
   outputs = {
+    # deadnix: skip
     self,
     ghaf,
     disko,
@@ -66,11 +67,9 @@
         formatter = nixpkgs.legacyPackages.${system}.alejandra;
       }))
 
-      {
-        nixosConfigurations.PROJ_NAME-ghaf-debug = ghaf.nixosConfigurations.generic-x86_64-debug.extendModules {
+      (let
+        nixosConfiguration = ghaf.nixosConfigurations.generic-x86_64-debug.rawConfiguration.extendModules {
           modules = [
-            disko.nixosModules.disko
-            ./disk-config.nix
             # deadnix: skip
             ({lib, ...}: {
               #insert your additional modules here e.g.
@@ -93,12 +92,14 @@
             })
           ];
         };
+      in {
+        nixosConfigurations.PROJ_NAME-ghaf-debug = nixosConfiguration.extendModules {modules = [disko.nixosModules.disko ./disk-config.nix];};
         packages.x86_64-linux.PROJ_NAME-ghaf-debug = let
-          hostConfiguration = self.nixosConfigurations.PROJ_NAME-ghaf-debug;
+          hostConfiguration = nixosConfiguration;
           formatModule = nixos-generators.nixosModules.raw-efi;
           inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config;
         in
           config.system.build.${config.formatAttr};
-      }
+      })
     ];
 }
