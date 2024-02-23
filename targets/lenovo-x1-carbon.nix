@@ -7,8 +7,6 @@
   nixos-generators,
   microvm,
   lanzaboote,
-  nixpkgs,
-  disko,
   ...
 }: let
   name = "lenovo-x1-carbon-gen11";
@@ -507,54 +505,10 @@
         ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
-    package = let inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config; in config.system.build.${config.formatAttr};
   in {
-    inherit hostConfiguration package;
+    inherit hostConfiguration;
     name = "${name}-${variant}";
-    installer = let
-      pkgs = import nixpkgs {inherit system;};
-      inherit ((hostConfiguration.extendModules {modules = [disko.nixosModules.disko (import ../templates/targets/x86_64/generic/disk-config.nix)];}).config.system.build) toplevel;
-      installerScript = import ../modules/installer/standalone-installer {
-        inherit pkgs;
-        toplevelDrv = toplevel;
-        inherit (disko.packages.${system}) disko;
-        diskoConfig = pkgs.writeText "disko-config.nix" (builtins.readFile ../templates/targets/x86_64/generic/disk-config.nix);
-      };
-    in
-      lib.ghaf.installer {
-        inherit system;
-        modules = [
-          ({pkgs, ...}: {
-            # Stop nixos complains about "warning: mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
-            # NOTE: Why this not working though? https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
-            boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
-
-            environment.systemPackages = with pkgs; [
-              installerScript
-              # Installing this toplevel derivation should include all required
-              # packages to installer image /nix/store thus enabling offline
-              # installation.
-              # hostConfiguration.config.system.build.toplevel
-
-              # Copied from https://github.com/nix-community/disko/blob/f67ba6552845ea5d7f596a24d57c33a8a9dc8de9/lib/default.nix#L396-L402
-              # To make disko cli happy without internet.
-              util-linux
-              e2fsprogs
-              mdadm
-              zfs
-              lvm2
-              bash
-              jq
-            ];
-            environment.loginShellInit = ''
-              if [[ "$(tty)" == "/dev/tty1" ]] then
-                sudo installer.sh
-              fi
-            '';
-            isoImage.storeContents = [toplevel];
-          })
-        ];
-      };
+    package = let inherit ((hostConfiguration.extendModules {modules = [formatModule];})) config; in config.system.build.${config.formatAttr};
   };
   debugModules = [
     ../modules/development/usb-serial.nix
@@ -585,7 +539,6 @@ in {
     builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
   flake.packages = {
     x86_64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-installer" t.installer) targets);
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };
 }

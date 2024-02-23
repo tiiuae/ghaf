@@ -5,10 +5,12 @@
   lib,
   inputs,
 }: let
-  inherit (inputs) nixpkgs nixos-generators disko;
+  inherit (inputs) nixpkgs;
+  inherit (inputs) nixos-generators;
 in {
   installer = {
     system,
+    sshKeys,
     modules ? [],
   }: let
     installerImgCfg = lib.nixosSystem {
@@ -26,10 +28,7 @@ in {
           }: {
             imports = [(modulesPath + "/profiles/all-hardware.nix")];
 
-            environment.systemPackages = [
-              (pkgs.callPackage ../packages/wifi-connector {useNmcli = true;})
-              disko.packages.${system}.disko
-            ];
+            environment.systemPackages = [(pkgs.callPackage ../packages/wifi-connector {useNmcli = true;})];
 
             nixpkgs.hostPlatform.system = system;
             nixpkgs.config.allowUnfree = true;
@@ -49,6 +48,7 @@ in {
               };
               development.ssh.daemon = {
                 enable = true;
+                authorizedKeys = sshKeys;
               };
             };
           })
