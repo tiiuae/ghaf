@@ -25,12 +25,6 @@ in {
 
   config.system.build.installer = lib.ghaf.installer {
     inherit (config.nixpkgs.hostPlatform) system;
-    modules =
-      cfg.modules
-      ++ [
-        {
-          ghaf.development.ssh.daemon.authorizedKeys = cfg.sshKeys;
-        }
-      ];
+    inherit (cfg) modules sshKeys;
   };
 }
