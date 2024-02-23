@@ -35,8 +35,9 @@ See the documentation overview under [README-docs.md](./docs/README-docs.md).
 
 Other repositories that are a part of the Ghaf project:
 
-* [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOM given Nix derivations or out paths
+* [sbomnix](https://github.com/tiiuae/sbomnix): a utility that generates SBOMs given Nix derivations or out paths
 * [ghaf-infra](https://github.com/tiiuae/ghaf-infra), [ci-public](https://github.com/tiiuae/ci-public), [ci-test-automation](https://github.com/tiiuae/ci-test-automation), [ghafscan](https://github.com/tiiuae/ghafscan): CI/CD related files
+* [ghaf-installation-wizard](https://github.com/tiiuae/ghaf-installation-wizard): helps you install Ghaf for the first time
 
 
 ## Build System
