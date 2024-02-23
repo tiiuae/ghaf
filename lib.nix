@@ -19,8 +19,6 @@ in
         #
         inherit ghaf-version;
 
-        ghaf = import ./lib {inherit lib inputs;};
-
         flattenTree =
           /*
           *
