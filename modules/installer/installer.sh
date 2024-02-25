@@ -22,8 +22,13 @@ echo "Welcome to Ghaf installer!"
 
 echo "To install image choose path to the device on which image will be installed."
 
-@userCode@
+lsblk
+read -p "Device name [e.g. sda]: " DEVICE_NAME
 
-echo "Rebooting..."
-sleep 1
-sudo reboot
+read -p 'WARNING: Next commmand will destory all previous data from your device, press Enter to proceed. '
+
+echo "Installing..."
+dd if=@imagePath@ of="${DEVICE_NAME}" bs=32M status=progress
+
+echo ""
+echo "Installation done. Please remove the installation media and reboot"
