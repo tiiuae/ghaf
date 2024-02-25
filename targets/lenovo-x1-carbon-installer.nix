@@ -9,7 +9,7 @@
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
   installer = variant: let
-    image = self.packages.x86_64-linux."lenovo-x1-carbon-gen11-${variant}";
+    imagePath = self.packages.x86_64-linux."lenovo-x1-carbon-gen11-${variant}" + "/disk1.raw";
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
@@ -19,9 +19,16 @@
           modulesPath,
           ...
         }: let
-          imageScript = pkgs.writeShellScriptBin "ghaf-image" ''
-            echo "${image}"
-          '';
+          installScript = pkgs.substituteAll {
+            dir = "bin";
+            isExecutable = true;
+
+            pname = "ghaf-installer";
+            src = ../modules/installer/installer.sh;
+
+	    runtimeShell = "${pkgs.bash}/bin/bash";
+            inherit imagePath;
+	  };
         in {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
@@ -33,7 +40,7 @@
           isoImage.isoBaseName = "ghaf";
 
           environment.systemPackages = [
-            imageScript
+            installScript
           ];
         })
       ];
