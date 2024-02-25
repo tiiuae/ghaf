@@ -19,16 +19,10 @@
           modulesPath,
           ...
         }: let
-          installScript = pkgs.substituteAll {
-            dir = "bin";
-            isExecutable = true;
-
-            pname = "ghaf-installer";
-            src = ../modules/installer/installer.sh;
-
-	    runtimeShell = "${pkgs.bash}/bin/bash";
+          installScript = pkgs.callPackage ../packages/installer/installer.nix {
+            runtimeShell = "${pkgs.bash}/bin/bash";
             inherit imagePath;
-	  };
+          };
         in {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"

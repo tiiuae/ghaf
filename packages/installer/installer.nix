@@ -3,7 +3,7 @@
 {
   pkgs,
   runtimeShell,
-  userCode ? "",
+  imagePath,
 }:
 pkgs.substituteAll {
   dir = "bin";
@@ -11,5 +11,5 @@ pkgs.substituteAll {
 
   pname = "ghaf-installer";
   src = ./installer.sh;
-  inherit runtimeShell userCode;
+  inherit runtimeShell imagePath;
 }
