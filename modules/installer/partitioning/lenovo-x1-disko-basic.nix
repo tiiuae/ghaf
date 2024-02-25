@@ -4,8 +4,9 @@
 _: {
   disko.devices = {
     disk.disk1 = {
-      device = "DRIVE_PATH";
+      device = "/dev/sda";
       type = "disk";
+      imageSize = "10G";
       content = {
         type = "gpt";
         partitions = {
@@ -25,8 +26,7 @@ _: {
               mountOptions = ["umask=0077"];
             };
           };
-          root = {
-            name = "root";
+          primary = {
             size = "100%";
             content = {
               type = "lvm_pv";
@@ -55,4 +55,5 @@ _: {
       };
     };
   };
+  disko.memSize = 2048;
 }
