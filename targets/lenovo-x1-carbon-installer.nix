@@ -36,6 +36,11 @@
           environment.systemPackages = [
             installScript
           ];
+
+          # NOTE: Stop nixos complains about "warning:
+          # mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
+          # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
+          boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
         })
       ];
     };
