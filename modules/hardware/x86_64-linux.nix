@@ -30,7 +30,10 @@ in
         kernelParams = ["console=tty0"];
 
         # To enable installation of ghaf into NVMe drives
-        initrd.availableKernelModules = ["nvme"];
+        initrd.availableKernelModules = [
+          "nvme"
+          "uas"
+        ];
         loader = {
           efi.canTouchEfiVariables = true;
           systemd-boot.enable = true;
