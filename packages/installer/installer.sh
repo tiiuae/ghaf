@@ -23,7 +23,7 @@ echo "Welcome to Ghaf installer!"
 echo "To install image choose path to the device on which image will be installed."
 
 lsblk
-read -p "Device name [e.g. sda]: " DEVICE_NAME
+read -p "Device name [e.g. /dev/sda]: " DEVICE_NAME
 
 read -p 'WARNING: Next commmand will destory all previous data from your device, press Enter to proceed. '
 
