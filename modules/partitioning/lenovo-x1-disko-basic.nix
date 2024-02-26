@@ -1,10 +1,10 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 # Example to create a bios compatible gpt partition
-_: {
+{device ? throw "Set your device e.g. /dev/nvme0n1", ...}: {
   disko.devices = {
     disk.disk1 = {
-      device = "/dev/sda";
+      inherit device;
       type = "disk";
       #TODO: hardcoding the size for now until 544 is merged
       #https://github.com/nix-community/disko/pull/544
@@ -28,7 +28,8 @@ _: {
               mountOptions = ["umask=0077"];
             };
           };
-          primary = {
+          root = {
+            name = "root";
             size = "100%";
             content = {
               type = "lvm_pv";

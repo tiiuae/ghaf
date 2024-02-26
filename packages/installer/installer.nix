@@ -10,6 +10,6 @@ pkgs.substituteAll {
   isExecutable = true;
 
   pname = "ghaf-installer";
-  src = ./installer.sh;
+  src = ./ghaf-installer.sh;
   inherit runtimeShell imagePath;
 }
