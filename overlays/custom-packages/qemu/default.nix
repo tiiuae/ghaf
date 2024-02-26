@@ -14,5 +14,10 @@
         // (final.lib.optionalAttrs (qemu_major == "8" && qemu_minor == "1") {
           patches = prev.patches ++ [./acpi-devices-passthrough-qemu-8.1.patch];
         })
+        // {
+          postInstall = (prev.postInstall or "") + ''
+            cp contrib/ivshmem-server/ivshmem-server $out/bin
+          '';
+        }
     );
 })

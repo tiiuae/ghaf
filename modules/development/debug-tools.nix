@@ -37,6 +37,9 @@ in
           # Performance testing
           speedtest-cli
           iperf
+          perf-tools
+          linuxPackages.perf
+
         ]
         ++
         # LuaJIT (which is sysbench dependency) not available on RISC-V
