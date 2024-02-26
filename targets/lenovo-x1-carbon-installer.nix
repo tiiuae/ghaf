@@ -46,12 +46,16 @@
     };
   in {
     inherit hostConfiguration;
-    name = "${name}-${variant}";
+    name = "${name}-${variant}-installer";
     package = hostConfiguration.config.system.build.isoImage;
   };
-  lenovo-debug = installer "debug";
+  targets = [
+    (installer "debug")
+    (installer "release")
+  ];
 in {
-  flake.packages = {
-    ${system}.lenovo-x1-carbon-gen11-debug-installer = lenovo-debug.package;
-  };
+  flake.nixosConfigurations =
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+  flake.packages.${system} =
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
 }
