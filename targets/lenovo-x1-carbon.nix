@@ -272,6 +272,7 @@
           microvm.nixosModules.host
           disko.nixosModules.disko
           (import ../modules/partitioning/lenovo-x1-disko-basic.nix {device = "/dev/nvme0n1";}) #TODO define device in hw def file
+          ../modules/partitioning/disko-basic-postboot.nix
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
