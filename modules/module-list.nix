@@ -14,7 +14,6 @@
   ./profiles/applications.nix
   ./profiles/debug.nix
   ./profiles/graphics.nix
-  ./profiles/installer.nix
   ./profiles/release.nix
   ./security/tpm2.nix
   ./users/accounts.nix
