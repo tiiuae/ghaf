@@ -518,42 +518,71 @@ All graphics and display output related components and dependencies, including k
 <p>Example of entering the kernel development shell to customize the <code>.config</code> and build it:</p>
 <pre><code>~/ghaf $ nix develop .#devShells.x86_64-linux.kernel-x86
 ...
-[ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ cp ../modules/host/ghaf_host_hardened_baseline .config
-[ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ make menuconfig
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ cp ../modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline .config
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ make menuconfig
 ...
-[ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ make -j$(nproc)
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ make -j$(nproc)
 ...
 Kernel: arch/x86/boot/bzImage
 </code></pre>
 </li>
 <li>
 <p>Booting the built kernel with QEMU:</p>
-<pre><code>[ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
+<pre><code>[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ qemu-system-x86_64 -kernel arch/x86/boot/bzImage
 </code></pre>
 </li>
 <li>
 <p><a href="https://github.com/a13xp0p0v/kernel-hardening-checker">Validating with kernel hardening checker</a>:</p>
-<pre><code>[ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline
-[+] Kconfig file to check: ../modules/host/ghaf_host_hardened_baseline
+<pre><code>[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ cp ../modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline .config
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ HS=../modules/hardware/x86_64-generic/kernel/host/configs GS=../modules/hardware/x86_64-generic/kernel/guest/configs
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ ./scripts/kconfig/merge_config.sh .config $HS/virtualization.config $HS/networking.config $HS/usb.config $HS/user-input-devices.config $HS/debug.config $GS/guest.config $GS/display-gpu.config
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ kernel-hardening-checker -c .config
+[+] Kconfig file to check: .config
 [+] Detected microarchitecture: X86_64
 [+] Detected kernel version: 6.6
 [+] Detected compiler: GCC 120300
 ...
-[+] Config check is finished: 'OK' - 188 / 'FAIL' - 5
-[ghaf-kernel-devshell:~/ghaf/linux-6.6.5]$ kernel-hardening-checker -c ../modules/host/ghaf_host_hardened_baseline|grep 'FAIL: '
+[+] Config check is finished: 'OK' - 188 / 'FAIL' - 8
+[ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ kernel-hardening-checker -c .config| grep 'FAIL: '
 CONFIG_CFI_CLANG                        |kconfig|     y      |   kspp   | self_protection  | FAIL: is not found
 CONFIG_CFI_PERMISSIVE                   |kconfig| is not set |   kspp   | self_protection  | FAIL: CONFIG_CFI_CLANG is not &quot;y&quot;
 CONFIG_MODULES                          |kconfig| is not set |   kspp   |cut_attack_surface| FAIL: &quot;y&quot;
+CONFIG_KCMP                             |kconfig| is not set |  grsec   |cut_attack_surface| FAIL: &quot;y&quot;
 CONFIG_FB                               |kconfig| is not set |maintainer|cut_attack_surface| FAIL: &quot;y&quot;
 CONFIG_VT                               |kconfig| is not set |maintainer|cut_attack_surface| FAIL: &quot;y&quot;
+CONFIG_KSM                              |kconfig| is not set |  clipos  |cut_attack_surface| FAIL: &quot;y&quot;
+CONFIG_TRIM_UNUSED_KSYMS                |kconfig|     y      |    my    |cut_attack_surface| FAIL: &quot;is not set&quot;
 </code></pre>
 </li>
 </ul>
 <h3 id="host-kernel"><a class="header" href="#host-kernel">Host Kernel</a></h3>
 <p>The host kernel runs on bare metal. The kernel is provided either with Linux upstream (<code>x86_64</code>) or with vendor BSP. The default Ghaf host kernel on <code>x86_64</code> is maintained by Ghaf upstream package sources <code>nixpkgs</code> or Nix-packaged hardware-specific BSP (for example, NVIDIA Jetson-family of devices).</p>
 <h4 id="x86-64-linux"><a class="header" href="#x86-64-linux"><code>x86-64-linux</code></a></h4>
-<p>The host kernel hardening is based on Linux <code>make tinyconfig</code>. The default <code>tinyconfig</code> fails to assertions on NixOS without modifications. Assertions are fixed in <code>ghaf_host_hardened_baseline</code> Linux configuration under Ghaf <code>modules/host/</code>.</p>
+<p>The host kernel hardening is based on Linux <code>make tinyconfig</code>. The
+default <code>tinyconfig</code> fails to assertions on NixOS without
+modifications. Assertions are fixed in the <code>ghaf_host_hardened_baseline</code> Linux configuration under Ghaf
+<code>modules/hardware/x86_64-generic/kernel/configs</code>. Resulting baseline
+kernel configuration is generic for x86_64 hardware architecture devices.</p>
 <p>In addition, NixOS (Ghaf baseline dependency) requires several kernel modules that are added to the config or ignored with <code>allowMissing = true</code>. As of now, the kernel builds and early boots on Lenovo X1.</p>
+<h3 id="virtualization-support"><a class="header" href="#virtualization-support">Virtualization Support</a></h3>
+<p>The host Virtualization support will add the required kernel config dependency to the Ghaf baseline by which NixOS has virtualization enabled. It can be enabled with the following flag <code>ghaf.host.kernel_virtualization_hardening.enable</code> for Lenovo X1.</p>
+<h3 id="networking-support"><a class="header" href="#networking-support">Networking Support</a></h3>
+<p>The host Networking support will add the required kernel config dependency to the Ghaf baseline by which NixOS has networking enabled, It can be enabled with the following flag <code>ghaf.host.kernel_networking_hardening.enable</code> for Lenovo X1.</p>
+<h3 id="usb-support"><a class="header" href="#usb-support">USB Support</a></h3>
+<p>USB support on host is for the <code>-debug-profile</code> builds, not for hardened host -release-builds. As of now, USB support needs to be enabled when debug support to host via USB ethernet adapter (Lenovo X1) is needed or when the user want to boot Ghaf using an external SSD. It is optional in case Ghaf is used with internal NVME.</p>
+<p>It can be enabled with the following flag <code>ghaf.host.kernel_usb_hardening.enable</code> for Lenovo X1.</p>
+<h3 id="user-input-devices-support"><a class="header" href="#user-input-devices-support">User Input Devices Support</a></h3>
+<p>The User Input Devices support will add the required kernel config dependency to the Ghaf baseline by which NixOS has user input devices enabled. It can be enabled with the following flag <code>ghaf.host.kernel_inputdevices_hardening.enable</code> for Lenovo X1.</p>
+<p>To enable GUI, set Virtualization, Networking and User Input Devices support. As of now, the kernel builds and can boot on Lenovo X1.</p>
+<h3 id="debug-support"><a class="header" href="#debug-support">Debug Support</a></h3>
+<p>The Debug support on host is for the <code>-debug-profile</code> builds, not for hardened host -release-builds. It can be helpful when debugging functionality is needed in a development environment.</p>
+<p>It can be enabled with the following flag <code>ghaf.host.kernel.debug_hardening.enable</code> for Lenovo X1.</p>
+<h3 id="guest-support"><a class="header" href="#guest-support">Guest Support</a></h3>
+<p>The Guest support will add the required kernel config dependency to the Ghaf baseline by which NixOS has guest enabled. The added functionality is vsock for host-to-guest and guest-to-guest communication.</p>
+<p>It can be enabled with the following flag <code>guest.hardening.enable</code> for Lenovo X1.</p>
+<h3 id="guest-graphics-support"><a class="header" href="#guest-graphics-support">Guest Graphics Support</a></h3>
+<p>The Guest Graphics support will add the required kernel config dependency to the Ghaf baseline by which NixOS has guest graphics enabled. The added functionality is for guest with graphics support enabled.</p>
+<p>It can be enabled with the following flag <code>guest.graphics_hardening.enable</code> for Lenovo X1.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
