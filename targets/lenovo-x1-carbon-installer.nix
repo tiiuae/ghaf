@@ -19,8 +19,7 @@
           modulesPath,
           ...
         }: let
-          installScript = pkgs.callPackage ../packages/installer/installer.nix {
-            runtimeShell = "${pkgs.bash}/bin/bash";
+          installScript = pkgs.callPackage ../packages/installer {
             inherit imagePath;
           };
         in {
