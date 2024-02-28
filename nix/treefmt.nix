@@ -32,7 +32,7 @@
         ruff.enable = true;
 
         # Bash
-        #shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
+        shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
       };
 
       # Automatically fix linting errors and formatting errors where possible
