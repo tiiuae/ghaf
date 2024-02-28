@@ -53,11 +53,13 @@
         };
 
         environment = {
-          systemPackages = [
-            pkgs.waypipe
-            pkgs.networkmanagerapplet
-            pkgs.nm-launcher
-          ];
+          systemPackages =
+            [
+              pkgs.waypipe
+              pkgs.networkmanagerapplet
+              pkgs.nm-launcher
+            ]
+            ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.mitmweb-ui);
         };
 
         system.stateVersion = lib.trivial.release;

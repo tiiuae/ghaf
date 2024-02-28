@@ -88,6 +88,11 @@
             unmanaged = ["ethint0"];
           };
         };
+        services.dnsmasq.settings.dhcp-option = [
+          "option:router,192.168.100.4" # set IDS-VM as a default gw
+          "option:dns-server,192.168.100.1"
+        ];
+
         # noXlibs=false; needed for NetworkManager stuff
         environment.noXlibs = false;
         environment.etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
@@ -179,8 +184,11 @@
           powerControl = pkgs.callPackage powerControlPkgPath {};
         in [
           {
+            # The SPKI fingerprint is calculated like this:
+            # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
+            # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
             name = "chromium";
-            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --user-data-dir=~/.config/chromium/Default --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
             icon = "${../assets/icons/png/browser.png}";
           }
 
@@ -276,6 +284,7 @@
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
+          ../modules/virtualization/microvm/idsvm.nix
           ../modules/virtualization/microvm/guivm.nix
           ../modules/virtualization/microvm/appvm.nix
           ({
@@ -354,6 +363,10 @@
                 in
                   [netvmPCIPassthroughModule]
                   ++ netvmExtraModules;
+              };
+              virtualization.microvm.idsvm = {
+                enable = true;
+                # extraModules = idsvmExtraModules;
               };
               virtualization.microvm.guivm = {
                 enable = true;
@@ -456,6 +469,7 @@
                     extraModules = [
                       {
                         time.timeZone = "Asia/Dubai";
+                        security.pki.certificateFiles = [../modules/virtualization/microvm/mitmproxy-ca/mitmproxy-ca-cert.pem];
                       }
                     ];
                     borderColor = "#33ff57";

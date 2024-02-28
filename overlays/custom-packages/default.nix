@@ -14,5 +14,6 @@ _: {
     (import ./nm-launcher)
     (import ./labwc)
     (import ./tpm2-pkcs11)
+    (import ./mitmweb-ui)
   ];
 }
