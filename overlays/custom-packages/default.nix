@@ -14,5 +14,8 @@ _: {
     (import ./nm-launcher)
     (import ./labwc)
     (import ./tpm2-pkcs11)
+    (import ./element-desktop)
+    (import ./element-web)
+    (import ./element-gps)
   ];
 }
