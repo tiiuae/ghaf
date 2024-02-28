@@ -527,7 +527,7 @@
     }
     ../modules/host/secureboot.nix
     {
-      ghaf.host.secureboot.enable = false;
+      ghaf.host.secureboot.enable = true;
     }
     ../modules/hardware/x86_64-generic/kernel/host
     {
