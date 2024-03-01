@@ -6,7 +6,7 @@
     # the patch is already present.
     #
     # https://github.com/NixOS/nixpkgs/pull/239201
-    shouldOverride = !(final.lib.lists.any (p: final.lib.strings.hasSuffix "0020-timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch" (toString p)) prev.systemd.patches);
+    shouldOverride = !(final.lib.lists.any (p: final.lib.strings.hasSuffix "timesyncd-disable-NSCD-when-DNSSEC-validation-is-dis.patch" (toString p)) prev.systemd.patches);
   in
     prev.systemd.overrideAttrs (prevAttrs:
       final.lib.optionalAttrs shouldOverride {
