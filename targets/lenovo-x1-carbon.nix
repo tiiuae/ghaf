@@ -1,17 +1,16 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Generic x86_64 computer -target
+# Configuration for Lenovo X1 Carbon Gen 11
 {
   lib,
-  nixos-generators,
   microvm,
   lanzaboote,
+  disko,
   ...
 }: let
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
-  formatModule = nixos-generators.nixosModules.raw-efi;
 
   powerControlPkgPath = ../packages/powercontrol;
 
@@ -271,6 +270,9 @@
         [
           lanzaboote.nixosModules.lanzaboote
           microvm.nixosModules.host
+          disko.nixosModules.disko
+          (import ../modules/partitioning/lenovo-x1-disko-basic.nix {device = "/dev/nvme0n1";}) #TODO define device in hw def file
+          ../modules/partitioning/disko-basic-postboot.nix
           ../modules/host
           ../modules/virtualization/microvm/microvm-host.nix
           ../modules/virtualization/microvm/netvm.nix
@@ -319,11 +321,20 @@
 
             ghaf = {
               hardware.definition = hwDefinition;
-              host.kernel_hardening.enable = false;
+              # To enable guest hardening enable host hardening first
+              host.kernel.hardening.enable = false;
+              host.kernel.hardening.virtualization.enable = false;
+              host.kernel.hardening.networking.enable = false;
+              host.kernel.hardening.inputdevices.enable = false;
 
-              host.hypervisor_hardening.enable = false;
+              guest.kernel.hardening.enable = false;
+              guest.kernel.hardening.graphics.enable = false;
+
+              host.kernel.hardening.hypervisor.enable = false;
 
               hardware.x86_64.common.enable = true;
+
+              security.tpm2.enable = true;
 
               virtualization.microvm-host.enable = true;
               host.networking.enable = true;
@@ -476,29 +487,6 @@
             };
           })
 
-          ({config, ...}: {
-            ghaf.installer = {
-              enable = true;
-              imgModules = [
-                nixos-generators.nixosModules.raw-efi
-              ];
-              enabledModules = ["flushImage"];
-              installerCode = ''
-                echo "Starting flushing..."
-                if sudo dd if=${config.system.build.${config.formatAttr}}/nixos.img of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
-                    sync
-                    echo "Flushing finished successfully!"
-                    echo "Now you can detach installation device and reboot to ghaf."
-                else
-                    echo "Some error occured during flushing process, exit code: $?."
-                    exit
-                fi
-              '';
-            };
-          })
-
-          formatModule
-
           #TODO: how to handle the majority of laptops that need a little
           # something extra?
           # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
@@ -529,7 +517,7 @@
   in {
     inherit hostConfiguration;
     name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+    package = hostConfiguration.config.system.build.diskoImages;
   };
   debugModules = [
     ../modules/development/usb-serial.nix
@@ -541,25 +529,24 @@
     {
       ghaf.host.secureboot.enable = false;
     }
+    ../modules/hardware/x86_64-generic/kernel/host
+    {
+      ghaf.host.kernel.hardening.usb.enable = false;
+      ghaf.host.kernel.hardening.debug.enable = false;
+    }
   ];
   releaseModules = [
     {
       ghaf.profiles.release.enable = true;
     }
   ];
-  # TODO move Gnome to its own module repo
-  #gnomeModules = [{ghaf.virtualization.microvm.guivm.extraModules = [{ghaf.profiles.graphics.compositor = "gnome";}];}];
   targets = [
     (lenovo-x1 "debug" debugModules)
     (lenovo-x1 "release" releaseModules)
-    # (lenovo-x1 "gnome-debug" (gnomeModules ++ debugModules))
-    # (lenovo-x1 "gnome-release" (gnomeModules ++ releaseModules))
   ];
 in {
   flake.nixosConfigurations =
     builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  flake.packages = {
-    x86_64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
-  };
+  flake.packages.${system} =
+    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
 }

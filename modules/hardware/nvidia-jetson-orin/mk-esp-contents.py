@@ -17,7 +17,7 @@ import json
 import os
 import shutil
 import sys
-from typing import Optional, Union, List, Dict, TypedDict
+from typing import List, Optional, TypedDict
 
 BOOT_ENTRY = """title {title}
 version Generation {generation} {description}

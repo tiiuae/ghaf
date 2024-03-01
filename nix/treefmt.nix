@@ -15,11 +15,28 @@
       inherit (config.flake-root) projectRootFile;
 
       programs = {
+        # Nix
         alejandra.enable = true; # nix formatter https://github.com/kamadorueda/alejandra
         deadnix.enable = true; # removes dead nix code https://github.com/astro/deadnix
         statix.enable = true; # prevents use of nix anti-patterns https://github.com/nerdypepper/statix
-        #shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
+
+        # Python
+        # It was found out that the best outcome comes from running mulitple
+        # formatters.
+        black.enable = true; # The Classic Python formatter
+        isort.enable = true; # Python import sorter
+        # Ruff, a Python formatter written in Rust (30x faster than Black).
+        # Also provides additional linting.
+        # Do not enable ruff.format = true; because then it won't complaing
+        # about linting errors. The default mode is the check mode.
+        ruff.enable = true;
+
+        # Bash
+        shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
       };
+
+      # Automatically fix linting errors and formatting errors where possible
+      settings.formatter.ruff.options = ["check" "--fix"];
     };
 
     formatter = config.treefmt.build.wrapper;

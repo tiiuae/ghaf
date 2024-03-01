@@ -7,65 +7,45 @@
 
 ## Configuring and Building Installer for Ghaf
 
-You can obtain the installation image for your Ghaf configuration. To check possible configuration options, see [Modules Options](../ref_impl/modules_options.md#ghafinstallerenable).
+You can obtain the installation image for your Ghaf configuration. 
 
-1. Set `ghaf.installer.enable` to `true`.
-2. Add nixos-generators module to `ghaf.installer.imgModules` list to configure installer image type.
-3. Choose installer modules from `ghaf.installer.installerModules` and set `ghaf.installer.enabledModules` to list of their names.
-4. Write code for the installer in `ghaf.installer.installerCode`.
+In addition to the live USB image that Ghaf provides it is also possible
+to install Ghaf. This can either be achieved by downloading the desired image
+or by building it as described below.
 
-```nix
-{config, ...}: {
-  ghaf.installer = {
-    enable = true;
-    imgModules = [
-      nixos-generators.nixosModules.raw-efi
-    ];
-    enabledModules = ["flushImage"];
-    installerCode = ''
-      echo "Starting flushing..."
-      if sudo dd if=${config.system.build.${config.formatAttr}} of=/dev/${config.ghaf.installer.installerModules.flushImage.providedVariables.deviceName} conv=sync bs=4K status=progress; then
-          sync
-          echo "Flushing finished successfully!"
-          echo "Now you can detach installation device and reboot to Ghaf."
-      else
-          echo "Some error occured during flushing process, exit code: $?."
-          exit
-      fi
-    '';
-  };
-}
-```
-
-After that you can build an installer image using this command:
+Currently only x86_64-linux systems are supported by the standalone installer. So to build e.g. the debug image
+for the Lenovo x1 follow the following steps
 
 ```sh
-nix build .#nixosConfigurations.<CONFIGURATION>.config.system.build.installer
+nix build .#lenovo-x1-carbon-gen11-debug-installer
 ```
 
-## Adding Installer Modules
+## Flashing the installer 
 
-To add an installer module, replace the corresponding placeholders with your code and add this to your configuraiton:
+Once built you must transfer it to the desired installation media. It requires at least a 4GB SSD, at the time of writing.
 
 ```nix
-ghaf.installer.installerModules.<MODULE_NAME> = {
-  requestCode = ''
-    # Your request code written in Bash
-  '';
-  providedVariables = {
-    # Notice the dollar sign before the actual variable name in Bash.
-    <VARIABLE_NAME> = "$<VARIABLE_NAME>";
-  };
-};
+sudo dd if=./result/iso/ghaf-<version>-x86_64-linux.iso of=/dev/<SSD_NAME> bs=32M status=progress; sync
 ```
 
-## Built-in Installer Modules
+## Installing the image
 
-Provided variables show variable names in Nix. For actual names of variables in Bash, see the sources of the module.
+**Warning this is a destructive operation and will overwrite your system**
 
-### flushImage
+Insert the SSD into the laptop, boot, and select the option to install.
 
-Provided variables:
+When presented with the terminal run:
 
-- deviceName: name of the device on which image should be flushed (e.g. "sda", "nvme0n1")
+```nix
+sudo ghaf-install.sh
+```
 
+Check the available options shown in the prompt for the install target
+remember that the `/dev/sdX` is likely the install medium.
+
+Once entered, remembering to include `/dev`, press ENTER to complete the process.
+
+```nix
+sudo reboot
+```
+And remember to remove the installer drive

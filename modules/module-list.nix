@@ -11,12 +11,12 @@
   ./hardware/definition.nix
   ./hardware/nvidia-jetson-orin/optee.nix
   ./hardware/x86_64-linux.nix
-  ./installer
+  ./hardware/x86_64-generic/kernel/hardening.nix
   ./profiles/applications.nix
   ./profiles/debug.nix
   ./profiles/graphics.nix
-  ./profiles/installer.nix
   ./profiles/release.nix
+  ./security/tpm2.nix
   ./users/accounts.nix
   ./version
   ./virtualization/docker.nix

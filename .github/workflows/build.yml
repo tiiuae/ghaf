@@ -134,7 +134,7 @@ jobs:
           echo "Available storage after cleanup:"
           df -h
       - name: Print runner system info
-        run: sudo apt-get install -y inxi; sudo inxi -c0 --width -1 --basic --memory-short
+        run: sudo apt-get update; sudo apt-get install -y inxi; sudo inxi -c0 --width -1 --basic --memory-short
       - name: Checkout
         uses: actions/checkout@v4
         with:
