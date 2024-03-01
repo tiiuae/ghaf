@@ -3,12 +3,13 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-_: {
-  nixpkgs.overlays = [
-    (import ./edk2.nix)
-    (import ./element-desktop.nix)
-    (import ./jbig2dec.nix)
-    (import ./pipewire.nix)
-    (import ./sysbench.nix)
-  ];
-}
+(final: prev: {
+  edk2 = import ./edk2 {inherit final prev;};
+  element-desktop = import ./element-desktop {inherit prev;};
+  jbig2dec = import ./jbig2dec {inherit prev;};
+  pipewire = import ./pipewire {inherit prev;};
+
+  # libck is dependency of sysbench
+  libck = import ./libck {inherit prev;};
+  sysbench = import ./sysbench {inherit final prev;};
+})
