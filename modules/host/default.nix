@@ -13,8 +13,6 @@
     # root cause are done so far.
     #(modulesPath + "/profiles/minimal.nix")
 
-    ../../overlays/custom-packages
-
     # TODO: Refactor this under virtualization/microvm/host/networking.nix
     ./networking.nix
   ];
@@ -22,6 +20,10 @@
   config = {
     networking.hostName = "ghaf-host";
     system.stateVersion = lib.trivial.release;
+
+    nixpkgs.overlays = [
+      (import ../../overlays/custom-packages)
+    ];
 
     ####
     # temp means to reduce the image size

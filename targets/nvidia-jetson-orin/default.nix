@@ -1,5 +1,8 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# Configuration for NVIDIA Jetson Orin AGX/NX
+#
 {
   lib,
   nixpkgs,
@@ -117,11 +120,7 @@
       name = tgt.name + "-from-x86_64";
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [
-          {
-            nixpkgs.buildPlatform.system = "x86_64-linux";
-          }
-
-          ../../overlays/cross-compilation
+          ./cross-compilation.nix
         ];
       };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
