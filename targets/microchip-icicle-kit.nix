@@ -3,6 +3,7 @@
 #
 # Polarfire Enablement Kit
 {
+  self,
   lib,
   nixpkgs,
   nixos-hardware,
@@ -16,13 +17,12 @@
       modules =
         [
           nixos-hardware.nixosModules.microchip-icicle-kit
-          ../modules/hardware/polarfire/mpfs-nixos-sdimage.nix
-          ../modules/host
+          self.nixosModules.common
+          self.nixosModules.host
+          self.nixosModules.polarfire
 
           {
-            appstream.enable = false;
             boot = {
-              enableContainers = false;
               loader = {
                 grub.enable = false;
                 generic-extlinux-compatible.enable = true;
@@ -32,9 +32,6 @@
             # Disable all the default UI applications
             ghaf = {
               profiles = {
-                applications.enable = false;
-                graphics.enable = false;
-                #TODO clean this up when the microvm is updated to latest
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
@@ -43,7 +40,6 @@
                 ssh.daemon.enable = true;
               };
               firewall.kernel-modules.enable = true;
-              windows-launcher.enable = false;
             };
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";
@@ -56,7 +52,6 @@
             disabledModules = ["profiles/all-hardware.nix"];
           }
         ]
-        ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
   in {

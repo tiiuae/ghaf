@@ -1,5 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: CC-BY-SA-4.0
+#
+# TODO: This is not a package but a module
 {
   config,
   pkgs,
@@ -53,8 +55,8 @@
       configfile = config_baseline;
     };
 
-  generic_host_configs = ../../modules/hardware/x86_64-generic/kernel/host/configs;
-  generic_guest_configs = ../../modules/hardware/x86_64-generic/kernel/guest/configs;
+  generic_host_configs = ../../modules/common/hardware/x86_64-generic/kernel/host/configs;
+  generic_guest_configs = ../../modules/common/hardware/x86_64-generic/kernel/guest/configs;
   # TODO: refactor - do we yet have any X1 specific host kernel configuration options?
   # - we could add a configuration fragment for host debug via usb-ethernet-adapter(s)
 
