@@ -22,7 +22,7 @@ prev.labwc.overrideAttrs (prevAttrs: {
   preInstallPhases = ["preInstallPhase"];
   preInstallPhase = ''
     substituteInPlace ../docs/autostart \
-     --replace swaybg ${final.swaybg}/bin/swaybg \
+     --replace "swaybg -c '#113344'" '${final.swaybg}/bin/swaybg -m fill -i ${../../../assets/wallpaper.png}' \
      --replace kanshi ${final.kanshi}/bin/kanshi \
      --replace waybar "${final.waybar}/bin/waybar -s /etc/waybar/style.css -c /etc/waybar/config" \
      --replace mako ${final.mako}/bin/mako \
