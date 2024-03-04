@@ -4,6 +4,7 @@
 # Configuration for NVIDIA Jetson Orin AGX/NX
 #
 {
+  self,
   lib,
   nixpkgs,
   nixos-generators,
@@ -12,31 +13,24 @@
 }: let
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
-
-  # Import custom format module
-  formatModule = {
-    imports = [
-      # Needed for formatAttr
-      (nixos-generators + "/format-module.nix")
-
-      ../../modules/hardware/nvidia-jetson-orin/format-module.nix
-    ];
-  };
   nvidia-jetson-orin = som: variant: extraModules: let
     netvmExtraModules = [
       {
         # The Nvidia Orin hardware dependent configuration is in
-        # modules/hardware/nvidia-jetson-orin/jetson-orin.nx
-        # Please refer to that section for hardware dependent netvm configuration.
+        # modules/jetpack and modules/jetpack-microvm. Please refer to that
+        # section for hardware dependent netvm configuration.
+
+        # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX does
+        # not.
+
         # To enable or disable wireless
         networking.wireless.enable = som == "agx";
-        # Wireless Configuration
-        # Orin AGX has WiFi enabled where Orin Nx does not
 
         # For WLAN firmwares
-        hardware.enableRedistributableFirmware = som == "agx";
-        # Note: When 21.11 arrives replace the below statement with
-        # wirelessRegulatoryDatabase = true;
+        hardware = {
+          enableRedistributableFirmware = som == "agx";
+          wirelessRegulatoryDatabase = true;
+        };
       }
     ];
     hostConfiguration = lib.nixosSystem {
@@ -45,12 +39,17 @@
 
       modules =
         [
+          (nixos-generators + "/format-module.nix")
+          ../../modules/jetpack/nvidia-jetson-orin/format-module.nix
           jetpack-nixos.nixosModules.default
-          ../../modules/hardware/nvidia-jetson-orin
           microvm.nixosModules.host
-          ../../modules/host
-          ../../modules/virtualization/microvm/microvm-host.nix
-          ../../modules/virtualization/microvm/netvm.nix
+          self.nixosModules.common
+          self.nixosModules.desktop
+          self.nixosModules.host
+          self.nixosModules.jetpack
+          self.nixosModules.jetpack-microvm
+          self.nixosModules.microvm
+
           {
             ghaf = {
               hardware.nvidia.orin = {
@@ -75,21 +74,15 @@
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
-
-                #TODO clean this up when the microvm is updated to latest
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
-              # TODO when supported on x86 move under virtualization
               windows-launcher.enable = true;
             };
           }
 
           (import ./optee.nix {inherit jetpack-nixos;})
-
-          formatModule
         ]
-        ++ (import ../../modules/module-list.nix)
         ++ extraModules;
     };
   in {

@@ -3,13 +3,13 @@
 #
 # Generic x86_64 computer -target
 {
+  self,
   lib,
   nixos-generators,
   microvm,
 }: let
   name = "generic-x86_64";
   system = "x86_64-linux";
-  formatModule = nixos-generators.nixosModules.raw-efi;
   generic-x86 = variant: extraModules: let
     netvmExtraModules = [
       {
@@ -36,9 +36,12 @@
       modules =
         [
           microvm.nixosModules.host
-          ../modules/host
-          ../modules/virtualization/microvm/microvm-host.nix
-          ../modules/virtualization/microvm/netvm.nix
+          nixos-generators.nixosModules.raw-efi
+          self.nixosModules.common
+          self.nixosModules.desktop
+          self.nixosModules.host
+          self.nixosModules.microvm
+
           {
             ghaf = {
               hardware.x86_64.common.enable = true;
@@ -53,22 +56,17 @@
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
-                #TODO clean this up when the microvm is updated to latest
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
               windows-launcher.enable = true;
             };
-          }
 
-          formatModule
+            #TODO: how to handle the majority of laptops that need a little
+            # something extra?
+            # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
+            # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
 
-          #TODO: how to handle the majority of laptops that need a little
-          # something extra?
-          # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
-          # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
-
-          {
             boot.kernelParams = [
               "intel_iommu=on,igx_off,sm_on"
               "iommu=pt"
@@ -79,7 +77,6 @@
             ];
           }
         ]
-        ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
   in {
@@ -87,7 +84,7 @@
     name = "${name}-${variant}";
     package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
   };
-  debugModules = [../modules/development/usb-serial.nix {ghaf.development.usb-serial.enable = true;}];
+  debugModules = [{ghaf.development.usb-serial.enable = true;}];
   targets = [
     (generic-x86 "debug" debugModules)
     (generic-x86 "release" [])

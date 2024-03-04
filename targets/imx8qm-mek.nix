@@ -3,6 +3,7 @@
 #
 # i.MX8QuadMax Multisensory Enablement Kit
 {
+  self,
   lib,
   nixos-generators,
   nixos-hardware,
@@ -10,19 +11,20 @@
 }: let
   name = "imx8qm-mek";
   system = "aarch64-linux";
-  formatModule = nixos-generators.nixosModules.raw-efi;
   imx8qm-mek = variant: extraModules: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
       modules =
         [
-          nixos-hardware.nixosModules.nxp-imx8qm-mek
-
           microvm.nixosModules.host
-          ../modules/host
-          ../modules/virtualization/microvm/microvm-host.nix
-          ../modules/virtualization/microvm/netvm.nix
+          nixos-generators.nixosModules.raw-efi
+          nixos-hardware.nixosModules.nxp-imx8qm-mek
+          self.nixosModules.common
+          self.nixosModules.desktop
+          self.nixosModules.host
+          self.nixosModules.microvm
+
           {
             ghaf = {
               virtualization.microvm-host.enable = true;
@@ -40,10 +42,7 @@
               };
             };
           }
-
-          formatModule
         ]
-        ++ (import ../modules/module-list.nix)
         ++ extraModules;
     };
   in {

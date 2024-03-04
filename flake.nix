@@ -168,6 +168,7 @@
 
       imports = [
         ./overlays
+        ./modules
         ./nix
         ./packages
         ./targets

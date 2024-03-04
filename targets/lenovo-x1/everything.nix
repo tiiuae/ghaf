@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
+  self,
   lib,
   microvm,
   lanzaboote,
@@ -47,16 +48,19 @@
       specialArgs = {inherit lib;};
       modules =
         [
+          disko.nixosModules.disko
           lanzaboote.nixosModules.lanzaboote
           microvm.nixosModules.host
-          disko.nixosModules.disko
-          (import ../../modules/partitioning/lenovo-x1-disko-basic.nix {device = "/dev/nvme0n1";}) #TODO define device in hw def file
-          ../../modules/partitioning/disko-basic-postboot.nix
-          ../../modules/host
-          ../../modules/virtualization/microvm/microvm-host.nix
-          ../../modules/virtualization/microvm/netvm.nix
-          ../../modules/virtualization/microvm/guivm.nix
-          ../../modules/virtualization/microvm/appvm.nix
+          self.nixosModules.common
+          self.nixosModules.desktop
+          self.nixosModules.host
+          self.nixosModules.lanzaboote
+          self.nixosModules.microvm
+
+          # TODO: Refactor the disko module a bit
+          (import ../../modules/disko/lenovo-x1-disko-basic.nix {device = "/dev/nvme0n1";}) #TODO define device in hw def file
+          ../../modules/disko/disko-basic-postboot.nix
+
           ./sshkeys.nix
           ({
             pkgs,
@@ -292,7 +296,6 @@
             boot.initrd.availableKernelModules = ["nvme"];
           })
         ]
-        ++ (import ../../modules/module-list.nix)
         ++ extraModules;
     };
   in {
