@@ -304,6 +304,9 @@
 
             time.timeZone = "Asia/Dubai";
 
+            # Test default mandatory access control support with AppArmor on host
+            security.apparmor.enable = true;
+
             # Enable pulseaudio support for host as a service
             sound.enable = true;
             hardware.pulseaudio.enable = true;
