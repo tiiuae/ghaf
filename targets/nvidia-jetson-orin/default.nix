@@ -41,7 +41,7 @@
     ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
-      specialArgs = {inherit lib;};
+      specialArgs = {inherit lib jetpack-nixos;};
 
       modules =
         [

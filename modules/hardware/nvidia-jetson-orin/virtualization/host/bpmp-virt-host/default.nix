@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   lib,
-  pkgs,
   config,
   ...
 }: let
@@ -40,12 +39,6 @@ in {
           TEGRA_BPMP_HOST_PROXY = yes;
         };
       }
-    ];
-
-    # TODO: Consider are these really needed, maybe add only in debug builds?
-    environment.systemPackages = with pkgs; [
-      qemu
-      dtc
     ];
   };
 }
