@@ -308,8 +308,12 @@
             RestartSec = 5;
             User = "ghaf";
           };
-          wantedBy = ["ghaf-session.target"];
+          wantedBy = ["multi-user.target"];
         };
+        environment.sessionVariables = {
+          PULSE_SERVER = "tcp:localhost:4713";
+          PID_PATH = "/run/tcp-ssh/";
+         };
         systemd.tmpfiles.rules = ["d /run/tcp-ssh 0750 ghaf ghaf -"];
       })
     ];
