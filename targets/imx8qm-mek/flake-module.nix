@@ -5,10 +5,10 @@
 {
   self,
   lib,
-  nixos-generators,
-  nixos-hardware,
-  microvm,
+  inputs,
+  ...
 }: let
+  inherit (inputs) microvm nixos-generators nixos-hardware;
   name = "imx8qm-mek";
   system = "aarch64-linux";
   imx8qm-mek = variant: extraModules: let
@@ -56,10 +56,12 @@
     (imx8qm-mek "release" [])
   ];
 in {
-  flake.nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  flake.packages = {
-    aarch64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+  flake = {
+    nixosConfigurations =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    packages = {
+      aarch64-linux =
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    };
   };
 }
