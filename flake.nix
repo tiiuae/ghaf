@@ -141,6 +141,11 @@
         flake-compat.follows = "flake-compat";
       };
     };
+
+    kernel-hardening-checker = {
+      url = "github:a13xp0p0v/kernel-hardening-checker";
+      flake = false;
+    };
   };
 
   outputs = inputs @ {flake-parts, ...}: let

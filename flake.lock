@@ -221,6 +221,22 @@
         "type": "github"
       }
     },
+    "kernel-hardening-checker": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1705445702,
+        "narHash": "sha256-xpVazB9G0cdc0GglGpna80EWHZXfTd5mc5mTvvvoPfE=",
+        "owner": "a13xp0p0v",
+        "repo": "kernel-hardening-checker",
+        "rev": "70ae2b93be46efe3f1356c025426cd0b43595c0a",
+        "type": "github"
+      },
+      "original": {
+        "owner": "a13xp0p0v",
+        "repo": "kernel-hardening-checker",
+        "type": "github"
+      }
+    },
     "lanzaboote": {
       "inputs": {
         "crane": "crane",
@@ -444,6 +460,7 @@
         "flake-root": "flake-root",
         "flake-utils": "flake-utils_2",
         "jetpack-nixos": "jetpack-nixos",
+        "kernel-hardening-checker": "kernel-hardening-checker",
         "lanzaboote": "lanzaboote",
         "lib-extras": "lib-extras",
         "microvm": "microvm",
