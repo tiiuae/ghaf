@@ -3,11 +3,12 @@
 #
 # Generic x86_64 computer -target
 {
-  self,
+  inputs,
   lib,
-  nixos-generators,
-  microvm,
+  self,
+  ...
 }: let
+  inherit (inputs) microvm nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
   generic-x86 = variant: extraModules: let
@@ -90,10 +91,12 @@
     (generic-x86 "release" [])
   ];
 in {
-  flake.nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  flake.packages = {
-    x86_64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+  flake = {
+    nixosConfigurations =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    packages = {
+      x86_64-linux =
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    };
   };
 }
