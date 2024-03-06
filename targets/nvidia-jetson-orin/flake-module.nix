@@ -4,13 +4,12 @@
 # Configuration for NVIDIA Jetson Orin AGX/NX
 #
 {
-  self,
+  inputs,
   lib,
-  nixpkgs,
-  nixos-generators,
-  microvm,
-  jetpack-nixos,
+  self,
+  ...
 }: let
+  inherit (inputs) nixpkgs nixos-generators microvm jetpack-nixos;
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
   nvidia-jetson-orin = som: variant: extraModules: let
@@ -153,19 +152,21 @@
       inherit flash-tools-system;
     };
 in {
-  flake.nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets));
+  flake = {
+    nixosConfigurations =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets));
 
-  flake.packages = {
-    aarch64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
-      # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
-      #               and it simply might not work. Providing the script anyway
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets)
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "aarch64-linux")) targets);
-    x86_64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets))
-      // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "x86_64-linux")) (targets ++ crossTargets));
+    packages = {
+      aarch64-linux =
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
+        # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
+        #               and it simply might not work. Providing the script anyway
+        // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")) targets)
+        // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "aarch64-linux")) targets);
+      x86_64-linux =
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
+        // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (targets ++ crossTargets))
+        // builtins.listToAttrs (map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "x86_64-linux")) (targets ++ crossTargets));
+    };
   };
 }
