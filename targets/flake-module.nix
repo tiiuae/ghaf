@@ -5,12 +5,17 @@
 {
   lib,
   inputs,
+  self,
   ...
 }: let
-  inherit (inputs) jetpack-nixos lanzaboote microvm nixos-generators nixos-hardware nixpkgs disko self;
+  inherit (inputs) lanzaboote microvm nixos-generators nixos-hardware nixpkgs disko;
 in
   lib.foldr lib.recursiveUpdate {} [
-    (import ./nvidia-jetson-orin {inherit self lib nixpkgs nixos-generators microvm jetpack-nixos;})
+    {
+      imports = [
+        ./nvidia-jetson-orin/flake-module.nix
+      ];
+    }
     (import ./vm.nix {inherit self lib nixos-generators microvm;})
     (import ./generic-x86_64.nix {inherit self lib nixos-generators microvm;})
     (import ./lenovo-x1 {inherit self lib microvm lanzaboote disko;})
