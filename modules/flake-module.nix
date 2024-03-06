@@ -5,13 +5,13 @@
 #
 _: {
   flake.nixosModules = {
-    common = import ./common;
-    desktop = import ./desktop;
-    host = import ./host;
-    jetpack = import ./jetpack;
-    jetpack-microvm = import ./jetpack-microvm;
-    lanzaboote = import ./lanzaboote;
-    microvm = import ./microvm;
-    polarfire = import ./polarfire;
+    common.imports = [./common];
+    desktop.imports = [./desktop];
+    host.imports = [./host];
+    jetpack.imports = [./jetpack];
+    jetpack-microvm.imports = [./jetpack-microvm];
+    lanzaboote.imports = [./lanzaboote];
+    microvm.imports = [./microvm];
+    polarfire.imports = [./polarfire];
   };
 }
