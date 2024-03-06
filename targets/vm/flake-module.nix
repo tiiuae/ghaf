@@ -1,11 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  self,
+  inputs,
   lib,
-  nixos-generators,
-  microvm,
+  self,
+  ...
 }: let
+  inherit (inputs) microvm nixos-generators;
   name = "vm";
   system = "x86_64-linux";
   vm = variant: let
@@ -50,10 +51,12 @@
     (vm "release")
   ];
 in {
-  flake.nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  flake.packages = {
-    x86_64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+  flake = {
+    nixosConfigurations =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    packages = {
+      x86_64-linux =
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    };
   };
 }
