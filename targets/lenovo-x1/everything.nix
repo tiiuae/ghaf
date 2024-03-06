@@ -20,29 +20,6 @@
   ## To here
 
   lenovo-x1 = variant: extraModules: let
-    netvmExtraModules = [
-      ({
-          pkgs,
-          config,
-          ...
-        }:
-        #TODO convert these to modules when the lenovox1 module is created and imports these
-        # also requires the hostConfiguration to be a module that can be imported
-          import ./netvmExtraModules.nix {inherit lib config pkgs microvm hostConfiguration;})
-    ];
-    guivmExtraModules = [
-      ({
-          pkgs,
-          config,
-          ...
-        }:
-        #TODO convert these to modules when the lenovox1 module is created and imports these
-        # also requires the hostConfiguration to be a module that can be imported
-          import ./guivmExtraModules.nix {inherit lib config pkgs microvm hostConfiguration;})
-    ];
-
-    xdgPdfPort = 1200;
-
     hostConfiguration = lib.nixosSystem {
       inherit system;
       specialArgs = {inherit lib;};
@@ -124,140 +101,23 @@
               host.networking.enable = true;
               virtualization.microvm.netvm = {
                 enable = true;
-                extraModules = let
+                extraModules = import ./netvmExtraModules.nix {
+                  inherit lib pkgs microvm;
                   configH = config;
-                  netvmPCIPassthroughModule = {
-                    microvm.devices = lib.mkForce (
-                      builtins.map (d: {
-                        bus = "pci";
-                        inherit (d) path;
-                      })
-                      configH.ghaf.hardware.definition.network.pciDevices
-                    );
-                  };
-                in
-                  [netvmPCIPassthroughModule]
-                  ++ netvmExtraModules;
+                };
               };
               virtualization.microvm.guivm = {
                 enable = true;
-                extraModules = let
-                  configH = config;
-                  guivmPCIPassthroughModule = {
-                    microvm.devices = lib.mkForce (
-                      builtins.map (d: {
-                        bus = "pci";
-                        inherit (d) path;
-                      })
-                      configH.ghaf.hardware.definition.gpu.pciDevices
-                    );
+                extraModules =
+                  # TODO convert this to an actual module
+                  import ./guivmExtraModules.nix {
+                    inherit lib pkgs microvm;
+                    configH = config;
                   };
-                  guivmVirtioInputHostEvdevModule = {
-                    microvm.qemu.extraArgs =
-                      builtins.concatMap (d: [
-                        "-device"
-                        "virtio-input-host-pci,evdev=${d}"
-                      ])
-                      configH.ghaf.hardware.definition.virtioInputHostEvdevs;
-                  };
-                in
-                  [
-                    guivmPCIPassthroughModule
-                    guivmVirtioInputHostEvdevModule
-                  ]
-                  ++ guivmExtraModules;
               };
               virtualization.microvm.appvm = {
                 enable = true;
-                vms = [
-                  {
-                    name = "chromium";
-                    packages = let
-                      # PDF XDG handler is executed when the user opens a PDF file in the browser
-                      # The xdgopenpdf script sends a command to the guivm with the file path over TCP connection
-                      xdgPdfItem = pkgs.makeDesktopItem {
-                        name = "ghaf-pdf";
-                        desktopName = "Ghaf PDF handler";
-                        exec = "${xdgOpenPdf}/bin/xdgopenpdf %u";
-                        mimeTypes = ["application/pdf"];
-                      };
-                      xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
-                        filepath=$(realpath $1)
-                        echo "Opening $filepath" | systemd-cat -p info
-                        echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm.ghaf ${toString xdgPdfPort}
-                      '';
-                    in [
-                      pkgs.chromium
-                      pkgs.pamixer
-                      pkgs.xdg-utils
-                      xdgPdfItem
-                      xdgOpenPdf
-                    ];
-                    macAddress = "02:00:00:03:05:01";
-                    ramMb = 3072;
-                    cores = 4;
-                    extraModules = [
-                      {
-                        # Enable pulseaudio for user ghaf
-                        sound.enable = true;
-                        hardware.pulseaudio.enable = true;
-                        users.extraUsers.ghaf.extraGroups = ["audio"];
-
-                        time.timeZone = "Asia/Dubai";
-
-                        microvm.qemu.extraArgs = [
-                          # Lenovo X1 integrated usb webcam
-                          "-device"
-                          "qemu-xhci"
-                          "-device"
-                          "usb-host,vendorid=0x04f2,productid=0xb751"
-                          # Connect sound device to hosts pulseaudio socket
-                          "-audiodev"
-                          "pa,id=pa1,server=unix:/run/pulse/native"
-                          # Add HDA sound device to guest
-                          "-device"
-                          "intel-hda"
-                          "-device"
-                          "hda-duplex,audiodev=pa1"
-                        ];
-                        microvm.devices = [];
-
-                        # Disable chromium built-in PDF viewer to make it execute xdg-open
-                        programs.chromium.enable = true;
-                        programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
-                        # Set default PDF XDG handler
-                        xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
-                      }
-                    ];
-                    borderColor = "#ff5733";
-                  }
-                  {
-                    name = "gala";
-                    packages = [pkgs.gala-app];
-                    macAddress = "02:00:00:03:06:01";
-                    ramMb = 1536;
-                    cores = 2;
-                    extraModules = [
-                      {
-                        time.timeZone = "Asia/Dubai";
-                      }
-                    ];
-                    borderColor = "#33ff57";
-                  }
-                  {
-                    name = "zathura";
-                    packages = [pkgs.zathura];
-                    macAddress = "02:00:00:03:07:01";
-                    ramMb = 512;
-                    cores = 1;
-                    extraModules = [
-                      {
-                        time.timeZone = "Asia/Dubai";
-                      }
-                    ];
-                    borderColor = "#337aff";
-                  }
-                ];
+                vms = import ./appvms/default.nix {inherit pkgs;};
               };
 
               # Enable all the default UI applications
