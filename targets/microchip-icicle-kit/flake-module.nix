@@ -3,11 +3,12 @@
 #
 # Polarfire Enablement Kit
 {
-  self,
+  inputs,
   lib,
-  nixpkgs,
-  nixos-hardware,
+  self,
+  ...
 }: let
+  inherit (inputs) nixos-hardware nixpkgs;
   name = "microchip-icicle-kit";
   system = "riscv64-linux";
   microchip-icicle-kit = variant: extraModules: let
@@ -45,7 +46,7 @@
               buildPlatform.system = "x86_64-linux";
               hostPlatform.system = "riscv64-linux";
               overlays = [
-                (import ../overlays/cross-compilation)
+                (import ../../overlays/cross-compilation)
               ];
             };
             boot.kernelParams = ["root=/dev/mmcblk0p2" "rootdelay=5"];
@@ -65,10 +66,12 @@
     (microchip-icicle-kit "release" [])
   ];
 in {
-  flake.nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  flake.packages = {
-    riscv64-linux =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+  flake = {
+    nixosConfigurations =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    packages = {
+      riscv64-linux =
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    };
   };
 }
