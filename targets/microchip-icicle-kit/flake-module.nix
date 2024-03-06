@@ -46,7 +46,7 @@
               buildPlatform.system = "x86_64-linux";
               hostPlatform.system = "riscv64-linux";
               overlays = [
-                (import ../../overlays/cross-compilation)
+                self.overlays.cross-compilation
               ];
             };
             boot.kernelParams = ["root=/dev/mmcblk0p2" "rootdelay=5"];
