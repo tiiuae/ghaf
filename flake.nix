@@ -167,13 +167,13 @@
       ];
 
       imports = [
-        ./overlays
-        ./modules
-        ./nix
-        ./packages
-        ./targets
-        ./hydrajobs.nix
-        ./templates
+        ./overlays/flake-module.nix
+        ./modules/flake-module.nix
+        ./nix/flake-module.nix
+        ./packages/flake-module.nix
+        ./targets/flake-module.nix
+        ./hydrajobs/flake-module.nix
+        ./templates/flake-module.nix
       ];
 
       #TODO Fix this
