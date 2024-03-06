@@ -3,8 +3,9 @@
 #
 # Lenovo X1 Carbon Installer
 {
-  self,
   lib,
+  self,
+  ...
 }: let
   name = "lenovo-x1-carbon-gen11";
   system = "x86_64-linux";
@@ -53,8 +54,10 @@
     (installer "release")
   ];
 in {
-  flake.nixosConfigurations =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-  flake.packages.${system} =
-    builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+  flake = {
+    nixosConfigurations =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    packages.${system} =
+      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+  };
 }
