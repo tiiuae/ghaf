@@ -7,17 +7,36 @@
   ...
 }: let
   cfg = config.ghaf.graphics.labwc;
+  screen_lock_cmd =
+    if config.ghaf.graphics.labwc.lock.enable
+    then ''
+      # Lock screen after 5 minutes
+      ${pkgs.swayidle}/bin/swayidle -w timeout 300 \
+      '${pkgs.swaylock-effects}/bin/swaylock -f -c 000000 \
+      --clock --indicator --indicator-radius 150 --inside-ver-color 5ac379' &
+    ''
+    else "";
 in {
   options.ghaf.graphics.labwc = {
     enable = lib.mkEnableOption "labwc";
   };
 
+  options.ghaf.graphics.labwc.lock.enable = lib.mkOption {
+    description = "Labwc screen locking";
+    type = lib.types.bool;
+    default = false;
+  };
+
   config = lib.mkIf cfg.enable {
     ghaf.graphics.window-manager-common.enable = true;
 
-    environment.systemPackages = with pkgs; [
-      labwc
-    ];
+    environment.systemPackages = with pkgs;
+      [labwc]
+      # Below sway packages needed for screen locking
+      ++ lib.optionals config.ghaf.graphics.labwc.lock.enable [swaylock-effects swayidle];
+
+    # It will create /etc/pam.d/swaylock file for authentication
+    security.pam.services = lib.mkIf config.ghaf.graphics.labwc.lock.enable {swaylock = {};};
 
     # Next 2 services/targets are taken from official weston documentation
     # and adjusted for labwc
@@ -30,6 +49,7 @@ in {
           (pkgs.writeText "autostart-extra" ''
             # Import WAYLAND_DISPLAY variable to make it available to waypipe and other systemd services
             ${pkgs.systemd}/bin/systemctl --user import-environment WAYLAND_DISPLAY 2>&1 &
+            ${screen_lock_cmd}
           '')
         ];
     in {
