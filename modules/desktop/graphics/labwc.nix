@@ -16,6 +16,7 @@
       --clock --indicator --indicator-radius 150 --inside-ver-color 5ac379' &
     ''
     else "";
+  launchers = pkgs.callPackage ./launchers.nix {inherit config;};
 in {
   options.ghaf.graphics.labwc = {
     enable = lib.mkEnableOption "labwc";
@@ -31,7 +32,7 @@ in {
     ghaf.graphics.window-manager-common.enable = true;
 
     environment.systemPackages = with pkgs;
-      [labwc]
+      [labwc launchers]
       # Below sway packages needed for screen locking
       ++ lib.optionals config.ghaf.graphics.labwc.lock.enable [swaylock-effects swayidle];
 
@@ -74,7 +75,12 @@ in {
         RestartSec = "1";
 
         # Ivan N: adding openssh into the PATH since it is needed for waypipe to work
-        Environment = "PATH=${pkgs.openssh}/bin:$PATH WLR_RENDERER=pixman";
+        Environment = "PATH=${pkgs.openssh}/bin:$PATH";
+      };
+      environment = {
+        WLR_RENDERER = "pixman";
+        # See: https://github.com/labwc/labwc/blob/0.6.5/docs/environment
+        XKB_DEFAULT_LAYOUT = "us,fi";
       };
       wantedBy = ["default.target"];
     };

@@ -35,8 +35,8 @@
       connection[0]=$(if [ -z ''${connection[0]} ]; then echo "-1"; else echo ''${connection[0]}; fi)
       # Set the icon of signal level
       signal_level=$(if [ ''${connection[0]} -gt 80 ]; then echo $signal3; elif [ ''${connection[0]} -gt 60 ]; then echo $signal2; elif [ ''${connection[0]} -gt 30 ]; then echo $signal1; elif [ ''${connection[0]} -gt 0 ]; then echo signal0; else echo $no_signal; fi)
-      tooltip=$(if [ -z ''${connection[1]} ]; then echo "No connection"; else echo ''${connection[1]} ''${connection[0]}%; fi)
-      text=$(if [ -z $address ]; then echo $signal_level; else echo $address $signal_level; fi)
+      tooltip=$(if [ -z $address ]; then echo ''${connection[0]}%; else echo $address ''${connection[0]}%; fi)
+      text=$(if [ -z ''${connection[1]} ]; then echo "No connection"; else echo ''${connection[1]} $signal_level; fi)
       # Return as json format for waybar
       echo "{\"percentage\":\""''${connection[0]}"\", \"text\":\""$text"\", \"tooltip\":\""$tooltip"\", \"class\":\"1\"}"
       # Use the control socket to close the ssh tunnel.

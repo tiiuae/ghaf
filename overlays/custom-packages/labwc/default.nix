@@ -22,20 +22,25 @@ prev.labwc.overrideAttrs (prevAttrs: {
   preInstallPhases = ["preInstallPhase"];
   preInstallPhase = ''
     substituteInPlace ../docs/autostart \
-     --replace swaybg ${final.swaybg}/bin/swaybg \
+     --replace "swaybg -c '#113344'" '${final.swaybg}/bin/swaybg -m fill -i ${../../../assets/wallpaper.png}' \
      --replace kanshi ${final.kanshi}/bin/kanshi \
      --replace waybar "${final.waybar}/bin/waybar -s /etc/waybar/style.css -c /etc/waybar/config" \
      --replace mako ${final.mako}/bin/mako \
      --replace swayidle ${final.swayidle}/bin/swayidle
 
-     substituteInPlace ../docs/menu.xml \
+    substituteInPlace ../docs/menu.xml \
      --replace alacritty ${final.foot}/bin/foot
 
-     #frame coloring example
-     substituteInPlace ../docs/rc.xml \
+    substituteInPlace ../docs/environment \
+     --replace 'XKB_DEFAULT_LAYOUT=se,de' ""
+    substituteInPlace ../docs/environment \
+     --replace 'XKB_DEFAULT_LAYOUT=se' ""
+
+    #frame coloring example
+    substituteInPlace ../docs/rc.xml \
      --replace '</labwc_config>' \
      '<windowRules><windowRule identifier="Foot" borderColor="#00ffff" serverDecoration="yes" skipTaskbar="no"  /></windowRules></labwc_config>'
 
-     chmod +x ../docs/autostart
+    chmod +x ../docs/autostart
   '';
 })

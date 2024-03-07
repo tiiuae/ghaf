@@ -41,7 +41,7 @@
     ghaf.graphics.launchers = let
       hostAddress = "192.168.101.2";
       powerControl = pkgs.callPackage ../../packages/powercontrol {};
-      powerControlIcons = pkgs.callPackage ../packages/powercontrol/png-icons.nix {};
+      powerControlIcons = pkgs.callPackage ../../packages/powercontrol/png-icons.nix {};
     in [
       {
         name = "chromium";

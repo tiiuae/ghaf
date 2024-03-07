@@ -8,136 +8,92 @@
 }: let
   cfg = config.ghaf.graphics.labwc;
   networkDevice = config.ghaf.hardware.definition.network.pciDevices;
-  mkLauncherStyle = {
-    name,
-    icon,
-    ...
-  }: let
-    resultConfig = ''
-      #custom-${name} {
-              font-size: 20px; background-image: url("${icon}");
-              background-position: center;
-              background-repeat: no-repeat;
-              padding-left: 10;
-              padding-right: 10;
-      }
 
-    '';
-  in
-    if builtins.pathExists icon
-    then resultConfig
-    else throw "The icon's path ${icon} doesn't exist";
-
-  mkLauncherPadding = {name, ...}: ''
-    #custom-${name},
+  ghaf-icon = pkgs.runCommand "ghaf-icon-24x24" {} ''
+    mkdir -p $out/share/icons/hicolor/24x24/apps
+    ${pkgs.buildPackages.imagemagick}/bin/convert \
+      ${../../../assets/ghaf-logo.png} \
+      -resize 24x24 \
+      $out/share/icons/hicolor/24x24/apps/ghaf-icon-24x24.png
   '';
-  mkLauncherConfig = {
-    name,
-    path,
-    ...
-  }: ''
-    "custom/${name}": {
-              "format": " ",
-              "on-click": "${builtins.replaceStrings ["\""] ["\\\\\\\""] path}",
-              "tooltip": false
-    },
-  '';
-  mkLauncherModule = {name, ...}: ''"custom/${name}", '';
-
-  /*
-  Generate launchers to be used in /etc/waybar/config
-
-  Type: mkLaunchers :: [{name, path, icon}] -> string
-
-  */
-  mkLauncherStyles = lib.concatMapStrings mkLauncherStyle;
-  mkLauncherConfigs = lib.concatMapStrings mkLauncherConfig;
-  mkLauncherPaddings = lib.concatMapStrings mkLauncherPadding;
-  mkLauncherModules = lib.concatMapStrings mkLauncherModule;
-
-  defaultLauncher = [
-    # Keep weston-terminal launcher always enabled explicitly since if someone adds
-    # a launcher on the panel, the launcher will replace weston-terminal launcher.
-    {
-      name = "terminal";
-      path = "${pkgs.weston}/bin/weston-terminal --font=${pkgs.hack-font}/share/fonts/truetype/Hack-Regular.ttf";
-      icon = "${pkgs.weston}/share/weston/icon_terminal.png";
-    }
-  ];
 
   wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = (lib.lists.findFirst (d: d.name != null) null networkDevice).name;};
+  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
 in {
   config = lib.mkIf cfg.enable {
-    ghaf.graphics.launchers = defaultLauncher;
     environment.etc."waybar/config" = {
       text =
         # Modified from default waybar configuration file https://github.com/Alexays/Waybar/blob/master/resources/config
         ''
-          {
-            "height": 30, // Waybar height (to be removed for auto height)
-            "spacing": 4, // Gaps between modules (4px)
-            "modules-left": [ ''
-        + mkLauncherModules config.ghaf.graphics.launchers
-        + ''          ],
-                      "modules-center": ["sway/window"],
-                      "modules-right": ["pulseaudio", "custom/network1", "backlight", "battery", "clock", "tray"],
-                      "keyboard-state": {
-                          "numlock": true,
-                          "capslock": true,
-                          "format": "{name} {icon}",
-                          "format-icons": {
-                              "locked": "",
-                              "unlocked": ""
-                          }
-                      },
-                      "tray": {
-                          // "icon-size": 21,
-                          "spacing": 10
-                      },
-                      "clock": {
-                          "timezone": "${config.time.timeZone}",
-                          "tooltip-format": "<big>{:%Y %B}</big>\n<tt><small>{calendar}</small></tt>",
-                          "format-alt": "{:%Y-%m-%d}"
-                      },
-                      "backlight": {
-                          // "device": "acpi_video1",
-                          "format": "{percent}% {icon}",
-                          "format-icons": ["", "", "", "", "", "", "", "", ""]
-                      },
-                      "battery": {
-                          "states": {
-                              "critical": 15
-                          },
-                          "interval": 5,
-                          "format": "{capacity}% {icon}",
-                          "format-charging": "{capacity}% 󰢟",
-                          "format-plugged": "{capacity}% ",
-                          "format-alt": "{time} {icon}",
-                          "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
-                      },
-                      "custom/network1": {
-                        "format": "{}",
-                        "interval": 15,
-                        "exec": "${wifi-signal-strength}/bin/wifi-signal-strength",
-                        "return-type": "json",
-                        "on-click": "${pkgs.nm-launcher}/bin/nm-launcher",
-                      },
-                      "pulseaudio": {
-                          // "scroll-step": 1, // %, can be a float
-                          "format": "{volume}% {icon} {format_source}",
-                          "format-bluetooth": "{volume}% {icon} {format_source}",
-                          "format-bluetooth-muted": " {icon} {format_source}",
-                          "format-muted": "󰝟 {format_source}",
-                          "format-source": "{volume}% ",
-                          "format-source-muted": "",
-                          "format-icons": {
-                              "headphone": "",
-                              "default": ["", "", ""]
-                          },
-                      },
-        ''
-        + mkLauncherConfigs config.ghaf.graphics.launchers
-        + ''}'';
+            {
+              "height": 30, // Waybar height (to be removed for auto height)
+              "spacing": 4, // Gaps between modules (4px)
+              "modules-left": ["custom/launcher"],
+              "modules-center": ["sway/window"],
+              "modules-right": ["pulseaudio", "custom/network1", "backlight", "battery", "clock", "tray"],
+              "keyboard-state": {
+                  "numlock": true,
+                  "capslock": true,
+                  "format": "{name} {icon}",
+                  "format-icons": {
+                      "locked": "",
+                      "unlocked": ""
+                  }
+              },
+              "tray": {
+                  // "icon-size": 21,
+                  "spacing": 10
+              },
+              "clock": {
+                  "timezone": "${config.time.timeZone}",
+                  "tooltip-format": "<big>{:%d %b %Y}</big>\n<tt><small>{calendar}</small></tt>",
+                  // should be "{:%a %-d %b %-I:%m %#p}"
+                  // see github.com/Alexays/Waybar/issues/1469
+                  "format": "{:%a %d %b   %I:%m %p}"
+              },
+              "backlight": {
+                  // "device": "acpi_video1",
+                  "format": "{percent}% {icon}",
+                  "tooltip-format": "Brightness: {percent}%",
+                  "format-icons": ["", "", "", "", "", "", "", "", ""]
+              },
+              "battery": {
+                  "states": {
+                      "critical": 15
+                  },
+                  "interval": 5,
+                  "format": "{capacity}% {icon}",
+                  "format-charging": "{capacity}% 󰢟",
+                  "format-plugged": "{capacity}% ",
+                  "format-alt": "{time} {icon}",
+                  "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+              },
+              "custom/network1": {
+                "format": "{}",
+                "interval": 15,
+                "exec": "${wifi-signal-strength}/bin/wifi-signal-strength",
+                "return-type": "json",
+                "on-click": "nm-launcher",
+              },
+              "custom/launcher": {
+                "format": " ",
+                "on-click": "${ghaf-launcher}/bin/ghaf-launcher",
+                "tooltip": false
+              },
+              "pulseaudio": {
+                  // "scroll-step": 1, // %, can be a float
+                  "format": "{volume}% {icon} {format_source}",
+                  "format-bluetooth": "{volume}% {icon} {format_source}",
+                  "format-bluetooth-muted": " {icon} {format_source}",
+                  "format-muted": "󰝟 {format_source}",
+                  "format-source": "{volume}% ",
+                  "format-source-muted": "",
+                  "format-icons": {
+                      "headphone": "",
+                      "default": ["", "", ""]
+                  },
+              },
+          }'';
 
       # The UNIX file mode bits
       mode = "0644";
@@ -147,8 +103,8 @@ in {
         # Modified from default waybar style file https://github.com/Alexays/Waybar/blob/master/resources/style.css
         ''
           * {
-              font-family: FontAwesome, Roboto, Helvetica, Arial, sans-serif;
-              font-size: 13px;
+              font-family: FontAwesome, Inter, Roboto, sans-serif;
+              font-size: 14px;
           }
 
           window#waybar {
@@ -202,16 +158,13 @@ in {
               background-color: #eb4d4b;
           }
 
-        ''
-        + mkLauncherPaddings config.ghaf.graphics.launchers
-        + ''
           #clock,
           #battery,
           #backlight,
           #custom-network1,
+          #custom-launcher,
           #pulseaudio,
           #tray,
-
           #window,
           #workspaces {
               margin: 0 4px;
@@ -329,9 +282,14 @@ in {
           #keyboard-state > label.locked {
               background: rgba(0, 0, 0, 0.2);
           }
-
-        ''
-        + mkLauncherStyles config.ghaf.graphics.launchers;
+          #custom-launcher {
+              font-size: 20px; background-image: url("${ghaf-icon}/share/icons/hicolor/24x24/apps/ghaf-icon-24x24.png");
+              background-position: center;
+              background-repeat: no-repeat;
+              padding-left: 10;
+              padding-right: 10;
+          }
+        '';
 
       # The UNIX file mode bits
       mode = "0644";
