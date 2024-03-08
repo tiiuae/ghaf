@@ -47,9 +47,9 @@ in {
               "clock": {
                   "timezone": "${config.time.timeZone}",
                   "tooltip-format": "<big>{:%d %b %Y}</big>\n<tt><small>{calendar}</small></tt>",
-                  // should be "{:%a %-d %b %-I:%m %#p}"
+                  // should be "{:%a %-d %b %-I:%M %#p}"
                   // see github.com/Alexays/Waybar/issues/1469
-                  "format": "{:%a %d %b   %I:%m %p}"
+                  "format": "{:%a %d %b   %I:%M %p}"
               },
               "backlight": {
                   // "device": "acpi_video1",
