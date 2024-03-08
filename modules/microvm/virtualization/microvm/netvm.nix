@@ -20,6 +20,7 @@
             #       that has been passed through to NetVM
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
             debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
+            nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
           };
         };
 
