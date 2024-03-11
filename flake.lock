@@ -256,38 +256,6 @@
         "type": "github"
       }
     },
-    "lib-extras": {
-      "inputs": {
-        "devshell": [
-          "devshell"
-        ],
-        "flake-parts": [
-          "flake-parts"
-        ],
-        "flake-root": [
-          "flake-root"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "treefmt-nix": [
-          "treefmt-nix"
-        ]
-      },
-      "locked": {
-        "lastModified": 1699974671,
-        "narHash": "sha256-4EsuPiX4pGEg8ME9ONn8ebY1ZKYLOp9DRCcdTrOj8sY=",
-        "owner": "aldoborrero",
-        "repo": "lib-extras",
-        "rev": "83c8935af27738b8b155e0077522220d81865269",
-        "type": "github"
-      },
-      "original": {
-        "owner": "aldoborrero",
-        "repo": "lib-extras",
-        "type": "github"
-      }
-    },
     "microvm": {
       "inputs": {
         "flake-utils": [
@@ -445,7 +413,6 @@
         "flake-utils": "flake-utils_2",
         "jetpack-nixos": "jetpack-nixos",
         "lanzaboote": "lanzaboote",
-        "lib-extras": "lib-extras",
         "microvm": "microvm",
         "nix-fast-build": "nix-fast-build",
         "nixos-generators": "nixos-generators",

@@ -38,17 +38,6 @@
 
     flake-root.url = "github:srid/flake-root";
 
-    lib-extras = {
-      url = "github:aldoborrero/lib-extras";
-      inputs = {
-        devshell.follows = "devshell";
-        flake-parts.follows = "flake-parts";
-        flake-root.follows = "flake-root";
-        nixpkgs.follows = "nixpkgs";
-        treefmt-nix.follows = "treefmt-nix";
-      };
-    };
-
     # Format all the things
     treefmt-nix = {
       url = "github:numtide/treefmt-nix";

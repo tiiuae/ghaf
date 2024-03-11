@@ -10,14 +10,44 @@
   ghaf-version = nixpkgs.lib.strings.fileContents ./.version;
 in
   nixpkgs.lib.extend (lib: _:
-    # some flake helpers
-      (inputs.lib-extras.lib lib)
       # some utils for importing trees
-      // rec {
+      rec {
         #
         # Ghaf versioning info
         #
         inherit ghaf-version;
+
+       /**
+         Filters Nix packages based on the target system platform.
+         Returns a filtered attribute set of Nix packages compatible with the target system.
+
+         # Example
+
+         ```
+         lib.platformPkgs "x86_64-linux" {
+            hello-compatible = pkgs.hello.overrideAttrs (old: { meta.platforms = ["x86_64-linux"]; });
+            hello-inccompatible = pkgs.hello.overrideAttrs (old: { meta.platforms = ["aarch-linux"]; });
+         }
+         => { hello-compatible = «derivation /nix/store/g2mxdrkwr1hck4y5479dww7m56d1x81v-hello-2.12.1.drv»; }
+         ```
+
+         # Type
+
+         ```
+         filterAttrs :: String -> AttrSet -> AttrSet
+         ```
+
+         # Arguments
+
+         - [system] Target system platform (e.g., "x86_64-linux").
+         - [pkgsSet] a set of Nix packages.
+       */
+        platformPkgs = system:
+          lib.filterAttrs
+          (_: value: let
+          platforms = lib.attrByPath ["meta" "platforms"] [] value;
+        in
+          lib.elem system platforms);
 
         flattenTree =
           /*
