@@ -6,13 +6,25 @@
 {
   pkgs,
   lib,
+  config,
   ...
 }: let
   ghafVersion = pkgs.writeShellScriptBin "ghaf-version" ''
-    echo "${lib.ghaf-version}"
+    echo "${config.ghaf.version}"
   '';
 in {
-  environment.systemPackages = [
-    ghafVersion
-  ];
+  options = {
+    ghaf.version = lib.mkOption {
+      type = lib.types.str;
+      # TODO REPLACE ME with hash pointed to by /run/current-system in built image
+      default = lib.strings.fileContents ../../../.version;
+      readOnly = true;
+      description = "The version of Ghaf";
+    };
+  };
+  config = {
+    environment.systemPackages = [
+      ghafVersion
+    ];
+  };
 }

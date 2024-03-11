@@ -111,7 +111,6 @@
   in {
     autostart = true;
     config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ [{environment.systemPackages = vm.packages;}];};
-    specialArgs = {inherit lib;};
   };
 in {
   options.ghaf.virtualization.microvm.appvm = with lib; {

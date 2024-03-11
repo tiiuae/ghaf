@@ -138,9 +138,6 @@
     flake-parts.lib.mkFlake
     {
       inherit inputs;
-      specialArgs = {
-        inherit lib;
-      };
     } {
       # Toggle this to allow debugging in the repl
       # see:https://flake.parts/debug

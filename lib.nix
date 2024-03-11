@@ -6,22 +6,14 @@
 # https://github.com/divnix/digga
 {inputs, ...}: let
   inherit (inputs) nixpkgs;
-  # TODO REPLACE ME with hash pointed to by /run/current-system in built image
-  ghaf-version = nixpkgs.lib.strings.fileContents ./.version;
 in
   nixpkgs.lib.extend (lib: _:
     # some utils for importing trees
     rec {
       /*
-      *
-       Ghaf versioning info
-      */
-      inherit ghaf-version;
-
-      /*
-      *
-      Filters Nix packages based on the target system platform.
-      Returns a filtered attribute set of Nix packages compatible with the target system.
+         *
+         Filters Nix packages based on the target system platform.
+         Returns a filtered attribute set of Nix packages compatible with the target system.
 
       # Example
 

@@ -34,7 +34,6 @@
     ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
-      specialArgs = {inherit lib;};
 
       modules =
         [
