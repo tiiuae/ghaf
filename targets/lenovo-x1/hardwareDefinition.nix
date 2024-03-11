@@ -28,4 +28,6 @@
     # Lenovo X1 trackpoint (red button/joystick)
     "/dev/input/by-path/platform-i8042-serio-1-event-mouse"
   ];
+
+  disks.disk1.device = "/dev/nvme0n1";
 }
