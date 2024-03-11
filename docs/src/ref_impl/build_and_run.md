@@ -59,7 +59,7 @@ Do the following:
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
+    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct
     ```
 3. Boot the computer from the USB media.
 
@@ -76,7 +76,7 @@ Do the following:
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
+    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct
     ```
 3. Boot the computer from the USB media.
 
@@ -129,7 +129,7 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M
+    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct
     ```
 3. Boot the hardware from the USB media.
 
@@ -175,7 +175,7 @@ In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card wi
 
 2. To build and flash the Ghaf image:
    1. Run the `nix build .#packages.aarch64-linux.imx8qm-mek-release` command.
-   2. Prepare the USB boot media with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M`.
+   2. Prepare the USB boot media with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct`.
 
 3. Insert an SD card and USB boot media into the board and switch the power on.
 
@@ -199,11 +199,11 @@ In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image 
 2. Flash the Ghaf SD image:
 
    * If you want to use a SD card:
-     * Prepare the SD card with the target HW image you built: dd if=./result/nixos.img of=/dev/<YOUR_SD_DEVICE> bs=32M.
+     * Prepare the SD card with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_SD_DEVICE> bs=32M status=progress oflag=direct`.
      * Insert an SD card into the board and switch the power on.
 
    * If you want to use the onboard MMC:
-     * You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M.
+     * You can directly flash a NixOS image to onboard an MMC card: `dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M status=progress oflag=direct`.
 
 For more information on how to access the MMC card as a USB disk, see [MPFS Icicle Kit User Guide](https://tinyurl.com/48wycdka).
 
