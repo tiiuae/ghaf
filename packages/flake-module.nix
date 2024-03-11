@@ -7,10 +7,9 @@
     system,
     ...
   }: let
-    inherit (lib.flakes) platformPkgs;
     inherit (pkgs) callPackage;
   in {
-    packages = platformPkgs system {
+    packages = lib.platformPkgs system {
       gala-app = callPackage ./gala {};
       kernel-hardening-checker = callPackage ./kernel-hardening-checker {};
       windows-launcher = callPackage ./windows-launcher {enableSpice = false;};
