@@ -122,7 +122,7 @@
       services."pdf@" = {
         description = "PDF opener";
         serviceConfig = {
-          ExecStart = "${openPdf}/bin/openpdf";
+          ExecStart = "${openPdf}/bin/openPdf";
           StandardInput = "socket";
           StandardOutput = "journal";
           StandardError = "journal";
