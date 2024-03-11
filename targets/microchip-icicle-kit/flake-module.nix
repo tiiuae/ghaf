@@ -14,7 +14,6 @@
   microchip-icicle-kit = variant: extraModules: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
-      specialArgs = {inherit lib;};
       modules =
         [
           nixos-hardware.nixosModules.microchip-icicle-kit

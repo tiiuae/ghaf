@@ -22,7 +22,6 @@
   lenovo-x1 = variant: extraModules: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
-      specialArgs = {inherit lib;};
       modules =
         [
           disko.nixosModules.disko

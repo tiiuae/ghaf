@@ -12,7 +12,6 @@
   vm = variant: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
-      specialArgs = {inherit lib;};
       modules = [
         microvm.nixosModules.host
         nixos-generators.nixosModules.vm

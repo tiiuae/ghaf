@@ -120,7 +120,6 @@ in {
             netvmBaseConfiguration.imports
             ++ cfg.extraModules;
         };
-      specialArgs = {inherit lib;};
     };
   };
 }

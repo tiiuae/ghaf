@@ -13,7 +13,6 @@
     imagePath = self.packages.x86_64-linux."lenovo-x1-carbon-gen11-${variant}" + "/disk1.raw";
     hostConfiguration = lib.nixosSystem {
       inherit system;
-      specialArgs = {inherit lib;};
       modules = [
         ({
           pkgs,

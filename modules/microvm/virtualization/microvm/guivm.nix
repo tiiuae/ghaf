@@ -178,7 +178,6 @@ in {
             guivmBaseConfiguration.imports
             ++ cfg.extraModules;
         };
-      specialArgs = {inherit lib;};
     };
 
     # This directory needs to be created before any of the microvms start.
