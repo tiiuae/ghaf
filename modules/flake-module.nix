@@ -3,9 +3,12 @@
 #
 # Modules to be exported from Flake
 #
-_: {
+{inputs, ...}: {
   flake.nixosModules = {
-    common.imports = [./common];
+    common.imports = [
+      ./common
+      {ghaf.development.nix-setup.nixpkgs = inputs.nixpkgs;}
+    ];
     desktop.imports = [./desktop];
     host.imports = [./host];
     jetpack.imports = [./jetpack];

@@ -10,13 +10,30 @@ in
   with lib; {
     options.ghaf.development.nix-setup = {
       enable = mkEnableOption "Target Nix config options";
+      nixpkgs = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Path to the nixpkgs repository";
+      };
     };
 
     config = mkIf cfg.enable {
-      nix.settings.experimental-features = ["nix-command" "flakes"];
-      nix.extraOptions = ''
-        keep-outputs          = true
-        keep-derivations      = true
-      '';
+      nix = {
+        settings = {
+          experimental-features = ["nix-command" "flakes"];
+          keep-outputs = true;
+          keep-derivations = true;
+        };
+
+        # Set the path and registry so that e.g. nix-shell and repl work
+        nixPath = lib.mkIf (cfg.nixpkgs != null) ["nixpkgs=${cfg.nixpkgs}"];
+
+        registry = lib.mkIf (cfg.nixpkgs != null) {
+          nixpkgs.to = {
+            type = "path";
+            path = cfg.nixpkgs;
+          };
+        };
+      };
     };
   }
