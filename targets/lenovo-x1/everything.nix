@@ -6,7 +6,6 @@
   lib,
   microvm,
   lanzaboote,
-  disko,
   name,
   system,
   ...
@@ -24,7 +23,6 @@
       inherit system;
       modules =
         [
-          disko.nixosModules.disko
           lanzaboote.nixosModules.lanzaboote
           microvm.nixosModules.host
           self.nixosModules.common
@@ -33,10 +31,7 @@
           self.nixosModules.lanzaboote
           self.nixosModules.microvm
 
-          # TODO: Refactor the disko module a bit
-          ../../modules/disko/lenovo-x1-disko-basic.nix #TODO define device in hw def file
-          { disko.disk.disk1.device = "/dev/nvme0n1"; }
-          ../../modules/disko/disko-basic-postboot.nix
+          self.nixosModules.disko-lenovo-x1-basic-v1
 
           ./sshkeys.nix
           ({
@@ -79,6 +74,8 @@
 
             environment.etc.${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {inherit pkgs config;};
             services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
+
+            disko.devices.disk = config.ghaf.hardware.definition.disks;
 
             ghaf = {
               hardware.definition = hwDefinition;
