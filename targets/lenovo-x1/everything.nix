@@ -34,7 +34,8 @@
           self.nixosModules.microvm
 
           # TODO: Refactor the disko module a bit
-          (import ../../modules/disko/lenovo-x1-disko-basic.nix {device = "/dev/nvme0n1";}) #TODO define device in hw def file
+          ../../modules/disko/lenovo-x1-disko-basic.nix #TODO define device in hw def file
+          { disko.disk.disk1.device = "/dev/nvme0n1"; }
           ../../modules/disko/disko-basic-postboot.nix
 
           ./sshkeys.nix

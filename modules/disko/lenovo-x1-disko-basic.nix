@@ -1,10 +1,11 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 # Example to create a bios compatible gpt partition
-{device ? throw "Set your device e.g. /dev/nvme0n1", ...}: {
+# To use this example, you will need to specify a device i.e.
+#   { disko.devices.disk1.device = "/dev/sda"; }
+{
   disko.devices = {
     disk.disk1 = {
-      inherit device;
       type = "disk";
       #TODO: hardcoding the size for now until 544 is merged
       #https://github.com/nix-community/disko/pull/544
