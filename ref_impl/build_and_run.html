@@ -224,7 +224,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M
+<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct
 </code></pre>
 </li>
 <li>Boot the computer from the USB media.</li>
@@ -239,7 +239,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M
+<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct
 </code></pre>
 </li>
 <li>Boot the computer from the USB media.</li>
@@ -295,7 +295,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M
+<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct
 </code></pre>
 </li>
 <li>Boot the hardware from the USB media.</li>
@@ -340,7 +340,7 @@ $ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
 <p>To build and flash the Ghaf image:</p>
 <ol>
 <li>Run the <code>nix build .#packages.aarch64-linux.imx8qm-mek-release</code> command.</li>
-<li>Prepare the USB boot media with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M</code>.</li>
+<li>Prepare the USB boot media with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct</code>.</li>
 </ol>
 </li>
 <li>
@@ -367,14 +367,14 @@ b. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-debug command
 <li>
 <p>If you want to use a SD card:</p>
 <ul>
-<li>Prepare the SD card with the target HW image you built: dd if=./result/nixos.img of=/dev/&lt;YOUR_SD_DEVICE&gt; bs=32M.</li>
+<li>Prepare the SD card with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_SD_DEVICE&gt; bs=32M status=progress oflag=direct</code>.</li>
 <li>Insert an SD card into the board and switch the power on.</li>
 </ul>
 </li>
 <li>
 <p>If you want to use the onboard MMC:</p>
 <ul>
-<li>You can directly flash a NixOS image to onboard an MMC card: dd if=./result/nixos.img of=/dev/&lt;YOUR_MMC_DEVICE&gt; bs=32M.</li>
+<li>You can directly flash a NixOS image to onboard an MMC card: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_MMC_DEVICE&gt; bs=32M status=progress oflag=direct</code>.</li>
 </ul>
 </li>
 </ul>
