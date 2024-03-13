@@ -20,6 +20,7 @@ in
       # ttyUSB0 service is active as soon as corresponding device appears
       services.udev.extraRules = ''
         SUBSYSTEM=="tty", KERNEL=="ttyUSB0", TAG+="systemd", ENV{SYSTEMD_WANTS}+="autovt@ttyUSB0.service"
+        SUBSYSTEM=="usb", KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0407", TAG+="uaccess", GROUP="operator", MODE="0660"
       '';
     };
   }
