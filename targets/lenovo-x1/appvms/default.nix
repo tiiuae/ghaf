@@ -5,8 +5,10 @@
   chromium = import ./chromium.nix {inherit pkgs;};
   gala = import ./gala.nix {inherit pkgs;};
   zathura = import ./zathura.nix {inherit pkgs;};
+  yubioath = import ./yubioath.nix {inherit pkgs;};
 in [
   chromium
   gala
   zathura
+  yubioath
 ]

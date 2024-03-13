@@ -75,6 +75,12 @@
       }
 
       {
+        name = "yubioath";
+        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no yubioath-vm.ghaf run-waypipe yubioath-flutter";
+        icon = "${../../assets/icons/png/yubioath-flutter.png}";
+      }
+
+      {
         name = "poweroff";
         path = "${powerControl.makePowerOffCommand {
           inherit hostAddress;
@@ -149,6 +155,10 @@
       # Connect sound device to hosts pulseaudio socket
       "-audiodev"
       "pa,id=pa1,server=unix:/run/pulse/native"
+      # Add Yubico YubiKey device details
+      "-usb"
+      "-device"
+      "usb-host,vendorid=0x1050,productid=0x0407"
     ];
   };
 in [
