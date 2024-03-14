@@ -22,6 +22,12 @@
             debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
             nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
           };
+          systemd = {
+            enable = true;
+            withName = "netvm-systemd";
+            withPolkit = true;
+            withDebug = configHost.ghaf.profiles.debug.enable;
+          };
         };
 
         system.stateVersion = lib.trivial.release;
