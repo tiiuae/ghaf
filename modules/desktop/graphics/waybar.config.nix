@@ -21,6 +21,13 @@
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
 in {
   config = lib.mkIf cfg.enable {
+    ghaf.graphics.launchers = [
+      {
+        name = "Terminal";
+        path = "${pkgs.foot}/bin/foot";
+        icon = "${pkgs.foot}/share/icons/hicolor/48x48/apps/foot.png";
+      }
+    ];
     environment.etc."waybar/config" = {
       text =
         # Modified from default waybar configuration file https://github.com/Alexays/Waybar/blob/master/resources/config
