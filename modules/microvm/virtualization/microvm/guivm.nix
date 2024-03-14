@@ -31,6 +31,14 @@
             debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
             nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
           };
+          systemd = {
+            enable = true;
+            withName = "guivm-systemd";
+            withNss = true;
+            withResolved = true;
+            withTimesyncd = true;
+            withDebug = configHost.ghaf.profiles.debug.enable;
+          };
         };
 
         systemd.services."waypipe-ssh-keygen" = let

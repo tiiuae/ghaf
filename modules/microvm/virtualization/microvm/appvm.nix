@@ -46,6 +46,14 @@
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
             };
+            systemd = {
+              enable = true;
+              withName = "appvm-systemd";
+              withNss = true;
+              withResolved = true;
+              withPolkit = true;
+              withDebug = configHost.ghaf.profiles.debug.enable;
+            };
           };
 
           # SSH is very picky about the file permissions and ownership and will
