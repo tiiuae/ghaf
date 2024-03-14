@@ -43,6 +43,7 @@
       });
 
     boot.enableContainers = false;
+    documentation.nixos.enable = false;
     ##### Remove to here
   };
 }
