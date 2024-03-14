@@ -10,5 +10,6 @@
     ./fonts.nix
     ./gnome.nix
     ./window-manager.nix
+    ./boot.nix
   ];
 }
