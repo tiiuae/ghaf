@@ -13,6 +13,6 @@
   wifi-connector-nmcli = final.callPackage ../../packages/wifi-connector {useNmcli = true;};
   qemu_kvm = import ./qemu {inherit final prev;};
   nm-launcher = final.callPackage ../../packages/nm-launcher {};
-  labwc = import ./labwc {inherit final prev;};
+  labwc = import ./labwc {inherit prev;};
   tpm2-pkcs11 = import ./tpm2-pkcs11 {inherit prev;};
 })
