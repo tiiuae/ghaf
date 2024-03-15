@@ -41,7 +41,8 @@
             config,
             ...
           }: let
-            powerControl = pkgs.callPackage ../../packages/powercontrol {};
+            inherit (config.ghaf.users.operator.account) user;
+            powerControl = pkgs.callPackage ../../packages/powercontrol {inherit user;};
           in {
             security.polkit.extraConfig = powerControl.polkitExtraConfig;
             services.udev.extraRules = hwDefinition.udevRules;
@@ -59,7 +60,7 @@
             hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
-            environment.etc.${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {inherit pkgs config;};
+            environment.etc.${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {inherit pkgs config user;};
             services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
@@ -102,7 +103,10 @@
               };
               virtualization.microvm.appvm = {
                 enable = true;
-                vms = import ./appvms/default.nix {inherit pkgs;};
+                vms = import ./appvms/default.nix {
+                  inherit pkgs;
+                  inherit config;
+                };
               };
 
               # Enable all the default UI applications

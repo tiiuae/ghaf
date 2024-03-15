@@ -1,7 +1,11 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{pkgs, ...}: let
+{
+  pkgs,
+  config,
+  ...
+}: let
   xdgPdfPort = 1200;
 in {
   name = "chromium";
@@ -35,7 +39,7 @@ in {
       # Enable pulseaudio for user ghaf
       sound.enable = true;
       hardware.pulseaudio.enable = true;
-      users.extraUsers.ghaf.extraGroups = ["audio"];
+      users.extraUsers.${config.ghaf.users.operator.account.user}.extraGroups = ["audio"];
 
       time.timeZone = "Asia/Dubai";
 

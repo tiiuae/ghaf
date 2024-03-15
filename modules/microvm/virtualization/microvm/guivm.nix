@@ -18,7 +18,9 @@
         ...
       }: {
         ghaf = {
-          users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          users.operator.account.enable = lib.mkDefault configHost.ghaf.users.operator.account.enable;
+          users.ghaf.account.enable = lib.mkDefault configHost.ghaf.users.ghaf.account.enable;
+          users.update.account.enable = lib.mkDefault configHost.ghaf.users.update.account.enable;
           profiles.graphics.enable = true;
           # To enable screen locking set graphics.labwc.lock to true
           graphics.labwc.lock.enable = false;
@@ -38,13 +40,15 @@
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
         };
+        # Add root user only for debug builds
+        users.users.${config.ghaf.users.ghaf.account.user}.extraGroups = lib.mkIf config.ghaf.profiles.debug.enable ["wheel"];
 
         systemd.services."waypipe-ssh-keygen" = let
           keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
             set -xeuo pipefail
             mkdir -p /run/waypipe-ssh
             echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
-            chown ghaf:ghaf /run/waypipe-ssh/*
+            chown ${configHost.ghaf.users.operator.account.user}:${configHost.ghaf.users.operator.account.user} /run/waypipe-ssh/*
             cp /run/waypipe-ssh/id_ed25519.pub /run/waypipe-ssh-public-key/id_ed25519.pub
           '';
         in {

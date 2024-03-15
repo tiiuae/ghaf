@@ -30,7 +30,9 @@ in
 
     config = mkIf cfg.enable {
       services.openssh.enable = true;
+      # TODO root account authorizedKeys can be removed later, once `update` user account works seamlessly
       users.users.root.openssh.authorizedKeys.keys = authorizedKeys;
-      users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = authorizedKeys;
+      users.users.${config.ghaf.users.update.account.user}.openssh.authorizedKeys.keys = authorizedKeys;
+      users.users.${config.ghaf.users.ghaf.account.user}.openssh.authorizedKeys.keys = authorizedKeys;
     };
   }

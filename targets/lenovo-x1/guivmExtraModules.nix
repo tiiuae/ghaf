@@ -41,24 +41,25 @@
     ghaf.profiles.graphics.compositor = "labwc";
     ghaf.graphics.launchers = let
       hostAddress = "192.168.101.2";
-      powerControl = pkgs.callPackage ../../packages/powercontrol {};
+      inherit (configH.ghaf.users.operator.account) user;
+      powerControl = pkgs.callPackage ../../packages/powercontrol {inherit user;};
       powerControlIcons = pkgs.gnome.callPackage ../../packages/powercontrol/png-icons.nix {};
     in [
       {
         name = "chromium";
-        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no waypipe@chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${../../assets/icons/png/browser.png}";
       }
 
       {
         name = "gala";
-        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no waypipe@gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${../../assets/icons/png/app.png}";
       }
 
       {
         name = "zathura";
-        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
+        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no waypipe@zathura-vm.ghaf run-waypipe zathura";
         icon = "${../../assets/icons/png/pdf.png}";
       }
 

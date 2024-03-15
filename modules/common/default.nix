@@ -12,7 +12,7 @@
     ./hardware
     ./profiles
     ./tpm2
-    ./users/accounts.nix
+    ./users
     ./version
     ./virtualization/docker.nix
     ./systemd
