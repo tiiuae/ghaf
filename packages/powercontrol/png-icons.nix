@@ -1,9 +1,9 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  adwaita-icon-theme,
+  librsvg,
   stdenv,
-  pkgs,
-  ...
 }: let
   shutdownIconName = "system-shutdown-symbolic";
   rebootIconName = "system-reboot-symbolic";
@@ -24,10 +24,10 @@ in
     relativeRebootIconPath = getIconPath {iconName = rebootIconName;};
 
     installPhase = let
-      adwaitaRoot = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/symbolic/actions/";
+      adwaitaRoot = "${adwaita-icon-theme}/share/icons/Adwaita/symbolic/actions/";
       convertIconCommand = {iconName}: let
         outIconPath = getIconPath {inherit iconName;};
-      in "${pkgs.librsvg}/bin/rsvg-convert --stylesheet=${changeColorCcsPath} ${adwaitaRoot}/${iconName}.svg -o $out/${outIconPath}";
+      in "${librsvg}/bin/rsvg-convert --stylesheet=${changeColorCcsPath} ${adwaitaRoot}/${iconName}.svg -o $out/${outIconPath}";
 
       shutdown = convertIconCommand {iconName = shutdownIconName;};
       reboot = convertIconCommand {iconName = rebootIconName;};
@@ -42,7 +42,7 @@ in
 
     meta = {
       description = "Icons for power control";
-      inherit (pkgs.gnome.adwaita-icon-theme.meta) license;
-      inherit (pkgs.librsvg.meta) platforms;
+      inherit (adwaita-icon-theme.meta) license;
+      inherit (librsvg.meta) platforms;
     };
   }

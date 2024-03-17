@@ -1,9 +1,10 @@
 # Copyright 2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  lib,
+  openssh,
   stdenv,
-  pkgs,
-  ...
+  writeShellScript,
 }: let
   systemctl = "/run/current-system/systemd/bin/systemctl";
   busName = "org.freedesktop.login1";
@@ -13,9 +14,9 @@
     sshKeyPath,
     method,
   }:
-    pkgs.writeShellScript
+    writeShellScript
     "${method}-host"
-    ''      ${pkgs.openssh}/bin/ssh \
+    ''      ${openssh}/bin/ssh \
           -i ${sshKeyPath} \
           -o StrictHostKeyChecking=no \
           ghaf@${hostAddress} \
@@ -79,6 +80,6 @@ in
 
     meta = {
       description = "Scripts for host power control";
-      platforms = pkgs.openssh.meta.platforms.linux;
+      platforms = lib.platforms.linux;
     };
   }
