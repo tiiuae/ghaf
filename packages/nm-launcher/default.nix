@@ -1,44 +1,39 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  stdenvNoCC,
-  pkgs,
   lib,
+  # NOTE: By default networkmanagerapplet and openssh are taken from the same
+  #       callPackage set! This means they will be both taken from the same
+  #       /nix/store, so it is recommended to override the networkmanagerapplet
+  #       with the one from the NetVM.
+  networkmanagerapplet,
+  openssh,
+  writeShellApplication,
   ...
-}: let
-  nmLauncher =
-    pkgs.writeShellScript
-    "nm-launcher"
-    ''
-      export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
-      export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
-      ${pkgs.openssh}/bin/ssh -M -S /tmp/control_socket \
-          -f -N -q ghaf@192.168.100.1 \
-          -i /run/waypipe-ssh/id_ed25519 \
-          -o StrictHostKeyChecking=no \
-          -o StreamLocalBindUnlink=yes \
-          -o ExitOnForwardFailure=yes \
-          -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
-          -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
-      ${pkgs.networkmanagerapplet}/bin/nm-connection-editor
-      # Use the control socket to close the ssh tunnel.
-      ${pkgs.openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@192.168.100.1
-    '';
-in
-  stdenvNoCC.mkDerivation {
-    name = "nm-launcher";
+}:
+writeShellApplication {
+  name = "nm-launcher";
 
-    phases = ["installPhase"];
+  text = ''
+    export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
+    export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
+    ${openssh}/bin/ssh -M -S /tmp/control_socket \
+        -f -N -q ghaf@192.168.100.1 \
+        -i /run/waypipe-ssh/id_ed25519 \
+        -o StrictHostKeyChecking=no \
+        -o StreamLocalBindUnlink=yes \
+        -o ExitOnForwardFailure=yes \
+        -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
+        -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
+    ${networkmanagerapplet}/bin/nm-connection-editor
+    # Use the control socket to close the ssh tunnel.
+    ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@192.168.100.1
+  '';
 
-    installPhase = ''
-      mkdir -p $out/bin
-      cp ${nmLauncher} $out/bin/nm-launcher
-    '';
-
-    meta = with lib; {
-      description = "Script to launch nm-connection-editor to configure network of netvm using D-Bus over SSH.";
-      platforms = [
-        "x86_64-linux"
-      ];
-    };
-  }
+  meta = with lib; {
+    description = "Script to launch nm-connection-editor to configure network of netvm using D-Bus over SSH.";
+    platforms = [
+      "x86_64-linux"
+    ];
+  };
+}
