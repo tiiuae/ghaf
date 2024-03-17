@@ -1,21 +1,18 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  stdenv,
-  pkgs,
+  fetchFromGitHub,
   lib,
-  ...
+  meson,
+  ninja,
+  stdenv,
 }:
 stdenv.mkDerivation {
   name = "vsockproxy";
 
-  # FIXME: Kludge `pkgs.buildPackages`, to fix cross build.
-  # Normally `nativeBuildInputs` doesn't require explicit mention of `buildPackages`
-  # but it doesn't works in this particular case for unknown reasons.
-  # FIXME: need to investigate source of this issue.
-  nativeBuildInputs = with pkgs.buildPackages; [meson ninja];
+  depsBuildBuild = [meson ninja];
 
-  src = pkgs.fetchFromGitHub {
+  src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "vsockproxy";
     rev = "aad625f9a27ce4c68d9996c65ece8477ace37534";
@@ -23,8 +20,12 @@ stdenv.mkDerivation {
   };
 
   installPhase = ''
+    runHook preInstall
+
     mkdir -p $out/bin
     install ./vsockproxy $out/bin/vsockproxy
+
+    runHook postInstall
   '';
 
   meta = with lib; {
