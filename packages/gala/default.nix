@@ -3,7 +3,7 @@
 {
   lib,
   stdenv,
-  pkgs,
+  fetchurl,
   gtk3,
   atk,
   glib,
@@ -93,12 +93,12 @@ in
     src =
       if stdenv.isAarch64
       then
-        pkgs.fetchurl {
+        fetchurl {
           url = "https://vedenemo.dev/files/gala/eb56901d-410c-4c09-bbac-9e954a3f16b0-gala-electron-test-0.1.26-arm64.zip";
           sha256 = "16d8g6h22zsnw4kq8nkama5yxp5swn7fj8m197kgm58w3dai3mn7";
         }
       else
-        pkgs.fetchurl {
+        fetchurl {
           url = "https://vedenemo.dev/files/gala/eb56901d-410c-4c09-bbac-9e954a3f16b0-gala-electron-test-0.1.26.zip";
           sha256 = "0chn1rbdvs71mxfdwpld4v2zdg2crrqln9ckscivas48rmg6sj6f";
         };
