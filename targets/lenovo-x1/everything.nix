@@ -14,11 +14,13 @@
   # These can be added back to default.nix to form part of the target template
   debugModules = import ./debugModules.nix;
   releaseModules = import ./releaseModules.nix;
-  hwDefinition = import ./hardwareDefinition.nix;
 
   ## To here
 
-  lenovo-x1 = variant: extraModules: let
+  lenovo-x1 = generation: variant: extraModules: let
+    hwDefinition = import ../../modules/common/hardware/lenovo-x1/definitions {
+      inherit generation lib;
+    };
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules =
@@ -42,22 +44,7 @@
             powerControl = pkgs.callPackage ../../packages/powercontrol {};
           in {
             security.polkit.extraConfig = powerControl.polkitExtraConfig;
-
-            services.udev.extraRules = ''
-              # Laptop keyboard
-              SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
-              # Laptop touchpad
-              SUBSYSTEM=="input",ATTRS{name}=="SYNA8016:00 06CB:CEB3 Mouse",KERNEL=="event*",GROUP="kvm",SYMLINK+="mouse"
-              SUBSYSTEM=="input",ATTRS{name}=="SYNA8016:00 06CB:CEB3 Touchpad",KERNEL=="event*",GROUP="kvm",SYMLINK+="touchpad"
-              # Laptop touchpad - UAE revision
-              SUBSYSTEM=="input",ATTRS{name}=="ELAN067C:00 04F3:31F9 Mouse",KERNEL=="event*",GROUP="kvm",SYMLINK+="mouse"
-              SUBSYSTEM=="input",ATTRS{name}=="ELAN067C:00 04F3:31F9 Touchpad",KERNEL=="event*",GROUP="kvm",SYMLINK+="touchpad"
-              # Laptop TrackPoint
-              SUBSYSTEM=="input",ATTRS{name}=="TPPS/2 Elan TrackPoint",GROUP="kvm"
-              # Lenovo X1 integrated webcam
-              SUBSYSTEM=="usb", ATTR{idVendor}=="04f2", ATTR{idProduct}=="b751", GROUP="kvm"
-            '';
-
+            services.udev.extraRules = hwDefinition.udevRules;
             time.timeZone = "Asia/Dubai";
 
             # Enable pulseaudio support for host as a service
@@ -158,10 +145,12 @@
     };
   in {
     inherit hostConfiguration;
-    name = "${name}-${variant}";
+    name = "${name}-${generation}-${variant}";
     package = hostConfiguration.config.system.build.diskoImages;
   };
 in [
-  (lenovo-x1 "debug" debugModules)
-  (lenovo-x1 "release" releaseModules)
+  (lenovo-x1 "gen10" "debug" debugModules)
+  (lenovo-x1 "gen11" "debug" debugModules)
+  (lenovo-x1 "gen10" "release" releaseModules)
+  (lenovo-x1 "gen11" "release" releaseModules)
 ]

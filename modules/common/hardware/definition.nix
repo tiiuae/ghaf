@@ -45,6 +45,18 @@
       default = "";
     };
 
+    mouse = mkOption {
+      description = "Name of the mouse device(s)";
+      type = types.listOf types.str;
+      default = [];
+    };
+
+    touchpad = mkOption {
+      description = "Name of the touchpad device(s)";
+      type = types.listOf types.str;
+      default = [];
+    };
+
     network = {
       # TODO? Should add NetVM enabler here?
       # netvm.enable = mkEnableOption = "NetVM";
@@ -113,6 +125,18 @@
           "evdev=/dev/touchpad"
           "evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse"
         ]
+      '';
+    };
+
+    udevRules = mkOption {
+      description = ''
+        Definition of required udev rules.
+      '';
+      type = types.str;
+      default = "";
+      example = literalExpression ''
+        # Laptop keyboard
+        SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
       '';
     };
   };

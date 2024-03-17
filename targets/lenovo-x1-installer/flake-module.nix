@@ -7,10 +7,10 @@
   self,
   ...
 }: let
-  name = "lenovo-x1-carbon-gen11";
+  name = "lenovo-x1-carbon";
   system = "x86_64-linux";
-  installer = variant: let
-    imagePath = self.packages.x86_64-linux."lenovo-x1-carbon-gen11-${variant}" + "/disk1.raw";
+  installer = generation: variant: let
+    imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw";
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules = [
@@ -45,12 +45,14 @@
     };
   in {
     inherit hostConfiguration;
-    name = "${name}-${variant}-installer";
+    name = "${name}-${generation}-${variant}-installer";
     package = hostConfiguration.config.system.build.isoImage;
   };
   targets = [
-    (installer "debug")
-    (installer "release")
+    (installer "gen10" "debug")
+    (installer "gen11" "debug")
+    (installer "gen10" "release")
+    (installer "gen11" "release")
   ];
 in {
   flake = {
