@@ -9,7 +9,7 @@
   ...
 }: let
   inherit (inputs) microvm lanzaboote disko;
-  name = "lenovo-x1-carbon-gen11";
+  name = "lenovo-x1-carbon";
   system = "x86_64-linux";
   targets = import ./everything.nix {inherit self lib microvm lanzaboote disko name system;};
 in {

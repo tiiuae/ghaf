@@ -40,11 +40,6 @@ in {
       time.timeZone = "Asia/Dubai";
 
       microvm.qemu.extraArgs = [
-        # Lenovo X1 integrated usb webcam
-        "-device"
-        "qemu-xhci"
-        "-device"
-        "usb-host,vendorid=0x04f2,productid=0xb751"
         # Connect sound device to hosts pulseaudio socket
         "-audiodev"
         "pa,id=pa1,server=unix:/run/pulse/native"
@@ -53,6 +48,11 @@ in {
         "intel-hda"
         "-device"
         "hda-duplex,audiodev=pa1"
+        # Lenovo X1 integrated usb webcam
+        "-device"
+        "qemu-xhci"
+        "-device"
+        "usb-host,hostbus=3,hostport=8"
       ];
       microvm.devices = [];
 
