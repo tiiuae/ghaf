@@ -61,7 +61,7 @@
                 virtualization.enable = true;
                 virtualization.host.bpmp.enable = false;
                 passthroughs.host.uarta.enable = false;
-                passthroughs.uarti_net_vm.enable = true;
+                passthroughs.uarti_net_vm.enable = som == "agx";
               };
 
               virtualization.microvm-host.enable = true;

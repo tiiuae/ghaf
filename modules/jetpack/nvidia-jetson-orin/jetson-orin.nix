@@ -85,6 +85,10 @@ in
       hardware.deviceTree =
         {
           enable = lib.mkDefault true;
+          # Add the include paths to build the dtb overlays
+          dtboBuildExtraIncludePaths = [
+            "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
+          ];
         }
         # Versions of the device tree without PCI passthrough related
         # modifications.

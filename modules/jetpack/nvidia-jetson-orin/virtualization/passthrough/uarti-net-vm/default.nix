@@ -48,10 +48,6 @@ in {
 
     boot.kernelPatches = [
       {
-        name = "Prepare UARTI on host for passthrough";
-        patch = ./patches/host-uarti-dts.patch;
-      }
-      {
         name = "Add Net-VM device tree with UARTI in platform devices";
         patch = ./patches/net_vm_dtb_with_uarti.patch;
       }
@@ -71,5 +67,20 @@ in {
         '';
       };
     };
+
+    # Enable hardware.deviceTree for handle host dtb overlays
+    hardware.deviceTree.enable = true;
+
+    # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
+    hardware.deviceTree.overlays = [
+      {
+        name = "uarti_pt_host_overlay";
+        dtsFile = ./uarti_pt_host_overlay.dts;
+
+        # Apply overlay only to host passthrough device tree
+        # TODO: make this avaliable if PCI passthrough is disabled
+        filter = "tegra234-p3701-host-passthrough.dtb";
+      }
+    ];
   };
 }

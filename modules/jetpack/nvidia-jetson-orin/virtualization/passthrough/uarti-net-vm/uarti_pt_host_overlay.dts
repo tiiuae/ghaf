@@ -1,0 +1,23 @@
+/*
+ * Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/memory/tegra234-smmu-streamid.h>
+
+/{
+    overlay-name = "UARTI passthrough on host";
+    compatible = "nvidia,p3737-0000+p3701-0000", "nvidia,tegra234", "nvidia,tegra23x";
+    
+    fragment@0 {
+        target = <&uarti>;
+        __overlay__ {
+            compatible = "arm,dummy";
+            iommus = <&smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST>;
+            status = "okay";
+        };
+    };
+};
