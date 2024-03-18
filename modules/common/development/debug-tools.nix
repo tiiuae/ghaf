@@ -37,10 +37,16 @@ in
           # Performance testing
           speedtest-cli
           iperf
+
+          # Let's have this fixed version according to kernel.
+          # It would be possible to select also latest producing currently (12-3-2024) perf version 6.6.7
+          # linuxPackages_latest.perf
+          linuxKernel.packages.linux_6_1.perf
         ]
         ++
         # LuaJIT (which is sysbench dependency) not available on RISC-V
+        # runtimeShell (unixbench dependency) not available on RISC-V
         # TODO Can this be changed to platformPkgs to filter ?
-        lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") sysbench;
+        lib.lists.optionals (config.nixpkgs.hostPlatform.system != "riscv64-linux") [ sysbench unixbench ];
     };
   }
