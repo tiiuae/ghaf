@@ -74,6 +74,9 @@
             authorizedKeysCommandUser = "nobody";
           };
 
+          #Enable pcscd service for Yubikey
+          services.pcscd.enable = lib.mkDefault vm.enablePcscd;
+
           system.stateVersion = lib.trivial.release;
 
           nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
@@ -103,12 +106,17 @@
             ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
-            qemu.extraArgs = [
-              "-M"
-              "q35,accel=kvm:tcg,mem-merge=on,sata=off"
-              "-device"
-              "vhost-vsock-pci,guest-cid=${toString cid}"
-            ];
+            qemu.extraArgs =
+              [
+                "-M"
+                "q35,accel=kvm:tcg,mem-merge=on,sata=off"
+                "-device"
+                "vhost-vsock-pci,guest-cid=${toString cid}"
+              ]
+              # Add YubiKey device details
+              ++ lib.optional vm.enablePcscd "-usb"
+              ++ lib.optional vm.enablePcscd "-device"
+              ++ lib.optional vm.enablePcscd "usb-host,vendorid=0x1050,productid=0x0407";
           };
           fileSystems."/run/waypipe-ssh-public-key".options = ["ro"];
 
@@ -160,6 +168,13 @@ in {
                 Amount of processor cores for this AppVM
               '';
               type = int;
+            };
+            enablePcscd = mkOption {
+              description = ''
+                Enbale pcscd service
+              '';
+              type = bool;
+              default = false;
             };
             extraModules = mkOption {
               description = ''
