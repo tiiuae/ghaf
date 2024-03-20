@@ -26,6 +26,7 @@
           tag = configH.ghaf.security.sshKeys.waypipeSshPublicKeyName;
           source = configH.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
           mountPoint = configH.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+          proto = "virtiofs";
         }
       ];
     };
