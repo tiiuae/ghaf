@@ -83,8 +83,8 @@
           shares = [
             {
               tag = "rw-waypipe-ssh-public-key";
-              source = "/run/waypipe-ssh-public-key";
-              mountPoint = "/run/waypipe-ssh-public-key";
+              source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+              mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
             }
             {
               tag = "ro-store";
@@ -200,8 +200,8 @@ in {
     # This directory needs to be created before any of the microvms start.
     systemd.services."create-waypipe-ssh-public-key-directory" = let
       script = pkgs.writeShellScriptBin "create-waypipe-ssh-public-key-directory" ''
-        mkdir -pv /run/waypipe-ssh-public-key
-        chown -v microvm /run/waypipe-ssh-public-key
+        mkdir -pv ${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
+        chown -v microvm ${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
       '';
     in {
       enable = true;

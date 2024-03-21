@@ -11,6 +11,7 @@
     ./firewall
     ./hardware
     ./profiles
+    ./security
     ./tpm2
     ./users/accounts.nix
     ./version

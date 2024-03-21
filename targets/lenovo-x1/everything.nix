@@ -35,7 +35,6 @@
 
           self.nixosModules.disko-lenovo-x1-basic-v1
 
-          ./sshkeys.nix
           ({
             pkgs,
             config,
@@ -58,9 +57,6 @@
             # Allow microvm user to access pulseaudio
             hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
-
-            environment.etc.${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {inherit pkgs config;};
-            services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 

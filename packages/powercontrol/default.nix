@@ -11,13 +11,13 @@
 
   makeSystemCtlPowerActionViaSsh = {
     hostAddress,
-    sshKeyPath,
+    privateSshKeyPath,
     method,
   }:
     writeShellScript
     "${method}-host"
     ''      ${openssh}/bin/ssh \
-          -i ${sshKeyPath} \
+          -i ${privateSshKeyPath} \
           -o StrictHostKeyChecking=no \
           ghaf@${hostAddress} \
           ${systemctl} ${method}'';
@@ -27,37 +27,37 @@ in
 
     makePowerOffCommand = {
       hostAddress,
-      sshKeyPath,
+      privateSshKeyPath,
     }:
       makeSystemCtlPowerActionViaSsh {
-        inherit hostAddress sshKeyPath;
+        inherit hostAddress privateSshKeyPath;
         method = "poweroff";
       };
 
     makeRebootCommand = {
       hostAddress,
-      sshKeyPath,
+      privateSshKeyPath,
     }:
       makeSystemCtlPowerActionViaSsh {
-        inherit hostAddress sshKeyPath;
+        inherit hostAddress privateSshKeyPath;
         method = "reboot";
       };
 
     makeSuspendCommand = {
       hostAddress,
-      sshKeyPath,
+      privateSshKeyPath,
     }:
       makeSystemCtlPowerActionViaSsh {
-        inherit hostAddress sshKeyPath;
+        inherit hostAddress privateSshKeyPath;
         method = "suspend";
       };
 
     makeHibernateCommand = {
       hostAddress,
-      sshKeyPath,
+      privateSshKeyPath,
     }:
       makeSystemCtlPowerActionViaSsh {
-        inherit hostAddress sshKeyPath;
+        inherit hostAddress privateSshKeyPath;
         method = "hibernate";
       };
 

@@ -43,22 +43,23 @@
       hostAddress = "192.168.101.2";
       powerControl = pkgs.callPackage ../../packages/powercontrol {};
       powerControlIcons = pkgs.gnome.callPackage ../../packages/powercontrol/png-icons.nix {};
+      privateSshKeyPath = configH.ghaf.security.sshKeys.sshKeyPath;
     in [
       {
         name = "chromium";
-        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${../../assets/icons/png/browser.png}";
       }
 
       {
         name = "gala";
-        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${../../assets/icons/png/app.png}";
       }
 
       {
         name = "zathura";
-        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
+        path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
         icon = "${../../assets/icons/png/pdf.png}";
       }
 
@@ -84,7 +85,7 @@
         name = "poweroff";
         path = "${powerControl.makePowerOffCommand {
           inherit hostAddress;
-          inherit (configH.ghaf.security.sshKeys) sshKeyPath;
+          inherit privateSshKeyPath;
         }}";
         icon = "${powerControlIcons}/${powerControlIcons.relativeShutdownIconPath}";
       }
@@ -93,20 +94,20 @@
         name = "reboot";
         path = "${powerControl.makeRebootCommand {
           inherit hostAddress;
-          inherit (configH.ghaf.security.sshKeys) sshKeyPath;
+          inherit privateSshKeyPath;
         }}";
         icon = "${powerControlIcons}/${powerControlIcons.relativeRebootIconPath}";
       }
 
       # Temporarly disabled as it doesn't work stable
       # {
-      #   path = powerControl.makeSuspendCommand {inherit hostAddress sshKeyPath;};
+      #   path = powerControl.makeSuspendCommand {inherit hostAddress waypipeSshPublicKeyFile;};
       #   icon = "${adwaitaIconsRoot}/media-playback-pause-symbolic.symbolic.png";
       # }
 
       # Temporarly disabled as it doesn't work at all
       # {
-      #   path = powerControl.makeHibernateCommand {inherit hostAddress sshKeyPath;};
+      #   path = powerControl.makeHibernateCommand {inherit hostAddress waypipeSshPublicKeyFile;};
       #   icon = "${adwaitaIconsRoot}/media-record-symbolic.symbolic.png";
       # }
     ];
@@ -160,7 +161,6 @@
     };
   };
 in [
-  ./sshkeys.nix
   guivmPCIPassthroughModule
   guivmVirtioInputHostEvdevModule
   guivmExtraConfigurations
