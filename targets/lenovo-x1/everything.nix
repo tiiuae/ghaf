@@ -82,6 +82,8 @@
               virtualization.microvm-host.networkSupport = true;
 
               host.networking.enable = true;
+              host.powercontrol.enable = true;
+
               virtualization.microvm.netvm = {
                 enable = true;
                 extraModules = import ./netvmExtraModules.nix {
