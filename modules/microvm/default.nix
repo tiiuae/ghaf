@@ -10,5 +10,6 @@
     ./virtualization/microvm/appvm.nix
     ./virtualization/microvm/guivm.nix
     ./networking.nix
+    ./power-control.nix
   ];
 }
