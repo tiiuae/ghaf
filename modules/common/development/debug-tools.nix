@@ -37,16 +37,13 @@ in
           # Performance testing
           speedtest-cli
           iperf
-
-          # Let's have this fixed version according to kernel.
-          # It would be possible to select also latest producing currently (12-3-2024) perf version 6.6.7
-          # linuxPackages_latest.perf
-          linuxKernel.packages.linux_6_1.perf
+          # Match perf version with kernel.
+          config.boot.kernelPackages.perf
         ]
         # TODO Can this be changed to platformPkgs to filter ?
         # LuaJIT (which is sysbench dependency) not available on RISC-V
-        ++ lib.lists.optionals (config.nixpkgs.hostPlatform.system != "riscv64-linux") [sysbench]
+        ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") sysbench
         # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
-        ++ lib.lists.optionals (stdenv.hostPlatform == stdenv.buildPlatform) [unixbench];
+        ++ lib.optional (stdenv.hostPlatform == stdenv.buildPlatform) unixbench;
     };
   }
