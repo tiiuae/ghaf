@@ -11,6 +11,12 @@ in
     options.ghaf.host.networking = {
       enable = mkEnableOption "Host networking";
       # TODO add options to configure the network, e.g. ip addr etc
+
+      enablePasswordlessSshHostConnection = mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc "Allow to connect any VM directly to the Host via SSH without password";
+      };
     };
 
     config = mkIf cfg.enable {

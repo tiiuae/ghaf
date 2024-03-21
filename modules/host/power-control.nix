@@ -13,5 +13,6 @@ in
     };
 
     config = mkIf cfg.enable {
+      ghaf.host.networking.enablePasswordlessSshHostConnection = true;
     };
   }
