@@ -19,18 +19,6 @@
   };
 
   netvmAdditionalConfig = {
-    # Add the waypipe-ssh public key to the microvm
-    microvm = {
-      shares = [
-        {
-          tag = configH.ghaf.security.sshKeys.waypipeSshPublicKeyName;
-          source = configH.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-          mountPoint = configH.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-        }
-      ];
-    };
-    fileSystems.${configH.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = ["ro"];
-
     # For WLAN firmwares
     hardware.enableRedistributableFirmware = true;
 
@@ -64,15 +52,7 @@
       '';
       mode = "0600";
     };
-    # Waypipe-ssh key is used here to create keys for ssh tunneling to forward D-Bus sockets.
-    # SSH is very picky about to file permissions and ownership and will
-    # accept neither direct path inside /nix/store or symlink that points
-    # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
-    # setting mode), instead of symlinking it.
-    environment.etc.${configH.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {
-      inherit pkgs;
-      config = configH;
-    };
+
     # Add simple wi-fi connection helper
     environment.systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli];
 
@@ -80,4 +60,4 @@
 
     time.timeZone = "Asia/Dubai";
   };
-in [./sshkeys.nix netvmPCIPassthroughModule netvmAdditionalConfig]
+in [netvmPCIPassthroughModule netvmAdditionalConfig]
