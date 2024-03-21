@@ -8,6 +8,12 @@
 }: let
   configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
+
+  sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
+    inherit pkgs;
+    config = configHost;
+  };
+
   makeVm = {
     vm,
     index,
@@ -66,19 +72,8 @@
           # accept neither direct path inside /nix/store or symlink that points
           # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
           # setting mode), instead of symlinking it.
-          environment.etc."ssh/get-auth-keys" = {
-            source = let
-              script = pkgs.writeShellScriptBin "get-auth-keys" ''
-                [[ "$1" != "ghaf" ]] && exit 0
-                ${pkgs.coreutils}/bin/cat /run/waypipe-ssh-public-key/id_ed25519.pub
-              '';
-            in "${script}/bin/get-auth-keys";
-            mode = "0555";
-          };
-          services.openssh = {
-            authorizedKeysCommand = "/etc/ssh/get-auth-keys";
-            authorizedKeysCommandUser = "nobody";
-          };
+          environment.etc.${configHost.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
+          services.openssh = configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
           system.stateVersion = lib.trivial.release;
 
@@ -106,6 +101,11 @@
               else [];
             hypervisor = "qemu";
             shares = [
+              {
+                tag = "waypipe-ssh-public-key";
+                source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+              }
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -179,6 +179,7 @@
             };
             wantedBy = ["default.target"];
           };
+          fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = ["ro"];
 
           imports = [../../../common];
         })
