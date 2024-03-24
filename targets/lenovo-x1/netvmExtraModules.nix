@@ -18,7 +18,20 @@
     );
   };
 
-  netvmAdditionalConfig = {
+  netvmAdditionalConfig = let
+    externalNic = let
+      firstPciWifiDevice = lib.head configH.ghaf.hardware.definition.network.pciDevices;
+    in "${firstPciWifiDevice.name}";
+
+    internalNic = let
+      vmNetworking = import ../../modules/microvm/virtualization/microvm/common/vm-networking.nix {
+        vmName = microvm.name;
+        inherit (microvm) macAddress;
+      };
+    in "${lib.head vmNetworking.networking.nat.internalInterfaces}";
+
+    elemen-vmIp = "192.168.100.253";
+  in {
     # For WLAN firmwares
     hardware.enableRedistributableFirmware = true;
 
@@ -54,10 +67,19 @@
     };
 
     # Add simple wi-fi connection helper
-    environment.systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli];
+    environment.systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli pkgs.tcpdump];
 
     services.openssh = configH.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
     time.timeZone = "Asia/Dubai";
+
+    ghaf.services.dendrite-pinecone = {
+      firewallConfig = true;
+      externalNic = "${externalNic}";
+      internalNic = "${internalNic}";
+      serverIpAddr = "${elemen-vmIp}";
+    };
+    # DNS host record has been added for element-vm static ip
+    services.dnsmasq.settings.host-record = "element-vm,element-vm.ghaf,${elemen-vmIp}";
   };
 in [netvmPCIPassthroughModule netvmAdditionalConfig]
