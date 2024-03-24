@@ -9,7 +9,7 @@
   chromium = import ./chromium.nix {inherit pkgs;};
   gala = import ./gala.nix {inherit pkgs;};
   zathura = import ./zathura.nix {inherit pkgs;};
-  element = import ./element.nix {inherit pkgs;};
+  element = import ./element.nix {inherit pkgs config;};
   includeAppflowy = pkgs.stdenv.isx86_64;
   appflowy =
     if includeAppflowy
