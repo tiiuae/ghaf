@@ -23,3 +23,16 @@ jobs:
         run: nix develop --command reuse lint
       - name: Check nix flake show runs successfully
         run: nix flake show
+      - name: Check that template is in tact
+        run: |
+          export GHAF_PATH=$(pwd)
+          export TMP_DIR=${{ runner.temp }}/$(tr -dc A-Za-z0-9 </dev/urandom | head -c 13)-ghaf-template-test
+
+          mkdir -p $TMP_DIR && cd $TMP_DIR
+
+          # # FIXME: Flake initialization command stuck, so we just copy template
+          # nix flake init -t $GHAF_PATH#target-x86_64-generic
+          cp -r $GHAF_PATH/templates/targets/x86_64/generic/* .
+          sed "s|github:tiiuae/ghaf|path:${GHAF_PATH}|g" -i flake.nix
+
+          nix flake show .
