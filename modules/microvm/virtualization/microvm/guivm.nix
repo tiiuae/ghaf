@@ -19,6 +19,7 @@
       }: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
           profiles.graphics.enable = true;
           # To enable screen locking set graphics.labwc.lock to true
           graphics.labwc.lock.enable = false;
