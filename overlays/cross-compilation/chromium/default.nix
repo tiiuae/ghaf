@@ -22,7 +22,8 @@ in
         mkDerivation = fun:
           oa.passthru.mkDerivation (finalAttrs:
             {
-              depsBuildBuild = replace finalAttrs.depsBuildBuild (final.libpng.override {apngSupport = false;}) final.libpng;
+#              depsBuildBuild = replace finalAttrs.depsBuildBuild (final.libpng.override {apngSupport = false;}) final.libpng;
+              env = finalAttrs.env // { NIX_DEBUG = "1"; };
             }
             // fun finalAttrs);
       };
