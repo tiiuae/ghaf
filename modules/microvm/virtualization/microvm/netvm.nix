@@ -14,7 +14,10 @@
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
       ({lib, ...}: {
         ghaf = {
-          users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          users.operator.account.enable = lib.mkDefault configHost.ghaf.users.operator.account.enable;
+          users.ghaf.account.enable = lib.mkDefault configHost.ghaf.users.ghaf.account.enable;
+          users.update.account.enable = lib.mkDefault configHost.ghaf.users.update.account.enable;
+          users.network.account.enable = true;
           development = {
             # NOTE: SSH port also becomes accessible on the network interface
             #       that has been passed through to NetVM
@@ -41,6 +44,9 @@
           firewall.allowedTCPPorts = [53];
           firewall.allowedUDPPorts = [53];
         };
+
+        # Add root user only for debug builds
+        users.users.${config.ghaf.users.ghaf.account.user}.extraGroups = lib.mkIf config.ghaf.profiles.debug.enable ["wheel"];
 
         # Add simple wi-fi connection helper
         environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];

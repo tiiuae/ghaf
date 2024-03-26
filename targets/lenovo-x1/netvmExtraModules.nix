@@ -72,6 +72,7 @@
     environment.etc.${configH.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {
       inherit pkgs;
       config = configH;
+      inherit (configH.ghaf.users.network.account) user;
     };
     # Add simple wi-fi connection helper
     environment.systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli];

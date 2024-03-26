@@ -17,7 +17,11 @@
       $out/share/icons/hicolor/24x24/apps/ghaf-icon-24x24.png
   '';
 
-  wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = (lib.lists.findFirst (d: d.name != null) null networkDevice).name;};
+  inherit (config.ghaf.users.network.account) user;
+  wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {
+    wifiDevice = (lib.lists.findFirst (d: d.name != null) null networkDevice).name;
+    inherit user;
+  };
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
 in {
   config = lib.mkIf cfg.enable {

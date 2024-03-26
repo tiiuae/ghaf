@@ -58,8 +58,8 @@ in {
         ExecStart = "${pkgs.systemd}/bin/systemctl --wait --user start ghaf-session.target";
 
         # The user to run the session as. Pick one!
-        User = config.ghaf.users.accounts.user;
-        Group = config.ghaf.users.accounts.user;
+        User = config.ghaf.users.operator.account.user;
+        Group = config.ghaf.users.operator.account.user;
 
         # Set up a full user session for the user, required by desktop environment.
         PAMName = "${pkgs.shadow}/bin/login";
