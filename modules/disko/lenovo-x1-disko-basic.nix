@@ -30,11 +30,18 @@
             };
           };
           root = {
-            name = "root";
+            name = "luks";
             size = "100%";
             content = {
-              type = "lvm_pv";
-              vg = "pool";
+              type = "luks";
+              name = "encrypted";
+              extraOpenArgs = [];
+              settings.keyFile = "/tmp/secret.key";
+              settings.allowDiscards = true;
+              content = {
+                type = "lvm_pv";
+                vg = "pool";
+              };
             };
           };
         };

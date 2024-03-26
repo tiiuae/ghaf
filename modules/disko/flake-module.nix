@@ -7,6 +7,7 @@
     disko-lenovo-x1-basic-v1.imports = [
       inputs.disko.nixosModules.disko
       ./lenovo-x1-disko-basic.nix
+      ./lenovo-x1-disko-luks.nix
       ./disko-basic-postboot.nix
     ];
   };
