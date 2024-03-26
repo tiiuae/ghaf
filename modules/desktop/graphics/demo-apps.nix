@@ -66,13 +66,8 @@ in {
       ++ lib.optional cfg.zathura {
         name = "zathura";
         path = "${pkgs.zathura}/bin/zathura";
-        icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
+        # Nvidia Jetson build cannot find the file "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png" even it is exist
+        icon = "${../../../assets/icons/png/pdf.png}";
       };
-    environment.systemPackages =
-      lib.optional cfg.chromium pkgs.chromium
-      ++ lib.optional cfg.element-desktop pkgs.element-desktop
-      ++ lib.optional cfg.firefox pkgs.firefox
-      ++ lib.optional cfg.gala-app pkgs.gala-app
-      ++ lib.optional cfg.zathura pkgs.zathura;
   };
 }

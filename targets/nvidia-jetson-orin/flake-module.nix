@@ -12,6 +12,20 @@
   inherit (inputs) nixpkgs nixos-generators microvm jetpack-nixos;
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
+
+  hwDefinition = {
+    name = "Nvidia Jetson Orin";
+    network.pciDevices = [
+      # Passthrough WiFi card
+      {
+        path = "0001:01:00.0";
+        vendorId = "10ec";
+        productId = "c82f";
+        name = "wlp0s5f0";
+      }
+    ];
+  };
+
   nvidia-jetson-orin = som: variant: extraModules: let
     netvmExtraModules = [
       {
@@ -48,7 +62,7 @@
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
 
-          {
+          ({config, ...}: {
             ghaf = {
               hardware.nvidia.orin = {
                 enable = true;
@@ -63,12 +77,29 @@
                 passthroughs.host.uarta.enable = false;
               };
 
+              hardware.definition = hwDefinition;
+
               virtualization.microvm-host.enable = true;
               virtualization.microvm-host.hostNetworkSupport = true;
               host.networking.enable = true;
 
-              virtualization.microvm.netvm.enable = true;
-              virtualization.microvm.netvm.extraModules = netvmExtraModules;
+              virtualization.microvm.netvm = {
+                enable = true;
+                extraModules = let
+                  configH = config;
+                  netvmPCIPassthroughModule = {
+                    microvm.devices = lib.mkForce (
+                      builtins.map (d: {
+                        bus = "pci";
+                        inherit (d) path;
+                      })
+                      configH.ghaf.hardware.definition.network.pciDevices
+                    );
+                  };
+                in
+                  [netvmPCIPassthroughModule]
+                  ++ netvmExtraModules;
+              };
 
               # Enable all the default UI applications
               profiles = {
@@ -78,7 +109,8 @@
               };
               windows-launcher.enable = true;
             };
-          }
+            time.timeZone = "Asia/Dubai";
+          })
 
           (import ./optee.nix {inherit jetpack-nixos;})
         ]

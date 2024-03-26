@@ -34,6 +34,7 @@ writeShellApplication {
     description = "Script to launch nm-connection-editor to configure network of netvm using D-Bus over SSH.";
     platforms = [
       "x86_64-linux"
+      "aarch64-linux"
     ];
   };
 }
