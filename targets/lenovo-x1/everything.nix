@@ -59,9 +59,6 @@
             hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
-            environment.etc.${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = import ./getAuthKeysSource.nix {inherit pkgs config;};
-            services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
-
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 
             ghaf = {
@@ -83,7 +80,10 @@
 
               virtualization.microvm-host.enable = true;
               virtualization.microvm-host.hostNetworkSupport = true;
+
+              host.powercontrol.enable = true;
               host.networking.enable = true;
+
               virtualization.microvm.netvm = {
                 enable = true;
                 extraModules = import ./netvmExtraModules.nix {

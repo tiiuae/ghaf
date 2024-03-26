@@ -3,14 +3,25 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cfg = config.ghaf.host.networking;
+  sshKeysHelper = pkgs.callPackage ../../packages/ssh-keys-helper {
+    inherit pkgs;
+    inherit config;
+  };
 in
   with lib; {
     options.ghaf.host.networking = {
       enable = mkEnableOption "Host networking";
       # TODO add options to configure the network, e.g. ip addr etc
+
+      enablePasswordlessSshHostConnection = mkOption {
+        type = types.bool;
+        default = false;
+        description = lib.mdDoc "Allow to connect any VM directly to the Host via SSH without password";
+      };
     };
 
     config = mkIf cfg.enable {
@@ -42,5 +53,12 @@ in
           networkConfig.Bridge = "virbr0";
         };
       };
+
+      environment.etc = mkIf cfg.enablePasswordlessSshHostConnection {
+        ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} =
+          sshKeysHelper.getAuthKeysSource;
+      };
+
+      services.openssh = mkIf cfg.enablePasswordlessSshHostConnection config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
     };
   }
