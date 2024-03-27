@@ -32,11 +32,14 @@ in {
       initrd.availableKernelModules = [
         "nvme"
         "uas"
+        "zfs"
       ];
       loader = {
         efi.canTouchEfiVariables = true;
         systemd-boot.enable = true;
       };
+      supportedFilesystems = ["zfs"];
+      kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
     };
   };
 }
