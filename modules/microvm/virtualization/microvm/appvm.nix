@@ -4,7 +4,8 @@
   config,
   lib,
   ...
-}: let
+}:
+with builtins; let
   configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
   makeVm = {
@@ -120,6 +121,64 @@
     autostart = true;
     config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ [{environment.systemPackages = vm.packages;}];};
   };
+
+  formatHexOctet = n:
+    assert 0 <= n && n < 256; let
+      n' = lib.trivial.toHexString n;
+      # Pad with zero.
+      # Length is always 1 or 2, because of assertion.
+      prefix =
+        if stringLength n' == 1
+        then "0"
+        else "";
+    in
+      prefix + n';
+
+  allocateMacsUnsafe = vms: let
+    takenMacAddresses = filter (macAddress: macAddress != null) (map (vm: vm.macAddress) vms);
+
+    appvmMacAddressSpace = map (i: "02:00:00:03:${formatHexOctet i}:01") (lib.lists.range 0 255);
+
+    availableMacAddresses = lib.lists.subtractLists takenMacAddresses appvmMacAddressSpace;
+  in
+    (foldl' ({
+        availableMacAddresses,
+        vms,
+      }: vm: let
+        allocated =
+          if vm.macAddress == null
+          then {
+            availableMacAddresses' = tail availableMacAddresses;
+            macAddress' = head availableMacAddresses;
+          }
+          else {
+            availableMacAddresses' = availableMacAddresses;
+            macAddress' = vm.macAddress;
+          };
+        inherit (allocated) availableMacAddresses' macAddress';
+        vm' =
+          vm
+          // {
+            macAddress = macAddress';
+          };
+      in {
+        availableMacAddresses = availableMacAddresses';
+        vms = vms ++ [vm'];
+      }) {
+        inherit availableMacAddresses;
+        vms = [];
+      }
+      vms)
+    .vms;
+
+  allocateMacs = vms: let
+    vmsWithMacs = allocateMacsUnsafe vms;
+
+    macCollisions = lib.attrsets.filterAttrs (_address: vms: length vms > 1) (groupBy (vm: vm.macAddress) vmsWithMacs);
+    macCollisions' = mapAttrs (_address: vms: map (vm: vm.name) vms) macCollisions;
+    macCollisionsMsg = "Found following collisions among app virtual machines mac addresses: ${toJSON macCollisions'}";
+  in
+    assert lib.asserts.assertMsg (length (attrNames macCollisions) == 0) macCollisionsMsg; vmsWithMacs;
 in {
   options.ghaf.virtualization.microvm.appvm = with lib; {
     enable = lib.mkEnableOption "appvm";
@@ -147,7 +206,8 @@ in {
               description = ''
                 AppVM's network interface MAC address
               '';
-              type = str;
+              type = nullOr str;
+              default = null;
             };
             ramMb = mkOption {
               description = ''
@@ -210,7 +270,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     microvm.vms = let
-      vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
+      vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) (allocateMacs cfg.vms);
     in
       lib.foldr lib.recursiveUpdate {} vms;
   };
