@@ -35,7 +35,7 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-        microvm.hypervisor = "qemu";
+        microvm.hypervisor = "cloud-hypervisor";
 
         networking = {
           firewall.allowedTCPPorts = [53];
@@ -93,6 +93,7 @@
               tag = "ro-store";
               source = "/nix/store";
               mountPoint = "/nix/.ro-store";
+              proto = "virtiofs";
             }
           ];
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
