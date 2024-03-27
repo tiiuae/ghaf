@@ -43,7 +43,7 @@
   # Devices #
   ###########
 
-  PrivateDevices = true;
+  # PrivateDevices = true;
   # DeviceAllow=/dev/null
 
   ##########

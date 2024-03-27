@@ -35,6 +35,13 @@ in {
     # Disk configuration
     disko.devices.disk = hwDefinition.disks;
 
+    # Hardware specific kernel parameters
+    boot = {
+      initrd.availableKernelModules = ["nvme" "zfs"];
+      supportedFilesystems = ["zfs"];
+      kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
+    };
+
     # Host udev rules
     services.udev.extraRules = ''
       # Keyboard
