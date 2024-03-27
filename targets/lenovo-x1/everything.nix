@@ -33,7 +33,7 @@
           self.nixosModules.lanzaboote
           self.nixosModules.microvm
 
-          self.nixosModules.disko-lenovo-x1-basic-v1
+          self.nixosModules.disko-ab-partitions-v1
 
           ./sshkeys.nix
           ({

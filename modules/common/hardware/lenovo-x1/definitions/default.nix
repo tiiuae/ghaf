@@ -9,9 +9,16 @@
 in {
   inherit (hwDefinition) mouse;
   inherit (hwDefinition) touchpad;
-  inherit (hwDefinition) disks;
   inherit (hwDefinition) network;
   inherit (hwDefinition) gpu;
+
+  disks = {
+    disk1.device = "/dev/nvme0n1";
+    # 250G is the size of the 1st LVM pool, 10G is reserved for the second LVM pool
+    # Second LVM pool can be extended safely to the end of the disk, and its restricted size
+    # makes flashing quicker.
+    disk1.imageSize = "260G";
+  };
 
   # Notes:
   #   1. This assembles udev rules for different hw configurations (i.e., different mice/touchpads) by adding

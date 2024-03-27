@@ -9,5 +9,11 @@
       ./lenovo-x1-disko-basic.nix
       ./disko-basic-postboot.nix
     ];
+
+    disko-ab-partitions-v1.imports = [
+      inputs.disko.nixosModules.disko
+      ./disko-ab-partitions.nix
+      ./disko-basic-postboot.nix
+    ];
   };
 }
