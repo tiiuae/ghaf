@@ -7,10 +7,6 @@
   mouse = ["ELAN067B:00 04F3:31F8 Mouse" "SYNA8016:00 06CB:CEB3 Mouse"];
   touchpad = ["ELAN067B:00 04F3:31F8 Touchpad" "SYNA8016:00 06CB:CEB3 Touchpad"];
 
-  disks = {
-    disk1.device = "/dev/nvme0n1";
-  };
-
   network.pciDevices = [
     {
       # Passthrough Intel WiFi card
