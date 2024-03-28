@@ -8,7 +8,14 @@
   prev,
 }: let
   inherit (builtins) map;
-  replace = haystack: needle: replacement:
+  inherit (final.lib) pipe;
+  opusWithCustomModes = final.pkgsBuildBuild.libopus.override {
+    withCustomModes = true;
+  };
+  opusWithCustomModes' = final.pkgsBuildTarget.libopus.override {
+    withCustomModes = true;
+  };
+  replace = needle: replacement: haystack:
     map (each:
       if each == needle
       then replacement
@@ -22,7 +29,12 @@ in
         mkDerivation = fun:
           oa.passthru.mkDerivation (finalAttrs:
             {
-#              depsBuildBuild = replace finalAttrs.depsBuildBuild (final.libpng.override {apngSupport = false;}) final.libpng;
+              depsBuildBuild = pipe finalAttrs.depsBuildBuild [
+                (replace (final.libpng.override {apngSupport = false;}) (final.pkgsBuildBuild.libpng.override {apngSupport = false;}))
+                (replace final.zlib final.pkgsBuildBuild.zlib)
+                (replace opusWithCustomModes opusWithCustomModes')
+              ];
+              buildInputs = replace opusWithCustomModes' opusWithCustomModes finalAttrs.buildInputs;
               env = finalAttrs.env // { NIX_DEBUG = "1"; };
             }
             // fun finalAttrs);
