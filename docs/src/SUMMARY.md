@@ -40,6 +40,8 @@
         - [NVIDIA Jetson AGX Orin: UART Passthrough](technologies/nvidia_agx_pt_uart.md)
         - [NVIDIA Jetson AGX Orin: PCIe Passthrough](technologies/nvidia_agx_pt_pcie.md)
         - [Generic x86: PCIe Passthrough on crosvm](technologies/x86_pcie_crosvm.md)
+        - [NVIDIA Jetson: UARTI Passthrough to netvm](technologies/nvidia_uarti_net_vm.md)
+        - [Device Tree Overlays for Passthrough](technologies/device_tree_overlays_pt.md)
     - [Platform Bus Virtualization: NVIDIA BPMP](technologies/nvidia_virtualization_bpmp.md)
     - [Hypervisor Options](technologies/hypervisor_options.md)
 
