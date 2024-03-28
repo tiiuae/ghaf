@@ -27,6 +27,7 @@
           # To enable screen locking set graphics.labwc.lock to true
           graphics.labwc.lock.enable = false;
           windows-launcher.enable = false;
+          waypipe.enable = true;
           development = {
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
             debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
@@ -121,29 +122,12 @@
           ../../../desktop
         ];
 
-        # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-        systemd = {
-          user.services.waypipe = {
-            enable = true;
-            description = "waypipe";
-            after = ["weston.service" "labwc.service"];
-            serviceConfig = {
-              Type = "simple";
-              ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-              Restart = "always";
-              RestartSec = "1";
-            };
-            startLimitIntervalSec = 0;
-            wantedBy = ["ghaf-session.target"];
-          };
-
-          # Fixed IP-address for debugging subnet
-          network.networks."10-ethint0".addresses = [
-            {
-              addressConfig.Address = "192.168.101.3/24";
-            }
-          ];
-        };
+        # Fixed IP-address for debugging subnet
+        systemd.network.networks."10-ethint0".addresses = [
+          {
+            addressConfig.Address = "192.168.101.3/24";
+          }
+        ];
       })
     ];
   };
@@ -177,14 +161,6 @@ in {
       default = 3;
       description = ''
         Context Identifier (CID) of the GUIVM VSOCK
-      '';
-    };
-
-    waypipePort = lib.mkOption {
-      type = lib.types.int;
-      default = 1100;
-      description = ''
-        Waypipe port number to listen for incoming connections from AppVMs
       '';
     };
   };
@@ -236,7 +212,7 @@ in {
         Type = "simple";
       };
       serviceConfig = {
-        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
+        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString config.ghaf.waypipe.port} ${toString cfg.vsockCID} ${toString config.ghaf.waypipe.port}";
       };
       wantedBy = ["multi-user.target"];
     };
