@@ -10,18 +10,23 @@ in
   with lib; {
     options.ghaf.virtualization.microvm-host = {
       enable = mkEnableOption "MicroVM Host";
-      hostNetworkSupport = mkEnableOption "Network support services to run host applications.";
+      x86Support = mkEnableOption "Enable x86 specific services.";
+      networkSupport = mkEnableOption "Network support services to run host applications.";
     };
 
     config = mkIf cfg.enable {
       microvm.host.enable = true;
       ghaf.systemd = {
-        enable = true;
         withName = "host-systemd";
+        enable = true;
+        boot.enable = true;
         withPolkit = true;
-        withTimesyncd = cfg.hostNetworkSupport;
-        withNss = cfg.hostNetworkSupport;
-        withResolved = cfg.hostNetworkSupport;
+        withTpm2Tss = cfg.x86Support;
+        withRepart = cfg.x86Support;
+        withCryptsetup = cfg.x86Support;
+        withTimesyncd = cfg.networkSupport;
+        withNss = cfg.networkSupport;
+        withResolved = cfg.networkSupport;
         withSerial = config.ghaf.profiles.debug.enable;
         withDebug = config.ghaf.profiles.debug.enable;
       };

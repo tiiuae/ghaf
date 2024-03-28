@@ -82,7 +82,9 @@
               security.tpm2.enable = true;
 
               virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.hostNetworkSupport = true;
+              virtualization.microvm-host.networkSupport = true;
+              virtualization.microvm-host.x86Support = true;
+
               host.networking.enable = true;
               virtualization.microvm.netvm = {
                 enable = true;
