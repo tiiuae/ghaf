@@ -3,7 +3,7 @@
 {
   imports = [
     ./base.nix
+    ./boot.nix
     # TODO hardened configs
-    # TODO stage 1
   ];
 }
