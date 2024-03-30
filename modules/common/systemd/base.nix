@@ -38,6 +38,7 @@
       withPam = true;
       inherit (cfg) withPolkit;
       inherit (cfg) withResolved;
+      inherit (cfg) withRepart;
       withShellCompletions = cfg.withDebug;
       withTimedated = true;
       inherit (cfg) withTimesyncd;
@@ -198,6 +199,12 @@ in
 
       withResolved = mkOption {
         description = "Enable systemd resolve daemon.";
+        type = types.bool;
+        default = false;
+      };
+
+      withRepart = mkOption {
+        description = "Enable systemd repart functionality.";
         type = types.bool;
         default = false;
       };

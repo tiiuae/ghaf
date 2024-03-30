@@ -64,7 +64,7 @@
               };
 
               virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.hostNetworkSupport = true;
+              virtualization.microvm-host.networkSupport = true;
               host.networking.enable = true;
 
               virtualization.microvm.netvm.enable = true;
