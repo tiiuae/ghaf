@@ -5,6 +5,7 @@
   openssh,
   stdenv,
   writeShellScript,
+  user,
 }: let
   systemctl = "/run/current-system/systemd/bin/systemctl";
   busName = "org.freedesktop.login1";
@@ -19,7 +20,7 @@
     ''      ${openssh}/bin/ssh \
           -i ${sshKeyPath} \
           -o StrictHostKeyChecking=no \
-          ghaf@${hostAddress} \
+            ${user}@${hostAddress} \
           ${systemctl} ${method}'';
 in
   stdenv.mkDerivation {
@@ -63,7 +64,7 @@ in
 
     polkitExtraConfig = ''
       polkit.addRule(function(action, subject) {
-          if ((subject.user == "ghaf") &&
+          if ((subject.user == "${user}") &&
              (action.id == "${busName}.power-off" ||
               action.id == "${busName}.power-off-multiple-sessions" ||
               action.id == "${busName}.reboot" ||

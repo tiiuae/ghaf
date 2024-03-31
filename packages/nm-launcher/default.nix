@@ -9,6 +9,7 @@
   networkmanagerapplet,
   openssh,
   writeShellApplication,
+  networkUser,
   ...
 }:
 writeShellApplication {
@@ -18,7 +19,7 @@ writeShellApplication {
     export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
     ${openssh}/bin/ssh -M -S /tmp/control_socket \
-        -f -N -q ghaf@192.168.100.1 \
+        -f -N -q ${networkUser}@192.168.100.1 \
         -i /run/waypipe-ssh/id_ed25519 \
         -o StrictHostKeyChecking=no \
         -o StreamLocalBindUnlink=yes \
@@ -27,7 +28,7 @@ writeShellApplication {
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     ${networkmanagerapplet}/bin/nm-connection-editor
     # Use the control socket to close the ssh tunnel.
-    ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@192.168.100.1
+    ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ${networkUser}@192.168.100.1
   '';
 
   meta = with lib; {

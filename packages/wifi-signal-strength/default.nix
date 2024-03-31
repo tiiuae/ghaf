@@ -5,6 +5,7 @@
   pkgs,
   lib,
   wifiDevice,
+  user,
   ...
 }: let
   # Replace the IP address with "net-vm.ghaf" after DNS/DHCP module merge
@@ -16,7 +17,7 @@
       export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
       export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
       ${pkgs.openssh}/bin/ssh -M -S /tmp/nmcli_socket \
-          -f -N -q ghaf@${netvm_address} \
+          -f -N -q ${user}@${netvm_address} \
           -i /run/waypipe-ssh/id_ed25519 \
           -o StrictHostKeyChecking=no \
           -o StreamLocalBindUnlink=yes \
@@ -40,7 +41,7 @@
       # Return as json format for waybar
       echo "{\"percentage\":\""''${connection[0]}"\", \"text\":\""$text"\", \"tooltip\":\""$tooltip"\", \"class\":\"1\"}"
       # Use the control socket to close the ssh tunnel.
-      ${pkgs.openssh}/bin/ssh -q -S /tmp/nmcli_socket -O exit ghaf@${netvm_address}
+      ${pkgs.openssh}/bin/ssh -q -S /tmp/nmcli_socket -O exit {user}@${netvm_address}
     '';
 in
   stdenvNoCC.mkDerivation {
