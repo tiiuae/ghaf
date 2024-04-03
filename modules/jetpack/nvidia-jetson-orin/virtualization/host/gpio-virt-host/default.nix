@@ -23,7 +23,7 @@ in {
   config = lib.mkIf cfg.enable {
     nixpkgs.overlays = [(import ./overlays/qemu)];
 
-    ghaf.hardware.nvidia.virtualization.enable = true;
+    # ghaf.hardware.nvidia.virtualization.enable = true;
 
     boot.kernelPatches = [
       /* we use overlays not patches for DT
