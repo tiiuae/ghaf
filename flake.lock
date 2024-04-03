@@ -358,16 +358,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1702914124,
-        "narHash": "sha256-EjmBJGB6DOdJnMoUKkNVMvJOYN11KU+U3IJcuGlhi38=",
-        "owner": "NixOS",
+        "lastModified": 1712144214,
+        "narHash": "sha256-ekavzoOq7n5WXL+e2aY+p7b/kr9gwrr8qXXPdRaJn+8=",
+        "owner": "avnik",
         "repo": "nixpkgs",
-        "rev": "3a9928df838d1470a0e308cef74c251e90fc83a8",
+        "rev": "86ae9433007232d38e1d8e0239f24956df0ee5ae",
         "type": "github"
       },
       "original": {
-        "owner": "NixOS",
-        "ref": "nixos-23.11",
+        "owner": "avnik",
+        "ref": "avnik/chromium-and-electron-cross-fix-backport-23.11",
         "repo": "nixpkgs",
         "type": "github"
       }
