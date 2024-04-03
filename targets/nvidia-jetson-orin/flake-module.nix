@@ -53,8 +53,12 @@
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                #agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                #nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+
+                # removed for debugging
+                agx.enableNetvmWlanPCIPassthrough = false;
+                nx.enableNetvmEthernetPCIPassthrough = false;
               };
 
               hardware.nvidia = {
