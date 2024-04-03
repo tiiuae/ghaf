@@ -59,6 +59,7 @@
 
               hardware.nvidia = {
                 virtualization.enable = false;
+                virtualization.host.gpio.enable = true;   # set true temporarily for debug
                 virtualization.host.bpmp.enable = false;
                 passthroughs.host.uarta.enable = false;
               };

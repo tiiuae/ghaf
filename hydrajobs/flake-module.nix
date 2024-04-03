@@ -5,6 +5,7 @@
     bpmpEnableModule = {lib, ...}: {
       ghaf.hardware.nvidia = {
         virtualization.enable = lib.mkForce true;
+        virtualization.host.gpio.enable = lib.mkForce true;
         virtualization.host.bpmp.enable = lib.mkForce true;
         passthroughs.host.uarta.enable = lib.mkForce true;
       };
