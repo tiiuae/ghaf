@@ -1,0 +1,38 @@
+From 3868fd2024f767b86b45698c580b5758e47660b5 Mon Sep 17 00:00:00 2001
+From: Mika Tammi <mikatammi@gmail.com>
+Date: Tue, 9 Apr 2024 03:54:04 +0300
+Subject: Always Reset Display
+
+Signed-off-by: Mika Tammi <mikatammi@gmail.com>
+---
+ .../NvDisplayControllerDxe/NvDisplayControllerDxe.c        | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/Silicon/NVIDIA/Drivers/NvDisplayControllerDxe/NvDisplayControllerDxe.c b/Silicon/NVIDIA/Drivers/NvDisplayControllerDxe/NvDisplayControllerDxe.c
+index 7b898575..7f18f24d 100644
+--- a/Silicon/NVIDIA/Drivers/NvDisplayControllerDxe/NvDisplayControllerDxe.c
++++ b/Silicon/NVIDIA/Drivers/NvDisplayControllerDxe/NvDisplayControllerDxe.c
+@@ -1591,7 +1591,6 @@ DeviceDiscoveryNotify (
+   TEGRA_PLATFORM_TYPE                Platform;
+   NON_DISCOVERABLE_DEVICE            *EdkiiNonDiscoverableDevice;
+   NVIDIA_DISPLAY_CONTROLLER_CONTEXT  *Context;
+-  EFI_GRAPHICS_OUTPUT_PROTOCOL       *Gop;
+ 
+   switch (Phase) {
+     case DeviceDiscoveryDriverBindingSupported:
+@@ -1669,12 +1668,6 @@ DeviceDiscoveryNotify (
+ 
+         return DisplayStop (Context);
+       } else {
+-        Status = DisplayLocateChildGop (Context, &Gop);
+-        if (!EFI_ERROR (Status) && CheckGopModeActiveWithFrameBuffer (Gop)) {
+-          /* We have an active GOP child, leave the display running. */
+-          return EFI_ABORTED;
+-        }
+-
+         /* The display is inactive, reset to known good state. */
+         Status = DisplayBypassSorClocks (Context);
+         ASSERT_EFI_ERROR (Status);
+-- 
+2.39.3 (Apple Git-146)
+

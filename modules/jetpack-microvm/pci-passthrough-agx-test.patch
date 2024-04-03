@@ -1,11 +1,11 @@
 diff --git a/nvidia/platform/t23x/concord/kernel-dts/Makefile b/nvidia/platform/t23x/concord/kernel-dts/Makefile
-index 1be5b3f76bf8..01d3dea90cb5 100644
+index 8e040d61f72f..dace3ef9a86d 100644
 --- a/nvidia/platform/t23x/concord/kernel-dts/Makefile
 +++ b/nvidia/platform/t23x/concord/kernel-dts/Makefile
-@@ -23,6 +23,9 @@ dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-as-p3767-0001-p3737-0000.dtb
- dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-as-pxxxx-p3737-0000.dtb
- dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-p3737-0000-kexec.dtb
+@@ -25,6 +25,9 @@ dtb-$(BUILD_ENABLE) += tegra234-p3701-0000-p3737-0000-kexec.dtb
  dtb-$(BUILD_ENABLE) += tegra234-p3701-0004-p3737-0000.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3701-0005-p3737-0000.dtb
+ dtb-$(BUILD_ENABLE) += tegra234-p3701-0008-p3737-0000.dtb
 +
 +dtb-$(BUILD_ENABLE) += tegra234-p3701-host-passthrough.dtb
 +
@@ -14,7 +14,7 @@ index 1be5b3f76bf8..01d3dea90cb5 100644
  dtbo-$(BUILD_ENABLE) += tegra234-p3737-audio-codec-rt5640.dtbo
 diff --git a/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts b/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts
 new file mode 100644
-index 000000000000..e4656287da82
+index 000000000000..5e9a0885d318
 --- /dev/null
 +++ b/nvidia/platform/t23x/concord/kernel-dts/tegra234-p3701-host-passthrough.dts
 @@ -0,0 +1,12 @@
