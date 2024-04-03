@@ -25,7 +25,7 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    nixpkgs.url = "github:avnik/nixpkgs/avnik/chromium-and-electron-cross-fix-backport-23.11";
 
     #
     # Flake and repo structuring configurations
