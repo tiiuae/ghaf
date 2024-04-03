@@ -48,12 +48,14 @@
     [
       "@pzstd@"
       "@sed@"
+      "@patch@"
       "@l4tVersion@"
       "@isCross@"
     ]
     [
       "${nixpkgs.legacyPackages.${flash-tools-system}.zstd}/bin/pzstd"
       "${nixpkgs.legacyPackages.${flash-tools-system}.gnused}/bin/sed"
+      "${nixpkgs.legacyPackages.${flash-tools-system}.patch}/bin/patch"
       "${l4tVersion}"
       "${
         if isCross
