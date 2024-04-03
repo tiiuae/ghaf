@@ -5,23 +5,41 @@
 {
   lib,
   self,
+  inputs,
   ...
 }: let
   name = "lenovo-x1-carbon";
   system = "x86_64-linux";
   installer = generation: variant: let
-    imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw";
+    targetName = "${name}-${generation}-${variant}";
+    target = self.nixosConfigurations.${targetName};
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules = [
         ({
           pkgs,
+          lib,
           modulesPath,
           ...
         }: let
+          diskoInstall = inputs.disko.packages.${system}.disko-install;
           installScript = pkgs.callPackage ../../packages/installer {
-            inherit imagePath;
+            inherit diskoInstall targetName;
+            ghafSource = self;
+
+            # Suppose that we have only one "main" disk required
+            diskName = with builtins; head (attrNames target.config.ghaf.hardware.definition.disks);
           };
+
+          dependencies =
+            [
+              target.config.system.build.toplevel
+              target.config.system.build.diskoScript
+              target.pkgs.stdenv.drvPath
+              (target.pkgs.closureInfo {rootPaths = [];}).drvPath
+            ]
+            ++ builtins.map (i: i.outPath) (builtins.attrValues self.inputs);
+          closureInfo = pkgs.closureInfo {rootPaths = dependencies;};
         in {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
@@ -33,9 +51,17 @@
           systemd.services.wpa_supplicant.wantedBy = lib.mkForce ["multi-user.target"];
           systemd.services.sshd.wantedBy = lib.mkForce ["multi-user.target"];
 
-          isoImage.isoBaseName = "ghaf";
+          environment.etc."install-closure".source = "${closureInfo}/store-paths";
 
-          environment.systemPackages = [
+          nix.settings = {
+            experimental-features = ["nix-command" "flakes"];
+            substituters = lib.mkForce [];
+            hashed-mirrors = null;
+            connect-timeout = 3;
+            flake-registry = pkgs.writeText "flake-registry" ''{"flakes":[],"version":2}'';
+          };
+
+          environment.systemPackages = with pkgs; [
             installScript
           ];
 
@@ -48,7 +74,7 @@
     };
   in {
     inherit hostConfiguration;
-    name = "${name}-${generation}-${variant}-installer";
+    name = "${targetName}-installer";
     package = hostConfiguration.config.system.build.isoImage;
   };
   targets = [
