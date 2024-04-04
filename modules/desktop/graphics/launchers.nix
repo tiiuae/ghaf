@@ -7,16 +7,22 @@
   ...
 }: let
   toDesktop = elem:
-    if !builtins.pathExists elem.icon
-    then throw "The icon's path ${elem.icon} doesn't exist"
-    else
-      makeDesktopItem {
-        inherit (elem) name icon;
-        genericName = elem.name;
-        desktopName = elem.name;
-        comment = "Secured Ghaf Application";
-        exec = elem.path;
-      };
+    (makeDesktopItem {
+      inherit (elem) name icon;
+      genericName = elem.name;
+      desktopName = elem.name;
+      comment = "Secured Ghaf Application";
+      exec = elem.path;
+    })
+    .overrideAttrs (prevAttrs: {
+      checkPhase =
+        prevAttrs.checkPhase
+        + ''
+
+          # Check that the icon's path exists
+          [[ -f "${elem.icon}" ]] || (echo "The icon's path ${elem.icon} doesn't exist" && exit 1)
+        '';
+    });
 in
   pkgs.symlinkJoin {
     name = "ghaf-desktop-entries";
