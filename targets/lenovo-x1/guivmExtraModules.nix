@@ -150,24 +150,28 @@
     boot.initrd.kernelModules = ["i915"];
 
     microvm.qemu = {
-      extraArgs = [
-        # Lenovo X1 Lid button
-        "-device"
-        "button"
-        # Lenovo X1 battery
-        "-device"
-        "battery"
-        # Lenovo X1 AC adapter
-        "-device"
-        "acad"
-        # Connect sound device to hosts pulseaudio socket
-        "-audiodev"
-        "pa,id=pa1,server=unix:/run/pulse/native"
-      ];
+      extraArgs =
+      [
+          # Lenovo X1 Lid button
+          "-device"
+          "button"
+          # Lenovo X1 battery
+          "-device"
+          "battery"
+          # Lenovo X1 AC adapter
+          "-device"
+          "acad"
+          # Connect sound device to hosts pulseaudio socket
+          "-audiodev"
+          "pa,id=pa1,server=unix:/run/pulse/native"
+        ]
+      ++ lib.optionals configH.ghaf.hardware.fprint.enable configH.ghaf.hardware.fprint.qemuExtraArgs;
     };
   };
-in [
-  guivmPCIPassthroughModule
-  guivmVirtioInputHostEvdevModule
-  guivmExtraConfigurations
-]
+in
+  [
+    guivmPCIPassthroughModule
+    guivmVirtioInputHostEvdevModule
+    guivmExtraConfigurations
+  ]
+  ++ lib.optionals configH.ghaf.hardware.fprint.enable [configH.ghaf.hardware.fprint.extraConfigurations]
