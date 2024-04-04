@@ -62,6 +62,7 @@
               hardware.generation = generation;
               hardware.ax88179_178a.enable = true;
               hardware.tpm2.enable = true;
+              hardware.fprint.enable = true;
 
               # Kernel hardening
               host.kernel.hardening.enable = false;
