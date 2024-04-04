@@ -9,7 +9,6 @@
     ./common.nix
     ./development
     ./firewall
-    ./hardware
     ./profiles
     ./security
     ./tpm2

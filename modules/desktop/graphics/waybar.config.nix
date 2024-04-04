@@ -7,7 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.graphics.labwc;
-  networkDevice = config.ghaf.hardware.definition.network.pciDevices;
+  inherit (config.ghaf.graphics.hardware) networkDevice;
   inherit (import ../../../lib/icons.nix {inherit pkgs lib;}) svgToPNG;
 
   launchpad-icon = svgToPNG "launchpad" ../../../assets/icons/svg/launchpad.svg "38x38";

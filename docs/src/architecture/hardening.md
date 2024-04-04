@@ -19,13 +19,13 @@ NixOS provides several mechanisms to customize the kernel. The main methods are:
 
 * [Declaring kernel command line parameters](https://nixos.wiki/wiki/Linux_kernel#Custom_kernel_commandline): [usage in Ghaf](https://github.com/search?q=repo%3Atiiuae%2Fghaf%20kernelparams&type=code).
 * [Declaring kernel custom configuration](https://nixos.org/manual/nixos/stable/#sec-linux-config-customizing): [usage in Ghaf](https://github.com/tiiuae/ghaf/blob/main/modules/host/kernel.nix).
-    
+
     Example of entering the kernel development shell to customize the `.config` and build it:
 
   ```
   ~/ghaf $ nix develop .#devShells.x86_64-linux.kernel-x86
   ...
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ cp ../modules/common/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline .config
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ cp ../modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline .config
   [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ make menuconfig
   ...
   [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ make -j$(nproc)
@@ -42,8 +42,8 @@ NixOS provides several mechanisms to customize the kernel. The main methods are:
 * [Validating with kernel hardening checker](https://github.com/a13xp0p0v/kernel-hardening-checker):
 
   ```
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ cp ../modules/common/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline .config
-  [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ HS=../modules/common/hardware/x86_64-generic/kernel/host/configs GS=../modules/common/hardware/x86_64-generic/kernel/guest/configs
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ cp ../modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline .config
+  [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ HS=../modules/hardware/x86_64-generic/kernel/host/configs GS=../modules/hardware/x86_64-generic/kernel/guest/configs
   [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ ./scripts/kconfig/merge_config.sh .config $HS/virtualization.config $HS/networking.config $HS/usb.config $HS/user-input-devices.config $HS/debug.config $GS/guest.config $GS/display-gpu.config
   [ghaf-kernel-devshell:~/ghaf/linux-6.6.7]$ kernel-hardening-checker -c .config
   [+] Kconfig file to check: .config
@@ -74,7 +74,7 @@ The host kernel runs on bare metal. The kernel is provided either with Linux ups
 The host kernel hardening is based on Linux `make tinyconfig`. The
 default `tinyconfig` fails to assertions on NixOS without
 modifications. Assertions are fixed in the `ghaf_host_hardened_baseline` Linux configuration under Ghaf
-`modules/common/hardware/x86_64-generic/kernel/configs`. Resulting baseline
+`modules/hardware/x86_64-generic/kernel/configs`. Resulting baseline
 kernel configuration is generic for x86_64 hardware architecture devices.
 
 In addition, NixOS (Ghaf baseline dependency) requires several kernel modules that are added to the config or ignored with `allowMissing = true`. As of now, the kernel builds and early boots on Lenovo X1.

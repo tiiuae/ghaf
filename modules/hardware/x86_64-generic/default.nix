@@ -6,5 +6,6 @@
     ./kernel/hardening.nix
     ./kernel/host
     ./kernel/host/pkvm
+    ./x86_64-linux.nix
   ];
 }

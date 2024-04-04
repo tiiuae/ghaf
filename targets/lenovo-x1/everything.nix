@@ -18,9 +18,6 @@
   ## To here
 
   lenovo-x1 = generation: variant: extraModules: let
-    hwDefinition = import ../../modules/common/hardware/lenovo-x1/definitions {
-      inherit generation lib;
-    };
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules =
@@ -34,6 +31,7 @@
           self.nixosModules.microvm
 
           self.nixosModules.disko-lenovo-x1-basic-v1
+          self.nixosModules.hw-lenovo-x1
 
           ({
             pkgs,
@@ -42,8 +40,6 @@
           }: let
             powerControl = pkgs.callPackage ../../packages/powercontrol {};
           in {
-            security.polkit.extraConfig = powerControl.polkitExtraConfig;
-            services.udev.extraRules = hwDefinition.udevRules;
             time.timeZone = "Asia/Dubai";
 
             # Enable pulseaudio support for host as a service
@@ -61,23 +57,23 @@
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 
             ghaf = {
-              hardware.definition = hwDefinition;
-              # To enable guest hardening enable host hardening first
+              # Hardware definitions
+              hardware.x86_64.common.enable = true;
+              hardware.generation = generation;
+
+              hardware.ax88179_178a.enable = true;
+              security.tpm2.enable = true;
+
+              # Kernel hardening
               host.kernel.hardening.enable = false;
               host.kernel.hardening.virtualization.enable = false;
               host.kernel.hardening.networking.enable = false;
               host.kernel.hardening.inputdevices.enable = false;
-
+              host.kernel.hardening.hypervisor.enable = false;
               guest.kernel.hardening.enable = false;
               guest.kernel.hardening.graphics.enable = false;
 
-              host.kernel.hardening.hypervisor.enable = false;
-
-              hardware.x86_64.common.enable = true;
-              hardware.ax88179_178a.enable = true;
-
-              security.tpm2.enable = true;
-
+              # Virtualization options
               virtualization.microvm-host.enable = true;
               virtualization.microvm-host.networkSupport = true;
 
@@ -105,7 +101,7 @@
                 vms = import ./appvms/default.nix {inherit pkgs config;};
               };
 
-              # Enable all the default UI applications
+              # UI applications
               profiles = {
                 applications.enable = false;
               };
