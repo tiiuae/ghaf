@@ -6,10 +6,10 @@
   pkgs,
   ...
 }: let
-  cfg = config.ghaf.security.tpm2;
+  cfg = config.ghaf.hardware.tpm2;
 in
   with lib; {
-    options.ghaf.security.tpm2 = {
+    options.ghaf.hardware.tpm2 = {
       enable = mkEnableOption "TPM2 PKCS#11 interface";
     };
 
