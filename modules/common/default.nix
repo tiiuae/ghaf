@@ -11,7 +11,6 @@
     ./firewall
     ./profiles
     ./security
-    ./tpm2
     ./users/accounts.nix
     ./version
     ./virtualization/docker.nix

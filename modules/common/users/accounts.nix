@@ -40,7 +40,7 @@ in
           extraGroups =
             ["wheel" "video" "networkmanager"]
             ++ optionals
-            config.ghaf.security.tpm2.enable ["tss"];
+            config.security.tpm2.enable ["tss"];
         };
         groups."${cfg.user}" = {
           name = cfg.user;
