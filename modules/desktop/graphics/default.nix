@@ -10,5 +10,6 @@
     ./fonts.nix
     ./window-manager.nix
     ./boot.nix
+    ./hardware.nix
   ];
 }

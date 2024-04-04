@@ -37,7 +37,7 @@
   };
 
   guivmExtraConfigurations = {
-    ghaf.hardware.definition.network.pciDevices = configH.ghaf.hardware.definition.network.pciDevices;
+    ghaf.graphics.hardware.networkDevice = configH.ghaf.hardware.definition.network.pciDevices;
     ghaf.profiles.graphics.compositor = "labwc";
     ghaf.graphics.launchers = let
       hostAddress = "192.168.101.2";

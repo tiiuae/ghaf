@@ -19,6 +19,7 @@
         self.nixosModules.desktop
         self.nixosModules.host
         self.nixosModules.microvm
+        self.nixosModules.hw-x86_64-generic
 
         {
           ghaf = {

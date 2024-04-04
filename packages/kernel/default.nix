@@ -55,8 +55,8 @@
       configfile = config_baseline;
     };
 
-  generic_host_configs = ../../modules/common/hardware/x86_64-generic/kernel/host/configs;
-  generic_guest_configs = ../../modules/common/hardware/x86_64-generic/kernel/guest/configs;
+  generic_host_configs = ../../modules/hardware/x86_64-generic/kernel/host/configs;
+  generic_guest_configs = ../../modules/hardware/x86_64-generic/kernel/guest/configs;
   # TODO: refactor - do we yet have any X1 specific host kernel configuration options?
   # - we could add a configuration fragment for host debug via usb-ethernet-adapter(s)
 

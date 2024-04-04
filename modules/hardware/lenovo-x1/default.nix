@@ -2,10 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./x86_64-linux.nix
-    ./x86_64-generic
-    ./definition.nix
-
+    ./definitions
     ./ax88179_178a.nix
   ];
 }
