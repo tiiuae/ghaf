@@ -131,7 +131,7 @@
                 ++ config.ghaf.hardware.definition.gpu.pciDevices
               ));
             in [
-              "intel_iommu=on,igx_off,sm_on"
+              "intel_iommu=on,sm_on"
               "iommu=pt"
               # Prevent i915 module from being accidentally used by host
               "module_blacklist=i915"
