@@ -1,6 +1,39 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{pkgs, ...}: let
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}: let
+  cfg = config.ghaf.disk.encryption;
+  encryptionCmds =
+    if cfg.enable
+    then ''
+      partitions_to_encrypt=("/dev/mapper/pool-vm_storage_a" "/dev/mapper/pool-vm_storage_b")
+      readarray -t pd_partitions <<<"$(${pkgs.util-linux}/bin/lsblk -no PATH,FSTYPE,UUID $PARENT_DISK)"
+
+      # Find out the partition which needs to be encrypted in a loop
+      for pp in "''${pd_partitions[@]}"
+      do
+        P_DEVPATH=$(echo "$pp" | ${pkgs.gawk}/bin/awk '{print $1}')
+        P_FSTYPE=$(echo "$pp" | ${pkgs.gawk}/bin/awk '{print $2}')
+        P_DEVUUID=$(echo "$pp" | ${pkgs.gawk}/bin/awk '{print $3}')
+        if (${pkgs.coreutils}/bin/printf '%s\n' "''${partitions_to_encrypt[@]}" | ${pkgs.gnugrep}/bin/grep -q -x "$P_DEVPATH"); then
+          FOUND=1
+        else
+          FOUND=0
+        fi
+        [[ "$FOUND" != 0 && "$P_FSTYPE" == "ext4" ]] && {
+          echo -n "ghaf" | ${pkgs.cryptsetup}/bin/cryptsetup luksFormat -q  $P_DEVPATH
+          echo -n "ghaf" | ${pkgs.cryptsetup}/bin/cryptsetup open $P_DEVPATH crypt-$P_DEVUUID
+          ${pkgs.e2fsprogs}/bin/mkfs.ext4 /dev/mapper/crypt-$P_DEVUUID
+          PASSWORD=ghaf ${pkgs.systemd}/bin/systemd-cryptenroll --fido2-device=auto --fido2-with-client-pin=yes $P_DEVPATH
+        }
+      done
+    ''
+    else "";
+
   postBootCmds = ''
     set -xeuo pipefail
 
@@ -38,6 +71,9 @@
             }
     done
 
+    # Currently with new disk partitioning scheme resizing won't have impact, so encrypting here
+    ${encryptionCmds}
+
     # If boot device was not found, exit at this point, but still return 0, so it
     # won't stop device from booting.
     [[ "$FOUND_PARENT" != 1 ]] && echo "Did not find boot device" && exit 0
@@ -59,4 +95,8 @@
   '';
 in {
   boot.postBootCommands = postBootCmds;
+  boot.initrd.luks.devices = lib.mkIf cfg.enable {
+    "crypt-pool-vm_storage_b".device = "/dev/mapper/pool-vm_storage_b";
+    "crypt-pool-vm_storage_a".device = "/dev/mapper/pool-vm_storage_a";
+  };
 }
