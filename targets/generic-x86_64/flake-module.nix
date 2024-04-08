@@ -60,8 +60,11 @@
                 applications.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
+                # Uncomment this line to use Labwc instead of Weston:
+                #graphics.compositor = "labwc";
               };
               windows-launcher.enable = true;
+              graphics.enableDemoApplications = lib.mkForce false;
             };
 
             #TODO: how to handle the majority of laptops that need a little
