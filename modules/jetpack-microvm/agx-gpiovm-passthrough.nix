@@ -16,11 +16,14 @@ in {
 
     ghaf.virtualization.microvm.gpiovm.extraModules = [
       {
+        /*
         microvm.devices = [
           {
             # GPIO passthrough uses a character device (/dev/vda). No need to specify?
           }
         ];
+        */
+
         microvm.kernelParams = [
           "rootwait"
           "root=/dev/vda"
@@ -28,19 +31,32 @@ in {
         ];
       }
     ];
-    # No need to set host kernel boot params here
+
+    /*
+    # config for both host and guest (we have only one kernel version)
+    # because of that this config is redundant (an insert for future guest configuration)
+    boot.kernelPatches.extraStructuredConfig = {
+      TEGRA_GPIO_HOST_PROXY = lib.kernel.yes;
+      TEGRA_GPIO_GUEST_PROXY = lib.kernel.yes;
+    };
+    */
+
+    /*
+    # No need to set host kernel boot params here ?
     boot.kernelParams = [
       "iommu=pt"
       "vfio.enable_unsafe_noiommu_mode=0"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
       "vfio_platform.reset_required=0"
     ];
+    */
 
     # No need to set host device tree here ???
     /*
     hardware.deviceTree = {
       # Enable hardware.deviceTree for handle host dtb overlays
       enable = true;
+
       # name = "tegra234-p3701-0000-p3737-0000.dtb";
       # name = "tegra234-p3701-host-passthrough.dtb";
 

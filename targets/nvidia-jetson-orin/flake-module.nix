@@ -53,23 +53,18 @@
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                #agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                #nx.enableNetvmEthernetPCIPassthrough = som == "nx";
-
-                # removed for debugging
-                agx.enableNetvmWlanPCIPassthrough = false;
-                nx.enableNetvmEthernetPCIPassthrough = false;
+                agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
               };
 
               hardware.nvidia = {
                 virtualization.enable = false;
-                virtualization.host.gpio.enable = true;   # set true temporarily for debug
                 virtualization.host.bpmp.enable = false;
                 passthroughs.host.uarta.enable = false;
               };
 
               virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.hostNetworkSupport = true;
+              virtualization.microvm-host.networkSupport = true;
               host.networking.enable = true;
 
               virtualization.microvm.netvm.enable = true;

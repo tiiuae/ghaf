@@ -9,6 +9,7 @@
 in {
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = [
+      /* configure kernel in modules/hardware/nvidia-jetson-orin/virtualization/default.nix for all virtualisation
       {
         name = "Added Configurations to Support Vda";
         patch = null;
@@ -24,10 +25,11 @@ in {
           HOTPLUG_PCI_ACPI = lib.mkDefault yes;
           PCI_HOST_COMMON = lib.mkDefault yes;
           VFIO_PLATFORM = lib.mkDefault yes;
-          TEGRA_BPMP_GUEST_PROXY = lib.mkDefault no;
-          TEGRA_BPMP_HOST_PROXY = lib.mkDefault no;
+          TEGRA_BPMP_GUEST_PROXY = lib.mkDefault yes;
+          TEGRA_BPMP_HOST_PROXY = lib.mkDefault yes;
         };
       }
+      */
       {
         name = "Vfio_platform Reset Required False";
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;

@@ -82,9 +82,10 @@ git -C kernel-5.10/ diff basepoint -- "arch/arm64/configs/defconfig" \
 
 # ------
 
+# build ghaf
 cd ${ghaf}
+./build.sh
 
 # ------
 
-# build ghaf
-. ${ghaf}/build.sh
+popd

@@ -21,37 +21,26 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    nixpkgs.overlays = [(import ./overlays/qemu)];
+    ghaf.hardware.nvidia.virtualization.enable = true;
 
-    # ghaf.hardware.nvidia.virtualization.enable = true;
-
+    # in practice this configures both host and guest kernel becaue we use only one kernel in the whole system
     boot.kernelPatches = [
-      /* we use overlays not patches for DT
-      {
-        name = "Gpio virtualisation host proxy device tree"
-        patch = ./patches/0007-gpio-host-gpio-dts.patch
-      }
-      {
-        name = "Gpio virtualization host uarta device tree";
-        patch = ./patches/0002-gpio-host-uarta-dts.patch;
-      }
-      */
       {
         name = "GPIO virtualization host kernel configuration";
         patch = null;
-        extraStructuredConfig = with lib.kernel; {
-          VFIO_PLATFORM = yes;
-          TEGRA_GPIO_HOST_PROXY = yes;
+        extraStructuredConfig = {
+          VFIO_PLATFORM = lib.kernel.yes;
+          TEGRA_GPIO_HOST_PROXY = lib.kernel.yes;
+          TEGRA_GPIO_GUEST_PROXY = lib.kernel.yes;
         };
       }
     ];
 
-    # this differes from bpmp implementation in that DT is overlayed here
     hardware.deviceTree = {
       # Enable hardware.deviceTree for handle host dtb overlays
       enable = true;
       # name = "tegra234-p3701-0000-p3737-0000.dtb";
-      name = "tegra234-p3701-host-passthrough.dtb";
+      # name = "tegra234-p3701-host-passthrough.dtb";
 
       # using overlay file:
       overlays = [
@@ -65,11 +54,5 @@ in {
         }
       ];
     };
-
-    # TODO: Consider if these are really needed, maybe add only in debug builds?
-    environment.systemPackages = with pkgs; [
-      qemu
-      dtc
-    ];
   };
 }
