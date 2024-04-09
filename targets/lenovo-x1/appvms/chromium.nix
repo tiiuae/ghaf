@@ -21,7 +21,7 @@ in {
     '';
   in [
     pkgs.chromium
-    pkgs.pamixer
+    pkgs.pulseaudio
     pkgs.xdg-utils
     xdgPdfItem
     xdgOpenPdf
@@ -32,22 +32,26 @@ in {
   cores = 4;
   extraModules = [
     {
-      # Enable pulseaudio for user ghaf
+      # Enable pulseaudio for Chromium VM
+      security.rtkit.enable = true;
       sound.enable = true;
-      hardware.pulseaudio.enable = true;
-      users.extraUsers.ghaf.extraGroups = ["audio"];
+      users.extraUsers.ghaf.extraGroups = ["audio" "video"];
+
+      hardware.pulseaudio = {
+        enable = true;
+        extraConfig = ''
+          load-module module-tunnel-sink sink_name=chromium-speaker server=audio-vm.ghaf:4713 format=s16le channels=2 rate=48000
+          load-module module-tunnel-source source_name=chromium-mic server=audio-vm.ghaf:4713 format=s16le channels=1 rate=48000
+
+          # Set sink and source default max volume to about 90% (0-65536)
+          set-sink-volume chromium-speaker 60000
+          set-source-volume chromium-mic 60000
+        '';
+      };
 
       time.timeZone = "Asia/Dubai";
 
       microvm.qemu.extraArgs = [
-        # Connect sound device to hosts pulseaudio socket
-        "-audiodev"
-        "pa,id=pa1,server=unix:/run/pulse/native"
-        # Add HDA sound device to guest
-        "-device"
-        "intel-hda"
-        "-device"
-        "hda-duplex,audiodev=pa1"
         # Lenovo X1 integrated usb webcam
         "-device"
         "qemu-xhci"

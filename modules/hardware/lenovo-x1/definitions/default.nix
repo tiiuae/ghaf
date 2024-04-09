@@ -25,6 +25,7 @@ in {
       inherit (hwDefinition) disks;
       inherit (hwDefinition) network;
       inherit (hwDefinition) gpu;
+      inherit (hwDefinition) audio;
 
       virtioInputHostEvdevs = [
         # Lenovo X1 touchpad and keyboard

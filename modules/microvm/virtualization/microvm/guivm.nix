@@ -70,6 +70,7 @@
               pkgs.waypipe
               pkgs.networkmanagerapplet
               pkgs.nm-launcher
+              pkgs.pamixer
             ]
             ++ (lib.optional (configHost.ghaf.profiles.debug.enable && configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
         };
