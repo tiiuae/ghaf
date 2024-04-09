@@ -36,6 +36,7 @@
             vfioPciIds = mapPciIdsToString (filterDevices (
               config.ghaf.hardware.definition.network.pciDevices
               ++ config.ghaf.hardware.definition.gpu.pciDevices
+              ++ config.ghaf.hardware.definition.audio.pciDevices
             ));
           in {
             boot = {
@@ -52,19 +53,25 @@
               initrd.availableKernelModules = ["nvme"];
             };
 
-            security.polkit.extraConfig = powerControl.polkitExtraConfig;
+            security.polkit = {
+              enable = true;
+              extraConfig = powerControl.polkitExtraConfig;
+            };
             time.timeZone = "Asia/Dubai";
 
-            # Enable pulseaudio support for host as a service
-            sound.enable = true;
-            hardware.pulseaudio = {
-              enable = true;
-              systemWide = true;
-              # Allow microvm user to access pulseaudio
-              extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
+            systemd.services."microvm@audio-vm".serviceConfig = {
+              # The + here is a systemd feature to make the script run as root.
+              ExecStopPost = [
+                "+${pkgs.writeShellScript "reload-audio" ''
+                  # The script makes audio device internal state to reset
+                  # This fixes issue of audio device getting into some unexpected
+                  # state when the VM is being shutdown during audio mic recording
+                  echo "1" > /sys/bus/pci/devices/0000:00:1f.3/remove
+                  sleep 0.1
+                  echo "1" > /sys/bus/pci/devices/0000:00:1f.0/rescan
+                ''}"
+              ];
             };
-
-            users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 
@@ -116,6 +123,14 @@
                         inherit lib pkgs microvm;
                         configH = config;
                       };
+                  };
+
+                  audiovm = {
+                    enable = true;
+                    extraModules = import ./audiovmExtraModules.nix {
+                      inherit lib pkgs microvm;
+                      configH = config;
+                    };
                   };
 
                   appvm = {

@@ -26,9 +26,21 @@ in {
   extraModules = [
     {
       # Enable pulseaudio for user ghaf to access mic
+      security.rtkit.enable = true;
       sound.enable = true;
-      hardware.pulseaudio.enable = true;
       users.extraUsers.ghaf.extraGroups = ["audio" "video"];
+
+      hardware.pulseaudio = {
+        enable = true;
+        extraConfig = ''
+          load-module module-tunnel-sink sink_name=element-speaker server=audio-vm.ghaf:4713 format=s16le channels=2 rate=48000
+          load-module module-tunnel-source source_name=element-mic server=audio-vm.ghaf:4713 format=s16le channels=1 rate=48000
+
+          # Set sink and source default max volume to about 90% (0-65536)
+          set-sink-volume element-speaker 60000
+          set-source-volume element-mic 60000
+        '';
+      };
 
       systemd = {
         services = {
@@ -98,14 +110,6 @@ in {
         "qemu-xhci"
         "-device"
         "usb-host,hostbus=3,hostport=8"
-        # Connect sound device to hosts pulseaudio socket
-        "-audiodev"
-        "pa,id=pa1,server=unix:/run/pulse/native"
-        # Add HDA sound device to guest
-        "-device"
-        "intel-hda"
-        "-device"
-        "hda-duplex,audiodev=pa1"
         # External USB GPS receiver
         "-device"
         "usb-host,vendorid=0x067b,productid=0x23a3"
