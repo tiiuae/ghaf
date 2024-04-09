@@ -139,5 +139,40 @@
         SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
       '';
     };
+
+    audio = {
+      # With the current implementation, the whole PCI IOMMU group 14:
+      #   00:1f.x in the example from Lenovo X1 Carbon
+      #   must be defined for passthrough to AudioVM
+      pciDevices = mkOption {
+        description = "PCI Devices to passthrough to AudioVM";
+        type = types.listOf pciDevSubmodule;
+        default = [];
+        example = literalExpression ''
+          [
+            {
+              path = "0000:00:1f.0";
+              vendorId = "8086";
+              productId = "5194";
+            }
+            {
+              path = "0000:00:1f.3";
+              vendorId = "8086";
+              productId = "51ca";
+            }
+            {
+              path = "0000:00:1f.4";
+              vendorId = "8086";
+              productId = "51a3";
+            }
+            {
+              path = "0000:00:1f.5";
+              vendorId = "8086";
+              productId = "51a4";
+            }
+          ]
+        '';
+      };
+    };
   };
 }
