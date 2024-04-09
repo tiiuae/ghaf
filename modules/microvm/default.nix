@@ -9,6 +9,7 @@
     ./virtualization/microvm/netvm.nix
     ./virtualization/microvm/appvm.nix
     ./virtualization/microvm/guivm.nix
+    ./virtualization/microvm/audiovm.nix
     ./networking.nix
   ];
 }

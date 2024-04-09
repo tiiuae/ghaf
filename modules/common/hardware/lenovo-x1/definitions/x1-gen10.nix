@@ -29,4 +29,6 @@
       productId = "46a6";
     }
   ];
+
+  audio.pciDevices = [];
 }
