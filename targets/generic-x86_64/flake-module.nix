@@ -45,6 +45,7 @@
           {
             ghaf = {
               hardware.x86_64.common.enable = true;
+              hardware.ax88179_178a.enable = true;
 
               virtualization.microvm-host.enable = true;
               virtualization.microvm-host.networkSupport = true;
