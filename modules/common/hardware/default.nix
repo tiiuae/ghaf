@@ -5,5 +5,7 @@
     ./x86_64-linux.nix
     ./x86_64-generic
     ./definition.nix
+
+    ./usb-network-kernel-patch.nix
   ];
 }

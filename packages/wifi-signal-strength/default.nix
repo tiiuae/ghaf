@@ -13,8 +13,20 @@
     pkgs.writeShellScript
     "wifi-signal-strength"
     ''
+      NETWORK_STATUS_FILE=/tmp/network-status
+
       export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
       export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
+
+      # Lock the script to reuse
+      LOCK_FILE=/tmp/wifi-signal.lock
+      exec 99>"$LOCK_FILE"
+      ${pkgs.util-linux}/bin/flock -w 60 -x 99 || exit 1
+
+      # Return the result as json format for waybar and use the control socket to close the ssh tunnel.
+      trap "${pkgs.openssh}/bin/ssh -q -S /tmp/nmcli_socket -O exit ghaf@${netvm_address} && ${pkgs.coreutils-full}/bin/cat $NETWORK_STATUS_FILE" EXIT
+
+      # Connect to netvm
       ${pkgs.openssh}/bin/ssh -M -S /tmp/nmcli_socket \
           -f -N -q ghaf@${netvm_address} \
           -i /run/waypipe-ssh/id_ed25519 \
@@ -37,10 +49,10 @@
       signal_level=$(if [ ''${connection[0]} -gt 80 ]; then echo $signal3; elif [ ''${connection[0]} -gt 60 ]; then echo $signal2; elif [ ''${connection[0]} -gt 30 ]; then echo $signal1; elif [ ''${connection[0]} -gt 0 ]; then echo signal0; else echo $no_signal; fi)
       tooltip=$(if [ -z $address ]; then echo ''${connection[0]}%; else echo $address ''${connection[0]}%; fi)
       text=$(if [ -z ''${connection[1]} ]; then echo "No connection"; else echo ''${connection[1]} $signal_level; fi)
-      # Return as json format for waybar
-      echo "{\"percentage\":\""''${connection[0]}"\", \"text\":\""$text"\", \"tooltip\":\""$tooltip"\", \"class\":\"1\"}"
-      # Use the control socket to close the ssh tunnel.
-      ${pkgs.openssh}/bin/ssh -q -S /tmp/nmcli_socket -O exit ghaf@${netvm_address}
+      # Save the result in json format
+      RESULT="{\"percentage\":\""''${connection[0]}"\", \"text\":\""$text"\", \"tooltip\":\""$tooltip"\", \"class\":\"1\"}"
+      echo $RESULT>/tmp/network-status
+      ${pkgs.util-linux}/bin/flock -u 99
     '';
 in
   stdenvNoCC.mkDerivation {
