@@ -64,7 +64,6 @@
                 #graphics.compositor = "labwc";
               };
               windows-launcher.enable = true;
-              graphics.enableDemoApplications = lib.mkForce false;
             };
 
             #TODO: how to handle the majority of laptops that need a little
