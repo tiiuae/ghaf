@@ -5,11 +5,12 @@
   config,
   ...
 }: let
-  cfg = config.ghaf.hardware.nvidia.virtualization;
+  cfg = config.ghaf.hardware.nvidia.virtualization.host.bpmp;
 in {
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = [
       /* configure kernel in modules/hardware/nvidia-jetson-orin/virtualization/default.nix for all virtualisation
+       * TODO: differentiate config
       {
         name = "Added Configurations to Support Vda";
         patch = null;

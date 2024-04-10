@@ -5,11 +5,12 @@
   config,
   ...
 }: let
-  cfg = config.ghaf.hardware.nvidia.virtualization;
+  cfg = config.ghaf.hardware.nvidia.virtualization.host.gpio;
 in {
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = [
       /* configure kernel in modules/hardware/nvidia-jetson-orin/virtualization/default.nix for all virtualisation
+       * TODO: differentiate config
       {
         name = "Added Configurations to Support GPIO passthrough";
         patch = null;
@@ -31,21 +32,25 @@ in {
           TEGRA_GPIO_HOST_PROXY = lib.mkDefault lib.kernel.yes;
         };
       }
-      */ 
+      */
+      /* This patch is not needed because of the kernel parameters
       {
         name = "Vfio_platform Reset Required False";
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;
       }
+      */
+      # patching the kernel for gpio passthrough
       {
         name = "GPIO Support Virtualization";
         patch = ./patches/0003-gpio-virt-kernel.patch;
       }
+      # patching the custom GPIO kernel modules
       {
         name = "GPIO Virt Drivers";
         patch = ./patches/0004-gpio-virt-drivers.patch;
       }
       /*
-      # the driver is implemeted as an overlay file not a patch file -- remove patch file
+      # the driver is implemeted as an overlay file not a patch file -- don't use patch file
       {
         name = "GPIO Overlay";
         patch = ./patches/0005-gpio-overlay.patch;       # source file patch

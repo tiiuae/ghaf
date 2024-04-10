@@ -6,7 +6,6 @@
   pkgs,
   ...
 } : with pkgs; let
-  cfg = config.ghaf.virtualization.microvm.gpiovm;
   configHost = config;
   vmName = "gpio-vm";
 
@@ -18,6 +17,13 @@
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
           development = {
             debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
+            nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+          };
+          systemd = {
+            enable = true;
+            withName = "gpiovm-systemd";
+            withPolkit = true;
+            withDebug = configHost.ghaf.profiles.debug.enable;
           };
         };
 
@@ -28,11 +34,12 @@
 
         microvm.hypervisor = "qemu";
 
-        /* add services in extraModules variable instead
+        /*
         services.xxx = {
-          enable = true;
-        };
+          # we define a servce in extraModules variable below with import ./gpio-test.nix 
+        }
         */
+
         microvm = {
           optimize.enable = true;
           shares = [
@@ -45,10 +52,11 @@
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
         };
 
-        imports = import ../../module-list.nix;
+        imports = [../../../common];
       })
     ];
   };
+  cfg = config.ghaf.virtualization.microvm.gpiovm;
 in {
   options.ghaf.virtualization.microvm.gpiovm = {
     enable = lib.mkEnableOption "GPIO-VM";
@@ -63,7 +71,6 @@ in {
     };
   };
 
-
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
@@ -74,7 +81,7 @@ in {
             gpiovmBaseConfiguration.imports
             ++ cfg.extraModules;
         };
-      specialArgs = {inherit lib;};
+      # specialArgs = {inherit lib;};
     };
   };
 }

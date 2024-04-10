@@ -32,6 +32,11 @@
         };
       }
     ];
+    gpiovmExtraModules = [
+      {
+        # hardware modules for gpio
+      }
+    ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
 
@@ -47,7 +52,6 @@
           self.nixosModules.jetpack
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
-
           {
             ghaf = {
               hardware.nvidia.orin = {
@@ -55,12 +59,17 @@
                 somType = som;
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                agx.enableGPIOPassthrough = som == "agx";
               };
 
               hardware.nvidia = {
-                virtualization.enable = false;
-                virtualization.host.bpmp.enable = false;
-                passthroughs.host.uarta.enable = false;
+                virtualization.enable = lib.mkDefault true;
+                virtualization.host.bpmp.enable = lib.mkDefault false;
+                passthroughs.host.uarta.enable = lib.mkDefault false;
+                virtualization.host.gpio.enable = lib.mkDefault true;
+                # virtualization.enable = false;
+                # virtualization.host.bpmp.enable = false;
+                # passthroughs.host.uarta.enable = false;
               };
 
               virtualization.microvm-host.enable = true;
@@ -69,6 +78,8 @@
 
               virtualization.microvm.netvm.enable = true;
               virtualization.microvm.netvm.extraModules = netvmExtraModules;
+              virtualization.microvm.gpiovm.enable = true;
+              virtualization.microvm.gpiovm.extraModules = gpiovmExtraModules;
 
               # Enable all the default UI applications
               profiles = {

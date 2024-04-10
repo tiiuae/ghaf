@@ -12,20 +12,20 @@ case $ans in
     nixos-rebuild --flake ${flake} build
     ;;
   t|T)
-    echo "Switchng a nix derivation..."
-    sudo nixos-rebuild --flake ${flake} switch
+    echo "Testing a nix derivation..."
+    sudo nixos-rebuild --flake ${flake} test
     ;;
   s|S)
     echo "Switchng a nix derivation..."
     sudo nixos-rebuild --flake ${flake} switch
     ;;
   x|X)
-    echo "Building a nix derivation..."
+    echo "Building a nix derivation with trace..."
     nixos-rebuild --flake ${flake} build --show-trace
     ;;
   e|E)
     echo "Evaluating to eval_${flake}.tmp"
-    nix derivation show --recursive ${flake} > eval_${flake}.tmp 
+    nix derivation show --show-trace --recursive ${flake} > eval_${flake}.tmp 
     ;;
   n|N)
     echo "Exiting..."
