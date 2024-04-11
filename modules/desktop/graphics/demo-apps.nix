@@ -18,6 +18,16 @@
       -resize 24x24 \
       $out/share/icons/hicolor/24x24/apps/firefox.png
   '';
+  /*
+  Scaled down yubioath icon
+  */
+  yubioath-icon = pkgs.runCommand "yubioath-icon-24x24" {} ''
+    mkdir -p $out/share/icons/hicolor/24x24/apps
+    ${pkgs.buildPackages.imagemagick}/bin/convert \
+      ${pkgs.yubioath-flutter}/share/icons/com.yubico.yubioath.png" \
+      -resize 24x24 \
+      $out/share/icons/hicolor/24x24/apps/yubioath.png
+  '';
 
   /*
   Generate launchers to be used in weston.ini
@@ -39,6 +49,7 @@ in {
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
+    yubioath-flutter = mkProgramOption "yubioath" config.ghaf.graphics.enableDemoApplications;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
@@ -67,12 +78,18 @@ in {
         name = "zathura";
         path = "${pkgs.zathura}/bin/zathura";
         icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
+      }
+      ++ lib.optional cfg.yubioath-flutter {
+        name = "yubioath-flutter";
+        path = "${pkgs.yubioath-flutter}/bin/yubioath-flutter";
+        icon = "${yubioath-icon}/share/icons/hicolor/24x24/apps/yubioath.png";
       };
     environment.systemPackages =
       lib.optional cfg.chromium pkgs.chromium
       ++ lib.optional cfg.element-desktop pkgs.element-desktop
       ++ lib.optional cfg.firefox pkgs.firefox
       ++ lib.optional cfg.gala-app pkgs.gala-app
-      ++ lib.optional cfg.zathura pkgs.zathura;
+      ++ lib.optional cfg.zathura pkgs.zathura
+      ++ lib.optional cfg.yubioath-flutter pkgs.yubioath-flutter;
   };
 }

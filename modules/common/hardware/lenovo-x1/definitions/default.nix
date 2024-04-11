@@ -37,6 +37,8 @@ in {
     # Mouse and Touchpad
     ${lib.strings.concatStrings (mapMouseRules hwDefinition.mouse)}
     ${lib.strings.concatStrings (mapTouchpadRules hwDefinition.touchpad)}
+    # YubiKey rule
+    SUBSYSTEM=="usb", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0407", GROUP="kvm", MODE="0660"
   '';
 
   virtioInputHostEvdevs = [
