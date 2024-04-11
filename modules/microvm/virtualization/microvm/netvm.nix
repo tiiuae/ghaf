@@ -35,8 +35,6 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-        microvm.hypervisor = "qemu";
-
         networking = {
           firewall.allowedTCPPorts = [53];
           firewall.allowedUDPPorts = [53];
@@ -88,6 +86,7 @@
 
         microvm = {
           optimize.enable = true;
+          hypervisor = "qemu";
           shares = [
             {
               tag = "ro-store";
@@ -96,6 +95,15 @@
             }
           ];
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+          qemu = {
+            machine =
+              {
+                # Use the same machine type as the host
+                x86_64-linux = "q35";
+                aarch64-linux = "virt";
+              }
+              .${configHost.nixpkgs.hostPlatform.system};
+          };
         };
 
         imports = [../../../common];
