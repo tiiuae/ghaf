@@ -43,6 +43,8 @@
     ghaf,
     nixpkgs,
     flake-utils,
+    # deadnix: skip
+    nixos-hardware,
   }: let
     systems = with flake-utils.lib.system; [
       x86_64-linux
