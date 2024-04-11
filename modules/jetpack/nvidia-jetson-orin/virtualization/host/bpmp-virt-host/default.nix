@@ -21,9 +21,12 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    nixpkgs.overlays = [(import ./overlays/qemu)];
+    ghaf.hardware.nvidia.virtualization.enable = true;
 
+    # in practice this configures both host and guest kernel becaue we use only one kernel in the whole system§
     boot.kernelPatches = [
+
+      # dts patches are temporary -- we move towards overlays, not patches
       {
         name = "Bpmp virtualization host proxy device tree";
         patch = ./patches/0001-bpmp-host-proxy-dts.patch;
@@ -35,17 +38,12 @@ in {
       {
         name = "Bpmp virtualization host kernel configuration";
         patch = null;
-        extraStructuredConfig = with lib.kernel; {
-          VFIO_PLATFORM = yes;
-          TEGRA_BPMP_HOST_PROXY = yes;
+        extraStructuredConfig = {
+          VFIO_PLATFORM = lib.kernel.yes;
+          TEGRA_BPMP_HOST_PROXY = lib.kernel.yes;
+          TEGRA_BPMP_GUEST_PROXY = lib.kernel.yes;
         };
       }
-    ];
-
-    # TODO: Consider are these really needed, maybe add only in debug builds?
-    environment.systemPackages = with pkgs; [
-      qemu
-      dtc
     ];
   };
 }

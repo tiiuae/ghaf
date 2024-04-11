@@ -5,22 +5,12 @@
   config,
   ...
 }: let
-  cfg = config.ghaf.hardware.nvidia.virtualization;
+  cfg = config.ghaf.hardware.nvidia.virtualization.host.bpmp;
 in {
-  options.ghaf.hardware.nvidia.virtualization.enable = lib.mkOption {
-    type = lib.types.bool;
-    default = false;
-    description = ''
-      Enable virtualization support for NVIDIA Orin
-
-      This option is an implementation level detail and is toggled automatically
-      by modules that need it. Manually enabling this option is not recommended in
-      release builds.
-    '';
-  };
-
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = [
+      /* configure kernel in modules/hardware/nvidia-jetson-orin/virtualization/default.nix for all virtualisation
+       * TODO: differentiate config
       {
         name = "Added Configurations to Support Vda";
         patch = null;
@@ -36,10 +26,11 @@ in {
           HOTPLUG_PCI_ACPI = lib.mkDefault yes;
           PCI_HOST_COMMON = lib.mkDefault yes;
           VFIO_PLATFORM = lib.mkDefault yes;
-          TEGRA_BPMP_GUEST_PROXY = lib.mkDefault no;
-          TEGRA_BPMP_HOST_PROXY = lib.mkDefault no;
+          TEGRA_BPMP_GUEST_PROXY = lib.mkDefault yes;
+          TEGRA_BPMP_HOST_PROXY = lib.mkDefault yes;
         };
       }
+      */
       {
         name = "Vfio_platform Reset Required False";
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;

@@ -1,0 +1,62 @@
+diff --git a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi
+index 1cf75f2..7dee55c 100644
+--- a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi
++++ b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-base.dtsi
+@@ -339,6 +339,13 @@
+ 		};
+ 	};
+ #endif
++	bpmp_host_proxy: bpmp_host_proxy {
++		compatible = "nvidia,bpmp-host-proxy";
++		allowed-clocks = <TEGRA234_CLK_UARTA 
++				TEGRA234_CLK_PLLP_OUT0>;
++		allowed-resets = <TEGRA234_RESET_UARTA>;				  
++		status = "okay";
++	};
+ 
+ 	nvrng@3ae0000 {
+ 		compatible = "nvidia,tegra234-se-nvrng";
+@@ -444,6 +451,13 @@
+ 		status = "disabled";
+ 	};
+ 
++	gpio_host_proxy: gpio_host_proxy {
++	       compatible = "nvidia,gpio-host-proxy";
++	       // allowed-clocks = <0>;
++	       // allowed-resets = <0>;
++	       status = "okay";
++	};
++
+ 	tegra_gte_lic: gte@3aa0000 {
+                 compatible = "nvidia,tegra194-gte-lic";
+                 reg = <0x0 0x3aa0000 0x0 0x10000>;
+diff --git a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
+index 503cb27..8a74263 100644
+--- a/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
++++ b/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi
+@@ -28,10 +28,10 @@
+ 		serial5 = &uartf;
+ 		serial7 = &uarth;
+ 	};
+-
+-	uarta: serial@3100000 {
+-		compatible = "nvidia,tegra194-hsuart";
+-		iommus = <&smmu_niso0 TEGRA_SID_NISO0_GPCDMA_0>;
++	 uarta: serial@3100000 {
++		compatible = "nvidia,tegra194-dummy", "nvidia,vfio-platform";
++		//iommus = <&smmu_niso0 TEGRA_SID_NISO0_GPCDMA_0>;
++		iommus = <&smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST>;
+ 		dma-coherent;
+ 		reg = <0x0 0x03100000 0x0 0x10000>;
+ 		reg-shift = <2>;
+@@ -44,8 +44,8 @@
+ 		clock-names = "serial", "parent";
+ 		resets = <&bpmp_resets TEGRA234_RESET_UARTA>;
+ 		reset-names = "serial";
+-		status = "disabled";
+-	};
++		status = "okay";
++	 };
+ 
+ 	uartb: serial@3110000 {
+ 		compatible = "nvidia,tegra194-hsuart";

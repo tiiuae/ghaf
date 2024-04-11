@@ -1,0 +1,24 @@
+From 03c7ecfd16e46838ab70c43a18990ef3dd35d08c Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@tii.ae>
+Date: Thu, 4 May 2023 12:19:37 +0400
+Subject: [PATCH 2/3] vfio_platform: reset required false
+
+---
+ drivers/vfio/platform/vfio_platform.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/vfio/platform/vfio_platform.c b/drivers/vfio/platform/vfio_platform.c
+index 1e2769010089..3eabe37f400d 100644
+--- a/drivers/vfio/platform/vfio_platform.c
++++ b/drivers/vfio/platform/vfio_platform.c
+@@ -15,7 +15,7 @@
+ #define DRIVER_AUTHOR   "Antonios Motakis <a.motakis@virtualopensystems.com>"
+ #define DRIVER_DESC     "VFIO for platform devices - User Level meta-driver"
+ 
+-static bool reset_required = true;
++static bool reset_required = false;
+ module_param(reset_required, bool, 0444);
+ MODULE_PARM_DESC(reset_required, "override reset requirement (default: 1)");
+ 
+-- 
+2.25.1
