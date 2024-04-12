@@ -26,53 +26,18 @@ in {
 
         microvm.kernelParams = [
           "rootwait"
-          "root=/dev/vda"
+          # "root=/dev/vda"
           "console=ttyAMA0"
         ];
       }
     ];
 
-    /*
-    # config for both host and guest (we have only one kernel version)
-    # because of that this config is redundant (an insert for future guest configuration)
-    boot.kernelPatches.extraStructuredConfig = {
-      TEGRA_GPIO_HOST_PROXY = lib.kernel.yes;
-      TEGRA_GPIO_GUEST_PROXY = lib.kernel.yes;
-    };
-    */
-
-    /*
-    # No need to set host kernel boot params here ?
-    boot.kernelParams = [
-      "iommu=pt"
-      "vfio.enable_unsafe_noiommu_mode=0"
-      "vfio_iommu_type1.allow_unsafe_interrupts=1"
-      "vfio_platform.reset_required=0"
-    ];
-    */
-
-    # No need to set host device tree here ???
-    /*
-    hardware.deviceTree = {
-      # Enable hardware.deviceTree for handle host dtb overlays
-      enable = true;
-
-      # name = "tegra234-p3701-0000-p3737-0000.dtb";
-      # name = "tegra234-p3701-host-passthrough.dtb";
-
-      # using overlay file:
-      overlays = [
-        {
-          name = "gpio_pt_host_overlay";
-          dtsFile = ./gpio_pt_host_overlay.dtso;
-
-          # Apply overlay only to host passthrough device tree
-          # filter = "tegra234-gpio-host-proxy.dtb";
-          # filter = "tegra234-p3701-0000-p3737-0000.dtb";
-          filter = "tegra234-p3701-host-passthrough.dtb";
-        }
-      ];
-    };
+    /* tmp note: further kernel settings for nvidia in:
+    ../jetpack/nvidia-jetson-orin/virtualization/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/common/gpio-virt-common/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/host/gpio-virt-host/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/default.nix
     */
   };
 }

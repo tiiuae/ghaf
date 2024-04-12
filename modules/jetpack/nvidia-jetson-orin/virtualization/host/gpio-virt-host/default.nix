@@ -39,6 +39,7 @@ in {
     hardware.deviceTree = {
       # Enable hardware.deviceTree for handle host dtb overlays
       enable = true;
+      name = "tegra234-p3701-0000-p3737-0000";
       # name = "tegra234-p3701-0000-p3737-0000.dtb";
       # name = "tegra234-p3701-host-passthrough.dtb";
 
@@ -49,7 +50,7 @@ in {
           dtsFile = ./gpio_pt_host_overlay.dtso;
 
           # Apply overlay only to host passthrough device tree
-          # filter = "tegra234-p3701-0000-p3737-0000.dtb";
+          filter = "tegra234-p3701-0000-p3737-0000.dtb";
           # filter = "tegra234-p3701-host-passthrough.dtb";
         }
       ];

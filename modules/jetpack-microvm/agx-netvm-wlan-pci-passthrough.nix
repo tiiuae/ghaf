@@ -37,7 +37,7 @@ in {
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
 
-    hardware.deviceTree = {
+    hardware.deviceTree = lib.mkDefault {
       enable = true;
       name = "tegra234-p3701-host-passthrough.dtb";
     };

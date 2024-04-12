@@ -63,7 +63,7 @@
               };
 
               hardware.nvidia = {
-                virtualization.enable = lib.mkDefault true;
+                # virtualization.enable = lib.mkDefault true;
                 virtualization.host.bpmp.enable = lib.mkDefault false;
                 passthroughs.host.uarta.enable = lib.mkDefault false;
                 virtualization.host.gpio.enable = lib.mkDefault true;
