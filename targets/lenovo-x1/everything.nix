@@ -78,7 +78,6 @@
               host.kernel.hardening.hypervisor.enable = false;
 
               hardware.x86_64.common.enable = true;
-              hardware.ax88179_178a.enable = true;
 
               security.tpm2.enable = true;
 
