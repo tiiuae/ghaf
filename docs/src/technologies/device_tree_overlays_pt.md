@@ -1,0 +1,152 @@
+<!--
+    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
+# Device Tree Overlays for Passthrough
+
+The device tree blob (DTB) is a data structure that describes the hardware 
+components of a particular system so that the operating system can use and manage 
+those components. For passthrough, the hardware description in the host needs
+some modifications, which include:
+
+- Removing the device's driver to passthrough by assigning a dummy string
+  to the *compatible* property.
+- Adding the *iommus* property to the device to passthrough.
+- Removing or adding other properties that cause conflicts during the passthrough.
+
+Modifying the host device tree could be done by applying patches
+to DTS files. Nevertheless, this option is not 
+scalable if we need to apply different patches to the same .dts from 
+different configurations.
+
+A better and more scalable approach for modifying a device tree is using device
+tree overlays. The device tree overlay contains information about the nodes
+to modify (in nodes called *fragment@0 ...*) and the overlay of the 
+properties that we want to affect. For more information on the overlays, 
+see [Overlay notes](https://www.kernel.org/doc/Documentation/devicetree/overlay-notes.txt).
+
+
+## Nix hardware.deviceTree Module
+
+The Nix hardware.deviceTree module helps to work with the device trees and 
+their overlays:
+
+- To define the device tree overlay file to use.
+- To use a filter to apply the overlay only to specific files.
+- To define included paths to build the device tree overlay.
+
+## Device Tree Overlay Example
+
+In this section, you can find an example of an overlay for the UARTI passthrough. 
+Suppose that we want to passthrough the UARTI to a VM. To do this, we need
+to modify and add these properties:
+
+   * **compatible:** put a dummy driver associated with this node so that 
+   the kernel will not bind any driver to this UART unit.
+   * **iommus:** add the iommus field with the test stream ID 
+   *TEGRA_SID_NISO1_SMMU_TEST* which by default is not used by any other device
+
+The original properties of the UARTI in Nvidia Jetson Orin AGX are defined in 
+*hardware/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi* 
+as follows:
+
+```cpp
+    uarti: serial@31d0000 {
+        compatible = "arm,dummy";
+        iommus = <&smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST>;
+        reg = <0x0 0x31d0000 0x0 0x10000>;
+        interrupts = <0x0 TEGRA234_IRQ_UARTI 0x04>;
+        current-speed = <115200>;
+        status = "disabled";
+    };
+```
+
+We have defined an overlay as follows for the passthrough:
+
+
+```cpp
+/*
+ * Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/memory/tegra234-smmu-streamid.h>
+
+/{
+    overlay-name = "UARTI passthrough on host";
+    compatible = "nvidia,p3737-0000+p3701-0000";
+    
+    fragment@0 {
+        target = <&uarti>;
+        __overlay__ {
+            compatible = "arm,dummy";
+            iommus = <&smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST>;
+            status = "okay";
+        };
+    };
+};
+```
+
+We will describe here all the components:
+
+* **#include <dt-bindings/memory/tegra234-smmu-streamid.h>:** the 
+  included headers files for the macro definitions used in the device
+  tree overlay.
+
+* **overlay-name:** briefly describes the purpose of the device tree
+
+* **compatible:** this must be at least one of the root (/) compatibles of 
+the source device tree that we want to overlay, because the 
+*hardware.deviceTree* module will apply only to each .dtb file matching 
+"compatible" of the overlay.
+
+* **fragment@0:** node with the information of the source node to 
+  modify.
+
+* **fragment@0/target:** label to the node to modify.
+  For this case we can use the label *uarti*, but also we can use
+  the path with path: *target-path="/serial@31d0000"*
+
+* **__overlay__:** contains the properties that we want to add or modify from
+the source node.
+
+In Nix you can enable the hardware.deviceTree module and define the device
+tree path as follows:
+
+``` nix
+# Enable hardware.deviceTree for handle host dtb overlays
+hardware.deviceTree.enable = true;
+
+# Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
+hardware.deviceTree.overlays = [
+    {
+    name = "uarti_pt_host_overlay";
+    dtsFile = ./uarti_pt_host_overlay.dts;
+
+    # Apply overlay only to host passthrough device tree
+    filter = "tegra234-p3701-host-passthrough.dtb";
+    }
+];
+```
+
+Also, in [jetson-orin.nix](../../../modules/jetpack/nvidia-jetson-orin/jetson-orin.nix) the 
+*dtboBuildExtraIncludePaths* is defined with the path needed to include 
+the *tegra234-smmu-streamid.h* header file.
+
+``` nix
+hardware.deviceTree =
+{
+    enable = lib.mkDefault true;
+    # Add the include paths to build the dtb overlays
+    dtboBuildExtraIncludePaths = [
+    "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
+    ];
+}
+```
+
+You can find this full implementation in the Nix module: 
+[uarti-net-vm](../../../modules/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm)

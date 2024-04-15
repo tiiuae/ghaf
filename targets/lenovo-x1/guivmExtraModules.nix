@@ -136,20 +136,22 @@
     # Early KMS needed for GNOME to work inside GuiVM
     boot.initrd.kernelModules = ["i915"];
 
-    microvm.qemu.extraArgs = [
-      # Lenovo X1 Lid button
-      "-device"
-      "button"
-      # Lenovo X1 battery
-      "-device"
-      "battery"
-      # Lenovo X1 AC adapter
-      "-device"
-      "acad"
-      # Connect sound device to hosts pulseaudio socket
-      "-audiodev"
-      "pa,id=pa1,server=unix:/run/pulse/native"
-    ];
+    microvm.qemu = {
+      extraArgs = [
+        # Lenovo X1 Lid button
+        "-device"
+        "button"
+        # Lenovo X1 battery
+        "-device"
+        "battery"
+        # Lenovo X1 AC adapter
+        "-device"
+        "acad"
+        # Connect sound device to hosts pulseaudio socket
+        "-audiodev"
+        "pa,id=pa1,server=unix:/run/pulse/native"
+      ];
+    };
   };
 in [
   ./sshkeys.nix

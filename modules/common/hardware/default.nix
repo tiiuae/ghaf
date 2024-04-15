@@ -6,6 +6,6 @@
     ./x86_64-generic
     ./definition.nix
 
-    ./usb-network-kernel-patch.nix
+    ./ax88179_178a.nix
   ];
 }

@@ -17,8 +17,13 @@
       $out/share/icons/hicolor/24x24/apps/ghaf-icon-24x24.png
   '';
 
-  wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = (lib.lists.findFirst (d: d.name != null) null networkDevice).name;};
+  wifiDevice = lib.lists.findFirst (d: d.name != null) null networkDevice;
+  wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = wifiDevice.name;};
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
+  timeZone =
+    if config.time.timeZone != null
+    then config.time.timeZone
+    else "UTC";
 in {
   config = lib.mkIf cfg.enable {
     ghaf.graphics.launchers = [
@@ -32,56 +37,60 @@ in {
       text =
         # Modified from default waybar configuration file https://github.com/Alexays/Waybar/blob/master/resources/config
         ''
-            {
-              "height": 30, // Waybar height (to be removed for auto height)
-              "spacing": 4, // Gaps between modules (4px)
-              "modules-left": ["custom/launcher"],
-              "modules-center": ["sway/window"],
-              "modules-right": ["pulseaudio", "custom/network1", "backlight", "battery", "clock", "tray"],
-              "keyboard-state": {
-                  "numlock": true,
-                  "capslock": true,
-                  "format": "{name} {icon}",
-                  "format-icons": {
-                      "locked": "",
-                      "unlocked": ""
-                  }
-              },
-              "tray": {
-                  // "icon-size": 21,
-                  "spacing": 10
-              },
-              "clock": {
-                  "timezone": "${config.time.timeZone}",
-                  "tooltip-format": "<big>{:%d %b %Y}</big>\n<tt><small>{calendar}</small></tt>",
-                  // should be "{:%a %-d %b %-I:%M %#p}"
-                  // see github.com/Alexays/Waybar/issues/1469
-                  "format": "{:%a %d %b   %I:%M %p}"
-              },
-              "backlight": {
-                  // "device": "acpi_video1",
-                  "format": "{percent}% {icon}",
-                  "tooltip-format": "Brightness: {percent}%",
-                  "format-icons": ["", "", "", "", "", "", "", "", ""]
-              },
-              "battery": {
-                  "states": {
-                      "critical": 15
-                  },
-                  "interval": 5,
-                  "format": "{capacity}% {icon}",
-                  "format-charging": "{capacity}% 󰢟",
-                  "format-plugged": "{capacity}% ",
-                  "format-alt": "{time} {icon}",
-                  "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
-              },
-              "custom/network1": {
-                "format": "{}",
-                "interval": 15,
-                "exec": "${wifi-signal-strength}/bin/wifi-signal-strength",
-                "return-type": "json",
-                "on-click": "nm-launcher",
-              },
+          {
+            "height": 30, // Waybar height (to be removed for auto height)
+            "spacing": 4, // Gaps between modules (4px)
+            "modules-left": ["custom/launcher"],
+            "modules-center": ["sway/window"],
+            "modules-right": ["pulseaudio", "custom/network1", "backlight", "battery", "clock", "tray"],
+            "keyboard-state": {
+                "numlock": true,
+                "capslock": true,
+                "format": "{name} {icon}",
+                "format-icons": {
+                    "locked": "",
+                    "unlocked": ""
+                }
+            },
+            "tray": {
+                // "icon-size": 21,
+                "spacing": 10
+            },
+            "clock": {
+                "timezone": "${timeZone}",
+                "tooltip-format": "<big>{:%d %b %Y}</big>\n<tt><small>{calendar}</small></tt>",
+                // should be "{:%a %-d %b %-I:%M %#p}"
+                // see github.com/Alexays/Waybar/issues/1469
+                "format": "{:%a %d %b   %I:%M %p}"
+            },
+            "backlight": {
+                // "device": "acpi_video1",
+                "format": "{percent}% {icon}",
+                "tooltip-format": "Brightness: {percent}%",
+                "format-icons": ["", "", "", "", "", "", "", "", ""]
+            },
+            "battery": {
+                "states": {
+                    "critical": 15
+                },
+                "interval": 5,
+                "format": "{capacity}% {icon}",
+                "format-charging": "{capacity}% 󰢟",
+                "format-plugged": "{capacity}% ",
+                "format-alt": "{time} {icon}",
+                "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+            },
+        ''
+        + lib.optionalString (wifiDevice != null) ''
+          "custom/network1": {
+            "format": "{}",
+            "interval": 15,
+            "exec": "${wifi-signal-strength}/bin/wifi-signal-strength",
+            "return-type": "json",
+            "on-click": "nm-launcher",
+          },
+        ''
+        + ''
               "custom/launcher": {
                 "format": " ",
                 "on-click": "${ghaf-launcher}/bin/ghaf-launcher",

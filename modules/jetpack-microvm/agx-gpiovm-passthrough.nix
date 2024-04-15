@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
+{ 
+  pkgs,
   lib,
   config,
   ...
@@ -11,68 +12,57 @@ in {
     lib.mkEnableOption
     "GPIO passthrough to VM";
   config = lib.mkIf cfg.enableGPIOPassthrough {
-    # Orin AGX GPIO Passthrough
-    # Debug statement to log a message
 
     ghaf.virtualization.microvm.gpiovm.extraModules = [
       {
-        /*
-        microvm.devices = [
-          {
-            # GPIO passthrough uses a character device (/dev/vda). No need to specify?
-          }
-        ];
-        */
+        microvm = 
+        {
+          /*
+          devices = [
+            {
+              # GPIO passthrough uses a character device (/dev/vda). No need to specify?
+            }
+          ];
+          */
 
-        microvm.kernelParams = [
-          "rootwait"
-          "root=/dev/vda"
-          "console=ttyAMA0"
-        ];
+          # Make sure that Gpio-VM runs after the dependency service are enabled
+          # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
+
+          kernelParams = builtins.trace "GpioVM: Evaluating microvm.kernelParams (qemu -append) for gpio-vm" [
+            "rootwait"
+          # "root=/dev/vda"
+            # gpio-vm cannot open AMA0 reserved for passthrough console
+            # since it does not have uarta passthough
+            # "console=ttyAMA0 console=ttyS0"
+            # "console=tty10"
+          ];
+        };
+
+        /* no overlay when using dtb patch
+         * Note: use qemu.extraArgs for -dtb
+        hardware.deviceTree = builtins.trace "GpioVM: Evaluating hardware.deviceTree for gpio-vm" {
+          enable = true;
+          name = builtins.trace "GpioVM: Setting hardware.deviceTree.name" gpioGuestDtbName;
+          # name = builtins.trace "GpioVM: Debugging with ${gpioGuestOrigName}" gpioGuestOrigName;
+          overlays = builtins.trace "GpioVM: Setting hardware.deviceTree.overlays" [
+            {
+              name = "gpio_pt_guest_overlay";
+              dtsFile = gpioGuestDts;
+              # filter  = dtbFile;
+              filter = gpioGuestDtbName;
+            }
+          ];
+        };
+        */
       }
     ];
-
-    /*
-    # config for both host and guest (we have only one kernel version)
-    # because of that this config is redundant (an insert for future guest configuration)
-    boot.kernelPatches.extraStructuredConfig = {
-      TEGRA_GPIO_HOST_PROXY = lib.kernel.yes;
-      TEGRA_GPIO_GUEST_PROXY = lib.kernel.yes;
-    };
-    */
-
-    /*
-    # No need to set host kernel boot params here ?
-    boot.kernelParams = [
-      "iommu=pt"
-      "vfio.enable_unsafe_noiommu_mode=0"
-      "vfio_iommu_type1.allow_unsafe_interrupts=1"
-      "vfio_platform.reset_required=0"
-    ];
-    */
-
-    # No need to set host device tree here ???
-    /*
-    hardware.deviceTree = {
-      # Enable hardware.deviceTree for handle host dtb overlays
-      enable = true;
-
-      # name = "tegra234-p3701-0000-p3737-0000.dtb";
-      # name = "tegra234-p3701-host-passthrough.dtb";
-
-      # using overlay file:
-      overlays = [
-        {
-          name = "gpio_pt_host_overlay";
-          dtsFile = ./gpio_pt_host_overlay.dtso;
-
-          # Apply overlay only to host passthrough device tree
-          # filter = "tegra234-gpio-host-proxy.dtb";
-          # filter = "tegra234-p3701-0000-p3737-0000.dtb";
-          filter = "tegra234-p3701-host-passthrough.dtb";
-        }
-      ];
-    };
+ 
+    /* tmp note: further kernel settings for nvidia in:
+    ../jetpack/nvidia-jetson-orin/virtualization/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/common/gpio-virt-common/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/host/gpio-virt-host/default.nix
+    ../jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/default.nix
     */
   };
 }

@@ -48,7 +48,19 @@ in
           flashArgs = lib.mkForce ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "mmcblk0p1"];
         };
 
-        firmware.uefi.logo = ../../../docs/src/img/1600px-Ghaf_logo.svg;
+        firmware.uefi = {
+          logo = ../../../docs/src/img/1600px-Ghaf_logo.svg;
+          edk2NvidiaPatches = [
+            # This effectively disables EFI FB Simple Framebuffer, which does
+            # not work properly but causes kernel panic during the boot if the
+            # HDMI cable is connected during boot time.
+            #
+            # The patch reverts back to old behavior, which is to always reset
+            # the display when exiting UEFI, instead of doing handoff, when
+            # means not to reset anything.
+            ./edk2-nvidia-always-reset-display.patch
+          ];
+        };
       };
 
       nixpkgs.hostPlatform.system = "aarch64-linux";
@@ -85,6 +97,10 @@ in
       hardware.deviceTree =
         {
           enable = lib.mkDefault true;
+          # Add the include paths to build the dtb overlays
+          dtboBuildExtraIncludePaths = [
+            "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
+          ];
         }
         # Versions of the device tree without PCI passthrough related
         # modifications.

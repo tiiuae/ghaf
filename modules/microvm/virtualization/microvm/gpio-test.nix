@@ -4,7 +4,7 @@
 let
   scriptPath = pkgs.concatTextFile {
     name = "gpio-test-script";
-    files = [ "./simple-chardev.test.sh" ];
+    files = [ "./simple-chardev-test.sh" ];
     executable = true;
     destination = "/bin/gpio-test-script";
   };

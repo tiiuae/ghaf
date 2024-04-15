@@ -121,6 +121,13 @@ in
           echo "Removing bootlodaer/esp.img if it exists ..."
           rm -fv "$WORKDIR/bootloader/esp.img"
           mkdir -pv "$WORKDIR/bootloader"
+
+          # See https://developer.download.nvidia.com/embedded/L4T/r35_Release_v4.1/docs/Jetson_Linux_Release_Notes_r35.4.1.pdf
+          # and https://developer.download.nvidia.com/embedded/L4T/r35_Release_v5.0/docs/Jetson_Linux_Release_Notes_r35.5.0.pdf
+          #
+          # In Section: Adaptation to the Carrier Board with HDMI for the Orin
+          #             NX/Nano Modules
+          @patch@ -p0 < ${./tegra2-mb2-bct-scr.patch}
         ''
         + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
           ESP_OFFSET=$(cat "${images}/esp.offset")

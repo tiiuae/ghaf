@@ -23,3 +23,18 @@ jobs:
         run: nix develop --command reuse lint
       - name: Check nix flake show runs successfully
         run: nix flake show
+      - name: Check templates
+        run: |
+          set -eux -o pipefail
+          tmp_flakes=$(mktemp -d)
+          cleanup() { rm -rf "$tmp_flakes"; }
+          trap cleanup EXIT
+          nix eval --json --apply builtins.attrNames .#templates | jq -r '.[]' | while IFS=$'\t' read -r name; do
+            nix flake new -t ".#$name" "${tmp_flakes}/${name}";
+            if [[ "$name" == "ghaf-module" ]]; then
+                nix-instantiate --parse "${tmp_flakes}/${name}/default.nix"
+            else
+               nix flake show "${tmp_flakes}/${name}"
+            fi
+          done
+

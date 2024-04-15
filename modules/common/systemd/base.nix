@@ -11,43 +11,50 @@
 
   # Override minimal systemd package configuration
   package =
-    pkgs.systemdMinimal.override {
-      pname = cfg.withName;
-      withAcl = true;
-      withAnalyze = cfg.withDebug;
-      inherit (cfg) withApparmor;
-      inherit (cfg) withAudit;
-      withCompression = true;
-      withCoredump = cfg.withDebug || cfg.withMachines;
-      inherit (cfg) withCryptsetup;
-      inherit (cfg) withEfi;
-      withBootloader = cfg.withEfi; # systemd-boot fails if not explicity set
-      inherit (cfg) withFido2;
-      inherit (cfg) withHostnamed;
-      withImportd = cfg.withMachines;
-      withKexectools = cfg.withDebug;
-      withKmod = true;
-      withLibBPF = true;
-      withLibseccomp = true;
-      inherit (cfg) withLocaled;
-      inherit (cfg) withLogind;
-      withMachined = cfg.withMachines;
-      inherit (cfg) withNetworkd;
-      inherit (cfg) withNss;
-      withOomd = true;
-      withPam = true;
-      inherit (cfg) withPolkit;
-      inherit (cfg) withResolved;
-      inherit (cfg) withRepart;
-      withShellCompletions = cfg.withDebug;
-      withTimedated = true;
-      inherit (cfg) withTimesyncd;
-      inherit (cfg) withTpm2Tss;
-      withUtmp = cfg.withJournal || cfg.withAudit;
-    } # To be removed, current systemd version 254.6 < 255
-    // lib.optionalAttrs (lib.hasAttr "withVmspawn" (lib.functionArgs pkgs.systemd.override)) {
-      withVmspawn = cfg.withMachines;
-    };
+    (pkgs.systemdMinimal.override {
+        pname = cfg.withName;
+        withAcl = true;
+        withAnalyze = cfg.withDebug;
+        inherit (cfg) withApparmor;
+        inherit (cfg) withAudit;
+        withCompression = true;
+        withCoredump = cfg.withDebug || cfg.withMachines;
+        inherit (cfg) withCryptsetup;
+        inherit (cfg) withEfi;
+        withBootloader = cfg.withEfi; # systemd-boot fails if not explicity set
+        inherit (cfg) withFido2;
+        inherit (cfg) withHostnamed;
+        withImportd = cfg.withMachines;
+        withKexectools = cfg.withDebug;
+        withKmod = true;
+        withLibBPF = true;
+        withLibseccomp = true;
+        inherit (cfg) withLocaled;
+        inherit (cfg) withLogind;
+        withMachined = cfg.withMachines;
+        inherit (cfg) withNetworkd;
+        inherit (cfg) withNss;
+        withOomd = true;
+        withPam = true;
+        inherit (cfg) withPolkit;
+        inherit (cfg) withResolved;
+        inherit (cfg) withRepart;
+        withShellCompletions = cfg.withDebug;
+        withTimedated = true;
+        inherit (cfg) withTimesyncd;
+        inherit (cfg) withTpm2Tss;
+        withUtmp = cfg.withJournal || cfg.withAudit;
+      } # To be removed, current systemd version 254.6 < 255
+      // lib.optionalAttrs (lib.hasAttr "withVmspawn" (lib.functionArgs pkgs.systemd.override)) {
+        withVmspawn = cfg.withMachines;
+      })
+    .overrideAttrs (prevAttrs: {
+      patches =
+        prevAttrs.patches
+        ++ [
+          ./systemd-boot-double-dtb-buffer-size.patch
+        ];
+    });
 
   # Definition of suppressed system units in systemd configuration. This removes the units and has priority.
   # Required to avoid build failures compared to only disabling units for some options. Note that errors will be silently ignored.

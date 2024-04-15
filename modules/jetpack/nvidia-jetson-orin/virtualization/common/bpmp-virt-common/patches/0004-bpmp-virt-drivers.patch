@@ -33,20 +33,17 @@ index dcecc9f6e33f..39e2e85ac893 100644
 +endif
 +
 +endmenu
-diff --git a/drivers/Makefile b/drivers/Makefile
-index d3500440b928..06cb4bc1c69c 100644
---- a/drivers/Makefile
-+++ b/drivers/Makefile
-@@ -191,3 +191,8 @@ obj-$(CONFIG_GNSS)		+= gnss/
- obj-$(CONFIG_INTERCONNECT)	+= interconnect/
- obj-$(CONFIG_COUNTER)		+= counter/
- obj-$(CONFIG_MOST)		+= most/
-+#
-+#
-+#
-+obj-y	+= bpmp-host-proxy/
-+obj-y	+= bpmp-guest-proxy/
-\ No newline at end of file
+# bugfix hack -- this patch conflicts with gpio patches. We let gpio do this particluar patch on ./drivers/Makefile
+#diff --git a/drivers/Makefile b/drivers/Makefile
+#index d3500440b928..06cb4bc1c69c 100644
+#--- a/drivers/Makefile
+#+++ b/drivers/Makefile
+#@@ -191,3 +191,5 @@ obj-$(CONFIG_GNSS)		+= gnss/
+# obj-$(CONFIG_INTERCONNECT)	+= interconnect/
+# obj-$(CONFIG_COUNTER)		+= counter/
+# obj-$(CONFIG_MOST)		+= most/
+#+obj-y	+= bpmp-host-proxy/
+#+obj-y	+= bpmp-guest-proxy/
 diff --git a/drivers/bpmp-guest-proxy/Kconfig b/drivers/bpmp-guest-proxy/Kconfig
 new file mode 100644
 index 000000000000..33877730ad5b

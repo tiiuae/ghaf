@@ -34,7 +34,9 @@
     ];
     gpiovmExtraModules = [
       {
-        # hardware modules for gpio
+        # The Nvidia Orin hardware dependent configuration is in
+        # modules/jetpack and modules/jetpack-microvm. Please refer to that
+        # section for hardware dependent gpiovm configuration.
       }
     ];
     hostConfiguration = lib.nixosSystem {
@@ -57,27 +59,31 @@
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                # agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                agx.enableNetvmWlanPCIPassthrough = false;
+                # nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                nx.enableNetvmEthernetPCIPassthrough = false;
                 agx.enableGPIOPassthrough = som == "agx";
               };
 
               hardware.nvidia = {
-                virtualization.enable = lib.mkDefault true;
-                virtualization.host.bpmp.enable = lib.mkDefault false;
-                passthroughs.host.uarta.enable = lib.mkDefault false;
-                virtualization.host.gpio.enable = lib.mkDefault true;
-                # virtualization.enable = false;
-                # virtualization.host.bpmp.enable = false;
-                # passthroughs.host.uarta.enable = false;
+                virtualization.enable = true;
+                virtualization.host.bpmp.enable = false;
+                passthroughs.host.uarta.enable = false;
+                # passthroughs.uarti_net_vm.enable = som == "agx";
+                passthroughs.uarti_net_vm.enable = false;
+                virtualization.host.gpio.enable = som == "agx";
               };
 
               virtualization.microvm-host.enable = true;
               virtualization.microvm-host.networkSupport = true;
+              # virtualization.microvm-host.networkSupport = false;
               host.networking.enable = true;
 
               virtualization.microvm.netvm.enable = true;
+              # virtualization.microvm.netvm.enable = false;
               virtualization.microvm.netvm.extraModules = netvmExtraModules;
+
               virtualization.microvm.gpiovm.enable = true;
               virtualization.microvm.gpiovm.extraModules = gpiovmExtraModules;
 

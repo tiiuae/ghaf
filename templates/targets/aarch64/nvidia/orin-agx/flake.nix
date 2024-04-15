@@ -47,6 +47,7 @@
     nixpkgs,
     jetpack-nixos,
     flake-utils,
+    ...
   }: let
     systems = with flake-utils.lib.system; [
       x86_64-linux
