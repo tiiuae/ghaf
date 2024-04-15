@@ -1,0 +1,17 @@
+/dts-v1/;
+/plugin/;
+
+/{
+  overlay-name = "GPIO passthrough on host";
+  compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
+
+   fragment@0 
+   { target-path = "/";
+        __overlay__ 
+        { gpio_host_proxy 
+            { compatible = "nvidia,gpio-host-proxy";
+              status = "okay";
+            };
+        };
+    };
+};
