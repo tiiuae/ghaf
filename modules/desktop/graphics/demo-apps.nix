@@ -7,17 +7,12 @@
   ...
 }: let
   cfg = config.ghaf.graphics.demo-apps;
+  inherit (import ../../../lib/icons.nix {inherit pkgs lib;}) resizePNG;
 
   /*
   Scaled down firefox icon
   */
-  firefox-icon = pkgs.runCommand "firefox-icon-24x24" {} ''
-    mkdir -p $out/share/icons/hicolor/24x24/apps
-    ${pkgs.buildPackages.imagemagick}/bin/convert \
-      ${pkgs.firefox}/share/icons/hicolor/128x128/apps/firefox.png \
-      -resize 24x24 \
-      $out/share/icons/hicolor/24x24/apps/firefox.png
-  '';
+  firefox-icon = resizePNG "firefox" "${pkgs.firefox}/share/icons/hicolor/128x128/apps/firefox.png" "24x24";
 
   /*
   Generate launchers to be used in weston.ini
@@ -52,7 +47,7 @@ in {
       ++ lib.optional cfg.firefox {
         name = "firefox";
         path = "${pkgs.firefox}/bin/firefox";
-        icon = "${firefox-icon}/share/icons/hicolor/24x24/apps/firefox.png";
+        icon = "${firefox-icon}";
       }
       ++ lib.optional cfg.element-desktop {
         name = "element";

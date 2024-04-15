@@ -12,5 +12,5 @@
       time.timeZone = "Asia/Dubai";
     }
   ];
-  borderColor = "#33ff57";
+  borderColor = "#027d7b";
 }

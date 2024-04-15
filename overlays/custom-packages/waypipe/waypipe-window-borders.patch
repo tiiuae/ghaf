@@ -329,7 +329,7 @@ index 1c1be71..61e2200 100644
 +			.border_color = {
 +				.a = 255, .r = 0, .g = 0, .b = 0
 +			},
-+			.border_size = 5};
++			.border_size = 3};
  
  	/* We do not parse any getopt arguments happening after the mode choice
  	 * string, so as not to interfere with them. */

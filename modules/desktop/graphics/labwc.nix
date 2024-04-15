@@ -7,6 +7,15 @@
   ...
 }: let
   cfg = config.ghaf.graphics.labwc;
+  makoConfig = ''
+    font=Inter 12
+    background-color=#202020e6
+    progress-color=source #3D8252e6
+    border-radius=5
+    border-size=0
+    padding=10
+    default-timeout=10000
+  '';
   autostart =
     pkgs.writeScriptBin "labwc-autostart" ''
       # Import WAYLAND_DISPLAY variable to make it available to waypipe and other systemd services
@@ -22,7 +31,7 @@
       ${pkgs.waybar}/bin/waybar -s /etc/waybar/style.css -c /etc/waybar/config >/dev/null 2>&1 &
 
       # Enable notifications.
-      ${pkgs.mako}/bin/mako >/dev/null 2>&1 &
+      ${pkgs.mako}/bin/mako -c /etc/mako/config >/dev/null 2>&1 &
 
       ${lib.optionalString cfg.lock.enable ''
         # Lock screen after 5 minutes
@@ -35,8 +44,27 @@
   rcXml = ''
     <?xml version="1.0"?>
     <labwc_config>
-    <core><gap>10</gap></core>
+    <core><gap>5</gap></core>
+    <theme>
+      <font place="">
+        <name>Inter</name>
+        <size>10</size>
+        <slant>normal</slant>
+        <weight>normal</weight>
+      </font>
+      <font place="ActiveWindow">
+        <name>Inter</name>
+        <size>12</size>
+        <slant>normal</slant>
+        <weight>bold</weight>
+      </font>
+    </theme>
     <keyboard>
+      ${lib.optionalString config.ghaf.profiles.debug.enable ''
+      <keybind key="Print">
+        <action name="Execute" command="${pkgs.grim}/bin/grim" />
+      </keybind>
+    ''}
       <default />
     </keyboard>
     <mouse><default /></mouse>
@@ -46,7 +74,76 @@
       '')
       cfg.frameColouring)}
     </windowRules>
+    <libinput>
+      <device category="default"><naturalScroll>yes</naturalScroll></device>
+    </libinput>
     </labwc_config>
+  '';
+
+  themeRc = ''
+    # general
+    border.width: 3
+    padding.height: 6
+
+    # The following options has no default, but fallbacks back to
+    # font-height + 2x padding.height if not set.
+    # titlebar.height:
+
+    # window border
+    window.active.border.color: #1d1d1d
+    window.inactive.border.color: #353535
+
+    # ToggleKeybinds status indicator
+    window.active.indicator.toggled-keybind.color: #f15025
+
+    # window titlebar background
+    window.active.title.bg.color: #1d1d1d
+    window.inactive.title.bg.color: #353535
+
+    # window titlebar text
+    window.active.label.text.color: #ffffff
+    window.inactive.label.text.color: #bbbbbb
+    window.label.text.justify: center
+
+    # window buttons
+    window.active.button.unpressed.image.color: #ffffff
+    window.inactive.button.unpressed.image.color: #ffffff
+
+    # Note that "menu", "iconify", "max", "close" buttons colors can be defined
+    # individually by inserting the type after the button node, for example:
+    #
+    #     window.active.button.iconify.unpressed.image.color: #333333
+
+    # menu
+    menu.overlap.x: 0
+    menu.overlap.y: 0
+    menu.width.min: 20
+    menu.width.max: 200
+    menu.items.bg.color: #353535
+    menu.items.text.color: #ffffff
+    menu.items.active.bg.color: #1d1d1d
+    menu.items.active.text.color: #ffffff
+    menu.items.padding.x: 7
+    menu.items.padding.y: 4
+    menu.separator.width: 1
+    menu.separator.padding.width: 6
+    menu.separator.padding.height: 3
+    menu.separator.color: #2b2b2b
+
+    # on screen display (window-cycle dialog)
+    osd.bg.color: #1d1d1d
+    osd.border.color: #ffffff
+    osd.border.width: 1
+    osd.label.text.color: #ffffff
+
+    osd.window-switcher.width: 600
+    osd.window-switcher.padding: 4
+    osd.window-switcher.item.padding.x: 10
+    osd.window-switcher.item.padding.y: 1
+    osd.window-switcher.item.active.border.width: 2
+
+    osd.workspace-switcher.boxes.width: 20
+    osd.workspace-switcher.boxes.height: 20
   '';
 
   menuXml = ''
@@ -62,12 +159,14 @@
         <item label="Fullscreen">
           <action name="ToggleFullscreen" />
         </item>
-        <item label="Decorations">
-          <action name="ToggleDecorations" />
-        </item>
-        <item label="AlwaysOnTop">
+        <item label="Always On Top">
           <action name="ToggleAlwaysOnTop" />
         </item>
+      </menu>
+      <menu id="root-menu">
+        <!-- We need some entry here, otherwise labwc will populate
+        'Reconfigure' and 'Exit' items -->
+        <item label="Ghaf Platform"></item>
       </menu>
     </openbox_menu>
   '';
@@ -91,7 +190,7 @@ in {
           };
           colour = lib.mkOption {
             type = lib.types.str;
-            example = "#00ffff";
+            example = "#006305";
             description = "Colour of the window frame";
           };
         };
@@ -99,7 +198,22 @@ in {
       default = [
         {
           identifier = "foot";
-          colour = "#00ffff";
+          colour = "#006305";
+        }
+        # TODO these should reference the VM and not the application that is
+        # relayed through waypipe. Ideally this would match using metadata
+        # through Wayland security context.
+        {
+          identifier = "dev.scpp.saca.gala";
+          colour = "#027d7b";
+        }
+        {
+          identifier = "chromium-browser";
+          colour = "#630505";
+        }
+        {
+          identifier = "org.pwmt.zathura";
+          colour = "#122263";
         }
       ];
       description = "List of applications and their frame colours";
@@ -127,8 +241,12 @@ in {
     environment.etc = {
       "labwc/rc.xml".text = rcXml;
       "labwc/menu.xml".text = menuXml;
-      "labwc/themerc".source = "${pkgs.labwc}/share/doc/labwc/themerc";
+      "labwc/themerc-override".text = themeRc;
+
+      "mako/config".text = makoConfig;
     };
+
+    fonts.fontconfig.defaultFonts.sansSerif = ["Inter"];
 
     # Next 2 services/targets are taken from official weston documentation
     # and adjusted for labwc

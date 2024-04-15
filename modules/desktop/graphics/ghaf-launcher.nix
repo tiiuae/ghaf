@@ -10,22 +10,31 @@
   drawerCSS = writeTextDir "nwg-drawer/drawer.css" ''
     /* Example configuration from: https://github.com/nwg-piotr/nwg-drawer/blob/main/drawer.css */
     window {
-        background-color: rgba (43, 48, 59, 0.95);
-        color: #eeeeee
+        background-color: rgba(32, 32, 32, 0.9);
+        color: #eeeeee;
+        border-radius: 7px;
+        border: 1px solid rgba(21, 36, 24, 0.3);
+        box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
     }
 
     /* search entry */
     entry {
-        background-color: rgba (0, 0, 0, 0.2)
+        background-color: rgba (43, 43, 43, 1);
+        border: 1px solid rgba(46, 46, 46, 1);
+    }
+    entry:focus {
+        box-shadow: none;
+        border: 1px solid rgba(223, 92, 55, 1);
     }
 
     button, image {
         background: none;
-        border: none
+        border: none;
+        box-shadow: none;
     }
 
     button:hover {
-        background-color: rgba (255, 255, 255, 0.1)
+        background-color: rgba (255, 255, 255, 0.06)
     }
 
     /* in case you wanted to give category buttons a different look */
@@ -51,5 +60,5 @@ in
     export XDG_CONFIG_HOME=${drawerCSS}
     export XDG_CACHE_HOME=$HOME/.cache
     ${coreutils}/bin/mkdir -p $XDG_CACHE_HOME
-    ${nwg-drawer}/bin/nwg-drawer
+    ${nwg-drawer}/bin/nwg-drawer -mb 20 -ml 440 -mr 440 -mt 420 -nofs -nocats
   ''
