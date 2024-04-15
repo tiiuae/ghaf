@@ -10,6 +10,7 @@
 in {
   config = lib.mkIf (weston.enable || labwc.enable) {
     fonts.packages = with pkgs; [
+      inter
       fira-code-nerdfont
       hack-font
     ];

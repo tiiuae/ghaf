@@ -8,14 +8,11 @@
 }: let
   cfg = config.ghaf.graphics.labwc;
   networkDevice = config.ghaf.hardware.definition.network.pciDevices;
+  inherit (import ../../../lib/icons.nix {inherit pkgs lib;}) svgToPNG;
 
-  ghaf-icon = pkgs.runCommand "ghaf-icon-24x24" {} ''
-    mkdir -p $out/share/icons/hicolor/24x24/apps
-    ${pkgs.buildPackages.imagemagick}/bin/convert \
-      ${../../../assets/ghaf-logo.png} \
-      -resize 24x24 \
-      $out/share/icons/hicolor/24x24/apps/ghaf-icon-24x24.png
-  '';
+  launchpad-icon = svgToPNG "launchpad" ../../../assets/icons/svg/launchpad.svg "38x38";
+  admin-icon = svgToPNG "admin" ../../../assets/icons/svg/admin-cog.svg "24x24";
+  ghaf-icon = svgToPNG "ghaf-white" ../../../assets/icons/svg/ghaf-white.svg "24x24";
 
   wifiDevice = lib.lists.findFirst (d: d.name != null) null networkDevice;
   wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = wifiDevice.name;};
@@ -38,11 +35,18 @@ in {
         # Modified from default waybar configuration file https://github.com/Alexays/Waybar/blob/master/resources/config
         ''
           {
-            "height": 30, // Waybar height (to be removed for auto height)
+            "height": 48, // Waybar height
             "spacing": 4, // Gaps between modules (4px)
-            "modules-left": ["custom/launcher"],
+            "modules-left": ["custom/launchpad", "custom/ghaf-settings"],
             "modules-center": ["sway/window"],
-            "modules-right": ["pulseaudio", "custom/network1", "backlight", "battery", "clock", "tray"],
+            "position": "bottom",
+            "mode": "dock",
+            "spacing": 4,
+            "margin-top": 3,
+            "margin-bottom": 5,
+            "margin-left": 200,
+            "margin-right": 200,
+            "modules-right": ["pulseaudio", "custom/network1", "battery", "custom/admin", "clock", "tray"],
             "keyboard-state": {
                 "numlock": true,
                 "capslock": true,
@@ -91,9 +95,20 @@ in {
           },
         ''
         + ''
-              "custom/launcher": {
+              "custom/launchpad": {
                 "format": " ",
                 "on-click": "${ghaf-launcher}/bin/ghaf-launcher",
+                "tooltip": false
+              },
+              "custom/ghaf-settings": {
+                "format": " ",
+                // Placeholder for the actual Ghaf settings app
+                "on-click": "${pkgs.libnotify}/bin/notify-send 'Ghaf Platform ${lib.strings.fileContents ../../../.version}'",
+                "tooltip": false
+              },
+              "custom/admin": {
+                "format": " ",
+                "on-click": "${pkgs.nm-launcher}/bin/nm-launcher",
                 "tooltip": false
               },
               "pulseaudio": {
@@ -119,13 +134,14 @@ in {
         # Modified from default waybar style file https://github.com/Alexays/Waybar/blob/master/resources/style.css
         ''
           * {
-              font-family: FontAwesome, Inter, Roboto, sans-serif;
-              font-size: 14px;
+              font-family: FontAwesome, Inter, sans-serif;
+              font-size: 16px;
+              border: none;
+              border-radius: 5px;
           }
 
           window#waybar {
-              background-color: rgba(43, 48, 59, 0.5);
-              border-bottom: 3px solid rgba(100, 114, 125, 0.5);
+              background-color: rgba(32, 32, 32, 0.9);
               color: #ffffff;
               transition-property: background-color;
               transition-duration: .5s;
@@ -166,24 +182,22 @@ in {
           }
 
           #workspaces button.focused {
-              background-color: #64727D;
               box-shadow: inset 0 -3px #ffffff;
           }
 
-          #workspaces button.urgent {
-              background-color: #eb4d4b;
-          }
 
           #clock,
           #battery,
           #backlight,
           #custom-network1,
-          #custom-launcher,
+          #custom-launchpad,
+          #custom-ghaf-settings,
+          #custom-admin,
           #pulseaudio,
           #tray,
           #window,
           #workspaces {
-              margin: 0 4px;
+              padding: 0 20px;
           }
 
           .modules-left > widget:first-child > #workspaces {
@@ -194,112 +208,43 @@ in {
               margin-right: 0;
           }
 
+          #pulseaudio,
+          #custom-network1,
+          #backlight,
+          #battery,
           #clock {
-              background-color: #64727D;
               padding-left: 10;
               padding-right: 10;
-          }
-
-          #battery {
-              background-color: #ffffff;
-              color: #000000;
-              padding-left: 10;
-              padding-right: 10;
-          }
-
-          #battery.charging, #battery.plugged {
-              color: #ffffff;
-              background-color: #26A65B;
-          }
-
-          @keyframes blink {
-              to {
-                  background-color: #ffffff;
-                  color: #000000;
-              }
-          }
-
-          #battery.critical:not(.charging) {
-              background-color: #f53c3c;
-              color: #ffffff;
-              animation-name: blink;
-              animation-duration: 0.5s;
-              animation-timing-function: linear;
-              animation-iteration-count: infinite;
-              animation-direction: alternate;
           }
 
           label:focus {
               background-color: #000000;
           }
 
-          #backlight {
-              background-color: #90b1b1;
-              padding-left: 10;
-              padding-right: 10;
-          }
-
-          #custom-network1 {
-              background-color: #2980b9;
-              min-width: 16px;
-              padding-left: 10;
-              padding-right: 10;
-          }
-
-          #custom-network1.disconnected {
-              background-color: #f53c3c;
-          }
-
-          #pulseaudio {
-              background-color: #f1c40f;
-              color: #000000;
-              padding-left: 10;
-              padding-right: 10;
-          }
-
-          #pulseaudio.muted {
-              background-color: #90b1b1;
-              color: #2a5c45;
-          }
-
-          #tray {
-              background-color: #2980b9;
-          }
-
           #tray > .passive {
               -gtk-icon-effect: dim;
           }
 
-          #tray > .needs-attention {
-              -gtk-icon-effect: highlight;
-              background-color: #eb4d4b;
+          #custom-launchpad {
+              font-size: 20px;
+              background-image: url("${launchpad-icon}");
+              background-position: center;
+              background-repeat: no-repeat;
+              margin-left: 13px;
           }
 
-          #language {
-              background: #00b093;
-              color: #740864;
-              padding: 0 5px;
-              margin: 0 5px;
-              min-width: 16px;
+          #custom-ghaf-settings {
+              font-size: 20px;
+              background-image: url("${ghaf-icon}");
+              background-position: center;
+              background-repeat: no-repeat;
+              padding-left: 10;
+              padding-right: 10;
           }
 
-          #keyboard-state {
-              background: #97e1ad;
-              color: #000000;
-              padding: 0 0px;
-              margin: 0 5px;
-              min-width: 16px;
-          }
-
-          #keyboard-state > label {
-              padding: 0 5px;
-          }
-
-          #keyboard-state > label.locked {
-              background: rgba(0, 0, 0, 0.2);
-          }
-          #custom-launcher {
-              font-size: 20px; background-image: url("${ghaf-icon}/share/icons/hicolor/24x24/apps/ghaf-icon-24x24.png");
+          #custom-admin {
+              font-size: 20px;
+              background-image: url("${admin-icon}");
               background-position: center;
               background-repeat: no-repeat;
               padding-left: 10;

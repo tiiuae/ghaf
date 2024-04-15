@@ -63,5 +63,5 @@ in {
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
     }
   ];
-  borderColor = "#ff5733";
+  borderColor = "#630505";
 }
