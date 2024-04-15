@@ -20,7 +20,7 @@
   gpioGuestDtbName = gpioGuestSrcName;
 
   # TODO we do not have a proper ./gpio_pt_guest_overlay.dtso yet -- using host's for build debugging
-  gpioGuestDtso = ./gpio_pt_host_overlay.dtso;
+  gpioGuestDtso = ./gpio_pt_guest_overlay.dtso;
 
   /*
   pkgs.stdenv.mkDerivation {
