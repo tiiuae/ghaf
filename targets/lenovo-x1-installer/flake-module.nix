@@ -31,7 +31,7 @@
           ghaf.hardware.ax88179_178a.enable = true;
 
           # SSH key to installer for test automation.
-          users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (variant == "debug") (import ../../modules/common/development/ssh.nix).authorizedKeys;
+          users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (variant == "debug") (import ../../modules/common/development/authorized_ssh_keys.nix).authorizedKeys;
 
           systemd.services.wpa_supplicant.wantedBy = lib.mkForce ["multi-user.target"];
           systemd.services.sshd.wantedBy = lib.mkForce ["multi-user.target"];
