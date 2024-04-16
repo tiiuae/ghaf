@@ -38,14 +38,15 @@ To prepare GPIO on the host for the passthrough:
 >Add a virtual node to root in the Device Tree using an overlay file. 
    A driver associated to this node will find it using the compatible field.
 ```
+        /dts-v1/;
         /plugin/;
 
         /{
-          overlay-name = "GPIO passthrough on host";
-          compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
+            overlay-name = "GPIO passthrough on host";
+            compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
 
-           fragment@0 
-           { target-path = "/";
+            fragment@0 
+            { target-path = "/";
                 __overlay__ 
                 { gpio_host_proxy 
                     { compatible = "nvidia,gpio-host-proxy";
@@ -78,23 +79,24 @@ The Device Tree defines passthrough memory for the /dev/vda passthrough device w
 >Add the passthrough device as a root node to the virtual machine's device tree:
 
 ```
+        /dts-v1/;
         /plugin/;
 
         /{
-          overlay-name = "GPIO passthrough on host";
-          compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
+            overlay-name = "GPIO passthrough on guest";
+            compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
 
-           fragment@0 
-           { target-path = "/";
+            fragment@0 
+            { target-path = "/";
                 __overlay__
                 {
                     gpio: gpio {
                         compatible = "nvidia,tegra234-bpmp";
                         virtual-pa = <0x0 0x090c0000>; 
                         status = "okay";
-                    }
+                    };
                 };
-           };
+            };
         };  
 ```
 
