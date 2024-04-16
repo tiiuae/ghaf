@@ -17,7 +17,7 @@
     opteeSource = pkgs.fetchgit {
       url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
       rev = "jetson_${l4tVersion}";
-      sha256 = "sha256-44RBXFNUlqZoq3OY/OFwhiU4Qxi4xQNmetFmlrr6jzY=";
+      sha256 = "sha256-jJOMig2+9FlKA9gJUCH/dva7ZtAq1typZSNGKyM7tlg=";
     };
 
     opteeXtest = stdenv.mkDerivation {
@@ -120,6 +120,8 @@
           "ffd2bded-ab7d-4988-95ee-e4962fff7154.ta"
           "b3091a65-9751-4784-abf7-0298a7cc35ba.ta"
           "f157cda0-550c-11e5-a6fa-0002a5d5c51b.ta"
+          "5c206987-16a3-59cc-ab0f-64b9cfc9e758.ta"
+          "a720ccbb-51da-417d-b82e-e5445d474a7a.ta"
         ];
       pkcs11TaPath = {
         name = "fd02c9da-306c-48c7-a49c-bbd827ae86ee.ta";

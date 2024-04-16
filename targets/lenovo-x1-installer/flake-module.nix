@@ -25,7 +25,10 @@
         in {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+            ../../modules/common/hardware/ax88179_178a.nix
           ];
+
+          ghaf.hardware.ax88179_178a.enable = true;
 
           # SSH key to installer for test automation.
           users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (variant == "debug") [
