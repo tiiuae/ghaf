@@ -11,6 +11,7 @@
     ./virtualization/microvm/idsvm/mitmproxy
     ./virtualization/microvm/appvm.nix
     ./virtualization/microvm/guivm.nix
+    ./virtualization/microvm/logvm.nix
     ./networking.nix
     ./power-control.nix
   ];
