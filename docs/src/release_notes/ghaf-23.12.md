@@ -61,12 +61,12 @@ Fixed bugs that were in the ghaf-23.09 release:
 |-----------------|-------------|--------------------------------------|
 | The GALA application does not work | In Progress | Will be fixed in the next release. |
 | Cannot log in to the Element chat with a Google account  | In Progress | Workaround for x86: create a user specifically for Element. |
-| Copying text from the browser address bar to another application does not work  | In Progress | Under investigation |
-| Windows launcher application does not work on NUC and AGX  | In Progress | Workaround: launch Windows VM from the command line. |
-| Time synchronization between host and VMs does not work in all scenarios  | In Progress | Under investigation |
-| The taskbar disappears after the external display is disconnected from Lenovo X1  | In Progress | Under investigation |
-| Closing and re-opening a deck lid of a X1 laptop with running Ghaf causes instability | In Progress | Workaround: Keep a deck lid of a laptop open while working with Ghaf. |
-| Applications do not open from icons when NETVM is restarted | In Progress | Workaround: Restart AppVMs. |
+| Copying text from the browser address bar to another application does not work  | In Progress | Under investigation. |
+| Windows launcher application does not work on NUC and AGX  | In Progress | Workaround: launch a Windows VM from the command line. |
+| Time synchronization between host and VMs does not work in all scenarios  | In Progress | Under investigation. |
+| The taskbar disappears after the external display is disconnected from Lenovo X1  | In Progress | Under investigation. |
+| Closing and re-opening a deck lid of a X1 laptop with running Ghaf causes instability | In Progress | Workaround: keep a deck lid of a laptop open while working with Ghaf. |
+| Applications do not open from icons when netvm is restarted | In Progress | Workaround: Restart AppVMs. |
 
 
 ## Environment Requirements
