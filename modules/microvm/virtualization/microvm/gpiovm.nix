@@ -9,50 +9,6 @@
   configHost = config;
   vmName = "gpio-vm";
 
-  /*
-  # bugtest variable
-  # absoluteFilePath = "${builtins.currentSystem}/source/nixos-modules/host/";
-  # absoluteFilePath = getBuildDir;
-
-  # guestdts specifies specifically gpiovm's device tree
-  gpioGuestSrcName = "tegra234-p3701-0000-p3737-0000.dtb";
-  gpioGuestDtbName = "tegra234-p3701-0000-gpio-passthrough.dtb";
-  gpioGuestPath = "./arch/arm64/boot/dts/nvidia/";
-  gpioGuestSrc = gpioGuestPath + gpioGuestSrcName;
-  # gpioGuestDtb = gpioGuestPath + gpioGuestDtbName;
-  # tmp debug fix
-  gpioGuestDtb = gpioGuestSrc;  # this line bypasses copy of DT blob -- for debug reasons
-
-  # TODO we do not have ./gpio_pt_guest_overlay.dtso yet
-  dtsoGpioFile = "./gpio_pt_host_overlay.dtso";
-  */
-  /*
-  pkgs.stdenv.mkDerivation {
-    inherit gpioGuestSrc gpioGuestDtb; # Ensure these variables are available in the builder script
-    name = "copy-dtb";
-    buildCommand = pkgs.writeText "copy-dtb.sh" ''
-      cp ${gpioGuestSrc} ${gpioGuestDtb}
-    '';
-  }
-  */
-
-  # runCommand "copy-dtb" {} "coreutils-full./bin/cp gpioGuestSrc gpioGuestDtb"
-
-  /*
-  pkgs.runCommand "copy-dtb" {} ''
-    cp ${gpioGuestSrc} ${gpioGuestDtb}
-  '';
-  */
-
-  /*
-  # Creating a new DTB file
-  pkgs.buildPackages.utils.copyFile {
-    inputFile = gpioGuestSrc;
-    outputFile = gpioGuestDtb;
-    override = true;
-  };
-  */
-
   gpiovmBaseConfiguration = {
     imports = [
       ({lib, ...}: {
@@ -120,9 +76,6 @@ in {
     };
   };
 
-  #pkgs.runCommand "copy-dtb" {} "pkgs.coreutils-full./bin/cp gpioGuestSrc gpioGuestDtb"
-  # runCommand "copy-dtb" {} "coreutils-full./bin/cp gpioGuestSrc gpioGuestDtb"
-
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
@@ -132,34 +85,8 @@ in {
           imports =
             gpiovmBaseConfiguration.imports
             ++ cfg.extraModules;
-          /*
-          hardware.deviceTree = {
-            enable = true;
-            name = gpioGuestDstName;
-            overlays = [
-              {
-                name = "gpio_pt_guest_overlay";
-                # TODO we do not have ./gpio_pt_guest_overlay.dtso yet
-                # dtsFile = builtins.toPath gpioGuestDtb;
-                filter = gpioGuestDtbName;
-              }
-            ];
-          };
-          */
         };
       # specialArgs = {inherit lib;};
-
     };
-
-    /*
-    # Creating a new DTB file
-    # pkgs.buildPackages.utils.copyFile {
-    # pkgs.stdenv.lib.callPackage {
-    pkgs.stdenv.lib.copyFile {
-      inputFile = gpioGuestSrc;
-      outputFile = gpioGuestDtb;
-      override = true;
-    };
-    */
   };
 }
