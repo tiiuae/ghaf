@@ -37,7 +37,9 @@ in {
     chromium = mkProgramOption "Chromium browser" false;
     firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
     gala-app = mkProgramOption "Gala App" false;
-    element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
+    element-desktop =
+      mkProgramOption "Element desktop" (config.ghaf.graphics.enableDemoApplications
+        && (config.nixpkgs.hostPlatform.system == config.nixpkgs.buildPlatform.system));
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
   };
 
