@@ -25,7 +25,7 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/307ada3fc4d35f7f35feb9a0edab94f798092c1b";
+    nixpkgs.url = "github:NixOS/nixpkgs/386047017bed0ea4ec985bec134b4f8c2b5bd199";
 
     #
     # Flake and repo structuring configurations
