@@ -32,11 +32,6 @@
         };
       }
     ];
-    gpiovmExtraModules = [
-      {
-        # hardware modules for gpio
-      }
-    ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
 
@@ -57,23 +52,17 @@
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                #agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                # nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 agx.enableGPIOPassthrough = som == "agx";
-
-                # removed for GPIO Passthough  testing
-                agx.enableNetvmWlanPCIPassthrough = false;
-                nx.enableNetvmEthernetPCIPassthrough = false;
               };
 
               hardware.nvidia = {
-                virtualization.enable = lib.mkDefault false;
-                virtualization.host.bpmp.enable = lib.mkDefault false;
-                passthroughs.host.uarta.enable = lib.mkDefault false;
-                virtualization.host.gpio.enable = lib.mkDefault true;
-                # virtualization.enable = lib.mkDefault false;
-                # virtualization.host.bpmp.enable = lib.mkDefault false;
-                # passthroughs.host.uarta.enable = lib.mkDefault false;
+                virtualization.enable = true;
+                virtualization.host.bpmp.enable = false;
+                passthroughs.host.uarta.enable = false;
+                passthroughs.uarti_net_vm.enable = som == "agx";
+                virtualization.host.gpio.enable = som == "agx";
               };
 
               virtualization.microvm-host.enable = true;
