@@ -24,6 +24,13 @@ in {
           hash = "sha256-fX7yBsXW1oFt1Nfns42oZnCXf36qehXijvCNEmqBGsE=";
         };
       }
+      # net: usb: ax88179_178a: avoid writing the mac address before first reading
+      {
+        patch = pkgs.fetchpatch2 {
+          url = "https://git.kernel.org/pub/scm/linux/kernel/git/netdev/net.git/patch/drivers/net/usb?id=56f78615bcb1c3ba58a5d9911bad3d9185cf141b";
+          hash = "sha256-EVBJX0rhbLPktSlmCdYhVIMP7LRAFycq/YqOaOE9mKI=";
+        };
+      }
     ];
   };
 }
