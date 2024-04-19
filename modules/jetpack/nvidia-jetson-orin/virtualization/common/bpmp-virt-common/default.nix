@@ -39,6 +39,9 @@ in {
         name = "Bpmp Support Virtualization";
         patch = ./patches/0003-bpmp-support-bpmp-virt.patch;
       }
+      # patch conflicts with gpio patches. We need to remake this patch
+      # At the moment its heavily hacked to not patch ./drivers/Makefile
+      # we let gpio do that patch for bpmp
       {
         name = "Bpmp Virt Drivers";
         patch = ./patches/0004-bpmp-virt-drivers.patch;

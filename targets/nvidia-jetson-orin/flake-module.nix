@@ -58,7 +58,7 @@
                 enable = true;
                 somType = som;
                 #agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                #nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                # nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 agx.enableGPIOPassthrough = som == "agx";
 
                 # removed for GPIO Passthough  testing
@@ -71,9 +71,9 @@
                 virtualization.host.bpmp.enable = lib.mkDefault false;
                 passthroughs.host.uarta.enable = lib.mkDefault false;
                 virtualization.host.gpio.enable = lib.mkDefault true;
-                # virtualization.enable = false;
-                # virtualization.host.bpmp.enable = false;
-                # passthroughs.host.uarta.enable = false;
+                # virtualization.enable = lib.mkDefault false;
+                # virtualization.host.bpmp.enable = lib.mkDefault false;
+                # passthroughs.host.uarta.enable = lib.mkDefault false;
               };
 
               virtualization.microvm-host.enable = true;

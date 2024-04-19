@@ -8,16 +8,18 @@
 }: let
   # gpioDtbPath = ./arch/arm64/boot/dts/nvidia;
   gpioGuestOrigName = ''tegra234-p3701-0000-p3737-0000.dtb'';
-  gpioGuestDtbName = "tegra234-p3701-0000-gpio-passthrough.dtb";
+  gpioGuestDtbName = ''tegra234-gpio-guest-passthrough.dtb'';
 
   gpioGuestDts = ./gpio_pt_guest_overlay.dtso;
 
-  copyDtb = pkgs.stdenv.mkDerivation {
+  copyDtbTmp = pkgs.stdenv.mkDerivation {
     name = "copy-dtb-file";
-    buildInputs = [ pkgs.coreutils-full.cp gpioGuestOrigName gpioGuestDtbName ];
-    buildPhase = ''cp ${gpioGuestOrigName} ${gpioGuestDtbName}'';
+    buildInputs = [ pkgs.coreutils-full gpioGuestOrigName gpioGuestDtbName ];
+    buildPhase = ''cp -v ${gpioGuestOrigName} ${gpioGuestDtbName}; pwd;'';
+    pwd = builtins.getEnv "PWD";
     outputs = [ gpioGuestDtbName ];
   };
+  copyDtb = builtins.trace "Evaluating copyDtb = ${copyDtbTmp} derivation in gpio-vm" copyDtbTmp;
 
   # dtbFile specifies specifically gpiovm's device tree
   dtbFileList = copyDtb.outputs;
@@ -34,28 +36,37 @@ in {
 
     ghaf.virtualization.microvm.gpiovm.extraModules = [
       {
-        /*
-        microvm.devices = [
-          {
-            # GPIO passthrough uses a character device (/dev/vda). No need to specify?
-          }
-        ];
-        */
+        microvm = builtins.trace "Building ghaf.virtualization.microvm.gpiovm.extraModules.microvm"
+        {
+          /*
+          devices = [
+            {
+              # GPIO passthrough uses a character device (/dev/vda). No need to specify?
+            }
+          ];
+          */
 
-        microvm.kernelParams = [
-          "rootwait"
-          "root=/dev/vda"
-        ];
-        # "console=ttyAMA0"     # removed gpio-vm cannot open console since it does not have uarta passthough
+          qemu.serialConsole = false;
+          graphics.enable= false;
 
-        hardware.deviceTree = {
+          kernelParams = builtins.trace "Evaluating kernelParams for gpio-vm" [
+            "rootwait"
+            "root=/dev/vda"
+            "console=null"
+          ];
+          # "console=ttyAMA0"     # removed gpio-vm cannot open console since it does not have uarta passthough
+        };
+
+        hardware.deviceTree = builtins.trace "Evaluating hardware.deviceTree for gpio-vm" {
           enable = true;
-          name = gpioGuestDtbName;
-          overlays = [
+          #name = builtins.trace "Setting hardware.deviceTree.name to ${gpioGuestDtbName}" gpioGuestDtbName;
+          name = builtins.trace "Setting hardware.deviceTree.name to predefined constant string" ''tegra234-gpio-guest-passthrough.dtb'';
+          overlays = builtins.trace "Setting hardware.deviceTree.overlays" [
             {
               name = "gpio_pt_guest_overlay";
               dtsFile = gpioGuestDts;
-              filter  = dtbFile;
+              # filter  = dtbFile;
+              filter = gpioGuestDtbName;
             }
           ];
         };
