@@ -63,7 +63,7 @@
           group = "systemd-journal";
         };
 
-        systemd.tmpfiles.rules = [ "d /var/log/journal/remote 755 systemd-journal-remote systemd-journal" ];
+        systemd.tmpfiles.rules = ["d /var/log/journal/remote 755 systemd-journal-remote systemd-journal"];
 
         systemd.services.systemd-journal-remote = {
           enable = true;
