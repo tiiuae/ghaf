@@ -153,6 +153,9 @@
         # Lenovo X1 AC adapter
         "-device"
         "acad"
+        # Connect sound device to hosts pulseaudio socket
+        "-audiodev"
+        "pa,id=pa1,server=unix:/run/pulse/native"
       ];
     };
   };

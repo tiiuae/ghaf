@@ -12,7 +12,6 @@ in {
   inherit (hwDefinition) disks;
   inherit (hwDefinition) network;
   inherit (hwDefinition) gpu;
-  inherit (hwDefinition) audio;
 
   # Notes:
   #   1. This assembles udev rules for different hw configurations (i.e., different mice/touchpads) by adding
