@@ -38,34 +38,4 @@
       productId = "a7a1";
     }
   ];
-
-  # With the current implementation, the whole PCI IOMMU group 14:
-  #   00:1f.x in the example from Lenovo X1 Carbon
-  #   must be defined for passthrough to AudioVM
-  audio.pciDevices = [
-    {
-      # ISA bridge: Intel Corporation Raptor Lake LPC/eSPI Controller (rev 01)
-      path = "0000:00:1f.0";
-      vendorId = "8086";
-      productId = "5194";
-    }
-    {
-      # Audio device: Intel Corporation Raptor Lake-P/U/H cAVS (rev 01)
-      path = "0000:00:1f.3";
-      vendorId = "8086";
-      productId = "51ca";
-    }
-    {
-      # SMBus: Intel Corporation Alder Lake PCH-P SMBus Host Controller (rev 01)
-      path = "0000:00:1f.4";
-      vendorId = "8086";
-      productId = "51a3";
-    }
-    {
-      # Serial bus controller: Intel Corporation Alder Lake-P PCH SPI Controller (rev 01)
-      path = "0000:00:1f.5";
-      vendorId = "8086";
-      productId = "51a4";
-    }
-  ];
 }
