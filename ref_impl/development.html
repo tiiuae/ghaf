@@ -191,8 +191,8 @@
 <li><a href="./creating_appvm.html">Creating Application VM</a></li>
 <li><a href="./labwc.html">labwc Desktop Environment</a></li>
 </ul>
-<p>Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/users/accounts.nix">accounts.nix</a>.</p>
-<p>If you authorize your development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/ssh.nix#L10-L23">ssh.nix</a> module and rebuild Ghaf for your target device, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the target device over the network using SSH. For example:</p>
+<p>Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/users/accounts.nix">accounts.nix</a>.</p>
+<p>If you authorize your development SSH keys in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/development/authorized_ssh_keys.nix#L4-L21">ssh.nix</a> module and rebuild Ghaf for your target device, you can use <code>nixos-rebuild switch</code> to quickly deploy your configuration changes to the target device over the network using SSH. For example:</p>
 <pre><code>nixos-rebuild --flake .#nvidia-jetson-orin-agx-debug --target-host root@&lt;ip_address_of_ghaf-host&gt; --fast switch
 ...
 nixos-rebuild --flake .#lenovo-x1-carbon-gen11-debug --target-host root@&lt;ip_address_of_ghaf-host&gt; --fast switch
