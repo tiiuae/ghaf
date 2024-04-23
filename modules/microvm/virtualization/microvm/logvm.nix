@@ -67,6 +67,11 @@
 
         systemd.services.systemd-journal-remote = {
           enable = true;
+          serviceConfig = {
+            ExecStart = "${pkgs.systemd}/lib/systemd/systemd-journal-remote --output=/var/log/journal/remote --listen-http=19532";
+            User = "systemd-journal-remote";
+          };
+          wantedBy = ["multi-user.target"];
         };
 
         microvm = {
