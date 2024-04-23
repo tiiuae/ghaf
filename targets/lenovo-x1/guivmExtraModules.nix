@@ -70,6 +70,12 @@
       }
 
       {
+        name = "appflowy";
+        path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no appflowy-vm.ghaf run-waypipe appflowy";
+        icon = "${../../assets/icons/svg/appflowy.svg}";
+      }
+
+      {
         name = "windows";
         path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
         icon = "${../../assets/icons/png/windows.png}";

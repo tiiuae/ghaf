@@ -39,6 +39,7 @@ in {
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
+    appflowy = mkProgramOption "Appflowy" config.ghaf.graphics.enableDemoApplications;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
@@ -67,12 +68,18 @@ in {
         name = "zathura";
         path = "${pkgs.zathura}/bin/zathura";
         icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
+      }
+      ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) {
+        name = "appflowy";
+        path = "${pkgs.appflowy}/bin/appflowy";
+        icon = ../../../assets/icons/svg/appflowy.svg;
       };
     environment.systemPackages =
       lib.optional cfg.chromium pkgs.chromium
       ++ lib.optional cfg.element-desktop pkgs.element-desktop
       ++ lib.optional cfg.firefox pkgs.firefox
       ++ lib.optional cfg.gala-app pkgs.gala-app
-      ++ lib.optional cfg.zathura pkgs.zathura;
+      ++ lib.optional cfg.zathura pkgs.zathura
+      ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) pkgs.appflowy;
   };
 }
