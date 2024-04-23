@@ -104,7 +104,7 @@
               };
               virtualization.microvm.appvm = {
                 enable = true;
-                vms = import ./appvms/default.nix {inherit pkgs;};
+                vms = import ./appvms/default.nix {inherit pkgs config;};
               };
 
               # Enable all the default UI applications
