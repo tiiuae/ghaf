@@ -44,8 +44,8 @@ in
 
       print(machine.succeed("tty"))
 
-    machine.succeed("disko-install --disk ${disk} /dev/vdb --flake ${self}#${testConfig}")
-    machine.shutdown()
+      machine.succeed("disko-install --write-efi-boot-entries --disk ${disk} /dev/vdb --flake ${self}#${testConfig}")
+      machine.shutdown()
 
       # # FIXME: boot stucks
       # new_machine = create_test_machine(oldmachine=machine, args={ "name": "after_install" })
