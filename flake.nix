@@ -153,6 +153,7 @@
         ./packages/flake-module.nix
         ./targets/flake-module.nix
         ./hydrajobs/flake-module.nix
+        ./tests/flake-module.nix
         ./templates/flake-module.nix
       ];
 
