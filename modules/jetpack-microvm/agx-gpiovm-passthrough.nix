@@ -6,37 +6,16 @@
   config,
   ...
 }: let
-  # gpioDtbPath = ./arch/arm64/boot/dts/nvidia;
-  gpioGuestOrigName = ''tegra234-p3701-0000-p3737-0000.dtb'';
-  gpioGuestDtbName = ''tegra234-gpio-guest-passthrough.dtb'';
-
-  gpioGuestDts = ./gpio_pt_guest_overlay.dtso;
-
-  copyDtbTmp = pkgs.stdenv.mkDerivation {
-    name = "copy-dtb-file";
-    buildInputs = [ pkgs.coreutils-full gpioGuestOrigName gpioGuestDtbName ];
-    buildPhase = ''cp -v ${gpioGuestOrigName} ${gpioGuestDtbName}; pwd;'';
-    pwd = builtins.getEnv "PWD";
-    outputs = [ gpioGuestDtbName ];
-  };
-  copyDtb = builtins.trace "Evaluating copyDtb = ${copyDtbTmp} derivation in gpio-vm" copyDtbTmp;
-
-  # dtbFile specifies specifically gpiovm's device tree
-  dtbFileList = copyDtb.outputs;
-  dtbFile = builtins.elemAt dtbFileList 0;
-
   cfg = config.ghaf.hardware.nvidia.orin.agx;
 in {
   options.ghaf.hardware.nvidia.orin.agx.enableGPIOPassthrough =
     lib.mkEnableOption
     "GPIO passthrough to VM";
-
   config = lib.mkIf cfg.enableGPIOPassthrough {
-    # Orin AGX GPIO Passthrough
 
     ghaf.virtualization.microvm.gpiovm.extraModules = [
       {
-        microvm = builtins.trace "Building ghaf.virtualization.microvm.gpiovm.extraModules.microvm"
+        microvm = 
         {
           /*
           devices = [
@@ -46,21 +25,25 @@ in {
           ];
           */
 
-          qemu.serialConsole = false;
-          graphics.enable= false;
+          # Make sure that Gpio-VM runs after the dependency service are enabled
+          # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
 
-          kernelParams = builtins.trace "Evaluating kernelParams for gpio-vm" [
+          kernelParams = builtins.trace "Evaluating microvm.kernelParams (qemu -append) for gpio-vm" [
             "rootwait"
-            "root=/dev/vda"
-            "console=null"
+          # "root=/dev/vda"
+            # gpio-vm cannot open AMA0 reserved for passthrough console
+            # since it does not have uarta passthough
+            # "console=ttyAMA0 console=ttyS0"
+            "console=ttyS3"
           ];
-          # "console=ttyAMA0"     # removed gpio-vm cannot open console since it does not have uarta passthough
         };
 
+        /* no overlay when using dtb patch
+         * Note: use qemu.extraArgs for -dtb
         hardware.deviceTree = builtins.trace "Evaluating hardware.deviceTree for gpio-vm" {
           enable = true;
-          #name = builtins.trace "Setting hardware.deviceTree.name to ${gpioGuestDtbName}" gpioGuestDtbName;
-          name = builtins.trace "Setting hardware.deviceTree.name to predefined constant string" ''tegra234-gpio-guest-passthrough.dtb'';
+          name = builtins.trace "Setting hardware.deviceTree.name" gpioGuestDtbName;
+          # name = builtins.trace "Debugging with ${gpioGuestOrigName}" gpioGuestOrigName;
           overlays = builtins.trace "Setting hardware.deviceTree.overlays" [
             {
               name = "gpio_pt_guest_overlay";
@@ -70,16 +53,10 @@ in {
             }
           ];
         };
+        */
       }
     ];
  
-    /*
-    kernel = {
-      inherit kernel;
-      #phases = _ old.phases + { name='install'; func = ''echo "do copy here"'' };
-    };
-    */
-
     /* tmp note: further kernel settings for nvidia in:
     ../jetpack/nvidia-jetson-orin/virtualization/default.nix
     ../jetpack/nvidia-jetson-orin/virtualization/common/gpio-virt-common/default.nix

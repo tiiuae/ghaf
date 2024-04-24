@@ -2,7 +2,7 @@ diff --git a/drivers/Makefile b/drivers/Makefile
 index d3500440b928..ea8c07ff3700 100644
 --- a/drivers/Makefile
 +++ b/drivers/Makefile
-@@ -191,3 +191,13 @@ obj-$(CONFIG_GNSS)		+= gnss/
+@@ -191,3 +191,8 @@ obj-$(CONFIG_GNSS)		+= gnss/
  obj-$(CONFIG_INTERCONNECT)	+= interconnect/
  obj-$(CONFIG_COUNTER)		+= counter/
  obj-$(CONFIG_MOST)		+= most/
@@ -11,12 +11,6 @@ index d3500440b928..ea8c07ff3700 100644
 +#
 +obj-y	+= gpio-host-proxy/
 +obj-y	+= gpio-guest-proxy/
-+#
-+#
-+#
-+obj-y	+= bpmp-host-proxy/
-+obj-y	+= bpmp-guest-proxy/
-\ No newline at end of file
 diff --git a/drivers/Kconfig b/drivers/Kconfig
 index dcecc9f6e33f..ed7d58d68ba6 100644
 --- a/drivers/Kconfig

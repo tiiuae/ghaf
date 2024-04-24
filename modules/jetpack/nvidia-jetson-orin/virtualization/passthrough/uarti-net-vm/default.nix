@@ -21,7 +21,7 @@ in {
     '';
     ghaf.hardware.nvidia.virtualization.enable = true;
 
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    ghaf.virtualization.microvm.netvm.extraModules = builtins.trace "Setting, ghaf.virtualization.microvm.netvm.extraModules" [
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
