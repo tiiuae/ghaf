@@ -9,6 +9,10 @@
   configHost = config;
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
+  memsocket = pkgs.callPackage ../../../../packages/memsocket {
+    debug = false;
+    vms = config.ghaf.profiles.applications.ivShMemServer.vmCount;
+  };
   guivmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
@@ -67,6 +71,7 @@
             pkgs.waypipe
             pkgs.networkmanagerapplet
             pkgs.nm-launcher
+            memsocket
           ];
         };
 
@@ -80,6 +85,13 @@
           vcpu = 2;
           mem = 2048;
           hypervisor = "qemu";
+          kernelParams =
+            if configHost.ghaf.profiles.applications.ivShMemServer.enable
+            then [
+              "kvm_ivshmem.flataddr=${configHost.ghaf.profiles.applications.ivShMemServer.flataddr}"
+            ]
+            else [];
+
           shares = [
             {
               tag = "rw-waypipe-ssh-public-key";
@@ -95,10 +107,23 @@
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
           qemu = {
-            extraArgs = [
-              "-device"
-              "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
-            ];
+            extraArgs = let
+              vectors = toString (2 * config.ghaf.profiles.applications.ivShMemServer.vmCount);
+              sharedMemory =
+                if configHost.ghaf.profiles.applications.ivShMemServer.enable
+                then [
+                  "-device"
+                  "ivshmem-doorbell,vectors=${vectors},chardev=ivs_socket,flataddr=${config.ghaf.profiles.applications.ivShMemServer.flataddr}"
+                  "-chardev"
+                  "socket,path=${config.ghaf.profiles.applications.ivShMemServer.hostSocketPath},id=ivs_socket"
+                ]
+                else [];
+            in
+              [
+                "-device"
+                "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
+              ]
+              ++ sharedMemory;
 
             machine =
               {
@@ -115,21 +140,43 @@
           ../../../desktop
         ];
 
-        # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-        systemd.user.services.waypipe = {
-          enable = true;
-          description = "waypipe";
-          after = ["weston.service" "labwc.service"];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-            Restart = "always";
-            RestartSec = "1";
-          };
-          startLimitIntervalSec = 0;
-          wantedBy = ["ghaf-session.target"];
-        };
+        services.udev.extraRules = ''
+          SUBSYSTEM=="misc",KERNEL=="ivshmem",GROUP="kvm",MODE="0666"
+        '';
 
+        # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
+        systemd.user.services = {
+          waypipe = {
+            enable = true;
+            description = "waypipe";
+            after = ["weston.service" "labwc.service"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            startLimitIntervalSec = 0;
+            wantedBy = ["ghaf-session.target"];
+          };
+
+          # Waypipe in GUIVM needs to communicate with AppVMs using socket forwading
+          # application. It uses shared memory between virtual machines to forward
+          # data between sockets.
+          #
+          memsocket = lib.mkIf config.ghaf.profiles.applications.ivShMemServer.enable {
+            enable = true;
+            description = "memsocket";
+            after = ["weston.service"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${memsocket}/bin/memsocket -c ${config.ghaf.profiles.applications.ivShMemServer.clientSocketPath}";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            wantedBy = ["ghaf-session.target"];
+          };
+        };
         # Fixed IP-address for debugging subnet
         systemd.network.networks."10-ethint0".addresses = [
           {
@@ -194,6 +241,23 @@ in {
           imports =
             guivmBaseConfiguration.imports
             ++ cfg.extraModules;
+        }
+        // {
+          boot.kernelPatches =
+            if configHost.ghaf.profiles.applications.ivShMemServer.enable
+            then [
+              {
+                name = "Shared memory PCI driver";
+                patch = pkgs.fetchpatch {
+                  url = "https://raw.githubusercontent.com/tiiuae/shmsockproxy/main/0001-ivshmem-driver.patch";
+                  sha256 = "sha256-u/MNrGnSqC4yJenp6ey1/gLNbt2hZDDBCDA6gjQlC7g=";
+                };
+                extraConfig = ''
+                  KVM_IVSHMEM_VM_COUNT ${toString config.ghaf.profiles.applications.ivShMemServer.vmCount}
+                '';
+              }
+            ]
+            else [];
         };
     };
 
@@ -217,20 +281,53 @@ in {
       };
     };
 
-    # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
-    # However, VSOCK does not support direct guest to guest communication
-    # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
-    # It listens for incoming connections from AppVMs and forwards data to GUIVM
-    systemd.services.vsockproxy = {
-      enable = true;
-      description = "vsockproxy";
-      unitConfig = {
-        Type = "simple";
+    systemd.services = {
+      # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
+      # However, VSOCK does not support direct guest to guest communication
+      # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
+      # It listens for incoming connections from AppVMs and forwards data to GUIVM
+      vsockproxy = {
+        enable = true;
+        description = "vsockproxy";
+        unitConfig = {
+          Type = "simple";
+        };
+        serviceConfig = {
+          ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
+        };
+        wantedBy = ["multi-user.target"];
       };
-      serviceConfig = {
-        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
-      };
-      wantedBy = ["multi-user.target"];
+
+      ivshmemsrv = let
+        socketPath = config.ghaf.profiles.applications.ivShMemServer.hostSocketPath;
+        pidFilePath = "/tmp/ivshmem-server.pid";
+        ivShMemSrv = let
+          vectors = toString (2 * config.ghaf.profiles.applications.ivShMemServer.vmCount);
+        in
+          pkgs.writeShellScriptBin "ivshmemsrv" ''
+            chown microvm /dev/hugepages
+            chgrp kvm /dev/hugepages
+            if [ -S ${socketPath} ]; then
+              echo Erasing ${socketPath} ${pidFilePath}
+              rm -f ${socketPath}
+            fi
+            ${pkgs.sudo}/sbin/sudo -u microvm -g kvm ${pkgs.qemu_kvm}/bin/ivshmem-server -p ${pidFilePath} -n ${vectors} -m /dev/hugepages/ -l ${(toString config.ghaf.profiles.applications.ivShMemServer.memSize) + "M"}
+            sleep 2
+          '';
+      in
+        lib.mkIf configHost.ghaf.profiles.applications.ivShMemServer.enable {
+          enable = true;
+          description = "Start qemu ivshmem memory server";
+          path = [ivShMemSrv];
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            StandardOutput = "journal";
+            StandardError = "journal";
+            ExecStart = "${ivShMemSrv}/bin/ivshmemsrv";
+          };
+        };
     };
   };
 }
