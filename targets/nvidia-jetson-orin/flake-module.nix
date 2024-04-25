@@ -74,6 +74,7 @@
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
+                applications.ivShMemServer.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
