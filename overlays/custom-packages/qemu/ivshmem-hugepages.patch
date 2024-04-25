@@ -24,6 +24,26 @@ index 2f3c7320a..906c5d0b5 100644
          g_free(filename);
      }
  
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index 7d9dbc266..8d61075dc 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -80,6 +80,7 @@
+ #include "hw/virtio/virtio-iommu.h"
+ #include "hw/char/pl011.h"
+ #include "qemu/guest-random.h"
++#include "hw/misc/ivshmem.h"
+ 
+ #define DEFINE_VIRT_MACHINE_LATEST(major, minor, latest) \
+     static void virt_##major##_##minor##_class_init(ObjectClass *oc, \
+@@ -2938,6 +2939,7 @@ static void virt_machine_class_init(ObjectClass *oc, void *data)
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_VFIO_AMD_XGBE);
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_RAMFB_DEVICE);
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_VFIO_PLATFORM);
++    machine_class_allow_dynamic_sysbus_dev(mc, TYPE_IVSHMEM_FLAT);
+ #ifdef CONFIG_TPM
+     machine_class_allow_dynamic_sysbus_dev(mc, TYPE_TPM_TIS_SYSBUS);
+ #endif
 diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
 index dc27a9e22..a760caebc 100644
 --- a/hw/i386/pc_q35.c
