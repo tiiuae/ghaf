@@ -61,6 +61,8 @@ in {
       programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
+      # Import journal remote upload service for central logging
+      imports = [../../../modules/common/log/journal-remote-upload.nix];
     }
   ];
   borderColor = "#630505";

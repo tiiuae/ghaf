@@ -10,6 +10,8 @@
   extraModules = [
     {
       time.timeZone = "Asia/Dubai";
+      # Import journal remote upload service for central logging
+      imports = [../../../modules/common/log/journal-remote-upload.nix];
     }
   ];
   borderColor = "#122263";

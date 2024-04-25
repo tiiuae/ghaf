@@ -21,7 +21,6 @@ in {
       Restart = "on-failure";
       RestartSec = "1";
     };
-
     wantedBy = ["multi-user.target"];
   };
 }

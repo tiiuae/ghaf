@@ -18,6 +18,8 @@
       security.pki.certificateFiles =
         lib.mkIf config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
         [../../../modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem];
+      # Import journal remote upload service for central logging
+      imports = [../../../modules/common/log/journal-remote-upload.nix];
     }
   ];
   borderColor = "#027d7b";

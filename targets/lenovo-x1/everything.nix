@@ -33,6 +33,7 @@
           self.nixosModules.disko-lenovo-x1-basic-v1
           self.nixosModules.hw-lenovo-x1
 
+          # Import journal remote upload service for central logging
           ../../modules/common/log/journal-remote-upload.nix
 
           ./sshkeys.nix

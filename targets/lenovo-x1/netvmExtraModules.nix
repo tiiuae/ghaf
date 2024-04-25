@@ -99,4 +99,10 @@
     # DNS host record has been added for element-vm static ip
     services.dnsmasq.settings.host-record = "element-vm,element-vm.ghaf,${elemen-vmIp}";
   };
-in [netvmPCIPassthroughModule netvmAdditionalConfig]
+in [
+  ./sshkeys.nix
+  # Import journal remote upload service for central logging
+  ../../modules/common/log/journal-remote-upload.nix
+  netvmPCIPassthroughModule
+  netvmAdditionalConfig
+]

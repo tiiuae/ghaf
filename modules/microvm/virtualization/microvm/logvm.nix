@@ -67,6 +67,7 @@
 
         systemd.services.systemd-journal-remote = {
           enable = true;
+          description = "Central logging service";
           serviceConfig = {
             ExecStart = "${pkgs.systemd}/lib/systemd/systemd-journal-remote --output=/var/log/journal/remote --listen-http=19532";
             User = "systemd-journal-remote";
@@ -78,6 +79,13 @@
           optimize.enable = true;
           hypervisor = "cloud-hypervisor";
           shares = [
+            {
+              # Creating a persistent log-store which is mapped on ghaf-host
+              tag = "log-store";
+              source = "/var/log/journal/remote";
+              mountPoint = "/var/log/journal/remote";
+              proto = "virtiofs";
+            }
             {
               tag = "ro-store";
               source = "/nix/store";
