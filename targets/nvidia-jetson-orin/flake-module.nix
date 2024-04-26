@@ -71,6 +71,18 @@
               virtualization.microvm.netvm.enable = true;
               virtualization.microvm.netvm.extraModules = netvmExtraModules;
 
+              virtualization.microvm.appvm = {
+                enable = true;
+                vms = with pkgs; [
+                {
+                  name = "test-vm1";
+#                  packages = [chromium];
+                  macAddress = "02:00:00:03:03:05";
+                  ramMb = 1024;
+                  cores = 1;
+                }];
+              };
+
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
