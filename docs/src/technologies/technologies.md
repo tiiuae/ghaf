@@ -37,4 +37,5 @@ In addition, we have also experimental, Aarch64 demonstrated support for a KVM v
   - [NVIDIA Jetson AGX Orin: PCIe Passthrough](./nvidia_agx_pt_pcie.md)
   - [Generic x86: PCIe Passthrough on crosvm](./x86_pcie_crosvm.md)
 - [NVIDIA Jetson AGX Orin: Boot and Power Management Processor Virtualization](./nvidia_virtualization_bpmp.md)
+- [NVIDIA CSI-2 (Camera Serial Interface-2) Camera Support](./nvidia_csi2-camera.md)
 - [Hypervisor Options](./hypervisor_options.md)

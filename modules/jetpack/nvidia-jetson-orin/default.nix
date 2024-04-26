@@ -9,6 +9,9 @@
 
     ./pci-passthrough-common.nix
 
+    ../../jetpack-camera/agx-camera.nix
+    ../../jetpack-camera/nx-camera.nix
+
     ./ota-utils-fix.nix
     ./virtualization
 
