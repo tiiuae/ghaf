@@ -4,15 +4,8 @@
   final,
   prev,
 }:
-# It defaulted to
-# { ...
-# , x11Support ? true
-# , ffadoSupport ? x11Support && stdenv.buildPlatform.canExecute stdenv.hostPlatform
-# }
-# It should evaluate to `false` in case of cross-compilation, but it doesn't happens for unknown reasons.
 (
   prev.pipewire.override {
-    ffadoSupport = false;
     #TODO review the use of libcamera as if causes a lot of FOD errors
     libcameraSupport = false;
   }

@@ -22,4 +22,5 @@
   # launcher overlays
   networkmanagerapplet = import ./networkmanagerapplet {inherit prev;};
   htop = import ./htop {inherit prev;};
+  pipewire = import ./pipewire {inherit final prev;};
 })
