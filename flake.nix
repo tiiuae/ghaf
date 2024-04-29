@@ -25,7 +25,7 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:avnik/nixpkgs/1a4890131be8";
+    nixpkgs.url = "github:avnik/nixpkgs/661d4ce21ed2";
 
     #
     # Flake and repo structuring configurations
