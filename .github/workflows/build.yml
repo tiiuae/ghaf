@@ -164,6 +164,7 @@ jobs:
             system-features = nixos-test benchmark big-parallel kvm
             builders-use-substitutes = true
             builders = @/etc/nix/machines
+            log-lines = 100
       - name: Configure remote builder
         run: |
           sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
