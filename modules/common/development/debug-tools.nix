@@ -37,6 +37,7 @@ in
           # Performance testing
           speedtest-cli
           iperf
+          perf-tools
           # Match perf version with kernel.
           config.boot.kernelPackages.perf
         ]

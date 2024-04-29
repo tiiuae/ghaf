@@ -90,6 +90,8 @@
             runWaypipe
             memsocket
             memtest
+            pkgs.linuxPackages.perf
+            pkgs.perf-tools
           ];
 
           microvm = {
