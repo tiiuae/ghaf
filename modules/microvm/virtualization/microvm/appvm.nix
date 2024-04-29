@@ -130,7 +130,7 @@
               in
                 [
                   "-M"
-                  "accel=kvm:tcg,mem-merge=on,sata=off"
+                  "accel=kvm:tcg,mem-merge=on"
                   "-device"
                   "vhost-vsock-pci,guest-cid=${toString cid}"
                 ]

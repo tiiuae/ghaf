@@ -75,7 +75,7 @@
                 enable = true;
                 vms = with pkgs; [
                 {
-                  name = "test-vm1";
+                  name = "test1";
 #                  packages = [chromium];
                   macAddress = "02:00:00:03:03:05";
                   ramMb = 1024;
