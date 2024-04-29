@@ -176,9 +176,9 @@
   };
 in
   [
-  ./sshkeys.nix
-  # Import journal remote upload service for central logging
-  ../../modules/common/log/journal-remote-upload.nix
+    ../../modules/common/security/sshkeys.nix
+    # Import journal remote upload service for central logging
+    ../../modules/common/log/journal-remote-upload.nix
     guivmPCIPassthroughModule
     guivmVirtioInputHostEvdevModule
     guivmExtraConfigurations
