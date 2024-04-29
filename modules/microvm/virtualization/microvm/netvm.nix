@@ -51,29 +51,7 @@
         # Add simple wi-fi connection helper
         environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];
 
-        # Dnsmasq is used as a DHCP/DNS server inside the NetVM
-        services.dnsmasq = {
-          enable = true;
-          resolveLocalQueries = true;
-          settings = {
-            server = ["8.8.8.8"];
-            dhcp-range = ["192.168.100.2,192.168.100.254"];
-            dhcp-sequential-ip = true;
-            dhcp-authoritative = true;
-            domain = "ghaf";
-            listen-address = ["127.0.0.1,192.168.100.1"];
-            dhcp-option = [
-              "option:router,192.168.100.1"
-              "6,192.168.100.1"
-            ];
-            expand-hosts = true;
-            domain-needed = true;
-            bogus-priv = true;
-          };
-        };
-
-        # Disable resolved since we are using Dnsmasq
-        services.resolved.enable = false;
+        services.resolved.enable = true;
 
         systemd.network = {
           enable = true;

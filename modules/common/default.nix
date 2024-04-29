@@ -17,5 +17,6 @@
     ./version
     ./virtualization/docker.nix
     ./systemd
+    ./networking
   ];
 }
