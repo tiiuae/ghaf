@@ -3,9 +3,14 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   cfg = config.ghaf.host.networking;
+  sshKeysHelper = pkgs.callPackage ../../packages/ssh-keys-helper {
+    inherit pkgs;
+    inherit config;
+  };
 in
   with lib; {
     options.ghaf.host.networking = {
@@ -42,5 +47,12 @@ in
           networkConfig.Bridge = "virbr0";
         };
       };
+
+      environment.etc = {
+        ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} =
+          sshKeysHelper.getAuthKeysSource;
+      };
+
+      services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
     };
   }

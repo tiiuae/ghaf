@@ -164,6 +164,7 @@ jobs:
             system-features = nixos-test benchmark big-parallel kvm
             builders-use-substitutes = true
             builders = @/etc/nix/machines
+            log-lines = 100
       - name: Configure remote builder
         run: |
           sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
@@ -182,6 +183,6 @@ jobs:
           else
             echo "Running nix build, with cachix watch-exec"
             cachix authtoken ${{ secrets.CACHIX_AUTH_TOKEN }}
-            cachix watch-exec ghaf-dev -- \
-              nix build -L .#packages.${{ matrix.arch }}.${{ matrix.target }}
+            cachix watch-exec -v ghaf-dev -- \
+              nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
           fi
