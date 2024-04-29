@@ -33,8 +33,8 @@ in {
       hardware.pulseaudio = {
         enable = true;
         extraConfig = ''
-          load-module module-tunnel-sink sink_name=element-speaker server=audio-vm.ghaf:4713 format=s16le channels=2 rate=48000
-          load-module module-tunnel-source source_name=element-mic server=audio-vm.ghaf:4713 format=s16le channels=1 rate=48000
+          load-module module-tunnel-sink sink_name=element-speaker server=audio-vm:4713 format=s16le channels=2 rate=48000
+          load-module module-tunnel-source source_name=element-mic server=audio-vm:4713 format=s16le channels=1 rate=48000
 
           # Set sink and source default max volume to about 90% (0-65536)
           set-sink-volume element-speaker 60000
@@ -66,22 +66,6 @@ in {
               RestartSec = "2";
             };
             wantedBy = ["multi-user.target"];
-          };
-        };
-
-        network = {
-          enable = true;
-          networks."10-ethint0" = {
-            DHCP = pkgs.lib.mkForce "no";
-            matchConfig.Name = "ethint0";
-            addresses = [
-              {
-                addressConfig.Address = "192.168.100.253/24";
-              }
-            ];
-            routes = [{routeConfig.Gateway = "192.168.100.1";}];
-            linkConfig.RequiredForOnline = "routable";
-            linkConfig.ActivationPolicy = "always-up";
           };
         };
       };

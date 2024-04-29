@@ -6,8 +6,6 @@
   wifiDevice,
   ...
 }: let
-  # Replace the IP address with "net-vm.ghaf" after DNS/DHCP module merge
-  netvm_address = "192.168.100.1";
   wifiSignalStrength =
     pkgs.writeShellScript
     "wifi-signal-strength"
@@ -23,11 +21,11 @@
       ${pkgs.util-linux}/bin/flock -w 60 -x 99 || exit 1
 
       # Return the result as json format for waybar and use the control socket to close the ssh tunnel.
-      trap "${pkgs.openssh}/bin/ssh -q -S /tmp/nmcli_socket -O exit ghaf@${netvm_address} && ${pkgs.coreutils-full}/bin/cat $NETWORK_STATUS_FILE" EXIT
+      trap "${pkgs.openssh}/bin/ssh -q -S /tmp/nmcli_socket -O exit ghaf@net-vm && ${pkgs.coreutils-full}/bin/cat $NETWORK_STATUS_FILE" EXIT
 
       # Connect to netvm
       ${pkgs.openssh}/bin/ssh -M -S /tmp/nmcli_socket \
-          -f -N -q ghaf@${netvm_address} \
+          -f -N -q ghaf@net-vm \
           -i /run/waypipe-ssh/id_ed25519 \
           -o StrictHostKeyChecking=no \
           -o StreamLocalBindUnlink=yes \

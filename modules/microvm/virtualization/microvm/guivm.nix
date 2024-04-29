@@ -12,7 +12,10 @@
   inherit (import ../../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
-      (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ./common/vm-networking.nix {
+        inherit config lib vmName macAddress;
+        internalIP = 3;
+      })
       ({
         lib,
         pkgs,
@@ -127,27 +130,18 @@
         ];
 
         # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-        systemd = {
-          user.services.waypipe = {
-            enable = true;
-            description = "waypipe";
-            after = ["labwc.service"];
-            serviceConfig = {
-              Type = "simple";
-              ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-              Restart = "always";
-              RestartSec = "1";
-            };
-            startLimitIntervalSec = 0;
-            wantedBy = ["ghaf-session.target"];
+        systemd.user.services.waypipe = {
+          enable = true;
+          description = "waypipe";
+          after = ["labwc.service"];
+          serviceConfig = {
+            Type = "simple";
+            ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
+            Restart = "always";
+            RestartSec = "1";
           };
-
-          # Fixed IP-address for debugging subnet
-          network.networks."10-ethint0".addresses = [
-            {
-              addressConfig.Address = "192.168.101.3/24";
-            }
-          ];
+          startLimitIntervalSec = 0;
+          wantedBy = ["ghaf-session.target"];
         };
       })
     ];

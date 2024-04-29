@@ -10,7 +10,10 @@
   macAddress = "02:00:00:03:03:03";
   audiovmBaseConfiguration = {
     imports = [
-      (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ./common/vm-networking.nix {
+        inherit config lib vmName macAddress;
+        internalIP = 5;
+      })
       ({
         lib,
         pkgs,

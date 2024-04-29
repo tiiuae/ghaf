@@ -56,32 +56,32 @@
             name = "Chromium";
             path =
               if configH.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
-              then "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --user-data-dir=/home/${configH.ghaf.users.accounts.user}/.config/chromium/Default --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU="
-              else "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              then "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --user-data-dir=/home/${configH.ghaf.users.accounts.user}/.config/chromium/Default --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU="
+              else "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${pkgs.icon-pack}/chromium.svg";
           }
 
           {
             name = "GALA";
-            path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no gala-vm run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
           }
 
           {
             name = "PDF Viewer";
-            path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
+            path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no zathura-vm run-waypipe zathura";
             icon = "${pkgs.icon-pack}/document-viewer.svg";
           }
 
           {
             name = "Element";
-            path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no element-vm.ghaf run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no element-vm run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
             icon = "${pkgs.icon-pack}/element-desktop.svg";
           }
 
           {
             name = "AppFlowy";
-            path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no appflowy-vm.ghaf run-waypipe appflowy";
+            path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no appflowy-vm run-waypipe appflowy";
             icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
           }
 

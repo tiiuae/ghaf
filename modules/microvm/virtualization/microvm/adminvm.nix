@@ -11,10 +11,14 @@
 
   adminvmBaseConfiguration = {
     imports = [
-      (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ./common/vm-networking.nix {
+        inherit config lib vmName macAddress;
+        internalIP = 10;
+      })
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
           development = {
             # NOTE: SSH port also becomes accessible on the network interface
             #       that has been passed through to VM
@@ -44,15 +48,6 @@
           enable = true;
           networks."10-ethint0" = {
             matchConfig.MACAddress = macAddress;
-            addresses = [
-              {
-                addressConfig.Address = "192.168.100.10/24";
-              }
-              {
-                # IP-address for debugging subnet
-                addressConfig.Address = "192.168.101.10/24";
-              }
-            ];
             linkConfig.ActivationPolicy = "always-up";
           };
         };

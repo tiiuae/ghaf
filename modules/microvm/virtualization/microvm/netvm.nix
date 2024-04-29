@@ -19,10 +19,15 @@
 
   netvmBaseConfiguration = {
     imports = [
-      (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ./common/vm-networking.nix {
+        inherit config lib vmName macAddress;
+        internalIP = 1;
+        gateway = [];
+      })
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
           development = {
             # NOTE: SSH port also becomes accessible on the network interface
             #       that has been passed through to NetVM
@@ -34,6 +39,7 @@
             enable = true;
             withName = "netvm-systemd";
             withPolkit = true;
+            withResolved = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
           };
@@ -53,46 +59,6 @@
 
         # Add simple wi-fi connection helper
         environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];
-
-        # Dnsmasq is used as a DHCP/DNS server inside the NetVM
-        services = {
-          dnsmasq = {
-            enable = true;
-            resolveLocalQueries = true;
-            settings = {
-              server = ["8.8.8.8"];
-              dhcp-range = ["192.168.100.2,192.168.100.254"];
-              dhcp-sequential-ip = true;
-              dhcp-authoritative = true;
-              domain = "ghaf";
-              listen-address = ["127.0.0.1,192.168.100.1"];
-              expand-hosts = true;
-              domain-needed = true;
-              bogus-priv = true;
-            };
-          };
-
-          # Disable resolved since we are using Dnsmasq
-          resolved.enable = false;
-          openssh = lib.mkIf isGuiVmEnabled configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
-        };
-
-        systemd.network = {
-          enable = true;
-          networks."10-ethint0" = {
-            matchConfig.MACAddress = macAddress;
-            addresses = [
-              {
-                addressConfig.Address = "192.168.100.1/24";
-              }
-              {
-                # IP-address for debugging subnet
-                addressConfig.Address = "192.168.101.1/24";
-              }
-            ];
-            linkConfig.ActivationPolicy = "always-up";
-          };
-        };
 
         microvm = {
           optimize.enable = true;
