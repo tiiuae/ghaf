@@ -9,13 +9,16 @@
   configHost = config;
   vmName = "ids-vm";
   macAddress = "02:00:00:01:01:02";
-  networkName = "ethint0";
   idsvmBaseConfiguration = {
     imports = [
-      (import ../common/vm-networking.nix {inherit vmName macAddress;})
+      (import ../common/vm-networking.nix {
+        inherit config lib vmName macAddress;
+        internalIP = 4;
+      })
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
 
           virtualization.microvm.idsvm.mitmproxy.enable = configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;
 
@@ -40,18 +43,6 @@
             pkgs.snort # TODO: put into separate module
           ]
           ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.tcpdump);
-
-        systemd.network = {
-          networks."10-${networkName}" = {
-            gateway = ["192.168.100.1"];
-            addresses = [
-              {
-                # IP-address for debugging subnet
-                addressConfig.Address = "192.168.101.4/24";
-              }
-            ];
-          };
-        };
 
         microvm = {
           optimize.enable = true;

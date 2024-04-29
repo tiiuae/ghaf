@@ -1,8 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  config,
+  lib,
   vmName,
   macAddress,
+  internalIP,
+  gateway ? ["192.168.100.1"],
   ...
 }: let
   networkName = "ethint0";
@@ -35,12 +39,25 @@ in {
       matchConfig.PermanentMACAddress = macAddress;
       linkConfig.Name = networkName;
     };
-    networks."10-${networkName}" = {
-      matchConfig.MACAddress = macAddress;
-      DHCP = "yes";
-      linkConfig.RequiredForOnline = "routable";
-      linkConfig.ActivationPolicy = "always-up";
-    };
+    networks."10-${networkName}" =
+      {
+        matchConfig.MACAddress = macAddress;
+        addresses =
+          [
+            {
+              addressConfig.Address = "192.168.100.${toString internalIP}/24";
+            }
+          ]
+          ++ lib.optionals config.ghaf.profiles.debug.enable [
+            {
+              # IP-address for debugging subnet
+              addressConfig.Address = "192.168.101.${toString internalIP}/24";
+            }
+          ];
+        linkConfig.RequiredForOnline = "routable";
+        linkConfig.ActivationPolicy = "always-up";
+      }
+      // lib.optionalAttrs (gateway != []) {inherit gateway;};
   };
 
   # systemd-resolved does not support local names resolution

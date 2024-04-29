@@ -25,12 +25,15 @@
 
     internalNic = let
       vmNetworking = import ../../modules/microvm/virtualization/microvm/common/vm-networking.nix {
+        config = configH;
+        inherit lib;
         vmName = microvm.name;
         inherit (microvm) macAddress;
+        internalIP = 1;
       };
     in "${lib.head vmNetworking.networking.nat.internalInterfaces}";
 
-    elemen-vmIp = "192.168.100.253";
+    element-vmIp = "192.168.100.103";
   in {
     # For WLAN firmwares
     hardware = {
@@ -65,7 +68,7 @@
           ];
 
         # DNS host record has been added for element-vm static ip
-        host-record = "element-vm,element-vm.ghaf,${elemen-vmIp}";
+        host-record = "element-vm,element-vm,${element-vmIp}";
       };
 
       openssh = configH.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
@@ -107,7 +110,7 @@
       firewallConfig = true;
       externalNic = "${externalNic}";
       internalNic = "${internalNic}";
-      serverIpAddr = "${elemen-vmIp}";
+      serverIpAddr = "${element-vmIp}";
     };
   };
 in [netvmPCIPassthroughModule netvmAdditionalConfig]

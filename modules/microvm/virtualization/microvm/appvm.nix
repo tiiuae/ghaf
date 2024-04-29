@@ -28,8 +28,9 @@
     appvmConfiguration = {
       imports = [
         (import ./common/vm-networking.nix {
-          inherit vmName;
+          inherit config lib vmName;
           inherit (vm) macAddress;
+          internalIP = index + 100;
         })
         ({
           lib,
@@ -48,6 +49,7 @@
         in {
           ghaf = {
             users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+            profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
 
             development = {
               ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;

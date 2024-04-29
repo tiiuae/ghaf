@@ -17,5 +17,6 @@
     ./systemd
     ./services
     ./programs
+    ./networking
   ];
 }

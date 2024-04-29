@@ -17,7 +17,7 @@ in {
     xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
       filepath=$(realpath "$1")
       echo "Opening $filepath" | systemd-cat -p info
-      echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm.ghaf ${toString xdgPdfPort}
+      echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm ${toString xdgPdfPort}
     '';
   in [
     pkgs.chromium
@@ -40,8 +40,8 @@ in {
       hardware.pulseaudio = {
         enable = true;
         extraConfig = ''
-          load-module module-tunnel-sink sink_name=chromium-speaker server=audio-vm.ghaf:4713 format=s16le channels=2 rate=48000
-          load-module module-tunnel-source source_name=chromium-mic server=audio-vm.ghaf:4713 format=s16le channels=1 rate=48000
+          load-module module-tunnel-sink sink_name=chromium-speaker server=audio-vm:4713 format=s16le channels=2 rate=48000
+          load-module module-tunnel-source source_name=chromium-mic server=audio-vm:4713 format=s16le channels=1 rate=48000
 
           # Set sink and source default max volume to about 90% (0-65536)
           set-sink-volume chromium-speaker 60000
