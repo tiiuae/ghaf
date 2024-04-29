@@ -163,18 +163,6 @@
             ''
             else "";
 
-          systemd.user.services.memsocket = lib.mkIf configHost.ghaf.profiles.applications.ivShMemServer.enable {
-            enable = true;
-            description = "memsocket";
-            serviceConfig = {
-              Type = "simple";
-              ExecStart = "${memsocket}/bin/memsocket -s ${configHost.ghaf.profiles.applications.ivShMemServer.serverSocketPath} ${builtins.toString index}";
-              Restart = "always";
-              RestartSec = "1";
-            };
-            wantedBy = ["default.target"];
-          };
-
           imports = [../../../common];
         })
       ];
