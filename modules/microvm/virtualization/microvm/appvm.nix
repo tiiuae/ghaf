@@ -21,6 +21,7 @@
       debug = false;
       vms = configHost.ghaf.profiles.applications.ivShMemServer.vmCount;
     };
+    memtest = pkgs.callPackage ../../../../packages/memsocket/memtest.nix {};
     appvmConfiguration = {
       imports = [
         (import ./common/vm-networking.nix {
@@ -88,6 +89,7 @@
             pkgs.waypipe
             runWaypipe
             memsocket
+            memtest
           ];
 
           microvm = {
@@ -102,11 +104,6 @@
               else [];
             hypervisor = "qemu";
             shares = [
-              {
-                tag = "waypipe-ssh-public-key";
-                source = "/run/waypipe-ssh-public-key";
-                mountPoint = "/run/waypipe-ssh-public-key";
-              }
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -180,8 +177,6 @@
             };
             wantedBy = ["default.target"];
           };
-
-          fileSystems."/run/waypipe-ssh-public-key".options = ["ro"];
 
           imports = [../../../common];
         })
