@@ -14,6 +14,9 @@ in
     };
 
     config = mkIf cfg.enable {
+      environment.etc = {
+        audio_test.source = ./audio_test;
+      };
       environment.systemPackages = with pkgs;
         [
           # For lspci:
@@ -44,6 +47,8 @@ in
         # LuaJIT (which is sysbench dependency) not available on RISC-V
         ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") sysbench
         # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
-        ++ lib.optional (stdenv.hostPlatform == stdenv.buildPlatform) unixbench;
+        ++ lib.optional (stdenv.hostPlatform == stdenv.buildPlatform) unixbench
+        # Build VLC only on x86
+        ++ lib.optional (config.nixpkgs.hostPlatform.system == "x86_64-linux") vlc;
     };
   }
