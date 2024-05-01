@@ -7,14 +7,14 @@
   ...
 }: let
   cfg = config.ghaf.graphics.labwc;
-  inherit (config.ghaf.graphics.hardware) networkDevice;
+  inherit (config.ghaf.graphics.hardware) networkDevices;
   inherit (import ../../../lib/icons.nix {inherit pkgs lib;}) svgToPNG;
 
   launchpad-icon = svgToPNG "launchpad" ../../../assets/icons/svg/launchpad.svg "38x38";
   admin-icon = svgToPNG "admin" ../../../assets/icons/svg/admin-cog.svg "24x24";
   ghaf-icon = svgToPNG "ghaf-white" ../../../assets/icons/svg/ghaf-white.svg "24x24";
 
-  wifiDevice = lib.lists.findFirst (d: d.name != null) null networkDevice;
+  wifiDevice = lib.lists.findFirst (d: d.name != null) null networkDevices;
   wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = wifiDevice.name;};
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
   timeZone =

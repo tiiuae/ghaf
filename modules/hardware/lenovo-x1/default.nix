@@ -3,7 +3,6 @@
 {
   imports = [
     ./definitions
-    ./ax88179_178a.nix
     ./modules/fprint.nix
   ];
 }
