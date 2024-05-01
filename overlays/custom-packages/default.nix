@@ -9,7 +9,6 @@
   element-desktop = import ./element-desktop {inherit prev;};
   element-gps = final.callPackage ../../packages/element-gps {};
   element-web = final.callPackage ../../packages/element-web {};
-  systemd = import ./systemd {inherit final prev;};
   waypipe = import ./waypipe {inherit final prev;};
   weston = import ./weston {inherit final prev;};
   wifi-connector = final.callPackage ../../packages/wifi-connector {};
