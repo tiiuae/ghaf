@@ -8,5 +8,6 @@
     ./kernel/host/pkvm
     ./x86_64-linux.nix
     ./modules/tpm2.nix
+    ./modules/ax88179_178a.nix
   ];
 }

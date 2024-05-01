@@ -37,7 +37,7 @@
   };
 
   guivmExtraConfigurations = {
-    ghaf.graphics.hardware.networkDevice = configH.ghaf.hardware.definition.network.pciDevices;
+    ghaf.graphics.hardware.networkDevices = configH.ghaf.hardware.definition.network.pciDevices;
     ghaf.profiles.graphics.compositor = "labwc";
     ghaf.graphics.launchers = let
       hostAddress = "192.168.101.2";
@@ -151,7 +151,7 @@
 
     microvm.qemu = {
       extraArgs =
-      [
+        [
           # Lenovo X1 Lid button
           "-device"
           "button"
@@ -165,7 +165,7 @@
           "-audiodev"
           "pa,id=pa1,server=unix:/run/pulse/native"
         ]
-      ++ lib.optionals configH.ghaf.hardware.fprint.enable configH.ghaf.hardware.fprint.qemuExtraArgs;
+        ++ lib.optionals configH.ghaf.hardware.fprint.enable configH.ghaf.hardware.fprint.qemuExtraArgs;
     };
   };
 in

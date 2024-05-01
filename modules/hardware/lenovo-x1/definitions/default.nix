@@ -45,14 +45,7 @@ in {
     #   2. USB camera "passthrough" is handled by qemu and thus available on host. If peripheral VM is implemented,
     #      the entire host controller should be passthrough'd using the PCI bus (14.0). In x1, bluetooth and fingerprint
     #      reader are on this bus.
-    services.udev.extraRules = let
-      mapMouseRules =
-        builtins.map (d: ''          SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="mouse"
-        '');
-      mapTouchpadRules =
-        builtins.map (d: ''          SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="touchpad"
-        '');
-    in ''
+    services.udev.extraRules = ''
       # Laptop keyboard
       SUBSYSTEM=="input", ATTRS{name}=="AT Translated Set 2 keyboard", GROUP="kvm"
       # Laptop TrackPoint
@@ -62,8 +55,8 @@ in {
       # Lenovo X1 integrated fingerprint reader
       KERNEL=="3-6", SUBSYSTEM=="usb", ATTR{busnum}=="3", ATTR{devnum}=="2", GROUP="kvm"
       # Mouse and Touchpad
-      ${lib.strings.concatStrings (mapMouseRules hwDefinition.mouse)}
-      ${lib.strings.concatStrings (mapTouchpadRules hwDefinition.touchpad)}
+      ${lib.strings.concatMapStringsSep "\n" (d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="mouse"'') hwDefinition.mouse}
+      ${lib.strings.concatMapStringsSep "\n" (d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="touchpad"'') hwDefinition.touchpad}
     '';
   };
 }

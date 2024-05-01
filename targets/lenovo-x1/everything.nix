@@ -40,6 +40,7 @@
           }: let
             powerControl = pkgs.callPackage ../../packages/powercontrol {};
           in {
+            security.polkit.extraConfig = powerControl.polkitExtraConfig;
             time.timeZone = "Asia/Dubai";
 
             # Enable pulseaudio support for host as a service

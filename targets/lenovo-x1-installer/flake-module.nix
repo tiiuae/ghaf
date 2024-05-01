@@ -25,7 +25,7 @@
         in {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
-            ../../modules/common/hardware/ax88179_178a.nix
+            ../../modules/hardware/x86_64-generic/modules/ax88179_178a.nix
           ];
 
           ghaf.hardware.ax88179_178a.enable = true;
