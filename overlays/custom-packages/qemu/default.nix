@@ -13,7 +13,7 @@ in
       (final.lib.optionalAttrs (qemu_major == "8" && qemu_minor == "0") {
         patches = prev.patches ++ [./acpi-devices-passthrough-qemu-8.0.patch];
       })
-      // (final.lib.optionalAttrs (qemu_major == "8" && qemu_minor == "1") {
+      // (final.lib.optionalAttrs (final.lib.versionAtLeast qemu_version "8.1") {
         patches = prev.patches ++ [./acpi-devices-passthrough-qemu-8.1.patch];
       })
   )
