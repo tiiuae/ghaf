@@ -9,5 +9,6 @@
     swaySupport = false;
     jackSupport = false;
     cavaSupport = false;
+    pulseSupport = false;
   }
 )
