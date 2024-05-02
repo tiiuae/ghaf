@@ -59,5 +59,5 @@
       };
     };
   };
-  disko.memSize = 2048;
+  disko.memSize = 16384;
 }
