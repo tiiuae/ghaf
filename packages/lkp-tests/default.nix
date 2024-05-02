@@ -3,8 +3,7 @@
 #
 {pkgs}:
 pkgs.stdenv.mkDerivation {
-  pname = "lkp-tests";
-  version = "unstable-2024-04-17";
+  name = "lkp-tests";
 
   src = pkgs.fetchFromGitHub {
     owner = "intel";
