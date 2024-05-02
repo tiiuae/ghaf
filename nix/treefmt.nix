@@ -29,14 +29,11 @@
         # Also provides additional linting.
         # Do not enable ruff.format = true; because then it won't complaing
         # about linting errors. The default mode is the check mode.
-        ruff.enable = true;
+        ruff.check = true;
 
         # Bash
         shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
       };
-
-      # Automatically fix linting errors and formatting errors where possible
-      settings.formatter.ruff.options = ["check" "--fix"];
     };
 
     formatter = config.treefmt.build.wrapper;
