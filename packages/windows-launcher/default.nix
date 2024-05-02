@@ -108,7 +108,7 @@
         fi
       ''
       + ''
-        eval "${qemu}/bin/qemu-system-${stdenv.hostPlatform.qemuArch} ''${QEMU_PARAMS[@]} ''${@:2}"
+        eval "${qemu}/bin/qemu_kvm ''${QEMU_PARAMS[@]} ''${@:2}"
       '');
   windowsLauncherUI =
     writeShellScript
