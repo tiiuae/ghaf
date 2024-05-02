@@ -1,31 +1,43 @@
-diff --git a/.gitignore b/.gitignore
-new file mode 100644
-index 0000000..02f1769
---- /dev/null
-+++ b/.gitignore
-@@ -0,0 +1,2 @@
-+result
-+.vscode
+From eec477da997ccd78c5ca5008c95fe597c3bed65d Mon Sep 17 00:00:00 2001
+From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+Date: Thu, 2 May 2024 10:02:56 +0400
+Subject: [PATCH] Add colored borders.
+
+Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+---
+ include/ssd-internal.h |  5 +++--
+ include/theme.h        |  9 +++++++++
+ include/window-rules.h | 17 +++++++++++++++++
+ src/config/rcxml.c     | 12 ++++++++++++
+ src/ssd/ssd.c          |  9 ++++++---
+ src/ssd/ssd_border.c   | 21 ++++++++++++++++-----
+ src/ssd/ssd_part.c     |  2 +-
+ src/ssd/ssd_titlebar.c | 22 ++++++++++++++++++----
+ src/theme.c            | 33 +++++++++++++++++++++++++++++++--
+ src/window-rules.c     | 25 +++++++++++++++++++++++++
+ 10 files changed, 138 insertions(+), 17 deletions(-)
+
 diff --git a/include/ssd-internal.h b/include/ssd-internal.h
-index 9fe0ebf..6dfc2d4 100644
+index 82652f2..dc8a23f 100644
 --- a/include/ssd-internal.h
 +++ b/include/ssd-internal.h
-@@ -118,8 +118,8 @@ struct ssd_part *add_scene_button(
- 	struct wlr_buffer *icon_buffer, int x, struct view *view);
+@@ -129,8 +129,9 @@ add_toggled_icon(struct wl_list *part_list, enum ssd_part_type type,
  struct ssd_part *add_scene_button_corner(
  	struct wl_list *part_list, enum ssd_part_type type,
--	enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
+ 	enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
 -	struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
-+	enum ssd_part_type corner_type, struct wlr_scene_tree *parent, 
-+	float *bg_color, struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
- 	int x, struct view *view);
+-	struct wlr_buffer *hover_buffer, int x, struct view *view);
++	float *bg_color, struct wlr_buffer *corner_buffer,
++	struct wlr_buffer *icon_buffer, struct wlr_buffer *hover_buffer,
++	int x, struct view *view);
  
  /* SSD internal helpers */
+ struct ssd_part *ssd_get_part(
 diff --git a/include/theme.h b/include/theme.h
-index 47ef3b9..e0e5da4 100644
+index b4c0e73..4d305a0 100644
 --- a/include/theme.h
 +++ b/include/theme.h
-@@ -110,4 +110,13 @@ void theme_init(struct theme *theme, const char *theme_name);
+@@ -128,4 +128,13 @@ void theme_init(struct theme *theme, const char *theme_name);
   */
  void theme_finish(struct theme *theme);
  
@@ -40,7 +52,7 @@ index 47ef3b9..e0e5da4 100644
 +
  #endif /* LABWC_THEME_H */
 diff --git a/include/window-rules.h b/include/window-rules.h
-index fae1daf..ff8163e 100644
+index 626fb54..6664b01 100644
 --- a/include/window-rules.h
 +++ b/include/window-rules.h
 @@ -18,6 +18,7 @@ enum property {
@@ -51,8 +63,8 @@ index fae1daf..ff8163e 100644
  struct window_rule {
  	char *identifier;
  	char *title;
-@@ -32,11 +33,27 @@ struct window_rule {
- 	enum property ignore_focus_request;
+@@ -33,11 +34,27 @@ struct window_rule {
+ 	enum property fixed_position;
  
  	struct wl_list link; /* struct rcxml.window_rules */
 +
@@ -80,18 +92,18 @@ index fae1daf..ff8163e 100644
 +
  #endif /* LABWC_WINDOW_RULES_H */
 diff --git a/src/config/rcxml.c b/src/config/rcxml.c
-index c8da660..57e40f0 100644
+index 56f93e3..39f8270 100644
 --- a/src/config/rcxml.c
 +++ b/src/config/rcxml.c
-@@ -29,6 +29,7 @@
- #include "regions.h"
+@@ -31,6 +31,7 @@
+ #include "view.h"
  #include "window-rules.h"
  #include "workspaces.h"
 +#include "theme.h"
  
  static bool in_regions;
  static bool in_usable_area_override;
-@@ -112,6 +113,7 @@ fill_window_rule(char *nodename, char *content)
+@@ -122,6 +123,7 @@ fill_window_rule(char *nodename, char *content)
  {
  	if (!strcasecmp(nodename, "windowRule.windowRules")) {
  		current_window_rule = znew(*current_window_rule);
@@ -99,7 +111,7 @@ index c8da660..57e40f0 100644
  		wl_list_append(&rc.window_rules, &current_window_rule->link);
  		wl_list_init(&current_window_rule->actions);
  		return;
-@@ -127,6 +129,8 @@ fill_window_rule(char *nodename, char *content)
+@@ -137,6 +139,8 @@ fill_window_rule(char *nodename, char *content)
  	} else if (!strcmp(nodename, "identifier")) {
  		free(current_window_rule->identifier);
  		current_window_rule->identifier = xstrdup(content);
@@ -108,9 +120,9 @@ index c8da660..57e40f0 100644
  	} else if (!strcmp(nodename, "title")) {
  		free(current_window_rule->title);
  		current_window_rule->title = xstrdup(content);
-@@ -153,6 +157,14 @@ fill_window_rule(char *nodename, char *content)
- 	} else if (!strcasecmp(nodename, "ignoreFocusRequest")) {
- 		set_property(content, &current_window_rule->ignore_focus_request);
+@@ -165,6 +169,14 @@ fill_window_rule(char *nodename, char *content)
+ 	} else if (!strcasecmp(nodename, "fixedPosition")) {
+ 		set_property(content, &current_window_rule->fixed_position);
  
 +	/* Custom border properties: color */
 +	} else if (!strcasecmp(nodename, "borderColor")) {
@@ -124,10 +136,10 @@ index c8da660..57e40f0 100644
  	} else if (!strcmp(nodename, "name.action")) {
  		current_window_rule_action = action_create(content);
 diff --git a/src/ssd/ssd.c b/src/ssd/ssd.c
-index ef821b8..8fe1479 100644
+index dd7f1b6..d2d0225 100644
 --- a/src/ssd/ssd.c
 +++ b/src/ssd/ssd.c
-@@ -333,9 +333,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
+@@ -358,9 +358,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
  		return;
  	}
  
@@ -142,9 +154,9 @@ index ef821b8..8fe1479 100644
 +			: rc.theme->window_active_border_color);
  
  	struct ssd_part *part = ssd_get_part(&ssd->border.active.parts, LAB_SSD_PART_TOP);
- 	struct wlr_scene_rect *rect = lab_wlr_scene_get_rect(part->node);
+ 	struct wlr_scene_rect *rect = wlr_scene_rect_from_node(part->node);
 diff --git a/src/ssd/ssd_border.c b/src/ssd/ssd_border.c
-index 6512ab8..9c042c6 100644
+index 74f29ff..bf62df8 100644
 --- a/src/ssd/ssd_border.c
 +++ b/src/ssd/ssd_border.c
 @@ -6,6 +6,7 @@
@@ -184,39 +196,23 @@ index 6512ab8..9c042c6 100644
  		add_scene_rect(&subtree->parts, LAB_SSD_PART_LEFT, parent,
  			theme->border_width, height, 0, 0, color);
 diff --git a/src/ssd/ssd_part.c b/src/ssd/ssd_part.c
-index 4c72d29..9399435 100644
+index f8a693f..6c86241 100644
 --- a/src/ssd/ssd_part.c
 +++ b/src/ssd/ssd_part.c
-@@ -80,12 +80,11 @@ add_scene_buffer(struct wl_list *list, enum ssd_part_type type,
+@@ -80,7 +80,7 @@ add_scene_buffer(struct wl_list *list, enum ssd_part_type type,
  
  struct ssd_part *
  add_scene_button_corner(struct wl_list *part_list, enum ssd_part_type type,
 -		enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
 +		enum ssd_part_type corner_type, struct wlr_scene_tree *parent, float *bg_color,
  		struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
- 		int x, struct view *view)
+ 		struct wlr_buffer *hover_buffer, int x, struct view *view)
  {
- 	int offset_x;
--	float invisible[4] = { 0, 0, 0, 0 };
- 
- 	if (corner_type == LAB_SSD_PART_CORNER_TOP_LEFT) {
- 		offset_x = rc.theme->border_width;
-@@ -107,8 +106,8 @@ add_scene_button_corner(struct wl_list *part_list, enum ssd_part_type type,
- 	add_scene_buffer(part_list, corner_type, parent, corner_buffer,
- 		-offset_x, -rc.theme->border_width);
- 
--	/* Finally just put a usual theme button on top, using an invisible hitbox */
--	add_scene_button(part_list, type, parent, invisible, icon_buffer, 0, view);
-+	/* Finally just put a usual theme button on top, using an invisible/custom colored hitbox */
-+	add_scene_button(part_list, type, parent, bg_color, icon_buffer, 0, view);
- 	return button_root;
- }
- 
 diff --git a/src/ssd/ssd_titlebar.c b/src/ssd/ssd_titlebar.c
-index b0aaa2d..837bb4b 100644
+index b0ffe8a..d7b0db3 100644
 --- a/src/ssd/ssd_titlebar.c
 +++ b/src/ssd/ssd_titlebar.c
-@@ -24,6 +24,15 @@ ssd_titlebar_create(struct ssd *ssd)
+@@ -26,6 +26,15 @@ ssd_titlebar_create(struct ssd *ssd)
  {
  	struct view *view = ssd->view;
  	struct theme *theme = view->server->theme;
@@ -232,44 +228,44 @@ index b0aaa2d..837bb4b 100644
  	int width = view->current.width;
  
  	float *color;
-@@ -43,6 +52,7 @@ ssd_titlebar_create(struct ssd *ssd)
+@@ -52,6 +61,7 @@ ssd_titlebar_create(struct ssd *ssd)
  		subtree->tree = wlr_scene_tree_create(ssd->titlebar.tree);
  		parent = subtree->tree;
  		wlr_scene_node_set_position(&parent->node, 0, -theme->title_height);
-+		
++
  		if (subtree == &ssd->titlebar.active) {
  			color = theme->window_active_title_bg_color;
  			corner_top_left = &theme->corner_top_left_active_normal->base;
-@@ -62,6 +72,7 @@ ssd_titlebar_create(struct ssd *ssd)
- 			close_button_unpressed = &theme->button_close_inactive_unpressed->base;
+@@ -86,6 +96,7 @@ ssd_titlebar_create(struct ssd *ssd)
+ 
  			wlr_scene_node_set_enabled(&parent->node, false);
  		}
 +
  		wl_list_init(&subtree->parts);
  
  		/* Title */
-@@ -71,7 +82,7 @@ ssd_titlebar_create(struct ssd *ssd)
+@@ -95,7 +106,7 @@ ssd_titlebar_create(struct ssd *ssd)
  		/* Buttons */
  		add_scene_button_corner(&subtree->parts,
  			LAB_SSD_BUTTON_WINDOW_MENU, LAB_SSD_PART_CORNER_TOP_LEFT, parent,
--			corner_top_left, menu_button_unpressed, 0, view);
-+			color, corner_top_left, menu_button_unpressed, 0, view);
+-			corner_top_left, menu_button_unpressed, menu_button_hover, 0, view);
++			color, corner_top_left, menu_button_unpressed, menu_button_hover, 0, view);
  		add_scene_button(&subtree->parts, LAB_SSD_BUTTON_ICONIFY, parent,
- 			color, iconify_button_unpressed,
+ 			color, iconify_button_unpressed, iconify_button_hover,
  			width - SSD_BUTTON_WIDTH * 3, view);
-@@ -80,7 +91,7 @@ ssd_titlebar_create(struct ssd *ssd)
- 			width - SSD_BUTTON_WIDTH * 2, view);
+@@ -106,7 +117,7 @@ ssd_titlebar_create(struct ssd *ssd)
+ 			restore_button_unpressed, restore_button_hover);
  		add_scene_button_corner(&subtree->parts,
  			LAB_SSD_BUTTON_CLOSE, LAB_SSD_PART_CORNER_TOP_RIGHT, parent,
--			corner_top_right, close_button_unpressed,
-+			color, corner_top_right, close_button_unpressed,
+-			corner_top_right, close_button_unpressed, close_button_hover,
++			color, corner_top_right, close_button_unpressed, close_button_hover,
  			width - SSD_BUTTON_WIDTH * 1, view);
  	} FOR_EACH_END
  
-@@ -111,10 +122,13 @@ set_squared_corners(struct ssd *ssd, bool enable)
+@@ -139,10 +150,13 @@ set_squared_corners(struct ssd *ssd, bool enable)
  
  			/* Toggle background between invisible and titlebar background color */
- 			struct wlr_scene_rect *rect = lab_wlr_scene_get_rect(button->background);
+ 			struct wlr_scene_rect *rect = wlr_scene_rect_from_node(button->background);
 -			wlr_scene_rect_set_color(rect, !enable ? (float[4]) {0, 0, 0, 0} : (
 +			/*Check for custom color as well*/
 +			float customColor[4];
@@ -283,10 +279,10 @@ index b0aaa2d..837bb4b 100644
  			/* Toggle rounded corner image itself */
  			struct wlr_scene_node *rounded_corner =
 diff --git a/src/theme.c b/src/theme.c
-index 37dc803..d46e619 100644
+index fda8b74..e9668e7 100644
 --- a/src/theme.c
 +++ b/src/theme.c
-@@ -168,7 +168,7 @@ hex_to_dec(char c)
+@@ -395,7 +395,7 @@ hex_to_dec(char c)
   * @hex: hex string to be parsed
   * @rgba: pointer to float[4] for return value
   */
@@ -295,27 +291,18 @@ index 37dc803..d46e619 100644
  parse_hexstr(const char *hex, float *rgba)
  {
  	if (!hex || hex[0] != '#' || strlen(hex) < 7) {
-@@ -211,7 +211,7 @@ parse_justification(const char *str)
+@@ -438,7 +438,7 @@ parse_justification(const char *str)
  static void
  theme_builtin(struct theme *theme)
  {
 -	theme->border_width = 1;
 +	theme->border_width = 5;
  	theme->padding_height = 3;
+ 	theme->title_height = INT_MIN;
  	theme->menu_overlap_x = 0;
- 	theme->menu_overlap_y = 0;
-@@ -807,7 +807,7 @@ theme_init(struct theme *theme, const char *theme_name)
- 	theme_builtin(theme);
- 
- 	/* Read <data-dir>/share/themes/$theme_name/openbox-3/themerc */
--	theme_read(theme, theme_name);
-+	theme_read(theme, rc.theme_name);
- 
- 	/* Read <config-dir>/labwc/themerc-override */
- 	theme_read_override(theme);
-@@ -829,3 +829,27 @@ theme_finish(struct theme *theme)
- 	theme->corner_top_right_active_normal = NULL;
- 	theme->corner_top_right_inactive_normal = NULL;
+@@ -1042,3 +1042,32 @@ theme_finish(struct theme *theme)
+ 	zdrop(&theme->corner_top_right_active_normal);
+ 	zdrop(&theme->corner_top_right_inactive_normal);
  }
 +
 +void theme_customize_with_border_color(struct theme *theme, float *color)
@@ -323,16 +310,21 @@ index 37dc803..d46e619 100644
 +	theme_builtin(theme);
 +
 +	/* Read <data-dir>/share/themes/$theme_name/openbox-3/themerc */
-+	theme_read(theme, rc.theme_name);
++	struct wl_list paths;
++	paths_theme_create(&paths, rc.theme_name, "themerc");
++	theme_read(theme, &paths);
++	paths_destroy(&paths);
 +
 +	/* Read <config-dir>/labwc/themerc-override */
-+	theme_read_override(theme);
-+	
++	paths_config_create(&paths, "themerc-override");
++	theme_read(theme, &paths);
++	paths_destroy(&paths);
++
 +	memcpy(theme->window_active_border_color, color, sizeof(float)*4);
 +	memcpy(theme->window_inactive_border_color, color, sizeof(float)*4);
 +	memcpy(theme->window_active_title_bg_color, color, sizeof(float)*4);
 +	memcpy(theme->window_inactive_title_bg_color, color, sizeof(float)*4);
-+	
++
 +	memcpy(theme->osd_bg_color, color, sizeof(float)*4);
 +	memcpy(theme->osd_border_color, color, sizeof(float)*4);
 +	memcpy(theme->window_toggled_keybinds_color, color, sizeof(float)*4);
@@ -341,12 +333,11 @@ index 37dc803..d46e619 100644
 +	create_corners(theme);
 +	load_buttons(theme);
 +}
-\ No newline at end of file
 diff --git a/src/window-rules.c b/src/window-rules.c
-index 2607199..7fc8d34 100644
+index 3ee83a5..d2758f3 100644
 --- a/src/window-rules.c
 +++ b/src/window-rules.c
-@@ -74,6 +74,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
+@@ -73,6 +73,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
  	}
  }
  
@@ -361,7 +352,7 @@ index 2607199..7fc8d34 100644
  void
  window_rules_apply(struct view *view, enum window_rule_event event)
  {
-@@ -132,3 +140,20 @@ window_rules_get_property(struct view *view, const char *property)
+@@ -135,3 +143,20 @@ window_rules_get_property(struct view *view, const char *property)
  	}
  	return LAB_PROP_UNSPECIFIED;
  }
@@ -382,3 +373,6 @@ index 2607199..7fc8d34 100644
 +	
 +	return false;
 +}
+-- 
+2.42.0
+
