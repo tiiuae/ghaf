@@ -5,7 +5,5 @@
     ./x86_64-linux.nix
     ./x86_64-generic
     ./definition.nix
-
-    ./ax88179_178a.nix
   ];
 }
