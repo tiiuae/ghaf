@@ -60,12 +60,18 @@
       </font>
     </theme>
     <keyboard>
+      <default />
       ${lib.optionalString config.ghaf.profiles.debug.enable ''
       <keybind key="Print">
         <action name="Execute" command="${pkgs.grim}/bin/grim" />
       </keybind>
     ''}
-      <default />
+      <keybind key="XF86_MonBrightnessUp">
+        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set +10%" />
+      </keybind>
+      <keybind key="XF86_MonBrightnessDown">
+        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set 10%-" />
+      </keybind>
     </keyboard>
     <mouse><default /></mouse>
     <windowRules>
@@ -288,5 +294,10 @@ in {
       };
       wantedBy = ["default.target"];
     };
+
+    #Allow video group to change brightness
+    services.udev.extraRules = ''
+      ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chgrp video $sys$devpath/brightness", RUN+="${pkgs.coreutils}/bin/chmod a+w $sys$devpath/brightness"
+    '';
   };
 }
