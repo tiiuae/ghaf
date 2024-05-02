@@ -13,4 +13,6 @@
   # libck is dependency of sysbench
   libck = import ./libck {inherit prev;};
   sysbench = import ./sysbench {inherit final prev;};
+
+  qemu = import ./qemu {inherit prev;};
 })
