@@ -11,15 +11,18 @@
   cfgBase = config.ghaf.systemd;
 
   # Package configuration
-  package = pkgs.systemdMinimal.override {
-    pname = "stage1-systemd";
-    inherit (cfgBase) withAudit;
-    inherit (cfgBase) withCryptsetup;
-    inherit (cfgBase) withEfi;
-    inherit (cfgBase) withFido2;
-    inherit (cfgBase) withRepart;
-    inherit (cfgBase) withTpm2Tss;
-  };
+  package = pkgs.systemdMinimal.override ({
+      pname = "stage1-systemd";
+      inherit (cfgBase) withAudit;
+      inherit (cfgBase) withCryptsetup;
+      inherit (cfgBase) withEfi;
+      inherit (cfgBase) withFido2;
+      inherit (cfgBase) withRepart;
+      inherit (cfgBase) withTpm2Tss;
+    }
+    // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
+      withQrencode = true; # Required for systemd-bsod, which is currently hardcoded in nixos
+    });
 
   # Suppressed initrd systemd units
   suppressedUnits =
