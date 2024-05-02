@@ -13,6 +13,8 @@ in
       enable = mkEnableOption "release profile";
     };
 
+    options.ghaf.time.timeZone = "Europe/Helsinki";
+
     config = mkIf cfg.enable {
       # Enable default accounts and passwords
       # TODO this needs to be refined when we define a policy for the

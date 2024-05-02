@@ -1,16 +1,3 @@
-diff --git a/drivers/Makefile b/drivers/Makefile
-index d3500440b928..ea8c07ff3700 100644
---- a/drivers/Makefile
-+++ b/drivers/Makefile
-@@ -191,3 +191,8 @@ obj-$(CONFIG_GNSS)		+= gnss/
- obj-$(CONFIG_INTERCONNECT)	+= interconnect/
- obj-$(CONFIG_COUNTER)		+= counter/
- obj-$(CONFIG_MOST)		+= most/
-+#
-+#
-+#
-+obj-y	+= gpio-host-proxy/
-+obj-y	+= gpio-guest-proxy/
 diff --git a/drivers/Kconfig b/drivers/Kconfig
 index dcecc9f6e33f..ed7d58d68ba6 100644
 --- a/drivers/Kconfig
@@ -26,6 +13,15 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
 +endif
 +
  endmenu
+diff --git a/drivers/Makefile b/drivers/Makefile
+--- a/drivers/Makefile	2024-02-23 12:43:23.937526730 +0000
++++ b/drivers/Makefile	2024-05-02 07:08:17.247764422 +0000
+@@ -193,0 +194,5 @@
++#
++#
++#
++obj-y	+= gpio-host-proxy/
++obj-y	+= gpio-guest-proxy/
 diff --git a/drivers/gpio-guest-proxy/Kconfig b/drivers/gpio-guest-proxy/Kconfig
 new file mode 100644
 index 0000000..e25a19a
@@ -52,10 +48,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..8917c30
+index 0000000..95aa5be
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,759 @@
+@@ -0,0 +1,775 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -99,9 +95,9 @@ index 0000000..8917c30
 +#define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\'" fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\'" fmt, __func__ , __FILE__, ##__VA_ARGS__)
-+  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' in file \'%s\'" fmt, __func__ , __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__ , __FILE__, ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__ , __FILE__, ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -111,6 +107,7 @@ index 0000000..8917c30
 +#ifdef GPIO_DEBUG_VERBOSE
 +  #define deb_verbose           deb_debug
 +  extern void hexDump (
++    const char * deviceName,
 +    const char * desc,
 +    const void * addr,
 +    const int len
@@ -150,7 +147,7 @@ index 0000000..8917c30
 +  memcpy(io_buffer, msg, msg_len);
 +
 +  #ifdef GPIO_DEBUG_VERBOSE
-+    hexDump("msg", &msg, msg_len);
++    hexDump(DEVICE_NAME, "msg", &msg, msg_len);
 +    deb_verbose("msg signal is: %c\n", *(char *)msg);
 +  #endif
 +
@@ -393,11 +390,22 @@ index 0000000..8917c30
 +		.write = write
 +	};
 +
++static bool is_set_up = false;
++
 +/**
 + * Initializes module at installation
 + */
-+int tegra_gpio_guest_init(struct gpio_chip *gpio)
++int tegra_gpio_guest_init(void)
 +{
++  // Note: gpio is not referenced, the init is agnostic to which chip triggered this function
++  // In an earlier versio of the code we stored the gpio struct pointer in a static table
++  // int this_chip_id = gpio.gpio->gpiodev.id;
++  // char this_device[12];
++  if(is_set_up) { 
++    deb_error("Attempting to set up guest driver twice\n");
++    return -EPERM;
++  }
++
 +	deb_info("installing module.");
 +
 +	deb_info("gpio_vpa: 0x%llx", gpio_vpa);
@@ -405,6 +413,7 @@ index 0000000..8917c30
 +	if(!gpio_vpa){
 +		pr_err("Failed, gpio_vpa not defined");
 +	}
++
 +
 +	// Allocate a major number for the device.
 +	major_number = register_chrdev(0, DEVICE_NAME, &fops);
@@ -449,6 +458,7 @@ index 0000000..8917c30
 +  // gpio_hook is called by preserve_tegrachip() in gpio_tegra186.c -- don't call it here
 +  // gpio_hook()
 +
++  is_set_up = true;
 +	return 0;
 +}
 +
@@ -475,6 +485,8 @@ index 0000000..8917c30
 +	unregister_chrdev(major_number, DEVICE_NAME);		  // unregister the major number
 +	deb_info("Goodbye from the LKM!\n");
 +	unregister_chrdev(major_number, DEVICE_NAME);
++
++  is_set_up = false;
 +	return;
 +}
 +
@@ -577,7 +589,7 @@ index 0000000..8917c30
 +  }
 +
 +	// print copied user parameters
-+  hexDump ("Chardev input", kbuf, len);
++  hexDump (DEVICE_NAME, "Chardev input", kbuf, len);
 +
 +
 +  // make gpio-host type call to gpio
@@ -840,10 +852,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..aeee8cf
+index 0000000..361804e
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,646 @@
+@@ -0,0 +1,645 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -879,8 +891,8 @@ index 0000000..aeee8cf
 +#define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\'" fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\'" fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -930,12 +942,14 @@ index 0000000..aeee8cf
 +
 +#ifdef GPIO_DEBUG_VERBOSE
 +  // Usage:
-+  //   hexDump(desc, addr, len, perLine);
++  //   hexDump(devName, desc, addr, len, perLine);
++  //     devName  name of device being debugged, for reference
 +  //     desc:    if non-NULL, printed as a description before hex dump.
 +  //     addr:    the address to start dumping from.
 +  //     len:     the number of bytes to dump.
 +  //     perLine: number of bytes on each output line.
 +  void hexDump (
++    const char * deviceName,
 +    const char * desc,
 +    const void * addr,
 +    const int len
@@ -957,16 +971,16 @@ index 0000000..aeee8cf
 +    // Length checks.
 +
 +    if (len == 0) {
-+      printk(DEVICE_NAME ":   ZERO LENGTH\n");
++      printk("%s:   ZERO LENGTH\n", deviceName);
 +      return;
 +    }
 +    if (len < 0) {
-+      printk(DEVICE_NAME ":   NEGATIVE LENGTH: %d\n", len);
++      printk("%s:   NEGATIVE LENGTH: %d\n", deviceName, len);
 +      return;
 +    }
 +
 +    if(len > 400){
-+      printk(DEVICE_NAME ":   VERY LONG: %d\n", len);
++      printk("%s:   VERY LONG: %d\n", deviceName, len);
 +      return;
 +    }
 +
@@ -1010,7 +1024,7 @@ index 0000000..aeee8cf
 +
 +    p_out_buff += sprintf (p_out_buff, "  %s\n", buff);
 +
-+    printk(DEVICE_NAME ": %s", out_buff);
++    printk("%s: %s", deviceName, out_buff);
 +  }
 +  EXPORT_SYMBOL_GPL(hexDump);
 +#else
@@ -1022,41 +1036,41 @@ index 0000000..aeee8cf
 + */
 +static int gpio_host_proxy_probe(struct platform_device *pdev)
 +{
-+//	int i;
++  // int i;
 +	deb_info("installing module.\n");
 +
-+// *********************
-+// start of TODO clocks and resets -- this commect section is probably not valid
++  // *********************
++  // start of TODO clocks and resets -- this commect section is probably not valid
 +
-+//	// Read allowed clocks and reset from the device tree
-+//	// if clocks or resets are not defined, not initialize the module
-+//	gpio_ares.clocks_size = of_property_read_variable_u32_array(pdev->dev.of_node,
-+//		"allowed-clocks", gpio_ares.clock, 0, GPIO_HOST_MAX_CLOCKS_SIZE);
-+//
-+//	if(gpio_ares.clocks_size <= 0){
-+//		pr_err("No allowed clocks defined\n");
-+//		return EINVAL;
-+//	}
-+//
-+//	deb_info("gpio_ares.clocks_size: %d", gpio_ares.clocks_size);
-+//	for (i = 0; i < gpio_ares.clocks_size; i++)	{
-+//		deb_info("gpio_ares.clock %d", gpio_ares.clock[i]);
-+//	}
-+//
-+//	gpio_ares.resets_size = of_property_read_variable_u32_array(pdev->dev.of_node,
-+//		"allowed-resets", gpio_ares.reset, 0, GPIO_HOST_MAX_RESETS_SIZE);
-+//
-+//	if(gpio_ares.resets_size <= 0){
-+//		pr_err("No allowed resets defined\n");
-+//		return EINVAL;
-+//	}
-+//
-+//	deb_info("gpio_ares.resets_size: %d", gpio_ares.resets_size);
-+//	for (i = 0; i < gpio_ares.resets_size; i++)	{
-+//		deb_info("gpio_ares.reset %d", gpio_ares.reset[i]);
-+//	}
-+// end of TODO clocks and resets
-+// *********************
++  //	// Read allowed clocks and reset from the device tree
++  //	// if clocks or resets are not defined, not initialize the module
++  //	gpio_ares.clocks_size = of_property_read_variable_u32_array(pdev->dev.of_node,
++  //		"allowed-clocks", gpio_ares.clock, 0, GPIO_HOST_MAX_CLOCKS_SIZE);
++  //
++  //	if(gpio_ares.clocks_size <= 0){
++  //		pr_err("No allowed clocks defined\n");
++  //		return EINVAL;
++  //	}
++  //
++  //	deb_info("gpio_ares.clocks_size: %d", gpio_ares.clocks_size);
++  //	for (i = 0; i < gpio_ares.clocks_size; i++)	{
++  //		deb_info("gpio_ares.clock %d", gpio_ares.clock[i]);
++  //	}
++  //
++  //	gpio_ares.resets_size = of_property_read_variable_u32_array(pdev->dev.of_node,
++  //		"allowed-resets", gpio_ares.reset, 0, GPIO_HOST_MAX_RESETS_SIZE);
++  //
++  //	if(gpio_ares.resets_size <= 0){
++  //		pr_err("No allowed resets defined\n");
++  //		return EINVAL;
++  //	}
++  //
++  //	deb_info("gpio_ares.resets_size: %d", gpio_ares.resets_size);
++  //	for (i = 0; i < gpio_ares.resets_size; i++)	{
++  //		deb_info("gpio_ares.reset %d", gpio_ares.reset[i]);
++  //	}
++  // end of TODO clocks and resets
++  // *********************
 +
 +	// Allocate a major number for the device.
 +	major_number = register_chrdev(0, DEVICE_NAME, &fops);
@@ -1209,8 +1223,7 @@ index 0000000..aeee8cf
 +  }
 +
 +	// print copied user parameters
-+  hexDump ("Chardev input", kbuf, len);
-+
++  hexDump (DEVICE_NAME, "Chardev input", kbuf, len);
 +
 +  // make gpio-host type call to gpio
 +	deb_verbose("enter switch with signal: %c, Chip %d, Offset %d, Level %d", kbuf->signal, kbuf->chipnum, kbuf->offset, kbuf->level);
@@ -1466,8 +1479,6 @@ index 0000000..aeee8cf
 +};
 +// builtin_platform_driver(gpio_host_proxy_driver);
 +
-+
-+// TODO do not initialise host proxy driver in guest.
 +static int __init gpio_host_proxy_init(void)
 +{
 +    int ret = 0;

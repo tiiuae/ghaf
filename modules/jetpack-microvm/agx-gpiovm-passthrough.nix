@@ -28,23 +28,23 @@ in {
           # Make sure that Gpio-VM runs after the dependency service are enabled
           # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
 
-          kernelParams = builtins.trace "Evaluating microvm.kernelParams (qemu -append) for gpio-vm" [
+          kernelParams = builtins.trace "GpioVM: Evaluating microvm.kernelParams (qemu -append) for gpio-vm" [
             "rootwait"
           # "root=/dev/vda"
             # gpio-vm cannot open AMA0 reserved for passthrough console
             # since it does not have uarta passthough
             # "console=ttyAMA0 console=ttyS0"
-            "console=ttyS3"
+            # "console=tty10"
           ];
         };
 
         /* no overlay when using dtb patch
          * Note: use qemu.extraArgs for -dtb
-        hardware.deviceTree = builtins.trace "Evaluating hardware.deviceTree for gpio-vm" {
+        hardware.deviceTree = builtins.trace "GpioVM: Evaluating hardware.deviceTree for gpio-vm" {
           enable = true;
-          name = builtins.trace "Setting hardware.deviceTree.name" gpioGuestDtbName;
-          # name = builtins.trace "Debugging with ${gpioGuestOrigName}" gpioGuestOrigName;
-          overlays = builtins.trace "Setting hardware.deviceTree.overlays" [
+          name = builtins.trace "GpioVM: Setting hardware.deviceTree.name" gpioGuestDtbName;
+          # name = builtins.trace "GpioVM: Debugging with ${gpioGuestOrigName}" gpioGuestOrigName;
+          overlays = builtins.trace "GpioVM: Setting hardware.deviceTree.overlays" [
             {
               name = "gpio_pt_guest_overlay";
               dtsFile = gpioGuestDts;

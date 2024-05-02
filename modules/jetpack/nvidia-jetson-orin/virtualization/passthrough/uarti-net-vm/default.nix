@@ -21,7 +21,7 @@ in {
     '';
     ghaf.hardware.nvidia.virtualization.enable = true;
 
-    ghaf.virtualization.microvm.netvm.extraModules = builtins.trace "Setting, ghaf.virtualization.microvm.netvm.extraModules" [
+    ghaf.virtualization.microvm.netvm.extraModules = builtins.trace "NetVM: setting ghaf.virtualization.microvm.netvm.extraModules" [
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
@@ -74,12 +74,12 @@ in {
     # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
     hardware.deviceTree.overlays = [
       {
-        name = "uarti_pt_host_overlay";
+        name = builtins.trace "Debug dtb name (uarti-net-vm): uarti_pt_host_overlay" "uarti_pt_host_overlay";
         dtsFile = ./uarti_pt_host_overlay.dts;
 
         # Apply overlay only to host passthrough device tree
         # TODO: make this avaliable if PCI passthrough is disabled
-        filter = "tegra234-p3701-host-passthrough.dtb";
+        filter = builtins.trace "Debug dtb filter (uarti-net-vm): tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
       }
     ];
   };

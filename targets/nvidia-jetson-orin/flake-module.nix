@@ -59,9 +59,10 @@
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                # agx.enableNetvmWlanPCIPassthrough = false;
-                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                # agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                agx.enableNetvmWlanPCIPassthrough = false;
+                # nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                nx.enableNetvmEthernetPCIPassthrough = false;
                 agx.enableGPIOPassthrough = som == "agx";
               };
 
@@ -69,8 +70,8 @@
                 virtualization.enable = true;
                 virtualization.host.bpmp.enable = false;
                 passthroughs.host.uarta.enable = false;
-                passthroughs.uarti_net_vm.enable = som == "agx";
-                # passthroughs.uarti_net_vm.enable = false;
+                # passthroughs.uarti_net_vm.enable = som == "agx";
+                passthroughs.uarti_net_vm.enable = false;
                 virtualization.host.gpio.enable = som == "agx";
               };
 
@@ -84,7 +85,7 @@
               virtualization.microvm.netvm.extraModules = netvmExtraModules;
 
               virtualization.microvm.gpiovm.enable = true;
-              # virtualization.microvm.gpiovm.extraModules = gpiovmExtraModules;
+              virtualization.microvm.gpiovm.extraModules = gpiovmExtraModules;
 
               # Enable all the default UI applications
               profiles = {

@@ -56,6 +56,7 @@
 
           graphics.enable= false;
           qemu = {
+            /* tmp removed for GPIO testing
             machine =
               {
                 # Use the same machine type as the host
@@ -63,25 +64,26 @@
                 aarch64-linux ="virt";
               }
               .${configHost.nixpkgs.hostPlatform.system};
+            */
             serialConsole = true;
-            extraArgs = [
-              # "-dtb ${gpioGuestDtbName}"
-              # "-monitor chardev=mon0,mode=readline"
-              # "-no-reboot"
+            extraArgs = builtins.trace "GpioVM: Evaluating QEMU parameters for gpio-vm" [
+              "-dtb" "${gpioGuestDtbName}"
+              # "-serial" "/dev/tty10"  # Could not open '/dev/tty10': Permission denied
             ];
             /*
-            extraArgs = builtins.trace "Evaluating qemu.extraArgs for gpio-vm" [
+            extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
               # Add custom dtb to Gpio-VM with VDA
               "-dtb ${gpioGuestDtbName}"
               "-monitor chardev=mon0,mode=readline"
               "-no-reboot"
               # "-drive file=${tmp_rootfs},if=virtio,format=qcow2"
               # -nographic \
-              # -machine virt,accel=kvm \
+              # -machine virt,accel=kvm \q
               # -cpu host \
               # -m 4G \
               # -smp 2 \
               # -kernel ${kernel} \
+              # "-monitor" "chardev=ttyTHS2,mode=readline"
             ];
             */
           };

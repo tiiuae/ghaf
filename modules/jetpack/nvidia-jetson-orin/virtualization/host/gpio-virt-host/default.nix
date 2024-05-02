@@ -39,9 +39,9 @@ in {
     hardware.deviceTree = {
       # Enable hardware.deviceTree for handle host dtb overlays
       enable = true;
-      # name = builtin.trace "Debug dtb: tegra234-p3701-0000-p3737-0000.dtb" "tegra234-p3701-0000-p3737-0000.dtb";
-      # name = pkgs.builtin.trace "Debug dtb: tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
-      name = "tegra234-p3701-host-passthrough.dtb";
+      name = builtins.trace "Debug dtb name (gpio-virt-host): tegra234-p3701-0000-p3737-0000.dtb" "tegra234-p3701-0000-p3737-0000.dtb";
+      # name = builtins.trace "Debug dtb name (gpio-virt-host): tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
+      # name = "tegra234-p3701-host-passthrough.dtb";
 
       # using overlay file:
       overlays = [
@@ -50,9 +50,9 @@ in {
           dtsFile = ./gpio_pt_host_overlay.dtso;
 
           # Apply overlay only to host passthrough device tree
-          # filter = builtin.trace "Debug dtb: tegra234-p3701-0000-p3737-0000.dtb" "tegra234-p3701-0000-p3737-0000.dtb";
-          # filter = pkgs.builtin.trace "Debug dtb: tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
-          filter = "tegra234-p3701-host-passthrough.dtb";
+          filter = builtins.trace "Debug dtb filter (gpio-virt-host): tegra234-p3701-0000-p3737-0000.dtb" "tegra234-p3701-0000-p3737-0000.dtb";
+          # filter = builtins.trace "Debug dtb filter (gpio-virt-host): tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
+          # filter = "tegra234-p3701-host-passthrough.dtb";
         }
       ];
     };
