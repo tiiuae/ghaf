@@ -11,7 +11,7 @@
 
   # Override minimal systemd package configuration
   package =
-    (pkgs.systemdMinimal.override {
+    (pkgs.systemdMinimal.override ({
         pname = cfg.withName;
         withAcl = true;
         withAnalyze = cfg.withDebug;
@@ -31,7 +31,7 @@
         withLibseccomp = true;
         inherit (cfg) withLocaled;
         inherit (cfg) withLogind;
-        withMachined = cfg.withMachines;
+        withMachined = cfg.withMachines || cfg.withNss; # Required for NSS in nixos
         inherit (cfg) withNetworkd;
         inherit (cfg) withNss;
         withOomd = true;
@@ -44,10 +44,11 @@
         inherit (cfg) withTimesyncd;
         inherit (cfg) withTpm2Tss;
         withUtmp = cfg.withJournal || cfg.withAudit;
-      } # To be removed, current systemd version 254.6 < 255
-      // lib.optionalAttrs (lib.hasAttr "withVmspawn" (lib.functionArgs pkgs.systemd.override)) {
+      }
+      // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
         withVmspawn = cfg.withMachines;
-      })
+        withQrencode = true; # Required for systemd-bsod (currently hardcoded in nixos)
+      }))
     .overrideAttrs (prevAttrs: {
       patches =
         prevAttrs.patches
