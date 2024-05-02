@@ -139,6 +139,7 @@
               "iommu=pt"
               # Prevent i915 module from being accidentally used by host
               "module_blacklist=i915"
+              "acpi_backlight=vendor"
 
               "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
             ];

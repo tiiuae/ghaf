@@ -29,6 +29,7 @@ in {
       virtioInputHostEvdevs = [
         # Lenovo X1 touchpad and keyboard
         "/dev/input/by-path/platform-i8042-serio-0-event-kbd"
+        "/dev/input/by-path/platform-thinkpad_acpi-event"
         "/dev/mouse"
         "/dev/touchpad"
         # Lenovo X1 trackpoint (red button/joystick)
@@ -48,6 +49,8 @@ in {
     services.udev.extraRules = ''
       # Laptop keyboard
       SUBSYSTEM=="input", ATTRS{name}=="AT Translated Set 2 keyboard", GROUP="kvm"
+      # Laptop keyboard multimedia buttons
+      SUBSYSTEM=="input", ATTRS{name}=="ThinkPad Extra Buttons", GROUP="kvm"
       # Laptop TrackPoint
       SUBSYSTEM=="input", ATTRS{name}=="TPPS/2 Elan TrackPoint", GROUP="kvm"
       # Lenovo X1 integrated webcam
