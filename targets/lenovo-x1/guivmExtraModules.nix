@@ -46,8 +46,14 @@
       privateSshKeyPath = configH.ghaf.security.sshKeys.sshKeyPath;
     in [
       {
+        # The SPKI fingerprint is calculated like this:
+        # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
+        # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
         name = "chromium";
-        path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        path =
+          if configH.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
+          then "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --user-data-dir=/home/${configH.ghaf.users.accounts.user}/.config/chromium/Default --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU="
+          else "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${../../assets/icons/png/browser.png}";
       }
 

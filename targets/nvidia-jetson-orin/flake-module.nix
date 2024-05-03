@@ -30,6 +30,11 @@
           enableRedistributableFirmware = som == "agx";
           wirelessRegulatoryDatabase = true;
         };
+
+        services.dnsmasq.settings.dhcp-option = [
+          "option:router,192.168.100.1" # set net-vm as a default gw
+          "option:dns-server,192.168.100.1"
+        ];
       }
     ];
     hostConfiguration = lib.nixosSystem {

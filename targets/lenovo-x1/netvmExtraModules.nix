@@ -30,6 +30,22 @@
         unmanaged = ["ethint0"];
       };
     };
+    services.dnsmasq.settings = {
+      # set static IP for IDS-VM
+      dhcp-host = lib.mkIf configH.ghaf.virtualization.microvm.idsvm.enable [
+        "02:00:00:01:01:02,192.168.100.4,ids-vm,infinite"
+      ];
+      dhcp-option =
+        if configH.ghaf.virtualization.microvm.idsvm.enable
+        then [
+          "option:router,192.168.100.4" # set IDS-VM as a default gw
+          "option:dns-server,192.168.100.1"
+        ]
+        else [
+          "option:router,192.168.100.1" # set NetVM as a default gw
+          "option:dns-server,192.168.100.1"
+        ];
+    };
     # noXlibs=false; needed for NetworkManager stuff
     environment.noXlibs = false;
     environment.etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {

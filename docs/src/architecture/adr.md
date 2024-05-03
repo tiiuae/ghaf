@@ -13,6 +13,7 @@ The Ghaf platform decision log:
 | -------- | ----------- |
 | [Minimal Host](../architecture/adr/minimal-host.md) | Proposed. |
 | [netvm—Networking Virtual Machine](../architecture/adr/netvm.md) | Proposed, partially implemented for development and testing. |
+| [idsvm—Intrusion Detection System Virtual Machine](../architecture/adr/idsvm.md) | Proposed, partially implemented for development and testing. |
 | [Platform Bus for RustVMM](../architecture/adr/platform-bus-passthrough-support.md) | Proposed, WIP. |
 
 
