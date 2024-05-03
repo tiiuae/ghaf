@@ -29,6 +29,10 @@
 
           # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
         };
+        services.dnsmasq.settings.dhcp-option = [
+          "option:router,192.168.100.1" # set net-vm as a default gw
+          "option:dns-server,192.168.100.1"
+        ];
       }
     ];
     hostConfiguration = lib.nixosSystem {
