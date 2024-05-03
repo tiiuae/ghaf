@@ -27,6 +27,7 @@
           reuse
           alejandra
           mdbook
+          nix-output-monitor
           inputs'.nix-fast-build.packages.default
           self'.packages.kernel-hardening-checker
         ]
