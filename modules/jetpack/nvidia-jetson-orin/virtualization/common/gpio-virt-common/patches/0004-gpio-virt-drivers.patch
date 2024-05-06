@@ -14,8 +14,8 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
 +
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
---- a/drivers/Makefile	2024-02-23 12:43:23.937526730 +0000
-+++ b/drivers/Makefile	2024-05-02 09:33:53.552379508 +0000
+--- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
++++ b/drivers/Makefile	2024-05-05 13:45:51.584426651 +0000
 @@ -193,0 +194,5 @@
 +#
 +#
@@ -48,7 +48,7 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..95aa5be
+index 0000000..b42c834
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 @@ -0,0 +1,775 @@
@@ -453,7 +453,7 @@ index 0000000..95aa5be
 +        return -ENOMEM;
 +  }
 +
-+	deb_info("gpio_vpa: 0x%llX, mem_iova: %p\n", gpio_vpa, mem_iova);
++	deb_info("gpio_vpa: 0x%llX, mem_iova: %pFX\n", gpio_vpa, mem_iova);
 +
 +  // gpio_hook is called by preserve_tegrachip() in gpio_tegra186.c -- don't call it here
 +  // gpio_hook()

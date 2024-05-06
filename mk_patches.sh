@@ -1,3 +1,8 @@
+if [ $(whoami) == "root" ]; then
+	echo "Please, do not run as root -- dir paths will fail"
+	exit 1
+fi
+
 home="/home/$(id -un)"
 # sw=${PWD}
 sw="${home}/software"
@@ -107,7 +112,7 @@ git -C kernel-5.10/ diff basepoint -- "arch/arm64/configs/defconfig" \
 
 # build ghaf
 cd ${ghaf}
-./build.sh
+./build.sh $@
 
 # ------
 
