@@ -8,6 +8,8 @@
 }: let
   powerControl = pkgs.callPackage ../../packages/powercontrol {};
   cfg = config.ghaf.profiles.laptop-x86;
+  listenerAddress = config.ghaf.logging.listener.address;
+  listenerPort = toString config.ghaf.logging.listener.port;
 in {
   imports = [
     ../desktop/graphics
@@ -112,6 +114,12 @@ in {
       profiles = {
         applications.enable = false;
       };
+
+      # Logging configuration
+      logging.client.enable = true;
+      logging.client.endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
+      logging.listener.address = "admin-vm-debug";
+      logging.listener.port = 9999;
     };
   };
 }
