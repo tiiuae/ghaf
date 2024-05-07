@@ -8,6 +8,7 @@
   configHost = config;
   vmName = "admin-vm";
   macAddress = "02:00:00:AD:01:01";
+  isLoggingEnabled = config.ghaf.logging.client.enable;
 
   adminvmBaseConfiguration = {
     imports = [
@@ -15,6 +16,9 @@
         inherit config lib vmName macAddress;
         internalIP = 10;
       })
+      # We need to retrieve mac address and start log aggregator
+      ../../../common/logging/hw-mac-retrieve.nix
+      ../../../common/logging/logs-aggregator.nix
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -29,10 +33,19 @@
           systemd = {
             enable = true;
             withName = "adminvm-systemd";
+            withNss = true;
+            withResolved = true;
             withPolkit = true;
             withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
+
+          # Log aggregation configuration
+          logging.client.enable = isLoggingEnabled;
+          logging.listener.address = configHost.ghaf.logging.listener.address;
+          logging.listener.port = configHost.ghaf.logging.listener.port;
+          logging.identifierFilePath = "/var/lib/private/alloy/MACAddress";
+          logging.server.endpoint = "http://ghaflogs.vedenemo.dev:3100/loki/api/v1/push";
         };
 
         system.stateVersion = lib.trivial.release;
@@ -41,7 +54,7 @@
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
         networking = {
-          firewall.allowedTCPPorts = [];
+          firewall.allowedTCPPorts = lib.mkIf isLoggingEnabled [config.ghaf.logging.listener.port];
           firewall.allowedUDPPorts = [];
         };
 
@@ -56,14 +69,26 @@
         microvm = {
           optimize.enable = true;
           hypervisor = "cloud-hypervisor";
-          shares = [
-            {
-              tag = "ro-store";
-              source = "/nix/store";
-              mountPoint = "/nix/.ro-store";
-              proto = "virtiofs";
-            }
-          ];
+          shares =
+            [
+              {
+                tag = "ro-store";
+                source = "/nix/store";
+                mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
+            ]
+            ++ lib.optionals isLoggingEnabled [
+              {
+                # Creating a persistent log-store which is mapped on ghaf-host
+                # This is only to preserve logs state across adminvm reboots
+                tag = "log-store";
+                source = "/var/lib/loki";
+                mountPoint = "/var/lib/loki";
+                proto = "virtiofs";
+              }
+            ];
+
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
         };
         imports = [../../../common];

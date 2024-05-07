@@ -15,6 +15,8 @@
         inherit config lib vmName macAddress;
         internalIP = 3;
       })
+      # To push logs to central location
+      ../../../common/logging/client.nix
       ({
         lib,
         pkgs,
@@ -43,6 +45,9 @@
             withDebug = config.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
           };
+          # Logging client configuration
+          logging.client.enable = config.ghaf.logging.client.enable;
+          logging.client.endpoint = config.ghaf.logging.client.endpoint;
         };
 
         systemd.services."waypipe-ssh-keygen" = let

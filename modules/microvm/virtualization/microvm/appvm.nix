@@ -32,6 +32,8 @@
           inherit (vm) macAddress;
           internalIP = index + 100;
         })
+        # To push logs to central location
+        ../../../common/logging/client.nix
         ({
           lib,
           config,
@@ -66,6 +68,9 @@
               withDebug = configHost.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
+            # Logging client configuration
+            logging.client.enable = configHost.ghaf.logging.client.enable;
+            logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
           };
 
           # SSH is very picky about the file permissions and ownership and will
