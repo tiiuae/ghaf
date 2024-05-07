@@ -12,6 +12,10 @@
   guivmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ../../../common/log/grafana-alloy.nix {
+        inherit pkgs;
+        hostName = vmName;
+      })
       ({
         lib,
         pkgs,
@@ -68,6 +72,7 @@
               pkgs.waypipe
               pkgs.networkmanagerapplet
               pkgs.nm-launcher
+              pkgs.grafana-alloy
             ]
             ++ (lib.optional (configHost.ghaf.profiles.debug.enable && configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
         };

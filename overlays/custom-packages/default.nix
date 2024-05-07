@@ -22,4 +22,5 @@
   networkmanagerapplet = import ./networkmanagerapplet {inherit prev;};
   htop = import ./htop {inherit prev;};
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui {};
+  grafana-alloy = final.callPackage ../../packages/grafana-alloy {};
 })

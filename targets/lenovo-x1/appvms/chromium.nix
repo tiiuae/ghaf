@@ -61,6 +61,12 @@ in {
       programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
+      imports = [
+        (import ../../../modules/common/log/grafana-alloy.nix {
+          inherit pkgs;
+          hostName = "chromium-vm";
+        })
+      ];
     }
   ];
   borderColor = "#630505";

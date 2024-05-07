@@ -10,6 +10,13 @@
   extraModules = [
     {
       time.timeZone = "Asia/Dubai";
+      # Import promtail agent for remote upload of journal logs
+      imports = [
+        (import ../../../modules/common/log/grafana-alloy.nix {
+          inherit pkgs;
+          hostName = "zathura-vm";
+        })
+      ];
     }
   ];
   borderColor = "#122263";

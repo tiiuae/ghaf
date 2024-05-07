@@ -18,6 +18,12 @@
       security.pki.certificateFiles =
         lib.mkIf config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
         [../../../modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem];
+      imports = [
+        (import ../../../modules/common/log/grafana-alloy.nix {
+          inherit pkgs;
+          hostName = "gala-vm";
+        })
+      ];
     }
   ];
   borderColor = "#027d7b";
