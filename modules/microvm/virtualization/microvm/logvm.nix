@@ -35,10 +35,6 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-        networking = {
-          firewall.allowedTCPPorts = [19532];
-        };
-
         environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [];
 
         systemd.network = {
@@ -56,17 +52,6 @@
             ];
             linkConfig.ActivationPolicy = "always-up";
           };
-        };
-
-        users.users.systemd-journal-remote = {
-          isSystemUser = true;
-          group = "systemd-journal";
-        };
-
-        systemd.tmpfiles.rules = [ "d /var/log/journal/remote 755 systemd-journal-remote systemd-journal" ];
-
-        systemd.services.systemd-journal-remote = {
-          enable = true;
         };
 
         microvm = {
