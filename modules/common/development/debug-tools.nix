@@ -37,6 +37,9 @@ in
           dig
           evtest
 
+          # For deleting Linux Boot Manager entries in automated testing
+          efibootmgr
+
           # Performance testing
           speedtest-cli
           iperf
