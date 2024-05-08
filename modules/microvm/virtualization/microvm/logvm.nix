@@ -35,7 +35,11 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-        environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [];
+        networking = {
+          firewall.allowedTCPPorts = [3100];
+        };
+
+        environment.systemPackages = [pkgs.grafana-loki];
 
         systemd.network = {
           enable = true;
@@ -54,6 +58,20 @@
           };
         };
 
+        environment.etc."loki.yaml".source = ./loki-local-config.yaml;
+
+        systemd.services.loki = {
+          enable = true;
+          description = "Loki Service";
+          after = ["network-online.target"];
+          serviceConfig = {
+            ExecStart = "${pkgs.grafana-loki}/bin/loki -config.file=/etc/loki.yaml";
+            Restart = "on-failure";
+            RestartSec = "1";
+          };
+          wantedBy = ["multi-user.target"];
+        };
+
         microvm = {
           optimize.enable = true;
           hypervisor = "cloud-hypervisor";
@@ -62,6 +80,13 @@
               tag = "ro-store";
               source = "/nix/store";
               mountPoint = "/nix/.ro-store";
+              proto = "virtiofs";
+            }
+            {
+              # Creating a persistent log-store which is mapped on ghaf-host
+              tag = "log-store";
+              source = "/tmp/loki";
+              mountPoint = "/tmp/loki";
               proto = "virtiofs";
             }
           ];

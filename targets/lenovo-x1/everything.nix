@@ -33,6 +33,9 @@
           self.nixosModules.disko-lenovo-x1-basic-v1
           self.nixosModules.hw-lenovo-x1
 
+          # Import promtail agent for remote upload of journal logs
+          ../../modules/common/log/promtail-agent.nix
+
           ({
             pkgs,
             config,
@@ -56,6 +59,8 @@
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
+
+            environment.systemPackages = [pkgs.grafana-loki];
 
             ghaf = {
               # Hardware definitions

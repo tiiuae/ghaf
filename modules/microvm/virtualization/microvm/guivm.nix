@@ -68,6 +68,7 @@
               pkgs.waypipe
               pkgs.networkmanagerapplet
               pkgs.nm-launcher
+              pkgs.grafana-loki
             ]
             ++ (lib.optional (configHost.ghaf.profiles.debug.enable && configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
         };
