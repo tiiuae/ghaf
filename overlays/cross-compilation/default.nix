@@ -13,4 +13,9 @@
   # libck is dependency of sysbench
   libck = import ./libck {inherit prev;};
   sysbench = import ./sysbench {inherit final prev;};
+
+  python311 = import ./python {
+    inherit final;
+    python = prev.python311;
+  };
 })
