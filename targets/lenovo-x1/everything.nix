@@ -107,6 +107,7 @@
               # UI applications
               profiles = {
                 applications.enable = false;
+                applications.ivShMemServer.enable = false;
               };
               windows-launcher = {
                 enable = true;
@@ -128,14 +129,25 @@
                 config.ghaf.hardware.definition.network.pciDevices
                 ++ config.ghaf.hardware.definition.gpu.pciDevices
               ));
-            in [
-              "intel_iommu=on,sm_on"
-              "iommu=pt"
-              # Prevent i915 module from being accidentally used by host
-              "module_blacklist=i915"
+              hugepagesz = 2;
+              hugepages = config.ghaf.profiles.applications.ivShMemServer.memSize / hugepagesz;
+              hugePagesArg =
+                if config.ghaf.profiles.applications.ivShMemServer.enable
+                then [
+                  "hugepagesz=${toString hugepagesz}M"
+                  "hugepages=${toString hugepages}"
+                ]
+                else [];
+            in
+              [
+                "intel_iommu=on,sm_on"
+                "iommu=pt"
+                # Prevent i915 module from being accidentally used by host
+                "module_blacklist=i915"
 
-              "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
-            ];
+                "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
+              ]
+              ++ hugePagesArg;
 
             boot.initrd.availableKernelModules = ["nvme"];
           })

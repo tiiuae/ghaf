@@ -23,6 +23,11 @@
       if vm.cid > 0
       then vm.cid
       else cfg.vsockBaseCID + index;
+    memsocket = pkgs.callPackage ../../../../packages/memsocket {
+      debug = false;
+      vms = configHost.ghaf.profiles.applications.ivShMemServer.vmCount;
+    };
+    memtest = pkgs.callPackage ../../../../packages/memsocket/memtest.nix {};
     appvmConfiguration = {
       imports = [
         (import ./common/vm-networking.nix {
@@ -78,19 +83,24 @@
           environment.systemPackages = [
             pkgs.waypipe
             runWaypipe
+            memsocket
+            memtest
+            pkgs.linuxPackages.perf
+            pkgs.perf-tools
           ];
 
           microvm = {
             optimize.enable = false;
             mem = vm.ramMb;
             vcpu = vm.cores;
+            kernelParams =
+              if configHost.ghaf.profiles.applications.ivShMemServer.enable
+              then [
+                "kvm_ivshmem.flataddr=${configHost.ghaf.profiles.applications.ivShMemServer.flataddr}"
+              ]
+              else [];
             hypervisor = "qemu";
             shares = [
-              {
-                tag = "waypipe-ssh-public-key";
-                source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-              }
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -100,12 +110,25 @@
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
             qemu = {
-              extraArgs = [
-                "-M"
-                "accel=kvm:tcg,mem-merge=on,sata=off"
-                "-device"
-                "vhost-vsock-pci,guest-cid=${toString cid}"
-              ];
+              extraArgs = let
+                vectors = toString (2 * configHost.ghaf.profiles.applications.ivShMemServer.vmCount);
+                sharedMemory =
+                  if configHost.ghaf.profiles.applications.ivShMemServer.enable
+                  then [
+                    "-device"
+                    "ivshmem-doorbell,vectors=${vectors},chardev=ivs_socket,flataddr=${configHost.ghaf.profiles.applications.ivShMemServer.flataddr}"
+                    "-chardev"
+                    "socket,path=${configHost.ghaf.profiles.applications.ivShMemServer.hostSocketPath},id=ivs_socket"
+                  ]
+                  else [];
+              in
+                [
+                  "-M"
+                  "accel=kvm:tcg,mem-merge=on"
+                  "-device"
+                  "vhost-vsock-pci,guest-cid=${toString cid}"
+                ]
+                ++ sharedMemory;
 
               machine =
                 {
@@ -116,7 +139,29 @@
                 .${configHost.nixpkgs.hostPlatform.system};
             };
           };
-          fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = ["ro"];
+
+          boot.kernelPatches =
+            if configHost.ghaf.profiles.applications.ivShMemServer.enable
+            then [
+              {
+                name = "Shared memory PCI driver";
+                patch = pkgs.fetchpatch {
+                  url = "https://raw.githubusercontent.com/tiiuae/shmsockproxy/main/0001-ivshmem-driver.patch";
+                  sha256 = "sha256-u/MNrGnSqC4yJenp6ey1/gLNbt2hZDDBCDA6gjQlC7g=";
+                };
+                extraConfig = ''
+                  KVM_IVSHMEM_VM_COUNT ${toString configHost.ghaf.profiles.applications.ivShMemServer.vmCount}
+                '';
+              }
+            ]
+            else [];
+
+          services.udev.extraRules =
+            if configHost.ghaf.profiles.applications.ivShMemServer.enable
+            then ''
+              SUBSYSTEM=="misc",KERNEL=="ivshmem",GROUP="kvm",MODE="0666"
+            ''
+            else "";
 
           imports = [../../../common];
         })

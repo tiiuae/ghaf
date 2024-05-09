@@ -7,6 +7,7 @@
   inputs,
   lib,
   self,
+  pkgs,
   ...
 }: let
   inherit (inputs) nixpkgs nixos-generators microvm jetpack-nixos;
@@ -71,9 +72,28 @@
               virtualization.microvm.netvm.enable = true;
               virtualization.microvm.netvm.extraModules = netvmExtraModules;
 
+              virtualization.microvm.appvm = {
+                enable = true;
+                vms = with pkgs; [
+                  {
+                    name = "test1";
+                    macAddress = "02:00:00:03:03:05";
+                    ramMb = 1024;
+                    cores = 1;
+                  }
+                  {
+                    name = "test2";
+                    macAddress = "02:00:00:03:04:05";
+                    ramMb = 1024;
+                    cores = 1;
+                  }
+                ];
+              };
+
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
+                applications.ivShMemServer.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
               };
