@@ -60,6 +60,10 @@
               withResolved = true;
               withPolkit = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
+              withRemoteJournal = {
+                enable = true;
+                debugServerIpv4 = "192.168.100.1";
+              };
             };
           };
 

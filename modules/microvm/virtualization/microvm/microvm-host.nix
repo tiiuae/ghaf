@@ -30,6 +30,7 @@ in
         withResolved = cfg.networkSupport;
         withSerial = config.ghaf.profiles.debug.enable;
         withDebug = config.ghaf.profiles.debug.enable;
+        withRemoteJournal.enable = true;
       };
     };
   }
