@@ -30,6 +30,7 @@ in {
       withSerial = config.ghaf.profiles.debug.enable;
       withDebug = config.ghaf.profiles.debug.enable;
       withHardenedConfigs = true;
+      withRemoteJournal.enable = true;
     };
 
     # TODO: remove hardcoded paths

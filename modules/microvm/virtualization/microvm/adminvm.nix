@@ -38,6 +38,7 @@
             withPolkit = true;
             withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
+            withRemoteJournal.enable = true;
           };
 
           # Log aggregation configuration

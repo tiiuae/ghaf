@@ -44,6 +44,7 @@
             withTimesyncd = true;
             withDebug = config.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
+            withRemoteJournal.enable = true;
           };
           # Logging client configuration
           logging.client.enable = config.ghaf.logging.client.enable;

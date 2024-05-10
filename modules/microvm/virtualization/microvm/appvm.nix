@@ -67,6 +67,10 @@
               withPolkit = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
+              withRemoteJournal = {
+                enable = true;
+                debugServerIpv4 = "192.168.100.1";
+              };
             };
             # Logging client configuration
             logging.client.enable = configHost.ghaf.logging.client.enable;
