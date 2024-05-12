@@ -6,7 +6,6 @@
 (final: prev: {
   chromium = import ./chromium {inherit prev final;};
   edk2 = import ./edk2 {inherit final prev;};
-  element-desktop = import ./element-desktop {inherit prev;};
   jbig2dec = import ./jbig2dec {inherit prev;};
   pipewire = import ./pipewire {inherit prev;};
 
