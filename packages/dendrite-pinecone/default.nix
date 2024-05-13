@@ -3,7 +3,7 @@
 #
 {pkgs, ...}:
 with pkgs;
-  buildGo119Module rec {
+  buildGoModule rec {
     pname = "dendrite-pinecone";
     version = "0.9.1";
 
@@ -16,11 +16,11 @@ with pkgs;
       owner = "tiiuae";
       repo = "dendrite";
       # branch is feature/ghaf-integration
-      rev = "53036309e34420bde92b81ac214985c3fa3fb975";
-      sha256 = "sha256-UhA9deqWu3ERa08GMGV6/NVHEBZaAdPf7hXQb3GTRcA=";
+      rev = "d8e62f3d1bf6607d243c53673fc02064fed863e8";
+      sha256 = "sha256-GtaFDfXssym3eNrTSOB8JW2awIvZsTGdUPdLL+ae7Pw=";
     };
     subPackages = ["cmd/dendrite-demo-pinecone"];
     # patches = [./turnserver-crendentials-flags.patch];
 
-    vendorHash = "sha256-xMOd4N3hjajpNl9zxJnPrPIJjS292mFthpIQUHWqoYI=";
+    vendorHash = "sha256-599pZlX7SdUYOmGnYGIngyPKagIxri6KKJh+e5UDBps=";
   }
