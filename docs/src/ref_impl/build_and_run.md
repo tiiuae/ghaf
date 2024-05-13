@@ -32,9 +32,8 @@ Then you can use one of the following instructions for the supported targets:
 | Generic x86 Сomputer | x86_64           | [Running Ghaf Image for x86 Computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
 | Lenovo X1 Carbon Gen 11 | x86_64           | [Running Ghaf Image for Lenovo X1](./build_and_run.md#running-ghaf-image-for-lenovo-x1) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
-| NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
+| NXP i.MX 8MP-EVK        | AArch64          | [Building Ghaf Image for NXP i.MX 8MP-EVK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8mp-evk)     |
 | MICROCHIP icicle-kit    | RISCV64          | [Building Ghaf Image for Microchip Icicle Kit](./build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
-
 
 ---
 
@@ -159,25 +158,17 @@ In the current state of Ghaf, it is a bit tricky to make NVIDIA Jetson Orin AGX 
 
 ---
 
-## Building Ghaf Image for NXP i.MX 8QM-MEK
+## Building Ghaf Image for NXP i.MX 8MP-EVK
 
 Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
 
-In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and USB media with the Ghaf image:
+In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card and USB media with the Ghaf image:
 
-1. To build and flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader:
-
-    ```
-    $ git clone https://github.com/tiiuae/Tow-Boot.git && cd Tow-Boot
-    $ nix-build -A imx8qm-mek
-    $ sudo dd if=result/ shared.disk-image.img of=/dev/<SDCARD>
-    ```
-
-2. To build and flash the Ghaf image:
-   1. Run the `nix build .#packages.aarch64-linux.imx8qm-mek-release` command.
+1. To build and flash the Ghaf image:
+   1. Run the `nix build .#packages.aarch64-linux.imx8mp-evk-release` command.
    2. Prepare the USB boot media with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct`.
 
-3. Insert an SD card and USB boot media into the board and switch the power on.
+2. Insert an SD card and USB boot media into the board and switch the power on.
 
 ---
 

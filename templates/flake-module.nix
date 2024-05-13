@@ -21,6 +21,10 @@
       path = ./targets/aarch64/nvidia/orin-nx;
       description = "A Ghaf based configuration for the Nvidia Orin NX";
     };
+    target-aarch64-nxp-imx8mp-evk = {
+      path = ./targets/aarch64/nxp/imx8mp-evk;
+      description = "A Ghaf based configuration for the NXP iMX8 MPlus";
+    };
 
     # x86 targets
     target-x86_64-generic = {
