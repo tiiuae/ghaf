@@ -90,6 +90,7 @@
     time.timeZone = "Asia/Dubai";
 
     ghaf.services.dendrite-pinecone = {
+      enable = true;
       firewallConfig = true;
       externalNic = "${externalNic}";
       internalNic = "${internalNic}";

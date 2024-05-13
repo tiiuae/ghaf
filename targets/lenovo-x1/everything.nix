@@ -61,7 +61,6 @@
               # Hardware definitions
               hardware.x86_64.common.enable = true;
               hardware.generation = generation;
-              hardware.ax88179_178a.enable = true;
               hardware.tpm2.enable = true;
               hardware.fprint.enable = true;
 

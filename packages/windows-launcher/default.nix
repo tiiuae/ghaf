@@ -6,7 +6,7 @@
   stdenv,
   qemu,
   OVMF,
-  gnome,
+  yad,
   writeShellScript,
   enableSpice ? false,
   ...
@@ -108,7 +108,7 @@
         fi
       ''
       + ''
-        eval "${qemu}/bin/qemu-system-${stdenv.hostPlatform.qemuArch} ''${QEMU_PARAMS[@]} ''${@:2}"
+        eval "${qemu}/bin/qemu_kvm ''${QEMU_PARAMS[@]} ''${@:2}"
       '');
   windowsLauncherUI =
     writeShellScript
@@ -127,10 +127,10 @@
         if [ ! -f "$FILE" ]; then
       ''
       + lib.optionalString stdenv.isAarch64 ''
-        FILE=`${gnome.zenity}/bin/zenity --file-selection --title="Select Windows VM image (VHDX)"`
+        FILE=`${yad}/bin/yad --file-selection --title="Select Windows VM image (VHDX)"`
       ''
       + lib.optionalString stdenv.isx86_64 ''
-        FILE=`${gnome.zenity}/bin/zenity --file-selection --title="Select Windows VM image (QCOW2 or ISO)"`
+        FILE=`${yad}/bin/yad --file-selection --title="Select Windows VM image (QCOW2 or ISO)"`
       ''
       + ''
           if [ ''$? -ne 0 ]; then
@@ -143,14 +143,14 @@
         fi
 
         if ! ${windowsLauncher} $FILE; then
-          ${gnome.zenity}/bin/zenity --error --text="Failed to run Windows VM: $?"
+          ${yad}/bin/yad --error --text="Failed to run Windows VM: $?"
         fi
       '');
 in
   stdenvNoCC.mkDerivation {
     name = "windows-launcher";
 
-    buildInputs = [gnome.zenity qemu OVMF];
+    buildInputs = [yad qemu OVMF];
 
     phases = ["installPhase"];
 

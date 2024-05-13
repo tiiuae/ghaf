@@ -24,6 +24,7 @@ in {
     docs.x86_64-linux = self.packages.x86_64-linux.doc;
     docs.aarch64-linux = self.packages.aarch64-linux.doc;
     microchip-icicle-kit-debug.x86_64-linux = self.packages.riscv64-linux.microchip-icicle-kit-debug;
+    
     # Build cross-copmiled images
     nvidia-jetson-orin-agx-debug-from-x86_64.x86_64-linux = self.packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64;
     nvidia-jetson-orin-nx-debug-from-x86_64.x86_64-linux = self.packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64;

@@ -8,7 +8,6 @@
 #
 {
   config,
-  options,
   lib,
   ...
 }: let
