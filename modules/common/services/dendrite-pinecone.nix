@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
-  options,
   lib,
   pkgs,
   ...
@@ -15,9 +14,9 @@ in
     ];
 
     options.ghaf.services.dendrite-pinecone = {
-      firewallConfig = mkEnableOption "Enable dendrite pinecone module firewall configurations. It must be enabled only in netvm";
-
       enable = mkEnableOption "Enable dendrite pinecone module";
+
+      firewallConfig = mkEnableOption "Enable dendrite pinecone module firewall configurations. It must be enabled only in netvm";
 
       externalNic = mkOption {
         type = types.str;
