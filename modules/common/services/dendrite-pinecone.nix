@@ -15,9 +15,15 @@ in
     ];
 
     options.ghaf.services.dendrite-pinecone = {
-      firewallConfig = mkEnableOption "Enable dendrite pinecone module firewall configurations. It must be enabled only in netvm";
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable dendrite pinecone module
+        '';
+      };
 
-      enable = mkEnableOption "Enable dendrite pinecone module";
+      firewallConfig = mkEnableOption "Enable dendrite pinecone module firewall configurations. It must be enabled only in netvm";
 
       externalNic = mkOption {
         type = types.str;
