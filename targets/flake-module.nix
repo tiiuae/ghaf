@@ -6,7 +6,7 @@
 {
   imports = [
     ./generic-x86_64/flake-module.nix
-    ./imx8qm-mek/flake-module.nix
+    ./imx8mp-evk/flake-module.nix
     ./lenovo-x1-installer/flake-module.nix
     ./lenovo-x1/flake-module.nix
     ./microchip-icicle-kit/flake-module.nix

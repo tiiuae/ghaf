@@ -21,5 +21,6 @@
     lanzaboote.imports = [./lanzaboote];
     microvm.imports = [./microvm];
     polarfire.imports = [./polarfire];
+    imx8.imports = [./imx8];
   };
 }
