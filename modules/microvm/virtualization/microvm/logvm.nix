@@ -35,10 +35,6 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-        networking = {
-          firewall.allowedTCPPorts = [3100];
-        };
-
         environment.systemPackages = [pkgs.grafana-loki];
 
         systemd.network = {
@@ -58,8 +54,9 @@
           };
         };
 
-        environment.etc."loki.yaml".source = ./loki-local-config.yaml;
+        networking.firewall.allowedTCPPorts = [3100];
 
+        environment.etc."loki.yaml".source = ./loki-local-config.yaml;
         systemd.services.loki = {
           enable = true;
           description = "Loki Service";

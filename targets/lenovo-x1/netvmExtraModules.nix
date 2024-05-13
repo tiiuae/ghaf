@@ -97,5 +97,18 @@
     };
     # DNS host record has been added for element-vm static ip
     services.dnsmasq.settings.host-record = "element-vm,element-vm.ghaf,${elemen-vmIp}";
+
+    # Forward 3100 port of net-vm to log-vm so that we can access loki service externally (for debugging only)
+    networking.nat = lib.mkIf configH.ghaf.profiles.debug.enable {
+      enable = true;
+      externalInterface = "wlp0s5f0";
+      forwardPorts = [
+        {
+          sourcePort = 3100;
+          proto = "tcp";
+          destination = "192.168.101.66:3100";
+        }
+      ];
+    };
   };
 in [netvmPCIPassthroughModule netvmAdditionalConfig]
