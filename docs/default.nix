@@ -3,10 +3,10 @@
 # TODO should this be refactored
 {
   lib,
-  callPackage,
   runCommandLocal,
   nixosOptionsDoc,
   mdbook,
+  mdbook-footnote,
   revision ? "",
   options ? {},
 }: let
@@ -34,9 +34,7 @@ in
   # TODO Change this, runCommandLocal is not intended for longer running processes
   runCommandLocal "ghaf-doc"
   {
-    nativeBuildInputs = let
-      footnote = callPackage ./plugins/mdbook-footnote.nix {};
-    in [mdbook footnote];
+    nativeBuildInputs = [mdbook mdbook-footnote];
     src = combinedSrc;
 
     # set the package Meta info
