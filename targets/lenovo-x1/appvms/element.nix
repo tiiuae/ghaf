@@ -46,9 +46,12 @@ in {
         };
       };
 
-      networking = pkgs.lib.mkIf isDendritePineconeEnabled {
-        firewall.allowedTCPPorts = [dendrite-pinecone.TcpPortInt];
-        firewall.allowedUDPPorts = [dendrite-pinecone.McastUdpPortInt];
+      networking = {
+        nameservers = ["192.168.100.1"];
+        firewall = pkgs.lib.mkIf isDendritePineconeEnabled {
+          allowedTCPPorts = [dendrite-pinecone.TcpPortInt];
+          allowedUDPPorts = [dendrite-pinecone.McastUdpPortInt];
+        };
       };
 
       time.timeZone = "${config.time.timeZone}";
