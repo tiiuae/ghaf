@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-05-14 09:16:44.859711111 +0000
++++ b/drivers/Makefile	2024-05-14 10:00:52.054095256 +0000
 @@ -193,0 +194,5 @@
 +#
 +#
@@ -872,10 +872,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..d67b2ab
+index 0000000..d61e894
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,658 @@
+@@ -0,0 +1,660 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -1211,7 +1211,9 @@ index 0000000..d67b2ab
 +	} */
 +
 +  // We allow tegra_gpio_pt alone or with tegra_gpio_pt_extended (verify later)
-+	if( len != sizeof(struct tegra_gpio_pt) && len != sizeof(struct tegra_gpio_pt) + sizeof(tegra_gpio_pt_extended) )  {
++	if( len != sizeof(struct tegra_gpio_pt) && \
++      len != sizeof(struct tegra_gpio_pt) + sizeof(tegra_gpio_pt_extended) && \
++      len != sizeof(struct tegra_readl_writel))  {
 +		pr_err("Illegal chardev data length. Expected %ld or %ld, got %ld", sizeof(struct tegra_gpio_pt), sizeof(struct tegra_gpio_pt) + sizeof(tegra_gpio_pt_extended), len);
 +		return -ENOEXEC;
 +	}
@@ -1536,10 +1538,10 @@ index 0000000..d67b2ab
 +module_exit(gpio_host_proxy_exit);
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.h b/drivers/gpio-host-proxy/gpio-host-proxy.h
 new file mode 100644
-index 0000000..1c98ec2
+index 0000000..2996151
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.h
-@@ -0,0 +1,88 @@
+@@ -0,0 +1,93 @@
 +#ifndef __GPIO_HOST_PROXY__H__
 +#define __GPIO_HOST_PROXY__H__
 +
@@ -1593,10 +1595,12 @@ index 0000000..1c98ec2
 +#define GPIO_READL            'R'
 +#define GPIO_WRITEL           'W'
 +
++// sizeof is rounded to even 64 bit passhtough writes -- no need to optimise size further on an aarch64
 +struct tegra_readl_writel {
-+  unsigned char signal;
-+  void * address;
++  unsigned char signal;       // Note: signal field is overloaded (based on field offset) with signal in struct tegra_gpio_pt
++  unsigned char pad[3];       // to get an even 64 bit message size
 +  u32 value;
++  void * address;
 +};
 +
 +// struct __attribute__((packed)) tegra_gpio_pt {
@@ -1620,6 +1624,9 @@ index 0000000..1c98ec2
 +} tegra_gpio_pt_extended;
 +
 +#define MAX_CHIP 2
++
++_Static_assert( sizeof(struct tegra_readl_writel) == 16,
++               "tegra_readl_writel size is not 16 bytes." );
 +
 +_Static_assert( sizeof(struct tegra_gpio_pt) == 8,
 +               "tegra_gpio_pt size is not 8 bytes." );
