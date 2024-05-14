@@ -14,7 +14,10 @@ in
     };
 
     config = mkIf cfg.enable {
-      services.openssh.enable = true;
+      services.openssh = {
+          enable = true;
+          settings.X11Forwarding = true;
+        };
       users.users.root.openssh.authorizedKeys.keys = authorizedKeys;
       users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = authorizedKeys;
     };

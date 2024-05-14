@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-05-05 13:45:51.584426651 +0000
++++ b/drivers/Makefile	2024-05-14 09:16:44.859711111 +0000
 @@ -193,0 +194,5 @@
 +#
 +#
@@ -48,10 +48,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..b42c834
+index 0000000..bca5ff4
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,775 @@
+@@ -0,0 +1,795 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -139,17 +139,16 @@ index 0000000..b42c834
 +{
 +	unsigned char *io_buffer;
 +
-+	deb_debug("\n");
++	// deb_debug("\n");
++  #ifdef GPIO_DEBUG_VERBOSE
++    hexDump(DEVICE_NAME, "msg", &msg, msg_len);
++    deb_verbose("passthrough signal is: %c", *(char *)msg);
++  #endif
 +
 +	// Copy msg, to io_buffer
 +	io_buffer = kmalloc(msg_len, GFP_KERNEL);
 +	memset(io_buffer, 0, msg_len);
 +  memcpy(io_buffer, msg, msg_len);
-+
-+  #ifdef GPIO_DEBUG_VERBOSE
-+    hexDump(DEVICE_NAME, "msg", &msg, msg_len);
-+    deb_verbose("msg signal is: %c\n", *(char *)msg);
-+  #endif
 +
 +	// Execute the request by copying the io_buffer
 +	memcpy_toio(mem_iova, io_buffer, msg_len);
@@ -161,11 +160,37 @@ index 0000000..b42c834
 +  if(generic_return) {
 +	// Copy reply to io_buffer
 +	memcpy(generic_return, io_buffer, sizeof(*generic_return));
-+	deb_verbose("return value is copied %d\n", *generic_return);
++	deb_verbose("return value %d is copied", *generic_return);
 +  }
 +
 +  kfree(io_buffer);
 +}
++
++// redirect static inline u32 readl(const volatile void __iomem *addr)
++inline u32 readl_redirect( void * addr) {
++  int ret = 0;
++  struct tegra_readl_writel msg;
++
++  msg.signal = GPIO_READL;
++  msg.address = addr;
++  msg.value = 0;  // value field is not used
++
++  guest_chardev_transfer(&msg, sizeof(msg), &ret);
++  return (u32)ret;
++}
++EXPORT_SYMBOL_GPL(readl_redirect);
++
++// redirect: static inline void writel(u32 value, volatile void __iomem *addr)
++inline void writel_redirect( u32 value, void * addr) {
++  struct tegra_readl_writel msg;
++
++  msg.signal = GPIO_WRITEL;
++  msg.address = addr;
++  msg.value = value;
++
++  guest_chardev_transfer(&msg, sizeof(msg), NULL);
++}
++EXPORT_SYMBOL_GPL(writel_redirect);
 +
 +int gpiochip_generic_request_redirect(struct gpio_chip *chip, unsigned offset) {
 +  int ret = 0;
@@ -408,12 +433,11 @@ index 0000000..b42c834
 +
 +	deb_info("installing module.");
 +
-+	deb_info("gpio_vpa: 0x%llx", gpio_vpa);
-+
 +	if(!gpio_vpa){
 +		pr_err("Failed, gpio_vpa not defined");
++    return -1;
 +	}
-+
++	deb_info("gpio_vpa: 0x%llx", gpio_vpa);
 +
 +	// Allocate a major number for the device.
 +	major_number = register_chrdev(0, DEVICE_NAME, &fops);
@@ -453,15 +477,11 @@ index 0000000..b42c834
 +        return -ENOMEM;
 +  }
 +
-+	deb_info("gpio_vpa: 0x%llX, mem_iova: %pFX\n", gpio_vpa, mem_iova);
-+
-+  // gpio_hook is called by preserve_tegrachip() in gpio_tegra186.c -- don't call it here
-+  // gpio_hook()
++	deb_info("mem_iova: 0x%llx\n", (long long unsigned int)mem_iova);
 +
 +  is_set_up = true;
 +	return 0;
 +}
-+
 +EXPORT_SYMBOL_GPL(tegra_gpio_guest_init);
 +
 +/*
@@ -852,10 +872,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..361804e
+index 0000000..d67b2ab
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,645 @@
+@@ -0,0 +1,658 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -1170,6 +1190,7 @@ index 0000000..361804e
 +	unsigned long int ret_l;
 +	struct tegra_gpio_pt *kbuf = NULL;
 +	tegra_gpio_pt_extended *kbuf_ext = NULL;
++  struct tegra_readl_writel *kbuf_rw = NULL;  // used in special case the parameters are for readl and writel passthrough
 +
 +	static struct file *file;
 +	static struct inode *inode = NULL;
@@ -1217,6 +1238,8 @@ index 0000000..361804e
 +  }
 +  deb_verbose("kbuf is set up, kbuf=%p", kbuf);
 +
++  // return_buffer += len; // ??? we should write return to the base address? no increment? generates new interrupt?
++
 +  if( len == (sizeof(struct tegra_gpio_pt) + sizeof(tegra_gpio_pt_extended) ) ) {
 +    kbuf_ext = (tegra_gpio_pt_extended *)(kbuf + 1);
 +    deb_verbose("kbuf_ext is set up kbuf_ext=%p", kbuf_ext);
@@ -1229,6 +1252,16 @@ index 0000000..361804e
 +	deb_verbose("enter switch with signal: %c, Chip %d, Offset %d, Level %d", kbuf->signal, kbuf->chipnum, kbuf->offset, kbuf->level);
 +
 +  switch (kbuf->signal) {
++    case GPIO_READL:
++      kbuf_rw = (struct tegra_readl_writel *)kbuf;
++      ret = (int)readl(kbuf_rw->address);
++      goto end;
++    break;
++    case GPIO_WRITEL:
++      kbuf_rw = (struct tegra_readl_writel *)kbuf;
++      writel(kbuf_rw->value, kbuf_rw->address);
++      goto retval;
++    break;
 +    case GPIO_REQ:
 +      // if(kbuf->chipnum & 0xfe) {    // 0 and 1 are allowed values & mask allows fastcheck, marginal save
 +      if(kbuf->chipnum >= MAX_CHIP) {  // direct copmparison is more future flexible
@@ -1503,10 +1536,10 @@ index 0000000..361804e
 +module_exit(gpio_host_proxy_exit);
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.h b/drivers/gpio-host-proxy/gpio-host-proxy.h
 new file mode 100644
-index 0000000..b714531
+index 0000000..1c98ec2
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.h
-@@ -0,0 +1,79 @@
+@@ -0,0 +1,88 @@
 +#ifndef __GPIO_HOST_PROXY__H__
 +#define __GPIO_HOST_PROXY__H__
 +
@@ -1546,7 +1579,7 @@ index 0000000..b714531
 +#define GPIO_FREE            'f'   // free
 +
 +#define GPIO_TIMESTAMP_CTRL  'C'   // timestamp control
-+#define GPIO_TIMESTAMP_READ  'R'   // timestamp read
++#define GPIO_TIMESTAMP_READ  'T'   // timestamp read
 +#define GPIO_SUSPEND_CONF    'S'   // suspend configure
 +#define GPIO_ADD_PINRANGES   'P'   // add_pin_ranges
 +
@@ -1556,6 +1589,15 @@ index 0000000..b714531
 +#define TEGRA_GPIO_LABEL      "tegra234-gpio\x00\x00\x00\x00\x00\x00\x00"  // gpio_main_chip / gpiochip0 --padded to 20 bytes
 +#define TEGRA_GPIO_AON_LABEL  "tegra234-gpio-aon\x00\x00\x00"              // gpio_aon_chip  / gpiochip1 --padded to 20 bytes
 +#define LABEL_SIZE            20
++
++#define GPIO_READL            'R'
++#define GPIO_WRITEL           'W'
++
++struct tegra_readl_writel {
++  unsigned char signal;
++  void * address;
++  u32 value;
++};
 +
 +// struct __attribute__((packed)) tegra_gpio_pt {
 +struct tegra_gpio_pt {
