@@ -15,7 +15,7 @@ in {
       mimeTypes = ["application/pdf"];
     };
     xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
-      filepath=$(realpath $1)
+      filepath=$(realpath "$1")
       echo "Opening $filepath" | systemd-cat -p info
       echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm.ghaf ${toString xdgPdfPort}
     '';
