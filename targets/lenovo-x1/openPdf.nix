@@ -26,7 +26,7 @@ pkgs.writeShellApplication {
     scp -i ${sshKeyPath} -o StrictHostKeyChecking=no "$REMOTE_ADDR":"$sourcepath" zathura-vm.ghaf:"$zathurapath"
 
     echo "Opening $zathurapath in zathura-vm"
-    ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura "$zathurapath"
+    ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura "'$zathurapath'"
 
     echo "Deleting $zathurapath in zathura-vm"
     ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf rm -f "$zathurapath"

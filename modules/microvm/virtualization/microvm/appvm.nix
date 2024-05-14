@@ -42,7 +42,7 @@
           runWaypipe = with pkgs;
             writeScriptBin "run-waypipe" ''
               #!${runtimeShell} -e
-              ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server $@
+              ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
             '';
         in {
           ghaf = {
