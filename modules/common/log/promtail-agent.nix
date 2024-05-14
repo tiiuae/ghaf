@@ -1,6 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{pkgs, ...}: let
+{
+  pkgs,
+  hostName,
+  ...
+}: let
   server-ip-port = "192.168.101.66:3100";
 in {
   environment.etc."promtail-local-config.yaml".text = ''
@@ -20,6 +24,7 @@ in {
           path: /var/log/journal
           labels:
             job: systemd-journal
+            hostname : "${hostName}"
         relabel_configs:
           - source_labels: ['__journal__systemd_unit']
             target_label: 'unit'

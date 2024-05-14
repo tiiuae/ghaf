@@ -10,6 +10,12 @@
   extraModules = [
     {
       time.timeZone = "Asia/Dubai";
+      imports = [
+        (import ../../../modules/common/log/promtail-agent.nix {
+          inherit pkgs;
+          hostName = "zathura-vm";
+        })
+      ];
     }
   ];
   borderColor = "#122263";

@@ -20,6 +20,10 @@
   netvmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ../../../common/log/promtail-agent.nix {
+        inherit pkgs;
+        hostName = vmName;
+      })
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;

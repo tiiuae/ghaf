@@ -179,7 +179,5 @@ in
     guivmPCIPassthroughModule
     guivmVirtioInputHostEvdevModule
     guivmExtraConfigurations
-    # Import promtail agent for remote upload of journal logs
-    ../../modules/common/log/promtail-agent.nix
   ]
   ++ lib.optionals configH.ghaf.hardware.fprint.enable [configH.ghaf.hardware.fprint.extraConfigurations]

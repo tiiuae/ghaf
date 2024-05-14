@@ -61,6 +61,13 @@ in {
       programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
+      # Import promtail agent for remote upload of journal logs
+      imports = [
+        (import ../../../modules/common/log/promtail-agent.nix {
+          inherit pkgs;
+          hostName = "chromium-vm";
+        })
+      ];
     }
   ];
   borderColor = "#630505";

@@ -12,6 +12,10 @@
   guivmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
+      (import ../../../common/log/promtail-agent.nix {
+        inherit pkgs;
+        hostName = vmName;
+      })
       ({
         lib,
         pkgs,
