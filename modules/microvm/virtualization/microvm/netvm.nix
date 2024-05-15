@@ -20,7 +20,7 @@
   netvmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
-      (import ../../../common/log/grafana-alloy.nix {
+      (import ../../../common/log/logging-client.nix {
         inherit pkgs;
         hostName = vmName;
       })

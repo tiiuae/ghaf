@@ -62,7 +62,7 @@ in {
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
       imports = [
-        (import ../../../modules/common/log/grafana-alloy.nix {
+        (import ../../../modules/common/log/logging-client.nix {
           inherit pkgs;
           hostName = "chromium-vm";
         })

@@ -57,10 +57,8 @@
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 
-            environment.systemPackages = [pkgs.grafana-alloy];
-            # Import promtail agent for remote upload of journal logs
             imports = [
-              (import ../../modules/common/log/grafana-alloy.nix {
+              (import ../../modules/common/log/logging-client.nix {
                 inherit pkgs;
                 hostName = "ghaf-host";
               })

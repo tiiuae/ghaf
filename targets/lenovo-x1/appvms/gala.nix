@@ -19,7 +19,7 @@
         lib.mkIf config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
         [../../../modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem];
       imports = [
-        (import ../../../modules/common/log/grafana-alloy.nix {
+        (import ../../../modules/common/log/logging-client.nix {
           inherit pkgs;
           hostName = "gala-vm";
         })
