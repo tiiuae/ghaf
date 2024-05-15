@@ -10,6 +10,11 @@
   extraModules = [
     {
       time.timeZone = "Asia/Dubai";
+
+      # Use regular clipboard instead of primary clipboard.
+      environment.etc."zathurarc".text = ''
+        set selection-clipboard clipboard
+      '';
     }
   ];
   borderColor = "#122263";
