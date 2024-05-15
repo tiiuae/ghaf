@@ -9,9 +9,5 @@
   jbig2dec = import ./jbig2dec {inherit prev;};
   pipewire = import ./pipewire {inherit prev;};
 
-  # libck is dependency of sysbench
-  libck = import ./libck {inherit prev;};
-  sysbench = import ./sysbench {inherit final prev;};
-
   qemu = import ./qemu {inherit prev;};
 })
