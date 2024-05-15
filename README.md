@@ -14,7 +14,7 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-darkgreen.svg)](./LICENSES/LICENSE.Apache-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-orange.svg)](./LICENSES/LICENSE.CC-BY-SA-4.0) [![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-yellow)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tiiuae/ghaf/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tiiuae/ghaf) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8290/badge)](https://www.bestpractices.dev/projects/8290) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](./CODE_OF_CONDUCT.md) 
 
 </div>
-
+TEMP
 This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
 For information on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/ref_impl/reference_implementations.html) section of Ghaf documentation.
