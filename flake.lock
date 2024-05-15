@@ -61,11 +61,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1715445235,
-        "narHash": "sha256-SUu+oIWn+xqQIOlwfwNfS9Sek4i1HKsrLJchsDReXwA=",
+        "lastModified": 1715756862,
+        "narHash": "sha256-cNGZK/RNvb29giR2KtnbwU5lx2Kw+wWqAaeWqfYlPts=",
         "owner": "nix-community",
         "repo": "disko",
-        "rev": "159d87ea5b95bbdea46f0288a33c5e1570272725",
+        "rev": "cb1d6fba694ab3887600d606106f5a044ba1712c",
         "type": "github"
       },
       "original": {
@@ -343,16 +343,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1715428390,
-        "narHash": "sha256-3Lu6HfZcXntuV8lA+eQMxDXDe4nu2iXjAcJN/qz3REU=",
+        "lastModified": 1715751012,
+        "narHash": "sha256-m/1kbkjjnN6FU3LjwWBXmZ1oZokrLZl/HeBu1GDYPdo=",
         "owner": "tiiuae",
         "repo": "nixpkgs",
-        "rev": "1642a180c90b3559d9841f8a3b9ff3a6e11e2f4b",
+        "rev": "a6c106046dac7d5ef0decb481abf19ff2b394945",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "nixos-unstable-patched",
+        "ref": "nixos-unstable-patched-2",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -374,11 +374,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1714478972,
-        "narHash": "sha256-q//cgb52vv81uOuwz1LaXElp3XAe1TqrABXODAEF6Sk=",
+        "lastModified": 1715609711,
+        "narHash": "sha256-/5u29K0c+4jyQ8x7dUIEUWlz2BoTSZWUP2quPwFCE7M=",
         "owner": "cachix",
         "repo": "pre-commit-hooks.nix",
-        "rev": "2849da033884f54822af194400f8dff435ada242",
+        "rev": "c182c876690380f8d3b9557c4609472ebfa1b141",
         "type": "github"
       },
       "original": {

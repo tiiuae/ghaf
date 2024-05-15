@@ -26,7 +26,7 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-patched";
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-patched-2";
     #nixpkgs.url = "flake:mylocalnixpkgs"; #"github:NixOS/nixpkgs/nixos-unstable";
 
     #
