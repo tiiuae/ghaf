@@ -90,6 +90,10 @@
                 };
               };
 
+              virtualization.microvm.adminvm = {
+                enable = true;
+              };
+
               virtualization.microvm.idsvm = {
                 enable = false;
                 mitmproxy.enable = false;

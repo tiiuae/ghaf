@@ -7,6 +7,7 @@
   imports = [
     ./virtualization/microvm/microvm-host.nix
     ./virtualization/microvm/netvm.nix
+    ./virtualization/microvm/adminvm.nix
     ./virtualization/microvm/idsvm/idsvm.nix
     ./virtualization/microvm/idsvm/mitmproxy
     ./virtualization/microvm/appvm.nix
