@@ -1,4 +1,4 @@
-From e3b32eba06d601270bcec010faaa29a5664ea628 Mon Sep 17 00:00:00 2001
+From 425746bb724e329e44ef80cec7bf1e57a0388010 Mon Sep 17 00:00:00 2001
 From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
 Date: Thu, 2 May 2024 10:02:56 +0400
 Subject: [PATCH] Add colored borders
@@ -22,10 +22,10 @@ Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
  src/ssd/ssd.c          |  9 ++++++---
  src/ssd/ssd_border.c   | 21 ++++++++++++++++-----
  src/ssd/ssd_part.c     |  2 +-
- src/ssd/ssd_titlebar.c | 22 ++++++++++++++++++----
+ src/ssd/ssd_titlebar.c | 30 ++++++++++++++++++++++++++----
  src/theme.c            | 34 ++++++++++++++++++++++++++++++++--
  src/window-rules.c     | 25 +++++++++++++++++++++++++
- 10 files changed, 140 insertions(+), 17 deletions(-)
+ 10 files changed, 148 insertions(+), 17 deletions(-)
 
 diff --git a/include/ssd-internal.h b/include/ssd-internal.h
 index 639d143..7e09dc2 100644
@@ -220,7 +220,7 @@ index 3933cd1..8889c9e 100644
  		struct wlr_buffer *hover_buffer, int x, struct view *view)
  {
 diff --git a/src/ssd/ssd_titlebar.c b/src/ssd/ssd_titlebar.c
-index cde7bb7..5147217 100644
+index cde7bb7..d063989 100644
 --- a/src/ssd/ssd_titlebar.c
 +++ b/src/ssd/ssd_titlebar.c
 @@ -26,6 +26,15 @@ ssd_titlebar_create(struct ssd *ssd)
@@ -289,6 +289,21 @@ index cde7bb7..5147217 100644
  
  			/* Toggle rounded corner image itself */
  			struct wlr_scene_node *rounded_corner =
+@@ -336,6 +350,14 @@ ssd_update_title(struct ssd *ssd)
+ 	}
+ 
+ 	struct theme *theme = view->server->theme;
++
++	/* Here the whole theme changing is more preferable */
++	struct theme custom_theme = { 0 };
++	float customColor[4];
++	if (window_rules_get_custom_border_color(view, customColor)) {
++		theme_customize_with_border_color(&custom_theme, view->server, customColor);
++		theme = &custom_theme;
++	}
+ 	struct ssd_state_title *state = &ssd->state.title;
+ 	bool title_unchanged = state->text && !strcmp(title, state->text);
+ 
 diff --git a/src/theme.c b/src/theme.c
 index 2b10191..19201b6 100644
 --- a/src/theme.c
