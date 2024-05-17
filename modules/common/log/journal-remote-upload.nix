@@ -13,7 +13,7 @@ in {
   systemd.services.systemd-journal-upload = {
     description = "Service to upload journal logs to log-vm";
     enable = true;
-    after = ["network-online.target"];
+    after = ["microvm@log-vm.service"];
     serviceConfig = {
       #ExecStart = "${pkgs.systemd}/lib/systemd/systemd-journal-upload --save-state -u http://${log-vm-ip-port}";
       ExecStart = "${pkgs.systemd}/lib/systemd/systemd-journal-upload -u http://${log-vm-ip-port}";
