@@ -10,13 +10,6 @@
   system,
   ...
 }: let
-  # From here
-  # These can be added back to default.nix to form part of the target template
-  debugModules = import ./debugModules.nix;
-  releaseModules = import ./releaseModules.nix;
-
-  ## To here
-
   lenovo-x1 = generation: variant: extraModules: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
@@ -58,20 +51,15 @@
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 
             ghaf = {
+              # variant type, turn on debug or release
+              profiles.debug.enable = variant == "debug";
+              profiles.release.enable = variant == "release";
+
               # Hardware definitions
               hardware.x86_64.common.enable = true;
               hardware.generation = generation;
               hardware.tpm2.enable = true;
               hardware.fprint.enable = true;
-
-              # Kernel hardening
-              host.kernel.hardening.enable = false;
-              host.kernel.hardening.virtualization.enable = false;
-              host.kernel.hardening.networking.enable = false;
-              host.kernel.hardening.inputdevices.enable = false;
-              host.kernel.hardening.hypervisor.enable = false;
-              guest.kernel.hardening.enable = false;
-              guest.kernel.hardening.graphics.enable = false;
 
               # Virtualization options
               virtualization.microvm-host.enable = true;
@@ -158,8 +146,8 @@
     package = hostConfiguration.config.system.build.diskoImages;
   };
 in [
-  (lenovo-x1 "gen10" "debug" debugModules)
-  (lenovo-x1 "gen11" "debug" debugModules)
-  (lenovo-x1 "gen10" "release" releaseModules)
-  (lenovo-x1 "gen11" "release" releaseModules)
+  (lenovo-x1 "gen10" "debug" [])
+  (lenovo-x1 "gen11" "debug" [])
+  (lenovo-x1 "gen10" "release" [])
+  (lenovo-x1 "gen11" "release" [])
 ]
