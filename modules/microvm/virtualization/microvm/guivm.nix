@@ -145,8 +145,8 @@
   vsockproxy = pkgs.callPackage ../../../../packages/vsockproxy {};
 
   # Importing kernel builder function and building guest_graphics_hardened_kernel
-  buildKernel = import ../../../packages/kernel {inherit config pkgs lib;};
-  config_baseline = ../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
+  buildKernel = import ../../../../packages/kernel {inherit config pkgs lib;};
+  config_baseline = ../../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
   guest_graphics_hardened_kernel = buildKernel {inherit config_baseline;};
 in {
   options.ghaf.virtualization.microvm.guivm = {
