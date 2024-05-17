@@ -203,7 +203,7 @@
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Ghaf in virtual machine</td><td>✅</td><td><code>x86</code></td><td><code>nix run .#packages.x86_64-linux.vm-debug</code></td></tr>
 <tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>Orin</code></td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a>.</td></tr>
-<tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>imx8qm</code></td><td>Based on NXP BSP, implemented as <a href="https://github.com/NixOS/nixos-hardware/tree/master/nxp">nixos-hardware module</a></td></tr>
+<tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>imx8mp</code></td><td>Based on NXP BSP, implemented as <a href="https://github.com/NixOS/nixos-hardware/tree/master/nxp">nixos-hardware module</a></td></tr>
 <tr><td><code>x86</code> generic image</td><td>✅</td><td><code>x86</code></td><td>Generic x86 computer, based on generic <a href="https://nixos.org/">NixOS</a>. NOTE: requires device specific configuration.</td></tr>
 <tr><td><code>Lenovo X1</code> reference image</td><td>✅</td><td><code>Lenovo X1</code></td><td>x86_64 laptop computer, supports basic compartmentalized environment</td></tr>
 <tr><td>Native build</td><td>✅</td><td><code>aarch64, x86</code></td><td>Remote <code>aarc64</code> nixos builders recommended</td></tr>
@@ -216,7 +216,7 @@
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Quick target update</td><td>✅</td><td><code>all</code></td><td><code>nixos-rebuild --flake .#nvidia-jetson-orin-debug --target-host root@ghaf-host --fast switch</code></td></tr>
 <tr><td><code>aarch64</code> device flashing</td><td>✅</td><td><code>Orin</code></td><td><a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#flashing-nvidia-jetson-orin-agx">Full device software flashing using <code>x86</code> machine</a></td></tr>
-<tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8qm</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
+<tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8mp</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
 <tr><td>Debug: SSH</td><td>✅</td><td><code>Orin</code>, <code>x86</code></td><td>Host access only in <code>-debug</code>-target, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication.nix</a></td></tr>
 <tr><td>Debug: Serial</td><td>✅</td><td><code>all</code></td><td>Host access only in <code>-debug</code>-target - e.g. <code>screen /dev/ttyACM0 115200</code></td></tr>
 <tr><td>Compartmentalized environment</td><td>🚧</td><td><code>Lenovo X1</code></td><td>NetVM, GUI VM (with GPU passthrough) plus some Application VMs</td></tr>

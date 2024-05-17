@@ -243,7 +243,7 @@
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Ghaf in virtual machine</td><td>✅</td><td><code>x86</code></td><td><code>nix run .#packages.x86_64-linux.vm-debug</code></td></tr>
 <tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>Orin</code></td><td>Based on <a href="https://developer.nvidia.com/embedded/jetson-linux">Jetson Linux</a>, <a href="https://github.com/OE4T">OE4T</a> and <a href="https://github.com/anduril/jetpack-nixos">jetpack-nixos</a>.</td></tr>
-<tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>imx8qm</code></td><td>Based on NXP BSP, implemented as <a href="https://github.com/NixOS/nixos-hardware/tree/master/nxp">nixos-hardware module</a></td></tr>
+<tr><td><code>aarch64</code> reference image</td><td>✅</td><td><code>imx8mp</code></td><td>Based on NXP BSP, implemented as <a href="https://github.com/NixOS/nixos-hardware/tree/master/nxp">nixos-hardware module</a></td></tr>
 <tr><td><code>x86</code> generic image</td><td>✅</td><td><code>x86</code></td><td>Generic x86 computer, based on generic <a href="https://nixos.org/">NixOS</a>. NOTE: requires device specific configuration.</td></tr>
 <tr><td><code>Lenovo X1</code> reference image</td><td>✅</td><td><code>Lenovo X1</code></td><td>x86_64 laptop computer, supports basic compartmentalized environment</td></tr>
 <tr><td>Native build</td><td>✅</td><td><code>aarch64, x86</code></td><td>Remote <code>aarc64</code> nixos builders recommended</td></tr>
@@ -256,7 +256,7 @@
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Quick target update</td><td>✅</td><td><code>all</code></td><td><code>nixos-rebuild --flake .#nvidia-jetson-orin-debug --target-host root@ghaf-host --fast switch</code></td></tr>
 <tr><td><code>aarch64</code> device flashing</td><td>✅</td><td><code>Orin</code></td><td><a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#flashing-nvidia-jetson-orin-agx">Full device software flashing using <code>x86</code> machine</a></td></tr>
-<tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8qm</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
+<tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8mp</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
 <tr><td>Debug: SSH</td><td>✅</td><td><code>Orin</code>, <code>x86</code></td><td>Host access only in <code>-debug</code>-target, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication.nix</a></td></tr>
 <tr><td>Debug: Serial</td><td>✅</td><td><code>all</code></td><td>Host access only in <code>-debug</code>-target - e.g. <code>screen /dev/ttyACM0 115200</code></td></tr>
 <tr><td>Compartmentalized environment</td><td>🚧</td><td><code>Lenovo X1</code></td><td>NetVM, GUI VM (with GPU passthrough) plus some Application VMs</td></tr>
@@ -787,7 +787,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <tr><td>Generic x86 Сomputer</td><td>x86_64</td><td><a href="ref_impl/./build_and_run.html#running-ghaf-image-for-x86-computer">Running Ghaf Image for x86 Computer</a></td></tr>
 <tr><td>Lenovo X1 Carbon Gen 11</td><td>x86_64</td><td><a href="ref_impl/./build_and_run.html#running-ghaf-image-for-lenovo-x1">Running Ghaf Image for Lenovo X1</a></td></tr>
 <tr><td>NVIDIA Jetson AGX Orin</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></td></tr>
-<tr><td>NXP i.MX 8QM-MEK</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></td></tr>
+<tr><td>NXP i.MX 8MP-EVK</td><td>AArch64</td><td><a href="ref_impl/./build_and_run.html#building-ghaf-image-for-nxp-imx-8mp-evk">Building Ghaf Image for NXP i.MX 8MP-EVK</a></td></tr>
 <tr><td>MICROCHIP icicle-kit</td><td>RISCV64</td><td><a href="ref_impl/./build_and_run.html#building-ghaf-image-for-microchip-icicle-kit">Building Ghaf Image for Microchip Icicle Kit</a></td></tr>
 </tbody></table>
 </div>
@@ -907,21 +907,14 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <li>After these changes NVIDIA Jetson Orin AGX cannot boot from its internal eMMC. It will boot from the USB device with the correct partition labels.</li>
 </ol>
 <hr />
-<h2 id="building-ghaf-image-for-nxp-imx-8qm-mek"><a class="header" href="#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></h2>
+<h2 id="building-ghaf-image-for-nxp-imx-8mp-evk"><a class="header" href="#building-ghaf-image-for-nxp-imx-8mp-evk">Building Ghaf Image for NXP i.MX 8MP-EVK</a></h2>
 <p>Before you begin, check device-independent <a href="ref_impl/./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<p>In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and USB media with the Ghaf image:</p>
+<p>In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card and USB media with the Ghaf image:</p>
 <ol>
-<li>
-<p>To build and flash <a href="https://github.com/tiiuae/Tow-Boot"><strong>Tow-Boot</strong></a> bootloader:</p>
-<pre><code>$ git clone https://github.com/tiiuae/Tow-Boot.git &amp;&amp; cd Tow-Boot
-$ nix-build -A imx8qm-mek
-$ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
-</code></pre>
-</li>
 <li>
 <p>To build and flash the Ghaf image:</p>
 <ol>
-<li>Run the <code>nix build .#packages.aarch64-linux.imx8qm-mek-release</code> command.</li>
+<li>Run the <code>nix build .#packages.aarch64-linux.imx8mp-evk-release</code> command.</li>
 <li>Prepare the USB boot media with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct</code>.</li>
 </ol>
 </li>

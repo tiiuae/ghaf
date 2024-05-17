@@ -205,7 +205,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <tr><td>Generic x86 Сomputer</td><td>x86_64</td><td><a href="./build_and_run.html#running-ghaf-image-for-x86-computer">Running Ghaf Image for x86 Computer</a></td></tr>
 <tr><td>Lenovo X1 Carbon Gen 11</td><td>x86_64</td><td><a href="./build_and_run.html#running-ghaf-image-for-lenovo-x1">Running Ghaf Image for Lenovo X1</a></td></tr>
 <tr><td>NVIDIA Jetson AGX Orin</td><td>AArch64</td><td><a href="./build_and_run.html#ghaf-image-for-nvidia-jetson-orin-agx">Ghaf Image for NVIDIA Jetson Orin AGX</a></td></tr>
-<tr><td>NXP i.MX 8QM-MEK</td><td>AArch64</td><td><a href="./build_and_run.html#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></td></tr>
+<tr><td>NXP i.MX 8MP-EVK</td><td>AArch64</td><td><a href="./build_and_run.html#building-ghaf-image-for-nxp-imx-8mp-evk">Building Ghaf Image for NXP i.MX 8MP-EVK</a></td></tr>
 <tr><td>MICROCHIP icicle-kit</td><td>RISCV64</td><td><a href="./build_and_run.html#building-ghaf-image-for-microchip-icicle-kit">Building Ghaf Image for Microchip Icicle Kit</a></td></tr>
 </tbody></table>
 </div>
@@ -325,21 +325,14 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <li>After these changes NVIDIA Jetson Orin AGX cannot boot from its internal eMMC. It will boot from the USB device with the correct partition labels.</li>
 </ol>
 <hr />
-<h2 id="building-ghaf-image-for-nxp-imx-8qm-mek"><a class="header" href="#building-ghaf-image-for-nxp-imx-8qm-mek">Building Ghaf Image for NXP i.MX 8QM-MEK</a></h2>
+<h2 id="building-ghaf-image-for-nxp-imx-8mp-evk"><a class="header" href="#building-ghaf-image-for-nxp-imx-8mp-evk">Building Ghaf Image for NXP i.MX 8MP-EVK</a></h2>
 <p>Before you begin, check device-independent <a href="./build_and_run.html#prerequisites">prerequisites</a>.</p>
-<p>In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and USB media with the Ghaf image:</p>
+<p>In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card and USB media with the Ghaf image:</p>
 <ol>
-<li>
-<p>To build and flash <a href="https://github.com/tiiuae/Tow-Boot"><strong>Tow-Boot</strong></a> bootloader:</p>
-<pre><code>$ git clone https://github.com/tiiuae/Tow-Boot.git &amp;&amp; cd Tow-Boot
-$ nix-build -A imx8qm-mek
-$ sudo dd if=result/ shared.disk-image.img of=/dev/&lt;SDCARD&gt;
-</code></pre>
-</li>
 <li>
 <p>To build and flash the Ghaf image:</p>
 <ol>
-<li>Run the <code>nix build .#packages.aarch64-linux.imx8qm-mek-release</code> command.</li>
+<li>Run the <code>nix build .#packages.aarch64-linux.imx8mp-evk-release</code> command.</li>
 <li>Prepare the USB boot media with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct</code>.</li>
 </ol>
 </li>
