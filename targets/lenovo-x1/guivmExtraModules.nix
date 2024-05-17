@@ -8,8 +8,11 @@
   configH,
   ...
 }: let
-  openPdf = pkgs.callPackage ./openPdf.nix {
-    inherit pkgs;
+  # TODO: Fix the path to get the sshKeyPath so that
+  # openPdf can be exported as a normal package from
+  # packaged/flake-module.nix and hence easily imported
+  # into all targets
+  openPdf = pkgs.callPackage ../../packages/openPdf {
     inherit (configH.ghaf.security.sshKeys) sshKeyPath;
   };
   # TODO generalize this TCP port used by PDF XDG handler
