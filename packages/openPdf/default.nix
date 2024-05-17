@@ -2,15 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  pkgs,
+  writeShellApplication,
+  dnsutils,
+  openssh,
   sshKeyPath,
   ...
 }:
 # The openpdf script is executed by the xdg handler from the chromium-vm
 # It reads the file path, copies it from chromium-vm to zathura-vm and opens it there
-pkgs.writeShellApplication {
+writeShellApplication {
   name = "openPdf";
-  runtimeInputs = [pkgs.dnsutils pkgs.openssh];
+  runtimeInputs = [dnsutils openssh];
   text = ''
     read -r sourcepath
     filename=$(basename "$sourcepath")
