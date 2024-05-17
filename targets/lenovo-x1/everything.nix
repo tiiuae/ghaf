@@ -23,16 +23,33 @@
           self.nixosModules.lanzaboote
           self.nixosModules.microvm
 
-          self.nixosModules.disko-lenovo-x1-basic-v1
-          self.nixosModules.hw-lenovo-x1
-
           ({
             pkgs,
             config,
             ...
           }: let
             powerControl = pkgs.callPackage ../../packages/powercontrol {};
+
+            # TODO: Move this to a separate function in self.lib
+            filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
+            mapPciIdsToString = builtins.map (d: "${d.vendorId}:${d.productId}");
+            vfioPciIds = mapPciIdsToString (filterDevices (
+              config.ghaf.hardware.definition.network.pciDevices
+              ++ config.ghaf.hardware.definition.gpu.pciDevices
+            ));
           in {
+            boot.kernelParams = [
+              "intel_iommu=on,sm_on"
+              "iommu=pt"
+              # Prevent i915 module from being accidentally used by host
+              "module_blacklist=i915"
+              "acpi_backlight=vendor"
+              # Enable VFIO for PCI devices
+              "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
+            ];
+
+            boot.initrd.availableKernelModules = ["nvme"];
+
             security.polkit.extraConfig = powerControl.polkitExtraConfig;
             time.timeZone = "Asia/Dubai";
 
@@ -96,6 +113,7 @@
                     configH = config;
                   };
               };
+
               virtualization.microvm.appvm = {
                 enable = true;
                 vms = import ./appvms/default.nix {inherit pkgs lib config;};
@@ -105,37 +123,12 @@
               profiles = {
                 applications.enable = false;
               };
+
               windows-launcher = {
                 enable = true;
                 spice = true;
               };
             };
-          })
-
-          #TODO: how to handle the majority of laptops that need a little
-          # something extra?
-          # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix
-          # nixos-hardware.nixosModules.lenovo-thinkpad-x1-10th-gen
-
-          ({config, ...}: {
-            boot.kernelParams = let
-              filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
-              mapPciIdsToString = builtins.map (d: "${d.vendorId}:${d.productId}");
-              vfioPciIds = mapPciIdsToString (filterDevices (
-                config.ghaf.hardware.definition.network.pciDevices
-                ++ config.ghaf.hardware.definition.gpu.pciDevices
-              ));
-            in [
-              "intel_iommu=on,sm_on"
-              "iommu=pt"
-              # Prevent i915 module from being accidentally used by host
-              "module_blacklist=i915"
-              "acpi_backlight=vendor"
-
-              "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
-            ];
-
-            boot.initrd.availableKernelModules = ["nvme"];
           })
         ]
         ++ extraModules;
@@ -146,8 +139,8 @@
     package = hostConfiguration.config.system.build.diskoImages;
   };
 in [
-  (lenovo-x1 "gen10" "debug" [])
-  (lenovo-x1 "gen11" "debug" [])
-  (lenovo-x1 "gen10" "release" [])
-  (lenovo-x1 "gen11" "release" [])
+  (lenovo-x1 "gen10" "debug" [self.nixosModules.disko-lenovo-x1-basic-v1 self.nixosModules.hw-lenovo-x1])
+  (lenovo-x1 "gen11" "debug" [self.nixosModules.disko-lenovo-x1-basic-v1 self.nixosModules.hw-lenovo-x1])
+  (lenovo-x1 "gen10" "release" [self.nixosModules.disko-lenovo-x1-basic-v1 self.nixosModules.hw-lenovo-x1])
+  (lenovo-x1 "gen11" "release" [self.nixosModules.disko-lenovo-x1-basic-v1 self.nixosModules.hw-lenovo-x1])
 ]
