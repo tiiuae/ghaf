@@ -33,7 +33,10 @@
     elemen-vmIp = "192.168.100.253";
   in {
     # For WLAN firmwares
-    hardware.enableRedistributableFirmware = true;
+    hardware = {
+      enableRedistributableFirmware = true;
+      enableAllFirmware = true;
+    };
 
     networking = {
       # wireless is disabled because we use NetworkManager for wireless
@@ -43,6 +46,7 @@
         unmanaged = ["ethint0"];
       };
     };
+
     services = {
       dnsmasq.settings = {
         # set static IP for IDS-VM

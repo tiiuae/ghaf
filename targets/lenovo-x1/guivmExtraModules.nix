@@ -157,10 +157,20 @@
       };
     };
 
-    # Open TCP port for the PDF XDG socket
+    # Enable all firmware for graphics firmware
+    hardware = {
+      enableRedistributableFirmware = true;
+      enableAllFirmware = true;
+    };
+
+    # Early KMS needed for ui to start work inside GuiVM
+    boot = {
+      initrd.kernelModules = ["i915"];
+      kernelParams = ["earlykms"];
+    };
+
+    # Open TCP port for the PDF XDG socket.
     networking.firewall.allowedTCPPorts = [xdgPdfPort];
-    # Early KMS needed for GNOME to work inside GuiVM
-    boot.initrd.kernelModules = ["i915"];
 
     microvm.qemu = {
       extraArgs =
