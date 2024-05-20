@@ -61,6 +61,7 @@
               withResolved = true;
               withPolkit = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
+              withHardenedConfigs = true;
             };
           };
 
