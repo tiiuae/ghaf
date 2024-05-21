@@ -106,6 +106,9 @@ in
           Type = "simple";
           ExecStart = "${pkgs.smcroute}/sbin/smcrouted -n -s -f /etc/smcroute.conf";
           #TODO sudo setcap cap_net_admin=ep ${pkgs.smcroute}/sbin/smcroute
+          # TODO: Add proper AmbientCapabilities= or CapabilityBoundingSet=,
+          #       preferably former and then change user to something else than
+          #       root.
           User = "root";
           # Automatically restart service when it exits.
           Restart = "always";
@@ -125,6 +128,9 @@ in
 
         # Allow loopback traffic
         iptables -A INPUT -i lo -j ACCEPT
+
+        # TODO: Move all these TcpPort and things like that, to the options of
+        #       this module, away from from package itself.
 
         # Forward incoming TCP traffic on port ${dendrite-pineconePkg.TcpPort} to internal network(element-vm)
         iptables -t nat -A PREROUTING -i ${cfg.externalNic} -p tcp --dport ${dendrite-pineconePkg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${dendrite-pineconePkg.TcpPort}
