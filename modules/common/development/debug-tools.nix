@@ -7,6 +7,13 @@
   ...
 }: let
   cfg = config.ghaf.development.debug.tools;
+
+  rm-linux-bootmgrs = pkgs.callPackage ./scripts/rm_linux_bootmgr_entries.nix {};
+  perf-test-script = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix {};
+  sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix {};
+  sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix {};
+  nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix {};
+
   inherit (lib) mkEnableOption mkIf;
 in {
   options.ghaf.development.debug.tools = {
@@ -51,6 +58,11 @@ in {
       # Match perf version with kernel.
       [
         config.boot.kernelPackages.perf
+        perf-test-script
+        sysbench-test-script
+        sysbench-fileio-test-script
+        nvpmodel-check
+        rm-linux-bootmgrs
       ]
       # TODO Can this be changed to platformPkgs to filter ?
       # LuaJIT (which is sysbench dependency) not available on RISC-V
