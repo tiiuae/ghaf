@@ -24,8 +24,6 @@ For information on build instructions and supported hardware, see the [Reference
 
 
 
-
-
 Test trigger jenkins pre-merge build
 
 
