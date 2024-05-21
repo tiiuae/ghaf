@@ -9,11 +9,13 @@ buildGoModule rec {
   pname = "dendrite-pinecone";
   version = "0.9.1";
 
+  # TODO: Move all these to the options module.
   TcpPort = "49000";
   McastUdpPort = "60606";
   McastUdpIp = "239.0.0.114";
   TcpPortInt = 49000;
   McastUdpPortInt = 60606;
+
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "dendrite";
