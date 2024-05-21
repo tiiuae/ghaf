@@ -7,7 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.services.dendrite-pinecone;
-  dendrite-pineconePkg = import ../../../packages/dendrite-pinecone/default.nix {inherit pkgs;};
+  dendrite-pineconePkg = pkgs.callPackage ../../../packages/dendrite-pinecone/default.nix {};
 in
   with lib; {
     imports = [
@@ -16,7 +16,7 @@ in
     options.ghaf.services.dendrite-pinecone = {
       enable = mkEnableOption "Enable dendrite pinecone module";
 
-      firewallConfig = mkEnableOption "Enable dendrite pinecone module firewall configurations. It must be enabled only in netvm";
+      firewallConfig = mkEnableOption "dendrite pinecone module firewall configurations. It must be enabled only in netvm";
 
       externalNic = mkOption {
         type = types.str;
