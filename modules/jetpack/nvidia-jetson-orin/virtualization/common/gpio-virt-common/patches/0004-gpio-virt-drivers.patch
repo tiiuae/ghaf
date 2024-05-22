@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-05-14 10:00:52.054095256 +0000
++++ b/drivers/Makefile	2024-05-22 13:27:59.382717623 +0000
 @@ -193,0 +194,5 @@
 +#
 +#
@@ -48,10 +48,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..bca5ff4
+index 0000000..b1a8cda
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,795 @@
+@@ -0,0 +1,796 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -70,7 +70,6 @@ index 0000000..bca5ff4
 +#include <linux/mm.h>
 +#include <linux/memory_hotplug.h>
 +#include <linux/io.h>
-+#include "../gpio-host-proxy/gpio-host-proxy.h"
 +#include <linux/gpio/driver.h>
 +#include <linux/of_device.h>
 +#include <linux/gpio.h>
@@ -78,10 +77,7 @@ index 0000000..bca5ff4
 +#include <linux/namei.h>
 +#include <linux/delay.h>
 +
-+// we need a workaround for this -- relevant data copied to gpio-host-proxy.h
-+// #include "$(abs_srctree)/drivers/gpio/gpiolib.h"
-+
-+
++#include "../gpio-host-proxy/gpio-host-proxy.h"
 +
 +#define DEVICE_NAME "gpio-guest" // Device name.
 +#define CLASS_NAME "char"
@@ -166,12 +162,13 @@ index 0000000..bca5ff4
 +  kfree(io_buffer);
 +}
 +
-+// redirect static inline u32 readl(const volatile void __iomem *addr)
-+inline u32 readl_redirect( void * addr) {
++// redirect static inline u32 readl_x(const volatile void __iomem *addr)
++inline u32 readl_redirect( void * addr, const unsigned char rwltype) {
 +  int ret = 0;
 +  struct tegra_readl_writel msg;
 +
 +  msg.signal = GPIO_READL;
++  msg.rwltype = rwltype;
 +  msg.address = addr;
 +  msg.value = 0;  // value field is not used
 +
@@ -180,11 +177,12 @@ index 0000000..bca5ff4
 +}
 +EXPORT_SYMBOL_GPL(readl_redirect);
 +
-+// redirect: static inline void writel(u32 value, volatile void __iomem *addr)
-+inline void writel_redirect( u32 value, void * addr) {
++// redirect: static inline void writel_x(u32 value, volatile void __iomem *addr)
++inline void writel_redirect( u32 value, void * addr, const unsigned char rwltype) {
 +  struct tegra_readl_writel msg;
 +
 +  msg.signal = GPIO_WRITEL;
++  msg.rwltype = rwltype;
 +  msg.address = addr;
 +  msg.value = value;
 +
@@ -613,7 +611,7 @@ index 0000000..bca5ff4
 +
 +
 +  // make gpio-host type call to gpio
-+	deb_verbose("enter switch with signal: %c, Chip %d, Offset %d, Level %d", kbuf->signal, kbuf->chipnum, kbuf->offset, kbuf->level);
++	deb_verbose("Passthrough from guest with signal: %c, Chip %d, Offset %d, Level %d", kbuf->signal, kbuf->chipnum, kbuf->offset, kbuf->level);
 +
 +  switch (kbuf->signal) {
 +    case GPIO_REQ:
@@ -626,9 +624,12 @@ index 0000000..bca5ff4
 +      }
 +      chip = find_chip_by_id(kbuf->chipnum);
 +      #ifdef GPIO_DEBUG_VERBOSE
++        // chip_alt = find_chip_by_id(kbuf->chipnum);
 +        chip_alt = find_chip_by_name(tegra_chiplabel[kbuf->chipnum]);
-+        if(chip != chip_alt)
++        if(chip != chip_alt) {
 +          deb_debug("conflicting chip pointers -- primary %p, alternative %p", chip, chip_alt);
++          chip = chip_alt; // we assume find_chip_by_name is more reliable
++        }
 +      #endif
 +      if(!chip) {
 +        pr_err("In GPIO_REQ, chip pointer's pvalue is unexpectedly NULL for chip %s\n", tegra_chiplabel[kbuf->chipnum]);
@@ -872,10 +873,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..d61e894
+index 0000000..1df0ebb
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,660 @@
+@@ -0,0 +1,686 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -892,12 +893,16 @@ index 0000000..d61e894
 +//#include <soc/tegra/gpio.h>
 +#include <linux/platform_device.h>
 +#include <linux/of_device.h>
-+#include "../gpio-host-proxy/gpio-host-proxy.h"
 +#include <linux/gpio/driver.h>
 +#include <linux/gpio.h>
 +#include <linux/of_gpio.h>
 +#include <linux/namei.h>
 +#include <linux/delay.h>
++
++#include "../gpio-host-proxy/gpio-host-proxy.h"
++const unsigned char rwl_std_type     = GPIO_RWL_STD;
++const unsigned char rwl_raw_type     = GPIO_RWL_RAW;
++const unsigned char rwl_relaxed_type = GPIO_RWL_RELAXED;
 +
 +#define DEVICE_NAME "gpio-host"   // Device name.
 +#define CLASS_NAME  "chardrv"	  // < The device class -- this is a character device driver
@@ -1256,12 +1261,32 @@ index 0000000..d61e894
 +  switch (kbuf->signal) {
 +    case GPIO_READL:
 +      kbuf_rw = (struct tegra_readl_writel *)kbuf;
-+      ret = (int)readl(kbuf_rw->address);
++      switch (kbuf_rw->rwltype) {
++        case GPIO_RWL_STD:
++          ret = (int)readl(kbuf_rw->address);
++        break;
++        case GPIO_RWL_RAW:
++          ret = (int)__raw_readl(kbuf_rw->address);
++        break;
++        case GPIO_RWL_RELAXED:
++          ret = (int)readl_relaxed(kbuf_rw->address);
++        break;
++      }
 +      goto end;
 +    break;
 +    case GPIO_WRITEL:
 +      kbuf_rw = (struct tegra_readl_writel *)kbuf;
-+      writel(kbuf_rw->value, kbuf_rw->address);
++      switch (kbuf_rw->rwltype) {
++        case GPIO_RWL_STD:
++         writel(kbuf_rw->value, kbuf_rw->address);
++        break;
++        case GPIO_RWL_RAW:
++         __raw_writel(kbuf_rw->value, kbuf_rw->address);
++        break;
++        case GPIO_RWL_RELAXED:
++         writel_relaxed(kbuf_rw->value, kbuf_rw->address);
++        break;
++      }
 +      goto retval;
 +    break;
 +    case GPIO_REQ:
@@ -1274,16 +1299,18 @@ index 0000000..d61e894
 +      }
 +      chip = find_chip_by_id(kbuf->chipnum);
 +      #ifdef GPIO_DEBUG_VERBOSE
++        // chip_alt = find_chip_by_id(kbuf->chipnum);
 +        chip_alt = find_chip_by_name(tegra_chiplabel[kbuf->chipnum]);
-+        if(chip != chip_alt)
++        if(chip != chip_alt) {
 +          deb_debug("conflicting chip pointers -- primary %p, alternative %p", chip, chip_alt);
++          chip = chip_alt; // we assume find_chip_by_name is more reliable
++        }
 +      #endif
 +      if(!chip) {
 +        pr_err("In GPIO_REQ, chip pointer's pvalue is unexpectedly NULL for chip %s\n", tegra_chiplabel[kbuf->chipnum]);
 +        kfree(kbuf);
 +        return -ENODEV;
 +      }
-+
 +      deb_verbose("GPIO_REQ, using GPIO chip %s, for device %d, pvalue = %p", chip->label, kbuf->chipnum, chip);
 +      ret = chip->request(chip, kbuf->offset);
 +	    goto end;
@@ -1538,10 +1565,10 @@ index 0000000..d61e894
 +module_exit(gpio_host_proxy_exit);
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.h b/drivers/gpio-host-proxy/gpio-host-proxy.h
 new file mode 100644
-index 0000000..2996151
+index 0000000..88ea920
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.h
-@@ -0,0 +1,93 @@
+@@ -0,0 +1,102 @@
 +#ifndef __GPIO_HOST_PROXY__H__
 +#define __GPIO_HOST_PROXY__H__
 +
@@ -1594,11 +1621,20 @@ index 0000000..2996151
 +
 +#define GPIO_READL            'R'
 +#define GPIO_WRITEL           'W'
++#define GPIO_RWL_STD          '0'   // general readl/writeL
++#define GPIO_RWL_RAW          '1'   // __raw assembler version of readl/writel
++#define GPIO_RWL_RELAXED      '2'   // __relaxed assembler version of readl/writel
++
++// Note this extern is also in gpio-proxy.h in the kernel source tree (this proxy code might be in an overlay)
++extern const unsigned char rwl_std_type;
++extern const unsigned char rwl_raw_type;
++extern const unsigned char rwl_relaxed_type;
 +
 +// sizeof is rounded to even 64 bit passhtough writes -- no need to optimise size further on an aarch64
 +struct tegra_readl_writel {
 +  unsigned char signal;       // Note: signal field is overloaded (based on field offset) with signal in struct tegra_gpio_pt
-+  unsigned char pad[3];       // to get an even 64 bit message size
++  unsigned char rwltype;      // type of readl/writel call
++  unsigned char pad[2];       // to get an even mod 64 bit message size
 +  u32 value;
 +  void * address;
 +};
