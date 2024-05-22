@@ -59,7 +59,9 @@
                 enable = true;
                 somType = som;
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                agx.camera = som == "agx";
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                nx.camera = som == "nx";
               };
 
               hardware.nvidia = {
@@ -68,6 +70,9 @@
                 passthroughs.host.uarta.enable = false;
                 passthroughs.uarti_net_vm.enable = som == "agx";
               };
+
+              # Enable Docker
+              virtualization.docker.daemon.enable = true;
 
               virtualization.microvm-host.enable = true;
               virtualization.microvm-host.networkSupport = true;
