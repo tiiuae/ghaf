@@ -7,15 +7,15 @@
 }: let
   cfg = config.ghaf.development.ssh.daemon;
   inherit ((import ./authorized_ssh_keys.nix)) authorizedKeys;
-in
-  with lib; {
-    options.ghaf.development.ssh.daemon = {
-      enable = mkEnableOption "ssh daemon";
-    };
+  inherit (lib) mkEnableOption mkIf;
+in {
+  options.ghaf.development.ssh.daemon = {
+    enable = mkEnableOption "ssh daemon";
+  };
 
-    config = mkIf cfg.enable {
-      services.openssh.enable = true;
-      users.users.root.openssh.authorizedKeys.keys = authorizedKeys;
-      users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = authorizedKeys;
-    };
-  }
+  config = mkIf cfg.enable {
+    services.openssh.enable = true;
+    users.users.root.openssh.authorizedKeys.keys = authorizedKeys;
+    users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = authorizedKeys;
+  };
+}
