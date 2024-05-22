@@ -9,7 +9,7 @@
       type = "disk";
       #TODO: hardcoding the size for now until 544 is merged
       #https://github.com/nix-community/disko/pull/544
-      imageSize = "10G";
+      imageSize = "15G";
       content = {
         type = "gpt";
         partitions = {
