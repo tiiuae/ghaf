@@ -1,7 +1,9 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: {
-  options.ghaf.security.sshKeys = with lib; {
+{lib, ...}: let
+  inherit (lib) mkOption types;
+in {
+  options.ghaf.security.sshKeys = {
     getAuthKeysFileName = mkOption {
       type = types.str;
       default = "get-auth-keys";
