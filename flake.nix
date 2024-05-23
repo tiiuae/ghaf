@@ -26,8 +26,8 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-patched-2";
-    #nixpkgs.url = "flake:mylocalnixpkgs"; #"github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:tiiuae/nixpkgs/patched-unstable-proc-qemu"; #"flake:mylocalnixpkgs"; #
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     #
     # Flake and repo structuring configurations
@@ -52,7 +52,6 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-stable.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -108,8 +107,10 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    #https://github.com/nix-community/disko/commit/6c37763eb80c2b788bae0c0806255954451c1d00
+    #breaks image creation
     disko = {
-      url = "github:nix-community/disko/master";
+      url = "github:nix-community/disko/601be8412d2ab72f752448766fe0fb2f00d5c40c";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
