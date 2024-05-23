@@ -2,24 +2,25 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   stdenv,
-  pkgs,
+  gcc,
+  gnumake,
   lib,
   debug,
   vms,
+  fetchFromGitHub,
   ...
 }:
 stdenv.mkDerivation {
-  inherit debug vms;
   name = "memsocket";
 
-  src = pkgs.fetchFromGitHub {
+  src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "shmsockproxy";
     rev = "67eff363116f21f2090bc56c807c9cb3bfd1699d";
     sha256 = "sha256-5G3brw/yO7xj/n/JZdY3wMD6fN+U4LRUCcf9IAeh3kA=";
   };
 
-  nativeBuildInputs = with pkgs; [gcc gnumake];
+  nativeBuildInputs = [gcc gnumake];
 
   CFLAGS =
     "-O2 -DVM_COUNT="
