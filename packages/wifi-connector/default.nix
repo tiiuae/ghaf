@@ -94,7 +94,7 @@ writeShellApplication {
       fi
     '';
 
-  meta = with lib; {
+  meta = {
     description = "Helper script making Wi-Fi connection easier";
     platforms = [
       "x86_64-linux"

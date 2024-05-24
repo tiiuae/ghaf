@@ -5,7 +5,7 @@
   buildGoModule,
   fetchFromGitHub,
 }:
-buildGoModule rec {
+buildGoModule {
   pname = "dendrite-pinecone";
   version = "0.9.1";
 

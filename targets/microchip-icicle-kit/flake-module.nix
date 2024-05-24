@@ -8,7 +8,7 @@
   self,
   ...
 }: let
-  inherit (inputs) nixos-hardware nixpkgs;
+  inherit (inputs) nixos-hardware;
   name = "microchip-icicle-kit";
   system = "riscv64-linux";
   microchip-icicle-kit = variant: extraModules: let

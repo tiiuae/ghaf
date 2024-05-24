@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   fetchFromGitHub,
-  lib,
   meson,
   ninja,
   stdenv,
@@ -28,7 +27,7 @@ stdenv.mkDerivation {
     runHook postInstall
   '';
 
-  meta = with lib; {
+  meta = {
     description = "vsockproxy";
     platforms = [
       "x86_64-linux"

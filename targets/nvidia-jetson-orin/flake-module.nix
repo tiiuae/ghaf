@@ -86,7 +86,7 @@
             };
           }
 
-          (import ./optee.nix {inherit jetpack-nixos;})
+          (import ./optee.nix {})
         ]
         ++ extraModules;
     };
