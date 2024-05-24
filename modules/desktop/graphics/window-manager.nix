@@ -8,9 +8,9 @@
 }: let
   cfg = config.ghaf.graphics.window-manager-common;
 in {
-  options.ghaf.graphics.window-manager-common = with lib; {
-    enable = mkOption {
-      type = types.bool;
+  options.ghaf.graphics.window-manager-common = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
       default = false;
       description = ''
         Common parts for every wlroots-based window manager/compositor.
@@ -26,9 +26,9 @@ in {
 
     environment.noXlibs = false;
 
-    environment.systemPackages = with pkgs; [
+    environment.systemPackages = [
       # Seatd is needed to manage log-in process for wayland sessions
-      seatd
+      pkgs.seatd
     ];
 
     # Next services/targets are taken from official weston documentation:

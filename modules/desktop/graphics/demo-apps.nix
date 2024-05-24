@@ -21,14 +21,13 @@
 
   */
   mkProgramOption = name: default:
-    with lib;
-      mkOption {
-        inherit default;
-        type = types.bool;
-        description = "Include package ${name} to menu and system environment";
-      };
+    lib.mkOption {
+      inherit default;
+      type = lib.types.bool;
+      description = "Include package ${name} to menu and system environment";
+    };
 in {
-  options.ghaf.graphics.demo-apps = with lib; {
+  options.ghaf.graphics.demo-apps = {
     chromium = mkProgramOption "Chromium browser" false;
     firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
     gala-app = mkProgramOption "Gala App" false;

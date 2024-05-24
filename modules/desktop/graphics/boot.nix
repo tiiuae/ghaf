@@ -6,28 +6,27 @@
   ...
 }: let
   cfg = config.ghaf.graphics.boot;
-in
-  with lib; {
-    options.ghaf.graphics.boot = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = ''
-          Enables graphical boot with plymouth.
-        '';
-      };
+in {
+  options.ghaf.graphics.boot = {
+    enable = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Enables graphical boot with plymouth.
+      '';
     };
+  };
 
-    config = mkIf cfg.enable {
-      boot = {
-        plymouth = {
-          enable = true;
-          logo = ../../../assets/ghaf-logo.png;
-        };
-        # Hide boot log from user completely
-        kernelParams = ["quiet" "udev.log_priority=3"];
-        consoleLogLevel = 0;
-        initrd.verbose = false;
+  config = lib.mkIf cfg.enable {
+    boot = {
+      plymouth = {
+        enable = true;
+        logo = ../../../assets/ghaf-logo.png;
       };
+      # Hide boot log from user completely
+      kernelParams = ["quiet" "udev.log_priority=3"];
+      consoleLogLevel = 0;
+      initrd.verbose = false;
     };
-  }
+  };
+}

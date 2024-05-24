@@ -234,12 +234,12 @@ in {
   config = lib.mkIf cfg.enable {
     ghaf.graphics.window-manager-common.enable = true;
 
-    environment.systemPackages = with pkgs;
-      [labwc launchers]
+    environment.systemPackages =
+      [pkgs.labwc launchers]
       # Below sway packages needed for screen locking
-      ++ lib.optionals config.ghaf.graphics.labwc.lock.enable [swaylock-effects swayidle]
+      ++ lib.optionals config.ghaf.graphics.labwc.lock.enable [pkgs.swaylock-effects pkgs.swayidle]
       # Grim screenshot tool is used for labwc debug-builds
-      ++ lib.optionals config.ghaf.profiles.debug.enable [grim];
+      ++ lib.optionals config.ghaf.profiles.debug.enable [pkgs.grim];
 
     # It will create /etc/pam.d/swaylock file for authentication
     security.pam.services = lib.mkIf config.ghaf.graphics.labwc.lock.enable {swaylock = {};};

@@ -9,10 +9,8 @@
   inherit (config.ghaf.graphics) weston labwc;
 in {
   config = lib.mkIf (weston.enable || labwc.enable) {
-    fonts.packages = with pkgs; [
-      inter
-      fira-code-nerdfont
-      hack-font
-    ];
+    fonts.packages = builtins.attrValues {
+      inherit (pkgs) inter fira-code-nerdfont hack-font;
+    };
   };
 }

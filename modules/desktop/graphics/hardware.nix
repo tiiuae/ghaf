@@ -1,31 +1,30 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}:
-with lib; let
-  pciDevSubmodule = types.submodule {
+{lib, ...}: let
+  pciDevSubmodule = lib.types.submodule {
     options = {
-      path = mkOption {
-        type = types.str;
+      path = lib.mkOption {
+        type = lib.types.str;
         description = ''
           PCI device path
         '';
       };
-      vendorId = mkOption {
-        type = types.nullOr types.str;
+      vendorId = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
         default = null;
         description = ''
           PCI Vendor ID (optional)
         '';
       };
-      productId = mkOption {
-        type = types.nullOr types.str;
+      productId = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
         default = null;
         description = ''
           PCI Product ID (optional)
         '';
       };
-      name = mkOption {
-        type = types.nullOr types.str;
+      name = lib.mkOption {
+        type = lib.types.nullOr lib.types.str;
         default = null;
         description = ''
           PCI device name (optional)
@@ -35,11 +34,11 @@ with lib; let
   };
 in {
   options.ghaf.graphics.hardware = {
-    networkDevices = mkOption {
+    networkDevices = lib.mkOption {
       description = "Network PCI Devices";
-      type = types.listOf pciDevSubmodule;
+      type = lib.types.listOf pciDevSubmodule;
       default = [];
-      example = literalExpression ''
+      example = lib.literalExpression ''
         [{
           path = "0000:00:14.3";
           vendorId = "8086";
