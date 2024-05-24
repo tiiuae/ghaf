@@ -8,7 +8,7 @@
   inputs,
   ...
 }: let
-  inherit (inputs) nixos-hardware nixpkgs;
+  inherit (inputs) nixos-hardware;
   name = "nxp-imx8mp-evk";
   system = "aarch64-linux";
   nxp-imx8mp-evk = variant: extraModules: let

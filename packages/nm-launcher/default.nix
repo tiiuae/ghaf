@@ -1,7 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  lib,
   # NOTE: By default networkmanagerapplet and openssh are taken from the same
   #       callPackage set! This means they will be both taken from the same
   #       /nix/store, so it is recommended to override the networkmanagerapplet
@@ -30,7 +29,7 @@ writeShellApplication {
     ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@192.168.100.1
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Script to launch nm-connection-editor to configure network of netvm using D-Bus over SSH.";
     platforms = [
       "x86_64-linux"
