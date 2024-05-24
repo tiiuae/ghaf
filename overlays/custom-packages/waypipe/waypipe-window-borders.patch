@@ -1,23 +1,27 @@
-From 134f22a39a360ebf9cd9f118766edb7df925b732 Mon Sep 17 00:00:00 2001
+From 3f35f181a3b5245ac3a518bb8ae40bdf2b6635f3 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
-Date: Tue, 10 Oct 2023 14:57:03 +0300
+Date: Fri, 24 May 2024 11:15:41 +0200
 Subject: [PATCH] Add support for coloured window borders
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
 
+Signed-off-by: Jörg Thalheim <joerg@thalheim.io>
 ---
  protocols/function_list.txt |   3 +
  src/handlers.c              | 112 ++++++++++++++++++++++++++++++++++++
  src/main.h                  |   3 +
  src/parsing.h               |   4 ++
- src/util.c                  |  14 ++++-
+ src/util.c                  |  12 ++++
  src/util.h                  |   6 ++
- src/waypipe.c               |  68 +++++++++++++++++++++-
- 7 files changed, 207 insertions(+), 3 deletions(-)
+ src/waypipe.c               |  69 +++++++++++++++++++++-
+ 7 files changed, 207 insertions(+), 2 deletions(-)
 
 diff --git a/protocols/function_list.txt b/protocols/function_list.txt
-index 300408d..eb2d8b5 100644
+index 4acaec5..b15a293 100644
 --- a/protocols/function_list.txt
 +++ b/protocols/function_list.txt
-@@ -49,3 +49,6 @@ zwp_linux_dmabuf_v1_req_get_default_feedback
+@@ -50,3 +50,6 @@ zwp_linux_dmabuf_v1_req_get_default_feedback
  zwp_linux_dmabuf_v1_req_get_surface_feedback
  zwp_primary_selection_offer_v1_req_receive
  zwp_primary_selection_source_v1_evt_send
@@ -25,10 +29,10 @@ index 300408d..eb2d8b5 100644
 +xdg_surface_req_set_window_geometry
 +xdg_surface_req_get_toplevel
 diff --git a/src/handlers.c b/src/handlers.c
-index db08ee5..fd4650e 100644
+index 8e151b2..3bc15ff 100644
 --- a/src/handlers.c
 +++ b/src/handlers.c
-@@ -345,6 +345,13 @@ struct wp_object *create_wp_object(uint32_t id, const struct wp_interface *type)
+@@ -357,6 +357,13 @@ struct wp_object *create_wp_object(uint32_t id, const struct wp_interface *type)
  	} else if (type == &intf_wl_surface) {
  		((struct obj_wl_surface *)new_obj)->scale = 1;
  	}
@@ -42,7 +46,7 @@ index db08ee5..fd4650e 100644
  	return new_obj;
  }
  
-@@ -730,6 +737,87 @@ static void rotate_damage_lists(struct obj_wl_surface *surface)
+@@ -742,6 +749,87 @@ static void rotate_damage_lists(struct obj_wl_surface *surface)
  			(SURFACE_DAMAGE_BACKLOG - 1) * sizeof(uint64_t));
  	surface->attached_buffer_uids[0] = 0;
  }
@@ -130,7 +134,7 @@ index db08ee5..fd4650e 100644
  void do_wl_surface_req_commit(struct context *ctx)
  {
  	struct obj_wl_surface *surface = (struct obj_wl_surface *)ctx->obj;
-@@ -747,6 +835,10 @@ void do_wl_surface_req_commit(struct context *ctx)
+@@ -759,6 +847,10 @@ void do_wl_surface_req_commit(struct context *ctx)
  		/* commit signifies a client-side update only */
  		return;
  	}
@@ -141,7 +145,7 @@ index db08ee5..fd4650e 100644
  	struct wp_object *obj =
  			tracker_get(ctx->tracker, surface->attached_buffer_id);
  	if (!obj) {
-@@ -1976,3 +2068,23 @@ void do_zwlr_gamma_control_v1_req_set_gamma(struct context *ctx, int fd)
+@@ -2020,3 +2112,23 @@ void do_xdg_toplevel_req_set_title(struct context *ctx, const char *str)
  }
  
  const struct wp_interface *the_display_interface = &intf_wl_display;
@@ -166,13 +170,13 @@ index db08ee5..fd4650e 100644
 +	ctx->obj->window_height = height;
 +}
 diff --git a/src/main.h b/src/main.h
-index cf260b0..75e0a27 100644
+index 48ddae8..919b069 100644
 --- a/src/main.h
 +++ b/src/main.h
-@@ -45,6 +45,9 @@ struct main_config {
- 	uint32_t vsock_cid;
+@@ -46,6 +46,9 @@ struct main_config {
  	uint32_t vsock_port;
  	bool vsock_to_host;
+ 	const char *title_prefix;
 +	bool border;
 +	struct color border_color;
 +	uint32_t border_size;
@@ -195,16 +199,13 @@ index f3580b0..5739001 100644
  struct message_tracker {
  	/* Tree containing all objects that are currently alive or zombie */
 diff --git a/src/util.c b/src/util.c
-index d43aa17..6aade78 100644
+index 88948ee..6f0a5ca 100644
 --- a/src/util.c
 +++ b/src/util.c
-@@ -739,4 +739,16 @@ int listen_on_vsock(uint32_t port, int nmaxclients, int *socket_fd_out)
- 	*socket_fd_out = sock;
+@@ -800,3 +800,15 @@ int listen_on_vsock(uint32_t port, int nmaxclients, int *socket_fd_out)
  	return 0;
  }
--#endif
-\ No newline at end of file
-+#endif
+ #endif
 +
 +uint8_t hex_char_to_int(uint8_t hex)
 +{
@@ -218,10 +219,10 @@ index d43aa17..6aade78 100644
 +		return 0;
 +}
 diff --git a/src/util.h b/src/util.h
-index 81cb2a8..780bff2 100644
+index 9970840..8e5cec1 100644
 --- a/src/util.h
 +++ b/src/util.h
-@@ -514,4 +514,10 @@ int connect_to_vsock(uint32_t port, uint32_t cid, bool to_host, int *socket_fd);
+@@ -517,4 +517,10 @@ int connect_to_vsock(uint32_t port, uint32_t cid, bool to_host, int *socket_fd);
  int listen_on_vsock(uint32_t port, int nmaxclients, int *socket_fd_out);
  #endif
  
@@ -233,10 +234,18 @@ index 81cb2a8..780bff2 100644
 +
  #endif // WAYPIPE_UTIL_H
 diff --git a/src/waypipe.c b/src/waypipe.c
-index 1c1be71..61e2200 100644
+index c66a971..a572ae8 100644
 --- a/src/waypipe.c
 +++ b/src/waypipe.c
-@@ -399,6 +399,53 @@ static int parse_vsock_addr(const char *str, struct main_config *config)
+@@ -86,6 +86,7 @@ static const char usage_string[] =
+ 		"                         vsock: [[s]CID:]port\n"
+ 		"      --version        print waypipe version and exit\n"
+ 		"      --allow-tiled    allow gpu buffers (DMABUFs) with format modifiers\n"
++		"      --border C,S     server: add a border with hex color C and border size S in hex around the window\n"
+ 		"      --control C      server,ssh: set control pipe to reconnect server\n"
+ 		"      --display D      server,ssh: the Wayland display name or path\n"
+ 		"      --drm-node R     set the local render node. default: /dev/dri/renderD128\n"
+@@ -400,6 +401,53 @@ static int parse_vsock_addr(const char *str, struct main_config *config)
  }
  #endif
  
@@ -290,20 +299,19 @@ index 1c1be71..61e2200 100644
  static const char *feature_names[] = {
  		"lz4",
  		"zstd",
-@@ -448,6 +495,7 @@ static const bool feature_flags[] = {
- #define ARG_WAYPIPE_BINARY 1011
+@@ -450,6 +498,7 @@ static const bool feature_flags[] = {
  #define ARG_BENCH_TEST_SIZE 1012
  #define ARG_VSOCK 1013
-+#define ARG_BORDER 1014
+ #define ARG_TITLE_PREFIX 1014
++#define ARG_BORDER 1015
  
  static const struct option options[] = {
  		{"compress", required_argument, NULL, 'c'},
-@@ -469,7 +517,11 @@ static const struct option options[] = {
- 		{"display", required_argument, NULL, ARG_DISPLAY},
- 		{"control", required_argument, NULL, ARG_CONTROL},
+@@ -473,7 +522,10 @@ static const struct option options[] = {
  		{"test-size", required_argument, NULL, ARG_BENCH_TEST_SIZE},
--		{"vsock", no_argument, NULL, ARG_VSOCK}, {0, 0, NULL, 0}};
-+		{"vsock", no_argument, NULL, ARG_VSOCK},
+ 		{"vsock", no_argument, NULL, ARG_VSOCK},
+ 		{"title-prefix", required_argument, NULL, ARG_TITLE_PREFIX},
+-		{0, 0, NULL, 0}};
 +		{"border", required_argument, NULL, ARG_BORDER},
 +		{0, 0, NULL, 0}
 +};
@@ -311,41 +319,42 @@ index 1c1be71..61e2200 100644
  struct arg_permissions {
  	int val;
  	uint32_t mode_mask;
-@@ -497,6 +549,7 @@ static const struct arg_permissions arg_permissions[] = {
+@@ -498,7 +550,9 @@ static const struct arg_permissions arg_permissions[] = {
  		{ARG_CONTROL, MODE_SSH | MODE_SERVER},
  		{ARG_BENCH_TEST_SIZE, MODE_BENCH},
  		{ARG_VSOCK, MODE_SSH | MODE_CLIENT | MODE_SERVER},
-+		{ARG_BORDER,  MODE_SERVER},
- };
+-		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER}};
++		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER},
++		{ARG_BORDER, MODE_SERVER},
++};
  
  /* envp is nonstandard, so use environ */
-@@ -533,7 +586,12 @@ int main(int argc, char **argv)
- 			.vsock = false,
- 			.vsock_cid = 2,         /* VMADDR_CID_HOST */
+ extern char **environ;
+@@ -541,6 +595,11 @@ int main(int argc, char **argv)
  			.vsock_to_host = false, /* VMADDR_FLAG_TO_HOST */
--			.vsock_port = 0};
-+			.vsock_port = 0,
+ 			.vsock_port = 0,
+ 			.title_prefix = NULL,
 +			.border = false,
 +			.border_color = {
 +				.a = 255, .r = 0, .g = 0, .b = 0
 +			},
-+			.border_size = 3};
++			.border_size = 3
+ 	};
  
  	/* We do not parse any getopt arguments happening after the mode choice
- 	 * string, so as not to interfere with them. */
-@@ -705,6 +763,12 @@ int main(int argc, char **argv)
- 			fprintf(stderr, "Option --vsock not allowed: this copy of Waypipe was not built with support for Linux VM sockets.\n");
- 			return EXIT_FAILURE;
- #endif
-+		case ARG_BORDER: {
+@@ -724,6 +783,12 @@ int main(int argc, char **argv)
+ 			}
+ 			config.title_prefix = optarg;
+ 			break;
++		case ARG_BORDER:
 +			config.border = true;
 +			if (parse_border(optarg, &config) == -1) {
 +				fail = true;
 +			}
-+		} break;
++			break;
  		default:
  			fail = true;
  			break;
 -- 
-2.34.1
+2.44.0
 
