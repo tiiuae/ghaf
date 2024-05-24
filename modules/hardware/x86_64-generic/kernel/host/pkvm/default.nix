@@ -34,15 +34,14 @@
   ];
 
   hyp_cfg = config.ghaf.host.kernel.hardening.hypervisor;
-in
-  with lib; {
-    options.ghaf.host.kernel.hardening.hypervisor.enable = mkOption {
-      description = "Enable Hypervisor hardening feature";
-      type = types.bool;
-      default = false;
-    };
-    config = mkIf hyp_cfg.enable {
-      boot.kernelPackages = pkgs.linuxPackagesFor pkvmKernel;
-      boot.kernelPatches = pkvm_patch;
-    };
-  }
+in {
+  options.ghaf.host.kernel.hardening.hypervisor.enable = lib.mkOption {
+    description = "Enable Hypervisor hardening feature";
+    type = lib.types.bool;
+    default = false;
+  };
+  config = lib.mkIf hyp_cfg.enable {
+    boot.kernelPackages = pkgs.linuxPackagesFor pkvmKernel;
+    boot.kernelPatches = pkvm_patch;
+  };
+}
