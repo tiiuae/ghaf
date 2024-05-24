@@ -25,21 +25,25 @@ in {
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
-        microvm.kernelParams = [
-          "console=ttyAMA0 console=ttyS0"
-        ];
-        microvm.qemu.serialConsole = false;
-        microvm.qemu.extraArgs = [
-          # Add custom dtb to Net-VM with 31d0000.serial in platform devices
-          "-dtb"
-          "${config.hardware.deviceTree.package}/tegra234-p3701-ghaf-net-vm.dtb"
-          # Add UARTI (31d0000.serial) as passtrhough device
-          "-device"
-          "vfio-platform,host=31d0000.serial"
-          # Add a virtual PCI serial device as console
-          "-device"
-          "pci-serial,chardev=stdio,id=serial0"
-        ];
+        microvm = {
+          kernelParams = [
+            "console=ttyAMA0 console=ttyS0"
+          ];
+          qemu = {
+            serialConsole = false;
+            extraArgs = [
+              # Add custom dtb to Net-VM with 31d0000.serial in platform devices
+              "-dtb"
+              "${config.hardware.deviceTree.package}/tegra234-p3701-ghaf-net-vm.dtb"
+              # Add UARTI (31d0000.serial) as passtrhough device
+              "-device"
+              "vfio-platform,host=31d0000.serial"
+              # Add a virtual PCI serial device as console
+              "-device"
+              "pci-serial,chardev=stdio,id=serial0"
+            ];
+          };
+        };
       }
     ];
 

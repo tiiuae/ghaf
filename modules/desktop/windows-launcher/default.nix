@@ -11,20 +11,20 @@
 in {
   options.ghaf.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
-  };
 
-  options.ghaf.windows-launcher.spice = lib.mkEnableOption "remote access to the virtual machine using spice";
+    spice = lib.mkEnableOption "remote access to the virtual machine using spice";
 
-  options.ghaf.windows-launcher.spice-port = lib.mkOption {
-    description = "Spice port";
-    type = lib.types.int;
-    default = 5900;
-  };
+    spice-port = lib.mkOption {
+      description = "Spice port";
+      type = lib.types.int;
+      default = 5900;
+    };
 
-  options.ghaf.windows-launcher.spice-host = lib.mkOption {
-    description = "Spice host";
-    type = lib.types.str;
-    default = "192.168.101.2";
+    spice-host = lib.mkOption {
+      description = "Spice host";
+      type = lib.types.str;
+      default = "192.168.101.2";
+    };
   };
 
   config = lib.mkIf cfg.enable {

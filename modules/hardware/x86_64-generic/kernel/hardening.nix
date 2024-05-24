@@ -12,19 +12,23 @@
     # host kernel hardening
     ghaf = {
       host = {
-        kernel.hardening.enable = false;
-        kernel.hardening.virtualization.enable = false;
-        kernel.hardening.networking.enable = false;
-        kernel.hardening.usb.enable = false;
-        kernel.hardening.inputdevices.enable = false;
-        kernel.hardening.debug.enable = false;
-        # host kernel hypervisor (KVM) hardening
-        kernel.hardening.hypervisor.enable = false;
+        kernel.hardening = {
+          enable = false;
+          virtualization.enable = false;
+          networking.enable = false;
+          usb.enable = false;
+          inputdevices.enable = false;
+          debug.enable = false;
+          # host kernel hypervisor (KVM) hardening
+          hypervisor.enable = false;
+        };
       };
       # guest kernel hardening
       guest = {
-        kernel.hardening.enable = false;
-        kernel.hardening.graphics.enable = false;
+        kernel.hardening = {
+          enable = false;
+          graphics.enable = false;
+        };
       };
       # other host hardening options - user space, etc. - to be defined later
     };

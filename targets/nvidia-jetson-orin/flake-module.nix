@@ -69,12 +69,21 @@
                 passthroughs.uarti_net_vm.enable = som == "agx";
               };
 
-              virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.networkSupport = true;
-              host.networking.enable = true;
+              virtualization = {
+                microvm-host = {
+                  enable = true;
+                  networkSupport = true;
+                };
 
-              virtualization.microvm.netvm.enable = true;
-              virtualization.microvm.netvm.extraModules = netvmExtraModules;
+                microvm = {
+                  netvm = {
+                    enable = true;
+                    extraModules = netvmExtraModules;
+                  };
+                };
+              };
+
+              host.networking.enable = true;
 
               # Enable all the default UI applications
               profiles = {

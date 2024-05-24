@@ -67,27 +67,31 @@ in {
 
     ghaf.boot.loader.systemd-boot-dtb.enable = true;
 
-    boot.loader = {
-      efi.canTouchEfiVariables = true;
-      systemd-boot.enable = true;
+    boot = {
+      loader = {
+        efi.canTouchEfiVariables = true;
+        systemd-boot.enable = true;
+      };
+
+      modprobeConfig.enable = true;
+
+      kernelPatches = [
+        {
+          name = "vsock-config";
+          patch = null;
+          extraStructuredConfig = with lib.kernel; {
+            VHOST = yes;
+            VHOST_MENU = yes;
+            VHOST_IOTLB = yes;
+            VHOST_VSOCK = yes;
+            VSOCKETS = yes;
+            VSOCKETS_DIAG = yes;
+            VSOCKETS_LOOPBACK = yes;
+            VIRTIO_VSOCKETS_COMMON = yes;
+          };
+        }
+      ];
     };
-    boot.modprobeConfig.enable = true;
-    boot.kernelPatches = [
-      {
-        name = "vsock-config";
-        patch = null;
-        extraStructuredConfig = with lib.kernel; {
-          VHOST = yes;
-          VHOST_MENU = yes;
-          VHOST_IOTLB = yes;
-          VHOST_VSOCK = yes;
-          VSOCKETS = yes;
-          VSOCKETS_DIAG = yes;
-          VSOCKETS_LOOPBACK = yes;
-          VIRTIO_VSOCKETS_COMMON = yes;
-        };
-      }
-    ];
 
     services.nvpmodel = {
       enable = lib.mkDefault true;
