@@ -30,19 +30,47 @@ in {
       hardware.pulseaudio.enable = true;
       users.extraUsers.ghaf.extraGroups = ["audio" "video"];
 
-      systemd.network = {
-        enable = true;
-        networks."10-ethint0" = {
-          DHCP = pkgs.lib.mkForce "no";
-          matchConfig.Name = "ethint0";
-          addresses = [
-            {
-              addressConfig.Address = "192.168.100.253/24";
-            }
-          ];
-          routes = [{routeConfig.Gateway = "192.168.100.1";}];
-          linkConfig.RequiredForOnline = "routable";
-          linkConfig.ActivationPolicy = "always-up";
+      systemd = {
+        services = {
+          element-gps = {
+            description = "Element-gps is a GPS location provider for Element websocket interface.";
+            enable = true;
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${pkgs.element-gps}/bin/main.py";
+              Restart = "on-failure";
+              RestartSec = "2";
+            };
+            wantedBy = ["multi-user.target"];
+          };
+
+          "dendrite-pinecone" = pkgs.lib.mkIf isDendritePineconeEnabled {
+            description = "Dendrite is a second-generation Matrix homeserver with Pinecone which is a next-generation P2P overlay network";
+            enable = true;
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${dendrite-pinecone}/bin/dendrite-demo-pinecone";
+              Restart = "on-failure";
+              RestartSec = "2";
+            };
+            wantedBy = ["multi-user.target"];
+          };
+        };
+
+        network = {
+          enable = true;
+          networks."10-ethint0" = {
+            DHCP = pkgs.lib.mkForce "no";
+            matchConfig.Name = "ethint0";
+            addresses = [
+              {
+                addressConfig.Address = "192.168.100.253/24";
+              }
+            ];
+            routes = [{routeConfig.Gateway = "192.168.100.1";}];
+            linkConfig.RequiredForOnline = "routable";
+            linkConfig.ActivationPolicy = "always-up";
+          };
         };
       };
 
@@ -60,30 +88,6 @@ in {
         debugLevel = 2;
         listenany = true;
         extraArgs = ["-n"]; # Do not wait for a client to connect before polling
-      };
-
-      systemd.services.element-gps = {
-        description = "Element-gps is a GPS location provider for Element websocket interface.";
-        enable = true;
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${pkgs.element-gps}/bin/main.py";
-          Restart = "on-failure";
-          RestartSec = "2";
-        };
-        wantedBy = ["multi-user.target"];
-      };
-
-      systemd.services."dendrite-pinecone" = pkgs.lib.mkIf isDendritePineconeEnabled {
-        description = "Dendrite is a second-generation Matrix homeserver with Pinecone which is a next-generation P2P overlay network";
-        enable = true;
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${dendrite-pinecone}/bin/dendrite-demo-pinecone";
-          Restart = "on-failure";
-          RestartSec = "2";
-        };
-        wantedBy = ["multi-user.target"];
       };
 
       microvm.qemu.extraArgs = [

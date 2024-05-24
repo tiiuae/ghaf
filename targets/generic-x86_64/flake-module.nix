@@ -51,13 +51,19 @@
             ghaf = {
               hardware.x86_64.common.enable = true;
 
-              virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.networkSupport = true;
-              host.networking.enable = true;
-              virtualization.microvm.netvm = {
-                enable = true;
-                extraModules = netvmExtraModules;
+              virtualization = {
+                microvm-host = {
+                  enable = true;
+                  networkSupport = true;
+                };
+
+                microvm.netvm = {
+                  enable = true;
+                  extraModules = netvmExtraModules;
+                };
               };
+
+              host.networking.enable = true;
 
               # Enable all the default UI applications
               profiles = {
