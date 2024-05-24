@@ -6,6 +6,8 @@
   pkgs,
   ...
 }: let
+  inherit (lib) mkOption types;
+
   configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
 
@@ -39,11 +41,10 @@
             if vm.borderColor != null
             then "--border \"${vm.borderColor}\""
             else "";
-          runWaypipe = with pkgs;
-            writeScriptBin "run-waypipe" ''
-              #!${runtimeShell} -e
-              ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
-            '';
+          runWaypipe = pkgs.writeScriptBin "run-waypipe" ''
+            #!${pkgs.runtimeShell} -e
+            ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
+          '';
         in {
           ghaf = {
             users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -127,72 +128,71 @@
     config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ [{environment.systemPackages = vm.packages;}];};
   };
 in {
-  options.ghaf.virtualization.microvm.appvm = with lib; {
+  options.ghaf.virtualization.microvm.appvm = {
     enable = lib.mkEnableOption "appvm";
-    vms = with types;
-      mkOption {
-        description = ''
-          List of AppVMs to be created
-        '';
-        type = lib.types.listOf (submodule {
-          options = {
-            name = mkOption {
-              description = ''
-                Name of the AppVM
-              '';
-              type = str;
-            };
-            packages = mkOption {
-              description = ''
-                Packages that are included into the AppVM
-              '';
-              type = types.listOf package;
-              default = [];
-            };
-            macAddress = mkOption {
-              description = ''
-                AppVM's network interface MAC address
-              '';
-              type = str;
-            };
-            ramMb = mkOption {
-              description = ''
-                Amount of RAM for this AppVM
-              '';
-              type = int;
-            };
-            cores = mkOption {
-              description = ''
-                Amount of processor cores for this AppVM
-              '';
-              type = int;
-            };
-            extraModules = mkOption {
-              description = ''
-                List of additional modules to be imported and evaluated as part of
-                appvm's NixOS configuration.
-              '';
-              default = [];
-            };
-            cid = mkOption {
-              description = ''
-                VSOCK context identifier (CID) for the AppVM
-                Default value 0 means auto-assign using vsockBaseCID and AppVM index
-              '';
-              type = int;
-              default = 0;
-            };
-            borderColor = mkOption {
-              description = ''
-                Border color of the AppVM window
-              '';
-              type = nullOr str;
-              default = null;
-            };
+    vms = mkOption {
+      description = ''
+        List of AppVMs to be created
+      '';
+      type = lib.types.listOf (types.submodule {
+        options = {
+          name = mkOption {
+            description = ''
+              Name of the AppVM
+            '';
+            type = types.str;
           };
-        });
-        default = [];
-      };
+          packages = mkOption {
+            description = ''
+              Packages that are included into the AppVM
+            '';
+            type = types.listOf types.package;
+            default = [];
+          };
+          macAddress = mkOption {
+            description = ''
+              AppVM's network interface MAC address
+            '';
+            type = types.str;
+          };
+          ramMb = mkOption {
+            description = ''
+              Amount of RAM for this AppVM
+            '';
+            type = types.int;
+          };
+          cores = mkOption {
+            description = ''
+              Amount of processor cores for this AppVM
+            '';
+            type = types.int;
+          };
+          extraModules = mkOption {
+            description = ''
+              List of additional modules to be imported and evaluated as part of
+              appvm's NixOS configuration.
+            '';
+            default = [];
+          };
+          cid = mkOption {
+            description = ''
+              VSOCK context identifier (CID) for the AppVM
+              Default value 0 means auto-assign using vsockBaseCID and AppVM index
+            '';
+            type = types.int;
+            default = 0;
+          };
+          borderColor = mkOption {
+            description = ''
+              Border color of the AppVM window
+            '';
+            type = types.nullOr types.str;
+            default = null;
+          };
+        };
+      });
+      default = [];
+    };
 
     extraModules = mkOption {
       description = ''

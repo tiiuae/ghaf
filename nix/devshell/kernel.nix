@@ -16,10 +16,10 @@
     }:
       pkgs.mkShell {
         name = "Kernel-${platform} devshell";
-        packages = with pkgs;
+        packages =
           [
-            ncurses
-            pkg-config
+            pkgs.ncurses
+            pkgs.pkg-config
             self'.packages.kernel-hardening-checker
           ]
           ++ extraPackages;
