@@ -156,6 +156,9 @@
         ./targets/flake-module.nix
         ./hydrajobs/flake-module.nix
         ./templates/flake-module.nix
+        inputs.flake-root.flakeModule
+        inputs.treefmt-nix.flakeModule
+        inputs.pre-commit-hooks-nix.flakeModule
       ];
 
       #TODO Fix this

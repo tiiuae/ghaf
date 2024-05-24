@@ -1,16 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{inputs, ...}: {
-  imports = with inputs; [
-    flake-root.flakeModule
+{
+  imports = [
     ./devshell/kernel.nix
-    # TODO this import needs to be filtered to remove RISCV
-    # pre-commit-hooks-nix.flakeModule
   ];
   perSystem = {
     pkgs,
     inputs',
-    self',
     lib,
     ...
   }: {
@@ -35,7 +31,6 @@
         }
         ++ [
           inputs'.nix-fast-build.packages.default
-          self'.packages.kernel-hardening-checker
         ]
         ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
 
