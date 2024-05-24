@@ -4,7 +4,7 @@
   stdenvNoCC,
   lib,
   stdenv,
-  qemu,
+  qemu_kvm,
   OVMF,
   yad,
   writeShellScript,
@@ -57,7 +57,7 @@
           ISO_FILE=$1
           IMG_FILE="$IMG_DIR/win11.qcow2"
           if [ ! -f $IMG_FILE ]; then
-            ${qemu}/bin/qemu-img create -f qcow2 $IMG_FILE 64G
+            ${qemu_kvm}/bin/qemu-img create -f qcow2 $IMG_FILE 64G
           fi
         fi
       ''
@@ -108,7 +108,7 @@
         fi
       ''
       + ''
-        eval "${qemu}/bin/qemu_kvm ''${QEMU_PARAMS[@]} ''${@:2}"
+        eval "${qemu_kvm}/bin/qemu_kvm ''${QEMU_PARAMS[@]} ''${@:2}"
       '');
   windowsLauncherUI =
     writeShellScript
@@ -150,7 +150,7 @@ in
   stdenvNoCC.mkDerivation {
     name = "windows-launcher";
 
-    buildInputs = [yad qemu OVMF];
+    buildInputs = [yad qemu_kvm OVMF];
 
     phases = ["installPhase"];
 
@@ -160,7 +160,7 @@ in
       cp ${windowsLauncherUI} $out/bin/windows-launcher-ui
     '';
 
-    meta = with lib; {
+    meta = {
       description = "Helper scripts for launching Windows virtual machines using QEMU";
       platforms = [
         "x86_64-linux"
