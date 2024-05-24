@@ -8,47 +8,47 @@
 }: let
   cfg = config.ghaf.profiles.graphics;
   compositors = ["weston" "labwc"];
-in
-  with lib; {
-    options.ghaf.profiles.graphics = {
-      enable = mkEnableOption "Graphics profile";
-      compositor = mkOption {
-        type = types.enum compositors;
-        default = "weston";
-        description = ''
-          Which Wayland compositor to use.
+  inherit (lib) mkEnableOption mkOption types mkIf;
+in {
+  options.ghaf.profiles.graphics = {
+    enable = mkEnableOption "Graphics profile";
+    compositor = mkOption {
+      type = types.enum compositors;
+      default = "weston";
+      description = ''
+        Which Wayland compositor to use.
 
-          Choose one of: ${lib.concatStringsSep "," compositors}
-        '';
-      };
+        Choose one of: ${lib.concatStringsSep "," compositors}
+      '';
     };
+  };
 
-    options.ghaf.graphics = with lib; {
-      launchers = mkOption {
-        description = "Labwc application launchers to show in launch bar";
-        default = [];
-        type = with types;
-          listOf
-          (submodule {
-            options.name = mkOption {
-              description = "Name of the application";
-              type = str;
-            };
-            options.path = mkOption {
-              description = "Path to the executable to be launched";
-              type = path;
-            };
-            options.icon = mkOption {
-              description = "Path of the icon";
-              type = path;
-            };
-          });
-      };
-      enableDemoApplications = mkEnableOption "some applications for demoing";
+  options.ghaf.graphics = {
+    launchers = mkOption {
+      description = "Labwc application launchers to show in launch bar";
+      default = [];
+      type =
+        types.listOf
+        (types.submodule {
+          options.name = mkOption {
+            description = "Name of the application";
+            type = types.str;
+          };
+          options.path = mkOption {
+            description = "Path to the executable to be launched";
+            type = types.path;
+          };
+          options.icon = mkOption {
+            description = "Path of the icon";
+            type = types.path;
+          };
+        });
     };
+    enableDemoApplications = mkEnableOption "some applications for demoing";
+  };
 
-    config = mkIf cfg.enable {
-      ghaf.graphics.weston.enable = cfg.compositor == "weston";
-      ghaf.graphics.labwc.enable = cfg.compositor == "labwc";
-    };
-  }
+  config = mkIf cfg.enable {
+    ghaf.graphics.weston.enable = cfg.compositor == "weston";
+    ghaf.graphics.labwc.enable = cfg.compositor == "labwc";
+  };
+}
