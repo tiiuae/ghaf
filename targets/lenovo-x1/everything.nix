@@ -38,86 +38,105 @@
               ++ config.ghaf.hardware.definition.gpu.pciDevices
             ));
           in {
-            boot.kernelParams = [
-              "intel_iommu=on,sm_on"
-              "iommu=pt"
-              # Prevent i915 module from being accidentally used by host
-              "module_blacklist=i915"
-              "acpi_backlight=vendor"
-              # Enable VFIO for PCI devices
-              "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
-            ];
+            boot = {
+              kernelParams = [
+                "intel_iommu=on,sm_on"
+                "iommu=pt"
+                # Prevent i915 module from being accidentally used by host
+                "module_blacklist=i915"
+                "acpi_backlight=vendor"
+                # Enable VFIO for PCI devices
+                "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
+              ];
 
-            boot.initrd.availableKernelModules = ["nvme"];
+              initrd.availableKernelModules = ["nvme"];
+            };
 
             security.polkit.extraConfig = powerControl.polkitExtraConfig;
             time.timeZone = "Asia/Dubai";
 
             # Enable pulseaudio support for host as a service
             sound.enable = true;
-            hardware.pulseaudio.enable = true;
-            hardware.pulseaudio.systemWide = true;
-            # Add systemd to require pulseaudio before starting chromium-vm
-            systemd.services."microvm@chromium-vm".after = ["pulseaudio.service"];
-            systemd.services."microvm@chromium-vm".requires = ["pulseaudio.service"];
+            hardware.pulseaudio = {
+              enable = true;
+              systemWide = true;
+              # Allow microvm user to access pulseaudio
+              extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
+            };
 
-            # Allow microvm user to access pulseaudio
-            hardware.pulseaudio.extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
+            # Add systemd to require pulseaudio before starting chromium-vm
+            systemd.services = {
+              "microvm@chromium-vm".after = ["pulseaudio.service"];
+              "microvm@chromium-vm".requires = ["pulseaudio.service"];
+            };
+
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
 
             ghaf = {
               # variant type, turn on debug or release
-              profiles.debug.enable = variant == "debug";
-              profiles.release.enable = variant == "release";
+              profiles = {
+                debug.enable = variant == "debug";
+                release.enable = variant == "release";
+              };
 
               # Hardware definitions
-              hardware.x86_64.common.enable = true;
-              hardware.generation = generation;
-              hardware.tpm2.enable = true;
-              hardware.fprint.enable = true;
+              hardware = {
+                inherit generation;
+                x86_64.common.enable = true;
+                tpm2.enable = true;
+                fprint.enable = true;
+              };
 
               # Virtualization options
-              virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.networkSupport = true;
+              virtualization = {
+                microvm-host = {
+                  enable = true;
+                  networkSupport = true;
+                };
 
-              host.networking.enable = true;
-              host.powercontrol.enable = true;
-              # dendrite-pinecone service is enabled
-              services.dendrite-pinecone.enable = true;
+                microvm = {
+                  netvm = {
+                    enable = true;
+                    extraModules = import ./netvmExtraModules.nix {
+                      inherit lib pkgs microvm;
+                      configH = config;
+                    };
+                  };
 
-              virtualization.microvm.netvm = {
-                enable = true;
-                extraModules = import ./netvmExtraModules.nix {
-                  inherit lib pkgs microvm;
-                  configH = config;
+                  adminvm = {
+                    enable = true;
+                  };
+
+                  idsvm = {
+                    enable = false;
+                    mitmproxy.enable = false;
+                  };
+
+                  guivm = {
+                    enable = true;
+                    extraModules =
+                      # TODO convert this to an actual module
+                      import ./guivmExtraModules.nix {
+                        inherit lib pkgs microvm;
+                        configH = config;
+                      };
+                  };
+
+                  appvm = {
+                    enable = true;
+                    vms = import ./appvms/default.nix {inherit pkgs lib config;};
+                  };
                 };
               };
 
-              virtualization.microvm.adminvm = {
-                enable = true;
+              host = {
+                networking.enable = true;
+                powercontrol.enable = true;
               };
-
-              virtualization.microvm.idsvm = {
-                enable = false;
-                mitmproxy.enable = false;
-              };
-
-              virtualization.microvm.guivm = {
-                enable = true;
-                extraModules =
-                  # TODO convert this to an actual module
-                  import ./guivmExtraModules.nix {
-                    inherit lib pkgs microvm;
-                    configH = config;
-                  };
-              };
-
-              virtualization.microvm.appvm = {
-                enable = true;
-                vms = import ./appvms/default.nix {inherit pkgs lib config;};
-              };
+              # dendrite-pinecone service is enabled
+              services.dendrite-pinecone.enable = true;
 
               # UI applications
               profiles = {

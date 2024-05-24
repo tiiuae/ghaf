@@ -25,12 +25,18 @@
           ghaf = {
             hardware.x86_64.common.enable = true;
 
-            virtualization.microvm-host.enable = true;
-            virtualization.microvm-host.networkSupport = true;
+            virtualization = {
+              microvm-host = {
+                enable = true;
+                networkSupport = true;
+              };
+
+              # TODO: NetVM enabled, but it does not include anything specific
+              #       for this Virtual Machine target
+              microvm.netvm.enable = true;
+            };
+
             host.networking.enable = true;
-            # TODO: NetVM enabled, but it does not include anything specific
-            #       for this Virtual Machine target
-            virtualization.microvm.netvm.enable = true;
 
             # Enable all the default UI applications
             profiles = {

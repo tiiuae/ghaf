@@ -43,49 +43,58 @@
         unmanaged = ["ethint0"];
       };
     };
-    services.dnsmasq.settings = {
-      # set static IP for IDS-VM
-      dhcp-host = lib.mkIf configH.ghaf.virtualization.microvm.idsvm.enable [
-        "02:00:00:01:01:02,192.168.100.4,ids-vm,infinite"
-      ];
-      dhcp-option =
-        if configH.ghaf.virtualization.microvm.idsvm.enable
-        then [
-          "option:router,192.168.100.4" # set IDS-VM as a default gw
-          "option:dns-server,192.168.100.1"
-        ]
-        else [
-          "option:router,192.168.100.1" # set NetVM as a default gw
-          "option:dns-server,192.168.100.1"
+    services = {
+      dnsmasq.settings = {
+        # set static IP for IDS-VM
+        dhcp-host = lib.mkIf configH.ghaf.virtualization.microvm.idsvm.enable [
+          "02:00:00:01:01:02,192.168.100.4,ids-vm,infinite"
         ];
-    };
-    # noXlibs=false; needed for NetworkManager stuff
-    environment.noXlibs = false;
-    environment.etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
-      text = ''
-        [connection]
-        id=Wifi-1
-        uuid=33679db6-4cde-11ee-be56-0242ac120002
-        type=wifi
-        [wifi]
-        mode=infrastructure
-        ssid=SSID_OF_NETWORK
-        [wifi-security]
-        key-mgmt=wpa-psk
-        psk=WPA_PASSWORD
-        [ipv4]
-        method=auto
-        [ipv6]
-        method=disabled
-        [proxy]
-      '';
-      mode = "0600";
+        dhcp-option =
+          if configH.ghaf.virtualization.microvm.idsvm.enable
+          then [
+            "option:router,192.168.100.4" # set IDS-VM as a default gw
+            "option:dns-server,192.168.100.1"
+          ]
+          else [
+            "option:router,192.168.100.1" # set NetVM as a default gw
+            "option:dns-server,192.168.100.1"
+          ];
+
+        # DNS host record has been added for element-vm static ip
+        host-record = "element-vm,element-vm.ghaf,${elemen-vmIp}";
+      };
+
+      openssh = configH.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
     };
 
-    # Add simple wi-fi connection helper
-    environment.systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli pkgs.tcpdump];
+    environment = {
+      # noXlibs=false; needed for NetworkManager stuff
+      noXlibs = false;
 
-    services.openssh = configH.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
+      etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
+        text = ''
+          [connection]
+          id=Wifi-1
+          uuid=33679db6-4cde-11ee-be56-0242ac120002
+          type=wifi
+          [wifi]
+          mode=infrastructure
+          ssid=SSID_OF_NETWORK
+          [wifi-security]
+          key-mgmt=wpa-psk
+          psk=WPA_PASSWORD
+          [ipv4]
+          method=auto
+          [ipv6]
+          method=disabled
+          [proxy]
+        '';
+        mode = "0600";
+      };
+
+      # Add simple wi-fi connection helper
+      systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli pkgs.tcpdump];
+    };
 
     time.timeZone = "Asia/Dubai";
 
@@ -96,7 +105,5 @@
       internalNic = "${internalNic}";
       serverIpAddr = "${elemen-vmIp}";
     };
-    # DNS host record has been added for element-vm static ip
-    services.dnsmasq.settings.host-record = "element-vm,element-vm.ghaf,${elemen-vmIp}";
   };
 in [netvmPCIPassthroughModule netvmAdditionalConfig]
