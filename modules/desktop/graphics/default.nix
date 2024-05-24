@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
+    # ./sway.nix
+    ./gnome.nix
     ./weston.nix
     ./labwc.nix
     ./weston.ini.nix

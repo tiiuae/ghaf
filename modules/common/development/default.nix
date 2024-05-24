@@ -4,6 +4,7 @@
   imports = [
     ./debug-tools.nix
     ./usb-serial.nix
+    ./java.nix
     ./nix.nix
     ./ssh.nix
   ];
