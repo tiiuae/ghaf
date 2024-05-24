@@ -26,6 +26,7 @@ For information on build instructions and supported hardware, see the [Reference
 
 
 
+
 The Ghaf Framework documentation site is located at <https://tiiuae.github.io/ghaf/>. It is under cooperative development.
 
 To build Ghaf documentation, use:
