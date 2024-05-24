@@ -30,17 +30,19 @@ in {
       type =
         types.listOf
         (types.submodule {
-          options.name = mkOption {
-            description = "Name of the application";
-            type = types.str;
-          };
-          options.path = mkOption {
-            description = "Path to the executable to be launched";
-            type = types.path;
-          };
-          options.icon = mkOption {
-            description = "Path of the icon";
-            type = types.path;
+          options = {
+            name = mkOption {
+              description = "Name of the application";
+              type = types.str;
+            };
+            path = mkOption {
+              description = "Path to the executable to be launched";
+              type = types.path;
+            };
+            icon = mkOption {
+              description = "Path of the icon";
+              type = types.path;
+            };
           };
         });
     };
@@ -48,7 +50,9 @@ in {
   };
 
   config = mkIf cfg.enable {
-    ghaf.graphics.weston.enable = cfg.compositor == "weston";
-    ghaf.graphics.labwc.enable = cfg.compositor == "labwc";
+    ghaf.graphics = {
+      weston.enable = cfg.compositor == "weston";
+      labwc.enable = cfg.compositor == "labwc";
+    };
   };
 }

@@ -40,8 +40,10 @@
 
         system.stateVersion = lib.trivial.release;
 
-        nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-        nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+        nixpkgs = {
+          buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
+          hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+        };
 
         networking = {
           firewall.allowedTCPPorts = [53];
@@ -52,24 +54,27 @@
         environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];
 
         # Dnsmasq is used as a DHCP/DNS server inside the NetVM
-        services.dnsmasq = {
-          enable = true;
-          resolveLocalQueries = true;
-          settings = {
-            server = ["8.8.8.8"];
-            dhcp-range = ["192.168.100.2,192.168.100.254"];
-            dhcp-sequential-ip = true;
-            dhcp-authoritative = true;
-            domain = "ghaf";
-            listen-address = ["127.0.0.1,192.168.100.1"];
-            expand-hosts = true;
-            domain-needed = true;
-            bogus-priv = true;
+        services = {
+          dnsmasq = {
+            enable = true;
+            resolveLocalQueries = true;
+            settings = {
+              server = ["8.8.8.8"];
+              dhcp-range = ["192.168.100.2,192.168.100.254"];
+              dhcp-sequential-ip = true;
+              dhcp-authoritative = true;
+              domain = "ghaf";
+              listen-address = ["127.0.0.1,192.168.100.1"];
+              expand-hosts = true;
+              domain-needed = true;
+              bogus-priv = true;
+            };
           };
-        };
 
-        # Disable resolved since we are using Dnsmasq
-        services.resolved.enable = false;
+          # Disable resolved since we are using Dnsmasq
+          resolved.enable = false;
+          openssh = lib.mkIf isGuiVmEnabled configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
+        };
 
         systemd.network = {
           enable = true;
@@ -127,8 +132,6 @@
         # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
         # setting mode), instead of symlinking it.
         environment.etc = lib.mkIf isGuiVmEnabled {${configHost.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;};
-
-        services.openssh = lib.mkIf isGuiVmEnabled configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
         imports = [../../../common];
       })

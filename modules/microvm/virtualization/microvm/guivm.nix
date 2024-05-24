@@ -19,11 +19,13 @@
       }: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
-          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-          profiles.graphics.enable = true;
+          profiles = {
+            debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+            applications.enable = false;
+            graphics.enable = true;
+          };
           # To enable screen locking set graphics.labwc.lock to true
           graphics.labwc.lock.enable = false;
-          profiles.applications.enable = false;
           windows-launcher.enable = false;
           development = {
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
@@ -74,8 +76,10 @@
 
         system.stateVersion = lib.trivial.release;
 
-        nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-        nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+        nixpkgs = {
+          buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
+          hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+        };
 
         microvm = {
           optimize.enable = false;
@@ -118,26 +122,28 @@
         ];
 
         # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-        systemd.user.services.waypipe = {
-          enable = true;
-          description = "waypipe";
-          after = ["weston.service" "labwc.service"];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-            Restart = "always";
-            RestartSec = "1";
+        systemd = {
+          user.services.waypipe = {
+            enable = true;
+            description = "waypipe";
+            after = ["weston.service" "labwc.service"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            startLimitIntervalSec = 0;
+            wantedBy = ["ghaf-session.target"];
           };
-          startLimitIntervalSec = 0;
-          wantedBy = ["ghaf-session.target"];
-        };
 
-        # Fixed IP-address for debugging subnet
-        systemd.network.networks."10-ethint0".addresses = [
-          {
-            addressConfig.Address = "192.168.101.3/24";
-          }
-        ];
+          # Fixed IP-address for debugging subnet
+          network.networks."10-ethint0".addresses = [
+            {
+              addressConfig.Address = "192.168.101.3/24";
+            }
+          ];
+        };
       })
     ];
   };

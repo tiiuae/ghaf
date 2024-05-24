@@ -19,19 +19,23 @@ in {
         secureboot.enable = true;
 
         # Kernel hardening
-        kernel.hardening.enable = true;
-        kernel.hardening.usb.enable = true;
-        kernel.hardening.debug.enable = true;
-        kernel.hardening.virtualization.enable = true;
-        kernel.hardening.networking.enable = true;
-        kernel.hardening.inputdevices.enable = true;
-        kernel.hardening.hypervisor.enable = true;
+        kernel.hardening = {
+          enable = true;
+          usb.enable = true;
+          debug.enable = true;
+          virtualization.enable = true;
+          networking.enable = true;
+          inputdevices.enable = true;
+          hypervisor.enable = true;
+        };
       };
 
       guest = {
         # Kernel hardening
-        kernel.hardening.enable = true;
-        kernel.hardening.graphics.enable = true;
+        kernel.hardening = {
+          enable = true;
+          graphics.enable = true;
+        };
       };
     };
   };
