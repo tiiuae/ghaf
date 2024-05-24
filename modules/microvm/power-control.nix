@@ -6,15 +6,14 @@
   ...
 }: let
   cfg = config.ghaf.host.powercontrol;
-in
-  with lib; {
-    options.ghaf.host.powercontrol.enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable host power control";
-    };
+in {
+  options.ghaf.host.powercontrol.enable = lib.mkOption {
+    type = lib.types.bool;
+    default = false;
+    description = "Enable host power control";
+  };
 
-    config =
-      mkIf cfg.enable {
-      };
-  }
+  config =
+    lib.mkIf cfg.enable {
+    };
+}

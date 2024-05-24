@@ -12,27 +12,32 @@
     inputs',
     self',
     lib,
-    system,
     ...
   }: {
     devShells.default = pkgs.mkShell {
       name = "Ghaf devshell";
       #TODO look at adding Mission control etc here
-      packages = with pkgs;
-        [
-          git
-          nix
-          nixci
-          nixos-rebuild
-          reuse
-          alejandra
-          mdbook
-          nix-output-monitor
-          nix-tree
+      packages =
+        builtins.attrValues {
+          inherit
+            (pkgs)
+            alejandra
+            git
+            mdbook
+            nix
+            nixci
+            nixos-rebuild
+            nix-output-monitor
+            nix-tree
+            reuse
+            statix
+            ;
+        }
+        ++ [
           inputs'.nix-fast-build.packages.default
           self'.packages.kernel-hardening-checker
         ]
-        ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") cachix;
+        ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
 
       # TODO Add pre-commit.devShell (needs to exclude RiscV)
       # https://flake.parts/options/pre-commit-hooks-nix

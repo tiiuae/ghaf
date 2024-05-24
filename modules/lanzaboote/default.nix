@@ -6,7 +6,6 @@
   lib,
   pkgs,
   config,
-  lanzaboote,
   ...
 }: let
   cfg = config.ghaf.host.secureboot;
