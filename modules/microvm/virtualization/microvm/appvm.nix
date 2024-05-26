@@ -131,6 +131,8 @@
   # Host service dependencies
   after = optional configHost.sound.enable "pulseaudio.service";
   requires = after;
+  # Sleep appvms to give gui-vm time to start
+  serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
 in {
   options.ghaf.virtualization.microvm.appvm = {
     enable = lib.mkEnableOption "appvm";
@@ -229,7 +231,7 @@ in {
       serviceDependencies =
         map (vm: {
           "microvm@${vm.name}-vm" = {
-            inherit after requires;
+            inherit after requires serviceConfig;
           };
         })
         cfg.vms;
