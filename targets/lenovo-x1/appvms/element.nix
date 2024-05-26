@@ -20,7 +20,7 @@ in {
       pkgs.pulseaudio
     ]
     ++ pkgs.lib.optionals isDendritePineconeEnabled [dendrite-pinecone];
-  macAddress = "02:00:00:03:08:01";
+  macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
   cores = 4;
   extraModules = [
