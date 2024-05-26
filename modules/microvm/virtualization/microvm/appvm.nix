@@ -6,7 +6,7 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkOption types;
+  inherit (lib) mkOption types optional;
 
   configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
@@ -127,6 +127,10 @@
     autostart = true;
     config = appvmConfiguration // {imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ [{environment.systemPackages = vm.packages;}];};
   };
+
+  # Host service dependencies
+  after = optional configHost.sound.enable "pulseaudio.service";
+  requires = after;
 in {
   options.ghaf.virtualization.microvm.appvm = {
     enable = lib.mkEnableOption "appvm";
@@ -219,5 +223,17 @@ in {
       vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
     in
       lib.foldr lib.recursiveUpdate {} vms;
+
+    # Apply host service dependencies
+    systemd.services = let
+      serviceDependencies =
+        map (vm: {
+          "microvm@${vm.name}-vm" = {
+            inherit after requires;
+          };
+        })
+        cfg.vms;
+    in
+      lib.foldr lib.recursiveUpdate {} serviceDependencies;
   };
 }
