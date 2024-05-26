@@ -274,7 +274,7 @@ in {
         StandardError = "journal";
         ExecStart = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${autostart}/bin/labwc-autostart";
         #GPU pt needs some time to start - labwc fails to restart 3 times in avg.
-        ExecStartPre = "${pkgs.coreutils}/bin/sleep 3";
+        # ExecStartPre = "${pkgs.coreutils}/bin/sleep 3";
         Restart = "on-failure";
         RestartSec = "1";
 
