@@ -9,7 +9,7 @@
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
 
-  inherit (lib) mkEnableOption mkOption mkIf types;
+  inherit (lib) mkEnableOption mkOption mkIf mkForce types;
 
   # Override minimal systemd package configuration
   package =
@@ -306,6 +306,9 @@ in {
       # Misc. configurations
       enableEmergencyMode = cfg.withDebug;
       coredump.enable = cfg.withDebug || cfg.withMachines;
+
+      # Service startup optimization
+      services.systemd-networkd-wait-online.enable = mkForce false;
     };
   };
 }
