@@ -64,12 +64,6 @@
               extraConfig = "load-module module-combine-sink module-native-protocol-unix auth-anonymous=1";
             };
 
-            # Add systemd to require pulseaudio before starting chromium-vm
-            systemd.services = {
-              "microvm@chromium-vm".after = ["pulseaudio.service"];
-              "microvm@chromium-vm".requires = ["pulseaudio.service"];
-            };
-
             users.extraUsers.microvm.extraGroups = ["audio" "pulse-access"];
 
             disko.devices.disk = config.ghaf.hardware.definition.disks;
