@@ -57,6 +57,8 @@ in {
       KERNEL=="3-8", SUBSYSTEM=="usb", ATTR{busnum}=="3", ATTR{devnum}=="3", GROUP="kvm"
       # Lenovo X1 integrated fingerprint reader
       KERNEL=="3-6", SUBSYSTEM=="usb", ATTR{busnum}=="3", ATTR{devnum}=="2", GROUP="kvm"
+      # External USB GPS receiver
+      SUBSYSTEM=="usb", ATTR{idVendor}=="067b", ATTR{idProduct}=="23a3", GROUP="kvm"
       # Mouse and Touchpad
       ${lib.strings.concatMapStringsSep "\n" (d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="mouse"'') hwDefinition.mouse}
       ${lib.strings.concatMapStringsSep "\n" (d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="touchpad"'') hwDefinition.touchpad}
