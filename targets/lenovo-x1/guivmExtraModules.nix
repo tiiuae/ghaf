@@ -187,6 +187,10 @@
           # Connect sound device to hosts pulseaudio socket
           "-audiodev"
           "pa,id=pa1,server=unix:/run/pulse/native"
+          "-drive"
+          "file=${pkgs.OVMF.fd}/FV/OVMF_CODE.fd,if=pflash,unit=0,readonly=true"
+          "-drive"
+          "file=${pkgs.OVMF.fd}/FV/OVMF_VARS.fd,if=pflash,unit=1,readonly=true"
         ]
         ++ lib.optionals configH.ghaf.hardware.fprint.enable configH.ghaf.hardware.fprint.qemuExtraArgs;
     };
