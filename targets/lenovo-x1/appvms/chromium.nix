@@ -68,4 +68,5 @@ in {
     }
   ];
   borderColor = "#630505";
+  vtpm.enable = true;
 }

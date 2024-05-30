@@ -80,7 +80,14 @@
           environment.systemPackages = [
             pkgs.waypipe
             runWaypipe
+            pkgs.tpm2-tools
+            pkgs.opensc
           ];
+
+          security.tpm2 = {
+            enable = true;
+            abrmd.enable = true;
+          };
 
           microvm = {
             optimize.enable = false;
@@ -102,12 +109,21 @@
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
             qemu = {
-              extraArgs = [
-                "-M"
-                "accel=kvm:tcg,mem-merge=on,sata=off"
-                "-device"
-                "vhost-vsock-pci,guest-cid=${toString cid}"
-              ];
+              extraArgs =
+                [
+                  "-M"
+                  "accel=kvm:tcg,mem-merge=on,sata=off"
+                  "-device"
+                  "vhost-vsock-pci,guest-cid=${toString cid}"
+                ]
+                ++ lib.optionals vm.vtpm.enable [
+                  "-chardev"
+                  "socket,id=chrtpm,path=/var/lib/swtpm/${vm.name}-sock"
+                  "-tpmdev"
+                  "emulator,id=tpm0,chardev=chrtpm"
+                  "-device"
+                  "tpm-tis,tpmdev=tpm0"
+                ];
 
               machine =
                 {
@@ -196,6 +212,7 @@ in {
             type = types.nullOr types.str;
             default = null;
           };
+          vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
         };
       });
       default = [];
@@ -221,22 +238,53 @@ in {
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    microvm.vms = let
-      vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
+  config = let
+    makeSwtpmService = {vm}: let
+      swtpmScript = pkgs.writeShellApplication {
+        name = "${vm.name}-swtpm";
+        runtimeInputs = with pkgs; [coreutils swtpm];
+        text = ''
+          mkdir -p /var/lib/swtpm/${vm.name}-state
+          swtpm socket --tpmstate dir=/var/lib/swtpm/${vm.name}-state \
+            --ctrl type=unixio,path=/var/lib/swtpm/${vm.name}-sock \
+            --tpm2 \
+            --log level=20
+        '';
+      };
     in
-      lib.foldr lib.recursiveUpdate {} vms;
+      lib.mkIf vm.vtpm.enable {
+        enable = true;
+        description = "swtpm service for ${vm.name}";
+        path = [swtpmScript];
+        wantedBy = ["microvms.target"];
+        serviceConfig = {
+          Type = "simple";
+          User = "microvm";
+          Restart = "always";
+          StateDirectory = "swtpm";
+          StandardOutput = "journal";
+          StandardError = "journal";
+          ExecStart = "${swtpmScript}/bin/${vm.name}-swtpm";
+        };
+      };
+  in
+    lib.mkIf cfg.enable {
+      microvm.vms = let
+        vms = lib.imap0 (index: vm: {"${vm.name}-vm" = makeVm {inherit index vm;};}) cfg.vms;
+      in
+        lib.foldr lib.recursiveUpdate {} vms;
 
-    # Apply host service dependencies
-    systemd.services = let
-      serviceDependencies =
-        map (vm: {
-          "microvm@${vm.name}-vm" = {
-            inherit after requires serviceConfig;
-          };
-        })
-        cfg.vms;
-    in
-      lib.foldr lib.recursiveUpdate {} serviceDependencies;
-  };
+      # Apply host service dependencies, add swtpm
+      systemd.services = let
+        serviceDependencies =
+          map (vm: {
+            "microvm@${vm.name}-vm" = {
+              inherit after requires serviceConfig;
+            };
+            "${vm.name}-swtpm" = makeSwtpmService {inherit vm;};
+          })
+          cfg.vms;
+      in
+        lib.foldr lib.recursiveUpdate {} serviceDependencies;
+    };
 }
