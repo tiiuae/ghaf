@@ -1,13 +1,7 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  writeShellScriptBin,
-  writeTextDir,
-  coreutils,
-  nwg-drawer,
-  ...
-}: let
-  drawerCSS = writeTextDir "nwg-drawer/drawer.css" ''
+{pkgs, ...}: let
+  drawerCSS = pkgs.writeTextDir "nwg-drawer/drawer.css" ''
     /* Example configuration from: https://github.com/nwg-piotr/nwg-drawer/blob/main/drawer.css */
     window {
         background-color: rgba(32, 32, 32, 0.9);
@@ -54,11 +48,21 @@
     }
   '';
 in
-  writeShellScriptBin
-  "ghaf-launcher"
-  ''
-    export XDG_CONFIG_HOME=${drawerCSS}
-    export XDG_CACHE_HOME=$HOME/.cache
-    ${coreutils}/bin/mkdir -p $XDG_CACHE_HOME
-    ${nwg-drawer}/bin/nwg-drawer -mb 20 -ml 440 -mr 440 -mt 420 -nofs -nocats
-  ''
+  pkgs.writeShellApplication {
+    name = "ghaf-launcher";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.nwg-drawer
+    ];
+    text = ''
+      export XDG_CONFIG_HOME="$HOME/.config"
+      export XDG_CACHE_HOME="$HOME/.cache"
+
+      # Temporary workaround
+      mkdir -p "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME"
+      rm -rf "$HOME/.config/nwg-drawer"
+      ln -s "${drawerCSS}/nwg-drawer" "$HOME/.config/"
+
+      nwg-drawer -c 5 -mb 60 -ml 440 -mr 440 -mt 420 -nofs -nocats -ovl
+    '';
+  }

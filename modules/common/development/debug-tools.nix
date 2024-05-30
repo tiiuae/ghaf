@@ -15,6 +15,7 @@
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix {};
 
   inherit (lib) mkEnableOption mkIf;
+  inherit (import ../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
 in {
   options.ghaf.development.debug.tools = {
     enable = mkEnableOption "Debug Tools";
@@ -39,7 +40,6 @@ in {
           ethtool
           # Basic monitors
           
-          htop
           iftop
           iotop
           traceroute
@@ -64,12 +64,13 @@ in {
         nvpmodel-check
         rm-linux-bootmgrs
       ]
+      ++ rmDesktopEntries [pkgs.htop]
       # TODO Can this be changed to platformPkgs to filter ?
       # LuaJIT (which is sysbench dependency) not available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") pkgs.sysbench
       # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
       ++ lib.optional (pkgs.stdenv.hostPlatform == pkgs.stdenv.buildPlatform) pkgs.unixbench
       # Build VLC only on x86
-      ++ lib.optional (config.nixpkgs.hostPlatform.system == "x86_64-linux") pkgs.vlc;
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [pkgs.vlc]);
   };
 }

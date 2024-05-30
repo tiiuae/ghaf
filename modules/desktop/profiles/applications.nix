@@ -11,7 +11,6 @@ in {
   options.ghaf.profiles.applications = {
     enable = lib.mkEnableOption "Some sample applications";
     #TODO Create options to allow enabling individual apps
-    #weston.ini.nix mods needed
   };
 
   config = lib.mkIf cfg.enable {

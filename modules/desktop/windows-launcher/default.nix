@@ -30,9 +30,9 @@ in {
   config = lib.mkIf cfg.enable {
     ghaf.graphics.launchers = lib.mkIf (!cfg.spice) [
       {
-        name = "windows";
+        name = "Windows";
         path = "${windows-launcher}/bin/windows-launcher-ui";
-        icon = "${pkgs.gnome.adwaita-icon-theme}/share/icons/Adwaita/16x16/mimetypes/application-x-executable.png";
+        icon = "${pkgs.icon-pack}/distributor-logo-windows.svg";
       }
     ];
 

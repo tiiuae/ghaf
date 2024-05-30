@@ -7,15 +7,9 @@
   ...
 }: let
   cfg = config.ghaf.graphics.demo-apps;
-  inherit (import ../../../lib/icons.nix {inherit pkgs lib;}) resizePNG;
 
   /*
-  Scaled down firefox icon
-  */
-  firefox-icon = resizePNG "firefox" "${pkgs.firefox}/share/icons/hicolor/128x128/apps/firefox.png" "24x24";
-
-  /*
-  Generate launchers to be used in weston.ini
+  Generate launchers to be used in the application drawer
 
   Type: mkProgramOption ::  string -> bool -> option
 
@@ -39,34 +33,34 @@ in {
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
     ghaf.graphics.launchers =
       lib.optional cfg.chromium {
-        name = "chromium";
+        name = "Chromium";
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
+        icon = "${pkgs.icon-pack}/chromium.svg";
       }
       ++ lib.optional cfg.firefox {
-        name = "firefox";
+        name = "Firefox";
         path = "${pkgs.firefox}/bin/firefox";
-        icon = "${firefox-icon}";
+        icon = "${pkgs.icon-pack}/firefox.svg";
       }
       ++ lib.optional cfg.element-desktop {
-        name = "element";
+        name = "Element";
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png";
+        icon = "${pkgs.icon-pack}/element-desktop.svg";
       }
       ++ lib.optional cfg.gala-app {
-        name = "gala";
+        name = "GALA";
         path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
+        icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
       }
       ++ lib.optional cfg.zathura {
-        name = "zathura";
+        name = "PDF Viewer";
         path = "${pkgs.zathura}/bin/zathura";
-        icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
+        icon = "${pkgs.icon-pack}/document-viewer.svg";
       }
       ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) {
-        name = "appflowy";
+        name = "AppFlowy";
         path = "${pkgs.appflowy}/bin/appflowy";
-        icon = ../../../assets/icons/svg/appflowy.svg;
+        icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
       };
     environment.systemPackages =
       lib.optional cfg.chromium pkgs.chromium

@@ -47,85 +47,92 @@
         launchers = let
           hostAddress = "192.168.101.2";
           powerControl = pkgs.callPackage ../../packages/powercontrol {};
-          powerControlIcons = pkgs.gnome.callPackage ../../packages/powercontrol/png-icons.nix {};
           privateSshKeyPath = configH.ghaf.security.sshKeys.sshKeyPath;
         in [
           {
             # The SPKI fingerprint is calculated like this:
             # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
             # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
-            name = "chromium";
+            name = "Chromium";
             path =
               if configH.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               then "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --user-data-dir=/home/${configH.ghaf.users.accounts.user}/.config/chromium/Default --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU="
               else "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no chromium-vm.ghaf run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../../assets/icons/png/browser.png}";
+            icon = "${pkgs.icon-pack}/chromium.svg";
           }
 
           {
-            name = "gala";
+            name = "GALA";
             path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no gala-vm.ghaf run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../../assets/icons/png/app.png}";
+            icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
           }
 
           {
-            name = "zathura";
+            name = "PDF Viewer";
             path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no zathura-vm.ghaf run-waypipe zathura";
-            icon = "${../../assets/icons/png/pdf.png}";
+            icon = "${pkgs.icon-pack}/document-viewer.svg";
           }
 
           {
-            name = "element";
+            name = "Element";
             path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no element-vm.ghaf run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-            icon = "${../../assets/icons/png/element.png}";
+            icon = "${pkgs.icon-pack}/element-desktop.svg";
           }
 
           {
-            name = "appflowy";
+            name = "AppFlowy";
             path = "${pkgs.openssh}/bin/ssh -i ${configH.ghaf.security.sshKeys.sshKeyPath} -o StrictHostKeyChecking=no appflowy-vm.ghaf run-waypipe appflowy";
-            icon = "${../../assets/icons/svg/appflowy.svg}";
+            icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
           }
 
           {
-            name = "windows";
+            name = "Windows";
             path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
-            icon = "${../../assets/icons/png/windows.png}";
+            icon = "${pkgs.icon-pack}/distributor-logo-windows.svg";
           }
 
           {
-            name = "nm-launcher";
+            name = "Network Settings";
             path = "${pkgs.nm-launcher}/bin/nm-launcher";
-            icon = "${pkgs.networkmanagerapplet}/share/icons/hicolor/22x22/apps/nm-device-wwan.png";
+            icon = "${pkgs.icon-pack}/preferences-system-network.svg";
           }
 
           {
-            name = "poweroff";
+            name = "Shutdown";
             path = "${powerControl.makePowerOffCommand {
               inherit hostAddress;
               inherit privateSshKeyPath;
             }}";
-            icon = "${powerControlIcons}/${powerControlIcons.relativeShutdownIconPath}";
+            icon = "${pkgs.icon-pack}/system-shutdown.svg";
           }
 
           {
-            name = "reboot";
+            name = "Reboot";
             path = "${powerControl.makeRebootCommand {
               inherit hostAddress;
               inherit privateSshKeyPath;
             }}";
-            icon = "${powerControlIcons}/${powerControlIcons.relativeRebootIconPath}";
+            icon = "${pkgs.icon-pack}/system-reboot.svg";
           }
 
-          # Temporarly disabled as it doesn't work stable
+          # Temporarly disabled as it fails to turn off display when suspended
           # {
-          #   path = powerControl.makeSuspendCommand {inherit hostAddress waypipeSshPublicKeyFile;};
-          #   icon = "${adwaitaIconsRoot}/media-playback-pause-symbolic.symbolic.png";
+          #   name = "Suspend";
+          #   path = "${powerControl.makeSuspendCommand {
+          #     inherit hostAddress;
+          #     inherit privateSshKeyPath;
+          #   }}";
+          #   icon = "${pkgs.icon-pack}/system-suspend.svg";
           # }
 
           # Temporarly disabled as it doesn't work at all
           # {
-          #   path = powerControl.makeHibernateCommand {inherit hostAddress waypipeSshPublicKeyFile;};
-          #   icon = "${adwaitaIconsRoot}/media-record-symbolic.symbolic.png";
+          #   name = "Hibernate";
+          #   path = "${powerControl.makeHibernateCommand {
+          #     inherit hostAddress;
+          #     inherit privateSshKeyPath;
+          #   }}";
+          #   icon = "${pkgs.icon-pack}/system-suspend-hibernate.svg";
           # }
         ];
       };

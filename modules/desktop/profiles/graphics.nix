@@ -7,14 +7,14 @@
   ...
 }: let
   cfg = config.ghaf.profiles.graphics;
-  compositors = ["weston" "labwc"];
+  compositors = ["labwc"];
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
   options.ghaf.profiles.graphics = {
     enable = mkEnableOption "Graphics profile";
     compositor = mkOption {
       type = types.enum compositors;
-      default = "weston";
+      default = "labwc";
       description = ''
         Which Wayland compositor to use.
 
@@ -51,7 +51,6 @@ in {
 
   config = mkIf cfg.enable {
     ghaf.graphics = {
-      weston.enable = cfg.compositor == "weston";
       labwc.enable = cfg.compositor == "labwc";
     };
   };
