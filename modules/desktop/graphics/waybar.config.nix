@@ -27,7 +27,7 @@ in {
       {
         name = "Terminal";
         path = "${pkgs.foot}/bin/foot";
-        icon = "${pkgs.foot}/share/icons/hicolor/48x48/apps/foot.png";
+        icon = "${pkgs.icon-pack}/utilities-terminal.svg";
       }
     ];
     environment.etc."waybar/config" = {

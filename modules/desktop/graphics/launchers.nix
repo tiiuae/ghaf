@@ -3,11 +3,10 @@
 {
   pkgs,
   config,
-  makeDesktopItem,
   ...
 }: let
   toDesktop = elem:
-    (makeDesktopItem {
+    (pkgs.makeDesktopItem {
       inherit (elem) name icon;
       genericName = elem.name;
       desktopName = elem.name;

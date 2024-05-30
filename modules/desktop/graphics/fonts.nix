@@ -6,9 +6,9 @@
   config,
   ...
 }: let
-  inherit (config.ghaf.graphics) weston labwc;
+  inherit (config.ghaf.graphics) labwc;
 in {
-  config = lib.mkIf (weston.enable || labwc.enable) {
+  config = lib.mkIf labwc.enable {
     fonts.packages = builtins.attrValues {
       inherit (pkgs) inter fira-code-nerdfont hack-font;
     };

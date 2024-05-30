@@ -92,6 +92,9 @@
                 debug.enable = variant == "debug";
               };
               windows-launcher.enable = true;
+              graphics.labwc.renderer = "egl2";
+              # To enable screen locking set to true
+              graphics.labwc.autolock.enable = false;
             };
           }
 

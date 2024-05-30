@@ -1,0 +1,129 @@
+# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+# general
+border.width: 3
+padding.height: 6
+
+# The following options has no default, but fallbacks back to
+# font-height + 2x padding.height if not set.
+# titlebar.height:
+
+# window border
+window.active.border.color: #1d1d1d
+window.inactive.border.color: #353535
+
+# ToggleKeybinds status indicator
+window.active.indicator.toggled-keybind.color: #f15025
+
+# window titlebar background
+window.active.title.bg.color: #1d1d1d
+window.inactive.title.bg.color: #353535
+
+# window titlebar text
+window.active.label.text.color: #ffffff
+window.inactive.label.text.color: #bbbbbb
+window.label.text.justify: center
+
+# window buttons
+window.active.button.unpressed.image.color: #ffffff
+window.inactive.button.unpressed.image.color: #ffffff
+
+# Note that "menu", "iconify", "max", "close" buttons colors can be defined
+# individually by inserting the type after the button node, for example:
+#
+#     window.active.button.iconify.unpressed.image.color: #333333
+
+# menu
+menu.overlap.x: 0
+menu.overlap.y: 0
+menu.width.min: 20
+menu.width.max: 200
+menu.items.bg.color: #353535
+menu.items.text.color: #ffffff
+menu.items.active.bg.color: #1d1d1d
+menu.items.active.text.color: #ffffff
+menu.items.padding.x: 7
+menu.items.padding.y: 4
+menu.separator.width: 1
+menu.separator.padding.width: 6
+menu.separator.padding.height: 3
+menu.separator.color: #2b2b2b
+
+# on screen display (window-cycle dialog)
+osd.bg.color: #1d1d1d
+osd.border.color: #ffffff
+osd.border.width: 1
+osd.label.text.color: #ffffff
+
+osd.window-switcher.width: 600
+osd.window-switcher.padding: 4
+osd.window-switcher.item.padding.x: 10
+osd.window-switcher.item.padding.y: 1
+osd.window-switcher.item.active.border.width: 2
+
+osd.workspace-switcher.boxes.width: 20
+    # general
+border.width: 3
+padding.height: 6
+
+# The following options has no default, but fallbacks back to
+# font-height + 2x padding.height if not set.
+# titlebar.height:
+
+# window border
+window.active.border.color: #1d1d1d
+window.inactive.border.color: #353535
+
+# ToggleKeybinds status indicator
+window.active.indicator.toggled-keybind.color: #f15025
+
+# window titlebar background
+window.active.title.bg.color: #1d1d1d
+window.inactive.title.bg.color: #353535
+
+# window titlebar text
+window.active.label.text.color: #ffffff
+window.inactive.label.text.color: #bbbbbb
+window.label.text.justify: center
+
+# window buttons
+window.active.button.unpressed.image.color: #ffffff
+window.inactive.button.unpressed.image.color: #ffffff
+
+# Note that "menu", "iconify", "max", "close" buttons colors can be defined
+# individually by inserting the type after the button node, for example:
+#
+#     window.active.button.iconify.unpressed.image.color: #333333
+
+# menu
+menu.overlap.x: 0
+menu.overlap.y: 0
+menu.width.min: 20
+menu.width.max: 200
+menu.items.bg.color: #353535
+menu.items.text.color: #ffffff
+menu.items.active.bg.color: #1d1d1d
+menu.items.active.text.color: #ffffff
+menu.items.padding.x: 7
+menu.items.padding.y: 4
+menu.separator.width: 1
+menu.separator.padding.width: 6
+menu.separator.padding.height: 3
+menu.separator.color: #2b2b2b
+
+# on screen display (window-cycle dialog)
+osd.bg.color: #1d1d1d
+osd.border.color: #ffffff
+osd.border.width: 1
+osd.label.text.color: #ffffff
+
+osd.window-switcher.width: 600
+osd.window-switcher.padding: 4
+osd.window-switcher.item.padding.x: 10
+osd.window-switcher.item.padding.y: 1
+osd.window-switcher.item.active.border.width: 2
+
+osd.workspace-switcher.boxes.width: 20
+osd.workspace-switcher.boxes.height: 20
+osd.workspace-switcher.boxes.height: 20

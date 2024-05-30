@@ -9,6 +9,7 @@
   configHost = config;
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
+  inherit (import ../../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {inherit vmName macAddress;})
@@ -24,8 +25,8 @@
             applications.enable = false;
             graphics.enable = true;
           };
-          # To enable screen locking set graphics.labwc.lock to true
-          graphics.labwc.lock.enable = false;
+          # To enable screen locking set to true
+          graphics.labwc.autolock.enable = false;
           windows-launcher.enable = false;
           development = {
             ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
@@ -67,9 +68,11 @@
 
         environment = {
           systemPackages =
-            [
+            (rmDesktopEntries [
               pkgs.waypipe
               pkgs.networkmanagerapplet
+            ])
+            ++ [
               pkgs.nm-launcher
               pkgs.pamixer
             ]
@@ -128,7 +131,7 @@
           user.services.waypipe = {
             enable = true;
             description = "waypipe";
-            after = ["weston.service" "labwc.service"];
+            after = ["labwc.service"];
             serviceConfig = {
               Type = "simple";
               ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
