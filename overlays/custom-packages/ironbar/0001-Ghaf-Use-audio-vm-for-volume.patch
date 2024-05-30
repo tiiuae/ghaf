@@ -1,0 +1,26 @@
+From 53c24bf8c8888c984e0696908da7d3a5f8614e5f Mon Sep 17 00:00:00 2001
+From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+Date: Mon, 1 Jul 2024 11:12:45 +0400
+Subject: [PATCH 6/6] Ghaf: Use audio-vm for volume
+
+Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+---
+ src/clients/volume/mod.rs | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/clients/volume/mod.rs b/src/clients/volume/mod.rs
+index 3db503f..2b83aab 100644
+--- a/src/clients/volume/mod.rs
++++ b/src/clients/volume/mod.rs
+@@ -115,7 +115,7 @@ impl Client {
+ 
+         lock!(context).set_state_callback(Some(state_callback));
+ 
+-        if let Err(err) = lock!(context).connect(None, FlagSet::NOAUTOSPAWN, None) {
++        if let Err(err) = lock!(context).connect(Some("audio-vm:4713"), FlagSet::NOAUTOSPAWN, None) {
+             error!("{err:?}");
+         }
+ 
+-- 
+2.44.1
+
