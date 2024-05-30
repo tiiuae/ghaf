@@ -16,8 +16,8 @@
   ghaf-openbox-theme = final.callPackage ../../packages/ghaf-openbox-theme {};
   labwc = import ./labwc {inherit prev;};
   tpm2-pkcs11 = import ./tpm2-pkcs11 {inherit prev;};
-  waybar = import ./waybar {inherit prev;};
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui {};
   gtklock = import ./gtklock {inherit prev;};
   hardware-scan = final.callPackage ../../packages/hardware-scan {};
+  ironbar = import ./ironbar {inherit prev;};
 })

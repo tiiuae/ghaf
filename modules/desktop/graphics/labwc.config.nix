@@ -9,6 +9,7 @@
   cfg = config.ghaf.graphics.labwc;
 
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl {};
+  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
   gtklockStyle = pkgs.writeText "gtklock.css" ''
     window {
       background: rgba(29, 29, 29, 1);
@@ -39,7 +40,6 @@
         pkgs.systemd
         pkgs.swaybg
         pkgs.kanshi
-        pkgs.waybar
         pkgs.mako
 
         (pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;})
@@ -54,8 +54,11 @@
         # Import WAYLAND_DISPLAY variable to make it available to waypipe and other systemd services
         systemctl --user import-environment WAYLAND_DISPLAY 2>&1 &
 
-        # Launch the task bar
-        waybar -s /etc/waybar/style.css -c /etc/waybar/config >/dev/null 2>&1 &
+        # Launch the task bar.
+        IRONBAR_CONFIG=/etc/ironbar/config.json \
+        IRONBAR_CSS=/etc/ironbar/style.css \
+        PULSE_SERVER=audio-vm:4713 \
+        ${pkgs.ironbar}/bin/ironbar >/tmp/ironbar.log 2>&1 &
 
         # Set the wallpaper.
         swaybg -m fill -i ${cfg.wallpaper} >/dev/null 2>&1 &
@@ -66,6 +69,9 @@
         # Enable notifications.
         mako -c /etc/mako/config >/dev/null 2>&1 &
 
+        # Load the launcher in memory.
+        ${ghaf-launcher}/bin/ghaf-launcher >/dev/null 2>&1 &
+
         ${lib.optionalString cfg.autolock.enable ''
           swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
           'chayang && ${lockCmd}' &
@@ -73,12 +79,14 @@
       ''
       + cfg.extraAutostart;
   };
+
   rcXml = ''
     <?xml version="1.0"?>
     <labwc_config>
     <core><gap>5</gap></core>
     <theme>
       <name>Ghaf</name>
+      <dropShadows>yes</dropShadows>
       <font place="">
         <name>Inter</name>
         <size>12</size>
@@ -92,6 +100,12 @@
         <weight>bold</weight>
       </font>
     </theme>
+    <snapping>
+      <overlay>
+        <enabled>true</enabled>
+        <delay inner="500" outer="500"/>
+      </overlay>
+    </snapping>
     <keyboard>
       <default />
       <keybind key="W-l">

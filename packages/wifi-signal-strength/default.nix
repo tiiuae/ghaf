@@ -1,5 +1,8 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# This is a temporary solution for showing wifi status.
+#
 {
   networkmanager,
   openssh,
@@ -30,7 +33,7 @@ writeShellApplication {
     exec 99>"$LOCK_FILE"
     flock -w 60 -x 99 || exit 1
 
-    # Return the result as json format for waybar and use the control socket to close the ssh tunnel.
+    # Return the result as json format and use the control socket to close the ssh tunnel.
     trap 'ssh -q -S /tmp/nmcli_socket -O exit ghaf@net-vm && cat "$NETWORK_STATUS_FILE"' EXIT
 
     # Connect to netvm
@@ -50,15 +53,14 @@ writeShellApplication {
     no_signal="\UF092D"
     # Get IP address of netvm
     address=$(nmcli device show ${wifiDevice} | awk '{ if ($1=="IP4.ADDRESS[1]:") {print $2}}')
-    # Get signal strength and ssi
+
+    # Get signal strength and ssid
     mapfile -t connection < <(nmcli -f IN-USE,SIGNAL,SSID dev wifi | awk '/^\*/{if (NR!=1) {print $2; print $3}}')
     connection[0]=$(if [ -z "''${connection[0]}" ]; then echo "-1"; else echo "''${connection[0]}"; fi)
     # Set the icon of signal level
-    signal_level=$(if [ "''${connection[0]}" -gt 80 ]; then echo "''${signal3}"; elif [ "''${connection[0]}" -gt 60 ]; then echo "''${signal2}"; elif [ "''${connection[0]}" -gt 30 ]; then echo "''${signal1}"; elif [ "''${connection[0]}" -gt 0 ]; then echo "''${signal0};" else echo "''${no_signal}"; fi)
-    tooltip=$(if [ -z "''${address}" ]; then echo "''${connection[0]}%"; else echo "''${address} ''${connection[0]}%"; fi)
-    text=$(if [ -z "''${connection[1]}" ]; then echo "No connection"; else echo "''${connection[1]} $signal_level"; fi)
+    signal_level=$(if [ "''${connection[0]}" -gt 80 ]; then echo "''${signal3}"; elif [ "''${connection[0]}" -gt 60 ]; then echo "''${signal2}"; elif [ "''${connection[0]}" -gt 30 ]; then echo "''${signal1}"; elif [ "''${connection[0]}" -gt 0 ]; then echo "''${signal0}"; else echo "''${no_signal}"; fi)
     # Save the result in json format
-    RESULT="{\"percentage\":\"''${connection[0]}\", \"text\":\"''${text}\", \"tooltip\":\"''${tooltip}\", \"class\":\"1\"}"
+    RESULT="{\"percentage\":\"''${connection[0]}\", \"ssid\":\"''${connection[1]}\", \"ip\":\"''${address}\", \"signal\":\"''${signal_level}\"}"
     echo -e "$RESULT">/tmp/network-status
     flock -u 99
   '';

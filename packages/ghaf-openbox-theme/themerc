@@ -29,6 +29,12 @@ window.label.text.justify: center
 window.active.button.unpressed.image.color: #ffffff
 window.inactive.button.unpressed.image.color: #ffffff
 
+# window shadows
+window.active.shadow.size: 60
+window.inactive.shadow.size: 40
+window.active.shadow.color: #00000060
+window.inactive.shadow.color: #00000040
+
 # Note that "menu", "iconify", "max", "close" buttons colors can be defined
 # individually by inserting the type after the button node, for example:
 #
@@ -127,3 +133,13 @@ osd.window-switcher.item.active.border.width: 2
 osd.workspace-switcher.boxes.width: 20
 osd.workspace-switcher.boxes.height: 20
 osd.workspace-switcher.boxes.height: 20
+
+# snapping
+snapping.overlay.region.bg.enabled: yes
+snapping.overlay.edge.bg.enabled: yes
+snapping.overlay.region.bg.color: #20202080
+snapping.overlay.edge.bg.color: #20202080
+snapping.overlay.region.border.width: 1
+snapping.overlay.edge.border.width: 1
+snapping.overlay.region.border.color: #202020e6,#202020e6,#202020e6
+snapping.overlay.edge.border.color: #202020e6,#202020e6,#202020e6
