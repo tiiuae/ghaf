@@ -11,5 +11,6 @@
     ./window-manager.nix
     ./boot.nix
     ./hardware.nix
+    ./waypipe.nix
   ];
 }

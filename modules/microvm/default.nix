@@ -15,5 +15,6 @@
     ./virtualization/microvm/audiovm.nix
     ./networking.nix
     ./power-control.nix
+    ./virtualization/microvm/virtgpuvm.nix
   ];
 }

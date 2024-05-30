@@ -74,6 +74,9 @@
                 #graphics.compositor = "labwc";
               };
               windows-launcher.enable = true;
+
+              # Uncomment this line to enable the virtgpu-vm with a virtio-gpu device:
+              #virtualization.microvm.virtgpuvm.enable = true;
             };
 
             #TODO: how to handle the majority of laptops that need a little
@@ -89,6 +92,9 @@
               # Passthrough Intel WiFi card
               "vfio-pci.ids=8086:a0f0"
             ];
+
+            # Enable DHCP on the host to be able to access network and connect to VMs by name, e.g. net-vm.ghaf
+            systemd.network.networks."10-virbr0".DHCP = "yes";
           }
         ]
         ++ extraModules;

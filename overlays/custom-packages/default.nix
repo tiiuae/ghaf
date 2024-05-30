@@ -22,4 +22,6 @@
   networkmanagerapplet = import ./networkmanagerapplet {inherit prev;};
   htop = import ./htop {inherit prev;};
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui {};
+  sommelier = import ./sommelier {inherit final prev;};
+  crosvm = import ./crosvm {inherit final prev;};
 })
