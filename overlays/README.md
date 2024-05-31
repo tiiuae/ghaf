@@ -31,16 +31,17 @@ It makes things clear and robust.
 
 Some patches are carried as overlays and others are patches that are cherry-picked
 from staging and main into a tiiuae maintained version of nixpkgs 
-[tiiuae/nixpkgs/nixos-unstable-patched](https://github.com/tiiuae/nixpkgs/tree/nixos-unstable-patched)
+[tiiuae/nixpkgs/patched-unstable-proc-qemu](https://github.com/tiiuae/nixpkgs/tree/patched-unstable-proc-qemu)
 
 The status of the integration in nixpkgs can be tracked using the [Pull Request Tracker](https://nixpk.gs/pr-tracker.html)
 
 ## From Overlays
 
-[sysbench and libck xcompile](https://github.com/NixOS/nixpkgs/pull/309564)
-[EDK2](https://github.com/NixOS/nixpkgs/pull/311317)
 
-## tiiuae/nixpkgs/nixos-unstable-patched
+## carried in tiiuae/nixpkgs/nixos-unstable-proc-qemu
 
-[rutabaga_gfx - Qemu](https://github.com/NixOS/nixpkgs/pull/310783)
-[Element Desktop and Python3](https://github.com/NixOS/nixpkgs/pull/308196)
+[webp-pixbuf-loader](https://github.com/NixOS/nixpkgs/pull/315119)
+
+[Qemu xcompile](https://github.com/NixOS/nixpkgs/pull/314270)
+
+[XDG-utils procmail](https://github.com/NixOS/nixpkgs/pull/314270)
