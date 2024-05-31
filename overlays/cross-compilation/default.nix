@@ -3,6 +3,5 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-(final: prev: {
-  pipewire = import ./pipewire {inherit prev;};
+(_final: _prev: {
 })
