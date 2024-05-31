@@ -4,6 +4,5 @@
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
 (final: prev: {
-  chromium = import ./chromium {inherit prev final;};
   pipewire = import ./pipewire {inherit prev;};
 })
