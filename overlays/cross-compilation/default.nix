@@ -5,6 +5,5 @@
 #
 (final: prev: {
   chromium = import ./chromium {inherit prev final;};
-  jbig2dec = import ./jbig2dec {inherit prev;};
   pipewire = import ./pipewire {inherit prev;};
 })
