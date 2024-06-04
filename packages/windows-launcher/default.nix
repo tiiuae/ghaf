@@ -108,7 +108,7 @@
         fi
       ''
       + ''
-        eval "${qemu_kvm}/bin/qemu_kvm ''${QEMU_PARAMS[@]} ''${@:2}"
+        eval "${qemu_kvm}/bin/qemu-kvm ''${QEMU_PARAMS[@]} ''${@:2}"
       '');
   windowsLauncherUI =
     writeShellScript
@@ -127,10 +127,10 @@
         if [ ! -f "$FILE" ]; then
       ''
       + lib.optionalString stdenv.isAarch64 ''
-        FILE=`${yad}/bin/yad --file-selection --title="Select Windows VM image (VHDX)"`
+        FILE=`${yad}/bin/yad --file --title="Select Windows VM image (VHDX)"`
       ''
       + lib.optionalString stdenv.isx86_64 ''
-        FILE=`${yad}/bin/yad --file-selection --title="Select Windows VM image (QCOW2 or ISO)"`
+        FILE=`${yad}/bin/yad --file --title="Select Windows VM image (QCOW2 or ISO)"`
       ''
       + ''
           if [ ''$? -ne 0 ]; then
@@ -143,7 +143,7 @@
         fi
 
         if ! ${windowsLauncher} $FILE; then
-          ${yad}/bin/yad --error --text="Failed to run Windows VM: $?"
+          ${yad}/bin/yad --image=gtk-dialog-error --text="Failed to run Windows VM: $?"
         fi
       '');
 in
