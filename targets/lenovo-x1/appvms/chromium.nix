@@ -60,9 +60,8 @@ in {
       ];
       microvm.devices = [];
 
-      # Disable chromium built-in PDF viewer to make it execute xdg-open
-      programs.chromium.enable = true;
-      programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
+      ghaf.programs.chromium.enable = true;
+
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
     }
