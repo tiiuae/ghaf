@@ -9,8 +9,6 @@ _: {
           then old.postInstall
           else "";
       in {
-        desktopItems = null;
-        desktopItem = null;
         postInstall = pInst + "rm -rf \"$out/share/applications\"";
       }))
     pkgs;

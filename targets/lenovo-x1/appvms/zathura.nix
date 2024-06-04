@@ -10,11 +10,7 @@
   extraModules = [
     {
       time.timeZone = "Asia/Dubai";
-
-      # Use regular clipboard instead of primary clipboard.
-      environment.etc."zathurarc".text = ''
-        set selection-clipboard clipboard
-      '';
+      ghaf.programs.zathura.enable = true;
     }
   ];
   borderColor = "#122263";

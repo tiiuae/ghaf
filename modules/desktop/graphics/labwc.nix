@@ -71,6 +71,10 @@ in {
           identifier = "org.pwmt.zathura";
           colour = "#122263";
         }
+        {
+          identifier = "Element";
+          colour = "#337aff";
+        }
       ];
       description = "List of applications and their frame colours";
     };

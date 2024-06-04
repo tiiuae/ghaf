@@ -62,12 +62,5 @@ in {
         path = "${pkgs.appflowy}/bin/appflowy";
         icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
       };
-    environment.systemPackages =
-      lib.optional cfg.chromium pkgs.chromium
-      ++ lib.optional cfg.element-desktop pkgs.element-desktop
-      ++ lib.optional cfg.firefox pkgs.firefox
-      ++ lib.optional cfg.gala-app pkgs.gala-app
-      ++ lib.optional cfg.zathura pkgs.zathura
-      ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) pkgs.appflowy;
   };
 }
