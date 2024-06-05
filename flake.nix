@@ -25,9 +25,7 @@
   };
 
   inputs = {
-    #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/patched-unstable-proc-qemu"; #"flake:mylocalnixpkgs"; #
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     #
     # Flake and repo structuring configurations
