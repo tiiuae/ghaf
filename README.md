@@ -20,6 +20,7 @@ This repository contains the source files (code and documentation) of Ghaf Frame
 For information on build instructions and supported hardware, see the [Reference Implementations](https://tiiuae.github.io/ghaf/ref_impl/reference_implementations.html) section of Ghaf documentation.
 
 
+
 ### Documentation
 
 The Ghaf Framework documentation site is located at <https://tiiuae.github.io/ghaf/>. It is under cooperative development.
