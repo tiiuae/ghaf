@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./zathura.nix
     ./chromium.nix
     ./windows-launcher.nix
+    ./zathura.nix
   ];
 }

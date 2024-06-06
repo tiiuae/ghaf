@@ -9,7 +9,6 @@
 in {
   options.ghaf.programs.chromium = {
     enable = lib.mkEnableOption "Enable Chromium program settings";
-    useZathuraVM = lib.mkEnableOption "Open PDFs in Zathura VM";
   };
   config = lib.mkIf cfg.enable {
     programs.chromium.enable = true;
