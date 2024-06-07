@@ -5,11 +5,12 @@
   pkgs,
   lib,
   config,
+  self,
   ...
 }: let
-  chromium = import ./chromium.nix {inherit pkgs;};
+  chromium = import ./chromium.nix {inherit pkgs self;};
   gala = import ./gala.nix {inherit pkgs lib config;};
-  zathura = import ./zathura.nix {inherit pkgs;};
+  zathura = import ./zathura.nix {inherit pkgs self;};
   element = import ./element.nix {inherit pkgs config;};
   includeAppflowy = pkgs.stdenv.isx86_64;
   appflowy =

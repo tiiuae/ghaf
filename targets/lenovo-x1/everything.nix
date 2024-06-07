@@ -22,6 +22,7 @@
           self.nixosModules.host
           self.nixosModules.lanzaboote
           self.nixosModules.microvm
+          self.nixosModules.reference
 
           ({
             pkgs,
@@ -135,7 +136,7 @@
 
                   appvm = {
                     enable = true;
-                    vms = import ./appvms/default.nix {inherit pkgs lib config;};
+                    vms = import ./appvms/default.nix {inherit pkgs lib config self;};
                   };
                 };
               };

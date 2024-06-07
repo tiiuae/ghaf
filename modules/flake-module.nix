@@ -16,11 +16,12 @@
     ];
     desktop.imports = [./desktop];
     host.imports = [./host];
+    imx8.imports = [./imx8];
     jetpack.imports = [./jetpack];
     jetpack-microvm.imports = [./jetpack-microvm];
     lanzaboote.imports = [./lanzaboote];
     microvm.imports = [./microvm];
     polarfire.imports = [./polarfire];
-    imx8.imports = [./imx8];
+    reference.imports = [./reference];
   };
 }

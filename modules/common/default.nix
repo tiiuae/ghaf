@@ -16,7 +16,6 @@
     ./virtualization/docker.nix
     ./systemd
     ./services
-    ./programs
     ./networking
   ];
 }
