@@ -4,7 +4,7 @@
 {
   lib,
   pkgs,
-  microvm,
+  self,
   configH,
   ...
 }: let
@@ -200,5 +200,6 @@ in
     guivmPCIPassthroughModule
     guivmVirtioInputHostEvdevModule
     guivmExtraConfigurations
+    self.nixosModules.reference
   ]
   ++ lib.optionals configH.ghaf.hardware.fprint.enable [configH.ghaf.hardware.fprint.extraConfigurations]

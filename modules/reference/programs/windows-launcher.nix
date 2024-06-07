@@ -9,6 +9,9 @@
   cfg = config.ghaf.windows-launcher;
   windows-launcher = pkgs.callPackage ../../../packages/windows-launcher {enableSpice = cfg.spice;};
 in {
+  #TODO fix all these imports to correct scoping
+  imports = [../../desktop];
+
   options.ghaf.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
 
