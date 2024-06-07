@@ -121,7 +121,7 @@
                     extraModules =
                       # TODO convert this to an actual module
                       import ./guivmExtraModules.nix {
-                        inherit lib pkgs microvm;
+                        inherit lib pkgs self;
                         configH = config;
                       };
                   };

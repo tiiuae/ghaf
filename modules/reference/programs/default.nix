@@ -4,5 +4,6 @@
   imports = [
     ./zathura.nix
     ./chromium.nix
+    ./windows-launcher.nix
   ];
 }
