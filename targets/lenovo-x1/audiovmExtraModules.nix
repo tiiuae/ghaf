@@ -2,23 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  lib,
   pkgs,
   configH,
   ...
 }: let
   # TCP port used by Pipewire-pulseaudio service
   pulseaudioTcpPort = 4713;
-
-  audiovmPCIPassthroughModule = {
-    microvm.devices = lib.mkForce (
-      builtins.map (d: {
-        bus = "pci";
-        inherit (d) path;
-      })
-      configH.ghaf.hardware.definition.audio.pciDevices
-    );
-  };
 
   audiovmExtraConfigurations = {
     time.timeZone = "Asia/Dubai";
@@ -92,6 +81,7 @@
       ];
     };
   };
+  inherit (configH.ghaf.hardware.passthrough) audiovmPCIPassthroughModule;
 in [
   audiovmPCIPassthroughModule
   audiovmExtraConfigurations

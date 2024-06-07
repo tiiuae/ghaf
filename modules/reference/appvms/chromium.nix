@@ -1,7 +1,12 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{pkgs, ...}: let
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}: let
   xdgPdfPort = 1200;
 in {
   name = "chromium";
@@ -52,13 +57,7 @@ in {
 
       time.timeZone = "Asia/Dubai";
 
-      microvm.qemu.extraArgs = [
-        # Lenovo X1 integrated usb webcam
-        "-device"
-        "qemu-xhci"
-        "-device"
-        "usb-host,hostbus=3,hostport=8"
-      ];
+      microvm.qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.internal.enable config.ghaf.hardware.usb.internal.qemuExtraArgs.webcam;
       microvm.devices = [];
 
       ghaf.programs.chromium.enable = true;

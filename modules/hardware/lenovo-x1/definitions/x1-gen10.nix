@@ -4,8 +4,43 @@
 {
   name = "Lenovo X1 Carbon Gen 10";
 
-  mouse = ["ELAN067B:00 04F3:31F8 Mouse" "SYNA8016:00 06CB:CEB3 Mouse"];
-  touchpad = ["ELAN067B:00 04F3:31F8 Touchpad" "SYNA8016:00 06CB:CEB3 Touchpad"];
+  input = {
+    keyboard = {
+      name = ["AT Translated Set 2 keyboard"];
+      evdev = ["/dev/input/by-path/platform-i8042-serio-0-event-kbd"];
+    };
+
+    mouse = {
+      name = [
+        "ELAN067B:00 04F3:31F8 Mouse"
+        "SYNA8016:00 06CB:CEB3 Mouse"
+      ];
+      evdev = [
+        "/dev/mouse"
+      ];
+    };
+
+    touchpad = {
+      name = [
+        "ELAN067B:00 04F3:31F8 Touchpad"
+        "SYNA8016:00 06CB:CEB3 Touchpad"
+      ];
+      evdev = [
+        "/dev/touchpad"
+      ];
+    };
+
+    misc = {
+      name = [
+        "ThinkPad Extra Buttons"
+        "TPPS/2 Elan TrackPoint"
+      ];
+      evdev = [
+        "/dev/input/by-path/platform-i8042-serio-1-event-mouse"
+        "/dev/input/by-path/platform-thinkpad_acpi-event"
+      ];
+    };
+  };
 
   disks = {
     disk1.device = "/dev/nvme0n1";
@@ -59,4 +94,26 @@
       productId = "51a4";
     }
   ];
+
+  usb = {
+    internal = [
+      {
+        name = "webcam";
+        hostbus = "3";
+        hostport = "8";
+      }
+      {
+        name = "fprint-reader";
+        hostbus = "3";
+        hostport = "6";
+      }
+    ];
+    external = [
+      {
+        name = "gps-device";
+        vendorId = "067b";
+        productId = "23a3";
+      }
+    ];
+  };
 }
