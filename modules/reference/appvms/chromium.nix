@@ -1,11 +1,7 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{
-  pkgs,
-  self,
-  ...
-}: let
+{pkgs, ...}: let
   xdgPdfPort = 1200;
 in {
   name = "chromium";
@@ -35,8 +31,8 @@ in {
   ramMb = 3072;
   cores = 4;
   extraModules = [
-    self.nixosModules.reference
     {
+      imports = [../programs/chromium.nix];
       # Enable pulseaudio for Chromium VM
       security.rtkit.enable = true;
       sound.enable = true;

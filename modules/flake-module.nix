@@ -22,6 +22,7 @@
     lanzaboote.imports = [./lanzaboote];
     microvm.imports = [./microvm];
     polarfire.imports = [./polarfire];
-    reference.imports = [./reference];
+    reference-appvms.imports = [./reference/appvms];
+    reference-programs.imports = [./reference/programs];
   };
 }
