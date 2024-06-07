@@ -4,17 +4,45 @@
 {
   name = "Lenovo X1 Carbon Gen 11";
 
-  mouse = [
-    "ELAN067C:00 04F3:31F9 Mouse"
-    "SYNA8016:00 06CB:CEB3 Mouse"
-    "ELAN067B:00 04F3:31F8 Mouse"
-  ];
+  input = {
+    keyboard = {
+      name = ["AT Translated Set 2 keyboard"];
+      evdev = ["/dev/input/by-path/platform-i8042-serio-0-event-kbd"];
+    };
 
-  touchpad = [
-    "ELAN067C:00 04F3:31F9 Touchpad"
-    "SYNA8016:00 06CB:CEB3 Touchpad"
-    "ELAN067B:00 04F3:31F8 Touchpad"
-  ];
+    mouse = {
+      name = [
+        "ELAN067C:00 04F3:31F9 Mouse"
+        "SYNA8016:00 06CB:CEB3 Mouse"
+        "ELAN067B:00 04F3:31F8 Mouse"
+      ];
+      evdev = [
+        "/dev/mouse"
+      ];
+    };
+
+    touchpad = {
+      name = [
+        "ELAN067C:00 04F3:31F9 Touchpad"
+        "SYNA8016:00 06CB:CEB3 Touchpad"
+        "ELAN067B:00 04F3:31F8 Touchpad"
+      ];
+      evdev = [
+        "/dev/touchpad"
+      ];
+    };
+
+    misc = {
+      name = [
+        "ThinkPad Extra Buttons"
+        "TPPS/2 Elan TrackPoint"
+      ];
+      evdev = [
+        "/dev/input/by-path/platform-i8042-serio-1-event-mouse"
+        "/dev/input/by-path/platform-thinkpad_acpi-event"
+      ];
+    };
+  };
 
   disks = {
     disk1.device = "/dev/nvme0n1";
@@ -68,4 +96,26 @@
       productId = "51a4";
     }
   ];
+
+  usb = {
+    internal = [
+      {
+        name = "webcam";
+        hostbus = "3";
+        hostport = "8";
+      }
+      {
+        name = "fprint-reader";
+        hostbus = "3";
+        hostport = "6";
+      }
+    ];
+    external = [
+      {
+        name = "gps-device";
+        vendorId = "067b";
+        productId = "23a3";
+      }
+    ];
+  };
 }

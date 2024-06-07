@@ -20,25 +20,6 @@
 
   winConfig = configH.ghaf.windows-launcher;
 
-  guivmPCIPassthroughModule = {
-    microvm.devices = lib.mkForce (
-      builtins.map (d: {
-        bus = "pci";
-        inherit (d) path;
-      })
-      configH.ghaf.hardware.definition.gpu.pciDevices
-    );
-  };
-
-  guivmVirtioInputHostEvdevModule = {
-    microvm.qemu.extraArgs =
-      builtins.concatMap (d: [
-        "-device"
-        "virtio-input-host-pci,evdev=${d}"
-      ])
-      configH.ghaf.hardware.definition.virtioInputHostEvdevs;
-  };
-
   guivmExtraConfigurations = {
     ghaf = {
       profiles.graphics.compositor = "labwc";
@@ -179,22 +160,12 @@
     # Open TCP port for the PDF XDG socket.
     networking.firewall.allowedTCPPorts = [xdgPdfPort];
 
-    microvm.qemu = {
-      extraArgs =
-        [
-          # Lenovo X1 Lid button
-          "-device"
-          "button"
-          # Lenovo X1 battery
-          "-device"
-          "battery"
-          # Lenovo X1 AC adapter
-          "-device"
-          "acad"
-        ]
-        ++ lib.optionals configH.ghaf.hardware.fprint.enable configH.ghaf.hardware.fprint.qemuExtraArgs;
-    };
+    microvm.qemu.extraArgs =
+      configH.ghaf.hardware.passthrough.guivmQemuExtraArgs
+      ++ lib.optionals configH.ghaf.services.fprint.enable configH.ghaf.services.fprint.qemuExtraArgs;
   };
+
+  inherit (configH.ghaf.hardware.passthrough) guivmPCIPassthroughModule guivmVirtioInputHostEvdevModule;
 in
   [
     guivmPCIPassthroughModule
@@ -202,4 +173,4 @@ in
     guivmExtraConfigurations
     self.nixosModules.reference-programs
   ]
-  ++ lib.optionals configH.ghaf.hardware.fprint.enable [configH.ghaf.hardware.fprint.extraConfigurations]
+  ++ lib.optionals configH.ghaf.services.fprint.enable [configH.ghaf.services.fprint.extraConfigurations]

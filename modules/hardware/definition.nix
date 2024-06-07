@@ -40,6 +40,68 @@ in {
         };
       };
     };
+
+    # USB device submodule, defined either by product ID and vendor ID, or by bus and port number
+    usbDevSubmodule = types.submodule {
+      options = {
+        name = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            USB device name. NOT optional for external devices, in which case it must not contain spaces
+            or extravagant characters.
+          '';
+        };
+        vendorId = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            USB Vendor ID (optional). If this is set, the productId must also be set.
+          '';
+        };
+        productId = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            USB Product ID (optional). If this is set, the vendorId must also be set.
+          '';
+        };
+        hostbus = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            USB device bus number (optional). If this is set, the hostport must also be set.
+          '';
+        };
+        hostport = mkOption {
+          type = types.nullOr types.str;
+          default = null;
+          description = ''
+            USB device device number (optional). If this is set, the hostbus must also be set.
+          '';
+        };
+      };
+    };
+
+    # Input devices submodule
+    inputDevSubmodule = types.submodule {
+      options = {
+        name = mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = ''
+
+          '';
+        };
+        evdev = mkOption {
+          type = types.listOf types.str;
+          default = [];
+          description = ''
+
+          '';
+        };
+      };
+    };
   in {
     name = mkOption {
       description = "Name of the hardware";
@@ -47,16 +109,30 @@ in {
       default = "";
     };
 
-    mouse = mkOption {
-      description = "Name of the mouse device(s)";
-      type = types.listOf types.str;
-      default = [];
-    };
+    input = {
+      keyboard = mkOption {
+        description = "Name of the keyboard device(s)";
+        type = inputDevSubmodule;
+        default = {};
+      };
 
-    touchpad = mkOption {
-      description = "Name of the touchpad device(s)";
-      type = types.listOf types.str;
-      default = [];
+      mouse = mkOption {
+        description = "Name of the mouse device(s)";
+        type = inputDevSubmodule;
+        default = {};
+      };
+
+      touchpad = mkOption {
+        description = "Name of the touchpad device(s)";
+        type = inputDevSubmodule;
+        default = {};
+      };
+
+      misc = mkOption {
+        description = "Name of the misc device(s)";
+        type = inputDevSubmodule;
+        default = {};
+      };
     };
 
     network = {
@@ -113,23 +189,6 @@ in {
       };
     };
 
-    virtioInputHostEvdevs = mkOption {
-      description = ''
-        List of input device files to passthrough to GuiVM using
-        "-device virtio-input-host-pci,evdev=" QEMU command line argument.
-      '';
-      type = types.listOf types.str;
-      default = [];
-      example = literalExpression ''
-        [
-          "evdev=/dev/input/by-path/platform-i8042-serio-0-event-kbd"
-          "evdev=/dev/mouse"
-          "evdev=/dev/touchpad"
-          "evdev=/dev/input/by-path/platform-i8042-serio-1-event-mouse"
-        ]
-      '';
-    };
-
     udevRules = mkOption {
       description = ''
         Definition of required udev rules.
@@ -171,6 +230,58 @@ in {
               path = "0000:00:1f.5";
               vendorId = "8086";
               productId = "51a4";
+            }
+          ]
+        '';
+      };
+    };
+
+    usb = {
+      internal = mkOption {
+        description = ''
+          Internal USB device(s) to passthrough.
+
+          Each device definition requires a name, and either vendorId and productId, or hostbus and hostport.
+          The latter is useful for addressing devices that may have different vendor and product IDs in the
+          same hardware generation.
+
+          Note that internal devices must follow the naming convention to be correctly identified
+          and subsequently used. Current special names are:
+            - 'webcam' for the internal webcam device
+            - 'fprint-reader' for the internal fingerprint reader device
+        '';
+        type = types.listOf usbDevSubmodule;
+        default = [];
+        example = literalExpression ''
+          [
+            {
+              name = "webcam";
+              vendorId = "0123";
+              productId = "0123";
+            }
+            {
+              name = "fprint-reader";
+              hostbus = "3";
+              hostport = "3";
+            }
+          ]
+        '';
+      };
+      external = mkOption {
+        description = "External USB device(s) to passthrough. Requires name, vendorId, and productId.";
+        type = types.listOf usbDevSubmodule;
+        default = [];
+        example = literalExpression ''
+          [
+            {
+              name = "external-device-1";
+              vendorId = "0123";
+              productId = "0123";
+            }
+            {
+              name = "external-device-2";
+              vendorId = "0123";
+              productId = "0123";
             }
           ]
         '';

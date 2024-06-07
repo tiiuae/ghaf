@@ -8,16 +8,6 @@
   configH,
   ...
 }: let
-  netvmPCIPassthroughModule = {
-    microvm.devices = lib.mkForce (
-      builtins.map (d: {
-        bus = "pci";
-        inherit (d) path;
-      })
-      configH.ghaf.hardware.definition.network.pciDevices
-    );
-  };
-
   netvmAdditionalConfig = let
     externalNic = let
       firstPciWifiDevice = lib.head configH.ghaf.hardware.definition.network.pciDevices;
@@ -113,4 +103,5 @@
       serverIpAddr = "${element-vmIp}";
     };
   };
+  inherit (configH.ghaf.hardware.passthrough) netvmPCIPassthroughModule;
 in [netvmPCIPassthroughModule netvmAdditionalConfig]

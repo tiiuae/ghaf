@@ -89,7 +89,14 @@
                 inherit generation;
                 x86_64.common.enable = true;
                 tpm2.enable = true;
+                usb.internal.enable = true;
+                usb.external.enable = true;
+              };
+
+              # Service options
+              services = {
                 fprint.enable = true;
+                dendrite-pinecone.enable = true;
               };
 
               reference.appvms = {
@@ -155,8 +162,6 @@
                 networking.enable = true;
                 powercontrol.enable = true;
               };
-              # dendrite-pinecone service is enabled
-              services.dendrite-pinecone.enable = true;
 
               # UI applications
               profiles = {

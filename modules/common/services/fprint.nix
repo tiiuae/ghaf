@@ -6,38 +6,31 @@
   pkgs,
   ...
 }: let
-  cfg = config.ghaf.hardware.fprint;
+  cfg = config.ghaf.services.fprint;
   inherit (lib) mkEnableOption mkOption types mkIf;
 in {
-  options.ghaf.hardware.fprint = {
+  options.ghaf.services.fprint = {
     enable = mkEnableOption "Enable fingerprint reader support";
     qemuExtraArgs = mkOption {
       type = types.listOf types.str;
       default = [];
       description = ''
-        Extra arguments to pass to Qemu when enabling the fingerprint reader.
-        This is useful for passing USB device information to Qemu.
+        Extra arguments to pass to qemu when enabling the fingerprint reader.
       '';
     };
     extraConfigurations = mkOption {
       type = types.attrsOf types.anything;
       default = {};
       description = ''
-        Extra configurations to enable when enabling the fingerprint reader.
-        This is useful for enabling services and packages related to the fingerprint reader.
+        Extra configurations when enabling the fingerprint reader in a guest.
       '';
     };
   };
 
   config = mkIf cfg.enable {
-    ghaf.hardware.fprint = {
-      qemuExtraArgs = [
-        # Fingerprint reader
-        "-device"
-        "qemu-xhci"
-        "-device"
-        "usb-host,hostbus=3,hostport=6"
-      ];
+    ghaf.services.fprint = {
+      # Use qemu arguments generated for the device
+      qemuExtraArgs = config.ghaf.hardware.usb.internal.qemuExtraArgs.fprint-reader;
 
       extraConfigurations = {
         # Enable service and package for fingerprint reader

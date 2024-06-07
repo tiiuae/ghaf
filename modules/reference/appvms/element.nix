@@ -3,6 +3,7 @@
 #
 {
   pkgs,
+  lib,
   config,
   ...
 }: let
@@ -86,18 +87,7 @@ in {
         extraArgs = ["-n"]; # Do not wait for a client to connect before polling
       };
 
-      microvm.qemu.extraArgs = [
-        # Note: If you want to enable integrated camera in element-vm,
-        # remove enabling camera line from chromium-vm
-        # Lenovo X1 integrated usb webcam
-        "-device"
-        "qemu-xhci"
-        "-device"
-        "usb-host,hostbus=3,hostport=8"
-        # External USB GPS receiver
-        "-device"
-        "usb-host,vendorid=0x067b,productid=0x23a3"
-      ];
+      microvm.qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.external.enable config.ghaf.hardware.usb.external.qemuExtraArgs.gps-device;
     }
   ];
   borderColor = "#337aff";

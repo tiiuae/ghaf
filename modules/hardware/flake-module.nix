@@ -6,6 +6,7 @@ _: {
       ./definition.nix
       ./x86_64-generic
       ./lenovo-x1
+      ./common
     ];
     hw-x86_64-generic.imports = [
       ./definition.nix
