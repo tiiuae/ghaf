@@ -1,19 +1,15 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{
-  pkgs,
-  self,
-  ...
-}: {
+{pkgs, ...}: {
   name = "zathura";
   packages = [pkgs.zathura];
   macAddress = "02:00:00:03:07:01";
   ramMb = 512;
   cores = 1;
   extraModules = [
-    self.nixosModules.reference
     {
+      imports = [../programs/zathura.nix];
       time.timeZone = "Asia/Dubai";
       ghaf.programs.zathura.enable = true;
     }

@@ -46,6 +46,7 @@
           self.nixosModules.host
           self.nixosModules.microvm
           self.nixosModules.hw-x86_64-generic
+          self.nixosModules.reference-programs
 
           {
             ghaf = {

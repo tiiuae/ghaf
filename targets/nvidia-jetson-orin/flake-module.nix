@@ -52,6 +52,7 @@
           self.nixosModules.jetpack
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
+          self.nixosModules.reference-programs
 
           {
             ghaf = {

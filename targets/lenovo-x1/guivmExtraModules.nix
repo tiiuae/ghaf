@@ -200,6 +200,6 @@ in
     guivmPCIPassthroughModule
     guivmVirtioInputHostEvdevModule
     guivmExtraConfigurations
-    self.nixosModules.reference
+    self.nixosModules.reference-programs
   ]
   ++ lib.optionals configH.ghaf.hardware.fprint.enable [configH.ghaf.hardware.fprint.extraConfigurations]

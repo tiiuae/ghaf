@@ -22,7 +22,8 @@
           self.nixosModules.host
           self.nixosModules.lanzaboote
           self.nixosModules.microvm
-          self.nixosModules.reference
+          self.nixosModules.reference-appvms
+          self.nixosModules.reference-programs
 
           ({
             pkgs,
@@ -91,6 +92,15 @@
                 fprint.enable = true;
               };
 
+              reference.appvms = {
+                enable = true;
+                chromium-vm = true;
+                gala-vm = true;
+                zathura-vm = true;
+                element-vm = true;
+                appflowy-vm = true;
+              };
+
               # Virtualization options
               virtualization = {
                 microvm-host = {
@@ -136,7 +146,7 @@
 
                   appvm = {
                     enable = true;
-                    vms = import ./appvms/default.nix {inherit pkgs lib config self;};
+                    vms = config.ghaf.reference.appvms.enabled-app-vms;
                   };
                 };
               };
