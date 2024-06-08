@@ -31,51 +31,12 @@
             ...
           }: let
             powerControl = pkgs.callPackage ../../packages/powercontrol {};
-
-            # TODO: Move this to a separate function in self.lib
-            filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
-            mapPciIdsToString = builtins.map (d: "${d.vendorId}:${d.productId}");
-            vfioPciIds = mapPciIdsToString (filterDevices (
-              config.ghaf.hardware.definition.network.pciDevices
-              ++ config.ghaf.hardware.definition.gpu.pciDevices
-              ++ config.ghaf.hardware.definition.audio.pciDevices
-            ));
           in {
-            boot = {
-              kernelParams = [
-                "intel_iommu=on,sm_on"
-                "iommu=pt"
-                # Prevent i915 module from being accidentally used by host
-                "module_blacklist=i915"
-                "acpi_backlight=vendor"
-                # Enable VFIO for PCI devices
-                "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
-              ];
-
-              initrd.availableKernelModules = ["nvme"];
-            };
-
             security.polkit = {
               enable = true;
               extraConfig = powerControl.polkitExtraConfig;
             };
             time.timeZone = "Asia/Dubai";
-
-            systemd.services."microvm@audio-vm".serviceConfig = {
-              # The + here is a systemd feature to make the script run as root.
-              ExecStopPost = [
-                "+${pkgs.writeShellScript "reload-audio" ''
-                  # The script makes audio device internal state to reset
-                  # This fixes issue of audio device getting into some unexpected
-                  # state when the VM is being shutdown during audio mic recording
-                  echo "1" > /sys/bus/pci/devices/0000:00:1f.3/remove
-                  sleep 0.1
-                  echo "1" > /sys/bus/pci/devices/0000:00:1f.0/rescan
-                ''}"
-              ];
-            };
-
-            disko.devices.disk = config.ghaf.hardware.definition.disks;
 
             ghaf = {
               # variant type, turn on debug or release
@@ -145,10 +106,7 @@
 
                   audiovm = {
                     enable = true;
-                    extraModules = import ./audiovmExtraModules.nix {
-                      inherit lib pkgs microvm;
-                      configH = config;
-                    };
+                    extraModules = [config.ghaf.hardware.passthrough.audiovmPCIPassthroughModule];
                   };
 
                   appvm = {

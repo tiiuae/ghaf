@@ -6,6 +6,15 @@
   ...
 }: let
   inherit (lib) mkOption types mkForce;
+
+  # PCI device passthroughs for vfio
+  filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
+  mapPciIdsToString = builtins.map (d: "${d.vendorId}:${d.productId}");
+  vfioPciIds = mapPciIdsToString (filterDevices (
+    config.ghaf.hardware.definition.network.pciDevices
+    ++ config.ghaf.hardware.definition.gpu.pciDevices
+    ++ config.ghaf.hardware.definition.audio.pciDevices
+  ));
 in {
   options.ghaf.hardware.passthrough = {
     netvmPCIPassthroughModule = mkOption {
@@ -99,6 +108,13 @@ in {
         # AC adapter
         "-device"
         "acad"
+      ];
+    };
+
+    # Enable VFIO for PCI devices
+    boot = {
+      kernelParams = [
+        "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
       ];
     };
   };

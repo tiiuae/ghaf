@@ -2,16 +2,24 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
+  config,
   pkgs,
-  configH,
+  lib,
   ...
 }: let
-  # TCP port used by Pipewire-pulseaudio service
-  pulseaudioTcpPort = 4713;
+  cfg = config.ghaf.services.audio;
+  inherit (lib) mkIf mkEnableOption mkOption types;
+in {
+  options.ghaf.services.audio = {
+    enable = mkEnableOption "Enable audio service for audio VM";
+    pulseaudioTcpPort = mkOption {
+      type = types.int;
+      default = 4713;
+      description = "TCP port used by Pipewire-pulseaudio service";
+    };
+  };
 
-  audiovmExtraConfigurations = {
-    time.timeZone = "Asia/Dubai";
-
+  config = mkIf cfg.enable {
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
     sound.enable = true;
@@ -70,19 +78,6 @@
     };
 
     # Open TCP port for the PDF XDG socket
-    networking.firewall.allowedTCPPorts = [pulseaudioTcpPort];
-
-    microvm = {
-      qemu.extraArgs = [
-      ];
-      kernelParams = [
-        "snd_intel_dspcfg.dsp_driver=3"
-        "snd_sof_intel_hda_common.dmic_num=4"
-      ];
-    };
+    networking.firewall.allowedTCPPorts = [cfg.pulseaudioTcpPort];
   };
-  inherit (configH.ghaf.hardware.passthrough) audiovmPCIPassthroughModule;
-in [
-  audiovmPCIPassthroughModule
-  audiovmExtraConfigurations
-]
+}

@@ -19,6 +19,7 @@ in {
   };
 
   config = {
+    # Hardware definition
     ghaf.hardware.definition = {
       inherit (hwDefinition) input;
       inherit (hwDefinition) disks;
@@ -28,8 +29,22 @@ in {
       inherit (hwDefinition) usb;
     };
 
+    # Disk configuration
     disko.devices.disk = hwDefinition.disks;
 
+    # Hardware specific kernel parameters
+    boot = {
+      kernelParams = [
+        "intel_iommu=on,sm_on"
+        "iommu=pt"
+        # Prevent i915 module from being accidentally used by host
+        "module_blacklist=i915"
+        "acpi_backlight=vendor"
+        "acpi_osi=linux"
+      ];
+    };
+
+    # Host udev rules
     services.udev.extraRules = ''
       # Keyboard
       ${lib.strings.concatMapStringsSep "\n" (d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", GROUP="kvm"'') hwDefinition.input.keyboard.name}
