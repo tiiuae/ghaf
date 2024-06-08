@@ -234,6 +234,17 @@ in {
           ]
         '';
       };
+      kernelParams = mkOption {
+        description = "Hardware specific kernel parameters for audio devices";
+        type = types.listOf types.str;
+        default = [];
+        example = literalExpression ''
+          [
+            "snd_intel_dspcfg.dsp_driver=3"
+            "snd_sof_intel_hda_common.dmic_num=4"
+          ]
+        '';
+      };
     };
 
     usb = {

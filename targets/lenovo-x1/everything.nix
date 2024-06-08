@@ -106,7 +106,10 @@
 
                   audiovm = {
                     enable = true;
-                    extraModules = [config.ghaf.hardware.passthrough.audiovmPCIPassthroughModule];
+                    extraModules = [
+                      config.ghaf.hardware.passthrough.audiovmPCIPassthroughModule
+                      config.ghaf.hardware.passthrough.audiovmKernelParams
+                    ];
                   };
 
                   appvm = {
