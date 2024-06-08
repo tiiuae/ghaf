@@ -52,6 +52,13 @@ in {
         Extra arguments to pass to qemu when enabling the guivm.
       '';
     };
+    audiovmKernelParams = mkOption {
+      type = types.attrsOf types.anything;
+      default = {};
+      description = ''
+        Sound hardware specific kernel parameters to configure audiovm.
+      '';
+    };
   };
 
   config = {
@@ -109,6 +116,12 @@ in {
         "-device"
         "acad"
       ];
+
+      audiovmKernelParams = {
+        microvm = {
+          inherit (config.ghaf.hardware.definition.audio) kernelParams;
+        };
+      };
     };
 
     # Enable VFIO for PCI devices

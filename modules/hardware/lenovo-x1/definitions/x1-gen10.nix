@@ -68,32 +68,38 @@
   # With the current implementation, the whole PCI IOMMU group 13:
   #   00:1f.x in the Lenovo X1 Carbon 10 gen
   #   must be defined for passthrough to AudioVM
-  audio.pciDevices = [
-    {
-      # ISA bridge: Intel Corporation Alder Lake PCH eSPI Controller(rev 01)
-      path = "0000:00:1f.0";
-      vendorId = "8086";
-      productId = "5182";
-    }
-    {
-      # Audio device: Intel Corporation Alder Lake PCH-P High Definition Audio Controller (rev 01)
-      path = "0000:00:1f.3";
-      vendorId = "8086";
-      productId = "51c8";
-    }
-    {
-      # SMBus: Intel Corporation Alder Lake PCH-P SMBus Host Controller (rev 01)
-      path = "0000:00:1f.4";
-      vendorId = "8086";
-      productId = "51a3";
-    }
-    {
-      # Serial bus controller: Intel Corporation Alder Lake-P PCH SPI Controller (rev 01)
-      path = "0000:00:1f.5";
-      vendorId = "8086";
-      productId = "51a4";
-    }
-  ];
+  audio = {
+    pciDevices = [
+      {
+        # ISA bridge: Intel Corporation Alder Lake PCH eSPI Controller(rev 01)
+        path = "0000:00:1f.0";
+        vendorId = "8086";
+        productId = "5182";
+      }
+      {
+        # Audio device: Intel Corporation Alder Lake PCH-P High Definition Audio Controller (rev 01)
+        path = "0000:00:1f.3";
+        vendorId = "8086";
+        productId = "51c8";
+      }
+      {
+        # SMBus: Intel Corporation Alder Lake PCH-P SMBus Host Controller (rev 01)
+        path = "0000:00:1f.4";
+        vendorId = "8086";
+        productId = "51a3";
+      }
+      {
+        # Serial bus controller: Intel Corporation Alder Lake-P PCH SPI Controller (rev 01)
+        path = "0000:00:1f.5";
+        vendorId = "8086";
+        productId = "51a4";
+      }
+    ];
+    kernelParams = [
+      "snd_intel_dspcfg.dsp_driver=3"
+      "snd_sof_intel_hda_common.dmic_num=4"
+    ];
+  };
 
   usb = {
     internal = [
