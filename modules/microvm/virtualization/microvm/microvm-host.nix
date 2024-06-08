@@ -31,5 +31,20 @@ in {
       withDebug = config.ghaf.profiles.debug.enable;
       withHardenedConfigs = true;
     };
+
+    # TODO: remove hardcoded paths
+    systemd.services."microvm@audio-vm".serviceConfig = lib.optionalAttrs config.ghaf.virtualization.microvm.audiovm.enable {
+      # The + here is a systemd feature to make the script run as root.
+      ExecStopPost = [
+        "+${pkgs.writeShellScript "reload-audio" ''
+          # The script makes audio device internal state to reset
+          # This fixes issue of audio device getting into some unexpected
+          # state when the VM is being shutdown during audio mic recording
+          echo "1" > /sys/bus/pci/devices/0000:00:1f.3/remove
+          sleep 0.1
+          echo "1" > /sys/bus/pci/devices/0000:00:1f.0/rescan
+        ''}"
+      ];
+    };
   };
 }

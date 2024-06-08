@@ -19,6 +19,7 @@
         pkgs,
         ...
       }: {
+        time.timeZone = "Asia/Dubai";
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
           profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
@@ -36,6 +37,7 @@
             withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
+          services.audio.enable = true;
         };
 
         environment = {
@@ -66,6 +68,13 @@
             }
           ];
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+
+          # TODO: Move this to a hardware specific place
+          kernelParams = [
+            "snd_intel_dspcfg.dsp_driver=3"
+            "snd_sof_intel_hda_common.dmic_num=4"
+          ];
+          ###########################
           qemu = {
             machine =
               {
