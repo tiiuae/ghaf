@@ -109,6 +109,23 @@ in {
       default = "";
     };
 
+    generic = {
+      kernelParams = mkOption {
+        description = "Hardware specific kernel parameters for the host";
+        type = types.listOf types.str;
+        default = [];
+        example = literalExpression ''
+          [
+            "intel_iommu=on,sm_on"
+            "iommu=pt"
+            "module_blacklist=i915"
+            "acpi_backlight=vendor"
+            "acpi_osi=linux"
+          ]
+        '';
+      };
+    };
+
     input = {
       keyboard = mkOption {
         description = "Name of the keyboard device(s)";
