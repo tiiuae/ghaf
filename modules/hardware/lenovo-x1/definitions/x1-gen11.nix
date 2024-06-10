@@ -4,6 +4,16 @@
 {
   name = "Lenovo X1 Carbon Gen 11";
 
+  generic = {
+    kernelParams = [
+      "intel_iommu=on,sm_on"
+      "iommu=pt"
+      "module_blacklist=i915" # Prevent i915 module from being accidentally used by host
+      "acpi_backlight=vendor"
+      "acpi_osi=linux"
+    ];
+  };
+
   input = {
     keyboard = {
       name = ["AT Translated Set 2 keyboard"];

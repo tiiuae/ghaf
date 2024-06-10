@@ -7,20 +7,22 @@
   ...
 }: let
   hwDefinition = import (./. + "/definitions/x1-${config.ghaf.hardware.generation}.nix");
+  inherit (lib) mkOption types;
 in {
   imports = [
     ../definition.nix
   ];
 
-  options.ghaf.hardware.generation = lib.mkOption {
+  options.ghaf.hardware.generation = mkOption {
     description = "Generation of the hardware configuration";
-    type = lib.types.str;
-    default = "gen11";
+    type = types.nullOr types.str;
+    default = null;
   };
 
   config = {
     # Hardware definition
     ghaf.hardware.definition = {
+      inherit (hwDefinition) generic;
       inherit (hwDefinition) input;
       inherit (hwDefinition) disks;
       inherit (hwDefinition) network;
@@ -34,14 +36,7 @@ in {
 
     # Hardware specific kernel parameters
     boot = {
-      kernelParams = [
-        "intel_iommu=on,sm_on"
-        "iommu=pt"
-        # Prevent i915 module from being accidentally used by host
-        "module_blacklist=i915"
-        "acpi_backlight=vendor"
-        "acpi_osi=linux"
-      ];
+      inherit (hwDefinition.generic) kernelParams;
     };
 
     # Host udev rules
