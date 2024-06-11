@@ -121,6 +121,7 @@ in {
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
+      restartIfChanged = false;
       config =
         netvmBaseConfiguration
         // {
