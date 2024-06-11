@@ -3,6 +3,7 @@
 {
   imports = [
     ./sshkeys.nix
-     ./apparmor
+    ./apparmor
+    ./clamav
   ];
 }
