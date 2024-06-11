@@ -8,5 +8,6 @@
     ./fail2ban
     ./firejail
     ./networking.nix
+    ./system.nix
   ];
 }
