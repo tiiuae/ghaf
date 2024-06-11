@@ -5,5 +5,6 @@
     ./sshkeys.nix
     ./apparmor
     ./clamav
+ ./fail2ban
   ];
 }
