@@ -5,6 +5,7 @@
     ./sshkeys.nix
     ./apparmor
     ./clamav
- ./fail2ban
+    ./fail2ban
+    ./firejail
   ];
 }
