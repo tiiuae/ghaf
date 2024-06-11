@@ -3,7 +3,7 @@
 # Example to create a bios compatible gpt partition
 # To use this example, you will need to specify a device i.e.
 #   { disko.devices.disk1.device = "/dev/sda"; }
-{
+{pkgs, ...}: {
   disko.devices = {
     disk.disk1 = {
       type = "disk";
@@ -59,5 +59,11 @@
       };
     };
   };
-  disko.memSize = 2048;
+  disko = {
+    memSize = 2048;
+    extraPostVM = ''
+      ${pkgs.zstd}/bin/zstd --compress $out/*raw
+      rm $out/*raw
+    '';
+  };
 }
