@@ -7,5 +7,6 @@
     ./clamav
     ./fail2ban
     ./firejail
+    ./networking.nix
   ];
 }
