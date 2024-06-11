@@ -28,7 +28,7 @@ read -r -p "Device name [e.g. /dev/nvme0n1]: " DEVICE_NAME
 read -r -p 'WARNING: Next command will destroy all previous data from your device, press Enter to proceed. '
 
 echo "Installing..."
-dd if=@imagePath@ of="${DEVICE_NAME}" bs=32M status=progress
+zstdcat @imagePath@ | dd of="${DEVICE_NAME}" bs=32M status=progress
 
 echo ""
 echo "Installation done. Please remove the installation media and reboot"

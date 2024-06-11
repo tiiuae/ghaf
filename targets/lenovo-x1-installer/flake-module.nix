@@ -10,7 +10,7 @@
   name = "lenovo-x1-carbon";
   system = "x86_64-linux";
   installer = generation: variant: let
-    imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw";
+    imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw.zst";
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules = [
@@ -38,6 +38,8 @@
           environment.systemPackages = [
             installScript
           ];
+
+          isoImage.squashfsCompression = "zstd -Xcompression-level 3";
 
           # NOTE: Stop nixos complains about "warning:
           # mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
