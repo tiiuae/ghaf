@@ -83,5 +83,18 @@ in {
         };
       };
     };
+    # Enable host store for fingerprints
+    ghaf.services.storage.shares = [
+      {
+        tag = "fprint-store";
+        host-path = "/var/lib/fprint";
+        vm-path = "/var/lib/fprint";
+        target-vm = "gui-vm";
+        target-owner = "root";
+        target-group = "root";
+        target-permissions = "600";
+        target-service = "fprintd.service";
+      }
+    ];
   };
 }

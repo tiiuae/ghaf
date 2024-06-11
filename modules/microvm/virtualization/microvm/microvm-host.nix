@@ -8,6 +8,9 @@
 }: let
   cfg = config.ghaf.virtualization.microvm-host;
 in {
+  imports = [
+    ./host/storage.nix
+  ];
   options.ghaf.virtualization.microvm-host = {
     enable = lib.mkEnableOption "MicroVM Host";
     networkSupport = lib.mkEnableOption "Network support services to run host applications.";

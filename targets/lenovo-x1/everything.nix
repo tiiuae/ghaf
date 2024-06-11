@@ -96,6 +96,7 @@
               # Service options
               services = {
                 fprint.enable = true;
+                storage.enable = true;
                 dendrite-pinecone.enable = true;
               };
 
