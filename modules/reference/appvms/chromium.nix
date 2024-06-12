@@ -55,7 +55,7 @@ in {
         '';
       };
 
-      time.timeZone = "Asia/Dubai";
+      time.timeZone = config.time.timeZone;
 
       microvm.qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.internal.enable config.ghaf.hardware.usb.internal.qemuExtraArgs.webcam;
       microvm.devices = [];
