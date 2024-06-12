@@ -76,7 +76,7 @@ in {
         firewall.allowedUDPPorts = [dendrite-pinecone.McastUdpPortInt];
       };
 
-      time.timeZone = "${config.time.timeZone}";
+      time.timeZone = config.time.timeZone;
 
       services.gpsd = {
         enable = true;

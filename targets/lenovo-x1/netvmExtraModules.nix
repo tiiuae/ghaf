@@ -93,7 +93,7 @@
       systemPackages = lib.mkIf configH.ghaf.profiles.debug.enable [pkgs.wifi-connector-nmcli pkgs.tcpdump];
     };
 
-    time.timeZone = "Asia/Dubai";
+    time.timeZone = configH.time.timeZone;
 
     ghaf.services.dendrite-pinecone = {
       enable = true;

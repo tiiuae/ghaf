@@ -119,7 +119,7 @@
       };
     };
 
-    time.timeZone = "Asia/Dubai";
+    time.timeZone = configH.time.timeZone;
 
     # PDF XDG handler service receives a PDF file path from the chromium-vm and executes the openpdf script
     systemd.user = {
