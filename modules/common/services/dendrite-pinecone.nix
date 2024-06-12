@@ -78,28 +78,20 @@ in {
     environment.systemPackages = [pkgs.smcroute];
     systemd.services."smcroute" = {
       description = "Static Multicast Routing daemon";
-      bindsTo = ["sys-subsystem-net-devices-${cfg.externalNic}.device"];
-      after = ["sys-subsystem-net-devices-${cfg.externalNic}.device"];
       preStart = ''
-              configContent=$(cat <<EOF
+              configContent="$(cat <<EOF)"
         mgroup from ${cfg.externalNic} group ${dendrite-pineconePkg.McastUdpIp}
         mgroup from ${cfg.internalNic} group ${dendrite-pineconePkg.McastUdpIp}
         mroute from ${cfg.externalNic} group ${dendrite-pineconePkg.McastUdpIp} to ${cfg.internalNic}
         mroute from ${cfg.internalNic} group ${dendrite-pineconePkg.McastUdpIp} to ${cfg.externalNic}
-        EOF
-        )
-        filePath="/etc/smcroute.conf"
-        touch $filePath
-          chmod 200 $filePath
-          echo "$configContent" > $filePath
-          chmod 400 $filePath
+EOF
+              filePath="/etc/smcroute.conf"
+              touch $filePath
+              chmod 200 $filePath
+              echo "$configContent" > $filePath
+              chmod 400 $filePath
 
-        # wait until ${cfg.externalNic} has an ip
-        while [ -z "$ip" ]; do
-         ip=$(${pkgs.nettools}/bin/ifconfig ${cfg.externalNic} | ${pkgs.gawk}/bin/awk '/inet / {print $2}')
-              [ -z "$ip" ] && ${pkgs.coreutils}/bin/sleep 1
-        done
-        exit 0
+              exit 0
       '';
 
       serviceConfig = {
@@ -115,7 +107,6 @@ in {
         # Wait a second before restarting.
         RestartSec = "5s";
       };
-      wantedBy = ["multi-user.target"];
     };
 
     networking = {
@@ -152,6 +143,13 @@ in {
         # Accept forwarding
         iptables -A FORWARD -j ACCEPT
       ";
+      networkmanager.dispatcherScripts = [
+        { source = pkgs.writeScript "99smcroute" ''
+          if test "$2" = "up" && test "$1" = "${cfg.externalNic}"; then
+            systemctl start smcroute
+          fi
+        ''; }
+      ];
     };
   };
 }
