@@ -64,7 +64,7 @@
       path = "0000:00:14.3";
       vendorId = "8086";
       productId = "51f1";
-      name = "wlp0s5f0";
+      name = "wls8";
     }
   ];
 
