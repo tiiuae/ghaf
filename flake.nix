@@ -156,6 +156,7 @@
         ./packages/flake-module.nix
         ./targets/flake-module.nix
         ./hydrajobs/flake-module.nix
+        ./tests/flake-module.nix
         ./templates/flake-module.nix
         inputs.flake-root.flakeModule
         inputs.treefmt-nix.flakeModule
