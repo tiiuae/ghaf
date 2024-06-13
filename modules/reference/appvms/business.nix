@@ -32,7 +32,6 @@ in
     in
     [
       pkgs.chromium
-      pkgs.pulseaudio
       pkgs.xdg-utils
       xdgPdfItem
       xdgOpenPdf
@@ -46,26 +45,7 @@ in
   cores = 4;
   extraModules = [
     {
-      imports = [ ../programs/chromium.nix ];
-      # Enable pulseaudio for Chromium VM
-      security.rtkit.enable = true;
-      users.extraUsers.ghaf.extraGroups = [
-        "audio"
-        "video"
-      ];
-
-      hardware.pulseaudio = {
-        enable = true;
-        extraConfig = ''
-          load-module module-tunnel-sink sink_name=chromium-speaker server=audio-vm:4713 format=s16le channels=2 rate=48000
-          load-module module-tunnel-source source_name=chromium-mic server=audio-vm:4713 format=s16le channels=1 rate=48000
-
-          # Set sink and source default max volume to about 90% (0-65536)
-          set-sink-volume chromium-speaker 60000
-          set-source-volume chromium-mic 60000
-        '';
-      };
-
+      imports = [../programs/chromium.nix];
       time.timeZone = config.time.timeZone;
 
       microvm = {
@@ -279,5 +259,6 @@ in
     }
   ];
   borderColor = "#00FF00";
+  ghafAudio = true;
   vtpm.enable = true;
 }

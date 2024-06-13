@@ -43,7 +43,7 @@ in
                 # Enable TCP socket for VMs pulseaudio clients
                 "server.address" = [
                   {
-                    address = "tcp:4713";
+                    address = "tcp:${toString cfg.pulseaudioTcpPort}";
                     "client.access" = "unrestricted";
                   }
                 ];
@@ -59,12 +59,6 @@ in
         };
       };
     };
-
-    hardware.pulseaudio.extraConfig = ''
-      # Set sink and source default max volume to about 75% (0-65536)
-      set-sink-volume @DEFAULT_SINK@ 48000
-      set-source-volume @DEFAULT_SOURCE@ 48000
-    '';
 
     # Allow ghaf user to access pulseaudio and pipewire
     users.extraUsers.ghaf.extraGroups = [

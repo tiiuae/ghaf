@@ -100,6 +100,7 @@ let
               (rmDesktopEntries [
                 pkgs.waypipe
                 pkgs.networkmanagerapplet
+                pkgs.myxer
               ])
               ++ [
                 pkgs.nm-launcher

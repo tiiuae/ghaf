@@ -93,7 +93,64 @@ let
                 runWaypipe
                 pkgs.tpm2-tools
                 pkgs.opensc
-              ];
+                pkgs.pipewire
+              ]
+              ++ (lib.optional (
+                  config.ghaf.profiles.debug.enable )
+                    pkgs.pulseaudio );
+
+              security.rtkit.enable = vm.ghafAudio;
+              users.extraUsers.ghaf.extraGroups =
+                lib.optionals vm.ghafAudio ["audio" "video"];
+
+              services.pipewire = lib.mkIf vm.ghafAudio {
+                enable = true;
+                pulse.enable = true;
+                extraConfig = {
+                  pipewire."10-remote-audio-tunnel-source" = {
+                    "context.modules" = [
+                      {
+                        name = "libpipewire-module-pulse-tunnel";
+                        args = {
+                          "tunnel.mode" = "source";
+                          "pulse.server.address" = "tcp:audio-vm:4713";
+                          "reconnect.interval.ms" = "1000";
+                          "stream.props" = ''
+                            "node.name" = "${vm.name}.mic"
+                            "node.description" = "${vm.name} Microphone"
+                            "media.icon" = "${pkgs.icon-pack}/${vm.name}.svg"
+                            "node.autoconnect" = "true"
+                          '';
+                        };
+                      }
+                    ];
+                  };
+                  pipewire."11-remote-audio-tunnel-sink" = {
+                    "context.modules" = [
+                      {
+                        name = "libpipewire-module-pulse-tunnel";
+                        args = {
+                          "tunnel.mode" = "sink";
+                          "pulse.server.address" = "tcp:audio-vm:4713";
+                          "reconnect.interval.ms" = "1000";
+                          "stream.props" = ''
+                            "node.name" = "${vm.name}.speaker"
+                            "node.description" = "${vm.name} Speaker"
+                            "media.icon" = "${pkgs.icon-pack}/${vm.name}.svg"
+                            "node.autoconnect" = "true"
+                          '';
+                        };
+                      }
+                    ];
+                  };
+                };
+              };
+
+              hardware.pulseaudio.extraConfig = ''
+                # Set default sink and source channels per VM
+                set-default-source "${vm.name}.mic"
+                set-default-sink "${vm.name}.speaker"
+              '';
 
               security.tpm2 = {
                 enable = true;
@@ -237,6 +294,11 @@ in
               type = types.nullOr types.str;
               default = null;
             };
+            ghafAudio = mkOption {
+              description = "Enable Ghaf VM Audio support";
+              type = types.bool;
+              default = false;
+            };
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
           };
         }
@@ -250,6 +312,12 @@ in
         appvm's NixOS configuration.
       '';
       default = [ ];
+    };
+
+    ghafAudio = mkOption {
+      description = "Enable Ghaf VM Audio support";
+      type = types.bool;
+      default = false;
     };
 
     # Base VSOCK CID which is used for auto assigning CIDs for all AppVMs
