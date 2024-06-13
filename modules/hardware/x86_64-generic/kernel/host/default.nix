@@ -57,7 +57,7 @@ in {
   };
 
   config = mkIf cfg.enable {
-    boot.kernelPackages = pkgs.linuxPackagesFor host_hardened_kernel;
+    boot.kernelPackages = lib.mkDefault (pkgs.linuxPackagesFor host_hardened_kernel);
     # https://github.com/NixOS/nixpkgs/issues/109280#issuecomment-973636212
     nixpkgs.overlays = [
       (_final: prev: {

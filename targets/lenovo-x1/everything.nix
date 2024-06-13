@@ -43,6 +43,7 @@
               profiles = {
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
+                hardening.enable = false;
               };
 
               # Hardware definitions
