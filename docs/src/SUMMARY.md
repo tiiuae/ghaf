@@ -30,8 +30,9 @@
     - [Installer](ref_impl/installer.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
-    - [LabWC Desktop Environment](ref_impl/labwc.md)
-    - [Further Development of the idsvm](ref_impl/idsvm-development.md)
+    - [labwc Desktop Environment](ref_impl/labwc.md)
+    - [idsvm Further Development](ref_impl/idsvm-development.md)
+    - [systemd Service Hardening](ref_impl/systemd-service-config.md)
   - [Ghaf as Library: Templates](ref_impl/ghaf-based-project.md)
     - [Example Project](ref_impl/example_project.md)
     - [Modules Options](ref_impl/modules_options.md)
@@ -68,7 +69,6 @@
 - [Showcases](scenarios/showcases.md)
   - [Running Windows VM on Ghaf](scenarios/run_win_vm.md)
   - [Running Cuttlefish on Ghaf](scenarios/run_cuttlefish.md)
-- [Build Your Environment]()
 
 -----------
 

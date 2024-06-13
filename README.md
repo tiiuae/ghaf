@@ -42,7 +42,7 @@ Other repositories that are a part of the Ghaf project:
 
 ## Build System
 
-Ghaf images are built and tested by our continuous integration system. For more information on a general process, see [Continuous Integration and Distribution](./docs/src/scs/ci-cd-system.md).
+Ghaf images are built and tested by our continuous integration system. For more information on a general process, see [Continuous Integration and Distribution](https://tiiuae.github.io/ghaf/scs/ci-cd-system.html).
 
 Targets: <https://github.com/tiiuae/ghaf/blob/main/hydrajobs.nix>  
 Hydra builders on x86 servers: <https://hydra.vedenemo.dev/>  

@@ -15,7 +15,8 @@ The scope of target support is updated with development progress:
 * [Cross-Compilation](./cross_compilation.md)
 * [Creating Application VM](./creating_appvm.md)
 * [labwc Desktop Environment](./labwc.md)
-* [Systemd Service Hardening](./systemd-service-config.md)
+* [idsvm Further Development](./idsvm-development.md)
+* [systemd Service Hardening](./systemd-service-config.md)
 
 Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in [accounts.nix](https://github.com/tiiuae/ghaf/blob/main/modules/common/users/accounts.nix).
 
