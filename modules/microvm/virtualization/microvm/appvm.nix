@@ -92,6 +92,28 @@
             pkgs.opensc
           ];
 
+          # Enable Ghaf audio for Appvm
+          # TODO maybe make a separate module that can be loaded as per $vm.ghafAudio
+
+#          config.ghaf.virtualization.microvm.audiovm.appStreams =
+#            lib.optional (vm.ghafAudio) "${vm.name}";
+
+          sound.enable = vm.ghafAudio;
+          security.rtkit.enable = vm.ghafAudio;
+          users.extraUsers.ghaf.extraGroups =
+            lib.optionals vm.ghafAudio ["audio" "video"];
+          hardware.pulseaudio.enable = vm.ghafAudio;
+          hardware.pulseaudio.extraConfig = ''
+            ${lib.optionalString vm.ghafAudio ''
+              load-module module-tunnel-sink sink=${vm.name}.speaker sink_name=${vm.name}.speaker server=audio-vm:4713 format=s16le channels=2 rate=48000
+              load-module module-tunnel-source source=${vm.name}.mic source_name=${vm.name}.mic server=audio-vm:4713 format=s16le channels=1 rate=48000
+
+              # Set sink and source default max volume to about 90% (0-65536)
+              set-sink-volume ${vm.name}.speaker 60000
+              set-source-volume ${vm.name}.mic 60000
+            ''}
+          '';
+
           security.tpm2 = {
             enable = true;
             abrmd.enable = true;
@@ -220,6 +242,11 @@ in {
             type = types.nullOr types.str;
             default = null;
           };
+          ghafAudio = mkOption {
+            description = "Enable Ghaf VM Audio support";
+            type = types.bool;
+            default = false;
+          };
           vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
         };
       });
@@ -232,6 +259,12 @@ in {
         appvm's NixOS configuration.
       '';
       default = [];
+    };
+
+    ghafAudio = mkOption {
+      description = "Enable Ghaf VM Audio support";
+      type = types.bool;
+      default = false;
     };
 
     # Base VSOCK CID which is used for auto assigning CIDs for all AppVMs

@@ -30,23 +30,6 @@ in {
   cores = 4;
   extraModules = [
     {
-      # Enable pulseaudio for user ghaf to access mic
-      security.rtkit.enable = true;
-      sound.enable = true;
-      users.extraUsers.ghaf.extraGroups = ["audio" "video"];
-
-      hardware.pulseaudio = {
-        enable = true;
-        extraConfig = ''
-          load-module module-tunnel-sink sink_name=element-speaker server=audio-vm:4713 format=s16le channels=2 rate=48000
-          load-module module-tunnel-source source_name=element-mic server=audio-vm:4713 format=s16le channels=1 rate=48000
-
-          # Set sink and source default max volume to about 90% (0-65536)
-          set-sink-volume element-speaker 60000
-          set-source-volume element-mic 60000
-        '';
-      };
-
       systemd = {
         services = {
           element-gps = {
@@ -97,4 +80,5 @@ in {
     }
   ];
   borderColor = "#337aff";
+  ghafAudio = true;
 }
