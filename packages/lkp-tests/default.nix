@@ -9,10 +9,10 @@ pkgs.stdenv.mkDerivation {
     owner = "intel";
     repo = "lkp-tests";
     rev = "master";
-    sha256 = "sha256-tDx2RGLKGMrJ/kbfPurOX2KErndv/TW7u8mdf8Rfl74=";
+    sha256 = "sha256-owXTb5+O/V7Fu4myakx2h5wBph4LCLOW/N5Qq8D2Qec=";
   };
 
-  buildInputs = [pkgs.ruby_3_3];
+  buildInputs = [pkgs.makeWrapper pkgs.ruby_3_3];
 
   phases = ["unpackPhase" "installPhase"];
 
