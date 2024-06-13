@@ -44,9 +44,6 @@
             withHardenedConfigs = true;
           };
           security = {
-            users.strong-password.enable = true;
-            users.root.enable = false;
-            users.sudo.enable = true;
             system-security.enable = true;
             system-security.lock-kernel-modules = lib.mkDefault configHost.ghaf.profiles.release.enable;
             network.ipsecurity.enable = true;

@@ -39,7 +39,7 @@ in {
   };
 
   ## Enable Firejail sandboxing
-  config = {
+  config = lib.mkIf cfg.enable {
     ghaf.graphics = lib.mkIf config.ghaf.profiles.graphics.enable {
       demo-apps = lib.mkMerge [
         (lib.mkIf cfg.apps.firefox.enable {
@@ -52,18 +52,18 @@ in {
 
       launchers =
         lib.optional cfg.apps.firefox.enable {
-          name = "firefox-safe";
+          name = "Firefox-safe";
           path = "/run/current-system/sw/bin/firefox";
-          icon = "${../../../assets/icons/png/firefox.png}";
+          icon = "${pkgs.icon-pack}/firefox.svg";
         }
         ++ lib.optional cfg.apps.chromium.enable {
-          name = "chromium";
+          name = "Chromium-safe";
           path = "/run/current-system/sw/bin/chromium";
-          icon = "${../../../assets/icons/png/chromium.png}";
+          icon = "${pkgs.icon-pack}/chromium.svg";
         };
     };
 
-    programs.firejail = lib.mkIf cfg.enable {
+    programs.firejail = {
       enable = true;
       wrappedBinaries = {
         # Firefox profile

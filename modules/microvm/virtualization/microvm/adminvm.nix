@@ -33,14 +33,10 @@
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
           security = {
-            users.strong-password.enable = true;
-            users.root.enable = false;
-            users.sudo.enable = true;
             system-security.enable = true;
             system-security.lock-kernel-modules = lib.mkDefault configHost.ghaf.profiles.release.enable;
             network.ipsecurity.enable = true;
             network.bpf-access-level = lib.mkForce 1; # Provide BPF access to privileged users
-            fail2ban.enable = true;
           };
         };
 

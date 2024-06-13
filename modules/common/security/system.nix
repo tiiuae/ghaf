@@ -16,7 +16,7 @@ in {
             Enforce Strong password for each user.
           '';
           type = lib.types.bool;
-          default = false;
+          default = true;
         };
 
         min-passwd-len = lib.mkOption {
@@ -26,14 +26,6 @@ in {
           type = lib.types.int;
           default = 8;
         };
-      };
-
-      encrypt_home.enable = lib.mkOption {
-        description = ''
-          Enable encryption of user's data stored in 'Home' directory.
-        '';
-        type = lib.types.bool;
-        default = false;
       };
 
       root.enable = lib.mkOption {
@@ -123,16 +115,6 @@ in {
           type = lib.types.bool;
           default = false;
         };
-        enableASLR = lib.mkOption {
-          description = ''
-            Randomize user virtual address space. It disrupts the
-            predictability of memory layouts and makes it harder for
-            attackers to exploit memory related vulnerabilities.
-            May slightly impact performance, may increase boot time.
-          '';
-          type = lib.types.bool;
-          default = false;
-        };
         randomizePageFreeList = lib.mkOption {
           description = ''
             Randomize free memory pages managed by the page allocator.
@@ -167,7 +149,7 @@ in {
 
       # There is no possible string to hash to just “!”
       users.users.root = lib.mkIf (!cfg.users.root.enable) {
-        hashedPassword = lib.mkForce "!";
+        shell = "${pkgs.shadow}/bin/nologin";
       };
 
       # Enforce strong password
@@ -187,9 +169,6 @@ in {
             '';
           };
         };
-
-        # Encrypt user's data stored in 'Home' directory
-        enableFscrypt = cfg.users.encrypt_home.enable;
       };
 
       ## sudo administartion
@@ -249,9 +228,6 @@ in {
         # Disable ftrace
         "kernel.ftrace_enabled" = lib.mkDefault false;
 
-        # Randomize address space including heap
-        "kernel.randomize_va_space" = lib.mkIf (cfg.system-security.misc.enableASLR || cfg.system-security.misc.enable-all) (lib.mkForce 2);
-
         # Restrict core dump
         "fs.suid_dumpable" = lib.mkForce 0;
 
@@ -262,7 +238,7 @@ in {
         "vm.unprivileged_userfaultfd" = lib.mkForce 0;
 
         # Disable SysRq key
-        "kernel.sysrq" = lib.mkForce 0;
+        "kernel.sysrq" = lib.mkIf config.ghaf.profiles.release.enable (lib.mkForce 0);
 
         # Disable loading of line descipline kernel module of TTY device
         # The line descipline module provides an interface between the low-level driver handling a TTY device
@@ -271,7 +247,7 @@ in {
 
         # This will avoid unintentional writes to an attacker-controlled FIFO/Regular file.
         # Extend the restriction to group sticky directories
-        "fs.protected_fifos" = lib.mkForce 0;
+        "fs.protected_fifos" = lib.mkForce 2;
         "fs.protected_regular" = lib.mkForce 2;
 
         # Allow only root to access perf events
@@ -310,7 +286,8 @@ in {
       boot.kernelParams =
         [
           # Fill freed pages and heap objects with zeroes
-          "init_memory=0"
+          "init_on_free=1"
+          "init_on_alloc=1"
 
           # Panic on any uncorrectable errors through the machine check exception system
           "mce=0"
