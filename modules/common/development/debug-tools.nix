@@ -13,6 +13,7 @@
   sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix {};
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix {};
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix {};
+  lkp-tests = pkgs.callPackage ../../../packages/lkp-tests {};
 
   inherit (lib) mkEnableOption mkIf;
   inherit (import ../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
@@ -63,6 +64,7 @@ in {
         sysbench-fileio-test-script
         nvpmodel-check
         rm-linux-bootmgrs
+        lkp-tests
       ]
       ++ rmDesktopEntries [pkgs.htop]
       # TODO Can this be changed to platformPkgs to filter ?
