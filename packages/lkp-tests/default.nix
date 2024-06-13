@@ -12,7 +12,8 @@ pkgs.stdenv.mkDerivation {
     sha256 = "sha256-owXTb5+O/V7Fu4myakx2h5wBph4LCLOW/N5Qq8D2Qec=";
   };
 
-  buildInputs = [pkgs.makeWrapper pkgs.ruby_3_3];
+  nativeBuildInputs = [pkgs.makeWrapper];
+  buildInputs = [pkgs.ruby_3_3];
 
   phases = ["unpackPhase" "installPhase"];
 
