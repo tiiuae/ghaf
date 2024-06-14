@@ -108,10 +108,15 @@ To make our Markdown files maintainable over time and across teams, follow the r
     ---
     **IMPORTANT**
 
-    Very importamt information.
+    Very important information.
 
     ---
     ```
+* Footnotes
+    
+    For footnote references, use an identifier inside brackets. For example:  
+    in a text: `... this template[^note1] ...`  
+    at the end of the file: `[^note1]: This template is based on...`
 
 * Markdown shields (badges)
 
@@ -119,7 +124,8 @@ To make our Markdown files maintainable over time and across teams, follow the r
 
 * Unicode characters
 
-    For GitHub .md files (not for GitHub Pages), emojis are welcome :octocat:. [Supported GitHub emojis](https://github-emoji-picker.vercel.app/).
+    For GitHub .md files (not for GitHub Pages), emojis are welcome :octocat:.  
+    Check [Supported GitHub emojis](https://github-emoji-picker.vercel.app/) for more inspiration.
 
 
 

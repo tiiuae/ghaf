@@ -85,8 +85,8 @@ No networking may have impact on how the guest-to-guest inter virtual machine co
 
 ### No graphics (MH04)
 
-Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUIVM.
-All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUIVM.
+Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUI VM.
+All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUI VM.
 
 ### No getty (MH05)
 

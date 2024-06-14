@@ -3,19 +3,17 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Decision record template
-<!-- based on simple template by Michael Nygard - https://github.com/joelparkerhenderson/architecture-decision-record/blob/main/templates/decision-record-template-by-michael-nygard/index.md -->
+# Decision Record Template
 
-This is the template for managing the ADR files.
-
-In each ADR file, write these sections:
+This is the template[^note1] for managing the ADR files. Use the following sections in each ADR file:
 
 
 # Title
 
+
 ## Status
 
-What is the status: proposed, accepted, rejected, deprecated, superseded, etc.?
+What is the status? *Proposed*, *Accepted*, *Rejected*, *Deprecated*, *Superseded*, etc.
 
 
 ## Context
@@ -31,3 +29,6 @@ What is the change that we are proposing and/or doing?
 ## Consequences
 
 What becomes easier or more difficult to do because of this change?
+
+
+[^note1]: This template is based on a [template by Michael Nygard](https://github.com/joelparkerhenderson/architecture-decision-record/tree/main/locales/en/templates/decision-record-template-by-michael-nygard). For more suggestions on writing good ADRs, see the [Architecture decision record (ADR)](https://github.com/joelparkerhenderson/architecture-decision-record/tree/main?tab=readme-ov-file#suggestions-for-writing-good-adrs) public repository.

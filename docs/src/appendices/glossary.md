@@ -86,6 +86,10 @@ Source: [NVIDIA Orin Series System-on-Chip, Technical Reference Manual, Version:
 
 _A board support package is a collection of software used to boot and run the embedded system._
 
+### CA
+
+_A certificate authority or certification authority is an entity that stores, signs, issues digital certificates, and bind them to cryptographic keys._
+
 ### DHCP
 
 _The Dynamic Host Configuration Protocol is a network protocol that automatically sets IP addresses and other attributes to enable information transfer between network nodes._  
@@ -194,6 +198,10 @@ _A stock keeping unit, is a unique code used by sellers to identify and track pr
 
 _A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC)._
 
+### SPKI
+
+_simple public-key infrastructure_
+
 ### SSD
 
 _solid-state drive_
@@ -301,3 +309,6 @@ Source: <https://slsa.dev/spec/v0.1/terminology>
 
 _Supply chain Levels for Software Artifacts is a security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises._  
 Source: <https://slsa.dev/>
+
+[Back to Top ⏫](./glossary.md#glossary)
+---

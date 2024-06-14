@@ -12,7 +12,7 @@ To use labwc as your default desktop environment, add it as a module to Ghaf:
 
 * change the configuration option `profiles.graphics.compositor = "labwc"`
 or
-* uncomment the corresponding line in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix) file.
+* uncomment the corresponding line in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix) file.
 
 
 The basis of the labwc configuration is the set of following files: `rc.xml`, `menu.xml`, `autostart`, and `environment`. These files can be edited by substituting in the labwc overlay `overlays/custom-packages/labwc/default.nix`.

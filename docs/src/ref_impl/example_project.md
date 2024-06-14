@@ -11,7 +11,7 @@ The best way to do the Ghaf customization is by using Ghaf templates:
 
 1. Create a template project as described in the [Ghaf as Library](../ref_impl/ghaf-based-project.md) section.
 2. Adjust your system configuration in accordance with your HW specification. Determine all VIDs and PIDs of the devices that are passed to the VMs.
-3. Add GUIVM configuration, NetworkVM configuration, and optionally some AppVMs.
+3. Add GUI VM configuration, NetworkVM configuration, and optionally some AppVMs.
 4. Set up Weston panel shortcuts.
 
 You can refer to the existing [project example for Lenovo T14 and Lenovo X1 laptops](https://github.com/unbel13ver/ghaf-lib).
@@ -49,10 +49,10 @@ If after booting you see a black screen, try the following to detect the issue:
 3. Identify an IP address by a MAC address with the `arp` command. If a MAC address is unknown, you can boot into the NixOS image or any other OS to find it, or try the latest addresses that `arp` returns.
 4. Connect using SSH (login/password ghaf/ghaf). Then connect from netvm to the host using `ssh 192.168.101.2` (login/password ghaf/ghaf).
 5. Check running VMs with `microvm -l`.
-6. Check a GUIVM log using `journalctl -u microvm@guivm`.
-7. If GUIVM does not start, you can try to start it manually with `/var/lib/microvms/guivm/current/bin/microvm-run`.
+6. Check a GUI VM log using `journalctl -u microvm@guivm`.
+7. If GUI VM does not start, you can try to start it manually with `/var/lib/microvms/guivm/current/bin/microvm-run`.
 
-In case when GUIVM did not start with the error message that the device /dev/mouse or /dev/touchpad was not found, it means that the model of the touchpad in the laptop is different since it was bought in another country and has a different SKU (stock keeping unit). To add support for a new touchpad, do the following:
+In case when GUI VM did not start with the error message that the device /dev/mouse or /dev/touchpad was not found, it means that the model of the touchpad in the laptop is different since it was bought in another country and has a different SKU (stock keeping unit). To add support for a new touchpad, do the following:
 
 1. On the ghaf host, check the devices in `/dev/input/by-path` that contain “-event-” in the name. Use the command like `udevadm info -q all -a /dev/input/by-path/pci-0000:00:15.0-platform-i2c_designware.0-event-mouse | grep name` for the name of each of these devices.
 

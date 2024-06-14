@@ -29,7 +29,7 @@ The following target hardware is supported by this release:
 * CLI-based installer.
 * Lenovo X1 Carbon Gen 11:
   * Configurable PCI and USB devices passthrough.
-  * Network Manager: support from GUIVM to NETVM.
+  * Network Manager: support from GUI VM to Net VM.
   * Windows VM support.
   * Added Ghaf icons and the background image.
   * Secure Boot is disabled by default.
@@ -66,7 +66,7 @@ Fixed bugs that were in the ghaf-23.09 release:
 | Time synchronization between host and VMs does not work in all scenarios  | In Progress | Under investigation. |
 | The taskbar disappears after the external display is disconnected from Lenovo X1  | In Progress | Under investigation. |
 | Closing and re-opening a deck lid of a X1 laptop with running Ghaf causes instability | In Progress | Workaround: keep a deck lid of a laptop open while working with Ghaf. |
-| Applications do not open from icons when netvm is restarted | In Progress | Workaround: Restart AppVMs. |
+| Applications do not open from icons when net-vm is restarted | In Progress | Workaround: Restart App VMs. |
 
 
 ## Environment Requirements
