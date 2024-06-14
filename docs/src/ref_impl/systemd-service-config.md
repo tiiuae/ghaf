@@ -133,6 +133,7 @@ Enables packet filtering on all IPv4 and IPv6 sockets created by the service. Us
 * **Specific Address Families**: Specify one or more address families that the service is allowed to use, for example, `'AF_INET'`, `'AF_INET6'`, `'AF_UNIX'`.
 * **Inverted Restriction**: Prepend character '~' to an address family name to deny access to it while allowing all others, for example, `'~AF_INET'` would block IPv4 access.
 
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
@@ -228,12 +229,14 @@ Additionally, when enabled, all temporary files created by a service in these di
 * **`all`**: Allows the service access to all `/proc` entries.
 * **`pid`**: Restricts the service to only its own process information (`/proc/self`, `/proc/thread-self/`).
 
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
 ## 3. User Separation
 
 > **IMPORTANT:** Not applicable for the service runs as root.
+
 
 ### 3.1. PrivateUsers
 
@@ -256,6 +259,7 @@ Additionally, when enabled, all temporary files created by a service in these di
 * **`true`**: A UNIX user and group pair are dynamically allocated when the unit is started and released as soon as it is stopped.
 * **`false`**: The service uses a static UID/GID defined in the service unit file or defaults to `root`.
 
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
@@ -282,6 +286,7 @@ Additionally, when enabled, all temporary files created by a service in these di
 **Options**:
 * Specify device access rules in the format: `<device path> <permission>` where `<permission>` can be `r` (read), `w` (write), or `m` (mknod, allowing creation of devices).
 
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
@@ -320,7 +325,7 @@ Additionally, when enabled, all temporary files created by a service in these di
 * **`trues`**: Restricts the service from accessing kernel logs from `/proc/kmsg` and `/dev/kmsg`. Enabling this option removes `CAP_SYSLOG` from the capability bounding set for the unit and installs a system call filter to block the syslog(2) system call. 
 * **`no`**: Allows the service to access kernel logs.
 
-
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
@@ -494,6 +499,7 @@ Additionally, when enabled, all temporary files created by a service in these di
 * `exec`: Only service updates sent from any main or control processes originating from one of the `Exec*=` commands are accepted.
 * `all`: Allows sending signals using any process identifier (PID).
 
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
@@ -565,6 +571,7 @@ This option can be specified multiple times to merge capability sets:
 **CAP_SYS_TTY_CONFIG** | Allows processes to configure tty devices.
 **CAP_WAKE_ALARM** | Allows processes to use the RTC wakeup alarm.
 
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
 ---
 
 
@@ -600,3 +607,7 @@ This option can be specified multiple times to merge capability sets:
 **@syslog** | Allows syslog-related system calls, which are used for system logging.
 **@system-service** | Allows system service-related system calls, which are used for managing system services.
 **@timer** | Allows timer-related system calls, which are essential for setting and managing timers.
+
+
+[Back to Top ⏫](./systemd-service-config.md#systemd-service-hardening)
+---

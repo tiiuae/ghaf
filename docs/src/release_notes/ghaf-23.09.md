@@ -31,8 +31,8 @@ The following target hardware is supported by this release:
 * Modularization of the Ghaf framework: [Ghaf as Library: Templates](../ref_impl/ghaf-based-project.md).
 * NVIDIA Jetson Orin NX Ethernet passthrough.
 * Lenovo X1 Carbon Gen 11:
-  * Graphics passthrough to GUIVM.
-  * Launching Application VMs through GUIVM (Chromium, Gala, and Zathura).
+  * Graphics passthrough to GUI VM.
+  * Launching Application VMs through GUI VM (Chromium, Gala, and Zathura).
   * Paravirtualized audio.
   * Webcam passthrough.
   * Touchpad passthrough.
@@ -52,7 +52,7 @@ Fixed bugs that were in the ghaf-23.06 release:
 
 | Issue           | Status      | Comments                             |
 |-----------------|-------------|--------------------------------------|
-| Chromium AppVM does not boot up on X1 | In Progress | Intermittent timing issue, under investigation. |
+| Chromium App VM does not boot up on X1 | In Progress | Intermittent timing issue, under investigation. |
 | The GALA app does not work | In Progress | Will be fixed in the next release. |
 | Shutdown or reboot of Lenovo X1 takes a lot of time (7 minutes) | In Progress | Advice: be patient or, if in hurry, press power key for 15 sec. |
 | Copy and paste text from or to Chromium AppVM does not work | In Progress |  |
