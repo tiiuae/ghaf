@@ -40,14 +40,6 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## carried in tiiuae/nixpkgs/nixos-unstable-proc-qemu
 
-[webp-pixbuf-loader](https://github.com/NixOS/nixpkgs/pull/315119)
-
-[Qemu xcompile](https://github.com/NixOS/nixpkgs/pull/314270)
-
-- [Qemu actual fix](https://github.com/NixOS/nixpkgs/pull/314806)
-
 [XDG-utils procmail](https://github.com/NixOS/nixpkgs/pull//314283)
 
 [FFADO break Qt deps](https://github.com/NixOS/nixpkgs/pull/306407)
-
-[Mako xcompile](https://github.com/NixOS/nixpkgs/pull/316889)
