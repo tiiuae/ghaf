@@ -35,7 +35,7 @@ in {
         networkConfig.DHCPServer = false;
         addresses = [
           {
-            addressConfig.Address = "192.168.101.2/24";
+            Address = "192.168.101.2/24";
           }
         ];
       };
