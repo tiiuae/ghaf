@@ -64,6 +64,8 @@ in {
       microvm.devices = [];
 
       ghaf.reference.programs.chromium.enable = true;
+      ghaf.security.apparmor.enable = true;
+      ghaf.security.apparmor.apps.chromium.enable = true;
 
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
