@@ -45,13 +45,13 @@ in {
         addresses =
           [
             {
-              addressConfig.Address = "192.168.100.${toString internalIP}/24";
+              Address = "192.168.100.${toString internalIP}/24";
             }
           ]
           ++ lib.optionals config.ghaf.profiles.debug.enable [
             {
               # IP-address for debugging subnet
-              addressConfig.Address = "192.168.101.${toString internalIP}/24";
+              Address = "192.168.101.${toString internalIP}/24";
             }
           ];
         linkConfig.RequiredForOnline = "routable";
