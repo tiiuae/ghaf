@@ -62,13 +62,19 @@
 
         microvm = {
           optimize.enable = true;
-          hypervisor = "qemu";
+          hypervisor = {
+            # Use the same machine type as the host
+            x86_64-linux = "cloud-hypervisor";
+            aarch64-linux = "qemu";
+          }
+          .${configHost.nixpkgs.hostPlatform.system};
           shares =
             [
               {
                 tag = "ro-store";
                 source = "/nix/store";
                 mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
               }
             ]
             ++ lib.optionals isGuiVmEnabled [
@@ -77,6 +83,7 @@
                 tag = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyName;
                 source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                 mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                proto = "virtiofs";
               }
             ];
 
