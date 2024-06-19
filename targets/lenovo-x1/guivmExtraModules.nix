@@ -24,7 +24,6 @@
     ghaf = {
       profiles.graphics.compositor = "labwc";
       graphics = {
-        hardware.networkDevices = configH.ghaf.hardware.definition.network.pciDevices;
         launchers = let
           hostAddress = "192.168.101.2";
           powerControl = pkgs.callPackage ../../packages/powercontrol {};

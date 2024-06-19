@@ -7,8 +7,12 @@
   config,
   ...
 }: let
+  inherit (lib) hasAttr;
   dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone {};
-  isDendritePineconeEnabled = config.ghaf.services.dendrite-pinecone.enable;
+  isDendritePineconeEnabled =
+    if (hasAttr "services" config.ghaf.reference)
+    then config.ghaf.reference.services.dendrite
+    else false;
 in {
   name = "element";
 

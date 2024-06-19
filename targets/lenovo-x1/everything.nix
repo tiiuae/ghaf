@@ -24,6 +24,7 @@
           self.nixosModules.microvm
           self.nixosModules.reference-appvms
           self.nixosModules.reference-programs
+          self.nixosModules.reference-services
 
           ({
             pkgs,
@@ -54,11 +55,8 @@
                 usb.external.enable = true;
               };
 
-              # Service options
-              services = {
-                fprint.enable = true;
-                dendrite-pinecone.enable = true;
-              };
+              # TODO: move this to module
+              services.fprint.enable = true;
 
               reference.appvms = {
                 enable = true;
@@ -67,6 +65,11 @@
                 zathura-vm = true;
                 element-vm = true;
                 appflowy-vm = true;
+              };
+
+              reference.services = {
+                enable = true;
+                dendrite = true;
               };
 
               # Virtualization options
@@ -79,10 +82,8 @@
                 microvm = {
                   netvm = {
                     enable = true;
-                    extraModules = import ./netvmExtraModules.nix {
-                      inherit lib pkgs microvm;
-                      configH = config;
-                    };
+                    wifi = true;
+                    extraModules = [self.nixosModules.reference-services];
                   };
 
                   adminvm = {
@@ -106,10 +107,7 @@
 
                   audiovm = {
                     enable = true;
-                    extraModules = [
-                      config.ghaf.hardware.passthrough.audiovmPCIPassthroughModule
-                      config.ghaf.hardware.passthrough.audiovmKernelParams
-                    ];
+                    audio = true;
                   };
 
                   appvm = {

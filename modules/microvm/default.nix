@@ -13,6 +13,7 @@
     ./virtualization/microvm/appvm.nix
     ./virtualization/microvm/guivm.nix
     ./virtualization/microvm/audiovm.nix
+    ./virtualization/microvm/modules.nix
     ./networking.nix
     ./power-control.nix
   ];

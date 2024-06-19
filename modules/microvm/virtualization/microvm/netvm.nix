@@ -6,7 +6,6 @@
   pkgs,
   ...
 }: let
-  configHost = config;
   vmName = "net-vm";
   macAddress = "02:00:00:01:01:01";
 
@@ -25,31 +24,36 @@
         gateway = [];
       })
       ({lib, ...}: {
+        imports = [
+          ../../../common
+        ];
+
         ghaf = {
-          users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
-          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+          users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
+          profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
           development = {
             # NOTE: SSH port also becomes accessible on the network interface
             #       that has been passed through to NetVM
-            ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-            nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+            ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
+            debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
+            nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
           };
           systemd = {
             enable = true;
             withName = "netvm-systemd";
             withPolkit = true;
             withResolved = true;
-            withDebug = configHost.ghaf.profiles.debug.enable;
+            withDebug = config.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
           };
         };
 
+        time.timeZone = config.time.timeZone;
         system.stateVersion = lib.trivial.release;
 
         nixpkgs = {
-          buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-          hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+          buildPlatform.system = config.nixpkgs.buildPlatform.system;
+          hostPlatform.system = config.nixpkgs.hostPlatform.system;
         };
 
         networking = {
@@ -57,8 +61,7 @@
           firewall.allowedUDPPorts = [53];
         };
 
-        # Add simple wi-fi connection helper
-        environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector];
+        services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
         microvm = {
           optimize.enable = true;
@@ -74,9 +77,9 @@
             ++ lib.optionals isGuiVmEnabled [
               {
                 # Add the waypipe-ssh public key to the microvm
-                tag = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyName;
-                source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                tag = config.ghaf.security.sshKeys.waypipeSshPublicKeyName;
+                source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
               }
             ];
 
@@ -88,19 +91,17 @@
                 x86_64-linux = "q35";
                 aarch64-linux = "virt";
               }
-              .${configHost.nixpkgs.hostPlatform.system};
+              .${config.nixpkgs.hostPlatform.system};
           };
         };
 
-        fileSystems = lib.mkIf isGuiVmEnabled {${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = ["ro"];};
+        fileSystems = lib.mkIf isGuiVmEnabled {${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = ["ro"];};
 
         # SSH is very picky about to file permissions and ownership and will
         # accept neither direct path inside /nix/store or symlink that points
         # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
         # setting mode), instead of symlinking it.
-        environment.etc = lib.mkIf isGuiVmEnabled {${configHost.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;};
-
-        imports = [../../../common];
+        environment.etc = lib.mkIf isGuiVmEnabled {${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;};
       })
     ];
   };

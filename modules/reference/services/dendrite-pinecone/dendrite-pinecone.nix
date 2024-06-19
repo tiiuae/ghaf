@@ -6,17 +6,12 @@
   pkgs,
   ...
 }: let
-  cfg = config.ghaf.services.dendrite-pinecone;
-  dendrite-pineconePkg = pkgs.callPackage ../../../packages/dendrite-pinecone/default.nix {};
+  cfg = config.ghaf.reference.services.dendrite-pinecone;
+  dendrite-pineconePkg = pkgs.callPackage ../../../../packages/dendrite-pinecone/default.nix {};
   inherit (lib) mkEnableOption mkOption mkIf types;
 in {
-  imports = [
-  ];
-
-  options.ghaf.services.dendrite-pinecone = {
+  options.ghaf.reference.services.dendrite-pinecone = {
     enable = mkEnableOption "Enable dendrite pinecone module";
-
-    firewallConfig = mkEnableOption "dendrite pinecone module firewall configurations. It must be enabled only in netvm";
 
     externalNic = mkOption {
       type = types.str;
@@ -42,7 +37,7 @@ in {
     };
   };
 
-  config = mkIf (cfg.firewallConfig && cfg.enable) {
+  config = mkIf cfg.enable {
     assertions = [
       {
         assertion = cfg.externalNic != "";
