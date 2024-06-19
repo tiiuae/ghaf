@@ -17,5 +17,6 @@
     ./systemd
     ./services
     ./networking
+    ../hardware/definition.nix
   ];
 }

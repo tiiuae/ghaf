@@ -19,7 +19,10 @@
         pkgs,
         ...
       }: {
-        time.timeZone = config.time.timeZone;
+        imports = [
+          ../../../common
+        ];
+
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
           profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
@@ -48,6 +51,7 @@
           ];
         };
 
+        time.timeZone = config.time.timeZone;
         system.stateVersion = lib.trivial.release;
 
         nixpkgs = {
@@ -79,14 +83,13 @@
           };
         };
 
-        imports = [
-          ../../../common
-        ];
-
         # Fixed IP-address for debugging subnet
-        systemd.network.networks."10-ethint0".addresses = [
+        systemd.network.networks."10-ethint0".addresses = let
+          getAudioVmEntry = builtins.filter (x: x.name == "audio-vm-debug") config.ghaf.networking.hosts.entries;
+          ip = lib.head (builtins.map (x: x.ip) getAudioVmEntry);
+        in [
           {
-            Address = "192.168.101.5/24";
+            Address = "${ip}/24";
           }
         ];
       })

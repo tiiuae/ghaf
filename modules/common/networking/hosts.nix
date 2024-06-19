@@ -5,6 +5,26 @@
   lib,
   ...
 }: let
+  cfg = config.ghaf.networking.hosts;
+  inherit (lib) mkIf types mkOption optionalString optionals;
+
+  hostsEntrySubmodule = types.submodule {
+    options = {
+      name = mkOption {
+        type = types.str;
+        description = ''
+          Host name as string.
+        '';
+      };
+      ip = mkOption {
+        type = types.str;
+        description = ''
+          Host IPv4 address as string.
+        '';
+      };
+    };
+  };
+
   # please note that .100. network is not
   # reachable from ghaf-host. It's only reachable
   # guest-to-guest.
@@ -58,17 +78,55 @@
       name = "appflowy-vm";
     }
   ];
-  mkHostEntry = {
+
+  mkHostEntryTxt = {
     ip,
     name,
   }:
     "${ipBase}.${toString ip}\t${name}\n"
     + lib.optionalString config.ghaf.profiles.debug.enable
     "${debugBase}.${toString ip}\t${name}-debug\n";
-  entries = map mkHostEntry hostsEntries;
+  entriesTxt = map mkHostEntryTxt hostsEntries;
+
+  mkHostEntry = {
+    ip,
+    name,
+  }: {
+    name = "${name}";
+    ip = "${ipBase}.${toString ip}";
+  };
+  mkHostEntryDebug = {
+    ip,
+    name,
+  }: {
+    name = "${name}-debug";
+    ip = "${debugBase}.${toString ip}";
+  };
+  entries =
+    (map mkHostEntry hostsEntries)
+    ++ optionals config.ghaf.profiles.debug.enable
+    (map mkHostEntryDebug hostsEntries);
 in {
-  environment.etc.hosts = lib.mkForce {
-    text = lib.foldl' (acc: x: acc + x) "127.0.0.1 localhost\n" entries;
-    mode = "0444";
+  options.ghaf.networking.hosts = {
+    enable = mkOption {
+      type = types.bool;
+      default = true;
+    };
+    entries = mkOption {
+      type = types.listOf hostsEntrySubmodule;
+      default = null;
+    };
+  };
+
+  config = mkIf cfg.enable {
+    ghaf.networking.hosts = {
+      inherit entries;
+    };
+
+    # Generate hosts file
+    environment.etc.hosts = lib.mkForce {
+      text = lib.foldl' (acc: x: acc + x) "127.0.0.1 localhost\n" entriesTxt;
+      mode = "0444";
+    };
   };
 }

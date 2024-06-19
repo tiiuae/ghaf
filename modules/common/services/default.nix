@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./dendrite-pinecone.nix
     ./fprint.nix
     ./audio.nix
+    ./wifi.nix
+    ./firmware.nix
   ];
 }

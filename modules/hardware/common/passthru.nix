@@ -71,6 +71,7 @@ in {
           })
           config.ghaf.hardware.definition.network.pciDevices
         );
+        ghaf.hardware.definition.network.pciDevices = config.ghaf.hardware.definition.network.pciDevices;
       };
 
       guivmPCIPassthroughModule = {
@@ -81,6 +82,7 @@ in {
           })
           config.ghaf.hardware.definition.gpu.pciDevices
         );
+        ghaf.hardware.definition.gpu.pciDevices = config.ghaf.hardware.definition.gpu.pciDevices;
       };
 
       audiovmPCIPassthroughModule = {
@@ -91,6 +93,7 @@ in {
           })
           config.ghaf.hardware.definition.audio.pciDevices
         );
+        ghaf.hardware.definition.audio.pciDevices = config.ghaf.hardware.definition.audio.pciDevices;
       };
 
       guivmVirtioInputHostEvdevModule = {
@@ -103,6 +106,9 @@ in {
             ++ config.ghaf.hardware.definition.input.mouse.evdev
             ++ config.ghaf.hardware.definition.input.touchpad.evdev
             ++ config.ghaf.hardware.definition.input.misc.evdev);
+
+        # TODO: Remove this once wifi-signal-strength is changed
+        ghaf.hardware.definition.network.pciDevices = config.ghaf.hardware.definition.network.pciDevices;
       };
 
       guivmQemuExtraArgs = [
