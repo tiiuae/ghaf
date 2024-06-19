@@ -238,7 +238,7 @@
 <li><code>aarch64</code>—generic AArch64; tested on an ARM server, laptop (e.g. Apple MacBook's), or NVIDIA Jetson AGX Orin.</li>
 <li><code>All variants</code>—supported devices from <a href="https://tiiuae.github.io/ghaf/architecture/variants.html">Architectural Variants</a>.</li>
 </ul>
-<p>The following tables show the status of Ghaf Platform features:</p>
+<p>The following tables show the status of the Ghaf Platform features:</p>
 <h2 id="release-builds-and-hardware-architecture-support"><a class="header" href="#release-builds-and-hardware-architecture-support">Release Builds and Hardware Architecture Support</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Ghaf in virtual machine</td><td>✅</td><td><code>x86</code></td><td><code>nix run .#packages.x86_64-linux.vm-debug</code></td></tr>
@@ -259,23 +259,23 @@
 <tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8mp</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
 <tr><td>Debug: SSH</td><td>✅</td><td><code>Orin</code>, <code>x86</code></td><td>Host access only in <code>-debug</code>-target, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication.nix</a></td></tr>
 <tr><td>Debug: Serial</td><td>✅</td><td><code>all</code></td><td>Host access only in <code>-debug</code>-target - e.g. <code>screen /dev/ttyACM0 115200</code></td></tr>
-<tr><td>Compartmentalized environment</td><td>🚧</td><td><code>Lenovo X1</code></td><td>NetVM, GUI VM (with GPU passthrough) plus some Application VMs</td></tr>
+<tr><td>Compartmentalized environment</td><td>🚧</td><td><code>Lenovo X1</code></td><td>Net VM, GUI VM (with GPU passthrough) plus some App VMs</td></tr>
 </tbody></table>
 </div>
 <h2 id="target-architecture"><a class="header" href="#target-architecture">Target Architecture</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
-<tr><td><code>minimal host</code></td><td>🚧</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>all</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">Minimal Host</a> and <a href="https://github.com/tiiuae/ghaf/pull/140">PR #140</a>.</td></tr>
-<tr><td><code>netvm</code></td><td>✅</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">netvm</a>. Passthrough with Wifi works but requires SSID/password configuration</td></tr>
-<tr><td><code>idsvm</code></td><td>✅</td><td><code>Orin</code></td><td><a href="https://github.com/tiiuae/ghaf/pull/146">Defensive security VM placeholder PR open</a></td></tr>
-<tr><td><code>guivm</code></td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.</td></tr>
-<tr><td><code>appvm</code></td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device: chromium, GALA and zathura VMs. Requires <code>guivm</code> in place</td></tr>
-<tr><td><code>adminvm</code></td><td>✅</td><td><code>All</code></td><td>Not started</td></tr>
-<tr><td>Inter VM comms - IP-based</td><td>🚧</td><td><code>All</code></td><td><code>-debug</code>-targets have network bridges to access VMs from host</td></tr>
+<tr><td>Minimal host</td><td>🚧</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>all</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">Minimal Host</a> and <a href="https://github.com/tiiuae/ghaf/pull/140">PR #140</a>.</td></tr>
+<tr><td>Net VM</td><td>✅</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">Net VM</a>. Passthrough with Wi-Fi works but requires SSID/password configuration.</td></tr>
+<tr><td>IDS VM</td><td>✅</td><td><code>Orin</code>, <code>Lenovo X1</code></td><td><a href="features//docs/src/architecture/adr/idsvm.html">Defensive networking mechanism</a>.</td></tr>
+<tr><td>GUI VM</td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.</td></tr>
+<tr><td>App VM</td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device: Chromium, GALA and Zathura VMs. Requires GUI VM in place.</td></tr>
+<tr><td>Admin VM</td><td>✅</td><td><code>All</code></td><td>Not started</td></tr>
+<tr><td>Inter VM comms - IP-based</td><td>🚧</td><td><code>All</code></td><td><code>-debug</code>-targets have network bridges to access VMs from host.</td></tr>
 <tr><td>Inter VM comms - shared memory</td><td>🚧</td><td><code>All</code></td><td></td></tr>
-<tr><td>Inter VM Wayland</td><td>🚧</td><td><code>All</code></td><td>Currently it is <code>waypipe</code> over SSH, for test and demo purpose only</td></tr>
-<tr><td>SW update</td><td>🚧</td><td><code>All</code></td><td>A/B update tooling being evaluated</td></tr>
-<tr><td>USB passthrough</td><td>🚧</td><td><code>Orin</code></td><td>No reference implementation integrated yet</td></tr>
-<tr><td>PCI passthrough</td><td>✅</td><td><code>All</code></td><td>Used for reference in <code>netvm</code> on <code>Orin</code></td></tr>
+<tr><td>Inter VM Wayland</td><td>🚧</td><td><code>All</code></td><td>Currently it is <code>waypipe</code> over SSH, for test and demo purpose only.</td></tr>
+<tr><td>SW update</td><td>🚧</td><td><code>All</code></td><td>A/B update tooling being evaluated.</td></tr>
+<tr><td>USB passthrough</td><td>🚧</td><td><code>Orin</code></td><td>No reference implementation integrated yet.</td></tr>
+<tr><td>PCI passthrough</td><td>✅</td><td><code>All</code></td><td>Used for reference in Net VM on <code>Orin</code>.</td></tr>
 <tr><td>UART passthrough</td><td>🚧</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/build_config/passthrough/nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a>. Not integrated to any VM.</td></tr>
 <tr><td>ARM platform bus devices passthrough</td><td>🚧</td><td><code>Orin</code></td><td>NVIDIA BPMP virtualization being developed</td></tr>
 </tbody></table>
@@ -324,11 +324,11 @@
 <ul>
 <li>
 <p><code>Default</code><br />
-A default variant. Supports <a href="architecture/./adr/minimal-host.html">minimal host</a>, GUI VM[^note] and <a href="architecture/./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="architecture/./stack.html">Stack</a>.</p>
+A default variant. Supports <a href="architecture/./adr/minimal-host.html">minimal host</a>, GUI VM<sup class="footnote-reference"><a href="#note1">1</a></sup> and <a href="architecture/./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="architecture/./stack.html">Stack</a>.</p>
 </li>
 <li>
 <p><code>Headless</code><br />
-A variant with <a href="architecture/./adr/minimal-host.html">minimal host</a> and <a href="architecture/./adr/netvm.html">netvm</a>. May host other VMs but does not have GUI VM or graphics stack on a host.</p>
+A variant with <a href="architecture/./adr/minimal-host.html">minimal host</a> and <a href="architecture/./adr/netvm.html">netvm</a>. May host other VMs but does not have a GUI VM or graphics stack on a host.</p>
 </li>
 <li>
 <p><code>Host only</code>
@@ -340,13 +340,15 @@ A variant for hardware with no support for virtualization. May run any software,
 </li>
 </ul>
 <div class="table-wrapper"><table><thead><tr><th>Variant Name</th><th>Headless</th><th>Graphics</th><th>VMs</th><th>Devices</th></tr></thead><tbody>
-<tr><td><code>Default</code></td><td>No</td><td>GUI VM [^note]</td><td>Supported</td><td>Jetson, generic x86</td></tr>
+<tr><td><code>Default</code></td><td>No</td><td>GUI VM</td><td>Supported</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>Headless</code></td><td>Yes</td><td>No</td><td>Supported</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>Host Only</code></td><td>Yes</td><td>No</td><td>May be supported but not included</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>No Virtualization</code></td><td>Yes or no</td><td>Native on host</td><td>Not supported</td><td>Raspberry Pi, RISC-V</td></tr>
 </tbody></table>
 </div>
-<p>[^note] As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
+<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
+<p>As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
+</div>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -356,9 +358,9 @@ A variant for hardware with no support for virtualization. May run any software,
 <p>The Ghaf platform decision log:</p>
 <div class="table-wrapper"><table><thead><tr><th>Decision Record</th><th>Status</th></tr></thead><tbody>
 <tr><td><a href="architecture/../architecture/adr/minimal-host.html">Minimal Host</a></td><td>Proposed.</td></tr>
-<tr><td><a href="architecture/../architecture/adr/netvm.html">netvm—Networking Virtual Machine</a></td><td>Proposed, partially implemented for development and testing.</td></tr>
-<tr><td><a href="architecture/../architecture/adr/idsvm.html">idsvm—Intrusion Detection System Virtual Machine</a></td><td>Proposed, partially implemented for development and testing.</td></tr>
-<tr><td><a href="architecture/../architecture/adr/platform-bus-passthrough-support.html">Platform Bus for RustVMM</a></td><td>Proposed, WIP.</td></tr>
+<tr><td><a href="architecture/../architecture/adr/netvm.html">Networking VM</a></td><td>Proposed, partially implemented for development and testing.</td></tr>
+<tr><td><a href="architecture/../architecture/adr/idsvm.html">IDS VM</a></td><td>Proposed, partially implemented for development and testing.</td></tr>
+<tr><td><a href="architecture/../architecture/adr/platform-bus-passthrough-support.html">Platform Bus for Rust VMM</a></td><td>Proposed, WIP.</td></tr>
 </tbody></table>
 </div>
 <p>To create an architectural decision proposal, open <a href="https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#contributing-documentation">a pull request</a> and use the <a href="https://github.com/tiiuae/ghaf/blob/main/docs/src/architecture/adr/template.md">decision record template</a>. Contributions to the Ghaf architecture decisions are welcome.</p>
@@ -423,8 +425,8 @@ Currently, host and VM declarations are implemented using <a href="https://githu
 <p>No networking has impact on how <a href="https://github.com/tiiuae/vmd/blob/main/doc/design.md"><code>vmd</code></a> adminvm to host communication is implemented. With no networking, shared memory is proposed.</p>
 <p>No networking may have impact on how the guest-to-guest inter virtual machine communication configuration must implemented with VMMs. This must be further analyzed.</p>
 <h3 id="no-graphics-mh04"><a class="header" href="#no-graphics-mh04">No graphics (MH04)</a></h3>
-<p>Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUIVM.
-All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUIVM.</p>
+<p>Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUI VM.
+All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUI VM.</p>
 <h3 id="no-getty-mh05"><a class="header" href="#no-getty-mh05">No getty (MH05)</a></h3>
 <p>Ghaf host in release mode must have no terminals (TTYs) to interact with. In the current state of development, this cannot be enabled yet and has minimum requirement of system logging outside the host. Proposed design to approach this is requirement is to enable getty declaratively only in a debug serial terminal under <a href="https://github.com/tiiuae/ghaf/tree/main/modules/development"><code>modules/development</code></a>.</p>
 <h3 id="no-nix-toolings-mh06"><a class="header" href="#no-nix-toolings-mh06">No <code>nix</code> toolings (MH06)</a></h3>
@@ -440,36 +442,32 @@ All graphics and display output related components and dependencies, including k
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="netvmnetworking-virtual-machine"><a class="header" href="#netvmnetworking-virtual-machine">netvm—Networking Virtual Machine</a></h1>
+<h1 id="networking-virtual-machine"><a class="header" href="#networking-virtual-machine">Networking Virtual Machine</a></h1>
 <h2 id="status-2"><a class="header" href="#status-2">Status</a></h2>
 <p>Proposed, partially implemented for development and testing.</p>
-<p><em>netvm</em> reference declaration is available at <a href="https://github.com/tiiuae/ghaf/blob/main/microvmConfigurations/netvm/default.nix">netvm/default.nix</a>.</p>
+<p>Networking VM (Net VM) reference declaration is available at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/netvm.nix">microvm/netvm.nix</a>.</p>
 <h2 id="context-1"><a class="header" href="#context-1">Context</a></h2>
-<p>Ghaf high-level design target is to secure a monolithic OS by modularizing the OS to networked VMs. The key security target is to not expose the trusted host directly to the Internet. This isolates the attack surface from the Internet to <em>netvm</em>.</p>
+<p>Ghaf's high-level design target is to secure a monolithic OS by modularizing the OS to networked VMs. The key security target is to not expose the trusted host directly to the Internet. This isolates the attack surface from the Internet to Net VM.</p>
 <p>The following context diagram illustrates development and secure scenarios:</p>
-<p><img src="architecture/adr/../../img/netvm.drawio.png" alt="Scope!" title="netvm Context" /></p>
+<p><img src="architecture/adr/../../img/netvm.drawio.png" alt="Scope!" title="Net VM Context" /></p>
 <p><strong>Left</strong>: An insecure development scenario. The host is directly connected to the Internet, and the network is bridged from the host to other parts of the system.</p>
-<p><strong>Right</strong>: A secure scenario. The network is passed through to <em>netvm</em> and routed to other parts of the system.</p>
+<p><strong>Right</strong>: A secure scenario. The network is passed through to Net VM and routed to other parts of the system.</p>
 <h2 id="decision-1"><a class="header" href="#decision-1">Decision</a></h2>
-<p>The development scenario simplifies the target system network access and configuration. This ADR proposes the development <em>netvm</em> configuration is maintained to support system development.</p>
-<p>The secure scenario is proposed to be implemented with the use of passthrough to DMA and remap the host physical network interface card (PHY NIC) to <em>netvm</em>. This cannot be generalized for all hardware targets as it requires:</p>
+<p>The development scenario simplifies the target system network access and configuration. This ADR proposes the development Net VM configuration is maintained to support system development.</p>
+<p>The secure scenario is proposed to be implemented with the use of passthrough to DMA and remap the host physical network interface card (PHY NIC) to Net VM. This cannot be generalized for all hardware targets as it requires:</p>
 <ul>
 <li>Low-level device tree configuration for bootloader and host (at least on platform NIC).</li>
-<li>VMM host user space NIC bus mapping from the host to <em>netvm</em>.</li>
-<li>Native network interface driver (not virtual) in <em>netvm</em>. Native driver is bound the vendor BSP supported kernel version.</li>
+<li>VMM host user space NIC bus mapping from the host to Net VM.</li>
+<li>Native network interface driver (not virtual) in Net VM. Native driver is bound the vendor BSP supported kernel version.</li>
 </ul>
 <p>These depend on the hardware setup. The proposed target setup is that the passthrough network device(s) are implemented as declarative nix-modules for easier user hardware-specific configuration. In practice, a user may configure the declaration of a PCI or USB network card that is available to the available hardware setup.</p>
-<p><em>netvm</em> will provide:</p>
+<p>Net VM will provide a dynamic network configuration:</p>
 <ul>
-<li>dynamic network configuration:
-<ul>
-<li>A DHCP server for <em>netvm</em> to provide IP addresses for the other parts of the system, both static and dynamic.</li>
-<li>Routing from <em>netvm</em> to the Internet and/or inter VM.</li>
-</ul>
-</li>
+<li>A DHCP server for Net VM to provide IP addresses for the other parts of the system, both static and dynamic.</li>
+<li>Routing from Net VM to the Internet and/or Inter VM.</li>
 </ul>
 <p>For common reference hardware with platform NIC, the configured modules for network interface passthrough are provided. For more information, see <a href="https://tiiuae.github.io/ghaf/research/passthrough/ethernet.html">i.MX 8QM Ethernet Passthrough</a>.</p>
-<p>Details of other network components, such as default firewall rules, DHCP (static and dynamic client addresses), routing, reverse proxies and security monitoring are to be described in their respective architecture decision records. In this context, these are illustrated in the context diagram on the right side of the <em>netvm</em> network interface driver.</p>
+<p>Details of other network components, such as default firewall rules, DHCP (static and dynamic client addresses), routing, reverse proxies and security monitoring are to be described in their respective architecture decision records. In this context, these are illustrated in the context diagram on the right side of the Net VM network interface driver.</p>
 <h2 id="consequences-1"><a class="header" href="#consequences-1">Consequences</a></h2>
 <p>Isolating the attack surface from the host to networking-specific guest VM makes it easier to protect the critical host system from compromise. The isolation also makes it easier to deploy further security, such as a zero trust policy engine or intrusion detection system (IDS).</p>
 <p>Isolation makes configuration and comprehension of the system more difficult.</p>
@@ -477,30 +475,20 @@ All graphics and display output related components and dependencies, including k
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="idsvm-itrusion-detection-system-virtual-machine"><a class="header" href="#idsvm-itrusion-detection-system-virtual-machine">idsvm-Itrusion Detection System Virtual Machine</a></h1>
+<h1 id="intrusion-detection-system-virtual-machine"><a class="header" href="#intrusion-detection-system-virtual-machine">Intrusion Detection System Virtual Machine</a></h1>
 <h2 id="status-3"><a class="header" href="#status-3">Status</a></h2>
 <p>Proposed, partially implemented for development and testing.</p>
-<p><em>idsvm</em> reference declaration will be available at [microvm/idsvm.nix]
-(https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/idsvm.nix)</p>
+<p>Intrusion Detection VM (IDS VM) reference declaration will be available at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/idsvm/idsvm.nix">microvm/idsvm.nix</a>.</p>
 <h2 id="context-2"><a class="header" href="#context-2">Context</a></h2>
-<p>Ghaf high-level design target is to secure a monolithic OS by modularizing
-the OS to networked VMs. The key security target is to detect intrusions by
-analyzing the network traffic in the internal network of the OS.</p>
+<p>Ghaf's high-level design target is to secure a monolithic OS by modularizing the OS to networked VMs. The key security target is to detect intrusions by analyzing the network traffic in the internal network of the OS.</p>
 <h2 id="decision-2"><a class="header" href="#decision-2">Decision</a></h2>
-<p>The main goal is to have networking entity in Ghaf internal network so that
-all network traffic goes via that entity. Traffic then can be analysed to
-detect possible intrusions in inter VM communication and outgoing network
-traffic (from VM to internet). This goal is achieved itroducing a dedicated
-virtual machine and route all networking from other virtual machines to go
-through it. Then it is possible to use various IDS software solutions in
-idsvm to detect possible suspicious network activities.</p>
-<p><img src="architecture/adr/../../img/idsvm.drawio.png" alt="Scope!" title="idsvm Solution" /></p>
+<p>The main goal is to have a networking entity in Ghaf's internal network so that all network traffic goes through that entity. Traffic then can be analyzed to detect possible intrusions in inter VM communication and outgoing network traffic (from VM to the Internet). This goal is achieved by introducing a dedicated VM and routing all networking from other VMs to go through it. Then it is possible to use various IDS software solutions in IDS VM to detect possible suspicious network activities.</p>
+<p><img src="architecture/adr/../../img/idsvm.drawio.png" alt="Scope!" title="IDS VM Solution" /></p>
 <h2 id="consequences-2"><a class="header" href="#consequences-2">Consequences</a></h2>
-<p>A dedicated idsvm provides a single checkpoint to detect intrusions
-and anomalies in the internal network of the OS and to initiate required
-countermeasures.</p>
-<p>Routing and analysing the network traffic in separate VM will reduce network
-performance.</p>
+<p>A dedicated IDS VM provides a single checkpoint to detect intrusions and anomalies in the internal network of the OS and to initiate required countermeasures.</p>
+<p>Routing and analyzing the network traffic in a separate VM will reduce network performance.</p>
+<h2 id="references"><a class="header" href="#references">References</a></h2>
+<p><a href="architecture/adr//docs/src/ref_impl/idsvm-development.html">IDS VM Further Development</a></p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -1238,17 +1226,16 @@ remember that the <code>/dev/sdX</code> is likely the install medium.</p>
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="creating-application-vm"><a class="header" href="#creating-application-vm">Creating Application VM</a></h1>
-<p>Application VM (AppVM) is a VM that improves trust in system components by isolating applications from the host OS and other applications. Virtualization with hardware-backed mechanisms provides better resource protection than traditional OS. This lets users use applications of different trust levels within the same system without compromising system security. While the VMs have overhead, it is acceptable as a result of improved security and usability that makes the application seem like it is running inside an ordinary OS.</p>
-<p>As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own AppVMs.</p>
-<p>To create an AppVM:</p>
+<p>Application VM (App VM) is a VM that improves trust in system components by isolating applications from the host OS and other applications. Virtualization with hardware-backed mechanisms provides better resource protection than traditional OS. This lets users use applications of different trust levels within the same system without compromising system security. While the VMs have overhead, it is acceptable as a result of improved security and usability that makes the application seem like it is running inside an ordinary OS.</p>
+<p>As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own AppVM.</p>
+<p>To create an App VM:</p>
 <ol>
-<li>Add AppVM description.</li>
-<li>Add an app launcher in GUI VM.</li>
+<li>Add the VM description.</li>
+<li>Add an application launcher in GUI VM.</li>
 </ol>
-<h2 id="adding-appvm-description"><a class="header" href="#adding-appvm-description">Adding AppVM Description</a></h2>
-<p>Add the VM description in the target configuration.</p>
-<p><a href="https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix">lenovo-x1-carbon.nix</a> already has AppVMs inside for Chromium, Gala, and Zathura applications.</p>
-<h4 id="appvms-example"><a class="header" href="#appvms-example">AppVMs Example</a></h4>
+<h2 id="adding-app-vm-description"><a class="header" href="#adding-app-vm-description">Adding App VM Description</a></h2>
+<p>Add the VM description in the target configuration.<br />
+<a href="https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix">lenovo-x1-carbon.nix</a> already has chromium-vm, gala-vm, and zathura-vm.</p>
 <pre><code>vms = with pkgs; [
   {
     name = "chromium";
@@ -1275,7 +1262,7 @@ remember that the <code>/dev/sdX</code> is likely the install medium.</p>
 </code></pre>
 <p>Each VM has the following properties:</p>
 <div class="table-wrapper"><table><thead><tr><th><strong>Property</strong></th><th><strong>Type</strong></th><th><strong>Unique</strong></th><th><strong>Description</strong></th><th><strong>Example</strong></th></tr></thead><tbody>
-<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name - e.g. <code>chromium-vm</code> will be also the VM hostname. The lenght of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
+<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name, for example, <code>chromium-vm</code> will be also the VM hostname. The length of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
 <tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[chromium top]</td></tr>
 <tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>"02:00:00:03:03:05"</td></tr>
 <tr><td>ramMb</td><td>int, [1, …, host memory]</td><td>no</td><td>Memory in MB.</td><td>3072</td></tr>
@@ -1283,13 +1270,13 @@ remember that the <code>/dev/sdX</code> is likely the install medium.</p>
 </tbody></table>
 </div>
 <h2 id="adding-application-launcher-in-gui-vm"><a class="header" href="#adding-application-launcher-in-gui-vm">Adding Application Launcher in GUI VM</a></h2>
-<p>To add an application launcher, add an element in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.weston.launchers</strong> list.</p>
+<p>To add an application launcher, add an element in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.weston.launchers</strong> list.</p>
 <p>A launcher element has two properties:</p>
 <ul>
-<li><strong>path</strong>–path to the executable you want to run, like a graphical application;</li>
-<li><strong>icon</strong>–path to an icon to show.</li>
+<li><strong>path</strong>: path to the executable you want to run, like a graphical application;</li>
+<li><strong>icon</strong>: path to an icon to show.</li>
 </ul>
-<p>Check the example launchers at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
+<p>Check the example launchers at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -1300,7 +1287,7 @@ remember that the <code>/dev/sdX</code> is likely the install medium.</p>
 <ul>
 <li>change the configuration option <code>profiles.graphics.compositor = "labwc"</code>
 or</li>
-<li>uncomment the corresponding line in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
+<li>uncomment the corresponding line in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
 </ul>
 <p>The basis of the labwc configuration is the set of following files: <code>rc.xml</code>, <code>menu.xml</code>, <code>autostart</code>, and <code>environment</code>. These files can be edited by substituting in the labwc overlay <code>overlays/custom-packages/labwc/default.nix</code>.</p>
 <h2 id="window-border-coloring"><a class="header" href="#window-border-coloring">Window Border Coloring</a></h2>
@@ -1320,24 +1307,22 @@ or</li>
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="idsvm-further-development"><a class="header" href="#idsvm-further-development">idsvm Further Development</a></h1>
+<h1 id="ids-vm-further-development"><a class="header" href="#ids-vm-further-development">IDS VM Further Development</a></h1>
 <h2 id="implementation"><a class="header" href="#implementation">Implementation</a></h2>
-<p>The idsvm is implemented as a regular microVM with static IP.
-The mitmproxy is included to demonstrative interactive proxy to enable analysis of TLS protected data on the fly. Also Snort network intrusion detection and prevention system package is included, but no dedicated UI nor proper utilization is provided.</p>
-<p>Enforcing network traffic to go through idsvm is crucial part of the idsvm functionality.
-It is achieved by setting the idsvm to be the gateway of other VMs in dnsmasq configuration
-of netvm. There is a risk is that one could change gateway settings of the VM to bypass the idsvm. This however requires root (sudo) rights and it is assumed here that these rights are enabled only in debug build.</p>
+<p>The <a href="ref_impl//docs/src/architecture/adr/idsvm.html">IDS VM</a> is implemented as a regular Micro VM with static IP.</p>
+<p>The <a href="https://mitmproxy.org/">mitmproxy</a> is included in the demonstrative interactive proxy to enable analysis of TLS-protected data on the fly. Also, <a href="https://snort.org/">Snort</a> network intrusion detection and prevention system package is included but no dedicated UI nor proper utilization is provided.</p>
+<p>Enforcing network traffic to go through IDS VM is crucial to the IDS VM functionality. It is achieved by setting the IDS VM to be the gateway of other VMs in <a href="https://thekelleys.org.uk/dnsmasq/doc.html">dnsmasq</a> configuration of Net VM. There is a risk that one could change the gateway settings of the VM to bypass the IDS VM. This however requires root (sudo) rights and it is assumed here that these rights are enabled only in the debug build.</p>
 <h2 id="mitmproxy"><a class="header" href="#mitmproxy">mitmproxy</a></h2>
-<p>"The mitmproxy is a free and open source interactive HTTPS proxy. It is your swiss-army knife for debugging, testing, privacy measurements, and penetration testing. It can be used to intercept, inspect, modify and replay web traffic such as HTTP/1, HTTP/2, WebSockets, or any other SSL/TLS-protected protocols."
-https://mitmproxy.org/</p>
-<p>In idsvm we use mitmweb tool to demonstrate mitmproxy's capabilities. It provides web-based user interface that allows interactive examination and modification of HTTP(s) traffic.
-Mitmproxy package also includes console tool that provides basically same functionalities in text-based interface and it also includes a command-line tool mitmdump to view, record, and programmatically transform HTTP(s) traffic.</p>
-<p>Mitmweb tool is run in idsvm as a systemd service. It starts automatically when idsvm boots up.
-The UI it provides is accessible in the web address http://localhost:8081 so basically it is available from idsvm only. However using SSH portforwarfing it is possible to access the UI from other VMs. To that purpose the guivm has a script called mitmweb-ui. It creates a SSH tunnel between idsvm and chromium-vm, launches the Chromium and connects to the UI-address.</p>
+<p><a href="https://mitmproxy.org/"><strong>mitmproxy</strong></a> is a free and open-source interactive HTTPS proxy. It is your Swiss Army Knife for debugging, testing, privacy measurements, and penetration testing. It can be used to intercept, inspect, modify and replay web traffic such as HTTP/1, HTTP/2, WebSockets, or any other SSL/TLS-protected protocols.</p>
+<p>In IDS VM, we use <strong>mitmweb</strong><sup class="footnote-reference"><a href="#note1">1</a></sup> tool to demonstrate mitmproxy's capabilities. It provides a web-based user interface that allows interactive examination and modification of HTTP(s) traffic. The mtmproxy package also includes a console tool that provides the same functionalities in a text-based interface and a command-line tool <strong>mitmdump</strong> to view, record, and programmatically transform HTTP(s) traffic.</p>
+<p>The mitmweb tool is run in <em>ids-vm</em> as a systemd service. It starts automatically when <em>ids-vm</em> boots up. The UI it provides is accessible at <a href="http://localhost:8081">http://localhost:8081</a>, so it is available from <em>ids-vm</em> only. However, with SSH port forwarding it is possible to access the UI from other VMs. To that purpose, GUI VM has a script <em>mitmweb-ui</em> that creates an SSH tunnel between <em>ids-vm</em> and <em>chromium-vm</em>, launches Chromium, and connects to the UI address.</p>
 <h2 id="certificates"><a class="header" href="#certificates">Certificates</a></h2>
-<p>Mitmproxy can decrypt encrypted traffic on the fly, as long as the client trusts mitmproxy's built-in certificate authority (CA). CA certificates are in hardcoded to the idsvm implementation which means they are same for all idsvm instances. In release version these should be randomly generated and stored securely.</p>
-<p>By default any of the clients should not trust mitmproxy's CA. That is why these CA certicates should be installed to OS's CA storage. However many client applications (web browsers) use their own CA bundles and importing custom certificates to there can be very complicated or requires manual user interaction. In our case this difficulty is circumvented in chromium-vm by disabling certicate verification errors, if the certicate chain contains a certificate which SPKI fingerprint matches that of mitmproxy's CA certificate fingerprint. This does not degrade security of server verification since mitmproxy itself validates upstream certificates using certifi Python package, which provides Mozilla's CA Bundle.</p>
+<p>mitmproxy can decrypt encrypted traffic on the fly, as long as the client trusts mitmproxy's built-in certificate authority (CA). CA certificates are the same for all <em>ids-vm</em> instances, as they are hardcoded to the IDS VM implementation. In the release version, these should be randomly generated and stored securely.</p>
+<p>By default, any of the clients should not trust mitmproxy's CA. These CA certificates should be installed in the OS's CA storage. However, many client applications (web browsers, for example) use their own CA bundles, and importing custom certificates there can be complicated or require manual user interaction. In our case, this difficulty is circumvented in <em>chromium-vm</em> by disabling certificate verification errors, if the certificate chain contains a certificate which SPKI fingerprint matches that of mitmproxy's CA certificate fingerprint. This does not degrade server verification security since mitmproxy validates upstream certificates using a certified Python package which provides Mozilla's CA Bundle.</p>
 <p>Some applications use certificate pinning to prevent man-in-the-middle attacks. As a consequence mitmproxy's certificates will not be accepted by these applications without patching applications manually. Other option is to set mitmproxy to use ignore_hosts option to prevent mitmproxy from intercepting traffic to these specific domains.</p>
+<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
+<p><strong>mitmproxy</strong> is an interactive, SSL/TLS-capable intercepting proxy with a console interface for HTTP/1, HTTP/2, and WebSockets. <strong>mitmweb</strong> is a web-based interface for mitmproxy. <strong>mitmdump</strong> is the command-line version of mitmproxy. Source: <a href="https://docs.mitmproxy.org/stable/#3-powerful-core-tools">mitmproxy docs</a>.</p>
+</div>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -1484,7 +1469,7 @@ The UI it provides is accessible in the web address http://localhost:8081 so bas
 <li><strong>Specific Address Families</strong>: Specify one or more address families that the service is allowed to use, for example, <code>'AF_INET'</code>, <code>'AF_INET6'</code>, <code>'AF_UNIX'</code>.</li>
 <li><strong>Inverted Restriction</strong>: Prepend character '~' to an address family name to deny access to it while allowing all others, for example, <code>'~AF_INET'</code> would block IPv4 access.</li>
 </ul>
-<hr />
+<h2 id="back-to-top-"><a class="header" href="#back-to-top-"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="2-file-system"><a class="header" href="#2-file-system">2. File System</a></h2>
 <h3 id="21-protecthome"><a class="header" href="#21-protecthome">2.1 ProtectHome</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectHome=">ProtectHome</a> is used to restrict a service's access to home directories. This security feature can be used either completely to block access to <code>/home</code>, <code>/root</code>, and <code>/run/user</code> or make them appear empty to the service, thereby protecting user data from unauthorized access by system services.</p>
@@ -1560,7 +1545,7 @@ The UI it provides is accessible in the web address http://localhost:8081 so bas
 <li><strong><code>all</code></strong>: Allows the service access to all <code>/proc</code> entries.</li>
 <li><strong><code>pid</code></strong>: Restricts the service to only its own process information (<code>/proc/self</code>, <code>/proc/thread-self/</code>).</li>
 </ul>
-<hr />
+<h2 id="back-to-top--1"><a class="header" href="#back-to-top--1"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="3-user-separation"><a class="header" href="#3-user-separation">3. User Separation</a></h2>
 <blockquote>
 <p><strong>IMPORTANT:</strong> Not applicable for the service runs as root.</p>
@@ -1583,7 +1568,7 @@ The UI it provides is accessible in the web address http://localhost:8081 so bas
 <li><strong><code>true</code></strong>: A UNIX user and group pair are dynamically allocated when the unit is started and released as soon as it is stopped.</li>
 <li><strong><code>false</code></strong>: The service uses a static UID/GID defined in the service unit file or defaults to <code>root</code>.</li>
 </ul>
-<hr />
+<h2 id="back-to-top--2"><a class="header" href="#back-to-top--2"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="4-devices"><a class="header" href="#4-devices">4. Devices</a></h2>
 <h3 id="41-privatedevices"><a class="header" href="#41-privatedevices">4.1. PrivateDevices</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateDevices=">PrivateDevices</a> controls whether the service should have access to device nodes in <code>/dev</code>.</p>
@@ -1602,7 +1587,7 @@ The UI it provides is accessible in the web address http://localhost:8081 so bas
 <ul>
 <li>Specify device access rules in the format: <code>&lt;device path&gt; &lt;permission&gt;</code> where <code>&lt;permission&gt;</code> can be <code>r</code> (read), <code>w</code> (write), or <code>m</code> (mknod, allowing creation of devices).</li>
 </ul>
-<hr />
+<h2 id="back-to-top--3"><a class="header" href="#back-to-top--3"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="5-kernel"><a class="header" href="#5-kernel">5. Kernel</a></h2>
 <h3 id="51-protectkerneltunables"><a class="header" href="#51-protectkerneltunables">5.1. ProtectKernelTunables</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectKernelTunables=">ProtectKernelTunables</a> controls whether the service is allowed to modify tunable kernel variables in <code>/proc/sys</code>, enhancing security by restricting access to critical kernel parameters.</p>
@@ -1631,7 +1616,7 @@ The UI it provides is accessible in the web address http://localhost:8081 so bas
 <li><strong><code>trues</code></strong>: Restricts the service from accessing kernel logs from <code>/proc/kmsg</code> and <code>/dev/kmsg</code>. Enabling this option removes <code>CAP_SYSLOG</code> from the capability bounding set for the unit and installs a system call filter to block the syslog(2) system call.</li>
 <li><strong><code>no</code></strong>: Allows the service to access kernel logs.</li>
 </ul>
-<hr />
+<h2 id="back-to-top--4"><a class="header" href="#back-to-top--4"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="6-misc"><a class="header" href="#6-misc">6. Misc</a></h2>
 <h3 id="61-delegate"><a class="header" href="#61-delegate">6.1. Delegate</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#Delegate=">Delegate</a> controls whether systemd should delegate further control of resource management to the service's own resource management settings.</p>
@@ -1771,7 +1756,7 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <li><code>exec</code>: Only service updates sent from any main or control processes originating from one of the <code>Exec*=</code> commands are accepted.</li>
 <li><code>all</code>: Allows sending signals using any process identifier (PID).</li>
 </ul>
-<hr />
+<h2 id="back-to-top--5"><a class="header" href="#back-to-top--5"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="7-capabilities"><a class="header" href="#7-capabilities">7. Capabilities</a></h2>
 <h3 id="71-ambientcapabilities"><a class="header" href="#71-ambientcapabilities">7.1. AmbientCapabilities</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#AmbientCapabilities=">AmbientCapabilities</a> specifies which capabilities to include in the ambient capability set for the service, which are inherited by all processes within the service.</p>
@@ -1835,7 +1820,7 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <tr><td><strong>CAP_WAKE_ALARM</strong></td><td>Allows processes to use the RTC wakeup alarm.</td></tr>
 </tbody></table>
 </div>
-<hr />
+<h2 id="back-to-top--6"><a class="header" href="#back-to-top--6"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="8-system-calls"><a class="header" href="#8-system-calls">8. System Calls</a></h2>
 <h3 id="81-systemcallfilter"><a class="header" href="#81-systemcallfilter">8.1. SystemCallFilter</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#SystemCallFilter=">SystemCallFilter</a> specifies a system call filter for the service, restricting the types of system calls that processes within the service can make.</p>
@@ -1865,7 +1850,9 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <tr><td><strong>@system-service</strong></td><td>Allows system service-related system calls, which are used for managing system services.</td></tr>
 <tr><td><strong>@timer</strong></td><td>Allows timer-related system calls, which are essential for setting and managing timers.</td></tr>
 </tbody></table>
-</div><div style="break-before: page; page-break-before: always;"></div><!--
+</div>
+<h2 id="back-to-top--7"><a class="header" href="#back-to-top--7"><a href="ref_impl/./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
+<div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
@@ -1942,7 +1929,7 @@ git+file://~/ghaf-example
 <ol>
 <li>Create a template project as described in the <a href="ref_impl/../ref_impl/ghaf-based-project.html">Ghaf as Library</a> section.</li>
 <li>Adjust your system configuration in accordance with your HW specification. Determine all VIDs and PIDs of the devices that are passed to the VMs.</li>
-<li>Add GUIVM configuration, NetworkVM configuration, and optionally some AppVMs.</li>
+<li>Add GUI VM configuration, NetworkVM configuration, and optionally some AppVMs.</li>
 <li>Set up Weston panel shortcuts.</li>
 </ol>
 <p>You can refer to the existing <a href="https://github.com/unbel13ver/ghaf-lib">project example for Lenovo T14 and Lenovo X1 laptops</a>.</p>
@@ -1973,10 +1960,10 @@ git+file://~/ghaf-example
 <li>Identify an IP address by a MAC address with the <code>arp</code> command. If a MAC address is unknown, you can boot into the NixOS image or any other OS to find it, or try the latest addresses that <code>arp</code> returns.</li>
 <li>Connect using SSH (login/password ghaf/ghaf). Then connect from netvm to the host using <code>ssh 192.168.101.2</code> (login/password ghaf/ghaf).</li>
 <li>Check running VMs with <code>microvm -l</code>.</li>
-<li>Check a GUIVM log using <code>journalctl -u microvm@guivm</code>.</li>
-<li>If GUIVM does not start, you can try to start it manually with <code>/var/lib/microvms/guivm/current/bin/microvm-run</code>.</li>
+<li>Check a GUI VM log using <code>journalctl -u microvm@guivm</code>.</li>
+<li>If GUI VM does not start, you can try to start it manually with <code>/var/lib/microvms/guivm/current/bin/microvm-run</code>.</li>
 </ol>
-<p>In case when GUIVM did not start with the error message that the device /dev/mouse or /dev/touchpad was not found, it means that the model of the touchpad in the laptop is different since it was bought in another country and has a different SKU (stock keeping unit). To add support for a new touchpad, do the following:</p>
+<p>In case when GUI VM did not start with the error message that the device /dev/mouse or /dev/touchpad was not found, it means that the model of the touchpad in the laptop is different since it was bought in another country and has a different SKU (stock keeping unit). To add support for a new touchpad, do the following:</p>
 <ol>
 <li>
 <p>On the ghaf host, check the devices in <code>/dev/input/by-path</code> that contain “-event-” in the name. Use the command like <code>udevadm info -q all -a /dev/input/by-path/pci-0000:00:15.0-platform-i2c_designware.0-event-mouse | grep name</code> for the name of each of these devices.</p>
@@ -2954,7 +2941,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </ul>
 <h2 id="sbom-tooling-in-ghaf"><a class="header" href="#sbom-tooling-in-ghaf">SBOM Tooling in Ghaf</a></h2>
 <p>Ghaf is based on Nix, therefore, the selected SBOM tooling needs to support creating SBOMs for nix artifacts. As part of the Ghaf project, we have created the sbomnix tool to support SBOM generation for Ghaf and, more generally, for any Nix-based targets. For more details on the SBOM tooling in Ghaf, see <a href="https://github.com/tiiuae/sbomnix#sbomnix">sbomnix</a> and <a href="https://github.com/tiiuae/sbomnix/blob/main/doc/nixgraph.md#nixgraph">nixgraph</a>. sbomnix supports <a href="https://cyclonedx.org/specification/overview/">CycloneDX</a> as well as <a href="https://spdx.dev/specifications/">SPDX</a> SBOM specification.</p>
-<h2 id="references"><a class="header" href="#references">References</a></h2>
+<h2 id="references-1"><a class="header" href="#references-1">References</a></h2>
 <ul>
 <li><a href="https://ntia.gov/page/software-bill-materials">https://ntia.gov/page/software-bill-materials</a></li>
 <li><a href="https://slsa.dev/blog/2022/05/slsa-sbom">https://slsa.dev/blog/2022/05/slsa-sbom</a></li>
@@ -3162,7 +3149,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Lenovo X1 Carbon Gen 11:
 <ul>
 <li>Configurable PCI and USB devices passthrough.</li>
-<li>Network Manager: support from GUIVM to NETVM.</li>
+<li>Network Manager: support from GUI VM to Net VM.</li>
 <li>Windows VM support.</li>
 <li>Added Ghaf icons and the background image.</li>
 <li>Secure Boot is disabled by default.</li>
@@ -3199,7 +3186,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Time synchronization between host and VMs does not work in all scenarios</td><td>In Progress</td><td>Under investigation.</td></tr>
 <tr><td>The taskbar disappears after the external display is disconnected from Lenovo X1</td><td>In Progress</td><td>Under investigation.</td></tr>
 <tr><td>Closing and re-opening a deck lid of a X1 laptop with running Ghaf causes instability</td><td>In Progress</td><td>Workaround: keep a deck lid of a laptop open while working with Ghaf.</td></tr>
-<tr><td>Applications do not open from icons when netvm is restarted</td><td>In Progress</td><td>Workaround: Restart AppVMs.</td></tr>
+<tr><td>Applications do not open from icons when net-vm is restarted</td><td>In Progress</td><td>Workaround: Restart App VMs.</td></tr>
 </tbody></table>
 </div>
 <h2 id="environment-requirements-1"><a class="header" href="#environment-requirements-1">Environment Requirements</a></h2>
@@ -3245,8 +3232,8 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>NVIDIA Jetson Orin NX Ethernet passthrough.</li>
 <li>Lenovo X1 Carbon Gen 11:
 <ul>
-<li>Graphics passthrough to GUIVM.</li>
-<li>Launching Application VMs through GUIVM (Chromium, Gala, and Zathura).</li>
+<li>Graphics passthrough to GUI VM.</li>
+<li>Launching Application VMs through GUI VM (Chromium, Gala, and Zathura).</li>
 <li>Paravirtualized audio.</li>
 <li>Webcam passthrough.</li>
 <li>Touchpad passthrough.</li>
@@ -3266,7 +3253,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </ul>
 <h2 id="known-issues-and-limitations-2"><a class="header" href="#known-issues-and-limitations-2">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
-<tr><td>Chromium AppVM does not boot up on X1</td><td>In Progress</td><td>Intermittent timing issue, under investigation.</td></tr>
+<tr><td>Chromium App VM does not boot up on X1</td><td>In Progress</td><td>Intermittent timing issue, under investigation.</td></tr>
 <tr><td>The GALA app does not work</td><td>In Progress</td><td>Will be fixed in the next release.</td></tr>
 <tr><td>Shutdown or reboot of Lenovo X1 takes a lot of time (7 minutes)</td><td>In Progress</td><td>Advice: be patient or, if in hurry, press power key for 15 sec.</td></tr>
 <tr><td>Copy and paste text from or to Chromium AppVM does not work</td><td>In Progress</td><td></td></tr>
@@ -3668,6 +3655,8 @@ Source: <a href="https://adr.github.io/">https://adr.github.io/</a></p>
 Source: <a href="https://developer.download.nvidia.com/assets/embedded/secure/jetson/agx_orin/Orin-TRM_DP10508002_v1.2p.pdf?iuc0WbcuowCBOIVqmVy-NHasaaKLPPoH_J74-C98Mnf_nPX-3LeG7pG9bUoWq28u9X2cW9dNB5bbIJwjmGcuGpdG3BErfZoaGTB0lzfWAUrpxZcO0nP9Z8SW4whsNkrGn6RFSM5_P9if4YR2RVXWLzjwoXbpzRWBvBk_De_WBM_4Erk=&amp;t=eyJscyI6IndlYnNpdGUiLCJsc2QiOiJkZXZlbG9wZXIubnZpZGlhLmNvbS9lbWJlZGRlZC9kb3dubG9hZHMifQ==">NVIDIA Orin Series System-on-Chip, Technical Reference Manual, Version: 1.2, Date: 29-September-2023</a></p>
 <h3 id="bsp"><a class="header" href="#bsp">BSP</a></h3>
 <p><em>A board support package is a collection of software used to boot and run the embedded system.</em></p>
+<h3 id="ca"><a class="header" href="#ca">CA</a></h3>
+<p><em>A certificate authority or certification authority is an entity that stores, signs, issues digital certificates, and bind them to cryptographic keys.</em></p>
 <h3 id="dhcp"><a class="header" href="#dhcp">DHCP</a></h3>
 <p><em>The Dynamic Host Configuration Protocol is a network protocol that automatically sets IP addresses and other attributes to enable information transfer between network nodes.</em><br />
 Source: Computer Networks: A Systems Approach, <a href="https://book.systemsapproach.org/internetworking/basic-ip.html#host-configuration-dhcp">https://book.systemsapproach.org/internetworking/basic-ip.html#host-configuration-dhcp</a></p>
@@ -3726,6 +3715,8 @@ Source: <a href="https://developer.arm.com/documentation/den0029/latest">Arm® S
 <p><em>A stock keeping unit, is a unique code used by sellers to identify and track products.</em></p>
 <h3 id="soc"><a class="header" href="#soc">SoC</a></h3>
 <p><em>A system on chip, a microchip that contains the necessary electronic circuits for a fully functional system on a single integrated circuit (IC).</em></p>
+<h3 id="spki"><a class="header" href="#spki">SPKI</a></h3>
+<p><em>simple public-key infrastructure</em></p>
 <h3 id="ssd"><a class="header" href="#ssd">SSD</a></h3>
 <p><em>solid-state drive</em></p>
 <h3 id="tcb"><a class="header" href="#tcb">TCB</a></h3>
@@ -3751,7 +3742,7 @@ Source: <a href="https://docs.kernel.org/driver-api/vfio.html">https://docs.kern
 <p><em>zero trust architecture, zero trust security model</em></p>
 <hr />
 <h2 id="scs-related"><a class="header" href="#scs-related">SCS Related</a></h2>
-<h3 id="ca"><a class="header" href="#ca">CA</a></h3>
+<h3 id="ca-1"><a class="header" href="#ca-1">CA</a></h3>
 <p><em>certificate authority</em></p>
 <h3 id="cms"><a class="header" href="#cms">CMS</a></h3>
 <p><em>Certificate Management System</em></p>
@@ -3784,6 +3775,7 @@ Source: <a href="https://slsa.dev/spec/v0.1/terminology">https://slsa.dev/spec/v
 <h3 id="slsa"><a class="header" href="#slsa">SLSA</a></h3>
 <p><em>Supply chain Levels for Software Artifacts is a security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure in your projects, businesses or enterprises.</em><br />
 Source: <a href="https://slsa.dev/">https://slsa.dev/</a></p>
+<h2 id="back-to-top--8"><a class="header" href="#back-to-top--8"><a href="appendices/./glossary.html#glossary">Back to Top ⏫</a></a></h2>
 <div style="break-before: page; page-break-before: always;"></div><!--
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0

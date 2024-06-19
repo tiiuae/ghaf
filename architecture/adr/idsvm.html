@@ -180,30 +180,20 @@
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="idsvm-itrusion-detection-system-virtual-machine"><a class="header" href="#idsvm-itrusion-detection-system-virtual-machine">idsvm-Itrusion Detection System Virtual Machine</a></h1>
+<h1 id="intrusion-detection-system-virtual-machine"><a class="header" href="#intrusion-detection-system-virtual-machine">Intrusion Detection System Virtual Machine</a></h1>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>Proposed, partially implemented for development and testing.</p>
-<p><em>idsvm</em> reference declaration will be available at [microvm/idsvm.nix]
-(https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/idsvm.nix)</p>
+<p>Intrusion Detection VM (IDS VM) reference declaration will be available at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/idsvm/idsvm.nix">microvm/idsvm.nix</a>.</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
-<p>Ghaf high-level design target is to secure a monolithic OS by modularizing
-the OS to networked VMs. The key security target is to detect intrusions by
-analyzing the network traffic in the internal network of the OS.</p>
+<p>Ghaf's high-level design target is to secure a monolithic OS by modularizing the OS to networked VMs. The key security target is to detect intrusions by analyzing the network traffic in the internal network of the OS.</p>
 <h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
-<p>The main goal is to have networking entity in Ghaf internal network so that
-all network traffic goes via that entity. Traffic then can be analysed to
-detect possible intrusions in inter VM communication and outgoing network
-traffic (from VM to internet). This goal is achieved itroducing a dedicated
-virtual machine and route all networking from other virtual machines to go
-through it. Then it is possible to use various IDS software solutions in
-idsvm to detect possible suspicious network activities.</p>
-<p><img src="../../img/idsvm.drawio.png" alt="Scope!" title="idsvm Solution" /></p>
+<p>The main goal is to have a networking entity in Ghaf's internal network so that all network traffic goes through that entity. Traffic then can be analyzed to detect possible intrusions in inter VM communication and outgoing network traffic (from VM to the Internet). This goal is achieved by introducing a dedicated VM and routing all networking from other VMs to go through it. Then it is possible to use various IDS software solutions in IDS VM to detect possible suspicious network activities.</p>
+<p><img src="../../img/idsvm.drawio.png" alt="Scope!" title="IDS VM Solution" /></p>
 <h2 id="consequences"><a class="header" href="#consequences">Consequences</a></h2>
-<p>A dedicated idsvm provides a single checkpoint to detect intrusions
-and anomalies in the internal network of the OS and to initiate required
-countermeasures.</p>
-<p>Routing and analysing the network traffic in separate VM will reduce network
-performance.</p>
+<p>A dedicated IDS VM provides a single checkpoint to detect intrusions and anomalies in the internal network of the OS and to initiate required countermeasures.</p>
+<p>Routing and analyzing the network traffic in a separate VM will reduce network performance.</p>
+<h2 id="references"><a class="header" href="#references">References</a></h2>
+<p><a href="/docs/src/ref_impl/idsvm-development.html">IDS VM Further Development</a></p>
 
                     </main>
 

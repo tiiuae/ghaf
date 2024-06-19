@@ -237,8 +237,8 @@ Currently, host and VM declarations are implemented using <a href="https://githu
 <p>No networking has impact on how <a href="https://github.com/tiiuae/vmd/blob/main/doc/design.md"><code>vmd</code></a> adminvm to host communication is implemented. With no networking, shared memory is proposed.</p>
 <p>No networking may have impact on how the guest-to-guest inter virtual machine communication configuration must implemented with VMMs. This must be further analyzed.</p>
 <h3 id="no-graphics-mh04"><a class="header" href="#no-graphics-mh04">No graphics (MH04)</a></h3>
-<p>Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUIVM.
-All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUIVM.</p>
+<p>Ghaf minimal host profile for release target has no graphics. Graphics will be compartmentalized to GUI VM.
+All graphics and display output related components and dependencies, including kernel drivers, must be removed from kernel configuration. Those are to be passed through to GUI VM.</p>
 <h3 id="no-getty-mh05"><a class="header" href="#no-getty-mh05">No getty (MH05)</a></h3>
 <p>Ghaf host in release mode must have no terminals (TTYs) to interact with. In the current state of development, this cannot be enabled yet and has minimum requirement of system logging outside the host. Proposed design to approach this is requirement is to enable getty declaratively only in a debug serial terminal under <a href="https://github.com/tiiuae/ghaf/tree/main/modules/development"><code>modules/development</code></a>.</p>
 <h3 id="no-nix-toolings-mh06"><a class="header" href="#no-nix-toolings-mh06">No <code>nix</code> toolings (MH06)</a></h3>

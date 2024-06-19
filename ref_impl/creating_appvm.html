@@ -181,17 +181,16 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="creating-application-vm"><a class="header" href="#creating-application-vm">Creating Application VM</a></h1>
-<p>Application VM (AppVM) is a VM that improves trust in system components by isolating applications from the host OS and other applications. Virtualization with hardware-backed mechanisms provides better resource protection than traditional OS. This lets users use applications of different trust levels within the same system without compromising system security. While the VMs have overhead, it is acceptable as a result of improved security and usability that makes the application seem like it is running inside an ordinary OS.</p>
-<p>As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own AppVMs.</p>
-<p>To create an AppVM:</p>
+<p>Application VM (App VM) is a VM that improves trust in system components by isolating applications from the host OS and other applications. Virtualization with hardware-backed mechanisms provides better resource protection than traditional OS. This lets users use applications of different trust levels within the same system without compromising system security. While the VMs have overhead, it is acceptable as a result of improved security and usability that makes the application seem like it is running inside an ordinary OS.</p>
+<p>As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own AppVM.</p>
+<p>To create an App VM:</p>
 <ol>
-<li>Add AppVM description.</li>
-<li>Add an app launcher in GUI VM.</li>
+<li>Add the VM description.</li>
+<li>Add an application launcher in GUI VM.</li>
 </ol>
-<h2 id="adding-appvm-description"><a class="header" href="#adding-appvm-description">Adding AppVM Description</a></h2>
-<p>Add the VM description in the target configuration.</p>
-<p><a href="https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix">lenovo-x1-carbon.nix</a> already has AppVMs inside for Chromium, Gala, and Zathura applications.</p>
-<h4 id="appvms-example"><a class="header" href="#appvms-example">AppVMs Example</a></h4>
+<h2 id="adding-app-vm-description"><a class="header" href="#adding-app-vm-description">Adding App VM Description</a></h2>
+<p>Add the VM description in the target configuration.<br />
+<a href="https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix">lenovo-x1-carbon.nix</a> already has chromium-vm, gala-vm, and zathura-vm.</p>
 <pre><code>vms = with pkgs; [
   {
     name = "chromium";
@@ -218,7 +217,7 @@
 </code></pre>
 <p>Each VM has the following properties:</p>
 <div class="table-wrapper"><table><thead><tr><th><strong>Property</strong></th><th><strong>Type</strong></th><th><strong>Unique</strong></th><th><strong>Description</strong></th><th><strong>Example</strong></th></tr></thead><tbody>
-<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name - e.g. <code>chromium-vm</code> will be also the VM hostname. The lenght of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
+<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name, for example, <code>chromium-vm</code> will be also the VM hostname. The length of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
 <tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[chromium top]</td></tr>
 <tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>"02:00:00:03:03:05"</td></tr>
 <tr><td>ramMb</td><td>int, [1, …, host memory]</td><td>no</td><td>Memory in MB.</td><td>3072</td></tr>
@@ -226,13 +225,13 @@
 </tbody></table>
 </div>
 <h2 id="adding-application-launcher-in-gui-vm"><a class="header" href="#adding-application-launcher-in-gui-vm">Adding Application Launcher in GUI VM</a></h2>
-<p>To add an application launcher, add an element in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.weston.launchers</strong> list.</p>
+<p>To add an application launcher, add an element in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix">guivm.nix</a> file to the <strong>graphics.weston.launchers</strong> list.</p>
 <p>A launcher element has two properties:</p>
 <ul>
-<li><strong>path</strong>–path to the executable you want to run, like a graphical application;</li>
-<li><strong>icon</strong>–path to an icon to show.</li>
+<li><strong>path</strong>: path to the executable you want to run, like a graphical application;</li>
+<li><strong>icon</strong>: path to an icon to show.</li>
 </ul>
-<p>Check the example launchers at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
+<p>Check the example launchers at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix">guivm.nix</a>.</p>
 
                     </main>
 

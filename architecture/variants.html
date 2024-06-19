@@ -185,11 +185,11 @@
 <ul>
 <li>
 <p><code>Default</code><br />
-A default variant. Supports <a href="./adr/minimal-host.html">minimal host</a>, GUI VM[^note] and <a href="./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="./stack.html">Stack</a>.</p>
+A default variant. Supports <a href="./adr/minimal-host.html">minimal host</a>, GUI VM<sup class="footnote-reference"><a href="#note1">1</a></sup> and <a href="./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="./stack.html">Stack</a>.</p>
 </li>
 <li>
 <p><code>Headless</code><br />
-A variant with <a href="./adr/minimal-host.html">minimal host</a> and <a href="./adr/netvm.html">netvm</a>. May host other VMs but does not have GUI VM or graphics stack on a host.</p>
+A variant with <a href="./adr/minimal-host.html">minimal host</a> and <a href="./adr/netvm.html">netvm</a>. May host other VMs but does not have a GUI VM or graphics stack on a host.</p>
 </li>
 <li>
 <p><code>Host only</code>
@@ -201,13 +201,15 @@ A variant for hardware with no support for virtualization. May run any software,
 </li>
 </ul>
 <div class="table-wrapper"><table><thead><tr><th>Variant Name</th><th>Headless</th><th>Graphics</th><th>VMs</th><th>Devices</th></tr></thead><tbody>
-<tr><td><code>Default</code></td><td>No</td><td>GUI VM [^note]</td><td>Supported</td><td>Jetson, generic x86</td></tr>
+<tr><td><code>Default</code></td><td>No</td><td>GUI VM</td><td>Supported</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>Headless</code></td><td>Yes</td><td>No</td><td>Supported</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>Host Only</code></td><td>Yes</td><td>No</td><td>May be supported but not included</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>No Virtualization</code></td><td>Yes or no</td><td>Native on host</td><td>Not supported</td><td>Raspberry Pi, RISC-V</td></tr>
 </tbody></table>
 </div>
-<p>[^note] As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
+<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
+<p>As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
+</div>
 
                     </main>
 

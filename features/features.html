@@ -198,7 +198,7 @@
 <li><code>aarch64</code>—generic AArch64; tested on an ARM server, laptop (e.g. Apple MacBook's), or NVIDIA Jetson AGX Orin.</li>
 <li><code>All variants</code>—supported devices from <a href="https://tiiuae.github.io/ghaf/architecture/variants.html">Architectural Variants</a>.</li>
 </ul>
-<p>The following tables show the status of Ghaf Platform features:</p>
+<p>The following tables show the status of the Ghaf Platform features:</p>
 <h2 id="release-builds-and-hardware-architecture-support"><a class="header" href="#release-builds-and-hardware-architecture-support">Release Builds and Hardware Architecture Support</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
 <tr><td>Ghaf in virtual machine</td><td>✅</td><td><code>x86</code></td><td><code>nix run .#packages.x86_64-linux.vm-debug</code></td></tr>
@@ -219,23 +219,23 @@
 <tr><td>root filesystem flashing</td><td>✅</td><td><code>x86, imx8mp</code></td><td><code>dd</code> image to bootable media - <a href="https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer">see</a></td></tr>
 <tr><td>Debug: SSH</td><td>✅</td><td><code>Orin</code>, <code>x86</code></td><td>Host access only in <code>-debug</code>-target, see <a href="https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix">authentication.nix</a></td></tr>
 <tr><td>Debug: Serial</td><td>✅</td><td><code>all</code></td><td>Host access only in <code>-debug</code>-target - e.g. <code>screen /dev/ttyACM0 115200</code></td></tr>
-<tr><td>Compartmentalized environment</td><td>🚧</td><td><code>Lenovo X1</code></td><td>NetVM, GUI VM (with GPU passthrough) plus some Application VMs</td></tr>
+<tr><td>Compartmentalized environment</td><td>🚧</td><td><code>Lenovo X1</code></td><td>Net VM, GUI VM (with GPU passthrough) plus some App VMs</td></tr>
 </tbody></table>
 </div>
 <h2 id="target-architecture"><a class="header" href="#target-architecture">Target Architecture</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>Status</th><th>Reference Device</th><th>Details</th></tr></thead><tbody>
-<tr><td><code>minimal host</code></td><td>🚧</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>all</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">Minimal Host</a> and <a href="https://github.com/tiiuae/ghaf/pull/140">PR #140</a>.</td></tr>
-<tr><td><code>netvm</code></td><td>✅</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">netvm</a>. Passthrough with Wifi works but requires SSID/password configuration</td></tr>
-<tr><td><code>idsvm</code></td><td>✅</td><td><code>Orin</code></td><td><a href="https://github.com/tiiuae/ghaf/pull/146">Defensive security VM placeholder PR open</a></td></tr>
-<tr><td><code>guivm</code></td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.</td></tr>
-<tr><td><code>appvm</code></td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device: chromium, GALA and zathura VMs. Requires <code>guivm</code> in place</td></tr>
-<tr><td><code>adminvm</code></td><td>✅</td><td><code>All</code></td><td>Not started</td></tr>
-<tr><td>Inter VM comms - IP-based</td><td>🚧</td><td><code>All</code></td><td><code>-debug</code>-targets have network bridges to access VMs from host</td></tr>
+<tr><td>Minimal host</td><td>🚧</td><td><a href="https://tiiuae.github.io/ghaf/architecture/variants.html"><code>all</code></a></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html">Minimal Host</a> and <a href="https://github.com/tiiuae/ghaf/pull/140">PR #140</a>.</td></tr>
+<tr><td>Net VM</td><td>✅</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/architecture/adr/netvm.html">Net VM</a>. Passthrough with Wi-Fi works but requires SSID/password configuration.</td></tr>
+<tr><td>IDS VM</td><td>✅</td><td><code>Orin</code>, <code>Lenovo X1</code></td><td><a href="/docs/src/architecture/adr/idsvm.html">Defensive networking mechanism</a>.</td></tr>
+<tr><td>GUI VM</td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.</td></tr>
+<tr><td>App VM</td><td>🚧</td><td><code>All</code>, <code>Lenovo X1</code></td><td>Implemented for Lenovo X1 reference device: Chromium, GALA and Zathura VMs. Requires GUI VM in place.</td></tr>
+<tr><td>Admin VM</td><td>✅</td><td><code>All</code></td><td>Not started</td></tr>
+<tr><td>Inter VM comms - IP-based</td><td>🚧</td><td><code>All</code></td><td><code>-debug</code>-targets have network bridges to access VMs from host.</td></tr>
 <tr><td>Inter VM comms - shared memory</td><td>🚧</td><td><code>All</code></td><td></td></tr>
-<tr><td>Inter VM Wayland</td><td>🚧</td><td><code>All</code></td><td>Currently it is <code>waypipe</code> over SSH, for test and demo purpose only</td></tr>
-<tr><td>SW update</td><td>🚧</td><td><code>All</code></td><td>A/B update tooling being evaluated</td></tr>
-<tr><td>USB passthrough</td><td>🚧</td><td><code>Orin</code></td><td>No reference implementation integrated yet</td></tr>
-<tr><td>PCI passthrough</td><td>✅</td><td><code>All</code></td><td>Used for reference in <code>netvm</code> on <code>Orin</code></td></tr>
+<tr><td>Inter VM Wayland</td><td>🚧</td><td><code>All</code></td><td>Currently it is <code>waypipe</code> over SSH, for test and demo purpose only.</td></tr>
+<tr><td>SW update</td><td>🚧</td><td><code>All</code></td><td>A/B update tooling being evaluated.</td></tr>
+<tr><td>USB passthrough</td><td>🚧</td><td><code>Orin</code></td><td>No reference implementation integrated yet.</td></tr>
+<tr><td>PCI passthrough</td><td>✅</td><td><code>All</code></td><td>Used for reference in Net VM on <code>Orin</code>.</td></tr>
 <tr><td>UART passthrough</td><td>🚧</td><td><code>Orin</code></td><td>See <a href="https://tiiuae.github.io/ghaf/build_config/passthrough/nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a>. Not integrated to any VM.</td></tr>
 <tr><td>ARM platform bus devices passthrough</td><td>🚧</td><td><code>Orin</code></td><td>NVIDIA BPMP virtualization being developed</td></tr>
 </tbody></table>

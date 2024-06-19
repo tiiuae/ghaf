@@ -186,7 +186,7 @@
 <ol>
 <li>Create a template project as described in the <a href="../ref_impl/ghaf-based-project.html">Ghaf as Library</a> section.</li>
 <li>Adjust your system configuration in accordance with your HW specification. Determine all VIDs and PIDs of the devices that are passed to the VMs.</li>
-<li>Add GUIVM configuration, NetworkVM configuration, and optionally some AppVMs.</li>
+<li>Add GUI VM configuration, NetworkVM configuration, and optionally some AppVMs.</li>
 <li>Set up Weston panel shortcuts.</li>
 </ol>
 <p>You can refer to the existing <a href="https://github.com/unbel13ver/ghaf-lib">project example for Lenovo T14 and Lenovo X1 laptops</a>.</p>
@@ -217,10 +217,10 @@
 <li>Identify an IP address by a MAC address with the <code>arp</code> command. If a MAC address is unknown, you can boot into the NixOS image or any other OS to find it, or try the latest addresses that <code>arp</code> returns.</li>
 <li>Connect using SSH (login/password ghaf/ghaf). Then connect from netvm to the host using <code>ssh 192.168.101.2</code> (login/password ghaf/ghaf).</li>
 <li>Check running VMs with <code>microvm -l</code>.</li>
-<li>Check a GUIVM log using <code>journalctl -u microvm@guivm</code>.</li>
-<li>If GUIVM does not start, you can try to start it manually with <code>/var/lib/microvms/guivm/current/bin/microvm-run</code>.</li>
+<li>Check a GUI VM log using <code>journalctl -u microvm@guivm</code>.</li>
+<li>If GUI VM does not start, you can try to start it manually with <code>/var/lib/microvms/guivm/current/bin/microvm-run</code>.</li>
 </ol>
-<p>In case when GUIVM did not start with the error message that the device /dev/mouse or /dev/touchpad was not found, it means that the model of the touchpad in the laptop is different since it was bought in another country and has a different SKU (stock keeping unit). To add support for a new touchpad, do the following:</p>
+<p>In case when GUI VM did not start with the error message that the device /dev/mouse or /dev/touchpad was not found, it means that the model of the touchpad in the laptop is different since it was bought in another country and has a different SKU (stock keeping unit). To add support for a new touchpad, do the following:</p>
 <ol>
 <li>
 <p>On the ghaf host, check the devices in <code>/dev/input/by-path</code> that contain “-event-” in the name. Use the command like <code>udevadm info -q all -a /dev/input/by-path/pci-0000:00:15.0-platform-i2c_designware.0-event-mouse | grep name</code> for the name of each of these devices.</p>

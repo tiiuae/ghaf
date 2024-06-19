@@ -180,36 +180,32 @@
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="netvmnetworking-virtual-machine"><a class="header" href="#netvmnetworking-virtual-machine">netvm—Networking Virtual Machine</a></h1>
+<h1 id="networking-virtual-machine"><a class="header" href="#networking-virtual-machine">Networking Virtual Machine</a></h1>
 <h2 id="status"><a class="header" href="#status">Status</a></h2>
 <p>Proposed, partially implemented for development and testing.</p>
-<p><em>netvm</em> reference declaration is available at <a href="https://github.com/tiiuae/ghaf/blob/main/microvmConfigurations/netvm/default.nix">netvm/default.nix</a>.</p>
+<p>Networking VM (Net VM) reference declaration is available at <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/netvm.nix">microvm/netvm.nix</a>.</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
-<p>Ghaf high-level design target is to secure a monolithic OS by modularizing the OS to networked VMs. The key security target is to not expose the trusted host directly to the Internet. This isolates the attack surface from the Internet to <em>netvm</em>.</p>
+<p>Ghaf's high-level design target is to secure a monolithic OS by modularizing the OS to networked VMs. The key security target is to not expose the trusted host directly to the Internet. This isolates the attack surface from the Internet to Net VM.</p>
 <p>The following context diagram illustrates development and secure scenarios:</p>
-<p><img src="../../img/netvm.drawio.png" alt="Scope!" title="netvm Context" /></p>
+<p><img src="../../img/netvm.drawio.png" alt="Scope!" title="Net VM Context" /></p>
 <p><strong>Left</strong>: An insecure development scenario. The host is directly connected to the Internet, and the network is bridged from the host to other parts of the system.</p>
-<p><strong>Right</strong>: A secure scenario. The network is passed through to <em>netvm</em> and routed to other parts of the system.</p>
+<p><strong>Right</strong>: A secure scenario. The network is passed through to Net VM and routed to other parts of the system.</p>
 <h2 id="decision"><a class="header" href="#decision">Decision</a></h2>
-<p>The development scenario simplifies the target system network access and configuration. This ADR proposes the development <em>netvm</em> configuration is maintained to support system development.</p>
-<p>The secure scenario is proposed to be implemented with the use of passthrough to DMA and remap the host physical network interface card (PHY NIC) to <em>netvm</em>. This cannot be generalized for all hardware targets as it requires:</p>
+<p>The development scenario simplifies the target system network access and configuration. This ADR proposes the development Net VM configuration is maintained to support system development.</p>
+<p>The secure scenario is proposed to be implemented with the use of passthrough to DMA and remap the host physical network interface card (PHY NIC) to Net VM. This cannot be generalized for all hardware targets as it requires:</p>
 <ul>
 <li>Low-level device tree configuration for bootloader and host (at least on platform NIC).</li>
-<li>VMM host user space NIC bus mapping from the host to <em>netvm</em>.</li>
-<li>Native network interface driver (not virtual) in <em>netvm</em>. Native driver is bound the vendor BSP supported kernel version.</li>
+<li>VMM host user space NIC bus mapping from the host to Net VM.</li>
+<li>Native network interface driver (not virtual) in Net VM. Native driver is bound the vendor BSP supported kernel version.</li>
 </ul>
 <p>These depend on the hardware setup. The proposed target setup is that the passthrough network device(s) are implemented as declarative nix-modules for easier user hardware-specific configuration. In practice, a user may configure the declaration of a PCI or USB network card that is available to the available hardware setup.</p>
-<p><em>netvm</em> will provide:</p>
+<p>Net VM will provide a dynamic network configuration:</p>
 <ul>
-<li>dynamic network configuration:
-<ul>
-<li>A DHCP server for <em>netvm</em> to provide IP addresses for the other parts of the system, both static and dynamic.</li>
-<li>Routing from <em>netvm</em> to the Internet and/or inter VM.</li>
-</ul>
-</li>
+<li>A DHCP server for Net VM to provide IP addresses for the other parts of the system, both static and dynamic.</li>
+<li>Routing from Net VM to the Internet and/or Inter VM.</li>
 </ul>
 <p>For common reference hardware with platform NIC, the configured modules for network interface passthrough are provided. For more information, see <a href="https://tiiuae.github.io/ghaf/research/passthrough/ethernet.html">i.MX 8QM Ethernet Passthrough</a>.</p>
-<p>Details of other network components, such as default firewall rules, DHCP (static and dynamic client addresses), routing, reverse proxies and security monitoring are to be described in their respective architecture decision records. In this context, these are illustrated in the context diagram on the right side of the <em>netvm</em> network interface driver.</p>
+<p>Details of other network components, such as default firewall rules, DHCP (static and dynamic client addresses), routing, reverse proxies and security monitoring are to be described in their respective architecture decision records. In this context, these are illustrated in the context diagram on the right side of the Net VM network interface driver.</p>
 <h2 id="consequences"><a class="header" href="#consequences">Consequences</a></h2>
 <p>Isolating the attack surface from the host to networking-specific guest VM makes it easier to protect the critical host system from compromise. The isolation also makes it easier to deploy further security, such as a zero trust policy engine or intrusion detection system (IDS).</p>
 <p>Isolation makes configuration and comprehension of the system more difficult.</p>

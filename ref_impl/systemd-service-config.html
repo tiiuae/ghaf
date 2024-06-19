@@ -322,7 +322,7 @@
 <li><strong>Specific Address Families</strong>: Specify one or more address families that the service is allowed to use, for example, <code>'AF_INET'</code>, <code>'AF_INET6'</code>, <code>'AF_UNIX'</code>.</li>
 <li><strong>Inverted Restriction</strong>: Prepend character '~' to an address family name to deny access to it while allowing all others, for example, <code>'~AF_INET'</code> would block IPv4 access.</li>
 </ul>
-<hr />
+<h2 id="back-to-top-"><a class="header" href="#back-to-top-"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="2-file-system"><a class="header" href="#2-file-system">2. File System</a></h2>
 <h3 id="21-protecthome"><a class="header" href="#21-protecthome">2.1 ProtectHome</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectHome=">ProtectHome</a> is used to restrict a service's access to home directories. This security feature can be used either completely to block access to <code>/home</code>, <code>/root</code>, and <code>/run/user</code> or make them appear empty to the service, thereby protecting user data from unauthorized access by system services.</p>
@@ -398,7 +398,7 @@
 <li><strong><code>all</code></strong>: Allows the service access to all <code>/proc</code> entries.</li>
 <li><strong><code>pid</code></strong>: Restricts the service to only its own process information (<code>/proc/self</code>, <code>/proc/thread-self/</code>).</li>
 </ul>
-<hr />
+<h2 id="back-to-top--1"><a class="header" href="#back-to-top--1"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="3-user-separation"><a class="header" href="#3-user-separation">3. User Separation</a></h2>
 <blockquote>
 <p><strong>IMPORTANT:</strong> Not applicable for the service runs as root.</p>
@@ -421,7 +421,7 @@
 <li><strong><code>true</code></strong>: A UNIX user and group pair are dynamically allocated when the unit is started and released as soon as it is stopped.</li>
 <li><strong><code>false</code></strong>: The service uses a static UID/GID defined in the service unit file or defaults to <code>root</code>.</li>
 </ul>
-<hr />
+<h2 id="back-to-top--2"><a class="header" href="#back-to-top--2"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="4-devices"><a class="header" href="#4-devices">4. Devices</a></h2>
 <h3 id="41-privatedevices"><a class="header" href="#41-privatedevices">4.1. PrivateDevices</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateDevices=">PrivateDevices</a> controls whether the service should have access to device nodes in <code>/dev</code>.</p>
@@ -440,7 +440,7 @@
 <ul>
 <li>Specify device access rules in the format: <code>&lt;device path&gt; &lt;permission&gt;</code> where <code>&lt;permission&gt;</code> can be <code>r</code> (read), <code>w</code> (write), or <code>m</code> (mknod, allowing creation of devices).</li>
 </ul>
-<hr />
+<h2 id="back-to-top--3"><a class="header" href="#back-to-top--3"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="5-kernel"><a class="header" href="#5-kernel">5. Kernel</a></h2>
 <h3 id="51-protectkerneltunables"><a class="header" href="#51-protectkerneltunables">5.1. ProtectKernelTunables</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectKernelTunables=">ProtectKernelTunables</a> controls whether the service is allowed to modify tunable kernel variables in <code>/proc/sys</code>, enhancing security by restricting access to critical kernel parameters.</p>
@@ -469,7 +469,7 @@
 <li><strong><code>trues</code></strong>: Restricts the service from accessing kernel logs from <code>/proc/kmsg</code> and <code>/dev/kmsg</code>. Enabling this option removes <code>CAP_SYSLOG</code> from the capability bounding set for the unit and installs a system call filter to block the syslog(2) system call.</li>
 <li><strong><code>no</code></strong>: Allows the service to access kernel logs.</li>
 </ul>
-<hr />
+<h2 id="back-to-top--4"><a class="header" href="#back-to-top--4"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="6-misc"><a class="header" href="#6-misc">6. Misc</a></h2>
 <h3 id="61-delegate"><a class="header" href="#61-delegate">6.1. Delegate</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#Delegate=">Delegate</a> controls whether systemd should delegate further control of resource management to the service's own resource management settings.</p>
@@ -609,7 +609,7 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <li><code>exec</code>: Only service updates sent from any main or control processes originating from one of the <code>Exec*=</code> commands are accepted.</li>
 <li><code>all</code>: Allows sending signals using any process identifier (PID).</li>
 </ul>
-<hr />
+<h2 id="back-to-top--5"><a class="header" href="#back-to-top--5"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="7-capabilities"><a class="header" href="#7-capabilities">7. Capabilities</a></h2>
 <h3 id="71-ambientcapabilities"><a class="header" href="#71-ambientcapabilities">7.1. AmbientCapabilities</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#AmbientCapabilities=">AmbientCapabilities</a> specifies which capabilities to include in the ambient capability set for the service, which are inherited by all processes within the service.</p>
@@ -673,7 +673,7 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <tr><td><strong>CAP_WAKE_ALARM</strong></td><td>Allows processes to use the RTC wakeup alarm.</td></tr>
 </tbody></table>
 </div>
-<hr />
+<h2 id="back-to-top--6"><a class="header" href="#back-to-top--6"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
 <h2 id="8-system-calls"><a class="header" href="#8-system-calls">8. System Calls</a></h2>
 <h3 id="81-systemcallfilter"><a class="header" href="#81-systemcallfilter">8.1. SystemCallFilter</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#SystemCallFilter=">SystemCallFilter</a> specifies a system call filter for the service, restricting the types of system calls that processes within the service can make.</p>
@@ -704,6 +704,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <tr><td><strong>@timer</strong></td><td>Allows timer-related system calls, which are essential for setting and managing timers.</td></tr>
 </tbody></table>
 </div>
+<h2 id="back-to-top--7"><a class="header" href="#back-to-top--7"><a href="./systemd-service-config.html#systemd-service-hardening">Back to Top ⏫</a></a></h2>
+
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
