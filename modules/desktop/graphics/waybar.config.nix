@@ -46,7 +46,7 @@ in {
             "margin-bottom": 5,
             "margin-left": 200,
             "margin-right": 200,
-            "modules-right": ["pulseaudio", "custom/network1", "battery", "custom/admin", "clock", "tray"],
+            "modules-right": ["pulseaudio", "custom/network1", "battery", "ghaf-audio-control", "custom/admin", "clock", "tray"],
             "keyboard-state": {
                 "numlock": true,
                 "capslock": true,
@@ -83,6 +83,9 @@ in {
                 "format-plugged": "{capacity}% ",
                 "format-alt": "{time} {icon}",
                 "format-icons": ["󰂎", "󰁺", "󰁻", "󰁼", "󰁽", "󰁾", "󰁿", "󰁿", "󰂀", "󰂁", "󰂂", "󰁹"]
+            },
+            "ghaf-audio-control": {
+              "position": "top"
             },
         ''
         + lib.optionalString (wifiDevice != null) ''
@@ -123,7 +126,7 @@ in {
                       "headphone": "",
                       "default": ["", "", ""]
                   },
-              },
+              }
           }'';
 
       # The UNIX file mode bits
@@ -188,6 +191,7 @@ in {
 
           #clock,
           #battery,
+          #ghaf-audio-control,
           #backlight,
           #custom-network1,
           #custom-launchpad,
@@ -212,6 +216,7 @@ in {
           #custom-network1,
           #backlight,
           #battery,
+          #ghaf-audio-control,
           #clock {
               padding-left: 10;
               padding-right: 10;

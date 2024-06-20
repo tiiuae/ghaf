@@ -53,7 +53,7 @@
         systemctl --user import-environment WAYLAND_DISPLAY 2>&1 &
 
         # Launch the task bar
-        waybar -s /etc/waybar/style.css -c /etc/waybar/config >/dev/null 2>&1 &
+        PULSE_SERVER=audio-vm:4713 waybar -s /etc/waybar/style.css -c /etc/waybar/config >/dev/null 2>&1 &
 
         # Set the wallpaper.
         swaybg -m fill -i ${cfg.wallpaper} >/dev/null 2>&1 &
