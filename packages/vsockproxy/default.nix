@@ -14,8 +14,8 @@ stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "vsockproxy";
-    rev = "aad625f9a27ce4c68d9996c65ece8477ace37534";
-    sha256 = "sha256-3WgpDlF8oIdlgwkvl7TPR6WAh+qk0mowzuYiPY0rwaU=";
+    rev = "851e995b4c24a776f78d56310010e4e29456921c";
+    sha256 = "sha256-fyawskwts4OIBshGDeh5ANeBCEm3h5AyHCyhwfxgP14=";
   };
 
   installPhase = ''
