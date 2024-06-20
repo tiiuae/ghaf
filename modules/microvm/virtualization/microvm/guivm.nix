@@ -89,6 +89,10 @@
           hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
         };
 
+        # Suspend inside Qemu causes segfault
+        # See: https://gitlab.com/qemu-project/qemu/-/issues/2321
+        services.logind.lidSwitch = "ignore";
+
         microvm = {
           optimize.enable = false;
           vcpu = 2;
@@ -231,10 +235,10 @@ in {
     systemd.services.vsockproxy = {
       enable = true;
       description = "vsockproxy";
-      unitConfig = {
-        Type = "simple";
-      };
       serviceConfig = {
+        Type = "simple";
+        Restart = "always";
+        RestartSec = "1";
         ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
       };
       wantedBy = ["multi-user.target"];
