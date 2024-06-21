@@ -7,6 +7,8 @@
   ...
 }: let
   cfg = config.ghaf.graphics.labwc;
+
+  audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl {};
   gtklockStyle = pkgs.writeText "gtklock.css" ''
     window {
       background: rgba(29, 29, 29, 1);
@@ -101,10 +103,19 @@
       </keybind>
     ''}
       <keybind key="XF86_MonBrightnessUp">
-        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set +10%" />
+        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set +5%" />
       </keybind>
       <keybind key="XF86_MonBrightnessDown">
-        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set 10%-" />
+        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set 5%-" />
+      </keybind>
+      <keybind key="XF86_AudioRaiseVolume">
+        <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl inc" />
+      </keybind>
+      <keybind key="XF86_AudioLowerVolume">
+        <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl dec" />
+      </keybind>
+      <keybind key="XF86_AudioMute">
+        <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl mut" />
       </keybind>
     </keyboard>
     <mouse><default /></mouse>
