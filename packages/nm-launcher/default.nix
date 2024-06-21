@@ -21,6 +21,7 @@ writeShellApplication {
         -f -N -q ghaf@net-vm \
         -i /run/waypipe-ssh/id_ed25519 \
         -o StrictHostKeyChecking=no \
+        -o UserKnownHostsFile=/dev/null \
         -o StreamLocalBindUnlink=yes \
         -o ExitOnForwardFailure=yes \
         -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
