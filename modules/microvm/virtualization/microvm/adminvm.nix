@@ -32,6 +32,12 @@
             withPolkit = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
+          security = {
+            system-security.enable = true;
+            system-security.lock-kernel-modules = lib.mkDefault configHost.ghaf.profiles.release.enable;
+            network.ipsecurity.enable = true;
+            network.bpf-access-level = lib.mkForce 1; # Provide BPF access to privileged users
+          };
         };
 
         system.stateVersion = lib.trivial.release;

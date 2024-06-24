@@ -3,5 +3,11 @@
 {
   imports = [
     ./sshkeys.nix
+    ./apparmor
+    ./clamav
+    ./fail2ban
+    ./firejail
+    ./networking.nix
+    ./system.nix
   ];
 }
