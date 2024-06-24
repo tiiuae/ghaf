@@ -5,9 +5,9 @@
   lib,
   ...
 }: let
-  cfg = config.ghaf.programs.chromium;
+  cfg = config.ghaf.reference.programs.chromium;
 in {
-  options.ghaf.programs.chromium = {
+  options.ghaf.reference.programs.chromium = {
     enable = lib.mkEnableOption "Enable Chromium program settings";
     useZathuraVM = lib.mkEnableOption "Open PDFs in Zathura VM";
   };

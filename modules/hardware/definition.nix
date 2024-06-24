@@ -90,14 +90,58 @@ in {
           type = types.listOf types.str;
           default = [];
           description = ''
-
+            List of input device names.
           '';
         };
         evdev = mkOption {
           type = types.listOf types.str;
           default = [];
           description = ''
+            List of event devices.
+          '';
+        };
+      };
+    };
 
+    # Kernel configuration submodule
+    kernelConfig = types.submodule {
+      options = {
+        stage1 = {
+          kernelModules = mkOption {
+            description = "Hardware specific kernel modules";
+            type = types.listOf types.str;
+            default = [];
+            example = literalExpression ''
+              [
+                "i915"
+              ]
+            '';
+          };
+        };
+        stage2 = {
+          kernelModules = mkOption {
+            description = "Hardware specific kernel modules";
+            type = types.listOf types.str;
+            default = [];
+            example = literalExpression ''
+              [
+                "i915"
+              ]
+            '';
+          };
+        };
+        kernelParams = mkOption {
+          description = "Hardware specific kernel parameters";
+          type = types.listOf types.str;
+          default = [];
+          example = literalExpression ''
+            [
+              "intel_iommu=on,sm_on"
+              "iommu=pt"
+              "module_blacklist=i915"
+              "acpi_backlight=vendor"
+              "acpi_osi=linux"
+            ]
           '';
         };
       };
@@ -109,20 +153,11 @@ in {
       default = "";
     };
 
-    generic = {
-      kernelParams = mkOption {
-        description = "Hardware specific kernel parameters for the host";
-        type = types.listOf types.str;
-        default = [];
-        example = literalExpression ''
-          [
-            "intel_iommu=on,sm_on"
-            "iommu=pt"
-            "module_blacklist=i915"
-            "acpi_backlight=vendor"
-            "acpi_osi=linux"
-          ]
-        '';
+    host = {
+      kernelConfig = mkOption {
+        description = "Host kernel configuration";
+        type = kernelConfig;
+        default = {};
       };
     };
 
@@ -204,6 +239,11 @@ in {
           }]
         '';
       };
+      kernelConfig = mkOption {
+        description = "Hardware specific kernel configuration for gpu devices";
+        type = kernelConfig;
+        default = {};
+      };
     };
 
     udevRules = mkOption {
@@ -251,16 +291,10 @@ in {
           ]
         '';
       };
-      kernelParams = mkOption {
-        description = "Hardware specific kernel parameters for audio devices";
-        type = types.listOf types.str;
-        default = [];
-        example = literalExpression ''
-          [
-            "snd_intel_dspcfg.dsp_driver=3"
-            "snd_sof_intel_hda_common.dmic_num=4"
-          ]
-        '';
+      kernelConfig = mkOption {
+        description = "Hardware specific kernel configuration for audio devices";
+        type = kernelConfig;
+        default = {};
       };
     };
 

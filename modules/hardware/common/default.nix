@@ -4,6 +4,8 @@
   imports = [
     ./usb/internal.nix
     ./usb/external.nix
-    ./passthru.nix
+    ./devices.nix
+    ./kernel.nix
+    ./qemu.nix
   ];
 }

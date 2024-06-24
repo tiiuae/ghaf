@@ -6,7 +6,6 @@
   pkgs,
   ...
 }: let
-  configHost = config;
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
@@ -22,19 +21,18 @@
         ...
       }: {
         ghaf = {
-          users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+          users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
           profiles = {
-            debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+            debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
             applications.enable = false;
             graphics.enable = true;
           };
           # To enable screen locking set to true
           graphics.labwc.autolock.enable = false;
-          windows-launcher.enable = false;
           development = {
-            ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-            nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+            ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
+            debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
+            nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
           };
           systemd = {
             enable = true;
@@ -42,7 +40,7 @@
             withNss = true;
             withResolved = true;
             withTimesyncd = true;
-            withDebug = configHost.ghaf.profiles.debug.enable;
+            withDebug = config.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
           };
         };
@@ -79,14 +77,15 @@
               pkgs.nm-launcher
               pkgs.pamixer
             ]
-            ++ (lib.optional (configHost.ghaf.profiles.debug.enable && configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
+            ++ (lib.optional (config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
         };
 
+        time.timeZone = config.time.timeZone;
         system.stateVersion = lib.trivial.release;
 
         nixpkgs = {
-          buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-          hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+          buildPlatform.system = config.nixpkgs.buildPlatform.system;
+          hostPlatform.system = config.nixpkgs.hostPlatform.system;
         };
 
         microvm = {
@@ -97,8 +96,8 @@
           shares = [
             {
               tag = "rw-waypipe-ssh-public-key";
-              source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-              mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+              source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+              mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
             }
             {
               tag = "ro-store";
@@ -120,7 +119,7 @@
                 x86_64-linux = "q35";
                 aarch64-linux = "virt";
               }
-              .${configHost.nixpkgs.hostPlatform.system};
+              .${config.nixpkgs.hostPlatform.system};
           };
         };
 
@@ -207,8 +206,8 @@ in {
     # This directory needs to be created before any of the microvms start.
     systemd.services."create-waypipe-ssh-public-key-directory" = let
       script = pkgs.writeShellScriptBin "create-waypipe-ssh-public-key-directory" ''
-        mkdir -pv ${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
-        chown -v microvm ${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
+        mkdir -pv ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
+        chown -v microvm ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
       '';
     in {
       enable = true;

@@ -22,7 +22,7 @@ in {
   config = {
     # Hardware definition
     ghaf.hardware.definition = {
-      inherit (hwDefinition) generic;
+      inherit (hwDefinition) host;
       inherit (hwDefinition) input;
       inherit (hwDefinition) disks;
       inherit (hwDefinition) network;
@@ -33,11 +33,6 @@ in {
 
     # Disk configuration
     disko.devices.disk = hwDefinition.disks;
-
-    # Hardware specific kernel parameters
-    boot = {
-      inherit (hwDefinition.generic) kernelParams;
-    };
 
     # Host udev rules
     services.udev.extraRules = ''

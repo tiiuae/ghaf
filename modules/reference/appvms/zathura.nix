@@ -15,7 +15,7 @@
     {
       imports = [../programs/zathura.nix];
       time.timeZone = config.time.timeZone;
-      ghaf.programs.zathura.enable = true;
+      ghaf.reference.programs.zathura.enable = true;
     }
   ];
   borderColor = "#122263";

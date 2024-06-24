@@ -4,8 +4,8 @@
 {
   name = "Lenovo X1 Carbon Gen 11";
 
-  generic = {
-    kernelParams = [
+  host = {
+    kernelConfig.kernelParams = [
       "intel_iommu=on,sm_on"
       "iommu=pt"
       "module_blacklist=i915" # Prevent i915 module from being accidentally used by host
@@ -68,14 +68,20 @@
     }
   ];
 
-  gpu.pciDevices = [
-    {
-      # Passthrough Intel Iris GPU
-      path = "0000:00:02.0";
-      vendorId = "8086";
-      productId = "a7a1";
-    }
-  ];
+  gpu = {
+    pciDevices = [
+      {
+        # Passthrough Intel Iris GPU
+        path = "0000:00:02.0";
+        vendorId = "8086";
+        productId = "a7a1";
+      }
+    ];
+    kernelConfig = {
+      stage1.kernelModules = ["i915"];
+      kernelParams = ["earlykms"];
+    };
+  };
 
   # With the current implementation, the whole PCI IOMMU group 14:
   #   00:1f.x in the example from Lenovo X1 Carbon
@@ -107,7 +113,7 @@
         productId = "51a4";
       }
     ];
-    kernelParams = [
+    kernelConfig.kernelParams = [
       "snd_intel_dspcfg.dsp_driver=3"
       "snd_sof_intel_hda_common.dmic_num=4"
     ];

@@ -55,9 +55,6 @@
                 usb.external.enable = true;
               };
 
-              # TODO: move this to module
-              services.fprint.enable = true;
-
               reference.appvms = {
                 enable = true;
                 chromium-vm = true;
@@ -70,6 +67,13 @@
               reference.services = {
                 enable = true;
                 dendrite = true;
+              };
+
+              reference.programs = {
+                windows-launcher = {
+                  enable = true;
+                  spice = true;
+                };
               };
 
               # Virtualization options
@@ -97,12 +101,7 @@
 
                   guivm = {
                     enable = true;
-                    extraModules =
-                      # TODO convert this to an actual module
-                      import ./guivmExtraModules.nix {
-                        inherit lib pkgs self;
-                        configH = config;
-                      };
+                    extraModules = [self.nixosModules.reference-programs];
                   };
 
                   audiovm = {
@@ -125,11 +124,6 @@
               # UI applications
               profiles = {
                 applications.enable = false;
-              };
-
-              windows-launcher = {
-                enable = true;
-                spice = true;
               };
             };
           })

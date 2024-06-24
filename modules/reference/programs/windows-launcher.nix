@@ -6,13 +6,13 @@
   config,
   ...
 }: let
-  cfg = config.ghaf.windows-launcher;
+  cfg = config.ghaf.reference.programs.windows-launcher;
   windows-launcher = pkgs.callPackage ../../../packages/windows-launcher {enableSpice = cfg.spice;};
 in {
   #TODO fix all these imports to correct scoping
   imports = [../../desktop];
 
-  options.ghaf.windows-launcher = {
+  options.ghaf.reference.programs.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
 
     spice = lib.mkEnableOption "remote access to the virtual machine using spice";

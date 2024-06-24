@@ -60,7 +60,7 @@ in {
       microvm.qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.internal.enable config.ghaf.hardware.usb.internal.qemuExtraArgs.webcam;
       microvm.devices = [];
 
-      ghaf.programs.chromium.enable = true;
+      ghaf.reference.programs.chromium.enable = true;
 
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
