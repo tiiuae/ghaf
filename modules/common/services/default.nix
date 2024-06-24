@@ -6,5 +6,8 @@
     ./audio.nix
     ./wifi.nix
     ./firmware.nix
+    ./desktop.nix
+    ./pdfopen.nix
+    ./namespaces.nix
   ];
 }

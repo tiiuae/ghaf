@@ -5,9 +5,9 @@
   lib,
   ...
 }: let
-  cfg = config.ghaf.programs.zathura;
+  cfg = config.ghaf.reference.programs.zathura;
 in {
-  options.ghaf.programs.zathura = {
+  options.ghaf.reference.programs.zathura = {
     enable = lib.mkEnableOption "Enable Zathura program settings";
   };
   config = lib.mkIf cfg.enable {

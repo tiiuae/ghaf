@@ -6,17 +6,8 @@
   ...
 }: let
   inherit (lib) mkOption types mkForce;
-
-  # PCI device passthroughs for vfio
-  filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
-  mapPciIdsToString = builtins.map (d: "${d.vendorId}:${d.productId}");
-  vfioPciIds = mapPciIdsToString (filterDevices (
-    config.ghaf.hardware.definition.network.pciDevices
-    ++ config.ghaf.hardware.definition.gpu.pciDevices
-    ++ config.ghaf.hardware.definition.audio.pciDevices
-  ));
 in {
-  options.ghaf.hardware.passthrough = {
+  options.ghaf.hardware.devices = {
     netvmPCIPassthroughModule = mkOption {
       type = types.attrsOf types.anything;
       default = {};
@@ -45,24 +36,10 @@ in {
         Virtio evdev paths' to passthrough to the guivm.
       '';
     };
-    guivmQemuExtraArgs = mkOption {
-      type = types.listOf types.str;
-      default = [];
-      description = ''
-        Extra arguments to pass to qemu when enabling the guivm.
-      '';
-    };
-    audiovmKernelParams = mkOption {
-      type = types.attrsOf types.anything;
-      default = {};
-      description = ''
-        Sound hardware specific kernel parameters to configure audiovm.
-      '';
-    };
   };
 
   config = {
-    ghaf.hardware.passthrough = {
+    ghaf.hardware.devices = {
       netvmPCIPassthroughModule = {
         microvm.devices = mkForce (
           builtins.map (d: {
@@ -110,31 +87,6 @@ in {
         # TODO: Remove this once wifi-signal-strength is changed
         ghaf.hardware.definition.network.pciDevices = config.ghaf.hardware.definition.network.pciDevices;
       };
-
-      guivmQemuExtraArgs = [
-        # Button
-        "-device"
-        "button"
-        # Battery
-        "-device"
-        "battery"
-        # AC adapter
-        "-device"
-        "acad"
-      ];
-
-      audiovmKernelParams = {
-        microvm = {
-          inherit (config.ghaf.hardware.definition.audio) kernelParams;
-        };
-      };
-    };
-
-    # Enable VFIO for PCI devices
-    boot = {
-      kernelParams = [
-        "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}"
-      ];
     };
   };
 }

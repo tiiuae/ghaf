@@ -74,7 +74,7 @@
                 # Uncomment this line to use Labwc instead of Weston:
                 #graphics.compositor = "labwc";
               };
-              windows-launcher.enable = true;
+              reference.programs.windows-launcher.enable = true;
             };
 
             #TODO: how to handle the majority of laptops that need a little

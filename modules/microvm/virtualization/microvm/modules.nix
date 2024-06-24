@@ -6,20 +6,35 @@
   pkgs,
   ...
 }: let
-  inherit (lib) mkOption types optionals optionalAttrs mkEnableOption hasAttr;
+  inherit (builtins) hasAttr;
+  inherit (lib) mkOption types optionals optionalAttrs;
 
   cfg = config.ghaf.virtualization.microvm;
 
-  # Currently only x86 is supported by this module
-  isX86 = pkgs.stdenv.hostPlatform.isx86;
+  # Currently only x86 with hw definition supported
+  inherit (pkgs.stdenv.hostPlatform) isx86;
+  fullVirtualization =
+    isx86
+    && (hasAttr "hardware" config.ghaf)
+    && (hasAttr "devices" config.ghaf.hardware);
 
-  # Hardware passthrough modules
-  hardwareModules = optionalAttrs isX86 {
+  # Hardware devices passthrough modules
+  deviceModules = optionalAttrs fullVirtualization {
     inherit
-      (config.ghaf.hardware.passthrough)
+      (config.ghaf.hardware.devices)
       netvmPCIPassthroughModule
       audiovmPCIPassthroughModule
-      audiovmKernelParams
+      guivmPCIPassthroughModule
+      guivmVirtioInputHostEvdevModule
+      ;
+  };
+
+  # Kernel configurations
+  kernelConfigs = optionalAttrs fullVirtualization {
+    inherit
+      (config.ghaf.kernel)
+      guivm
+      audiovm
       ;
   };
 
@@ -28,14 +43,42 @@
     config.ghaf.services.firmware.enable = true;
   };
 
-  # Audio module configuration
-  audioModule = optionalAttrs cfg.audiovm.audio {
-    config.ghaf.services.audio.enable = true;
+  # Qemu configuration modules
+  qemuModules = {
+    inherit (config.ghaf.qemu) guivm;
   };
 
-  # Wifi module configuration
-  wifiModule = optionalAttrs cfg.netvm.wifi {
-    config.ghaf.services.wifi.enable = true;
+  # Service modules
+  serviceModules = {
+    # Audio module
+    audio = optionalAttrs cfg.audiovm.audio {
+      config.ghaf.services.audio.enable = true;
+    };
+
+    # Wifi module
+    wifi = optionalAttrs cfg.netvm.wifi {
+      config.ghaf.services.wifi.enable = true;
+    };
+
+    # Fprint module
+    fprint = optionalAttrs cfg.guivm.fprint {
+      config.ghaf.services.fprint.enable = true;
+    };
+
+    # Desktop module
+    desktop = {
+      config.ghaf.services.desktop.enable = true;
+    };
+
+    # PDF opener
+    pdfOpener = {
+      config.ghaf.services.pdfopener.enable = true;
+    };
+
+    # Common namespace to share (built-time) between host and VMs
+    commonNamespace = {
+      config.ghaf.namespaces = config.ghaf.namespaces;
+    };
   };
 
   # Reference services module
@@ -46,12 +89,20 @@
       };
     };
   };
+
+  # Reference programs module
+  referenceProgramsModule = {
+    config.ghaf = optionalAttrs (hasAttr "reference" config.ghaf) {
+      reference = optionalAttrs (hasAttr "programs" config.ghaf.reference) {
+        inherit (config.ghaf.reference) programs;
+      };
+    };
+  };
 in {
   options.ghaf.virtualization.microvm = {
-    enable = mkEnableOption "Enable MicroVM module configuration. Only x86 is supported.";
     netvm.wifi = mkOption {
       type = types.bool;
-      default = isX86 && cfg.netvm.enable;
+      default = isx86 && cfg.netvm.enable;
       description = ''
         Enable Wifi module configuration.
       '';
@@ -63,22 +114,43 @@ in {
         Enable Audio module configuration.
       '';
     };
+    guivm.fprint = mkOption {
+      type = types.bool;
+      default = cfg.guivm.enable;
+      description = ''
+        Enable Fingerprint module configuration.
+      '';
+    };
   };
 
   config = {
-    ghaf.virtualization.microvm = optionalAttrs isX86 {
+    # System VM configurations
+    ghaf.virtualization.microvm = optionalAttrs fullVirtualization {
       # Netvm modules
       netvm.extraModules = optionals cfg.netvm.enable [
-        hardwareModules.netvmPCIPassthroughModule
+        deviceModules.netvmPCIPassthroughModule
         firmwareModule
-        wifiModule
+        serviceModules.wifi
         referenceServiceModule
       ];
       # Audiovm modules
       audiovm.extraModules = optionals cfg.audiovm.enable [
-        hardwareModules.audiovmPCIPassthroughModule
-        hardwareModules.audiovmKernelParams
-        audioModule
+        deviceModules.audiovmPCIPassthroughModule
+        kernelConfigs.audiovm
+        serviceModules.audio
+      ];
+      # Guivm modules
+      guivm.extraModules = optionals cfg.guivm.enable [
+        deviceModules.guivmPCIPassthroughModule
+        deviceModules.guivmVirtioInputHostEvdevModule
+        kernelConfigs.guivm
+        firmwareModule
+        qemuModules.guivm
+        serviceModules.desktop
+        serviceModules.fprint
+        serviceModules.pdfOpener
+        serviceModules.commonNamespace
+        referenceProgramsModule
       ];
     };
   };
