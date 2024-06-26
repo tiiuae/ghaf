@@ -19,6 +19,7 @@ in {
     element-vm = lib.mkEnableOption "Enable the Element appvm";
     appflowy-vm = lib.mkEnableOption "Enable the Appflowy appvm";
     business-vm = lib.mkEnableOption "Enable the Business appvm";
+    slack-vm = lib.mkEnableOption "Enable the Slack appvm";
     enabled-app-vms = lib.mkOption {
       type = lib.types.listOf lib.types.attrs;
       default = [];
