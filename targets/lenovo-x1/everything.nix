@@ -62,6 +62,7 @@
                 zathura-vm = true;
                 element-vm = true;
                 appflowy-vm = true;
+                slack-vm = true;
               };
 
               reference.services = {

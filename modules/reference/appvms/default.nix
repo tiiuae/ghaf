@@ -18,6 +18,7 @@ in {
     zathura-vm = lib.mkEnableOption "Enable the Zathura appvm";
     element-vm = lib.mkEnableOption "Enable the Element appvm";
     appflowy-vm = lib.mkEnableOption "Enable the Appflowy appvm";
+    slack-vm = lib.mkEnableOption "Enable the Slack appvm";
     enabled-app-vms = lib.mkOption {
       type = lib.types.listOf lib.types.attrs;
       default = [];
@@ -34,6 +35,7 @@ in {
         ++ (lib.optionals cfg.gala-vm [(import ./gala.nix {inherit pkgs lib config;})])
         ++ (lib.optionals cfg.zathura-vm [(import ./zathura.nix {inherit pkgs config;})])
         ++ (lib.optionals cfg.element-vm [(import ./element.nix {inherit pkgs lib config;})])
+        ++ (lib.optionals cfg.slack-vm [(import ./slack.nix {inherit pkgs lib config;})])
         ++ (lib.optionals cfg.appflowy-vm [(import ./appflowy.nix {inherit pkgs config;})]);
     };
   };
