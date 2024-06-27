@@ -60,9 +60,8 @@
                 chromium-vm = true;
                 gala-vm = true;
                 zathura-vm = true;
-                element-vm = true;
+                comms-vm = true;
                 appflowy-vm = true;
-                slack-vm = true;
               };
 
               reference.services = {
