@@ -26,6 +26,7 @@
     "thorium-browser.svg"
     "teams-for-linux.svg"
     "utilities-terminal.svg"
+    "slack.svg"
     "yast-vpn.svg"
   ];
 in

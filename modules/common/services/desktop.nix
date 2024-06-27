@@ -104,6 +104,12 @@ in {
             }
 
             {
+              name = "Slack";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no slack-vm run-waypipe slack";
+              icon = "${pkgs.icon-pack}/slack.svg";
+            }
+
+            {
               name = "Network Settings";
               path = "${pkgs.nm-launcher}/bin/nm-launcher";
               icon = "${pkgs.icon-pack}/preferences-system-network.svg";

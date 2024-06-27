@@ -20,6 +20,7 @@ in {
     [
       pkgs.element-desktop
       pkgs.element-gps
+      pkgs.slack
       pkgs.gpsd
       pkgs.tcpdump
       pkgs.pulseaudio
