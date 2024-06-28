@@ -22,6 +22,7 @@
     "system-suspend-hibernate.svg"
     "system-suspend.svg"
     "utilities-terminal.svg"
+    "slack.svg"
   ];
 in
   runCommand "icon-pack" {
