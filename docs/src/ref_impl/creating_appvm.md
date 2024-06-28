@@ -7,7 +7,7 @@
 
 Application VM (App VM) is a VM that improves trust in system components by isolating applications from the host OS and other applications. Virtualization with hardware-backed mechanisms provides better resource protection than traditional OS. This lets users use applications of different trust levels within the same system without compromising system security. While the VMs have overhead, it is acceptable as a result of improved security and usability that makes the application seem like it is running inside an ordinary OS.
 
-As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own AppVM.
+As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own App VM.
 
 To create an App VM:
 1. Add the VM description.
