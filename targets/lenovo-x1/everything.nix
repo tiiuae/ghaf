@@ -4,8 +4,7 @@
 {
   self,
   lib,
-  microvm,
-  lanzaboote,
+  inputs,
   name,
   system,
   ...
@@ -15,44 +14,27 @@
       inherit system;
       modules =
         [
-          lanzaboote.nixosModules.lanzaboote
-          microvm.nixosModules.host
-          self.nixosModules.common
-          self.nixosModules.desktop
-          self.nixosModules.host
-          self.nixosModules.lanzaboote
-          self.nixosModules.microvm
+          inputs.microvm.nixosModules.host
           self.nixosModules.reference-appvms
           self.nixosModules.reference-programs
           self.nixosModules.reference-services
+          self.nixosModules.profiles
 
-          ({
-            pkgs,
-            config,
-            ...
-          }: let
-            powerControl = pkgs.callPackage ../../packages/powercontrol {};
-          in {
-            security.polkit = {
-              enable = true;
-              extraConfig = powerControl.polkitExtraConfig;
-            };
+          (_: {
             time.timeZone = "Asia/Dubai";
 
             ghaf = {
-              # variant type, turn on debug or release
-              profiles = {
-                debug.enable = variant == "debug";
-                release.enable = variant == "release";
-              };
-
-              # Hardware definitions
+              # TODO:Hardware definitions get rid of this generation stuff
+              # pass them as modules directly in extramodules
               hardware = {
                 inherit generation;
-                x86_64.common.enable = true;
-                tpm2.enable = true;
-                usb.internal.enable = true;
-                usb.external.enable = true;
+              };
+
+              profiles = {
+                laptop-x86.enable = true;
+                # variant type, turn on debug or release
+                debug.enable = variant == "debug";
+                release.enable = variant == "release";
               };
 
               reference.appvms = {
@@ -74,56 +56,6 @@
                   enable = true;
                   spice = true;
                 };
-              };
-
-              # Virtualization options
-              virtualization = {
-                microvm-host = {
-                  enable = true;
-                  networkSupport = true;
-                };
-
-                microvm = {
-                  netvm = {
-                    enable = true;
-                    wifi = true;
-                    extraModules = [self.nixosModules.reference-services];
-                  };
-
-                  adminvm = {
-                    enable = true;
-                  };
-
-                  idsvm = {
-                    enable = false;
-                    mitmproxy.enable = false;
-                  };
-
-                  guivm = {
-                    enable = true;
-                    extraModules = [self.nixosModules.reference-programs];
-                  };
-
-                  audiovm = {
-                    enable = true;
-                    audio = true;
-                  };
-
-                  appvm = {
-                    enable = true;
-                    vms = config.ghaf.reference.appvms.enabled-app-vms;
-                  };
-                };
-              };
-
-              host = {
-                networking.enable = true;
-                powercontrol.enable = true;
-              };
-
-              # UI applications
-              profiles = {
-                applications.enable = false;
               };
             };
           })
