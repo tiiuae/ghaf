@@ -8,7 +8,7 @@
 
 ## Implementation
 
-The [IDS VM](/docs/src/architecture/adr/idsvm.md) is implemented as a regular Micro VM with static IP.
+The [IDS VM](../architecture/adr/idsvm.md) is implemented as a regular Micro VM with static IP.
 
 The [mitmproxy](https://mitmproxy.org/) is included in the demonstrative interactive proxy to enable analysis of TLS-protected data on the fly. Also, [Snort](https://snort.org/) network intrusion detection and prevention system package is included but no dedicated UI nor proper utilization is provided.
 

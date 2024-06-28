@@ -27,7 +27,7 @@ The following target hardware is supported by this release:
   * the development status: <https://github.com/tiiuae/ghaf/tree/ghaf-23.06/modules>.
 * SLSA v1.0 level provenance file included.
 * Ghaf version information (query).
-* NixOS is updated to 23.05: [NixOS 23.05 released!](https://discourse.nixos.org/t/nixos-23-05-released/28649)
+* NixOS is updated to NixOS 23.05: [NixOS 23.05 released!](https://discourse.nixos.org/t/nixos-23-05-released/28649)
 
 
 ## Bug Fixes

@@ -34,4 +34,4 @@ Routing and analyzing the network traffic in a separate VM will reduce network p
 
 ## References
 
-[IDS VM Further Development](/docs/src/ref_impl/idsvm-development.md)
+[IDS VM Further Development](../../ref_impl/idsvm-development.md)
