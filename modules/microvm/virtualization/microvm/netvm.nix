@@ -23,6 +23,10 @@
         internalIP = 1;
         gateway = [];
       })
+      (import ../../../common/log/logging-client.nix {
+        inherit config lib pkgs;
+        hostName = vmName;
+      })
       ({lib, ...}: {
         imports = [
           ../../../common

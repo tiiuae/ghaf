@@ -32,6 +32,10 @@
           inherit (vm) macAddress;
           internalIP = index + 100;
         })
+        (import ../../../common/log/logging-client.nix {
+          inherit config lib pkgs;
+          hostName = vmName;
+        })
         ({
           lib,
           config,

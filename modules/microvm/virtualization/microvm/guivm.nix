@@ -15,6 +15,10 @@
         inherit config lib vmName macAddress;
         internalIP = 3;
       })
+      (import ../../../common/log/logging-client.nix {
+        inherit config lib pkgs;
+        hostName = vmName;
+      })
       ({
         lib,
         pkgs,

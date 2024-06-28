@@ -3,11 +3,13 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
   configHost = config;
   vmName = "admin-vm";
   macAddress = "02:00:00:AD:01:01";
+  isLoggingEnabled = config.ghaf.logging.client.enable;
 
   adminvmBaseConfiguration = {
     imports = [
@@ -15,6 +17,9 @@
         inherit config lib vmName macAddress;
         internalIP = 10;
       })
+      # We need to proccess logs received and then forward to loki service
+      (import ../../../common/log/logs-process.nix {inherit config lib pkgs;})
+      (import ../../../common/log/loki.nix {inherit config lib pkgs;})
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -55,14 +60,25 @@
         microvm = {
           optimize.enable = true;
           hypervisor = "cloud-hypervisor";
-          shares = [
-            {
-              tag = "ro-store";
-              source = "/nix/store";
-              mountPoint = "/nix/.ro-store";
-              proto = "virtiofs";
-            }
-          ];
+          shares =
+            [
+              {
+                tag = "ro-store";
+                source = "/nix/store";
+                mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
+            ]
+            ++ lib.optionals isLoggingEnabled [
+              {
+                # Creating a persistent log-store which is mapped on ghaf-host
+                tag = "log-store";
+                source = "/var/lib/loki";
+                mountPoint = "/var/lib/loki";
+                proto = "virtiofs";
+              }
+            ];
+
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
         };
         imports = [../../../common];

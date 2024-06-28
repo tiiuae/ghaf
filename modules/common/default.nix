@@ -18,5 +18,6 @@
     ./services
     ./networking
     ../hardware/definition.nix
+    ./log
   ];
 }

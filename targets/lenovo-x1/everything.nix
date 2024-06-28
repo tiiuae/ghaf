@@ -29,6 +29,7 @@
           ({
             pkgs,
             config,
+            lib,
             ...
           }: let
             powerControl = pkgs.callPackage ../../packages/powercontrol {};
@@ -38,6 +39,13 @@
               extraConfig = powerControl.polkitExtraConfig;
             };
             time.timeZone = "Asia/Dubai";
+
+            imports = [
+              (import ../../modules/common/log/logging-client.nix {
+                inherit pkgs config lib;
+                hostName = "ghaf-host";
+              })
+            ];
 
             ghaf = {
               # variant type, turn on debug or release
@@ -75,6 +83,9 @@
                   spice = true;
                 };
               };
+
+              # Logging service
+              logging.client.enable = true;
 
               # Virtualization options
               virtualization = {
