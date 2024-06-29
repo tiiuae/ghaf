@@ -19,24 +19,26 @@ in {
 
   config = lib.mkIf cfg.enable {
     ghaf = {
-      reference.appvms = {
-        enable = true;
-        chromium-vm = true;
-        gala-vm = true;
-        zathura-vm = true;
-        element-vm = true;
-        appflowy-vm = true;
-      };
-
-      reference.services = {
-        enable = true;
-        dendrite = true;
-      };
-
-      reference.programs = {
-        windows-launcher = {
+      reference = {
+        appvms = {
           enable = true;
-          spice = true;
+          chromium-vm = true;
+          gala-vm = true;
+          zathura-vm = true;
+          element-vm = true;
+          appflowy-vm = true;
+        };
+
+        services = {
+          enable = true;
+          dendrite = true;
+        };
+
+        programs = {
+          windows-launcher = {
+            enable = true;
+            spice = true;
+          };
         };
       };
     };

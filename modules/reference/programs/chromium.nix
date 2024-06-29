@@ -12,12 +12,14 @@ in {
     useZathuraVM = lib.mkEnableOption "Open PDFs in Zathura VM";
   };
   config = lib.mkIf cfg.enable {
-    programs.chromium.enable = true;
+    programs.chromium = {
+      enable = true;
 
-    # Fix border glitch when going maximised->minimised.
-    programs.chromium.initialPrefs.browser.custom_chrome_frame = false;
+      # Fix border glitch when going maximised->minimised.
+      initialPrefs.browser.custom_chrome_frame = false;
 
-    # Don't use pdf.js, open externally.
-    programs.chromium.extraOpts."AlwaysOpenPdfExternally" = true;
+      # Don't use pdf.js, open externally.
+      extraOpts."AlwaysOpenPdfExternally" = true;
+    };
   };
 }
