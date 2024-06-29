@@ -23,6 +23,28 @@ in {
 
   options.ghaf.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
+
+    netvmExtraModules = lib.mkOption {
+      description = ''
+        List of additional modules to be passed to the netvm.
+      '';
+      default = [];
+    };
+
+    guivmExtraModules = lib.mkOption {
+      description = ''
+        List of additional modules to be passed to the guivm.
+      '';
+      default = [];
+    };
+
+    enabled-app-vms = lib.mkOption {
+      type = lib.types.listOf lib.types.attrs;
+      default = [];
+      description = ''
+        List of appvms to include in the Ghaf reference appvms module
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -51,7 +73,7 @@ in {
           netvm = {
             enable = true;
             wifi = true;
-            extraModules = [../reference/services];
+            extraModules = cfg.netvmExtraModules;
           };
 
           adminvm = {
@@ -65,7 +87,7 @@ in {
 
           guivm = {
             enable = true;
-            extraModules = [../reference/programs];
+            extraModules = cfg.guivmExtraModules;
           };
 
           audiovm = {
@@ -75,7 +97,7 @@ in {
 
           appvm = {
             enable = true;
-            vms = config.ghaf.reference.appvms.enabled-app-vms;
+            vms = cfg.enabled-app-vms;
           };
         };
       };
@@ -86,6 +108,7 @@ in {
       };
 
       # UI applications
+      # TODO fix this when defining desktop and apps
       profiles = {
         applications.enable = false;
       };

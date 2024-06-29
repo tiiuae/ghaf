@@ -19,7 +19,7 @@
           self.nixosModules.microvm
           #TODO see the twisted dependencies in common/desktop
 
-          (_: {
+          ({config, ...}: {
             time.timeZone = "Asia/Dubai";
 
             ghaf = {
@@ -30,8 +30,13 @@
               };
 
               profiles = {
-                laptop-x86.enable = true;
                 mvp-user-trial.enable = true;
+                laptop-x86 = {
+                  enable = true;
+                  netvmExtraModules = [self.nixosModules.reference-services];
+                  guivmExtraModules = [self.nixosModules.reference-programs];
+                  enabled-app-vms = config.ghaf.reference.appvms.enabled-app-vms;
+                };
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
