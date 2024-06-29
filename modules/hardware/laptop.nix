@@ -6,17 +6,18 @@
   lib,
   ...
 }: let
-  hwDefinition = import (./. + "/definitions/x1-${config.ghaf.hardware.generation}.nix");
+  cfg = config.ghaf.hardware.definition;
+  hwDefinition = import (./. + cfg.configFile);
   inherit (lib) mkOption types;
 in {
   imports = [
-    ../definition.nix
+    ./definition.nix
   ];
 
-  options.ghaf.hardware.generation = mkOption {
-    description = "Generation of the hardware configuration";
-    type = types.nullOr types.str;
-    default = null;
+  options.ghaf.hardware.definition.configFile = mkOption {
+    description = "Path to the hardware configuration file.";
+    type = types.str;
+    default = "";
   };
 
   config = {
