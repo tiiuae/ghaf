@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 _: {
   flake.nixosModules = {
-    hw-lenovo-x1.imports = [
+    laptop.imports = [
       ./definition.nix
       ./x86_64-generic
-      ./lenovo-x1
+      ./laptop.nix
       ./common
     ];
     hw-x86_64-generic.imports = [

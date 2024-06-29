@@ -14,6 +14,7 @@
       modules =
         [
           self.nixosModules.profiles
+          self.nixosModules.laptop
 
           #TODO can we move microvm to the laptop-x86 profile?
           self.nixosModules.microvm
@@ -23,20 +24,16 @@
             time.timeZone = "Asia/Dubai";
 
             ghaf = {
-              # TODO:Hardware definitions get rid of this generation stuff
-              # pass them as modules directly in extramodules
-              hardware = {
-                inherit generation;
-              };
-
               profiles = {
                 mvp-user-trial.enable = true;
+
                 laptop-x86 = {
                   enable = true;
                   netvmExtraModules = [self.nixosModules.reference-services];
                   guivmExtraModules = [self.nixosModules.reference-programs];
                   enabled-app-vms = config.ghaf.reference.appvms.enabled-app-vms;
                 };
+
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
@@ -52,8 +49,20 @@
     package = hostConfiguration.config.system.build.diskoImages;
   };
 in [
-  (lenovo-x1 "gen10" "debug" [self.nixosModules.disko-basic-partition-v1 self.nixosModules.hw-lenovo-x1])
-  (lenovo-x1 "gen11" "debug" [self.nixosModules.disko-basic-partition-v1 self.nixosModules.hw-lenovo-x1])
-  (lenovo-x1 "gen10" "release" [self.nixosModules.disko-basic-partition-v1 self.nixosModules.hw-lenovo-x1])
-  (lenovo-x1 "gen11" "release" [self.nixosModules.disko-basic-partition-v1 self.nixosModules.hw-lenovo-x1])
+  (lenovo-x1 "gen10" "debug" [
+    self.nixosModules.disko-basic-partition-v1
+    {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";}
+  ])
+  (lenovo-x1 "gen11" "debug" [
+    self.nixosModules.disko-basic-partition-v1
+    {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";}
+  ])
+  (lenovo-x1 "gen10" "release" [
+    self.nixosModules.disko-basic-partition-v1
+    {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";}
+  ])
+  (lenovo-x1 "gen11" "release" [
+    self.nixosModules.disko-basic-partition-v1
+    {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";}
+  ])
 ]
