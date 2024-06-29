@@ -19,6 +19,7 @@
     else {};
   isIdsvmEnabled = any (vm: vm == "ids-vm") config.ghaf.namespaces.vms;
   # TODO: The desktop configuration needs to be re-worked.
+  # TODO it needs to be moved out of common and the launchers have to be set bu the reference programs NOT here
 in {
   options.ghaf.services.desktop = {
     enable = mkEnableOption "Enable the desktop configuration";

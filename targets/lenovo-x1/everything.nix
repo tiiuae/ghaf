@@ -13,12 +13,11 @@
       inherit system;
       modules =
         [
+          self.nixosModules.profiles
+
           #TODO can we move microvm to the laptop-x86 profile?
           self.nixosModules.microvm
-          self.nixosModules.reference-appvms
-          self.nixosModules.reference-programs
-          self.nixosModules.reference-services
-          self.nixosModules.profiles
+          #TODO see the twisted dependencies in common/desktop
 
           (_: {
             time.timeZone = "Asia/Dubai";
@@ -32,30 +31,10 @@
 
               profiles = {
                 laptop-x86.enable = true;
+                mvp-user-trial.enable = true;
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
-              };
-
-              reference.appvms = {
-                enable = true;
-                chromium-vm = true;
-                gala-vm = true;
-                zathura-vm = true;
-                element-vm = true;
-                appflowy-vm = true;
-              };
-
-              reference.services = {
-                enable = true;
-                dendrite = true;
-              };
-
-              reference.programs = {
-                windows-launcher = {
-                  enable = true;
-                  spice = true;
-                };
               };
             };
           })
