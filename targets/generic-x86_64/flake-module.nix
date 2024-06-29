@@ -8,7 +8,7 @@
   self,
   ...
 }: let
-  inherit (inputs) microvm nixos-generators;
+  inherit (inputs) nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
   generic-x86 = variant: extraModules: let
@@ -39,7 +39,6 @@
       inherit system;
       modules =
         [
-          microvm.nixosModules.host
           nixos-generators.nixosModules.raw-efi
           self.nixosModules.common
           self.nixosModules.desktop

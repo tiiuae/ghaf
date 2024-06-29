@@ -4,7 +4,6 @@
 {
   self,
   lib,
-  inputs,
   name,
   system,
   ...
@@ -14,7 +13,8 @@
       inherit system;
       modules =
         [
-          inputs.microvm.nixosModules.host
+          #TODO can we move microvm to the laptop-x86 profile?
+          self.nixosModules.microvm
           self.nixosModules.reference-appvms
           self.nixosModules.reference-programs
           self.nixosModules.reference-services

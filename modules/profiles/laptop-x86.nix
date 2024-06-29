@@ -13,7 +13,9 @@ in {
     ../desktop/graphics
     ../common
     ../host
-    ../microvm
+    #TODO how to reference the miocrovm module here?
+    #self.nixosModules.microvm
+    #../microvm
     ../hardware/x86_64-generic
     ../hardware/common
     ../hardware/definition.nix

@@ -7,6 +7,7 @@
   imports = [
     ./disko/flake-module.nix
     ./hardware/flake-module.nix
+    ./microvm/flake-module.nix
   ];
 
   flake.nixosModules = {
@@ -20,7 +21,6 @@
     jetpack.imports = [./jetpack];
     jetpack-microvm.imports = [./jetpack-microvm];
     lanzaboote.imports = [./lanzaboote];
-    microvm.imports = [./microvm];
     polarfire.imports = [./polarfire];
     profiles.imports = [./profiles];
     reference-appvms.imports = [./reference/appvms];
