@@ -6,14 +6,13 @@
   self,
   ...
 }: let
-  inherit (inputs) microvm nixos-generators;
+  inherit (inputs) nixos-generators;
   name = "vm";
   system = "x86_64-linux";
   vm = variant: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules = [
-        microvm.nixosModules.host
         nixos-generators.nixosModules.vm
         self.nixosModules.common
         self.nixosModules.desktop

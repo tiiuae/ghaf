@@ -9,7 +9,7 @@
   self,
   ...
 }: let
-  inherit (inputs) nixpkgs nixos-generators microvm jetpack-nixos;
+  inherit (inputs) nixpkgs nixos-generators jetpack-nixos;
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
   nvidia-jetson-orin = som: variant: extraModules: let
@@ -45,7 +45,6 @@
           (nixos-generators + "/format-module.nix")
           ../../modules/jetpack/nvidia-jetson-orin/format-module.nix
           jetpack-nixos.nixosModules.default
-          microvm.nixosModules.host
           self.nixosModules.common
           self.nixosModules.desktop
           self.nixosModules.host

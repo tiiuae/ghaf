@@ -3,14 +3,13 @@
 #
 # Configuration for Lenovo X1 Carbon Gen 11
 {
-  inputs,
   lib,
   self,
   ...
 }: let
   name = "lenovo-x1-carbon";
   system = "x86_64-linux";
-  targets = import ./everything.nix {inherit self lib inputs name system;};
+  targets = import ./everything.nix {inherit self lib name system;};
 in {
   flake = {
     nixosConfigurations =
