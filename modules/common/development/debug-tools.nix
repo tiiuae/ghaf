@@ -63,6 +63,7 @@ in {
         sysbench-fileio-test-script
         nvpmodel-check
         rm-linux-bootmgrs
+        pkgs.kitty.terminfo
       ]
       ++ rmDesktopEntries [pkgs.htop]
       # TODO Can this be changed to platformPkgs to filter ?
