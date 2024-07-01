@@ -41,6 +41,15 @@ in {
           };
         };
       };
+
+      profiles = {
+        laptop-x86 = {
+          enable = true;
+          netvmExtraModules = [../reference/services];
+          guivmExtraModules = [../reference/programs];
+          inherit (config.ghaf.reference.appvms) enabled-app-vms;
+        };
+      };
     };
   };
 }

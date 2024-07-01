@@ -9,7 +9,9 @@
 }: let
   system = "x86_64-linux";
 
-  mvp-definition = machineType: variant: extraModules: let
+  #TODO move this to a standalone function
+  #should it live in the library or just as a function file
+  laptop-configuration = machineType: variant: extraModules: let
     hostConfiguration = lib.nixosSystem {
       inherit system;
       modules =
@@ -21,20 +23,11 @@
           self.nixosModules.microvm
           #TODO see the twisted dependencies in common/desktop
 
-          ({config, ...}: {
+          (_: {
             time.timeZone = "Asia/Dubai";
 
             ghaf = {
               profiles = {
-                mvp-user-trial.enable = true;
-
-                laptop-x86 = {
-                  enable = true;
-                  netvmExtraModules = [self.nixosModules.reference-services];
-                  guivmExtraModules = [self.nixosModules.reference-programs];
-                  inherit (config.ghaf.reference.appvms) enabled-app-vms;
-                };
-
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
@@ -51,21 +44,41 @@
   };
 
   targets = [
-    (mvp-definition "lenovo-x1-carbon-gen10" "debug" [
+    (laptop-configuration "lenovo-x1-carbon-gen10" "debug" [
       self.nixosModules.disko-basic-partition-v1
-      {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";}
+      {
+        ghaf = {
+          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
+          profiles.mvp-user-trial.enable = true;
+        };
+      }
     ])
-    (mvp-definition "lenovo-x1-carbon-gen11" "debug" [
+    (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
       self.nixosModules.disko-basic-partition-v1
-      {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";}
+      {
+        ghaf = {
+          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
+          profiles.mvp-user-trial.enable = true;
+        };
+      }
     ])
-    (mvp-definition "lenovo-x1-carbon-gen10" "release" [
+    (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
       self.nixosModules.disko-basic-partition-v1
-      {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";}
+      {
+        ghaf = {
+          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
+          profiles.mvp-user-trial.enable = true;
+        };
+      }
     ])
-    (mvp-definition "lenovo-x1-carbon-gen11" "release" [
+    (laptop-configuration "lenovo-x1-carbon-gen11" "release" [
       self.nixosModules.disko-basic-partition-v1
-      {ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";}
+      {
+        ghaf = {
+          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
+          profiles.mvp-user-trial.enable = true;
+        };
+      }
     ])
   ];
 in {
