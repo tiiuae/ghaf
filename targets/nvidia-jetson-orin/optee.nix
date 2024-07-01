@@ -15,9 +15,9 @@ _: (
     inherit (config.hardware.nvidia-jetpack.devicePkgs) taDevKit;
 
     opteeSource = pkgs.fetchgit {
-      url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
-      rev = "jetson_${l4tVersion}";
-      sha256 = "sha256-jJOMig2+9FlKA9gJUCH/dva7ZtAq1typZSNGKyM7tlg=";
+      url = "git://nv-tegra.nvidia.com/tegra/optee-src/nv-optee.git";
+      # rev = "jetson_${l4tVersion}";
+      sha256 = "sha256-pQpattmS9VmO3ZIQUFn66az8GSmB4IvYhTTCFn6SUmo=";
     };
 
     opteeXtest = stdenv.mkDerivation {
