@@ -168,7 +168,6 @@
             ''
             else "";
 
-<<<<<<< HEAD
           systemd.user.services.memsocket = lib.mkIf configHost.ghaf.profiles.applications.ivShMemServer.enable {
             enable = true;
             description = "memsocket";
@@ -182,8 +181,6 @@
           };
           fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = ["ro"];
 
-=======
->>>>>>> 8db9a24 (Removed memsocket service)
           imports = [../../../common];
         })
       ];
