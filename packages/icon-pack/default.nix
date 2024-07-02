@@ -21,7 +21,9 @@
     "system-shutdown.svg"
     "system-suspend-hibernate.svg"
     "system-suspend.svg"
+    "thorium-browser.svg"
     "utilities-terminal.svg"
+    "yast-vpn.svg"
   ];
 in
   runCommand "icon-pack" {
