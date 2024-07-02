@@ -20,7 +20,7 @@
       };
     in "${lib.head vmNetworking.networking.nat.internalInterfaces}";
 
-    getElementVmEntry = builtins.filter (x: x.name == "element-vm") config.ghaf.networking.hosts.entries;
+    getElementVmEntry = builtins.filter (x: x.name == "comms-vm") config.ghaf.networking.hosts.entries;
     serverIpAddr = lib.head (builtins.map (x: x.ip) getElementVmEntry);
   in {
     enable = lib.mkDefault false;

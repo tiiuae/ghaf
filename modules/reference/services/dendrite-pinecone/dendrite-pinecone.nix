@@ -127,7 +127,7 @@ in {
         # TODO: Move all these TcpPort and things like that, to the options of
         #       this module, away from from package itself.
 
-        # Forward incoming TCP traffic on port ${dendrite-pineconePkg.TcpPort} to internal network(element-vm)
+        # Forward incoming TCP traffic on port ${dendrite-pineconePkg.TcpPort} to internal network(comms-vm)
         iptables -t nat -A PREROUTING -i ${cfg.externalNic} -p tcp --dport ${dendrite-pineconePkg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${dendrite-pineconePkg.TcpPort}
 
         # Enable NAT for outgoing traffic
