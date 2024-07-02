@@ -71,7 +71,7 @@
     }
     {
       ip = 103;
-      name = "element-vm";
+      name = "comms-vm";
     }
     {
       ip = 104;
