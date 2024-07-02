@@ -19,9 +19,8 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    hardware.opengl = {
+    hardware.graphics = {
       enable = true;
-      driSupport = true;
     };
 
     environment.noXlibs = false;

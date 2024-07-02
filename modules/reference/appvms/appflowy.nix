@@ -13,7 +13,7 @@
   cores = 1;
   extraModules = [
     {
-      hardware.opengl.enable = true;
+      hardware.graphics.enable = true;
       time.timeZone = config.time.timeZone;
     }
   ];
