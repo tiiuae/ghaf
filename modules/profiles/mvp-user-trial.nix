@@ -27,6 +27,7 @@ in {
           zathura-vm = true;
           element-vm = true;
           appflowy-vm = true;
+          business-vm = true;
         };
 
         services = {

@@ -6,7 +6,7 @@
   ...
 }: let
   cfg = config.ghaf.networking.hosts;
-  inherit (lib) mkIf types mkOption optionalString optionals;
+  inherit (lib) mkIf types mkOption optionals;
 
   hostsEntrySubmodule = types.submodule {
     options = {
@@ -76,6 +76,10 @@
     {
       ip = 104;
       name = "appflowy-vm";
+    }
+    {
+      ip = 105;
+      name = "business-vm";
     }
   ];
 
