@@ -49,6 +49,21 @@ in {
             }
 
             {
+              name = "Trusted Browser";
+              path =
+                if isIdsvmEnabled
+                then "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no business-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --user-data-dir=/home/${config.ghaf.users.accounts.user}/.config/chromium/Default --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU="
+                else "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no business-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              icon = "${pkgs.icon-pack}/thorium-browser.svg";
+            }
+            # TODO must enable the waypipe to support more than one app in a VM
+            {
+              name = "VPN";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no business-vm run-waypipe gpclient -platform wayland";
+              icon = "${pkgs.icon-pack}/yast-vpn.svg";
+            }
+
+            {
               name = "GALA";
               path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no gala-vm run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
               icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
