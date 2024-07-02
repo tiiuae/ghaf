@@ -64,6 +64,22 @@ in {
             }
 
             {
+              name = "Microsoft Outlook";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no business-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://outlook.office.com/mail/";
+              icon = "${pkgs.icon-pack}/ms-outlook.svg";
+            }
+            {
+              name = "Microsoft 365";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no business-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://microsoft365.com";
+              icon = "${pkgs.icon-pack}/microsoft-365.svg";
+            }
+            {
+              name = "Teams";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no business-vm run-waypipe chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://teams.microsoft.com";
+              icon = "${pkgs.icon-pack}/teams-for-linux.svg";
+            }
+
+            {
               name = "GALA";
               path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no gala-vm run-waypipe gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
               icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
