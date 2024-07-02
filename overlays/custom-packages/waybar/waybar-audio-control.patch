@@ -1,0 +1,1532 @@
+commit 001b0737599479e92df4c4e9423e7e0eb8d0f83b
+Author: Nikita Bazulin <nikita.bazulin@unikie.com>
+Date:   Tue Jun 18 09:00:12 2024 +0300
+
+    ghaf
+
+diff --git a/include/modules/ghaf_audio_control/app_list.hpp b/include/modules/ghaf_audio_control/app_list.hpp
+new file mode 100644
+index 00000000..11eac187
+--- /dev/null
++++ b/include/modules/ghaf_audio_control/app_list.hpp
+@@ -0,0 +1,36 @@
++#pragma once
++
++#include <modules/ghaf_audio_control/app_list_row.hpp>
++
++#include <gtkmm/box.h>
++#include <gtkmm/separator.h>
++#include <gtkmm/listbox.h>
++#include <gtkmm/stack.h>
++
++#include <glibmm/binding.h>
++
++namespace waybar::modules::ghaf {
++
++class StackWithSidebar final : public Gtk::Box
++{
++ public:
++  StackWithSidebar();
++
++  void addApp(AppRaw::AppIdType id, IAudioControlBackend::ISink::Ptr sink, IAudioControlBackend::ISource::Ptr source);
++  void updateApp(AppRaw::AppIdType id, IAudioControlBackend::ISink::Ptr sink, IAudioControlBackend::ISource::Ptr source);
++  void deleteApp(AppRaw::AppIdType id);
++  void deleteAllApps();
++
++ private:
++  Gtk::Widget* createWidgetsForApp(const Glib::RefPtr<Glib::Object> &appVmPtr);
++
++  Gtk::ListBox m_listBox;
++  Gtk::Separator m_separator;
++  Gtk::Stack m_stack;
++
++  Glib::RefPtr<Gio::ListStore<AppRaw>> m_appsModel;
++  std::map<AppRaw::AppIdType, std::vector<Glib::RefPtr<Glib::Binding>>> m_appsBindings;
++  sigc::connection m_connection;
++};
++
++}
+diff --git a/include/modules/ghaf_audio_control/app_list_row.hpp b/include/modules/ghaf_audio_control/app_list_row.hpp
+new file mode 100644
+index 00000000..37ed9b8d
+--- /dev/null
++++ b/include/modules/ghaf_audio_control/app_list_row.hpp
+@@ -0,0 +1,78 @@
++#pragma once
++
++#include <modules/ghaf_audio_control/iaudio_control_backend.hpp>
++#include "util/scope_guard.hpp"
++
++#include <glibmm/object.h>
++#include <glibmm/property.h>
++
++namespace waybar::modules::ghaf {
++
++class AppRaw final : public Glib::Object
++{
++ public:
++  using AppIdType = uint32_t;
++
++ private:
++  AppRaw(AppIdType id, IAudioControlBackend::ISink::Ptr sink, IAudioControlBackend::ISource::Ptr source);
++
++ public:
++  static Glib::RefPtr<AppRaw> create(AppIdType id, IAudioControlBackend::ISink::Ptr sink, IAudioControlBackend::ISource::Ptr source);
++
++  static int compare(const Glib::RefPtr<const AppRaw>& a,
++                     const Glib::RefPtr<const AppRaw>& b);
++
++  AppIdType getId() const noexcept
++  { return m_id; }
++
++  void updateSink(IAudioControlBackend::ISink::Ptr sink);
++  void updateSource(IAudioControlBackend::ISource::Ptr source);
++
++  auto getIsEnabledProperty() const { return m_isEnabled.get_proxy(); }
++
++  auto getHasSinkProperty() const { return m_hasSink.get_proxy(); }
++  auto getHasSourceProperty() const { return m_hasSource.get_proxy(); }
++
++  auto getAppNameProperty() const { return m_appName.get_proxy(); }
++  auto getIconUrlProperty() const { return m_iconUrl.get_proxy(); }
++
++  auto getSoundEnabledProperty() { return m_isSoundEnabled.get_proxy(); }
++  auto getSoundVolumeProperty() { return m_soundVolume.get_proxy(); }
++
++  auto getMicroEnabledProperty() { return m_isMicroEnabled.get_proxy(); }
++  auto getMicroVolumeProperty() { return m_microVolume.get_proxy(); }
++
++ private:
++  waybar::util::ScopeGuard<std::function<void()>> blockConnectionsInScope();
++  bool sendSinkVolume();
++
++  void onSoundEnabledChange();
++  void onSoundVolumeChange();
++
++  void onMicroEnabledChange();
++  void onMicroVolumeChange();
++
++ private:
++  const AppIdType m_id;
++  IAudioControlBackend::ISink::Ptr m_sink;
++  IAudioControlBackend::ISource::Ptr m_source;
++
++  Glib::Property<bool> m_isEnabled {*this, "m_isEnabled", false};
++
++  Glib::Property<bool> m_hasSink {*this, "m_hasSink", false};
++  Glib::Property<bool> m_hasSource {*this, "m_hasSource", false};
++
++  Glib::Property_ReadOnly<Glib::ustring> m_iconUrl {*this, "m_iconUrl", "/usr/share/pixmaps/ubuntu-logo.svg"};
++  Glib::Property<Glib::ustring> m_appName;
++
++  Glib::Property<bool> m_isSoundEnabled {*this, "m_isSoundEnabled", false};
++  Glib::Property<double> m_soundVolume {*this, "m_soundVolume", 0};
++
++  Glib::Property<bool> m_isMicroEnabled {*this, "m_isMicroEnabled", false};
++  Glib::Property<double> m_microVolume {*this, "m_microVolume", 0};
++
++  std::vector<sigc::connection> m_connections;
++  sigc::connection m_sinkUpdateConnection;
++};
++
++}
+diff --git a/include/modules/ghaf_audio_control/ghaf_audio_control.hpp b/include/modules/ghaf_audio_control/ghaf_audio_control.hpp
+new file mode 100644
+index 00000000..6f746585
+--- /dev/null
++++ b/include/modules/ghaf_audio_control/ghaf_audio_control.hpp
+@@ -0,0 +1,67 @@
++#pragma once
++
++#include <modules/ghaf_audio_control/app_list.hpp>
++#include <modules/ghaf_audio_control/iaudio_control_backend.hpp>
++
++#include <AModule.hpp>
++
++#include <glibmm/refptr.h>
++#include <gtkmm/menubutton.h>
++#include <gtkmm/popover.h>
++#include <gtkmm/separator.h>
++#include <gtkmm/stacksidebar.h>
++
++namespace waybar::modules::ghaf {
++
++class AudioControl : public AModule
++{
++private:
++  template <class ExternalIndex>
++  class IndexMapper
++  {
++  public:
++    using InternalIndex = size_t;
++
++    InternalIndex get(ExternalIndex extIndex)
++    {
++      if (const auto internalIndexIter = m_extToInt.find(extIndex); internalIndexIter != m_extToInt.end())
++        return internalIndexIter->second;
++
++      const auto newIntIndex = m_intToExt.size();
++
++      m_intToExt.push_back(extIndex);
++      m_extToInt[extIndex] = newIntIndex;
++
++      return newIntIndex;
++    }
++
++   private:
++    std::map<ExternalIndex, InternalIndex> m_extToInt;
++    std::vector<ExternalIndex> m_intToExt;
++  };
++
++public:
++  static inline std::string ModuleName = "ghaf-audio-control";
++
++  AudioControl(const std::string& id, const Json::Value&);
++  ~AudioControl() override = default;
++
++  void update() override;
++
++  void onPulseSinksChanged(IAudioControlBackend::EventType eventType, IAudioControlBackend::Sinks::IndexT extIndex, IAudioControlBackend::Sinks::PtrT sink);
++  void onPulseSourcesChanged(IAudioControlBackend::EventType eventType, IAudioControlBackend::Sinks::IndexT extIndex, IAudioControlBackend::Sources::PtrT source);
++
++private:
++  StackWithSidebar m_box;
++  Gtk::Popover m_popover;
++  Gtk::MenuButton m_menuButton;
++
++  IndexMapper<IAudioControlBackend::Sinks::IndexT> m_sinkIndexMapper;
++  IndexMapper<IAudioControlBackend::Sources::IndexT> m_sourceIndexMapper;
++
++  std::unique_ptr<IAudioControlBackend> m_audioControl;
++
++  std::vector<sigc::connection> m_connections;
++};
++
++}  // namespace waybar::modules::ghaf
+diff --git a/include/modules/ghaf_audio_control/iaudio_control_backend.hpp b/include/modules/ghaf_audio_control/iaudio_control_backend.hpp
+new file mode 100644
+index 00000000..ca1b02ef
+--- /dev/null
++++ b/include/modules/ghaf_audio_control/iaudio_control_backend.hpp
+@@ -0,0 +1,163 @@
++#pragma once
++
++#include <functional>
++#include <map>
++#include <memory>
++#include <optional>
++
++#include <sigc++/signal.h>
++
++namespace waybar::modules::ghaf {
++
++template <typename T>
++concept NumericType= std::unsigned_integral<T> || std::floating_point<T>;
++
++class IAudioControlBackend
++{
++public:
++  enum class EventType
++  {
++    Add,
++    Update,
++    Delete
++  };
++
++  template <class Index, class T>
++  class SignalMap final
++  {
++  public:
++    using IndexT = Index;
++    using PtrT = std::shared_ptr<T>;
++
++  private:
++    using MapType = std::map<Index, PtrT>;
++
++  public:
++    using Iter = MapType::iterator;
++    using OnChangeSignal = sigc::signal<void(EventType, IndexT, PtrT)>;
++
++  SignalMap() = default;
++
++  void add(const Index& key, PtrT&& data)
++  {
++    auto result = m_map.emplace(key, std::forward<PtrT&&>(data));
++    auto iter = result.first;
++
++    m_onChange(EventType::Add, iter->first, iter->second);
++  }
++
++  std::optional<Iter> findByKey(const Index& key)
++  {
++    if (auto iter = m_map.find(key); iter != m_map.end())
++      return iter;
++
++    return std::nullopt;
++  }
++
++  std::vector<Iter> findByPredicate(const std::function<bool(const T&)>& predicate)
++  {
++    std::vector<Iter> iterators;
++
++    for (Iter it = m_map.begin(); it != m_map.end(); ++it)
++    {
++      if (const PtrT ptr = it->second; predicate(*ptr))
++        iterators.push_back(it);
++    }
++
++    return iterators;
++  }
++
++  void update(Iter iter, const std::function<void(T&)>& updateFunction)
++  {
++    PtrT ptr = iter->second;
++
++    updateFunction(*ptr);
++    m_onChange(EventType::Update, iter->first, ptr);
++  }
++
++  void remove(Iter iter)
++  {
++    std::ignore = m_map.erase(iter->first);
++    m_onChange(EventType::Delete, iter->first, nullptr);
++  }
++
++  OnChangeSignal onChange() const
++  { return m_onChange; }
++
++  private:
++    MapType m_map;
++    OnChangeSignal m_onChange;
++ };
++
++  class IDevice
++  {
++   public:
++    using Ptr = std::shared_ptr<IDevice>;
++
++    class Volume
++    {
++    public:
++      using InternalT = uint8_t;
++
++      static constexpr InternalT Min = 0;
++      static constexpr InternalT Max = 100;
++
++      Volume(NumericType auto value)
++        : m_volume(trunkate(value))
++      { }
++
++      Volume& operator = (NumericType auto value) noexcept
++      { m_volume = trunkate(value); return *this; }
++
++      operator InternalT () const noexcept
++      { return m_volume; }
++
++    private:
++      InternalT trunkate(NumericType auto value) const noexcept
++      {
++        if (value < Min)
++          return Min;
++
++        if (value > Max)
++          return Max;
++
++        return value;
++      }
++
++      InternalT m_volume;
++    };
++
++    virtual ~IDevice() = default;
++
++    virtual bool operator == (const IDevice& other) const = 0;
++
++    virtual std::string getName() const = 0;
++
++    virtual bool isEnabled() const = 0;
++
++    virtual bool isMuted() const = 0;
++    virtual void setMuted(bool mute) = 0;
++
++    virtual Volume getVolume() const = 0;
++    virtual void setVolume(Volume volume) = 0;
++
++    virtual std::string toString() const = 0;
++  };
++
++  class ISink : public IDevice
++  { };
++
++  class ISource : public IDevice
++  { };
++
++  using Index = uint64_t;
++  using Sinks = SignalMap<Index, ISink>;
++  using Sources = SignalMap<Index, ISource>;
++
++  virtual ~IAudioControlBackend() = default;
++
++  virtual Sinks::OnChangeSignal onSinksChanged() const = 0;
++  virtual Sources::OnChangeSignal onSourcesChanged() const = 0;
++};
++
++}  // namespace waybar::modules::ghaf
+diff --git a/include/modules/ghaf_audio_control/pulse_audio_control_backend.hpp b/include/modules/ghaf_audio_control/pulse_audio_control_backend.hpp
+new file mode 100644
+index 00000000..9d9b7d99
+--- /dev/null
++++ b/include/modules/ghaf_audio_control/pulse_audio_control_backend.hpp
+@@ -0,0 +1,52 @@
++#pragma once
++
++#include <modules/ghaf_audio_control/iaudio_control_backend.hpp>
++
++#include <json/value.h>
++
++#include <pulse/introspect.h>
++#include <pulse/thread-mainloop.h>
++
++namespace waybar::modules::ghaf {
++
++class PulseAudioControlBackend final : public IAudioControlBackend
++{
++ public:
++  PulseAudioControlBackend();
++  ~PulseAudioControlBackend() override;
++
++  Sinks::OnChangeSignal onSinksChanged() const override
++  { return m_sinks.onChange(); }
++
++  Sources::OnChangeSignal onSourcesChanged() const override
++  { return m_sources.onChange(); }
++
++ private:
++  static void subscribeCb(pa_context *context,  pa_subscription_event_type_t type, uint32_t index, void *data);
++  static void contextStateCb(pa_context *context, void *data);
++  static void sinkInfoCb(pa_context *context, const pa_sink_info* info, int eol, void *data);
++  static void sourceInfoCb(pa_context *context, const pa_source_info* info, int eol, void *data);
++  static void serverInfoCb(pa_context *context, const pa_server_info* info, void *data);
++  static void cardInfoCb(pa_context *context, const pa_card_info *info, int eol, void *data);
++
++  void onSinkInfo(const pa_sink_info &info);
++  void deleteSink(Sinks::IndexT index);
++
++  void onSourceInfo(const pa_source_info &info);
++  void deleteSource(Sources::IndexT index);
++
++  void connectContext();
++
++ private:
++  Sinks m_sinks;
++  Sources m_sources;
++
++  std::string m_defaultSinkName;
++  std::string m_defaultSourceName;
++
++  pa_threaded_mainloop* m_mainloop;
++  pa_mainloop_api* m_mainloopApi;
++  pa_context* m_context{};
++};
++
++}  // namespace waybar::modules::ghaf
+diff --git a/meson.build b/meson.build
+index ec23923a..5d031138 100644
+--- a/meson.build
++++ b/meson.build
+@@ -365,6 +365,10 @@ if libpulse.found()
+     src_files += files(
+         'src/modules/pulseaudio.cpp',
+         'src/modules/pulseaudio_slider.cpp',
++        'src/modules/ghaf_audio_control/app_list.cpp',
++        'src/modules/ghaf_audio_control/app_list_row.cpp',
++        'src/modules/ghaf_audio_control/ghaf_audio_control.cpp',
++        'src/modules/ghaf_audio_control/pulse_audio_control_backend.cpp',
+         'src/util/audio_backend.cpp',
+     )
+     man_files += files(
+diff --git a/src/factory.cpp b/src/factory.cpp
+index 0549fe09..0cd1818e 100644
+--- a/src/factory.cpp
++++ b/src/factory.cpp
+@@ -78,6 +78,7 @@
+ #ifdef HAVE_LIBPULSE
+ #include "modules/pulseaudio.hpp"
+ #include "modules/pulseaudio_slider.hpp"
++#include "modules/ghaf_audio_control/ghaf_audio_control.hpp"
+ #endif
+ #ifdef HAVE_LIBMPDCLIENT
+ #include "modules/mpd/mpd.hpp"
+@@ -272,6 +273,9 @@ waybar::AModule* waybar::Factory::makeModule(const std::string& name,
+     if (ref == "pulseaudio/slider") {
+       return new waybar::modules::PulseaudioSlider(id, config_[name]);
+     }
++    if (ref == waybar::modules::ghaf::AudioControl::ModuleName) {
++      return new waybar::modules::ghaf::AudioControl(id, config_[name]);
++    }
+ #endif
+ #ifdef HAVE_LIBMPDCLIENT
+     if (ref == "mpd") {
+diff --git a/src/modules/ghaf_audio_control/app_list.cpp b/src/modules/ghaf_audio_control/app_list.cpp
+new file mode 100644
+index 00000000..986cf1ae
+--- /dev/null
++++ b/src/modules/ghaf_audio_control/app_list.cpp
+@@ -0,0 +1,174 @@
++#include <modules/ghaf_audio_control/app_list.hpp>
++
++#include "gtkmm/adjustment.h"
++#include <gtkmm/enums.h>
++#include "gtkmm/image.h"
++#include "gtkmm/label.h"
++#include "gtkmm/scale.h"
++#include "gtkmm/switch.h"
++
++#include <spdlog/spdlog.h>
++
++
++namespace waybar::modules::ghaf {
++
++namespace
++{
++
++  const auto ScaleSize = 200;
++  const auto ScaleOrientation = Gtk::Orientation::ORIENTATION_HORIZONTAL;
++  const auto ScaleInitialValue = 0;
++  const auto ScaleLowerLimit = 0;
++  const auto ScaleUpperLimit = 100;
++
++  const auto SwitchSize = 10;
++  const auto IconSize = 25;
++  const auto NameLabelSize = 75;
++  const auto BoxPlaces = 4;
++
++  Gtk::Scale* MakeScaleWidget()
++  {
++    Gtk::Scale* scale = Gtk::make_managed<Gtk::Scale>(Gtk::Adjustment::create(ScaleInitialValue, ScaleLowerLimit, ScaleUpperLimit), ScaleOrientation);
++    scale->set_size_request(ScaleSize);
++    scale->set_digits(0);
++
++    return scale;
++  }
++
++}
++
++StackWithSidebar::StackWithSidebar() :
++  Gtk::Box(Gtk::ORIENTATION_HORIZONTAL),
++  m_separator(Gtk::Orientation::ORIENTATION_VERTICAL),
++  m_appsModel(Gio::ListStore<AppRaw>::create())
++{
++  m_listBox.bind_model(m_appsModel, sigc::mem_fun(*this, &StackWithSidebar::createWidgetsForApp));
++  m_listBox.set_can_focus(false);
++  m_listBox.set_selection_mode(Gtk::SelectionMode::SELECTION_SINGLE);
++
++  m_connection = m_listBox.signal_row_selected().connect([this](const Gtk::ListBoxRow *row)
++  {
++    if (row == nullptr)
++    {
++      spdlog::error("StackWithSidebar: ListBoxRow is nullptr");
++      return;
++    }
++
++    m_stack.set_visible_child(std::to_string(row->get_index()));
++  });
++
++  m_stack.set_transition_type(Gtk::StackTransitionType::STACK_TRANSITION_TYPE_SLIDE_UP_DOWN);
++
++  pack_start(m_listBox, Gtk::PACK_SHRINK);
++  pack_start(m_separator, Gtk::PACK_SHRINK);
++  pack_start(m_stack, Gtk::PACK_EXPAND_WIDGET);
++}
++
++void StackWithSidebar::addApp(AppRaw::AppIdType id, IAudioControlBackend::IDevice::Ptr sink, IAudioControlBackend::IDevice::Ptr source)
++{
++  if (auto _ = m_appsModel->get_item(id))
++    updateApp(id, sink, source);
++  else
++    m_appsModel->insert(id, AppRaw::create(id, std::move(sink), std::move(source)));
++}
++
++void StackWithSidebar::updateApp(AppRaw::AppIdType id, IAudioControlBackend::IDevice::Ptr sink, IAudioControlBackend::IDevice::Ptr source)
++{
++  auto item = m_appsModel->get_item(id);
++
++  if (!item)
++  {
++    spdlog::error("StackWithSidebar::updateApp: no app with id: {0}", id);
++    return;
++  }
++
++  if (sink)
++    item->updateSink(std::move(sink));
++
++  if (source)
++    item->updateSource(std::move(source));
++}
++
++void StackWithSidebar::deleteAllApps()
++{
++  m_appsBindings.clear();
++  m_appsModel->remove_all();
++}
++
++void StackWithSidebar::deleteApp(AppRaw::AppIdType id)
++{
++  std::ignore = m_appsBindings.erase(id);
++  m_appsModel->remove(id);
++}
++
++Gtk::Widget* StackWithSidebar::createWidgetsForApp(const Glib::RefPtr<Glib::Object> &appVmPtr)
++{
++  if (!appVmPtr)
++  {
++    spdlog::error("PulseaudioMultiSlider: appVmPtr is nullptr");
++    return nullptr;
++  }
++
++  auto appVm = Glib::RefPtr<AppRaw>::cast_dynamic<Glib::Object>(appVmPtr);
++  if (!appVm)
++  {
++    spdlog::error("PulseaudioMultiSlider: appVm is not an AppRaw");
++    return nullptr;
++  }
++
++  auto *icon = Gtk::make_managed<Gtk::Image>("/usr/share/pixmaps/ubuntu-logo.svg");
++  auto *nameLabel = Gtk::make_managed<Gtk::Label>();
++  auto *soundEnableSwitch = Gtk::make_managed<Gtk::Switch>();
++  auto *soundScale = MakeScaleWidget();
++  auto *microEnableSwitch = Gtk::make_managed<Gtk::Switch>();
++  auto *microScale = MakeScaleWidget();
++
++  icon->set_size_request(IconSize);
++  nameLabel->set_size_request(NameLabelSize);
++  nameLabel->set_halign(Gtk::Align::ALIGN_START);
++  nameLabel->set_can_focus(false);
++  nameLabel->set_selectable(false);
++  nameLabel->set_focus_on_click(false);
++
++  soundEnableSwitch->set_size_request(SwitchSize);
++  microEnableSwitch->set_size_request(SwitchSize);
++
++  const auto bind = [](const auto& appProp, const auto& widgetProp, bool readonly = false)
++  {
++    const auto flag = readonly ? Glib::BindingFlags::BINDING_SYNC_CREATE : Glib::BindingFlags::BINDING_BIDIRECTIONAL;
++    return Glib::Binding::bind_property(appProp, widgetProp, flag);
++  };
++
++  m_appsBindings[appVm->getId()] =
++  {
++    bind(appVm->getHasSinkProperty(), soundEnableSwitch->property_sensitive(), true),
++    bind(appVm->getHasSinkProperty(), soundScale->property_sensitive(), true),
++    bind(appVm->getHasSourceProperty(), microEnableSwitch->property_sensitive(), true),
++    bind(appVm->getHasSourceProperty(), microScale->property_sensitive(), true),
++
++    bind(appVm->getAppNameProperty(), nameLabel->property_label(), true),
++    bind(appVm->getSoundEnabledProperty(), soundEnableSwitch->property_state()),
++    bind(appVm->getSoundVolumeProperty(), soundScale->get_adjustment()->property_value()),
++    bind(appVm->getMicroEnabledProperty(), microEnableSwitch->property_state()),
++    bind(appVm->getMicroVolumeProperty(), microScale->get_adjustment()->property_value())
++  };
++
++  auto *stackGrid = Gtk::make_managed<Gtk::Box>(Gtk::ORIENTATION_HORIZONTAL, BoxPlaces);
++  stackGrid->add(*soundEnableSwitch);
++  stackGrid->add(*soundScale);
++  stackGrid->add(*microEnableSwitch);
++  stackGrid->add(*microScale);
++
++  stackGrid->set_valign(Gtk::ALIGN_START);
++
++  auto *sidebarGrid = Gtk::make_managed<Gtk::ListBox>();
++  sidebarGrid->add(*icon);
++  sidebarGrid->add(*nameLabel);
++
++
++  m_stack.add(*stackGrid, std::to_string(appVm->getId()));
++
++  return sidebarGrid;
++}
++
++}
+diff --git a/src/modules/ghaf_audio_control/app_list_row.cpp b/src/modules/ghaf_audio_control/app_list_row.cpp
+new file mode 100644
+index 00000000..a2d7f88f
+--- /dev/null
++++ b/src/modules/ghaf_audio_control/app_list_row.cpp
+@@ -0,0 +1,147 @@
++#include <modules/ghaf_audio_control/app_list_row.hpp>
++#include "glibmm/main.h"
++
++#include <spdlog/spdlog.h>
++
++namespace waybar::modules::ghaf {
++
++namespace
++{
++
++template <class T>
++void LazySet(Glib::Property<T>& property, const typename Glib::Property<T>::PropertyType& newValue)
++{
++  if (property == newValue)
++    return;
++
++  property = newValue;
++}
++
++}
++
++AppRaw::AppRaw(AppIdType id, IAudioControlBackend::ISink::Ptr sink, IAudioControlBackend::ISource::Ptr source):
++  Glib::ObjectBase(typeid(AppRaw)),
++  m_id(id),
++  m_appName(*this, "m_appName", "Undefined")
++{
++  updateSink(std::move(sink));
++  updateSource(std::move(source));
++
++  m_connections =
++  {
++    m_isSoundEnabled.get_proxy().signal_changed().connect(sigc::mem_fun(*this, &AppRaw::onSoundEnabledChange)),
++    m_isMicroEnabled.get_proxy().signal_changed().connect(sigc::mem_fun(*this, &AppRaw::onMicroEnabledChange)),
++
++    m_soundVolume.get_proxy().signal_changed().connect(sigc::mem_fun(*this, &AppRaw::onSoundVolumeChange)),
++    m_microVolume.get_proxy().signal_changed().connect(sigc::mem_fun(*this, &AppRaw::onMicroVolumeChange))
++  };
++}
++
++Glib::RefPtr<AppRaw> AppRaw::create(AppIdType id, IAudioControlBackend::IDevice::Ptr sink, IAudioControlBackend::IDevice::Ptr source)
++{ return Glib::RefPtr<AppRaw>(new AppRaw(id, std::move(sink), std::move(source))); }
++
++int AppRaw::compare(const Glib::RefPtr<const AppRaw> &a, const Glib::RefPtr<const AppRaw> &b)
++{
++  if (!a || !b)
++    return 0;
++
++  return a->m_appName.get_value().compare(b->m_appName.get_value());
++}
++
++void AppRaw::updateSink(IAudioControlBackend::ISink::Ptr sink)
++{
++  {
++    const auto scopeGuard = blockConnectionsInScope();
++
++    LazySet(m_isSoundEnabled, sink ? !sink->isMuted() : false);
++    LazySet(m_soundVolume, sink ? sink->getVolume() : 0);
++  }
++
++  m_isEnabled = (sink ? sink->isEnabled() : false) || (m_source ? m_source->isEnabled() : false);
++
++  if (sink)
++    LazySet(m_appName, "sink: " + sink->getName() + (m_isEnabled ? " enabled" : " disabled"));
++
++  m_sink = std::move(sink);
++  m_hasSink = m_sink != nullptr;
++}
++
++void AppRaw::updateSource(IAudioControlBackend::ISource::Ptr source)
++{
++  {
++    const auto scopeGuard = blockConnectionsInScope();
++
++    LazySet(m_isMicroEnabled, source ? !source->isMuted() : false);
++    LazySet(m_microVolume, source ? source->getVolume() : 0);
++  }
++
++  if (source)
++    LazySet(m_appName, "source: " + source->getName() + (m_isEnabled ? " enabled" : " disabled"));
++
++  m_isEnabled = (m_sink ? m_sink->isEnabled() : false) || (source ? source->isEnabled() : false);
++  m_source = std::move(source);
++  m_hasSource = m_source != nullptr;
++}
++
++waybar::util::ScopeGuard<std::function<void()>> AppRaw::blockConnectionsInScope()
++{
++  for (auto& connection : m_connections)
++    std::ignore = connection.block();
++
++  return waybar::util::ScopeGuard<std::function<void()>>{[this]()
++  {
++    for (auto& connection : m_connections)
++      std::ignore = connection.unblock();
++  }};
++}
++
++bool AppRaw::sendSinkVolume()
++{
++  spdlog::debug("SoundVolume has changed to: {0}", m_soundVolume.get_value());
++
++  if (m_sink)
++    m_sink->setVolume(m_soundVolume.get_value());
++
++  return true;
++}
++
++void AppRaw::onSoundEnabledChange()
++{
++  const auto isEnabled = m_isSoundEnabled.get_value();
++
++  spdlog::debug("SoundEnabled has changed to: {0}", isEnabled);
++
++  if (m_sink)
++    m_sink->setMuted(!isEnabled);
++}
++
++void AppRaw::onSoundVolumeChange()
++{
++  if (m_sinkUpdateConnection)
++    m_sinkUpdateConnection.disconnect();
++
++  const sigc::slot<bool> slot = sigc::mem_fun(*this, &AppRaw::sendSinkVolume);
++  m_sinkUpdateConnection = Glib::signal_timeout().connect(slot, 200);
++}
++
++void AppRaw::onMicroEnabledChange()
++{
++  const auto isEnabled = m_isMicroEnabled.get_value();
++
++  spdlog::debug("MicroEnabled has changed to: {0}", isEnabled);
++
++  if (m_source)
++    m_source->setMuted(!isEnabled);
++  // if (!isEnabled)
++    // lazySet(m_microVolume, 0);
++}
++
++void AppRaw::onMicroVolumeChange()
++{
++  spdlog::debug("MicroVolume has changed to: {0}", m_microVolume.get_value());
++
++  if (m_source)
++    m_source->setVolume(m_microVolume.get_value());
++}
++
++}
+diff --git a/src/modules/ghaf_audio_control/ghaf_audio_control.cpp b/src/modules/ghaf_audio_control/ghaf_audio_control.cpp
+new file mode 100644
+index 00000000..a5312727
+--- /dev/null
++++ b/src/modules/ghaf_audio_control/ghaf_audio_control.cpp
+@@ -0,0 +1,147 @@
++#include <modules/ghaf_audio_control/ghaf_audio_control.hpp>
++
++#include <modules/ghaf_audio_control/pulse_audio_control_backend.hpp>
++
++#include <glibmm/binding.h>
++
++#include <gtkmm/grid.h>
++#include <gtkmm/image.h>
++#include <gtkmm/scale.h>
++#include <gtkmm/switch.h>
++#include <gtkmm/volumebutton.h>
++
++#include <spdlog/spdlog.h>
++
++namespace waybar::modules::ghaf {
++
++namespace
++{
++
++  Gtk::PositionType GetPositionSetting(const Json::Value& config) noexcept
++  {
++    try
++    {
++      const auto& position = config["position"];
++
++      if (position.empty())
++        throw std::runtime_error(": no 'position' attribute has been set for ghaf-audio-control, apply default...");
++
++      if (position == "bottom")
++        return Gtk::PositionType::POS_BOTTOM;
++
++      if (position == "top")
++        return Gtk::PositionType::POS_TOP;
++
++      if (position == "left")
++        return Gtk::PositionType::POS_LEFT;
++
++      if (position == "right")
++        return Gtk::PositionType::POS_RIGHT;
++
++      throw std::runtime_error{std::format("Unknown widget position type: {}", position.asString())};
++    }
++    catch (const std::exception& ex)
++    {
++      spdlog::error("GetPositionSetting: {0}. Apply default one -- TOP", ex.what());
++      return Gtk::PositionType::POS_TOP;
++    }
++  }
++
++}
++
++AudioControl::AudioControl(const std::string& id, const Json::Value& config)
++  : AModule(config, ModuleName, id)
++{
++  try
++  {
++    m_audioControl = std::make_unique<PulseAudioControlBackend>();
++
++    m_popover.add(m_box);
++    m_box.show_all();
++
++    m_connections =
++    {
++      m_audioControl->onSinksChanged().connect(sigc::mem_fun(*this, &AudioControl::onPulseSinksChanged)),
++      m_audioControl->onSourcesChanged().connect(sigc::mem_fun(*this, &AudioControl::onPulseSourcesChanged))
++    };
++  }
++  catch(const std::exception& ex)
++  {
++    auto *errorLabel = Gtk::make_managed<Gtk::Label>();
++    errorLabel->set_label(ex.what());
++
++    m_popover.add(*errorLabel);
++    errorLabel->show_all();
++  }
++
++  m_menuButton.set_label("Audio Control");
++  m_menuButton.set_popover(m_popover);
++
++  event_box_.add(m_menuButton);
++  event_box_.add_label("EventBoxLabel");
++
++  m_popover.set_position(GetPositionSetting(config));
++  m_popover.set_constrain_to(Gtk::POPOVER_CONSTRAINT_NONE);
++}
++
++void AudioControl::update()
++{
++  m_box.show_all();
++
++  AModule::update();
++}
++
++void AudioControl::onPulseSinksChanged(IAudioControlBackend::EventType eventType, IAudioControlBackend::Sinks::IndexT extIndex, IAudioControlBackend::Sinks::PtrT sink)
++{
++  const auto intIndex = m_sinkIndexMapper.get(extIndex);
++
++  switch (eventType)
++  {
++    case IAudioControlBackend::EventType::Add:
++      spdlog::debug("onPulseSinksChanged: ADD sink with intIndex: {0}, sink: {1}", intIndex, sink->toString());
++      m_box.addApp(intIndex, std::move(sink), nullptr);
++      break;
++
++    case IAudioControlBackend::EventType::Update:
++      spdlog::debug("onPulseSinksChanged: UPDATE sink with intIndex: {0}, sink: {1}", intIndex, sink->toString());
++      m_box.updateApp(intIndex, std::move(sink), nullptr);
++      break;
++
++    case IAudioControlBackend::EventType::Delete:
++      spdlog::debug("onPulseSinksChanged: DELETE sink with intIndex: {0}", intIndex);
++      m_box.deleteApp(intIndex);
++      break;
++  }
++
++  update();
++}
++
++void AudioControl::onPulseSourcesChanged(IAudioControlBackend::EventType eventType,
++                                                IAudioControlBackend::Sources::IndexT extIndex,
++                                                IAudioControlBackend::Sources::PtrT source)
++{
++  //const auto intIndex = m_sourceIndexMapper.get(extIndex); // Fix after we have by App sinks and sources
++  const auto intIndex = m_sinkIndexMapper.get(extIndex + 100);
++
++  switch (eventType)
++  {
++    case IAudioControlBackend::EventType::Add:
++      spdlog::debug("onPulseSourcesChanged: ADD source with intIndex: {0}, source: {1}", intIndex, source->toString());
++      m_box.addApp(intIndex, nullptr, std::move(source));
++      break;
++
++    case IAudioControlBackend::EventType::Update:
++      spdlog::debug("onPulseSourcesChanged: UPDATE source with intIndex: {0}, source: {1}", intIndex, source->toString());
++      m_box.updateApp(intIndex, nullptr, std::move(source));
++      break;
++
++    case IAudioControlBackend::EventType::Delete:
++      spdlog::debug("onPulseSourcesChanged: DELETE source with intIndex: {0}", intIndex);
++      m_box.deleteApp(intIndex);
++      break;
++  }
++
++  update();
++}
++
++}  // namespace waybar::modules
+diff --git a/src/modules/ghaf_audio_control/pulse_audio_control_backend.cpp b/src/modules/ghaf_audio_control/pulse_audio_control_backend.cpp
+new file mode 100644
+index 00000000..ac398c71
+--- /dev/null
++++ b/src/modules/ghaf_audio_control/pulse_audio_control_backend.cpp
+@@ -0,0 +1,571 @@
++#include <modules/ghaf_audio_control/pulse_audio_control_backend.hpp>
++#include <util/scope_guard.hpp>
++
++#include <fmt/format.h>
++
++#include <pulse/error.h>
++#include <pulse/introspect.h>
++#include <pulse/subscribe.h>
++
++#include <spdlog/spdlog.h>
++
++namespace waybar::modules::ghaf {
++
++namespace
++{
++
++constexpr pa_subscription_mask GetSubscriptionMask(auto ... masks)
++{ return static_cast<pa_subscription_mask>((masks | ...)); }
++
++constexpr pa_subscription_mask SubscriptionMask = GetSubscriptionMask(
++  pa_subscription_mask::PA_SUBSCRIPTION_MASK_SERVER,
++  pa_subscription_mask::PA_SUBSCRIPTION_MASK_SINK,
++  pa_subscription_mask::PA_SUBSCRIPTION_MASK_SINK_INPUT,
++  pa_subscription_mask::PA_SUBSCRIPTION_MASK_SOURCE,
++  pa_subscription_mask::PA_SUBSCRIPTION_MASK_SOURCE_OUTPUT,
++  pa_subscription_mask::PA_SUBSCRIPTION_MASK_CARD);
++
++pa_volume_t VolumeToPulseVolume(IAudioControlBackend::IDevice::Volume volume)
++{
++  const double coeff = volume / static_cast<double>(IAudioControlBackend::IDevice::Volume::Max);
++  return PA_VOLUME_NORM * coeff;
++}
++
++IAudioControlBackend::IDevice::Volume PulseVolumeToVolume(pa_volume_t pulseVolume)
++{ return (pulseVolume * IAudioControlBackend::IDevice::Volume::Max) / PA_VOLUME_NORM; }
++
++bool PulseCallbackCheck(const pa_context* context, int eol, std::string_view callbackName)
++{
++  if (context == nullptr)
++  {
++    spdlog::error("pulseCallbackCheck: callback: {0} context == nullptr", callbackName);
++    return false;
++  }
++
++  if (eol == 0)
++    return true;
++
++  const auto error = pa_context_errno(context);
++
++  if (error == PA_ERR_NOENTITY || error == PA_OK)
++    return true;
++
++  spdlog::error("pulseCallbackCheck: callback: {0} failed with error: {1}", callbackName, pa_strerror(error));
++
++  return false;
++}
++
++#define DEBUG 1
++
++template <class Fx, class ... ArgsT>
++void ExecutePulseFuncPrivate(Fx fx, ArgsT... args)
++{
++  if (pa_operation* operation = fx(args...))
++    pa_operation_unref(operation);
++  else
++    spdlog::error("Pulseaudio function failed");
++}
++
++#if defined(DEBUG)
++  #define ExecutePulseFunc(FX, ARGS...) { spdlog::debug("ExecutePulseFunc: {0}", #FX); ExecutePulseFuncPrivate(FX, ARGS); }
++#else
++  template <class Fx, class ... ArgsT>
++  void ExecutePulseFuncPrivate(Fx fx, ArgsT&&... args)
++  { ExecutePulseFuncPrivate(fx, args...); }
++#endif
++
++class GeneralDeviceImpl final
++{
++public:
++  GeneralDeviceImpl(const pa_sink_info& info, pa_context& context):
++    m_index(info.index),
++    m_cardIndex(info.card),
++    m_name(info.name),
++    m_description(info.description),
++    m_context(context),
++    m_channel_map(info.channel_map),
++    m_volume(info.volume),
++    m_isMuted(static_cast<bool>(info.mute))
++  { }
++
++  GeneralDeviceImpl(const pa_source_info& info, pa_context& context):
++    m_index(info.index),
++    m_cardIndex(info.card),
++    m_name(info.name),
++    m_description(info.description),
++    m_context(context),
++    m_channel_map(info.channel_map),
++    m_volume(info.volume),
++    m_isMuted(static_cast<bool>(info.mute))
++  { }
++
++  bool operator == (const GeneralDeviceImpl& other) const
++  { return m_index == other.m_index; }
++
++  uint32_t getIndex() const noexcept
++  { return m_index; }
++
++  uint32_t getCardIndex() const noexcept
++  { return m_cardIndex; }
++
++  bool isEnabled() const noexcept
++  { return m_isEnabled; }
++
++  bool isMuted() const
++  { const std::lock_guard l{m_mutex}; return m_isMuted; }
++
++  IAudioControlBackend::IDevice::Volume getVolume() const
++  { return PulseVolumeToVolume(getPulseVolume()); }
++
++  pa_volume_t getPulseVolume() const
++  { const std::lock_guard l{m_mutex}; return m_volume.values[0]; }
++
++  pa_cvolume getPulseChannelVolume() const noexcept
++  { const std::lock_guard l{m_mutex}; return m_volume; }
++
++  std::string getName() const
++  { const std::lock_guard l{m_mutex}; return fmt::format("#{}. {}", m_index, m_description); }
++
++  sigc::signal<void()> onChanged() const
++  { return m_onChanged; }
++
++  std::string toString() const
++  {
++    const std::lock_guard l{m_mutex};
++    return fmt::format("index: {}, name: {}, volume: {}, isMuted: {}", m_index, m_description, m_volume.values[0], m_isMuted);
++  }
++
++  std::string getDescription() const
++  { const std::lock_guard l{m_mutex}; return m_description; }
++
++  pa_context& getContext() const noexcept
++  { return m_context; }
++
++  void update(const pa_sink_info& info)
++  {
++    {
++      const std::lock_guard l{m_mutex};
++
++      m_cardIndex = info.card;
++      m_name = info.name;
++      m_description = info.description;
++      m_channel_map = info.channel_map;
++      m_volume = info.volume;
++      m_isMuted = static_cast<bool>(info.mute);
++    }
++
++    m_onChanged();
++  }
++
++  void update(const pa_source_info& info)
++  {
++    {
++      const std::lock_guard l{m_mutex};
++
++      m_cardIndex = info.card;
++      m_name = info.name;
++      m_description = info.description;
++      m_channel_map = info.channel_map;
++      m_volume = info.volume;
++      m_isMuted = static_cast<bool>(info.mute);
++    }
++
++    m_onChanged();
++  }
++
++  void update(const pa_card_info& info)
++  {
++    {
++      const std::lock_guard l{m_mutex};
++
++      m_isEnabled = false;
++
++      if (m_cardIndex == info.index)
++      {
++        for (size_t i = 0; i < info.n_ports; ++i)
++        {
++          pa_card_port_info const* port = info.ports[i];
++
++          if (m_description == port->description && port->available == PA_PORT_AVAILABLE_YES)
++          {
++            m_isEnabled = true;
++            break;
++          }
++        }
++      }
++    }
++
++    m_onChanged();
++  }
++
++private:
++  const uint32_t m_index;
++  uint32_t m_cardIndex;
++
++  bool m_isEnabled = false;
++  std::string m_name;
++  std::string m_description;
++
++  pa_context& m_context;
++
++  pa_channel_map m_channel_map;
++  pa_cvolume m_volume;
++  bool m_isMuted;
++
++  mutable std::mutex m_mutex;
++  sigc::signal<void()> m_onChanged;
++};
++
++class Sink final : public IAudioControlBackend::ISink
++{
++public:
++  Sink(const pa_sink_info& info, pa_context& context):
++    m_device(info, context)
++  { }
++
++  bool operator == (const IDevice& other) const override
++  {
++    if (const Sink* otherSink = dynamic_cast<const Sink*>(&other))
++      return m_device == otherSink->m_device;
++
++    return false;
++  }
++
++  std::string getName() const override
++  { return m_device.getName(); }
++
++  bool isEnabled() const override
++  { return m_device.isEnabled(); }
++
++  bool isMuted() const override
++  { return m_device.isMuted(); }
++
++  void setMuted(bool mute) override
++  { ExecutePulseFunc(pa_context_set_sink_mute_by_index, &m_device.getContext(), m_device.getIndex(), mute, nullptr, nullptr); }
++
++  Volume getVolume() const override
++  { return m_device.getVolume(); }
++
++  void setVolume(Volume volume) override
++  {
++    pa_cvolume paChannelVolume;
++    std::ignore = pa_cvolume_set(&paChannelVolume, m_device.getPulseChannelVolume().channels, VolumeToPulseVolume(volume));
++
++    ExecutePulseFunc(pa_context_set_sink_volume_by_index, &m_device.getContext(), m_device.getIndex(), &paChannelVolume, nullptr, nullptr);
++  }
++
++  uint32_t getCardIndex() const noexcept
++  { return m_device.getCardIndex(); }
++
++  std::string toString() const override
++  { return fmt::format("PulseSink: [ {} ]", m_device.toString()); }
++
++  std::string getDescription() const
++  { return m_device.getDescription(); }
++
++  void update(const pa_sink_info& info)
++  { m_device.update(info); }
++
++  void update(const pa_card_info& info)
++  { m_device.update(info); }
++
++private:
++  GeneralDeviceImpl m_device;
++};
++
++class Source final : public IAudioControlBackend::ISource
++{
++public:
++  Source(const pa_source_info& info, pa_context& context):
++    m_device(info, context)
++  { }
++
++  bool operator == (const IDevice& other) const override
++  {
++    if (const auto* otherSource = dynamic_cast<const Source*>(&other))
++      return m_device == otherSource->m_device;
++
++    return false;
++  }
++
++  std::string getName() const override
++  { return m_device.getName(); }
++
++  bool isEnabled() const override
++  { return m_device.isEnabled(); }
++
++  bool isMuted() const override
++  { return m_device.isMuted(); }
++
++  void setMuted(bool mute) override
++  { ExecutePulseFunc(pa_context_set_sink_mute_by_index, &m_device.getContext(), m_device.getIndex(), mute, nullptr, nullptr); }
++
++  Volume getVolume() const override
++  { return m_device.getVolume(); }
++
++  void setVolume(Volume volume) override
++  {
++    pa_cvolume paChannelVolume;
++    std::ignore = pa_cvolume_set(&paChannelVolume, m_device.getPulseChannelVolume().channels, VolumeToPulseVolume(volume));
++
++    ExecutePulseFunc(pa_context_set_source_volume_by_index, &m_device.getContext(), m_device.getIndex(), &paChannelVolume, nullptr, nullptr);
++  }
++
++  std::string toString() const override
++  { return fmt::format("PulseSource: [ {} ]", m_device.toString()); }
++
++  std::string getDescription() const
++  { return m_device.getDescription(); }
++
++  uint32_t getCardIndex() const noexcept
++  { return m_device.getCardIndex(); }
++
++  void update(const pa_source_info& info)
++  { m_device.update(info); }
++
++  void update(const pa_card_info& info)
++  { m_device.update(info); }
++
++private:
++  GeneralDeviceImpl m_device;
++};
++
++}
++
++PulseAudioControlBackend::PulseAudioControlBackend()
++  : m_mainloop(pa_threaded_mainloop_new())
++{
++  if (m_mainloop == nullptr)
++    throw std::runtime_error("pa_threaded_mainloop_new() failed.");
++
++  pa_threaded_mainloop_lock(m_mainloop);
++  util::ScopeGuard guard{[this]{ pa_threaded_mainloop_unlock(m_mainloop);} };
++
++  m_mainloopApi = pa_threaded_mainloop_get_api(m_mainloop);
++
++  connectContext();
++
++  if (pa_threaded_mainloop_start(m_mainloop) < 0)
++    throw std::runtime_error("pa_mainloop_run() failed.");
++}
++
++PulseAudioControlBackend::~PulseAudioControlBackend()
++{
++  if (m_context != nullptr)
++    pa_context_disconnect(m_context);
++
++  if (m_mainloop != nullptr)
++  {
++    if (m_mainloopApi != nullptr)
++      m_mainloopApi->quit(m_mainloopApi, 0);
++
++    pa_threaded_mainloop_stop(m_mainloop);
++    pa_threaded_mainloop_free(m_mainloop);
++  }
++}
++
++void PulseAudioControlBackend::onSinkInfo(const pa_sink_info &info)
++{
++  const Index index = info.index;
++
++  if (auto sinkIt = m_sinks.findByKey(index))
++  {
++    const ISink& sink = *sinkIt.value()->second;
++    spdlog::debug("Updating... Before: {}", sink.toString());
++
++    m_sinks.update(*sinkIt, [&info](ISink& sink)
++    { dynamic_cast<Sink&>(sink).update(info); });
++
++    spdlog::debug("Updating... After: {}", sink.toString());
++  }
++  else
++  {
++    m_sinks.add(index, std::make_shared<Sink>(info, *m_context));
++  }
++}
++
++void PulseAudioControlBackend::deleteSink(Sinks::IndexT index)
++{
++  if (auto sinkIt = m_sinks.findByKey(index))
++  {
++    spdlog::debug("PulseAudioControlBackend::deleteSink: delete sink with id: {}", index);
++    m_sinks.remove(*sinkIt);
++  }
++  else
++    spdlog::error("PulseAudioControlBackend::deleteSink: no sink with id: {}", index);
++}
++
++void PulseAudioControlBackend::onSourceInfo(const pa_source_info &info)
++{
++  const Index index = info.index;
++
++  if (auto sourceIt = m_sources.findByKey(index))
++  {
++    m_sources.update(*sourceIt, [&info](ISource& source)
++    { dynamic_cast<Source&>(source).update(info); });
++  }
++  else
++  { m_sources.add(index, std::make_shared<Source>(info, *m_context)); }
++}
++
++void PulseAudioControlBackend::deleteSource(Sources::IndexT index)
++{
++  if (auto sourceIt = m_sources.findByKey(index))
++  {
++    spdlog::debug("PulseAudioControlBackend::deleteSource: delete source with id: {}", index);
++    m_sources.remove(*sourceIt);
++  }
++  else
++    spdlog::error("PulseAudioControlBackend::deleteSource: no source with id: {}", index);
++}
++
++void PulseAudioControlBackend::subscribeCb(pa_context *context, pa_subscription_event_type_t type, uint32_t index, void *data)
++{
++  auto *self = static_cast<PulseAudioControlBackend*>(data);
++  const bool needRemove = (type & pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_TYPE_MASK) == pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_REMOVE;
++  const pa_subscription_event_type eventType = static_cast<pa_subscription_event_type>(type & pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_FACILITY_MASK);
++
++  switch (eventType)
++  {
++    case pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_SERVER:
++      ExecutePulseFunc(pa_context_get_server_info, context, serverInfoCb, data);
++      break;
++
++    case pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_SINK:
++      if (needRemove) self->deleteSink(index);
++      else ExecutePulseFunc(pa_context_get_sink_info_by_index, context, index, sinkInfoCb, data);
++
++      break;
++
++    case pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_SINK_INPUT:
++      ExecutePulseFunc(pa_context_get_sink_info_list, context, sinkInfoCb, data);
++      break;
++
++    case pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_SOURCE:
++      if (needRemove) self->deleteSource(index);
++      else ExecutePulseFunc(pa_context_get_source_info_by_index, context, index, sourceInfoCb, data);
++
++      break;
++
++    case pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_SOURCE_OUTPUT:
++      ExecutePulseFunc(pa_context_get_source_info_list, context, sourceInfoCb, data);
++      break;
++
++    case pa_subscription_event_type::PA_SUBSCRIPTION_EVENT_CARD:
++      ExecutePulseFunc(pa_context_get_card_info_by_index, context, index, cardInfoCb, data);
++      break;
++
++    default:
++      spdlog::error("subscribeCb: unknown eventType: {0}", static_cast<int>(eventType));
++      break;
++  };
++}
++
++void PulseAudioControlBackend::contextStateCb(pa_context *context, void *data)
++{
++  auto *self = static_cast<PulseAudioControlBackend*>(data);
++
++  switch (const auto state = pa_context_get_state(context))
++  {
++    case pa_context_state_t::PA_CONTEXT_TERMINATED:
++      self->m_mainloopApi->quit(self->m_mainloopApi, 0);
++      break;
++
++    case pa_context_state_t::PA_CONTEXT_READY:
++      ExecutePulseFunc(pa_context_get_server_info,context, serverInfoCb, data);
++      pa_context_set_subscribe_callback(context, subscribeCb, data);
++      ExecutePulseFunc(pa_context_subscribe, context, SubscriptionMask, nullptr, nullptr);
++      break;
++
++    case pa_context_state_t::PA_CONTEXT_FAILED:
++      if (self->m_context != nullptr)
++        pa_context_disconnect(self->m_context);
++
++      self->connectContext();
++      break;
++
++    case pa_context_state_t::PA_CONTEXT_CONNECTING:
++    case pa_context_state_t::PA_CONTEXT_AUTHORIZING:
++    case pa_context_state_t::PA_CONTEXT_SETTING_NAME:
++      break;
++
++    default:
++      spdlog::error("contextStateCb: unknown state: {0}", static_cast<int>(state));
++      break;
++  }
++}
++
++void PulseAudioControlBackend::sinkInfoCb(pa_context *context, const pa_sink_info *info, int eol, void *data)
++{
++  if (!PulseCallbackCheck(context, eol, __FUNCTION__) || info == nullptr)
++    return;
++
++  static_cast<PulseAudioControlBackend*>(data)->onSinkInfo(*info);
++}
++
++void PulseAudioControlBackend::sourceInfoCb(pa_context *context, const pa_source_info *info, int eol, void *data)
++{
++  if (!PulseCallbackCheck(context, eol, __FUNCTION__) || info == nullptr)
++    return;
++
++  static_cast<PulseAudioControlBackend*>(data)->onSourceInfo(*info);
++}
++
++void PulseAudioControlBackend::serverInfoCb(pa_context *context, const pa_server_info *info, void *data)
++{
++  if (info == nullptr)
++    return;
++
++  auto *self = static_cast<PulseAudioControlBackend*>(data);
++  self->m_defaultSinkName = info->default_sink_name;
++  self->m_defaultSourceName = info->default_source_name;
++
++  ExecutePulseFunc(pa_context_get_sink_info_list, context, sinkInfoCb, data);
++  ExecutePulseFunc(pa_context_get_source_info_list, context, sourceInfoCb, data);
++  ExecutePulseFunc(pa_context_get_card_info_list, context, cardInfoCb, data);
++}
++
++
++void PulseAudioControlBackend::cardInfoCb(pa_context *context, const pa_card_info *info, int eol, void *data)
++{
++  if (!PulseCallbackCheck(context, eol, __FUNCTION__))
++    return;
++
++  if (info == nullptr)
++    return;
++
++  auto *self = static_cast<PulseAudioControlBackend*>(data);
++
++  auto sinkPredicate = [&info](const ISink& sink) -> bool
++  { return dynamic_cast<const Sink&>(sink).getCardIndex() == info->index; };
++
++  for (auto it : self->m_sinks.findByPredicate(sinkPredicate))
++  {
++    self->m_sinks.update(it, [&info](ISink& sink)
++    { dynamic_cast<Sink&>(sink).update(*info); });
++  }
++
++  auto sourcePredicate = [&info](const ISource& source)
++  { return dynamic_cast<const Source&>(source).getCardIndex() == info->index; };
++
++  for (auto it : self->m_sources.findByPredicate(sourcePredicate))
++  {
++    self->m_sources.update(it, [&info](ISource& source)
++    { dynamic_cast<Source&>(source).update(*info); });
++  }
++}
++
++void PulseAudioControlBackend::connectContext()
++{
++  m_context = pa_context_new(m_mainloopApi, "WaybarGhafAudioControl");
++
++  if (m_context == nullptr)
++    throw std::runtime_error("pa_context_new() failed.");
++
++  pa_context_set_state_callback(m_context, contextStateCb, this);
++
++  if (pa_context_connect(m_context, nullptr, PA_CONTEXT_NOFAIL, nullptr) < 0)
++    throw std::runtime_error(fmt::format("pa_context_connect() failed: {}", pa_strerror(pa_context_errno(m_context))));
++}
++
++}

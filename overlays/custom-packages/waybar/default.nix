@@ -4,11 +4,13 @@
 # This overlay customizes waybar
 #
 {prev}: (
-  prev.waybar.override {
-    hyprlandSupport = false;
-    swaySupport = false;
-    jackSupport = false;
-    cavaSupport = false;
-    pulseSupport = false;
-  }
-)
+  prev.waybar.overrideAttrs (_prevAttrs: {
+    patches = [./waybar-audio-control.patch];
+  })
+).override {
+  hyprlandSupport = false;
+  swaySupport = false;
+  jackSupport = false;
+  cavaSupport = false;
+  pulseSupport = true;
+}
