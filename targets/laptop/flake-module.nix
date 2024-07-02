@@ -13,7 +13,7 @@
 
   targets = [
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
@@ -22,7 +22,7 @@
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
@@ -31,7 +31,7 @@
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
@@ -40,7 +40,7 @@
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "release" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
