@@ -93,20 +93,20 @@ in {
 
             {
               name = "Element";
-              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no element-vm run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no comms-vm run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
               icon = "${pkgs.icon-pack}/element-desktop.svg";
+            }
+
+            {
+              name = "Slack";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no comms-vm run-waypipe slack";
+              icon = "${pkgs.icon-pack}/slack.svg";
             }
 
             {
               name = "AppFlowy";
               path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no appflowy-vm run-waypipe appflowy";
               icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
-            }
-
-            {
-              name = "Slack";
-              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no slack-vm run-waypipe slack";
-              icon = "${pkgs.icon-pack}/slack.svg";
             }
 
             {
