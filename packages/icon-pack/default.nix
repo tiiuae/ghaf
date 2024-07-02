@@ -15,6 +15,8 @@
     "document-viewer.svg"
     "element-desktop.svg"
     "firefox.svg"
+    "microsoft-365.svg"
+    "ms-outlook.svg"
     "preferences-system-network.svg"
     "system-lock-screen.svg"
     "system-reboot.svg"
@@ -22,6 +24,7 @@
     "system-suspend-hibernate.svg"
     "system-suspend.svg"
     "thorium-browser.svg"
+    "teams-for-linux.svg"
     "utilities-terminal.svg"
     "yast-vpn.svg"
   ];
