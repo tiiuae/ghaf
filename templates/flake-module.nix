@@ -13,5 +13,10 @@
       path = ./boilerplate;
       description = "Some boilerplate code to get you started";
     };
+
+    ghaf-hardware = {
+      path = ./hardware;
+      description = "A config to bootstrap a Ghaf compatible hardware project";
+    };
   };
 }
