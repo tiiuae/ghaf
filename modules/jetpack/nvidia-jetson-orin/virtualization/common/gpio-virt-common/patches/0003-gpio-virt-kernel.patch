@@ -92,7 +92,7 @@ index 000000000000..5cefb69d83ab
 +
 +#endif
 diff --git a/drivers/gpio/gpio-tegra.c b/drivers/gpio/gpio-tegra.c
-index f66fc17faee4..01a24add5f6f 100644
+index f66fc17faee4..9706a77fe5a5 100644
 --- a/drivers/gpio/gpio-tegra.c
 +++ b/drivers/gpio/gpio-tegra.c
 @@ -58,13 +58,34 @@
@@ -103,8 +103,8 @@ index f66fc17faee4..01a24add5f6f 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -346,7 +346,7 @@ index f66fc17faee4..01a24add5f6f 100644
  }
  subsys_initcall(tegra_gpio_init);
 diff --git a/drivers/gpio/gpio-tegra186.c b/drivers/gpio/gpio-tegra186.c
-index 5e57824b283e..685ef7b540da 100644
+index 5e57824b283e..ad6b7a66c5ca 100644
 --- a/drivers/gpio/gpio-tegra186.c
 +++ b/drivers/gpio/gpio-tegra186.c
 @@ -20,6 +20,46 @@
@@ -357,8 +357,8 @@ index 5e57824b283e..685ef7b540da 100644
 +#define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -693,7 +693,7 @@ index 5e57824b283e..685ef7b540da 100644
  	if (tgi->use_timestamp) {
  		*ts = tegra_gte_read_fifo(tgi, offset);
  		ret = 0;
-@@ -645,40 +719,58 @@ static int tegra186_gpio_get(struct gpio_chip *chip, unsigned int offset)
+@@ -645,40 +719,54 @@ static int tegra186_gpio_get(struct gpio_chip *chip, unsigned int offset)
  	void __iomem *base;
  	u32 value;
  
@@ -724,12 +724,10 @@ index 5e57824b283e..685ef7b540da 100644
  	u32 value;
  
 -	if (!gpio_is_accessible(gpio, offset))
--		return;
-+	deb_verbose("(1) chip %s, Offset %d, Level %d\n", gpio->gpio.label, offset, level);
- 
 +	if (!gpio_is_accessible(gpio, offset)) {
 +		pr_err("GPIO error: gpio is not accessible, Chip %s, Offset %d", gpio->gpio.label, offset);
-+		return;
+ 		return;
+-
 +	}
  	base = tegra186_gpio_get_base(gpio, offset);
 +
@@ -745,8 +743,6 @@ index 5e57824b283e..685ef7b540da 100644
  
 -	writel(value, base + TEGRA186_GPIO_OUTPUT_VALUE);
 +	writel_x(value, base + TEGRA186_GPIO_OUTPUT_VALUE);
-+
-+	deb_verbose("(2): exiting -- value is %d, base is nn%p\n", value, (void *)base);
 +}
 +
 +void tegra186_gpio_set_by_name(const char *name, unsigned int offset,
@@ -760,7 +756,7 @@ index 5e57824b283e..685ef7b540da 100644
  }
  
  static int tegra186_gpio_set_config(struct gpio_chip *chip,
-@@ -689,6 +781,8 @@ static int tegra186_gpio_set_config(struct gpio_chip *chip,
+@@ -689,6 +777,8 @@ static int tegra186_gpio_set_config(struct gpio_chip *chip,
  	u32 debounce, value;
  	void __iomem *base;
  
@@ -769,7 +765,7 @@ index 5e57824b283e..685ef7b540da 100644
  	base = tegra186_gpio_get_base(gpio, offset);
  	if (base == NULL)
  		return -ENXIO;
-@@ -708,15 +802,18 @@ static int tegra186_gpio_set_config(struct gpio_chip *chip,
+@@ -708,15 +798,18 @@ static int tegra186_gpio_set_config(struct gpio_chip *chip,
  	debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
  
  	value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
@@ -791,7 +787,7 @@ index 5e57824b283e..685ef7b540da 100644
  static int tegra186_gpio_add_pin_ranges(struct gpio_chip *chip)
  {
  	struct tegra_gpio *gpio = gpiochip_get_data(chip);
-@@ -725,6 +822,8 @@ static int tegra186_gpio_add_pin_ranges(struct gpio_chip *chip)
+@@ -725,6 +818,8 @@ static int tegra186_gpio_add_pin_ranges(struct gpio_chip *chip)
  	unsigned int i, j;
  	int err;
  
@@ -800,7 +796,7 @@ index 5e57824b283e..685ef7b540da 100644
  	if (!gpio->soc->pinmux || gpio->soc->num_pin_ranges == 0)
  		return 0;
  
-@@ -768,6 +867,8 @@ static int tegra186_gpio_of_xlate(struct gpio_chip *chip,
+@@ -768,6 +863,8 @@ static int tegra186_gpio_of_xlate(struct gpio_chip *chip,
  	struct tegra_gpio *gpio = gpiochip_get_data(chip);
  	unsigned int port, pin, i, offset = 0;
  
@@ -809,7 +805,7 @@ index 5e57824b283e..685ef7b540da 100644
  	if (WARN_ON(chip->of_gpio_n_cells < 2))
  		return -EINVAL;
  
-@@ -803,7 +904,7 @@ static void tegra186_irq_ack(struct irq_data *data)
+@@ -803,7 +900,7 @@ static void tegra186_irq_ack(struct irq_data *data)
  	if (WARN_ON(base == NULL))
  		return;
  
@@ -818,7 +814,7 @@ index 5e57824b283e..685ef7b540da 100644
  }
  
  static void tegra186_irq_mask(struct irq_data *data)
-@@ -817,9 +918,9 @@ static void tegra186_irq_mask(struct irq_data *data)
+@@ -817,9 +914,9 @@ static void tegra186_irq_mask(struct irq_data *data)
  	if (WARN_ON(base == NULL))
  		return;
  
@@ -830,7 +826,7 @@ index 5e57824b283e..685ef7b540da 100644
  }
  
  static void tegra186_irq_unmask(struct irq_data *data)
-@@ -833,9 +934,9 @@ static void tegra186_irq_unmask(struct irq_data *data)
+@@ -833,9 +930,9 @@ static void tegra186_irq_unmask(struct irq_data *data)
  	if (WARN_ON(base == NULL))
  		return;
  
@@ -842,7 +838,7 @@ index 5e57824b283e..685ef7b540da 100644
  }
  
  static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
-@@ -849,7 +950,7 @@ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
+@@ -849,7 +946,7 @@ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
  	if (WARN_ON(base == NULL))
  		return -ENODEV;
  
@@ -851,7 +847,7 @@ index 5e57824b283e..685ef7b540da 100644
  	value &= ~TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_MASK;
  	value &= ~TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_LEVEL;
  
-@@ -883,7 +984,7 @@ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
+@@ -883,7 +980,7 @@ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
  		return -EINVAL;
  	}
  
@@ -860,7 +856,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	if ((type & IRQ_TYPE_EDGE_BOTH) == 0)
  		irq_set_handler_locked(data, handle_level_irq);
-@@ -930,7 +1031,7 @@ static void tegra186_gpio_irq(struct irq_desc *desc)
+@@ -930,7 +1027,7 @@ static void tegra186_gpio_irq(struct irq_desc *desc)
  		if (j == gpio->num_irqs_per_bank)
  			goto skip;
  
@@ -869,7 +865,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  		for_each_set_bit(pin, &value, port->pins) {
  			irq = irq_find_mapping(domain, offset + pin);
-@@ -1037,6 +1138,8 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+@@ -1037,6 +1134,8 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
  	unsigned int i, j;
  	u32 value;
  
@@ -878,7 +874,7 @@ index 5e57824b283e..685ef7b540da 100644
  	for (i = 0; i < gpio->soc->num_ports; i++) {
  		const struct tegra_gpio_port *port = &gpio->soc->ports[i];
  		unsigned int offset, p = port->port;
-@@ -1044,7 +1147,7 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+@@ -1044,7 +1143,7 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
  
  		base = gpio->secure + port->bank * 0x1000 + 0x800;
  
@@ -887,7 +883,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  		/*
  		 * For controllers that haven't been locked down yet, make
-@@ -1058,7 +1161,7 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+@@ -1058,7 +1157,7 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
  			 */
  			for (j = 0; j < gpio->num_irqs_per_bank; j++) {
  				dev_dbg(dev, "programming default interrupt routing for port %s\n",
@@ -896,7 +892,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  				offset = TEGRA186_GPIO_INT_ROUTE_MAPPING(p, j);
  
-@@ -1073,9 +1176,9 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+@@ -1073,9 +1172,9 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
  				 */
  
  				if (j == 0) {
@@ -908,7 +904,7 @@ index 5e57824b283e..685ef7b540da 100644
  				}
  			}
  		}
-@@ -1107,6 +1210,184 @@ static unsigned int tegra186_gpio_irqs_per_bank(struct tegra_gpio *gpio)
+@@ -1107,6 +1206,191 @@ static unsigned int tegra186_gpio_irqs_per_bank(struct tegra_gpio *gpio)
  	return -EINVAL;
  }
  
@@ -1075,6 +1071,7 @@ index 5e57824b283e..685ef7b540da 100644
 +   * one doubtful assumption is that chip pointers are numbered by the driver 
 +   * in the same order preserve_tegrachip records them */
 +  inline struct gpio_chip * find_chip_by_id(int id) {
++    /*
 +    int i = 0;
 +    while (atomic_read(&tegra_gpio_hosts_ready) != MAX_CHIP) {
 +      msleep(100); // Sleep briefly instead of looping infinitely.
@@ -1083,7 +1080,13 @@ index 5e57824b283e..685ef7b540da 100644
 +        return NULL;
 +      }
 +    }
-+    return &tegra_gpio_hosts[id]->gpio;
++    */
++    if(id & ~0x00000001) {
++			pr_err("GPIO, *ERROR* Illegal chip number (%d)", id);
++      return 0;
++    }
++    else
++      return &tegra_gpio_hosts[id]->gpio;
 +  }
 +  EXPORT_SYMBOL_GPL(find_chip_by_id);
 +#endif
@@ -1093,7 +1096,7 @@ index 5e57824b283e..685ef7b540da 100644
  static int tegra186_gpio_probe(struct platform_device *pdev)
  {
  	unsigned int i, j, offset;
-@@ -1120,17 +1401,40 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1120,17 +1404,40 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  	int value;
  	void __iomem *base;
  
@@ -1109,9 +1112,9 @@ index 5e57824b283e..685ef7b540da 100644
 +	}
 +
 +	#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
- 
-+    deb_debug("GPIO Proxy code\n");
 +
++    deb_debug("GPIO Proxy code\n");
+ 
 +    // If virtual-pa node is defined, it means that we are using a GPIO proxy
 +    err = of_property_read_u64(pdev->dev.of_node, "virtual-pa", &gpio_vpa);
 +    if(!err) {
@@ -1138,7 +1141,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	/* count the number of banks in the controller */
  	for (i = 0; i < gpio->soc->num_ports; i++)
-@@ -1139,11 +1443,15 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1139,11 +1446,15 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  
  	gpio->num_banks++;
  
@@ -1155,7 +1158,7 @@ index 5e57824b283e..685ef7b540da 100644
  				      sizeof(*gpio->gpio_rval), GFP_KERNEL);
  	if (!gpio->gpio_rval)
  		return -ENOMEM;
-@@ -1154,9 +1462,12 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1154,9 +1465,12 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  		return -EINVAL;
  	}
  
@@ -1168,7 +1171,7 @@ index 5e57824b283e..685ef7b540da 100644
  		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "gte");
  		if (!res) {
  			dev_err(&pdev->dev, "Missing gte MEM resource\n");
-@@ -1172,14 +1483,20 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1172,14 +1486,20 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  	}
  
  	err = platform_irq_count(pdev);
@@ -1192,7 +1195,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	gpio->irq = devm_kcalloc(&pdev->dev, gpio->num_irq, sizeof(*gpio->irq),
  				 GFP_KERNEL);
-@@ -1188,27 +1505,43 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1188,27 +1508,43 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  
  	for (i = 0; i < gpio->num_irq; i++) {
  		err = platform_get_irq(pdev, i);
@@ -1226,7 +1229,7 @@ index 5e57824b283e..685ef7b540da 100644
 +    if (gpio->use_timestamp)
 +      tegra_gte_setup(gpio);
 +
-+    if( kernel_is_on_guest ) {
++    if(kernel_is_on_guest) {
 +      deb_debug("GPIO Guest init section\n");
 +      if( ! guest_proxy_is_set_up ) {
 +        ret = tegra_gpio_guest_init();
@@ -1252,7 +1255,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	for (i = 0; i < gpio->soc->num_ports; i++)
  		gpio->gpio.ngpio += gpio->soc->ports[i].pins;
-@@ -1229,6 +1562,7 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1229,6 +1565,7 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  				return -ENOMEM;
  
  			names[offset + j] = name;
@@ -1260,7 +1263,7 @@ index 5e57824b283e..685ef7b540da 100644
  		}
  
  		offset += port->pins;
-@@ -1260,6 +1594,8 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1260,6 +1597,8 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  	irq->parent_handler_data = gpio;
  	irq->num_parents = gpio->num_irq;
  
@@ -1269,7 +1272,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	/*
  	* To simplify things, use a single interrupt per bank for now. Some
-@@ -1283,8 +1619,15 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1283,8 +1622,15 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  		irq->parents = gpio->irq;
  	}
  
@@ -1285,7 +1288,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	np = of_find_matching_node(NULL, tegra186_pmc_of_match);
  	if (!of_device_is_available(np))
-@@ -1315,9 +1658,36 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1315,9 +1661,36 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  
  	platform_set_drvdata(pdev, gpio);
  
@@ -1325,7 +1328,7 @@ index 5e57824b283e..685ef7b540da 100644
  
  	if (gpio->soc->is_hw_ts_sup) {
  		for (i = 0, offset = 0; i < gpio->soc->num_ports; i++) {
-@@ -1329,24 +1699,25 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+@@ -1329,24 +1702,25 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
  				if (WARN_ON(base == NULL))
  					return -EINVAL;
  
@@ -1358,7 +1361,7 @@ index 5e57824b283e..685ef7b540da 100644
  static int tegra_gpio_resume_early(struct device *dev)
  {
  	struct tegra_gpio *gpio = dev_get_drvdata(dev);
-@@ -1366,9 +1737,9 @@ static int tegra_gpio_resume_early(struct device *dev)
+@@ -1366,9 +1740,9 @@ static int tegra_gpio_resume_early(struct device *dev)
  
  		regs->restore_needed = false;
  
@@ -1371,7 +1374,7 @@ index 5e57824b283e..685ef7b540da 100644
  	}
  
  	return 0;
-@@ -1723,7 +2094,9 @@ static struct platform_driver tegra186_gpio_driver = {
+@@ -1723,7 +2097,9 @@ static struct platform_driver tegra186_gpio_driver = {
  	.probe = tegra186_gpio_probe,
  	.remove = tegra186_gpio_remove,
  };
@@ -1696,7 +1699,7 @@ index 30e2476a6dc4..aab40f1cd52f 100644
  		err = gpio_request_one(array->gpio, array->flags, array->label);
  		if (err)
 diff --git a/drivers/gpio/gpiolib-of.c b/drivers/gpio/gpiolib-of.c
-index 647e77db82b1..02f779c4cd65 100644
+index 647e77db82b1..bc7298aa06ce 100644
 --- a/drivers/gpio/gpiolib-of.c
 +++ b/drivers/gpio/gpiolib-of.c
 @@ -24,6 +24,27 @@
@@ -1707,8 +1710,8 @@ index 647e77db82b1..02f779c4cd65 100644
 +#define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -1840,7 +1843,7 @@ index 3ef71ca242ba..bf62aeee66a1 100644
  
  	/* If buf is not a number then try to find by name */
 diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
-index 50abb1c20df0..fb9f7b6cfaed 100644
+index 50abb1c20df0..e4648d29f26b 100644
 --- a/drivers/gpio/gpiolib.c
 +++ b/drivers/gpio/gpiolib.c
 @@ -31,6 +31,27 @@
@@ -1851,8 +1854,8 @@ index 50abb1c20df0..fb9f7b6cfaed 100644
 +#define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -4442,63 +4445,8 @@ index c73b34e03aae..4c46d7faac5e 100644
  	pr_info("initialized pinctrl subsystem\n");
  	pinctrl_init_debugfs();
  	return 0;
-diff --git a/drivers/pinctrl/devicetree.c b/drivers/pinctrl/devicetree.c
-index 3fb238714718..a7901c1d85af 100644
---- a/drivers/pinctrl/devicetree.c
-+++ b/drivers/pinctrl/devicetree.c
-@@ -106,6 +106,12 @@ struct pinctrl_dev *of_pinctrl_get(struct device_node *np)
- }
- EXPORT_SYMBOL_GPL(of_pinctrl_get);
- 
-+
-+// DEBUG
-+#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+
-+
-+
- static int dt_to_map_one_config(struct pinctrl *p,
- 				struct pinctrl_dev *hog_pctldev,
- 				const char *statename,
-@@ -151,6 +157,9 @@ static int dt_to_map_one_config(struct pinctrl *p,
- 	}
- 	of_node_put(np_pctldev);
- 
-+// DEBUG
-+deb_debug("# A #");
-+
- 	/*
- 	 * Call pinctrl driver to parse device tree node, and
- 	 * generate mapping table entries
-@@ -161,7 +170,11 @@ static int dt_to_map_one_config(struct pinctrl *p,
- 			dev_name(pctldev->dev));
- 		return -ENODEV;
- 	}
-+// DEBUG
-+deb_debug("# B #");
- 	ret = ops->dt_node_to_map(pctldev, np_config, &map, &num_maps);
-+// DEBUG
-+deb_debug("# C -- OK #");
- 	if (ret < 0)
- 		return ret;
- 	else if (num_maps == 0) {
-@@ -172,11 +185,12 @@ static int dt_to_map_one_config(struct pinctrl *p,
- 		 */
- 		dev_info(p->dev,
- 			 "there is not valid maps for state %s\n", statename);
-+// DEBUG
-+deb_debug("# D -- error #");
- 		return 0;
- 	}
--
--	/* Stash the mapping table chunk away for later use */
--	return dt_remember_or_free_map(p, statename, pctldev, map, num_maps);
-+       /* Stash the mapping table chunk away for later use */
-+       return dt_remember_or_free_map(p, statename, pctldev, map, num_maps);
- }
- 
- static int dt_remember_dummy_state(struct pinctrl *p, const char *statename)
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra.c b/drivers/pinctrl/tegra/pinctrl-tegra.c
-index f9ecbebe6442..776b1f20a469 100644
+index f9ecbebe6442..e3f313b1fdb1 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra.c
 @@ -34,14 +34,39 @@
@@ -4509,8 +4457,8 @@ index f9ecbebe6442..776b1f20a469 100644
 +//#define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -4875,7 +4823,7 @@ index f9ecbebe6442..776b1f20a469 100644
  	if (!pmx)
  		return -ENOMEM;
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra114.c b/drivers/pinctrl/tegra/pinctrl-tegra114.c
-index 135635f4e897..a5da4ec197dc 100644
+index 135635f4e897..050a78ffb0e2 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra114.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra114.c
 @@ -1845,8 +1845,26 @@ static const struct tegra_pinctrl_soc_data tegra114_pinctrl = {
@@ -4886,8 +4834,8 @@ index 135635f4e897..a5da4ec197dc 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -4914,7 +4862,7 @@ index 135635f4e897..a5da4ec197dc 100644
  }
  arch_initcall(tegra114_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra124.c b/drivers/pinctrl/tegra/pinctrl-tegra124.c
-index cfc75ca9ae2b..6e5295fdd50e 100644
+index cfc75ca9ae2b..320486fd060b 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra124.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra124.c
 @@ -2057,8 +2057,26 @@ static const struct tegra_pinctrl_soc_data tegra124_pinctrl = {
@@ -4925,8 +4873,8 @@ index cfc75ca9ae2b..6e5295fdd50e 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -4953,7 +4901,7 @@ index cfc75ca9ae2b..6e5295fdd50e 100644
  }
  arch_initcall(tegra124_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra186.c b/drivers/pinctrl/tegra/pinctrl-tegra186.c
-index d78447c55527..7df0e6496fad 100644
+index d78447c55527..53139593493d 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra186.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra186.c
 @@ -918,8 +918,26 @@ static const struct tegra_pinctrl_soc_data tegra186_pinctrl = {
@@ -4964,8 +4912,8 @@ index d78447c55527..7df0e6496fad 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -4999,7 +4947,7 @@ index d78447c55527..7df0e6496fad 100644
  }
  module_exit(tegra186_pinctrl_exit);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra194.c b/drivers/pinctrl/tegra/pinctrl-tegra194.c
-index 5c7fa1f1c45f..cfb1fb2e0c2e 100644
+index 5c7fa1f1c45f..c7b6e114f282 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra194.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra194.c
 @@ -1872,8 +1872,27 @@ static const struct tegra_pinctrl_soc_data tegra194_pinctrl = {
@@ -5010,8 +4958,8 @@ index 5c7fa1f1c45f..cfb1fb2e0c2e 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -5039,7 +4987,7 @@ index 5c7fa1f1c45f..cfb1fb2e0c2e 100644
  }
  arch_initcall(tegra194_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra20.c b/drivers/pinctrl/tegra/pinctrl-tegra20.c
-index cd605272c068..42f1fe4eb064 100644
+index cd605272c068..acd534f495ff 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra20.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra20.c
 @@ -2236,6 +2236,23 @@ static const char *cdev2_parents[] = {
@@ -5050,8 +4998,8 @@ index cd605272c068..42f1fe4eb064 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -5083,7 +5031,7 @@ index cd605272c068..42f1fe4eb064 100644
  }
  arch_initcall(tegra20_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra210.c b/drivers/pinctrl/tegra/pinctrl-tegra210.c
-index 01f200a4c789..12193bd5ffb1 100644
+index 01f200a4c789..8c9dad7e1b5f 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra210.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra210.c
 @@ -1745,12 +1745,16 @@ static const struct tegra_pinctrl_soc_data tegra210_pinctrl = {
@@ -5098,7 +5046,7 @@ index 01f200a4c789..12193bd5ffb1 100644
  	struct tegra_pingroup *g;
  	int i;
  
-+	printk(KERN_DEBUG "GPIO %s -- file %s", __func__, __FILE__);
++	printk(KERN_DEBUG "GPIO %s -- file %s", __func__, kbasename(__FILE__));
 +
  	soc = of_device_get_match_data(&pdev->dev);
  	if (soc->lpdr_support) {
@@ -5107,12 +5055,12 @@ index 01f200a4c789..12193bd5ffb1 100644
  
  static int __init tegra210_pinctrl_init(void)
  {
-+	printk(KERN_DEBUG "GPIO %s -- file %s", __func__, __FILE__);
++	printk(KERN_DEBUG "GPIO %s -- file %s", __func__, kbasename(__FILE__));
  	return platform_driver_register(&tegra210_pinctrl_driver);
  }
  arch_initcall(tegra210_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra30.c b/drivers/pinctrl/tegra/pinctrl-tegra30.c
-index 60e087e5b7f5..eacae723cf11 100644
+index 60e087e5b7f5..1e5f56a4a1e1 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra30.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra30.c
 @@ -2480,8 +2480,26 @@ static const struct tegra_pinctrl_soc_data tegra30_pinctrl = {
@@ -5123,8 +5071,8 @@ index 60e087e5b7f5..eacae723cf11 100644
 +// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
-+  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, __FILE__, ##__VA_ARGS__)
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
