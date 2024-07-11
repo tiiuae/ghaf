@@ -62,6 +62,62 @@ in {
         tpm2.enable = true;
         usb.internal.enable = true;
         usb.external.enable = true;
+        usb.vhotplug = {
+          enable = true;
+          rules = [
+            {
+              name = "GUIVM";
+              qmpSocket = "/var/lib/microvms/gui-vm/gui-vm.sock";
+              usbClasses = [
+                # HID Keyboard
+                {
+                  class = 3;
+                  protocol = 2;
+                }
+                # HID Mouse
+                {
+                  class = 3;
+                  protocol = 2;
+                }
+                # Mass Storage - SCSI (USB drives)
+                {
+                  class = 8;
+                  sublass = 6;
+                }
+                # Chip/SmartCard (e.g. YubiKey)
+                {
+                  class = 11;
+                }
+                # Communications - Ethernet Networking
+                {
+                  class = 2;
+                  sublass = 6;
+                  # Ignore TP-LINK UE300 used for nixos-rebuild
+                  ignoreDevices = [
+                    {
+                      vid = "2357";
+                      pid = "0601";
+                    }
+                  ];
+                }
+              ];
+              evdevPassthrough = {
+                enable = true;
+                pcieBusPrefix = "rp";
+              };
+            }
+            {
+              name = "AudioVM";
+              qmpSocket = "/var/lib/microvms/audio-vm/audio-vm.sock";
+              usbClasses = [
+                # Audio
+                {
+                  class = 1;
+                }
+              ];
+            }
+          ];
+        };
       };
 
       # Virtualization options
