@@ -65,6 +65,7 @@ in
         tpm2.enable = true;
         usb.internal.enable = true;
         usb.external.enable = true;
+        usb.vhotplug.enable = true;
       };
 
       # Virtualization options
