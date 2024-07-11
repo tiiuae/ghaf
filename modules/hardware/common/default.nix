@@ -4,6 +4,7 @@
   imports = [
     ./usb/internal.nix
     ./usb/external.nix
+    ./usb/vhotplug.nix
     ./devices.nix
     ./kernel.nix
     ./qemu.nix
