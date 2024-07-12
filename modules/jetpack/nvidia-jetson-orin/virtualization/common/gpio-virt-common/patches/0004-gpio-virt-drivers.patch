@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-07-09 14:52:57.660206313 +0000
++++ b/drivers/Makefile	2024-07-11 13:56:04.938122389 +0000
 @@ -193,0 +194,5 @@
 +#
 +#
@@ -48,10 +48,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..b128178
+index 0000000..6b385ed
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,805 @@
+@@ -0,0 +1,794 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -144,24 +144,19 @@ index 0000000..b128178
 +    deb_error("Illegal message length\n"); // msb will be deleted and must be zero
 +  }
 +
-+	// deb_debug("\n");
-+  #ifdef GPIO_DEBUG_VERBOSE
-+    deb_verbose("PT transfer signal is: %c", *((char *)msg + 1));
-+    hexDump(DEVICE_NAME, "transfer", msg, msg_len);
-+  #endif
++  deb_verbose("PT transfer signal is: %c", *((char *)msg + 1));
++  hexDump(DEVICE_NAME, "PT transfer (to host)", msg, msg_len);
 +
 +	// Execute the request by copying to io memory
 +	memcpy_toio(mem_iova, msg, msg_len);
-+  deb_verbose("PT request value is copied, length = %d", msg_len);
++  // deb_verbose("PT request value is copied, length = %d", msg_len);
 +
 +  // deb_verbose("PT generic_return pointer: 0x%llX\n", (long long int)generic_return);
 +  // check if we expect a return value
 +  if(generic_return) {
 +    // Read response from io_buffer
 +    memcpy_fromio(generic_return, mem_iova, sizeof(*generic_return)); // 32 bits
-+    // memcpy_fromio(msg, mem_iova, sizeof(*generic_return));  // copy return value to message buffer  32 bits
-+
-+    deb_verbose("PT return value 0x%X, is copied", *generic_return);  }
++    hexDump(DEVICE_NAME, "PT transfer (from host)", generic_return, sizeof(*generic_return) );  }
 +}
 +
 +_Static_assert(sizeof(u32) == sizeof(int), "return size assertion failed");
@@ -178,6 +173,7 @@ index 0000000..b128178
 +  rwlmsg.value = 0;  // value field is not used for readl
 +
 +  guest_chardev_transfer(&rwlmsg, sizeof(rwlmsg), &ret);
++  deb_verbose("return value: 0x%X",  ret);
 +  return ret;
 +}
 +EXPORT_SYMBOL_GPL(readl_redirect);
@@ -746,18 +742,11 @@ index 0000000..b128178
 +  */
 +      /* commands to ioctl below (the std gpio chardev)
 +      * not fully implemented
-+      * linehandle_create  -- when userspace requests output (called by gpio_ioctl) -- bypasses the chardev
-+      * linehandle_ioctl   -- linehandle_ioctl when userspace does actual io (toggles pin)
-+      *    cmd:
-+      *    GPIOHANDLE_GET_LINE_VALUES_IOCTL,
-+      *    GPIOHANDLE_SET_LINE_VALUES_IOCTL,
-+      *    GPIOHANDLE_SET_CONFIG_IOCTL
-+      *    arg: user input or output
-+      */
-+  /* ioctl is exluded from this version
-+      // We could want to use the stock gpio chardev (/dev/gpiochip0 and /dev/gpiochip1) /bc userspace functions use it
-+      // this code is not yet complete and it mey be better to use the stock devices directly.
-+      case GPIO_CHARDEV_OPEN:	// .open = gpio_chrdev_open
++        file = filp_open(tegra_chiplabel[kbuf->chipnum], O_RDWR, 0);
++          if (IS_ERR(file)) {
++            pr_err("GPIO, failed to open chardev for chip %s: %ld", tegra_chiplabel[kbuf->chipnum], PTR_ERR(file));
++            kfree(kbuf);
++            return -ENOENT;
 +        file = filp_open(tegra_chiplabel[kbuf->chipnum], O_RDWR, 0);
 +          if (IS_ERR(file)) {
 +            pr_err("GPIO, failed to open chardev for chip %s: %ld", tegra_chiplabel[kbuf->chipnum], PTR_ERR(file));
@@ -882,10 +871,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..42c200e
+index 0000000..b26862b
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,708 @@
+@@ -0,0 +1,717 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO host Proxy Kernel Module
@@ -1232,7 +1221,7 @@ index 0000000..42c200e
 +  */
 +	struct gpio_chip *chip;
 +  #ifdef GPIO_DEBUG
-+	  struct gpio_chip *chip_alt;
++	  // struct gpio_chip *chip_alt;
 +  #endif
 +
 +	char *buffer_pos = (char *)buffer;
@@ -1291,17 +1280,17 @@ index 0000000..42c200e
 +
 +  // make gpio-host type call to gpio
 +	deb_verbose("Passthrough in host with signal: %c, Chip %d, Offset %d, Level %d", kbuf->signal, kbuf->chipnum, kbuf->offset, kbuf->level);
-+  /*
-+  #ifdef GPIO_DEBUG
-+  deb_verbose("Debug abort\n");
-+  return 0;
-+  #endif
-+  */
 +
 +  switch (kbuf->signal) {
 +    case GPIO_READL:
 +      kbuf_rw = (struct tegra_readl_writel *)kbuf;
 +      deb_verbose("readl debug A\n");
++      if( !access_ok(kbuf_rw->address, sizeof(u32)) ) {
++        deb_info("cannot access address 0x%p", kbuf_rw->address);
++        ret = 0xDEADBEEF;
++        goto debug1;
++      }
++      goto debug1;
 +      switch (kbuf_rw->rwltype) {
 +        case RWL_STD:
 +          ret = (int)readl(kbuf_rw->address);
@@ -1313,12 +1302,18 @@ index 0000000..42c200e
 +          ret = (int)readl_relaxed(kbuf_rw->address);
 +        break;
 +      }
++      debug1:
 +      deb_verbose("readl debug B\n");
 +      goto retval;
 +    break;
 +    case GPIO_WRITEL:
 +      kbuf_rw = (struct tegra_readl_writel *)kbuf;
 +      deb_verbose("writel debug A\n");
++      if( !access_ok(kbuf_rw->address, sizeof(u32)) ) {
++        deb_info("cannot access address 0x%p", kbuf_rw->address);
++        goto debug2;
++      }
++      goto debug2;
 +      switch (kbuf_rw->rwltype) {
 +        case RWL_STD:
 +          writel(kbuf_rw->value, kbuf_rw->address);
@@ -1329,6 +1324,7 @@ index 0000000..42c200e
 +        case RWL_RELAXED:
 +          writel_relaxed(kbuf_rw->value, kbuf_rw->address);
 +        break;
++      debug2:
 +      deb_verbose("writel debug B\n");
 +      goto end;
 +      }
@@ -1337,9 +1333,15 @@ index 0000000..42c200e
 +  // if switch above is triggered we will either goto retval or goto end
 +
 +  chip = find_chip_by_id(kbuf->chipnum);
++	if(!chip) {
++		pr_err("In GPIO_REQ, chip pointer's pvalue is unexpectedly NULL for chip %s\n", tegra_chiplabel[kbuf->chipnum]);
++		kfree(kbuf);
++		return -ENODEV;
++	}
 +
 +  switch (kbuf->signal) {
 +    case GPIO_REQ:
++			/*
 +      #ifdef GPIO_DEBUG_VERBOSE
 +        chip_alt = find_chip_by_name(tegra_chiplabel[kbuf->chipnum]);
 +        if(chip != chip_alt) {
@@ -1347,11 +1349,7 @@ index 0000000..42c200e
 +          chip = chip_alt; // we assume find_chip_by_name is more reliable
 +        }
 +      #endif
-+      if(!chip) {
-+        pr_err("In GPIO_REQ, chip pointer's pvalue is unexpectedly NULL for chip %s\n", tegra_chiplabel[kbuf->chipnum]);
-+        kfree(kbuf);
-+        return -ENODEV;
-+      }
++      */
 +      deb_verbose("GPIO_REQ, using GPIO chip %s, for device %d\n", chip->label, kbuf->chipnum);
 +      ret = chip->request(chip, kbuf->offset);
 +	    goto end;
