@@ -45,5 +45,9 @@ in {
     };
 
     services.alloy.enable = true;
+    # Once alloy.service in admin-vm stopped this service will
+    # still keep on retrying to send logs batch, so we need to
+    # stop it forcefully.
+    systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
   };
 }
