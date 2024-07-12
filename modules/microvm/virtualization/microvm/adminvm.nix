@@ -83,8 +83,8 @@
                 # Creating a persistent log-store which is mapped on ghaf-host
                 # This is only to preserve logs state across adminvm reboots
                 tag = "log-store";
-                source = "/var/lib/loki";
-                mountPoint = "/var/lib/loki";
+                source = "/var/lib/private/alloy";
+                mountPoint = "/var/lib/private/alloy";
                 proto = "virtiofs";
               }
             ];

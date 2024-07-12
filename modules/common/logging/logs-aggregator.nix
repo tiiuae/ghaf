@@ -20,6 +20,7 @@ in {
   };
 
   config = lib.mkIf config.ghaf.logging.client.enable {
+    environment.etc."loki/pass" = {text = "ghaf";};
     environment.etc."alloy/logs-aggregator.alloy" = {
       text = ''
         local.file "macAddress" {
@@ -30,6 +31,18 @@ in {
         loki.write "remote" {
           endpoint {
             url = "${endpointUrl}"
+            // TODO: To be replaced with stronger authentication method
+            basic_auth {
+              username = "ghaf"
+              password_file = "/etc/loki/pass"
+            }
+          }
+          // Write Ahead Log records incoming data and stores it on the local file
+          // system in order to guarantee persistence of acknowledged data.
+          wal {
+            enabled = true
+            max_segment_age = "240h"
+            drain_timeout = "4s"
           }
           external_labels = {systemdJournalLogs = local.file.macAddress.content }
         }
@@ -53,6 +66,7 @@ in {
     systemd.services.alloy.serviceConfig.after = ["hw-mac.service"];
     # If there is no internet connection , shutdown/reboot will take around 100sec
     # So, to fix that problem we need to add stop timeout
-    systemd.services.alloy.serviceConfig.TimeoutStopSec = 2;
+    # https://github.com/grafana/loki/issues/6533
+    systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
   };
 }
