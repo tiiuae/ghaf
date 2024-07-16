@@ -9,60 +9,55 @@ Application VM (App VM) is a VM that improves trust in system components by isol
 
 As a result, both highly trusted applications and untrusted applications can be hosted in the same secure system when the concerns are separated in their own App VM.
 
-To create an App VM:
-1. Add the VM description.
-2. Add an application launcher in GUI VM.
+To create an App VM, do the following:
 
+1. Create the new configuration file for your VM in the [modules/reference/appvms](https://github.com/tiiuae/ghaf/tree/main/modules/reference/appvms) directory.  
+   You can use an already existing VM file as a reference, for example: `modules/reference/appvms/business.nix`.
 
-## Adding App VM Description
+    Each VM has the following properties:
 
-Add the VM description in the target configuration.  
-[lenovo-x1-carbon.nix](https://github.com/tiiuae/ghaf/blob/main/targets/lenovo-x1-carbon.nix) already has chromium-vm, gala-vm, and zathura-vm.
+    | **Property** | **Type** | **Unique** | **Description**  | **Example**  |
+    | ------------ | -------- | ---------- | ---------------- | ------------ |
+    | name         | str      | yes        | This name is postfixed with `-vm` and will be shown in microvm list. The name, for example, `business-vm` will be also the VM hostname. The length of the name must be 8 characters or less.    | “business”  |
+    | packages     | list of types.package    | no         | Packages to include in a VM. It is possible to make it empty or add several packages.   | [business top]  |
+    | macAddress   | str      | yes        | Needed for network configuration.     | "02:00:00:03:10:01" |
+    | ramMb        | int, [1, …, host memory] | no         | Memory in MB.         | 3072  |
+    | cores        | int,  [1, …, host cores] | no         | Virtual CPU cores.    | 4     |
+
+2. Create a new option for your VM in [modules/reference/appvms/default.nix](https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms/default.nix). For example:
 
 ```
-vms = with pkgs; [
-  {
-    name = "chromium";
-    packages = [chromium];
-    macAddress = "02:00:00:03:03:05";
-    ramMb = 3072;
-    cores = 4;
-  }
-  {
-    name = "gala";
-    packages = [(pkgs.callPackage ../packages/gala {})];
-    macAddress = "02:00:00:03:03:06";
-    ramMb = 1536;
-    cores = 2;
-  }
-  {
-    name = "zathura";
-    packages = [zathura];
-    macAddress = "02:00:00:03:03:07";
-    ramMb = 512;
-    cores = 1;
-  }
-];
+    business-vm = lib.mkEnableOption "Enable the Business appvm";
+    new-vm = lib.mkEnableOption "Enable the New appvm"; # your new vm here
 ```
 
-Each VM has the following properties:
+```
+        ++ (lib.optionals cfg.business-vm [(import ./business.nix {inherit pkgs lib config;})])
+        ++ (lib.optionals cfg.new-vm [(import ./new_vm_name.nix {inherit pkgs lib config;})]); # your new vm here
+```
 
-| **Property** | **Type**                  | **Unique** | **Description**                                                                                               | **Example**         |
-| -------------- | --------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------- | --------------------- |
-| name         | str                       | yes        | This name is postfixed with `-vm` and will be shown in microvm list. The name, for example, `chromium-vm` will be also the VM hostname. The length of the name must be 8 characters or less.                                     | “chromium”        |
-| packages     | list of types.package     | no         | Packages to include in a VM. It is possible to make it empty or add several packages.                          | [chromium top]    |
-| macAddress   | str                       | yes        | Needed for network configuration.                                                                              | "02:00:00:03:03:05" |
-| ramMb        | int, [1, …, host memory] | no         | Memory in MB.                                                                                                  | 3072                |
-| cores        | int,  [1, …, host cores] | no         | Virtual CPU cores.                                                                                             | 4                   |
+3. Add your new VM to the profile file, for example [mvp-user-trial.nix](https://github.com/tiiuae/ghaf/blob/main/modules/profiles/mvp-user-trial.nix):
 
+```
+          business-vm = true;
+          new-vm = true; # your new vm here
+```
 
-## Adding Application Launcher in GUI VM
+> For more information on creating new profiles, see [Profiles Configuration](./profiles-config.md).
 
-To add an application launcher, add an element in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix) file to the **graphics.weston.launchers** list.
+4. Add an IP and the VM name in [modules/common/networking/hosts.nix](https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix). For example:
+   
+```
+    {
+      ip = 105;
+      name = "business-vm";
+    }
+```
 
-A launcher element has two properties:
+5. Add an application launcher in [modules/common/services/desktop.nix](https://github.com/tiiuae/ghaf/blob/main/modules/common/services/desktop.nix).  
+  
+   A launcher element has the following properties:
 
-* **path**: path to the executable you want to run, like a graphical application;
-* **icon**: path to an icon to show.
-
-Check the example launchers at [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix).
+   * **name**: the name of the launcher;
+   * **path**: path to the executable you want to run, like a graphical application;
+   * **icon**: path to an icon to show. If you have an icon package for your launcher, add it here as well: [packages/icon-pack/default.nix](https://github.com/tiiuae/ghaf/blob/main/packages/icon-pack/default.nix).
