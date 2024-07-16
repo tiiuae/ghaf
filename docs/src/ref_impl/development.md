@@ -14,8 +14,10 @@ The scope of target support is updated with development progress:
 * [Installer](./installer.md)
 * [Cross-Compilation](./cross_compilation.md)
 * [Creating Application VM](./creating_appvm.md)
+* [Hardware Configuration](ref_impl/hw-config.md)
+* [Profiles Configuration](ref_impl/profiles-config.md)
 * [labwc Desktop Environment](./labwc.md)
-* [idsvm Further Development](./idsvm-development.md)
+* [IDS VM Further Development](./idsvm-development.md)
 * [systemd Service Hardening](./systemd-service-config.md)
 
 Once you are up and running, you can participate in the collaborative development process by building a development build with additional options. For example, with the development username and password that are defined in [accounts.nix](https://github.com/tiiuae/ghaf/blob/main/modules/common/users/accounts.nix).
@@ -27,6 +29,7 @@ If you authorize your development SSH keys in the [ssh.nix](https://github.com/t
     nixos-rebuild --flake .#lenovo-x1-carbon-gen11-debug --target-host root@<ip_address_of_ghaf-host> --fast switch
     ...
 
+> [!TIP]
 > With the `-debug` targets, the debug ethernet is enabled on host. With Lenovo X1 Carbon, you can connect USB-Ethernet adapter for the debug and development access.
 
 Pull requests are the way for contributors to submit code to the Ghaf project. For more information, see [Contribution Guidelines](../appendices/contributing_general.md).

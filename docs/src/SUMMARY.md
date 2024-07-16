@@ -30,6 +30,8 @@
     - [Installer](ref_impl/installer.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
+    - [Hardware Configuration](ref_impl/hw-config.md)
+    - [Profiles Configuration](ref_impl/profiles-config.md)
     - [labwc Desktop Environment](ref_impl/labwc.md)
     - [IDS VM Further Development](ref_impl/idsvm-development.md)
     - [systemd Service Hardening](ref_impl/systemd-service-config.md)
