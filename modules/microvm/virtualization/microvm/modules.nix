@@ -7,7 +7,7 @@
   ...
 }: let
   inherit (builtins) hasAttr;
-  inherit (lib) mkOption types optionals optionalAttrs;
+  inherit (lib) mkOption types optionals optionalAttrs concatStrings;
 
   cfg = config.ghaf.virtualization.microvm;
 
@@ -75,6 +75,15 @@
       config.ghaf.services.pdfopener.enable = true;
     };
 
+    # Yubikey module
+    yubikey = optionalAttrs cfg.guivm.yubikey {
+      config.ghaf.services.yubikey.enable = true;
+      config.ghaf.services.yubikey.u2fKeys = concatStrings [
+        # Add your Yubikey U2F Keys / public Keys here
+        ""
+      ];
+    };
+
     # Common namespace to share (built-time) between host and VMs
     commonNamespace = {
       config.ghaf.namespaces = config.ghaf.namespaces;
@@ -121,6 +130,13 @@ in {
         Enable Fingerprint module configuration.
       '';
     };
+    guivm.yubikey = mkOption {
+      type = types.bool;
+      default = cfg.guivm.enable;
+      description = ''
+        Enable Yubikey module configuration.
+      '';
+    };
   };
 
   config = {
@@ -148,6 +164,7 @@ in {
         qemuModules.guivm
         serviceModules.desktop
         serviceModules.fprint
+        serviceModules.yubikey
         serviceModules.pdfOpener
         serviceModules.commonNamespace
         referenceProgramsModule
