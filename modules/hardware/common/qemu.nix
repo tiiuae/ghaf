@@ -32,7 +32,9 @@ in {
           "acad"
         ]
         ++ optionals (hasAttr "fprint-reader" config.ghaf.hardware.usb.internal.qemuExtraArgs)
-        config.ghaf.hardware.usb.internal.qemuExtraArgs.fprint-reader;
+        config.ghaf.hardware.usb.internal.qemuExtraArgs.fprint-reader
+        ++ optionals (hasAttr "yubikey" config.ghaf.hardware.usb.external.qemuExtraArgs)
+        config.ghaf.hardware.usb.external.qemuExtraArgs.yubikey;
     };
   };
 }

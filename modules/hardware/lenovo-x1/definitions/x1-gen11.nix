@@ -138,6 +138,11 @@
         vendorId = "067b";
         productId = "23a3";
       }
+      {
+        name = "yubikey";
+        vendorId = "1050";
+        productId = "0407";
+      }
     ];
   };
 }
