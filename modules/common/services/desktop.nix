@@ -168,6 +168,12 @@ in
             }
 
             {
+              name = "Audio Control";
+              path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:4713";
+              icon = "${pkgs.icon-pack}/preferences-sound.svg";
+            }
+
+            {
               name = "Shutdown";
               description = "Shutdown System";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";

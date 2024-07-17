@@ -11,6 +11,7 @@
 let
   icons = [
     "bluetooth-48.svg"
+    "preferences-sound.svg"
     "chromium.svg"
     "distributor-logo-android.svg"
     "distributor-logo-windows.svg"
