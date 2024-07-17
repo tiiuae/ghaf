@@ -1,3 +1,8 @@
+/*
+Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: WTFPL
+*/
+
 :root {
     --toc-width: 270px;
     --center-content-toc-shift: calc(-1 * var(--toc-width) / 2);

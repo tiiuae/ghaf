@@ -1,17 +1,22 @@
+/*
+Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: WTFPL
+*/
+
 function forEach(elems, fun) {
   Array.prototype.forEach.call(elems, fun);
 }
 
-function getPagetoc(){
-  return document.getElementsByClassName("pagetoc")[0]
+function getPagetoc() {
+  return document.getElementsByClassName("pagetoc")[0];
 }
 
 function getPagetocElems() {
   return getPagetoc().children;
 }
 
-function getHeaders(){
-  return document.getElementsByClassName("header")
+function getHeaders() {
+  return document.getElementsByClassName("header");
 }
 
 // Un-active everything when you click it
@@ -60,7 +65,7 @@ var updateFunction = function (elem = undefined) {
       // a very long last section
       // its heading is over the screen
       if (!id && i == arr.length - 1) {
-        id = el
+        id = el;
       }
     });
   }
