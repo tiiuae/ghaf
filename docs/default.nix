@@ -7,6 +7,8 @@
   nixosOptionsDoc,
   mdbook,
   mdbook-footnote,
+  rustPlatform,
+  fetchFromGitHub,
   revision ? "",
   options ? {},
 }: let
@@ -30,11 +32,24 @@
     # Refer to master branch files in github
     sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/ref_impl/modules_options.md
   '';
+  # TODO Create a nix recipe for this and upstream it
+  mdbook-alerts = rustPlatform.buildRustPackage {
+    name = "mdbook-alerts";
+
+    src = fetchFromGitHub {
+      owner = "lambdalisue";
+      repo = "rs-mdbook-alerts";
+      rev = "v0.6.0";
+      hash = "sha256-LKNEI4dPXQwa+7JqLXpFZeKaQSSS5DFdeGuxEGNgPCU=";
+    };
+
+    cargoSha256 = "sha256-9Eug9egoSLB2F96NeLZzJLvnq4dJNbKux9g/MxQs2+8=";
+  };
 in
   # TODO Change this, runCommandLocal is not intended for longer running processes
   runCommandLocal "ghaf-doc"
   {
-    nativeBuildInputs = [mdbook mdbook-footnote];
+    nativeBuildInputs = [mdbook mdbook-footnote mdbook-alerts];
     src = combinedSrc;
 
     # set the package Meta info

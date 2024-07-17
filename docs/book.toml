@@ -16,3 +16,4 @@ git-repository-url = "https://github.com/tiiuae/ghaf"
 git-repository-icon = "fa-github"
 
 [preprocessor.footnote]
+[preprocessor.alerts]
