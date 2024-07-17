@@ -6,6 +6,7 @@
 #
 (final: prev: {
   gala-app = final.callPackage ../../packages/gala {};
+  ghaf-audio-control = final.callPackage ../../packages/ghaf-audio-control {};
   element-desktop = import ./element-desktop {inherit prev;};
   element-gps = final.callPackage ../../packages/element-gps {};
   element-web = final.callPackage ../../packages/element-web {};
