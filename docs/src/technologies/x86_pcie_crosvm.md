@@ -11,6 +11,7 @@
 As with other passthroughs, first, we need to set the target device to use VFIO
  driver. This can be done manually or by using the [driverctl](https://gitlab.com/driverctl/driverctl) tool as below.
  
+> [!IMPORTANT]
 > Running driverctl requires root permissions.
 
 ```

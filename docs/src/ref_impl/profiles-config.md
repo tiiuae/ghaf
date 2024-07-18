@@ -15,7 +15,7 @@ To add a new profile, do the following:
 4. In the lower section, under the correct area appvms, services, programs, make sure to describe additional definitions you need.
 
 
-For example, a `safe-and-unsave-browsing.nix` file with simple setup that includes business-vm and chrome-vm could look like this:
+For example, a `safe-and-unsave-browsing.nix` file with a simple setup that includes business-vm and chrome-vm could look like this:
 
 ```
   config = lib.mkIf cfg.enable {

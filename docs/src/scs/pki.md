@@ -44,7 +44,8 @@ The following HSM solutions are considered for the Ghaf project:
 
 The following table provides feature comparison of the proposed solutions: 
 
->Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.
+> [!IMPORTANT]
+> Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.
 
 | Feature                      | YubiHSM 2    | NitrokeyHSM2 | SoftHSMv2    | BreadboardHSM |
 |------------------------------|--------------|--------------|--------------|---------------|

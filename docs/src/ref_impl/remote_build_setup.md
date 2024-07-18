@@ -15,6 +15,7 @@ If you hit an issue, check [Troubleshooting](./remote_build_setup.md#troubleshoo
 
 ### 1. Configuring SSH Keys
 
+> [!IMPORTANT]
 > This step assumes that public SSH keys were generated and copied (*ssh-copy-id*) both for normal and root users. For more information, see [Setting up public key authentication](https://www.ssh.com/academy/ssh/copy-id#setting-up-public-key-authentication).
 
 Before you begin, make sure an SSH connection is established to the remote host for both normal and root users:
@@ -57,7 +58,8 @@ Do the following on a local machine:
    ```
    cd .ssh
    ```
-    > **TIP**:`.ssh` is a user-level access and `/etc/ssh` is system-wide.
+    > [!TIP]
+    > `.ssh` is a user-level access and `/etc/ssh` is system-wide.
 
 
 #### 1.2. Accessing Remote Machine Using SSH

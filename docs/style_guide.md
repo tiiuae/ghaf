@@ -99,19 +99,27 @@ To make our Markdown files maintainable over time and across teams, follow the r
 
 * Notes with quoting
 
-    Use an angle bracket (>) for annotations. For example:
-    ```
-    > This is a note.
-    ```
-    To draw more attention, you can create note blocks simply by surrounding the content with two horizontal lines. For example:
-    ```
-    ---
-    **IMPORTANT**
+    Use an angle bracket (>) for annotations.
+    
+    Our mdBook is extended with the [mdbook-alerts](https://github.com/lambdalisue/rs-mdbook-alerts) third-party plugin[^note1] which adds usage of [GitHub Flavored Markdown's Alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts). To emphasize critical information, please use the following syntax:
 
-    Very important information.
-
-    ---
     ```
+    > [!NOTE]
+    > Useful information that users should know, even when skimming content.
+
+    > [!TIP]
+    > Helpful advice for doing things better or more easily.
+
+    > [!IMPORTANT]
+    > Key information users need to know to achieve their goal.
+
+    > [!WARNING]
+    > Urgent info that needs immediate user attention to avoid problems.
+
+    > [!CAUTION]
+    > Advises about risks or negative outcomes of certain actions.
+    ```
+
 * Footnotes
     
     For footnote references, use an identifier inside brackets. For example:  
@@ -228,3 +236,6 @@ Congratulations! You found the Room of Requirement that adjusts itself to its se
 
 
 Happy writing!
+
+
+[^note1]: For the full list of available community-developed plugins for extending mdBook, see [Third party plugins](https://github.com/rust-lang/mdBook/wiki/Third-party-plugins).

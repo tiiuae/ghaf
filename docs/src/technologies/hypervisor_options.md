@@ -91,7 +91,12 @@ microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 
 microvm may not supply parameters for all possible options as adding specific devices. Processing of all microvm configuration options is done in the mentioned above hypervisor’s runner .nix file.
 
-The runners support the ``extraArgs`` parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings. In this example the following ``extraArgs`` definition:
+The runners support the ``extraArgs`` parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings.
+
+> [!IMPORTANT]
+> Support for the crosvm’s ``extraArgs`` parameter was added on April 7, 2023. Make sure to verify that your ``flakes.lock`` file refers to the proper version.
+
+In this example the following ``extraArgs`` definition:
 
 ```
 microvm.qemu.extraArgs = [
@@ -106,5 +111,3 @@ results in the generated command line parameters:
 '-object memory-backend-file,id=mem1,mem-path=/dev/shm/virtio_pmem.img' '-device v
 irtio-pmem-pci,memdev=mem1,id=nv1'
 ```
-
-> Support for the crosvm’s ``extraArgs`` parameter was added on April 7, 2023. Make sure to verify that your ``flakes.lock`` file refers to the proper version.

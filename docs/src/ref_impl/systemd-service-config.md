@@ -364,8 +364,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 - **`true`**: Prevents the service and its children processes from gaining new privileges.
 - **`false`**: Allows the service and its children processes to gain new privileges.
 
+> [!IMPORTANT]
 > Some configurations may override this setting and ignore its value.
-
 
 ### 6.4. UMask
 
@@ -587,6 +587,7 @@ This option can be specified multiple times to merge capability sets:
 **Options**:
 * *List of system calls*: Specifies the allowed system calls for processes within the service. If the list begins with "~", the effect is inverted, meaning only the listed system calls will result in termination.
 
+> [!TIP]
 > Predefined sets of system calls are available, starting with "@" followed by the name of the set.
 
 

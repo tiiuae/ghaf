@@ -5,6 +5,7 @@
 
 # Cross-Compilation
 
+> [!WARNING]
 > Cross-compilation is currently under development and cannot be used properly on all the supported device configurations.
 
 Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is ``x_86``, this will generally require that the code is cross-compiled for target ISA e.g. ``AArch64`` or ``RISC-V``.

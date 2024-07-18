@@ -16,7 +16,7 @@ There are two (or actually three) PCIe slots in the Jetson AGX Orin board:
 * The other slot is a [smaller M.2 slot](#pcie-m2-slot) that is located at the bottom of the board. By default, the slot is in use of the included Wi-Fi and Bluetooth module.
 * The third slot is actually an [NVMe slot](#pcie-m2-nvme-2247-for-ssd) which can be used to add an NVMe SSD to the board.
 
-> For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
+For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
 
 When using one of the slots:
 
@@ -28,11 +28,13 @@ When using one of the slots:
 
 The full-size PCIe connector is under the black plastic cover on one of the sides of the device. The cover is held in place with a fairly strong magnet. There is a small connector ribbon and a few delicate wires going from the board internals to a Wi-Fi antenna on the cover.
 
-> **TIP:** Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.
+> [!IMPORTANT]
+> Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.
 
 The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards [^note1] may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.
 
-> **TIP:** We recommend to check carefully the power requirements of a device before turning the device on.
+> [!IMPORTANT]
+> We recommend to check carefully the power requirements of a device before turning the device on.
 
 A good rule of thumb might be if the device has a cooler to actively cool it down then some care should be taken before starting to use the card. Some trials have been done with GPU devices that use at maximum 30-34W power. The devices seem to work well in Jetson AGX Orin, but it is difficult to say how much power the card actually pulls from the slot at any given time. No real performance or stress tests have been done but under usual GUI and simple 3d application usage the cards (NVIDIA Quadro P1000 and NVIDIA Quadro T600) seem to work fine.
 
@@ -114,6 +116,7 @@ You can also check the kernel logs to know which device belongs to which VFIO IO
 
 After binding a device to VFIO, you can access the device in a VM. To do so, use a command line argument (as in the example) for the PCI device to pass through to QEMU.
 
+> [!NOTE]
 > It does not matter which VFIO node ID was assigned to the device earlier, as long as all the devices with the same VFIO node are passed through, and none of the devices in the same group is left behind.
 
 The QEMU command line argument for passthrough uses the PCIe device ID as identifier for the devices. Each
