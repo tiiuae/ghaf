@@ -22,7 +22,8 @@ You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX (ARM64) or Ge
     sudo mkdir /mnt
     sudo mount /dev/sda /mnt
     ```
-    > **WARNING:** [For NVIDIA Jetson Orin AGX] Make sure to use a fresh VHDX image file that was not booted in another environment before.
+    > [!WARNING]
+    > [For NVIDIA Jetson Orin AGX] Make sure to use a fresh VHDX image file that was not booted in another environment before.
 
 
 ## Running Windows 11 in VM
@@ -38,7 +39,8 @@ You can run Windows 11 in a VM on Ghaf with NVIDIA Jetson Orin AGX (ARM64) or Ge
 
 2. Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type `OOBE\BYPASSNRO`. After the configuration restart click “I don’t have internet“ to skip the Internet connection step and continue the installation.
 
-    > TIP: If after pressing Shift+F10 the command window is not displayed, try to switch between opened windows by using Alt+Tab.
+    > [!TIP]
+    > If after pressing Shift+F10 the command window is not displayed, try to switch between opened windows by using Alt+Tab.
 
 
 #### Running Windows 11 in VM on Generic x86 Device
@@ -63,7 +65,8 @@ Do the following:
    * Name: `BypassTPMCheck`, value `1`.
    * Name: `BypassSecureBootCheck`, value `1`.
 
-   > TIP: [For Ghaf running on a laptop] If after pressing Shift+F10 the command window is not displayed, try again with the Fn key (Shift+Fn+F10) or switch between opened windows by using Alt+Tab.
+    > [!TIP]
+    > [For Ghaf running on a laptop] If after pressing Shift+F10 the command window is not displayed, try again with the Fn key (Shift+Fn+F10) or switch between opened windows by using Alt+Tab.
 
 4. Install Windows 11 in the VM.
 5. Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type `OOBE\BYPASSNRO`. After the configuration restart click “I don’t have internet“ to skip the Internet connection step and continue the installation.

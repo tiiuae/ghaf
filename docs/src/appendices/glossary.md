@@ -56,6 +56,7 @@ Source: <https://connectwithnature.ae/knowledge-hub/ghaf-tree>
 ### CI/CD
 
 _Continuous Integration and Continuous Delivery is a Ghaf software development lifecycle. Continuous Integration refers to regularly integrating code changes into a shared repository, where they are automatically tested and verified. Continuous Delivery—software is released in short iterations._  
+> [!NOTE]
 > Currently, Continuous Deployment is not set up. Continuous Deployment—code is deployed to customers automatically.
 
 ### SSRC

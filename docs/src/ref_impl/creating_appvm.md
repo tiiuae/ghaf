@@ -16,13 +16,13 @@ To create an App VM, do the following:
 
     Each VM has the following properties:
 
-    | **Property** | **Type** | **Unique** | **Description**  | **Example**  |
-    | ------------ | -------- | ---------- | ---------------- | ------------ |
-    | name         | str      | yes        | This name is postfixed with `-vm` and will be shown in microvm list. The name, for example, `business-vm` will be also the VM hostname. The length of the name must be 8 characters or less.    | “business”  |
-    | packages     | list of types.package    | no         | Packages to include in a VM. It is possible to make it empty or add several packages.   | [business top]  |
-    | macAddress   | str      | yes        | Needed for network configuration.     | "02:00:00:03:10:01" |
-    | ramMb        | int, [1, …, host memory] | no         | Memory in MB.         | 3072  |
-    | cores        | int,  [1, …, host cores] | no         | Virtual CPU cores.    | 4     |
+    | **Property** | **Type**                  | **Unique** | **Description**                                                                                               | **Example**         |
+    | -------------- | --------------------------- | ------------ | --------------------------------------------------------------------------------------------------------------- | --------------------- |
+    | name         | str                       | yes        | This name is postfixed with `-vm` and will be shown in microvm list. The name, for example, `chromium-vm` will be also the VM hostname. The length of the name must be 8 characters or less.                                     | “chromium”        |
+    | packages     | list of types.package     | no         | Packages to include in a VM. It is possible to make it empty or add several packages.                          | [chromium top]    |
+    | macAddress   | str                       | yes        | Needed for network configuration.                                                                              | "02:00:00:03:03:05" |
+    | ramMb        | int, [1, …, host memory] | no         | Memory in MB.                                                                                                  | 3072                |
+    | cores        | int,  [1, …, host cores] | no         | Virtual CPU cores.  
 
 2. Create a new option for your VM in [modules/reference/appvms/default.nix](https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms/default.nix). For example:
 
@@ -43,6 +43,7 @@ To create an App VM, do the following:
           new-vm = true; # your new vm here
 ```
 
+> [!NOTE]
 > For more information on creating new profiles, see [Profiles Configuration](./profiles-config.md).
 
 4. Add an IP and the VM name in [modules/common/networking/hosts.nix](https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix). For example:

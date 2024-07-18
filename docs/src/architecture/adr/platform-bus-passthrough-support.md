@@ -14,6 +14,7 @@ Proposed, work in progress.
 
 This ADR is a work-in-progress note for Ghaf bus passthrough implementation that will support rust-vmm-based hypervisors.
 
+> [!NOTE]
 > *rust-vmm* is an open-source project that empowers the community to build custom Virtual Machine Monitors (VMMs) and hypervisors. For more information, see <https://github.com/rust-vmm/community>.
 
 It is crucial to have bus devices passthrough support for ARM-based hardware as the bus is mainly used to connect the peripherals. Nowadays, the only hypervisor with some support for Platform bus is QEMU but the code is dated 2013 and not frequently used.
