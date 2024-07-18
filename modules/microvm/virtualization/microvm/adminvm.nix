@@ -30,6 +30,7 @@
             enable = true;
             withName = "adminvm-systemd";
             withPolkit = true;
+            withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
         };

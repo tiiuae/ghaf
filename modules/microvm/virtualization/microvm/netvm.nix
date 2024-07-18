@@ -43,6 +43,7 @@
             withName = "netvm-systemd";
             withPolkit = true;
             withResolved = true;
+            withTimesyncd = true;
             withDebug = config.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
           };

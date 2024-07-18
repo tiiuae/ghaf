@@ -61,6 +61,7 @@
               withName = "appvm-systemd";
               withNss = true;
               withResolved = true;
+              withTimesyncd = true;
               withPolkit = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
