@@ -1,4 +1,5 @@
 /*
+Copyright 2020 Jorel Ali <contact@jorel.dev>
 Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 SPDX-License-Identifier: WTFPL
 */
