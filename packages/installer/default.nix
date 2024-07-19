@@ -1,23 +1,17 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  bash,
-  imagePath,
-  substituteAll,
+  coreutils,
+  hwinfo,
+  writeShellApplication,
+  zstd,
 }:
-substituteAll {
-  dir = "bin";
-  isExecutable = true;
-
-  pname = "ghaf-installer";
-  src = ./ghaf-installer.sh;
-  inherit imagePath;
-
-  buildInputs = [
-    bash
+writeShellApplication {
+  name = "ghaf-installer";
+  runtimeInputs = [
+    coreutils
+    zstd
+    hwinfo
   ];
-
-  postInstall = ''
-    patchShebangs $out/bin/ghaf-installer.sh
-  '';
+  text = builtins.readFile ./ghaf-installer.sh;
 }

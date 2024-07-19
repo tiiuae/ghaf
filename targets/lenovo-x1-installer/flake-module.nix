@@ -19,13 +19,15 @@
           modulesPath,
           ...
         }: let
-          installScript = pkgs.callPackage ../../packages/installer {
-            inherit imagePath;
-          };
+          installScript = pkgs.callPackage ../../packages/installer {};
         in {
           imports = [
             "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
           ];
+
+          environment.sessionVariables = {
+            IMG_PATH = imagePath;
+          };
 
           # SSH key to installer for test automation.
           users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (variant == "debug") (import ../../modules/common/development/authorized_ssh_keys.nix).authorizedKeys;
@@ -34,10 +36,20 @@
           systemd.services.sshd.wantedBy = lib.mkForce ["multi-user.target"];
 
           isoImage.isoBaseName = "ghaf";
+          networking.hostName = "ghaf-installer";
 
           environment.systemPackages = [
             installScript
           ];
+
+          services.getty = {
+            greetingLine = ''<<< Welcome to the Ghaf installer >>>'';
+            helpLine = lib.mkAfter ''
+
+              To run the installer, type
+              `sudo ghaf-installer` and select the installation target.
+            '';
+          };
 
           isoImage.squashfsCompression = "zstd -Xcompression-level 3";
 
