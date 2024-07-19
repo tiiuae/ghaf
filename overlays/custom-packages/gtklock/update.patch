@@ -1,0 +1,116 @@
+From e0e7f6d5ae7667fcc3479b6732046c67275b2f2f Mon Sep 17 00:00:00 2001
+From: Jovan Lanik <jox969@gmail.com>
+Date: Tue, 16 Jul 2024 15:30:18 +0200
+Subject: [PATCH] update
+
+---
+ include/window.h |  2 ++
+ res/gtklock.ui   | 20 +++++++++++++++++++-
+ src/window.c     | 27 ++++++++++++++++++---------
+ 3 files changed, 39 insertions(+), 10 deletions(-)
+
+diff --git a/include/window.h b/include/window.h
+index 75b8372..77ba2c3 100644
+--- a/include/window.h
++++ b/include/window.h
+@@ -17,6 +17,8 @@ struct Window {
+ 	GtkWidget *body_grid;
+ 	GtkWidget *input_label;
+ 	GtkWidget *input_field;
++	GtkWidget *message_revealer;
++	GtkWidget *message_scrolled_window;
+ 	GtkWidget *message_box;
+ 	GtkWidget *unlock_button;
+ 	GtkWidget *error_label;
+diff --git a/res/gtklock.ui b/res/gtklock.ui
+index 150a4d2..3aab413 100644
+--- a/res/gtklock.ui
++++ b/res/gtklock.ui
+@@ -57,8 +57,26 @@
+ 							</packing>
+ 						</child>
+ 						<child>
+-							<object class="GtkBox" id="message-box">
++							<object class="GtkRevealer" id="message-revealer">
++								<property name="transition-type">none</property>
+ 								<property name="no-show-all">1</property>
++								<child>
++									<object class="GtkScrolledWindow" id="message-scrolled-window">
++										<property name="hscrollbar-policy">never</property>
++										<property name="max-content-height">256</property>
++										<property name="propagate-natural-height">1</property>
++										<child>
++											<object class="GtkViewport">
++												<child>
++													<object class="GtkBox" id="message-box">
++														<property name="orientation">vertical</property>
++														<property name="homogeneous">1</property>
++													</object>
++												</child>
++											</object>
++										</child>
++									</object>
++								</child>
+ 							</object>
+ 							<packing>
+ 								<property name="left-attach">1</property>
+diff --git a/src/window.c b/src/window.c
+index a1a268b..d73eab0 100644
+--- a/src/window.c
++++ b/src/window.c
+@@ -86,27 +86,34 @@ static GtkInfoBar *window_new_message(struct Window *ctx, char *msg) {
+ 	return GTK_INFO_BAR(bar);
+ }
+ 
++static void destroy_callback(GtkWidget* widget, gpointer _data) {
++	gtk_widget_destroy(widget);
++}
++
+ static void window_setup_messages(struct Window *ctx) {
+-	if(ctx->message_box != NULL) {
+-		gtk_widget_destroy(ctx->message_box);
+-		ctx->message_box = NULL;
+-	}
+-	ctx->message_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+-	gtk_widget_set_no_show_all(ctx->message_box, TRUE);
+-	gtk_grid_attach(GTK_GRID(ctx->body_grid), ctx->message_box, 1, 1, 2, 1);
++	gtk_container_foreach(GTK_CONTAINER(ctx->message_box), destroy_callback, NULL);
++	gtk_revealer_set_reveal_child(GTK_REVEALER(ctx->message_revealer), FALSE);
++	gtk_widget_hide(ctx->message_revealer);
+ 
+ 	for(guint idx = 0; idx < gtklock->errors->len; idx++) {
+ 		char *err = g_array_index(gtklock->errors, char *, idx);
+ 		GtkInfoBar *bar = window_new_message(ctx, err);
+ 		gtk_info_bar_set_message_type(bar, GTK_MESSAGE_WARNING);
+-		gtk_widget_show(ctx->message_box);
++
++		gtk_revealer_set_reveal_child(GTK_REVEALER(ctx->message_revealer), TRUE);
++		gtk_widget_show(ctx->message_revealer);
++		gtk_widget_show_all(ctx->message_scrolled_window);
+ 	}
+ 	for(guint idx = 0; idx < gtklock->messages->len; idx++) {
+ 		char *msg = g_array_index(gtklock->messages, char *, idx);
+ 		GtkInfoBar *bar = window_new_message(ctx, msg);
+ 		gtk_info_bar_set_message_type(bar, GTK_MESSAGE_INFO);
+-		gtk_widget_show(ctx->message_box);
++
++		gtk_revealer_set_reveal_child(GTK_REVEALER(ctx->message_revealer), TRUE);
++		gtk_widget_show(ctx->message_revealer);
++		gtk_widget_show_all(ctx->message_scrolled_window);
+ 	}
++
+ }
+ 
+ static void window_set_busy(struct Window *ctx, gboolean busy) {
+@@ -342,6 +349,8 @@ struct Window *create_window(GdkMonitor *monitor) {
+ 	w->input_field = GTK_WIDGET(gtk_builder_get_object(builder, "input-field"));
+ 	g_signal_connect(w->input_field, "button-press-event", G_CALLBACK(entry_button_press), NULL);
+ 
++	w->message_revealer = GTK_WIDGET(gtk_builder_get_object(builder, "message-revealer"));
++	w->message_scrolled_window = GTK_WIDGET(gtk_builder_get_object(builder, "message-scrolled-window"));
+ 	w->message_box = GTK_WIDGET(gtk_builder_get_object(builder, "message-box"));
+ 	w->unlock_button = GTK_WIDGET(gtk_builder_get_object(builder, "unlock-button"));
+ 	w->error_label = GTK_WIDGET(gtk_builder_get_object(builder, "error-label"));
+-- 
+2.40.1
+

@@ -20,4 +20,5 @@
   tpm2-pkcs11 = import ./tpm2-pkcs11 {inherit prev;};
   waybar = import ./waybar {inherit prev;};
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui {};
+  gtklock = import ./gtklock {inherit prev;};
 })
