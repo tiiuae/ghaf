@@ -87,10 +87,12 @@ in {
     inputDevSubmodule = types.submodule {
       options = {
         name = mkOption {
-          type = types.listOf types.str;
+          type = types.listOf types.any;
           default = [];
           description = ''
-            List of input device names.
+            List of input device names. Can either be a string, or a list of strings.
+            The list option allows to bind several input device names to the same evdev.
+            This allows to create one generic hardware definition for multiple SKUs.
           '';
         };
         evdev = mkOption {
@@ -153,6 +155,12 @@ in {
       default = "";
     };
 
+    skus = mkOption {
+      description = "List of hardware SKUs (Stock Keeping Unit) covered with this definition";
+      type = types.listOf types.str;
+      default = [];
+    };
+
     host = {
       kernelConfig = mkOption {
         description = "Host kernel configuration";
@@ -187,24 +195,6 @@ in {
       };
     };
 
-    network = {
-      # TODO? Should add NetVM enabler here?
-      # netvm.enable = mkEnableOption = "NetVM";
-
-      pciDevices = mkOption {
-        description = "PCI Devices to passthrough to NetVM";
-        type = types.listOf pciDevSubmodule;
-        default = [];
-        example = literalExpression ''
-          [{
-            path = "0000:00:14.3";
-            vendorId = "8086";
-            productId = "51f1";
-          }]
-        '';
-      };
-    };
-
     disks = mkOption {
       description = "Disks to format and mount";
       type = types.attrsOf (types.submodule {
@@ -221,6 +211,29 @@ in {
           disk1.device = "/dev/nvme0n1";
         }
       '';
+    };
+
+    network = {
+      # TODO? Should add NetVM enabler here?
+      # netvm.enable = mkEnableOption = "NetVM";
+
+      pciDevices = mkOption {
+        description = "PCI Devices to passthrough to NetVM";
+        type = types.listOf pciDevSubmodule;
+        default = [];
+        example = literalExpression ''
+          [{
+            path = "0000:00:14.3";
+            vendorId = "8086";
+            productId = "51f1";
+          }]
+        '';
+      };
+      kernelConfig = mkOption {
+        description = "Hardware specific kernel configuration for network devices";
+        type = kernelConfig;
+        default = {};
+      };
     };
 
     gpu = {
@@ -244,18 +257,6 @@ in {
         type = kernelConfig;
         default = {};
       };
-    };
-
-    udevRules = mkOption {
-      description = ''
-        Definition of required udev rules.
-      '';
-      type = types.str;
-      default = "";
-      example = literalExpression ''
-        # Laptop keyboard
-        SUBSYSTEM=="input",ATTRS{name}=="AT Translated Set 2 keyboard",GROUP="kvm"
-      '';
     };
 
     audio = {
@@ -309,20 +310,20 @@ in {
 
           Note that internal devices must follow the naming convention to be correctly identified
           and subsequently used. Current special names are:
-            - 'webcam' for the internal webcam device
-            - 'fprint-reader' for the internal fingerprint reader device
+            - 'cam0' for the internal cam0 device
+            - 'fpr0' for the internal fingerprint reader device
         '';
         type = types.listOf usbDevSubmodule;
         default = [];
         example = literalExpression ''
           [
             {
-              name = "webcam";
+              name = "cam0";
               vendorId = "0123";
               productId = "0123";
             }
             {
-              name = "fprint-reader";
+              name = "fpr0";
               hostbus = "3";
               hostport = "3";
             }
