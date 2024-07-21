@@ -2,7 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
+  # System name
   name = "Lenovo X1 Carbon Gen 10";
+
+  # List of system SKUs covered by this configuration
+  skus = [
+    # TODO Add SKUs
+  ];
 
   host = {
     kernelConfig.kernelParams = [
@@ -22,31 +28,35 @@
 
     mouse = {
       name = [
-        "ELAN067B:00 04F3:31F8 Mouse"
-        "SYNA8016:00 06CB:CEB3 Mouse"
+        [
+          "ELAN067B:00 04F3:31F8 Mouse"
+          "SYNA8016:00 06CB:CEB3 Mouse"
+        ]
+        "TPPS/2 Elan TrackPoint"
       ];
       evdev = [
-        "/dev/mouse"
+        "/dev/mouse0"
+        "/dev/mouse1"
       ];
     };
 
     touchpad = {
       name = [
-        "ELAN067B:00 04F3:31F8 Touchpad"
-        "SYNA8016:00 06CB:CEB3 Touchpad"
+        [
+          "ELAN067B:00 04F3:31F8 Touchpad"
+          "SYNA8016:00 06CB:CEB3 Touchpad"
+        ]
       ];
       evdev = [
-        "/dev/touchpad"
+        "/dev/touchpad0"
       ];
     };
 
     misc = {
       name = [
         "ThinkPad Extra Buttons"
-        "TPPS/2 Elan TrackPoint"
       ];
       evdev = [
-        "/dev/input/by-path/platform-i8042-serio-1-event-mouse"
         "/dev/input/by-path/platform-thinkpad_acpi-event"
       ];
     };
@@ -120,19 +130,19 @@
   usb = {
     internal = [
       {
-        name = "webcam";
+        name = "cam0";
         hostbus = "3";
         hostport = "8";
       }
       {
-        name = "fprint-reader";
+        name = "fpr0";
         hostbus = "3";
         hostport = "6";
       }
     ];
     external = [
       {
-        name = "gps-device";
+        name = "gps0";
         vendorId = "067b";
         productId = "23a3";
       }
