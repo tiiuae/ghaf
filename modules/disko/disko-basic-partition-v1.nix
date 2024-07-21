@@ -60,7 +60,7 @@
     };
   };
   disko = {
-    memSize = 2048;
+    memSize = 4096;
     extraPostVM = ''
       ${pkgs.zstd}/bin/zstd --compress $out/*raw
       rm $out/*raw
