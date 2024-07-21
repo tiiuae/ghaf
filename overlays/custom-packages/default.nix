@@ -21,4 +21,5 @@
   waybar = import ./waybar {inherit prev;};
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui {};
   gtklock = import ./gtklock {inherit prev;};
+  hardware-scan = final.callPackage ../../packages/hardware-scan {};
 })

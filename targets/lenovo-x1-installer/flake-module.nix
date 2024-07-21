@@ -40,6 +40,7 @@
 
           environment.systemPackages = [
             installScript
+            self.packages.x86_64-linux.hardware-scan
           ];
 
           services.getty = {
