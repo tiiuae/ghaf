@@ -31,23 +31,27 @@
 
     mouse = {
       name = [
-        "ELAN067C:00 04F3:31F9 Mouse"
-        "SYNA8016:00 06CB:CEB3 Mouse"
-        "ELAN067B:00 04F3:31F8 Mouse"
+        [
+          "ELAN067C:00 04F3:31F9 Mouse"
+          "SYNA8016:00 06CB:CEB3 Mouse"
+          "ELAN067B:00 04F3:31F8 Mouse"
+        ]
       ];
       evdev = [
-        "/dev/mouse"
+        "/dev/mouse0"
       ];
     };
 
     touchpad = {
       name = [
-        "ELAN067C:00 04F3:31F9 Touchpad"
-        "SYNA8016:00 06CB:CEB3 Touchpad"
-        "ELAN067B:00 04F3:31F8 Touchpad"
+        [
+          "ELAN067C:00 04F3:31F9 Touchpad"
+          "SYNA8016:00 06CB:CEB3 Touchpad"
+          "ELAN067B:00 04F3:31F8 Touchpad"
+        ]
       ];
       evdev = [
-        "/dev/touchpad"
+        "/dev/touchpad0"
       ];
     };
 
@@ -131,19 +135,19 @@
   usb = {
     internal = [
       {
-        name = "webcam";
+        name = "cam0";
         hostbus = "3";
         hostport = "8";
       }
       {
-        name = "fprint-reader";
+        name = "fpr0";
         hostbus = "3";
         hostport = "6";
       }
     ];
     external = [
       {
-        name = "gps-device";
+        name = "gps0";
         vendorId = "067b";
         productId = "23a3";
       }

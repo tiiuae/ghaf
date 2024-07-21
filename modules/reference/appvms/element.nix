@@ -7,7 +7,7 @@
   config,
   ...
 }: let
-  inherit (lib) hasAttr;
+  inherit (lib) hasAttr optionals;
   dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone {};
   isDendritePineconeEnabled =
     if (hasAttr "services" config.ghaf.reference)
@@ -91,7 +91,9 @@ in {
         extraArgs = ["-n"]; # Do not wait for a client to connect before polling
       };
 
-      microvm.qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.external.enable config.ghaf.hardware.usb.external.qemuExtraArgs.gps-device;
+      microvm.qemu.extraArgs = optionals (config.ghaf.hardware.usb.external.enable
+        && (hasAttr "gps0" config.ghaf.hardware.usb.external.qemuExtraArgs))
+      config.ghaf.hardware.usb.external.qemuExtraArgs.gps0;
     }
   ];
   borderColor = "#337aff";

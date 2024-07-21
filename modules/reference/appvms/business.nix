@@ -3,8 +3,8 @@
 #
 {
   pkgs,
-  lib,
   config,
+  lib,
   ...
 }: let
   #TODO: Move this to a common place
@@ -62,7 +62,9 @@ in {
       time.timeZone = config.time.timeZone;
 
       microvm = {
-        qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.internal.enable config.ghaf.hardware.usb.internal.qemuExtraArgs.webcam;
+        qemu.extraArgs = lib.optionals (config.ghaf.hardware.usb.internal.enable
+          && (lib.hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs))
+        config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
         devices = [];
       };
 

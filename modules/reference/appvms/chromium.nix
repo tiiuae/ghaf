@@ -7,6 +7,7 @@
   config,
   ...
 }: let
+  inherit (lib) hasAttr optionals;
   xdgPdfPort = 1200;
 in {
   name = "chromium";
@@ -57,7 +58,9 @@ in {
 
       time.timeZone = config.time.timeZone;
 
-      microvm.qemu.extraArgs = lib.optionals config.ghaf.hardware.usb.internal.enable config.ghaf.hardware.usb.internal.qemuExtraArgs.webcam;
+      microvm.qemu.extraArgs = optionals (config.ghaf.hardware.usb.internal.enable
+        && (hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs))
+      config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
       microvm.devices = [];
 
       ghaf.reference.programs.chromium.enable = true;
