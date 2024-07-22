@@ -37,6 +37,10 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## From Overlays
 
+[gtklock: Guard against race condition](https://github.com/jovanlanik/gtklock/pull/95)
+
+[gtklock: Fix black screen SP-4849](https://github.com/jovanlanik/gtklock/commit/e0e7f6d5ae7667fcc3479b6732046c67275b2f2f)
+
 
 ## carried in tiiuae/nixpkgs/nixos-unstable-proc-qemu
 
