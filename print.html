@@ -616,6 +616,8 @@ SPDX-License-Identifier: WTFPL
 <li><a href="architecture/./adr/platform-bus-passthrough-support.html">Platform Bus for Rust VMM</a></li>
 </ul>
 </li>
+<li><a href="architecture/./hardening.html">Hardening</a></li>
+<li><a href="architecture/./secureboot.html">Secure Boot</a></li>
 <li><a href="architecture/./stack.html">Stack</a></li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -1203,9 +1205,13 @@ All graphics and display output related components and dependencies, including k
 <p>Proposed, work in progress.</p>
 <h2 id="context-3"><a class="header" href="#context-3">Context</a></h2>
 <p>This ADR is a work-in-progress note for Ghaf bus passthrough implementation that will support rust-vmm-based hypervisors.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p><em>rust-vmm</em> is an open-source project that empowers the community to build custom Virtual Machine Monitors (VMMs) and hypervisors. For more information, see <a href="https://github.com/rust-vmm/community">https://github.com/rust-vmm/community</a>.</p>
-</blockquote>
+</div>
 <p>It is crucial to have bus devices passthrough support for ARM-based hardware as the bus is mainly used to connect the peripherals. Nowadays, the only hypervisor with some support for Platform bus is QEMU but the code is dated 2013 and not frequently used.</p>
 <p>On the other hand, one of the target hardware devices for Ghaf is NVIDIA Orin with an ARM core. To achieve Ghaf's security and hardware isolation goals, devices should support passthrough mode. Production-ready rust-vmm-based hypervisors (<a href="https://github.com/google/crosvm">crosvm</a>, <a href="https://github.com/firecracker-microvm/firecracker">Firecracker</a>, <a href="https://www.cloudhypervisor.org/">Cloud Hypervisor</a>) do not have support for Platform bus.</p>
 <h2 id="decision-3"><a class="header" href="#decision-3">Decision</a></h2>
@@ -1941,9 +1947,13 @@ nixos-rebuild --flake .#lenovo-x1-carbon-gen11-debug --target-host root@&lt;ip_a
 <h1 id="build-and-run"><a class="header" href="#build-and-run">Build and Run</a></h1>
 <p>This tutorial assumes that you already have basic <a href="https://git-scm.com/">git</a> experience.</p>
 <p>The canonical URL for the upstream Ghaf git repository is <a href="https://github.com/tiiuae/ghaf">https://github.com/tiiuae/ghaf</a>. To try Ghaf, you can build it from the source.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-warning">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  warning
+</p>
 <p><a href="ref_impl/../ref_impl/cross_compilation.html">Cross-compilation</a> support is currently under development and not available for the building process.</p>
-</blockquote>
+</div>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
 <p>First, follow the basic device-independent steps:</p>
 <ul>
@@ -2025,7 +2035,8 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <li>Connect the Linux laptop to the board with a Micro-USB cable to use <a href="https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console">serial interface</a>.</li>
 </ol>
 <blockquote>
-<p>For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
+<p>[!NOTE]
+For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
 </blockquote>
 </li>
 <li>
@@ -2211,9 +2222,13 @@ b. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-debug command
 </ol>
 <p>If you hit an issue, check <a href="ref_impl/./remote_build_setup.html#troubleshooting">Troubleshooting</a>.</p>
 <h3 id="1-configuring-ssh-keys"><a class="header" href="#1-configuring-ssh-keys">1. Configuring SSH Keys</a></h3>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>This step assumes that public SSH keys were generated and copied (<em>ssh-copy-id</em>) both for normal and root users. For more information, see <a href="https://www.ssh.com/academy/ssh/copy-id#setting-up-public-key-authentication">Setting up public key authentication</a>.</p>
-</blockquote>
+</div>
 <p>Before you begin, make sure an SSH connection is established to the remote host for both normal and root users:</p>
 <pre><code>ssh USER@IP_ADDRESS_OF_REMOTE_MACHINE
 nix store ping --store ssh://USER@REMOTE_IP_ADDRESS
@@ -2249,7 +2264,8 @@ nix store ping --store ssh://USER@REMOTE_IP_ADDRESS
 <pre><code>cd .ssh
 </code></pre>
 <blockquote>
-<p><strong>TIP</strong>:<code>.ssh</code> is a user-level access and <code>/etc/ssh</code> is system-wide.</p>
+<p>[!TIP]
+<code>.ssh</code> is a user-level access and <code>/etc/ssh</code> is system-wide.</p>
 </blockquote>
 </li>
 </ol>
@@ -2488,8 +2504,8 @@ experimental-features = nix-command flakes
 <h2 id="configuring-and-building-installer-for-ghaf"><a class="header" href="#configuring-and-building-installer-for-ghaf">Configuring and Building Installer for Ghaf</a></h2>
 <p>You can obtain the installation image for your Ghaf configuration.</p>
 <p>In addition to the live USB image that Ghaf provides it is also possible to install Ghaf. This can either be achieved by downloading the desired image or by building it as described below.</p>
-<p>Currently, only x86_64-linux systems are supported by the standalone installer. So to build e.g. the debug image
-for the Lenovo x1 follow the following steps</p>
+<p>Currently, only x86_64-linux systems are supported by the standalone installer.</p>
+<p>To build, for example, the debug image for the Lenovo x1, use the following command:</p>
 <pre><code class="language-sh">nix build .#lenovo-x1-carbon-gen11-debug-installer
 </code></pre>
 <h2 id="flashing-installer"><a class="header" href="#flashing-installer">Flashing Installer</a></h2>
@@ -2497,19 +2513,22 @@ for the Lenovo x1 follow the following steps</p>
 <pre><code class="language-nix">sudo dd if=./result/iso/ghaf-&lt;version&gt;-x86_64-linux.iso of=/dev/&lt;SSD_NAME&gt; bs=32M status=progress; sync
 </code></pre>
 <h2 id="installing-image"><a class="header" href="#installing-image">Installing Image</a></h2>
-<blockquote>
-<p><strong>WARNING</strong>: This operation is destructive and will overwrite your system.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-caution">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  caution
+</p>
+<p>This operation is destructive and will overwrite your system.</p>
+</div>
 <p>Insert the SSD into the laptop, boot, and select the option to install.</p>
-<p>When presented with the terminal run:</p>
+<p>Then use the following command:</p>
 <pre><code class="language-nix">sudo ghaf-install.sh
 </code></pre>
-<p>Check the available options shown in the prompt for the install target
-remember that the <code>/dev/sdX</code> is likely the install medium.</p>
-<p>Once entered, remembering to include <code>/dev</code>, press ENTER to complete the process.</p>
+<p>Check the available options shown in the prompt for the install target. Mind that the <code>/dev/sdX</code> is likely the install medium.</p>
+<p>Once entered, include <code>/dev</code> and press [Enter] on the keyboard to complete the process.</p>
 <pre><code class="language-nix">sudo reboot
 </code></pre>
-<p>Mind remove the installer drive.</p>
+<p>Remove the installer drive.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
@@ -2582,9 +2601,13 @@ remember that the <code>/dev/sdX</code> is likely the install medium.</p>
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross-Compilation</a></h1>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-warning">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  warning
+</p>
 <p>Cross-compilation is currently under development and cannot be used properly on all the supported device configurations.</p>
-</blockquote>
+</div>
 <p>Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is <code>x_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
 <h2 id="cross-compilation-for-microchip-icicle-kit-riscv64"><a class="header" href="#cross-compilation-for-microchip-icicle-kit-riscv64">Cross-Compilation for Microchip Icicle Kit (RISCV64)</a></h2>
@@ -2689,11 +2712,11 @@ remember that the <code>/dev/sdX</code> is likely the install medium.</p>
 You can use an already existing VM file as a reference, for example: <code>modules/reference/appvms/business.nix</code>.</p>
 <p>Each VM has the following properties:</p>
 <div class="table-wrapper"><table><thead><tr><th><strong>Property</strong></th><th><strong>Type</strong></th><th><strong>Unique</strong></th><th><strong>Description</strong></th><th><strong>Example</strong></th></tr></thead><tbody>
-<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name, for example, <code>business-vm</code> will be also the VM hostname. The length of the name must be 8 characters or less.</td><td>“business”</td></tr>
-<tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[business top]</td></tr>
-<tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>"02:00:00:03:10:01"</td></tr>
+<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name, for example, <code>chromium-vm</code> will be also the VM hostname. The length of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
+<tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[chromium top]</td></tr>
+<tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>"02:00:00:03:03:05"</td></tr>
 <tr><td>ramMb</td><td>int, [1, …, host memory]</td><td>no</td><td>Memory in MB.</td><td>3072</td></tr>
-<tr><td>cores</td><td>int,  [1, …, host cores]</td><td>no</td><td>Virtual CPU cores.</td><td>4</td></tr>
+<tr><td>cores</td><td>int,  [1, …, host cores]</td><td>no</td><td>Virtual CPU cores.</td><td></td></tr>
 </tbody></table>
 </div></li>
 <li>
@@ -2712,9 +2735,13 @@ You can use an already existing VM file as a reference, for example: <code>modul
 <pre><code>          business-vm = true;
           new-vm = true; # your new vm here
 </code></pre>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p>For more information on creating new profiles, see <a href="ref_impl/./profiles-config.html">Profiles Configuration</a>.</p>
-</blockquote>
+</div>
 <ol start="4">
 <li>Add an IP and the VM name in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix">modules/common/networking/hosts.nix</a>. For example:</li>
 </ol>
@@ -2824,7 +2851,10 @@ You can use an already existing VM file as a reference, for example: <code>modul
 </li>
 <li>
 <p>Create the new configuration file with hardware-dependent parameters like host information, input and output device parameters, and others.</p>
-<p>You can use an already existing file as a reference, for example <a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/lenovo-x1/definitions/x1-gen11.nix">modules/hardware/lenovo-x1/definitions/x1-gen11.nix</a>.</p>
+<blockquote>
+<p>[!TIP]
+You can use an already existing file as a reference, for example <a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/lenovo-x1/definitions/x1-gen11.nix">modules/hardware/lenovo-x1/definitions/x1-gen11.nix</a>.</p>
+</blockquote>
 </li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -2907,7 +2937,7 @@ You can use an already existing VM file as a reference, for example: <code>modul
 <li>Create a new enable option to enable the profile, for example, <code>new-cool-profile</code>.</li>
 <li>In the lower section, under the correct area appvms, services, programs, make sure to describe additional definitions you need.</li>
 </ol>
-<p>For example, a <code>safe-and-unsave-browsing.nix</code> file with simple setup that includes business-vm and chrome-vm could look like this:</p>
+<p>For example, a <code>safe-and-unsave-browsing.nix</code> file with a simple setup that includes business-vm and chrome-vm could look like this:</p>
 <pre><code>  config = lib.mkIf cfg.enable {
     ghaf = {
       reference = {
@@ -3019,9 +3049,13 @@ or</li>
 <h2 id="window-border-coloring"><a class="header" href="#window-border-coloring">Window Border Coloring</a></h2>
 <p>The border color concept illustrates the application trustworthiness in a user-friendly manner. The color shows the application's security level and allows avoiding user's mistakes. The same approach can be found in other projects, for example, <a href="https://www.qubes-os.org/doc/getting-started/#color--security">QubeOS</a>.</p>
 <p>Ghaf uses patched labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (<code>serverDecoration</code> = <code>yes</code>). The <code>borderColor</code> property is responsible for the frame color.</p>
-<blockquote>
-<p><strong>TIP:</strong> According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
+</div>
 <p>For example, the foot terminal with Aqua colored frame:</p>
 <pre><code>&lt;windowRules&gt;
   &lt;windowRule identifier="Foot" borderColor="#00FFFF" serverDecoration="yes" skipTaskbar="yes"  /&gt;
@@ -3506,9 +3540,13 @@ or</li>
 <li><strong><code>true</code></strong>: Prevents the service and its children processes from gaining new privileges.</li>
 <li><strong><code>false</code></strong>: Allows the service and its children processes to gain new privileges.</li>
 </ul>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>Some configurations may override this setting and ignore its value.</p>
-</blockquote>
+</div>
 <h3 id="64-umask"><a class="header" href="#64-umask">6.4. UMask</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#UMask=">UMask</a>
 sets the file mode creation mask (umask) for the service, controlling the default permissions applied to newly created files and directories.</p>
@@ -3690,9 +3728,13 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <ul>
 <li><em>List of system calls</em>: Specifies the allowed system calls for processes within the service. If the list begins with "~", the effect is inverted, meaning only the listed system calls will result in termination.</li>
 </ul>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-tip">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  tip
+</p>
 <p>Predefined sets of system calls are available, starting with "@" followed by the name of the set.</p>
-</blockquote>
+</div>
 <div class="table-wrapper"><table><thead><tr><th><strong>Filter Set</strong></th><th><strong>Description</strong></th></tr></thead><tbody>
 <tr><td><strong>@clock</strong></td><td>Allows clock and timer-related system calls, such as clock_gettime, nanosleep, etc. This is essential for time-related operations.</td></tr>
 <tr><td><strong>@cpu-emulation</strong></td><td>Allows CPU emulation-related system calls, typically used by virtualization software.</td></tr>
@@ -3962,7 +4004,8 @@ git+file://~/ghaf-example
 <li>
 <p>On the ghaf host, check the devices in <code>/dev/input/by-path</code> that contain “-event-” in the name. Use the command like <code>udevadm info -q all -a /dev/input/by-path/pci-0000:00:15.0-platform-i2c_designware.0-event-mouse | grep name</code> for the name of each of these devices.</p>
 <blockquote>
-<p>By name you can understand which devices belong to the touchpad. For example, on laptops in Finland they look like “SYNA8016:00 06CB:CEB3 Mouse” and “SYNA8016:00 06CB:CEB3 Touchpad”, and in the UAE they are “ELAN067C:00 04F3:31F9 Mouse” and “ELAN067C:00 04F3:31F9 Touchpad.”</p>
+<p>[!TIP]
+By name you can understand which devices belong to the touchpad. For example, on laptops in Finland they look like “SYNA8016:00 06CB:CEB3 Mouse” and “SYNA8016:00 06CB:CEB3 Touchpad”, and in the UAE they are “ELAN067C:00 04F3:31F9 Mouse” and “ELAN067C:00 04F3:31F9 Touchpad.”</p>
 </blockquote>
 </li>
 <li>
@@ -4137,6 +4180,8 @@ git+file://~/ghaf-example
 <li><a href="technologies/./nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a></li>
 <li><a href="technologies/./nvidia_agx_pt_pcie.html">NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li>
 <li><a href="technologies/./x86_pcie_crosvm.html">Generic x86: PCIe Passthrough on crosvm</a></li>
+<li><a href="technologies/./nvidia_uarti_net_vm.html">NVIDIA Jetson: UARTI Passthrough to netvm</a></li>
+<li><a href="technologies/./device_tree_overlays_pt.html">Device Tree Overlays for Passthrough</a></li>
 </ul>
 </li>
 <li><a href="technologies/./nvidia_virtualization_bpmp.html">NVIDIA Jetson AGX Orin: Boot and Power Management Processor Virtualization</a></li>
@@ -4515,15 +4560,19 @@ driverctl unset-override ${DEVICE}
 <tr><td>uartj: serial@c270000</td><td style="text-align: center">Not mapped</td><td style="text-align: center"></td><td></td></tr>
 </tbody></table>
 </div>
-<p>Notes:</p>
+<p>In this table:</p>
 <ul>
 <li>The first column shows how the UART units are defined in the UART device tree file <em>tegra234-soc-uart.dtsi</em> <sup class="footnote-reference"><a href="#note1">1</a></sup>.</li>
 <li>The second and third columns show the CPU and SoC pin connections. Note that for UART2 and UART5 these are swapped. The pin mapping configuration is described in the file <em>tegra234-mb1-bct-pinmux-p3701-0000.dtsi</em> <sup class="footnote-reference"><a href="#note2">2</a></sup>. This device tree file is automatically generated by the macro Excel file <em>Jetson_AGX_Orin_Series_Pinmux_Config_Template_1.5.xlsm</em> which is available at the official Jetson Download Center as the <em>Jetson AGX Orin Series Pinmux</em>.</li>
 <li>The last column describes where the UART units are connected to the exterior.</li>
 </ul>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p>Only two UART units are connected to the micro USB debug interface. The UART7 is not connected by default but it can be connected to the debug interface ttyACM1 by swapping the fuse resistors (see Debug MCU page 7 on P3737_A04_Concept_schematics.pdf <sup class="footnote-reference"><a href="#note3">3</a></sup>).</p>
-</blockquote>
+</div>
 <h2 id="uarti-selected-for-passthrough"><a class="header" href="#uarti-selected-for-passthrough">UARTI Selected for Passthrough</a></h2>
 <p>The UARTI unit was selected to do the first "Hello world" passthrough implementation as it does not show any dependencies on its device tree:</p>
 <pre><code class="language-cpp">	uarti: serial@31d0000 {
@@ -4582,9 +4631,7 @@ dd if=./arch/arm64/boot/dts/nvidia/tegra234-p3701-0000-p3737-0000.dtb of=/dev/mm
         	};
 	};
 </code></pre>
-<blockquote>
-<p>In this example, the <em>uarti</em> node was added to the platform node. For this node the interrupt number was replaced to 0x70 and reg address to the one that was obtained from the QEMU monitor command: <em>info mtree -f</em>.</p>
-</blockquote>
+<p>In this example, the <em>uarti</em> node was added to the platform node. For this node the interrupt number was replaced to 0x70 and the reg address to the one that was obtained from the QEMU monitor command: <em>info mtree -f</em>.</p>
 <h2 id="starting-guest-vm"><a class="header" href="#starting-guest-vm">Starting Guest VM</a></h2>
 <p>To start the guest VM:</p>
 <ol>
@@ -4706,9 +4753,7 @@ echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 <li>The other slot is a <a href="technologies/nvidia_agx_pt_pcie.html#pcie-m2-slot">smaller M.2 slot</a> that is located at the bottom of the board. By default, the slot is in use of the included Wi-Fi and Bluetooth module.</li>
 <li>The third slot is actually an <a href="technologies/nvidia_agx_pt_pcie.html#pcie-m2-nvme-2247-for-ssd">NVMe slot</a> which can be used to add an NVMe SSD to the board.</li>
 </ul>
-<blockquote>
 <p>For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
-</blockquote>
 <p>When using one of the slots:</p>
 <ul>
 <li>First and foremost, always turn off and disconnect any power sources from the board and its peripherals when connecting or disconnecting devices to any of the PCIe buses connect.</li>
@@ -4716,13 +4761,21 @@ echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </ul>
 <h4 id="full-size-pcie-slot"><a class="header" href="#full-size-pcie-slot">Full-Size PCIe Slot</a></h4>
 <p>The full-size PCIe connector is under the black plastic cover on one of the sides of the device. The cover is held in place with a fairly strong magnet. There is a small connector ribbon and a few delicate wires going from the board internals to a Wi-Fi antenna on the cover.</p>
-<blockquote>
-<p><strong>TIP:</strong> Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.</p>
+</div>
 <p>The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards <sup class="footnote-reference"><a href="#note1">1</a></sup> may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.</p>
-<blockquote>
-<p><strong>TIP:</strong> We recommend to check carefully the power requirements of a device before turning the device on.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>We recommend to check carefully the power requirements of a device before turning the device on.</p>
+</div>
 <p>A good rule of thumb might be if the device has a cooler to actively cool it down then some care should be taken before starting to use the card. Some trials have been done with GPU devices that use at maximum 30-34W power. The devices seem to work well in Jetson AGX Orin, but it is difficult to say how much power the card actually pulls from the slot at any given time. No real performance or stress tests have been done but under usual GUI and simple 3d application usage the cards (NVIDIA Quadro P1000 and NVIDIA Quadro T600) seem to work fine.</p>
 <h4 id="pcie-m2-slot"><a class="header" href="#pcie-m2-slot">PCIe M.2 Slot</a></h4>
 <p>The PCIe M.2 slot with key type A+E is at the bottom of the board. By default, this slot is in use of the internal Wi-Fi and Bluetooth card. There are different types of M.2 slots all of which are not compatible with one another. The slot in Jetson AGX Orin is type A+E, and it supports PCIe 2x and USB transport buses.</p>
@@ -4776,9 +4829,13 @@ ls /sys/kernel/iommu_groups/&lt;id&gt;/devices/
 <p>You can also check the kernel logs to know which device belongs to which VFIO IOMMU group.</p>
 <h2 id="starting-guest-vm-1"><a class="header" href="#starting-guest-vm-1">Starting Guest VM</a></h2>
 <p>After binding a device to VFIO, you can access the device in a VM. To do so, use a command line argument (as in the example) for the PCI device to pass through to QEMU.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p>It does not matter which VFIO node ID was assigned to the device earlier, as long as all the devices with the same VFIO node are passed through, and none of the devices in the same group is left behind.</p>
-</blockquote>
+</div>
 <p>The QEMU command line argument for passthrough uses the PCIe device ID as identifier for the devices. Each
 device which is passed through needs its own QEMU <code>-device</code> argument as below:</p>
 <pre><code>-device vfio-pci,host="0001:01:00.0"
@@ -4908,9 +4965,13 @@ index ac626b3bef..d6fb597aee 100644
 <h2 id="enabling-pcie-devices-for-vfio-with-driverctl"><a class="header" href="#enabling-pcie-devices-for-vfio-with-driverctl">Enabling PCIe Devices for VFIO with driverctl</a></h2>
 <p>As with other passthroughs, first, we need to set the target device to use VFIO
 driver. This can be done manually or by using the <a href="https://gitlab.com/driverctl/driverctl">driverctl</a> tool as below.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>Running driverctl requires root permissions.</p>
-</blockquote>
+</div>
 <pre><code>export BUS="0000:01:00.0"
 driverctl --nosave set-override ${BUS} vfio-pci
 </code></pre>
@@ -5362,42 +5423,52 @@ the <em>tegra234-smmu-streamid.h</em> header file.</p>
 <p>The current implementation includes a host configuration for the UARTA passthrough as a test case demonstrating the practical application of the BPMP virtualization. At the same time, the current implementation still requires manually built Ubuntu guest. Work continues to integrate <code>microvm.nix</code> declared guest that supports NVIDIA BPMP virtualization with the UARTA passthrough demo. This work is generally important for future NVIDIA Jetson platform bus GPU passthrough. With this feature it is possible to virtualize the NVIDIA-Jetson-integrated GPU connected to the platform bus.</p>
 <h2 id="using-bpmp-virtualization-options-on-nvidia-jetson-agx-orin"><a class="header" href="#using-bpmp-virtualization-options-on-nvidia-jetson-agx-orin">Using BPMP Virtualization Options on NVIDIA Jetson AGX Orin</a></h2>
 <ol>
-<li>Enable NVIDIA BPMP virtualization on a Ghaf host for an NVIDIA Jetson-target using the following configuration options:</li>
-</ol>
+<li>
+<p>Enable NVIDIA BPMP virtualization on a Ghaf host for an NVIDIA Jetson-target using the following configuration options:</p>
 <pre><code class="language-nix">  hardware.nvidia = {
     virtualization.enable = true;
     passthroughs.uarta.enable = true;
 };
 </code></pre>
 <blockquote>
-<p><strong>IMPORTANT:</strong> These options are integrated to <a href="https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix">NVIDIA Jetson Orin targets</a> but disabled by default until the implementation is finished.</p>
+<p>[!IMPORTANT]
+These options are integrated to <a href="https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix">NVIDIA Jetson Orin targets</a> but disabled by default until the implementation is finished.</p>
 </blockquote>
-<ol start="2">
-<li>Build the target and boot the image. You can write the image to an SSD for testing with a recent NVIDIA UEFI FW.</li>
+</li>
+<li>
+<p>Build the target and boot the image. You can write the image to an SSD for testing with a recent NVIDIA UEFI FW.</p>
+</li>
 </ol>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
 <h3 id="host-testing"><a class="header" href="#host-testing">Host Testing</a></h3>
 <ol>
-<li>Check the <code>bpmp-host</code> device:</li>
-</ol>
+<li>
+<p>Check the <code>bpmp-host</code> device:</p>
 <pre><code>[ghaf@ghaf-host:~]$ ls /dev | grep bpmp-host
 bpmp-host
 </code></pre>
-<ol start="2">
-<li>Check that <code>vfio-platform</code> binding is successful:</li>
-</ol>
+</li>
+<li>
+<p>Check that <code>vfio-platform</code> binding is successful:</p>
 <pre><code>ghaf@ghaf-host:~]$ ls -l /sys/bus/platform/drivers/vfio-platform/3100000.serial
 lrwxrwxrwx 1 root root 0 Dec  8 08:26 /sys/bus/platform/drivers/vfio-platform/3100000.serial -&gt; ../../../../devices/platform/3100000.serial
 </code></pre>
-<h3 id="guest-for-uarta-testing"><a class="header" href="#guest-for-uarta-testing">Guest for UARTA Testing</a></h3>
-<blockquote>
-<p>UARTA is an UART unit with a port A connection. For more information, see <a href="technologies/nvidia_agx_pt_uart.html#uart-connections">UART Connections</a>.</p>
-</blockquote>
-<ol>
-<li>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a>[^note] and use the following script to start the VM:</li>
+</li>
 </ol>
+<h3 id="guest-for-uarta-testing"><a class="header" href="#guest-for-uarta-testing">Guest for UARTA Testing</a></h3>
+<div class="mdbook-alerts mdbook-alerts-tip">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  tip
+</p>
+<p>UARTA is an UART unit with a port A connection. For more information, see <a href="technologies/nvidia_agx_pt_uart.html#uart-connections">UART Connections</a>.</p>
+</div>
+<ol>
+<li>
+<p>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a><sup class="footnote-reference"><a href="#note1">1</a></sup> and use the following script to start the VM:</p>
 <blockquote>
-<p><strong>TIP:</strong> IMG is the kernel image and FS the rootfs.</p>
+<p>[!IMPORTANT]
+IMG is the kernel image and FS the rootfs.</p>
 </blockquote>
 <pre><code>IMG=$1
 FS=$2
@@ -5415,19 +5486,23 @@ qemu-system-aarch64 \
     -dtb virt.dtb \
     -append "rootwait root=/dev/vda console=ttyAMA0"
 </code></pre>
-<ol start="2">
-<li>With UARTA connected start Minicom on the working machine:</li>
-</ol>
+</li>
+<li>
+<p>With UARTA connected start Minicom on the working machine:</p>
 <pre><code>minicom -b 9600 -D /dev/ttyUSB0
 </code></pre>
-<ol start="3">
-<li>Test UARTA by echoing a string to the correct <code>tty</code> in the VM:</li>
-</ol>
+</li>
+<li>
+<p>Test UARTA by echoing a string to the correct <code>tty</code> in the VM:</p>
 <pre><code>echo 123 &gt; /dev/ttyTHS0
 </code></pre>
+</li>
+</ol>
 <h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
 <p><a href="technologies/./nvidia_agx_pt_uart.html#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></p>
-<p>[^note] That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm.</p>
+<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
+<p>That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm.</p>
+</div>
 <div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
@@ -5557,7 +5632,15 @@ microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 </code></pre>
 <h3 id="adding-option-to-hypervisor-command-line"><a class="header" href="#adding-option-to-hypervisor-command-line">Adding Option to Hypervisor Command Line</a></h3>
 <p>microvm may not supply parameters for all possible options as adding specific devices. Processing of all microvm configuration options is done in the mentioned above hypervisor’s runner .nix file.</p>
-<p>The runners support the <code>extraArgs</code> parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings. In this example the following <code>extraArgs</code> definition:</p>
+<p>The runners support the <code>extraArgs</code> parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings.</p>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>Support for the crosvm’s <code>extraArgs</code> parameter was added on April 7, 2023. Make sure to verify that your <code>flakes.lock</code> file refers to the proper version.</p>
+</div>
+<p>In this example the following <code>extraArgs</code> definition:</p>
 <pre><code>microvm.qemu.extraArgs = [
 "-object memory-backend-file,id=mem1,mem-path=/dev/shm/virtio_pmem.img"
 "-device virtio-pmem-pci,memdev=mem1,id=nv1"
@@ -5567,9 +5650,6 @@ microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 <pre><code>'-object memory-backend-file,id=mem1,mem-path=/dev/shm/virtio_pmem.img' '-device v
 irtio-pmem-pci,memdev=mem1,id=nv1'
 </code></pre>
-<blockquote>
-<p>Support for the crosvm’s <code>extraArgs</code> parameter was added on April 7, 2023. Make sure to verify that your <code>flakes.lock</code> file refers to the proper version.</p>
-</blockquote>
 <div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
@@ -5644,9 +5724,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="continuous-integration-and-distribution"><a class="header" href="#continuous-integration-and-distribution">Continuous Integration and Distribution</a></h1>
 <p>Ghaf Framework uses a CI/CD (Continuous Integration and Continuous Delivery) approach that aims to automate the process of building, testing, and deploying software.</p>
 <p>Our goal is to have the ability to deploy code quickly and safely: once a build is deployed, the next build undergoes testing, while the latest build is being coded.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>Currently, Continuous Deployment is not set up.</p>
-</blockquote>
+</div>
 <h2 id="general-process"><a class="header" href="#general-process">General Process</a></h2>
 <p><img src="scs/../img/CICD_general.drawio.png" alt="CI/CD Architecture" title="Ghaf CI/CD Architecture" /></p>
 <p>The software delivery pipeline consists of several stages:</p>
@@ -6181,9 +6265,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>BreadboardHSM</li>
 </ul>
 <p>The following table provides feature comparison of the proposed solutions:</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.</p>
-</blockquote>
+</div>
 <div class="table-wrapper"><table><thead><tr><th>Feature</th><th>YubiHSM 2</th><th>NitrokeyHSM2</th><th>SoftHSMv2</th><th>BreadboardHSM</th></tr></thead><tbody>
 <tr><td>Secure key storage</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
 <tr><td>ECC</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
@@ -7163,9 +7251,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Element, a Matrix-based chat client (on the host)</li>
 <li>the Google Android look-alike (GALA) application</li>
 </ul>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-warning">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  warning
+</p>
 <p>Ghaf Framework is under active development, some of the features may not be stable.</p>
-</blockquote>
+</div>
 <h2 id="known-issues-and-limitations-5"><a class="header" href="#known-issues-and-limitations-5">Known Issues and Limitations</a></h2>
 <ul>
 <li>Build time is used as the current time on NVIDIA Jetson AGX Orin.
@@ -7369,7 +7461,8 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 sudo mount /dev/sda /mnt
 </code></pre>
 <blockquote>
-<p><strong>WARNING:</strong> [For NVIDIA Jetson Orin AGX] Make sure to use a fresh VHDX image file that was not booted in another environment before.</p>
+<p>[!WARNING]
+[For NVIDIA Jetson Orin AGX] Make sure to use a fresh VHDX image file that was not booted in another environment before.</p>
 </blockquote>
 </li>
 </ol>
@@ -7385,7 +7478,8 @@ windows-launcher ./Windows11_InsiderPreview_Client_ARM64_en-us_25324.VHDX
 <li>
 <p>Windows 11 requires Internet access to finish the setup. To boot the VM without an Internet connection, open cmd with Shift+F10 and type <code>OOBE\BYPASSNRO</code>. After the configuration restart click “I don’t have internet“ to skip the Internet connection step and continue the installation.</p>
 <blockquote>
-<p>TIP: If after pressing Shift+F10 the command window is not displayed, try to switch between opened windows by using Alt+Tab.</p>
+<p>[!TIP]
+If after pressing Shift+F10 the command window is not displayed, try to switch between opened windows by using Alt+Tab.</p>
 </blockquote>
 </li>
 </ol>
@@ -7413,7 +7507,8 @@ windows-launcher ./Win11_22H2_English_x64v2.iso
 <li>Name: <code>BypassSecureBootCheck</code>, value <code>1</code>.</li>
 </ul>
 <blockquote>
-<p>TIP: [For Ghaf running on a laptop] If after pressing Shift+F10 the command window is not displayed, try again with the Fn key (Shift+Fn+F10) or switch between opened windows by using Alt+Tab.</p>
+<p>[!TIP]
+[For Ghaf running on a laptop] If after pressing Shift+F10 the command window is not displayed, try again with the Fn key (Shift+Fn+F10) or switch between opened windows by using Alt+Tab.</p>
 </blockquote>
 </li>
 <li>
@@ -7525,7 +7620,8 @@ windows-launcher ./Win11_22H2_English_x64v2.iso
 <li>For Generic x86: <a href="https://ci.android.com/builds/submitted/9970479/aosp_cf_x86_64_phone-userdebug/latest/cvd-host_package.tar.gz">cvd-host_package.tar.gz</a> and <a href="https://ci.android.com/builds/submitted/9970479/aosp_cf_x86_64_phone-userdebug/latest/aosp_cf_x86_64_phone-img-9970479.zip">aosp_cf_x86_64_phone-img-9970479.zip</a></li>
 </ul>
 <blockquote>
-<p>Download a host package from the same build as the image.</p>
+<p>[!NOTE]
+Download a host package from the same build as the image.</p>
 </blockquote>
 </li>
 <li>
@@ -7722,9 +7818,13 @@ Virtual device booted successfully
 Source: <a href="https://connectwithnature.ae/knowledge-hub/ghaf-tree">https://connectwithnature.ae/knowledge-hub/ghaf-tree</a></p>
 <h3 id="cicd"><a class="header" href="#cicd">CI/CD</a></h3>
 <p><em>Continuous Integration and Continuous Delivery is a Ghaf software development lifecycle. Continuous Integration refers to regularly integrating code changes into a shared repository, where they are automatically tested and verified. Continuous Delivery—software is released in short iterations.</em></p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p>Currently, Continuous Deployment is not set up. Continuous Deployment—code is deployed to customers automatically.</p>
-</blockquote>
+</div>
 <h3 id="ssrc"><a class="header" href="#ssrc">SSRC</a></h3>
 <p><em>Secure Systems Research Center is a global center of excellence in the development of end-to-end security and resilience for cyber-physical and autonomous systems. SSRC is a part of TII.</em><br />
 Source: <a href="https://www.tii.ae/secure-systems">https://www.tii.ae/secure-systems</a></p>

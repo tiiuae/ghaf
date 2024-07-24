@@ -352,9 +352,13 @@ SPDX-License-Identifier: WTFPL
 <h1 id="build-and-run"><a class="header" href="#build-and-run">Build and Run</a></h1>
 <p>This tutorial assumes that you already have basic <a href="https://git-scm.com/">git</a> experience.</p>
 <p>The canonical URL for the upstream Ghaf git repository is <a href="https://github.com/tiiuae/ghaf">https://github.com/tiiuae/ghaf</a>. To try Ghaf, you can build it from the source.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-warning">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  warning
+</p>
 <p><a href="../ref_impl/cross_compilation.html">Cross-compilation</a> support is currently under development and not available for the building process.</p>
-</blockquote>
+</div>
 <h2 id="prerequisites"><a class="header" href="#prerequisites">Prerequisites</a></h2>
 <p>First, follow the basic device-independent steps:</p>
 <ul>
@@ -436,7 +440,8 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <li>Connect the Linux laptop to the board with a Micro-USB cable to use <a href="https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console">serial interface</a>.</li>
 </ol>
 <blockquote>
-<p>For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
+<p>[!NOTE]
+For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
 </blockquote>
 </li>
 <li>

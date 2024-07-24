@@ -361,9 +361,13 @@ or</li>
 <h2 id="window-border-coloring"><a class="header" href="#window-border-coloring">Window Border Coloring</a></h2>
 <p>The border color concept illustrates the application trustworthiness in a user-friendly manner. The color shows the application's security level and allows avoiding user's mistakes. The same approach can be found in other projects, for example, <a href="https://www.qubes-os.org/doc/getting-started/#color--security">QubeOS</a>.</p>
 <p>Ghaf uses patched labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (<code>serverDecoration</code> = <code>yes</code>). The <code>borderColor</code> property is responsible for the frame color.</p>
-<blockquote>
-<p><strong>TIP:</strong> According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
+</div>
 <p>For example, the foot terminal with Aqua colored frame:</p>
 <pre><code>&lt;windowRules&gt;
   &lt;windowRule identifier="Foot" borderColor="#00FFFF" serverDecoration="yes" skipTaskbar="yes"  /&gt;

@@ -668,9 +668,13 @@ SPDX-License-Identifier: WTFPL
 <li><strong><code>true</code></strong>: Prevents the service and its children processes from gaining new privileges.</li>
 <li><strong><code>false</code></strong>: Allows the service and its children processes to gain new privileges.</li>
 </ul>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>Some configurations may override this setting and ignore its value.</p>
-</blockquote>
+</div>
 <h3 id="64-umask"><a class="header" href="#64-umask">6.4. UMask</a></h3>
 <p><a href="https://www.freedesktop.org/software/systemd/man/systemd.exec.html#UMask=">UMask</a>
 sets the file mode creation mask (umask) for the service, controlling the default permissions applied to newly created files and directories.</p>
@@ -852,9 +856,13 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 <ul>
 <li><em>List of system calls</em>: Specifies the allowed system calls for processes within the service. If the list begins with "~", the effect is inverted, meaning only the listed system calls will result in termination.</li>
 </ul>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-tip">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  tip
+</p>
 <p>Predefined sets of system calls are available, starting with "@" followed by the name of the set.</p>
-</blockquote>
+</div>
 <div class="table-wrapper"><table><thead><tr><th><strong>Filter Set</strong></th><th><strong>Description</strong></th></tr></thead><tbody>
 <tr><td><strong>@clock</strong></td><td>Allows clock and timer-related system calls, such as clock_gettime, nanosleep, etc. This is essential for time-related operations.</td></tr>
 <tr><td><strong>@cpu-emulation</strong></td><td>Allows CPU emulation-related system calls, typically used by virtualization software.</td></tr>

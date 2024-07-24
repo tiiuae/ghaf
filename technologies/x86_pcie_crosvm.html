@@ -353,9 +353,13 @@ SPDX-License-Identifier: WTFPL
 <h2 id="enabling-pcie-devices-for-vfio-with-driverctl"><a class="header" href="#enabling-pcie-devices-for-vfio-with-driverctl">Enabling PCIe Devices for VFIO with driverctl</a></h2>
 <p>As with other passthroughs, first, we need to set the target device to use VFIO
 driver. This can be done manually or by using the <a href="https://gitlab.com/driverctl/driverctl">driverctl</a> tool as below.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>Running driverctl requires root permissions.</p>
-</blockquote>
+</div>
 <pre><code>export BUS="0000:01:00.0"
 driverctl --nosave set-override ${BUS} vfio-pci
 </code></pre>

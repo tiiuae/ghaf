@@ -359,11 +359,11 @@ SPDX-License-Identifier: WTFPL
 You can use an already existing VM file as a reference, for example: <code>modules/reference/appvms/business.nix</code>.</p>
 <p>Each VM has the following properties:</p>
 <div class="table-wrapper"><table><thead><tr><th><strong>Property</strong></th><th><strong>Type</strong></th><th><strong>Unique</strong></th><th><strong>Description</strong></th><th><strong>Example</strong></th></tr></thead><tbody>
-<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name, for example, <code>business-vm</code> will be also the VM hostname. The length of the name must be 8 characters or less.</td><td>“business”</td></tr>
-<tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[business top]</td></tr>
-<tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>"02:00:00:03:10:01"</td></tr>
+<tr><td>name</td><td>str</td><td>yes</td><td>This name is postfixed with <code>-vm</code> and will be shown in microvm list. The name, for example, <code>chromium-vm</code> will be also the VM hostname. The length of the name must be 8 characters or less.</td><td>“chromium”</td></tr>
+<tr><td>packages</td><td>list of types.package</td><td>no</td><td>Packages to include in a VM. It is possible to make it empty or add several packages.</td><td>[chromium top]</td></tr>
+<tr><td>macAddress</td><td>str</td><td>yes</td><td>Needed for network configuration.</td><td>"02:00:00:03:03:05"</td></tr>
 <tr><td>ramMb</td><td>int, [1, …, host memory]</td><td>no</td><td>Memory in MB.</td><td>3072</td></tr>
-<tr><td>cores</td><td>int,  [1, …, host cores]</td><td>no</td><td>Virtual CPU cores.</td><td>4</td></tr>
+<tr><td>cores</td><td>int,  [1, …, host cores]</td><td>no</td><td>Virtual CPU cores.</td><td></td></tr>
 </tbody></table>
 </div></li>
 <li>
@@ -382,9 +382,13 @@ You can use an already existing VM file as a reference, for example: <code>modul
 <pre><code>          business-vm = true;
           new-vm = true; # your new vm here
 </code></pre>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p>For more information on creating new profiles, see <a href="./profiles-config.html">Profiles Configuration</a>.</p>
-</blockquote>
+</div>
 <ol start="4">
 <li>Add an IP and the VM name in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix">modules/common/networking/hosts.nix</a>. For example:</li>
 </ol>

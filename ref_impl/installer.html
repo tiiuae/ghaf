@@ -353,8 +353,8 @@ SPDX-License-Identifier: WTFPL
 <h2 id="configuring-and-building-installer-for-ghaf"><a class="header" href="#configuring-and-building-installer-for-ghaf">Configuring and Building Installer for Ghaf</a></h2>
 <p>You can obtain the installation image for your Ghaf configuration.</p>
 <p>In addition to the live USB image that Ghaf provides it is also possible to install Ghaf. This can either be achieved by downloading the desired image or by building it as described below.</p>
-<p>Currently, only x86_64-linux systems are supported by the standalone installer. So to build e.g. the debug image
-for the Lenovo x1 follow the following steps</p>
+<p>Currently, only x86_64-linux systems are supported by the standalone installer.</p>
+<p>To build, for example, the debug image for the Lenovo x1, use the following command:</p>
 <pre><code class="language-sh">nix build .#lenovo-x1-carbon-gen11-debug-installer
 </code></pre>
 <h2 id="flashing-installer"><a class="header" href="#flashing-installer">Flashing Installer</a></h2>
@@ -362,19 +362,22 @@ for the Lenovo x1 follow the following steps</p>
 <pre><code class="language-nix">sudo dd if=./result/iso/ghaf-&lt;version&gt;-x86_64-linux.iso of=/dev/&lt;SSD_NAME&gt; bs=32M status=progress; sync
 </code></pre>
 <h2 id="installing-image"><a class="header" href="#installing-image">Installing Image</a></h2>
-<blockquote>
-<p><strong>WARNING</strong>: This operation is destructive and will overwrite your system.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-caution">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  caution
+</p>
+<p>This operation is destructive and will overwrite your system.</p>
+</div>
 <p>Insert the SSD into the laptop, boot, and select the option to install.</p>
-<p>When presented with the terminal run:</p>
+<p>Then use the following command:</p>
 <pre><code class="language-nix">sudo ghaf-install.sh
 </code></pre>
-<p>Check the available options shown in the prompt for the install target
-remember that the <code>/dev/sdX</code> is likely the install medium.</p>
-<p>Once entered, remembering to include <code>/dev</code>, press ENTER to complete the process.</p>
+<p>Check the available options shown in the prompt for the install target. Mind that the <code>/dev/sdX</code> is likely the install medium.</p>
+<p>Once entered, include <code>/dev</code> and press [Enter] on the keyboard to complete the process.</p>
 <pre><code class="language-nix">sudo reboot
 </code></pre>
-<p>Mind remove the installer drive.</p>
+<p>Remove the installer drive.</p>
 </div>
               <div class="sidetoc">
                 <nav class="pagetoc"></nav>

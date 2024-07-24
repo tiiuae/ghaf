@@ -354,9 +354,13 @@ SPDX-License-Identifier: WTFPL
 <p>Proposed, work in progress.</p>
 <h2 id="context"><a class="header" href="#context">Context</a></h2>
 <p>This ADR is a work-in-progress note for Ghaf bus passthrough implementation that will support rust-vmm-based hypervisors.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p><em>rust-vmm</em> is an open-source project that empowers the community to build custom Virtual Machine Monitors (VMMs) and hypervisors. For more information, see <a href="https://github.com/rust-vmm/community">https://github.com/rust-vmm/community</a>.</p>
-</blockquote>
+</div>
 <p>It is crucial to have bus devices passthrough support for ARM-based hardware as the bus is mainly used to connect the peripherals. Nowadays, the only hypervisor with some support for Platform bus is QEMU but the code is dated 2013 and not frequently used.</p>
 <p>On the other hand, one of the target hardware devices for Ghaf is NVIDIA Orin with an ARM core. To achieve Ghaf's security and hardware isolation goals, devices should support passthrough mode. Production-ready rust-vmm-based hypervisors (<a href="https://github.com/google/crosvm">crosvm</a>, <a href="https://github.com/firecracker-microvm/firecracker">Firecracker</a>, <a href="https://www.cloudhypervisor.org/">Cloud Hypervisor</a>) do not have support for Platform bus.</p>
 <h2 id="decision"><a class="header" href="#decision">Decision</a></h2>

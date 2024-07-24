@@ -350,9 +350,13 @@ SPDX-License-Identifier: WTFPL
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="cross-compilation"><a class="header" href="#cross-compilation">Cross-Compilation</a></h1>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-warning">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  warning
+</p>
 <p>Cross-compilation is currently under development and cannot be used properly on all the supported device configurations.</p>
-</blockquote>
+</div>
 <p>Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is <code>x_86</code>, this will generally require that the code is cross-compiled for target ISA e.g. <code>AArch64</code> or <code>RISC-V</code>.</p>
 <p>NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.</p>
 <h2 id="cross-compilation-for-microchip-icicle-kit-riscv64"><a class="header" href="#cross-compilation-for-microchip-icicle-kit-riscv64">Cross-Compilation for Microchip Icicle Kit (RISCV64)</a></h2>

@@ -357,9 +357,13 @@ SPDX-License-Identifier: WTFPL
 </ol>
 <p>If you hit an issue, check <a href="./remote_build_setup.html#troubleshooting">Troubleshooting</a>.</p>
 <h3 id="1-configuring-ssh-keys"><a class="header" href="#1-configuring-ssh-keys">1. Configuring SSH Keys</a></h3>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
 <p>This step assumes that public SSH keys were generated and copied (<em>ssh-copy-id</em>) both for normal and root users. For more information, see <a href="https://www.ssh.com/academy/ssh/copy-id#setting-up-public-key-authentication">Setting up public key authentication</a>.</p>
-</blockquote>
+</div>
 <p>Before you begin, make sure an SSH connection is established to the remote host for both normal and root users:</p>
 <pre><code>ssh USER@IP_ADDRESS_OF_REMOTE_MACHINE
 nix store ping --store ssh://USER@REMOTE_IP_ADDRESS
@@ -395,7 +399,8 @@ nix store ping --store ssh://USER@REMOTE_IP_ADDRESS
 <pre><code>cd .ssh
 </code></pre>
 <blockquote>
-<p><strong>TIP</strong>:<code>.ssh</code> is a user-level access and <code>/etc/ssh</code> is system-wide.</p>
+<p>[!TIP]
+<code>.ssh</code> is a user-level access and <code>/etc/ssh</code> is system-wide.</p>
 </blockquote>
 </li>
 </ol>

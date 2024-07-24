@@ -364,42 +364,52 @@ SPDX-License-Identifier: WTFPL
 <p>The current implementation includes a host configuration for the UARTA passthrough as a test case demonstrating the practical application of the BPMP virtualization. At the same time, the current implementation still requires manually built Ubuntu guest. Work continues to integrate <code>microvm.nix</code> declared guest that supports NVIDIA BPMP virtualization with the UARTA passthrough demo. This work is generally important for future NVIDIA Jetson platform bus GPU passthrough. With this feature it is possible to virtualize the NVIDIA-Jetson-integrated GPU connected to the platform bus.</p>
 <h2 id="using-bpmp-virtualization-options-on-nvidia-jetson-agx-orin"><a class="header" href="#using-bpmp-virtualization-options-on-nvidia-jetson-agx-orin">Using BPMP Virtualization Options on NVIDIA Jetson AGX Orin</a></h2>
 <ol>
-<li>Enable NVIDIA BPMP virtualization on a Ghaf host for an NVIDIA Jetson-target using the following configuration options:</li>
-</ol>
+<li>
+<p>Enable NVIDIA BPMP virtualization on a Ghaf host for an NVIDIA Jetson-target using the following configuration options:</p>
 <pre><code class="language-nix">  hardware.nvidia = {
     virtualization.enable = true;
     passthroughs.uarta.enable = true;
 };
 </code></pre>
 <blockquote>
-<p><strong>IMPORTANT:</strong> These options are integrated to <a href="https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix">NVIDIA Jetson Orin targets</a> but disabled by default until the implementation is finished.</p>
+<p>[!IMPORTANT]
+These options are integrated to <a href="https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix">NVIDIA Jetson Orin targets</a> but disabled by default until the implementation is finished.</p>
 </blockquote>
-<ol start="2">
-<li>Build the target and boot the image. You can write the image to an SSD for testing with a recent NVIDIA UEFI FW.</li>
+</li>
+<li>
+<p>Build the target and boot the image. You can write the image to an SSD for testing with a recent NVIDIA UEFI FW.</p>
+</li>
 </ol>
 <h2 id="testing"><a class="header" href="#testing">Testing</a></h2>
 <h3 id="host-testing"><a class="header" href="#host-testing">Host Testing</a></h3>
 <ol>
-<li>Check the <code>bpmp-host</code> device:</li>
-</ol>
+<li>
+<p>Check the <code>bpmp-host</code> device:</p>
 <pre><code>[ghaf@ghaf-host:~]$ ls /dev | grep bpmp-host
 bpmp-host
 </code></pre>
-<ol start="2">
-<li>Check that <code>vfio-platform</code> binding is successful:</li>
-</ol>
+</li>
+<li>
+<p>Check that <code>vfio-platform</code> binding is successful:</p>
 <pre><code>ghaf@ghaf-host:~]$ ls -l /sys/bus/platform/drivers/vfio-platform/3100000.serial
 lrwxrwxrwx 1 root root 0 Dec  8 08:26 /sys/bus/platform/drivers/vfio-platform/3100000.serial -&gt; ../../../../devices/platform/3100000.serial
 </code></pre>
-<h3 id="guest-for-uarta-testing"><a class="header" href="#guest-for-uarta-testing">Guest for UARTA Testing</a></h3>
-<blockquote>
-<p>UARTA is an UART unit with a port A connection. For more information, see <a href="nvidia_agx_pt_uart.html#uart-connections">UART Connections</a>.</p>
-</blockquote>
-<ol>
-<li>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a>[^note] and use the following script to start the VM:</li>
+</li>
 </ol>
+<h3 id="guest-for-uarta-testing"><a class="header" href="#guest-for-uarta-testing">Guest for UARTA Testing</a></h3>
+<div class="mdbook-alerts mdbook-alerts-tip">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  tip
+</p>
+<p>UARTA is an UART unit with a port A connection. For more information, see <a href="nvidia_agx_pt_uart.html#uart-connections">UART Connections</a>.</p>
+</div>
+<ol>
+<li>
+<p>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a><sup class="footnote-reference"><a href="#note1">1</a></sup> and use the following script to start the VM:</p>
 <blockquote>
-<p><strong>TIP:</strong> IMG is the kernel image and FS the rootfs.</p>
+<p>[!IMPORTANT]
+IMG is the kernel image and FS the rootfs.</p>
 </blockquote>
 <pre><code>IMG=$1
 FS=$2
@@ -417,19 +427,23 @@ qemu-system-aarch64 \
     -dtb virt.dtb \
     -append "rootwait root=/dev/vda console=ttyAMA0"
 </code></pre>
-<ol start="2">
-<li>With UARTA connected start Minicom on the working machine:</li>
-</ol>
+</li>
+<li>
+<p>With UARTA connected start Minicom on the working machine:</p>
 <pre><code>minicom -b 9600 -D /dev/ttyUSB0
 </code></pre>
-<ol start="3">
-<li>Test UARTA by echoing a string to the correct <code>tty</code> in the VM:</li>
-</ol>
+</li>
+<li>
+<p>Test UARTA by echoing a string to the correct <code>tty</code> in the VM:</p>
 <pre><code>echo 123 &gt; /dev/ttyTHS0
 </code></pre>
+</li>
+</ol>
 <h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
 <p><a href="./nvidia_agx_pt_uart.html#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></p>
-<p>[^note] That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm.</p>
+<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
+<p>That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm.</p>
+</div>
 </div>
               <div class="sidetoc">
                 <nav class="pagetoc"></nav>

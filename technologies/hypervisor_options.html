@@ -407,7 +407,15 @@ microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 </code></pre>
 <h3 id="adding-option-to-hypervisor-command-line"><a class="header" href="#adding-option-to-hypervisor-command-line">Adding Option to Hypervisor Command Line</a></h3>
 <p>microvm may not supply parameters for all possible options as adding specific devices. Processing of all microvm configuration options is done in the mentioned above hypervisor’s runner .nix file.</p>
-<p>The runners support the <code>extraArgs</code> parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings. In this example the following <code>extraArgs</code> definition:</p>
+<p>The runners support the <code>extraArgs</code> parameter. It allows setting any option in QEMU command line invocation. Its value is a list of strings.</p>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>Support for the crosvm’s <code>extraArgs</code> parameter was added on April 7, 2023. Make sure to verify that your <code>flakes.lock</code> file refers to the proper version.</p>
+</div>
+<p>In this example the following <code>extraArgs</code> definition:</p>
 <pre><code>microvm.qemu.extraArgs = [
 "-object memory-backend-file,id=mem1,mem-path=/dev/shm/virtio_pmem.img"
 "-device virtio-pmem-pci,memdev=mem1,id=nv1"
@@ -417,9 +425,6 @@ microvm.qemu.extraArgs = [ "--option 1 --option 2" ];
 <pre><code>'-object memory-backend-file,id=mem1,mem-path=/dev/shm/virtio_pmem.img' '-device v
 irtio-pmem-pci,memdev=mem1,id=nv1'
 </code></pre>
-<blockquote>
-<p>Support for the crosvm’s <code>extraArgs</code> parameter was added on April 7, 2023. Make sure to verify that your <code>flakes.lock</code> file refers to the proper version.</p>
-</blockquote>
 </div>
               <div class="sidetoc">
                 <nav class="pagetoc"></nav>

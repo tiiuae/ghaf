@@ -358,9 +358,7 @@ SPDX-License-Identifier: WTFPL
 <li>The other slot is a <a href="#pcie-m2-slot">smaller M.2 slot</a> that is located at the bottom of the board. By default, the slot is in use of the included Wi-Fi and Bluetooth module.</li>
 <li>The third slot is actually an <a href="#pcie-m2-nvme-2247-for-ssd">NVMe slot</a> which can be used to add an NVMe SSD to the board.</li>
 </ul>
-<blockquote>
 <p>For more information on the board's connections details, see the <a href="https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html">Hardware Layout</a> section of the Jetson AGX Orin Developer Kit User Guide.</p>
-</blockquote>
 <p>When using one of the slots:</p>
 <ul>
 <li>First and foremost, always turn off and disconnect any power sources from the board and its peripherals when connecting or disconnecting devices to any of the PCIe buses connect.</li>
@@ -368,13 +366,21 @@ SPDX-License-Identifier: WTFPL
 </ul>
 <h4 id="full-size-pcie-slot"><a class="header" href="#full-size-pcie-slot">Full-Size PCIe Slot</a></h4>
 <p>The full-size PCIe connector is under the black plastic cover on one of the sides of the device. The cover is held in place with a fairly strong magnet. There is a small connector ribbon and a few delicate wires going from the board internals to a Wi-Fi antenna on the cover.</p>
-<blockquote>
-<p><strong>TIP:</strong> Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.</p>
+</div>
 <p>The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards <sup class="footnote-reference"><a href="#note1">1</a></sup> may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.</p>
-<blockquote>
-<p><strong>TIP:</strong> We recommend to check carefully the power requirements of a device before turning the device on.</p>
-</blockquote>
+<div class="mdbook-alerts mdbook-alerts-important">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  important
+</p>
+<p>We recommend to check carefully the power requirements of a device before turning the device on.</p>
+</div>
 <p>A good rule of thumb might be if the device has a cooler to actively cool it down then some care should be taken before starting to use the card. Some trials have been done with GPU devices that use at maximum 30-34W power. The devices seem to work well in Jetson AGX Orin, but it is difficult to say how much power the card actually pulls from the slot at any given time. No real performance or stress tests have been done but under usual GUI and simple 3d application usage the cards (NVIDIA Quadro P1000 and NVIDIA Quadro T600) seem to work fine.</p>
 <h4 id="pcie-m2-slot"><a class="header" href="#pcie-m2-slot">PCIe M.2 Slot</a></h4>
 <p>The PCIe M.2 slot with key type A+E is at the bottom of the board. By default, this slot is in use of the internal Wi-Fi and Bluetooth card. There are different types of M.2 slots all of which are not compatible with one another. The slot in Jetson AGX Orin is type A+E, and it supports PCIe 2x and USB transport buses.</p>
@@ -428,9 +434,13 @@ ls /sys/kernel/iommu_groups/&lt;id&gt;/devices/
 <p>You can also check the kernel logs to know which device belongs to which VFIO IOMMU group.</p>
 <h2 id="starting-guest-vm"><a class="header" href="#starting-guest-vm">Starting Guest VM</a></h2>
 <p>After binding a device to VFIO, you can access the device in a VM. To do so, use a command line argument (as in the example) for the PCI device to pass through to QEMU.</p>
-<blockquote>
+<div class="mdbook-alerts mdbook-alerts-note">
+<p class="mdbook-alerts-title">
+  <span class="mdbook-alerts-icon"></span>
+  note
+</p>
 <p>It does not matter which VFIO node ID was assigned to the device earlier, as long as all the devices with the same VFIO node are passed through, and none of the devices in the same group is left behind.</p>
-</blockquote>
+</div>
 <p>The QEMU command line argument for passthrough uses the PCIe device ID as identifier for the devices. Each
 device which is passed through needs its own QEMU <code>-device</code> argument as below:</p>
 <pre><code>-device vfio-pci,host="0001:01:00.0"

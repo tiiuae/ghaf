@@ -358,7 +358,7 @@ SPDX-License-Identifier: WTFPL
 <li>Create a new enable option to enable the profile, for example, <code>new-cool-profile</code>.</li>
 <li>In the lower section, under the correct area appvms, services, programs, make sure to describe additional definitions you need.</li>
 </ol>
-<p>For example, a <code>safe-and-unsave-browsing.nix</code> file with simple setup that includes business-vm and chrome-vm could look like this:</p>
+<p>For example, a <code>safe-and-unsave-browsing.nix</code> file with a simple setup that includes business-vm and chrome-vm could look like this:</p>
 <pre><code>  config = lib.mkIf cfg.enable {
     ghaf = {
       reference = {
