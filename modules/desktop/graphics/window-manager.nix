@@ -7,6 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.graphics.window-manager-common;
+  ghaf-open = pkgs.callPackage ../../../packages/ghaf-open {};
 in {
   options.ghaf.graphics.window-manager-common = {
     enable = lib.mkOption {
@@ -25,10 +26,14 @@ in {
 
     environment.noXlibs = false;
 
-    environment.systemPackages = [
-      # Seatd is needed to manage log-in process for wayland sessions
-      pkgs.seatd
-    ];
+    environment.systemPackages =
+      [
+        # Seatd is needed to manage log-in process for wayland sessions
+        pkgs.seatd
+      ]
+      ++ lib.optionals config.ghaf.profiles.debug.enable [
+        ghaf-open
+      ];
 
     # Next services/targets are taken from official weston documentation:
     # https://wayland.pages.freedesktop.org/weston/toc/running-weston.html
