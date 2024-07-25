@@ -12,6 +12,7 @@
   laptop-configuration = import ./laptop-configuration-builder.nix {inherit lib self;};
 
   targets = [
+    # Laptop Debug configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" [
       self.nixosModules.disko-basic-partition-v1
       {
@@ -30,6 +31,26 @@
         };
       }
     ])
+    (laptop-configuration "dell-latitude-7230" "debug" [
+      self.nixosModules.disko-basic-partition-v1
+      {
+        ghaf = {
+          hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7230.nix";
+          profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
+    (laptop-configuration "dell-latitude-7330" "debug" [
+      self.nixosModules.disko-basic-partition-v1
+      {
+        ghaf = {
+          hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7330.nix";
+          profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
+
+    # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
       self.nixosModules.disko-basic-partition-v1
       {
@@ -48,7 +69,7 @@
         };
       }
     ])
-    (laptop-configuration "dell-latitude-7230" "debug" [
+    (laptop-configuration "dell-latitude-7230" "release" [
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
@@ -57,7 +78,7 @@
         };
       }
     ])
-    (laptop-configuration "dell-latitude-7330" "debug" [
+    (laptop-configuration "dell-latitude-7330" "release" [
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
