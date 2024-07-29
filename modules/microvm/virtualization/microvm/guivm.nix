@@ -150,7 +150,7 @@
             RestartSec = "1";
           };
           startLimitIntervalSec = 0;
-          wantedBy = ["ghaf-session.target"];
+          wantedBy = ["default.target"];
         };
       })
     ];
