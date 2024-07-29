@@ -1,10 +1,22 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.profiles.graphics;
   compositors = [ "labwc" ];
+  renderers = [
+    "vulkan"
+    "pixman"
+    "gles2"
+  ];
+  ghaf-open = pkgs.callPackage ../../../packages/ghaf-open { };
+
   inherit (lib)
     mkEnableOption
     mkOption
@@ -22,6 +34,15 @@ in
         Which Wayland compositor to use.
 
         Choose one of: ${lib.concatStringsSep "," compositors}
+      '';
+    };
+    renderer = lib.mkOption {
+      type = lib.types.enum renderers;
+      default = "pixman";
+      description = ''
+        Which wlroots renderer to use.
+
+        Choose one of: ${lib.concatStringsSep "," renderers}
       '';
     };
   };
@@ -53,6 +74,21 @@ in
   };
 
   config = mkIf cfg.enable {
+    hardware.graphics.enable = true;
+    environment.noXlibs = false;
+    environment.sessionVariables = {
+      WLR_RENDERER = cfg.renderer;
+      XDG_SESSION_TYPE = "wayland";
+      WLR_NO_HARDWARE_CURSORS = 1;
+      XKB_DEFAULT_LAYOUT = "us,ara,fi";
+      XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
+      # Set by default in labwc, but possibly not in other compositors
+      XDG_CURRENT_DESKTOP = "wlroots";
+      _JAVA_AWT_WM_NONREPARENTING = 1;
+    };
+
+    environment.systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ ghaf-open ];
+
     ghaf.graphics = {
       labwc.enable = cfg.compositor == "labwc";
     };

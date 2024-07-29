@@ -32,6 +32,13 @@ let
     }
   '';
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
+  ghaf-logout = pkgs.writeShellApplication {
+    name = "ghaf-logout";
+    runtimeInputs = [ pkgs.procps ];
+    # 'labwc --exit' and wayland-logout doesn't kill autostart applications.
+    text = "pkill -u \"$USER\"";
+  };
+
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
@@ -177,18 +184,42 @@ let
     padding=10
     default-timeout=10000
   '';
+
+  environment = ''
+    XCURSOR_THEME=breeze_cursors
+
+    # Wayland compatibility
+    MOZ_ENABLE_WAYLAND=1
+  '';
+
+  labwc-session = pkgs.writeShellApplication {
+    name = "labwc-session";
+
+    runtimeInputs = [
+      pkgs.labwc
+      autostart
+    ];
+
+    text = "labwc -C /etc/labwc -s labwc-autostart";
+  };
 in
 {
   config = lib.mkIf cfg.enable {
-    systemd.user.services."labwc".serviceConfig = {
-      ExecStart = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${autostart}/bin/labwc-autostart";
-    };
-
     environment.etc = {
       "labwc/rc.xml".text = rcXml;
       "labwc/menu.xml".text = menuXml;
+      "labwc/environment".text = environment;
 
       "mako/config".text = makoConfig;
+
+      "greetd/environments".text = lib.mkAfter "${labwc-session}/bin/labwc-session\n";
+    };
+
+    services.greetd.settings = {
+      initial_session = lib.mkIf (cfg.autologinUser != null) {
+        user = "ghaf";
+        command = "${labwc-session}/bin/labwc-session";
+      };
     };
 
     ghaf.graphics.launchers = [
@@ -196,6 +227,11 @@ in
         name = "Lock";
         path = "${lockCmd}";
         icon = "${pkgs.icon-pack}/system-lock-screen.svg";
+      }
+      {
+        name = "Log Out";
+        path = "${ghaf-logout}/bin/ghaf-logout";
+        icon = "${pkgs.icon-pack}/system-log-out.svg";
       }
     ];
   };

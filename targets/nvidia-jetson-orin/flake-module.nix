@@ -93,11 +93,11 @@ let
                 applications.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
+                graphics.renderer = "gles2";
               };
               reference.programs.windows-launcher.enable = true;
               reference.personalize.keys.enable = variant == "debug";
 
-              graphics.labwc.renderer = "egl2";
               # To enable screen locking set to true
               graphics.labwc.autolock.enable = false;
             };
