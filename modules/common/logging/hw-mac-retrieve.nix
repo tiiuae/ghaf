@@ -8,7 +8,7 @@
 }: let
   # TODO: replace sshCommand and MacCommand with givc rpc to retrieve Mac Address
   sshCommand = "${pkgs.sshpass}/bin/sshpass -p ghaf ${pkgs.openssh}/bin/ssh -o StrictHostKeyChecking=no ghaf@net-vm";
-  macCommand = "cat /sys/class/net/wlp0s5f0/address";
+  macCommand = "${pkgs.hwinfo}/bin/hwinfo --network --only /class/net/wlp0s5f0 |  ${pkgs.gawk}/bin/awk '/Permanent HW Address/ {print $4}'";
   macAddressPath = config.ghaf.logging.identifierFilePath;
 in {
   options.ghaf.logging.identifierFilePath = lib.mkOption {
@@ -36,6 +36,8 @@ in {
         ExecStart = ''
           ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath}"
         '';
+        Restart = "on-failure";
+        RestartSec = "1";
       };
     };
   };
