@@ -45,7 +45,7 @@
           logging.listener.address = configHost.ghaf.logging.listener.address;
           logging.listener.port = configHost.ghaf.logging.listener.port;
           logging.identifierFilePath = "/var/lib/private/alloy/MACAddress";
-          logging.server.endpoint = "http://ghaflogs.vedenemo.dev:3100/loki/api/v1/push";
+          logging.server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
         };
 
         system.stateVersion = lib.trivial.release;
