@@ -2,7 +2,7 @@ diff --git a/src/electron-main.ts b/src/electron-main.ts
 index b5d13ac..ffffb76 100644
 --- a/src/electron-main.ts
 +++ b/src/electron-main.ts
-@@ -456,11 +456,10 @@ app.on("ready", async () => {
+@@ -458,11 +458,10 @@
          // https://www.electronjs.org/docs/faq#the-font-looks-blurry-what-is-this-and-what-can-i-do
          backgroundColor: "#fff",
  
@@ -15,16 +15,15 @@ index b5d13ac..ffffb76 100644
          autoHideMenuBar: global.store.get("autoHideMenuBar", true),
  
          x: mainWindowState.x,
-@@ -475,67 +474,39 @@ app.on("ready", async () => {
+@@ -477,67 +476,35 @@
              webgl: true,
          },
      });
--    global.mainWindow.loadURL("vector://vector/webapp/");
+-    void global.mainWindow.loadURL("vector://vector/webapp/");
 -
 -    if (process.platform === "darwin") {
 -        setupMacosTitleBar(global.mainWindow);
 -    }
-+    
  
      // Handle spellchecker
      // For some reason spellCheckerEnabled isn't persisted, so we have to use the store here
@@ -32,7 +31,7 @@ index b5d13ac..ffffb76 100644
  
 -    // Create trayIcon icon
 -    if (global.store.get("minimizeToTray", true)) tray.create(global.trayConfig);
- 
+-
 -    global.mainWindow.once("ready-to-show", () => {
 +    global.mainWindow.webContents.once('did-finish-load',function(){
          if (!global.mainWindow) return;
@@ -41,8 +40,7 @@ index b5d13ac..ffffb76 100644
          if (!argv["hidden"]) {
              global.mainWindow.show();
 +            global.mainWindow.restore();
-++           global.mainWindow.focus();
-+
++            global.mainWindow.focus();
          } else {
              // hide here explicitly because window manage above sometimes shows it
              global.mainWindow.hide();
@@ -55,7 +53,6 @@ index b5d13ac..ffffb76 100644
      global.mainWindow.on("closed", () => {
          global.mainWindow = null;
      });
-+    
      global.mainWindow.on("close", async (e) => {
 -        // If we are not quitting and have a tray icon then minimize to tray
 -        if (!global.appQuitting && (tray.hasTray() || process.platform === "darwin")) {

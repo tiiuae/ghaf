@@ -22,7 +22,6 @@ in {
   config = mkIf cfg.enable {
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
-    sound.enable = true;
     hardware.firmware = [pkgs.sof-firmware];
     services.pipewire = {
       enable = true;

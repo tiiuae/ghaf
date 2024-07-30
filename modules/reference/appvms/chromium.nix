@@ -41,7 +41,6 @@ in {
       imports = [../programs/chromium.nix];
       # Enable pulseaudio for Chromium VM
       security.rtkit.enable = true;
-      sound.enable = true;
       users.extraUsers.ghaf.extraGroups = ["audio" "video"];
 
       hardware.pulseaudio = {

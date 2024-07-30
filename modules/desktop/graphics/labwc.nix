@@ -92,7 +92,7 @@ in {
       [
         pkgs.labwc
         pkgs.ghaf-openbox-theme
-        pkgs.gnome.adwaita-icon-theme
+        pkgs.adwaita-icon-theme
 
         (import ./launchers.nix {inherit pkgs config;})
       ]
