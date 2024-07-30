@@ -154,7 +154,7 @@
   };
 
   # Host service dependencies
-  after = optional configHost.sound.enable "pulseaudio.service";
+  after = optional config.ghaf.services.audio.enable "pulseaudio.service";
   requires = after;
   # Sleep appvms to give gui-vm time to start
   serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";

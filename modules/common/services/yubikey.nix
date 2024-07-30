@@ -36,9 +36,11 @@ in {
     };
 
     security.pam.u2f = {
-      authFile = "${u2f_file}";
+      settings = {
+        authFile = "${u2f_file}";
+        cue = true;
+      };
       control = "sufficient";
-      cue = true;
     };
 
     # Below rules are needed for screen locker (gtklock) to work

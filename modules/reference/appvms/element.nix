@@ -32,7 +32,6 @@ in {
     {
       # Enable pulseaudio for user ghaf to access mic
       security.rtkit.enable = true;
-      sound.enable = true;
       users.extraUsers.ghaf.extraGroups = ["audio" "video"];
 
       hardware.pulseaudio = {
