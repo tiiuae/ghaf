@@ -5,6 +5,7 @@
     ./devshell/kernel.nix
   ];
   perSystem = {
+    config,
     pkgs,
     inputs',
     lib,
@@ -12,12 +13,15 @@
   }: {
     devShells.default = pkgs.mkShell {
       name = "Ghaf devshell";
+      meta.description = "Ghaf development environment";
       #TODO look at adding Mission control etc here
+      inputsFrom = [
+        config.treefmt.build.programs # See ./treefmt.nix
+      ];
       packages =
         builtins.attrValues {
           inherit
             (pkgs)
-            alejandra
             git
             mdbook
             nix
@@ -26,7 +30,6 @@
             nix-output-monitor
             nix-tree
             reuse
-            statix
             ;
         }
         ++ [
