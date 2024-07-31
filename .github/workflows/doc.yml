@@ -3,14 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: doc
-
 on:
   push:
     branches:
       - main
     paths:
       - 'docs/**'
-
 jobs:
   deploy:
     name: build doc and deploy to gh pages

@@ -3,12 +3,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: check
-
 on:
   pull_request:
     branches:
       - main
-
 jobs:
   run-checks:
     runs-on: ubuntu-latest
@@ -37,4 +35,3 @@ jobs:
                nix flake show "${tmp_flakes}/${name}"
             fi
           done
-

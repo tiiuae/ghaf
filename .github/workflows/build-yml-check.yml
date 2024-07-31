@@ -7,7 +7,6 @@ on:
     outputs:
       result:
         value: ${{ jobs.check.outputs.result }}
-
 jobs:
   check:
     runs-on: ubuntu-latest

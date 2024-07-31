@@ -3,15 +3,12 @@
 # SPDX-License-Identifier: Apache-2.0
 
 name: build
-
 on:
   pull_request_target:
     branches:
       - main
-
 permissions:
   contents: read
-
 jobs:
   # This workflow uses environment-based authorization together
   # with 'pull_request_target' trigger as explained in:
@@ -20,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       authorized_user: ${{ steps.check-authorized-user.outputs.authorized_user}}
-    environment: 'internal-build-workflow'
+    environment: "internal-build-workflow"
     steps:
       - name: Check identity
         id: check-authorized-user
@@ -40,7 +37,6 @@ jobs:
           echo "github.actor: ${{ github.actor }}"
           echo "authorized_user=$authorized_user"
           echo "authorized_user=$authorized_user" >> "$GITHUB_OUTPUT"
-
   authorize-internal:
     needs: [check-identity]
     runs-on: ubuntu-latest
@@ -48,19 +44,14 @@ jobs:
     steps:
       - name: Authorize internal
         run: echo "authorized"
-
   authorize-external:
     needs: [check-identity]
     runs-on: ubuntu-latest
     if: ${{ needs.check-identity.outputs.authorized_user == 'False' }}
-    environment:
-      ${{ ( github.event_name == 'pull_request_target' &&
-            github.event.pull_request.head.repo.full_name != github.repository &&
-            'external-build-workflow' ) || ( 'internal-build-workflow' ) }}
+    environment: ${{ ( github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'external-build-workflow' ) || ( 'internal-build-workflow' ) }}
     steps:
       - name: Authorize external
         run: echo "authorized"
-
   authorize:
     needs: [authorize-internal, authorize-external]
     runs-on: ubuntu-latest
@@ -73,10 +64,8 @@ jobs:
     steps:
       - name: Authorize
         run: echo "authorized"
-
   build-yml-check:
     uses: ./.github/workflows/build-yml-check.yml
-
   build_matrix:
     name: "build"
     needs: [authorize, build-yml-check]
@@ -85,8 +74,8 @@ jobs:
     strategy:
       matrix:
         include:
-          #- arch: x86_64-linux
-            #target: lenovo-x1-carbon-gen11-debug
+          - arch: x86_64-linux
+            target: lenovo-x1-carbon-gen11-debug
           - arch: x86_64-linux
             target: nvidia-jetson-orin-agx-debug-from-x86_64
           - arch: x86_64-linux
