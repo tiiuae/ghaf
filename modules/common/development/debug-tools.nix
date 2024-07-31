@@ -59,14 +59,13 @@ in {
       ++
       # Match perf version with kernel.
       [
-        config.boot.kernelPackages.perf
+        (config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
         sysbench-test-script
         sysbench-fileio-test-script
         nvpmodel-check
         rm-linux-bootmgrs
       ]
       ++ rmDesktopEntries [pkgs.htop]
-      # TODO Can this be changed to platformPkgs to filter ?
       # LuaJIT (which is sysbench dependency) not available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") pkgs.sysbench
       # Icicle Kit performance test script available on RISC-V
