@@ -9,7 +9,7 @@
   cfg = config.ghaf.development.debug.tools;
 
   rm-linux-bootmgrs = pkgs.callPackage ./scripts/rm_linux_bootmgr_entries.nix {};
-  perf-test-script = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix {};
+  perf-test-script-icicle = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix {};
   sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix {};
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix {};
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix {};
@@ -60,7 +60,6 @@ in {
       # Match perf version with kernel.
       [
         config.boot.kernelPackages.perf
-        perf-test-script
         sysbench-test-script
         sysbench-fileio-test-script
         nvpmodel-check
@@ -70,6 +69,8 @@ in {
       # TODO Can this be changed to platformPkgs to filter ?
       # LuaJIT (which is sysbench dependency) not available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") pkgs.sysbench
+      # Icicle Kit performance test script available on RISC-V
+      ++ lib.optional (config.nixpkgs.hostPlatform.system == "riscv64-linux") perf-test-script-icicle
       # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
       ++ lib.optional (pkgs.stdenv.hostPlatform == pkgs.stdenv.buildPlatform) pkgs.unixbench
       # Build VLC only on x86
