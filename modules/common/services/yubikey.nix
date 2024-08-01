@@ -41,9 +41,10 @@ in {
       cue = true;
     };
 
-    # Below rule is needed for screen locker (gtklock) to work
+    # Below rules are needed for screen locker (gtklock) to work
     services.udev.extraRules = ''
       KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0407", TAG+="uaccess", GROUP="kvm", MODE="0666"
+      ACTION=="remove", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="1050", ENV{ID_MODEL_ID}=="0407", RUN+="${pkgs.systemd}/bin/loginctl lock-sessions"
     '';
   };
 }
