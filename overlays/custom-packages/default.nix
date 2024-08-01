@@ -10,8 +10,6 @@
   element-gps = final.callPackage ../../packages/element-gps {};
   element-web = final.callPackage ../../packages/element-web {};
   waypipe = import ./waypipe {inherit final prev;};
-  wifi-connector = final.callPackage ../../packages/wifi-connector {};
-  wifi-connector-nmcli = final.callPackage ../../packages/wifi-connector {useNmcli = true;};
   qemu_kvm = import ./qemu {inherit final prev;};
   nm-launcher = final.callPackage ../../packages/nm-launcher {};
   icon-pack = final.callPackage ../../packages/icon-pack {};
