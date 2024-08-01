@@ -70,6 +70,9 @@
           swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
           'chayang && ${lockCmd}' &
         ''}
+
+        # Register lockCmd with swayidle, so that when lock signal is received system can be locked automatically
+        ${pkgs.swayidle}/bin/swayidle lock "${lockCmd}" &
       ''
       + cfg.extraAutostart;
   };
