@@ -46,8 +46,7 @@ in {
         '';
         mode = "0600";
       };
-      # Add simple wi-fi connection helper
-      systemPackages = mkIf config.ghaf.profiles.debug.enable [pkgs.wifi-connector pkgs.wifi-connector-nmcli pkgs.tcpdump];
+      systemPackages = mkIf config.ghaf.profiles.debug.enable [pkgs.tcpdump];
     };
   };
 }
