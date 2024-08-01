@@ -23,6 +23,7 @@ in {
         debug.tools.enable = true;
         # Let us in.
         ssh.daemon.enable = true;
+        yubikey.enable = true;
         usb-serial.enable = true;
       };
     };
