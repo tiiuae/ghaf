@@ -10,6 +10,7 @@
     ./pci-passthrough-common.nix
 
     ./ota-utils-fix.nix
+    ./agx-milboard
     ./virtualization
 
     ./optee.nix

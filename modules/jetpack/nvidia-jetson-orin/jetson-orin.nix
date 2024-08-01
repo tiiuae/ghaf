@@ -44,7 +44,7 @@ in {
       carrierBoard = "${cfg.carrierBoard}";
       modesetting.enable = true;
 
-      flashScriptOverrides = lib.optionalAttrs (cfg.somType == "agx") {
+      flashScriptOverrides = lib.optionalAttrs (cfg.somType == "agx" || cfg.somType == "agx-milboard") {
         flashArgs = lib.mkForce ["-r" config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard "mmcblk0p1"];
       };
 
@@ -110,6 +110,9 @@ in {
       # modifications.
       // lib.optionalAttrs (cfg.somType == "agx") {
         name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
+      }
+      // lib.optionalAttrs (cfg.somType == "agx-industrial") {
+        name = lib.mkDefault "tegra234-p3701-0008-p3737-0000-milboard-agx.dtb";
       }
       // lib.optionalAttrs (cfg.somType == "nx") {
         name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
