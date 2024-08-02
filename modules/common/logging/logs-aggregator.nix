@@ -27,6 +27,19 @@ in {
           // Alloy service can read file in this specific location
           filename = "${macAddressPath}"
         }
+        discovery.relabel "adminJournal" {
+          targets = []
+          rule {
+            source_labels = ["__journal__hostname"]
+            target_label  = "nodename"
+          }
+        }
+
+        loki.source.journal "journal" {
+          path          = "/var/log/journal"
+          relabel_rules = discovery.relabel.adminJournal.rules
+          forward_to    = [loki.write.remote.receiver]
+        }
 
         loki.write "remote" {
           endpoint {
