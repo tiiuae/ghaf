@@ -1,0 +1,41 @@
+From 01aec4230eec5f1ce97ab6edbb81a478ce4462f0 Mon Sep 17 00:00:00 2001
+From: Santtu Lakkala <santtu.lakkala@unikie.com>
+Date: Fri, 19 Jul 2024 14:46:29 +0300
+Subject: [PATCH] localed: use LOCALE_ARCHIVE
+
+Signed-off-by: Santtu Lakkala <santtu.lakkala@unikie.com>
+---
+ src/basic/locale-util.c | 6 +++++-
+ units/systemd-localed.service.in | 1 +
+ 2 files changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/basic/locale-util.c b/src/basic/locale-util.c
+index 23565273dd..cb61387d1c 100644
+--- a/src/basic/locale-util.c
++++ b/src/basic/locale-util.c
+@@ -101,7 +101,11 @@ static int add_locales_from_archive(Set *locales) {
+         struct stat st;
+         int r;
+ 
+-        fd = open("/usr/lib/locale/locale-archive", O_RDONLY|O_NOCTTY|O_CLOEXEC);
++        const char *archive = secure_getenv("LOCALE_ARCHIVE");
++        if (!archive)
++                archive = "/usr/lib/locale/locale-archive";
++
++        fd = open(archive, O_RDONLY|O_NOCTTY|O_CLOEXEC);
+         if (fd < 0)
+                 return errno == ENOENT ? 0 : -errno;
+ 
+diff --git a/units/systemd-localed.service.in b/units/systemd-localed.service.in
+index 4de89aa8dd..1e72b18edc 100644
+--- a/units/systemd-localed.service.in
++++ b/units/systemd-localed.service.in
+@@ -45,4 +45,5 @@ RestrictSUIDSGID=yes
+ SystemCallArchitectures=native
+ SystemCallErrorNumber=EPERM
+ SystemCallFilter=@system-service
++Environment=LOCALE_ARCHIVE=/run/current-system/sw/lib/locale/locale-archive
+ {{SERVICE_WATCHDOG}}
+-- 
+2.42.0
+

@@ -19,7 +19,6 @@ let
   wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {
     wifiDevice = wifiDevice.name;
   };
-  timeZone = if config.time.timeZone != null then config.time.timeZone else "UTC";
 in
 {
   config = lib.mkIf cfg.enable {
@@ -62,7 +61,6 @@ in
                 "spacing": 10
             },
             "clock": {
-                "timezone": "${timeZone}",
                 "tooltip-format": "<big>{:%d %b %Y}</big>\n<tt><small>{calendar}</small></tt>",
                 "format": "{:%a %d %b   %H:%M}"
             },
