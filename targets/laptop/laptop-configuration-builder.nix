@@ -3,6 +3,7 @@
 {
   lib,
   self,
+  inputs,
   ...
 }: let
   system = "x86_64-linux";
@@ -16,6 +17,7 @@
         [
           self.nixosModules.profiles
           self.nixosModules.laptop
+          inputs.lanzaboote.nixosModules.lanzaboote
 
           #TODO can we move microvm to the profile/laptop-x86?
           self.nixosModules.microvm
@@ -29,6 +31,8 @@
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
+                # Enable below option for host hardening features
+                host-hardening.enable = false;
               };
             };
           })

@@ -8,16 +8,13 @@
 }: let
   cfg = config.ghaf.profiles.hardening;
 in {
-  options.ghaf.profiles.hardening = {
+  options.ghaf.profiles.kernel-hardening = {
     enable = lib.mkEnableOption "hardened profile";
   };
 
   config = lib.mkIf cfg.enable {
     ghaf = {
       host = {
-        # Enable some security features in the host configuration
-        secureboot.enable = true;
-
         # Kernel hardening
         kernel.hardening = {
           enable = true;

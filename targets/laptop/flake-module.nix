@@ -5,11 +5,12 @@
 {
   lib,
   self,
+  inputs,
   ...
 }: let
   system = "x86_64-linux";
 
-  laptop-configuration = import ./laptop-configuration-builder.nix {inherit lib self;};
+  laptop-configuration = import ./laptop-configuration-builder.nix {inherit lib self inputs;};
 
   targets = [
     # Laptop Debug configurations

@@ -4,5 +4,6 @@
   imports = [
     ./debug.nix
     ./release.nix
+    ./host-hardening.nix
   ];
 }
