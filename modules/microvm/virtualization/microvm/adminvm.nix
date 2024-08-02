@@ -68,7 +68,9 @@
 
         microvm = {
           optimize.enable = true;
-          hypervisor = "cloud-hypervisor";
+          #TODO: Add back support cloud-hypervisor
+          #the system fails to switch root to the stage2 with cloud-hypervisor
+          hypervisor = "qemu";
           shares =
             [
               {
