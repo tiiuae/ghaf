@@ -56,6 +56,8 @@
         prevAttrs.patches
         ++ [
           ./systemd-boot-double-dtb-buffer-size.patch
+          ./systemd-re-enable-locale-setting.patch
+	  ./systemd-localed-locale-archive.patch
         ];
     });
 
