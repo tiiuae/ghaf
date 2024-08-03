@@ -42,7 +42,7 @@ in
         launchers =
           let
             hostEntry = filter (
-              x: x.name == "audio-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug"
+              x: x.name == "ghaf-host" + lib.optionalString config.ghaf.profiles.debug.enable "-debug"
             ) config.ghaf.networking.hosts.entries;
             hostAddress = head (map (x: x.ip) hostEntry);
             powerControl = pkgs.callPackage ../../../packages/powercontrol { };
