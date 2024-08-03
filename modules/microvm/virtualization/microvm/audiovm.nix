@@ -121,7 +121,7 @@ let
           systemd.network.networks."10-ethint0".addresses =
             let
               getAudioVmEntry = builtins.filter (
-                x: x.name == "audio-vm-debug"
+                x: x.name == "audio-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug"
               ) config.ghaf.networking.hosts.entries;
               ip = lib.head (builtins.map (x: x.ip) getAudioVmEntry);
             in
