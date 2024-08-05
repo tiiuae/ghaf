@@ -32,6 +32,9 @@
         ++ [
           inputs'.nix-fast-build.packages.default
         ]
+        ++ [
+          (pkgs.callPackage ../packages/flash {})
+        ]
         ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
 
       # TODO Add pre-commit.devShell (needs to exclude RiscV)
