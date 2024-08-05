@@ -99,7 +99,7 @@ in {
 
             {
               name = "Slack";
-              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no comms-vm run-waypipe slack";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no comms-vm run-waypipe slack --enable-features=UseOzonePlatform --ozone-platform=wayland";
               icon = "${pkgs.icon-pack}/slack.svg";
             }
 

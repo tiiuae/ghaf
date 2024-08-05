@@ -18,6 +18,7 @@
     "microsoft-365.svg"
     "ms-outlook.svg"
     "preferences-system-network.svg"
+    "slack.svg"
     "system-lock-screen.svg"
     "system-reboot.svg"
     "system-shutdown.svg"
@@ -26,7 +27,6 @@
     "thorium-browser.svg"
     "teams-for-linux.svg"
     "utilities-terminal.svg"
-    "slack.svg"
     "yast-vpn.svg"
   ];
 in
