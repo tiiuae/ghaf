@@ -3,17 +3,15 @@
 {
   coreutils,
   util-linux,
-  hwinfo,
   writeShellApplication,
   zstd,
 }:
 writeShellApplication {
-  name = "ghaf-installer";
+  name = "flash-script";
   runtimeInputs = [
     coreutils
     util-linux
     zstd
-    hwinfo
   ];
-  text = builtins.readFile ./ghaf-installer.sh;
+  text = builtins.readFile ./flash.sh;
 }
