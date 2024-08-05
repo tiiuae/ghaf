@@ -17,9 +17,10 @@ let
       false;
 in
 {
-  name = "element";
+  name = "comms";
 
   packages = [
+    pkgs.chromium
     pkgs.element-desktop
     pkgs.element-gps
     pkgs.gpsd
@@ -101,8 +102,12 @@ in
 
       ghaf.givc.appvm = {
         enable = true;
-        name = lib.mkForce "element-vm";
-        applications = lib.mkForce ''{"element": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland"}'';
+        name = lib.mkForce "comms-vm";
+        applications = lib.mkForce ''
+          {
+          "element": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland",
+          "slack":   "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}"
+          }'';
       };
     }
   ];

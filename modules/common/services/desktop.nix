@@ -102,8 +102,14 @@ in
 
             {
               name = "Element";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start element";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm element";
               icon = "${pkgs.icon-pack}/element-desktop.svg";
+            }
+
+            {
+              name = "Slack";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm slack";
+              icon = "${pkgs.icon-pack}/slack.svg";
             }
 
             {
