@@ -23,9 +23,16 @@
 # - recovery : (no quota) Recovery factory image is stored here
 # - storagevm: (no quota) Dataset is meant to be used for StorageVM
 {pkgs, ...}: {
-  #TODO Probably the 'networking.hostId' should be set
-  # somewhere else instead.
+  # TODO Keep ZFS-related parts of the configuration here for now.
+  # This allows to have all config dependencies in one place and cleans
+  # other targets' configs from unnecessary components.
   networking.hostId = "8425e349";
+  boot = {
+    initrd.availableKernelModules = [
+      "zfs"
+    ];
+    supportedFilesystems = ["zfs"];
+  };
   disko = {
     memSize = 4096;
     extraPostVM = ''
