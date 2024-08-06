@@ -44,6 +44,7 @@
             withTimesyncd = true;
             withDebug = config.ghaf.profiles.debug.enable;
             withHardenedConfigs = true;
+	    withLocaled = true;
           };
           # Logging client configuration
           logging.client.enable = config.ghaf.logging.client.enable;
@@ -83,6 +84,13 @@
               pkgs.pamixer
             ]
             ++ (lib.optional (config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
+
+	  extraInit = ''
+                if [ -f /etc/locale.conf ]; then
+                    . /etc/locale.conf
+                    export LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL
+                fi
+	  '';
         };
 
         time.timeZone = config.time.timeZone;

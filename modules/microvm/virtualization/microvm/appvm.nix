@@ -66,6 +66,7 @@
               withTimesyncd = true;
               withPolkit = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
+              withLocaled = true;
               withHardenedConfigs = true;
             };
             # Logging client configuration
@@ -91,6 +92,13 @@
             pkgs.tpm2-tools
             pkgs.opensc
           ];
+
+            environment.extraInit = ''
+                if [ -f /etc/locale.conf ]; then
+                    . /etc/locale.conf
+                    export LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL
+                fi
+            '';
 
           security.tpm2 = {
             enable = true;
