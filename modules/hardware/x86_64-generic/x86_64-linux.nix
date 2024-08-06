@@ -32,13 +32,14 @@ in {
       initrd.availableKernelModules = [
         "nvme"
         "uas"
-        "zfs"
       ];
       loader = {
         efi.canTouchEfiVariables = true;
         systemd-boot.enable = true;
       };
-      supportedFilesystems = ["zfs"];
+      # ZFS-compatible kernel is used for every applicable target since for certain
+      # targets ZFS support is required, and having the same kernel version for
+      # different targets simplifies and hardens the resulting configuration.
       kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
     };
   };
