@@ -21,14 +21,14 @@ in
           description = "Enable memory sharing between virtual machines";
         };
         memSize = mkOption {
-          type = lib.types.int;
+          type = types.int;
           default = 16;
           description = mdDoc ''
             Defines shared memory size in MBytes
           '';
         };
         serverSocketPath = mkOption {
-          type = lib.types.str;
+          type = types.path;
           default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-server.sock";
           description = mdDoc ''
             Defines location of the listening socket.
@@ -36,7 +36,7 @@ in
           '';
         };
         clientSocketPath = mkOption {
-          type = lib.types.str;
+          type = types.path;
           default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-client.sock";
           description = mdDoc ''
             Defines location of the output socket. It's fed
@@ -45,7 +45,7 @@ in
           '';
         };
         hostSocketPath = mkOption {
-          type = lib.types.str;
+          type = types.path;
           default = "/tmp/ivshmem_socket"; # The value is hardcoded in the application
           description = mdDoc ''
             Defines location of the shared memory socket. It's used by qemu
@@ -53,7 +53,7 @@ in
           '';
         };
         flataddr = mkOption {
-          type = lib.types.str;
+          type = types.str;
           default = "0x920000000";
           description = mdDoc ''
             If set to a non-zero value, it maps the shared memory
@@ -62,7 +62,7 @@ in
           '';
         };
         qemuOption = mkOption {
-          type = lib.types.listOf lib.types.str;
+          type = types.listOf types.str;
           default = let
             vectors = toString (2 * (builtins.length config.ghaf.reference.appvms.enabled-app-vms));
           in [
@@ -78,7 +78,7 @@ in
           description = "Display VMs using shared memory";
         };
         kernelPatches = mkOption {
-          type = lib.types.listOf lib.types.attrs;
+          type = types.listOf types.attrs;
           default =
             if config.ghaf.profiles.applications.ivShMemServer.enable
             then [
@@ -98,7 +98,7 @@ in
       };
     };
 
-    config = lib.mkIf cfg.enable {
+    config = mkIf cfg.enable {
       # TODO: Needs more generic support for defining application launchers
       #       across different window managers.
       ghaf = {
