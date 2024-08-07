@@ -29,6 +29,9 @@
 
         # Bash
         shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
+
+        # C++
+        clang-format.enable = true;
       };
     };
 

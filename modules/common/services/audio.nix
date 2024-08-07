@@ -35,7 +35,12 @@ in {
             {   name = libpipewire-module-protocol-pulse
                 args = {
                   server.address = [
-                      "tcp:4713"    # IPv4 and IPv6 on all addresses
+                    {
+                      address = "tcp:4713"             # IPv4 and IPv6 on all addresses
+                      max-clients = 64
+                      listen-backlog = 32
+                      client.access = "unrestricted"
+                    }
                   ];
                   pulse.min.req          = 128/48000;     # 2.7ms
                   pulse.default.req      = 960/48000;     # 20 milliseconds
