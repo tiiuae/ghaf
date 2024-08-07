@@ -29,6 +29,7 @@ in {
       }
     ];
 
+    /* tmp removed for GPIO testing
     boot.kernelPatches = [
       {
         name = "nx-pci-passthrough-patch";
@@ -37,13 +38,14 @@ in {
         patch = ./pci-passthrough-nx-test.patch;
       }
     ];
+    */
 
     boot.kernelParams = [
       "vfio-pci.ids=10ec:8168"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
 
-    hardware.deviceTree = {
+    hardware.deviceTree = builtins.trace "netvm-ethernet-pci-passthrough setting default deviceTree" {
       enable = true;
       name = "tegra234-p3767-host-passthrough.dtb";
     };

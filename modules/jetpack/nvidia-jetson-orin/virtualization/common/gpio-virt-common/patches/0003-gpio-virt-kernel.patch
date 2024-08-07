@@ -1,0 +1,5132 @@
+diff --git a/drivers/gpio/gpio-proxy.h b/drivers/gpio/gpio-proxy.h
+new file mode 100644
+index 000000000000..723738267d3a
+--- /dev/null
++++ b/drivers/gpio/gpio-proxy.h
+@@ -0,0 +1,92 @@
++#ifndef GPIO_PROXY_H
++#define GPIO_PROXY_H
++
++/* passthrough hooks for low level functions such as readl and writel
++ * functions are mainly intended for GPIO passthrough
++ */
++
++extern bool kernel_is_on_guest;
++extern inline u32 readl_redirect( void * addr, unsigned char type);
++extern inline void writel_redirect( u32 value, void * addr, unsigned char type);
++extern void __iomem *tegra186_gpio_get_base_redirect(unsigned char id, unsigned int pin);
++
++extern const unsigned char rwl_std_type;
++extern const unsigned char rwl_raw_type;
++extern const unsigned char rwl_relaxed_type;
++
++// TODO
++// check readl_x() and writel_x() in files: gpio-tegra.c, pinctrl-tegra.c
++
++static inline u32 readl_x( void * addr) {
++  u32 ret;
++  if(kernel_is_on_guest) {
++    ret = readl_redirect(addr, rwl_std_type);
++  }
++  else {
++    ret = readl(addr);
++  }
++  return ret;  
++};
++
++static inline void writel_x( u32 value, void * addr) {
++  if(kernel_is_on_guest) {
++    writel_redirect(value, addr, rwl_std_type);
++  }
++  else {
++    writel(value, addr);
++  }
++};
++
++static inline u32 __raw_readl_x( void * addr) {
++  u32 ret;
++  if(kernel_is_on_guest) {
++    ret = readl_redirect(addr, rwl_raw_type);
++  }
++  else {
++    ret = __raw_readl(addr);
++  }
++  return ret;  
++};
++
++static inline void __raw_writel_x( u32 value, void * addr) {
++  if(kernel_is_on_guest) {
++    writel_redirect(value, addr, rwl_raw_type);
++  }
++  else {
++    __raw_writel(value, addr);
++  }
++};
++
++static inline u32 readl_relaxed_x( void * addr) {
++  u32 ret;
++  if(kernel_is_on_guest) {
++    ret = readl_redirect(addr, rwl_relaxed_type);
++  }
++  else {
++    ret = readl_relaxed(addr);
++  }
++  return ret;  
++};
++
++static inline void writel_relaxed_x( u32 value, void * addr) {
++  if(kernel_is_on_guest) {
++    writel_redirect(value, addr, rwl_relaxed_type);
++  }
++  else {
++    writel_relaxed(value, addr);
++  }
++};
++
++
++// TODO, adding these passthroughs would make execution less latent
++/*
++static inline u32 pmx_readl_x( void * addr) { return 0; };
++static inline void pmx_writel_x( u32 value, void * addr) {};
++static inline u32 tegra_gpio_readl_x( void * addr) { return 0;};
++static inline void tegra_gpio_writel_x( u32 value, void * addr) {};
++static inline u32 tegra_gte_readl_x( void * addr) { return 0; };
++static inline void tegra_gte_writel_x( u32 value, void * addr) {};
++*/
++// note: adding more higher level functions migth take latency off the lower level functions
++
++#endif
+diff --git a/drivers/gpio/gpio-tegra.c b/drivers/gpio/gpio-tegra.c
+index f66fc17faee4..9706a77fe5a5 100644
+--- a/drivers/gpio/gpio-tegra.c
++++ b/drivers/gpio/gpio-tegra.c
+@@ -58,13 +58,34 @@
+ #define GPIO_INT_LVL_LEVEL_HIGH		0x000001
+ #define GPIO_INT_LVL_LEVEL_LOW		0x000000
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++#include "gpio-proxy.h"  // low level hooks for readl_x and writel_x
++#endif // CONFIG_TEGRA_GPIO_GUEST_PROXY and CONFIG_TEGRA_GPIO_HOST_PROXY
++
+ struct tegra_gpio_info;
+ 
+ struct tegra_gpio_bank {
+ 	unsigned int bank;
+ 	unsigned int irq;
+ 	spinlock_t gpio_lock[4];
+-#ifdef CONFIG_PM_SLEEP
++    #ifdef CONFIG_PM_SLEEP
+ 	u32 cnf[4];
+ 	u32 out[4];
+ 	u32 oe[4];
+@@ -72,7 +93,7 @@ struct tegra_gpio_bank {
+ 	u32 int_lvl[4];
+ 	u32 wake_enb[4];
+ 	u32 dbc_enb[4];
+-#endif
++    #endif
+ 	u32 dbc_cnt[4];
+ 	u32 cnf_init[4];
+ 	u32 out_init[4];
+@@ -101,17 +122,23 @@ static struct tegra_gpio_info *gpio_info;
+ static inline void tegra_gpio_writel(struct tegra_gpio_info *tgi,
+ 				     u32 val, u32 reg)
+ {
+-	writel_relaxed(val, tgi->regs + reg);
++	deb_debug("\n");
++
++	writel_relaxed_x(val, tgi->regs + reg);
+ }
+ 
+ static inline u32 tegra_gpio_readl(struct tegra_gpio_info *tgi, u32 reg)
+ {
+-	return readl_relaxed(tgi->regs + reg);
++	deb_debug("\n");
++
++	return readl_relaxed_x(tgi->regs + reg);
+ }
+ 
+ static unsigned int tegra_gpio_compose(unsigned int bank, unsigned int port,
+ 				       unsigned int bit)
+ {
++	deb_debug("\n");
++
+ 	return (bank << 5) | ((port & 0x3) << 3) | (bit & 0x7);
+ }
+ 
+@@ -120,6 +147,8 @@ static void tegra_gpio_mask_write(struct tegra_gpio_info *tgi, u32 reg,
+ {
+ 	u32 val;
+ 
++	deb_debug("\n");
++
+ 	val = 0x100 << GPIO_BIT(gpio);
+ 	if (value)
+ 		val |= 1 << GPIO_BIT(gpio);
+@@ -135,6 +164,8 @@ static void tegra_gpio_save_gpio_state(unsigned int gpio)
+ 	u32 mask = BIT(GPIO_BIT(gpio));
+ 	unsigned long flags;
+ 
++	deb_debug("\n");
++
+ 	spin_lock_irqsave(&bank->gpio_lock[p], flags);
+ 
+ 	bank->cnf_init[p] &= ~mask;
+@@ -206,17 +237,23 @@ static void tegra_gpio_restore_gpio_state(unsigned int gpio)
+ 
+ static void tegra_gpio_enable(struct tegra_gpio_info *tgi, unsigned int gpio)
+ {
++	deb_debug("\n");
++
+ 	tegra_gpio_mask_write(tgi, GPIO_MSK_CNF(tgi, gpio), gpio, 1);
+ }
+ 
+ static int tegra_gpio_request(struct gpio_chip *chip, unsigned int offset)
+ {
++	deb_debug("\n");
++
+ 	tegra_gpio_save_gpio_state(offset);
+ 	return pinctrl_gpio_request(chip->base + offset);
+ }
+ 
+ static void tegra_gpio_free(struct gpio_chip *chip, unsigned int offset)
+ {
++	deb_debug("\n");
++
+ 	pinctrl_gpio_free(chip->base + offset);
+ 	tegra_gpio_restore_gpio_state(offset);
+ }
+@@ -226,6 +263,8 @@ static void tegra_gpio_set(struct gpio_chip *chip, unsigned int offset,
+ {
+ 	struct tegra_gpio_info *tgi = gpiochip_get_data(chip);
+ 
++	deb_debug("\n");
++
+ 	tegra_gpio_mask_write(tgi, GPIO_MSK_OUT(tgi, offset), offset, value);
+ }
+ 
+@@ -247,6 +286,8 @@ static int tegra_gpio_direction_input(struct gpio_chip *chip,
+ 	struct tegra_gpio_info *tgi = gpiochip_get_data(chip);
+ 	int ret;
+ 
++	deb_debug("\n");
++
+ 	tegra_gpio_mask_write(tgi, GPIO_MSK_OE(tgi, offset), offset, 0);
+ 	tegra_gpio_enable(tgi, offset);
+ 
+@@ -266,6 +307,8 @@ static int tegra_gpio_direction_output(struct gpio_chip *chip,
+ 	struct tegra_gpio_info *tgi = gpiochip_get_data(chip);
+ 	int ret;
+ 
++	deb_debug("\n");
++
+ 	tegra_gpio_set(chip, offset, value);
+ 	tegra_gpio_mask_write(tgi, GPIO_MSK_OE(tgi, offset), offset, 1);
+ 	tegra_gpio_enable(tgi, offset);
+@@ -286,6 +329,8 @@ static int tegra_gpio_get_direction(struct gpio_chip *chip,
+ 	u32 pin_mask = BIT(GPIO_BIT(offset));
+ 	u32 cnf, oe;
+ 
++	deb_debug("\n");
++
+ 	cnf = tegra_gpio_readl(tgi, GPIO_CNF(tgi, offset));
+ 	if (!(cnf & pin_mask))
+ 		return -EINVAL;
+@@ -337,6 +382,8 @@ static int tegra_gpio_set_config(struct gpio_chip *chip, unsigned int offset,
+ {
+ 	u32 debounce;
+ 
++	deb_debug("\n");
++
+ 	if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
+ 		return -ENOTSUPP;
+ 
+@@ -348,6 +395,8 @@ static int tegra_gpio_to_irq(struct gpio_chip *chip, unsigned int offset)
+ {
+ 	struct tegra_gpio_info *tgi = gpiochip_get_data(chip);
+ 
++	deb_debug("\n");
++
+ 	return irq_find_mapping(tgi->irq_domain, offset);
+ }
+ 
+@@ -495,7 +544,7 @@ static void tegra_gpio_irq_handler(struct irq_desc *desc)
+ 
+ }
+ 
+-#ifdef CONFIG_PM_SLEEP
++    #ifdef CONFIG_PM_SLEEP
+ static void tegra_gpio_resume(void)
+ {
+ 	struct tegra_gpio_info *tgi = gpio_info;
+@@ -593,7 +642,7 @@ static int tegra_gpio_irq_set_wake(struct irq_data *d, unsigned int enable)
+ #else
+ #define tegra_gpio_suspend NULL
+ #define tegra_gpio_resume NULL
+-#endif
++    #endif
+ 
+ static struct syscore_ops tegra_gpio_syscore_ops = {
+ 	.suspend = tegra_gpio_suspend,
+@@ -602,7 +651,7 @@ static struct syscore_ops tegra_gpio_syscore_ops = {
+ 	.restore = tegra_gpio_resume,
+ };
+ 
+-#ifdef	CONFIG_DEBUG_FS
++    #ifdef	CONFIG_DEBUG_FS
+ 
+ #include <linux/debugfs.h>
+ #include <linux/seq_file.h>
+@@ -616,6 +665,8 @@ static int tegra_dbg_gpio_show(struct seq_file *s, void *unused)
+ 	x = ' ';
+ 	y = 'A';
+ 
++	deb_debug("\n");
++
+ 	seq_printf(s, "Name:Bank:Port CNF OE OUT IN INT_STA INT_ENB INT_LVL\n");
+ 	for (i = 0; i < tgi->bank_count; i++) {
+ 		for (j = 0; j < 4; j++) {
+@@ -649,6 +700,8 @@ DEFINE_SHOW_ATTRIBUTE(tegra_dbg_gpio);
+ 
+ static void tegra_gpio_debuginit(struct tegra_gpio_info *tgi)
+ {
++	deb_debug("\n");
++
+ 	debugfs_create_file("tegra_gpio", 0444, NULL, tgi,
+ 			    &tegra_dbg_gpio_fops);
+ }
+@@ -659,7 +712,7 @@ static inline void tegra_gpio_debuginit(struct tegra_gpio_info *tgi)
+ {
+ }
+ 
+-#endif
++    #endif
+ 
+ static int tegra_gpio_probe(struct platform_device *pdev)
+ {
+@@ -668,6 +721,8 @@ static int tegra_gpio_probe(struct platform_device *pdev)
+ 	unsigned int gpio, i, j;
+ 	int ret;
+ 
++	deb_debug("\n");
++
+ 	tgi = devm_kzalloc(&pdev->dev, sizeof(*tgi), GFP_KERNEL);
+ 	if (!tgi)
+ 		return -ENODEV;
+@@ -707,9 +762,9 @@ static int tegra_gpio_probe(struct platform_device *pdev)
+ 	tgi->ic.irq_unmask		= tegra_gpio_irq_unmask;
+ 	tgi->ic.irq_set_type		= tegra_gpio_irq_set_type;
+ 	tgi->ic.irq_shutdown		= tegra_gpio_irq_shutdown;
+-#ifdef CONFIG_PM_SLEEP
++    #ifdef CONFIG_PM_SLEEP
+ 	tgi->ic.irq_set_wake		= tegra_gpio_irq_set_wake;
+-#endif
++    #endif
+ 
+ 	platform_set_drvdata(pdev, tgi);
+ 
+@@ -816,6 +871,7 @@ static struct platform_driver tegra_gpio_driver = {
+ 
+ static int __init tegra_gpio_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra_gpio_driver);
+ }
+ subsys_initcall(tegra_gpio_init);
+diff --git a/drivers/gpio/gpio-tegra186.c b/drivers/gpio/gpio-tegra186.c
+index 5e57824b283e..43f83675ec3f 100644
+--- a/drivers/gpio/gpio-tegra186.c
++++ b/drivers/gpio/gpio-tegra186.c
+@@ -20,6 +20,46 @@
+ #include <dt-bindings/gpio/tegra234-gpio.h>
+ #include <dt-bindings/gpio/tegra239-gpio.h>
+ 
++#define GPIO_DEBUG
++#define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
++// possibly/probably declare this in gpio-tegra.c instead
++// following pattern from bpmp virtualisation
++//
++// TODO separate guest and host proxy configuration defines
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++
++  #include "gpiolib.h"
++  #include <linux/delay.h>
++  #include "gpio-proxy.h"  // low level inline hooks for readl and writel
++
++  bool kernel_is_on_guest = false;
++  EXPORT_SYMBOL_GPL(kernel_is_on_guest);
++
++  int gpio_outloud = 0;
++  EXPORT_SYMBOL_GPL(gpio_outloud);
++
++  uint64_t gpio_vpa = 0;
++
++  extern struct gpio_chip *find_chip_by_name(const char *name);
++  extern const char **tegra_chiplabel;
++
++#endif
++
+ /* security registers */
+ #define TEGRA186_GPIO_CTL_SCR 0x0c
+ #define  TEGRA186_GPIO_CTL_SCR_SEC_WEN BIT(28)
+@@ -192,25 +232,25 @@ struct tegra186_pin_range {
+ };
+ 
+ struct tegra_gpio_soc {
+-	const struct tegra_gpio_port *ports;
+-	unsigned int num_ports;
+-	const char *name;
+-	unsigned int instance;
+-	unsigned int num_irqs_per_bank;
+-	bool is_hw_ts_sup;
+-	bool do_vm_check;
+-	const struct tegra186_pin_range *pin_ranges;
+-	unsigned int num_pin_ranges;
+-	const char *pinmux;
+-	const struct tegra_gte_info *gte_info;
+-	int gte_npins;
++       const struct tegra_gpio_port *ports;
++       unsigned int num_ports;
++       const char *name;
++       unsigned int instance;
++       unsigned int num_irqs_per_bank;
++       bool is_hw_ts_sup;
++       bool do_vm_check;
++       const struct tegra186_pin_range *pin_ranges;
++       unsigned int num_pin_ranges;
++       const char *pinmux;
++       const struct tegra_gte_info *gte_info;
++       int gte_npins;
+ };
+ 
+ struct tegra_gpio_saved_register {
+-	bool restore_needed;
+-	u32 val;
+-	u32 conf;
+-	u32 out;
++       bool restore_needed;
++       u32 val;
++       u32 conf;
++       u32 out;
+ };
+ 
+ struct tegra_gpio {
+@@ -278,13 +318,13 @@ static struct tegra_gte_info tegra194_gte_info[] = {
+ 
+ static inline u32 tegra_gte_readl(struct tegra_gpio *tgi, u32 reg)
+ {
+-	return __raw_readl(tgi->gte_regs + reg);
++	return __raw_readl_x(tgi->gte_regs + reg);
+ }
+ 
+ static inline void tegra_gte_writel(struct tegra_gpio *tgi, u32 reg,
+ 		u32 val)
+ {
+-	__raw_writel(val, tgi->gte_regs + reg);
++	__raw_writel_x(val, tgi->gte_regs + reg);
+ }
+ 
+ static void tegra_gte_flush_fifo(struct tegra_gpio *tgi)
+@@ -307,6 +347,8 @@ u64 tegra_gte_read_fifo(struct tegra_gpio *tgi, u32 offset)
+ 	u32 aon_bits;
+ 	u32 bit_index = 0;
+ 
++	// deb_verbose("\n");
++
+ 	/* Check if FIFO is empty */
+ 	while ((tegra_gte_readl(tgi, GTE_GPIO_TESTATUS) >>
+ 		GTE_GPIO_TESTATUS_OCCUPANCY_SHIFT) &
+@@ -348,6 +390,8 @@ int tegra_gte_enable_ts(struct tegra_gpio *tgi, u32 offset)
+ 	u32 val, mask, reg;
+ 	int i = 0;
+ 
++	// deb_verbose("\n");
++
+ 	if (tgi->gte_enable == 1) {
+ 		dev_err(tgi->gpio.parent, "timestamp is already enabled for gpio\n");
+ 		return -EINVAL;
+@@ -381,6 +425,8 @@ int tegra_gte_disable_ts(struct tegra_gpio *tgi, u32 offset)
+ {
+ 	u32 val, mask;
+ 
++	// deb_verbose("\n");
++
+ 	if (tgi->gte_enable == 0) {
+ 		dev_err(tgi->gpio.parent, "timestamp is already disabled\n");
+ 		return 0;
+@@ -405,6 +451,8 @@ int tegra_gte_disable_ts(struct tegra_gpio *tgi, u32 offset)
+ 
+ int tegra_gte_setup(struct tegra_gpio *tgi)
+ {
++	// deb_verbose("\n");
++
+ 	tegra_gte_writel(tgi, GTE_GPIO_TECTRL, 0);
+ 	tgi->gte_enable = 0;
+ 
+@@ -418,6 +466,8 @@ tegra186_gpio_get_port(struct tegra_gpio *gpio, unsigned int *pin)
+ {
+ 	unsigned int start = 0, i;
+ 
++	// deb_verbose("GPIO, chip \n", gpio->gpio.label);
++
+ 	for (i = 0; i < gpio->soc->num_ports; i++) {
+ 		const struct tegra_gpio_port *port = &gpio->soc->ports[i];
+ 
+@@ -438,6 +488,8 @@ static void __iomem *tegra186_gpio_get_base(struct tegra_gpio *gpio,
+ 	const struct tegra_gpio_port *port;
+ 	unsigned int offset;
+ 
++	// deb_verbose("GPIO, chip \n", gpio->gpio.label);
++
+ 	port = tegra186_gpio_get_port(gpio, &pin);
+ 	if (!port)
+ 		return NULL;
+@@ -447,12 +499,34 @@ static void __iomem *tegra186_gpio_get_base(struct tegra_gpio *gpio,
+ 	return gpio->base + offset + pin * 0x20;
+ }
+ 
++inline struct tegra_gpio * find_tegra_chip_by_id(int id);
++		  
++// executes tegra186_gpio_get_base in host as a proxy for guest
++void __iomem *tegra186_gpio_get_base_execute(int id, unsigned int pin)
++	{
++		struct tegra_gpio *gpio = find_tegra_chip_by_id(id);
++		return tegra186_gpio_get_base(gpio, pin);
++	}
++EXPORT_SYMBOL_GPL(tegra186_gpio_get_base_execute);
++
++//checks if we are on host or guest. Guest calls the redidrec function
++static inline void __iomem *tegra186_gpio_get_base_x(struct tegra_gpio *tgpio, unsigned int pin) {
++  if(kernel_is_on_guest) {
++    return tegra186_gpio_get_base_redirect(tgpio->gpio.gpiodev->id, pin);
++  }
++  else {
++    return tegra186_gpio_get_base(tgpio, pin);
++  }
++};
++
+ static void __iomem *tegra186_gpio_get_secure(struct tegra_gpio *gpio,
+ 					    unsigned int pin)
+ {
+ 	const struct tegra_gpio_port *port;
+ 	unsigned int offset;
+ 
++	// deb_verbose("GPIO, chip \n", gpio->gpio.label);
++
+ 	port = tegra186_gpio_get_port(gpio, &pin);
+ 	if (!port)
+ 		return NULL;
+@@ -466,14 +540,17 @@ static inline bool gpio_is_accessible(struct tegra_gpio *gpio, u32 pin)
+ 	void __iomem *secure;
+ 	u32 val;
+ 
++	// deb_verbose("\n");
++
+ 	secure = tegra186_gpio_get_secure(gpio, pin);
+ 	if (gpio->soc->do_vm_check) {
+-		val = __raw_readl(secure + GPIO_VM_REG);
+-		if ((val & GPIO_VM_RW) != GPIO_VM_RW)
+-			return false;
++		val = __raw_readl_x(secure + GPIO_VM_REG);
++    if ((val & GPIO_VM_RW) != GPIO_VM_RW)
++      return false;
+ 	}
+ 
+-	val = __raw_readl(secure + GPIO_SCR_REG);
++  val = __raw_readl_x(secure + GPIO_SCR_REG);
++	// deb_verbose("val = 0x%X, val&mask = 0x%lX\n", val, (val & (GPIO_SCR_SEC_ENABLE)));
+ 
+ 	if ((val & (GPIO_SCR_SEC_ENABLE)) == 0)
+ 		return true;
+@@ -484,13 +561,16 @@ static inline bool gpio_is_accessible(struct tegra_gpio *gpio, u32 pin)
+ 	return false;
+ }
+ 
+-static int tegra186_gpio_get_direction(struct gpio_chip *chip,
++// function has passthrough version
++int tegra186_gpio_get_direction(struct gpio_chip *chip,
+ 				       unsigned int offset)
+ {
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+ 	void __iomem *base;
+ 	u32 value;
+ 
++	deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
++
+ 	if (!gpio_is_accessible(gpio, offset))
+ 		return -EPERM;
+ 
+@@ -502,10 +582,12 @@ static int tegra186_gpio_get_direction(struct gpio_chip *chip,
+ 	if (value & TEGRA186_GPIO_ENABLE_CONFIG_OUT)
+ 		return GPIO_LINE_DIRECTION_OUT;
+ 
++	deb_verbose("OK\n");
+ 	return GPIO_LINE_DIRECTION_IN;
+ }
+ 
+-static int tegra186_gpio_direction_input(struct gpio_chip *chip,
++// function has passthrough version
++int tegra186_gpio_direction_input(struct gpio_chip *chip,
+ 					 unsigned int offset)
+ {
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+@@ -513,6 +595,8 @@ static int tegra186_gpio_direction_input(struct gpio_chip *chip,
+ 	u32 value;
+ 	int ret = 0;
+ 
++	deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
++
+ 	if (!gpio_is_accessible(gpio, offset))
+ 		return -EPERM;
+ 
+@@ -536,7 +620,8 @@ static int tegra186_gpio_direction_input(struct gpio_chip *chip,
+ 	return ret;
+ }
+ 
+-static int tegra186_gpio_direction_output(struct gpio_chip *chip,
++// function has passthrough version
++int tegra186_gpio_direction_output(struct gpio_chip *chip,
+ 					  unsigned int offset, int level)
+ {
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+@@ -544,6 +629,8 @@ static int tegra186_gpio_direction_output(struct gpio_chip *chip,
+ 	u32 value;
+ 	int ret = 0;
+ 
++	deb_verbose("GPIO, chip %s, offset %u, level %d\n", chip->label, offset, level);
++
+ 	if (!gpio_is_accessible(gpio, offset))
+ 		return -EPERM;
+ 
+@@ -571,6 +658,7 @@ static int tegra186_gpio_direction_output(struct gpio_chip *chip,
+ 	return ret;
+ }
+ 
++// function has passthrough version
+ static int tegra_gpio_suspend_configure(struct gpio_chip *chip, unsigned offset,
+ 					enum gpiod_flags dflags)
+ {
+@@ -578,6 +666,8 @@ static int tegra_gpio_suspend_configure(struct gpio_chip *chip, unsigned offset,
+ 	struct tegra_gpio_saved_register *regs;
+ 	void __iomem *base;
+ 
++	deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
++
+ 	if (!gpio_is_accessible(gpio, offset))
+ 		return -EPERM;
+ 
+@@ -598,6 +688,7 @@ static int tegra_gpio_suspend_configure(struct gpio_chip *chip, unsigned offset,
+ 	return tegra186_gpio_direction_input(chip, offset);
+ }
+ 
++// function has passthrough version
+ static int tegra_gpio_timestamp_control(struct gpio_chip *chip, unsigned offset,
+ 					int enable)
+ {
+@@ -606,6 +697,8 @@ static int tegra_gpio_timestamp_control(struct gpio_chip *chip, unsigned offset,
+ 	int value;
+ 	int ret;
+ 
++	deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
++
+ 	base = tegra186_gpio_get_base(gpio, offset);
+ 	if (WARN_ON(base == NULL))
+ 		return -EINVAL;
+@@ -613,7 +706,7 @@ static int tegra_gpio_timestamp_control(struct gpio_chip *chip, unsigned offset,
+ 	if (gpio->use_timestamp) {
+ 		value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 		value |= TEGRA186_GPIO_ENABLE_CONFIG_TIMESTAMP_FUNC;
+-		writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
++	  writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 		if (enable)
+ 			ret = tegra_gte_enable_ts(gpio, offset);
+ 		else
+@@ -630,6 +723,8 @@ static int tegra_gpio_timestamp_read(struct gpio_chip *chip, unsigned offset,
+ 	struct tegra_gpio *tgi = gpiochip_get_data(chip);
+ 	int ret;
+ 
++	deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
++
+ 	if (tgi->use_timestamp) {
+ 		*ts = tegra_gte_read_fifo(tgi, offset);
+ 		ret = 0;
+@@ -639,12 +734,15 @@ static int tegra_gpio_timestamp_read(struct gpio_chip *chip, unsigned offset,
+ 	return ret;
+ }
+ 
++// function has passthrough version
+ static int tegra186_gpio_get(struct gpio_chip *chip, unsigned int offset)
+ {
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+ 	void __iomem *base;
+ 	u32 value;
+ 
++	deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
++
+ 	base = tegra186_gpio_get_base(gpio, offset);
+ 	if (WARN_ON(base == NULL))
+ 		return -ENODEV;
+@@ -658,17 +756,20 @@ static int tegra186_gpio_get(struct gpio_chip *chip, unsigned int offset)
+ 	return value & BIT(0);
+ }
+ 
+-static void tegra186_gpio_set(struct gpio_chip *chip, unsigned int offset,
++// function has passthrough version
++void tegra186_gpio_set(struct gpio_chip *chip, unsigned int offset,
+ 			      int level)
+ {
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+ 	void __iomem *base;
+ 	u32 value;
+ 
+-	if (!gpio_is_accessible(gpio, offset))
++	if (!gpio_is_accessible(gpio, offset)) {
++		pr_err("GPIO error: gpio is not accessible, Chip %s, Offset %d", gpio->gpio.label, offset);
+ 		return;
+-
++	}
+ 	base = tegra186_gpio_get_base(gpio, offset);
++
+ 	if (WARN_ON(base == NULL))
+ 		return;
+ 
+@@ -681,6 +782,17 @@ static void tegra186_gpio_set(struct gpio_chip *chip, unsigned int offset,
+ 	writel(value, base + TEGRA186_GPIO_OUTPUT_VALUE);
+ }
+ 
++void tegra186_gpio_set_by_name(const char *name, unsigned int offset,
++			      int level)
++{
++	struct gpio_chip *chip = find_chip_by_name(name);
++	if (chip) { tegra186_gpio_set(chip, offset, level); }
++	else {
++		pr_err("GPIO cannot find chip by name, %s\n", name);
++	}
++}
++
++// function has passthrough version
+ static int tegra186_gpio_set_config(struct gpio_chip *chip,
+ 				    unsigned int offset,
+ 				    unsigned long config)
+@@ -689,6 +801,8 @@ static int tegra186_gpio_set_config(struct gpio_chip *chip,
+ 	u32 debounce, value;
+ 	void __iomem *base;
+ 
++	deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
++
+ 	base = tegra186_gpio_get_base(gpio, offset);
+ 	if (base == NULL)
+ 		return -ENXIO;
+@@ -717,6 +831,7 @@ static int tegra186_gpio_set_config(struct gpio_chip *chip,
+ 	return 0;
+ }
+ 
++// passthrough but passthrough function is not used
+ static int tegra186_gpio_add_pin_ranges(struct gpio_chip *chip)
+ {
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+@@ -725,6 +840,8 @@ static int tegra186_gpio_add_pin_ranges(struct gpio_chip *chip)
+ 	unsigned int i, j;
+ 	int err;
+ 
++	deb_verbose("GPIO chip %s\n", chip->label);
++
+ 	if (!gpio->soc->pinmux || gpio->soc->num_pin_ranges == 0)
+ 		return 0;
+ 
+@@ -761,6 +878,7 @@ static int tegra186_gpio_add_pin_ranges(struct gpio_chip *chip)
+ 	return 0;
+ }
+ 
++// candidate for passthrough (but we still need irq in Guest)
+ static int tegra186_gpio_of_xlate(struct gpio_chip *chip,
+ 				  const struct of_phandle_args *spec,
+ 				  u32 *flags)
+@@ -768,6 +886,8 @@ static int tegra186_gpio_of_xlate(struct gpio_chip *chip,
+ 	struct tegra_gpio *gpio = gpiochip_get_data(chip);
+ 	unsigned int port, pin, i, offset = 0;
+ 
++	deb_verbose("GPIO chip %s\n", chip->label);
++
+ 	if (WARN_ON(chip->of_gpio_n_cells < 2))
+ 		return -EINVAL;
+ 
+@@ -793,19 +913,21 @@ static int tegra186_gpio_of_xlate(struct gpio_chip *chip,
+ 
+ #define to_tegra_gpio(x) container_of((x), struct tegra_gpio, gpio)
+ 
++// candidate for passthrough (but we still need irq in Guest)
+ static void tegra186_irq_ack(struct irq_data *data)
+ {
+ 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
+ 	struct tegra_gpio *gpio = to_tegra_gpio(gc);
+ 	void __iomem *base;
+ 
+-	base = tegra186_gpio_get_base(gpio, data->hwirq);
++	base = tegra186_gpio_get_base_x(gpio, data->hwirq);
+ 	if (WARN_ON(base == NULL))
+ 		return;
+ 
+-	writel(1, base + TEGRA186_GPIO_INTERRUPT_CLEAR);
++	writel_x(1, base + TEGRA186_GPIO_INTERRUPT_CLEAR);
+ }
+ 
++// candidate for passthrough (but we still need irq in Guest)
+ static void tegra186_irq_mask(struct irq_data *data)
+ {
+ 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
+@@ -813,15 +935,16 @@ static void tegra186_irq_mask(struct irq_data *data)
+ 	void __iomem *base;
+ 	u32 value;
+ 
+-	base = tegra186_gpio_get_base(gpio, data->hwirq);
++	base = tegra186_gpio_get_base_x(gpio, data->hwirq);
+ 	if (WARN_ON(base == NULL))
+ 		return;
+ 
+-	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
++	value = readl_x(base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 	value &= ~TEGRA186_GPIO_ENABLE_CONFIG_INTERRUPT;
+-	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
++	writel_x(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
+ }
+ 
++// candidate for passthrough (but we still need irq in Guest)
+ static void tegra186_irq_unmask(struct irq_data *data)
+ {
+ 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
+@@ -829,15 +952,16 @@ static void tegra186_irq_unmask(struct irq_data *data)
+ 	void __iomem *base;
+ 	u32 value;
+ 
+-	base = tegra186_gpio_get_base(gpio, data->hwirq);
++	base = tegra186_gpio_get_base_x(gpio, data->hwirq);
+ 	if (WARN_ON(base == NULL))
+ 		return;
+ 
+-	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
++	value = readl_x(base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 	value |= TEGRA186_GPIO_ENABLE_CONFIG_INTERRUPT;
+-	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
++	writel_x(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
+ }
+ 
++// candidate for passthrough (but we still need irq in Guest)
+ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
+ {
+ 	struct gpio_chip *gc = irq_data_get_irq_chip_data(data);
+@@ -845,11 +969,11 @@ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
+ 	void __iomem *base;
+ 	u32 value;
+ 
+-	base = tegra186_gpio_get_base(gpio, data->hwirq);
++	base = tegra186_gpio_get_base_x(gpio, data->hwirq);
+ 	if (WARN_ON(base == NULL))
+ 		return -ENODEV;
+ 
+-	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
++	value = readl_x(base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 	value &= ~TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_MASK;
+ 	value &= ~TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_LEVEL;
+ 
+@@ -883,7 +1007,7 @@ static int tegra186_irq_set_type(struct irq_data *data, unsigned int type)
+ 		return -EINVAL;
+ 	}
+ 
+-	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
++	writel_x(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 
+ 	if ((type & IRQ_TYPE_EDGE_BOTH) == 0)
+ 		irq_set_handler_locked(data, handle_level_irq);
+@@ -904,6 +1028,7 @@ static int tegra186_irq_set_wake(struct irq_data *data, unsigned int on)
+ 	return 0;
+ }
+ 
++// candidate for passthrough (but we still need irq in Guest)
+ static void tegra186_gpio_irq(struct irq_desc *desc)
+ {
+ 	struct tegra_gpio *gpio = irq_desc_get_handler_data(desc);
+@@ -930,7 +1055,7 @@ static void tegra186_gpio_irq(struct irq_desc *desc)
+ 		if (j == gpio->num_irqs_per_bank)
+ 			goto skip;
+ 
+-		value = readl(base + TEGRA186_GPIO_INTERRUPT_STATUS(1));
++		value = readl_x(base + TEGRA186_GPIO_INTERRUPT_STATUS(1));
+ 
+ 		for_each_set_bit(pin, &value, port->pins) {
+ 			irq = irq_find_mapping(domain, offset + pin);
+@@ -1031,12 +1156,15 @@ static const struct of_device_id tegra186_pmc_of_match[] = {
+ 	{ /* sentinel */ }
+ };
+ 
++// readl and writel are called
+ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+ {
+ 	struct device *dev = gpio->gpio.parent;
+ 	unsigned int i, j;
+ 	u32 value;
+ 
++	// deb_verbose("GPIO, chip \n", gpio->gpio.label);
++
+ 	for (i = 0; i < gpio->soc->num_ports; i++) {
+ 		const struct tegra_gpio_port *port = &gpio->soc->ports[i];
+ 		unsigned int offset, p = port->port;
+@@ -1044,7 +1172,7 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+ 
+ 		base = gpio->secure + port->bank * 0x1000 + 0x800;
+ 
+-		value = readl(base + TEGRA186_GPIO_CTL_SCR);
++		value = readl_x(base + TEGRA186_GPIO_CTL_SCR);
+ 
+ 		/*
+ 		 * For controllers that haven't been locked down yet, make
+@@ -1058,7 +1186,7 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+ 			 */
+ 			for (j = 0; j < gpio->num_irqs_per_bank; j++) {
+ 				dev_dbg(dev, "programming default interrupt routing for port %s\n",
+-					port->name);
++				  port->name);
+ 
+ 				offset = TEGRA186_GPIO_INT_ROUTE_MAPPING(p, j);
+ 
+@@ -1073,9 +1201,9 @@ static void tegra186_gpio_init_route_mapping(struct tegra_gpio *gpio)
+ 				 */
+ 
+ 				if (j == 0) {
+-					value = readl(base + offset);
++					value = readl_x(base + offset);
+ 					value = BIT(port->pins) - 1;
+-					writel(value, base + offset);
++					writel_x(value, base + offset);
+ 				}
+ 			}
+ 		}
+@@ -1107,6 +1235,232 @@ static unsigned int tegra186_gpio_irqs_per_bank(struct tegra_gpio *gpio)
+ 	return -EINVAL;
+ }
+ 
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++
++  // functions that are passed through. Function body is in gpio-guest-proxy.c
++  extern int gpiochip_generic_request_redirect(struct gpio_chip *gc, unsigned offset);
++
++  extern void gpiochip_generic_free_redirect(struct gpio_chip *gc, unsigned offset);
++
++  extern int tegra186_gpio_get_direction_redirect(struct gpio_chip *chip,
++                unsigned int offset);
++
++  extern int tegra186_gpio_direction_input_redirect(struct gpio_chip *chip,
++            unsigned int offset);
++
++  extern int tegra186_gpio_direction_output_redirect(struct gpio_chip *chip,
++              unsigned int offset, int level);
++
++  extern int tegra186_gpio_get_redirect(struct gpio_chip *chip, unsigned int offset);
++
++  extern void tegra186_gpio_set_redirect(struct gpio_chip *chip, unsigned int offset,
++              int level);
++
++  extern void tegra186_gpio_set_by_name_redirect(const char *name, unsigned int offset,
++              int level);
++
++  extern int tegra186_gpio_set_config_redirect(struct gpio_chip *chip,
++              unsigned int offset,
++              unsigned long config);
++
++  extern int tegra186_gpio_set_config_redirect(struct gpio_chip *chip,
++              unsigned int offset,
++              unsigned long config);
++	/*
++  extern const struct tegra_gpio_port *
++  tegra186_gpio_get_port_redirect(struct tegra_gpio *gpio, unsigned int *pin);
++
++  extern void __iomem *tegra186_gpio_get_base_redirect(unsigned char id,
++
++					    unsigned int pin);
++
++  extern void __iomem *tegra186_gpio_get_secure_redirect(struct tegra_gpio *gpio,
++					    unsigned int pin);
++	*/
++
++  extern int tegra_gpio_timestamp_control_redirect(struct gpio_chip *chip, unsigned offset,
++            int enable);
++
++  extern int tegra_gpio_timestamp_read_redirect(struct gpio_chip *chip, unsigned offset,
++              u64 *ts);
++
++  extern int tegra_gpio_suspend_configure_redirect(struct gpio_chip *chip, unsigned offset,
++            enum gpiod_flags dflags);
++
++  extern int tegra186_gpio_add_pin_ranges_redirect(struct gpio_chip *chip);
++
++  static inline void gpio_hook(struct tegra_gpio *gpio) {
++    deb_debug("Hooking functions for %s", gpio->gpio.label);
++    gpio->gpio.request = gpiochip_generic_request_redirect;
++    gpio->gpio.free = gpiochip_generic_free_redirect;
++    gpio->gpio.get_direction = tegra186_gpio_get_direction_redirect;
++    gpio->gpio.direction_input = tegra186_gpio_direction_input_redirect;
++    gpio->gpio.direction_output = tegra186_gpio_direction_output_redirect;
++    gpio->gpio.get = tegra186_gpio_get_redirect;
++    // gpio->gpio.get_multiple = N/A;
++    gpio->gpio.set = tegra186_gpio_set_redirect;
++    // gpio->gpio.set_multiple = N/A;
++    gpio->gpio.set_config = tegra186_gpio_set_config_redirect;
++    // ??? = tegra186_gpio_get_port_redirect;  // not in struct
++    // ??? = tegra186_gpio_get_base_redirect;  // not in struct
++    // ??? = tegra186_gpio_get_secure_redirect; // not in struct 
++    gpio->gpio.timestamp_control = tegra_gpio_timestamp_control_redirect;
++    gpio->gpio.timestamp_read = tegra_gpio_timestamp_read_redirect;
++    gpio->gpio.suspend_configure = tegra_gpio_suspend_configure_redirect;
++    // gpio->gpio.to_irq = N/A;
++    // gpio->gpio.dbg_show = N/A;
++    // gpio->gpio.init_valid_mask = N/A;
++    // gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges_redirect;
++    gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges;
++    gpio->gpio.base = -1;
++  }
++#endif
++
++// this function sets the standard bindings used by the host driver
++static inline void gpio_unhook(struct tegra_gpio *gpio) {
++  deb_debug("Setting default functions for %s", gpio->gpio.label);
++  gpio->gpio.request = gpiochip_generic_request;
++  gpio->gpio.free = gpiochip_generic_free;
++  gpio->gpio.get_direction = tegra186_gpio_get_direction;
++  gpio->gpio.direction_input = tegra186_gpio_direction_input;
++  gpio->gpio.direction_output = tegra186_gpio_direction_output;
++  gpio->gpio.get = tegra186_gpio_get;
++  gpio->gpio.set = tegra186_gpio_set;
++  gpio->gpio.set_config = tegra186_gpio_set_config;
++  gpio->gpio.timestamp_control = tegra_gpio_timestamp_control;
++  gpio->gpio.timestamp_read = tegra_gpio_timestamp_read;
++  gpio->gpio.suspend_configure = tegra_gpio_suspend_configure;
++  // gpio->gpio.to_irq = N/A;
++  // gpio->gpio.dbg_show = N/A;
++  // gpio->gpio.init_valid_mask = N/A;
++  gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges;
++  gpio->gpio.base = -1;
++}
++
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++
++  extern int tegra_gpio_guest_init(void);
++
++  #define MAX_CHIP 2    // check this value against value in gpio_host-proxy.h
++
++  struct tegra_gpio *tegra_gpio_hosts[MAX_CHIP] = {NULL, NULL};
++  atomic_t tegra_gpio_hosts_ready = ATOMIC_INIT(0);
++
++  /* note for reference:
++  struct tegra_gpio {
++    struct gpio_chip gpio;
++    struct irq_chip intc;
++    unsigned int num_irq;
++    unsigned int *irq;
++    [...]
++  }
++
++  struct gpio_chip {
++    const char		*label;
++    struct gpio_device	*gpiodev;
++    struct device		*parent;
++    struct module		*owner;
++    [...]
++  }
++
++  struct gpio_device	*gpiodev {
++    int			id;
++    struct device		dev;
++  }
++
++  */
++
++  /* preserve_tegrachip() and unpreserve_all_tegrachips() functions
++   *
++   * store the tegra_gpio and gpio_chip pointers for direct use by proxy drivers
++   * the preserve functionsalso assist in allocation and deallocaton, setting up and unseting
++   * of proxy related data */
++  static void preserve_tegrachip(struct tegra_gpio *tegrachip) {
++    struct gpio_chip *gpiochip = &(tegrachip->gpio);
++    static int gpio_chip_count = 0;
++    deb_debug("entering with gpio_chip_count = %d\n", gpio_chip_count);
++
++		if (gpio_chip_count >= MAX_CHIP) {
++			pr_err("GPIO, *ERROR* maximum chip count is exceeded (%d)", gpio_chip_count);
++		}
++		else {
++      tegra_gpio_hosts[gpio_chip_count] = tegrachip;
++      deb_debug("put chip %s in list for passthrough in slot %d [0..1]\n", gpiochip->label, gpio_chip_count);
++		};
++    atomic_set(&tegra_gpio_hosts_ready, ++gpio_chip_count);
++  }
++
++
++  /* deactivates tegra_gpio_hosts array, function is called by guest proxy.
++   * allocations and hooks are not needed if guest proxy driver unloads
++   * (paranoia because drivers are built in) */
++  void unpreserve_all_tegrachips(void) {
++    struct tegra_gpio ** tegrachip;
++    int i, timeout = 0;
++
++    // wait until tegra driver has set the tegra_gpio_hosts array -- this seems a bit paranoid
++    while (atomic_read(&tegra_gpio_hosts_ready) != MAX_CHIP) {
++      msleep(100); // Sleep briefly instead of looping infinitely.
++      if( timeout++ > 120 ) {
++        pr_err("GPIO could not access tegra_gpio chip array\n");
++        return;
++      }
++    }
++    for( i = 0 ; i < MAX_CHIP ; i++){
++      tegrachip = &tegra_gpio_hosts[i];
++      if(*tegrachip)
++        gpio_unhook(*tegrachip);
++      *tegrachip = NULL;
++    }
++  }
++  EXPORT_SYMBOL_GPL(unpreserve_all_tegrachips);
++
++  /* find_chip_by_id
++   * replacement for find_chip_by_name, because it is slightly faster
++   * one doubtful assumption is that chip pointers are numbered by the driver 
++   * in the same order preserve_tegrachip records them */
++  inline struct gpio_chip * find_chip_by_id(int id) {
++    int i = 0, r;
++    while ( (r = atomic_read(&tegra_gpio_hosts_ready)) != MAX_CHIP) {
++      msleep(100); // Sleep briefly instead of looping infinitely.
++      if( i++ > 10 ) {
++        pr_err("GPIO tegra_gpio_host chip table setup error: id=%d, count=%d\n", id, r);
++        if(r == 1) return &tegra_gpio_hosts[0]->gpio;
++        else return NULL;
++      }
++    }
++    if(id & ~0x00000001) {
++			pr_err("GPIO, *ERROR* Illegal chip number (%d)", id);
++      return NULL;
++    }
++    else
++      return &tegra_gpio_hosts[id]->gpio;
++  }
++  EXPORT_SYMBOL_GPL(find_chip_by_id);
++
++  inline struct tegra_gpio * find_tegra_chip_by_id(int id) {
++    /*
++    int i = 0;
++    while (atomic_read(&tegra_gpio_hosts_ready) != MAX_CHIP) {
++      msleep(100); // Sleep briefly instead of looping infinitely.
++      if( i++ > 120 ) {
++        pr_err("GPIO tegra_gpio_hosts setup error: id=%d, count=%d\n", id, atomic_read(&tegra_gpio_hosts_ready));
++        return NULL;
++      }
++    }
++    */
++    if(id & ~0x00000001) {
++			pr_err("GPIO, *ERROR* Illegal chip number (%d)", id);
++      return NULL;
++    }
++    else
++      return tegra_gpio_hosts[id];
++  }
++  EXPORT_SYMBOL_GPL(find_tegra_chip_by_id);
++#endif
++
++extern int devm_gpiochip_add_data__redirect(struct device *dev, struct gpio_chip *gc, void *data);
++
+ static int tegra186_gpio_probe(struct platform_device *pdev)
+ {
+ 	unsigned int i, j, offset;
+@@ -1120,17 +1474,40 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 	int value;
+ 	void __iomem *base;
+ 
++  static bool guest_proxy_is_set_up = false;
++
++  deb_debug("Probing gpio");
++
+ 	gpio = devm_kzalloc(&pdev->dev, sizeof(*gpio), GFP_KERNEL);
+-	if (!gpio)
++	if (!gpio) {
++		pr_err("GPIO devm_kzalloc error");
+ 		return -ENOMEM;
++	}
++
++	#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
+ 
++    deb_debug("GPIO Proxy code\n");
++
++    // If virtual-pa node is defined, it means that we are using a GPIO proxy
++    err = of_property_read_u64(pdev->dev.of_node, "virtual-pa", &gpio_vpa);
++    if(!err) {
++      // error in reading virtual-pa is non fatal, it only means we are on host.
++      deb_info("GPIO kernel is on guest, virtual-pa: 0x%llx\n", gpio_vpa);
++      kernel_is_on_guest = true;
++    }
++  #endif
++  
+ 	gpio->soc = of_device_get_match_data(&pdev->dev);
+ 	gpio->gpio.label = gpio->soc->name;
+ 	gpio->gpio.parent = &pdev->dev;
+ 
+-	gpio->secure = devm_platform_ioremap_resource_byname(pdev, "security");
+-	if (IS_ERR(gpio->secure))
+-		return PTR_ERR(gpio->secure);
++  gpio->secure = devm_platform_ioremap_resource_byname(pdev, "security");
++  if (IS_ERR(gpio->secure)) {
++    pr_err("GPIO *ERROR* devm_platform_ioremap_resource_byname pdev->name=\"%s\"", pdev->name);
++    return PTR_ERR(gpio->secure);
++  }
++
++  deb_verbose("num of ports = %d", gpio->soc->num_ports);
+ 
+ 	/* count the number of banks in the controller */
+ 	for (i = 0; i < gpio->soc->num_ports; i++)
+@@ -1139,11 +1516,15 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 
+ 	gpio->num_banks++;
+ 
++  deb_verbose("num of banks = %d", gpio->num_banks);
++
+ 	gpio->base = devm_platform_ioremap_resource_byname(pdev, "gpio");
+ 	if (IS_ERR(gpio->base))
+ 		return PTR_ERR(gpio->base);
+ 
+-	gpio->gpio_rval = devm_kzalloc(&pdev->dev, gpio->soc->num_ports * 8 *
++  deb_verbose("gpio base = 0x%llx", (long long unsigned int)gpio->base);
++	
++  gpio->gpio_rval = devm_kzalloc(&pdev->dev, gpio->soc->num_ports * 8 *
+ 				      sizeof(*gpio->gpio_rval), GFP_KERNEL);
+ 	if (!gpio->gpio_rval)
+ 		return -ENOMEM;
+@@ -1154,9 +1535,12 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 		return -EINVAL;
+ 	}
+ 
++  deb_verbose("node pointer = 0x%llx", (long long unsigned int)np);
++
+ 	gpio->use_timestamp = of_property_read_bool(np, "use-timestamp");
+ 
+ 	if (gpio->use_timestamp) {
++    deb_verbose("use_timestamp");
+ 		res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "gte");
+ 		if (!res) {
+ 			dev_err(&pdev->dev, "Missing gte MEM resource\n");
+@@ -1172,14 +1556,20 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	err = platform_irq_count(pdev);
+-	if (err < 0)
++	if (err < 0) {
++    pr_err("GPIO platform_irq_count\n");
+ 		return err;
++  }
+ 
+ 	gpio->num_irq = err;
+ 
+-	err = tegra186_gpio_irqs_per_bank(gpio);
+-	if (err < 0)
++  deb_verbose("num_irq = %d", gpio->num_irq);
++	
++  err = tegra186_gpio_irqs_per_bank(gpio);
++	if (err < 0) {
++    pr_err("GPIO tegra186_gpio_irqs_per_bank\n");
+ 		return err;
++  }
+ 
+ 	gpio->irq = devm_kcalloc(&pdev->dev, gpio->num_irq, sizeof(*gpio->irq),
+ 				 GFP_KERNEL);
+@@ -1188,27 +1578,43 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 
+ 	for (i = 0; i < gpio->num_irq; i++) {
+ 		err = platform_get_irq(pdev, i);
+-		if (err < 0)
++		if (err < 0) {
++      pr_err("GPIO platform_get_irq");
+ 			return err;
++    }
+ 
+ 		gpio->irq[i] = err;
+ 	}
+ 
+-
+-	gpio->gpio.request = gpiochip_generic_request;
+-	gpio->gpio.free = gpiochip_generic_free;
+-	gpio->gpio.get_direction = tegra186_gpio_get_direction;
+-	gpio->gpio.direction_input = tegra186_gpio_direction_input;
+-	gpio->gpio.direction_output = tegra186_gpio_direction_output;
+-	gpio->gpio.get = tegra186_gpio_get,
+-	gpio->gpio.set = tegra186_gpio_set;
+-	gpio->gpio.set_config = tegra186_gpio_set_config;
+-	gpio->gpio.timestamp_control = tegra_gpio_timestamp_control;
+-	gpio->gpio.timestamp_read = tegra_gpio_timestamp_read;
+-	gpio->gpio.suspend_configure = tegra_gpio_suspend_configure;
+-	gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges;
+-
+-	gpio->gpio.base = -1;
++	#if defined(CONFIG_TEGRA_GPIO_HOST_PROXY) || defined(CONFIG_TEGRA_GPIO_GUEST_PROXY)
++
++
++    if (gpio->use_timestamp)
++      tegra_gte_setup(gpio);
++
++    if(kernel_is_on_guest) {
++      deb_debug("GPIO Guest init section\n");
++      if( ! guest_proxy_is_set_up ) {
++        ret = tegra_gpio_guest_init();
++        guest_proxy_is_set_up = true;
++      }
++      // guest should use gpio_hook() for its "host" driver
++      gpio_hook(gpio);
++    }
++    else {
++      // gpio_unhook is the same as standard settings
++      // unhooked pointers are for the host driver on host only
++      BUG_ON(gpio_vpa != 0);  // assert we do not set up the vpa driver
++      gpio_unhook(gpio);      // set standard function pointers
++    }
++    gpio->gpio.base = -1;
++    deb_debug("gpio function pointers are set for gpio label=%s\n", gpio->gpio.label);
++  #else
++    // this code segment is for standard operation in a compile without PROXY configuraton
++    deb_debug("Setting standard gpio functions for a non-proxy compile of driver\n")
++    BUG_ON(gpio_vpa != 0);  // assert we do not set up the vpa driver, because non-proxy
++    gpio_unhook(gpio);
++  #endif
+ 
+ 	for (i = 0; i < gpio->soc->num_ports; i++)
+ 		gpio->gpio.ngpio += gpio->soc->ports[i].pins;
+@@ -1229,6 +1635,7 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 				return -ENOMEM;
+ 
+ 			names[offset + j] = name;
++			// deb_verbose("GPIO, name=\n", name);
+ 		}
+ 
+ 		offset += port->pins;
+@@ -1260,6 +1667,8 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 	irq->parent_handler_data = gpio;
+ 	irq->num_parents = gpio->num_irq;
+ 
++  //DEBUG
++  deb_verbose("gpio->gpio.of_node = 0x%llx, pdev->dev.of_node = 0x%llx", (long long unsigned int)gpio->gpio.of_node, (long long unsigned int)pdev->dev.of_node);
+ 
+ 	/*
+ 	* To simplify things, use a single interrupt per bank for now. Some
+@@ -1284,7 +1693,18 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 	}
+ 
+ 	if (gpio->soc->num_irqs_per_bank > 1)
++	/*
++	#if defined(CONFIG_TEGRA_GPIO_HOST_PROXY) || defined(CONFIG_TEGRA_GPIO_GUEST_PROXY)
++    if(kernel_is_on_guest) {
++		  tegra186_gpio_init_route_mapping_redirect(gpio);
++    }
++    else {
++		  tegra186_gpio_init_route_mapping(gpio);
++    }
++  #else
++  */
+ 		tegra186_gpio_init_route_mapping(gpio);
++  // #endif
+ 
+ 	np = of_find_matching_node(NULL, tegra186_pmc_of_match);
+ 	if (!of_device_is_available(np))
+@@ -1315,9 +1735,31 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 
+ 	platform_set_drvdata(pdev, gpio);
+ 
+-	err = devm_gpiochip_add_data(&pdev->dev, &gpio->gpio, gpio);
+-	if (err < 0)
+-		return err;
++	#if defined(CONFIG_TEGRA_GPIO_HOST_PROXY) || defined(CONFIG_TEGRA_GPIO_GUEST_PROXY)
++  /* of these functions:
++   *   int devm_gpiochip_add_data__redirect(struct device *dev, struct gpio_chip *gc, void *data)
++   *   int of_gpiochip_add__redirect(struct gpio_chip *chip)
++   *   static int gpiochip_setup_dev__redirect(struct gpio_device *gdev)
++   *   int gpiochip_add_data__redirect(struct gpio_chip *gc, void *data)
++   * only devm_gpiochip_add_data needs to be redirected and passthrough
++   * (assuming passthrough is the solution)
++   */
++    if(kernel_is_on_guest) { 
++      // passthrough function if we are guest
++      err = devm_gpiochip_add_data__redirect(&pdev->dev, &gpio->gpio, gpio);
++    }
++    else
++      err = devm_gpiochip_add_data(&pdev->dev, &gpio->gpio, gpio);
++  #else
++    err = devm_gpiochip_add_data(&pdev->dev, &gpio->gpio, gpio);
++  #endif
++
++  if (err < 0) {
++    pr_err("GPIO *ERROR* devm_gpiochip_add_data\n");
++    return err;
++  }
++
++  /* on guest, we could possibly passsthrough the whole loop below for better performance */
+ 
+ 	if (gpio->soc->is_hw_ts_sup) {
+ 		for (i = 0, offset = 0; i < gpio->soc->num_ports; i++) {
+@@ -1325,28 +1767,29 @@ static int tegra186_gpio_probe(struct platform_device *pdev)
+ 							&gpio->soc->ports[i];
+ 
+ 			for (j = 0; j < port->pins; j++) {
+-				base = tegra186_gpio_get_base(gpio, offset + j);
+-				if (WARN_ON(base == NULL))
++				base = tegra186_gpio_get_base_x(gpio, offset + j);
++				if (WARN_ON(base == NULL))				// BUG here, base is null
+ 					return -EINVAL;
+ 
+-				value = readl(base +
++				value = readl_x(base +
+ 					      TEGRA186_GPIO_ENABLE_CONFIG);
+ 				value |=
+ 				TEGRA186_GPIO_ENABLE_CONFIG_TIMESTAMP_FUNC;
+-				writel(value,
++				writel_x(value,
+ 				       base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 			}
+ 			offset += port->pins;
+ 		}
+ 	}
+ 
+-	if (gpio->use_timestamp)
+-		tegra_gte_setup(gpio);
++	#if defined(CONFIG_TEGRA_GPIO_HOST_PROXY) || defined(CONFIG_TEGRA_GPIO_GUEST_PROXY)
++	preserve_tegrachip(gpio);
+ 
+-	return 0;
++	#endif
++  return 0;
+ }
+ 
+-#ifdef CONFIG_PM_SLEEP
++	#ifdef CONFIG_PM_SLEEP
+ static int tegra_gpio_resume_early(struct device *dev)
+ {
+ 	struct tegra_gpio *gpio = dev_get_drvdata(dev);
+@@ -1355,7 +1798,7 @@ static int tegra_gpio_resume_early(struct device *dev)
+ 	void __iomem *base;
+ 	int i;
+ 
+-	base = tegra186_gpio_get_base(gpio, offset);
++	base = tegra186_gpio_get_base_x(gpio, offset);
+ 	if (WARN_ON(base == NULL))
+ 		return -EINVAL;
+ 
+@@ -1366,9 +1809,9 @@ static int tegra_gpio_resume_early(struct device *dev)
+ 
+ 		regs->restore_needed = false;
+ 
+-		writel(regs->val,  base + TEGRA186_GPIO_OUTPUT_VALUE);
+-		writel(regs->out,  base + TEGRA186_GPIO_OUTPUT_CONTROL);
+-		writel(regs->conf, base + TEGRA186_GPIO_ENABLE_CONFIG);
++    writel_x(regs->val,  base + TEGRA186_GPIO_OUTPUT_VALUE);
++    writel_x(regs->out,  base + TEGRA186_GPIO_OUTPUT_CONTROL);
++    writel_x(regs->conf, base + TEGRA186_GPIO_ENABLE_CONFIG);
+ 	}
+ 
+ 	return 0;
+@@ -1723,7 +2166,9 @@ static struct platform_driver tegra186_gpio_driver = {
+ 	.probe = tegra186_gpio_probe,
+ 	.remove = tegra186_gpio_remove,
+ };
+-module_platform_driver(tegra186_gpio_driver);
++
++// module_platform_driver(tegra186_gpio_driver);
++builtin_platform_driver(tegra186_gpio_driver);
+ 
+ MODULE_DESCRIPTION("NVIDIA Tegra186 GPIO controller driver");
+ MODULE_AUTHOR("Thierry Reding <treding@nvidia.com>");
+diff --git a/drivers/gpio/gpiolib-cdev.c b/drivers/gpio/gpiolib-cdev.c
+index 2613881a66e6..1b052acf3753 100644
+--- a/drivers/gpio/gpiolib-cdev.c
++++ b/drivers/gpio/gpiolib-cdev.c
+@@ -83,6 +83,16 @@ struct linehandle_state {
+ 	GPIOHANDLE_REQUEST_OPEN_DRAIN | \
+ 	GPIOHANDLE_REQUEST_OPEN_SOURCE)
+ 
++// #define GPIO_DEBUG
++
++#ifdef GPIO_DEBUG
++#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#else
++#define deb_info(fmt, ...)
++#define deb_debug(fmt, ...)
++#endif
++
+ static int linehandle_validate_flags(u32 flags)
+ {
+ 	/* Return an error if an unknown flag is set */
+@@ -155,6 +165,8 @@ static long linehandle_set_config(struct linehandle_state *lh,
+ 	int i, ret;
+ 	u32 lflags;
+ 
++	deb_debug("\n");
++	
+ 	if (copy_from_user(&gcnf, ip, sizeof(gcnf)))
+ 		return -EFAULT;
+ 
+@@ -199,6 +211,8 @@ static long linehandle_ioctl(struct file *file, unsigned int cmd,
+ 	DECLARE_BITMAP(vals, GPIOHANDLES_MAX);
+ 	int i;
+ 
++	deb_debug("cmd=0x%x, user_pointer=0x%p\n", cmd, ip);
++	
+ 	if (cmd == GPIOHANDLE_GET_LINE_VALUES_IOCTL) {
+ 		/* NOTE: It's ok to read values of output lines. */
+ 		int ret = gpiod_get_array_value_complex(false,
+@@ -268,6 +282,8 @@ static void linehandle_free(struct linehandle_state *lh)
+ 
+ static int linehandle_release(struct inode *inode, struct file *file)
+ {
++	deb_debug("\n");
++	
+ 	linehandle_free(file->private_data);
+ 	return 0;
+ }
+@@ -290,6 +306,8 @@ static int linehandle_create(struct gpio_device *gdev, void __user *ip)
+ 	int fd, i, ret;
+ 	u32 lflags;
+ 
++	deb_debug("\n");
++	
+ 	if (copy_from_user(&handlereq, ip, sizeof(handlereq)))
+ 		return -EFAULT;
+ 	if ((handlereq.lines == 0) || (handlereq.lines > GPIOHANDLES_MAX))
+@@ -1040,6 +1058,8 @@ static long linereq_set_values_unlocked(struct linereq *lr,
+ 	unsigned int i, didx, num_set;
+ 	int ret;
+ 
++	deb_debug("\n");
++	
+ 	bitmap_zero(vals, GPIO_V2_LINES_MAX);
+ 	for (num_set = 0, i = 0; i < lr->num_lines; i++) {
+ 		if (lv->mask & BIT_ULL(i)) {
+@@ -1079,6 +1099,8 @@ static long linereq_set_values(struct linereq *lr, void __user *ip)
+ 	struct gpio_v2_line_values lv;
+ 	int ret;
+ 
++	deb_debug("\n");
++	
+ 	if (copy_from_user(&lv, ip, sizeof(lv)))
+ 		return -EFAULT;
+ 
+@@ -1165,6 +1187,8 @@ static long linereq_ioctl(struct file *file, unsigned int cmd,
+ 	struct linereq *lr = file->private_data;
+ 	void __user *ip = (void __user *)arg;
+ 
++	deb_debug("\n");
++	
+ 	if (cmd == GPIO_V2_LINE_GET_VALUES_IOCTL)
+ 		return linereq_get_values(lr, ip);
+ 	else if (cmd == GPIO_V2_LINE_SET_VALUES_IOCTL)
+@@ -1296,6 +1320,8 @@ static int linereq_create(struct gpio_device *gdev, void __user *ip)
+ 	u64 flags;
+ 	unsigned int i;
+ 	int fd, ret;
++	
++	deb_debug("\n");
+ 
+ 	if (copy_from_user(&ulr, ip, sizeof(ulr)))
+ 		return -EFAULT;
+@@ -1702,6 +1728,8 @@ static int lineevent_create(struct gpio_device *gdev, void __user *ip)
+ 	int ret;
+ 	int irq, irqflags = 0;
+ 
++	deb_debug("\n");
++	
+ 	if (copy_from_user(&eventreq, ip, sizeof(eventreq)))
+ 		return -EFAULT;
+ 
+@@ -1870,7 +1898,6 @@ static void gpio_v2_line_info_changed_to_v1(
+ 	lic_v1->timestamp = lic_v2->timestamp_ns;
+ 	lic_v1->event_type = lic_v2->event_type;
+ }
+-
+ #endif /* CONFIG_GPIO_CDEV_V1 */
+ 
+ static void gpio_desc_to_lineinfo(struct gpio_desc *desc,
+@@ -2000,6 +2027,8 @@ static int lineinfo_get_v1(struct gpio_chardev_data *cdev, void __user *ip,
+ 	struct gpioline_info lineinfo;
+ 	struct gpio_v2_line_info lineinfo_v2;
+ 
++	deb_debug("\n");
++	
+ 	if (copy_from_user(&lineinfo, ip, sizeof(lineinfo)))
+ 		return -EFAULT;
+ 
+@@ -2035,6 +2064,8 @@ static int lineinfo_get(struct gpio_chardev_data *cdev, void __user *ip,
+ 	struct gpio_desc *desc;
+ 	struct gpio_v2_line_info lineinfo;
+ 
++	deb_debug("\n");
++	
+ 	if (copy_from_user(&lineinfo, ip, sizeof(lineinfo)))
+ 		return -EFAULT;
+ 
+@@ -2089,6 +2120,8 @@ static long gpio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ 	struct gpio_device *gdev = cdev->gdev;
+ 	void __user *ip = (void __user *)arg;
+ 
++	deb_debug("cmd=0x%x, user_pointer=0x%p\n", cmd, ip);
++	
+ 	/* We fail any subsequent ioctl():s when the chip is gone */
+ 	if (!gdev->chip)
+ 		return -ENODEV;
+@@ -2122,6 +2155,8 @@ static long gpio_ioctl(struct file *file, unsigned int cmd, unsigned long arg)
+ static long gpio_ioctl_compat(struct file *file, unsigned int cmd,
+ 			      unsigned long arg)
+ {
++	deb_debug("cmd=%d\n", cmd);
++	
+ 	return gpio_ioctl(file, cmd, (unsigned long)compat_ptr(arg));
+ }
+ #endif
+@@ -2216,8 +2251,8 @@ static ssize_t lineinfo_watch_read(struct file *file, char __user *buf,
+ 		if (count < event_size) {
+ 			spin_unlock(&cdev->wait.lock);
+ 			return -EINVAL;
+-		}
+ #endif
++		}
+ 		ret = kfifo_out(&cdev->events, &event, 1);
+ 		spin_unlock(&cdev->wait.lock);
+ 		if (ret != 1) {
+@@ -2261,6 +2296,8 @@ static int gpio_chrdev_open(struct inode *inode, struct file *file)
+ 	struct gpio_chardev_data *cdev;
+ 	int ret = -ENOMEM;
+ 
++	deb_debug("\n");
++
+ 	/* Fail on open if the backing gpiochip is gone */
+ 	if (!gdev->chip)
+ 		return -ENODEV;
+@@ -2285,7 +2322,6 @@ static int gpio_chrdev_open(struct inode *inode, struct file *file)
+ 
+ 	get_device(&gdev->dev);
+ 	file->private_data = cdev;
+-
+ 	ret = nonseekable_open(inode, file);
+ 	if (ret)
+ 		goto out_unregister_notifier;
+@@ -2313,6 +2349,8 @@ static int gpio_chrdev_release(struct inode *inode, struct file *file)
+ 	struct gpio_chardev_data *cdev = file->private_data;
+ 	struct gpio_device *gdev = cdev->gdev;
+ 
++	deb_debug("\n");
++
+ 	bitmap_free(cdev->watched_lines);
+ 	blocking_notifier_chain_unregister(&gdev->notifier,
+ 					   &cdev->lineinfo_changed_nb);
+@@ -2339,6 +2377,8 @@ int gpiolib_cdev_register(struct gpio_device *gdev, dev_t devt)
+ {
+ 	int ret;
+ 
++	deb_debug("\n");
++	
+ 	cdev_init(&gdev->chrdev, &gpio_fileops);
+ 	gdev->chrdev.owner = THIS_MODULE;
+ 	gdev->dev.devt = MKDEV(MAJOR(devt), gdev->id);
+@@ -2355,5 +2395,7 @@ int gpiolib_cdev_register(struct gpio_device *gdev, dev_t devt)
+ 
+ void gpiolib_cdev_unregister(struct gpio_device *gdev)
+ {
++	deb_debug("\n");
++	
+ 	cdev_device_del(&gdev->chrdev, &gdev->dev);
+ }
+diff --git a/drivers/gpio/gpiolib-devres.c b/drivers/gpio/gpiolib-devres.c
+index 7dbce4c4ebdf..117f0e70069b 100644
+--- a/drivers/gpio/gpiolib-devres.c
++++ b/drivers/gpio/gpiolib-devres.c
+@@ -377,9 +377,6 @@ void devm_gpiod_put_array(struct device *dev, struct gpio_descs *descs)
+ }
+ EXPORT_SYMBOL_GPL(devm_gpiod_put_array);
+ 
+-
+-
+-
+ static void devm_gpio_release(struct device *dev, void *res)
+ {
+ 	unsigned *gpio = res;
+@@ -503,6 +500,7 @@ static void devm_gpio_chip_release(struct device *dev, void *res)
+  * gc->base is invalid or already associated with a different chip.
+  * Otherwise it returns zero as a success code.
+  */
++
+ int devm_gpiochip_add_data_with_key(struct device *dev, struct gpio_chip *gc, void *data,
+ 				    struct lock_class_key *lock_key,
+ 				    struct lock_class_key *request_key)
+@@ -527,3 +525,38 @@ int devm_gpiochip_add_data_with_key(struct device *dev, struct gpio_chip *gc, vo
+ 	return 0;
+ }
+ EXPORT_SYMBOL_GPL(devm_gpiochip_add_data_with_key);
++
++/* redirect function added for gpio passthrough in Guest VM
++ * Virtual machine does not have psysical access to resources
++ */
++
++//from kernel-5.10/drivers/gpio/gpiolib-devres.c
++// a note for redirect
++// we redirect
++
++extern int gpiochip_add_data__redirect(struct gpio_chip *gc, void *data);
++
++int devm_gpiochip_add_data__redirect(struct device *dev, struct gpio_chip *gc, void *data)
++{
++	struct gpio_chip **ptr;
++	int ret;
++
++	ptr = devres_alloc(devm_gpio_chip_release, sizeof(*ptr),
++			     GFP_KERNEL);
++	if (!ptr)
++		return -ENOMEM;
++
++	ret = gpiochip_add_data__redirect (gc, data);
++	if (ret < 0) {
++		devres_free(ptr);
++		return ret;
++	}
++
++	*ptr = gc;
++	devres_add(dev, ptr);
++
++
++	return 0;
++}
++EXPORT_SYMBOL_GPL(devm_gpiochip_add_data__redirect);
++
+diff --git a/drivers/gpio/gpiolib-legacy.c b/drivers/gpio/gpiolib-legacy.c
+index 30e2476a6dc4..aab40f1cd52f 100644
+--- a/drivers/gpio/gpiolib-legacy.c
++++ b/drivers/gpio/gpiolib-legacy.c
+@@ -6,8 +6,21 @@
+ 
+ #include "gpiolib.h"
+ 
++// #define GPIO_DEBUG
++
++#ifdef GPIO_DEBUG
++#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#else
++#define deb_info(fmt, ...)
++#define deb_debug(fmt, ...)
++#endif
++
++
+ void gpio_free(unsigned gpio)
+ {
++	deb_debug("\n");
++		
+ 	gpiod_free(gpio_to_desc(gpio));
+ }
+ EXPORT_SYMBOL_GPL(gpio_free);
+@@ -23,6 +36,8 @@ int gpio_request_one(unsigned gpio, unsigned long flags, const char *label)
+ 	struct gpio_desc *desc;
+ 	int err;
+ 
++	deb_debug("label=%s\n", label);
++
+ 	desc = gpio_to_desc(gpio);
+ 
+ 	/* Compatibility: assume unavailable "valid" GPIOs will appear later */
+@@ -69,6 +84,8 @@ int gpio_request(unsigned gpio, const char *label)
+ {
+ 	struct gpio_desc *desc = gpio_to_desc(gpio);
+ 
++	deb_debug("label=%s\n", label);
++	
+ 	/* Compatibility: assume unavailable "valid" GPIOs will appear later */
+ 	if (!desc && gpio_is_valid(gpio))
+ 		return -EPROBE_DEFER;
+@@ -86,6 +103,8 @@ int gpio_request_array(const struct gpio *array, size_t num)
+ {
+ 	int i, err;
+ 
++	deb_debug("\n");
++	
+ 	for (i = 0; i < num; i++, array++) {
+ 		err = gpio_request_one(array->gpio, array->flags, array->label);
+ 		if (err)
+diff --git a/drivers/gpio/gpiolib-of.c b/drivers/gpio/gpiolib-of.c
+index 647e77db82b1..4b85fcb8b62b 100644
+--- a/drivers/gpio/gpiolib-of.c
++++ b/drivers/gpio/gpiolib-of.c
+@@ -24,6 +24,26 @@
+ #include "gpiolib.h"
+ #include "gpiolib-of.h"
+ 
++#define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++#endif // CONFIG_TEGRA_GPIO_GUEST_PROXY and CONFIG_TEGRA_GPIO_HOST_PROXY
++
+ /**
+  * of_gpio_spi_cs_get_count() - special GPIO counting for SPI
+  * @dev:    Consuming device
+@@ -1065,12 +1085,10 @@ static int of_gpiochip_add_pin_range(struct gpio_chip *chip)
+ 				index, &pinspec);
+ 		if (ret)
+ 			break;
+-
+ 		pctldev = of_pinctrl_get(pinspec.np);
+ 		of_node_put(pinspec.np);
+ 		if (!pctldev)
+ 			return -EPROBE_DEFER;
+-
+ 		if (pinspec.args[2]) {
+ 			if (group_names) {
+ 				of_property_read_string_index(np,
+@@ -1141,7 +1159,6 @@ int of_gpiochip_add(struct gpio_chip *chip)
+ 		chip->of_gpio_n_cells = 2;
+ 		chip->of_xlate = of_gpio_simple_xlate;
+ 	}
+-
+ 	if (chip->of_gpio_n_cells > MAX_PHANDLE_ARGS)
+ 		return -EINVAL;
+ 
+@@ -1164,3 +1181,39 @@ void of_gpiochip_remove(struct gpio_chip *chip)
+ {
+ 	of_node_put(chip->of_node);
+ }
++
++int of_gpiochip_add__redirect(struct gpio_chip *chip)
++{
++	int ret;
++  
++	if (!chip->of_node)
++		return 0;
++
++	if (!chip->of_xlate) {
++		chip->of_gpio_n_cells = 2;
++		chip->of_xlate = of_gpio_simple_xlate;
++	}
++
++	if (chip->of_gpio_n_cells > MAX_PHANDLE_ARGS)
++		return -EINVAL;
++
++	of_gpiochip_init_valid_mask(chip);
++
++	ret = of_gpiochip_add_pin_range(chip);
++	if (ret)
++		return ret;
++
++	of_node_get(chip->of_node);
++
++ret = of_gpiochip_scan_gpios(chip);
++	if (ret)
++		of_node_put(chip->of_node);
++
++	return ret;
++}
++
++void of_gpiochip_remove_redirect(struct gpio_chip *chip)
++{
++	of_node_put(chip->of_node);
++}
++
+diff --git a/drivers/gpio/gpiolib-sysfs.c b/drivers/gpio/gpiolib-sysfs.c
+index 3ef71ca242ba..bf62aeee66a1 100644
+--- a/drivers/gpio/gpiolib-sysfs.c
++++ b/drivers/gpio/gpiolib-sysfs.c
+@@ -18,6 +18,16 @@
+ #define GPIO_IRQF_TRIGGER_BOTH		(GPIO_IRQF_TRIGGER_FALLING | \
+ 					 GPIO_IRQF_TRIGGER_RISING)
+ 
++// #define GPIO_DEBUG
++
++#ifdef GPIO_DEBUG
++#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#else
++#define deb_info(fmt, ...)
++#define deb_debug(fmt, ...)
++#endif
++
+ struct gpiod_data {
+ 	struct gpio_desc *desc;
+ 
+@@ -489,6 +499,8 @@ static ssize_t export_store(struct class *class,
+ 	struct gpio_chip	*gc;
+ 	int			offset;
+ 
++	deb_debug("\n");
++
+ 	status = kstrtol(buf, 0, &gpio);
+ 
+ 	/* If buf is not a number then try to find by name */
+diff --git a/drivers/gpio/gpiolib.c b/drivers/gpio/gpiolib.c
+index 50abb1c20df0..cf7296db3190 100644
+--- a/drivers/gpio/gpiolib.c
++++ b/drivers/gpio/gpiolib.c
+@@ -31,6 +31,26 @@
+ #define CREATE_TRACE_POINTS
+ #include <trace/events/gpio.h>
+ 
++#define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++#endif // CONFIG_TEGRA_GPIO_GUEST_PROXY and CONFIG_TEGRA_GPIO_HOST_PROXY
++
+ /* Implementation infrastructure for GPIO interfaces.
+  *
+  * The GPIO programming interface allows for inlining speed-critical
+@@ -45,11 +65,11 @@
+  *
+  * Otherwise, minimize overhead in what may be bitbanging codepaths.
+  */
+-#ifdef	DEBUG
++    #ifdef	DEBUG
+ #define	extra_checks	1
+ #else
+ #define	extra_checks	0
+-#endif
++    #endif
+ 
+ /* Device and char device-related information */
+ static DEFINE_IDA(gpio_ida);
+@@ -105,6 +125,8 @@ struct gpio_desc *gpio_to_desc(unsigned gpio)
+ {
+ 	struct gpio_device *gdev;
+ 	unsigned long flags;
++	
++	deb_verbose("\n");
+ 
+ 	spin_lock_irqsave(&gpio_lock, flags);
+ 
+@@ -140,6 +162,8 @@ struct gpio_desc *gpiochip_get_desc(struct gpio_chip *gc,
+ {
+ 	struct gpio_device *gdev = gc->gpiodev;
+ 
++	deb_verbose("HW Number %u\n", hwnum);
++
+ 	if (hwnum >= gdev->ngpio)
+ 		return ERR_PTR(-EINVAL);
+ 
+@@ -170,6 +194,8 @@ EXPORT_SYMBOL_GPL(desc_to_gpio);
+  */
+ struct gpio_chip *gpiod_to_chip(const struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	if (!desc || !desc->gdev)
+ 		return NULL;
+ 	return desc->gdev->chip;
+@@ -183,6 +209,7 @@ static int gpiochip_find_base(int ngpio)
+ 	int base = ARCH_NR_GPIOS - ngpio;
+ 
+ 	list_for_each_entry_reverse(gdev, &gpio_devices, list) {
++    deb_verbose("entry 0x%llx", (long long unsigned int)gdev);
+ 		/* found a free space? */
+ 		if (gdev->base + gdev->ngpio <= base)
+ 			break;
+@@ -214,6 +241,8 @@ int gpiod_get_direction(struct gpio_desc *desc)
+ 	unsigned offset;
+ 	int ret;
+ 
++	deb_verbose("name=%s, label=%s\n", desc->name, desc->label);
++
+ 	gc = gpiod_to_chip(desc);
+ 	offset = gpio_chip_hwgpio(desc);
+ 
+@@ -253,6 +282,8 @@ static int gpiodev_add_to_list(struct gpio_device *gdev)
+ {
+ 	struct gpio_device *prev, *next;
+ 
++	deb_verbose("\n");
++
+ 	if (list_empty(&gpio_devices)) {
+ 		/* initial entry in list */
+ 		list_add_tail(&gdev->list, &gpio_devices);
+@@ -270,14 +301,12 @@ static int gpiodev_add_to_list(struct gpio_device *gdev)
+ 	if (prev->base + prev->ngpio <= gdev->base) {
+ 		/* add behind last entry */
+ 		list_add_tail(&gdev->list, &gpio_devices);
++		deb_verbose("debug 3");
+ 		return 0;
+ 	}
+ 
+ 	list_for_each_entry_safe(prev, next, &gpio_devices, list) {
+ 		/* at the end of the list */
+-		if (&next->list == &gpio_devices)
+-			break;
+-
+ 		/* add between prev and next */
+ 		if (prev->base + prev->ngpio <= gdev->base
+ 				&& gdev->base + gdev->ngpio <= next->base) {
+@@ -301,6 +330,8 @@ struct gpio_desc *gpio_name_to_desc(const char * const name)
+ 	struct gpio_device *gdev;
+ 	unsigned long flags;
+ 
++	// deb_verbose("\n");
++
+ 	if (!name)
+ 		return NULL;
+ 
+@@ -340,6 +371,8 @@ static int gpiochip_set_desc_names(struct gpio_chip *gc)
+ 	struct gpio_device *gdev = gc->gpiodev;
+ 	int i;
+ 
++	deb_verbose("\n");
++
+ 	/* First check all names if they are unique */
+ 	for (i = 0; i != gc->ngpio; ++i) {
+ 		struct gpio_desc *gpio;
+@@ -375,6 +408,8 @@ static int devprop_gpiochip_set_names(struct gpio_chip *chip)
+ 	int ret, i;
+ 	int count;
+ 
++	deb_verbose("\n");
++
+ 	count = fwnode_property_string_array_count(fwnode, "gpio-line-names");
+ 	if (count < 0)
+ 		return 0;
+@@ -409,6 +444,8 @@ static unsigned long *gpiochip_allocate_mask(struct gpio_chip *gc)
+ {
+ 	unsigned long *p;
+ 
++	deb_verbose("\n");
++
+ 	p = bitmap_alloc(gc->ngpio, GFP_KERNEL);
+ 	if (!p)
+ 		return NULL;
+@@ -421,6 +458,8 @@ static unsigned long *gpiochip_allocate_mask(struct gpio_chip *gc)
+ 
+ static int gpiochip_alloc_valid_mask(struct gpio_chip *gc)
+ {
++	deb_verbose("\n");
++
+ 	if (!(of_gpio_need_valid_mask(gc) || gc->init_valid_mask))
+ 		return 0;
+ 
+@@ -433,6 +472,8 @@ static int gpiochip_alloc_valid_mask(struct gpio_chip *gc)
+ 
+ static int gpiochip_init_valid_mask(struct gpio_chip *gc)
+ {
++	deb_verbose("\n");
++
+ 	if (gc->init_valid_mask)
+ 		return gc->init_valid_mask(gc,
+ 					   gc->valid_mask,
+@@ -443,12 +484,16 @@ static int gpiochip_init_valid_mask(struct gpio_chip *gc)
+ 
+ static void gpiochip_free_valid_mask(struct gpio_chip *gc)
+ {
++	deb_verbose("\n");
++
+ 	bitmap_free(gc->valid_mask);
+ 	gc->valid_mask = NULL;
+ }
+ 
+ static int gpiochip_add_pin_ranges(struct gpio_chip *gc)
+ {
++	deb_verbose("\n");
++
+ 	if (gc->add_pin_ranges)
+ 		return gc->add_pin_ranges(gc);
+ 
+@@ -458,6 +503,8 @@ static int gpiochip_add_pin_ranges(struct gpio_chip *gc)
+ bool gpiochip_line_is_valid(const struct gpio_chip *gc,
+ 				unsigned int offset)
+ {
++	deb_verbose("chip %s, offset=%u\n", gc->label, offset);
++
+ 	/* No mask means all valid */
+ 	if (likely(!gc->valid_mask))
+ 		return true;
+@@ -470,6 +517,8 @@ static void gpiodevice_release(struct device *dev)
+ 	struct gpio_device *gdev = dev_get_drvdata(dev);
+ 	unsigned long flags;
+ 
++	deb_verbose("\n");
++
+ 	spin_lock_irqsave(&gpio_lock, flags);
+ 	list_del(&gdev->list);
+ 	spin_unlock_irqrestore(&gpio_lock, flags);
+@@ -480,7 +529,7 @@ static void gpiodevice_release(struct device *dev)
+ 	kfree(gdev);
+ }
+ 
+-#ifdef CONFIG_GPIO_CDEV
++    #ifdef CONFIG_GPIO_CDEV
+ #define gcdev_register(gdev, devt)	gpiolib_cdev_register((gdev), (devt))
+ #define gcdev_unregister(gdev)		gpiolib_cdev_unregister((gdev))
+ #else
+@@ -490,13 +539,66 @@ static void gpiodevice_release(struct device *dev)
+  */
+ #define gcdev_register(gdev, devt)	device_add(&(gdev)->dev)
+ #define gcdev_unregister(gdev)		device_del(&(gdev)->dev)
+-#endif
++    #endif
++
++static int gpio_dev_count = 0;
++struct gpio_device *proxy_host_gpio_dev[2] = {NULL, NULL};
++EXPORT_SYMBOL_GPL(proxy_host_gpio_dev);
+ 
+ static int gpiochip_setup_dev(struct gpio_device *gdev)
+ {
+ 	int ret;
+ 
++	deb_verbose("\n");
++
++	// store GPIO char device for use by proxy host driver (In guest this is redundant)
++	if (gpio_dev_count == 2) {
++		pr_err("GPIO %s, error, found more than two devices -- file %s", __func__, __FILE__);
++		}
++	proxy_host_gpio_dev[gpio_dev_count++] = gdev;
++	// we continue to populate gdev
++
++	ret = gcdev_register(gdev, gpio_devt);
++
++	if (ret)
++		return ret;
++
++	ret = gpiochip_sysfs_register(gdev);
++	if (ret)
++		goto err_remove_device;
++
++	/* From this point, the .release() function cleans up gpio_device */
++	gdev->dev.release = gpiodevice_release;
++	pr_info("%s: registered GPIOs %d to %d on %s\n",
++		dev_name(&gdev->dev), gdev->base,
++		gdev->base + gdev->ngpio - 1, gdev->chip->label ? : "generic");
++
++	return 0;
++
++err_remove_device:
++	gcdev_unregister(gdev);
++	return ret;
++}
++
++/* redirecting function to allow guest VMto use it even if hardware is not present */
++static int gpiochip_setup_dev__redirect(struct gpio_device *gdev)
++{
++	int ret;
++
++	deb_verbose("\n");
++
++	// store GPIO char device for use by proxy host driver (In guest this is redundant)
++	if (gpio_dev_count == 2) {
++		pr_err("GPIO %s, error, found more than two devices -- file %s", __func__, __FILE__);
++		}
++	proxy_host_gpio_dev[gpio_dev_count++] = gdev;
++	// we continue to populate gdev
++	
++// FIXIT -- debug
++//goto debug_end;
++
+ 	ret = gcdev_register(gdev, gpio_devt);
++
+ 	if (ret)
+ 		return ret;
+ 
+@@ -504,6 +606,9 @@ static int gpiochip_setup_dev(struct gpio_device *gdev)
+ 	if (ret)
+ 		goto err_remove_device;
+ 
++// FIXIT --debug
++//debug_end:
++
+ 	/* From this point, the .release() function cleans up gpio_device */
+ 	gdev->dev.release = gpiodevice_release;
+ 	pr_info("%s: registered GPIOs %d to %d on %s\n",
+@@ -522,6 +627,8 @@ static void gpiochip_machine_hog(struct gpio_chip *gc, struct gpiod_hog *hog)
+ 	struct gpio_desc *desc;
+ 	int rv;
+ 
++	deb_verbose("\n");
++
+ 	desc = gpiochip_get_desc(gc, hog->chip_hwnum);
+ 	if (IS_ERR(desc)) {
+ 		chip_err(gc, "%s: unable to get GPIO desc: %ld\n", __func__,
+@@ -542,6 +649,8 @@ static void machine_gpiochip_add(struct gpio_chip *gc)
+ {
+ 	struct gpiod_hog *hog;
+ 
++	deb_verbose("\n");
++
+ 	mutex_lock(&gpio_machine_hogs_mutex);
+ 
+ 	list_for_each_entry(hog, &gpio_machine_hogs, list) {
+@@ -557,6 +666,8 @@ static void gpiochip_setup_devs(void)
+ 	struct gpio_device *gdev;
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	list_for_each_entry(gdev, &gpio_devices, list) {
+ 		ret = gpiochip_setup_dev(gdev);
+ 		if (ret)
+@@ -576,6 +687,8 @@ int gpiochip_add_data_with_key(struct gpio_chip *gc, void *data,
+ 	int		base = gc->base;
+ 	struct gpio_device *gdev;
+ 
++	deb_verbose("\n");
++
+ 	/*
+ 	 * First: allocate and populate the internal stat container, and
+ 	 * set up the struct device.
+@@ -591,13 +704,13 @@ int gpiochip_add_data_with_key(struct gpio_chip *gc, void *data,
+ 		gdev->dev.of_node = gc->parent->of_node;
+ 	}
+ 
+-#ifdef CONFIG_OF_GPIO
++    #ifdef CONFIG_OF_GPIO
+ 	/* If the gpiochip has an assigned OF node this takes precedence */
+ 	if (gc->of_node)
+ 		gdev->dev.of_node = gc->of_node;
+ 	else
+ 		gc->of_node = gdev->dev.of_node;
+-#endif
++    #endif
+ 
+ 	/*
+ 	 * Assign fwnode depending on the result of the previous calls,
+@@ -689,9 +802,9 @@ int gpiochip_add_data_with_key(struct gpio_chip *gc, void *data,
+ 
+ 	BLOCKING_INIT_NOTIFIER_HEAD(&gdev->notifier);
+ 
+-#ifdef CONFIG_PINCTRL
++    #ifdef CONFIG_PINCTRL
+ 	INIT_LIST_HEAD(&gdev->pin_ranges);
+-#endif
++    #endif
+ 
+ 	if (gc->names)
+ 		ret = gpiochip_set_desc_names(gc);
+@@ -793,6 +906,256 @@ int gpiochip_add_data_with_key(struct gpio_chip *gc, void *data,
+ }
+ EXPORT_SYMBOL_GPL(gpiochip_add_data_with_key);
+ 
++/* redirect function added for gpio passthrough in Guest VM
++ * Virtual machine does not have psysical access to resources
++ */
++
++extern int of_gpiochip_add__redirect(struct gpio_chip *chip);
++extern int devm_gpiochip_add_data__redirect(struct device *dev, struct gpio_chip *gc, void *data);
++
++int gpiochip_add_data__redirect(struct gpio_chip *gc, void *data)
++{
++  struct lock_class_key *lock_key = NULL;
++  struct lock_class_key *request_key = NULL;
++	struct fwnode_handle *fwnode = gc->parent ? dev_fwnode(gc->parent) : NULL;
++	unsigned long	flags;
++	int		ret = 0;
++	unsigned	i;
++	int		base = gc->base;
++	struct gpio_device *gdev;
++
++	deb_verbose("\n");
++
++	/*
++	 * First: allocate and populate the internal stat container, and
++	 * set up the struct device.
++	 */
++	gdev = kzalloc(sizeof(*gdev), GFP_KERNEL);
++	if (!gdev)
++		return -ENOMEM;
++	gdev->dev.bus = &gpio_bus_type;
++	gdev->chip = gc;
++	gc->gpiodev = gdev;
++	if (gc->parent) {
++		gdev->dev.parent = gc->parent;
++		gdev->dev.of_node = gc->parent->of_node;
++	}
++
++    #ifdef CONFIG_OF_GPIO
++	/* If the gpiochip has an assigned OF node this takes precedence */
++	if (gc->of_node)
++		gdev->dev.of_node = gc->of_node;
++	else
++		gc->of_node = gdev->dev.of_node;
++    #endif
++
++	/*
++	 * Assign fwnode depending on the result of the previous calls,
++	 * if none of them succeed, assign it to the parent's one.
++	 */
++	gdev->dev.fwnode = dev_fwnode(&gdev->dev) ?: fwnode;
++
++	gdev->id = ida_alloc(&gpio_ida, GFP_KERNEL);
++	if (gdev->id < 0) {
++		ret = gdev->id;
++		goto err_free_gdev;
++	}
++
++	ret = dev_set_name(&gdev->dev, GPIOCHIP_NAME "%d", gdev->id);
++	if (ret)
++		goto err_free_ida;
++
++	device_initialize(&gdev->dev);
++	dev_set_drvdata(&gdev->dev, gdev);
++	if (gc->parent && gc->parent->driver)
++		gdev->owner = gc->parent->driver->owner;
++	else if (gc->owner)
++		/* TODO: remove chip->owner */
++		gdev->owner = gc->owner;
++	else
++		gdev->owner = THIS_MODULE;
++
++	gdev->descs = kcalloc(gc->ngpio, sizeof(gdev->descs[0]), GFP_KERNEL);
++	if (!gdev->descs) {
++		ret = -ENOMEM;
++		goto err_free_dev_name;
++	}
++
++	if (gc->ngpio == 0) {
++		chip_err(gc, "tried to insert a GPIO chip with zero lines\n");
++		ret = -EINVAL;
++		goto err_free_descs;
++	}
++
++	if (gc->ngpio > FASTPATH_NGPIO)
++		chip_warn(gc, "line cnt %u is greater than fast path cnt %u\n",
++			  gc->ngpio, FASTPATH_NGPIO);
++
++	gdev->label = kstrdup_const(gc->label ?: "unknown", GFP_KERNEL);
++	if (!gdev->label) {
++		ret = -ENOMEM;
++		goto err_free_descs;
++	}
++
++	gdev->ngpio = gc->ngpio;
++	gdev->data = data;
++
++	spin_lock_irqsave(&gpio_lock, flags);
++
++	/*
++	 * TODO: this allocates a Linux GPIO number base in the global
++	 * GPIO numberspace for this chip. In the long run we want to
++	 * get *rid* of this numberspace and use only descriptors, but
++	 * it may be a pipe dream. It will not happen before we get rid
++	 * of the sysfs interface anyways.
++	 */
++	if (base < 0) {
++		base = gpiochip_find_base(gc->ngpio);
++		if (base < 0) {
++			ret = base;
++			spin_unlock_irqrestore(&gpio_lock, flags);
++			goto err_free_label;
++		}
++
++		/*
++		 * TODO: it should not be necessary to reflect the assigned
++		 * base outside of the GPIO subsystem. Go over drivers and
++		 * see if anyone makes use of this, else drop this and assign
++		 * a poison instead.
++		 */
++		gc->base = base;
++	}
++	gdev->base = base;
++
++	deb_verbose("precheck number of lines: %d, list=0x%llx, next=0x%llx, prev=0x%llx", gdev->ngpio, (long long unsigned int)&gdev->list, (long long unsigned int)gdev->list.next, (long long unsigned int)gdev->list.prev);
++
++	ret = gpiodev_add_to_list(gdev);
++	if(WARN_ON(gdev->ngpio == 0))
++		deb_verbose("number of lines: %d", gdev->ngpio);
++	if (ret) {
++		spin_unlock_irqrestore(&gpio_lock, flags);
++		goto err_free_label;
++	}
++
++	for (i = 0; i < gc->ngpio; i++)
++		gdev->descs[i].gdev = gdev;
++
++	spin_unlock_irqrestore(&gpio_lock, flags);
++
++	BLOCKING_INIT_NOTIFIER_HEAD(&gdev->notifier);
++
++    #ifdef CONFIG_PINCTRL
++	INIT_LIST_HEAD(&gdev->pin_ranges);
++    #endif
++
++	if (gc->names)
++		ret = gpiochip_set_desc_names(gc);
++	else
++		ret = devprop_gpiochip_set_names(gc);
++	if (ret)
++		goto err_remove_from_list;
++
++	ret = gpiochip_alloc_valid_mask(gc);
++	if (ret)
++		goto err_remove_from_list;
++
++
++  /* TODO guest driver fails on of_gpiochip_add */
++	ret = of_gpiochip_add__redirect(gc);
++	if (ret)
++{   deb_verbose("of_gpiochip_add__redirect fails, with: %d", ret); 
++		goto err_free_gpiochip_mask;
++}
++
++	ret = gpiochip_init_valid_mask(gc);
++	if (ret)
++{   deb_verbose("gpiochip_init_valid_mask fails, with: %d", ret);
++		goto err_remove_of_chip;
++}
++
++	for (i = 0; i < gc->ngpio; i++) {
++		struct gpio_desc *desc = &gdev->descs[i];
++
++		if (gc->get_direction && gpiochip_line_is_valid(gc, i)) {
++			assign_bit(FLAG_IS_OUT,
++				   &desc->flags, !gc->get_direction(gc, i));
++		} else {
++			assign_bit(FLAG_IS_OUT,
++				   &desc->flags, !gc->direction_input);
++		}
++	}
++
++	ret = gpiochip_add_pin_ranges(gc);
++	if (ret)
++{   deb_verbose("gpiochip_add_pin_ranges, with: %d", ret);
++		goto err_remove_of_chip;
++}
++
++	acpi_gpiochip_add(gc);
++
++	machine_gpiochip_add(gc);
++
++	ret = gpiochip_irqchip_init_valid_mask(gc);
++	if (ret)
++		goto err_remove_acpi_chip;
++
++	ret = gpiochip_irqchip_init_hw(gc);
++	if (ret)
++		goto err_remove_acpi_chip;
++
++	ret = gpiochip_add_irqchip(gc, lock_key, request_key);
++	if (ret)
++		goto err_remove_irqchip_mask;
++
++  /*
++	 * By first adding the chardev, and then adding the device,
++	 * we get a device node entry in sysfs under
++	 * /sys/bus/gpio/devices/gpiochipN/dev that can be used for
++	 * coldplug of device nodes and other udev business.
++	 * We can do this only if gpiolib has been initialized.
++	 * Otherwise, defer until later.
++	 */
++	if (gpiolib_initialized) {
++		ret = gpiochip_setup_dev__redirect(gdev);
++		if (ret)
++			goto err_remove_irqchip;
++	}
++	return 0;
++
++err_remove_irqchip:
++	gpiochip_irqchip_remove(gc);
++err_remove_irqchip_mask:
++	gpiochip_irqchip_free_valid_mask(gc);
++err_remove_acpi_chip:
++	acpi_gpiochip_remove(gc);
++err_remove_of_chip:
++	gpiochip_free_hogs(gc);
++	of_gpiochip_remove(gc);
++err_free_gpiochip_mask:
++	gpiochip_remove_pin_ranges(gc);
++	gpiochip_free_valid_mask(gc);
++err_remove_from_list:
++	spin_lock_irqsave(&gpio_lock, flags);
++	list_del(&gdev->list);
++	spin_unlock_irqrestore(&gpio_lock, flags);
++err_free_label:
++	kfree_const(gdev->label);
++err_free_descs:
++	kfree(gdev->descs);
++err_free_dev_name:
++	kfree(dev_name(&gdev->dev));
++err_free_ida:
++	ida_free(&gpio_ida, gdev->id);
++err_free_gdev:
++	/* failures here can mean systems won't boot... */
++	pr_err("%s: GPIOs %d..%d (%s) failed to register, %d\n", __func__,
++	       gdev->base, gdev->base + gdev->ngpio - 1,
++	       gc->label ? : "generic", ret);
++	kfree(gdev);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(gpiochip_add_data__redirect);
++
+ /**
+  * gpiochip_get_data() - get per-subdriver data for the chip
+  * @gc: GPIO chip
+@@ -802,6 +1165,8 @@ EXPORT_SYMBOL_GPL(gpiochip_add_data_with_key);
+  */
+ void *gpiochip_get_data(struct gpio_chip *gc)
+ {
++	deb_verbose("\n");
++
+ 	return gc->gpiodev->data;
+ }
+ EXPORT_SYMBOL_GPL(gpiochip_get_data);
+@@ -818,6 +1183,8 @@ void gpiochip_remove(struct gpio_chip *gc)
+ 	unsigned long	flags;
+ 	unsigned int	i;
+ 
++	deb_verbose("\n");
++
+ 	/* FIXME: should the legacy sysfs handling be moved to gpio_device? */
+ 	gpiochip_sysfs_unregister(gdev);
+ 	gpiochip_free_hogs(gc);
+@@ -875,10 +1242,13 @@ struct gpio_chip *gpiochip_find(void *data,
+ 	struct gpio_chip *gc = NULL;
+ 	unsigned long flags;
+ 
++	deb_verbose("\n");
++
+ 	spin_lock_irqsave(&gpio_lock, flags);
+ 	list_for_each_entry(gdev, &gpio_devices, list)
+ 		if (gdev->chip && match(gdev->chip, data)) {
+ 			gc = gdev->chip;
++      deb_verbose("found: %p, chip: %s", gc, gc->label);
+ 			break;
+ 		}
+ 
+@@ -895,12 +1265,15 @@ static int gpiochip_match_name(struct gpio_chip *gc, void *data)
+ 	return !strcmp(gc->label, name);
+ }
+ 
+-static struct gpio_chip *find_chip_by_name(const char *name)
++struct gpio_chip *find_chip_by_name(const char *name)
+ {
++	deb_verbose("\n");
++
+ 	return gpiochip_find((void *)name, gpiochip_match_name);
+ }
++EXPORT_SYMBOL_GPL(find_chip_by_name);
+ 
+-#ifdef CONFIG_GPIOLIB_IRQCHIP
++    #ifdef CONFIG_GPIOLIB_IRQCHIP
+ 
+ /*
+  * The following is irqchip helper code for gpiochips.
+@@ -910,6 +1283,8 @@ static int gpiochip_irqchip_init_hw(struct gpio_chip *gc)
+ {
+ 	struct gpio_irq_chip *girq = &gc->irq;
+ 
++	deb_verbose("\n");
++
+ 	if (!girq->init_hw)
+ 		return 0;
+ 
+@@ -920,6 +1295,8 @@ static int gpiochip_irqchip_init_valid_mask(struct gpio_chip *gc)
+ {
+ 	struct gpio_irq_chip *girq = &gc->irq;
+ 
++	deb_verbose("\n");
++
+ 	if (!girq->init_valid_mask)
+ 		return 0;
+ 
+@@ -934,6 +1311,8 @@ static int gpiochip_irqchip_init_valid_mask(struct gpio_chip *gc)
+ 
+ static void gpiochip_irqchip_free_valid_mask(struct gpio_chip *gc)
+ {
++	deb_verbose("\n");
++
+ 	bitmap_free(gc->irq.valid_mask);
+ 	gc->irq.valid_mask = NULL;
+ }
+@@ -941,6 +1320,8 @@ static void gpiochip_irqchip_free_valid_mask(struct gpio_chip *gc)
+ bool gpiochip_irqchip_irq_valid(const struct gpio_chip *gc,
+ 				unsigned int offset)
+ {
++	deb_verbose("\n");
++
+ 	if (!gpiochip_line_is_valid(gc, offset))
+ 		return false;
+ 	/* No mask means all valid */
+@@ -966,6 +1347,8 @@ static void gpiochip_set_cascaded_irqchip(struct gpio_chip *gc,
+ 	struct gpio_irq_chip *girq = &gc->irq;
+ 	struct device *dev = &gc->gpiodev->dev;
+ 
++	deb_verbose("\n");
++
+ 	if (!girq->domain) {
+ 		chip_err(gc, "called %s before setting up irqchip\n",
+ 			 __func__);
+@@ -1011,7 +1394,7 @@ void gpiochip_set_nested_irqchip(struct gpio_chip *gc,
+ }
+ EXPORT_SYMBOL_GPL(gpiochip_set_nested_irqchip);
+ 
+-#ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
++    #ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
+ 
+ /**
+  * gpiochip_set_hierarchical_irqchip() - connects a hierarchical irqchip
+@@ -1250,6 +1633,8 @@ void *gpiochip_populate_parent_fwspec_twocell(struct gpio_chip *gc,
+ {
+ 	struct irq_fwspec *fwspec;
+ 
++	deb_verbose("\n");
++
+ 	fwspec = kmalloc(sizeof(*fwspec), GFP_KERNEL);
+ 	if (!fwspec)
+ 		return NULL;
+@@ -1269,6 +1654,8 @@ void *gpiochip_populate_parent_fwspec_fourcell(struct gpio_chip *gc,
+ {
+ 	struct irq_fwspec *fwspec;
+ 
++	deb_verbose("\n");
++
+ 	fwspec = kmalloc(sizeof(*fwspec), GFP_KERNEL);
+ 	if (!fwspec)
+ 		return NULL;
+@@ -1296,7 +1683,7 @@ static bool gpiochip_hierarchy_is_hierarchical(struct gpio_chip *gc)
+ 	return false;
+ }
+ 
+-#endif /* CONFIG_IRQ_DOMAIN_HIERARCHY */
++    #endif /* CONFIG_IRQ_DOMAIN_HIERARCHY */
+ 
+ /**
+  * gpiochip_irq_map() - maps an IRQ into a GPIO irqchip
+@@ -1314,6 +1701,8 @@ int gpiochip_irq_map(struct irq_domain *d, unsigned int irq,
+ 	struct gpio_chip *gc = d->host_data;
+ 	int ret = 0;
+ 
++	deb_verbose("\n");
++
+ 	if (!gpiochip_irqchip_irq_valid(gc, hwirq))
+ 		return -ENXIO;
+ 
+@@ -1415,7 +1804,7 @@ static int gpiochip_to_irq(struct gpio_chip *gc, unsigned offset)
+ 	if (!gpiochip_irqchip_irq_valid(gc, offset))
+ 		return -ENXIO;
+ 
+-#ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
++    #ifdef CONFIG_IRQ_DOMAIN_HIERARCHY
+ 	if (irq_domain_is_hierarchy(domain)) {
+ 		struct irq_fwspec spec;
+ 
+@@ -1426,7 +1815,7 @@ static int gpiochip_to_irq(struct gpio_chip *gc, unsigned offset)
+ 
+ 		return irq_create_fwspec_mapping(&spec);
+ 	}
+-#endif
++    #endif
+ 
+ 	return irq_create_mapping(domain, offset);
+ }
+@@ -1709,7 +2098,7 @@ int gpiochip_irqchip_add_key(struct gpio_chip *gc,
+ 	}
+ 	gc->irq.threaded = threaded;
+ 	of_node = gc->parent->of_node;
+-#ifdef CONFIG_OF_GPIO
++    #ifdef CONFIG_OF_GPIO
+ 	/*
+ 	 * If the gpiochip has an assigned OF node this takes precedence
+ 	 * FIXME: get rid of this and use gc->parent->of_node
+@@ -1717,7 +2106,7 @@ int gpiochip_irqchip_add_key(struct gpio_chip *gc,
+ 	 */
+ 	if (gc->of_node)
+ 		of_node = gc->of_node;
+-#endif
++    #endif
+ 	/*
+ 	 * Specifying a default trigger is a terrible idea if DT or ACPI is
+ 	 * used to configure the interrupts, as you may end-up with
+@@ -1796,7 +2185,7 @@ static inline int gpiochip_irqchip_init_valid_mask(struct gpio_chip *gc)
+ static inline void gpiochip_irqchip_free_valid_mask(struct gpio_chip *gc)
+ { }
+ 
+-#endif /* CONFIG_GPIOLIB_IRQCHIP */
++    #endif /* CONFIG_GPIOLIB_IRQCHIP */
+ 
+ /**
+  * gpiochip_generic_request() - request the gpio function for a pin
+@@ -1805,10 +2194,12 @@ static inline void gpiochip_irqchip_free_valid_mask(struct gpio_chip *gc)
+  */
+ int gpiochip_generic_request(struct gpio_chip *gc, unsigned offset)
+ {
+-#ifdef CONFIG_PINCTRL
++	deb_verbose("chip %s, offset=%u\n", gc->label, offset);
++
++    #ifdef CONFIG_PINCTRL
+ 	if (list_empty(&gc->gpiodev->pin_ranges))
+ 		return 0;
+-#endif
++    #endif
+ 
+ 	return pinctrl_gpio_request(gc->gpiodev->base + offset);
+ }
+@@ -1821,10 +2212,12 @@ EXPORT_SYMBOL_GPL(gpiochip_generic_request);
+  */
+ void gpiochip_generic_free(struct gpio_chip *gc, unsigned offset)
+ {
+-#ifdef CONFIG_PINCTRL
++ 	deb_verbose("chip %s, offset=%u\n", gc->label, offset);
++ 	
++    #ifdef CONFIG_PINCTRL
+ 	if (list_empty(&gc->gpiodev->pin_ranges))
+ 		return;
+-#endif
++    #endif
+ 
+ 	pinctrl_gpio_free(gc->gpiodev->base + offset);
+ }
+@@ -1839,11 +2232,13 @@ EXPORT_SYMBOL_GPL(gpiochip_generic_free);
+ int gpiochip_generic_config(struct gpio_chip *gc, unsigned offset,
+ 			    unsigned long config)
+ {
++	deb_verbose("\n");
++
+ 	return pinctrl_gpio_set_config(gc->gpiodev->base + offset, config);
+ }
+ EXPORT_SYMBOL_GPL(gpiochip_generic_config);
+ 
+-#ifdef CONFIG_PINCTRL
++    #ifdef CONFIG_PINCTRL
+ 
+ /**
+  * gpiochip_add_pingroup_range() - add a range for GPIO <-> pin mapping
+@@ -1865,6 +2260,8 @@ int gpiochip_add_pingroup_range(struct gpio_chip *gc,
+ 	struct gpio_device *gdev = gc->gpiodev;
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	pin_range = kzalloc(sizeof(*pin_range), GFP_KERNEL);
+ 	if (!pin_range) {
+ 		chip_err(gc, "failed to allocate pin ranges\n");
+@@ -1923,6 +2320,8 @@ int gpiochip_add_pin_range(struct gpio_chip *gc, const char *pinctl_name,
+ 	struct gpio_device *gdev = gc->gpiodev;
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	pin_range = kzalloc(sizeof(*pin_range), GFP_KERNEL);
+ 	if (!pin_range) {
+ 		chip_err(gc, "failed to allocate pin ranges\n");
+@@ -1964,6 +2363,8 @@ void gpiochip_remove_pin_ranges(struct gpio_chip *gc)
+ 	struct gpio_pin_range *pin_range, *tmp;
+ 	struct gpio_device *gdev = gc->gpiodev;
+ 
++	deb_verbose("\n");
++    
+ 	list_for_each_entry_safe(pin_range, tmp, &gdev->pin_ranges, node) {
+ 		list_del(&pin_range->node);
+ 		pinctrl_remove_gpio_range(pin_range->pctldev,
+@@ -1973,7 +2374,7 @@ void gpiochip_remove_pin_ranges(struct gpio_chip *gc)
+ }
+ EXPORT_SYMBOL_GPL(gpiochip_remove_pin_ranges);
+ 
+-#endif /* CONFIG_PINCTRL */
++    #endif /* CONFIG_PINCTRL */
+ 
+ /* These "optional" allocation calls help prevent drivers from stomping
+  * on each other, and help provide better diagnostics in debugfs.
+@@ -1987,6 +2388,8 @@ static int gpiod_request_commit(struct gpio_desc *desc, const char *label)
+ 	bool			hogged = false;
+ 	unsigned		offset;
+ 
++	deb_verbose("label=%s\n", label);
++
+ 	if (label) {
+ 		/* Free desc->label if already allocated. */
+ 		if (desc->label) {
+@@ -2092,6 +2495,8 @@ int gpiod_request(struct gpio_desc *desc, const char *label)
+ 	int ret = -EPROBE_DEFER;
+ 	struct gpio_device *gdev;
+ 
++	deb_verbose("label=%s\n", label);
++
+ 	VALIDATE_DESC(desc);
+ 	gdev = desc->gdev;
+ 
+@@ -2108,6 +2513,7 @@ int gpiod_request(struct gpio_desc *desc, const char *label)
+ 
+ 	return ret;
+ }
++EXPORT_SYMBOL_GPL(gpiod_request);
+ 
+ static bool gpiod_free_commit(struct gpio_desc *desc)
+ {
+@@ -2115,6 +2521,8 @@ static bool gpiod_free_commit(struct gpio_desc *desc)
+ 	unsigned long		flags;
+ 	struct gpio_chip	*gc;
+ 
++	deb_verbose("\n");
++    
+ 	might_sleep();
+ 
+ 	gpiod_unexport(desc);
+@@ -2141,12 +2549,12 @@ static bool gpiod_free_commit(struct gpio_desc *desc)
+ 		clear_bit(FLAG_EDGE_RISING, &desc->flags);
+ 		clear_bit(FLAG_EDGE_FALLING, &desc->flags);
+ 		clear_bit(FLAG_IS_HOGGED, &desc->flags);
+-#ifdef CONFIG_OF_DYNAMIC
++    #ifdef CONFIG_OF_DYNAMIC
+ 		desc->hog = NULL;
+-#endif
+-#ifdef CONFIG_GPIO_CDEV
++    #endif
++    #ifdef CONFIG_GPIO_CDEV
+ 		WRITE_ONCE(desc->debounce_period_us, 0);
+-#endif
++    #endif
+ 		ret = true;
+ 	}
+ 
+@@ -2159,6 +2567,8 @@ static bool gpiod_free_commit(struct gpio_desc *desc)
+ 
+ void gpiod_free(struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	if (desc && desc->gdev && gpiod_free_commit(desc)) {
+ 		module_put(desc->gdev->owner);
+ 		put_device(&desc->gdev->dev);
+@@ -2166,6 +2576,7 @@ void gpiod_free(struct gpio_desc *desc)
+ 		WARN_ON(extra_checks);
+ 	}
+ }
++EXPORT_SYMBOL_GPL(gpiod_free);
+ 
+ /**
+  * gpiochip_is_requested - return string iff signal was requested
+@@ -2184,6 +2595,8 @@ const char *gpiochip_is_requested(struct gpio_chip *gc, unsigned offset)
+ {
+ 	struct gpio_desc *desc;
+ 
++	deb_verbose("label=%s\n", gc->label);
++
+ 	if (offset >= gc->ngpio)
+ 		return NULL;
+ 
+@@ -2227,6 +2640,8 @@ struct gpio_desc *gpiochip_request_own_desc(struct gpio_chip *gc,
+ 	struct gpio_desc *desc = gpiochip_get_desc(gc, hwnum);
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	if (IS_ERR(desc)) {
+ 		chip_err(gc, "failed to get GPIO descriptor\n");
+ 		return desc;
+@@ -2274,6 +2689,8 @@ EXPORT_SYMBOL_GPL(gpiochip_free_own_desc);
+ static int gpio_do_set_config(struct gpio_chip *gc, unsigned int offset,
+ 			      unsigned long config)
+ {
++	deb_verbose("\n");
++
+ 	if (!gc->set_config)
+ 		return -ENOTSUPP;
+ 
+@@ -2286,6 +2703,8 @@ static int gpio_set_config(struct gpio_desc *desc, enum pin_config_param mode)
+ 	unsigned long config;
+ 	unsigned arg;
+ 
++	deb_verbose("\n");
++
+ 	switch (mode) {
+ 	case PIN_CONFIG_BIAS_PULL_DOWN:
+ 	case PIN_CONFIG_BIAS_PULL_UP:
+@@ -2305,6 +2724,8 @@ static int gpio_set_bias(struct gpio_desc *desc)
+ 	int bias = 0;
+ 	int ret = 0;
+ 
++	deb_verbose("\n");
++
+ 	if (test_bit(FLAG_BIAS_DISABLE, &desc->flags))
+ 		bias = PIN_CONFIG_BIAS_DISABLE;
+ 	else if (test_bit(FLAG_PULL_UP, &desc->flags))
+@@ -2334,6 +2755,8 @@ int gpiod_direction_input(struct gpio_desc *desc)
+ 	struct gpio_chip	*gc;
+ 	int			ret = 0;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	gc = desc->gdev->chip;
+ 
+@@ -2381,6 +2804,8 @@ static int gpiod_direction_output_raw_commit(struct gpio_desc *desc, int value)
+ 	int val = !!value;
+ 	int ret = 0;
+ 
++	deb_verbose("\n");
++
+ 	/*
+ 	 * It's OK not to specify .direction_output() if the gpiochip is
+ 	 * output-only, but if there is then not even a .set() operation it
+@@ -2431,6 +2856,8 @@ static int gpiod_direction_output_raw_commit(struct gpio_desc *desc, int value)
+  */
+ int gpiod_direction_output_raw(struct gpio_desc *desc, int value)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	return gpiod_direction_output_raw_commit(desc, value);
+ }
+@@ -2452,6 +2879,8 @@ int gpiod_direction_output(struct gpio_desc *desc, int value)
+ {
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	if (test_bit(FLAG_ACTIVE_LOW, &desc->flags))
+ 		value = !value;
+@@ -2523,6 +2952,8 @@ int gpiod_timestamp_control(struct gpio_desc *desc, int enable)
+ {
+ 	struct gpio_chip *chip;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	chip = desc->gdev->chip;
+ 	if (!chip->timestamp_control) {
+@@ -2550,6 +2981,8 @@ int gpiod_timestamp_read(struct gpio_desc *desc, u64 *ts)
+ 	u64 gpio_ts;
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	chip = desc->gdev->chip;
+ 	if (!chip->timestamp_read) {
+@@ -2578,6 +3011,8 @@ int gpiod_set_config(struct gpio_desc *desc, unsigned long config)
+ {
+ 	struct gpio_chip *gc;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	gc = desc->gdev->chip;
+ 
+@@ -2598,6 +3033,8 @@ int gpiod_set_debounce(struct gpio_desc *desc, unsigned debounce)
+ {
+ 	unsigned long config;
+ 
++	deb_verbose("\n");
++
+ 	config = pinconf_to_config_packed(PIN_CONFIG_INPUT_DEBOUNCE, debounce);
+ 	return gpiod_set_config(desc, config);
+ }
+@@ -2618,6 +3055,8 @@ int gpiod_set_transitory(struct gpio_desc *desc, bool transitory)
+ 	int gpio;
+ 	int rc;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	/*
+ 	 * Handle FLAG_TRANSITORY first, enabling queries to gpiolib for
+@@ -2652,6 +3091,8 @@ EXPORT_SYMBOL_GPL(gpiod_set_transitory);
+  */
+ int gpiod_is_active_low(const struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	return test_bit(FLAG_ACTIVE_LOW, &desc->flags);
+ }
+@@ -2663,6 +3104,8 @@ EXPORT_SYMBOL_GPL(gpiod_is_active_low);
+  */
+ void gpiod_toggle_active_low(struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC_VOID(desc);
+ 	change_bit(FLAG_ACTIVE_LOW, &desc->flags);
+ }
+@@ -2696,6 +3139,8 @@ static int gpiod_get_raw_value_commit(const struct gpio_desc *desc)
+ 	int offset;
+ 	int value;
+ 
++	deb_verbose("\n");
++
+ 	gc = desc->gdev->chip;
+ 	offset = gpio_chip_hwgpio(desc);
+ 	value = gc->get ? gc->get(gc, offset) : -EIO;
+@@ -2707,6 +3152,8 @@ static int gpiod_get_raw_value_commit(const struct gpio_desc *desc)
+ static int gpio_chip_get_multiple(struct gpio_chip *gc,
+ 				  unsigned long *mask, unsigned long *bits)
+ {
++	deb_verbose("\n");
++
+ 	if (gc->get_multiple) {
+ 		return gc->get_multiple(gc, mask, bits);
+ 	} else if (gc->get) {
+@@ -2731,6 +3178,8 @@ int gpiod_get_array_value_complex(bool raw, bool can_sleep,
+ {
+ 	int ret, i = 0;
+ 
++	deb_verbose("\n");
++
+ 	/*
+ 	 * Validate array_info against desc_array and its size.
+ 	 * It should immediately follow desc_array if both
+@@ -2837,6 +3286,8 @@ int gpiod_get_array_value_complex(bool raw, bool can_sleep,
+  */
+ int gpiod_get_raw_value(const struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	/* Should be using gpiod_get_raw_value_cansleep() */
+ 	WARN_ON(desc->gdev->chip->can_sleep);
+@@ -2858,6 +3309,8 @@ int gpiod_get_value(const struct gpio_desc *desc)
+ {
+ 	int value;
+ 
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	/* Should be using gpiod_get_value_cansleep() */
+ 	WARN_ON(desc->gdev->chip->can_sleep);
+@@ -2892,6 +3345,8 @@ int gpiod_get_raw_array_value(unsigned int array_size,
+ 			      struct gpio_array *array_info,
+ 			      unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	if (!desc_array)
+ 		return -EINVAL;
+ 	return gpiod_get_array_value_complex(true, false, array_size,
+@@ -2918,6 +3373,8 @@ int gpiod_get_array_value(unsigned int array_size,
+ 			  struct gpio_array *array_info,
+ 			  unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	if (!desc_array)
+ 		return -EINVAL;
+ 	return gpiod_get_array_value_complex(false, false, array_size,
+@@ -2937,6 +3394,8 @@ static void gpio_set_open_drain_value_commit(struct gpio_desc *desc, bool value)
+ 	struct gpio_chip *gc = desc->gdev->chip;
+ 	int offset = gpio_chip_hwgpio(desc);
+ 
++	deb_verbose("\n");
++
+ 	if (value) {
+ 		ret = gc->direction_input(gc, offset);
+ 	} else {
+@@ -2962,6 +3421,8 @@ static void gpio_set_open_source_value_commit(struct gpio_desc *desc, bool value
+ 	struct gpio_chip *gc = desc->gdev->chip;
+ 	int offset = gpio_chip_hwgpio(desc);
+ 
++	deb_verbose("\n");
++
+ 	if (value) {
+ 		ret = gc->direction_output(gc, offset, 1);
+ 		if (!ret)
+@@ -2980,6 +3441,8 @@ static void gpiod_set_raw_value_commit(struct gpio_desc *desc, bool value)
+ {
+ 	struct gpio_chip	*gc;
+ 
++	deb_verbose("\n");
++
+ 	gc = desc->gdev->chip;
+ 	trace_gpio_value(desc_to_gpio(desc), 0, value);
+ 	gc->set(gc, gpio_chip_hwgpio(desc), value);
+@@ -2998,6 +3461,8 @@ static void gpiod_set_raw_value_commit(struct gpio_desc *desc, bool value)
+ static void gpio_chip_set_multiple(struct gpio_chip *gc,
+ 				   unsigned long *mask, unsigned long *bits)
+ {
++	deb_verbose("\n");
++
+ 	if (gc->set_multiple) {
+ 		gc->set_multiple(gc, mask, bits);
+ 	} else {
+@@ -3017,6 +3482,8 @@ int gpiod_set_array_value_complex(bool raw, bool can_sleep,
+ {
+ 	int i = 0;
+ 
++	deb_verbose("\n");
++
+ 	/*
+ 	 * Validate array_info against desc_array and its size.
+ 	 * It should immediately follow desc_array if both
+@@ -3122,6 +3589,8 @@ int gpiod_set_array_value_complex(bool raw, bool can_sleep,
+  */
+ void gpiod_set_raw_value(struct gpio_desc *desc, int value)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC_VOID(desc);
+ 	/* Should be using gpiod_set_raw_value_cansleep() */
+ 	WARN_ON(desc->gdev->chip->can_sleep);
+@@ -3140,6 +3609,8 @@ EXPORT_SYMBOL_GPL(gpiod_set_raw_value);
+  */
+ static void gpiod_set_value_nocheck(struct gpio_desc *desc, int value)
+ {
++	deb_verbose("\n");
++
+ 	if (test_bit(FLAG_ACTIVE_LOW, &desc->flags))
+ 		value = !value;
+ 	if (test_bit(FLAG_OPEN_DRAIN, &desc->flags))
+@@ -3163,6 +3634,8 @@ static void gpiod_set_value_nocheck(struct gpio_desc *desc, int value)
+  */
+ void gpiod_set_value(struct gpio_desc *desc, int value)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC_VOID(desc);
+ 	/* Should be using gpiod_set_value_cansleep() */
+ 	WARN_ON(desc->gdev->chip->can_sleep);
+@@ -3188,6 +3661,8 @@ int gpiod_set_raw_array_value(unsigned int array_size,
+ 			      struct gpio_array *array_info,
+ 			      unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	if (!desc_array)
+ 		return -EINVAL;
+ 	return gpiod_set_array_value_complex(true, false, array_size,
+@@ -3213,6 +3688,8 @@ int gpiod_set_array_value(unsigned int array_size,
+ 			  struct gpio_array *array_info,
+ 			  unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	if (!desc_array)
+ 		return -EINVAL;
+ 	return gpiod_set_array_value_complex(false, false, array_size,
+@@ -3228,6 +3705,8 @@ EXPORT_SYMBOL_GPL(gpiod_set_array_value);
+  */
+ int gpiod_cansleep(const struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	return desc->gdev->chip->can_sleep;
+ }
+@@ -3240,6 +3719,8 @@ EXPORT_SYMBOL_GPL(gpiod_cansleep);
+  */
+ int gpiod_set_consumer_name(struct gpio_desc *desc, const char *name)
+ {
++	deb_verbose("\n");
++
+ 	VALIDATE_DESC(desc);
+ 	if (name) {
+ 		name = kstrdup_const(name, GFP_KERNEL);
+@@ -3266,6 +3747,8 @@ int gpiod_to_irq(const struct gpio_desc *desc)
+ 	struct gpio_chip *gc;
+ 	int offset;
+ 
++	deb_verbose("\n");
++
+ 	/*
+ 	 * Cannot VALIDATE_DESC() here as gpiod_to_irq() consumer semantics
+ 	 * requires this function to not return zero on an invalid descriptor
+@@ -3300,6 +3783,8 @@ EXPORT_SYMBOL_GPL(gpiod_to_irq);
+ int gpiochip_lock_as_irq(struct gpio_chip *gc, unsigned int offset)
+ {
+ 	struct gpio_desc *desc;
++	
++	deb_verbose("\n");
+ 
+ 	desc = gpiochip_get_desc(gc, offset);
+ 	if (IS_ERR(desc))
+@@ -3355,6 +3840,8 @@ void gpiochip_unlock_as_irq(struct gpio_chip *gc, unsigned int offset)
+ {
+ 	struct gpio_desc *desc;
+ 
++	deb_verbose("\n");
++
+ 	desc = gpiochip_get_desc(gc, offset);
+ 	if (IS_ERR(desc))
+ 		return;
+@@ -3372,6 +3859,8 @@ void gpiochip_disable_irq(struct gpio_chip *gc, unsigned int offset)
+ {
+ 	struct gpio_desc *desc = gpiochip_get_desc(gc, offset);
+ 
++	deb_verbose("\n");
++
+ 	if (!IS_ERR(desc) &&
+ 	    !WARN_ON(!test_bit(FLAG_USED_AS_IRQ, &desc->flags)))
+ 		clear_bit(FLAG_IRQ_IS_ENABLED, &desc->flags);
+@@ -3382,6 +3871,8 @@ void gpiochip_enable_irq(struct gpio_chip *gc, unsigned int offset)
+ {
+ 	struct gpio_desc *desc = gpiochip_get_desc(gc, offset);
+ 
++	deb_verbose("\n");
++
+ 	if (!IS_ERR(desc) &&
+ 	    !WARN_ON(!test_bit(FLAG_USED_AS_IRQ, &desc->flags))) {
+ 		/*
+@@ -3397,6 +3888,8 @@ EXPORT_SYMBOL_GPL(gpiochip_enable_irq);
+ 
+ bool gpiochip_line_is_irq(struct gpio_chip *gc, unsigned int offset)
+ {
++	deb_verbose("\n");
++
+ 	if (offset >= gc->ngpio)
+ 		return false;
+ 
+@@ -3430,6 +3923,8 @@ EXPORT_SYMBOL_GPL(gpiochip_relres_irq);
+ 
+ bool gpiochip_line_is_open_drain(struct gpio_chip *gc, unsigned int offset)
+ {
++	deb_verbose("\n");
++
+ 	if (offset >= gc->ngpio)
+ 		return false;
+ 
+@@ -3439,6 +3934,8 @@ EXPORT_SYMBOL_GPL(gpiochip_line_is_open_drain);
+ 
+ bool gpiochip_line_is_open_source(struct gpio_chip *gc, unsigned int offset)
+ {
++	deb_verbose("\n");
++
+ 	if (offset >= gc->ngpio)
+ 		return false;
+ 
+@@ -3448,6 +3945,8 @@ EXPORT_SYMBOL_GPL(gpiochip_line_is_open_source);
+ 
+ bool gpiochip_line_is_persistent(struct gpio_chip *gc, unsigned int offset)
+ {
++	deb_verbose("\n");
++
+ 	if (offset >= gc->ngpio)
+ 		return false;
+ 
+@@ -3466,6 +3965,8 @@ EXPORT_SYMBOL_GPL(gpiochip_line_is_persistent);
+  */
+ int gpiod_get_raw_value_cansleep(const struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	VALIDATE_DESC(desc);
+ 	return gpiod_get_raw_value_commit(desc);
+@@ -3485,6 +3986,8 @@ int gpiod_get_value_cansleep(const struct gpio_desc *desc)
+ {
+ 	int value;
+ 
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	VALIDATE_DESC(desc);
+ 	value = gpiod_get_raw_value_commit(desc);
+@@ -3516,6 +4019,8 @@ int gpiod_get_raw_array_value_cansleep(unsigned int array_size,
+ 				       struct gpio_array *array_info,
+ 				       unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	if (!desc_array)
+ 		return -EINVAL;
+@@ -3542,6 +4047,8 @@ int gpiod_get_array_value_cansleep(unsigned int array_size,
+ 				   struct gpio_array *array_info,
+ 				   unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	if (!desc_array)
+ 		return -EINVAL;
+@@ -3563,6 +4070,8 @@ EXPORT_SYMBOL_GPL(gpiod_get_array_value_cansleep);
+  */
+ void gpiod_set_raw_value_cansleep(struct gpio_desc *desc, int value)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	VALIDATE_DESC_VOID(desc);
+ 	gpiod_set_raw_value_commit(desc, value);
+@@ -3581,6 +4090,8 @@ EXPORT_SYMBOL_GPL(gpiod_set_raw_value_cansleep);
+  */
+ void gpiod_set_value_cansleep(struct gpio_desc *desc, int value)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	VALIDATE_DESC_VOID(desc);
+ 	gpiod_set_value_nocheck(desc, value);
+@@ -3604,6 +4115,8 @@ int gpiod_set_raw_array_value_cansleep(unsigned int array_size,
+ 				       struct gpio_array *array_info,
+ 				       unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	if (!desc_array)
+ 		return -EINVAL;
+@@ -3621,6 +4134,8 @@ void gpiod_add_lookup_tables(struct gpiod_lookup_table **tables, size_t n)
+ {
+ 	unsigned int i;
+ 
++	deb_verbose("\n");
++
+ 	mutex_lock(&gpio_lookup_lock);
+ 
+ 	for (i = 0; i < n; i++)
+@@ -3646,6 +4161,8 @@ int gpiod_set_array_value_cansleep(unsigned int array_size,
+ 				   struct gpio_array *array_info,
+ 				   unsigned long *value_bitmap)
+ {
++	deb_verbose("\n");
++
+ 	might_sleep_if(extra_checks);
+ 	if (!desc_array)
+ 		return -EINVAL;
+@@ -3661,6 +4178,8 @@ EXPORT_SYMBOL_GPL(gpiod_set_array_value_cansleep);
+  */
+ void gpiod_add_lookup_table(struct gpiod_lookup_table *table)
+ {
++	deb_verbose("\n");
++
+ 	mutex_lock(&gpio_lookup_lock);
+ 
+ 	list_add_tail(&table->list, &gpio_lookup_list);
+@@ -3675,6 +4194,8 @@ EXPORT_SYMBOL_GPL(gpiod_add_lookup_table);
+  */
+ void gpiod_remove_lookup_table(struct gpiod_lookup_table *table)
+ {
++	deb_verbose("\n");
++
+ 	mutex_lock(&gpio_lookup_lock);
+ 
+ 	list_del(&table->list);
+@@ -3692,6 +4213,8 @@ void gpiod_add_hogs(struct gpiod_hog *hogs)
+ 	struct gpio_chip *gc;
+ 	struct gpiod_hog *hog;
+ 
++	deb_verbose("\n");
++
+ 	mutex_lock(&gpio_machine_hogs_mutex);
+ 
+ 	for (hog = &hogs[0]; hog->chip_label; hog++) {
+@@ -3715,6 +4238,8 @@ static struct gpiod_lookup_table *gpiod_find_lookup_table(struct device *dev)
+ 	const char *dev_id = dev ? dev_name(dev) : NULL;
+ 	struct gpiod_lookup_table *table;
+ 
++	deb_verbose("\n");
++
+ 	mutex_lock(&gpio_lookup_lock);
+ 
+ 	list_for_each_entry(table, &gpio_lookup_list, list) {
+@@ -3748,6 +4273,8 @@ static struct gpio_desc *gpiod_find(struct device *dev, const char *con_id,
+ 	struct gpiod_lookup_table *table;
+ 	struct gpiod_lookup *p;
+ 
++	deb_verbose("\n");
++
+ 	table = gpiod_find_lookup_table(dev);
+ 	if (!table)
+ 		return desc;
+@@ -3813,6 +4340,8 @@ static int platform_gpio_count(struct device *dev, const char *con_id)
+ 	struct gpiod_lookup *p;
+ 	unsigned int count = 0;
+ 
++	deb_verbose("\n");
++
+ 	table = gpiod_find_lookup_table(dev);
+ 	if (!table)
+ 		return -ENOENT;
+@@ -3858,6 +4387,8 @@ struct gpio_desc *fwnode_gpiod_get_index(struct fwnode_handle *fwnode,
+ 	char prop_name[32]; /* 32 is max size of property name */
+ 	unsigned int i;
+ 
++	deb_verbose("\n");
++
+ 	for (i = 0; i < ARRAY_SIZE(gpio_suffixes); i++) {
+ 		if (con_id)
+ 			snprintf(prop_name, sizeof(prop_name), "%s-%s",
+@@ -3886,6 +4417,8 @@ int gpiod_count(struct device *dev, const char *con_id)
+ {
+ 	int count = -ENOENT;
+ 
++	deb_verbose("\n");
++
+ 	if (IS_ENABLED(CONFIG_OF) && dev && dev->of_node)
+ 		count = of_gpio_get_count(dev, con_id);
+ 	else if (IS_ENABLED(CONFIG_ACPI) && dev && ACPI_HANDLE(dev))
+@@ -3911,6 +4444,8 @@ EXPORT_SYMBOL_GPL(gpiod_count);
+ struct gpio_desc *__must_check gpiod_get(struct device *dev, const char *con_id,
+ 					 enum gpiod_flags flags)
+ {
++	deb_verbose("\n");
++
+ 	return gpiod_get_index(dev, con_id, 0, flags);
+ }
+ EXPORT_SYMBOL_GPL(gpiod_get);
+@@ -3951,6 +4486,8 @@ int gpiod_configure_flags(struct gpio_desc *desc, const char *con_id,
+ {
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	if (lflags & GPIO_ACTIVE_LOW)
+ 		set_bit(FLAG_ACTIVE_LOW, &desc->flags);
+ 
+@@ -4121,6 +4658,8 @@ struct gpio_desc *fwnode_get_named_gpiod(struct fwnode_handle *fwnode,
+ 	struct gpio_desc *desc = ERR_PTR(-ENODEV);
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	if (!fwnode)
+ 		return ERR_PTR(-EINVAL);
+ 
+@@ -4178,6 +4717,8 @@ struct gpio_desc *__must_check gpiod_get_index_optional(struct device *dev,
+ {
+ 	struct gpio_desc *desc;
+ 
++	deb_verbose("\n");
++
+ 	desc = gpiod_get_index(dev, con_id, index, flags);
+ 	if (IS_ERR(desc)) {
+ 		if (PTR_ERR(desc) == -ENOENT)
+@@ -4204,6 +4745,8 @@ int gpiod_hog(struct gpio_desc *desc, const char *name,
+ 	int hwnum;
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	gc = gpiod_to_chip(desc);
+ 	hwnum = gpio_chip_hwgpio(desc);
+ 
+@@ -4235,6 +4778,8 @@ static void gpiochip_free_hogs(struct gpio_chip *gc)
+ {
+ 	int id;
+ 
++	deb_verbose("\n");
++
+ 	for (id = 0; id < gc->ngpio; id++) {
+ 		if (test_bit(FLAG_IS_HOGGED, &gc->gpiodev->descs[id].flags))
+ 			gpiochip_free_own_desc(&gc->gpiodev->descs[id]);
+@@ -4263,6 +4808,8 @@ struct gpio_descs *__must_check gpiod_get_array(struct device *dev,
+ 	struct gpio_chip *gc;
+ 	int count, bitmap_size;
+ 
++	deb_verbose("\n");
++
+ 	count = gpiod_count(dev, con_id);
+ 	if (count < 0)
+ 		return ERR_PTR(count);
+@@ -4383,6 +4930,8 @@ struct gpio_descs *__must_check gpiod_get_array_optional(struct device *dev,
+ {
+ 	struct gpio_descs *descs;
+ 
++	deb_verbose("\n");
++
+ 	descs = gpiod_get_array(dev, con_id, flags);
+ 	if (PTR_ERR(descs) == -ENOENT)
+ 		return NULL;
+@@ -4399,6 +4948,8 @@ EXPORT_SYMBOL_GPL(gpiod_get_array_optional);
+  */
+ void gpiod_put(struct gpio_desc *desc)
+ {
++	deb_verbose("\n");
++
+ 	if (desc)
+ 		gpiod_free(desc);
+ }
+@@ -4412,6 +4963,8 @@ void gpiod_put_array(struct gpio_descs *descs)
+ {
+ 	unsigned int i;
+ 
++	deb_verbose("\n");
++
+ 	for (i = 0; i < descs->ndescs; i++)
+ 		gpiod_put(descs->desc[i]);
+ 
+@@ -4423,6 +4976,8 @@ static int __init gpiolib_dev_init(void)
+ {
+ 	int ret;
+ 
++	deb_verbose("\n");
++
+ 	/* Register GPIO sysfs bus */
+ 	ret = bus_register(&gpio_bus_type);
+ 	if (ret < 0) {
+@@ -4442,13 +4997,13 @@ static int __init gpiolib_dev_init(void)
+ 
+ #if IS_ENABLED(CONFIG_OF_DYNAMIC) && IS_ENABLED(CONFIG_OF_GPIO)
+ 	WARN_ON(of_reconfig_notifier_register(&gpio_of_notifier));
+-#endif /* CONFIG_OF_DYNAMIC && CONFIG_OF_GPIO */
++    #endif /* CONFIG_OF_DYNAMIC && CONFIG_OF_GPIO */
+ 
+ 	return ret;
+ }
+ core_initcall(gpiolib_dev_init);
+ 
+-#ifdef CONFIG_DEBUG_FS
++    #ifdef CONFIG_DEBUG_FS
+ 
+ static void gpiolib_dbg_show(struct seq_file *s, struct gpio_device *gdev)
+ {
+@@ -4575,4 +5130,4 @@ static int __init gpiolib_debugfs_init(void)
+ }
+ subsys_initcall(gpiolib_debugfs_init);
+ 
+-#endif	/* DEBUG_FS */
++    #endif     /* FIXIT -- debug_FS */
+diff --git a/drivers/pinctrl/core.c b/drivers/pinctrl/core.c
+index c73b34e03aae..4c46d7faac5e 100644
+--- a/drivers/pinctrl/core.c
++++ b/drivers/pinctrl/core.c
+@@ -26,16 +26,25 @@
+ #include <linux/pinctrl/pinctrl.h>
+ #include <linux/pinctrl/machine.h>
+ 
+-#ifdef CONFIG_GPIOLIB
++    #ifdef CONFIG_GPIOLIB
+ #include "../gpio/gpiolib.h"
+ #include <asm-generic/gpio.h>
+-#endif
++    #endif
+ 
+ #include "core.h"
+ #include "devicetree.h"
+ #include "pinmux.h"
+ #include "pinconf.h"
+ 
++// #define GPIO_DEBUG
++
++#ifdef GPIO_DEBUG
++#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++#else
++#define deb_info(fmt, ...)
++#define deb_debug(fmt, ...)
++#endif
+ 
+ static bool pinctrl_dummy_state;
+ 
+@@ -101,6 +110,9 @@ struct pinctrl_dev *get_pinctrl_dev_from_devname(const char *devname)
+ {
+ 	struct pinctrl_dev *pctldev;
+ 
++	// removed because prints too often 
++	// deb_debug("\n");
++
+ 	if (!devname)
+ 		return NULL;
+ 
+@@ -123,16 +135,20 @@ struct pinctrl_dev *get_pinctrl_dev_from_of_node(struct device_node *np)
+ {
+ 	struct pinctrl_dev *pctldev;
+ 
++	// removed because it prints too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pinctrldev_list_mutex);
+ 
+ 	list_for_each_entry(pctldev, &pinctrldev_list, node)
+ 		if (pctldev->dev->of_node == np) {
++deb_debug("comparing %p and %p", pctldev->dev->of_node, np);  // debug never prints this because we have an empty list?
+ 			mutex_unlock(&pinctrldev_list_mutex);
+ 			return pctldev;
+ 		}
+ 
+ 	mutex_unlock(&pinctrldev_list_mutex);
+-
++deb_debug("Error: failed to find match")
+ 	return NULL;
+ }
+ 
+@@ -145,6 +161,8 @@ int pin_get_from_name(struct pinctrl_dev *pctldev, const char *name)
+ {
+ 	unsigned i, pin;
+ 
++	deb_debug("\n");
++
+ 	/* The pin number can be retrived from the pin controller descriptor */
+ 	for (i = 0; i < pctldev->desc->npins; i++) {
+ 		struct pin_desc *desc;
+@@ -168,6 +186,8 @@ const char *pin_get_name(struct pinctrl_dev *pctldev, const unsigned pin)
+ {
+ 	const struct pin_desc *desc;
+ 
++	deb_debug("\n");
++
+ 	desc = pin_desc_get(pctldev, pin);
+ 	if (!desc) {
+ 		dev_err(pctldev->dev, "failed to get pin(%d) name\n",
+@@ -186,6 +206,9 @@ static void pinctrl_free_pindescs(struct pinctrl_dev *pctldev,
+ {
+ 	int i;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	for (i = 0; i < num_pins; i++) {
+ 		struct pin_desc *pindesc;
+ 
+@@ -206,6 +229,9 @@ static int pinctrl_register_one_pin(struct pinctrl_dev *pctldev,
+ {
+ 	struct pin_desc *pindesc;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	pindesc = pin_desc_get(pctldev, pin->number);
+ 	if (pindesc) {
+ 		dev_err(pctldev->dev, "pin %d already registered\n",
+@@ -247,6 +273,9 @@ static int pinctrl_register_pins(struct pinctrl_dev *pctldev,
+ 	unsigned i;
+ 	int ret = 0;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	for (i = 0; i < num_descs; i++) {
+ 		ret = pinctrl_register_one_pin(pctldev, &pins[i]);
+ 		if (ret)
+@@ -273,6 +302,9 @@ static inline int gpio_to_pin(struct pinctrl_gpio_range *range,
+ 				unsigned int gpio)
+ {
+ 	unsigned int offset = gpio - range->base;
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (range->pins)
+ 		return range->pins[offset];
+ 	else
+@@ -292,6 +324,9 @@ pinctrl_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
+ {
+ 	struct pinctrl_gpio_range *range;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pctldev->mutex);
+ 	/* Loop over the ranges */
+ 	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
+@@ -319,13 +354,16 @@ pinctrl_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
+  * certain GPIO pin doesn't have back-end pinctrl device. If the return value
+  * is false, it means that pinctrl device may not be ready.
+  */
+-#ifdef CONFIG_GPIOLIB
++    #ifdef CONFIG_GPIOLIB
+ static bool pinctrl_ready_for_gpio_range(unsigned gpio)
+ {
+ 	struct pinctrl_dev *pctldev;
+ 	struct pinctrl_gpio_range *range = NULL;
+ 	struct gpio_chip *chip = gpio_to_chip(gpio);
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (WARN(!chip, "no gpio_chip for gpio%i?", gpio))
+ 		return false;
+ 
+@@ -353,7 +391,7 @@ static bool pinctrl_ready_for_gpio_range(unsigned gpio)
+ }
+ #else
+ static bool pinctrl_ready_for_gpio_range(unsigned gpio) { return true; }
+-#endif
++    #endif
+ 
+ /**
+  * pinctrl_get_device_gpio_range() - find device for GPIO range
+@@ -372,6 +410,9 @@ static int pinctrl_get_device_gpio_range(unsigned gpio,
+ {
+ 	struct pinctrl_dev *pctldev;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pinctrldev_list_mutex);
+ 
+ 	/* Loop over the pin controllers */
+@@ -403,6 +444,9 @@ static int pinctrl_get_device_gpio_range(unsigned gpio,
+ void pinctrl_add_gpio_range(struct pinctrl_dev *pctldev,
+ 			    struct pinctrl_gpio_range *range)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pctldev->mutex);
+ 	list_add_tail(&range->node, &pctldev->gpio_ranges);
+ 	mutex_unlock(&pctldev->mutex);
+@@ -415,6 +459,9 @@ void pinctrl_add_gpio_ranges(struct pinctrl_dev *pctldev,
+ {
+ 	int i;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	for (i = 0; i < nranges; i++)
+ 		pinctrl_add_gpio_range(pctldev, &ranges[i]);
+ }
+@@ -425,6 +472,9 @@ struct pinctrl_dev *pinctrl_find_and_add_gpio_range(const char *devname,
+ {
+ 	struct pinctrl_dev *pctldev;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	pctldev = get_pinctrl_dev_from_devname(devname);
+ 
+ 	/*
+@@ -447,6 +497,9 @@ int pinctrl_get_group_pins(struct pinctrl_dev *pctldev, const char *pin_group,
+ 	const struct pinctrl_ops *pctlops = pctldev->desc->pctlops;
+ 	int gs;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (!pctlops->get_group_pins)
+ 		return -EINVAL;
+ 
+@@ -464,6 +517,9 @@ pinctrl_find_gpio_range_from_pin_nolock(struct pinctrl_dev *pctldev,
+ {
+ 	struct pinctrl_gpio_range *range;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	/* Loop over the ranges */
+ 	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
+ 		/* Check if we're in the valid range */
+@@ -493,6 +549,9 @@ pinctrl_find_gpio_range_from_pin(struct pinctrl_dev *pctldev,
+ {
+ 	struct pinctrl_gpio_range *range;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pctldev->mutex);
+ 	range = pinctrl_find_gpio_range_from_pin_nolock(pctldev, pin);
+ 	mutex_unlock(&pctldev->mutex);
+@@ -509,13 +568,16 @@ EXPORT_SYMBOL_GPL(pinctrl_find_gpio_range_from_pin);
+ void pinctrl_remove_gpio_range(struct pinctrl_dev *pctldev,
+ 			       struct pinctrl_gpio_range *range)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pctldev->mutex);
+ 	list_del(&range->node);
+ 	mutex_unlock(&pctldev->mutex);
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_remove_gpio_range);
+ 
+-#ifdef CONFIG_GENERIC_PINCTRL_GROUPS
++    #ifdef CONFIG_GENERIC_PINCTRL_GROUPS
+ 
+ /**
+  * pinctrl_generic_get_group_count() - returns the number of pin groups
+@@ -537,6 +599,9 @@ const char *pinctrl_generic_get_group_name(struct pinctrl_dev *pctldev,
+ {
+ 	struct group_desc *group;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	group = radix_tree_lookup(&pctldev->pin_group_tree,
+ 				  selector);
+ 	if (!group)
+@@ -560,6 +625,9 @@ int pinctrl_generic_get_group_pins(struct pinctrl_dev *pctldev,
+ {
+ 	struct group_desc *group;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	group = radix_tree_lookup(&pctldev->pin_group_tree,
+ 				  selector);
+ 	if (!group) {
+@@ -585,6 +653,9 @@ struct group_desc *pinctrl_generic_get_group(struct pinctrl_dev *pctldev,
+ {
+ 	struct group_desc *group;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	group = radix_tree_lookup(&pctldev->pin_group_tree,
+ 				  selector);
+ 	if (!group)
+@@ -630,6 +701,9 @@ int pinctrl_generic_add_group(struct pinctrl_dev *pctldev, const char *name,
+ 	struct group_desc *group;
+ 	int selector;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (!name)
+ 		return -EINVAL;
+ 
+@@ -668,6 +742,9 @@ int pinctrl_generic_remove_group(struct pinctrl_dev *pctldev,
+ {
+ 	struct group_desc *group;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	group = radix_tree_lookup(&pctldev->pin_group_tree,
+ 				  selector);
+ 	if (!group)
+@@ -704,8 +781,8 @@ static void pinctrl_generic_free_groups(struct pinctrl_dev *pctldev)
+ static inline void pinctrl_generic_free_groups(struct pinctrl_dev *pctldev)
+ {
+ }
+-#endif /* CONFIG_GENERIC_PINCTRL_GROUPS */
+-
++    #endif /* CONFIG_GENERIC_PINCTRL_GROUPS */
++  
+ /**
+  * pinctrl_get_group_selector() - returns the group selector for a group
+  * @pctldev: the pin controller handling the group
+@@ -718,6 +795,9 @@ int pinctrl_get_group_selector(struct pinctrl_dev *pctldev,
+ 	unsigned ngroups = pctlops->get_groups_count(pctldev);
+ 	unsigned group_selector = 0;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	while (group_selector < ngroups) {
+ 		const char *gname = pctlops->get_group_name(pctldev,
+ 							    group_selector);
+@@ -745,6 +825,9 @@ bool pinctrl_gpio_can_use_line(unsigned gpio)
+ 	bool result;
+ 	int pin;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	/*
+ 	 * Try to obtain GPIO range, if it fails
+ 	 * we're probably dealing with GPIO driver
+@@ -781,6 +864,9 @@ int pinctrl_gpio_request(unsigned gpio)
+ 	int ret;
+ 	int pin;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
+ 	if (ret) {
+ 		if (pinctrl_ready_for_gpio_range(gpio))
+@@ -816,6 +902,8 @@ void pinctrl_gpio_free(unsigned gpio)
+ 	int ret;
+ 	int pin;
+ 
++	deb_debug("\n");
++
+ 	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
+ 	if (ret) {
+ 		return;
+@@ -838,6 +926,9 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
+ 	int ret;
+ 	int pin;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
+ 	if (ret) {
+ 		return ret;
+@@ -864,6 +955,9 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
+  */
+ int pinctrl_gpio_direction_input(unsigned gpio)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	return pinctrl_gpio_direction(gpio, true);
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_input);
+@@ -878,6 +972,9 @@ EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_input);
+  */
+ int pinctrl_gpio_direction_output(unsigned gpio)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	return pinctrl_gpio_direction(gpio, false);
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_output);
+@@ -898,6 +995,8 @@ int pinctrl_gpio_set_config(unsigned gpio, unsigned long config)
+ 	struct pinctrl_dev *pctldev;
+ 	int ret, pin;
+ 
++	deb_debug("\n");
++
+ 	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
+ 	if (ret)
+ 		return ret;
+@@ -916,6 +1015,9 @@ static struct pinctrl_state *find_state(struct pinctrl *p,
+ {
+ 	struct pinctrl_state *state;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	list_for_each_entry(state, &p->states, node)
+ 		if (!strcmp(state->name, name))
+ 			return state;
+@@ -928,6 +1030,9 @@ static struct pinctrl_state *create_state(struct pinctrl *p,
+ {
+ 	struct pinctrl_state *state;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	state = kzalloc(sizeof(*state), GFP_KERNEL);
+ 	if (!state)
+ 		return ERR_PTR(-ENOMEM);
+@@ -947,6 +1052,9 @@ static int add_setting(struct pinctrl *p, struct pinctrl_dev *pctldev,
+ 	struct pinctrl_setting *setting;
+ 	int ret;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	state = find_state(p, map->name);
+ 	if (!state)
+ 		state = create_state(p, map->name);
+@@ -1009,6 +1117,9 @@ static struct pinctrl *find_pinctrl(struct device *dev)
+ {
+ 	struct pinctrl *p;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pinctrl_list_mutex);
+ 	list_for_each_entry(p, &pinctrl_list, node)
+ 		if (p->dev == dev) {
+@@ -1032,6 +1143,9 @@ static struct pinctrl *create_pinctrl(struct device *dev,
+ 	const struct pinctrl_map *map;
+ 	int ret;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	/*
+ 	 * create the state cookie holder struct pinctrl for each
+ 	 * mapping, this is what consumers will get when requesting
+@@ -1115,6 +1229,9 @@ struct pinctrl *pinctrl_get(struct device *dev)
+ {
+ 	struct pinctrl *p;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (WARN_ON(!dev))
+ 		return ERR_PTR(-EINVAL);
+ 
+@@ -1137,6 +1254,9 @@ EXPORT_SYMBOL_GPL(pinctrl_get);
+ static void pinctrl_free_setting(bool disable_setting,
+ 				 struct pinctrl_setting *setting)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	switch (setting->type) {
+ 	case PIN_MAP_TYPE_MUX_GROUP:
+ 		if (disable_setting)
+@@ -1157,6 +1277,9 @@ static void pinctrl_free(struct pinctrl *p, bool inlist)
+ 	struct pinctrl_state *state, *n1;
+ 	struct pinctrl_setting *setting, *n2;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pinctrl_list_mutex);
+ 	list_for_each_entry_safe(state, n1, &p->states, node) {
+ 		list_for_each_entry_safe(setting, n2, &state->settings, node) {
+@@ -1184,6 +1307,9 @@ static void pinctrl_release(struct kref *kref)
+ {
+ 	struct pinctrl *p = container_of(kref, struct pinctrl, users);
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	pinctrl_free(p, true);
+ }
+ 
+@@ -1193,6 +1319,9 @@ static void pinctrl_release(struct kref *kref)
+  */
+ void pinctrl_put(struct pinctrl *p)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	kref_put(&p->users, pinctrl_release);
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_put);
+@@ -1207,6 +1336,9 @@ struct pinctrl_state *pinctrl_lookup_state(struct pinctrl *p,
+ {
+ 	struct pinctrl_state *state;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	state = find_state(p, name);
+ 	if (!state) {
+ 		if (pinctrl_dummy_state) {
+@@ -1225,6 +1357,9 @@ EXPORT_SYMBOL_GPL(pinctrl_lookup_state);
+ static void pinctrl_link_add(struct pinctrl_dev *pctldev,
+ 			     struct device *consumer)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (pctldev->desc->link_consumers)
+ 		device_link_add(consumer, pctldev->dev,
+ 				DL_FLAG_PM_RUNTIME |
+@@ -1242,6 +1377,9 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
+ 	struct pinctrl_state *old_state = p->state;
+ 	int ret;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (p->state) {
+ 		/*
+ 		 * For each pinmux setting in the old state, forget SW's record
+@@ -1289,6 +1427,8 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
+ unapply_new_state:
+ 	dev_err(p->dev, "Error applying setting, reverse things back\n");
+ 
++	deb_debug("\n");
++
+ 	list_for_each_entry(setting2, &state->settings, node) {
+ 		if (&setting2->node == &setting->node)
+ 			break;
+@@ -1317,6 +1457,9 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
+  */
+ int pinctrl_select_state(struct pinctrl *p, struct pinctrl_state *state)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (p->state == state)
+ 		return 0;
+ 
+@@ -1340,6 +1483,9 @@ struct pinctrl *devm_pinctrl_get(struct device *dev)
+ {
+ 	struct pinctrl **ptr, *p;
+ 
++	// printk removed because it triggers far to often
++	// deb_debug("\n");
++
+ 	ptr = devres_alloc(devm_pinctrl_release, sizeof(*ptr), GFP_KERNEL);
+ 	if (!ptr)
+ 		return ERR_PTR(-ENOMEM);
+@@ -1360,6 +1506,9 @@ static int devm_pinctrl_match(struct device *dev, void *res, void *data)
+ {
+ 	struct pinctrl **p = res;
+ 
++	// printk removed because it triggers far to often
++	// deb_debug("\n");
++
+ 	return *p == data;
+ }
+ 
+@@ -1373,6 +1522,9 @@ static int devm_pinctrl_match(struct device *dev, void *res, void *data)
+  */
+ void devm_pinctrl_put(struct pinctrl *p)
+ {
++	// printk removed because it triggers far to often
++	// deb_debug("\n");
++
+ 	WARN_ON(devres_release(p->dev, devm_pinctrl_release,
+ 			       devm_pinctrl_match, p));
+ }
+@@ -1391,6 +1543,8 @@ int pinctrl_register_mappings(const struct pinctrl_map *maps,
+ 	int i, ret;
+ 	struct pinctrl_maps *maps_node;
+ 
++	deb_debug("\n");
++
+ 	pr_debug("add %u pinctrl maps\n", num_maps);
+ 
+ 	/* First sanity check the new mapping */
+@@ -1459,6 +1613,8 @@ void pinctrl_unregister_mappings(const struct pinctrl_map *map)
+ {
+ 	struct pinctrl_maps *maps_node;
+ 
++	deb_debug("\n");
++
+ 	mutex_lock(&pinctrl_maps_mutex);
+ 	list_for_each_entry(maps_node, &pinctrl_maps, node) {
+ 		if (maps_node->maps == map) {
+@@ -1478,6 +1634,8 @@ EXPORT_SYMBOL_GPL(pinctrl_unregister_mappings);
+  */
+ int pinctrl_force_sleep(struct pinctrl_dev *pctldev)
+ {
++	deb_debug("\n");
++
+ 	if (!IS_ERR(pctldev->p) && !IS_ERR(pctldev->hog_sleep))
+ 		return pinctrl_commit_state(pctldev->p, pctldev->hog_sleep);
+ 	return 0;
+@@ -1490,6 +1648,8 @@ EXPORT_SYMBOL_GPL(pinctrl_force_sleep);
+  */
+ int pinctrl_force_default(struct pinctrl_dev *pctldev)
+ {
++	deb_debug("\n");
++
+ 	if (!IS_ERR(pctldev->p) && !IS_ERR(pctldev->hog_default))
+ 		return pinctrl_commit_state(pctldev->p, pctldev->hog_default);
+ 	return 0;
+@@ -1509,6 +1669,9 @@ int pinctrl_init_done(struct device *dev)
+ 	struct dev_pin_info *pins = dev->pins;
+ 	int ret;
+ 
++	// printk removed because it triggers far to often
++	// deb_debug("\n");
++
+ 	if (!pins)
+ 		return 0;
+ 
+@@ -1534,6 +1697,9 @@ static int pinctrl_select_bound_state(struct device *dev,
+ 	struct dev_pin_info *pins = dev->pins;
+ 	int ret;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (IS_ERR(state))
+ 		return 0; /* No such state */
+ 	ret = pinctrl_select_state(pins->p, state);
+@@ -1549,6 +1715,9 @@ static int pinctrl_select_bound_state(struct device *dev,
+  */
+ int pinctrl_select_default_state(struct device *dev)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (!dev->pins)
+ 		return 0;
+ 
+@@ -1556,7 +1725,7 @@ int pinctrl_select_default_state(struct device *dev)
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_select_default_state);
+ 
+-#ifdef CONFIG_PM
++    #ifdef CONFIG_PM
+ 
+ /**
+  * pinctrl_pm_select_default_state() - select default pinctrl state for PM
+@@ -1564,6 +1733,9 @@ EXPORT_SYMBOL_GPL(pinctrl_select_default_state);
+  */
+ int pinctrl_pm_select_default_state(struct device *dev)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	return pinctrl_select_default_state(dev);
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_pm_select_default_state);
+@@ -1587,26 +1759,32 @@ EXPORT_SYMBOL_GPL(pinctrl_pm_select_sleep_state);
+  */
+ int pinctrl_pm_select_idle_state(struct device *dev)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (!dev->pins)
+ 		return 0;
+ 
+ 	return pinctrl_select_bound_state(dev, dev->pins->idle_state);
+ }
+ EXPORT_SYMBOL_GPL(pinctrl_pm_select_idle_state);
+-#endif
++    #endif
+ 
+-#ifdef CONFIG_DEBUG_FS
++    #ifdef CONFIG_DEBUG_FS
+ 
+ static int pinctrl_pins_show(struct seq_file *s, void *what)
+ {
+ 	struct pinctrl_dev *pctldev = s->private;
+ 	const struct pinctrl_ops *ops = pctldev->desc->pctlops;
+ 	unsigned i, pin;
+-#ifdef CONFIG_GPIOLIB
++    #ifdef CONFIG_GPIOLIB
+ 	struct pinctrl_gpio_range *range;
+ 	struct gpio_chip *chip;
+ 	int gpio_num;
+-#endif
++    #endif
++
++	// removed because it triggers far too often
++	// deb_debug("\n");
+ 
+ 	seq_printf(s, "registered pins: %d\n", pctldev->desc->npins);
+ 
+@@ -1624,7 +1802,7 @@ static int pinctrl_pins_show(struct seq_file *s, void *what)
+ 
+ 		seq_printf(s, "pin %d (%s) ", pin, desc->name);
+ 
+-#ifdef CONFIG_GPIOLIB
++    #ifdef CONFIG_GPIOLIB
+ 		gpio_num = -1;
+ 		list_for_each_entry(range, &pctldev->gpio_ranges, node) {
+ 			if ((pin >= range->pin_base) &&
+@@ -1641,7 +1819,7 @@ static int pinctrl_pins_show(struct seq_file *s, void *what)
+ 			seq_printf(s, "%u:%s ", gpio_num - chip->gpiodev->base, chip->label);
+ 		else
+ 			seq_puts(s, "0:? ");
+-#endif
++    #endif
+ 
+ 		/* Driver-specific info per pin */
+ 		if (ops->pin_dbg_show)
+@@ -1662,6 +1840,9 @@ static int pinctrl_groups_show(struct seq_file *s, void *what)
+ 	const struct pinctrl_ops *ops = pctldev->desc->pctlops;
+ 	unsigned ngroups, selector = 0;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	mutex_lock(&pctldev->mutex);
+ 
+ 	ngroups = ops->get_groups_count(pctldev);
+@@ -1707,6 +1888,8 @@ static int pinctrl_gpioranges_show(struct seq_file *s, void *what)
+ 	struct pinctrl_dev *pctldev = s->private;
+ 	struct pinctrl_gpio_range *range;
+ 
++	deb_debug("\n");
++
+ 	seq_puts(s, "GPIO ranges handled:\n");
+ 
+ 	mutex_lock(&pctldev->mutex);
+@@ -1740,6 +1923,8 @@ static int pinctrl_devices_show(struct seq_file *s, void *what)
+ {
+ 	struct pinctrl_dev *pctldev;
+ 
++	deb_debug("\n");
++
+ 	seq_puts(s, "name [pinmux] [pinconf]\n");
+ 
+ 	mutex_lock(&pinctrldev_list_mutex);
+@@ -1773,6 +1958,8 @@ static inline const char *map_type(enum pinctrl_map_type type)
+ 		"CONFIGS_GROUP",
+ 	};
+ 
++	deb_debug("\n");
++
+ 	if (type >= ARRAY_SIZE(names))
+ 		return "UNKNOWN";
+ 
+@@ -1785,6 +1972,8 @@ static int pinctrl_maps_show(struct seq_file *s, void *what)
+ 	int i;
+ 	const struct pinctrl_map *map;
+ 
++	deb_debug("\n");
++
+ 	seq_puts(s, "Pinctrl maps:\n");
+ 
+ 	mutex_lock(&pinctrl_maps_mutex);
+@@ -1823,6 +2012,8 @@ static int pinctrl_show(struct seq_file *s, void *what)
+ 	struct pinctrl_state *state;
+ 	struct pinctrl_setting *setting;
+ 
++	deb_debug("\n");
++
+ 	seq_puts(s, "Requested pin control handlers their pinmux maps:\n");
+ 
+ 	mutex_lock(&pinctrl_list_mutex);
+@@ -1870,6 +2061,9 @@ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
+ 	struct dentry *device_root;
+ 	const char *debugfs_name;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (pctldev->desc->name &&
+ 			strcmp(dev_name(pctldev->dev), pctldev->desc->name)) {
+ 		debugfs_name = devm_kasprintf(pctldev->dev, GFP_KERNEL,
+@@ -1906,11 +2100,15 @@ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
+ 
+ static void pinctrl_remove_device_debugfs(struct pinctrl_dev *pctldev)
+ {
++	deb_debug("\n");
++
+ 	debugfs_remove_recursive(pctldev->device_root);
+ }
+ 
+ static void pinctrl_init_debugfs(void)
+ {
++	deb_debug("\n");
++
+ 	debugfs_root = debugfs_create_dir("pinctrl", NULL);
+ 	if (IS_ERR(debugfs_root) || !debugfs_root) {
+ 		pr_warn("failed to create debugfs directory\n");
+@@ -1930,22 +2128,30 @@ static void pinctrl_init_debugfs(void)
+ 
+ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
+ {
++	deb_debug("\n");
++
+ }
+ 
+ static void pinctrl_init_debugfs(void)
+ {
++	deb_debug("\n");
++
+ }
+ 
+ static void pinctrl_remove_device_debugfs(struct pinctrl_dev *pctldev)
+ {
+-}
++	deb_debug("\n");
+ 
+-#endif
++}
++    #endif
+ 
+ static int pinctrl_check_ops(struct pinctrl_dev *pctldev)
+ {
+ 	const struct pinctrl_ops *ops = pctldev->desc->pctlops;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	if (!ops ||
+ 	    !ops->get_groups_count ||
+ 	    !ops->get_group_name)
+@@ -1967,6 +2173,8 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
+ 	struct pinctrl_dev *pctldev;
+ 	int ret;
+ 
++	deb_debug("\n");
++
+ 	if (!pctldesc)
+ 		return ERR_PTR(-EINVAL);
+ 	if (!pctldesc->name)
+@@ -1981,12 +2189,12 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
+ 	pctldev->desc = pctldesc;
+ 	pctldev->driver_data = driver_data;
+ 	INIT_RADIX_TREE(&pctldev->pin_desc_tree, GFP_KERNEL);
+-#ifdef CONFIG_GENERIC_PINCTRL_GROUPS
++    #ifdef CONFIG_GENERIC_PINCTRL_GROUPS
+ 	INIT_RADIX_TREE(&pctldev->pin_group_tree, GFP_KERNEL);
+-#endif
+-#ifdef CONFIG_GENERIC_PINMUX_FUNCTIONS
++    #endif
++    #ifdef CONFIG_GENERIC_PINMUX_FUNCTIONS
+ 	INIT_RADIX_TREE(&pctldev->pin_function_tree, GFP_KERNEL);
+-#endif
++	#endif
+ 	INIT_LIST_HEAD(&pctldev->gpio_ranges);
+ 	INIT_LIST_HEAD(&pctldev->node);
+ 	pctldev->dev = dev;
+@@ -2033,6 +2241,9 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
+ 
+ static int pinctrl_claim_hogs(struct pinctrl_dev *pctldev)
+ {
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	pctldev->p = create_pinctrl(pctldev->dev, pctldev);
+ 	if (PTR_ERR(pctldev->p) == -ENODEV) {
+ 		dev_dbg(pctldev->dev, "no hogs found\n");
+@@ -2073,6 +2284,8 @@ int pinctrl_enable(struct pinctrl_dev *pctldev)
+ {
+ 	int error;
+ 
++	deb_debug("\n");
++
+ 	error = pinctrl_claim_hogs(pctldev);
+ 	if (error) {
+ 		dev_err(pctldev->dev, "could not claim hogs: %i\n",
+@@ -2112,6 +2325,8 @@ struct pinctrl_dev *pinctrl_register(struct pinctrl_desc *pctldesc,
+ 	struct pinctrl_dev *pctldev;
+ 	int error;
+ 
++	deb_debug("\n");
++
+ 	pctldev = pinctrl_init_controller(pctldesc, dev, driver_data);
+ 	if (IS_ERR(pctldev))
+ 		return pctldev;
+@@ -2140,6 +2355,8 @@ int pinctrl_register_and_init(struct pinctrl_desc *pctldesc,
+ {
+ 	struct pinctrl_dev *p;
+ 
++	deb_debug("\n");
++
+ 	p = pinctrl_init_controller(pctldesc, dev, driver_data);
+ 	if (IS_ERR(p))
+ 		return PTR_ERR(p);
+@@ -2166,6 +2383,8 @@ void pinctrl_unregister(struct pinctrl_dev *pctldev)
+ {
+ 	struct pinctrl_gpio_range *range, *n;
+ 
++	deb_debug("\n");
++
+ 	if (!pctldev)
+ 		return;
+ 
+@@ -2200,6 +2419,8 @@ static void devm_pinctrl_dev_release(struct device *dev, void *res)
+ {
+ 	struct pinctrl_dev *pctldev = *(struct pinctrl_dev **)res;
+ 
++	deb_debug("\n");
++
+ 	pinctrl_unregister(pctldev);
+ }
+ 
+@@ -2207,6 +2428,8 @@ static int devm_pinctrl_dev_match(struct device *dev, void *res, void *data)
+ {
+ 	struct pctldev **r = res;
+ 
++	deb_debug("\n");
++
+ 	if (WARN_ON(!r || !*r))
+ 		return 0;
+ 
+@@ -2230,6 +2453,9 @@ struct pinctrl_dev *devm_pinctrl_register(struct device *dev,
+ {
+ 	struct pinctrl_dev **ptr, *pctldev;
+ 
++	// removed because it triggers far too often
++	// deb_debug("\n");
++
+ 	ptr = devres_alloc(devm_pinctrl_dev_release, sizeof(*ptr), GFP_KERNEL);
+ 	if (!ptr)
+ 		return ERR_PTR(-ENOMEM);
+@@ -2266,6 +2492,8 @@ int devm_pinctrl_register_and_init(struct device *dev,
+ 	struct pinctrl_dev **ptr;
+ 	int error;
+ 
++	deb_debug("\n");
++
+ 	ptr = devres_alloc(devm_pinctrl_dev_release, sizeof(*ptr), GFP_KERNEL);
+ 	if (!ptr)
+ 		return -ENOMEM;
+@@ -2290,6 +2518,8 @@ EXPORT_SYMBOL_GPL(devm_pinctrl_register_and_init);
+  */
+ void devm_pinctrl_unregister(struct device *dev, struct pinctrl_dev *pctldev)
+ {
++	deb_debug("\n");
++
+ 	WARN_ON(devres_release(dev, devm_pinctrl_dev_release,
+ 			       devm_pinctrl_dev_match, pctldev));
+ }
+@@ -2297,6 +2527,8 @@ EXPORT_SYMBOL_GPL(devm_pinctrl_unregister);
+ 
+ static int __init pinctrl_init(void)
+ {
++	deb_debug("\n");
++
+ 	pr_info("initialized pinctrl subsystem\n");
+ 	pinctrl_init_debugfs();
+ 	return 0;
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra.c b/drivers/pinctrl/tegra/pinctrl-tegra.c
+index f9ecbebe6442..e3f313b1fdb1 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra.c
+@@ -34,14 +34,39 @@
+ #define EMMC_DPD_PARKING(x)		(x << EMMC_PARKING_BIT)
+ #define EMMC_PARKING_SET		0x1FFF
+ 
++//#define GPIO_DEBUG
++//#define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
++#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
++#include "../../gpio/gpio-proxy.h"  // low level hooks for readl_x and writel_x
++#endif // CONFIG_TEGRA_GPIO_GUEST_PROXY and CONFIG_TEGRA_GPIO_HOST_PROXY
++
+ static inline u32 pmx_readl(struct tegra_pmx *pmx, u32 bank, u32 reg)
+ {
+-	return readl(pmx->regs[bank] + reg);
++	deb_debug("\n");
++
++	return readl_x(pmx->regs[bank] + reg);
+ }
+ 
+ static inline void pmx_writel(struct tegra_pmx *pmx, u32 val, u32 bank, u32 reg)
+ {
+-	writel_relaxed(val, pmx->regs[bank] + reg);
++	deb_debug("\n");
++
++	writel_relaxed_x(val, pmx->regs[bank] + reg);
+ 	/* make sure pinmux register write completed */
+ 	pmx_readl(pmx, bank, reg);
+ }
+@@ -50,6 +75,8 @@ static int tegra_pinctrl_get_groups_count(struct pinctrl_dev *pctldev)
+ {
+ 	struct tegra_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+ 
++	// deb_debug("\n");
++	
+ 	return pmx->soc->ngroups;
+ }
+ 
+@@ -58,6 +85,8 @@ static const char *tegra_pinctrl_get_group_name(struct pinctrl_dev *pctldev,
+ {
+ 	struct tegra_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+ 
++	// deb_debug("\n");
++	
+ 	return pmx->soc->groups[group].name;
+ }
+ 
+@@ -68,20 +97,24 @@ static int tegra_pinctrl_get_group_pins(struct pinctrl_dev *pctldev,
+ {
+ 	struct tegra_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+ 
++	// deb_debug("\n");
++	
+ 	*pins = pmx->soc->groups[group].pins;
+ 	*num_pins = pmx->soc->groups[group].npins;
+ 
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_DEBUG_FS
++	#ifdef CONFIG_DEBUG_FS
+ static void tegra_pinctrl_pin_dbg_show(struct pinctrl_dev *pctldev,
+ 				       struct seq_file *s,
+ 				       unsigned offset)
+ {
++	// deb_debug("\n");
++	
+ 	seq_printf(s, " %s", dev_name(pctldev->dev));
+ }
+-#endif
++       #endif
+ 
+ static const struct cfg_param {
+ 	const char *property;
+@@ -125,6 +158,8 @@ static int tegra_pinctrl_dt_subnode_to_map(struct pinctrl_dev *pctldev,
+ 	struct property *prop;
+ 	const char *group;
+ 
++	deb_debug("\n");
++
+ 	ret = of_property_read_string(np, "nvidia,function", &function);
+ 	if (ret < 0) {
+ 		/* EINVAL=missing, which is fine since it's optional */
+@@ -201,6 +236,8 @@ static int tegra_pinctrl_dt_node_to_map(struct pinctrl_dev *pctldev,
+ 	struct device_node *np;
+ 	int ret;
+ 
++	deb_debug("\n");
++
+ 	reserved_maps = 0;
+ 	*map = NULL;
+ 	*num_maps = 0;
+@@ -234,6 +271,8 @@ static int tegra_pinctrl_get_funcs_count(struct pinctrl_dev *pctldev)
+ {
+ 	struct tegra_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+ 
++	deb_debug("\n");
++	
+ 	return pmx->soc->nfunctions;
+ }
+ 
+@@ -242,6 +281,8 @@ static const char *tegra_pinctrl_get_func_name(struct pinctrl_dev *pctldev,
+ {
+ 	struct tegra_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+ 
++	// deb_debug("\n");
++	
+ 	return pmx->soc->functions[function].name;
+ }
+ 
+@@ -252,6 +293,8 @@ static int tegra_pinctrl_get_func_groups(struct pinctrl_dev *pctldev,
+ {
+ 	struct tegra_pmx *pmx = pinctrl_dev_get_drvdata(pctldev);
+ 
++	// deb_debug("\n");
++	
+ 	*groups = pmx->soc->functions[function].groups;
+ 	*num_groups = pmx->soc->functions[function].ngroups;
+ 
+@@ -267,6 +310,8 @@ static int tegra_pinctrl_set_mux(struct pinctrl_dev *pctldev,
+ 	int i;
+ 	u32 val;
+ 
++	// deb_debug("GPIO %s, device %s\n", pmx->dev->init_name);
++	
+ 	g = &pmx->soc->groups[group];
+ 
+ 	if (WARN_ON(g->mux_reg < 0))
+@@ -300,6 +345,8 @@ static int tegra_pinctrl_gpio_save_config(struct pinctrl_dev *pctldev,
+ 	const unsigned *pins;
+ 	int ret;
+ 
++	deb_debug("device %s\n", pmx->dev->init_name,__FILE__);
++
+ 	for (group = 0; group < pmx->soc->ngroups; ++group) {
+ 		ret = tegra_pinctrl_get_group_pins(pctldev, group, &pins, &num_pins);
+ 		if (ret < 0 || num_pins != 1)
+@@ -330,6 +377,8 @@ static int tegra_pinctrl_gpio_restore_config(struct pinctrl_dev *pctldev,
+ 	const unsigned *pins;
+ 	int ret;
+ 
++	deb_debug("device %s\n", pmx->dev->init_name);
++
+ 	for (group = 0; group < pmx->soc->ngroups; ++group) {
+ 		ret = tegra_pinctrl_get_group_pins(pctldev, group, &pins, &num_pins);
+ 		if (ret < 0 || num_pins != 1)
+@@ -358,6 +407,8 @@ static const struct tegra_pingroup *tegra_pinctrl_get_group(struct pinctrl_dev *
+        const unsigned int *pins;
+        int ret;
+ 
++	deb_debug("\n");
++
+        for (group = 0; group < pmx->soc->ngroups; ++group) {
+                ret = tegra_pinctrl_get_group_pins(pctldev, group, &pins, &num_pins);
+                if (ret < 0)
+@@ -384,6 +435,8 @@ static int tegra_pinctrl_gpio_request_enable(struct pinctrl_dev *pctldev,
+ 	u32 value;
+ 	int ret;
+ 
++	deb_debug("device %s\n", pmx->dev->init_name);
++
+ 	ret = tegra_pinctrl_gpio_save_config(pctldev, range, offset);
+ 	if (ret)
+ 		return ret;
+@@ -416,6 +469,8 @@ static void tegra_pinctrl_gpio_disable_free(struct pinctrl_dev *pctldev,
+ 					    struct pinctrl_gpio_range *range,
+ 					    unsigned int offset)
+ {
++	deb_debug("\n");
++	
+ 	tegra_pinctrl_gpio_restore_config(pctldev, range, offset);
+ }
+ 
+@@ -425,6 +480,8 @@ static int tegra_pinctrl_gpio_set_input(struct tegra_pmx *pmx,
+ {
+ 	u32 value;
+ 
++	deb_debug("\n");
++
+ 	if (group->einput_bit < 0)
+ 		return 0;
+ 
+@@ -449,6 +506,8 @@ static int tegra_pinctrl_gpio_set_tristate(struct tegra_pmx *pmx,
+ {
+ 	u32 value;
+ 
++	deb_debug("\n");
++
+ 	if (group->tri_bank < 0 || group->tri_reg < 0 || group->tri_bit < 0)
+ 		return -EINVAL;
+ 
+@@ -472,6 +531,8 @@ static int tegra_pinctrl_gpio_set_direction(struct pinctrl_dev *pctldev,
+ 	const struct tegra_pingroup *group;
+ 	int ret;
+ 
++	deb_debug("Offset=%d\n", offset);
++
+ 	group = tegra_pinctrl_get_group(pctldev, offset);
+ 	if (!group)
+ 		return -EINVAL;
+@@ -507,6 +568,8 @@ static int tegra_pinconf_reg(struct tegra_pmx *pmx,
+ 			     bool report_err,
+ 			     s8 *bank, s32 *reg, s8 *bit, s8 *width)
+ {
++	deb_debug("\n");
++
+ 	switch (param) {
+ 	case TEGRA_PINCONF_PARAM_PULL:
+ 		*bank = g->pupd_bank;
+@@ -661,6 +724,7 @@ static int tegra_pinconf_reg(struct tegra_pmx *pmx,
+ static int tegra_pinconf_get(struct pinctrl_dev *pctldev,
+ 			     unsigned pin, unsigned long *config)
+ {
++	deb_debug("\n");
+ 	dev_err(pctldev->dev, "pin_config_get op not supported\n");
+ 	return -ENOTSUPP;
+ }
+@@ -669,6 +733,7 @@ static int tegra_pinconf_set(struct pinctrl_dev *pctldev,
+ 			     unsigned pin, unsigned long *configs,
+ 			     unsigned num_configs)
+ {
++	deb_debug("\n");
+ 	dev_err(pctldev->dev, "pin_config_set op not supported\n");
+ 	return -ENOTSUPP;
+ }
+@@ -685,6 +750,8 @@ static int tegra_pinconf_group_get(struct pinctrl_dev *pctldev,
+ 	s32 reg;
+ 	u32 val, mask;
+ 
++	deb_debug("\n");
++
+ 	g = &pmx->soc->groups[group];
+ 
+ 	ret = tegra_pinconf_reg(pmx, g, param, true, &bank, &reg, &bit,
+@@ -718,6 +785,8 @@ static int tegra_pinconf_group_set(struct pinctrl_dev *pctldev,
+ 	s32 reg;
+ 	u32 val, mask;
+ 
++	deb_debug("\n");
++
+ 	g = &pmx->soc->groups[group];
+ 
+ 	for (i = 0; i < num_configs; i++) {
+@@ -765,15 +834,17 @@ static int tegra_pinconf_group_set(struct pinctrl_dev *pctldev,
+ 	return 0;
+ }
+ 
+-#ifdef CONFIG_DEBUG_FS
++	#ifdef CONFIG_DEBUG_FS
+ static void tegra_pinconf_dbg_show(struct pinctrl_dev *pctldev,
+ 				   struct seq_file *s, unsigned offset)
+ {
++	deb_debug("\n");
+ }
+ 
+ static const char *strip_prefix(const char *s)
+ {
+ 	const char *comma = strchr(s, ',');
++	deb_debug("\n");
+ 	if (!comma)
+ 		return s;
+ 
+@@ -791,6 +862,8 @@ static void tegra_pinconf_group_dbg_show(struct pinctrl_dev *pctldev,
+ 	u32 val;
+ 	u8 idx;
+ 
++	deb_debug("\n");
++
+ 	g = &pmx->soc->groups[group];
+ 
+ 	for (i = 0; i < ARRAY_SIZE(cfg_params); i++) {
+@@ -823,6 +896,8 @@ static void tegra_pinconf_config_dbg_show(struct pinctrl_dev *pctldev,
+ 	const char *pname = "unknown";
+ 	int i;
+ 
++	deb_debug("\n");
++
+ 	for (i = 0; i < ARRAY_SIZE(cfg_params); i++) {
+ 		if (cfg_params[i].param == param) {
+ 			pname = cfg_params[i].property;
+@@ -832,7 +907,7 @@ static void tegra_pinconf_config_dbg_show(struct pinctrl_dev *pctldev,
+ 
+ 	seq_printf(s, "%s=%d", strip_prefix(pname), arg);
+ }
+-#endif
++    #endif
+ 
+ static const struct pinconf_ops tegra_pinconf_ops = {
+ 	.pin_config_get = tegra_pinconf_get,
+@@ -865,6 +940,8 @@ static void tegra_pinctrl_clear_parked_bits(struct tegra_pmx *pmx)
+ 	const struct tegra_pingroup *g;
+ 	u32 val;
+ 
++	deb_debug("\n");
++
+ 	for (i = 0; i < pmx->soc->ngroups; ++i) {
+ 		g = &pmx->soc->groups[i];
+ 		if (g->parked_bitmask > 0) {
+@@ -891,6 +968,8 @@ static size_t tegra_pinctrl_get_bank_size(struct device *dev,
+ 	struct platform_device *pdev = to_platform_device(dev);
+ 	struct resource *res;
+ 
++	deb_debug("\n");
++
+ 	res = platform_get_resource(pdev, IORESOURCE_MEM, bank_id);
+ 
+ 	return resource_size(res) / 4;
+@@ -904,11 +983,13 @@ static int tegra_pinctrl_suspend(struct device *dev)
+ 	size_t bank_size;
+ 	unsigned int i, k;
+ 
++	deb_debug("\n");
++
+ 	for (i = 0; i < pmx->nbanks; i++) {
+ 		bank_size = tegra_pinctrl_get_bank_size(dev, i);
+ 		regs = pmx->regs[i];
+ 		for (k = 0; k < bank_size; k++)
+-			*backup_regs++ = readl_relaxed(regs++);
++			*backup_regs++ = readl_relaxed_x(regs++);
+ 	}
+ 
+ 	return pinctrl_force_sleep(pmx->pctl);
+@@ -922,15 +1003,17 @@ static int tegra_pinctrl_resume(struct device *dev)
+ 	size_t bank_size;
+ 	unsigned int i, k;
+ 
++	deb_debug("\n");
++
+ 	for (i = 0; i < pmx->nbanks; i++) {
+ 		bank_size = tegra_pinctrl_get_bank_size(dev, i);
+ 		regs = pmx->regs[i];
+ 		for (k = 0; k < bank_size; k++)
+-			writel_relaxed(*backup_regs++, regs++);
++		writel_relaxed_x(*backup_regs++, regs++);
+ 	}
+ 
+ 	/* flush all the prior writes */
+-	readl_relaxed(pmx->regs[0]);
++  readl_relaxed_x(pmx->regs[0]);
+ 	/* wait for pinctrl register read to complete */
+ 	rmb();
+ 
+@@ -961,6 +1044,8 @@ static bool tegra_pinctrl_gpio_node_has_range(struct tegra_pmx *pmx)
+ 	struct device_node *np;
+ 	bool has_prop = false;
+ 
++	deb_debug("\n");
++
+ 	if (of_property_read_bool(dev->of_node, "#gpio-range-cells"))
+ 		return true;
+ 
+@@ -985,6 +1070,8 @@ int tegra_pinctrl_probe(struct platform_device *pdev,
+ 	int fn, gn, gfn;
+ 	unsigned long backup_regs_size = 0;
+ 
++	deb_debug("\n");
++
+ 	pmx = devm_kzalloc(&pdev->dev, sizeof(*pmx), GFP_KERNEL);
+ 	if (!pmx)
+ 		return -ENOMEM;
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra114.c b/drivers/pinctrl/tegra/pinctrl-tegra114.c
+index 135635f4e897..050a78ffb0e2 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra114.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra114.c
+@@ -1845,8 +1845,26 @@ static const struct tegra_pinctrl_soc_data tegra114_pinctrl = {
+ 	.drvtype_in_mux = false,
+ };
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
+ static int tegra114_pinctrl_probe(struct platform_device *pdev)
+ {
++	deb_debug("\n");
+ 	return tegra_pinctrl_probe(pdev, &tegra114_pinctrl);
+ }
+ 
+@@ -1865,6 +1883,7 @@ static struct platform_driver tegra114_pinctrl_driver = {
+ 
+ static int __init tegra114_pinctrl_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra114_pinctrl_driver);
+ }
+ arch_initcall(tegra114_pinctrl_init);
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra124.c b/drivers/pinctrl/tegra/pinctrl-tegra124.c
+index cfc75ca9ae2b..320486fd060b 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra124.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra124.c
+@@ -2057,8 +2057,26 @@ static const struct tegra_pinctrl_soc_data tegra124_pinctrl = {
+ 	.drvtype_in_mux = false,
+ };
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
+ static int tegra124_pinctrl_probe(struct platform_device *pdev)
+ {
++	deb_debug("\n");
+ 	return tegra_pinctrl_probe(pdev, &tegra124_pinctrl);
+ }
+ 
+@@ -2077,6 +2095,7 @@ static struct platform_driver tegra124_pinctrl_driver = {
+ 
+ static int __init tegra124_pinctrl_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra124_pinctrl_driver);
+ }
+ arch_initcall(tegra124_pinctrl_init);
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra186.c b/drivers/pinctrl/tegra/pinctrl-tegra186.c
+index d78447c55527..53139593493d 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra186.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra186.c
+@@ -918,8 +918,26 @@ static const struct tegra_pinctrl_soc_data tegra186_pinctrl = {
+ 	.sfsel_in_mux = true,
+ };
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
+ static int tegra186_pinctrl_probe(struct platform_device *pdev)
+ {
++	deb_debug("\n");
+ 	return tegra_pinctrl_probe(pdev, &tegra186_pinctrl);
+ }
+ 
+@@ -940,12 +958,14 @@ static struct platform_driver tegra186_pinctrl_driver = {
+ 
+ static int __init tegra186_pinctrl_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra186_pinctrl_driver);
+ }
+ postcore_initcall_sync(tegra186_pinctrl_init);
+ 
+ static void __exit tegra186_pinctrl_exit(void)
+ {
++	deb_debug("\n");
+ 	platform_driver_unregister(&tegra186_pinctrl_driver);
+ }
+ module_exit(tegra186_pinctrl_exit);
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra194.c b/drivers/pinctrl/tegra/pinctrl-tegra194.c
+index 5c7fa1f1c45f..c7b6e114f282 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra194.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra194.c
+@@ -1872,8 +1872,27 @@ static const struct tegra_pinctrl_soc_data tegra194_pinctrl = {
+ 	.sfsel_in_mux = true,
+ };
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
++
+ static int tegra194_pinctrl_probe(struct platform_device *pdev)
+ {
++	deb_debug("\n");
+ 	return tegra_pinctrl_probe(pdev, &tegra194_pinctrl);
+ }
+ 
+@@ -1892,6 +1911,7 @@ static struct platform_driver tegra194_pinctrl_driver = {
+ 
+ static int __init tegra194_pinctrl_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra194_pinctrl_driver);
+ }
+ arch_initcall(tegra194_pinctrl_init);
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra20.c b/drivers/pinctrl/tegra/pinctrl-tegra20.c
+index cd605272c068..acd534f495ff 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra20.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra20.c
+@@ -2236,6 +2236,23 @@ static const char *cdev2_parents[] = {
+ 	"dev2_osc_div", "hclk", "pclk", "pll_p_out4",
+ };
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
+ static void tegra20_pinctrl_register_clock_muxes(struct platform_device *pdev)
+ {
+ 	struct tegra_pmx *pmx = platform_get_drvdata(pdev);
+@@ -2249,6 +2266,7 @@ static void tegra20_pinctrl_register_clock_muxes(struct platform_device *pdev)
+ 
+ static int tegra20_pinctrl_probe(struct platform_device *pdev)
+ {
++	deb_debug("\n");
+ 	int err;
+ 
+ 	err = tegra_pinctrl_probe(pdev, &tegra20_pinctrl);
+@@ -2275,6 +2293,7 @@ static struct platform_driver tegra20_pinctrl_driver = {
+ 
+ static int __init tegra20_pinctrl_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra20_pinctrl_driver);
+ }
+ arch_initcall(tegra20_pinctrl_init);
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra210.c b/drivers/pinctrl/tegra/pinctrl-tegra210.c
+index 01f200a4c789..8c9dad7e1b5f 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra210.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra210.c
+@@ -1745,12 +1745,16 @@ static const struct tegra_pinctrl_soc_data tegra210_pinctrl = {
+ 	.drvtype_in_mux = true,
+ };
+ 
++// #define GPIO_DEBUG
++
+ static int tegra210_pinctrl_probe(struct platform_device *pdev)
+ {
+ 	const struct tegra210_pinctrl_soc *soc;
+ 	struct tegra_pingroup *g;
+ 	int i;
+ 
++	printk(KERN_DEBUG "GPIO %s -- file %s", __func__, kbasename(__FILE__));
++
+ 	soc = of_device_get_match_data(&pdev->dev);
+ 	if (soc->lpdr_support) {
+ 		for (i = 0; i < tegra210_pinctrl.ngroups; ++i) {
+@@ -1793,6 +1797,7 @@ static struct platform_driver tegra210_pinctrl_driver = {
+ 
+ static int __init tegra210_pinctrl_init(void)
+ {
++	printk(KERN_DEBUG "GPIO %s -- file %s", __func__, kbasename(__FILE__));
+ 	return platform_driver_register(&tegra210_pinctrl_driver);
+ }
+ arch_initcall(tegra210_pinctrl_init);
+diff --git a/drivers/pinctrl/tegra/pinctrl-tegra30.c b/drivers/pinctrl/tegra/pinctrl-tegra30.c
+index 60e087e5b7f5..1e5f56a4a1e1 100644
+--- a/drivers/pinctrl/tegra/pinctrl-tegra30.c
++++ b/drivers/pinctrl/tegra/pinctrl-tegra30.c
+@@ -2480,8 +2480,26 @@ static const struct tegra_pinctrl_soc_data tegra30_pinctrl = {
+ 	.drvtype_in_mux = false,
+ };
+ 
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
++
++#ifdef GPIO_DEBUG
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++#else
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
++
+ static int tegra30_pinctrl_probe(struct platform_device *pdev)
+ {
++	deb_debug("\n");
+ 	return tegra_pinctrl_probe(pdev, &tegra30_pinctrl);
+ }
+ 
+@@ -2500,6 +2518,7 @@ static struct platform_driver tegra30_pinctrl_driver = {
+ 
+ static int __init tegra30_pinctrl_init(void)
+ {
++	deb_debug("\n");
+ 	return platform_driver_register(&tegra30_pinctrl_driver);
+ }
+ arch_initcall(tegra30_pinctrl_init);
+diff --git a/include/linux/gpio.h b/include/linux/gpio.h
+index 68193b32eb73..44a827979aad 100644
+--- a/include/linux/gpio.h
++++ b/include/linux/gpio.h
+@@ -56,7 +56,7 @@ struct gpio {
+ #ifdef CONFIG_GPIOLIB
+ 
+ #ifdef CONFIG_ARCH_HAVE_CUSTOM_GPIO_H
+-#include <asm/gpio.h>
++
+ #else
+ 
+ #include <asm-generic/gpio.h>

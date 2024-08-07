@@ -37,6 +37,13 @@
         ];
       }
     ];
+    gpiovmExtraModules = [
+      {
+        # The Nvidia Orin hardware dependent configuration is in
+        # modules/jetpack and modules/jetpack-microvm. Please refer to that
+        # section for hardware dependent gpiovm configuration.
+      }
+    ];
     hostConfiguration = lib.nixosSystem {
       inherit system;
 
@@ -60,13 +67,17 @@
                 somType = som;
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                agx.enableGPIOPassthrough = som == "agx";
               };
 
               hardware.nvidia = {
                 virtualization.enable = true;
                 virtualization.host.bpmp.enable = false;
+                virtualization.host.gpio.enable = true;
                 passthroughs.host.uarta.enable = false;
-                passthroughs.uarti_net_vm.enable = som == "agx";
+                # passthroughs.uarti_net_vm.enable = som == "agx";
+                passthroughs.uarti_net_vm.enable = false;
+                passthroughs.gpio_vm.enable = som == "agx";
               };
 
               virtualization = {
@@ -79,6 +90,13 @@
                   netvm = {
                     enable = true;
                     extraModules = netvmExtraModules;
+                  };
+                };
+
+                microvm = {
+                  gpiovm = {
+                    enable = true;
+                    extraModules = gpiovmExtraModules;
                   };
                 };
               };

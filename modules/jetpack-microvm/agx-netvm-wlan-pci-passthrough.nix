@@ -25,19 +25,21 @@ in {
       }
     ];
 
+    /* tmp removed for GPIO testing
     boot.kernelPatches = [
       {
         name = "agx-pci-passthrough-patch";
         patch = ./pci-passthrough-agx-test.patch;
       }
     ];
+    */
 
     boot.kernelParams = [
       "vfio-pci.ids=10ec:c82f"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
 
-    hardware.deviceTree = {
+    hardware.deviceTree = builtins.trace "netvm-wlan-pci-passthrough setting default deviceTree" lib.mkDefault {
       enable = true;
       name = "tegra234-p3701-host-passthrough.dtb";
     };
