@@ -144,7 +144,7 @@ jobs:
           echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
           git log --oneline -n$(( COMMITS + CONTEXT ))
       - name: Install nix
-        uses: cachix/install-nix-action@v24
+        uses: cachix/install-nix-action@v27
         with:
           extra_nix_config: |
             trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.vedenemo.dev:8NhplARANhClUSWJyLVk4WMyy1Wb4rhmWW2u8AejH9E= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
