@@ -120,6 +120,15 @@
       <keybind key="XF86_AudioMute">
         <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl mut" />
       </keybind>
+      <keybind key="W-z">
+        <action name="ToggleMagnify" />
+      </keybind>
+      <keybind key="W--">
+        <action name="ZoomOut" />
+      </keybind>
+      <keybind key="W-=">
+        <action name="ZoomIn" />
+      </keybind>
     </keyboard>
     <mouse><default /></mouse>
     <windowRules>
