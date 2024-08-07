@@ -62,5 +62,11 @@ in {
         path = "${pkgs.appflowy}/bin/appflowy";
         icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
       };
+
+    ghaf.programs.chromium.enable = cfg.chromium;
+    ghaf.programs.zathura.enable = cfg.zathura;
+
+    # Set default PDF XDG handler
+    xdg.mime.defaultApplications."application/pdf" = lib.mkIf cfg.zathura "PDF Viewer.desktop";
   };
 }
