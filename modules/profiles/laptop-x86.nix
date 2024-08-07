@@ -119,7 +119,7 @@ in {
       # Logging configuration
       logging.client.enable = true;
       logging.client.endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
-      logging.listener.address = "admin-vm-debug";
+      logging.listener.address = "admin-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug";
       logging.listener.port = 9999;
     };
   };
