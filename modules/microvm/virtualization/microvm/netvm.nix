@@ -70,7 +70,8 @@
         services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
         microvm = {
-          optimize.enable = true;
+          # Optimize is disabled because when it is enabled, qemu is built without libusb
+          optimize.enable = false;
           hypervisor = "qemu";
           shares =
             [
@@ -98,6 +99,10 @@
                 aarch64-linux = "virt";
               }
               .${config.nixpkgs.hostPlatform.system};
+            extraArgs = [
+              "-device"
+              "qemu-xhci"
+            ];
           };
         };
 
