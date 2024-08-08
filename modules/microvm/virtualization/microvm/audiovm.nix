@@ -47,6 +47,7 @@
             withResolved = true;
             withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
+            withRemoteJournal.enable = true;
           };
           services.audio.enable = true;
         };

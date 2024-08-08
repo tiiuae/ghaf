@@ -39,6 +39,7 @@
         withOomd = true;
         withPam = true;
         inherit (cfg) withPolkit;
+        withRemote = cfg.withRemoteJournal.enable || cfg.withRemoteJournalServer.enable;
         inherit (cfg) withResolved;
         inherit (cfg) withRepart;
         withShellCompletions = cfg.withDebug;
@@ -173,6 +174,11 @@
       "prepare-kexec.target"
     ]);
 in {
+  imports = [
+    ./debug/journal-upload.nix
+    ./debug/journal-remote.nix
+  ];
+
   options.ghaf.systemd = {
     enable = mkEnableOption "Enable minimal systemd configuration.";
 
