@@ -18,6 +18,7 @@
     "microsoft-365.svg"
     "ms-outlook.svg"
     "preferences-system-network.svg"
+    "slack.svg"
     "system-lock-screen.svg"
     "system-reboot.svg"
     "system-shutdown.svg"

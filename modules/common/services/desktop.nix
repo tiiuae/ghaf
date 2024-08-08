@@ -93,8 +93,14 @@ in {
 
             {
               name = "Element";
-              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no element-vm run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no comms-vm run-waypipe element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
               icon = "${pkgs.icon-pack}/element-desktop.svg";
+            }
+
+            {
+              name = "Slack";
+              path = "${pkgs.openssh}/bin/ssh -i ${privateSshKeyPath} -o StrictHostKeyChecking=no comms-vm run-waypipe slack --enable-features=UseOzonePlatform --ozone-platform=wayland";
+              icon = "${pkgs.icon-pack}/slack.svg";
             }
 
             {
