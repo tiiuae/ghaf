@@ -105,7 +105,7 @@ in {
 
             {
               name = "Network Settings";
-              path = "${pkgs.nm-launcher}/bin/nm-launcher";
+              path = "${pkgs.nm-launcher.override {inherit (config.ghaf.users.accounts) uid;}}/bin/nm-launcher";
               icon = "${pkgs.icon-pack}/preferences-system-network.svg";
             }
 
