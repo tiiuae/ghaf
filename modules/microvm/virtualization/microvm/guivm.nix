@@ -39,6 +39,7 @@
           systemd = {
             enable = true;
             withName = "guivm-systemd";
+            withAudit = config.ghaf.profiles.debug.enable;
             withNss = true;
             withResolved = true;
             withTimesyncd = true;

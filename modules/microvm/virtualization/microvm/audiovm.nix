@@ -43,6 +43,7 @@
           systemd = {
             enable = true;
             withName = "audiovm-systemd";
+            withAudit = configHost.ghaf.profiles.debug.enable;
             withNss = true;
             withResolved = true;
             withTimesyncd = true;
