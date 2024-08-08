@@ -298,6 +298,7 @@ in {
   };
 
   config = mkIf cfg.enable {
+    security.auditd.enable = cfg.withAudit;
     systemd = {
       # Package and unit configuration
       inherit package;
