@@ -42,20 +42,16 @@ let
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
-    runtimeInputs =
-      [
-        pkgs.systemd
-        pkgs.swaybg
-        pkgs.kanshi
-        pkgs.waybar
-        pkgs.mako
+    runtimeInputs = [
+      pkgs.systemd
+      pkgs.swaybg
+      pkgs.kanshi
+      pkgs.waybar
+      pkgs.mako
+      pkgs.swayidle
 
-        (pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; })
-      ]
-      ++ lib.optionals cfg.autolock.enable [
-        pkgs.swayidle
-        pkgs.chayang
-      ];
+      (pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; })
+    ] ++ lib.optionals cfg.autolock.enable [ pkgs.chayang ];
 
     text =
       ''
@@ -74,13 +70,17 @@ let
         # Enable notifications.
         mako -c /etc/mako/config >/dev/null 2>&1 &
 
+        # Load the launcher
+        ghaf-launcher >/dev/null 2>&1 &
+
         ${lib.optionalString cfg.autolock.enable ''
           swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
           'chayang && ${lockCmd}' &
         ''}
 
-        # Register lockCmd with swayidle, so that when lock signal is received system can be locked automatically
-        ${pkgs.swayidle}/bin/swayidle lock "${lockCmd}" &
+        # Register lockCmd with swayidle, so that when lock signal is received
+        # system can be locked automatically
+        swayidle lock "${lockCmd}" &
       ''
       + cfg.extraAutostart;
   };
@@ -136,6 +136,9 @@ let
       </keybind>
       <keybind key="W-=">
         <action name="ZoomIn" />
+      </keybind>
+      <keybind key="Super_L" onRelease="yes">
+        <action name="Execute" command="${pkgs.procps}/bin/pkill -USR1 nwg-drawer" />
       </keybind>
     </keyboard>
     <mouse><default /></mouse>
