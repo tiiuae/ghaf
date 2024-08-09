@@ -54,6 +54,7 @@ in
       pkgs.coreutils
       pkgs.nwg-drawer
     ];
+    bashOptions = [];
     text = ''
       export XDG_CONFIG_HOME="$HOME/.config"
       export XDG_CACHE_HOME="$HOME/.cache"
@@ -63,6 +64,9 @@ in
       rm -rf "$HOME/.config/nwg-drawer"
       ln -s "${drawerCSS}/nwg-drawer" "$HOME/.config/"
 
-      nwg-drawer -c 5 -mb 60 -ml 440 -mr 440 -mt 420 -nofs -nocats -ovl
+      # Drawer sometimes crashes (cgo error)
+      while true; do
+        nwg-drawer -r -c 5 -mb 60 -ml 440 -mr 440 -mt 420 -nofs -nocats -ovl
+      done
     '';
   }
