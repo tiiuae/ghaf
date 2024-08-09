@@ -16,7 +16,6 @@
 
   wifiDevice = lib.lists.findFirst (d: d.name != null) null pciDevices;
   wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = wifiDevice.name;};
-  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
   timeZone =
     if config.time.timeZone != null
     then config.time.timeZone
@@ -63,9 +62,7 @@ in {
             "clock": {
                 "timezone": "${timeZone}",
                 "tooltip-format": "<big>{:%d %b %Y}</big>\n<tt><small>{calendar}</small></tt>",
-                // should be "{:%a %-d %b %-I:%M %#p}"
-                // see github.com/Alexays/Waybar/issues/1469
-                "format": "{:%a %d %b   %I:%M %p}"
+                "format": "{:%a %d %b   %H:%M}"
             },
             "backlight": {
                 // "device": "acpi_video1",
@@ -97,7 +94,7 @@ in {
         + ''
               "custom/launchpad": {
                 "format": " ",
-                "on-click": "${ghaf-launcher}/bin/ghaf-launcher",
+                "on-click": "${pkgs.procps}/bin/pkill -USR1 nwg-drawer",
                 "tooltip": false
               },
               "custom/ghaf-settings": {
