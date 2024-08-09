@@ -26,7 +26,7 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-xdg-ffado-2"; #"flake:mylocalnixpkgs"; #
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; #"flake:mylocalnixpkgs"; #
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     #
@@ -93,7 +93,7 @@
     };
 
     microvm = {
-      url = "github:astro/microvm.nix";
+      url = "github:astro/microvm.nix/4ecc5cb4df8562dd304e2c5ce60ce56da5dba764";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -155,15 +155,7 @@
         ./targets/flake-module.nix
         ./hydrajobs/flake-module.nix
         ./templates/flake-module.nix
-        inputs.flake-root.flakeModule
-        inputs.treefmt-nix.flakeModule
-        inputs.pre-commit-hooks-nix.flakeModule
       ];
-
-      #TODO Fix this
-      #flake.nixosModules = with lib;
-      #  mapAttrs (_: import)
-      #  (flattenTree (rakeLeaves ./modules));
 
       flake.lib = lib;
     };

@@ -33,11 +33,13 @@
           systemd = {
             enable = true;
             withName = "adminvm-systemd";
+            withAudit = configHost.ghaf.profiles.debug.enable;
             withNss = true;
             withResolved = true;
             withPolkit = true;
             withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
+            withHardenedConfigs = true;
           };
 
           # Log aggregation configuration
@@ -68,7 +70,9 @@
 
         microvm = {
           optimize.enable = true;
-          hypervisor = "cloud-hypervisor";
+          #TODO: Add back support cloud-hypervisor
+          #the system fails to switch root to the stage2 with cloud-hypervisor
+          hypervisor = "qemu";
           shares =
             [
               {

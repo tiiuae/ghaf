@@ -31,7 +31,7 @@ It makes things clear and robust.
 
 Some patches are carried as overlays and others are patches that are cherry-picked
 from staging and main into a tiiuae maintained version of nixpkgs 
-[tiiuae/nixpkgs/patched-unstable-proc-qemu](https://github.com/tiiuae/nixpkgs/tree/patched-unstable-proc-qemu)
+[tiiuae/nixpkgs/...](https://github.com/tiiuae/nixpkgs/tree/patched-unstable-proc-qemu)
 
 The status of the integration in nixpkgs can be tracked using the [Pull Request Tracker](https://nixpk.gs/pr-tracker.html)
 
@@ -42,8 +42,5 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 [gtklock: Fix black screen SP-4849](https://github.com/jovanlanik/gtklock/commit/e0e7f6d5ae7667fcc3479b6732046c67275b2f2f)
 
 
-## carried in tiiuae/nixpkgs/nixos-unstable-proc-qemu
-
-[XDG-utils procmail](https://github.com/NixOS/nixpkgs/pull//314283)
-
-[FFADO break Qt deps](https://github.com/NixOS/nixpkgs/pull/306407)
+## carried in tiiuae/nixpkgs/...
+[texinfo: cross compile failure](https://github.com/NixOS/nixpkgs/pull/328919)

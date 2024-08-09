@@ -8,6 +8,7 @@
 
   PrivateNetwork = true;
   # IPAccounting=yes
+  IPAddressAllow = "localhost";
   IPAddressDeny = "any";
   RestrictAddressFamilies = [
     #"~AF_PACKET"
@@ -25,7 +26,8 @@
   ProtectSystem = "full";
   ProtectProc = "noaccess";
   # ReadWritePaths=[ "/etc"];
-  PrivateTmp = true;
+  # TODO: change back to true when microvm catches up.
+  PrivateTmp = "yes";
 
   # Not applicable for the service runs as root
   # PrivateMounts=true;

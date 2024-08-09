@@ -22,32 +22,30 @@ in {
   config = mkIf cfg.enable {
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
-    sound.enable = true;
     hardware.firmware = [pkgs.sof-firmware];
     services.pipewire = {
       enable = true;
       pulse.enable = true;
       systemWide = true;
-
-      configPackages = [
-        (pkgs.writeTextDir "share/pipewire/pipewire.conf.d/10-remote-simple.conf" ''
-          context.modules = [
-            {   name = libpipewire-module-protocol-pulse
-                args = {
-                  server.address = [
-                      "tcp:4713"    # IPv4 and IPv6 on all addresses
-                  ];
-                  pulse.min.req          = 128/48000;     # 2.7ms
-                  pulse.default.req      = 960/48000;     # 20 milliseconds
-                  pulse.min.frag         = 128/48000;     # 2.7ms
-                  pulse.default.frag     = 512/48000;     # ~10 ms
-                  pulse.default.tlength  = 512/48000;     # ~10 ms
-                  pulse.min.quantum      = 128/48000;     # 2.7ms
-                }
+      extraConfig = {
+        pipewire."10-remote-simple" = {
+          "context.modules" = [
+            {
+              name = "libpipewire-module-protocol-pulse";
+              args = {
+                # Enable TCP socket for VMs pulseaudio clients
+                "server.address" = ["tcp:4713"];
+                "pulse.min.req" = "128/48000"; # 2.7ms
+                "pulse.default.req" = "960/48000"; # 20 milliseconds
+                "pulse.min.frag" = "128/48000"; # 2.7ms
+                "pulse.default.frag" = "512/48000"; # ~10 ms
+                "pulse.default.tlength" = "512/48000"; # ~10 ms
+                "pulse.min.quantum" = "128/48000"; # 2.7ms
+              };
             }
           ];
-        '')
-      ];
+        };
+      };
     };
 
     hardware.pulseaudio.extraConfig = ''
