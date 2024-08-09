@@ -143,7 +143,8 @@ in {
            add_rule 52.108.0.0/14
 
            # Teams
-           add_rule 13.107.64.0/18
+           add_rule 13.107.64.0/16
+           add_rule 13.107.3.128
            add_rule 52.112.0.0/14
            add_rule 52.122.0.0/15
            add_rule 52.108.0.0/14
@@ -152,6 +153,8 @@ in {
            add_rule 2.16.234.57
            add_rule 23.56.21.152
            add_rule 23.33.233.129
+           add_rule 172.211.181.217
+           add_rule 98.64.206.197
 
 
            # Allow VPN access.tii.ae only
