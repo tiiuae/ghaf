@@ -1,7 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Configuration for NVIDIA Jetson Orin AGX/NX
+# Configuration for NVIDIA Jetson Orin AGX/AGX-Industrial/NX
 #
 {
   inputs,
@@ -19,8 +19,8 @@
         # modules/jetpack and modules/jetpack-microvm. Please refer to that
         # section for hardware dependent netvm configuration.
 
-        # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX does
-        # not.
+        # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX and
+        # Orin AGX-Industrial does not.
 
         # To enable or disable wireless
         networking.wireless.enable = som == "agx";
@@ -44,6 +44,7 @@
         [
           (nixos-generators + "/format-module.nix")
           ../../modules/jetpack/nvidia-jetson-orin/format-module.nix
+          ../../modules/jetpack/nvidia-jetson-orin/agx-milboard
           jetpack-nixos.nixosModules.default
           self.nixosModules.common
           self.nixosModules.desktop
@@ -58,6 +59,7 @@
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
+                agx-milboard.enable = som == "agx-industrial";
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
               };
@@ -109,6 +111,8 @@
   };
   nvidia-jetson-orin-agx-debug = nvidia-jetson-orin "agx" "debug" [];
   nvidia-jetson-orin-agx-release = nvidia-jetson-orin "agx" "release" [];
+  nvidia-jetson-orin-agx-industrial-debug = nvidia-jetson-orin "agx-industrial" "debug" [];
+  nvidia-jetson-orin-agx-industrial-release = nvidia-jetson-orin "agx-industrial" "release" [];
   nvidia-jetson-orin-nx-debug = nvidia-jetson-orin "nx" "debug" [];
   nvidia-jetson-orin-nx-release = nvidia-jetson-orin "nx" "release" [];
   generate-nodemoapps = tgt:
@@ -139,6 +143,8 @@
   baseTargets = [
     nvidia-jetson-orin-agx-debug
     nvidia-jetson-orin-agx-release
+    nvidia-jetson-orin-agx-industrial-debug
+    nvidia-jetson-orin-agx-industrial-release
     nvidia-jetson-orin-nx-debug
     nvidia-jetson-orin-nx-release
   ];
