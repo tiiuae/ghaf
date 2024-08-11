@@ -24,6 +24,7 @@ in {
       type = lib.types.bool;
       default = false;
     };
+
     excludedHardenedConfigs = lib.mkOption {
       default = [];
       type = lib.types.listOf lib.types.str;
@@ -34,15 +35,26 @@ in {
         configurations for fast debugging and problem resolution.
       '';
     };
+
+    logLevel = lib.mkOption {
+      description = ''        Log Level for systemd services.
+                  Available options: "emerg", "alert", "crit", "err", "warning", "info", "debug"
+      '';
+      type = lib.types.str;
+      default = "info";
+    };
   };
 
-  config = lib.mkIf cfg.withHardenedConfigs {
+  config = {
     systemd = lib.mkMerge [
       # Apply hardened systemd service configurations
-      (apply-service-configs ./hardened-configs/common)
+      (lib.mkIf cfg.withHardenedConfigs (apply-service-configs ./hardened-configs/common))
 
       # Apply release only service configurations
-      (lib.mkIf (!cfg.withDebug) (apply-service-configs ./hardened-configs/release))
+      (lib.mkIf (!cfg.withDebug && cfg.withHardenedConfigs) (apply-service-configs ./hardened-configs/release))
+
+      # Set systemd log level
+      {services."_global_".environment.SYSTEMD_LOG_LEVEL = cfg.logLevel;}
     ];
   };
 }
