@@ -17,4 +17,5 @@
       time.timeZone = config.time.timeZone;
     }
   ];
+  borderColor = "#4c3f7a";
 }

@@ -75,6 +75,10 @@ in {
           identifier = "Element";
           colour = "#337aff";
         }
+        {
+          identifier = "AppFlowy";
+          colour = "#4c3f7a";
+        }
       ];
       description = "List of applications and their frame colours";
     };
