@@ -152,6 +152,7 @@ in {
            add_rule 2.16.234.57
            add_rule 23.56.21.152
            add_rule 23.33.233.129
+           add_rule 52.123.0.0/16
 
 
            # Allow VPN access.tii.ae only
@@ -204,8 +205,26 @@ in {
            add_rule 23.46.197.94
            add_rule 104.80.21.47
            add_rule 23.195.154.8
+           add_rule 193.229.113.0/24
 
+           # edge.skype.com for teams
+           add_rule 13.107.254.0/24
+           add_rule 13.107.3.0/24
 
+           # api.flightproxy.skype.com for teams
+           add_rule 98.66.0.0/16
+           add_rule 4.208.0.0/16
+           add_rule 4.225.208.0/24
+           add_rule 4.210.0.0/16
+           add_rule 108.141.240.0/24
+           add_rule 74.241.0.0/16
+           add_rule 20.216.0.0/16
+           add_rule 172.211.0.0/16
+           add_rule 20.50.217.0/24
+           add_rule 68.219.14.0/24
+           add_rule 20.107.136.0/24
+           add_rule 4.175.191.0/24
+           add_rule 98.64.0.0/16
 
            # Allow tiiuae.sharepoint.com
            add_rule 52.104.7.53
