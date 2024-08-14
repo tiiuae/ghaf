@@ -147,7 +147,7 @@ in {
             #   icon = "${pkgs.icon-pack}/system-suspend-hibernate.svg";
             # }
           ]
-          ++ optionals (hasAttr "spice-host" winConfig) [
+          ++ optionals config.ghaf.reference.programs.windows-launcher.enable [
             {
               name = "Windows";
               path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
