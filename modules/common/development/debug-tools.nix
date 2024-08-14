@@ -59,13 +59,15 @@ in {
       ++
       # Match perf version with kernel.
       [
-        (config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
+        #(config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
         sysbench-test-script
         sysbench-fileio-test-script
         nvpmodel-check
         rm-linux-bootmgrs
       ]
       ++ rmDesktopEntries [pkgs.htop]
+      #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
+      ++ lib.optional (config.nixpkgs.hostPlatform.system != "aarch64-linux") config.boot.kernelPackages.perf
       # LuaJIT (which is sysbench dependency) not available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") pkgs.sysbench
       # Icicle Kit performance test script available on RISC-V
