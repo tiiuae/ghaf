@@ -19,7 +19,7 @@
       "https://cache.nixos.org/"
     ];
     extra-trusted-public-keys = [
-      "dev-cache.vedenemo.dev:EdgcUJsErufZitluMOYmoJDMQE+HFyveI/D270Cr84I="
+      "ghaf-infra-dev:EdgcUJsErufZitluMOYmoJDMQE+HFyveI/D270Cr84I="
       "cache.vedenemo.dev:8NhplARANhClUSWJyLVk4WMyy1Wb4rhmWW2u8AejH9E="
       "cache.ssrcdevops.tii.ae:oOrzj9iCppf+me5/3sN/BxEkp5SaFkHfKTPPZ97xXQk="
       "ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY="
