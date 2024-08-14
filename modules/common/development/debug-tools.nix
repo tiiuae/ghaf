@@ -54,6 +54,9 @@ in {
           iperf
           tree
           file
+          # to build ghaf on target
+          
+          git
           ;
       }
       ++
