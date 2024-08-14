@@ -6,6 +6,8 @@
   pkgs,
   ...
 }: let
+  inherit (lib) mkOption literalExpression types optionals;
+
   configHost = config;
   vmName = "audio-vm";
   macAddress = "02:00:00:03:03:03";
@@ -48,7 +50,11 @@
             withTimesyncd = true;
             withDebug = configHost.ghaf.profiles.debug.enable;
           };
-          services.audio.enable = true;
+          services.audio = {
+            enable = true;
+            # TODO Get list of appstreams from global cfg
+            appStreams = config.ghaf.virtualization.microvm.audiovm.appStreams;
+          };
         };
 
         environment = {
@@ -56,6 +62,7 @@
             pkgs.pulseaudio
             pkgs.pamixer
             pkgs.pipewire
+            pkgs.pw-volume
           ];
         };
 
@@ -126,6 +133,18 @@
 in {
   options.ghaf.virtualization.microvm.audiovm = {
     enable = lib.mkEnableOption "AudioVM";
+
+    appStreams = lib.mkOption {
+      description = "Audio streams for ghaf applications";
+      type = types.listOf types.str;
+      default = [ "chromium" "element" "business" ];
+      example = literalExpression ''
+        [
+          "chromium"
+          "element"
+        ]
+      '';
+    };
 
     extraModules = lib.mkOption {
       description = ''
