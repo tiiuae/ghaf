@@ -1991,8 +1991,8 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <pre><code>nix build github:tiiuae/ghaf#generic-x86_64-debug
 </code></pre>
 </li>
-<li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct
+<li>After the build is completed, prepare a USB boot media with the target image you built using the <code>flash.sh</code> script:
+<pre><code>./packages/flash/flash.sh -d /dev/&lt;YOUR_USB_DRIVE&gt; -i result/&lt;IMAGE_NAME&gt;
 </code></pre>
 </li>
 <li>Boot the computer from the USB media.</li>
@@ -2006,8 +2006,8 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <pre><code>nix build github:tiiuae/ghaf#lenovo-x1-carbon-gen11-debug
 </code></pre>
 </li>
-<li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct
+<li>After the build is completed, prepare a USB boot media with the target image you built using the <code>flash.sh</code> script:
+<pre><code>./packages/flash/flash.sh -d /dev/&lt;YOUR_USB_DRIVE&gt; -i result/&lt;IMAGE_NAME&gt;
 </code></pre>
 </li>
 <li>Boot the computer from the USB media.</li>
@@ -2063,8 +2063,8 @@ For more information on the board's connections details, see the <a href="https:
 <pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
 </code></pre>
 </li>
-<li>After the build is completed, prepare a USB boot media with the target image you built:
-<pre><code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct
+<li>After the build is completed, prepare a USB boot media with the target image you built using the <code>flash.sh</code> script:
+<pre><code>./packages/flash/flash.sh -d /dev/&lt;YOUR_USB_DRIVE&gt; -i result/sd-image/&lt;IMAGE_NAME&gt;
 </code></pre>
 </li>
 <li>Boot the hardware from the USB media.</li>
@@ -2102,7 +2102,7 @@ For more information on the board's connections details, see the <a href="https:
 <p>To build and flash the Ghaf image:</p>
 <ol>
 <li>Run the <code>nix build .#packages.aarch64-linux.imx8mp-evk-release</code> command.</li>
-<li>Prepare the USB boot media with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_USB_DRIVE&gt; bs=32M status=progress oflag=direct</code>.</li>
+<li>Prepare the USB boot media with the target HW image you built: <code>./packages/flash/flash.sh -d /dev/&lt;YOUR_USB_DRIVE&gt; -i result/&lt;IMAGE_NAME&gt;</code>.</li>
 </ol>
 </li>
 <li>
@@ -2129,14 +2129,14 @@ b. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-debug command
 <li>
 <p>If you want to use a SD card:</p>
 <ul>
-<li>Prepare the SD card with the target HW image you built: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_SD_DEVICE&gt; bs=32M status=progress oflag=direct</code>.</li>
+<li>Prepare the SD card with the target HW image you built: <code>./packages/flash/flash.sh -d /dev/&lt;YOUR_SD_CARD&gt; -i result/&lt;IMAGE_NAME&gt;</code>.</li>
 <li>Insert an SD card into the board and switch the power on.</li>
 </ul>
 </li>
 <li>
 <p>If you want to use the onboard MMC:</p>
 <ul>
-<li>You can directly flash a NixOS image to onboard an MMC card: <code>dd if=./result/nixos.img of=/dev/&lt;YOUR_MMC_DEVICE&gt; bs=32M status=progress oflag=direct</code>.</li>
+<li>You can directly flash a NixOS image to an onboard MMC card: <code>./packages/flash/flash.sh -d /dev/&lt;YOUR_MMC_DEVICE&gt; -i result/&lt;IMAGE_NAME&gt;</code>.</li>
 </ul>
 </li>
 </ul>
