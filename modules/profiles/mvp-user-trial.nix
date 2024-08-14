@@ -37,8 +37,8 @@ in {
 
         programs = {
           windows-launcher = {
-            enable = true;
-            spice = true;
+            enable = false;
+            spice = false;
           };
         };
       };
