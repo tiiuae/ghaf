@@ -1,0 +1,38 @@
+From 03532d19e624cacbf3d3888967204980146cbe5a Mon Sep 17 00:00:00 2001
+From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+Date: Mon, 1 Jul 2024 11:12:45 +0400
+Subject: [PATCH] volume: use PULSE_SERVER env variable if provided
+
+Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+---
+ src/clients/volume/mod.rs | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/src/clients/volume/mod.rs b/src/clients/volume/mod.rs
+index 3db503f..b356e5f 100644
+--- a/src/clients/volume/mod.rs
++++ b/src/clients/volume/mod.rs
+@@ -9,6 +9,7 @@ use libpulse_binding::context::{Context, FlagSet, State};
+ use libpulse_binding::mainloop::standard::{IterateResult, Mainloop};
+ use libpulse_binding::proplist::Proplist;
+ use libpulse_binding::volume::{ChannelVolumes, Volume};
++use std::env;
+ use std::fmt::{Debug, Formatter};
+ use std::sync::{Arc, Mutex};
+ use tokio::sync::broadcast;
+@@ -115,7 +116,11 @@ impl Client {
+ 
+         lock!(context).set_state_callback(Some(state_callback));
+ 
+-        if let Err(err) = lock!(context).connect(None, FlagSet::NOAUTOSPAWN, None) {
++        let audio_server = env::var("PULSE_SERVER").ok();
++
++        if let Err(err) =
++            lock!(context).connect(audio_server.as_deref(), FlagSet::NOAUTOSPAWN, None)
++        {
+             error!("{err:?}");
+         }
+ 
+-- 
+2.44.1
+

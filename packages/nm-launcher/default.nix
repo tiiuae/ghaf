@@ -26,6 +26,7 @@ writeShellApplication {
         -o ExitOnForwardFailure=yes \
         -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
+    ${networkmanagerapplet}/bin/nm-applet
     ${networkmanagerapplet}/bin/nm-connection-editor
     # Use the control socket to close the ssh tunnel.
     ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@net-vm
