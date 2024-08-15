@@ -3,33 +3,25 @@
 #
 # This is a temporary solution for volume control.
 #
-{ openssh, writeShellApplication, ... }:
+{ pamixer, writeShellApplication, ... }:
 writeShellApplication {
   name = "audio-ctrl";
-  runtimeInputs = [ openssh ];
+  runtimeInputs = [ pamixer ];
   text = ''
-    function pamixer {
-      # Connect to audio-vm
-      output=$(ssh -q ghaf@audio-vm \
-          -i /run/waypipe-ssh/id_ed25519 \
-          -o StrictHostKeyChecking=no \
-          -o UserKnownHostsFile=/dev/null \
-          "pamixer $1")
-    }
+    export PULSE_SERVER=audio-vm:4713
 
     case "$1" in
       inc)
-        pamixer "-i 5"
+        pamixer -i 5
         ;;
       dec)
-        pamixer "-d 5"
+        pamixer -d 5
         ;;
       mut)
-        pamixer "--get-mute"
-        if [ "$output" = "false" ]; then
-          pamixer "-m"
+        if [ "$(pamixer --get-mute)" = "false" ]; then
+          pamixer -m
         else
-          pamixer "-u"
+          pamixer -u
         fi
         ;;
       esac
