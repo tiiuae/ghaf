@@ -5,12 +5,14 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   # TODO: replace sshCommand and MacCommand with givc rpc to retrieve Mac Address
   sshCommand = "${pkgs.sshpass}/bin/sshpass -p ghaf ${pkgs.openssh}/bin/ssh -o StrictHostKeyChecking=no ghaf@net-vm";
   macCommand = "${pkgs.hwinfo}/bin/hwinfo --network --only /class/net/wlp0s5f0 |  ${pkgs.gawk}/bin/awk '/Permanent HW Address/ {print $4}'";
   macAddressPath = config.ghaf.logging.identifierFilePath;
-in {
+in
+{
   options.ghaf.logging.identifierFilePath = lib.mkOption {
     description = ''
       This configuration option used to specify the identifier file path.
@@ -26,8 +28,8 @@ in {
     # TODO: Remove hw-mac.service and replace with givc rpc later
     systemd.services."hw-mac" = {
       description = "Retrieve MAC address from net-vm";
-      wantedBy = ["alloy.service"];
-      requires = ["network-online.target"];
+      wantedBy = [ "alloy.service" ];
+      requires = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = "yes";

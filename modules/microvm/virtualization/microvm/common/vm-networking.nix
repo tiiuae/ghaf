@@ -6,20 +6,22 @@
   vmName,
   macAddress,
   internalIP,
-  gateway ? ["192.168.100.1"],
+  gateway ? [ "192.168.100.1" ],
   ...
-}: let
+}:
+let
   networkName = "ethint0";
-in {
+in
+{
   networking = {
     hostName = vmName;
     enableIPv6 = false;
-    firewall.allowedTCPPorts = [22];
-    firewall.allowedUDPPorts = [67];
+    firewall.allowedTCPPorts = [ 22 ];
+    firewall.allowedUDPPorts = [ 67 ];
     useNetworkd = true;
     nat = {
       enable = true;
-      internalInterfaces = [networkName];
+      internalInterfaces = [ networkName ];
     };
   };
 
@@ -39,25 +41,19 @@ in {
       matchConfig.PermanentMACAddress = macAddress;
       linkConfig.Name = networkName;
     };
-    networks."10-${networkName}" =
-      {
-        matchConfig.MACAddress = macAddress;
-        addresses =
-          [
-            {
-              Address = "192.168.100.${toString internalIP}/24";
-            }
-          ]
-          ++ lib.optionals config.ghaf.profiles.debug.enable [
-            {
-              # IP-address for debugging subnet
-              Address = "192.168.101.${toString internalIP}/24";
-            }
-          ];
-        linkConfig.RequiredForOnline = "routable";
-        linkConfig.ActivationPolicy = "always-up";
-      }
-      // lib.optionalAttrs (gateway != []) {inherit gateway;};
+    networks."10-${networkName}" = {
+      matchConfig.MACAddress = macAddress;
+      addresses =
+        [ { Address = "192.168.100.${toString internalIP}/24"; } ]
+        ++ lib.optionals config.ghaf.profiles.debug.enable [
+          {
+            # IP-address for debugging subnet
+            Address = "192.168.101.${toString internalIP}/24";
+          }
+        ];
+      linkConfig.RequiredForOnline = "routable";
+      linkConfig.ActivationPolicy = "always-up";
+    } // lib.optionalAttrs (gateway != [ ]) { inherit gateway; };
   };
 
   # systemd-resolved does not support local names resolution

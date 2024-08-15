@@ -23,8 +23,6 @@ writeShellApplication {
   text = builtins.readFile ./hardware-scan.sh;
   meta = {
     description = "Helper script for hardware discovery and configuration file generation";
-    platforms = [
-      "x86_64-linux"
-    ];
+    platforms = [ "x86_64-linux" ];
   };
 }

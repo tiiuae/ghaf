@@ -4,9 +4,7 @@
 # Modules to be exported from Flake
 #
 _: {
-  imports = [
-  ];
+  imports = [ ];
 
-  flake.nixosModules = {
-  };
+  flake.nixosModules = { };
 }

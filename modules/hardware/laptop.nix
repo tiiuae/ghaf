@@ -1,30 +1,37 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   inherit (builtins) toString typeOf;
-  inherit (lib) mkOption types concatImapStrings concatMapStringsSep;
+  inherit (lib)
+    mkOption
+    types
+    concatImapStrings
+    concatMapStringsSep
+    ;
 
   cfg = config.ghaf.hardware.definition;
   hwDefinition = import (./. + cfg.configFile);
 
   # Helper function to create udev rules for input devices
-  generateUdevRules = devlink: deviceList:
+  generateUdevRules =
+    devlink: deviceList:
     concatImapStrings (
       i: d:
-        if (typeOf d) == "list"
-        then ''${concatMapStringsSep "\n" (sd: ''SUBSYSTEM=="input", ATTRS{name}=="${sd}", KERNEL=="event*", GROUP="kvm", SYMLINK+="${devlink}${toString (i - 1)}"'') d}''\n''
-        else ''SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="${devlink}${toString (i - 1)}"''\n''
-    )
-    deviceList;
-in {
-  imports = [
-    ./definition.nix
-  ];
+      if (typeOf d) == "list" then
+        ''${
+          concatMapStringsSep "\n" (
+            sd:
+            ''SUBSYSTEM=="input", ATTRS{name}=="${sd}", KERNEL=="event*", GROUP="kvm", SYMLINK+="${devlink}${toString (i - 1)}"''
+          ) d
+        }''\n''
+      else
+        ''SUBSYSTEM=="input", ATTRS{name}=="${d}", KERNEL=="event*", GROUP="kvm", SYMLINK+="${devlink}${toString (i - 1)}"''\n''
+    ) deviceList;
+in
+{
+  imports = [ ./definition.nix ];
 
   options.ghaf.hardware.definition.configFile = mkOption {
     description = "Path to the hardware configuration file.";
@@ -56,7 +63,9 @@ in {
       # Touchpad
       ${generateUdevRules "touchpad" hwDefinition.input.touchpad.name}
       # Misc
-      ${lib.strings.concatMapStringsSep "\n" (d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", GROUP="kvm"'') hwDefinition.input.misc.name}
+      ${lib.strings.concatMapStringsSep "\n" (
+        d: ''SUBSYSTEM=="input", ATTRS{name}=="${d}", GROUP="kvm"''
+      ) hwDefinition.input.misc.name}
     '';
   };
 }

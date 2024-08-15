@@ -1,6 +1,7 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{inputs, ...}: {
+{ inputs, ... }:
+{
   flake.nixosModules = {
     disko-basic-partition-v1.imports = [
       inputs.disko.nixosModules.disko

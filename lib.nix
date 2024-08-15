@@ -4,13 +4,15 @@
 # SPDX-License-Identifier: MIT
 # FlattenTree and rakeLeaves originate from
 # https://github.com/divnix/digga
-{inputs, ...}: let
+{ inputs, ... }:
+let
   inherit (inputs) nixpkgs;
 in
-  nixpkgs.lib.extend (lib: _:
-    # some utils for importing trees
-    rec {
-      /*
+nixpkgs.lib.extend (
+  lib: _:
+  # some utils for importing trees
+  rec {
+    /*
          *
          Filters Nix packages based on the target system platform.
          Returns a filtered attribute set of Nix packages compatible with the target system.
@@ -35,15 +37,21 @@ in
 
       - [system] Target system platform (e.g., "x86_64-linux").
       - [pkgsSet] a set of Nix packages.
-      */
-      platformPkgs = system:
-        lib.filterAttrs
-        (_: value: let
-          platforms = lib.attrByPath ["meta" "platforms"] [] value;
+    */
+    platformPkgs =
+      system:
+      lib.filterAttrs (
+        _: value:
+        let
+          platforms = lib.attrByPath [
+            "meta"
+            "platforms"
+          ] [ ] value;
         in
-          lib.elem system platforms);
+        lib.elem system platforms
+      );
 
-      /*
+    /*
         *
       Flattens a _tree_ of the shape that is produced by rakeLeaves.
       An attrset with names in the spirit of the Reverse DNS Notation form
@@ -61,20 +69,19 @@ in
       }
       => { "a.b.c" = <path>; }
       ```
-      */
-      flattenTree = tree: let
-        op = sum: path: val: let
-          pathStr = builtins.concatStringsSep "." path; # dot-based reverse DNS notation
-        in
-          if builtins.isPath val
-          then
+    */
+    flattenTree =
+      tree:
+      let
+        op =
+          sum: path: val:
+          let
+            pathStr = builtins.concatStringsSep "." path; # dot-based reverse DNS notation
+          in
+          if builtins.isPath val then
             # builtins.trace "${toString val} is a path"
-            (sum
-              // {
-                "${pathStr}" = val;
-              })
-          else if builtins.isAttrs val
-          then
+            (sum // { "${pathStr}" = val; })
+          else if builtins.isAttrs val then
             # builtins.trace "${builtins.toJSON val} is an attrset"
             # recurse into that attribute set
             (recurse sum path val)
@@ -83,15 +90,13 @@ in
             # builtins.trace "${toString path} is something else"
             sum;
 
-        recurse = sum: path: val:
-          builtins.foldl'
-          (sum: key: op sum (path ++ [key]) val.${key})
-          sum
-          (builtins.attrNames val);
+        recurse =
+          sum: path: val:
+          builtins.foldl' (sum: key: op sum (path ++ [ key ]) val.${key}) sum (builtins.attrNames val);
       in
-        recurse {} [] tree;
+      recurse { } [ ] tree;
 
-      /*
+    /*
       *
       Recursively collect the nix files of _path_ into attrs.
       Return an attribute set where all `.nix` files and directories with `default.nix` in them
@@ -120,34 +125,38 @@ in
         };
       }
       ```
-      */
+    */
 
-      rakeLeaves = dirPath: let
-        seive = file: type:
-        # Only rake `.nix` files or directories
+    rakeLeaves =
+      dirPath:
+      let
+        seive =
+          file: type:
+          # Only rake `.nix` files or directories
           (type == "regular" && lib.hasSuffix ".nix" file) || (type == "directory");
 
         collect = file: type: {
           name = lib.removeSuffix ".nix" file;
-          value = let
-            path = dirPath + "/${file}";
-          in
-            if
-              (type == "regular")
-              || (type == "directory" && builtins.pathExists (path + "/default.nix"))
-            then path
+          value =
+            let
+              path = dirPath + "/${file}";
+            in
+            if (type == "regular") || (type == "directory" && builtins.pathExists (path + "/default.nix")) then
+              path
             # recurse on directories that don't contain a `default.nix`
-            else rakeLeaves path;
+            else
+              rakeLeaves path;
         };
 
         files = lib.filterAttrs seive (builtins.readDir dirPath);
       in
-        lib.filterAttrs (_n: v: v != {}) (lib.mapAttrs' collect files);
+      lib.filterAttrs (_n: v: v != { }) (lib.mapAttrs' collect files);
 
-      importLeaves =
-        #
-        # Create an import stanza by recursing a directory to find all default.nix and <file.nix>
-        # files beneath withough manually having to list all the subsequent files.
-        #
-        path: builtins.attrValues (lib.mapAttrs (_: import) (rakeLeaves path));
-    })
+    importLeaves =
+      #
+      # Create an import stanza by recursing a directory to find all default.nix and <file.nix>
+      # files beneath withough manually having to list all the subsequent files.
+      #
+      path: builtins.attrValues (lib.mapAttrs (_: import) (rakeLeaves path));
+  }
+)

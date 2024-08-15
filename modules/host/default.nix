@@ -3,15 +3,14 @@
 #
 # Modules that should be only imported to host
 #
-{lib, ...}: {
+{ lib, ... }:
+{
   networking.hostName = lib.mkDefault "ghaf-host";
 
   # Overlays should be only defined for host, because microvm.nix uses the
   # pkgs that already has overlays in place. Otherwise the overlay will be
   # applied twice.
-  nixpkgs.overlays = [
-    (import ../../overlays/custom-packages)
-  ];
+  nixpkgs.overlays = [ (import ../../overlays/custom-packages) ];
   imports = [
     # To push logs to central location
     ../common/logging/client.nix

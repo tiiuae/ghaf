@@ -29,7 +29,7 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; #"flake:mylocalnixpkgs"; #
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     #
@@ -130,13 +130,12 @@
     };
   };
 
-  outputs = inputs @ {flake-parts, ...}: let
-    lib = import ./lib.nix {inherit inputs;};
-  in
-    flake-parts.lib.mkFlake
-    {
-      inherit inputs;
-    } {
+  outputs =
+    inputs@{ flake-parts, ... }:
+    let
+      lib = import ./lib.nix { inherit inputs; };
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
       # Toggle this to allow debugging in the repl
       # see:https://flake.parts/debug
       debug = false;

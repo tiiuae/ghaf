@@ -7,9 +7,11 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.host.secureboot;
-in {
+in
+{
   options.ghaf.host.secureboot = {
     enable = lib.mkEnableOption "Host secureboot";
   };

@@ -3,9 +3,7 @@
 #
 # papirus-icon-theme cross-compilation fixes (removing qt dependency)
 #
-{prev}:
+{ prev }:
 prev.papirus-icon-theme.overrideAttrs (old: {
-  propagatedBuildInputs =
-    prev.lib.lists.remove prev.breeze-icons
-    old.propagatedBuildInputs;
+  propagatedBuildInputs = prev.lib.lists.remove prev.breeze-icons old.propagatedBuildInputs;
 })

@@ -3,8 +3,4 @@
 #
 # Firewall related modules
 #
-{
-  imports = [
-    ./kernel-modules.nix
-  ];
-}
+{ imports = [ ./kernel-modules.nix ]; }

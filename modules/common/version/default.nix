@@ -8,11 +8,13 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   ghafVersion = pkgs.writeShellScriptBin "ghaf-version" ''
     echo "${config.ghaf.version}"
   '';
-in {
+in
+{
   options = {
     ghaf.version = lib.mkOption {
       type = lib.types.str;
@@ -23,8 +25,6 @@ in {
     };
   };
   config = {
-    environment.systemPackages = [
-      ghafVersion
-    ];
+    environment.systemPackages = [ ghafVersion ];
   };
 }

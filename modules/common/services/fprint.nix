@@ -5,10 +5,12 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (lib) mkEnableOption mkIf;
   cfg = config.ghaf.services.fprint;
-in {
+in
+{
   options.ghaf.services.fprint = {
     enable = mkEnableOption "Enable fingerprint reader support";
   };
@@ -16,7 +18,7 @@ in {
   config = mkIf cfg.enable {
     # Enable service and package for fingerprint reader
     services.fprintd.enable = true;
-    environment.systemPackages = [pkgs.fprintd];
+    environment.systemPackages = [ pkgs.fprintd ];
 
     # Enable polkit and add rules
     ghaf.systemd.withPolkit = true;

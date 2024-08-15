@@ -3,6 +3,4 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-(_final: prev: {
-  papirus-icon-theme = import ./papirus-icon-theme {inherit prev;};
-})
+(_final: prev: { papirus-icon-theme = import ./papirus-icon-theme { inherit prev; }; })

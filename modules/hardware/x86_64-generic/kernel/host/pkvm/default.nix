@@ -5,7 +5,8 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   pkvmKernel = pkgs.linux_6_1.override {
     argsOverride = rec {
       src = pkgs.fetchurl {
@@ -34,7 +35,8 @@
   ];
 
   hyp_cfg = config.ghaf.host.kernel.hardening.hypervisor;
-in {
+in
+{
   options.ghaf.host.kernel.hardening.hypervisor.enable = lib.mkOption {
     description = "Enable Hypervisor hardening feature";
     type = lib.types.bool;

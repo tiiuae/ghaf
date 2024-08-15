@@ -7,15 +7,17 @@
   lib,
   self,
   ...
-}: let
+}:
+let
   inherit (inputs) nixos-hardware;
   name = "microchip-icicle-kit";
   system = "riscv64-linux";
-  microchip-icicle-kit = variant: extraModules: let
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
-      modules =
-        [
+  microchip-icicle-kit =
+    variant: extraModules:
+    let
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+        modules = [
           nixos-hardware.nixosModules.microchip-icicle-kit
           self.nixosModules.common
           self.nixosModules.host
@@ -44,33 +46,35 @@
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";
               hostPlatform.system = "riscv64-linux";
-              overlays = [
-                self.overlays.cross-compilation
-              ];
+              overlays = [ self.overlays.cross-compilation ];
             };
-            boot.kernelParams = ["root=/dev/mmcblk0p2" "rootdelay=5"];
-            disabledModules = ["profiles/all-hardware.nix"];
+            boot.kernelParams = [
+              "root=/dev/mmcblk0p2"
+              "rootdelay=5"
+            ];
+            disabledModules = [ "profiles/all-hardware.nix" ];
           }
-        ]
-        ++ extraModules;
+        ] ++ extraModules;
+      };
+    in
+    {
+      inherit hostConfiguration;
+      name = "${name}-${variant}";
+      package = hostConfiguration.config.system.build.sdImage;
     };
-  in {
-    inherit hostConfiguration;
-    name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.sdImage;
-  };
 
   targets = [
-    (microchip-icicle-kit "debug" [])
-    (microchip-icicle-kit "release" [])
+    (microchip-icicle-kit "debug" [ ])
+    (microchip-icicle-kit "release" [ ])
   ];
-in {
+in
+{
   flake = {
-    nixosConfigurations =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    nixosConfigurations = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+    );
     packages = {
-      riscv64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      riscv64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
     };
   };
 }

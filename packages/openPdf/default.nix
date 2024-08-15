@@ -12,7 +12,10 @@
 # It reads the file path, copies it from chromium-vm to zathura-vm and opens it there
 writeShellApplication {
   name = "openPdf";
-  runtimeInputs = [dnsutils openssh];
+  runtimeInputs = [
+    dnsutils
+    openssh
+  ];
   text = ''
     read -r sourcepath
     filename=$(basename "$sourcepath")

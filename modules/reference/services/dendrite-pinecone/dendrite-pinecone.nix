@@ -5,11 +5,18 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.reference.services.dendrite-pinecone;
-  dendrite-pineconePkg = pkgs.callPackage ../../../../packages/dendrite-pinecone/default.nix {};
-  inherit (lib) mkEnableOption mkOption mkIf types;
-in {
+  dendrite-pineconePkg = pkgs.callPackage ../../../../packages/dendrite-pinecone/default.nix { };
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    types
+    ;
+in
+{
   options.ghaf.reference.services.dendrite-pinecone = {
     enable = mkEnableOption "Enable dendrite pinecone module";
 
@@ -70,11 +77,11 @@ in {
         };
       }
     ];
-    environment.systemPackages = [pkgs.smcroute];
+    environment.systemPackages = [ pkgs.smcroute ];
     systemd.services."smcroute" = {
       description = "Static Multicast Routing daemon";
-      bindsTo = ["sys-subsystem-net-devices-${cfg.externalNic}.device"];
-      after = ["sys-subsystem-net-devices-${cfg.externalNic}.device"];
+      bindsTo = [ "sys-subsystem-net-devices-${cfg.externalNic}.device" ];
+      after = [ "sys-subsystem-net-devices-${cfg.externalNic}.device" ];
       preStart = ''
               configContent=$(cat <<EOF
         mgroup from ${cfg.externalNic} group ${dendrite-pineconePkg.McastUdpIp}
@@ -110,7 +117,7 @@ in {
         # Wait a second before restarting.
         RestartSec = "5s";
       };
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
     };
 
     networking = {

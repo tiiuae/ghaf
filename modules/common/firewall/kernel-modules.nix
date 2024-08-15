@@ -6,13 +6,11 @@
 # Adds bunch of modules to the kernel, so firewall can start, as our custom
 # kernels don't seem to always have all necessary modules enabled.
 #
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.firewall.kernel-modules;
-in {
+in
+{
   options.ghaf.firewall.kernel-modules = {
     enable = lib.mkEnableOption "kernel modules required for firewall";
   };

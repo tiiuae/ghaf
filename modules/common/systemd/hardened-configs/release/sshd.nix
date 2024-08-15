@@ -68,21 +68,24 @@
   # Delegate=false;
   # KeyringMode="private";
   NoNewPrivileges = true;
-  UMask = 077;
+  UMask = 77;
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
-  RestrictNamespaces = ["~cgroup" "~uts"];
-  /*
-    RestrictNamespaces=[
-   #"~user"
-   #"~pid"
-   #"~net"
-   #"~uts"
-   #"~mnt"
-   #"~cgroup"
-   #"~ipc"
+  RestrictNamespaces = [
+    "~cgroup"
+    "~uts"
   ];
+  /*
+      RestrictNamespaces=[
+     #"~user"
+     #"~pid"
+     #"~net"
+     #"~uts"
+     #"~mnt"
+     #"~cgroup"
+     #"~ipc"
+    ];
   */
   LockPersonality = true;
   # MemoryDenyWriteExecute=true;

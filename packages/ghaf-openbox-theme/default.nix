@@ -1,7 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{runCommand, ...}:
-runCommand "ghaf-openbox-theme" {} ''
+{ runCommand, ... }:
+runCommand "ghaf-openbox-theme" { } ''
   mkdir -p $out/share/themes/Ghaf/openbox-3
   cp ${../../assets/icons/svg/close.svg} $out/share/themes/Ghaf/openbox-3/close.svg
   ln -s $out/share/themes/Ghaf/openbox-3/close{,-active}.svg

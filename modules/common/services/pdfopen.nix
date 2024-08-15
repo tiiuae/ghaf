@@ -5,9 +5,15 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (builtins) toString;
-  inherit (lib) mkEnableOption mkOption mkIf types;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    types
+    ;
   cfg = config.ghaf.services.pdfopener;
 
   # TODO: Fix the path to get the sshKeyPath so that
@@ -17,7 +23,8 @@
   openPdf = pkgs.callPackage ../../../packages/openPdf {
     inherit (config.ghaf.security.sshKeys) sshKeyPath;
   };
-in {
+in
+{
   options.ghaf.services.pdfopener = {
     enable = mkEnableOption "Enable the pdf opening service";
     xdgPdfPort = mkOption {
@@ -38,7 +45,7 @@ in {
           ListenStream = "${toString cfg.xdgPdfPort}";
           Accept = "yes";
         };
-        wantedBy = ["sockets.target"];
+        wantedBy = [ "sockets.target" ];
       };
 
       services."pdf@" = {
@@ -53,6 +60,6 @@ in {
     };
 
     # Open TCP port for the PDF XDG socket.
-    networking.firewall.allowedTCPPorts = [cfg.xdgPdfPort];
+    networking.firewall.allowedTCPPorts = [ cfg.xdgPdfPort ];
   };
 }

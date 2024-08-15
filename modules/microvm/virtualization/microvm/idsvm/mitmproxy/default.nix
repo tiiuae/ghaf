@@ -5,11 +5,13 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.virtualization.microvm.idsvm.mitmproxy;
   mitmproxyport = 8080;
   mitmwebUIport = 8081;
-in {
+in
+{
   options.ghaf.virtualization.microvm.idsvm.mitmproxy = {
     enable = lib.mkEnableOption "Whether to enable mitmproxy on ids-vm";
   };
@@ -28,27 +30,32 @@ in {
       "mitmproxy/mitmproxy-dhparam.pem".source = ./mitmproxy-ca/mitmproxy-dhparam.pem;
     };
 
-    systemd.services."mitmweb-server" = let
-      mitmwebScript = pkgs.writeShellScriptBin "mitmweb-server" ''
-        ${pkgs.mitmproxy}/bin/mitmweb --web-host localhost --web-port ${toString mitmwebUIport} --set confdir=/etc/mitmproxy
-      '';
-    in {
-      enable = true;
-      description = "Run mitmweb to establish web interface for mitmproxy";
-      path = [mitmwebScript];
-      wantedBy = ["multi-user.target"];
-      serviceConfig = {
-        Type = "simple";
-        StandardOutput = "journal";
-        StandardError = "journal";
-        ExecStart = "${mitmwebScript}/bin/mitmweb-server";
-        Restart = "on-failure";
-        RestartSec = "1";
+    systemd.services."mitmweb-server" =
+      let
+        mitmwebScript = pkgs.writeShellScriptBin "mitmweb-server" ''
+          ${pkgs.mitmproxy}/bin/mitmweb --web-host localhost --web-port ${toString mitmwebUIport} --set confdir=/etc/mitmproxy
+        '';
+      in
+      {
+        enable = true;
+        description = "Run mitmweb to establish web interface for mitmproxy";
+        path = [ mitmwebScript ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "simple";
+          StandardOutput = "journal";
+          StandardError = "journal";
+          ExecStart = "${mitmwebScript}/bin/mitmweb-server";
+          Restart = "on-failure";
+          RestartSec = "1";
+        };
       };
-    };
 
     networking = {
-      firewall.allowedTCPPorts = [mitmproxyport mitmwebUIport];
+      firewall.allowedTCPPorts = [
+        mitmproxyport
+        mitmwebUIport
+      ];
       nat.extraCommands =
         # Redirect http(s) traffic to mitmproxy.
         ''
@@ -56,6 +63,6 @@ in {
           iptables -t nat -A PREROUTING -i ethint0 -p tcp --dport 443 -j REDIRECT --to-port ${toString mitmproxyport}
         '';
     };
-    environment.systemPackages = [pkgs.mitmproxy];
+    environment.systemPackages = [ pkgs.mitmproxy ];
   };
 }

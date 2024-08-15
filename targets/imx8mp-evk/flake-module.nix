@@ -7,23 +7,27 @@
   lib,
   inputs,
   ...
-}: let
+}:
+let
   inherit (inputs) nixos-hardware;
   name = "nxp-imx8mp-evk";
   system = "aarch64-linux";
-  nxp-imx8mp-evk = variant: extraModules: let
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
-      specialArgs = {inherit lib;};
-      modules =
-        [
+  nxp-imx8mp-evk =
+    variant: extraModules:
+    let
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+        specialArgs = {
+          inherit lib;
+        };
+        modules = [
           nixos-hardware.nixosModules.nxp-imx8mp-evk
           self.nixosModules.common
           self.nixosModules.host
           self.nixosModules.imx8
           {
             boot = {
-              kernelParams = lib.mkForce ["root=/dev/mmcblk0p2"];
+              kernelParams = lib.mkForce [ "root=/dev/mmcblk0p2" ];
               loader = {
                 grub.enable = false;
                 generic-extlinux-compatible.enable = true;
@@ -44,34 +48,33 @@
             };
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";
-              overlays = [
-                self.overlays.cross-compilation
-              ];
+              overlays = [ self.overlays.cross-compilation ];
             };
             hardware.deviceTree.name = lib.mkForce "freescale/imx8mp-evk.dtb";
-            disabledModules = ["profiles/all-hardware.nix"];
+            disabledModules = [ "profiles/all-hardware.nix" ];
           }
-        ]
-        ++ extraModules;
+        ] ++ extraModules;
+      };
+    in
+    {
+      inherit hostConfiguration;
+      name = "${name}-${variant}";
+      package = hostConfiguration.config.system.build.sdImage;
     };
-  in {
-    inherit hostConfiguration;
-    name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.sdImage;
-  };
-  debugModules = [];
-  releaseModules = [];
+  debugModules = [ ];
+  releaseModules = [ ];
   targets = [
     (nxp-imx8mp-evk "debug" debugModules)
     (nxp-imx8mp-evk "release" releaseModules)
   ];
-in {
+in
+{
   flake = {
-    nixosConfigurations =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    nixosConfigurations = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+    );
     packages = {
-      aarch64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
     };
   };
 }

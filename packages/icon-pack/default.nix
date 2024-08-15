@@ -7,7 +7,8 @@
   lib,
   runCommand,
   papirus-icon-theme,
-}: let
+}:
+let
   icons = [
     "chromium.svg"
     "distributor-logo-android.svg"
@@ -29,15 +30,18 @@
     "yast-vpn.svg"
   ];
 in
-  runCommand "icon-pack" {
+runCommand "icon-pack"
+  {
     # Preserve Papirus license
     meta.license = papirus-icon-theme.meta.license;
-  } ''
+  }
+  ''
     mkdir -p $out
     # All SVGs are located inside 64x64, all other sizes are symlinks.
 
-    ${lib.concatStringsSep "\n" (map (icon: ''
+    ${lib.concatStringsSep "\n" (
+      map (icon: ''
         cp ${papirus-icon-theme}/share/icons/Papirus/64x64/apps/${icon} $out/
-      '')
-      icons)}
+      '') icons
+    )}
   ''

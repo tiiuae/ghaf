@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: {
+{ lib, ... }:
+{
   imports = [
     ../../../../x86_64-generic/kernel/host/default.nix
     ../../../../x86_64-generic/kernel/guest/default.nix

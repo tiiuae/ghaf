@@ -8,28 +8,35 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (lib) mkOption types optionalAttrs;
-  inherit (builtins) concatStringsSep filter map hasAttr;
+  inherit (builtins)
+    concatStringsSep
+    filter
+    map
+    hasAttr
+    ;
 
   # Only x86 targets with hw definition supported at the moment
   inherit (pkgs.stdenv.hostPlatform) isx86;
   fullVirtualization = isx86 && (hasAttr "hardware" config.ghaf);
-in {
+in
+{
   options.ghaf.kernel = {
     host = mkOption {
       type = types.attrs;
-      default = {};
+      default = { };
       description = "Host kernel configuration";
     };
     guivm = mkOption {
       type = types.attrs;
-      default = {};
+      default = { };
       description = "GuiVM kernel configuration";
     };
     audiovm = mkOption {
       type = types.attrs;
-      default = {};
+      default = { };
       description = "AudioVM kernel configuration";
     };
   };
@@ -41,20 +48,21 @@ in {
         inherit (config.ghaf.hardware.definition.host.kernelConfig.stage1) kernelModules;
       };
       inherit (config.ghaf.hardware.definition.host.kernelConfig.stage2) kernelModules;
-      kernelParams = let
-        # PCI device passthroughs for vfio
-        filterDevices = filter (d: d.vendorId != null && d.productId != null);
-        mapPciIdsToString = map (d: "${d.vendorId}:${d.productId}");
-        vfioPciIds = mapPciIdsToString (filterDevices (
-          config.ghaf.hardware.definition.network.pciDevices
-          ++ config.ghaf.hardware.definition.gpu.pciDevices
-          ++ config.ghaf.hardware.definition.audio.pciDevices
-        ));
-      in
+      kernelParams =
+        let
+          # PCI device passthroughs for vfio
+          filterDevices = filter (d: d.vendorId != null && d.productId != null);
+          mapPciIdsToString = map (d: "${d.vendorId}:${d.productId}");
+          vfioPciIds = mapPciIdsToString (
+            filterDevices (
+              config.ghaf.hardware.definition.network.pciDevices
+              ++ config.ghaf.hardware.definition.gpu.pciDevices
+              ++ config.ghaf.hardware.definition.audio.pciDevices
+            )
+          );
+        in
         config.ghaf.hardware.definition.host.kernelConfig.kernelParams
-        ++ [
-          "vfio-pci.ids=${concatStringsSep "," vfioPciIds}"
-        ];
+        ++ [ "vfio-pci.ids=${concatStringsSep "," vfioPciIds}" ];
     };
 
     # Guest kernel configurations
