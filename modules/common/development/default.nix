@@ -6,6 +6,5 @@
     ./usb-serial.nix
     ./nix.nix
     ./ssh.nix
-    ./yubikey.nix
   ];
 }

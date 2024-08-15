@@ -22,6 +22,7 @@ let
           self.nixosModules.common
           self.nixosModules.host
           self.nixosModules.polarfire
+          self.nixosModules.reference-personalize
 
           {
             boot = {
@@ -42,6 +43,7 @@ let
                 ssh.daemon.enable = true;
               };
               firewall.kernel-modules.enable = true;
+              reference.personalize.keys.enable = variant == "debug";
             };
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";

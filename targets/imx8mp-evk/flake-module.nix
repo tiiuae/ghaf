@@ -25,6 +25,7 @@ let
           self.nixosModules.common
           self.nixosModules.host
           self.nixosModules.imx8
+          self.nixosModules.reference-personalize
           {
             boot = {
               kernelParams = lib.mkForce [ "root=/dev/mmcblk0p2" ];
@@ -45,6 +46,7 @@ let
                 ssh.daemon.enable = true;
               };
               firewall.kernel-modules.enable = true;
+              reference.personalize.keys.enable = variant == "debug";
             };
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";
