@@ -9,6 +9,11 @@
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
+  shmConfig = config.ghaf.profiles.applications.ivShMemServer;
+  memsocket = pkgs.callPackage ../../../../packages/memsocket {
+    debug = false;
+    vms = builtins.length config.ghaf.reference.appvms.enabled-app-vms;
+  };
   guivmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {
@@ -80,8 +85,9 @@
               pkgs.networkmanagerapplet
             ])
             ++ [
-              pkgs.nm-launcher
+              (pkgs.nm-launcher.override {inherit (config.ghaf.users.accounts) uid;})
               pkgs.pamixer
+              memsocket
             ]
             ++ (lib.optional (config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable) pkgs.mitmweb-ui);
         };
@@ -103,6 +109,13 @@
           vcpu = 2;
           mem = 2048;
           hypervisor = "qemu";
+          kernelParams =
+            if shmConfig.enable
+            then [
+              "kvm_ivshmem.flataddr=${shmConfig.flataddr}"
+            ]
+            else [];
+
           shares = [
             {
               tag = "rw-waypipe-ssh-public-key";
@@ -118,11 +131,12 @@
           writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
           qemu = {
-            extraArgs = [
-              "-device"
-              "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
-            ];
-
+            extraArgs =
+              [
+                "-device"
+                "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
+              ]
+              ++ lib.optionals shmConfig.enable shmConfig.qemuOption;
             machine =
               {
                 # Use the same machine type as the host
@@ -138,19 +152,41 @@
           ../../../desktop
         ];
 
+        services.udev.extraRules = ''
+          SUBSYSTEM=="misc",KERNEL=="ivshmem",GROUP="kvm",MODE="0666"
+        '';
+
         # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-        systemd.user.services.waypipe = {
-          enable = true;
-          description = "waypipe";
-          after = ["labwc.service"];
-          serviceConfig = {
-            Type = "simple";
-            ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-            Restart = "always";
-            RestartSec = "1";
+        systemd.user.services = {
+          waypipe = {
+            enable = true;
+            description = "waypipe";
+            after = ["labwc.service"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart =
+                if shmConfig.display
+                then "${pkgs.waypipe}/bin/waypipe -s ${shmConfig.clientSocketPath} client"
+                else "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            startLimitIntervalSec = 0;
+            wantedBy = ["ghaf-session.target"];
           };
-          startLimitIntervalSec = 0;
-          wantedBy = ["ghaf-session.target"];
+
+          memsocket = lib.mkIf shmConfig.enable {
+            enable = true;
+            description = "memsocket";
+            after = ["labwc.service"];
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${memsocket}/bin/memsocket -c ${shmConfig.clientSocketPath}";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            wantedBy = ["ghaf-session.target"];
+          };
         };
       })
     ];
@@ -210,6 +246,10 @@ in {
           imports =
             guivmBaseConfiguration.imports
             ++ cfg.extraModules;
+        }
+        // {
+          boot.kernelPatches =
+            shmConfig.kernelPatches;
         };
     };
 
@@ -233,20 +273,52 @@ in {
       };
     };
 
-    # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
-    # However, VSOCK does not support direct guest to guest communication
-    # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
-    # It listens for incoming connections from AppVMs and forwards data to GUIVM
-    systemd.services.vsockproxy = {
-      enable = true;
-      description = "vsockproxy";
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1";
-        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
+    systemd.services = {
+      # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
+      # However, VSOCK does not support direct guest to guest communication
+      # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
+      # It listens for incoming connections from AppVMs and forwards data to GUIVM
+      vsockproxy = {
+        enable = true;
+        description = "vsockproxy";
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
+        };
+        wantedBy = ["multi-user.target"];
       };
-      wantedBy = ["multi-user.target"];
+
+      ivshmemsrv = let
+        pidFilePath = "/tmp/ivshmem-server.pid";
+        ivShMemSrv = let
+          vectors = toString (2 * (builtins.length config.ghaf.reference.appvms.enabled-app-vms));
+        in
+          pkgs.writeShellScriptBin "ivshmemsrv" ''
+            chown microvm /dev/hugepages
+            chgrp kvm /dev/hugepages
+            if [ -S ${shmConfig.hostSocketPath} ]; then
+              echo Erasing ${shmConfig.hostSocketPath} ${pidFilePath}
+              rm -f ${shmConfig.hostSocketPath}
+            fi
+            ${pkgs.sudo}/sbin/sudo -u microvm -g kvm ${pkgs.qemu_kvm}/bin/ivshmem-server -p ${pidFilePath} -n ${vectors} -m /dev/hugepages/ -l ${(toString config.ghaf.profiles.applications.ivShMemServer.memSize) + "M"}
+            sleep 2
+          '';
+      in
+        lib.mkIf shmConfig.enable {
+          enable = true;
+          description = "Start qemu ivshmem memory server";
+          path = [ivShMemSrv];
+          wantedBy = ["multi-user.target"];
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            StandardOutput = "journal";
+            StandardError = "journal";
+            ExecStart = "${ivShMemSrv}/bin/ivshmemsrv";
+          };
+        };
     };
   };
 }

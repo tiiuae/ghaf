@@ -50,11 +50,25 @@ in {
           ++ config.ghaf.hardware.definition.gpu.pciDevices
           ++ config.ghaf.hardware.definition.audio.pciDevices
         ));
+        hugePagesArg =
+          if config.ghaf.profiles.applications.ivShMemServer.enable
+          then let
+            hugepagesz = "2M"; # valid values: "2M" and "1G", as kernel supports these huge pages' size
+            hugepages =
+              if hugepagesz == "2M"
+              then config.ghaf.profiles.applications.ivShMemServer.memSize / 2
+              else config.ghaf.profiles.applications.ivShMemServer.memSize / 1024;
+          in [
+            "hugepagesz=${hugepagesz}"
+            "hugepages=${toString hugepages}"
+          ]
+          else [];
       in
         config.ghaf.hardware.definition.host.kernelConfig.kernelParams
         ++ [
           "vfio-pci.ids=${concatStringsSep "," vfioPciIds}"
-        ];
+        ]
+        ++ hugePagesArg;
     };
 
     # Guest kernel configurations
@@ -65,7 +79,15 @@ in {
             inherit (config.ghaf.hardware.definition.gpu.kernelConfig.stage1) kernelModules;
           };
           inherit (config.ghaf.hardware.definition.gpu.kernelConfig.stage2) kernelModules;
-          inherit (config.ghaf.hardware.definition.gpu.kernelConfig) kernelParams;
+          kernelParams = let
+            flatMemArg =
+              if config.ghaf.profiles.applications.ivShMemServer.enable
+              then [
+                "kvm_ivshmem.flataddr=${config.ghaf.profiles.applications.ivShMemServer.flataddr}"
+              ]
+              else [];
+          in
+            config.ghaf.hardware.definition.gpu.kernelConfig.kernelParams ++ flatMemArg;
         };
       };
       audiovm = {

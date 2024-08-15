@@ -25,6 +25,11 @@
       if vm.cid > 0
       then vm.cid
       else cfg.vsockBaseCID + index;
+    shmConfig = configHost.ghaf.profiles.applications.ivShMemServer;
+    memsocket = pkgs.callPackage ../../../../packages/memsocket {
+      debug = false;
+      vms = builtins.length config.ghaf.reference.appvms.enabled-app-vms;
+    };
     appvmConfiguration = {
       imports = [
         (import ./common/vm-networking.nix {
@@ -44,10 +49,18 @@
             if vm.borderColor != null
             then "--border \"${vm.borderColor}\""
             else "";
-          runWaypipe = pkgs.writeScriptBin "run-waypipe" ''
-            #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
-          '';
+          runWaypipe =
+            if shmConfig.display
+            then
+              pkgs.writeScriptBin "run-waypipe" ''
+                #!${pkgs.runtimeShell} -e
+                ${pkgs.waypipe}/bin/waypipe -s ${shmConfig.serverSocketPath} ${waypipeBorder} server "$@"
+              ''
+            else
+              pkgs.writeScriptBin "run-waypipe" ''
+                #!${pkgs.runtimeShell} -e
+                ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
+              '';
         in {
           ghaf = {
             users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -91,6 +104,7 @@
             runWaypipe
             pkgs.tpm2-tools
             pkgs.opensc
+            memsocket
           ];
 
           security.tpm2 = {
@@ -102,6 +116,12 @@
             optimize.enable = false;
             mem = vm.ramMb;
             vcpu = vm.cores;
+            kernelParams =
+              if shmConfig.enable
+              then [
+                "kvm_ivshmem.flataddr=${shmConfig.flataddr}"
+              ]
+              else [];
             hypervisor = "qemu";
             shares = [
               {
@@ -132,7 +152,8 @@
                   "emulator,id=tpm0,chardev=chrtpm"
                   "-device"
                   "tpm-tis,tpmdev=tpm0"
-                ];
+                ]
+                ++ lib.optionals shmConfig.enable shmConfig.qemuOption;
 
               machine =
                 {
@@ -143,6 +164,30 @@
                 .${configHost.nixpkgs.hostPlatform.system};
             };
           };
+
+          boot.kernelPatches =
+            if shmConfig.enable
+            then shmConfig.kernelPatches
+            else [];
+          services.udev.extraRules =
+            if shmConfig.enable
+            then ''
+              SUBSYSTEM=="misc",KERNEL=="ivshmem",GROUP="kvm",MODE="0666"
+            ''
+            else "";
+
+          systemd.user.services.memsocket = lib.mkIf shmConfig.enable {
+            enable = true;
+            description = "memsocket";
+            serviceConfig = {
+              Type = "simple";
+              ExecStart = "${memsocket}/bin/memsocket -s ${shmConfig.serverSocketPath} ${builtins.toString index}";
+              Restart = "always";
+              RestartSec = "1";
+            };
+            wantedBy = ["default.target"];
+          };
+
           fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = ["ro"];
 
           imports = [../../../common];
