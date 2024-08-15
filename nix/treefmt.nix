@@ -22,15 +22,9 @@
         statix.enable = true; # prevents use of nix anti-patterns https://github.com/nerdypepper/statix
 
         # Python
-        # It was found out that the best outcome comes from running mulitple
-        # formatters.
-        black.enable = true; # The Classic Python formatter
-        isort.enable = true; # Python import sorter
-        # Ruff, a Python formatter written in Rust (30x faster than Black).
-        # Also provides additional linting.
-        # Do not enable ruff.format = true; because then it won't complaing
-        # about linting errors. The default mode is the check mode.
+        # Ruff, a Python formatter and linter written in Rust (30x faster than Black).
         ruff.check = true;
+        ruff.format = true;
 
         # Bash
         shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck

@@ -14,7 +14,7 @@ import websockets
 
 class GpsProcessState:
     def __init__(self):
-        self._gps_data = str()
+        self._gps_data = ""
         self.data_lock = asyncio.Lock()
         self.condition = asyncio.Condition()
         self.abort_websockets = False
