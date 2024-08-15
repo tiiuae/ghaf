@@ -27,5 +27,6 @@
     reference-appvms.imports = [ ./reference/appvms ];
     reference-programs.imports = [ ./reference/programs ];
     reference-services.imports = [ ./reference/services ];
+    reference-personalize.imports = [ ./reference/personalize ];
   };
 }

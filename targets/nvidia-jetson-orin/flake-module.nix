@@ -54,6 +54,7 @@ let
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
           self.nixosModules.reference-programs
+          self.nixosModules.reference-personalize
 
           {
             ghaf = {
@@ -94,6 +95,8 @@ let
                 debug.enable = variant == "debug";
               };
               reference.programs.windows-launcher.enable = true;
+              reference.personalize.keys.enable = variant == "debug";
+
               graphics.labwc.renderer = "egl2";
               # To enable screen locking set to true
               graphics.labwc.autolock.enable = false;

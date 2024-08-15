@@ -9,6 +9,7 @@ in
     ../reference/appvms
     ../reference/programs
     ../reference/services
+    ../reference/personalize
   ];
 
   options.ghaf.profiles.mvp-user-trial = {
@@ -39,13 +40,25 @@ in
             spice = false;
           };
         };
+
+        personalize = {
+          keys.enable = true;
+        };
       };
 
       profiles = {
         laptop-x86 = {
           enable = true;
-          netvmExtraModules = [ ../reference/services ];
-          guivmExtraModules = [ ../reference/programs ];
+          netvmExtraModules = [
+            ../reference/services
+            ../reference/personalize
+            { ghaf.reference.personalize.keys.enable = true; }
+          ];
+          guivmExtraModules = [
+            ../reference/programs
+            ../reference/personalize
+            { ghaf.reference.personalize.keys.enable = true; }
+          ];
           inherit (config.ghaf.reference.appvms) enabled-app-vms;
         };
       };
