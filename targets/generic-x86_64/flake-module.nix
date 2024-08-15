@@ -7,38 +7,40 @@
   lib,
   self,
   ...
-}: let
+}:
+let
   inherit (inputs) nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
-  generic-x86 = variant: extraModules: let
-    netvmExtraModules = [
-      {
-        microvm.devices = [
-          {
-            bus = "pci";
-            path = "0000:00:14.3";
-          }
-        ];
+  generic-x86 =
+    variant: extraModules:
+    let
+      netvmExtraModules = [
+        {
+          microvm.devices = [
+            {
+              bus = "pci";
+              path = "0000:00:14.3";
+            }
+          ];
 
-        # For WLAN firmwares
-        hardware.enableRedistributableFirmware = true;
+          # For WLAN firmwares
+          hardware.enableRedistributableFirmware = true;
 
-        networking.wireless = {
-          enable = true;
+          networking.wireless = {
+            enable = true;
 
-          # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
-        };
-        services.dnsmasq.settings.dhcp-option = [
-          "option:router,192.168.100.1" # set net-vm as a default gw
-          "option:dns-server,192.168.100.1"
-        ];
-      }
-    ];
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
-      modules =
-        [
+            # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
+          };
+          services.dnsmasq.settings.dhcp-option = [
+            "option:router,192.168.100.1" # set net-vm as a default gw
+            "option:dns-server,192.168.100.1"
+          ];
+        }
+      ];
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+        modules = [
           nixos-generators.nixosModules.raw-efi
           self.nixosModules.common
           self.nixosModules.desktop
@@ -90,26 +92,27 @@
               "vfio-pci.ids=8086:a0f0"
             ];
           }
-        ]
-        ++ extraModules;
+        ] ++ extraModules;
+      };
+    in
+    {
+      inherit hostConfiguration;
+      name = "${name}-${variant}";
+      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
-  in {
-    inherit hostConfiguration;
-    name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
-  };
-  debugModules = [{ghaf.development.usb-serial.enable = true;}];
+  debugModules = [ { ghaf.development.usb-serial.enable = true; } ];
   targets = [
     (generic-x86 "debug" debugModules)
-    (generic-x86 "release" [])
+    (generic-x86 "release" [ ])
   ];
-in {
+in
+{
   flake = {
-    nixosConfigurations =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    nixosConfigurations = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+    );
     packages = {
-      x86_64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      x86_64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
     };
   };
 }

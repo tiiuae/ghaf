@@ -5,13 +5,15 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.host.networking;
   sshKeysHelper = pkgs.callPackage ../../packages/ssh-keys-helper {
     inherit pkgs;
     inherit config;
   };
-in {
+in
+{
   options.ghaf.host.networking = {
     enable = lib.mkEnableOption "Host networking";
     # TODO add options to configure the network, e.g. ip addr etc
@@ -33,11 +35,7 @@ in {
       networks."10-virbr0" = {
         matchConfig.Name = "virbr0";
         networkConfig.DHCPServer = false;
-        addresses = [
-          {
-            Address = "192.168.101.2/24";
-          }
-        ];
+        addresses = [ { Address = "192.168.101.2/24"; } ];
       };
       # Connect VM tun/tap device to the bridge
       # TODO configure this based on IF the netvm is enabled
@@ -48,8 +46,7 @@ in {
     };
 
     environment.etc = {
-      ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} =
-        sshKeysHelper.getAuthKeysSource;
+      ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
     };
 
     services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;

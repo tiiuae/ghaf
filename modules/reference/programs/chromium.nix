@@ -1,12 +1,10 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.reference.programs.chromium;
-in {
+in
+{
   options.ghaf.reference.programs.chromium = {
     enable = lib.mkEnableOption "Enable Chromium program settings";
     useZathuraVM = lib.mkEnableOption "Open PDFs in Zathura VM";

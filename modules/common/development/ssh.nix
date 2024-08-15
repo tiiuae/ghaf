@@ -1,14 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.development.ssh.daemon;
   inherit ((import ./authorized_ssh_keys.nix)) authorizedKeys;
   inherit (lib) mkEnableOption mkIf;
-in {
+in
+{
   options.ghaf.development.ssh.daemon = {
     enable = mkEnableOption "ssh daemon";
   };

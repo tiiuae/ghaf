@@ -1,13 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.logging.client;
   endpointUrl = config.ghaf.logging.client.endpoint;
-in {
+in
+{
   options.ghaf.logging.client.endpoint = lib.mkOption {
     description = ''
       Assign endpoint url value to the alloy.service running in

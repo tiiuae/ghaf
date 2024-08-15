@@ -40,7 +40,8 @@
   mesa,
   unzip,
   wayland,
-}: let
+}:
+let
   dynamic-linker = stdenv.cc.bintools.dynamicLinker;
 
   libPath = lib.makeLibraryPath [
@@ -82,57 +83,56 @@
     wayland
   ];
 in
-  stdenv.mkDerivation rec {
-    name = "gala";
+stdenv.mkDerivation rec {
+  name = "gala";
 
-    nativeBuildInputs = [unzip];
+  nativeBuildInputs = [ unzip ];
 
-    buildInputs = [unzip];
+  buildInputs = [ unzip ];
 
-    # See meta.platforms section for supported platforms
-    src =
-      if stdenv.isAarch64
-      then
-        fetchurl {
-          url = "https://vedenemo.dev/files/gala/eb56901d-410c-4c09-bbac-9e954a3f16b0-gala-electron-test-0.1.26-arm64.zip";
-          sha256 = "16d8g6h22zsnw4kq8nkama5yxp5swn7fj8m197kgm58w3dai3mn7";
-        }
-      else
-        fetchurl {
-          url = "https://vedenemo.dev/files/gala/eb56901d-410c-4c09-bbac-9e954a3f16b0-gala-electron-test-0.1.26.zip";
-          sha256 = "0chn1rbdvs71mxfdwpld4v2zdg2crrqln9ckscivas48rmg6sj6f";
-        };
+  # See meta.platforms section for supported platforms
+  src =
+    if stdenv.isAarch64 then
+      fetchurl {
+        url = "https://vedenemo.dev/files/gala/eb56901d-410c-4c09-bbac-9e954a3f16b0-gala-electron-test-0.1.26-arm64.zip";
+        sha256 = "16d8g6h22zsnw4kq8nkama5yxp5swn7fj8m197kgm58w3dai3mn7";
+      }
+    else
+      fetchurl {
+        url = "https://vedenemo.dev/files/gala/eb56901d-410c-4c09-bbac-9e954a3f16b0-gala-electron-test-0.1.26.zip";
+        sha256 = "0chn1rbdvs71mxfdwpld4v2zdg2crrqln9ckscivas48rmg6sj6f";
+      };
 
-    phases = "unpackPhase fixupPhase";
-    targetPath = "$out/gala";
-    intLibPath = "$out/gala/swiftshader";
+  phases = "unpackPhase fixupPhase";
+  targetPath = "$out/gala";
+  intLibPath = "$out/gala/swiftshader";
 
-    unpackPhase = ''
-      mkdir -p ${targetPath}
-      unzip $src -d ${targetPath}
-    '';
+  unpackPhase = ''
+    mkdir -p ${targetPath}
+    unzip $src -d ${targetPath}
+  '';
 
-    rpath = lib.concatStringsSep ":" [
-      libPath
-      targetPath
-      intLibPath
+  rpath = lib.concatStringsSep ":" [
+    libPath
+    targetPath
+    intLibPath
+  ];
+
+  fixupPhase = ''
+    patchelf \
+      --set-interpreter "${dynamic-linker}" \
+      --set-rpath "${rpath}" \
+      ${targetPath}/dev.scpp.saca.gala
+
+    mkdir -p $out/bin
+    ln -s $out/gala/dev.scpp.saca.gala $out/bin/gala
+  '';
+
+  meta = with lib; {
+    description = "Google Android look-alike";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
     ];
-
-    fixupPhase = ''
-      patchelf \
-        --set-interpreter "${dynamic-linker}" \
-        --set-rpath "${rpath}" \
-        ${targetPath}/dev.scpp.saca.gala
-
-      mkdir -p $out/bin
-      ln -s $out/gala/dev.scpp.saca.gala $out/bin/gala
-    '';
-
-    meta = with lib; {
-      description = "Google Android look-alike";
-      platforms = [
-        "aarch64-linux"
-        "x86_64-linux"
-      ];
-    };
-  }
+  };
+}

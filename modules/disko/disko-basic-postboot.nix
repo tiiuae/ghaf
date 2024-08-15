@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   postBootCmds = ''
     set -xeuo pipefail
 
@@ -57,6 +58,7 @@
     # Finally resize the filesystem inside the logical volume
     ${pkgs.e2fsprogs}/bin/resize2fs "$DEVPATH"
   '';
-in {
+in
+{
   boot.postBootCommands = postBootCmds;
 }

@@ -3,7 +3,8 @@
 # Example to create a bios compatible gpt partition
 # To use this example, you will need to specify a device i.e.
 #   { disko.devices.disk1.device = "/dev/sda"; }
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   disko.devices = {
     disk.disk1 = {
       type = "disk";
@@ -26,7 +27,7 @@
               type = "filesystem";
               format = "vfat";
               mountpoint = "/boot";
-              mountOptions = ["umask=0077"];
+              mountOptions = [ "umask=0077" ];
             };
           };
           root = {
@@ -50,9 +51,7 @@
               type = "filesystem";
               format = "ext4";
               mountpoint = "/";
-              mountOptions = [
-                "defaults"
-              ];
+              mountOptions = [ "defaults" ];
             };
           };
         };

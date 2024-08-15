@@ -5,23 +5,24 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.graphics.labwc;
   inherit (config.ghaf.hardware.definition.network) pciDevices;
-  inherit (import ../../../lib/icons.nix {inherit pkgs lib;}) svgToPNG;
+  inherit (import ../../../lib/icons.nix { inherit pkgs lib; }) svgToPNG;
 
   launchpad-icon = svgToPNG "launchpad" ../../../assets/icons/svg/launchpad.svg "38x38";
   admin-icon = svgToPNG "admin" ../../../assets/icons/svg/admin-cog.svg "24x24";
   ghaf-icon = svgToPNG "ghaf-white" ../../../assets/icons/svg/ghaf-white.svg "24x24";
 
   wifiDevice = lib.lists.findFirst (d: d.name != null) null pciDevices;
-  wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {wifiDevice = wifiDevice.name;};
-  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;};
-  timeZone =
-    if config.time.timeZone != null
-    then config.time.timeZone
-    else "UTC";
-in {
+  wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {
+    wifiDevice = wifiDevice.name;
+  };
+  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
+  timeZone = if config.time.timeZone != null then config.time.timeZone else "UTC";
+in
+{
   config = lib.mkIf cfg.enable {
     ghaf.graphics.launchers = [
       {

@@ -5,12 +5,12 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   inherit (config.ghaf.graphics) labwc;
-in {
+in
+{
   config = lib.mkIf labwc.enable {
-    fonts.packages = builtins.attrValues {
-      inherit (pkgs) inter fira-code-nerdfont hack-font;
-    };
+    fonts.packages = builtins.attrValues { inherit (pkgs) inter fira-code-nerdfont hack-font; };
   };
 }

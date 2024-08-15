@@ -5,64 +5,69 @@
   lib,
   self,
   ...
-}: let
+}:
+let
   inherit (inputs) nixos-generators;
   name = "vm";
   system = "x86_64-linux";
-  vm = variant: let
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
-      modules = [
-        nixos-generators.nixosModules.vm
-        self.nixosModules.common
-        self.nixosModules.desktop
-        self.nixosModules.host
-        self.nixosModules.microvm
-        self.nixosModules.hw-x86_64-generic
+  vm =
+    variant:
+    let
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+        modules = [
+          nixos-generators.nixosModules.vm
+          self.nixosModules.common
+          self.nixosModules.desktop
+          self.nixosModules.host
+          self.nixosModules.microvm
+          self.nixosModules.hw-x86_64-generic
 
-        {
-          ghaf = {
-            hardware.x86_64.common.enable = true;
+          {
+            ghaf = {
+              hardware.x86_64.common.enable = true;
 
-            virtualization = {
-              microvm-host = {
-                enable = true;
-                networkSupport = true;
+              virtualization = {
+                microvm-host = {
+                  enable = true;
+                  networkSupport = true;
+                };
+
+                # TODO: NetVM enabled, but it does not include anything specific
+                #       for this Virtual Machine target
+                microvm.netvm.enable = true;
               };
 
-              # TODO: NetVM enabled, but it does not include anything specific
-              #       for this Virtual Machine target
-              microvm.netvm.enable = true;
-            };
+              host.networking.enable = true;
 
-            host.networking.enable = true;
-
-            # Enable all the default UI applications
-            profiles = {
-              applications.enable = true;
-              release.enable = variant == "release";
-              debug.enable = variant == "debug";
+              # Enable all the default UI applications
+              profiles = {
+                applications.enable = true;
+                release.enable = variant == "release";
+                debug.enable = variant == "debug";
+              };
             };
-          };
-        }
-      ];
+          }
+        ];
+      };
+    in
+    {
+      inherit hostConfiguration;
+      name = "${name}-${variant}";
+      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
-  in {
-    inherit hostConfiguration;
-    name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
-  };
   targets = [
     (vm "debug")
     (vm "release")
   ];
-in {
+in
+{
   flake = {
-    nixosConfigurations =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    nixosConfigurations = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+    );
     packages = {
-      x86_64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      x86_64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
     };
   };
 }

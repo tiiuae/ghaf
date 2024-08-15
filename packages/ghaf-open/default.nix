@@ -2,14 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # A debug script that allows executing applications from the command line.
-{
-  writeShellApplication,
-  gawk,
-  ...
-}:
+{ writeShellApplication, gawk, ... }:
 writeShellApplication {
   name = "ghaf-open";
-  runtimeInputs = [gawk];
+  runtimeInputs = [ gawk ];
   text = ''
     APPS=/run/current-system/sw/share/applications
 

@@ -22,16 +22,15 @@
 # - gp-storage : (50G) General purpose storage for some common insecure cases
 # - recovery : (no quota) Recovery factory image is stored here
 # - storagevm: (no quota) Dataset is meant to be used for StorageVM
-{pkgs, ...}: {
+{ pkgs, ... }:
+{
   # TODO Keep ZFS-related parts of the configuration here for now.
   # This allows to have all config dependencies in one place and cleans
   # other targets' configs from unnecessary components.
   networking.hostId = "8425e349";
   boot = {
-    initrd.availableKernelModules = [
-      "zfs"
-    ];
-    supportedFilesystems = ["zfs"];
+    initrd.availableKernelModules = [ "zfs" ];
+    supportedFilesystems = [ "zfs" ];
   };
   disko = {
     # 8GB is the recommeneded minimum for ZFS, so we are using this for VMs to avoid `cp` oom errors.
@@ -40,7 +39,7 @@
       ${pkgs.zstd}/bin/zstd --compress $out/*raw
       rm $out/*raw
     '';
-    extraRootModules = ["zfs"];
+    extraRootModules = [ "zfs" ];
     devices = {
       disk.disk1 = {
         type = "disk";

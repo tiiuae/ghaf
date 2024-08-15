@@ -5,9 +5,11 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.hardware.nvidia.passthroughs.host.uarta;
-in {
+in
+{
   options.ghaf.hardware.nvidia.passthroughs.host.uarta.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -23,7 +25,7 @@ in {
     systemd.services = {
       enableVfioPlatform = {
         description = "Enable the vfio-platform driver for UARTA";
-        wantedBy = ["bindSerial3100000.service"];
+        wantedBy = [ "bindSerial3100000.service" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = "yes";
@@ -35,8 +37,8 @@ in {
 
       bindSerial3100000 = {
         description = "Bind UARTA to the vfio-platform driver";
-        wantedBy = ["multi-user.target"];
-        after = ["enableVfioPlatform.service"];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "enableVfioPlatform.service" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = "yes";

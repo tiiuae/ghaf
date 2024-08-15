@@ -5,10 +5,12 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.services.wifi;
   inherit (lib) mkIf mkForce mkEnableOption;
-in {
+in
+{
   options.ghaf.services.wifi = {
     enable = mkEnableOption "Wifi configuration for the net-vm";
   };
@@ -18,7 +20,7 @@ in {
       wireless.enable = mkForce false;
       networkmanager = {
         enable = true;
-        unmanaged = ["ethint0"];
+        unmanaged = [ "ethint0" ];
       };
     };
 
@@ -46,7 +48,7 @@ in {
         '';
         mode = "0600";
       };
-      systemPackages = mkIf config.ghaf.profiles.debug.enable [pkgs.tcpdump];
+      systemPackages = mkIf config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
     };
   };
 }

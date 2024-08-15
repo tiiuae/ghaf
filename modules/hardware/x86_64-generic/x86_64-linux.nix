@@ -1,12 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.hardware.x86_64.common;
-in {
+in
+{
   options.ghaf.hardware.x86_64.common = {
     enable = lib.mkEnableOption "Common x86 configs";
   };
@@ -26,7 +24,7 @@ in {
 
     boot = {
       # Enable normal Linux console on the display
-      kernelParams = ["console=tty0"];
+      kernelParams = [ "console=tty0" ];
 
       # To enable installation of ghaf into NVMe drives
       initrd.availableKernelModules = [

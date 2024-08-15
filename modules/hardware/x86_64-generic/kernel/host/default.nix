@@ -5,11 +5,12 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   inherit (lib) types mkOption mkIf;
 
   # Importing kernel builder function from packages and checking hardening options
-  buildKernel = import ../../../../../packages/kernel {inherit config pkgs lib;};
+  buildKernel = import ../../../../../packages/kernel { inherit config pkgs lib; };
   config_baseline = ../configs/ghaf_host_hardened_baseline-x86;
   host_hardened_kernel = buildKernel {
     inherit config_baseline;
@@ -17,7 +18,8 @@
   };
 
   cfg = config.ghaf.host.kernel.hardening;
-in {
+in
+{
   options.ghaf.host.kernel.hardening = {
     enable = mkOption {
       description = "Enable Ghaf Host hardening feature";
@@ -60,10 +62,7 @@ in {
     boot.kernelPackages = pkgs.linuxPackagesFor host_hardened_kernel;
     # https://github.com/NixOS/nixpkgs/issues/109280#issuecomment-973636212
     nixpkgs.overlays = [
-      (_final: prev: {
-        makeModulesClosure = x:
-          prev.makeModulesClosure (x // {allowMissing = true;});
-      })
+      (_final: prev: { makeModulesClosure = x: prev.makeModulesClosure (x // { allowMissing = true; }); })
     ];
   };
 }

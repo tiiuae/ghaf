@@ -8,7 +8,8 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   # Using the same config for all orin boards (for now)
   # TODO should this be changed when NX added
   cfg = config.ghaf.hardware.nvidia.orin;
@@ -75,18 +76,20 @@
   # NVIDIA-supplied flash_t234_qspi_sdmmc.xml, with the partitions specified in
   # the above partitionsEmmc variable.
   partitionTemplateReplaceRange =
-    if !cfg.flashScriptOverrides.onlyQSPI
-    then {
-      firstLineCount = 588;
-      lastLineCount = 2;
-    }
-    else {
-      # If we don't flash anything to eMMC, then we don't need to have the
-      # <device type="sdmmc_user" ...> </device> XML-tag at all.
-      firstLineCount = 587;
-      lastLineCount = 1;
-    };
-  partitionTemplate = pkgs.runCommand "flash.xml" {} (''
+    if !cfg.flashScriptOverrides.onlyQSPI then
+      {
+        firstLineCount = 588;
+        lastLineCount = 2;
+      }
+    else
+      {
+        # If we don't flash anything to eMMC, then we don't need to have the
+        # <device type="sdmmc_user" ...> </device> XML-tag at all.
+        firstLineCount = 587;
+        lastLineCount = 1;
+      };
+  partitionTemplate = pkgs.runCommand "flash.xml" { } (
+    ''
       head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >"$out"
 
     ''
@@ -99,8 +102,10 @@
     + ''
 
       tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
-    '');
-in {
+    ''
+  );
+in
+{
   config = lib.mkIf cfg.enable {
     hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
 

@@ -1,15 +1,18 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.profiles.graphics;
-  compositors = ["labwc"];
-  inherit (lib) mkEnableOption mkOption types mkIf;
-in {
+  compositors = [ "labwc" ];
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    mkIf
+    ;
+in
+{
   options.ghaf.profiles.graphics = {
     enable = mkEnableOption "Graphics profile";
     compositor = mkOption {
@@ -26,10 +29,9 @@ in {
   options.ghaf.graphics = {
     launchers = mkOption {
       description = "Labwc application launchers to show in launch bar";
-      default = [];
-      type =
-        types.listOf
-        (types.submodule {
+      default = [ ];
+      type = types.listOf (
+        types.submodule {
           options = {
             name = mkOption {
               description = "Name of the application";
@@ -44,7 +46,8 @@ in {
               type = types.path;
             };
           };
-        });
+        }
+      );
     };
     enableDemoApplications = mkEnableOption "some applications for demoing";
   };

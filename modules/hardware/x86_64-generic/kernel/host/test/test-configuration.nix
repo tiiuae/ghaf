@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: {
+{ lib, ... }:
+{
   imports = [
     ../default.nix
     # import guest also to bring the defaults (false) to scope

@@ -3,7 +3,8 @@
 #
 # TODO: Refactor even more.
 #       This is the old "host/default.nix" file.
-{lib, ...}: {
+{ lib, ... }:
+{
   imports = [
     # TODO remove this when the minimal config is defined
     # Replace with the baseModules definition

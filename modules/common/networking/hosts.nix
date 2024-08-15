@@ -1,12 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.networking.hosts;
-  inherit (lib) mkIf types mkOption optionals;
+  inherit (lib)
+    mkIf
+    types
+    mkOption
+    optionals
+    ;
 
   hostsEntrySubmodule = types.submodule {
     options = {
@@ -83,34 +85,29 @@
     }
   ];
 
-  mkHostEntryTxt = {
-    ip,
-    name,
-  }:
+  mkHostEntryTxt =
+    { ip, name }:
     "${ipBase}.${toString ip}\t${name}\n"
-    + lib.optionalString config.ghaf.profiles.debug.enable
-    "${debugBase}.${toString ip}\t${name}-debug\n";
+    + lib.optionalString config.ghaf.profiles.debug.enable "${debugBase}.${toString ip}\t${name}-debug\n";
   entriesTxt = map mkHostEntryTxt hostsEntries;
 
-  mkHostEntry = {
-    ip,
-    name,
-  }: {
-    name = "${name}";
-    ip = "${ipBase}.${toString ip}";
-  };
-  mkHostEntryDebug = {
-    ip,
-    name,
-  }: {
-    name = "${name}-debug";
-    ip = "${debugBase}.${toString ip}";
-  };
+  mkHostEntry =
+    { ip, name }:
+    {
+      name = "${name}";
+      ip = "${ipBase}.${toString ip}";
+    };
+  mkHostEntryDebug =
+    { ip, name }:
+    {
+      name = "${name}-debug";
+      ip = "${debugBase}.${toString ip}";
+    };
   entries =
     (map mkHostEntry hostsEntries)
-    ++ optionals config.ghaf.profiles.debug.enable
-    (map mkHostEntryDebug hostsEntries);
-in {
+    ++ optionals config.ghaf.profiles.debug.enable (map mkHostEntryDebug hostsEntries);
+in
+{
   options.ghaf.networking.hosts = {
     enable = mkOption {
       type = types.bool;

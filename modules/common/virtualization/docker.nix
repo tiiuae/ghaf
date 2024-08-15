@@ -1,13 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  lib,
-  config,
-  ...
-}: let
+{ lib, config, ... }:
+let
   cfg = config.ghaf.virtualization.docker.daemon;
   inherit (lib) mkEnableOption mkIf;
-in {
+in
+{
   options.ghaf.virtualization.docker.daemon = {
     enable = mkEnableOption "Docker Daemon";
   };

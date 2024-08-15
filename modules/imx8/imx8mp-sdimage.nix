@@ -6,12 +6,11 @@
   pkgs,
   modulesPath,
   ...
-}: {
-  imports = [
-    (modulesPath + "/installer/sd-card/sd-image.nix")
-  ];
+}:
+{
+  imports = [ (modulesPath + "/installer/sd-card/sd-image.nix") ];
 
-  disabledModules = [(modulesPath + "/profiles/all-hardware.nix")];
+  disabledModules = [ (modulesPath + "/profiles/all-hardware.nix") ];
   sdImage = {
     compressImage = false;
 

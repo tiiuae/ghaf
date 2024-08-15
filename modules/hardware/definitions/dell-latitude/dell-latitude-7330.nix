@@ -5,9 +5,7 @@
   name = "Dell Inc. Not Specified";
 
   # List of system SKUs covered by this configuration
-  skus = [
-    "0A9E Latitude 7330 Rugged Extreme"
-  ];
+  skus = [ "0A9E Latitude 7330 Rugged Extreme" ];
 
   # Host configuration
   host = {
@@ -45,12 +43,8 @@
     };
 
     touchpad = {
-      name = [
-        "CUST0000:00 0EEF:C003"
-      ];
-      evdev = [
-        "/dev/touchpad0"
-      ];
+      name = [ "CUST0000:00 0EEF:C003" ];
+      evdev = [ "/dev/touchpad0" ];
     };
 
     misc = {
@@ -84,11 +78,9 @@
     ];
     kernelConfig = {
       # Kernel modules are indicative only, please investigate with lsmod/modinfo
-      stage1.kernelModules = [];
-      stage2.kernelModules = [
-        "iwlwifi"
-      ];
-      kernelParams = [];
+      stage1.kernelModules = [ ];
+      stage2.kernelModules = [ "iwlwifi" ];
+      kernelParams = [ ];
     };
   };
 
@@ -107,13 +99,9 @@
     ];
     kernelConfig = {
       # Kernel modules are indicative only, please investigate with lsmod/modinfo
-      stage1.kernelModules = [
-        "i915"
-      ];
-      stage2.kernelModules = [];
-      kernelParams = [
-        "earlykms"
-      ];
+      stage1.kernelModules = [ "i915" ];
+      stage2.kernelModules = [ ];
+      kernelParams = [ "earlykms" ];
     };
   };
 
@@ -169,7 +157,7 @@
     ];
     kernelConfig = {
       # Kernel modules are indicative only, please investigate with lsmod/modinfo
-      stage1.kernelModules = [];
+      stage1.kernelModules = [ ];
       stage2.kernelModules = [
         "e1000e"
         "i2c_i801"
@@ -177,7 +165,7 @@
         "snd_sof_pci_intel_tgl"
         "spi_intel_pci"
       ];
-      kernelParams = [];
+      kernelParams = [ ];
     };
   };
 

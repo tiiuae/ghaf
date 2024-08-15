@@ -63,7 +63,7 @@
   Delegate = false;
   # KeyringMode="private";
   NoNewPrivileges = true;
-  UMask = 077;
+  UMask = 77;
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;

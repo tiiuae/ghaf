@@ -6,7 +6,7 @@
 # https://github.com/jovanlanik/gtklock/commit/e0e7f6d5ae7667fcc3479b6732046c67275b2f2f
 # TODO: Remove patches, once there new release for gtlk-lock
 #
-{prev}:
+{ prev }:
 prev.gtklock.overrideAttrs {
   patches = [
     ./auth-guard-against-race-condition-with-messages.patch

@@ -5,17 +5,25 @@
   lib,
   pkgs,
   ...
-}: let
-  inherit (lib) mkEnableOption mkIf mkOption types concatStrings;
+}:
+let
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkOption
+    types
+    concatStrings
+    ;
   cfg = config.ghaf.services.yubikey;
   u2f_file = pkgs.writeText "u2f_mapping" config.ghaf.services.yubikey.u2fKeys;
-in {
+in
+{
   options.ghaf.services.yubikey = {
     enable = mkEnableOption "Enable yubikey support which provide 2FA";
 
     u2fKeys = mkOption {
       type = types.str;
-      default = [];
+      default = [ ];
       example = concatStrings [
         ##  Key should in following format <username>:<KeyHandle1>,<UserKey1>,<CoseType1>,<Options1>:<KeyHandle2>,<UserKey2>,<CoseType2>,<Options2>:...
         "ghaf:SZ2CwN7EAE4Ujfxhm+CediUaT9ngoaMOqsKRDrOC+wUkTriKlc1cVtsxkOSav2r9ztaNKn/OwoHiN3BmsBYdZA==,oIdGgoGmkVrVis1kdzpvX3kXrOmBe2noFrpHqh4VKlq/WxrFk+Du670BL7DzLas+GxIPNjgdDCHo9daVzthIwQ==,es256,+presence"
@@ -28,7 +36,7 @@ in {
   config = mkIf cfg.enable {
     # Enable service and package for Yubikey
     services.pcscd.enable = true;
-    environment.systemPackages = [pkgs.pam_u2f];
+    environment.systemPackages = [ pkgs.pam_u2f ];
 
     security.pam.services = {
       sudo.u2fAuth = true;
