@@ -90,6 +90,7 @@ let
     <core><gap>5</gap></core>
     <theme>
       <name>Ghaf</name>
+      <dropShadows>yes</dropShadows>
       <font place="">
         <name>Inter</name>
         <size>12</size>
@@ -103,6 +104,12 @@ let
         <weight>bold</weight>
       </font>
     </theme>
+    <snapping>
+      <overlay>
+        <enabled>true</enabled>
+        <delay inner="500" outer="500"/>
+      </overlay>
+    </snapping>
     <keyboard>
       <default />
       <keybind key="W-l">
@@ -141,7 +148,18 @@ let
         <action name="Execute" command="${pkgs.procps}/bin/pkill -USR1 nwg-drawer" />
       </keybind>
     </keyboard>
-    <mouse><default /></mouse>
+    <mouse>
+      <default />
+      <context name="Root">
+        <mousebind button="Left" action="Press" />
+        <mousebind button="Middle" action="Press" />
+        ${
+          lib.optionalString (!config.ghaf.profiles.debug.enable) ''
+            <mousebind button="Right" action="Press" />
+          ''
+        }
+      </context>
+    </mouse>
     <windowRules>
       ${
         lib.concatStringsSep "\n" (
@@ -152,7 +170,7 @@ let
       }
     </windowRules>
     <libinput>
-      <device category="default"><naturalScroll>yes</naturalScroll></device>
+      <device category="touchpad"><naturalScroll>yes</naturalScroll></device>
     </libinput>
     </labwc_config>
   '';
@@ -175,9 +193,6 @@ let
         </item>
       </menu>
       <menu id="root-menu">
-        <!-- We need some entry here, otherwise labwc will populate
-        'Reconfigure' and 'Exit' items -->
-        <item label="Ghaf Platform"></item>
         ${lib.optionalString config.ghaf.profiles.debug.enable ''
           <item label="Terminal">
             <action name="Execute" command="${pkgs.foot}/bin/foot" />
