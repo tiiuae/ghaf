@@ -1,0 +1,7 @@
+# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+lint.select = [ "E", "F", "I", "U", "N", "RUF", "A" ]
+lint.ignore = [ "E501", "A003"]

@@ -11,13 +11,14 @@ Two main goals:
 * Use bootspec JSON as primary source of truth about system
 * Be enough close to standard bootctl behavior, to allow local system updates
 """
+
 import argparse
 import errno
 import json
 import os
 import shutil
 import sys
-from typing import List, Optional, TypedDict
+from typing import TypedDict
 
 BOOT_ENTRY = """title {title}
 version Generation {generation} {description}
@@ -41,7 +42,7 @@ class BootSpec(TypedDict):
     kernel: str
     initrd: str
     init: str
-    kernelParams: List[str]
+    kernelParams: list[str]
     system: str
     label: str
 
@@ -85,7 +86,7 @@ def copy_file(src: str, dst: str) -> None:
 def make_efi_name(store_file_path: str, root: str = "/") -> str:
     suffix = os.path.basename(store_file_path)
     store_dir = os.path.basename(os.path.dirname(store_file_path))
-    return os.path.join(root, "EFI/nixos/%s-%s.efi" % (store_dir, suffix))
+    return os.path.join(root, f"EFI/nixos/{store_dir}-{suffix}.efi")
 
 
 def copy_loader(loader: str, esp: str, target_name: str) -> None:
@@ -94,7 +95,7 @@ def copy_loader(loader: str, esp: str, target_name: str) -> None:
     copy_file(loader, os.path.join(efi, "BOOT", target_name))
 
 
-def copy_nixos(esp: str, kernel: str, initrd: str, dtb: Optional[str] = None) -> None:
+def copy_nixos(esp: str, kernel: str, initrd: str, dtb: str | None = None) -> None:
     copy_file(kernel, make_efi_name(kernel, esp))
     copy_file(initrd, make_efi_name(initrd, esp))
     if dtb:
@@ -104,10 +105,10 @@ def copy_nixos(esp: str, kernel: str, initrd: str, dtb: Optional[str] = None) ->
 def write_loader_entry(
     esp: str,
     boot: BootSpec,
-    kernel_params: List[str],
-    machine_id: Optional[str],
-    random_seed: Optional[str],
-    device_tree: Optional[str],
+    kernel_params: list[str],
+    machine_id: str | None,
+    random_seed: str | None,
+    device_tree: str | None,
 ) -> None:
     entry = BOOT_ENTRY.format(
         kernel=make_efi_name(boot["kernel"]),
@@ -135,9 +136,9 @@ def write_loader_entry(
 def read_bootspec_file(toplevel: str) -> BootSpec:
     bootfile = os.path.join(toplevel, "boot.json")
     ensure_file(bootfile)
-    with open(bootfile, "r") as boot_json:
+    with open(bootfile) as boot_json:
         content = json.load(boot_json)
-        bootspec: Optional[BootSpec] = content.get("org.nixos.bootspec.v1")
+        bootspec: BootSpec | None = content.get("org.nixos.bootspec.v1")
         if bootspec is None:
             eprint(f"""Can't find "org.nixos.bootspec.v1" in {bootfile}""")
             sys.exit(1)
@@ -147,9 +148,9 @@ def read_bootspec_file(toplevel: str) -> BootSpec:
 def create_esp_contents(
     toplevel: str,
     output: str,
-    machine_id: Optional[str],
-    random_seed: Optional[str],
-    device_tree: Optional[str],
+    machine_id: str | None,
+    random_seed: str | None,
+    device_tree: str | None,
 ) -> None:
     mkdir_p(output)
     boot = read_bootspec_file(toplevel)
