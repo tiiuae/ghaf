@@ -6,12 +6,12 @@
     microvm.imports = [
       inputs.microvm.nixosModules.host
       ./virtualization/microvm/microvm-host.nix
-      ./virtualization/microvm/netvm.nix
+      (import ./virtualization/microvm/netvm.nix { inherit (inputs) impermanence; })
       ./virtualization/microvm/adminvm.nix
       ./virtualization/microvm/idsvm/idsvm.nix
       ./virtualization/microvm/idsvm/mitmproxy
-      ./virtualization/microvm/appvm.nix
-      ./virtualization/microvm/guivm.nix
+      (import ./virtualization/microvm/appvm.nix { inherit (inputs) impermanence; })
+      (import ./virtualization/microvm/guivm.nix { inherit (inputs) impermanence; })
       ./virtualization/microvm/audiovm.nix
       ./virtualization/microvm/modules.nix
       ./networking.nix
