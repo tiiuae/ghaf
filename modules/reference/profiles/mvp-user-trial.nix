@@ -2,17 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
-  cfg = config.ghaf.profiles.mvp-user-trial;
+  cfg = config.ghaf.reference.profiles.mvp-user-trial;
 in
 {
   imports = [
-    ../reference/appvms
-    ../reference/programs
-    ../reference/services
-    ../reference/personalize
+    ../appvms
+    ../programs
+    ../services
+    ../personalize
   ];
 
-  options.ghaf.profiles.mvp-user-trial = {
+  options.ghaf.reference.profiles.mvp-user-trial = {
     enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
   };
 
@@ -44,22 +44,22 @@ in
         personalize = {
           keys.enable = true;
         };
-      };
 
-      profiles = {
-        laptop-x86 = {
-          enable = true;
-          netvmExtraModules = [
-            ../reference/services
-            ../reference/personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
-          guivmExtraModules = [
-            ../reference/programs
-            ../reference/personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
-          inherit (config.ghaf.reference.appvms) enabled-app-vms;
+        profiles = {
+          laptop-x86 = {
+            enable = true;
+            netvmExtraModules = [
+              ../services
+              ../personalize
+              { ghaf.reference.personalize.keys.enable = true; }
+            ];
+            guivmExtraModules = [
+              ../programs
+              ../personalize
+              { ghaf.reference.personalize.keys.enable = true; }
+            ];
+            inherit (config.ghaf.reference.appvms) enabled-app-vms;
+          };
         };
       };
     };
