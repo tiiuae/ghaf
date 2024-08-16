@@ -139,6 +139,10 @@
         flake-compat.follows = "flake-compat";
       };
     };
+
+    impermanence = {
+      url = "github:nix-community/impermanence";
+    };
   };
 
   outputs =

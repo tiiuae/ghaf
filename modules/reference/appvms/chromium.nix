@@ -69,6 +69,26 @@ in
         && (hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
       ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
       microvm.devices = [ ];
+      microvm.shares = [
+        {
+          tag = "hostshare";
+          proto = "virtiofs";
+          securityModel = "passthrough";
+          source = "/storagevm/chromium";
+          mountPoint = "/tmp/storagevm";
+        }
+      ];
+
+      fileSystems = {
+        "/tmp/storagevm".neededForBoot = true;
+      };
+
+      environment.persistence."/tmp/storagevm" = {
+        hideMounts = true;
+        users.ghaf = {
+          directories = [ ".config" ];
+        };
+      };
 
       ghaf.reference.programs.chromium.enable = true;
 

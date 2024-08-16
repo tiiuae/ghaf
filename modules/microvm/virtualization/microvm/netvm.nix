@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ impermanence }:
 {
   config,
   lib,
@@ -19,6 +20,7 @@ let
 
   netvmBaseConfiguration = {
     imports = [
+      impermanence.nixosModules.impermanence
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -76,6 +78,11 @@ let
 
           services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
+          environment.persistence."/tmp/storagevm" = {
+            hideMounts = true;
+            directories = [ "/etc/NetworkManager/system-connections/" ];
+          };
+
           microvm = {
             optimize.enable = true;
             hypervisor = "qemu";
@@ -85,6 +92,13 @@ let
                   tag = "ro-store";
                   source = "/nix/store";
                   mountPoint = "/nix/.ro-store";
+                }
+                {
+                  tag = "hostshare";
+                  proto = "virtiofs";
+                  securityModel = "passthrough";
+                  source = "/storagevm/netvm";
+                  mountPoint = "/tmp/storagevm";
                 }
               ]
               ++ lib.optionals isGuiVmEnabled [
@@ -108,9 +122,12 @@ let
             };
           };
 
-          fileSystems = lib.mkIf isGuiVmEnabled {
-            ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
-          };
+          fileSystems = lib.mkMerge [
+            { "/tmp/storagevm".neededForBoot = true; }
+            (lib.mkIf isGuiVmEnabled {
+              ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
+            })
+          ];
 
           # SSH is very picky about to file permissions and ownership and will
           # accept neither direct path inside /nix/store or symlink that points

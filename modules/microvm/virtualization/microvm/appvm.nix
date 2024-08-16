@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ impermanence }:
 {
   config,
   lib,
@@ -24,6 +25,7 @@ let
       cid = if vm.cid > 0 then vm.cid else cfg.vsockBaseCID + index;
       appvmConfiguration = {
         imports = [
+          impermanence.nixosModules.impermanence
           (import ./common/vm-networking.nix {
             inherit config lib vmName;
             inherit (vm) macAddress;

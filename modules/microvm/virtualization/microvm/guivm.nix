@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ impermanence }:
 {
   config,
   lib,
@@ -12,6 +13,7 @@ let
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
+      impermanence.nixosModules.impermanence
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -79,6 +81,10 @@ let
               };
             };
 
+          fileSystems = {
+            "/tmp/storagevm".neededForBoot = true;
+          };
+
           environment = {
             systemPackages =
               (rmDesktopEntries [
@@ -92,6 +98,17 @@ let
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui);
+            persistence."/tmp/storagevm" = {
+              hideMounts = true;
+              directories = [
+                {
+                  directory = "/home/ghaf/";
+                  user = "ghaf";
+                  group = "users";
+                  mode = "u=rwx,g=,o=";
+                }
+              ];
+            };
           };
 
           time.timeZone = config.time.timeZone;
@@ -121,6 +138,13 @@ let
                 tag = "ro-store";
                 source = "/nix/store";
                 mountPoint = "/nix/.ro-store";
+              }
+              {
+                tag = "hostshare";
+                proto = "virtiofs";
+                securityModel = "passthrough";
+                source = "/storagevm/guivm";
+                mountPoint = "/tmp/storagevm";
               }
             ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
