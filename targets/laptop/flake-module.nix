@@ -20,7 +20,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -29,7 +29,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -38,7 +38,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7230.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -47,7 +47,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7330.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -58,7 +58,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -67,7 +67,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -76,7 +76,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7230.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
@@ -85,7 +85,7 @@ let
       {
         ghaf = {
           hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7330.nix";
-          profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
