@@ -45,7 +45,7 @@ in
 
     security.pam.u2f = {
       settings = {
-        authFile = "${u2f_file}";
+        authfile = "${u2f_file}";
         cue = true;
       };
       control = "sufficient";

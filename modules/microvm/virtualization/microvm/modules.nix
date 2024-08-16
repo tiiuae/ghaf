@@ -13,7 +13,6 @@ let
     types
     optionals
     optionalAttrs
-    concatStrings
     ;
 
   cfg = config.ghaf.virtualization.microvm;
@@ -68,13 +67,7 @@ let
     };
 
     # Yubikey module
-    yubikey = optionalAttrs cfg.guivm.yubikey {
-      config.ghaf.services.yubikey.enable = true;
-      config.ghaf.services.yubikey.u2fKeys = concatStrings [
-        # Add your Yubikey U2F Keys / public Keys here
-        ""
-      ];
-    };
+    yubikey = optionalAttrs cfg.guivm.yubikey { config.ghaf.services.yubikey.enable = true; };
 
     # Common namespace to share (built-time) between host and VMs
     commonNamespace = {
