@@ -10,7 +10,10 @@
   element-gps = final.callPackage ../../packages/element-gps {};
   element-web = final.callPackage ../../packages/element-web {};
   waypipe = import ./waypipe {inherit final prev;};
-  qemu_kvm = import ./qemu {inherit final prev;};
+  # qemu_kvm = import ./qemu {inherit final prev;};
+  # qemu_gpio = import ./qemu/gpio-qemu.nix {inherit final prev;};
+  # we have to patch qemu_kvm directly ... for now
+  qemu_kvm = import ./qemu/gpio-qemu.nix {inherit final prev;};   # hack to patch qemu for gpio
   nm-launcher = final.callPackage ../../packages/nm-launcher {};
   icon-pack = final.callPackage ../../packages/icon-pack {};
   ghaf-openbox-theme = final.callPackage ../../packages/ghaf-openbox-theme {};

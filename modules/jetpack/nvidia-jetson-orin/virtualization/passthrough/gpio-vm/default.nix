@@ -10,9 +10,8 @@
   guestRootfs = ./gpiovm_rootfs.qcow2;   # a non-ghaf temporary fs for debugging
   guestKernel = "${kernelPath}/Image"; # the host's kernel image can be used in the guest
 
-  /*
-  # Define the custom derivation to build the DTB file
-  gpioDtbDerivation = pkgs.stdenv.mkDerivation {
+  # Build the guest specific DTB file for GPIO passthrough
+  gpioDtbDerivation = builtins.trace "Creating guest DTB" pkgs.stdenv.mkDerivation {
     pname = "gpio-vm-dtb";
     version = "1.0";
 
@@ -30,13 +29,49 @@
       dtc -I dts -O dtb -o ${dtbName} ${dtsName}
     '';
 
-    # installPhase = builtins.trace "Copying built guest DTB" ''
-    #   mkdir -p $out
-    #   cp ${dtbName} $out/${dtbName}
-    # '';
+    installPhase = ''
+    '';
+   
+    dtb = "$out/${dtbName}";
+    outputs = [ "out" ];
+  };
+
+
+  guestRootfs = "gpiovm_rootfs.qcow2";   # a non-ghaf temporary fs for debugging
+  # Create the guest rootfs qcow2 file (not a ghaf fs -- temporary)
+  gpioGuestFsDerivation = builtins.trace "Creating guest rootfs" pkgs.stdenv.mkDerivation {
+    pname = "gpio-guest-fs";
+    version = "1.0";
+
+    buildInputs = [ pkgs.bzip2 ];
+
+    src = ./qcow2;
     
-    # outputs = [ "${kernelPath}/dtbs/${dtsName}" "$out/${dtbName}" ];
-    outputs = [ "${dtsName}" "${dtbName}" ];
+    buildPhase = ''
+      echo buildPhase
+      # ls -thog $src
+
+      mkdir -p $out 
+      if [ -f $src/${guestRootfs}.x00 ]
+        then
+          echo "split qcow2 in source"
+          timeout 600 cat $src/${guestRootfs}.x* >> $out/${guestRootfs}
+        else if [ -f $src/${guestRootfs}.bzip2.x00 ]
+          then 
+            echo "split bzip2 in source"
+            timeout 1200 cat $src/${guestRootfs}.bzip2.x* | \
+            bunzip2 -dc > $out/${guestRootfs}
+          fi  
+        fi
+      echo "target created"
+    '';
+
+    installPhase = ''
+    '';
+
+    rootFs = "$out/${guestRootfs}";
+    # outputs = [ "rootFs" ];
+    outputs = [ "out" ];
   };
   */
 in {
@@ -60,10 +95,11 @@ in {
             "rootwait root=/dev/vda console=ttyS3"
           ];
           graphics.enable = false;
-          # qemu = builtins.trace "Qemu params, filenames: ${dtsName}, ${dtbName}, ${guestKernel}, ${guestRootfs}" {
           qemu = {
-            serialConsole = false;
-            extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
+          # qemu = builtins.trace "Qemu params, filenames: ${dtsName}, ${dtbName}, ${guestKernel}, ${guestRootfs}" {
+            serialConsole = true;
+            extraArgs = [
+            # extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
               "-nographic"
               "-no-reboot"
               # "-dtb ${gpioGuestDtbName}"  

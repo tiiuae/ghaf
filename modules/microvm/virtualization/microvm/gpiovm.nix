@@ -6,12 +6,18 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }: let
+  cfg = config.ghaf.virtualization.microvm.gpiovm;
+
   configHost = config;
-  vmName = "admin-vm";
-  macAddress = "02:00:00:AD:01:01";
-  isLoggingEnabled = config.ghaf.logging.client.enable;
+  vmName = "gpio-vm";
+  macAddress = "02:00:00:AD:03:03";
+  # isLoggingEnabled = config.ghaf.logging.client.enable;
+
+  # Import a QEMU derivation from qemu-passthrough.nix
+  # customQemu = import ./qemu-passthrough.nix { inherit pkgs lib; };
 
   gpiovmBaseConfiguration = {
     imports = [
@@ -46,7 +52,7 @@
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
         networking = {
-          firewall.allowedTCPPorts = lib.mkIf isLoggingEnabled [config.ghaf.logging.listener.port];
+          firewall.allowedTCPPorts = [];
           firewall.allowedUDPPorts = [];
         };
 
@@ -61,12 +67,13 @@
         microvm = {
           optimize.enable = true;
           hypervisor = "qemu";
+
         };
         imports = [../../../common];
       })
     ];
   };
-  cfg = config.ghaf.virtualization.microvm.gpiovm;
+
 in {
   options.ghaf.virtualization.microvm.gpiovm = {
     enable = lib.mkEnableOption "gpiovm";
@@ -86,13 +93,10 @@ in {
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
-      config =
-        gpiovmBaseConfiguration
-        // {
-          imports =
-            gpiovmBaseConfiguration.imports
-            ++ cfg.extraModules;
-        };
+      config = gpiovmBaseConfiguration // {
+        imports =
+          gpiovmBaseConfiguration.imports ++ cfg.extraModules;
+      };
     };
   };
 }

@@ -7,6 +7,7 @@
   ...
 }: let
   cfg = config.ghaf.hardware.nvidia.virtualization.host.gpio;
+
 in {
   options.ghaf.hardware.nvidia.virtualization.host.gpio.enable = lib.mkOption {
     type = lib.types.bool;

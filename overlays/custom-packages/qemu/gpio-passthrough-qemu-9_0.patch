@@ -1,0 +1,735 @@
+diff --git a/configs/devices/aarch64-softmmu/default.mak b/configs/devices/aarch64-softmmu/default.mak
+index f82a04c27d..35dd533d37 100644
+--- a/configs/devices/aarch64-softmmu/default.mak
++++ b/configs/devices/aarch64-softmmu/default.mak
+@@ -8,3 +8,6 @@ include ../arm-softmmu/default.mak
+ # CONFIG_XLNX_ZYNQMP_ARM=n
+ # CONFIG_XLNX_VERSAL=n
+ # CONFIG_SBSA_REF=n
++
++CONFIG_NVIDIA_BPMP_GUEST=y
++CONFIG_NVIDIA_GPIO_GUEST=y
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index a9a913aead..4d79d3d5ec 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -83,6 +83,8 @@
+ #include "hw/virtio/virtio-md-pci.h"
+ #include "hw/virtio/virtio-iommu.h"
+ #include "hw/char/pl011.h"
++#include "hw/misc/nvidia_bpmp_guest.h"
++#include "hw/misc/nvidia_gpio_guest.h"
+ #include "qemu/guest-random.h"
+ 
+ static GlobalProperty arm_virt_compat[] = {
+@@ -176,6 +178,8 @@ static const MemMapEntry base_memmap[] = {
+     [VIRT_NVDIMM_ACPI] =        { 0x09090000, NVDIMM_ACPI_IO_LEN},
+     [VIRT_PVTIME] =             { 0x090a0000, 0x00010000 },
+     [VIRT_SECURE_GPIO] =        { 0x090b0000, 0x00001000 },
++    [VIRT_NVIDIA_BPMP_GUEST] =	{ 0x090c0000, 0x00001000 },
++    [VIRT_NVIDIA_GPIO_GUEST] =	{ 0x090c1000, 0x00001000 },
+     [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
+     /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
+     [VIRT_PLATFORM_BUS] =       { 0x0c000000, 0x02000000 },
+@@ -1072,6 +1076,12 @@ static void create_virtio_devices(const VirtMachineState *vms)
+     hwaddr size = vms->memmap[VIRT_MMIO].size;
+     MachineState *ms = MACHINE(vms);
+ 
++    /* Create NVIDIA BPMP guest passthru device, possibly need update ftd - WIP */
++    nvidia_bpmp_guest_create(vms->memmap[VIRT_NVIDIA_BPMP_GUEST].base);
++
++    /* Create NVIDIA GPIO guest passthru device, possibly need update ftd - WIP */
++    nvidia_gpio_guest_create(vms->memmap[VIRT_NVIDIA_GPIO_GUEST].base);
++
+     /* We create the transports in forwards order. Since qbus_realize()
+      * prepends (not appends) new child buses, the incrementing loop below will
+      * create a list of virtio-mmio buses with decreasing base addresses.
+diff --git a/hw/misc/Kconfig b/hw/misc/Kconfig
+index 1e08785b83..0f762a0119 100644
+--- a/hw/misc/Kconfig
++++ b/hw/misc/Kconfig
+@@ -11,6 +11,12 @@ config ARMSSE_MHU
+ config ARMSSE_CPU_PWRCTRL
+     bool
+ 
++config NVIDIA_BPMP_GUEST
++    bool
++
++config NVIDIA_GPIO_GUEST
++    bool
++
+ config ISA_DEBUG
+     bool
+     depends on ISA_BUS
+diff --git a/hw/misc/meson.build b/hw/misc/meson.build
+index 86596a3888..876417cdec 100644
+--- a/hw/misc/meson.build
++++ b/hw/misc/meson.build
+@@ -1,4 +1,6 @@
+ system_ss.add(when: 'CONFIG_APPLESMC', if_true: files('applesmc.c'))
++system_ss.add(when: 'CONFIG_NVIDIA_BPMP_GUEST', if_true: files('nvidia_bpmp_guest.c'))
++system_ss.add(when: 'CONFIG_NVIDIA_GPIO_GUEST', if_true: files('nvidia_gpio_guest.c'))
+ system_ss.add(when: 'CONFIG_EDU', if_true: files('edu.c'))
+ system_ss.add(when: 'CONFIG_FW_CFG_DMA', if_true: files('vmcoreinfo.c'))
+ system_ss.add(when: 'CONFIG_ISA_DEBUG', if_true: files('debugexit.c'))
+diff --git a/hw/misc/nvidia_bpmp_guest.c b/hw/misc/nvidia_bpmp_guest.c
+new file mode 100644
+index 0000000000..3facee6d00
+--- /dev/null
++++ b/hw/misc/nvidia_bpmp_guest.c
+@@ -0,0 +1,171 @@
++#include "qemu/osdep.h"
++#include "qemu/log.h"
++#include "qapi/error.h" /* provides error_fatal() handler */
++#include "hw/sysbus.h"	/* provides all sysbus registering func */
++#include "hw/misc/nvidia_bpmp_guest.h"
++
++#define TYPE_NVIDIA_BPMP_GUEST "nvidia_bpmp_guest"
++typedef struct NvidiaBpmpGuestState NvidiaBpmpGuestState;
++DECLARE_INSTANCE_CHECKER(NvidiaBpmpGuestState, NVIDIA_BPMP_GUEST, TYPE_NVIDIA_BPMP_GUEST)
++
++#define TX_BUF   0x0000
++#define RX_BUF   0x0200
++#define TX_SIZ   0x0400
++#define RX_SIZ   0x0408
++#define RET_COD  0x0410
++#define MRQ      0x0500
++
++#define MEM_SIZE 0x600
++#define HOST_DEVICE_PATH "/dev/bpmp-host"
++#define MESSAGE_SIZE 0x0200
++
++// qemu_log_mask(LOG_UNIMP, "%s: \n", __func__ );
++
++struct NvidiaBpmpGuestState
++{
++	SysBusDevice parent_obj;
++	MemoryRegion iomem;
++	int host_device_fd;
++	uint8_t mem[MEM_SIZE];
++};
++
++// Device memory map:
++
++// 0x090c0000 +  /* Base address, size 0x01000 */
++
++//      0x0000 \ Tx buffer
++//      0x01FF /
++//      0x0200 \ Rx buffer
++//      0x03FF /
++//      0x0400  -- Tx size
++//      0x0408  -- Rx size
++//      0x0410  -- Ret
++//      0x0500  -- mrq
++
++
++
++//  Data should be aligned to 64bit paragraph.
++
++//  Protocol is:
++//  1. Write data buffers to 0x0000-0x01FF and 0x0200-0x03FF
++//  2. Write buffer sizes to 0x0400 (Tx) and 0x0408 (Rx)
++//  2. Start operation by writing mrq opcode to address 0x0500
++//  3. Read ret code from 0x0410 and response data from the buffers
++
++static uint64_t nvidia_bpmp_guest_read(void *opaque, hwaddr addr, unsigned int size)
++{
++	NvidiaBpmpGuestState *s = opaque;
++
++	if (addr >= MEM_SIZE)
++		return 0xDEADBEEF;
++
++	// Cast buffer location as uint64_t
++	return *(uint64_t*)&s->mem[addr];
++}
++
++static void nvidia_bpmp_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
++{
++	NvidiaBpmpGuestState *s = opaque;
++	int ret;
++
++	struct
++	{
++		unsigned int mrq;
++		struct
++		{
++			void *data;
++			size_t size;
++		} tx;
++		struct
++		{
++			void *data;
++			size_t size;
++			int ret;
++		} rx;
++	} messg;
++
++	memset(&messg, 0, sizeof(messg));
++
++	if (addr >= MEM_SIZE){
++		qemu_log_mask(LOG_UNIMP, "qemu: Error addr >= MEM_SIZE in 0x%lX data: 0x%lX\n", addr, data);
++		return;
++	}
++
++	switch (addr)
++	{
++	case MRQ:
++		// set up the structure
++		messg.mrq = data;
++		messg.tx.data = &s->mem[TX_BUF];
++		memcpy(&messg.tx.size, &s->mem[TX_SIZ], sizeof(messg.tx.size));
++		messg.rx.data = &s->mem[RX_BUF];
++		memcpy(&messg.rx.size, &s->mem[RX_SIZ], sizeof(messg.rx.size));
++
++		ret = write(s->host_device_fd, &messg, sizeof(messg)); // Send the data to the host module
++		if (ret < 0)
++		{
++			qemu_log_mask(LOG_UNIMP, "%s: Failed to write the host device..\n", __func__);
++			return;
++		}
++
++		memcpy(&s->mem[RET_COD], &messg.rx.ret, sizeof(messg.rx.ret));
++		memcpy(&s->mem[RX_SIZ], &messg.rx.size, sizeof(messg.rx.size));
++
++		break;
++
++	default:
++
++		memcpy(&s->mem[addr], &data, size);
++	}
++
++	return;
++}
++
++static const MemoryRegionOps nvidia_bpmp_guest_ops = {
++	.read = nvidia_bpmp_guest_read,
++	.write = nvidia_bpmp_guest_write,
++	.endianness = DEVICE_NATIVE_ENDIAN,
++};
++
++static void nvidia_bpmp_guest_instance_init(Object *obj)
++{
++	NvidiaBpmpGuestState *s = NVIDIA_BPMP_GUEST(obj);
++
++	/* allocate memory map region */
++	memory_region_init_io(&s->iomem, obj, &nvidia_bpmp_guest_ops, s, TYPE_NVIDIA_BPMP_GUEST, MEM_SIZE);
++	sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->iomem);
++
++	s->host_device_fd = open(HOST_DEVICE_PATH, O_RDWR); // Open the device with read/write access
++
++	if (s->host_device_fd < 0)
++	{
++		qemu_log_mask(LOG_UNIMP, "%s: Failed to open the host device..\n", __func__);
++		return;
++	}
++}
++
++/* create a new type to define the info related to our device */
++static const TypeInfo nvidia_bpmp_guest_info = {
++	.name = TYPE_NVIDIA_BPMP_GUEST,
++	.parent = TYPE_SYS_BUS_DEVICE,
++	.instance_size = sizeof(NvidiaBpmpGuestState),
++	.instance_init = nvidia_bpmp_guest_instance_init,
++};
++
++static void nvidia_bpmp_guest_register_types(void)
++{
++	type_register_static(&nvidia_bpmp_guest_info);
++}
++
++type_init(nvidia_bpmp_guest_register_types)
++
++	/*
++	 * Create the Nvidia BPMP guest device.
++	 */
++	DeviceState *nvidia_bpmp_guest_create(hwaddr addr)
++{
++	DeviceState *dev = qdev_new(TYPE_NVIDIA_BPMP_GUEST);
++	sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
++	sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, addr);
++	return dev;
++}
+diff --git a/hw/misc/nvidia_bpmp_guest.h b/hw/misc/nvidia_bpmp_guest.h
+new file mode 100644
+index 0000000000..dd4b4221d3
+--- /dev/null
++++ b/hw/misc/nvidia_bpmp_guest.h
+@@ -0,0 +1,9 @@
++#ifndef HW_NVIDIA_BPMP_GUEST_H
++#define HW_NVIDIA_BPMP_GUEST_H
++
++#include "qom/object.h"
++
++DeviceState *nvidia_bpmp_guest_create(hwaddr);
++
++
++#endif
+diff --git a/hw/misc/nvidia_gpio_guest.c b/hw/misc/nvidia_gpio_guest.c
+new file mode 100644
+index 0000000000..96190cc10a
+--- /dev/null
++++ b/hw/misc/nvidia_gpio_guest.c
+@@ -0,0 +1,277 @@
++#include "qemu/osdep.h"
++#include "qemu/qemu-print.h"
++#include "qemu/log.h"
++#include "qapi/error.h" /* provides error_fatal() handler */
++#include "hw/sysbus.h"	/* provides all sysbus registering func */
++#include "hw/misc/nvidia_gpio_guest.h"
++
++#define TYPE_NVIDIA_GPIO_GUEST "nvidia_gpio_guest"
++typedef struct NvidiaGpioGuestState NvidiaGpioGuestState;
++DECLARE_INSTANCE_CHECKER(NvidiaGpioGuestState, NVIDIA_GPIO_GUEST, TYPE_NVIDIA_GPIO_GUEST)
++
++#define MEM_SIZE 0x18	   // mem size in bytes is 3 64 bit words
++#define RETURN_OFF 0x10	// offset (in bytes) for return value is two 64 bit words
++#define RETURN_SIZE 8
++// #define RETURN_OFF 0
++#define HOST_DEVICE_PATH "/dev/gpio-host"
++
++_Static_assert(sizeof(uint64_t) == RETURN_SIZE, "size assertion for RETURN_SIZE failed");
++_Static_assert(sizeof(uint64_t)*3 == MEM_SIZE, "size assertion for MEM_SIZE failed");
++_Static_assert(sizeof(uint64_t)*2 == RETURN_OFF, "size assertion for RETURN_OFF failed");
++
++
++struct NvidiaGpioGuestState
++{
++	SysBusDevice parent_obj;
++	MemoryRegion iomem;
++	int host_device_fd;
++	uint8_t mem[MEM_SIZE];
++	unsigned char length;
++	int towrite, written;
++	uint64_t return_value;
++};
++
++pthread_mutex_t io_mutex = PTHREAD_MUTEX_INITIALIZER;
++pthread_mutex_t return_mutex = PTHREAD_MUTEX_INITIALIZER;
++
++// Device memory: 0x090c1000 +  /* Base address */
++
++/*
++static uint64_t nvidia_gpio_guest_read(void *opaque, hwaddr addr, unsigned int size)
++{
++	NvidiaGpioGuestState *s = opaque;
++
++	if (addr >= MEM_SIZE)
++		return 0xABEDFACE;
++
++	qemu_printf("%s: return: 0x%016lX, addr: 0x%lX, size: %d\n", __func__, *(uint64_t*)&s->mem[addr], addr, size);
++	// Cast buffer location as uint64_t
++	return *(uint64_t*)&s->mem[addr];
++}
++*/
++
++/*
++static inline ssize_t safe_read(int fd, void *buf, size_t count) {
++	ssize_t ret;
++	pthread_mutex_lock(&r_io_mutex);
++	ret = read(fd, buf, count);
++	pthread_mutex_unlock(&r_io_mutex);
++	return ret;
++}
++*/
++
++static uint64_t nvidia_gpio_guest_read(void *opaque, hwaddr addr, unsigned int size)
++{
++	struct NvidiaGpioGuestState *s = opaque;
++	uint64_t mask = ( size >= 8) ? (uint64_t)0xFFFFFFFFFFFFFFFF : ( (uint64_t)0x0000000000000001 << (size << 3) ) - 1;
++	uint64_t retval = ( s->return_value >> (addr<<3) ) & mask;
++
++	//#ifdef VERBOSE
++	qemu_printf("qemu: (   + read	 ) written: %d: addr: %ld, size: %d, return_value: 0x%016lX, retval: 0x%lX\n", s->written, addr, size, s->return_value, retval);
++	// #endif
++
++	s->written -= size;
++
++	if ( s->written < 0 ) {
++		qemu_printf("%s: **Error** Size error in read (%d)\n", __func__, s->written);
++		s->written = 0;	// allow next message
++		retval = 0x01234567ABEDFACE;
++	}
++
++	if( size + addr > RETURN_OFF + RETURN_SIZE || size > RETURN_SIZE ) {
++		qemu_printf("%s: **Error** address or size overflow, addr: 0x%lX, size: %d\n", __func__, addr, size);
++		s->written = 0;	// allow next message
++		retval = 0x01234567ABEDFACE;
++	}
++
++	if ( s->written == 0 ) {
++		pthread_mutex_unlock(&return_mutex);	// allow next message
++		qemu_printf("qemu: (	 read	 ) ---unlocked--- return mutex\n");
++	}
++
++	// // Get the data from the host module
++	// // if(read(s->host_device_fd, s->mem + addr, size) < 0) {
++	// if((ret = safe_read(s->host_device_fd, s->return_buffer + addr, size)) < 0) {
++	//	qemu_printf("qemu: (in nvidia_gpio_guest_read) *error* read error %d, addr: 0x%lX, size %d\n", ret, addr, size);
++	// }
++	// else
++	// {
++	//	qemu_printf("qemu: (in nvidia_gpio_guest_read) return_value: 0x%08lX, addr: 0x%lX, size %d\n", s->return_value, addr, size);
++	// }
++
++	#ifdef VERBOSE
++	qemu_printf("qemu: (	read	 ) mask: 0x%lX, -------- retval(processed): 0x%016lX\n", mask, retval);
++	#else
++	qemu_printf("qemu: (	read	 ) retval(processed): 0x%lX\n", retval);
++	#endif
++	return retval;
++}
++
++/*
++ *   void *opaque:	   This is a pointer to opaque data associated with the memory region.
++ *					   It is used to pass additional context or information to the callback function.
++ *					   In this case, it can be used to access device-specific data structures or state
++ *					   information required for handling the write operation.
++ *
++ *   hwaddr addr:		This parameter represents the hardware address or the offset within the memory region
++ *					   where the write operation is taking place. It specifies the location where the data should be written.
++ *
++ *   uint64_t data:	  This parameter holds the data that needs to be written to the memory region.
++ *					   It represents the value that will be stored at the specified address (addr).
++ *
++ *   unsigned int size:  This parameter indicates the size of the data being written, in bytes. It specifies the number of bytes
++ *					   to be written starting from the given address.
++ */
++
++static inline ssize_t safe_write(int fd, const void *buf, size_t count) {
++	ssize_t ret;
++	pthread_mutex_lock(&io_mutex);
++	ret = write(fd, buf, count);
++	pthread_mutex_unlock(&io_mutex);
++	return ret;
++}
++
++static void nvidia_gpio_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
++{
++	NvidiaGpioGuestState *s = opaque;
++	int ret = 0, i;
++	uint64_t mask;
++
++	if(addr == 0) {
++		s->length = (*(unsigned char *)&data & 0xFE) >> 1;		   // s->length is 7 top MSB bits in first byte
++		*(unsigned char *)&data = *(unsigned char *)&data & 0x01;	// remove lenght data from message
++		memset(s->mem, 0, s->length);
++		s->towrite = 0;
++		// print debug
++		qemu_printf("qemu: ( +++ write +++ ) length (coded in msg): %d\n", s->length);
++	}
++
++	#ifdef VERBOSE
++	qemu_printf("qemu: (	 write	 ) addr: %ld, size: %d, data: 0x%016lX\n", addr, size, data);
++	#endif
++
++	if (addr > s->length - size){
++		qemu_printf("%s: **Error** addr (%ld) > s->length (%d)- size (%d)\n", __func__, addr, s->length, size);
++		return;
++	}
++
++	// accumulate message
++	memcpy(s->mem + addr, &data, size);
++	s->towrite += size;
++
++	// writeing last block
++	if(addr == s->length - size) {
++		// print debug
++		qemu_printf("qemu: (	 write	 ) signal \'%c\', hexdump:\n", s->mem[1]);
++		for(i = 0; i < (s->towrite + 7)/8; i++)
++			qemu_printf("\t\t\t\t(%d) 0x%016lX\n", i, *((uint64_t *)(s->mem+i)));
++
++		#ifdef DEBUG_BLOCK
++		if( s->length > 0x18 || s->mem[0]&0xFE || s->mem[1] >= 0x80 || s->mem[1] < 0x20 || s->mem[1] == '>' ) { // debug: block writel
++		#else
++		if( s->length > 0x18 || s->mem[0]&0xFE || s->mem[1] >= 0x80 || s->mem[1] < 0x20) { // block obvious errors only
++		#endif
++			s->return_value = 0xDEAFFACE;
++			qemu_printf("signal \'%c\' was blocked (chip=%d)\n", s->mem[1], s->mem[0]);
++		}
++		else {
++
++			if( s->towrite != s->length ) {	  // size check before write
++				qemu_printf("%s: **Error** Size error in write %d of %d\n", __func__, s->towrite, s->length);
++				return;
++			}
++
++			pthread_mutex_lock(&return_mutex);
++			qemu_printf("qemu: (	 write	 ) +++locked+++ return mutex\n");
++			qemu_printf("qemu: (	 write	 ) Ready to write, (%d)\n", s->towrite);
++			if ( (ret = safe_write(s->host_device_fd, s->mem, s->towrite)) < 0 )
++			{
++				// error in write()
++				qemu_printf("%s: **Error** 0x%02X, Failed to write the host device (%d)\n", __func__, errno, s->towrite);
++				s->return_value = 0x1BADFACE;
++				s->written = 0;
++				pthread_mutex_unlock(&return_mutex);	// allow next message
++				qemu_printf("qemu: (	 write	 ) ---unlocked--- return mutex @error\n");
++			}
++			else {
++				qemu_printf("qemu: **Success** writing (%d) signal \'%c\' to the host device\n", ret, s->mem[1]);
++				// in addition to written length, 'ret' contains also the count of returned bytes appended to the end of the buffer
++				// note: the size of the return value is (s->written - RETURN_OFF), should be 4 or 8 bytes
++				s->written = ret;		   // update 'written' to actually written bytes ('ret'|| may be altered by host's return value)
++				s->written -= RETURN_OFF;   // begin to handle return, subtract return offset to get expected return size
++				if ( s->written > 0 && s->written <= RETURN_SIZE ) {
++					// a return value is available
++					qemu_printf("qemu: (	 write	 ) Expected return size: %d\n", s->written);
++					// note: shift left does not work when we shift 64 bits (8 bytes) because the '1' is lost at 65 bits
++					mask = ( s->written >= 8) ? (uint64_t)0xFFFFFFFFFFFFFFFF : ( (uint64_t)0x0000000000000001 << (s->written << 3) ) - 1;
++					s->return_value = *(uint64_t *)(s->mem + RETURN_OFF) & mask;
++					qemu_printf("qemu: (	 write	 ) Return value 0x%016lX, is copied from raw 0x%016lX, with mask = 0x%016lX\n", s->return_value, *(uint64_t *)(s->mem + RETURN_OFF), mask);
++				}
++				else {
++					// no return value
++					s->written = 0;
++					if ( ret != s->length ) {	   // size check after write at least 'length' must be written (return padding may occur)
++						qemu_printf("%s: **Warning** %d bytes of %d, were written to host\n", __func__, s->written, s->length);
++						s->return_value = 0x2BADFACE;
++					}
++					pthread_mutex_unlock(&return_mutex);	// allow next message
++					qemu_printf("qemu: (	 write	 ) ---unlocked--- return mutex\n");
++				}
++			}
++
++		} // close error check
++
++		qemu_printf("qemu: (	 write --- ) return_value: 0x%016lX\n", s->return_value);
++	}
++	return;
++}
++
++static const MemoryRegionOps nvidia_gpio_guest_ops = {
++	.read = nvidia_gpio_guest_read,
++	.write = nvidia_gpio_guest_write,
++	.endianness = DEVICE_NATIVE_ENDIAN,
++};
++
++static void nvidia_gpio_guest_instance_init(Object *obj)
++{
++	struct NvidiaGpioGuestState *s = NVIDIA_GPIO_GUEST(obj);
++	memset(s->mem, 0, MEM_SIZE);
++
++	/* allocate memory map region */
++	memory_region_init_io(&s->iomem, obj, &nvidia_gpio_guest_ops, s, TYPE_NVIDIA_GPIO_GUEST, MEM_SIZE);
++	sysbus_init_mmio(SYS_BUS_DEVICE(obj), &s->iomem);
++
++	s->host_device_fd = open(HOST_DEVICE_PATH, O_RDWR); // Open the device with read/write access
++
++	if (s->host_device_fd < 0)
++	{
++		qemu_printf("%s: Failed to open the host device..\n", __func__);
++		return;
++	}
++}
++
++/* create a new type to define the info related to our device */
++static const TypeInfo nvidia_gpio_guest_info = {
++	.name = TYPE_NVIDIA_GPIO_GUEST,
++	.parent = TYPE_SYS_BUS_DEVICE,
++	.instance_size = sizeof(NvidiaGpioGuestState),
++	.instance_init = nvidia_gpio_guest_instance_init,
++};
++
++static void nvidia_gpio_guest_register_types(void)
++{
++	type_register_static(&nvidia_gpio_guest_info);
++}
++
++type_init(nvidia_gpio_guest_register_types)
++
++	/*
++	 * Create the Nvidia GPIO guest device.
++	 */
++	DeviceState *nvidia_gpio_guest_create(hwaddr addr)
++{
++	DeviceState *dev = qdev_new(TYPE_NVIDIA_GPIO_GUEST);
++	sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
++	sysbus_mmio_map(SYS_BUS_DEVICE(dev), 0, addr);
++	return dev;
++}
+diff --git a/hw/misc/nvidia_gpio_guest.h b/hw/misc/nvidia_gpio_guest.h
+new file mode 100644
+index 0000000000..9e1a693fb2
+--- /dev/null
++++ b/hw/misc/nvidia_gpio_guest.h
+@@ -0,0 +1,9 @@
++#ifndef HW_NVIDIA_GPIO_GUEST_H
++#define HW_NVIDIA_GPIO_GUEST_H
++
++#include "qom/object.h"
++
++DeviceState *nvidia_gpio_guest_create(hwaddr);
++
++
++#endif
+diff --git a/include/hw/arm/virt.h b/include/hw/arm/virt.h
+index bb486d36b1..b5ad45d3a3 100644
+--- a/include/hw/arm/virt.h
++++ b/include/hw/arm/virt.h
+@@ -67,6 +67,8 @@ enum {
+     VIRT_PCIE_MMIO,
+     VIRT_PCIE_PIO,
+     VIRT_PCIE_ECAM,
++    VIRT_NVIDIA_BPMP_GUEST,
++    VIRT_NVIDIA_GPIO_GUEST,
+     VIRT_PLATFORM_BUS,
+     VIRT_GPIO,
+     VIRT_SECURE_UART,
+diff --git a/mk_patch.sh b/mk_patch.sh
+new file mode 100755
+index 0000000000..bd11d732d0
+--- /dev/null
++++ b/mk_patch.sh
+@@ -0,0 +1 @@
++git diff origin/stable-9.0 > qemu-passthrough.patch
+diff --git a/qemu-passthrough.nix b/qemu-passthrough.nix
+new file mode 100644
+index 0000000000..27e2b29bdf
+--- /dev/null
++++ b/qemu-passthrough.nix
+@@ -0,0 +1,145 @@
++# qemu-passthrough.nix
++# build with command: nix-build qemu-passthrough.nix
++{ pkgs ? import <nixpkgs> {}, ... }:
++
++pkgs.stdenv.mkDerivation rec {
++  pname = "qemu-passthrough";
++  version = "1.1";
++
++  src = builtins.path {
++    path = ~/software/Jetson/Linux_for_Tegra/sources/kernel/qemu-passthrough;
++    name = "qemu-source";
++  };
++
++  buildInputs = with pkgs; [
++    util-linux
++    pkg-config
++    # mktemp
++    autogen
++    automake
++    flex
++    bison
++    meson
++    ninja
++    cmake
++    json_c
++    gcc
++    gnumake
++    libtool
++    valgrind
++    python3
++    glib
++    dbus
++    pixman
++    zlib
++    bzip2
++    lzo
++    libgpiod
++    snappy
++    curl
++    libssh
++    libcap
++    libepoxy
++    nettle
++    attr
++    systemd
++    liburing
++    makeWrapper
++    mktemp
++    libdrm
++    wayland-protocols
++    sphinx
++    python311Packages.sphinx-rtd-theme
++    SDL2
++    gtk3
++    gnutls
++    libslirp
++    libselinux
++    alsa-lib
++    alsa-oss
++    pulseaudio
++    pipewire
++    acpica-tools
++    pam_p11
++    pam_u2f
++    vte
++    libibumad
++    libnfs
++    libseccomp
++    libxkbcommon
++    libcacard
++    libusb1
++    libaio
++    libcap_ng
++    libtasn1
++    libgcrypt
++    keyutils
++    canokey-qemu
++    fuse3
++    libbpf
++    capstone
++    fdtools
++    vde2
++    texinfo
++    spice
++    virglrenderer
++    multipath-tools
++    ncurses
++    sealcurses
++    lzfse
++    gsasl
++    xgboost
++    libvncserver
++    cmocka
++    basez
++    SDL2
++    SDL2_image
++    ceph
++    gsasl
++    xdp-tools
++    fdtools
++    dtc
++  ];
++
++  configurePhase = ''
++    ./configure --target-list=aarch64-softmmu \
++    --enable-sdl --enable-gtk --enable-opengl \
++    --disable-dbus-display \
++    --enable-vnc --enable-vnc-jpeg \
++    --disable-docs \
++    --docdir=./doc \
++    --prefix=$out \
++    --enable-vde \
++    --enable-vhost-net --enable-vhost-user \
++  '';
++  /*
++    --enable-vhost-kernel --enable-vhost-net --enable-vhost-user \
++    --enable-vhost-user-blk-server --enable-vfio-user-server \
++    --enable-vhost-crypto --enable-vhost-vdpa --enable-virtfs \
++    --enable-virtfs-proxy-helper \
++    --sysconfdir=${lib}$(if isDebug then "/debug" else "") \
++    --disable-werror \
++    --without-examples \
++    --docdir=${share}/doc/${pname}-${version};
++   */
++
++
++  buildPhase = ''
++    make -j12
++  '';
++
++  installPhase = ''
++    make install && \
++    [ -x $out/bin/qemu-system-aarch64 ] && \
++    ln -s $out/bin/qemu-system-aarch64 $out/bin/qemu-passthrough;
++  '';
++
++  meta = with pkgs.lib; {
++    description = "QEMU with passthrough modifications for Ghaf";
++    homepage = "https://github.com/KimGSandstrom/qemu-passthrough";
++    license = licenses.gpl2Plus;
++    maintainers = with maintainers; [ KimGSandstrom ];
++    platforms = platforms.linux;
++  };
++}
++
