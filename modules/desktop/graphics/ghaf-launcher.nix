@@ -65,9 +65,6 @@ pkgs.writeShellApplication {
     rm -rf "$HOME/.config/nwg-drawer"
     ln -s "${drawerCSS}/nwg-drawer" "$HOME/.config/"
 
-    # Drawer sometimes crashes (cgo error)
-    while true; do
-      nwg-drawer -r -c 5 -mb 60 -ml 440 -mr 440 -mt 420 -nofs -nocats -ovl
-    done
+    nwg-drawer -r -c 5 -mb 60 -ml 440 -mr 440 -mt 420 -nofs -nocats -ovl
   '';
 }
