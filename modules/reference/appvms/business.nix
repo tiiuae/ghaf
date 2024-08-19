@@ -73,29 +73,14 @@ in
           && (lib.hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
         ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
         devices = [ ];
-        shares = [
-          {
-            tag = "hostshare";
-            proto = "virtiofs";
-            securityModel = "passthrough";
-            source = "/storagevm/business";
-            mountPoint = "/tmp/storagevm";
-          }
-        ];
-      };
-
-      fileSystems = {
-        "/tmp/storagevm".neededForBoot = true;
-      };
-
-      environment.persistence."/tmp/storagevm" = {
-        hideMounts = true;
-        users.ghaf = {
-          directories = [ ".config" ];
-        };
       };
 
       ghaf.reference.programs.chromium.enable = true;
+      ghaf.storagevm = {
+        enable = true;
+        name = "business";
+        directories = [ "/home/${config.ghaf.users.accounts.user}/.config" ];
+      };
 
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";

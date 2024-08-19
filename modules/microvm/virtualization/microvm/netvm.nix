@@ -20,7 +20,6 @@ let
 
   netvmBaseConfiguration = {
     imports = [
-      impermanence.nixosModules.impermanence
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -31,6 +30,9 @@ let
         internalIP = 1;
         isGateway = true;
       })
+
+      (import ./common/storagevm.nix { inherit impermanence; })
+
       # To push logs to central location
       ../../../common/logging/client.nix
       (
@@ -61,6 +63,11 @@ let
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            storagevm = {
+              enable = true;
+              name = "netvm";
+              directories = [ "/etc/NetworkManager/system-connections/" ];
+            };
           };
 
           time.timeZone = config.time.timeZone;
@@ -78,11 +85,6 @@ let
 
           services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
-          environment.persistence."/tmp/storagevm" = {
-            hideMounts = true;
-            directories = [ "/etc/NetworkManager/system-connections/" ];
-          };
-
           microvm = {
             optimize.enable = true;
             hypervisor = "qemu";
@@ -92,13 +94,6 @@ let
                   tag = "ro-store";
                   source = "/nix/store";
                   mountPoint = "/nix/.ro-store";
-                }
-                {
-                  tag = "hostshare";
-                  proto = "virtiofs";
-                  securityModel = "passthrough";
-                  source = "/storagevm/netvm";
-                  mountPoint = "/tmp/storagevm";
                 }
               ]
               ++ lib.optionals isGuiVmEnabled [
@@ -122,12 +117,9 @@ let
             };
           };
 
-          fileSystems = lib.mkMerge [
-            { "/tmp/storagevm".neededForBoot = true; }
-            (lib.mkIf isGuiVmEnabled {
-              ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
-            })
-          ];
+          fileSystems = lib.mkIf isGuiVmEnabled {
+            ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
+          };
 
           # SSH is very picky about to file permissions and ownership and will
           # accept neither direct path inside /nix/store or symlink that points
