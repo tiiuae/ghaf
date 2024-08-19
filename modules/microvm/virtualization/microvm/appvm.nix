@@ -25,12 +25,14 @@ let
       cid = if vm.cid > 0 then vm.cid else cfg.vsockBaseCID + index;
       appvmConfiguration = {
         imports = [
-          impermanence.nixosModules.impermanence
           (import ./common/vm-networking.nix {
             inherit config lib vmName;
             inherit (vm) macAddress;
             internalIP = index + 100;
           })
+
+          (import ./common/storagevm.nix { inherit impermanence; })
+
           # To push logs to central location
           ../../../common/logging/client.nix
           (
