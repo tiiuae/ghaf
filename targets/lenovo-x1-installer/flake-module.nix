@@ -28,7 +28,7 @@ let
               # SSH key to installer for test automation.
               users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (
                 variant == "debug"
-              ) (import ../../modules/common/development/authorized_ssh_keys.nix).authorizedKeys;
+              ) (import ../../modules/reference/personalize/authorizedSshKeys.nix).authorizedSshKeys;
 
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
