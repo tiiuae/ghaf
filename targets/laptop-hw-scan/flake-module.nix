@@ -16,7 +16,7 @@ let
             {
               imports = [ "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
               users.users.nixos.openssh.authorizedKeys.keys =
-                (import ../../modules/common/development/authorized_ssh_keys.nix).authorizedKeys;
+                (import ../../modules/reference/personalize/authorizedSshKeys.nix).authorizedSshKeys;
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
               isoImage.isoBaseName = "ghaf";
