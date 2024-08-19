@@ -5,10 +5,12 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.graphics.window-manager-common;
-  ghaf-open = pkgs.callPackage ../../../packages/ghaf-open {};
-in {
+  ghaf-open = pkgs.callPackage ../../../packages/ghaf-open { };
+in
+{
   options.ghaf.graphics.window-manager-common = {
     enable = lib.mkOption {
       type = lib.types.bool;
@@ -26,14 +28,10 @@ in {
 
     environment.noXlibs = false;
 
-    environment.systemPackages =
-      [
-        # Seatd is needed to manage log-in process for wayland sessions
-        pkgs.seatd
-      ]
-      ++ lib.optionals config.ghaf.profiles.debug.enable [
-        ghaf-open
-      ];
+    environment.systemPackages = [
+      # Seatd is needed to manage log-in process for wayland sessions
+      pkgs.seatd
+    ] ++ lib.optionals config.ghaf.profiles.debug.enable [ ghaf-open ];
 
     # Next services/targets are taken from official weston documentation:
     # https://wayland.pages.freedesktop.org/weston/toc/running-weston.html
@@ -41,8 +39,8 @@ in {
     systemd = {
       user.targets."ghaf-session" = {
         description = "Ghaf graphical session";
-        bindsTo = ["ghaf-session.target"];
-        before = ["ghaf-session.target"];
+        bindsTo = [ "ghaf-session.target" ];
+        before = [ "ghaf-session.target" ];
       };
 
       services = {
@@ -50,7 +48,7 @@ in {
           description = "Ghaf graphical session";
 
           # Make sure we are started after logins are permitted.
-          after = ["systemd-user-sessions.service"];
+          after = [ "systemd-user-sessions.service" ];
 
           # if you want you can make it part of the graphical session
           #Before=graphical.target
@@ -87,20 +85,20 @@ in {
             UtmpIdentifier = "tty7";
             UtmpMode = "user";
           };
-          wantedBy = ["multi-user.target"];
+          wantedBy = [ "multi-user.target" ];
         };
 
         # systemd service for seatd
         "seatd" = {
           description = "Seat management daemon";
-          documentation = ["man:seatd(1)"];
+          documentation = [ "man:seatd(1)" ];
           serviceConfig = {
             Type = "simple";
             ExecStart = "${pkgs.seatd}/bin/seatd -g video";
             Restart = "always";
             RestartSec = "1";
           };
-          wantedBy = ["multi-user.target"];
+          wantedBy = [ "multi-user.target" ];
         };
       };
     };

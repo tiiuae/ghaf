@@ -1,4 +1,4 @@
-From 425746bb724e329e44ef80cec7bf1e57a0388010 Mon Sep 17 00:00:00 2001
+From a89bc92a032d6c4fc50d711de92b068a0ed0a636 Mon Sep 17 00:00:00 2001
 From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
 Date: Thu, 2 May 2024 10:02:56 +0400
 Subject: [PATCH] Add colored borders
@@ -19,19 +19,19 @@ Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
  include/theme.h        | 10 ++++++++++
  include/window-rules.h | 17 +++++++++++++++++
  src/config/rcxml.c     | 12 ++++++++++++
+ src/ssd/ssd-border.c   | 21 ++++++++++++++++-----
+ src/ssd/ssd-part.c     |  2 +-
+ src/ssd/ssd-titlebar.c | 30 ++++++++++++++++++++++++++----
  src/ssd/ssd.c          |  9 ++++++---
- src/ssd/ssd_border.c   | 21 ++++++++++++++++-----
- src/ssd/ssd_part.c     |  2 +-
- src/ssd/ssd_titlebar.c | 30 ++++++++++++++++++++++++++----
  src/theme.c            | 34 ++++++++++++++++++++++++++++++++--
  src/window-rules.c     | 25 +++++++++++++++++++++++++
  10 files changed, 148 insertions(+), 17 deletions(-)
 
 diff --git a/include/ssd-internal.h b/include/ssd-internal.h
-index 639d143..7e09dc2 100644
+index fda196e..b0e0cac 100644
 --- a/include/ssd-internal.h
 +++ b/include/ssd-internal.h
-@@ -135,8 +135,9 @@ void add_toggled_icon(struct ssd_button *button, struct wl_list *part_list,
+@@ -136,8 +136,9 @@ void add_toggled_icon(struct ssd_button *button, struct wl_list *part_list,
  struct ssd_part *add_scene_button_corner(
  	struct wl_list *part_list, enum ssd_part_type type,
  	enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
@@ -44,10 +44,10 @@ index 639d143..7e09dc2 100644
  /* SSD internal helpers */
  struct ssd_part *ssd_get_part(
 diff --git a/include/theme.h b/include/theme.h
-index 204a978..9296dc2 100644
+index 50a69f6..7a0f976 100644
 --- a/include/theme.h
 +++ b/include/theme.h
-@@ -158,4 +158,14 @@ void theme_init(struct theme *theme, struct server *server, const char *theme_na
+@@ -162,4 +162,14 @@ void theme_init(struct theme *theme, struct server *server, const char *theme_na
   */
  void theme_finish(struct theme *theme);
  
@@ -63,7 +63,7 @@ index 204a978..9296dc2 100644
 +
  #endif /* LABWC_THEME_H */
 diff --git a/include/window-rules.h b/include/window-rules.h
-index 17c5dca..daf2648 100644
+index b93bc36..066cc7f 100644
 --- a/include/window-rules.h
 +++ b/include/window-rules.h
 @@ -21,6 +21,7 @@ enum property {
@@ -74,7 +74,7 @@ index 17c5dca..daf2648 100644
  struct window_rule {
  	char *identifier;
  	char *title;
-@@ -38,11 +39,27 @@ struct window_rule {
+@@ -40,11 +41,27 @@ struct window_rule {
  	enum property fixed_position;
  
  	struct wl_list link; /* struct rcxml.window_rules */
@@ -103,7 +103,7 @@ index 17c5dca..daf2648 100644
 +
  #endif /* LABWC_WINDOW_RULES_H */
 diff --git a/src/config/rcxml.c b/src/config/rcxml.c
-index 1e268f4..632e35a 100644
+index 84c117b..daab831 100644
 --- a/src/config/rcxml.c
 +++ b/src/config/rcxml.c
 @@ -35,6 +35,7 @@
@@ -131,7 +131,7 @@ index 1e268f4..632e35a 100644
  	} else if (!strcmp(nodename, "title")) {
  		free(current_window_rule->title);
  		current_window_rule->title = xstrdup(content);
-@@ -214,6 +218,14 @@ fill_window_rule(char *nodename, char *content)
+@@ -220,6 +224,14 @@ fill_window_rule(char *nodename, char *content)
  	} else if (!strcasecmp(nodename, "fixedPosition")) {
  		set_property(content, &current_window_rule->fixed_position);
  
@@ -146,30 +146,10 @@ index 1e268f4..632e35a 100644
  	/* Actions */
  	} else if (!strcmp(nodename, "name.action")) {
  		current_window_rule_action = action_create(content);
-diff --git a/src/ssd/ssd.c b/src/ssd/ssd.c
-index 9c96ef7..c770cd5 100644
---- a/src/ssd/ssd.c
-+++ b/src/ssd/ssd.c
-@@ -382,9 +382,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
- 		return;
- 	}
- 
--	float *color = enable
--		? rc.theme->window_toggled_keybinds_color
--		: rc.theme->window_active_border_color;
-+	float customColor[4];
-+	bool isCustomColorAvailable = window_rules_get_custom_border_color(ssd->view, customColor);
-+
-+	float *color = isCustomColorAvailable ? customColor :
-+		(enable ? rc.theme->window_toggled_keybinds_color
-+			: rc.theme->window_active_border_color);
- 
- 	struct ssd_part *part = ssd_get_part(&ssd->border.active.parts, LAB_SSD_PART_TOP);
- 	struct wlr_scene_rect *rect = wlr_scene_rect_from_node(part->node);
-diff --git a/src/ssd/ssd_border.c b/src/ssd/ssd_border.c
-index 74f29ff..bf62df8 100644
---- a/src/ssd/ssd_border.c
-+++ b/src/ssd/ssd_border.c
+diff --git a/src/ssd/ssd-border.c b/src/ssd/ssd-border.c
+index 06ce55c..6e2fc06 100644
+--- a/src/ssd/ssd-border.c
++++ b/src/ssd/ssd-border.c
 @@ -6,6 +6,7 @@
  #include "ssd-internal.h"
  #include "theme.h"
@@ -206,10 +186,10 @@ index 74f29ff..bf62df8 100644
  		wl_list_init(&subtree->parts);
  		add_scene_rect(&subtree->parts, LAB_SSD_PART_LEFT, parent,
  			theme->border_width, height, 0, 0, color);
-diff --git a/src/ssd/ssd_part.c b/src/ssd/ssd_part.c
+diff --git a/src/ssd/ssd-part.c b/src/ssd/ssd-part.c
 index 3933cd1..8889c9e 100644
---- a/src/ssd/ssd_part.c
-+++ b/src/ssd/ssd_part.c
+--- a/src/ssd/ssd-part.c
++++ b/src/ssd/ssd-part.c
 @@ -80,7 +80,7 @@ add_scene_buffer(struct wl_list *list, enum ssd_part_type type,
  
  struct ssd_part *
@@ -219,10 +199,10 @@ index 3933cd1..8889c9e 100644
  		struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
  		struct wlr_buffer *hover_buffer, int x, struct view *view)
  {
-diff --git a/src/ssd/ssd_titlebar.c b/src/ssd/ssd_titlebar.c
-index cde7bb7..d063989 100644
---- a/src/ssd/ssd_titlebar.c
-+++ b/src/ssd/ssd_titlebar.c
+diff --git a/src/ssd/ssd-titlebar.c b/src/ssd/ssd-titlebar.c
+index 32d6131..d183e52 100644
+--- a/src/ssd/ssd-titlebar.c
++++ b/src/ssd/ssd-titlebar.c
 @@ -26,6 +26,15 @@ ssd_titlebar_create(struct ssd *ssd)
  {
  	struct view *view = ssd->view;
@@ -273,7 +253,7 @@ index cde7bb7..d063989 100644
  			width - SSD_BUTTON_WIDTH * 1, view);
  	} FOR_EACH_END
  
-@@ -144,10 +155,13 @@ set_squared_corners(struct ssd *ssd, bool enable)
+@@ -149,10 +160,13 @@ set_squared_corners(struct ssd *ssd, bool enable)
  
  			/* Toggle background between invisible and titlebar background color */
  			struct wlr_scene_rect *rect = wlr_scene_rect_from_node(button->background);
@@ -289,7 +269,7 @@ index cde7bb7..d063989 100644
  
  			/* Toggle rounded corner image itself */
  			struct wlr_scene_node *rounded_corner =
-@@ -336,6 +350,14 @@ ssd_update_title(struct ssd *ssd)
+@@ -348,6 +362,14 @@ ssd_update_title(struct ssd *ssd)
  	}
  
  	struct theme *theme = view->server->theme;
@@ -304,11 +284,31 @@ index cde7bb7..d063989 100644
  	struct ssd_state_title *state = &ssd->state.title;
  	bool title_unchanged = state->text && !strcmp(title, state->text);
  
+diff --git a/src/ssd/ssd.c b/src/ssd/ssd.c
+index 70b1b0d..9dcc797 100644
+--- a/src/ssd/ssd.c
++++ b/src/ssd/ssd.c
+@@ -411,9 +411,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
+ 		return;
+ 	}
+ 
+-	float *color = enable
+-		? rc.theme->window_toggled_keybinds_color
+-		: rc.theme->window_active_border_color;
++	float customColor[4];
++	bool isCustomColorAvailable = window_rules_get_custom_border_color(ssd->view, customColor);
++
++	float *color = isCustomColorAvailable ? customColor :
++		(enable ? rc.theme->window_toggled_keybinds_color
++			: rc.theme->window_active_border_color);
+ 
+ 	struct ssd_part *part = ssd_get_part(&ssd->border.active.parts, LAB_SSD_PART_TOP);
+ 	struct wlr_scene_rect *rect = wlr_scene_rect_from_node(part->node);
 diff --git a/src/theme.c b/src/theme.c
-index 2b10191..19201b6 100644
+index 248a352..6f47bba 100644
 --- a/src/theme.c
 +++ b/src/theme.c
-@@ -399,7 +399,7 @@ hex_to_dec(char c)
+@@ -401,7 +401,7 @@ hex_to_dec(char c)
   * @hex: hex string to be parsed
   * @rgba: pointer to float[4] for return value
   */
@@ -317,7 +317,7 @@ index 2b10191..19201b6 100644
  parse_hexstr(const char *hex, float *rgba)
  {
  	if (!hex || hex[0] != '#' || strlen(hex) < 7) {
-@@ -468,7 +468,7 @@ parse_justification(const char *str)
+@@ -470,7 +470,7 @@ parse_justification(const char *str)
  static void
  theme_builtin(struct theme *theme, struct server *server)
  {
@@ -326,7 +326,7 @@ index 2b10191..19201b6 100644
  	theme->padding_height = 3;
  	theme->title_height = INT_MIN;
  	theme->menu_overlap_x = 0;
-@@ -1398,3 +1398,33 @@ theme_finish(struct theme *theme)
+@@ -1433,3 +1433,33 @@ theme_finish(struct theme *theme)
  	zdrop(&theme->shadow_corner_bottom_inactive);
  	zdrop(&theme->shadow_edge_inactive);
  }
@@ -361,11 +361,11 @@ index 2b10191..19201b6 100644
 +	load_buttons(theme);
 +}
 diff --git a/src/window-rules.c b/src/window-rules.c
-index b6b2999..2ad3303 100644
+index f543f7e..5ea5d53 100644
 --- a/src/window-rules.c
 +++ b/src/window-rules.c
-@@ -60,6 +60,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
- 	return matches_criteria(rule, view);
+@@ -43,6 +43,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
+ 	return view_matches_query(view, &query);
  }
  
 +void 
@@ -379,7 +379,7 @@ index b6b2999..2ad3303 100644
  void
  window_rules_apply(struct view *view, enum window_rule_event event)
  {
-@@ -126,3 +134,20 @@ window_rules_get_property(struct view *view, const char *property)
+@@ -109,3 +117,20 @@ window_rules_get_property(struct view *view, const char *property)
  	}
  	return LAB_PROP_UNSPECIFIED;
  }
@@ -401,5 +401,5 @@ index b6b2999..2ad3303 100644
 +	return false;
 +}
 -- 
-2.44.0
+2.44.1
 

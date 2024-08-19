@@ -1,12 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.profiles.mvp-user-trial;
-in {
+in
+{
   imports = [
     ../reference/appvms
     ../reference/programs
@@ -37,8 +35,8 @@ in {
 
         programs = {
           windows-launcher = {
-            enable = true;
-            spice = true;
+            enable = false;
+            spice = false;
           };
         };
       };
@@ -46,8 +44,8 @@ in {
       profiles = {
         laptop-x86 = {
           enable = true;
-          netvmExtraModules = [../reference/services];
-          guivmExtraModules = [../reference/programs];
+          netvmExtraModules = [ ../reference/services ];
+          guivmExtraModules = [ ../reference/programs ];
           inherit (config.ghaf.reference.appvms) enabled-app-vms;
         };
       };

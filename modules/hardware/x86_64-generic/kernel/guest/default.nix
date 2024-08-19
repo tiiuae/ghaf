@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: {
+{ lib, ... }:
+{
   options.ghaf.guest.kernel.hardening = {
     enable = lib.mkOption {
       description = "Enable Ghaf Guest hardening feature";

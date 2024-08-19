@@ -70,15 +70,15 @@
   # ProtectControlGroups=true;
   # RestrictNamespaces=true;
   /*
-    RestrictNamespaces=[
-   #"~user"
-   #"~pid"
-   #"~net"
-   #"~uts"
-   #"~mnt"
-   #"~cgroup"
-   #"~ipc"
-  ];
+      RestrictNamespaces=[
+     #"~user"
+     #"~pid"
+     #"~net"
+     #"~uts"
+     #"~mnt"
+     #"~cgroup"
+     #"~ipc"
+    ];
   */
   LockPersonality = true;
   MemoryDenyWriteExecute = true;

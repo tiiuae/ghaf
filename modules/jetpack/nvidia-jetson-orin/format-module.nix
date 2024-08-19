@@ -5,9 +5,7 @@
 # nixos-generators flake input as an argument.
 #
 {
-  imports = [
-    ./sdimage.nix
-  ];
+  imports = [ ./sdimage.nix ];
 
   formatAttr = "sdImage";
 }

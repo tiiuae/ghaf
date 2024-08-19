@@ -1,10 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   configHost = config;
   vmName = "admin-vm";
   macAddress = "02:00:00:AD:01:01";
@@ -13,90 +10,103 @@
   adminvmBaseConfiguration = {
     imports = [
       (import ./common/vm-networking.nix {
-        inherit config lib vmName macAddress;
+        inherit
+          config
+          lib
+          vmName
+          macAddress
+          ;
         internalIP = 10;
       })
       # We need to retrieve mac address and start log aggregator
       ../../../common/logging/hw-mac-retrieve.nix
       ../../../common/logging/logs-aggregator.nix
-      ({lib, ...}: {
-        ghaf = {
-          users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
-          profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-          development = {
-            # NOTE: SSH port also becomes accessible on the network interface
-            #       that has been passed through to VM
-            ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-            nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+      (
+        { lib, ... }:
+        {
+          ghaf = {
+            users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+            profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+            development = {
+              # NOTE: SSH port also becomes accessible on the network interface
+              #       that has been passed through to VM
+              ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+            };
+            systemd = {
+              enable = true;
+              withName = "adminvm-systemd";
+              withAudit = configHost.ghaf.profiles.debug.enable;
+              withNss = true;
+              withResolved = true;
+              withPolkit = true;
+              withTimesyncd = true;
+              withDebug = configHost.ghaf.profiles.debug.enable;
+              withHardenedConfigs = true;
+            };
+
+            # Log aggregation configuration
+            logging.client.enable = isLoggingEnabled;
+            logging.listener.address = configHost.ghaf.logging.listener.address;
+            logging.listener.port = configHost.ghaf.logging.listener.port;
+            logging.identifierFilePath = "/var/lib/private/alloy/MACAddress";
+            logging.server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
           };
-          systemd = {
+
+          system.stateVersion = lib.trivial.release;
+
+          nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
+          nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+
+          networking = {
+            firewall.allowedTCPPorts = lib.mkIf isLoggingEnabled [ config.ghaf.logging.listener.port ];
+            firewall.allowedUDPPorts = [ ];
+          };
+
+          systemd.network = {
             enable = true;
-            withName = "adminvm-systemd";
-            withNss = true;
-            withResolved = true;
-            withPolkit = true;
-            withTimesyncd = true;
-            withDebug = configHost.ghaf.profiles.debug.enable;
+            networks."10-ethint0" = {
+              matchConfig.MACAddress = macAddress;
+              linkConfig.ActivationPolicy = "always-up";
+            };
           };
 
-          # Log aggregation configuration
-          logging.client.enable = isLoggingEnabled;
-          logging.listener.address = configHost.ghaf.logging.listener.address;
-          logging.listener.port = configHost.ghaf.logging.listener.port;
-          logging.identifierFilePath = "/var/lib/private/alloy/MACAddress";
-          logging.server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
-        };
+          microvm = {
+            optimize.enable = true;
+            #TODO: Add back support cloud-hypervisor
+            #the system fails to switch root to the stage2 with cloud-hypervisor
+            hypervisor = "qemu";
+            shares =
+              [
+                {
+                  tag = "ro-store";
+                  source = "/nix/store";
+                  mountPoint = "/nix/.ro-store";
+                  proto = "virtiofs";
+                }
+              ]
+              ++ lib.optionals isLoggingEnabled [
+                {
+                  # Creating a persistent log-store which is mapped on ghaf-host
+                  # This is only to preserve logs state across adminvm reboots
+                  tag = "log-store";
+                  source = "/var/lib/private/alloy";
+                  mountPoint = "/var/lib/private/alloy";
+                  proto = "virtiofs";
+                }
+              ];
 
-        system.stateVersion = lib.trivial.release;
-
-        nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-        nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
-        networking = {
-          firewall.allowedTCPPorts = lib.mkIf isLoggingEnabled [config.ghaf.logging.listener.port];
-          firewall.allowedUDPPorts = [];
-        };
-
-        systemd.network = {
-          enable = true;
-          networks."10-ethint0" = {
-            matchConfig.MACAddress = macAddress;
-            linkConfig.ActivationPolicy = "always-up";
+            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
           };
-        };
-
-        microvm = {
-          optimize.enable = true;
-          hypervisor = "cloud-hypervisor";
-          shares =
-            [
-              {
-                tag = "ro-store";
-                source = "/nix/store";
-                mountPoint = "/nix/.ro-store";
-                proto = "virtiofs";
-              }
-            ]
-            ++ lib.optionals isLoggingEnabled [
-              {
-                # Creating a persistent log-store which is mapped on ghaf-host
-                # This is only to preserve logs state across adminvm reboots
-                tag = "log-store";
-                source = "/var/lib/private/alloy";
-                mountPoint = "/var/lib/private/alloy";
-                proto = "virtiofs";
-              }
-            ];
-
-          writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
-        };
-        imports = [../../../common];
-      })
+          imports = [ ../../../common ];
+        }
+      )
     ];
   };
   cfg = config.ghaf.virtualization.microvm.adminvm;
-in {
+in
+{
   options.ghaf.virtualization.microvm.adminvm = {
     enable = lib.mkEnableOption "AdminVM";
 
@@ -105,20 +115,16 @@ in {
         List of additional modules to be imported and evaluated as part of
         AdminVM's NixOS configuration.
       '';
-      default = [];
+      default = [ ];
     };
   };
 
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
-      config =
-        adminvmBaseConfiguration
-        // {
-          imports =
-            adminvmBaseConfiguration.imports
-            ++ cfg.extraModules;
-        };
+      config = adminvmBaseConfiguration // {
+        imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
+      };
     };
   };
 }

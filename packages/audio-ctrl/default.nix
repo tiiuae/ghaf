@@ -3,16 +3,10 @@
 #
 # This is a temporary solution for volume control.
 #
-{
-  openssh,
-  writeShellApplication,
-  ...
-}:
+{ openssh, writeShellApplication, ... }:
 writeShellApplication {
   name = "audio-ctrl";
-  runtimeInputs = [
-    openssh
-  ];
+  runtimeInputs = [ openssh ];
   text = ''
     function pamixer {
       # Connect to audio-vm

@@ -5,12 +5,14 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.reference.programs.windows-launcher;
-  windows-launcher = pkgs.callPackage ../../../packages/windows-launcher {enableSpice = cfg.spice;};
-in {
+  windows-launcher = pkgs.callPackage ../../../packages/windows-launcher { enableSpice = cfg.spice; };
+in
+{
   #TODO fix all these imports to correct scoping
-  imports = [../../desktop];
+  imports = [ ../../desktop ];
 
   options.ghaf.reference.programs.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
@@ -39,7 +41,7 @@ in {
       }
     ];
 
-    networking.firewall.allowedTCPPorts = lib.mkIf cfg.spice [cfg.spice-port];
-    environment.systemPackages = [windows-launcher];
+    networking.firewall.allowedTCPPorts = lib.mkIf cfg.spice [ cfg.spice-port ];
+    environment.systemPackages = [ windows-launcher ];
   };
 }

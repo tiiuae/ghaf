@@ -1,8 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: let
+{ lib, ... }:
+let
   inherit (lib) mkOption types;
-in {
+in
+{
   # Creating logging configuration options needed across the host and vms
   options.ghaf.logging = {
     client.enable = mkOption {

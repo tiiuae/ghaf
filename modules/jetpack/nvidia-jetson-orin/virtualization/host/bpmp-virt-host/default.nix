@@ -5,9 +5,11 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.hardware.nvidia.virtualization.host.bpmp;
-in {
+in
+{
   options.ghaf.hardware.nvidia.virtualization.host.bpmp.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -21,7 +23,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    nixpkgs.overlays = [(import ./overlays/qemu)];
+    nixpkgs.overlays = [ (import ./overlays/qemu) ];
 
     boot.kernelPatches = [
       {

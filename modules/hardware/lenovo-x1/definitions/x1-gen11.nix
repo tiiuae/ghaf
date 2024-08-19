@@ -23,8 +23,8 @@
 
   input = {
     keyboard = {
-      name = ["AT Translated Set 2 keyboard"];
-      evdev = ["/dev/input/by-path/platform-i8042-serio-0-event-kbd"];
+      name = [ "AT Translated Set 2 keyboard" ];
+      evdev = [ "/dev/input/by-path/platform-i8042-serio-0-event-kbd" ];
     };
 
     mouse = {
@@ -50,18 +50,12 @@
           "ELAN067B:00 04F3:31F8 Touchpad"
         ]
       ];
-      evdev = [
-        "/dev/touchpad0"
-      ];
+      evdev = [ "/dev/touchpad0" ];
     };
 
     misc = {
-      name = [
-        "ThinkPad Extra Buttons"
-      ];
-      evdev = [
-        "/dev/input/by-path/platform-thinkpad_acpi-event"
-      ];
+      name = [ "ThinkPad Extra Buttons" ];
+      evdev = [ "/dev/input/by-path/platform-thinkpad_acpi-event" ];
     };
   };
 
@@ -89,8 +83,8 @@
       }
     ];
     kernelConfig = {
-      stage1.kernelModules = ["i915"];
-      kernelParams = ["earlykms"];
+      stage1.kernelModules = [ "i915" ];
+      kernelParams = [ "earlykms" ];
     };
   };
 

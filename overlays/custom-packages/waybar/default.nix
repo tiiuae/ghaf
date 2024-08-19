@@ -3,12 +3,11 @@
 #
 # This overlay customizes waybar
 #
-{prev}: (
-  prev.waybar.override {
-    hyprlandSupport = false;
-    swaySupport = false;
-    jackSupport = false;
-    cavaSupport = false;
-    pulseSupport = false;
-  }
-)
+{ prev }:
+(prev.waybar.override {
+  hyprlandSupport = false;
+  swaySupport = false;
+  jackSupport = false;
+  cavaSupport = false;
+  pulseSupport = false;
+})

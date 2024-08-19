@@ -9,7 +9,10 @@
 stdenv.mkDerivation {
   name = "vsockproxy";
 
-  depsBuildBuild = [meson ninja];
+  depsBuildBuild = [
+    meson
+    ninja
+  ];
 
   src = fetchFromGitHub {
     owner = "tiiuae";

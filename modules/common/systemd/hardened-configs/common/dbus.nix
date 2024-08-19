@@ -25,7 +25,7 @@
   ProtectSystem = "full";
   # ProtectProc="noaccess";
   # ReadWritePaths=[ "/etc"];
-  ReadOnlyPaths = ["/"];
+  ReadOnlyPaths = [ "/" ];
   PrivateTmp = true;
 
   # Not applicable for the service runs as root
@@ -65,21 +65,21 @@
   # Delegate=false;
   # KeyringMode="private";
   NoNewPrivileges = true;
-  UMask = 077;
+  UMask = 77;
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
   RestrictNamespaces = true;
   /*
-    RestrictNamespaces=[
-   #"~user"
-   #"~pid"
-   #"~net"
-   #"~uts"
-   #"~mnt"
-   #"~cgroup"
-   #"~ipc"
-  ];
+      RestrictNamespaces=[
+     #"~user"
+     #"~pid"
+     #"~net"
+     #"~uts"
+     #"~mnt"
+     #"~cgroup"
+     #"~ipc"
+    ];
   */
   LockPersonality = true;
   MemoryDenyWriteExecute = true;

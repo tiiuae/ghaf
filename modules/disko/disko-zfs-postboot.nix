@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{pkgs, ...}: let
+{ pkgs, ... }:
+let
   postBootCmds = ''
     set -xeuo pipefail
 
@@ -31,6 +32,7 @@
     # Extend ZFS pool to use newly allocated space
     ${pkgs.zfs}/bin/zpool online -e "$ZFS_POOLNAME" "$ZFS_LOCATION"
   '';
-in {
+in
+{
   boot.postBootCommands = postBootCmds;
 }

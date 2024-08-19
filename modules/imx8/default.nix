@@ -3,8 +3,4 @@
 #
 # Support for Microchip Polarfire Icicle-Kit
 #
-{
-  imports = [
-    ./imx8mp-sdimage.nix
-  ];
-}
+{ imports = [ ./imx8mp-sdimage.nix ]; }

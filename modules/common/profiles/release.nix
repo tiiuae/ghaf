@@ -1,14 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.profiles.release;
   inherit (lib) mkEnableOption mkIf;
-in {
+in
+{
   options.ghaf.profiles.release = {
     enable = mkEnableOption "release profile";
   };

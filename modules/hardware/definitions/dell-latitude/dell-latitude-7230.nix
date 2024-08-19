@@ -5,9 +5,7 @@
   name = "Dell Latitude 7230 Rugged";
 
   # List of system SKUs covered by this configuration
-  skus = [
-    "0BB7 Latitude 7230 Rugged Extreme Tablet"
-  ];
+  skus = [ "0BB7 Latitude 7230 Rugged Extreme Tablet" ];
 
   # Host configuration
   host = {
@@ -23,18 +21,32 @@
   # Input devices
   input = {
     keyboard = {
-      name = ["AT Translated Set 2 keyboard"];
-      evdev = ["/dev/keyboard0"];
+      name = [ "AT Translated Set 2 keyboard" ];
+      evdev = [ "/dev/keyboard0" ];
     };
 
     mouse = {
-      name = ["PS/2 Generic Mouse" "SYNAPTICS Synaptics HIDUSB TouchPad V1.05 Mouse"];
-      evdev = ["/dev/mouse0" "/dev/mouse1"];
+      name = [
+        "PS/2 Generic Mouse"
+        "SYNAPTICS Synaptics HIDUSB TouchPad V1.05 Mouse"
+      ];
+      evdev = [
+        "/dev/mouse0"
+        "/dev/mouse1"
+      ];
     };
 
     touchpad = {
-      name = ["SYNAPTICS Synaptics HIDUSB TouchPad V1.05 Touchpad" "EETI8082:00 0EEF:C004" "EETI8082:00 0EEF:C004 Stylus"];
-      evdev = ["/dev/touchpad0" "/dev/touchpad1" "/dev/touchpad2"];
+      name = [
+        "SYNAPTICS Synaptics HIDUSB TouchPad V1.05 Touchpad"
+        "EETI8082:00 0EEF:C004"
+        "EETI8082:00 0EEF:C004 Stylus"
+      ];
+      evdev = [
+        "/dev/touchpad0"
+        "/dev/touchpad1"
+        "/dev/touchpad2"
+      ];
     };
 
     misc = {
@@ -66,9 +78,9 @@
       }
     ];
     kernelConfig = {
-      stage1.kernelModules = [];
-      stage2.kernelModules = ["iwlwifi"];
-      kernelParams = [];
+      stage1.kernelModules = [ ];
+      stage2.kernelModules = [ "iwlwifi" ];
+      kernelParams = [ ];
     };
   };
 
@@ -86,9 +98,9 @@
       }
     ];
     kernelConfig = {
-      stage1.kernelModules = ["i915"];
-      stage2.kernelModules = [];
-      kernelParams = ["earlykms"];
+      stage1.kernelModules = [ "i915" ];
+      stage2.kernelModules = [ ];
+      kernelParams = [ "earlykms" ];
     };
   };
 
@@ -133,9 +145,14 @@
       }
     ];
     kernelConfig = {
-      stage1.kernelModules = [];
-      stage2.kernelModules = ["i2c_i801" "snd_hda_intel" "snd_sof_pci_intel_tgl" "spi_intel_pci"];
-      kernelParams = [];
+      stage1.kernelModules = [ ];
+      stage2.kernelModules = [
+        "i2c_i801"
+        "snd_hda_intel"
+        "snd_sof_pci_intel_tgl"
+        "spi_intel_pci"
+      ];
+      kernelParams = [ ];
     };
   };
 

@@ -5,18 +5,20 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.development.debug.tools;
 
-  rm-linux-bootmgrs = pkgs.callPackage ./scripts/rm_linux_bootmgr_entries.nix {};
-  perf-test-script = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix {};
-  sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix {};
-  sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix {};
-  nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix {};
+  rm-linux-bootmgrs = pkgs.callPackage ./scripts/rm_linux_bootmgr_entries.nix { };
+  perf-test-script-icicle = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix { };
+  sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix { };
+  sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix { };
+  nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix { };
 
   inherit (lib) mkEnableOption mkIf;
-  inherit (import ../../../lib/launcher.nix {inherit pkgs lib;}) rmDesktopEntries;
-in {
+  inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+in
+{
   options.ghaf.development.debug.tools = {
     enable = mkEnableOption "Debug Tools";
   };
@@ -27,50 +29,60 @@ in {
     };
     environment.systemPackages =
       builtins.attrValues {
-        inherit
-          (pkgs)
+        inherit (pkgs)
           # For lspci:
-          
+
           pciutils
           # For lsusb:
-          
+
           usbutils
           # Useful in NetVM
-          
+
           ethtool
           # Basic monitors
-          
+
           iftop
           iotop
           traceroute
           dig
           evtest
           # For deleting Linux Boot Manager entries in automated testing
-          
+
           efibootmgr
           # Performance testing
-          
+
           speedtest-cli
           iperf
+          tree
+          file
+          # to build ghaf on target
+
+          git
           ;
       }
       ++
-      # Match perf version with kernel.
-      [
-        config.boot.kernelPackages.perf
-        perf-test-script
-        sysbench-test-script
-        sysbench-fileio-test-script
-        nvpmodel-check
-        rm-linux-bootmgrs
-      ]
-      ++ rmDesktopEntries [pkgs.htop]
-      # TODO Can this be changed to platformPkgs to filter ?
+        # Match perf version with kernel.
+        [
+          #(config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
+          sysbench-test-script
+          sysbench-fileio-test-script
+          nvpmodel-check
+          rm-linux-bootmgrs
+        ]
+      ++ rmDesktopEntries [ pkgs.htop ]
+      #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
+      ++ lib.optional (
+        config.nixpkgs.hostPlatform.system != "aarch64-linux"
+      ) config.boot.kernelPackages.perf
       # LuaJIT (which is sysbench dependency) not available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") pkgs.sysbench
+      # Icicle Kit performance test script available on RISC-V
+      ++ lib.optional (config.nixpkgs.hostPlatform.system == "riscv64-linux") perf-test-script-icicle
       # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
       ++ lib.optional (pkgs.stdenv.hostPlatform == pkgs.stdenv.buildPlatform) pkgs.unixbench
       # Build VLC only on x86
-      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [pkgs.vlc]);
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
+        pkgs.vlc
+      ]);
   };
 }

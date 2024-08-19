@@ -6,25 +6,26 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   inherit (lib) hasAttr optionals;
-  dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone {};
+  dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone { };
   isDendritePineconeEnabled =
-    if (hasAttr "services" config.ghaf.reference)
-    then config.ghaf.reference.services.dendrite
-    else false;
-in {
+    if (hasAttr "services" config.ghaf.reference) then
+      config.ghaf.reference.services.dendrite
+    else
+      false;
+in
+{
   name = "element";
 
-  packages =
-    [
-      pkgs.element-desktop
-      pkgs.element-gps
-      pkgs.gpsd
-      pkgs.tcpdump
-      pkgs.pulseaudio
-    ]
-    ++ pkgs.lib.optionals isDendritePineconeEnabled [dendrite-pinecone];
+  packages = [
+    pkgs.element-desktop
+    pkgs.element-gps
+    pkgs.gpsd
+    pkgs.tcpdump
+    pkgs.pulseaudio
+  ] ++ pkgs.lib.optionals isDendritePineconeEnabled [ dendrite-pinecone ];
   macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
   cores = 4;
@@ -32,8 +33,10 @@ in {
     {
       # Enable pulseaudio for user ghaf to access mic
       security.rtkit.enable = true;
-      sound.enable = true;
-      users.extraUsers.ghaf.extraGroups = ["audio" "video"];
+      users.extraUsers.ghaf.extraGroups = [
+        "audio"
+        "video"
+      ];
 
       hardware.pulseaudio = {
         enable = true;
@@ -58,7 +61,7 @@ in {
               Restart = "on-failure";
               RestartSec = "2";
             };
-            wantedBy = ["multi-user.target"];
+            wantedBy = [ "multi-user.target" ];
           };
 
           "dendrite-pinecone" = pkgs.lib.mkIf isDendritePineconeEnabled {
@@ -70,30 +73,31 @@ in {
               Restart = "on-failure";
               RestartSec = "2";
             };
-            wantedBy = ["multi-user.target"];
+            wantedBy = [ "multi-user.target" ];
           };
         };
       };
 
       networking = pkgs.lib.mkIf isDendritePineconeEnabled {
-        firewall.allowedTCPPorts = [dendrite-pinecone.TcpPortInt];
-        firewall.allowedUDPPorts = [dendrite-pinecone.McastUdpPortInt];
+        firewall.allowedTCPPorts = [ dendrite-pinecone.TcpPortInt ];
+        firewall.allowedUDPPorts = [ dendrite-pinecone.McastUdpPortInt ];
       };
 
       time.timeZone = config.time.timeZone;
 
       services.gpsd = {
         enable = true;
-        devices = ["/dev/ttyUSB0"];
+        devices = [ "/dev/ttyUSB0" ];
         readonly = true;
         debugLevel = 2;
         listenany = true;
-        extraArgs = ["-n"]; # Do not wait for a client to connect before polling
+        extraArgs = [ "-n" ]; # Do not wait for a client to connect before polling
       };
 
-      microvm.qemu.extraArgs = optionals (config.ghaf.hardware.usb.external.enable
-        && (hasAttr "gps0" config.ghaf.hardware.usb.external.qemuExtraArgs))
-      config.ghaf.hardware.usb.external.qemuExtraArgs.gps0;
+      microvm.qemu.extraArgs = optionals (
+        config.ghaf.hardware.usb.external.enable
+        && (hasAttr "gps0" config.ghaf.hardware.usb.external.qemuExtraArgs)
+      ) config.ghaf.hardware.usb.external.qemuExtraArgs.gps0;
     }
   ];
   borderColor = "#337aff";

@@ -6,10 +6,9 @@
   pkgs,
   modulesPath,
   ...
-}: {
-  imports = [
-    (modulesPath + "/installer/sd-card/sd-image.nix")
-  ];
+}:
+{
+  imports = [ (modulesPath + "/installer/sd-card/sd-image.nix") ];
 
   sdImage = {
     compressImage = false;

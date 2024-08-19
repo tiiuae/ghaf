@@ -18,3 +18,6 @@
 
 # Reformat .nix-files using alejandra
 b07a90ec8f9a0182b1a180b25175b96eac0af705
+
+# Reformat to nixfmt using rfc 166
+1f2aed3e29b83dc2dc9f9a97ea740e9a1039e170

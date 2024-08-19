@@ -5,15 +5,23 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
 
-  inherit (lib) mkEnableOption mkOption mkIf mkForce types;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkForce
+    types
+    ;
 
   # Override minimal systemd package configuration
   package =
-    (pkgs.systemdMinimal.override ({
+    (pkgs.systemdMinimal.override (
+      {
         pname = cfg.withName;
         withAcl = true;
         withAnalyze = cfg.withDebug;
@@ -50,14 +58,11 @@
       // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
         withVmspawn = cfg.withMachines;
         withQrencode = true; # Required for systemd-bsod (currently hardcoded in nixos)
-      }))
-    .overrideAttrs (prevAttrs: {
-      patches =
-        prevAttrs.patches
-        ++ [
-          ./systemd-boot-double-dtb-buffer-size.patch
-        ];
-    });
+      }
+    )).overrideAttrs
+      (prevAttrs: {
+        patches = prevAttrs.patches ++ [ ./systemd-boot-double-dtb-buffer-size.patch ];
+      });
 
   # Definition of suppressed system units in systemd configuration. This removes the units and has priority.
   # Required to avoid build failures compared to only disabling units for some options. Note that errors will be silently ignored.
@@ -112,9 +117,7 @@
       "auditd.service"
       "systemd-journald-audit.socket"
     ])
-    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withMachines)) [
-      "systemd-coredump.socket"
-    ])
+    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withMachines)) [ "systemd-coredump.socket" ])
     ++ (lib.optionals (!cfg.withLogind) [
       "systemd-logind.service"
       "dbus-org.freedesktop.login1.service"
@@ -128,12 +131,8 @@
       "nss-lookup.target.requires"
       "nss-user-lookup.target.requires"
     ])
-    ++ (lib.optionals (!cfg.withTimesyncd) [
-      "systemd-timesyncd.service"
-    ])
-    ++ (lib.optionals (!cfg.withResolved) [
-      "systemd-resolved.service"
-    ])
+    ++ (lib.optionals (!cfg.withTimesyncd) [ "systemd-timesyncd.service" ])
+    ++ (lib.optionals (!cfg.withResolved) [ "systemd-resolved.service" ])
     ++ (lib.optionals (!cfg.withNetworkd) [
       "network.target"
       "network-pre.target"
@@ -172,7 +171,8 @@
       "prepare-kexec.service"
       "prepare-kexec.target"
     ]);
-in {
+in
+{
   options.ghaf.systemd = {
     enable = mkEnableOption "Enable minimal systemd configuration.";
 
@@ -298,6 +298,7 @@ in {
   };
 
   config = mkIf cfg.enable {
+    security.auditd.enable = cfg.withAudit;
     systemd = {
       # Package and unit configuration
       inherit package;

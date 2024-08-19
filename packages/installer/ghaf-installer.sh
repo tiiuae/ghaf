@@ -72,7 +72,19 @@ case "$response" in
 		;;
 esac
 
+# Wipe any possible ZFS leftovers from previous installations
+# Set sector size to 512 bytes
+SECTOR=512
+# 10 MiB in 512-byte sectors
+MIB_TO_SECTORS=20480
+# Disk size in 512-byte sectors
+SECTORS=$(blockdev --getsz "$DEVICE_NAME")
+# Wipe first 10MiB of disk
+dd if=/dev/zero of="$DEVICE_NAME" bs="$SECTOR" count="$MIB_TO_SECTORS" conv=fsync status=none
+# Wipe last 10MiB of disk
+dd if=/dev/zero of="$DEVICE_NAME" bs="$SECTOR" count="$MIB_TO_SECTORS" seek="$((SECTORS - MIB_TO_SECTORS))" conv=fsync status=none
+
 echo "Installing..."
-zstdcat "$IMG_PATH" | dd of="${DEVICE_NAME}" bs=32M status=progress
+zstdcat "$IMG_PATH" | dd of="$DEVICE_NAME" bs=32M status=progress
 
 echo "Installation done. Please remove the installation media and reboot"

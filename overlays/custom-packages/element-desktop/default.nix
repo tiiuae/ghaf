@@ -3,7 +3,7 @@
 #
 # This overlay customizes element-desktop
 #
-{prev}:
+{ prev }:
 prev.element-desktop.overrideAttrs (_prevAttrs: {
-  patches = [./element-main.patch];
+  patches = [ ./element-main.patch ];
 })

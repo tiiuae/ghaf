@@ -5,18 +5,21 @@
 
   nixConfig = {
     substituters = [
+      "https://dev-cache.vedenemo.dev"
       "https://cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
       "https://cache.nixos.org/"
     ];
     extra-trusted-substituters = [
+      "https://dev-cache.vedenemo.dev"
       "https://cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
       "https://cache.nixos.org/"
     ];
     extra-trusted-public-keys = [
+      "ghaf-infra-dev:EdgcUJsErufZitluMOYmoJDMQE+HFyveI/D270Cr84I="
       "cache.vedenemo.dev:8NhplARANhClUSWJyLVk4WMyy1Wb4rhmWW2u8AejH9E="
       "cache.ssrcdevops.tii.ae:oOrzj9iCppf+me5/3sN/BxEkp5SaFkHfKTPPZ97xXQk="
       "ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY="
@@ -26,7 +29,7 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-xdg-ffado-2"; #"flake:mylocalnixpkgs"; #
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     #
@@ -116,7 +119,7 @@
     # Security
     #
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.3.0";
+      url = "github:nix-community/lanzaboote/v0.4.1";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -127,13 +130,12 @@
     };
   };
 
-  outputs = inputs @ {flake-parts, ...}: let
-    lib = import ./lib.nix {inherit inputs;};
-  in
-    flake-parts.lib.mkFlake
-    {
-      inherit inputs;
-    } {
+  outputs =
+    inputs@{ flake-parts, ... }:
+    let
+      lib = import ./lib.nix { inherit inputs; };
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
       # Toggle this to allow debugging in the repl
       # see:https://flake.parts/debug
       debug = false;
@@ -155,15 +157,7 @@
         ./targets/flake-module.nix
         ./hydrajobs/flake-module.nix
         ./templates/flake-module.nix
-        inputs.flake-root.flakeModule
-        inputs.treefmt-nix.flakeModule
-        inputs.pre-commit-hooks-nix.flakeModule
       ];
-
-      #TODO Fix this
-      #flake.nixosModules = with lib;
-      #  mapAttrs (_: import)
-      #  (flattenTree (rakeLeaves ./modules));
 
       flake.lib = lib;
     };

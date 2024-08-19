@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   coreutils,
+  util-linux,
   hwinfo,
   writeShellApplication,
   zstd,
@@ -10,6 +11,7 @@ writeShellApplication {
   name = "ghaf-installer";
   runtimeInputs = [
     coreutils
+    util-linux
     zstd
     hwinfo
   ];

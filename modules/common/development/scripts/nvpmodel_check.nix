@@ -1,10 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  writeShellApplication,
-  lib,
-  ...
-}:
+{ writeShellApplication, lib, ... }:
 writeShellApplication {
   name = "nvpmodel-check";
   text = ''

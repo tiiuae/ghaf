@@ -6,46 +6,52 @@
   config,
   lib,
   ...
-}: let
+}:
+let
   #TODO: Move this to a common place
   xdgPdfPort = 1200;
-in {
+in
+{
   name = "business";
-  packages = let
-    # PDF XDG handler is executed when the user opens a PDF file in the browser
-    # The xdgopenpdf script sends a command to the guivm with the file path over TCP connection
-    xdgPdfItem = pkgs.makeDesktopItem {
-      name = "ghaf-pdf";
-      desktopName = "Ghaf PDF handler";
-      exec = "${xdgOpenPdf}/bin/xdgopenpdf %u";
-      mimeTypes = ["application/pdf"];
-    };
-    xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
-      filepath=$(realpath "$1")
-      echo "Opening $filepath" | systemd-cat -p info
-      echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm ${toString xdgPdfPort}
-    '';
-  in [
-    pkgs.chromium
-    pkgs.pulseaudio
-    pkgs.xdg-utils
-    xdgPdfItem
-    xdgOpenPdf
-    pkgs.globalprotect-openconnect
-    pkgs.openconnect
-    pkgs.nftables
-  ];
+  packages =
+    let
+      # PDF XDG handler is executed when the user opens a PDF file in the browser
+      # The xdgopenpdf script sends a command to the guivm with the file path over TCP connection
+      xdgPdfItem = pkgs.makeDesktopItem {
+        name = "ghaf-pdf";
+        desktopName = "Ghaf PDF handler";
+        exec = "${xdgOpenPdf}/bin/xdgopenpdf %u";
+        mimeTypes = [ "application/pdf" ];
+      };
+      xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
+        filepath=$(realpath "$1")
+        echo "Opening $filepath" | systemd-cat -p info
+        echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm ${toString xdgPdfPort}
+      '';
+    in
+    [
+      pkgs.chromium
+      pkgs.pulseaudio
+      pkgs.xdg-utils
+      xdgPdfItem
+      xdgOpenPdf
+      pkgs.globalprotect-openconnect
+      pkgs.openconnect
+      pkgs.nftables
+    ];
   # TODO create a repository of mac addresses to avoid conflicts
   macAddress = "02:00:00:03:10:01";
   ramMb = 3072;
   cores = 4;
   extraModules = [
     {
-      imports = [../programs/chromium.nix];
+      imports = [ ../programs/chromium.nix ];
       # Enable pulseaudio for Chromium VM
       security.rtkit.enable = true;
-      sound.enable = true;
-      users.extraUsers.ghaf.extraGroups = ["audio" "video"];
+      users.extraUsers.ghaf.extraGroups = [
+        "audio"
+        "video"
+      ];
 
       hardware.pulseaudio = {
         enable = true;
@@ -62,10 +68,11 @@ in {
       time.timeZone = config.time.timeZone;
 
       microvm = {
-        qemu.extraArgs = lib.optionals (config.ghaf.hardware.usb.internal.enable
-          && (lib.hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs))
-        config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
-        devices = [];
+        qemu.extraArgs = lib.optionals (
+          config.ghaf.hardware.usb.internal.enable
+          && (lib.hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
+        ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
+        devices = [ ];
       };
 
       ghaf.reference.programs.chromium.enable = true;
@@ -152,6 +159,7 @@ in {
            add_rule 2.16.234.57
            add_rule 23.56.21.152
            add_rule 23.33.233.129
+           add_rule 52.123.0.0/16
 
 
            # Allow VPN access.tii.ae only
@@ -204,8 +212,26 @@ in {
            add_rule 23.46.197.94
            add_rule 104.80.21.47
            add_rule 23.195.154.8
+           add_rule 193.229.113.0/24
 
+           # edge.skype.com for teams
+           add_rule 13.107.254.0/24
+           add_rule 13.107.3.0/24
 
+           # api.flightproxy.skype.com for teams
+           add_rule 98.66.0.0/16
+           add_rule 4.208.0.0/16
+           add_rule 4.225.208.0/24
+           add_rule 4.210.0.0/16
+           add_rule 108.141.240.0/24
+           add_rule 74.241.0.0/16
+           add_rule 20.216.0.0/16
+           add_rule 172.211.0.0/16
+           add_rule 20.50.217.0/24
+           add_rule 68.219.14.0/24
+           add_rule 20.107.136.0/24
+           add_rule 4.175.191.0/24
+           add_rule 98.64.0.0/16
 
            # Allow tiiuae.sharepoint.com
            add_rule 52.104.7.53

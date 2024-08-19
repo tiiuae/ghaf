@@ -1,9 +1,8 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{lib, ...}: {
-  imports = [
-    ../default.nix
-  ];
+{ lib, ... }:
+{
+  imports = [ ../default.nix ];
 
   # pkvm hardening is generic to all x86_64 devices
   config = {

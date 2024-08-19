@@ -83,11 +83,9 @@
     };
   };
 
-  outputs = inputs @ {flake-parts, ...}:
-    flake-parts.lib.mkFlake
-    {
-      inherit inputs;
-    } {
+  outputs =
+    inputs@{ flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
       # Toggle this to allow debugging in the repl
       # see:https://flake.parts/debug
       debug = false;

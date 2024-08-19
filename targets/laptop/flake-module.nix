@@ -5,11 +5,13 @@
 {
   lib,
   self,
+  inputs,
   ...
-}: let
+}:
+let
   system = "x86_64-linux";
 
-  laptop-configuration = import ./laptop-configuration-builder.nix {inherit lib self;};
+  laptop-configuration = import ./laptop-configuration-builder.nix { inherit lib self inputs; };
 
   targets = [
     # Laptop Debug configurations
@@ -88,11 +90,12 @@
       }
     ])
   ];
-in {
+in
+{
   flake = {
-    nixosConfigurations =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
-    packages.${system} =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    nixosConfigurations = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+    );
+    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
   };
 }

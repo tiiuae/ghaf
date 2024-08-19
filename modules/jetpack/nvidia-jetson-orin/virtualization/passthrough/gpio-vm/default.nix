@@ -4,18 +4,18 @@
 { lib, pkgs, config, ... }: let
   cfg = config.ghaf.hardware.nvidia.passthroughs.gpio_vm;
 
-  # dtsName = "qemu-gpio-guestvm.dts";
-  # dtbName = "qemu-gpio-guestvm.dtb";
   kernelPath = "${config.system.build.kernel}";
-  guestRootfs = ./gpiovm_rootfs.qcow2;   # a non-ghaf temporary fs for debugging
   guestKernel = "${kernelPath}/Image"; # the host's kernel image can be used in the guest
+
+  dtsName = "qemu-gpio-guestvm.dts";
+  dtbName = "qemu-gpio-guestvm.dtb";
 
   # Build the guest specific DTB file for GPIO passthrough
   gpioDtbDerivation = builtins.trace "Creating guest DTB" pkgs.stdenv.mkDerivation {
     pname = "gpio-vm-dtb";
     version = "1.0";
 
-    src = ./.;
+    src = ./dtb;
     buildInputs = [ pkgs.dtc ];
 
     # unpackPhase = ''
@@ -24,20 +24,23 @@
     # '';
 
     buildPhase = builtins.trace "Building guest DTB"  ''
-      # mkdir -p $out
-      # dtc -I dts -O dtb -o $out/${dtbName} $src/${dtsName}
-      dtc -I dts -O dtb -o ${dtbName} ${dtsName}
+      mkdir -p $out
+      # ls -thog $src
+      dtc -I dts -O dtb -o $out/${dtbName} $src/${dtsName}
+      # ls -thog $out
     '';
 
     installPhase = ''
+      cp $src/${dtsName} ${kernelPath}/dtbs/
+      cp $out/${dtbName} ${kernelPath}/dtbs/
     '';
    
-    dtb = "$out/${dtbName}";
     outputs = [ "out" ];
   };
 
+  gpioGuestDtb = "${gpioDtbDerivation}/${dtbName}";
 
-  guestRootfs = "gpiovm_rootfs.qcow2";   # a non-ghaf temporary fs for debugging
+  guestRootFsName = "gpiovm_rootfs.qcow2";   # a non-ghaf temporary fs for debugging
   # Create the guest rootfs qcow2 file (not a ghaf fs -- temporary)
   gpioGuestFsDerivation = builtins.trace "Creating guest rootfs" pkgs.stdenv.mkDerivation {
     pname = "gpio-guest-fs";
@@ -52,15 +55,15 @@
       # ls -thog $src
 
       mkdir -p $out 
-      if [ -f $src/${guestRootfs}.x00 ]
+      if [ -f $src/${guestRootFsName}.x00 ]
         then
           echo "split qcow2 in source"
-          timeout 600 cat $src/${guestRootfs}.x* >> $out/${guestRootfs}
-        else if [ -f $src/${guestRootfs}.bzip2.x00 ]
+          cat $src/${guestRootFsName}.x* >> $out/${guestRootFsName}
+        else if [ -f $src/${guestRootFsName}.bzip2.x00 ]
           then 
             echo "split bzip2 in source"
-            timeout 1200 cat $src/${guestRootfs}.bzip2.x* | \
-            bunzip2 -dc > $out/${guestRootfs}
+            cat $src/${guestRootFsName}.bzip2.x* | \
+            bunzip2 -dc > $out/${guestRootFsName}
           fi  
         fi
       echo "target created"
@@ -69,11 +72,13 @@
     installPhase = ''
     '';
 
-    rootFs = "$out/${guestRootfs}";
+    rootFs = "$out/${guestRootFsName}";
     # outputs = [ "rootFs" ];
     outputs = [ "out" ];
   };
-  */
+
+  guestRootFs = "${gpioGuestFsDerivation}/${guestRootFsName}";
+
 in {
   options = {
     ghaf.hardware.nvidia.passthroughs.gpio_vm.enable = lib.mkOption {
@@ -85,35 +90,31 @@ in {
 
   config = lib.mkIf cfg.enable {
     ghaf.hardware.nvidia.virtualization.enable = true;
-
     ghaf.virtualization.microvm.gpiovm.extraModules =
     builtins.trace "GpioVM: (in default.nix) ghaf.virtualization.microvm.gpiovm.extraModules"
     [
       {
         microvm = {
           kernelParams = [
-            "rootwait root=/dev/vda console=ttyS3"
+            "rootwait root=/dev/vda"
           ];
           graphics.enable = false;
           qemu = {
-          # qemu = builtins.trace "Qemu params, filenames: ${dtsName}, ${dtbName}, ${guestKernel}, ${guestRootfs}" {
+          # qemu = builtins.trace "Qemu params, filenames: ${dtsName}, ${dtbName}, ${guestKernel}, ${guestRootFsName}" {
             serialConsole = true;
             extraArgs = [
             # extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
               "-nographic"
               "-no-reboot"
-              # "-dtb ${gpioGuestDtbName}"  
-              # "-dtb ${dtbName}"  
+              "-dtb ${gpioGuestDtb}"  
               "-kernel ${guestKernel}"
+              "-drive file=${guestRootFs},if=virtio,format=qcow2"
               "-machine virt,accel=kvm"
               "-cpu host"
               "-m 2G"
               "-smp 2"
-              "-drive file=${guestRootfs},if=virtio,format=qcow2"
-              "-serial /dev/ttyS3"
+              "-serial pty"
               "-net user,hostfwd=tcp::2222-:22 -net nic"
-              "-monitor chardev=ttyTHS2,mode=readline"
-              # "-append rootwait \"root=/dev/vda console=ttyS3\""
             ];
           };
         };

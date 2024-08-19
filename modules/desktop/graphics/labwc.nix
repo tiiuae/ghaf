@@ -5,10 +5,16 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.graphics.labwc;
-  renderers = ["vulkan" "pixman" "egl2"];
-in {
+  renderers = [
+    "vulkan"
+    "pixman"
+    "egl2"
+  ];
+in
+{
   options.ghaf.graphics.labwc = {
     enable = lib.mkEnableOption "labwc";
     autolock = {
@@ -37,20 +43,22 @@ in {
       description = "Path to the wallpaper image";
     };
     frameColouring = lib.mkOption {
-      type = lib.types.listOf (lib.types.submodule {
-        options = {
-          identifier = lib.mkOption {
-            type = lib.types.str;
-            example = "foot";
-            description = "Identifier of the application";
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            identifier = lib.mkOption {
+              type = lib.types.str;
+              example = "foot";
+              description = "Identifier of the application";
+            };
+            colour = lib.mkOption {
+              type = lib.types.str;
+              example = "#006305";
+              description = "Colour of the window frame";
+            };
           };
-          colour = lib.mkOption {
-            type = lib.types.str;
-            example = "#006305";
-            description = "Colour of the window frame";
-          };
-        };
-      });
+        }
+      );
       default = [
         {
           identifier = "foot";
@@ -75,6 +83,10 @@ in {
           identifier = "Element";
           colour = "#337aff";
         }
+        {
+          identifier = "AppFlowy";
+          colour = "#4c3f7a";
+        }
       ];
       description = "List of applications and their frame colours";
     };
@@ -92,18 +104,18 @@ in {
       [
         pkgs.labwc
         pkgs.ghaf-openbox-theme
-        pkgs.gnome.adwaita-icon-theme
+        pkgs.adwaita-icon-theme
 
-        (import ./launchers.nix {inherit pkgs config;})
+        (import ./launchers.nix { inherit pkgs config; })
       ]
       # Grim screenshot tool is used for labwc debug-builds
-      ++ lib.optionals config.ghaf.profiles.debug.enable [pkgs.grim];
+      ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.grim ];
 
     # It will create a /etc/pam.d/ file for authentication
-    security.pam.services.gtklock = {};
+    security.pam.services.gtklock = { };
 
     services.upower.enable = true;
-    fonts.fontconfig.defaultFonts.sansSerif = ["Inter"];
+    fonts.fontconfig.defaultFonts.sansSerif = [ "Inter" ];
 
     ghaf.graphics.launchers = lib.mkIf config.ghaf.profiles.debug.enable [
       {
@@ -119,8 +131,8 @@ in {
     systemd.user.services."labwc" = {
       enable = true;
       description = "labwc, a Wayland compositor, as a user service TEST";
-      documentation = ["man:labwc(1)"];
-      after = ["ghaf-session.service"];
+      documentation = [ "man:labwc(1)" ];
+      after = [ "ghaf-session.service" ];
       serviceConfig = {
         # Previously there was "notify" type, but for some reason
         # systemd kills labwc.service because of timeout (even if it is disabled).
@@ -151,7 +163,7 @@ in {
         WLR_NO_HARDWARE_CURSORS = "1";
         _JAVA_AWT_WM_NONREPARENTING = "1";
       };
-      wantedBy = ["default.target"];
+      wantedBy = [ "default.target" ];
     };
 
     #Allow video group to change brightness

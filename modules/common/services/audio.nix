@@ -6,10 +6,17 @@
   pkgs,
   lib,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.services.audio;
-  inherit (lib) mkIf mkEnableOption mkOption types;
-in {
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    ;
+in
+{
   options.ghaf.services.audio = {
     enable = mkEnableOption "Enable audio service for audio VM";
     pulseaudioTcpPort = mkOption {
@@ -22,32 +29,30 @@ in {
   config = mkIf cfg.enable {
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
-    sound.enable = true;
-    hardware.firmware = [pkgs.sof-firmware];
+    hardware.firmware = [ pkgs.sof-firmware ];
     services.pipewire = {
       enable = true;
       pulse.enable = true;
       systemWide = true;
-
-      configPackages = [
-        (pkgs.writeTextDir "share/pipewire/pipewire.conf.d/10-remote-simple.conf" ''
-          context.modules = [
-            {   name = libpipewire-module-protocol-pulse
-                args = {
-                  server.address = [
-                      "tcp:4713"    # IPv4 and IPv6 on all addresses
-                  ];
-                  pulse.min.req          = 128/48000;     # 2.7ms
-                  pulse.default.req      = 960/48000;     # 20 milliseconds
-                  pulse.min.frag         = 128/48000;     # 2.7ms
-                  pulse.default.frag     = 512/48000;     # ~10 ms
-                  pulse.default.tlength  = 512/48000;     # ~10 ms
-                  pulse.min.quantum      = 128/48000;     # 2.7ms
-                }
+      extraConfig = {
+        pipewire."10-remote-simple" = {
+          "context.modules" = [
+            {
+              name = "libpipewire-module-protocol-pulse";
+              args = {
+                # Enable TCP socket for VMs pulseaudio clients
+                "server.address" = [ "tcp:4713" ];
+                "pulse.min.req" = "128/48000"; # 2.7ms
+                "pulse.default.req" = "960/48000"; # 20 milliseconds
+                "pulse.min.frag" = "128/48000"; # 2.7ms
+                "pulse.default.frag" = "512/48000"; # ~10 ms
+                "pulse.default.tlength" = "512/48000"; # ~10 ms
+                "pulse.min.quantum" = "128/48000"; # 2.7ms
+              };
             }
           ];
-        '')
-      ];
+        };
+      };
     };
 
     hardware.pulseaudio.extraConfig = ''
@@ -57,7 +62,12 @@ in {
     '';
 
     # Allow ghaf user to access pulseaudio and pipewire
-    users.extraUsers.ghaf.extraGroups = ["audio" "video" "pulse-access" "pipewire"];
+    users.extraUsers.ghaf.extraGroups = [
+      "audio"
+      "video"
+      "pulse-access"
+      "pipewire"
+    ];
 
     # Dummy service to get pipewire and pulseaudio services started at boot
     # Normally Pipewire and pulseaudio are started when they are needed by user,
@@ -65,10 +75,16 @@ in {
     # This calls pulseaudios pa-info binary to get information about pulseaudio current
     # state which starts pipewire-pulseaudio service in the process.
     systemd.services.pulseaudio-starter = {
-      after = ["pipewire.service" "network-online.target"];
-      requires = ["pipewire.service" "network-online.target"];
-      wantedBy = ["default.target"];
-      path = [pkgs.coreutils];
+      after = [
+        "pipewire.service"
+        "network-online.target"
+      ];
+      requires = [
+        "pipewire.service"
+        "network-online.target"
+      ];
+      wantedBy = [ "default.target" ];
+      path = [ pkgs.coreutils ];
       enable = true;
       serviceConfig = {
         User = "ghaf";
@@ -78,6 +94,6 @@ in {
     };
 
     # Open TCP port for the PDF XDG socket
-    networking.firewall.allowedTCPPorts = [cfg.pulseaudioTcpPort];
+    networking.firewall.allowedTCPPorts = [ cfg.pulseaudioTcpPort ];
   };
 }

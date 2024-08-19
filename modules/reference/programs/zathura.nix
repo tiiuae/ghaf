@@ -1,12 +1,10 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   cfg = config.ghaf.reference.programs.zathura;
-in {
+in
+{
   options.ghaf.reference.programs.zathura = {
     enable = lib.mkEnableOption "Enable Zathura program settings";
   };

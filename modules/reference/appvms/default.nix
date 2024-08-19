@@ -5,11 +5,12 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.reference.appvms;
-in {
-  imports = [
-  ];
+in
+{
+  imports = [ ];
 
   options.ghaf.reference.appvms = {
     enable = lib.mkEnableOption "Enable the Ghaf reference appvms module";
@@ -21,7 +22,7 @@ in {
     business-vm = lib.mkEnableOption "Enable the Business appvm";
     enabled-app-vms = lib.mkOption {
       type = lib.types.listOf lib.types.attrs;
-      default = [];
+      default = [ ];
       description = ''
         List of appvms to include in the Ghaf reference appvms module
       '';
@@ -31,12 +32,12 @@ in {
   config = lib.mkIf cfg.enable {
     ghaf.reference.appvms = {
       enabled-app-vms =
-        (lib.optionals cfg.chromium-vm [(import ./chromium.nix {inherit pkgs lib config;})])
-        ++ (lib.optionals cfg.gala-vm [(import ./gala.nix {inherit pkgs lib config;})])
-        ++ (lib.optionals cfg.zathura-vm [(import ./zathura.nix {inherit pkgs config;})])
-        ++ (lib.optionals cfg.element-vm [(import ./element.nix {inherit pkgs lib config;})])
-        ++ (lib.optionals cfg.appflowy-vm [(import ./appflowy.nix {inherit pkgs config;})])
-        ++ (lib.optionals cfg.business-vm [(import ./business.nix {inherit pkgs lib config;})]);
+        (lib.optionals cfg.chromium-vm [ (import ./chromium.nix { inherit pkgs lib config; }) ])
+        ++ (lib.optionals cfg.gala-vm [ (import ./gala.nix { inherit pkgs lib config; }) ])
+        ++ (lib.optionals cfg.zathura-vm [ (import ./zathura.nix { inherit pkgs config; }) ])
+        ++ (lib.optionals cfg.element-vm [ (import ./element.nix { inherit pkgs lib config; }) ])
+        ++ (lib.optionals cfg.appflowy-vm [ (import ./appflowy.nix { inherit pkgs config; }) ])
+        ++ (lib.optionals cfg.business-vm [ (import ./business.nix { inherit pkgs lib config; }) ]);
     };
   };
 }

@@ -7,8 +7,8 @@
 }: let
   cfg = config.ghaf.hardware.nvidia.virtualization.host.gpio;
 in {
-    boot.kernelPatches = [
-
+  config = lib.mkIf cfg.enable {
+    boot.kernelPatches = builtins.trace "kernelPatches GPIO Virtualization" [
       {
         name = "Added Configurations to Support GPIO passthrough";
         patch = null;
@@ -22,6 +22,7 @@ in {
           VFIO = lib.mkDefault lib.kernel.yes;
           VFIO_IOMMU_TYPE1 = lib.mkDefault lib.kernel.yes;
           VFIO_PLATFORM = lib.mkDefault lib.kernel.yes;
+          VIRTIO = lib.mkDefault lib.kernel.yes;
           VIRTIO_PCI = lib.mkDefault lib.kernel.yes;
           VIRTIO_MMIO = lib.mkDefault lib.kernel.yes;
           GPIO_TEGRA = lib.mkDefault lib.kernel.yes;
@@ -38,14 +39,9 @@ in {
           VFIO_PCI_INTX = lib.mkDefault lib.kernel.yes;
           VFIO_PCI_MMAP = lib.mkDefault lib.kernel.yes;
           VFIO_PCI = lib.mkDefault lib.kernel.yes;
-          # VFIO_PLATFORM = lib.mkDefault lib.kernel.yes;
           VFIO_VIRQFD = lib.mkDefault lib.kernel.yes;
-          # VFIO = lib.mkDefault lib.kernel.yes;
           VIRTIO_MENU = lib.mkDefault lib.kernel.yes;
-          # VIRTIO_MMIO = lib.mkDefault lib.kernel.yes;
           VIRTIO_PCI_LEGACY = lib.mkDefault lib.kernel.yes;
-          # VIRTIO_PCI = lib.mkDefault lib.kernel.yes;
-          VIRTIO = lib.mkDefault lib.kernel.yes;
           VIRTUALIZATION = lib.mkDefault lib.kernel.yes;
           # KVM
           KVM_ARM_PMU = lib.mkDefault lib.kernel.yes;
@@ -76,25 +72,24 @@ in {
           PINCTRL_TEGRA234 = lib.mkDefault lib.kernel.yes;
           PINCTRL_TEGRA_XUSB = lib.mkDefault lib.kernel.yes;
           PINCTRL_TEGRA = lib.mkDefault lib.kernel.yes;
-
         };
       }
-
-      /* This patch is not needed because of the kernel parameters
+      /* This patch is not needed because of kernel.bootParams
       {
         name = "Vfio_platform Reset Required False";
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;
       }
       */
-      # patching the kernel for gpio passthrough
+
+      # patching the kernel for GPIO passthrough
       {
         name = "GPIO Support Virtualization";
-        patch = ./patches/0003-gpio-virt-kernel.patch;
+        patch = builtins.trace "GPIO Support Virtualization" ./patches/0003-gpio-virt-kernel.patch;
       }
       # patching the custom GPIO kernel modules
       {
         name = "GPIO Virt Drivers";
-        patch = ./patches/0004-gpio-virt-drivers.patch;
+        patch = builtins.trace "GPIO Virt Drivers" ./patches/0004-gpio-virt-drivers.patch;
       }
       /*
       # the driver is implemeted as an overlay file not a patch file -- don't use patch file
@@ -110,12 +105,12 @@ in {
       */
     ];
 
-    /* iommu is not needed for GPIO passthrough
+    /* iommu is not needed for GPIO passthrough */
     boot.kernelParams = [ 
       "iommu=pt"
       "vfio.enable_unsafe_noiommu_mode=0"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
       "vfio_platform.reset_required=0"
     ];
-    */
+  };
 }

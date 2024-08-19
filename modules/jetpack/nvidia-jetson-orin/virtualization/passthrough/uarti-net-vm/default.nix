@@ -5,9 +5,11 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.hardware.nvidia.passthroughs.uarti_net_vm;
-in {
+in
+{
   options.ghaf.hardware.nvidia.passthroughs.uarti_net_vm.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -26,9 +28,7 @@ in {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
         microvm = {
-          kernelParams = [
-            "console=ttyAMA0 console=ttyS0"
-          ];
+          kernelParams = [ "console=ttyAMA0 console=ttyS0" ];
           qemu = {
             serialConsole = false;
             extraArgs = [
@@ -48,7 +48,7 @@ in {
     ];
 
     # Make sure that Net-VM runs after the binding services are enabled
-    systemd.services."microvm@net-vm".after = ["bindSerial31d0000.service"];
+    systemd.services."microvm@net-vm".after = [ "bindSerial31d0000.service" ];
 
     boot.kernelPatches = [
       {
@@ -59,7 +59,7 @@ in {
 
     systemd.services.bindSerial31d0000 = {
       description = "Bind UARTI to the vfio-platform driver";
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = "yes";

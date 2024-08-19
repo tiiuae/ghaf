@@ -5,12 +5,14 @@
   lib,
   pkgs,
   ...
-}: let
-  powerControl = pkgs.callPackage ../../packages/powercontrol {};
+}:
+let
+  powerControl = pkgs.callPackage ../../packages/powercontrol { };
   cfg = config.ghaf.profiles.laptop-x86;
   listenerAddress = config.ghaf.logging.listener.address;
   listenerPort = toString config.ghaf.logging.listener.port;
-in {
+in
+{
   imports = [
     ../desktop/graphics
     ../common
@@ -21,6 +23,7 @@ in {
     ../hardware/x86_64-generic
     ../hardware/common
     ../hardware/definition.nix
+    ../lanzaboote
   ];
 
   options.ghaf.profiles.laptop-x86 = {
@@ -30,19 +33,19 @@ in {
       description = ''
         List of additional modules to be passed to the netvm.
       '';
-      default = [];
+      default = [ ];
     };
 
     guivmExtraModules = lib.mkOption {
       description = ''
         List of additional modules to be passed to the guivm.
       '';
-      default = [];
+      default = [ ];
     };
 
     enabled-app-vms = lib.mkOption {
       type = lib.types.listOf lib.types.attrs;
-      default = [];
+      default = [ ];
       description = ''
         List of appvms to include in the Ghaf reference appvms module
       '';

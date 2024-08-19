@@ -3,19 +3,23 @@
 {
   lib,
   self,
+  inputs,
   ...
-}: let
+}:
+let
   system = "x86_64-linux";
 
   #TODO move this to a standalone function
   #should it live in the library or just as a function file
-  mkLaptopConfiguration = machineType: variant: extraModules: let
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
-      modules =
-        [
+  mkLaptopConfiguration =
+    machineType: variant: extraModules:
+    let
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+        modules = [
           self.nixosModules.profiles
           self.nixosModules.laptop
+          inputs.lanzaboote.nixosModules.lanzaboote
 
           #TODO can we move microvm to the profile/laptop-x86?
           self.nixosModules.microvm
@@ -29,16 +33,18 @@
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
+                # Enable below option for host hardening features
+                host-hardening.enable = false;
               };
             };
           })
-        ]
-        ++ extraModules;
+        ] ++ extraModules;
+      };
+    in
+    {
+      inherit hostConfiguration;
+      name = "${machineType}-${variant}";
+      package = hostConfiguration.config.system.build.diskoImages;
     };
-  in {
-    inherit hostConfiguration;
-    name = "${machineType}-${variant}";
-    package = hostConfiguration.config.system.build.diskoImages;
-  };
 in
-  mkLaptopConfiguration
+mkLaptopConfiguration

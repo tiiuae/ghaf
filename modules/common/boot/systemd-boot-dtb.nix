@@ -11,10 +11,12 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.boot.loader.systemd-boot-dtb;
   inherit (lib) mkEnableOption mkIf;
-in {
+in
+{
   options.ghaf.boot.loader.systemd-boot-dtb = {
     enable = mkEnableOption "systemd-boot-dtb";
   };

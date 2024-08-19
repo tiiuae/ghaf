@@ -5,10 +5,11 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.graphics.labwc;
 
-  audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl {};
+  audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   gtklockStyle = pkgs.writeText "gtklock.css" ''
     window {
       background: rgba(29, 29, 29, 1);
@@ -42,7 +43,7 @@
         pkgs.waybar
         pkgs.mako
 
-        (pkgs.callPackage ./ghaf-launcher.nix {inherit config pkgs;})
+        (pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; })
       ]
       ++ lib.optionals cfg.autolock.enable [
         pkgs.swayidle
@@ -70,6 +71,9 @@
           swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
           'chayang && ${lockCmd}' &
         ''}
+
+        # Register lockCmd with swayidle, so that when lock signal is received system can be locked automatically
+        ${pkgs.swayidle}/bin/swayidle lock "${lockCmd}" &
       ''
       + cfg.extraAutostart;
   };
@@ -98,10 +102,10 @@
         <action name="Execute" command="${lockCmd}" />
       </keybind>
       ${lib.optionalString config.ghaf.profiles.debug.enable ''
-      <keybind key="Print">
-        <action name="Execute" command="${pkgs.grim}/bin/grim" />
-      </keybind>
-    ''}
+        <keybind key="Print">
+          <action name="Execute" command="${pkgs.grim}/bin/grim" />
+        </keybind>
+      ''}
       <keybind key="XF86_MonBrightnessUp">
         <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set +5%" />
       </keybind>
@@ -120,10 +124,13 @@
     </keyboard>
     <mouse><default /></mouse>
     <windowRules>
-      ${lib.concatStringsSep "\n" (map (rule: ''
-        <windowRule identifier="${rule.identifier}" borderColor="${rule.colour}" serverDecoration="yes" skipTaskbar="no"  />
-      '')
-      cfg.frameColouring)}
+      ${
+        lib.concatStringsSep "\n" (
+          map (rule: ''
+            <windowRule identifier="${rule.identifier}" borderColor="${rule.colour}" serverDecoration="yes" skipTaskbar="no"  />
+          '') cfg.frameColouring
+        )
+      }
     </windowRules>
     <libinput>
       <device category="default"><naturalScroll>yes</naturalScroll></device>
@@ -153,10 +160,10 @@
         'Reconfigure' and 'Exit' items -->
         <item label="Ghaf Platform"></item>
         ${lib.optionalString config.ghaf.profiles.debug.enable ''
-      <item label="Terminal">
-        <action name="Execute" command="${pkgs.foot}/bin/foot" />
-      </item>
-    ''}
+          <item label="Terminal">
+            <action name="Execute" command="${pkgs.foot}/bin/foot" />
+          </item>
+        ''}
       </menu>
     </openbox_menu>
   '';
@@ -170,7 +177,8 @@
     padding=10
     default-timeout=10000
   '';
-in {
+in
+{
   config = lib.mkIf cfg.enable {
     systemd.user.services."labwc".serviceConfig = {
       ExecStart = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${autostart}/bin/labwc-autostart";

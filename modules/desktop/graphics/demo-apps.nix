@@ -5,22 +5,24 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.graphics.demo-apps;
 
   /*
-  Generate launchers to be used in the application drawer
+    Generate launchers to be used in the application drawer
 
-  Type: mkProgramOption ::  string -> bool -> option
-
+    Type: mkProgramOption ::  string -> bool -> option
   */
-  mkProgramOption = name: default:
+  mkProgramOption =
+    name: default:
     lib.mkOption {
       inherit default;
       type = lib.types.bool;
       description = "Include package ${name} to menu and system environment";
     };
-in {
+in
+{
   options.ghaf.graphics.demo-apps = {
     chromium = mkProgramOption "Chromium browser" false;
     firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
