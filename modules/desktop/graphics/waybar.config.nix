@@ -253,5 +253,16 @@ in
       # The UNIX file mode bits
       mode = "0644";
     };
+
+    systemd.user.services.waybar = {
+      enable = true;
+      description = "waybar menu";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.waybar}/bin/waybar -s /etc/waybar/style.css -c /etc/waybar/config";
+      };
+      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ghaf-session.target" ];
+    };
   };
 }

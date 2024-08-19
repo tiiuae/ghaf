@@ -32,55 +32,26 @@ let
     }
   '';
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
-  ghaf-logout = pkgs.writeShellApplication {
-    name = "ghaf-logout";
-    runtimeInputs = [ pkgs.procps ];
-    # 'labwc --exit' and wayland-logout doesn't kill autostart applications.
-    text = "pkill -u \"$USER\"";
-  };
 
+  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
     runtimeInputs = [
       pkgs.systemd
-      pkgs.swaybg
-      pkgs.kanshi
-      pkgs.waybar
-      pkgs.mako
-      pkgs.swayidle
-
-      (pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; })
-    ] ++ lib.optionals cfg.autolock.enable [ pkgs.chayang ];
+      pkgs.dbus
+    ];
 
     text =
       ''
-        # Import WAYLAND_DISPLAY variable to make it available to waypipe and other systemd services
-        systemctl --user import-environment WAYLAND_DISPLAY 2>&1 &
-
-        # Launch the task bar
-        waybar -s /etc/waybar/style.css -c /etc/waybar/config >/dev/null 2>&1 &
-
-        # Set the wallpaper.
-        swaybg -m fill -i ${cfg.wallpaper} >/dev/null 2>&1 &
-
-        # Configure output directives such as mode, position, scale and transform.
-        kanshi >/dev/null 2>&1 &
-
-        # Enable notifications.
-        mako -c /etc/mako/config >/dev/null 2>&1 &
-
-        # Load the launcher
-        ghaf-launcher >/dev/null 2>&1 &
-
-        ${lib.optionalString cfg.autolock.enable ''
-          swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
-          'chayang && ${lockCmd}' &
-        ''}
-
-        # Register lockCmd with swayidle, so that when lock signal is received
-        # system can be locked automatically
-        swayidle lock "${lockCmd}" &
+        # Import environment variables to ensure it is available to user
+        # services
+        systemctl --user import-environment WAYLAND_DISPLAY
+        dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+        sleep 0.3 # make sure variables are set
+        systemctl --user reset-failed
+        systemctl --user stop ghaf-session.target
+        systemctl --user start ghaf-session.target
       ''
       + cfg.extraAutostart;
   };
@@ -249,6 +220,66 @@ in
       };
     };
 
+    systemd.user.services.ghaf-launcher = {
+      enable = true;
+      description = "Ghaf launcher daemon";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${ghaf-launcher}/bin/ghaf-launcher";
+        Restart = "always";
+        RestartSec = "1";
+      };
+      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.swaybg = {
+      enable = true;
+      description = "Wallpaper daemon";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.swaybg}/bin/swaybg -m fill -i ${cfg.wallpaper}";
+      };
+      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.mako = {
+      enable = true;
+      description = "Notification daemon";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.mako}/bin/mako -c /etc/mako/config";
+      };
+      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.lock-event = {
+      enable = true;
+      description = "Lock Event Handler";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${pkgs.swayidle}/bin/swayidle lock \"${lockCmd}\"";
+      };
+      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.autolock = lib.mkIf cfg.autolock.enable {
+      enable = true;
+      description = "System autolock";
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = ''
+          ${pkgs.swayidle}/bin/swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
+          '${pkgs.chayang}/bin/chayang && ${lockCmd}'
+        '';
+      };
+      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ghaf-session.target" ];
+    };
+
     ghaf.graphics.launchers = [
       {
         name = "Lock";
@@ -257,7 +288,7 @@ in
       }
       {
         name = "Log Out";
-        path = "${ghaf-logout}/bin/ghaf-logout";
+        path = "${pkgs.labwc}/bin/labwc --exit";
         icon = "${pkgs.icon-pack}/system-log-out.svg";
       }
     ];

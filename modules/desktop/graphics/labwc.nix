@@ -109,6 +109,16 @@ in
     # It will create a /etc/pam.d/ file for authentication
     security.pam.services.gtklock = { };
 
+    systemd.user.targets.ghaf-session = {
+      enable = true;
+      description = "Ghaf labwc session";
+      unitConfig = {
+        BindsTo = [ "graphical-session.target" ];
+        After = [ "graphical-session-pre.target" ];
+        Wants = [ "graphical-session-pre.target" ];
+      };
+    };
+
     services.upower.enable = true;
     fonts.fontconfig.defaultFonts.sansSerif = [ "Inter" ];
 
