@@ -62,9 +62,9 @@ let
               name = "guivm";
               directories = [
                 {
-                  directory = "/home/ghaf/";
-                  user = "ghaf";
-                  group = "users";
+                  directory = "/home/${config.ghaf.users.accounts.user}/";
+                  inherit (config.ghaf.users.accounts) user;
+                  group = config.ghaf.users.accounts.user;
                   mode = "u=rwx,g=,o=";
                 }
               ];
