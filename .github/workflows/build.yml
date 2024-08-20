@@ -80,8 +80,8 @@ jobs:
             target: nvidia-jetson-orin-agx-debug-from-x86_64
           - arch: x86_64-linux
             target: nvidia-jetson-orin-nx-debug-from-x86_64
-          - arch: riscv64-linux
-            target: microchip-icicle-kit-debug
+          - arch: x86_64-linux
+            target: microchip-icicle-kit-debug-from-x86_64
           - arch: x86_64-linux
             target: doc
           - arch: aarch64-linux

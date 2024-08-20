@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 { self, ... }:
 {
-  flake.packages.riscv64-linux.hart-software-services =
-    self.nixosConfigurations.microchip-icicle-kit-debug.pkgs.callPackage ./hart-software-services
+  flake.packages.x86_64-linux.hart-software-services =
+    self.nixosConfigurations.microchip-icicle-kit-debug-from-x86_64.pkgs.callPackage
+      ./hart-software-services
       { };
   perSystem =
     {
