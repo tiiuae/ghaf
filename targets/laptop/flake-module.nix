@@ -21,6 +21,7 @@ let
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
           reference.profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-hardened.enable = false;
         };
       }
     ])
@@ -30,6 +31,7 @@ let
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
           reference.profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-hardened.enable = false;
         };
       }
     ])
@@ -59,6 +61,7 @@ let
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
           reference.profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-hardened.enable = false;
         };
       }
     ])
@@ -68,6 +71,7 @@ let
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
           reference.profiles.mvp-user-trial.enable = true;
+          reference.profiles.mvp-hardened.enable = false;
         };
       }
     ])
