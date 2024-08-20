@@ -36,6 +36,32 @@ in
         Directories to bind mount to persistent storage.
       '';
     };
+
+    users = mkOption {
+      type = types.anything;
+      default = { };
+      example = {
+        "user".directories = [
+          "Downloads"
+          "Music"
+          "Pictures"
+          "Documents"
+          "Videos"
+        ];
+      };
+      description = ''
+        User-specific directories to bind mount to persistent storage.
+      '';
+    };
+
+    files = mkOption {
+      type = types.anything;
+      default = [ ];
+      example = [ "/etc/machine-id" ];
+      description = ''
+        Files to bind mount to persistent storage.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -51,10 +77,15 @@ in
       }
     ];
 
-    environment.persistence.${mountPath} = {
-      hideMounts = true;
-      inherit (cfg) directories;
-      # inherit (cfg) directories;
-    };
+    environment.persistence.${mountPath} = lib.mkMerge [
+      {
+        hideMounts = true;
+        files = [
+          "/etc/ssh/ssh_host_ed25519_key.pub"
+          "/etc/ssh/ssh_host_ed25519_key"
+        ];
+      }
+      { inherit (cfg) directories users files; }
+    ];
   };
 }
