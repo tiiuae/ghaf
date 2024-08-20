@@ -31,8 +31,8 @@
     '';
 
     installPhase = ''
-      cp $src/${dtsName} ${kernelPath}/dtbs/
-      cp $out/${dtbName} ${kernelPath}/dtbs/
+      # cp $src/${dtsName} ${kernelPath}/dtbs/
+      # cp $out/${dtbName} ${kernelPath}/dtbs/
     '';
    
     outputs = [ "out" ];
@@ -106,7 +106,7 @@ in {
             # extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
               "-nographic"
               "-no-reboot"
-              "-dtb ${gpioGuestDtb}"  
+              # "-dtb ${gpioGuestDtb}"  
               "-kernel ${guestKernel}"
               "-drive file=${guestRootFs},if=virtio,format=qcow2"
               "-machine virt,accel=kvm"
@@ -121,11 +121,13 @@ in {
       }
     ];
 
+    /* adds dts file usind a patch (don't use for guest)
     boot.kernelPatches = [
       {
         name = "In Gpio-VM add device tree with VDA for host";
         patch = builtins.trace "patch: gpio_vm_dtb_with_vda.patch" ./patches/gpio_vm_dtb_with_vda.patch;
       }
     ];
+    */
   };
 }

@@ -29,21 +29,21 @@ in {
       # Make sure that Gpio-VM runs after the dependency service are enabled
       # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
 
-      /* no overlay when using dtb patch
-        * Note: use qemu.extraArgs for -dtb
+      /* Note: use qemu.extraArgs '-dtb' for guest device tree
+       * this section sets overlay for host device tree
       hardware.deviceTree = builtins.trace "GpioVM: Evaluating hardware.deviceTree for gpio-vm" {
         enable = true;
-        name = builtins.trace "GpioVM: Setting hardware.deviceTree.name" gpioGuestDtbName;
-        # name = builtins.trace "GpioVM: Debugging with ${gpioGuestOrigName}" gpioGuestOrigName;
+        name = builtins.trace "GpioVM: Setting hardware.deviceTree.name" gpioDtbName;
+        # name = builtins.trace "GpioVM: Debugging with ${gpioGuestOrigName}" gpioOrigName;
         overlays = builtins.trace "GpioVM: Setting hardware.deviceTree.overlays" [
           {
-            name = "gpio_pt_guest_overlay";
-            dtsFile = gpioGuestDts;
+            name = "gpio_pt_overlay";
+            dtsFile = gpioDts;
             # filter  = dtbFile;
-            filter = gpioGuestDtbName;
+            filter = gpioDtbName;
           }
         ];
       };
-    */
+      */
     };
 }
