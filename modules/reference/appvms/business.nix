@@ -10,9 +10,10 @@
 let
   #TODO: Move this to a common place
   xdgPdfPort = 1200;
+  name = "business";
 in
 {
-  name = "business";
+  name = "${name}";
   packages =
     let
       # PDF XDG handler is executed when the user opens a PDF file in the browser
@@ -78,8 +79,8 @@ in
       ghaf.reference.programs.chromium.enable = true;
       ghaf.storagevm = {
         enable = true;
-        name = "business";
-        directories = [ "/home/${config.ghaf.users.accounts.user}/.config" ];
+        name = "${name}";
+        users.${config.ghaf.users.accounts.user}.directories = [ ".config" ];
       };
 
       # Set default PDF XDG handler
