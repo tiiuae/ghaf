@@ -31,7 +31,10 @@ writeShellApplication {
 
     if [[ -n "''${GITHUB_STEP_SUMMARY-}" ]]; then
       log() {
+        #Print to the Summary
         echo "$*" >> "$GITHUB_STEP_SUMMARY"
+        #Print to the inline log
+        echo "$*"
       }
     else
       log() {
