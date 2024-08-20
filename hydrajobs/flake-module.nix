@@ -30,12 +30,13 @@ in
     nxp-imx8mp-evk-debug.x86_64-linux = self.packages.aarch64-linux.nxp-imx8mp-evk-debug;
     docs.x86_64-linux = self.packages.x86_64-linux.doc;
     docs.aarch64-linux = self.packages.aarch64-linux.doc;
-    microchip-icicle-kit-debug.x86_64-linux = self.packages.riscv64-linux.microchip-icicle-kit-debug;
-    # Build cross-copmiled images
+    # Build cross-compiled images
     nvidia-jetson-orin-agx-debug-from-x86_64.x86_64-linux =
       self.packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64;
     nvidia-jetson-orin-nx-debug-from-x86_64.x86_64-linux =
       self.packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64;
+    microchip-icicle-kit-debug-from-x86_64.x86_64-linux =
+      self.packages.x86_64-linux.microchip-icicle-kit-debug-from-x86_64;
 
     # Build also cross-compiled images without demo apps
     nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64.x86_64-linux =
