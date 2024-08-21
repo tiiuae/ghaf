@@ -14,7 +14,10 @@
   flake.nixosModules = {
     common.imports = [
       ./common
-      { ghaf.development.nix-setup.nixpkgs = inputs.nixpkgs; }
+      {
+        ghaf.development.nix-setup.nixpkgs = inputs.nixpkgs;
+        nixpkgs.overlays = [ inputs.ghafpkgs.overlays.default ];
+      }
     ];
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
