@@ -1,6 +1,11 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.graphics.boot;
 in
@@ -19,7 +24,7 @@ in
     boot = {
       plymouth = {
         enable = true;
-        logo = ../../../assets/ghaf-logo.png;
+        logo = "${pkgs.ghaf-artwork}/ghaf-logo.png";
       };
       # Hide boot log from user completely
       kernelParams = [

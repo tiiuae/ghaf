@@ -34,7 +34,7 @@ in
     };
     wallpaper = lib.mkOption {
       type = lib.types.path;
-      default = ../../../assets/wallpaper.png;
+      default = "${pkgs.ghaf-artwork}/ghaf-wallpaper.png";
       description = "Path to the wallpaper image";
     };
     frameColouring = lib.mkOption {
@@ -98,7 +98,7 @@ in
     environment.systemPackages =
       [
         pkgs.labwc
-        pkgs.ghaf-openbox-theme
+        pkgs.ghaf-theme
         pkgs.adwaita-icon-theme
 
         (import ./launchers.nix { inherit pkgs config; })
