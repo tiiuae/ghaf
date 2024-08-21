@@ -24,6 +24,7 @@
         windows-launcher = callPackage ./windows-launcher { enableSpice = false; };
         windows-launcher-spice = callPackage ./windows-launcher { enableSpice = true; };
         hardware-scan = callPackage ./hardware-scan { };
+        #ctrl-panel = callPackage self.ctrl-panel.packages.default {};
         doc = callPackage ../docs {
           revision = lib.strings.fileContents ../.version;
           # options = ;

@@ -5,8 +5,7 @@
   lib,
   config,
   ...
-}:
-let
+}: let
   cfg = config.ghaf.graphics.demo-apps;
 
   /*
@@ -14,15 +13,13 @@ let
 
     Type: mkProgramOption ::  string -> bool -> option
   */
-  mkProgramOption =
-    name: default:
+  mkProgramOption = name: default:
     lib.mkOption {
       inherit default;
       type = lib.types.bool;
       description = "Include package ${name} to menu and system environment";
     };
-in
-{
+in {
   options.ghaf.graphics.demo-apps = {
     chromium = mkProgramOption "Chromium browser" false;
     firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
@@ -30,6 +27,7 @@ in
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
     appflowy = mkProgramOption "Appflowy" config.ghaf.graphics.enableDemoApplications;
+    #ctrl-panel = mkProgramOption "Ghaf Control panel" false;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
@@ -63,6 +61,12 @@ in
         name = "AppFlowy";
         path = "${pkgs.appflowy}/bin/appflowy";
         icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
-      };
+      }
+      #++ lib.optional cfg.ctrl-panel {
+      #  name = "Control panel";
+      #  path = "${pkgs.ctrl-panel}/bin/ctrl-panel";
+      #  icon = "${pkgs.icon-pack}/utilities-tweak-tool.svg";
+      #}
+      ;
   };
 }
