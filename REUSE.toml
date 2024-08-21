@@ -117,3 +117,11 @@ SPDX-FileCopyrightText = "Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIAT
 path = [
 	"modules/jetpack/nvidia-jetson-orin/tegra2-mb2-bct-scr.patch",
 ]
+
+
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "Copyright 2019-2021 Microchip Corporation."
+path = [
+	"packages/hart-software-services/0001-Workaround-for-a-compilation-issue.patch",
+]

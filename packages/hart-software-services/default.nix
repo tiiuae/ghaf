@@ -21,6 +21,7 @@ stdenv.mkDerivation (
       sha256 = "sha256-j/nda7//CjJW09zt/YrBy6h+q+VKE5t/ueXxDzwVWQ0=";
     };
 
+    patches = [ ./0001-Workaround-for-a-compilation-issue.patch ];
     depsBuildBuild = [ python3 ];
 
     configurePhase = ''
