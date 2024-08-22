@@ -47,7 +47,7 @@ _:
     };
     pcks11Ta = stdenv.mkDerivation {
       pname = "pkcs11";
-      version = builtins.trace "${l4tVersion}" l4tVersion;
+      version = l4tVersion;
       src = opteeSource;
       nativeBuildInputs = [ (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ])) ];
       makeFlags = [

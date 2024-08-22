@@ -40,6 +40,13 @@ let
           ];
         }
       ];
+      gpiovmExtraModules = [
+        {
+          # The Nvidia Orin hardware dependent configuration is in
+          # modules/jetpack and modules/jetpack-microvm. Please refer to that
+          # section for hardware dependent gpiovm configuration.
+        }
+      ];
       hostConfiguration = lib.nixosSystem {
         inherit system;
 
