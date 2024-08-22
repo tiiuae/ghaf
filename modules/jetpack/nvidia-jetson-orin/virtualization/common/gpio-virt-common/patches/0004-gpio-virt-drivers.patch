@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-08-01 14:32:02.521803787 +0000
++++ b/drivers/Makefile	2024-08-21 13:49:53.790436310 +0000
 @@ -193,0 +194,5 @@
 +#
 +#

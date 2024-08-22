@@ -5,10 +5,11 @@
   config,
   ...
 }: let
-  cfg = config.ghaf.hardware.nvidia.virtualization.host.gpio;
+  cfg = config.ghaf.hardware.nvidia.virtualization;
 in {
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = builtins.trace "kernelPatches GPIO Virtualization" [
+      /*
       {
         name = "Added Configurations to Support GPIO passthrough";
         patch = null;
@@ -74,43 +75,18 @@ in {
           PINCTRL_TEGRA = lib.mkDefault lib.kernel.yes;
         };
       }
-      /* This patch is not needed because of kernel.bootParams
-      {
-        name = "Vfio_platform Reset Required False";
-        patch = ./patches/0002-vfio_platform-reset-required-false.patch;
-      }
       */
 
       # patching the kernel for GPIO passthrough
       {
-        name = "GPIO Support Virtualization";
-        patch = builtins.trace "GPIO Support Virtualization" ./patches/0003-gpio-virt-kernel.patch;
+        name = "GPIO Virtualization";
+        patch = builtins.trace "GPIO Virtualization (patch kernel)" ./patches/0003-gpio-virt-kernel.patch;
       }
       # patching the custom GPIO kernel modules
       {
         name = "GPIO Virt Drivers";
-        patch = builtins.trace "GPIO Virt Drivers" ./patches/0004-gpio-virt-drivers.patch;
+        patch = builtins.trace "GPIO Virt Drivers (patch kernel modules)" ./patches/0004-gpio-virt-drivers.patch;
       }
-      /*
-      # the driver is implemeted as an overlay file not a patch file -- don't use patch file
-      {
-        name = "GPIO Overlay";
-        patch = ./patches/0005-gpio-overlay.patch;       # source file patch
-      }
-      # gpio PT works with this defconfig. Remove to use extraStructuredConfig instead
-      {  
-        name = "GPIO defconfig";
-        patch = ./patches/0006-defconfig-kernel.patch;
-      }
-      */
-    ];
-
-    /* iommu is not needed for GPIO passthrough */
-    boot.kernelParams = [ 
-      "iommu=pt"
-      "vfio.enable_unsafe_noiommu_mode=0"
-      "vfio_iommu_type1.allow_unsafe_interrupts=1"
-      "vfio_platform.reset_required=0"
     ];
   };
 }

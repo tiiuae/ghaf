@@ -50,12 +50,14 @@ mv gpio-virt/drivers/tmp_Makefile gpio-virt/drivers/Makefile
 # dont use ${empty} -- instead diff against merged files
 
 # diff Makefile and Kconfig 
+[ -f ${ghaf}/raw_MK_drivers.patch ] && rm ${ghaf}/raw_MK_drivers.patch
 #git -C kernel-5.10/ diff -- drivers/Makefile ../gpio-virt/drivers/Makefile   >${ghaf}/raw_MK_drivers.patch
 git -C kernel-5.10/ diff -- drivers/Kconfig ../gpio-virt/drivers/Kconfig    >>${ghaf}/raw_MK_drivers.patch
 # remove path to gpio-virt
 sed -i -e's/..\/gpio-virt\///' ${ghaf}/raw_MK_drivers.patch
 
 # make hacked -u0 diff for Makefile and Kconfig
+[ -f ${ghaf}/raw_u0_MK_drivers ] && rm ${ghaf}/raw_u0_MK_drivers
 echo "diff --git a/drivers/Makefile b/drivers/Makefile"            >${ghaf}/raw_u0_MK_drivers.patch
 diff -u0 kernel-5.10/drivers/Makefile gpio-virt/drivers/Makefile  >>${ghaf}/raw_u0_MK_drivers.patch
 #echo "diff --git a/drivers/Kconfig b/drivers/Kconfig"             >>${ghaf}/raw_u0_MK_drivers.patch
@@ -74,11 +76,11 @@ mv /tmp/original_Makefile gpio-virt/drivers/Makefile
 # ------
 
 # 0003-gpio-virt-kernel.patch    # exclude /drive/Kconfig and drive/Makefile
-git -C kernel-5.10/ diff basepoint -- drivers/gpio/ \
+git -C kernel-5.10/ diff jetson_35.4.1 -- drivers/gpio/ \
 	>${patchdir}/0003-gpio-virt-kernel.patch
-git -C kernel-5.10/ diff basepoint -- drivers/pinctrl/ \
+git -C kernel-5.10/ diff jetson_35.4.1 -- drivers/pinctrl/ \
 	>>${patchdir}/0003-gpio-virt-kernel.patch
-git -C kernel-5.10/ diff basepoint -- include/ \
+git -C kernel-5.10/ diff jetson_35.4.1 -- include/ \
 	>>${patchdir}/0003-gpio-virt-kernel.patch
 
 # ------
@@ -99,16 +101,16 @@ rm ${ghaf}/raw_MK_drivers.patch ${ghaf}/raw_u0_MK_drivers.patch
 # ------
 
 # 0005-gpio-overlay.patch       # included in raw-kernel.patch -- not needed because we do not use overlay
-git -C kernel-5.10/ diff basepoint -- "kernel*overlays.txt" \
+git -C kernel-5.10/ diff jetson_35.4.1 -- "kernel*overlays.txt" \
 	>${patchdir}/0005-gpio-overlay.patch
 
 # ------
 
-# 0006-defconfig-kernel.patch   # included in raw-kernel.patch
-git -C kernel-5.10/ diff basepoint -- "arch/arm64/configs/defconfig" \
-	>${patchdir}/0006-defconfig-kernel.patch
-
-# ------
+# # 0006-defconfig-kernel.patch   # included in raw-kernel.patch
+# git -C kernel-5.10/ diff jetson_35.4.1 -- "arch/arm64/configs/defconfig" \
+# 	>${patchdir}/0006-defconfig-kernel.patch
+# 
+# # ------
 
 # build ghaf
 cd ${ghaf}

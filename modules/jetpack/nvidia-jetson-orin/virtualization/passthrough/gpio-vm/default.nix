@@ -90,6 +90,7 @@ in {
 
   config = lib.mkIf cfg.enable {
     ghaf.hardware.nvidia.virtualization.enable = true;
+
     ghaf.virtualization.microvm.gpiovm.extraModules =
     builtins.trace "GpioVM: (in default.nix) ghaf.virtualization.microvm.gpiovm.extraModules"
     [
@@ -104,23 +105,25 @@ in {
             serialConsole = true;
             extraArgs = [
             # extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
+              "-sandbox" "on"
               "-nographic"
               "-no-reboot"
-              # "-dtb ${gpioGuestDtb}"  
-              "-kernel ${guestKernel}"
-              "-drive file=${guestRootFs},if=virtio,format=qcow2"
-              "-machine virt,accel=kvm"
-              "-cpu host"
-              "-m 2G"
-              "-smp 2"
-              "-serial pty"
-              "-net user,hostfwd=tcp::2222-:22 -net nic"
+              "-dtb" "${gpioGuestDtb}"
+              "-kernel" "${guestKernel}"
+              "-drive" "file=${guestRootFs},if=virtio,format=qcow2"
+              "-machine" "virt,accel=kvm"
+              "-cpu" "host"
+              "-m" "2G"
+              "-smp" "2"
+              "-serial" "pty"
+              "-net" "user,hostfwd=tcp::2222-:22"
+              "-net" "nic"
             ];
           };
         };
       }
     ];
-
+    
     /* adds dts file usind a patch (don't use for guest)
     boot.kernelPatches = [
       {
