@@ -84,6 +84,7 @@ let
               (rmDesktopEntries [
                 pkgs.waypipe
                 pkgs.networkmanagerapplet
+                pkgs.eww
               ])
               ++ [
                 pkgs.nm-launcher
