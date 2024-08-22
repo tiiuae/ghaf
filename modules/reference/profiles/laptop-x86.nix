@@ -7,26 +7,26 @@
   ...
 }:
 let
-  powerControl = pkgs.callPackage ../../packages/powercontrol { };
-  cfg = config.ghaf.profiles.laptop-x86;
+  powerControl = pkgs.callPackage ../../../packages/powercontrol { };
+  cfg = config.ghaf.reference.profiles.laptop-x86;
   listenerAddress = config.ghaf.logging.listener.address;
   listenerPort = toString config.ghaf.logging.listener.port;
 in
 {
   imports = [
-    ../desktop/graphics
-    ../common
-    ../host
+    ../../desktop/graphics
+    ../../common
+    ../../host
     #TODO how to reference the miocrovm module here?
     #self.nixosModules.microvm
     #../microvm
-    ../hardware/x86_64-generic
-    ../hardware/common
-    ../hardware/definition.nix
-    ../lanzaboote
+    ../../hardware/x86_64-generic
+    ../../hardware/common
+    ../../hardware/definition.nix
+    ../../lanzaboote
   ];
 
-  options.ghaf.profiles.laptop-x86 = {
+  options.ghaf.reference.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
 
     netvmExtraModules = lib.mkOption {
@@ -121,7 +121,8 @@ in
       # Logging configuration
       logging.client.enable = true;
       logging.client.endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
-      logging.listener.address = "admin-vm-debug";
+      logging.listener.address =
+        "admin-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug";
       logging.listener.port = 9999;
     };
   };

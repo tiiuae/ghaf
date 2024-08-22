@@ -23,8 +23,9 @@
     jetpack-microvm.imports = [ ./jetpack-microvm ];
     lanzaboote.imports = [ ./lanzaboote ];
     polarfire.imports = [ ./polarfire ];
-    profiles.imports = [ ./profiles ];
     reference-appvms.imports = [ ./reference/appvms ];
+    reference-personalize.imports = [ ./reference/personalize ];
+    reference-profiles.imports = [ ./reference/profiles ];
     reference-programs.imports = [ ./reference/programs ];
     reference-services.imports = [ ./reference/services ];
   };

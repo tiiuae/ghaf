@@ -34,21 +34,15 @@ let
             wirelessRegulatoryDatabase = true;
           };
 
-        services.dnsmasq.settings.dhcp-option = [
-          "option:router,192.168.100.1" # set net-vm as a default gw
-          "option:dns-server,192.168.100.1"
-        ];
-      }
-    ];
-    gpiovmExtraModules = [
-      {
-        # The Nvidia Orin hardware dependent configuration is in
-        # modules/jetpack and modules/jetpack-microvm. Please refer to that
-        # section for hardware dependent gpiovm configuration.
-      }
-    ];
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
+          services.dnsmasq.settings.dhcp-option = [
+            "option:router,192.168.100.1" # set net-vm as a default gw
+            "option:dns-server,192.168.100.1"
+          ];
+        }
+      ];
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+
         modules = [
           (nixos-generators + "/format-module.nix")
           ../../modules/jetpack/nvidia-jetson-orin/format-module.nix
@@ -60,6 +54,7 @@ let
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
           self.nixosModules.reference-programs
+          self.nixosModules.reference-personalize
 
           {
             ghaf = {
@@ -109,9 +104,11 @@ let
                 applications.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
+                graphics.renderer = "gles2";
               };
               reference.programs.windows-launcher.enable = true;
-              graphics.labwc.renderer = "egl2";
+              reference.personalize.keys.enable = variant == "debug";
+
               # To enable screen locking set to true
               graphics.labwc.autolock.enable = false;
             };

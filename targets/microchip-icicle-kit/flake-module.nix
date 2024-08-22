@@ -22,6 +22,7 @@ let
           self.nixosModules.common
           self.nixosModules.host
           self.nixosModules.polarfire
+          self.nixosModules.reference-personalize
 
           {
             boot = {
@@ -42,6 +43,7 @@ let
                 ssh.daemon.enable = true;
               };
               firewall.kernel-modules.enable = true;
+              reference.personalize.keys.enable = variant == "debug";
             };
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";
@@ -59,7 +61,7 @@ let
     in
     {
       inherit hostConfiguration;
-      name = "${name}-${variant}";
+      name = "${name}-${variant}-from-x86_64";
       package = hostConfiguration.config.system.build.sdImage;
     };
 
@@ -74,7 +76,7 @@ in
       map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
     packages = {
-      riscv64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      x86_64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
     };
   };
 }

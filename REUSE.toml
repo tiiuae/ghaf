@@ -1,0 +1,127 @@
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+version = 1
+
+SPDX-PackageName = "ghaf"
+SPDX-PackageSupplier = "Technology Innovation Institute <https://tii.ae>"
+SPDX-PackageDownloadLocation = "https://github.com/tiiuae/ghaf"
+
+[[annotations]]
+SPDX-License-Identifier = "Apache-2.0"
+SPDX-FileCopyrightText = "2022-2024 TII (SSRC) and the Ghaf contributors"
+precedence = "closest"
+path = [
+	"flake.lock", ".version",
+	"assets/**/*.png", "assets/**/*.svg",
+	"modules/common/development/audio_test/test_file1.mp3",
+	"modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86",
+	"modules/jetpack/ghaf_host_hardened_baseline-jetson-orin",
+	"modules/lanzaboote/demo-secure-boot-keys/**/*",
+	"modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/*",
+]
+
+[[annotations]]
+SPDX-License-Identifier = "CC-BY-SA-4.0"
+SPDX-FileCopyrightText = "2022-2024 TII (SSRC) and the Ghaf contributors"
+precedence = "closest"
+path = [
+	"docs/**/*.svg", "docs/**/*.png",
+]
+
+# External code
+
+[[annotations]]
+# See https://github.com/qemu/qemu/blob/master/LICENSE
+# Our changes affects the GPL-2.0+ parts only.
+SPDX-License-Identifier = "GPL-2.0-or-later"
+SPDX-FileCopyrightText = [
+	"Fabrice Bellard and the QEMU team",
+	"Copyright (c) 2021-2022 Canokeys.org <contact@canokeys.org>",
+	"Written by Hongren (Zenithal) Zheng <i@zenithal.me>",
+	"Copyright (c) 2019 Janus Technologies, Inc. (http://janustech.com)",
+	"Copyright (C) 2008-2010  Kevin O'Connor <kevin@koconnor.net>",
+	"Copyright (C) 2006 Fabrice Bellard",
+	"Copyright (C) 2013 Red Hat Inc",
+]
+path = [
+	"overlays/custom-packages/qemu/*.patch",
+	"modules/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-qemu-v8.1.3_bpmp-virt.patch"
+]
+
+[[annotations]]
+SPDX-License-Identifier = "GPL-2.0-only"
+SPDX-FileCopyrightText = "labwc contributors"
+path = "overlays/custom-packages/labwc/*.patch"
+
+[[annotations]]
+# gtklock doesn't specify if later versions is allowed
+SPDX-License-Identifier = "GPL-3.0-only"
+SPDX-FileCopyrightText = [
+	"Copyright (c) 2022 Kenny Levinsen, Jovan Lanik, Erik Reider, Melih Darcan, Bhaskar Khoraja",
+	"Copyright (c) 2022 Zephyr Lykos"
+]
+path = "overlays/custom-packages/gtklock/*.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "LGPL-2.1-or-later"
+SPDX-FileCopyrightText = "systemd contributors"
+path = "modules/common/systemd/systemd-boot-double-dtb-buffer-size.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "Copyright © 2019 Manuel Stoeckl"
+path = "overlays/custom-packages/waypipe/waypipe-window-borders.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "Apache-2.0"
+SPDX-FileCopyrightText = "Copyright 2023 The Matrix.org Foundation C.I.C."
+path = "packages/element-web/*.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "Apache-2.0"
+SPDX-FileCopyrightText = [
+	"Copyright 2016 Aviral Dasgupta",
+	"Copyright 2016 OpenMarket Ltd",
+	"Copyright 2017, 2019 Michael Telatynski <7t3chguy@gmail.com>",
+	"Copyright 2018 - 2021 New Vector Ltd",
+]
+path = "overlays/custom-packages/element-desktop/element-main.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "GPL-2.0-only"
+SPDX-FileCopyrightText = [
+	"Copyright (C) 2013 - Virtual Open Systems",
+	"Copyright (c) 2016, NVIDIA CORPORATION.  All rights reserved.",
+	"Copyright (c) 2018, NVIDIA CORPORATION.",
+	"Copyright (C) 2006 Qumranet, Inc.",
+	"Copyright 2010 Red Hat, Inc. and/or its affiliates.",
+	"2022-2024 TII (SSRC) and the Ghaf contributors",
+]
+path = [
+	"modules/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/*.patch",
+	"modules/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/patches/*.patch",
+	"modules/jetpack-microvm/*.patch",
+	"modules/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
+	"modules/common/virtualization/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
+]
+
+[[annotations]]
+SPDX-License-Identifier = "BSD-2-Clause-Patent"
+SPDX-FileCopyrightText = "Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+path = "modules/jetpack/nvidia-jetson-orin/edk2-nvidia-always-reset-display.patch"
+
+[[annotations]]
+SPDX-License-Identifier = "LicenseRef-NvidiaProprietary"
+SPDX-FileCopyrightText = "Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved."
+path = [
+	"modules/jetpack/nvidia-jetson-orin/tegra2-mb2-bct-scr.patch",
+]
+
+
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "Copyright 2019-2021 Microchip Corporation."
+path = [
+	"packages/hart-software-services/0001-Workaround-for-a-compilation-issue.patch",
+]

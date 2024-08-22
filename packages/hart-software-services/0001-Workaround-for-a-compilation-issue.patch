@@ -1,0 +1,16 @@
+diff --git a/application/rules.mk b/application/rules.mk
+index ff3905e..f663089 100644
+--- a/application/rules.mk
++++ b/application/rules.mk
+@@ -113,7 +113,7 @@ ifdef CONFIG_CC_STACKPROTECTOR_STRONG
+   # CORE_CFLAGS+=-fstack-clash-protection  # currently does nothing on RISC-V
+ else
+   $(info INFO: NOTICE: enabling -flto (which means stack protection is disabled))
+-  OPT-y+=-flto=auto -ffat-lto-objects -fcompare-debug -fno-stack-protector
++  OPT-y+=-flto=auto -ffat-lto-objects -fno-stack-protector
+ endif
+ 
+ ##############################################################################
+-- 
+2.42.0
+

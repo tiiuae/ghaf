@@ -1,7 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  authorizedKeys = [
+  authorizedSshKeys = [
     # Add your SSH Public Keys here
     # NOTE: adding your pub ssh key here will make accessing and "nixos-rebuild switching" development mode
     # builds easy but still secure. Given that you protect your private keys. Do not share your keypairs across hosts.
@@ -20,6 +20,7 @@
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAHVXc4s7e8j1uFsgHPBzpWvSI/hk5Zf6Btuj79D4hf3 tervis@tervis-servu"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIM3w7NzqMuF+OAiIcYWyP9+J3kwvYMKQ+QeY9J8QjAXm shamma-alblooshi@tii.ae"
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAILnTMRhhsaZKKL1fwyXE6kRJkiTJwJxI4WoTAkUM99nV kisandst@kim-nvidia"
+    "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB/iv9RWMN6D9zmEU85XkaU8fAWJreWkv3znan87uqTW humaid@tahr"
 
     # For ghaf-installer automated testing:
     "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAolaKCuIUBQSBFGFZI1taNX+JTAr8edqUts7A6k2Kv7"

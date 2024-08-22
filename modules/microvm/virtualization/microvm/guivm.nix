@@ -150,7 +150,6 @@ let
           systemd.user.services.waypipe = {
             enable = true;
             description = "waypipe";
-            after = [ "labwc.service" ];
             serviceConfig = {
               Type = "simple";
               ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
@@ -158,6 +157,7 @@ let
               RestartSec = "1";
             };
             startLimitIntervalSec = 0;
+            partOf = [ "ghaf-session.target" ];
             wantedBy = [ "ghaf-session.target" ];
           };
         }

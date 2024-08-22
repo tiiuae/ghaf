@@ -5,22 +5,22 @@
 # packages.
 #
 (final: prev: {
-  gala-app = final.callPackage ../../packages/gala {};
-  element-desktop = import ./element-desktop {inherit prev;};
-  element-gps = final.callPackage ../../packages/element-gps {};
-  element-web = final.callPackage ../../packages/element-web {};
-  waypipe = import ./waypipe {inherit final prev;};
-  # qemu_kvm = import ./qemu {inherit final prev;};
+  gala-app = final.callPackage ../../packages/gala { };
+  element-desktop = import ./element-desktop { inherit prev; };
+  element-gps = final.callPackage ../../packages/element-gps { };
+  element-web = final.callPackage ../../packages/element-web { };
+  waypipe = import ./waypipe { inherit final prev; };
   # qemu_gpio = import ./qemu/gpio-qemu.nix {inherit final prev;};
   # we have to patch qemu_kvm directly ... for now
   qemu_kvm = import ./qemu/gpio-qemu.nix {inherit final prev;};   # hack to patch qemu for gpio
-  nm-launcher = final.callPackage ../../packages/nm-launcher {};
-  icon-pack = final.callPackage ../../packages/icon-pack {};
-  ghaf-openbox-theme = final.callPackage ../../packages/ghaf-openbox-theme {};
-  labwc = import ./labwc {inherit prev;};
-  tpm2-pkcs11 = import ./tpm2-pkcs11 {inherit prev;};
-  waybar = import ./waybar {inherit prev;};
-  mitmweb-ui = final.callPackage ../../packages/mitmweb-ui {};
-  gtklock = import ./gtklock {inherit prev;};
-  hardware-scan = final.callPackage ../../packages/hardware-scan {};
+  # qemu_kvm = import ./qemu { inherit final prev; };
+  nm-launcher = final.callPackage ../../packages/nm-launcher { };
+  icon-pack = final.callPackage ../../packages/icon-pack { };
+  ghaf-openbox-theme = final.callPackage ../../packages/ghaf-openbox-theme { };
+  labwc = import ./labwc { inherit prev; };
+  tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
+  waybar = import ./waybar { inherit prev; };
+  mitmweb-ui = final.callPackage ../../packages/mitmweb-ui { };
+  gtklock = import ./gtklock { inherit prev; };
+  hardware-scan = final.callPackage ../../packages/hardware-scan { };
 })

@@ -7,7 +7,7 @@
     ./waybar.config.nix
     ./demo-apps.nix
     ./fonts.nix
-    ./window-manager.nix
+    ./login-manager.nix
     ./boot.nix
   ];
 }
