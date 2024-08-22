@@ -31,6 +31,15 @@ in
         keep-derivations = true;
       };
 
+      # avoid scenario where the host rootfs gets filled
+      # with nixos-rebuild ... switch generated excess
+      # generations and becomes unbootable
+      gc = {
+        automatic = true;
+        dates = "daily";
+        options = "--delete-older-than 3d";
+      };
+
       # Set the path and registry so that e.g. nix-shell and repl work
       nixPath = lib.mkIf (cfg.nixpkgs != null) [ "nixpkgs=${cfg.nixpkgs}" ];
 
