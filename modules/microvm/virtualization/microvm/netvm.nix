@@ -85,6 +85,11 @@ let
 
           services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
+          # WORKAROUND: Create a rule to temporary hardcode device name for Wi-Fi adapter
+          services.udev.extraRules = ''
+            SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).vendorId}", ATTRS{device}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).productId}", NAME="${(lib.head config.ghaf.hardware.definition.network.pciDevices).name}"
+          '';
+
           microvm = {
             optimize.enable = true;
             hypervisor = "qemu";
