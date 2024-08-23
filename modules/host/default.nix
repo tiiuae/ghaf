@@ -3,7 +3,7 @@
 #
 # Modules that should be only imported to host
 #
-{ lib, ... }:
+{ lib, pkgs, ... }:
 {
   networking.hostName = lib.mkDefault "ghaf-host";
 
@@ -15,4 +15,8 @@
     # To push logs to central location
     ../common/logging/client.nix
   ];
+  virtualisation.libvirtd = {
+    enable = true;
+    qemu.ovmf.packages = [ pkgs.OVMFFull ];
+  };
 }
