@@ -15,16 +15,10 @@
     kernelConfig.kernelParams = [
       "intel_iommu=on,sm_on"
       "iommu=pt"
-      "module_blacklist=i915" # Prevent i915 module from being accidentally used by host
+      "module_blacklist=i915,xe,drm_gpuvm" # Prevent modules from being accidentally used by host
       "acpi_backlight=vendor"
       "acpi_osi=linux"
-      "xe.force_probe='a7a1'"
-      "i915.force_probe='!a7a1'"
     ];
-    # [    8.569240] xe 0000:00:02.0: Your graphics device a7a1 is not officially supported
-    # by xe driver in this kernel version. To force Xe probe,
-    # use xe.force_probe='a7a1' and i915.force_probe='!a7a1'
-    # module parameters
   };
 
   input = {
