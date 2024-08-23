@@ -33,8 +33,6 @@ let
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
-                # Enable below option for host hardening features
-                host-hardening.enable = false;
               };
             };
           })
