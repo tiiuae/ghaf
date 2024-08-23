@@ -7,5 +7,6 @@
   imports = [
     ./laptop-x86.nix
     ./mvp-user-trial.nix
+    ./mvp-user-trial-extras.nix
   ];
 }

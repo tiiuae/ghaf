@@ -18,6 +18,8 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      graphics.labwc.autolock.enable = false;
+
       reference = {
         appvms = {
           enable = true;
@@ -32,13 +34,6 @@ in
         services = {
           enable = true;
           dendrite = true;
-        };
-
-        programs = {
-          windows-launcher = {
-            enable = false;
-            spice = false;
-          };
         };
 
         personalize = {

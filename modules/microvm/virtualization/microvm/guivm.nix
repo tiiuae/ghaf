@@ -39,8 +39,13 @@ let
               applications.enable = false;
               graphics.enable = true;
             };
+
             # To enable screen locking set to true
-            graphics.labwc.autolock.enable = false;
+            graphics.labwc = {
+              autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
+              autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
+            };
+
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
