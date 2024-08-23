@@ -194,12 +194,11 @@ let
     name = "labwc-session";
 
     runtimeInputs = [
-      #pkgs.labwc
+      pkgs.labwc
       autostart
     ];
 
-    #text = "labwc -C /etc/labwc -s labwc-autostart";
-    text = "hyprland";
+    text = "labwc -C /etc/labwc -s labwc-autostart";
   };
 in
 {

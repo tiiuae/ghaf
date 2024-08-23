@@ -97,8 +97,7 @@ in
 
     environment.systemPackages =
       [
-        pkgs.hyprland
-        #pkgs.labwc
+        pkgs.labwc
         pkgs.ghaf-openbox-theme
         pkgs.adwaita-icon-theme
 
