@@ -89,7 +89,7 @@
     ];
     kernelConfig = {
       stage1.kernelModules = [ "i915" ];
-      kernelParams = [ "earlykms" ];
+      kernelParams = [ "earlykms" "xe.force_probe='a7a1'" "i915.force_probe='!a7a1'" ];
     };
   };
 

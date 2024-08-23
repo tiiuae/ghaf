@@ -11,6 +11,7 @@ let
   macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
+
     imports = [
       (import ./common/vm-networking.nix {
         inherit
@@ -211,9 +212,7 @@ in
     microvm.vms."${vmName}" = {
       autostart = true;
       config = guivmBaseConfiguration // {
-        boot.kernelPackages = lib.mkIf config.ghaf.guest.kernel.hardening.graphics.enable (
-          pkgs.linuxPackagesFor guest_graphics_hardened_kernel
-        );
+        boot.kernelPackages = config.boot.zfs.package.latestCompatibleLinuxPackages;
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
