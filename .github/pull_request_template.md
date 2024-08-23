@@ -29,9 +29,14 @@ Summary of the proposed changes in the PR description in your own words. For dep
 
 <!-- Additional description of omitted [ ] items if not obvious. -->
 
-## Testing
+## Instructions for Testing
 
-<!--
-How this was tested by the author? How is this supposed to be tested
-by people doing system testing?
--->
+- [ ] List all targets that this applies to
+
+
+- [ ] Is this a new feature
+  - [ ] List the test steps to verify
+
+
+- [ ] If it is an improvement how does it impact existing functionality?
+
