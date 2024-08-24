@@ -27,7 +27,7 @@ let
           macAddress
           ;
         internalIP = 1;
-        gateway = [ ];
+        isGateway = true;
       })
       # To push logs to central location
       ../../../common/logging/client.nix

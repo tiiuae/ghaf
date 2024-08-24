@@ -6,11 +6,17 @@
   vmName,
   macAddress,
   internalIP,
-  gateway ? [ "192.168.100.1" ],
+  isGateway ? false,
   ...
 }:
 let
   networkName = "ethint0";
+  netVmEntry = builtins.filter (x: x.name == "net-vm") config.ghaf.networking.hosts.entries;
+  netVmAddress = builtins.map (x: x.ip) netVmEntry;
+  isIdsvmEnabled = config.ghaf.virtualization.microvm.idsvm.enable;
+  idsVmEntry = builtins.filter (x: x.name == "ids-vm") config.ghaf.networking.hosts.entries;
+  idsVmAddress = lib.optionals isIdsvmEnabled (builtins.map (x: x.ip) idsVmEntry);
+  gateway = if isIdsvmEnabled && (vmName != "ids-vm") then idsVmAddress else netVmAddress;
 in
 {
   networking = {
@@ -53,7 +59,7 @@ in
         ];
       linkConfig.RequiredForOnline = "routable";
       linkConfig.ActivationPolicy = "always-up";
-    } // lib.optionalAttrs (gateway != [ ]) { inherit gateway; };
+    } // lib.optionalAttrs (!isGateway) { inherit gateway; };
   };
 
   # systemd-resolved does not support local names resolution

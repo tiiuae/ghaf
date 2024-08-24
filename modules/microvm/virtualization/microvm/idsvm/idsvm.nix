@@ -45,7 +45,7 @@ let
           nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
           nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-          microvm.hypervisor = "cloud-hypervisor";
+          microvm.hypervisor = "qemu";
 
           environment.systemPackages = [
             pkgs.snort # TODO: put into separate module
