@@ -162,8 +162,9 @@ in
            add_rule 52.123.0.0/16
 
 
-           # Allow VPN access.tii.ae only
+           # Allow VPN access.tii.ae and iservice
            add_rule 151.253.154.18
+           add_rule 10.161.10.120
 
            # To be checked
            # Allow res.cdn.office.net
