@@ -96,6 +96,10 @@ let
                 abrmd.enable = true;
               };
 
+              security.pki.certificateFiles =
+                lib.mkIf configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
+                  [ ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem ];
+
               microvm = {
                 optimize.enable = false;
                 mem = vm.ramMb;
