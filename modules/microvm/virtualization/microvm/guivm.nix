@@ -104,6 +104,8 @@ let
               ++ [
                 pkgs.nm-launcher
                 pkgs.pamixer
+                pkgs.glxinfo
+                pkgs.mesa-demos
               ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
@@ -227,9 +229,7 @@ in
     microvm.vms."${vmName}" = {
       autostart = true;
       config = guivmBaseConfiguration // {
-        boot.kernelPackages = lib.mkIf config.ghaf.guest.kernel.hardening.graphics.enable (
-          pkgs.linuxPackagesFor guest_graphics_hardened_kernel
-        );
+        boot.kernelPackages = pkgs.linuxPackages_latest;
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
