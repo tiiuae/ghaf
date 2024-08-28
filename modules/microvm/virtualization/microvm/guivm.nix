@@ -13,6 +13,7 @@ let
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
+      inputs.nixos-cosmic.nixosModules.default
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc-guivm
       (import ./common/vm-networking.nix {
@@ -38,6 +39,7 @@ let
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               applications.enable = false;
               graphics.enable = true;
+              graphics.compositor = lib.mkForce "cosmic";
             };
 
             # To enable screen locking set to true
@@ -78,6 +80,9 @@ let
               ];
             };
           };
+
+          services.desktopManager.cosmic.enable = true;
+          services.displayManager.cosmic-greeter.enable = true;
 
           systemd.services."waypipe-ssh-keygen" =
             let
