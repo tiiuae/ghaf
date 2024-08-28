@@ -18,6 +18,11 @@ in
       default = { };
       description = "Extra qemu arguments for GuiVM";
     };
+    audiovm = mkOption {
+      type = types.attrs;
+      default = { };
+      description = "Extra qemu arguments for AudioVM";
+    };
   };
 
   config = {
@@ -40,6 +45,9 @@ in
           "-device"
           "pcie-root-port,bus=pcie.0,id=${config.ghaf.hardware.usb.vhotplug.pcieBusPrefix}${toString n},chassis=${toString n}"
         ]) (lib.range 1 config.ghaf.hardware.usb.vhotplug.pciePortCount);
+    };
+    ghaf.qemu.audiovm = optionalAttrs (hasAttr "hardware" config.ghaf) {
+      microvm.qemu.extraArgs = optionals (hasAttr "bt0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.bt0;
     };
   };
 }

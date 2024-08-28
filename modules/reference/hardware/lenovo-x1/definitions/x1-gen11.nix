@@ -140,6 +140,11 @@
         hostbus = "3";
         hostport = "6";
       }
+      {
+        name = "bt0";
+        hostbus = "3";
+        hostport = "10";
+      }
     ];
     external = [
       {

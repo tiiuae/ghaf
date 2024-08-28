@@ -117,7 +117,6 @@ let
             ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
           };
 
-          # Fixed IP-address for debugging subnet
           # SSH is very picky about to file permissions and ownership and will
           # accept neither direct path inside /nix/store or symlink that points
           # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
@@ -125,15 +124,6 @@ let
           environment.etc = lib.mkIf isGuiVmEnabled {
             ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
           };
-
-          systemd.network.networks."10-ethint0".addresses =
-            let
-              getAudioVmEntry = builtins.filter (
-                x: x.name == "audio-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug"
-              ) config.ghaf.networking.hosts.entries;
-              ip = lib.head (builtins.map (x: x.ip) getAudioVmEntry);
-            in
-            [ { Address = "${ip}/24"; } ];
         }
       )
     ];
