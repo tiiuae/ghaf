@@ -10,6 +10,7 @@
 }:
 let
   icons = [
+    "bluetooth-48.svg"
     "chromium.svg"
     "distributor-logo-android.svg"
     "distributor-logo-windows.svg"

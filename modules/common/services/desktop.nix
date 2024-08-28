@@ -125,6 +125,12 @@ in
             }
 
             {
+              name = "Bluetooth Settings";
+              path = "${pkgs.bt-launcher}/bin/bt-launcher";
+              icon = "${pkgs.icon-pack}/bluetooth-48.svg";
+            }
+
+            {
               name = "Shutdown";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";
               icon = "${pkgs.icon-pack}/system-shutdown.svg";
