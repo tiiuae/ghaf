@@ -4,6 +4,7 @@
   coreutils,
   util-linux,
   hwinfo,
+  ncurses,
   writeShellApplication,
   zstd,
 }:
@@ -14,6 +15,7 @@ writeShellApplication {
     util-linux
     zstd
     hwinfo
+    ncurses # Needed for `clear` command
   ];
   text = builtins.readFile ./ghaf-installer.sh;
 }
