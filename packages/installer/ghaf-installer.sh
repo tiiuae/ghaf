@@ -33,7 +33,8 @@ while getopts "w" opt; do
   esac
 done
 
-clear
+# Fails when TERM=`dumb`.
+clear || true
 
 cat <<"EOF"
   ,----..     ,---,
