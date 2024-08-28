@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ impermanence }:
+{ inputs }:
 {
   config,
   lib,
@@ -13,6 +13,8 @@ let
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
+      inputs.impermanence.nixosModules.impermanence
+      inputs.self.nixosModules.givc-guivm
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -23,7 +25,7 @@ let
         internalIP = 3;
       })
 
-      (import ./common/storagevm.nix { inherit impermanence; })
+      ./common/storagevm.nix
 
       # To push logs to central location
       ../../../common/logging/client.nix
@@ -54,6 +56,7 @@ let
               withDebug = config.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
+            givc.guivm.enable = true;
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;

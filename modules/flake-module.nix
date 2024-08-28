@@ -9,6 +9,7 @@
     ./disko/flake-module.nix
     ./hardware/flake-module.nix
     ./microvm/flake-module.nix
+    ./givc/flake-module.nix
   ];
 
   flake.nixosModules = {

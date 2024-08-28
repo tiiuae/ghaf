@@ -3,6 +3,27 @@
     "crane": {
       "inputs": {
         "nixpkgs": [
+          "givc",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1720975002,
+        "narHash": "sha256-1i521ecK2MFg+lxSk9oRx/C0SsdlI6GS6eYT79nA6TA=",
+        "owner": "ipetkov",
+        "repo": "crane",
+        "rev": "1791a5b98d2c1bf143ad85469abcfa2426f3f087",
+        "type": "github"
+      },
+      "original": {
+        "owner": "ipetkov",
+        "repo": "crane",
+        "type": "github"
+      }
+    },
+    "crane_2": {
+      "inputs": {
+        "nixpkgs": [
           "lanzaboote",
           "nixpkgs"
         ]
@@ -223,6 +244,42 @@
         "type": "github"
       }
     },
+    "givc": {
+      "inputs": {
+        "crane": "crane",
+        "devshell": [
+          "devshell"
+        ],
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "flake-root": [
+          "flake-root"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks-nix": [
+          "pre-commit-hooks-nix"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1724752104,
+        "narHash": "sha256-wNYN6dSsLPGLWkrb27/YswsE0kqkw29m6UCbMBDR600=",
+        "owner": "tiiuae",
+        "repo": "ghaf-givc",
+        "rev": "ff9f60e3059f940fad610c27393b4d101bf6693d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "ghaf-givc",
+        "type": "github"
+      }
+    },
     "impermanence": {
       "locked": {
         "lastModified": 1717932370,
@@ -261,7 +318,7 @@
     },
     "lanzaboote": {
       "inputs": {
-        "crane": "crane",
+        "crane": "crane_2",
         "flake-compat": [
           "flake-compat"
         ],
@@ -448,6 +505,7 @@
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
         "ghafpkgs": "ghafpkgs",
+        "givc": "givc",
         "impermanence": "impermanence",
         "jetpack-nixos": "jetpack-nixos",
         "lanzaboote": "lanzaboote",

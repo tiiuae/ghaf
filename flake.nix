@@ -143,6 +143,18 @@
     impermanence = {
       url = "github:nix-community/impermanence";
     };
+
+    givc = {
+      url = "github:tiiuae/ghaf-givc";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
+        treefmt-nix.follows = "treefmt-nix";
+        devshell.follows = "devshell";
+        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+      };
+    };
   };
 
   outputs =

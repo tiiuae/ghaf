@@ -26,7 +26,6 @@ let
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
       self.nixosModules.disko-ab-partitions-v1
-      inputs.impermanence.nixosModules.impermanence
       {
         ghaf = {
           hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";

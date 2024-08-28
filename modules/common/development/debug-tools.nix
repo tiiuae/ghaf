@@ -58,6 +58,10 @@ in
           # to build ghaf on target
 
           git
+
+          # Grpc testing
+
+          grpcurl
           ;
       }
       ++

@@ -34,9 +34,9 @@ in
       enabled-app-vms =
         (lib.optionals cfg.chromium-vm [ (import ./chromium.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.gala-vm [ (import ./gala.nix { inherit pkgs lib config; }) ])
-        ++ (lib.optionals cfg.zathura-vm [ (import ./zathura.nix { inherit pkgs config; }) ])
+        ++ (lib.optionals cfg.zathura-vm [ (import ./zathura.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.element-vm [ (import ./element.nix { inherit pkgs lib config; }) ])
-        ++ (lib.optionals cfg.appflowy-vm [ (import ./appflowy.nix { inherit pkgs config; }) ])
+        ++ (lib.optionals cfg.appflowy-vm [ (import ./appflowy.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.business-vm [ (import ./business.nix { inherit pkgs lib config; }) ]);
     };
   };

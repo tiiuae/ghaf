@@ -71,6 +71,15 @@ in
       ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
       microvm.devices = [ ];
 
+      ghaf.givc.appvm = {
+        enable = true;
+        name = lib.mkForce "chromium-vm";
+        applications = lib.mkForce ''
+          {
+            "chromium": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}"
+          }'';
+      };
+
       ghaf.reference.programs.chromium.enable = true;
       ghaf.storagevm = {
         enable = true;
