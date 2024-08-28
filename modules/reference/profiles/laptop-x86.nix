@@ -1,13 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ config, lib, ... }:
 let
-  powerControl = pkgs.callPackage ../../../packages/powercontrol { };
   cfg = config.ghaf.reference.profiles.laptop-x86;
   listenerAddress = config.ghaf.logging.listener.address;
   listenerPort = toString config.ghaf.logging.listener.port;
@@ -53,10 +47,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    security.polkit = {
-      enable = true;
-      extraConfig = powerControl.polkitExtraConfig;
-    };
 
     ghaf = {
       # Hardware definitions
@@ -108,9 +98,12 @@ in
         };
       };
 
+      # Enable givc
+      # @TODO change this flag to enable givc in release
+      givc.enable = config.ghaf.profiles.debug.enable;
+
       host = {
         networking.enable = true;
-        powercontrol.enable = true;
       };
 
       # UI applications

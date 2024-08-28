@@ -1,14 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ impermanence }:
 { lib, config, ... }:
 let
   cfg = config.ghaf.storagevm;
   mountPath = "/tmp/storagevm";
 in
 {
-  imports = [ impermanence.nixosModules.impermanence ];
-
   options.ghaf.storagevm = with lib; {
     enable = mkEnableOption "StorageVM support";
 

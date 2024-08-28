@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs }:
 {
   config,
   lib,
@@ -10,6 +11,10 @@ let
   cfg = config.ghaf.virtualization.microvm-host;
 in
 {
+  imports = [
+    inputs.impermanence.nixosModules.impermanence
+    inputs.self.nixosModules.givc-host
+  ];
   options.ghaf.virtualization.microvm-host = {
     enable = lib.mkEnableOption "MicroVM Host";
     networkSupport = lib.mkEnableOption "Network support services to run host applications.";
@@ -34,6 +39,7 @@ in
       withDebug = config.ghaf.profiles.debug.enable;
       withHardenedConfigs = true;
     };
+    ghaf.givc.host.enable = true;
 
     # TODO: remove hardcoded paths
     systemd.services."microvm@audio-vm".serviceConfig =

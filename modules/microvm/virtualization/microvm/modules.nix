@@ -47,6 +47,11 @@ let
 
   # Service modules
   serviceModules = {
+    # Givc module
+    givc = {
+      config.ghaf.givc.enable = config.ghaf.givc.enable;
+    };
+
     # Audio module
     audio = optionalAttrs cfg.audiovm.audio { config.ghaf.services.audio.enable = true; };
 
@@ -133,6 +138,7 @@ in
         deviceModules.netvmPCIPassthroughModule
         firmwareModule
         serviceModules.wifi
+        serviceModules.givc
         referenceServiceModule
       ];
       # Audiovm modules
@@ -140,6 +146,7 @@ in
         deviceModules.audiovmPCIPassthroughModule
         kernelConfigs.audiovm
         serviceModules.audio
+        serviceModules.givc
       ];
       # Guivm modules
       guivm.extraModules = optionals cfg.guivm.enable [
@@ -153,8 +160,11 @@ in
         serviceModules.yubikey
         serviceModules.pdfOpener
         serviceModules.commonNamespace
+        serviceModules.givc
         referenceProgramsModule
       ];
+      adminvm.extraModules = optionals cfg.adminvm.enable [ serviceModules.givc ];
+      appvm.extraModules = optionals cfg.appvm.enable [ serviceModules.givc ];
     };
   };
 }
