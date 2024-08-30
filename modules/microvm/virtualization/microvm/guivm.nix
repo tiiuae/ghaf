@@ -110,7 +110,12 @@ let
               ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
-              ) pkgs.mitmweb-ui);
+              ) pkgs.mitmweb-ui)
+              # Packages for checking hardware acceleration
+              ++ lib.optionals config.ghaf.profiles.debug.enable [
+                pkgs.glxinfo
+                pkgs.libva-utils
+              ];
           };
 
           time.timeZone = config.time.timeZone;
@@ -190,6 +195,7 @@ let
   buildKernel = import ../../../../packages/kernel { inherit config pkgs lib; };
   config_baseline = ../../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
   guest_graphics_hardened_kernel = buildKernel { inherit config_baseline; };
+
 in
 {
   options.ghaf.virtualization.microvm.guivm = {
@@ -230,9 +236,24 @@ in
     microvm.vms."${vmName}" = {
       autostart = true;
       config = guivmBaseConfiguration // {
-        boot.kernelPackages = lib.mkIf config.ghaf.guest.kernel.hardening.graphics.enable (
-          pkgs.linuxPackagesFor guest_graphics_hardened_kernel
-        );
+        boot.kernelPackages =
+          if config.ghaf.guest.kernel.hardening.graphics.enable then
+            pkgs.linuxPackagesFor guest_graphics_hardened_kernel
+          else
+            # TODO: with pkgs.linuxPackages_latest (6.10.2) default brightness
+            # value of ghaf system will change from 96000 (max brightness) to
+            # 4800 (5% of max brightness) which need to be debugged
+            # so, currently align Kernel version which is used by ghaf-host
+            config.boot.zfs.package.latestCompatibleLinuxPackages;
+
+        # We need this patch to avoid reserving Intel graphics stolen memory for vm
+        # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103
+        boot.kernelPatches = [
+          {
+            name = "gpu-passthrough-fix";
+            patch = ./0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch;
+          }
+        ];
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };

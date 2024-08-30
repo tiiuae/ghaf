@@ -38,7 +38,7 @@ in
     };
     renderer = lib.mkOption {
       type = lib.types.enum renderers;
-      default = "pixman";
+      default = "gles2";
       description = ''
         Which wlroots renderer to use.
 
@@ -74,12 +74,19 @@ in
   };
 
   config = mkIf cfg.enable {
-    hardware.graphics.enable = true;
+    hardware.graphics = {
+      enable = true;
+      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86 [ pkgs.intel-media-driver ];
+    };
     environment.noXlibs = false;
     environment.sessionVariables = {
       WLR_RENDERER = cfg.renderer;
       XDG_SESSION_TYPE = "wayland";
-      WLR_NO_HARDWARE_CURSORS = 1;
+      WLR_NO_HARDWARE_CURSORS = if (cfg.renderer == "pixman") then 1 else 0;
+      # 24 is default value set in labwc
+      XCURSOR_SIZE = 24;
+      # To Fix "Fontconfig error : No writable cache directories" during new session login
+      XDG_CACHE_HOME = "$(mktemp -d)";
       XKB_DEFAULT_LAYOUT = "us,ara,fi";
       XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
       # Set by default in labwc, but possibly not in other compositors
