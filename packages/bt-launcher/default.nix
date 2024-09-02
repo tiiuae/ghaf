@@ -11,6 +11,7 @@ writeShellApplication {
   name = "bt-launcher";
 
   text = ''
+    export PULSE_SERVER=audio-vm:4713
     export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
     ${openssh}/bin/ssh -M -S /tmp/control_socket \
