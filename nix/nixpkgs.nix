@@ -10,6 +10,9 @@
         inherit system inputs;
         config = {
           allowUnfree = true;
+          permittedInsecurePackages = [
+            "jitsi-meet-1.0.8043"
+          ];
         };
       };
       # make custom top-level lib available to all `perSystem` functions
