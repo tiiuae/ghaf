@@ -16,7 +16,7 @@ path = [
 	"assets/**/*.png", "assets/**/*.svg",
 	"modules/common/development/audio_test/test_file1.mp3",
 	"modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86",
-	"modules/jetpack/ghaf_host_hardened_baseline-jetson-orin",
+	"modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
 	"modules/lanzaboote/demo-secure-boot-keys/**/*",
 	"modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/*",
 ]
@@ -46,7 +46,7 @@ SPDX-FileCopyrightText = [
 ]
 path = [
 	"overlays/custom-packages/qemu/*.patch",
-	"modules/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-qemu-v8.1.3_bpmp-virt.patch"
+	"modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-qemu-v8.1.3_bpmp-virt.patch"
 ]
 
 [[annotations]]
@@ -99,10 +99,10 @@ SPDX-FileCopyrightText = [
 	"2022-2024 TII (SSRC) and the Ghaf contributors",
 ]
 path = [
-	"modules/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/*.patch",
-	"modules/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/patches/*.patch",
-	"modules/jetpack-microvm/*.patch",
-	"modules/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
+	"modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/*.patch",
+	"modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/patches/*.patch",
+	"modules/reference/hardware/jetpack-microvm/*.patch",
+	"modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
 	"modules/common/virtualization/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
 	"modules/microvm/virtualization/microvm/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
 ]
@@ -110,13 +110,13 @@ path = [
 [[annotations]]
 SPDX-License-Identifier = "BSD-2-Clause-Patent"
 SPDX-FileCopyrightText = "Copyright (c) 2021-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved."
-path = "modules/jetpack/nvidia-jetson-orin/edk2-nvidia-always-reset-display.patch"
+path = "modules/reference/hardware/jetpack/nvidia-jetson-orin/edk2-nvidia-always-reset-display.patch"
 
 [[annotations]]
 SPDX-License-Identifier = "LicenseRef-NvidiaProprietary"
 SPDX-FileCopyrightText = "Copyright (c) 2023-2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved."
 path = [
-	"modules/jetpack/nvidia-jetson-orin/tegra2-mb2-bct-scr.patch",
+	"modules/reference/hardware/jetpack/nvidia-jetson-orin/tegra2-mb2-bct-scr.patch",
 ]
 
 

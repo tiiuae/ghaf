@@ -3,8 +3,8 @@
 { lib, ... }:
 {
   imports = [
-    ../../../../x86_64-generic/kernel/host/default.nix
-    ../../../../x86_64-generic/kernel/guest/default.nix
+    ../../../../../../hardware/x86_64-generic/kernel/host/default.nix
+    ../../../../../../hardware/x86_64-generic/kernel/guest/default.nix
   ];
 
   config = {

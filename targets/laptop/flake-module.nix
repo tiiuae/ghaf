@@ -37,7 +37,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7230.nix";
+          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7230.nix";
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -46,7 +46,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7330.nix";
+          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7330.nix";
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -75,7 +75,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7230.nix";
+          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7230.nix";
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -84,7 +84,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/definitions/dell-latitude/dell-latitude-7330.nix";
+          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7330.nix";
           reference.profiles.mvp-user-trial.enable = true;
         };
       }

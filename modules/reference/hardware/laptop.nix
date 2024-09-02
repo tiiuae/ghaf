@@ -31,7 +31,7 @@ let
     ) deviceList;
 in
 {
-  imports = [ ./definition.nix ];
+  imports = [ ../../hardware/definition.nix ];
 
   options.ghaf.hardware.definition.configFile = mkOption {
     description = "Path to the hardware configuration file.";
