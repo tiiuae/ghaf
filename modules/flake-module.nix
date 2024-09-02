@@ -20,14 +20,21 @@
         nixpkgs.overlays = [ inputs.ghafpkgs.overlays.default ];
       }
     ];
+    laptop.imports = [
+      ./hardware/definition.nix
+      ./hardware/x86_64-generic
+      ./reference/hardware/laptop.nix
+      ./hardware/common
+      { nixpkgs.overlays = [ inputs.ghafpkgs.overlays.default ]; }
+    ];
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
-    imx8.imports = [ ./imx8 ];
-    jetpack.imports = [ ./jetpack ];
-    jetpack-microvm.imports = [ ./jetpack-microvm ];
     lanzaboote.imports = [ ./lanzaboote ];
     microvm.imports = [ ./microvm ];
-    polarfire.imports = [ ./polarfire ];
+    imx8.imports = [ ./reference/hardware/imx8 ];
+    jetpack.imports = [ ./reference/hardware/jetpack ];
+    jetpack-microvm.imports = [ ./reference/hardware/jetpack-microvm ];
+    polarfire.imports = [ ./reference/hardware/polarfire ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-personalize.imports = [ ./reference/personalize ];
     reference-profiles.imports = [ ./reference/profiles ];

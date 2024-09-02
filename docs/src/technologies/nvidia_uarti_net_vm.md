@@ -24,7 +24,7 @@ This section describes how the UARTI passthrough is configured in Ghaf for micro
 We recommend to read [NVIDIA Jetson AGX Orin: UART Passthrough](nvidia_agx_pt_uart.md) before continuing.
 
 The UARTI passthrough configuration declaration 
-[UARTI to netvm](../../../modules/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/default.nix) 
+[UARTI to netvm](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/default.nix) 
 includes:
 
 
