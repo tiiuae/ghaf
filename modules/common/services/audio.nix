@@ -33,6 +33,7 @@ in
     services.pipewire = {
       enable = true;
       pulse.enable = true;
+      alsa.enable = config.ghaf.development.debug.tools.enable;
       systemWide = true;
       extraConfig = {
         pipewire."10-remote-simple" = {
@@ -43,62 +44,37 @@ in
                 # Enable TCP socket for VMs pulseaudio clients
                 "server.address" = [
                   {
-                    address = "tcp:4713";
+                    address = "tcp:${toString cfg.pulseaudioTcpPort}";
                     "client.access" = "unrestricted";
                   }
                 ];
-                "pulse.min.req" = "128/48000"; # 2.7ms
-                "pulse.default.req" = "960/48000"; # 20 milliseconds
-                "pulse.min.frag" = "128/48000"; # 2.7ms
-                "pulse.default.frag" = "512/48000"; # ~10 ms
-                "pulse.default.tlength" = "512/48000"; # ~10 ms
-                "pulse.min.quantum" = "128/48000"; # 2.7ms
+                "pulse.min.req" = "1024/48000";
+                "pulse.min.quantum" = "1024/48000";
+                "pulse.idle.timeout" = "3";
               };
             }
           ];
         };
       };
+      # Disable the auto-switching to the low-quality HSP profile
+      wireplumber.extraConfig.disable-autoswitch = {
+        "wireplumber.settings" = {
+          "bluetooth.autoswitch-to-headset-profile" = "false";
+        };
+      };
     };
-
-    hardware.pulseaudio.extraConfig = ''
-      # Set sink and source default max volume to about 75% (0-65536)
-      set-sink-volume @DEFAULT_SINK@ 48000
-      set-source-volume @DEFAULT_SOURCE@ 48000
-    '';
 
     # Allow ghaf user to access pulseaudio and pipewire
     users.extraUsers.ghaf.extraGroups = [
       "audio"
       "video"
-      "pulse-access"
       "pipewire"
     ];
 
-    # Dummy service to get pipewire and pulseaudio services started at boot
-    # Normally Pipewire and pulseaudio are started when they are needed by user,
-    # We don't have users in audiovm so we need to give PW/PA a slight kick..
-    # This calls pulseaudios pa-info binary to get information about pulseaudio current
-    # state which starts pipewire-pulseaudio service in the process.
-    systemd.services.pulseaudio-starter = {
-      after = [
-        "pipewire.service"
-        "network-online.target"
-      ];
-      requires = [
-        "pipewire.service"
-        "network-online.target"
-      ];
-      wantedBy = [ "default.target" ];
-      path = [ pkgs.coreutils ];
-      enable = true;
-      serviceConfig = {
-        User = "ghaf";
-        Group = "ghaf";
-      };
-      script = ''${pkgs.pulseaudio}/bin/pa-info > /dev/null 2>&1'';
-    };
+    # Start pipewire on system boot
+    systemd.services.pipewire.wantedBy = [ "multi-user.target" ];
 
-    # Open TCP port for the PDF XDG socket
+    # Open TCP port for the pipewire pulseaudio socket
     networking.firewall.allowedTCPPorts = [ cfg.pulseaudioTcpPort ];
   };
 }
