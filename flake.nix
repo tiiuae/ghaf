@@ -29,8 +29,8 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     ghafpkgs = {
       url = "github:tiiuae/ghafpkgs";
@@ -145,7 +145,7 @@
     };
 
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:tiiuae/ghaf-givc/ff9f60e3059f940fad610c27393b4d101bf6693d";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
