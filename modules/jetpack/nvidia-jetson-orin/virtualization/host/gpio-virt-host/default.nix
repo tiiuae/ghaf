@@ -24,13 +24,15 @@ in {
   config = lib.mkIf cfg.enable {
     ghaf.hardware.nvidia.virtualization.enable = true;
 
+    # nixpkgs.overlays = [ (import ./overlays/qemu) ];
+
     # in practice this configures both host and guest kernel becaue we use only one kernel in the whole system
     boot.kernelPatches = [
       {
         name = "GPIO virtualization host kernel configuration";
         patch = null;
         extraStructuredConfig = {
-          VFIO_PLATFORM = lib.kernel.yes;
+          # VFIO_PLATFORM = lib.kernel.yes;
           TEGRA_GPIO_HOST_PROXY = lib.kernel.yes;
           TEGRA_GPIO_GUEST_PROXY = lib.kernel.yes;
         };
@@ -40,8 +42,7 @@ in {
     hardware.deviceTree = {
       # Enable hardware.deviceTree for handle host dtb overlays
       enable = true;
-      name = builtins.trace "Debug dtb name (gpio-virt-host): tegra234-p3701-0000-p3737-0000.dtb" "tegra234-p3701-0000-p3737-0000.dtb";
-      # name = builtins.trace "Debug dtb name (gpio-virt-host): tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
+      name = "tegra234-p3701-0000-p3737-0000.dtb";
       # name = "tegra234-p3701-host-passthrough.dtb";
 
       # using overlay file:

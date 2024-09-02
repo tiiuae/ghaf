@@ -6,23 +6,28 @@
   ...
 }: let
   cfg = config.ghaf.hardware.nvidia.virtualization;
+  pkgs = import <nixpkgs> { };
+
 in {
   config = lib.mkIf cfg.enable {
+
     boot.kernelPatches = builtins.trace "kernelPatches GPIO Virtualization" [
-      /*
       {
+        buildInputs = [ pkgs.unixtools.xxd ];                 # seems this is not used
+        moduleBuildDependencies = [ pkgs.unixtools.xxd ];     # seems this is not used
+
         name = "Added Configurations to Support GPIO passthrough";
         patch = null;
         extraStructuredConfig = {
-          PCI_STUB = lib.mkDefault lib.kernel.yes;
-          HOTPLUG_PCI = lib.mkDefault lib.kernel.yes;
-          HOTPLUG_PCI_ACPI = lib.mkDefault lib.kernel.yes;
-          PCI_DEBUG = lib.mkDefault lib.kernel.yes;
-          PCI_HOST_GENERIC = lib.mkDefault lib.kernel.yes;
-          PCI_HOST_COMMON = lib.mkDefault lib.kernel.yes;
-          VFIO = lib.mkDefault lib.kernel.yes;
-          VFIO_IOMMU_TYPE1 = lib.mkDefault lib.kernel.yes;
-          VFIO_PLATFORM = lib.mkDefault lib.kernel.yes;
+          # PCI_STUB = lib.mkDefault lib.kernel.yes;
+          # HOTPLUG_PCI = lib.mkDefault lib.kernel.yes;
+          # HOTPLUG_PCI_ACPI = lib.mkDefault lib.kernel.yes;
+          # PCI_DEBUG = lib.mkDefault lib.kernel.yes;
+          # PCI_HOST_GENERIC = lib.mkDefault lib.kernel.yes;
+          # PCI_HOST_COMMON = lib.mkDefault lib.kernel.yes;
+          # VFIO = lib.mkDefault lib.kernel.yes;
+          # VFIO_IOMMU_TYPE1 = lib.mkDefault lib.kernel.yes;
+          # VFIO_PLATFORM = lib.mkDefault lib.kernel.yes;
           VIRTIO = lib.mkDefault lib.kernel.yes;
           VIRTIO_PCI = lib.mkDefault lib.kernel.yes;
           VIRTIO_MMIO = lib.mkDefault lib.kernel.yes;
@@ -35,12 +40,13 @@ in {
 
           # long version of possibly needed additions for microvm and gpio + some obviously not needed configs
           # most of these are set anyhow, some are unrelated (such as XUSB) but included while debugging
-          # virtualisation
+          /*
+          # Virtualisation
           # VFIO_IOMMU_TYPE1 = lib.mkDefault lib.kernel.yes;
-          VFIO_PCI_INTX = lib.mkDefault lib.kernel.yes;
-          VFIO_PCI_MMAP = lib.mkDefault lib.kernel.yes;
-          VFIO_PCI = lib.mkDefault lib.kernel.yes;
-          VFIO_VIRQFD = lib.mkDefault lib.kernel.yes;
+          # VFIO_PCI_INTX = lib.mkDefault lib.kernel.yes;
+          # VFIO_PCI_MMAP = lib.mkDefault lib.kernel.yes;
+          # VFIO_PCI = lib.mkDefault lib.kernel.yes;
+          # VFIO_VIRQFD = lib.mkDefault lib.kernel.yes;
           VIRTIO_MENU = lib.mkDefault lib.kernel.yes;
           VIRTIO_PCI_LEGACY = lib.mkDefault lib.kernel.yes;
           VIRTUALIZATION = lib.mkDefault lib.kernel.yes;
@@ -73,15 +79,16 @@ in {
           PINCTRL_TEGRA234 = lib.mkDefault lib.kernel.yes;
           PINCTRL_TEGRA_XUSB = lib.mkDefault lib.kernel.yes;
           PINCTRL_TEGRA = lib.mkDefault lib.kernel.yes;
+          */
         };
       }
-      */
 
       # patching the kernel for GPIO passthrough
       {
         name = "GPIO Virtualization";
         patch = builtins.trace "GPIO Virtualization (patch kernel)" ./patches/0003-gpio-virt-kernel.patch;
       }
+
       # patching the custom GPIO kernel modules
       {
         name = "GPIO Virt Drivers";

@@ -5,11 +5,9 @@
   pkgs,
   config,
   ...
-}:
-let
+}: let
   cfg = config.ghaf.hardware.nvidia.passthroughs.uarti_net_vm;
-in
-{
+in {
   options.ghaf.hardware.nvidia.passthroughs.uarti_net_vm.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -23,12 +21,14 @@ in
     '';
     ghaf.hardware.nvidia.virtualization.enable = true;
 
-    ghaf.virtualization.microvm.netvm.extraModules = builtins.trace "NetVM: setting ghaf.virtualization.microvm.netvm.extraModules" [
+    ghaf.virtualization.microvm.netvm.extraModules = [
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
         microvm = {
-          kernelParams = [ "console=ttyAMA0 console=ttyS0" ];
+          kernelParams = [
+            "console=ttyAMA0 console=ttyS0"
+          ];
           qemu = {
             serialConsole = false;
             extraArgs = [
@@ -48,7 +48,7 @@ in
     ];
 
     # Make sure that Net-VM runs after the binding services are enabled
-    systemd.services."microvm@net-vm".after = [ "bindSerial31d0000.service" ];
+    systemd.services."microvm@net-vm".after = ["bindSerial31d0000.service"];
 
     boot.kernelPatches = [
       {
@@ -59,7 +59,7 @@ in
 
     systemd.services.bindSerial31d0000 = {
       description = "Bind UARTI to the vfio-platform driver";
-      wantedBy = [ "multi-user.target" ];
+      wantedBy = ["multi-user.target"];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = "yes";
@@ -78,12 +78,12 @@ in
     # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
     hardware.deviceTree.overlays = [
       {
-        name = builtins.trace "Debug dtb name (uarti-net-vm): uarti_pt_host_overlay" "uarti_pt_host_overlay";
+        name = "uarti_pt_host_overlay";
         dtsFile = ./uarti_pt_host_overlay.dts;
 
         # Apply overlay only to host passthrough device tree
         # TODO: make this avaliable if PCI passthrough is disabled
-        filter = builtins.trace "Debug dtb filter (uarti-net-vm): tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
+        filter = "tegra234-p3701-host-passthrough.dtb";
       }
     ];
   };

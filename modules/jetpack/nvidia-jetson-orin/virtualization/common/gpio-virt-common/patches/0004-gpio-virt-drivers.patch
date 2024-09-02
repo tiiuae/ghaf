@@ -15,13 +15,15 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-08-21 13:49:53.790436310 +0000
-@@ -193,0 +194,5 @@
++++ b/drivers/Makefile	2024-08-30 10:12:32.366308422 +0000
+@@ -193,0 +194,7 @@
 +#
 +#
 +#
++$(info Building GPIO proxy modules...)
 +obj-y	+= gpio-host-proxy/
 +obj-y	+= gpio-guest-proxy/
++$(info Finished building GPIO proxy modules...)
 diff --git a/drivers/gpio-guest-proxy/Kconfig b/drivers/gpio-guest-proxy/Kconfig
 new file mode 100644
 index 0000000..e25a19a
@@ -48,10 +50,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..6fbc960
+index 0000000..e7215dd
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,909 @@
+@@ -0,0 +1,905 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -408,7 +410,7 @@ index 0000000..6fbc960
 +  return ret;
 +}
 +
-+// unpreserve_all_tegrachips also does unhooking ?
++// unpreserve_all_tegrachips also does unhooking
 +extern void unpreserve_all_tegrachips(void);
 +struct gpio_chip * find_chip_by_id(int id);
 +
@@ -512,15 +514,13 @@ index 0000000..6fbc960
 +/*
 + * Removes module, sends appropriate message to kernel
 + */
-+void tegra_gpio_guest_cleanup(void)
++int tegra_gpio_guest_cleanup(void)
 +{
 +	deb_info("removing module.\n");
 +
 +	// unmap iomem
 +	iounmap((void __iomem*)gpio_vpa);
 +
-+  // gpio_unhook is called by unpreserve_all_tegrachips()
-+  // gpio_unhook()
 +  // clean up shared memory with stock driver and unhook all functions
 +  unpreserve_all_tegrachips();
 +
@@ -532,11 +532,9 @@ index 0000000..6fbc960
 +	unregister_chrdev(major_number, DEVICE_NAME);
 +
 +  is_set_up = false;
-+	return;
++	return 0;
 +}
-+
-+
-+
++EXPORT_SYMBOL_GPL(tegra_gpio_guest_cleanup);
 +
 +/*
 + * Opens device module, sends appropriate message to kernel
@@ -986,10 +984,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..399befa
+index 0000000..e9d1e72
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,805 @@
+@@ -0,0 +1,821 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO host Proxy Kernel Module
@@ -1229,10 +1227,10 @@ index 0000000..399befa
 +	major_number = register_chrdev(0, DEVICE_NAME, &fops);
 +	if (major_number < 0)
 +	{
-+		deb_error("could not register number.\n");
++		deb_error("chardev could not register number.\n");
 +		return major_number;
 +	}
-+	deb_debug("registered correctly with major number %d", major_number);
++	deb_debug("chardev registered correctly with major number %d", major_number);
 +
 +	// Register the device class
 +	gpio_host_proxy_class = class_create(THIS_MODULE, CLASS_NAME);
@@ -1269,8 +1267,7 @@ index 0000000..399befa
 +	class_unregister(gpio_host_proxy_class);						  // unregister the device class
 +	class_destroy(gpio_host_proxy_class);						  // remove the device class
 +	unregister_chrdev(major_number, DEVICE_NAME);		  // unregister the major number
-+	deb_info("Goodbye from the GPIO passthrough\n");
-+	unregister_chrdev(major_number, DEVICE_NAME);
++	deb_info("Goodbye from GPIO passthrough\n");
 +	return 0;
 +}
 +
@@ -1753,7 +1750,22 @@ index 0000000..399befa
 +	return len; // return length of read data
 +}
 +
-+/* module creation -- see also gpio_host_proxy_probe and gpio_host_proxy_remove */
++int tegra_gpio_host_init(void)
++{
++  struct platform_device *pdev = NULL;   // not used -- param is for the kernel module version of code 
++  return gpio_host_proxy_probe(pdev);
++}
++EXPORT_SYMBOL_GPL(tegra_gpio_host_init);
++
++int tegra_gpio_host_cleanup(void)
++{
++  struct platform_device *pdev = NULL;   // not used -- param is for the kernel module version of code
++  return gpio_host_proxy_remove(pdev);
++}
++EXPORT_SYMBOL_GPL(tegra_gpio_host_cleanup);
++
++/* proxy driver as module removed
++ * module creation -- see also gpio_host_proxy_probe and gpio_host_proxy_remove
 +
 +static const struct of_device_id gpio_host_proxy_ids[] = {
 +	{ .compatible = "nvidia,gpio-host-proxy" },
@@ -1795,6 +1807,8 @@ index 0000000..399befa
 +
 +module_init(gpio_host_proxy_init);
 +module_exit(gpio_host_proxy_exit);
++
++*/
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.h b/drivers/gpio-host-proxy/gpio-host-proxy.h
 new file mode 100644
 index 0000000..295c2b6

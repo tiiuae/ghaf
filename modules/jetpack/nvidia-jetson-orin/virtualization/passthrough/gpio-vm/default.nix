@@ -23,7 +23,7 @@
     #   cp ${dtsName} ${kernelPath}/dtbs/
     # '';
 
-    buildPhase = builtins.trace "Building guest DTB"  ''
+    buildPhase = ''
       mkdir -p $out
       # ls -thog $src
       dtc -I dts -O dtb -o $out/${dtbName} $src/${dtsName}
@@ -40,6 +40,7 @@
 
   gpioGuestDtb = "${gpioDtbDerivation}/${dtbName}";
 
+  /*
   guestRootFsName = "gpiovm_rootfs.qcow2";   # a non-ghaf temporary fs for debugging
   # Create the guest rootfs qcow2 file (not a ghaf fs -- temporary)
   gpioGuestFsDerivation = builtins.trace "Creating guest rootfs" pkgs.stdenv.mkDerivation {
@@ -78,6 +79,7 @@
   };
 
   guestRootFs = "${gpioGuestFsDerivation}/${guestRootFsName}";
+  */
 
 in {
   options = {
@@ -92,7 +94,7 @@ in {
     ghaf.hardware.nvidia.virtualization.enable = true;
 
     ghaf.virtualization.microvm.gpiovm.extraModules =
-    builtins.trace "GpioVM: (in default.nix) ghaf.virtualization.microvm.gpiovm.extraModules"
+    builtins.trace "GpioVM: ghaf.virtualization.microvm.gpiovm.extraModules"
     [
       {
         microvm = {
@@ -103,34 +105,25 @@ in {
           qemu = {
           # qemu = builtins.trace "Qemu params, filenames: ${dtsName}, ${dtbName}, ${guestKernel}, ${guestRootFsName}" {
             serialConsole = true;
-            extraArgs = [
+            extraArgs = lib.mkForce [
             # extraArgs = builtins.trace "GpioVM: Evaluating qemu.extraArgs for gpio-vm" [
               "-sandbox" "on"
               "-nographic"
               "-no-reboot"
               "-dtb" "${gpioGuestDtb}"
               "-kernel" "${guestKernel}"
-              "-drive" "file=${guestRootFs},if=virtio,format=qcow2"
+              # "-drive" "file=${guestRootFs},if=virtio,format=qcow2"
               "-machine" "virt,accel=kvm"
               "-cpu" "host"
               "-m" "2G"
               "-smp" "2"
               "-serial" "pty"
-              "-net" "user,hostfwd=tcp::2222-:22"
-              "-net" "nic"
+              # "-net" "user,hostfwd=tcp::2222-:22"
+              # "-net" "nic"
             ];
           };
         };
       }
     ];
-    
-    /* adds dts file usind a patch (don't use for guest)
-    boot.kernelPatches = [
-      {
-        name = "In Gpio-VM add device tree with VDA for host";
-        patch = builtins.trace "patch: gpio_vm_dtb_with_vda.patch" ./patches/gpio_vm_dtb_with_vda.patch;
-      }
-    ];
-    */
   };
 }

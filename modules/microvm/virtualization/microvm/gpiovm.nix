@@ -13,7 +13,7 @@
 
   configHost = config;
   vmName = "gpio-vm";
-  macAddress = "02:00:00:AD:03:03";
+  # macAddress = "02:00:00:AD:03:03";
   # isLoggingEnabled = config.ghaf.logging.client.enable;
 
   # Import a QEMU derivation from qemu-passthrough.nix
@@ -21,10 +21,12 @@
 
   gpiovmBaseConfiguration = {
     imports = [
+      /*
       (import ./common/vm-networking.nix {
         inherit config lib vmName macAddress;
         internalIP = 10;
       })
+      */
       ({lib, ...}: {
         ghaf = {
           users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -32,17 +34,17 @@
           development = {
             # NOTE: SSH port also becomes accessible on the network interface
             #       that has been passed through to VM
-            ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-            debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
+            # ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
+            # debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
             nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
           };
           systemd = {
             enable = true;
             withName = "gpiovm-systemd";
-            withNss = true;
-            withResolved = true;
-            withPolkit = true;
-            withTimesyncd = true;
+            # withNss = true;
+            # withResolved = true;
+            # withPolkit = true;
+            # withTimesyncd = true;
           };
         };
 
@@ -51,6 +53,7 @@
         nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
         nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
+        /*
         networking = {
           firewall.allowedTCPPorts = [];
           firewall.allowedUDPPorts = [];
@@ -63,6 +66,7 @@
             linkConfig.ActivationPolicy = "always-up";
           };
         };
+        */
 
         microvm = {
           optimize.enable = true;

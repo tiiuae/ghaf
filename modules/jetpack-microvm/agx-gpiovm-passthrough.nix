@@ -12,38 +12,38 @@ in {
     lib.mkEnableOption
     "GPIO passthrough to VM";
 
-    config = lib.mkIf cfg.enableGPIOPassthrough {
+  config = lib.mkIf cfg.enableGPIOPassthrough {
 
-      /*
-      ghaf.virtualization.microvm.gpiovm.extraModules = [
-        {
-          microvm.devices = [
-            {
-              # GPIO passthrough uses a character device (/dev/vda). No need to specify?
-            }
-          ];
-        }
-      ];
-      */
-
-      # Make sure that Gpio-VM runs after the dependency service are enabled
-      # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
-
-      /* Note: use qemu.extraArgs '-dtb' for guest device tree
-       * this section sets overlay for host device tree
-      hardware.deviceTree = builtins.trace "GpioVM: Evaluating hardware.deviceTree for gpio-vm" {
-        enable = true;
-        name = builtins.trace "GpioVM: Setting hardware.deviceTree.name" gpioDtbName;
-        # name = builtins.trace "GpioVM: Debugging with ${gpioGuestOrigName}" gpioOrigName;
-        overlays = builtins.trace "GpioVM: Setting hardware.deviceTree.overlays" [
+    /*
+    ghaf.virtualization.microvm.gpiovm.extraModules = [
+      {
+        microvm.devices = [
           {
-            name = "gpio_pt_overlay";
-            dtsFile = gpioDts;
-            # filter  = dtbFile;
-            filter = gpioDtbName;
+            # GPIO passthrough uses a character device (/dev/vda). No need to specify?
           }
         ];
-      };
-      */
+      }
+    ];
+    */
+
+    # Make sure that Gpio-VM runs after the dependency service are enabled
+    # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
+
+    /* Note: use qemu.extraArgs '-dtb' for guest device tree
+      * this section sets overlay for host device tree
+    hardware.deviceTree = builtins.trace "GpioVM: Evaluating hardware.deviceTree for gpio-vm" {
+      enable = true;
+      name = builtins.trace "GpioVM: Setting hardware.deviceTree.name" gpioDtbName;
+      # name = builtins.trace "GpioVM: Debugging with ${gpioGuestOrigName}" gpioOrigName;
+      overlays = builtins.trace "GpioVM: Setting hardware.deviceTree.overlays" [
+        {
+          name = "gpio_pt_overlay";
+          dtsFile = gpioDts;
+          # filter  = dtbFile;
+          filter = gpioDtbName;
+        }
+      ];
     };
+    */
+  };
 }
