@@ -101,6 +101,14 @@ let
               # To enable screen locking set to true
               graphics.labwc.autolock.enable = false;
             };
+
+            #TODO: move to a central place for all platforms
+            nixpkgs.config = {
+              allowUnfree = true;
+              permittedInsecurePackages = [
+                "jitsi-meet-1.0.8043"
+              ];
+            };
           }
 
           (import ./optee.nix { })
