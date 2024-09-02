@@ -26,12 +26,15 @@ Summary of the proposed changes in the PR description in your own words. For dep
 - [ ] Author has run `make-checks` and it passes
 - [ ] All automatic Github Action checks pass - see [actions](https://github.com/tiiuae/ghaf/actions)
 - [ ] Author has added reviewers and removed PR draft status
+- [ ] Change requires full re-installation
+- [ ] Change can be updated with `nixos-rebuild ... switch`
 
 <!-- Additional description of omitted [ ] items if not obvious. -->
 
-## Testing
+## Instructions for Testing
 
-<!--
-How this was tested by the author? How is this supposed to be tested
-by people doing system testing?
--->
+- [ ] List all targets that this applies to:
+- [ ] Is this a new feature
+  - [ ] List the test steps to verify:
+- [ ] If it is an improvement how does it impact existing functionality?
+

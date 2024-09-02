@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs }:
 {
   config,
   lib,
@@ -19,6 +20,8 @@ let
 
   netvmBaseConfiguration = {
     imports = [
+      inputs.impermanence.nixosModules.impermanence
+      inputs.self.nixosModules.givc-netvm
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -27,8 +30,11 @@ let
           macAddress
           ;
         internalIP = 1;
-        gateway = [ ];
+        isGateway = true;
       })
+
+      ./common/storagevm.nix
+
       # To push logs to central location
       ../../../common/logging/client.nix
       (
@@ -56,9 +62,15 @@ let
               withDebug = config.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
+            givc.netvm.enable = true;
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            storagevm = {
+              enable = true;
+              name = "netvm";
+              directories = [ "/etc/NetworkManager/system-connections/" ];
+            };
           };
 
           time.timeZone = config.time.timeZone;
@@ -76,8 +88,17 @@ let
 
           services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
+          # WORKAROUND: Create a rule to temporary hardcode device name for Wi-Fi adapter on x86
+          # TODO this is a dirty hack to guard against adding this to Nvidia/vm targets which
+          # dont have that definition structure yet defined. FIXME.
+          # TODO the hardware.definition should not even be exposed in targets that do not consume it
+          services.udev.extraRules = lib.mkIf (config.ghaf.hardware.definition.network.pciDevices != [ ]) ''
+            SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).vendorId}", ATTRS{device}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).productId}", NAME="${(lib.head config.ghaf.hardware.definition.network.pciDevices).name}"
+          '';
+
           microvm = {
-            optimize.enable = true;
+            # Optimize is disabled because when it is enabled, qemu is built without libusb
+            optimize.enable = false;
             hypervisor = "qemu";
             shares =
               [
@@ -105,6 +126,10 @@ let
                   aarch64-linux = "virt";
                 }
                 .${config.nixpkgs.hostPlatform.system};
+              extraArgs = [
+                "-device"
+                "qemu-xhci"
+              ];
             };
           };
 

@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs }:
 { config, lib, ... }:
 let
   configHost = config;
@@ -9,6 +10,7 @@ let
 
   adminvmBaseConfiguration = {
     imports = [
+      inputs.self.nixosModules.givc-adminvm
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -45,6 +47,8 @@ let
               withDebug = configHost.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
+
+            givc.adminvm.enable = true;
 
             # Log aggregation configuration
             logging.client.enable = isLoggingEnabled;

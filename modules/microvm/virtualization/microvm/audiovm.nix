@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs }:
 {
   config,
   lib,
@@ -19,6 +20,7 @@ let
 
   audiovmBaseConfiguration = {
     imports = [
+      inputs.self.nixosModules.givc-audiovm
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -51,6 +53,7 @@ let
               withTimesyncd = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
             };
+            givc.audiovm.enable = true;
             services.audio.enable = true;
           };
 
@@ -59,7 +62,7 @@ let
               pkgs.pulseaudio
               pkgs.pamixer
               pkgs.pipewire
-            ];
+            ] ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
           };
 
           time.timeZone = config.time.timeZone;
@@ -73,7 +76,8 @@ let
           services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 
           microvm = {
-            optimize.enable = true;
+            # Optimize is disabled because when it is enabled, qemu is built without libusb
+            optimize.enable = false;
             vcpu = 1;
             mem = 256;
             hypervisor = "qemu";
@@ -102,6 +106,10 @@ let
                   aarch64-linux = "virt";
                 }
                 .${configHost.nixpkgs.hostPlatform.system};
+              extraArgs = [
+                "-device"
+                "qemu-xhci"
+              ];
             };
           };
 

@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs }:
 {
   config,
   lib,
@@ -12,6 +13,8 @@ let
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
+      inputs.impermanence.nixosModules.impermanence
+      inputs.self.nixosModules.givc-guivm
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -21,6 +24,9 @@ let
           ;
         internalIP = 3;
       })
+
+      ./common/storagevm.nix
+
       # To push logs to central location
       ../../../common/logging/client.nix
       (
@@ -50,9 +56,22 @@ let
               withDebug = config.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
+            givc.guivm.enable = true;
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            storagevm = {
+              enable = true;
+              name = "guivm";
+              directories = [
+                {
+                  directory = "/home/${config.ghaf.users.accounts.user}/";
+                  inherit (config.ghaf.users.accounts) user;
+                  group = config.ghaf.users.accounts.user;
+                  mode = "u=rwx,g=,o=";
+                }
+              ];
+            };
           };
 
           systemd.services."waypipe-ssh-keygen" =

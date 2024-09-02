@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  pkgs,
   lib,
+  pkgs,
   config,
   ...
 }:
@@ -16,9 +16,11 @@
   extraModules = [
     {
       time.timeZone = config.time.timeZone;
-      security.pki.certificateFiles = lib.mkIf config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable [
-        ../../../modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
-      ];
+      ghaf.givc.appvm = {
+        enable = true;
+        name = lib.mkForce "gala-vm";
+        applications = lib.mkForce ''{"gala": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gala --enable-features=UseOzonePlatform --ozone-platform=wayland"}'';
+      };
     }
   ];
   borderColor = "#027d7b";

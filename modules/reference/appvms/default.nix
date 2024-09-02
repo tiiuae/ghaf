@@ -17,7 +17,11 @@ in
     chromium-vm = lib.mkEnableOption "Enable the Chromium appvm";
     gala-vm = lib.mkEnableOption "Enable the Gala appvm";
     zathura-vm = lib.mkEnableOption "Enable the Zathura appvm";
-    element-vm = lib.mkEnableOption "Enable the Element appvm";
+    comms-vm = lib.mkEnableOption ''
+      Enable the communications appvm
+        - Element
+        - Slack
+    '';
     appflowy-vm = lib.mkEnableOption "Enable the Appflowy appvm";
     business-vm = lib.mkEnableOption "Enable the Business appvm";
     enabled-app-vms = lib.mkOption {
@@ -34,9 +38,9 @@ in
       enabled-app-vms =
         (lib.optionals cfg.chromium-vm [ (import ./chromium.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.gala-vm [ (import ./gala.nix { inherit pkgs lib config; }) ])
-        ++ (lib.optionals cfg.zathura-vm [ (import ./zathura.nix { inherit pkgs config; }) ])
-        ++ (lib.optionals cfg.element-vm [ (import ./element.nix { inherit pkgs lib config; }) ])
-        ++ (lib.optionals cfg.appflowy-vm [ (import ./appflowy.nix { inherit pkgs config; }) ])
+        ++ (lib.optionals cfg.zathura-vm [ (import ./zathura.nix { inherit pkgs lib config; }) ])
+        ++ (lib.optionals cfg.comms-vm [ (import ./comms.nix { inherit pkgs lib config; }) ])
+        ++ (lib.optionals cfg.appflowy-vm [ (import ./appflowy.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.business-vm [ (import ./business.nix { inherit pkgs lib config; }) ]);
     };
   };

@@ -10,9 +10,10 @@
 let
   inherit (lib) hasAttr optionals;
   xdgPdfPort = 1200;
+  name = "chromium";
 in
 {
-  name = "chromium";
+  name = "${name}";
   packages =
     let
       # PDF XDG handler is executed when the user opens a PDF file in the browser
@@ -70,7 +71,21 @@ in
       ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
       microvm.devices = [ ];
 
+      ghaf.givc.appvm = {
+        enable = true;
+        name = lib.mkForce "chromium-vm";
+        applications = lib.mkForce ''
+          {
+            "chromium": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}"
+          }'';
+      };
+
       ghaf.reference.programs.chromium.enable = true;
+      ghaf.storagevm = {
+        enable = true;
+        name = "${name}";
+        users.${config.ghaf.users.accounts.user}.directories = [ ".config" ];
+      };
 
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";

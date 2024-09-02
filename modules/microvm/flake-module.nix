@@ -5,15 +5,14 @@
   flake.nixosModules = {
     microvm.imports = [
       inputs.microvm.nixosModules.host
-      ./virtualization/microvm/microvm-host.nix
-      ./virtualization/microvm/netvm.nix
-      ./virtualization/microvm/gpiovm.nix
-      ./virtualization/microvm/adminvm.nix
+      (import ./virtualization/microvm/microvm-host.nix { inherit inputs; })
+      (import ./virtualization/microvm/netvm.nix { inherit inputs; })
+      (import ./virtualization/microvm/adminvm.nix { inherit inputs; })
+      (import ./virtualization/microvm/appvm.nix { inherit inputs; })
+      (import ./virtualization/microvm/guivm.nix { inherit inputs; })
+      (import ./virtualization/microvm/audiovm.nix { inherit inputs; })
       ./virtualization/microvm/idsvm/idsvm.nix
       ./virtualization/microvm/idsvm/mitmproxy
-      ./virtualization/microvm/appvm.nix
-      ./virtualization/microvm/guivm.nix
-      ./virtualization/microvm/audiovm.nix
       ./virtualization/microvm/modules.nix
       ./networking.nix
       ./power-control.nix

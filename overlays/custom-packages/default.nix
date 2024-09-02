@@ -28,7 +28,6 @@ in
   qemu_kvm = import ./qemu/gpio-passthrough-qemu_9_0.nix { inherit final prev; };
   nm-launcher = final.callPackage ../../packages/nm-launcher { };
   icon-pack = final.callPackage ../../packages/icon-pack { };
-  ghaf-openbox-theme = final.callPackage ../../packages/ghaf-openbox-theme { };
   labwc = import ./labwc { inherit prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
   waybar = import ./waybar { inherit prev; };

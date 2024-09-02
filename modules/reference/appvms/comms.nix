@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  pkgs,
   lib,
+  pkgs,
   config,
   ...
 }:
@@ -17,9 +17,10 @@ let
       false;
 in
 {
-  name = "element";
+  name = "comms";
 
   packages = [
+    pkgs.chromium
     pkgs.element-desktop
     pkgs.element-gps
     pkgs.gpsd
@@ -98,6 +99,16 @@ in
         config.ghaf.hardware.usb.external.enable
         && (hasAttr "gps0" config.ghaf.hardware.usb.external.qemuExtraArgs)
       ) config.ghaf.hardware.usb.external.qemuExtraArgs.gps0;
+
+      ghaf.givc.appvm = {
+        enable = true;
+        name = lib.mkForce "comms-vm";
+        applications = lib.mkForce ''
+          {
+          "element": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland",
+          "slack":   "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}"
+          }'';
+      };
     }
   ];
   borderColor = "#337aff";

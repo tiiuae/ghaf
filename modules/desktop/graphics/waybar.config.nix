@@ -11,9 +11,9 @@ let
   inherit (config.ghaf.hardware.definition.network) pciDevices;
   inherit (import ../../../lib/icons.nix { inherit pkgs lib; }) svgToPNG;
 
-  launchpad-icon = svgToPNG "launchpad" ../../../assets/icons/svg/launchpad.svg "38x38";
-  admin-icon = svgToPNG "admin" ../../../assets/icons/svg/admin-cog.svg "24x24";
-  ghaf-icon = svgToPNG "ghaf-white" ../../../assets/icons/svg/ghaf-white.svg "24x24";
+  launchpad-icon = svgToPNG "launchpad" "${pkgs.ghaf-artwork}/icons/launchpad.svg" "38x38";
+  admin-icon = svgToPNG "admin" "${pkgs.ghaf-artwork}/icons/admin-cog.svg" "24x24";
+  ghaf-icon = svgToPNG "ghaf-white" "${pkgs.ghaf-artwork}/icons/ghaf-white.svg" "24x24";
 
   wifiDevice = lib.lists.findFirst (d: d.name != null) null pciDevices;
   wifi-signal-strength = pkgs.callPackage ../../../packages/wifi-signal-strength {

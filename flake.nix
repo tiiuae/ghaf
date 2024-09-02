@@ -32,6 +32,17 @@
     nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
+    ghafpkgs = {
+      url = "github:tiiuae/ghafpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
+        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+        flake-compat.follows = "flake-compat";
+      };
+    };
+
     #
     # Flake and repo structuring configurations
     #
@@ -126,6 +137,22 @@
         flake-parts.follows = "flake-parts";
         pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
         flake-compat.follows = "flake-compat";
+      };
+    };
+
+    impermanence = {
+      url = "github:nix-community/impermanence";
+    };
+
+    givc = {
+      url = "github:tiiuae/ghaf-givc";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
+        treefmt-nix.follows = "treefmt-nix";
+        devshell.follows = "devshell";
+        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
       };
     };
   };

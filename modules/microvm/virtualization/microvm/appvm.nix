@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs }:
 {
   config,
   lib,
@@ -24,11 +25,16 @@ let
       cid = if vm.cid > 0 then vm.cid else cfg.vsockBaseCID + index;
       appvmConfiguration = {
         imports = [
+          inputs.impermanence.nixosModules.impermanence
+          inputs.self.nixosModules.givc-appvm
           (import ./common/vm-networking.nix {
             inherit config lib vmName;
             inherit (vm) macAddress;
             internalIP = index + 100;
           })
+
+          ./common/storagevm.nix
+
           # To push logs to central location
           ../../../common/logging/client.nix
           (
@@ -95,6 +101,10 @@ let
                 enable = true;
                 abrmd.enable = true;
               };
+
+              security.pki.certificateFiles =
+                lib.mkIf configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
+                  [ ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem ];
 
               microvm = {
                 optimize.enable = false;
