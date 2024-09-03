@@ -18,7 +18,7 @@ _:
 
     opteeSource = pkgs.fetchgit {
       url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
-      rev = "jetson_${l4tVersion}";
+      rev = builtins.trace "jetson_${l4tVersion}" "jetson_${l4tVersion}";
       sha256 = "sha256-jJOMig2+9FlKA9gJUCH/dva7ZtAq1typZSNGKyM7tlg=";
     };
 

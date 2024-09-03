@@ -4,13 +4,28 @@
 # This overlay patches packages in nixpkgs, and adds in some of the ghaf's
 # packages.
 #
+/*
+{ final, prev, builtins}:
+let
+  # Import and evaluate the QEMU overlays
+  qemuOverlay1 = import ./qemu { inherit final prev; };
+  qemuOverlay2 = import ../../modules/jetpack/nvidia-jetson-orin/virtualization/host/gpio-virt-host/overlays/qemu { inherit final prev; };
+
+  # Merge the resulting attribute sets
+  # mergedQemu = builtins.mergeAttrs qemuOverlay1 qemuOverlay2;
+in
+*/
 (final: prev: {
   gala-app = final.callPackage ../../packages/gala { };
   element-desktop = import ./element-desktop { inherit prev; };
   element-gps = final.callPackage ../../packages/element-gps { };
   element-web = final.callPackage ../../packages/element-web { };
   waypipe = import ./waypipe { inherit final prev; };
-  qemu_kvm = import ./qemu { inherit final prev; };
+  # qemu_kvm = import ./qemu { inherit final prev; };
+  # qemu_gpio = import ./qemu/gpio-qemu.nix {inherit final prev;};
+  # we have to patch qemu_kvm directly ... for now
+  # qemu_kvm = builtins.mergeAttrs qemuOverlay1 qemuOverlay2;
+  qemu_kvm = import ./qemu/gpio-passthrough-qemu_9_0.nix { inherit final prev; };
   nm-launcher = final.callPackage ../../packages/nm-launcher { };
   icon-pack = final.callPackage ../../packages/icon-pack { };
   labwc = import ./labwc { inherit prev; };
