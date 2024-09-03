@@ -26,6 +26,7 @@ NixOS, a Linux OS distribution packaged with Nix, provides us with:
 
 Even when unmodified upstream is often preferred, even ideal, to ensure timely security updates from upstream—customizations are sometimes required.
 
+
 ### Example
 
 To support a reference board without a vendor board support package (BSP)—bootloader, kernel, device drivers—is often not feasible. With this approach, we can overlay the generic NixOS Linux kernel with the vendor kernel and add a vendor bootloader to build a target image.
@@ -39,9 +40,15 @@ The same goes with the architectural variants as headless devices or end-user de
 
 - [Development](./development.md)
    - [Build and Run](./build_and_run.md)
+   - [Running Remote Build on NixOS](./remote_build_setup.md)
    - [Installer](./installer.md)
    - [Cross-Compilation](./cross_compilation.md)
    - [Creating Application VM](./creating_appvm.md)
+   - [Hardware Configuration](ref_impl/hw-config.md)
+   - [Profiles Configuration](ref_impl/profiles-config.md)
+   - [labwc Desktop Environment](./labwc.md)
+   - [IDS VM Further Development](./idsvm-development.md)
+   - [systemd Service Hardening](./systemd-service-config.md)
 - [Ghaf as Library: Templates](./ghaf-based-project.md)
    - [Example Project](./example_project.md)
    - [Modules Options](./modules_options.md)

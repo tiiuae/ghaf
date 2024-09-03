@@ -3,7 +3,4 @@
 #
 # This overlay customizes labwc - see comments for details
 #
-{prev}:
-prev.labwc.overrideAttrs {
-  patches = [./labwc-colored-borders.patch];
-}
+{ prev }: prev.labwc.overrideAttrs { patches = [ ./labwc-colored-borders.patch ]; }

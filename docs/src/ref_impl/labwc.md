@@ -12,7 +12,7 @@ To use labwc as your default desktop environment, add it as a module to Ghaf:
 
 * change the configuration option `profiles.graphics.compositor = "labwc"`
 or
-* uncomment the corresponding line in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/virtualization/microvm/guivm.nix) file.
+* uncomment the corresponding line in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix) file.
 
 
 The basis of the labwc configuration is the set of following files: `rc.xml`, `menu.xml`, `autostart`, and `environment`. These files can be edited by substituting in the labwc overlay `overlays/custom-packages/labwc/default.nix`.
@@ -24,7 +24,8 @@ The border color concept illustrates the application trustworthiness in a user-f
 
 Ghaf uses patched labwc which makes it possible to change the border color for the chosen application. The implementation is based on window rules by substituting the server decoration colors (`serverDecoration` = `yes`). The `borderColor` property is responsible for the frame color.
 
-> **TIP:** According to the labwc specification, the **identifier** parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.
+> [!IMPORTANT]
+> According to the labwc specification, the **identifier** parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.
 
 For example, the foot terminal with Aqua colored frame:
 ```

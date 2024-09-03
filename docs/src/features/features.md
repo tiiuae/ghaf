@@ -26,7 +26,7 @@ Ghaf demo desktop and applications are illustrated in the screen capture below:
 - `aarch64`—generic AArch64; tested on an ARM server, laptop (e.g. Apple MacBook's), or NVIDIA Jetson AGX Orin.
 - `All variants`—supported devices from [Architectural Variants](https://tiiuae.github.io/ghaf/architecture/variants.html).
 
-The following tables show the status of Ghaf Platform features:
+The following tables show the status of the Ghaf Platform features:
 
 
 ## Release Builds and Hardware Architecture Support
@@ -35,7 +35,7 @@ The following tables show the status of Ghaf Platform features:
 |-------------------|-------------|------------------|-------------------------------------|
 | Ghaf in virtual machine | &#x2705; | `x86` | `nix run .#packages.x86_64-linux.vm-debug` |
 | `aarch64` reference image | &#x2705; | `Orin`  | Based on [Jetson Linux](https://developer.nvidia.com/embedded/jetson-linux), [OE4T](https://github.com/OE4T) and [jetpack-nixos](https://github.com/anduril/jetpack-nixos). |
-| `aarch64` reference image | &#x2705; | `imx8qm`  | Based on NXP BSP, implemented as [nixos-hardware module](https://github.com/NixOS/nixos-hardware/tree/master/nxp)|
+| `aarch64` reference image | &#x2705; | `imx8mp`  | Based on NXP BSP, implemented as [nixos-hardware module](https://github.com/NixOS/nixos-hardware/tree/master/nxp)|
 | `x86` generic image | &#x2705; | `x86` | Generic x86 computer, based on generic [NixOS](https://nixos.org/). NOTE: requires device specific configuration.|
 | `Lenovo X1` reference image | &#x2705; | `Lenovo X1` | x86_64 laptop computer, supports basic compartmentalized environment |
 | Native build      | &#x2705;         | `aarch64, x86`   | Remote `aarc64` nixos builders recommended |
@@ -50,28 +50,28 @@ The following tables show the status of Ghaf Platform features:
 |-------------------|-------------|------------------|----------------------------------------------|
 | Quick target update  | &#x2705; | `all`  | `nixos-rebuild --flake .#nvidia-jetson-orin-debug --target-host root@ghaf-host --fast switch` |
 | `aarch64` device flashing   | &#x2705;   | `Orin`  | [Full device software flashing using `x86` machine](https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#flashing-nvidia-jetson-orin-agx) |
-| root filesystem flashing | &#x2705;   | `x86, imx8qm`  | `dd` image to bootable media - [see](https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer) |
+| root filesystem flashing | &#x2705;   | `x86, imx8mp`  | `dd` image to bootable media - [see](https://tiiuae.github.io/ghaf/ref_impl/build_and_run.html#running-ghaf-image-for-x86-computer) |
 | Debug: SSH        | &#x2705;      | `Orin`, `x86` | Host access only in `-debug`-target, see [authentication.nix](https://github.com/tiiuae/ghaf/blob/main/modules/development/authentication.nix) |
 | Debug: Serial     | &#x2705;      | `all` | Host access only in `-debug`-target - e.g. `screen /dev/ttyACM0 115200` |
-| Compartmentalized environment     | &#x1f6A7;      | `Lenovo X1` | NetVM, GUI VM (with GPU passthrough) plus some Application VMs |
+| Compartmentalized environment     | &#x1f6A7;      | `Lenovo X1` | Net VM, GUI VM (with GPU passthrough) plus some App VMs |
 
 
 ## Target Architecture
 
 | Feature           | Status      | Reference Device | Details                             |
 |-------------------|-------------|------------------|----------------------------------------------|
-| `minimal host`    | &#x1f6A7;   | [`all`](https://tiiuae.github.io/ghaf/architecture/variants.html) | See [Minimal Host](https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html) and [PR #140](https://github.com/tiiuae/ghaf/pull/140). |
-| `netvm`           |  &#x2705; | `Orin`  | See [netvm](https://tiiuae.github.io/ghaf/architecture/adr/netvm.html). Passthrough with Wifi works but requires SSID/password configuration |
-| `idsvm`           |  &#x2705; | `Orin`  | [Defensive security VM placeholder PR open](https://github.com/tiiuae/ghaf/pull/146) |
-| `guivm` | &#x1f6A7; | `All`, `Lenovo X1`| Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.|
-| `appvm` | &#x1f6A7; | `All`, `Lenovo X1`| Implemented for Lenovo X1 reference device: chromium, GALA and zathura VMs. Requires `guivm` in place |
-| `adminvm`           | &#x2705; | `All`  | Not started |
-| Inter VM comms - IP-based  | &#x1f6A7; | `All` |`-debug`-targets have network bridges to access VMs from host |
+| Minimal host    | &#x1f6A7;   | [`all`](https://tiiuae.github.io/ghaf/architecture/variants.html) | See [Minimal Host](https://tiiuae.github.io/ghaf/architecture/adr/minimal-host.html) and [PR #140](https://github.com/tiiuae/ghaf/pull/140). |
+| Net VM           |  &#x2705; | `Orin`  | See [Net VM](https://tiiuae.github.io/ghaf/architecture/adr/netvm.html). Passthrough with Wi-Fi works but requires SSID/password configuration. |
+| IDS VM           |  &#x2705; | `Orin`, `Lenovo X1`  | [Defensive networking mechanism](/docs/src/architecture/adr/idsvm.md). |
+| GUI VM | &#x1f6A7; | `All`, `Lenovo X1`| Implemented for Lenovo X1 reference device, other devices have Wayland compositor running on the host.|
+| App VM | &#x1f6A7; | `All`, `Lenovo X1`| Implemented for Lenovo X1 reference device: Chromium, GALA and Zathura VMs. Requires GUI VM in place. |
+| Admin VM           | &#x2705; | `All`  | Not started |
+| Inter VM comms - IP-based  | &#x1f6A7; | `All` |`-debug`-targets have network bridges to access VMs from host. |
 | Inter VM comms - shared memory  |  &#x1f6A7; | `All` |  |
-| Inter VM Wayland  |  &#x1f6A7; | `All` | Currently it is `waypipe` over SSH, for test and demo purpose only |
-| SW update | &#x1f6A7; | `All` | A/B update tooling being evaluated |
-| USB passthrough   | &#x1f6A7; | `Orin`  | No reference implementation integrated yet |
-| PCI passthrough   | &#x2705; | `All`  | Used for reference in `netvm` on `Orin` |
+| Inter VM Wayland  |  &#x1f6A7; | `All` | Currently it is `waypipe` over SSH, for test and demo purpose only. |
+| SW update | &#x1f6A7; | `All` | A/B update tooling being evaluated. |
+| USB passthrough   | &#x1f6A7; | `Orin`  | No reference implementation integrated yet. |
+| PCI passthrough   | &#x2705; | `All`  | Used for reference in Net VM on `Orin`. |
 | UART passthrough  | &#x1f6A7; | `Orin`  | See [NVIDIA Jetson AGX Orin: UART Passthrough](https://tiiuae.github.io/ghaf/build_config/passthrough/nvidia_agx_pt_uart.html). Not integrated to any VM. |
 | ARM platform bus devices passthrough  | &#x1f6A7; | `Orin`  | NVIDIA BPMP virtualization being developed |
 

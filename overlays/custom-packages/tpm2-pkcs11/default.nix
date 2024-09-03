@@ -3,7 +3,7 @@
 #
 # This overlay customizes tpm2-pkcs11 - see comments for details
 #
-{prev}:
+{ prev }:
 prev.tpm2-pkcs11.overrideAttrs (_prevAttrs: {
-  configureFlags = ["--with-fapi=no --enable-fapi=no"];
+  configureFlags = [ "--with-fapi=no --enable-fapi=no" ];
 })

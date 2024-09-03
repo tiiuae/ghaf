@@ -5,9 +5,11 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.hardware.nvidia.passthroughs.uarti_net_vm;
-in {
+in
+{
   options.ghaf.hardware.nvidia.passthroughs.uarti_net_vm.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -25,26 +27,28 @@ in {
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
-        microvm.kernelParams = [
-          "console=ttyAMA0 console=ttyS0"
-        ];
-        microvm.qemu.serialConsole = false;
-        microvm.qemu.extraArgs = [
-          # Add custom dtb to Net-VM with 31d0000.serial in platform devices
-          "-dtb"
-          "${config.hardware.deviceTree.package}/tegra234-p3701-ghaf-net-vm.dtb"
-          # Add UARTI (31d0000.serial) as passtrhough device
-          "-device"
-          "vfio-platform,host=31d0000.serial"
-          # Add a virtual PCI serial device as console
-          "-device"
-          "pci-serial,chardev=stdio,id=serial0"
-        ];
+        microvm = {
+          kernelParams = [ "console=ttyAMA0 console=ttyS0" ];
+          qemu = {
+            serialConsole = false;
+            extraArgs = [
+              # Add custom dtb to Net-VM with 31d0000.serial in platform devices
+              "-dtb"
+              "${config.hardware.deviceTree.package}/tegra234-p3701-ghaf-net-vm.dtb"
+              # Add UARTI (31d0000.serial) as passtrhough device
+              "-device"
+              "vfio-platform,host=31d0000.serial"
+              # Add a virtual PCI serial device as console
+              "-device"
+              "pci-serial,chardev=stdio,id=serial0"
+            ];
+          };
+        };
       }
     ];
 
     # Make sure that Net-VM runs after the binding services are enabled
-    systemd.services."microvm@net-vm".after = ["bindSerial31d0000.service"];
+    systemd.services."microvm@net-vm".after = [ "bindSerial31d0000.service" ];
 
     boot.kernelPatches = [
       {
@@ -55,7 +59,7 @@ in {
 
     systemd.services.bindSerial31d0000 = {
       description = "Bind UARTI to the vfio-platform driver";
-      wantedBy = ["multi-user.target"];
+      wantedBy = [ "multi-user.target" ];
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = "yes";
@@ -79,7 +83,7 @@ in {
 
         # Apply overlay only to host passthrough device tree
         # TODO: make this avaliable if PCI passthrough is disabled
-        filter = builtins.trace "Debug dtb filter (uarti-net-vm): tegra234-p3701-host-passthrough.dtb" "tegra234-p3701-host-passthrough.dtb";
+        filter = "tegra234-p3701-host-passthrough.dtb";
       }
     ];
   };

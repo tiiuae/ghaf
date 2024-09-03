@@ -5,9 +5,11 @@
   pkgs,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.hardware.nvidia.virtualization.host.bpmp;
-in {
+in
+{
   options.ghaf.hardware.nvidia.virtualization.host.bpmp.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -21,7 +23,7 @@ in {
   };
 
   config = lib.mkIf cfg.enable {
-    ghaf.hardware.nvidia.virtualization.enable = true;
+    nixpkgs.overlays = [ (import ./overlays/qemu) ];
 
     # in practice this configures both host and guest kernel becaue we use only one kernel in the whole system§
     boot.kernelPatches = [
@@ -44,6 +46,12 @@ in {
           TEGRA_BPMP_GUEST_PROXY = lib.kernel.yes;
         };
       }
+    ];
+
+    # TODO: Consider are these really needed, maybe add only in debug builds?
+    environment.systemPackages = with pkgs; [
+      qemu_kvm
+      dtc
     ];
   };
 }

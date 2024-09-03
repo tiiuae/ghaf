@@ -6,24 +6,19 @@
 #
 # https://nixos.org/manual/nixos/stable/index.html#sec-writing-modules
 #
-{
-  config,
-  options,
-  lib,
-  ...
-}: let
+{ config, lib, ... }:
+let
   # inherit (builtins) A B C;
   # inherit (lib) D E F;
   # inherit (lib.ghaf) G H I;
   cfg = config.ghaf.X.Y;
 in
-  with lib; {
-    imports = [
-    ];
+{
+  imports = [ ];
 
-    options.ghaf.X.Y = {
-      enable = mkEnableOption "Option";
-    };
+  options.ghaf.X.Y = {
+    enable = lib.mkEnableOption "Option";
+  };
 
-    config = mkIf cfg.enable {};
-  }
+  config = lib.mkIf cfg.enable { };
+}

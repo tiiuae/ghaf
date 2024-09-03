@@ -2,14 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./weston.nix
     ./labwc.nix
-    ./weston.ini.nix
+    ./labwc.config.nix
     ./waybar.config.nix
     ./demo-apps.nix
     ./fonts.nix
-    ./gnome.nix
-    ./window-manager.nix
+    ./login-manager.nix
     ./boot.nix
   ];
 }

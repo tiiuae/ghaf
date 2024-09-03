@@ -30,6 +30,7 @@ This is the first release of Ghaf including support for:
 * Element, a Matrix-based chat client (on the host)
 * the Google Android look-alike (GALA) application
 
+> [!WARNING]
 > Ghaf Framework is under active development, some of the features may not be stable.
 
 

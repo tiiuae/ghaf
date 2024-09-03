@@ -1,0 +1,206 @@
+diff --unified --recursive --text --color element-web.orig/node_modules/matrix-react-sdk/src/components/views/location/LocationPicker.tsx element-web.new/node_modules/matrix-react-sdk/src/components/views/location/LocationPicker.tsx
+--- element-web.orig/node_modules/matrix-react-sdk/src/components/views/location/LocationPicker.tsx	2023-10-17 09:32:00.594000000 +0300
++++ element-web.new/node_modules/matrix-react-sdk/src/components/views/location/LocationPicker.tsx	2023-10-18 11:18:59.659372442 +0300
+@@ -45,6 +45,188 @@
+     error?: LocationShareError;
+ }
+ 
++interface Coordinates {
++    latitude: number;
++    longitude: number;
++    altitude?: number | null;
++    accuracy?: number;
++    altitudeAccuracy?: number | null;
++    heading?: number | null;
++    speed?: number | null;
++}
++
++interface Position {
++    coords: Coordinates;
++    timestamp: number;
++    isHighAccuracy?: boolean;
++}
++
++interface PositionError {
++    code: number;
++    message: string;
++}
++
++class ExternalGeolocation {
++    private static sockets: Map<number, WebSocket> = new Map();
++    private static cachedPosition: Position | null = null;
++
++    static getCurrentPosition(
++        successCallback: (position: Position) => void,
++        errorCallback?: (error: PositionError) => void,
++        options?: PositionOptions
++    ){
++        if (ExternalGeolocation.cachedPosition && options?.maximumAge && options.maximumAge > 0 && Date.now() - options.maximumAge > ExternalGeolocation.cachedPosition.timestamp ) {
++            successCallback(ExternalGeolocation.cachedPosition);
++            return;
++        }
++
++        const socket = new WebSocket("ws://localhost:8000");
++
++        let timeout: ReturnType<typeof setInterval>;
++        if (options?.timeout) {
++            timeout = setInterval(function () {
++                socket.close();
++                if (errorCallback) {
++                    errorCallback({
++                        code: 3,
++                        message: `Timeout elapsed: ${options.timeout}ms`
++                    });
++                }
++            }, options.timeout);
++        }
++
++        socket.onmessage = (event) => {
++            const p = JSON.parse(event.data);
++
++            if (p.mode > 1) {
++                if (timeout) {
++                    clearInterval(timeout);
++                }
++                socket.close();
++
++                const timestamp = new Date(p.time).getTime();
++
++                const position: Position = {
++                    coords: {
++                        latitude: p.lat,
++                        longitude: p.lon,
++                        accuracy: p.eph,
++                        altitude: p.altMSL,
++                        altitudeAccuracy: p.epv,
++                        heading: p.track,
++                        speed: p.speed,
++                    },
++                    timestamp,
++                    isHighAccuracy: true,
++                    };
++
++                ExternalGeolocation.cachedPosition = position;
++                successCallback(position);
++            }
++        };
++
++        socket.onerror = (event) => {
++            if (timeout) {
++                clearInterval(timeout);
++            }
++            if (errorCallback) {
++                errorCallback({
++                    code: 2,
++                    message: `WebSocket error: ${event.type}`
++                });
++            }
++        };
++    }
++
++    static watchPosition(
++        successCallback: (position: Position) => void,
++        errorCallback?: (error: PositionError) => void,
++        options?: PositionOptions
++    ){
++        const watchId = ExternalGeolocation.sockets.size;
++
++        if (ExternalGeolocation.cachedPosition && options?.maximumAge && options.maximumAge > 0 && Date.now() - options.maximumAge > ExternalGeolocation.cachedPosition.timestamp ) {
++            successCallback(ExternalGeolocation.cachedPosition);
++        }
++
++        const socket = new WebSocket("ws://localhost:8000");
++
++        let timeout: ReturnType<typeof setInterval>;
++        if (options?.timeout) {
++            timeout = setInterval(function () {
++                socket.close();
++                if (errorCallback) {
++                    errorCallback({
++                        code: 3,
++                        message: `Timeout elapsed: ${options.timeout}ms`
++                    });
++                }
++            }, options.timeout);
++        }
++
++        socket.onmessage = (event) => {
++            const p = JSON.parse(event.data);
++            const timestamp = new Date(p.time).getTime();
++
++            if (p.mode > 1) {
++                if (timeout) {
++                    clearInterval(timeout);
++                }
++                const position: Position = {
++                    coords: {
++                        latitude: p.lat,
++                        longitude: p.lon,
++                        accuracy: p.eph,
++                        altitude: p.altMSL,
++                        altitudeAccuracy: p.epv,
++                        heading: p.track,
++                        speed: p.speed,
++                    },
++                    timestamp,
++                    isHighAccuracy: true,
++                    };
++
++                ExternalGeolocation.cachedPosition = position;
++                successCallback(position);
++            }
++        };
++
++        socket.onerror = (event) => {
++            if (timeout) {
++                clearInterval(timeout);
++            }
++
++            if (errorCallback) {
++                errorCallback({
++                    code: 2,
++                    message: `WebSocket error: ${event.type}`,
++                });
++            }
++        };
++
++        ExternalGeolocation.sockets.set(watchId, socket);
++
++        return watchId;
++    }
++
++    static clearWatch(watchId: number) {
++        const socket = ExternalGeolocation.sockets.get(watchId);
++        if (socket) {
++            socket.close();
++            ExternalGeolocation.sockets.delete(watchId);
++        }
++    }
++}
++
++Object.defineProperty(navigator, 'geolocation', {
++    value: {
++        getCurrentPosition: ExternalGeolocation.getCurrentPosition,
++        watchPosition: ExternalGeolocation.watchPosition,
++        clearWatch: ExternalGeolocation.clearWatch,
++    },
++    writable: false,
++});
++
+ const isSharingOwnLocation = (shareType: LocationShareType): boolean =>
+     shareType === LocationShareType.Own || shareType === LocationShareType.Live;
+ 
+diff --unified --recursive --text --color element-web.orig/node_modules/matrix-react-sdk/src/components/views/rooms/MessageComposer.tsx element-web.new/node_modules/matrix-react-sdk/src/components/views/rooms/MessageComposer.tsx
+--- element-web.orig/node_modules/matrix-react-sdk/src/components/views/rooms/MessageComposer.tsx	2023-10-17 09:32:00.594000000 +0300
++++ element-web.new/node_modules/matrix-react-sdk/src/components/views/rooms/MessageComposer.tsx	2023-10-17 09:49:26.617200503 +0300
+@@ -624,9 +624,7 @@
+                                     relation={this.props.relation}
+                                     onRecordStartEndClick={this.onRecordStartEndClick}
+                                     setStickerPickerOpen={this.setStickerPickerOpen}
+-                                    showLocationButton={
+-                                        !window.electron && SettingsStore.getValue(UIFeature.LocationSharing)
+-                                    }
++                                    showLocationButton={SettingsStore.getValue(UIFeature.LocationSharing)}
+                                     showPollsButton={this.state.showPollsButton}
+                                     showStickersButton={this.showStickersButton}
+                                     isRichTextEnabled={this.state.isRichTextEnabled}

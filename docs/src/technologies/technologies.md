@@ -36,5 +36,7 @@ In addition, we have also experimental, Aarch64 demonstrated support for a KVM v
   - [NVIDIA Jetson AGX Orin: UART Passthrough](./nvidia_agx_pt_uart.md)
   - [NVIDIA Jetson AGX Orin: PCIe Passthrough](./nvidia_agx_pt_pcie.md)
   - [Generic x86: PCIe Passthrough on crosvm](./x86_pcie_crosvm.md)
+  - [NVIDIA Jetson: UARTI Passthrough to netvm](./nvidia_uarti_net_vm.md)
+  - [Device Tree Overlays for Passthrough](./device_tree_overlays_pt.md)
 - [NVIDIA Jetson AGX Orin: Boot and Power Management Processor Virtualization](./nvidia_virtualization_bpmp.md)
 - [Hypervisor Options](./hypervisor_options.md)

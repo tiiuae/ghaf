@@ -6,8 +6,6 @@
 {
   nixpkgs = {
     buildPlatform.system = "x86_64-linux";
-    overlays = [
-      (import ../../overlays/cross-compilation)
-    ];
+    overlays = [ (import ../../overlays/cross-compilation) ];
   };
 }

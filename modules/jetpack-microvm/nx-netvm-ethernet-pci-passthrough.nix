@@ -1,15 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{
-  lib,
-  config,
-  ...
-}: let
+{ lib, config, ... }:
+let
   cfg = config.ghaf.hardware.nvidia.orin.nx;
-in {
-  options.ghaf.hardware.nvidia.orin.nx.enableNetvmEthernetPCIPassthrough =
-    lib.mkEnableOption
-    "Ethernet card PCI passthrough to NetVM";
+in
+{
+  options.ghaf.hardware.nvidia.orin.nx.enableNetvmEthernetPCIPassthrough = lib.mkEnableOption "Ethernet card PCI passthrough to NetVM";
   config = lib.mkIf cfg.enableNetvmEthernetPCIPassthrough {
     # Orin NX Ethernet card PCI Passthrough
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;

@@ -3,8 +3,4 @@
 #
 # Support for Microchip Polarfire Icicle-Kit
 #
-{
-  imports = [
-    ./mpfs-nixos-sdimage.nix
-  ];
-}
+{ imports = [ ./mpfs-nixos-sdimage.nix ]; }

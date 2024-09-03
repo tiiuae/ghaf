@@ -5,13 +5,23 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
 
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkForce
+    types
+    ;
+
   # Override minimal systemd package configuration
   package =
-    (pkgs.systemdMinimal.override {
+    (pkgs.systemdMinimal.override (
+      {
         pname = cfg.withName;
         withAcl = true;
         withAnalyze = cfg.withDebug;
@@ -31,7 +41,7 @@
         withLibseccomp = true;
         inherit (cfg) withLocaled;
         inherit (cfg) withLogind;
-        withMachined = cfg.withMachines;
+        withMachined = cfg.withMachines || cfg.withNss; # Required for NSS in nixos
         inherit (cfg) withNetworkd;
         inherit (cfg) withNss;
         withOomd = true;
@@ -44,17 +54,15 @@
         inherit (cfg) withTimesyncd;
         inherit (cfg) withTpm2Tss;
         withUtmp = cfg.withJournal || cfg.withAudit;
-      } # To be removed, current systemd version 254.6 < 255
-      // lib.optionalAttrs (lib.hasAttr "withVmspawn" (lib.functionArgs pkgs.systemd.override)) {
+      }
+      // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
         withVmspawn = cfg.withMachines;
-      })
-    .overrideAttrs (prevAttrs: {
-      patches =
-        prevAttrs.patches
-        ++ [
-          ./systemd-boot-double-dtb-buffer-size.patch
-        ];
-    });
+        withQrencode = true; # Required for systemd-bsod (currently hardcoded in nixos)
+      }
+    )).overrideAttrs
+      (prevAttrs: {
+        patches = prevAttrs.patches ++ [ ./systemd-boot-double-dtb-buffer-size.patch ];
+      });
 
   # Definition of suppressed system units in systemd configuration. This removes the units and has priority.
   # Required to avoid build failures compared to only disabling units for some options. Note that errors will be silently ignored.
@@ -109,9 +117,7 @@
       "auditd.service"
       "systemd-journald-audit.socket"
     ])
-    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withMachines)) [
-      "systemd-coredump.socket"
-    ])
+    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withMachines)) [ "systemd-coredump.socket" ])
     ++ (lib.optionals (!cfg.withLogind) [
       "systemd-logind.service"
       "dbus-org.freedesktop.login1.service"
@@ -125,12 +131,8 @@
       "nss-lookup.target.requires"
       "nss-user-lookup.target.requires"
     ])
-    ++ (lib.optionals (!cfg.withTimesyncd) [
-      "systemd-timesyncd.service"
-    ])
-    ++ (lib.optionals (!cfg.withResolved) [
-      "systemd-resolved.service"
-    ])
+    ++ (lib.optionals (!cfg.withTimesyncd) [ "systemd-timesyncd.service" ])
+    ++ (lib.optionals (!cfg.withResolved) [ "systemd-resolved.service" ])
     ++ (lib.optionals (!cfg.withNetworkd) [
       "network.target"
       "network-pre.target"
@@ -170,140 +172,144 @@
       "prepare-kexec.target"
     ]);
 in
-  with lib; {
-    options.ghaf.systemd = {
-      enable = mkEnableOption "Enable minimal systemd configuration.";
+{
+  options.ghaf.systemd = {
+    enable = mkEnableOption "Enable minimal systemd configuration.";
 
-      withName = mkOption {
-        description = "Set systemd name.";
-        type = types.str;
-        default = "base-systemd";
-      };
-
-      withLogind = mkOption {
-        description = "Enable systemd login daemon.";
-        type = types.bool;
-        default = true;
-      };
-
-      withJournal = mkOption {
-        description = "Enable systemd journal daemon.";
-        type = types.bool;
-        default = true;
-      };
-
-      withNetworkd = mkOption {
-        description = "Enable systemd networking daemon.";
-        type = types.bool;
-        default = true;
-      };
-
-      withTimesyncd = mkOption {
-        description = "Enable systemd timesync daemon.";
-        type = types.bool;
-        default = false;
-      };
-
-      withResolved = mkOption {
-        description = "Enable systemd resolve daemon.";
-        type = types.bool;
-        default = false;
-      };
-
-      withRepart = mkOption {
-        description = "Enable systemd repart functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withHostnamed = mkOption {
-        description = "Enable systemd hostname daemon.";
-        type = types.bool;
-        default = false;
-      };
-
-      withNss = mkOption {
-        description = "Enable systemd Name Service Switch (NSS) functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withEfi = mkOption {
-        description = "Enable systemd EFI+bootloader functionality.";
-        type = types.bool;
-        default = pkgs.stdenv.hostPlatform.isEfi;
-      };
-
-      withApparmor = mkOption {
-        description = "Enable systemd apparmor functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withMachines = mkOption {
-        description = "Enable systemd container and VM functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withAudit = mkOption {
-        description = "Enable systemd audit functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withCryptsetup = mkOption {
-        description = "Enable systemd LUKS2 functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withFido2 = mkOption {
-        description = "Enable systemd Fido2 token functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withTpm2Tss = mkOption {
-        description = "Enable systemd TPM functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withPolkit = mkOption {
-        description = "Enable systemd polkit functionality.";
-        type = types.bool;
-        default = false;
-      };
-
-      withSerial = mkOption {
-        description = "Enable systemd serial console.";
-        type = types.bool;
-        default = false;
-      };
-
-      withLocaled = mkOption {
-        description = "Enable systemd locale daemon.";
-        type = types.bool;
-        default = false;
-      };
-
-      withDebug = mkOption {
-        description = "Enable systemd debug functionality.";
-        type = types.bool;
-        default = false;
-      };
+    withName = mkOption {
+      description = "Set systemd name.";
+      type = types.str;
+      default = "base-systemd";
     };
 
-    config = mkIf cfg.enable {
-      systemd = {
-        # Package and unit configuration
-        inherit package;
-        inherit suppressedSystemUnits;
-
-        # Misc. configurations
-        enableEmergencyMode = cfg.withDebug;
-        coredump.enable = cfg.withDebug || cfg.withMachines;
-      };
+    withLogind = mkOption {
+      description = "Enable systemd login daemon.";
+      type = types.bool;
+      default = true;
     };
-  }
+
+    withJournal = mkOption {
+      description = "Enable systemd journal daemon.";
+      type = types.bool;
+      default = true;
+    };
+
+    withNetworkd = mkOption {
+      description = "Enable systemd networking daemon.";
+      type = types.bool;
+      default = true;
+    };
+
+    withTimesyncd = mkOption {
+      description = "Enable systemd timesync daemon.";
+      type = types.bool;
+      default = false;
+    };
+
+    withResolved = mkOption {
+      description = "Enable systemd resolve daemon.";
+      type = types.bool;
+      default = false;
+    };
+
+    withRepart = mkOption {
+      description = "Enable systemd repart functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withHostnamed = mkOption {
+      description = "Enable systemd hostname daemon.";
+      type = types.bool;
+      default = false;
+    };
+
+    withNss = mkOption {
+      description = "Enable systemd Name Service Switch (NSS) functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withEfi = mkOption {
+      description = "Enable systemd EFI+bootloader functionality.";
+      type = types.bool;
+      default = pkgs.stdenv.hostPlatform.isEfi;
+    };
+
+    withApparmor = mkOption {
+      description = "Enable systemd apparmor functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withMachines = mkOption {
+      description = "Enable systemd container and VM functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withAudit = mkOption {
+      description = "Enable systemd audit functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withCryptsetup = mkOption {
+      description = "Enable systemd LUKS2 functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withFido2 = mkOption {
+      description = "Enable systemd Fido2 token functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withTpm2Tss = mkOption {
+      description = "Enable systemd TPM functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withPolkit = mkOption {
+      description = "Enable systemd polkit functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withSerial = mkOption {
+      description = "Enable systemd serial console.";
+      type = types.bool;
+      default = false;
+    };
+
+    withLocaled = mkOption {
+      description = "Enable systemd locale daemon.";
+      type = types.bool;
+      default = false;
+    };
+
+    withDebug = mkOption {
+      description = "Enable systemd debug functionality.";
+      type = types.bool;
+      default = false;
+    };
+  };
+
+  config = mkIf cfg.enable {
+    security.auditd.enable = cfg.withAudit;
+    systemd = {
+      # Package and unit configuration
+      inherit package;
+      inherit suppressedSystemUnits;
+
+      # Misc. configurations
+      enableEmergencyMode = cfg.withDebug;
+      coredump.enable = cfg.withDebug || cfg.withMachines;
+
+      # Service startup optimization
+      services.systemd-networkd-wait-online.enable = mkForce false;
+    };
+  };
+}

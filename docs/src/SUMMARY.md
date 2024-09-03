@@ -14,6 +14,7 @@
   - [Architecture Decision Records](architecture/adr.md)
     - [Minimal Host](architecture/adr/minimal-host.md)
     - [Networking VM](architecture/adr/netvm.md)
+    - [Intrusion Detection System VM](architecture/adr/idsvm.md)
     - [Platform Bus for Rust VMM](architecture/adr/platform-bus-passthrough-support.md)
   - [Hardening](architecture/hardening.md)
   - [Secure Boot](architecture/secureboot.md)
@@ -29,7 +30,11 @@
     - [Installer](ref_impl/installer.md)
     - [Cross-Compilation](ref_impl/cross_compilation.md)
     - [Creating Application VM](ref_impl/creating_appvm.md)
-    - [labWC Desktop Environment](ref_impl/labwc.md)
+    - [Hardware Configuration](ref_impl/hw-config.md)
+    - [Profiles Configuration](ref_impl/profiles-config.md)
+    - [labwc Desktop Environment](ref_impl/labwc.md)
+    - [IDS VM Further Development](ref_impl/idsvm-development.md)
+    - [systemd Service Hardening](ref_impl/systemd-service-config.md)
   - [Ghaf as Library: Templates](ref_impl/ghaf-based-project.md)
     - [Example Project](ref_impl/example_project.md)
     - [Modules Options](ref_impl/modules_options.md)
@@ -55,6 +60,7 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes](release_notes/release_notes.md)
+    - [Release ghaf-24.06](release_notes/ghaf-24.06.md)
     - [Release ghaf-24.03](release_notes/ghaf-24.03.md)
     - [Release ghaf-23.12](release_notes/ghaf-23.12.md)
     - [Release ghaf-23.09](release_notes/ghaf-23.09.md)
@@ -66,7 +72,6 @@
 - [Showcases](scenarios/showcases.md)
   - [Running Windows VM on Ghaf](scenarios/run_win_vm.md)
   - [Running Cuttlefish on Ghaf](scenarios/run_cuttlefish.md)
-- [Build Your Environment]()
 
 -----------
 

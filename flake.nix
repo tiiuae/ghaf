@@ -1,22 +1,25 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  description = "Ghaf - Documentation and implementation for TII SSRC Secure Technologies Ghaf Framework";
+  description = "Ghaf Framework: Documentation and implementation for TII SSRC Secure Technologies";
 
   nixConfig = {
     substituters = [
+      "https://dev-cache.vedenemo.dev"
       "https://cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
       "https://cache.nixos.org/"
     ];
     extra-trusted-substituters = [
+      "https://dev-cache.vedenemo.dev"
       "https://cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
       "https://cache.nixos.org/"
     ];
     extra-trusted-public-keys = [
+      "ghaf-infra-dev:EdgcUJsErufZitluMOYmoJDMQE+HFyveI/D270Cr84I="
       "cache.vedenemo.dev:8NhplARANhClUSWJyLVk4WMyy1Wb4rhmWW2u8AejH9E="
       "cache.ssrcdevops.tii.ae:oOrzj9iCppf+me5/3sN/BxEkp5SaFkHfKTPPZ97xXQk="
       "ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY="
@@ -25,7 +28,20 @@
   };
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
+    #TODO: clean this up before merging to main
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    ghafpkgs = {
+      url = "github:tiiuae/ghafpkgs";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
+        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+        flake-compat.follows = "flake-compat";
+      };
+    };
 
     #
     # Flake and repo structuring configurations
@@ -50,7 +66,6 @@
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-stable.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -102,12 +117,12 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
     jetpack-nixos = {
-      url = "github:anduril/jetpack-nixos";
+      url = "github:anduril/jetpack-nixos/793716c1ca29a1be6d9bea84296a933c4acdddc1";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
     disko = {
-      url = "github:nix-community/disko/master";
+      url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -115,7 +130,7 @@
     # Security
     #
     lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.3.0";
+      url = "github:nix-community/lanzaboote/v0.4.1";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -124,15 +139,30 @@
         flake-compat.follows = "flake-compat";
       };
     };
+
+    impermanence = {
+      url = "github:nix-community/impermanence";
+    };
+
+    givc = {
+      url = "github:tiiuae/ghaf-givc";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
+        treefmt-nix.follows = "treefmt-nix";
+        devshell.follows = "devshell";
+        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+      };
+    };
   };
 
-  outputs = inputs @ {flake-parts, ...}: let
-    lib = import ./lib.nix {inherit inputs;};
-  in
-    flake-parts.lib.mkFlake
-    {
-      inherit inputs;
-    } {
+  outputs =
+    inputs@{ flake-parts, ... }:
+    let
+      lib = import ./lib.nix { inherit inputs; };
+    in
+    flake-parts.lib.mkFlake { inherit inputs; } {
       # Toggle this to allow debugging in the repl
       # see:https://flake.parts/debug
       debug = false;
@@ -155,11 +185,6 @@
         ./hydrajobs/flake-module.nix
         ./templates/flake-module.nix
       ];
-
-      #TODO Fix this
-      #flake.nixosModules = with lib;
-      #  mapAttrs (_: import)
-      #  (flattenTree (rakeLeaves ./modules));
 
       flake.lib = lib;
     };

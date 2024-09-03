@@ -1,39 +1,47 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{inputs, ...}: {
-  imports = with inputs; [
-    flake-root.flakeModule
-    ./devshell/kernel.nix
-    # TODO this import needs to be filtered to remove RISCV
-    # pre-commit-hooks-nix.flakeModule
-  ];
-  perSystem = {
-    pkgs,
-    inputs',
-    self',
-    lib,
-    system,
-    ...
-  }: {
-    devShells.default = pkgs.mkShell {
-      name = "Ghaf devshell";
-      #TODO look at adding Mission control etc here
-      packages = with pkgs;
-        [
-          git
-          nix
-          nixci
-          nixos-rebuild
-          reuse
-          alejandra
-          mdbook
-          inputs'.nix-fast-build.packages.default
-          self'.packages.kernel-hardening-checker
-        ]
-        ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") cachix;
+{
+  imports = [ ./devshell/kernel.nix ];
+  perSystem =
+    {
+      config,
+      pkgs,
+      inputs',
+      lib,
+      ...
+    }:
+    {
+      devShells.default = pkgs.mkShell {
+        name = "Ghaf devshell";
+        meta.description = "Ghaf development environment";
+        #TODO look at adding Mission control etc here
+        inputsFrom = [
+          config.treefmt.build.programs # See ./treefmt.nix
+        ];
+        packages =
+          builtins.attrValues {
+            inherit (pkgs)
+              git
+              mdbook
+              nix
+              nixci
+              nixos-rebuild
+              nix-output-monitor
+              nix-tree
+              reuse
+              nix-eval-jobs
+              jq
+              ;
+          }
+          ++ [ inputs'.nix-fast-build.packages.default ]
+          ++ [
+            (pkgs.callPackage ../packages/flash { })
+            (pkgs.callPackage ../packages/make-checks { })
+          ]
+          ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
 
-      # TODO Add pre-commit.devShell (needs to exclude RiscV)
-      # https://flake.parts/options/pre-commit-hooks-nix
+        # TODO Add pre-commit.devShell (needs to exclude RiscV)
+        # https://flake.parts/options/pre-commit-hooks-nix
+      };
     };
-  };
 }

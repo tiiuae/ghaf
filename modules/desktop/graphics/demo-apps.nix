@@ -5,74 +5,64 @@
   lib,
   config,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.graphics.demo-apps;
 
   /*
-  Scaled down firefox icon
+    Generate launchers to be used in the application drawer
+
+    Type: mkProgramOption ::  string -> bool -> option
   */
-  firefox-icon = pkgs.runCommand "firefox-icon-24x24" {} ''
-    mkdir -p $out/share/icons/hicolor/24x24/apps
-    ${pkgs.buildPackages.imagemagick}/bin/convert \
-      ${pkgs.firefox}/share/icons/hicolor/128x128/apps/firefox.png \
-      -resize 24x24 \
-      $out/share/icons/hicolor/24x24/apps/firefox.png
-  '';
-
-  /*
-  Generate launchers to be used in weston.ini
-
-  Type: mkProgramOption ::  string -> bool -> option
-
-  */
-  mkProgramOption = name: default:
-    with lib;
-      mkOption {
-        inherit default;
-        type = types.bool;
-        description = "Include package ${name} to menu and system environment";
-      };
-in {
-  options.ghaf.graphics.demo-apps = with lib; {
+  mkProgramOption =
+    name: default:
+    lib.mkOption {
+      inherit default;
+      type = lib.types.bool;
+      description = "Include package ${name} to menu and system environment";
+    };
+in
+{
+  options.ghaf.graphics.demo-apps = {
     chromium = mkProgramOption "Chromium browser" false;
     firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
+    appflowy = mkProgramOption "Appflowy" config.ghaf.graphics.enableDemoApplications;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
     ghaf.graphics.launchers =
       lib.optional cfg.chromium {
-        name = "chromium";
+        name = "Chromium";
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.chromium}/share/icons/hicolor/24x24/apps/chromium.png";
+        icon = "${pkgs.icon-pack}/chromium.svg";
       }
       ++ lib.optional cfg.firefox {
-        name = "firefox";
+        name = "Firefox";
         path = "${pkgs.firefox}/bin/firefox";
-        icon = "${firefox-icon}/share/icons/hicolor/24x24/apps/firefox.png";
+        icon = "${pkgs.icon-pack}/firefox.svg";
       }
       ++ lib.optional cfg.element-desktop {
-        name = "element";
+        name = "Element";
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.element-desktop}/share/icons/hicolor/24x24/apps/element.png";
+        icon = "${pkgs.icon-pack}/element-desktop.svg";
       }
       ++ lib.optional cfg.gala-app {
-        name = "gala";
+        name = "GALA";
         path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.gala-app}/gala/resources/icon-24x24.png";
+        icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
       }
       ++ lib.optional cfg.zathura {
-        name = "zathura";
+        name = "PDF Viewer";
         path = "${pkgs.zathura}/bin/zathura";
-        icon = "${pkgs.zathura}/share/icons/hicolor/32x32/apps/org.pwmt.zathura.png";
+        icon = "${pkgs.icon-pack}/document-viewer.svg";
+      }
+      ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) {
+        name = "AppFlowy";
+        path = "${pkgs.appflowy}/bin/appflowy";
+        icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
       };
-    environment.systemPackages =
-      lib.optional cfg.chromium pkgs.chromium
-      ++ lib.optional cfg.element-desktop pkgs.element-desktop
-      ++ lib.optional cfg.firefox pkgs.firefox
-      ++ lib.optional cfg.gala-app pkgs.gala-app
-      ++ lib.optional cfg.zathura pkgs.zathura;
   };
 }

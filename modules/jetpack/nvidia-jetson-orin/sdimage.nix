@@ -16,66 +16,71 @@
   pkgs,
   modulesPath,
   ...
-}: {
-  imports = [
-    (modulesPath + "/installer/sd-card/sd-image.nix")
-  ];
+}:
+{
+  imports = [ (modulesPath + "/installer/sd-card/sd-image.nix") ];
 
   boot.loader.grub.enable = false;
-  disabledModules = [(modulesPath + "/profiles/all-hardware.nix")];
+  disabledModules = [ (modulesPath + "/profiles/all-hardware.nix") ];
 
-  sdImage = let
-    mkESPContentSource = pkgs.substituteAll {
-      src = ./mk-esp-contents.py;
-      isExecutable = true;
-      inherit (pkgs.buildPackages) python3;
-    };
-    mkESPContent =
-      pkgs.runCommand "mk-esp-contents" {
-        nativeBuildInputs = with pkgs; [mypy python3];
-      } ''
-        install -m755 ${mkESPContentSource} $out
-        mypy \
-          --no-implicit-optional \
-          --disallow-untyped-calls \
-          --disallow-untyped-defs \
-          $out
+  sdImage =
+    let
+      mkESPContentSource = pkgs.substituteAll {
+        src = ./mk-esp-contents.py;
+        isExecutable = true;
+        inherit (pkgs.buildPackages) python3;
+      };
+      mkESPContent =
+        pkgs.runCommand "mk-esp-contents"
+          {
+            nativeBuildInputs = with pkgs; [
+              mypy
+              python3
+            ];
+          }
+          ''
+            install -m755 ${mkESPContentSource} $out
+            mypy \
+              --no-implicit-optional \
+              --disallow-untyped-calls \
+              --disallow-untyped-defs \
+              $out
+          '';
+      fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+    in
+    {
+      firmwareSize = 256;
+      populateFirmwareCommands = ''
+        mkdir -pv firmware
+        ${mkESPContent} \
+          --toplevel ${config.system.build.toplevel} \
+          --output firmware/ \
+          --device-tree ${fdtPath}
       '';
-    fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
-  in {
-    firmwareSize = 256;
-    populateFirmwareCommands = ''
-      mkdir -pv firmware
-      ${mkESPContent} \
-        --toplevel ${config.system.build.toplevel} \
-        --output firmware/ \
-        --device-tree ${fdtPath}
-    '';
-    populateRootCommands = ''
-    '';
-    postBuildCommands = ''
-      img=$out/sd-image/${config.sdImage.imageName}
-      fdisk_output=$(fdisk -l "$img")
+      populateRootCommands = '''';
+      postBuildCommands = ''
+        img=$out/sd-image/${config.sdImage.imageName}
+        fdisk_output=$(fdisk -l "$img")
 
-      # Offsets and sizes are in 512 byte sectors
-      blocksize=512
+        # Offsets and sizes are in 512 byte sectors
+        blocksize=512
 
-      # ESP partition offset and sector count
-      part_esp=$(echo -n "$fdisk_output" | tail -n 2 | head -n 1 | tr -s ' ')
-      part_esp_begin=$(echo -n "$part_esp" | cut -d ' ' -f2)
-      part_esp_count=$(echo -n "$part_esp" | cut -d ' ' -f4)
+        # ESP partition offset and sector count
+        part_esp=$(echo -n "$fdisk_output" | tail -n 2 | head -n 1 | tr -s ' ')
+        part_esp_begin=$(echo -n "$part_esp" | cut -d ' ' -f2)
+        part_esp_count=$(echo -n "$part_esp" | cut -d ' ' -f4)
 
-      # root-partition offset and sector count
-      part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
-      part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
-      part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
+        # root-partition offset and sector count
+        part_root=$(echo -n "$fdisk_output" | tail -n 1 | head -n 1 | tr -s ' ')
+        part_root_begin=$(echo -n "$part_root" | cut -d ' ' -f3)
+        part_root_count=$(echo -n "$part_root" | cut -d ' ' -f4)
 
-      echo -n $part_esp_begin > $out/esp.offset
-      echo -n $part_esp_count > $out/esp.size
-      echo -n $part_root_begin > $out/root.offset
-      echo -n $part_root_count > $out/root.size
-    '';
-  };
+        echo -n $part_esp_begin > $out/esp.offset
+        echo -n $part_esp_count > $out/esp.size
+        echo -n $part_root_begin > $out/root.offset
+        echo -n $part_root_count > $out/root.size
+      '';
+    };
 
   fileSystems."/boot" = {
     device = "/dev/disk/by-label/${config.sdImage.firmwarePartitionName}";

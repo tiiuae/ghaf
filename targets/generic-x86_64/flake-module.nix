@@ -7,53 +7,65 @@
   lib,
   self,
   ...
-}: let
-  inherit (inputs) microvm nixos-generators;
+}:
+let
+  inherit (inputs) nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
-  generic-x86 = variant: extraModules: let
-    netvmExtraModules = [
-      {
-        microvm.devices = [
-          {
-            bus = "pci";
-            path = "0000:00:14.3";
-          }
-        ];
+  generic-x86 =
+    variant: extraModules:
+    let
+      netvmExtraModules = [
+        {
+          microvm.devices = [
+            {
+              bus = "pci";
+              path = "0000:00:14.3";
+            }
+          ];
 
-        # For WLAN firmwares
-        hardware.enableRedistributableFirmware = true;
+          # For WLAN firmwares
+          hardware.enableRedistributableFirmware = true;
 
-        networking.wireless = {
-          enable = true;
+          networking.wireless = {
+            enable = true;
 
-          # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
-        };
-      }
-    ];
-    hostConfiguration = lib.nixosSystem {
-      inherit system;
-      modules =
-        [
-          microvm.nixosModules.host
+            # networks."SSID_OF_NETWORK".psk = "WPA_PASSWORD";
+          };
+          services.dnsmasq.settings.dhcp-option = [
+            "option:router,192.168.100.1" # set net-vm as a default gw
+            "option:dns-server,192.168.100.1"
+          ];
+        }
+      ];
+      hostConfiguration = lib.nixosSystem {
+        inherit system;
+        modules = [
           nixos-generators.nixosModules.raw-efi
           self.nixosModules.common
           self.nixosModules.desktop
           self.nixosModules.host
           self.nixosModules.microvm
+          self.nixosModules.hw-x86_64-generic
+          self.nixosModules.reference-programs
 
           {
             ghaf = {
               hardware.x86_64.common.enable = true;
-              hardware.ax88179_178a.enable = true;
 
-              virtualization.microvm-host.enable = true;
-              virtualization.microvm-host.networkSupport = true;
-              host.networking.enable = true;
-              virtualization.microvm.netvm = {
-                enable = true;
-                extraModules = netvmExtraModules;
+              virtualization = {
+                microvm-host = {
+                  enable = true;
+                  networkSupport = true;
+                };
+
+                microvm.netvm = {
+                  enable = true;
+                  extraModules = netvmExtraModules;
+                };
               };
+
+              host.networking.enable = true;
 
               # Enable all the default UI applications
               profiles = {
@@ -63,7 +75,7 @@
                 # Uncomment this line to use Labwc instead of Weston:
                 #graphics.compositor = "labwc";
               };
-              windows-launcher.enable = true;
+              reference.programs.windows-launcher.enable = true;
             };
 
             #TODO: how to handle the majority of laptops that need a little
@@ -80,26 +92,27 @@
               "vfio-pci.ids=8086:a0f0"
             ];
           }
-        ]
-        ++ extraModules;
+        ] ++ extraModules;
+      };
+    in
+    {
+      inherit hostConfiguration;
+      name = "${name}-${variant}";
+      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
-  in {
-    inherit hostConfiguration;
-    name = "${name}-${variant}";
-    package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
-  };
-  debugModules = [{ghaf.development.usb-serial.enable = true;}];
+  debugModules = [ { ghaf.development.usb-serial.enable = true; } ];
   targets = [
     (generic-x86 "debug" debugModules)
-    (generic-x86 "release" [])
+    (generic-x86 "release" [ ])
   ];
-in {
+in
+{
   flake = {
-    nixosConfigurations =
-      builtins.listToAttrs (map (t: lib.nameValuePair t.name t.hostConfiguration) targets);
+    nixosConfigurations = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+    );
     packages = {
-      x86_64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      x86_64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
     };
   };
 }

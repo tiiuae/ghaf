@@ -5,18 +5,18 @@
 # packages.
 #
 (final: prev: {
-  gala-app = final.callPackage ../../packages/gala {};
-  systemd = import ./systemd {inherit final prev;};
-  waypipe = import ./waypipe {inherit final prev;};
-  weston = import ./weston {inherit final prev;};
-  wifi-connector = final.callPackage ../../packages/wifi-connector {};
-  wifi-connector-nmcli = final.callPackage ../../packages/wifi-connector {useNmcli = true;};
-  qemu_kvm = import ./qemu {inherit final prev;};
-  nm-launcher = final.callPackage ../../packages/nm-launcher {};
-  labwc = import ./labwc {inherit prev;};
-  tpm2-pkcs11 = import ./tpm2-pkcs11 {inherit prev;};
-  waybar = import ./waybar {inherit prev;};
-  # launcher overlays
-  networkmanagerapplet = import ./networkmanagerapplet {inherit prev;};
-  htop = import ./htop {inherit prev;};
+  gala-app = final.callPackage ../../packages/gala { };
+  element-desktop = import ./element-desktop { inherit prev; };
+  element-gps = final.callPackage ../../packages/element-gps { };
+  element-web = final.callPackage ../../packages/element-web { };
+  waypipe = import ./waypipe { inherit final prev; };
+  qemu_kvm = import ./qemu { inherit final prev; };
+  nm-launcher = final.callPackage ../../packages/nm-launcher { };
+  icon-pack = final.callPackage ../../packages/icon-pack { };
+  labwc = import ./labwc { inherit prev; };
+  tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
+  waybar = import ./waybar { inherit prev; };
+  mitmweb-ui = final.callPackage ../../packages/mitmweb-ui { };
+  gtklock = import ./gtklock { inherit prev; };
+  hardware-scan = final.callPackage ../../packages/hardware-scan { };
 })

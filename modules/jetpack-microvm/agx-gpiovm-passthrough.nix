@@ -56,13 +56,5 @@ in {
         */
       }
     ];
- 
-    /* tmp note: further kernel settings for nvidia in:
-    ../jetpack/nvidia-jetson-orin/virtualization/default.nix
-    ../jetpack/nvidia-jetson-orin/virtualization/common/gpio-virt-common/default.nix
-    ../jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/default.nix
-    ../jetpack/nvidia-jetson-orin/virtualization/host/gpio-virt-host/default.nix
-    ../jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/default.nix
-    */
   };
 }

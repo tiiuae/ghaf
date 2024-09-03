@@ -5,13 +5,12 @@
   lib,
   config,
   ...
-}: let
-  inherit (config.ghaf.graphics) weston labwc;
-in {
-  config = lib.mkIf (weston.enable || labwc.enable) {
-    fonts.packages = with pkgs; [
-      fira-code-nerdfont
-      hack-font
-    ];
+}:
+let
+  inherit (config.ghaf.graphics) labwc;
+in
+{
+  config = lib.mkIf labwc.enable {
+    fonts.packages = builtins.attrValues { inherit (pkgs) inter fira-code-nerdfont hack-font; };
   };
 }

@@ -6,9 +6,9 @@
 # Release ghaf-24.03
 
 
-## Release Branch
+## Release Tag
 
-<https://github.com/tiiuae/ghaf/tree/ghaf-24.03>
+<https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.03>
 
 
 ## Supported Hardware
@@ -58,9 +58,9 @@ Fixed bugs that were in the ghaf-23.12 release:
 | Cannot log in to the Element chat with a Google account  | In Progress | Workaround for x86: create a user specifically for Element. |
 | Windows launcher application does not work on AGX  | In Progress | Workaround: launch a Windows VM from the command line. |
 | Time synchronization between host and VMs does not work in all scenarios  | In Progress | Under investigation. |
-| Closing and re-opening a deck lid of a X1 laptop with running Ghaf causes instability | In Progress | Workaround: keep a deck lid of a laptop open while working with Ghaf. |
+| Closing and reopening a deck lid of a Lenovo ThinkPad X1 laptop with Ghaf running causes instability | In Progress | Workaround: keep a deck lid of a laptop open while working with Ghaf. |
 | Applications do not open from icons when netvm is restarted | In Progress | Workaround: restart AppVMs. |
-| Cannot connect to a hidden Wi-Fi network from GUI | In Progress | Workaround:  connect with SSH to netvm and run the command `nmcli dev wifi connect SSID password PASSWORD hidden yes`. |
+| Cannot connect to a hidden Wi-Fi network from GUI | In Progress | Workaround:  connect with SSH to a netvm and run the command: `nmcli dev wifi connect SSID password PASSWORD hidden yes`. |
 
 
 ## Environment Requirements
@@ -79,7 +79,7 @@ Download the required image and use the following instructions:
 | ghaf-24.03_Generic_x86.tar.xz | [Running Ghaf Image for x86 Computer](../ref_impl/build_and_run.md#running-ghaf-image-for-x86-computer) |
 | ghaf-24.03_Lenovo_X1_Carbon_Gen11.tar.xz  | [Running Ghaf Image for Lenovo X1](../ref_impl/build_and_run.md#running-ghaf-image-for-lenovo-x1) |
 | ghaf-24.03_Nvidia_Orin_AGX_cross-compiled-no-demoapps.tar.xz[^note], ghaf-24.03_Nvidia_Orin_AGX_cross-compiled.tar.xz, ghaf-24.03_Nvidia_Orin_AGX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
-| ghaf-24.03_Nvidia_Orin_NX_cross-compiled-no-demoapps[^note].tar.xz, ghaf-24.03_Nvidia_Orin_NX_cross-compiled.tar.xz, ghaf-24.03_Nvidia_Orin_NX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
+| ghaf-24.03_Nvidia_Orin_NX_cross-compiled-no-demoapps[^note1].tar.xz, ghaf-24.03_Nvidia_Orin_NX_cross-compiled.tar.xz, ghaf-24.03_Nvidia_Orin_NX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
 | ghaf-24.03_PolarFire_RISC-V.tar.xz | [Building Ghaf Image for Microchip Icicle Kit](../ref_impl/build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
 
-[^note] no-demoapps images do not include Chromium, Zathura, and GALA applications.
+[^note1] no-demoapps images do not include Chromium, Zathura, and GALA applications.

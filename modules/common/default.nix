@@ -9,12 +9,15 @@
     ./common.nix
     ./development
     ./firewall
-    ./hardware
     ./profiles
-    ./tpm2
+    ./security
     ./users/accounts.nix
     ./version
     ./virtualization/docker.nix
     ./systemd
+    ./services
+    ./networking
+    ../hardware/definition.nix
+    ./logging
   ];
 }

@@ -9,6 +9,7 @@ Ghaf Framework uses a CI/CD (Continuous Integration and Continuous Delivery) app
 
 Our goal is to have the ability to deploy code quickly and safely: once a build is deployed, the next build undergoes testing, while the latest build is being coded.
 
+> [!IMPORTANT]
 > Currently, Continuous Deployment is not set up.
 
 

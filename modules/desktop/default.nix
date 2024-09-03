@@ -7,6 +7,5 @@
   imports = [
     ./graphics
     ./profiles
-    ./windows-launcher
   ];
 }

@@ -9,7 +9,8 @@ This tutorial assumes that you already have basic [git](https://git-scm.com/) ex
 
 The canonical URL for the upstream Ghaf git repository is <https://github.com/tiiuae/ghaf>. To try Ghaf, you can build it from the source.
 
->[Cross-compilation](../ref_impl/cross_compilation.md) support is currently under development and not available for the building process.
+> [!WARNING]
+> [Cross-compilation](../ref_impl/cross_compilation.md) support is currently under development and not available for the building process.
 
 
 ## Prerequisites
@@ -32,9 +33,8 @@ Then you can use one of the following instructions for the supported targets:
 | Generic x86 Сomputer | x86_64           | [Running Ghaf Image for x86 Computer](./build_and_run.md#running-ghaf-image-for-x86-computer) |
 | Lenovo X1 Carbon Gen 11 | x86_64           | [Running Ghaf Image for Lenovo X1](./build_and_run.md#running-ghaf-image-for-lenovo-x1) |
 | NVIDIA Jetson AGX Orin  | AArch64          | [Ghaf Image for NVIDIA Jetson Orin AGX](./build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx)     |
-| NXP i.MX 8QM-MEK        | AArch64          | [Building Ghaf Image for NXP i.MX 8QM-MEK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8qm-mek)     |
+| NXP i.MX 8MP-EVK        | AArch64          | [Building Ghaf Image for NXP i.MX 8MP-EVK](./build_and_run.md#building-ghaf-image-for-nxp-imx-8mp-evk)     |
 | MICROCHIP icicle-kit    | RISCV64          | [Building Ghaf Image for Microchip Icicle Kit](./build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
-
 
 ---
 
@@ -57,9 +57,9 @@ Do the following:
     ```
     nix build github:tiiuae/ghaf#generic-x86_64-debug
     ```
-2. After the build is completed, prepare a USB boot media with the target image you built:
+2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct
+    ./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/<IMAGE_NAME>
     ```
 3. Boot the computer from the USB media.
 
@@ -74,9 +74,9 @@ Do the following:
     ```
     nix build github:tiiuae/ghaf#lenovo-x1-carbon-gen11-debug
     ```
-2. After the build is completed, prepare a USB boot media with the target image you built:
+2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct
+    ./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/<IMAGE_NAME>
     ```
 3. Boot the computer from the USB media.
 
@@ -103,6 +103,7 @@ Before you begin:
    2. Connect a Linux laptop to the board with the USB-C cable.
    3. Connect the Linux laptop to the board with a Micro-USB cable to use [serial interface](https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console).
 
+   > [!NOTE]
    > For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
 
 3. After the build is completed, put the board in recovery mode. For more information, see the [Force Recovery](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/howto.html#force-recovery-mode) Mode section in the Jetson AGX Orin Developer Kit User Guide.
@@ -127,9 +128,9 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
     ```
     nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
     ```
-2. After the build is completed, prepare a USB boot media with the target image you built:
+2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
     ```
-    dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct
+    ./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/sd-image/<IMAGE_NAME>
     ```
 3. Boot the hardware from the USB media.
 
@@ -159,25 +160,17 @@ In the current state of Ghaf, it is a bit tricky to make NVIDIA Jetson Orin AGX 
 
 ---
 
-## Building Ghaf Image for NXP i.MX 8QM-MEK
+## Building Ghaf Image for NXP i.MX 8MP-EVK
 
 Before you begin, check device-independent [prerequisites](./build_and_run.md#prerequisites).
 
-In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card with a first-stage bootloader (Tow-Boot) and USB media with the Ghaf image:
+In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card and USB media with the Ghaf image:
 
-1. To build and flash [**Tow-Boot**](https://github.com/tiiuae/Tow-Boot) bootloader:
+1. To build and flash the Ghaf image:
+   1. Run the `nix build .#packages.aarch64-linux.imx8mp-evk-release` command.
+   2. Prepare the USB boot media with the target HW image you built: `./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/<IMAGE_NAME>`.
 
-    ```
-    $ git clone https://github.com/tiiuae/Tow-Boot.git && cd Tow-Boot
-    $ nix-build -A imx8qm-mek
-    $ sudo dd if=result/ shared.disk-image.img of=/dev/<SDCARD>
-    ```
-
-2. To build and flash the Ghaf image:
-   1. Run the `nix build .#packages.aarch64-linux.imx8qm-mek-release` command.
-   2. Prepare the USB boot media with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_USB_DRIVE> bs=32M status=progress oflag=direct`.
-
-3. Insert an SD card and USB boot media into the board and switch the power on.
+2. Insert an SD card and USB boot media into the board and switch the power on.
 
 ---
 
@@ -199,11 +192,11 @@ In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image 
 2. Flash the Ghaf SD image:
 
    * If you want to use a SD card:
-     * Prepare the SD card with the target HW image you built: `dd if=./result/nixos.img of=/dev/<YOUR_SD_DEVICE> bs=32M status=progress oflag=direct`.
+     * Prepare the SD card with the target HW image you built: `./packages/flash/flash.sh -d /dev/<YOUR_SD_CARD> -i result/<IMAGE_NAME>`.
      * Insert an SD card into the board and switch the power on.
 
    * If you want to use the onboard MMC:
-     * You can directly flash a NixOS image to onboard an MMC card: `dd if=./result/nixos.img of=/dev/<YOUR_MMC_DEVICE> bs=32M status=progress oflag=direct`.
+     * You can directly flash a NixOS image to an onboard MMC card: `./packages/flash/flash.sh -d /dev/<YOUR_MMC_DEVICE> -i result/<IMAGE_NAME>`.
 
 For more information on how to access the MMC card as a USB disk, see [MPFS Icicle Kit User Guide](https://tinyurl.com/48wycdka).
 

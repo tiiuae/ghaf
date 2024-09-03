@@ -11,25 +11,27 @@
   lib,
   pkgs,
   ...
-}: let
+}:
+let
   cfg = config.ghaf.boot.loader.systemd-boot-dtb;
+  inherit (lib) mkEnableOption mkIf;
 in
-  with lib; {
-    options.ghaf.boot.loader.systemd-boot-dtb = {
-      enable = mkEnableOption "systemd-boot-dtb";
-    };
+{
+  options.ghaf.boot.loader.systemd-boot-dtb = {
+    enable = mkEnableOption "systemd-boot-dtb";
+  };
 
-    config = mkIf cfg.enable {
-      boot.loader.systemd-boot = {
-        extraFiles."dtbs/${config.hardware.deviceTree.name}" = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
-        extraInstallCommands = ''
-          # Find out the latest generation from loader.conf
-          default_cfg=$(${pkgs.coreutils}/bin/cat /boot/loader/loader.conf | ${pkgs.gnugrep}/bin/grep default | ${pkgs.gawk}/bin/awk '{print $2}')
-          FILEHASH=$(${pkgs.coreutils}/bin/sha256sum "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" | ${pkgs.coreutils}/bin/cut -d ' ' -f 1)
-          FILENAME="/dtbs/$FILEHASH.dtb"
-          ${pkgs.coreutils}/bin/cp -fv "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" "/boot$FILENAME"
-          echo "devicetree $FILENAME" >> /boot/loader/entries/$default_cfg
-        '';
-      };
+  config = mkIf cfg.enable {
+    boot.loader.systemd-boot = {
+      extraFiles."dtbs/${config.hardware.deviceTree.name}" = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+      extraInstallCommands = ''
+        # Find out the latest generation from loader.conf
+        default_cfg=$(${pkgs.coreutils}/bin/cat /boot/loader/loader.conf | ${pkgs.gnugrep}/bin/grep default | ${pkgs.gawk}/bin/awk '{print $2}')
+        FILEHASH=$(${pkgs.coreutils}/bin/sha256sum "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" | ${pkgs.coreutils}/bin/cut -d ' ' -f 1)
+        FILENAME="/dtbs/$FILEHASH.dtb"
+        ${pkgs.coreutils}/bin/cp -fv "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}" "/boot$FILENAME"
+        echo "devicetree $FILENAME" >> /boot/loader/entries/$default_cfg
+      '';
     };
-  }
+  };
+}
