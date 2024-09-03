@@ -22,7 +22,8 @@ in {
 
   config = lib.mkIf cfg.enable {
 
-    nixpkgs.overlays = [(import ./overlays/qemu)];
+    # removed because we hack the GPIO Qemu in overlays/custom-packages/default.nix
+    # nixpkgs.overlays = [(import ./overlays/qemu)];
 
     # TODO: Consider are these really needed, maybe add only in debug builds?
     /*

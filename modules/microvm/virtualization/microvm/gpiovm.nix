@@ -173,7 +173,7 @@ let
                 "-sandbox" "on"
                 "-nographic"
                 "-no-reboot"
-                "-dtb" "${gpioGuestDtb}"
+                "-dtb ${gpioGuestDtb}"
                 "-kernel" "${guestKernel}"
                 # "-drive" "file=${guestRootFs},if=virtio,format=qcow2"
                 "-machine" "virt,accel=kvm"
