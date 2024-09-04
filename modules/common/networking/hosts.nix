@@ -109,12 +109,14 @@ let
 in
 {
   options.ghaf.networking.hosts = {
-    enable = mkOption {
-      type = types.bool;
+    enable = (lib.mkEnableOption "Ghaf hosts file generation") // {
       default = true;
     };
     entries = mkOption {
       type = types.listOf hostsEntrySubmodule;
+      description = ''
+        List of hosts entries.
+      '';
       default = null;
     };
   };
