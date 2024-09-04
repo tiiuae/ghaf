@@ -35,6 +35,14 @@
         '';
       };
 
+      authTeeIdentity = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = lib.mdDoc ''
+          Enable PKCS#11 TA's TEE Identity based authentication support
+        '';
+      };
+
       heapSize = lib.mkOption {
         type = lib.types.int;
         default = 32768;
