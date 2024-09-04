@@ -7,7 +7,9 @@ let
 in
 {
   options.ghaf.profiles.debug = {
-    enable = lib.mkEnableOption "debug profile";
+    enable = (lib.mkEnableOption "debug profile") // {
+      default = !config.ghaf.profiles.release.enable;
+    };
   };
 
   config = lib.mkIf cfg.enable {
