@@ -56,7 +56,9 @@ _:
         "TA_DEV_KIT_DIR=${taDevKit}/export-ta_arm64"
         "CFG_PKCS11_TA_TOKEN_COUNT=${builtins.toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.tokenCount}"
         "CFG_PKCS11_TA_HEAP_SIZE=${builtins.toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.heapSize}"
-        "CFG_PKCS11_TA_AUTH_TEE_IDENTITY=y"
+        "CFG_PKCS11_TA_AUTH_TEE_IDENTITY=${
+          if config.ghaf.hardware.nvidia.orin.optee.pkcs11.authTeeIdentity then "y" else "n"
+        }"
         "CFG_PKCS11_TA_ALLOW_DIGEST_KEY=y"
         "OPTEE_CLIENT_EXPORT=${opteeClient}"
         "O=$(PWD)/out"
