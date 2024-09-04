@@ -8,7 +8,9 @@ let
 in
 {
   options.ghaf.profiles.release = {
-    enable = mkEnableOption "release profile";
+    enable = (mkEnableOption "release profile") // {
+      default = false;
+    };
   };
 
   config = mkIf cfg.enable {
