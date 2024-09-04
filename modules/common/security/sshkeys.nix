@@ -38,6 +38,7 @@ in
     };
     sshAuthorizedKeysCommand = mkOption {
       type = types.attrs;
+      description = "The authorized_keys command";
       default = {
         authorizedKeysCommand = "/etc/ssh/get-auth-keys";
         authorizedKeysCommandUser = "nobody";
