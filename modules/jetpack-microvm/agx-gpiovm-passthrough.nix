@@ -13,7 +13,8 @@ in {
     "GPIO passthrough to VM";
   config = lib.mkIf cfg.enableGPIOPassthrough {
 
-    ghaf.virtualization.microvm.gpiovm.extraModules = [
+    # also declared in ./modules/microvm/virtualization/microvm/gpiovm.nix
+    ghaf.virtualization.microvm.gpiovm.extraModules = builtins.trace "GpioVM: Evaluating extraModules in agx-gpiovm-passthrough.nix" [
       {
         microvm = 
         {
@@ -28,7 +29,8 @@ in {
           # Make sure that Gpio-VM runs after the dependency service are enabled
           # systemd.services."microvm@gpio-vm".after = ["gpio-dependency.service"];
 
-          kernelParams = builtins.trace "GpioVM: Evaluating microvm.kernelParams (qemu -append) for gpio-vm" [
+          /*
+          kernelParams = [
             "rootwait"
           # "root=/dev/vda"
             # gpio-vm cannot open AMA0 reserved for passthrough console
@@ -36,6 +38,7 @@ in {
             # "console=ttyAMA0 console=ttyS0"
             # "console=tty10"
           ];
+          */
         };
 
         /* no overlay when using dtb patch

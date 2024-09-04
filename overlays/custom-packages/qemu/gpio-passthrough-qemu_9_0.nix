@@ -37,16 +37,17 @@ in
     buildInputs = with pkgs; 
       prev.buildInputs ++
       [
-        perl keyutils rng-tools snappy
-        gtk3 gtk3-x11 ncurses nettle 
-        libepoxy lzfse libcacard libibumad
+        glib gtk3 gtk3-x11 ncurses nettle curl
+        SDL2 SDL2_image vte libxkbcommon
+        virglrenderer rutabaga_gfx pixman
+        vte libvncserver gtk-vnc fuse fuse3 libnfs
+        keyutils rng-tools snappy attr cmocka sysprof libsysprof-capture
+        libepoxy lzfse libcacard libibumad libseccomp libtpms
         usbredir libusb1 libusbp libaio libssh libgcrypt libcap libslirp libbpf 
-        gusb libevdev libevdevplus libevdevc libudev-zero libudev0-shim
-        vte libvncserver gtk-vnc fuse libnfs
-        SDL2 SDL2_image vte
-        virglrenderer rutabaga_gfx
-        spice spice-autorandr spice-gtk spice-protocol spice-up spice-vdagent
-        iconv libdwg libdrm dbus libgpiod
+        gusb libevdev libevdevplus libevdevc libudev-zero libudev0-shim liburing
+        iconv libdwg libdrm dbus libgpiod libtasn1 gsasl cyrus_sasl
+        rdma-core libndctl libseccomp capstone multipath-tools dtc libselinux
+        perl spice spice-autorandr spice-gtk spice-protocol spice-up spice-vdagent
       ];
 
     configureFlags = 
