@@ -38,7 +38,7 @@
                   self.nixosModules.disko-ab-partitions-v1
                   {
                     nixpkgs.hostPlatform = "x86_64-linux";
-                    ghaf.hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
+                    ghaf.hardware.definition = import ../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
                   }
                 ];
               };
