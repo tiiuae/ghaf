@@ -127,6 +127,7 @@ let
                 pkgs.pamixer
                 pkgs.eww
               ]
+              ++ [ pkgs.ctrl-panel ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)

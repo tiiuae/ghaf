@@ -9,7 +9,14 @@
       ./x86_64-generic
       ./laptop.nix
       ./common
-      { nixpkgs.overlays = [ inputs.ghafpkgs.overlays.default ]; }
+      {
+        nixpkgs.overlays = [
+          inputs.ghafpkgs.overlays.default
+          (_final: prev: {
+            ctrl-panel = inputs.ctrl-panel.packages.${prev.stdenv.hostPlatform.system}.default;
+          })
+        ];
+      }
     ];
     hw-x86_64-generic.imports = [
       ./definition.nix
