@@ -5084,7 +5084,7 @@ see: <a href="technologies/nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART
 <p>This section describes how the UARTI passthrough is configured in Ghaf for microvm.
 We recommend to read <a href="technologies/nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a> before continuing.</p>
 <p>The UARTI passthrough configuration declaration
-<a href="technologies/../../../modules/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/default.nix">UARTI to netvm</a>
+<a href="technologies/../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/default.nix">UARTI to netvm</a>
 includes:</p>
 <ul>
 <li>The microvm QEMU extra argument to add the 31d0000.serial to the netvm.</li>
@@ -5323,7 +5323,7 @@ hardware.deviceTree.overlays = [
     }
 ];
 </code></pre>
-<p>Also, in <a href="technologies/../../../modules/jetpack/nvidia-jetson-orin/jetson-orin.nix">jetson-orin.nix</a> the
+<p>Also, in <a href="technologies/../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/jetson-orin.nix">jetson-orin.nix</a> the
 <em>dtboBuildExtraIncludePaths</em> is defined with the path needed to include
 the <em>tegra234-smmu-streamid.h</em> header file.</p>
 <pre><code class="language-nix">hardware.deviceTree =
@@ -5336,7 +5336,7 @@ the <em>tegra234-smmu-streamid.h</em> header file.</p>
 }
 </code></pre>
 <p>You can find this full implementation in the Nix module:
-<a href="technologies/../../../modules/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm">uarti-net-vm</a></p>
+<a href="technologies/../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm">uarti-net-vm</a></p>
 <div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
