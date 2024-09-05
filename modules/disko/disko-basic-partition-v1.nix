@@ -54,6 +54,7 @@
               mountOptions = [ "defaults" ];
             };
           };
+          #TODO has to add the /storagevm partition or a folder in order for the impermanence to work.
         };
       };
     };

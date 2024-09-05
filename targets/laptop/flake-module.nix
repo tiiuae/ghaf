@@ -19,7 +19,7 @@ let
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen10.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -28,7 +28,7 @@ let
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -37,7 +37,7 @@ let
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial-extras.enable = true;
         };
       }
@@ -46,7 +46,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7230.nix";
+          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -55,7 +55,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7330.nix";
+          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -66,7 +66,7 @@ let
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen10.nix";
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen10.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -75,7 +75,7 @@ let
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -84,7 +84,7 @@ let
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/lenovo-x1/definitions/x1-gen11.nix";
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial-extras.enable = true;
         };
       }
@@ -93,7 +93,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7230.nix";
+          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -102,7 +102,7 @@ let
       self.nixosModules.disko-basic-partition-v1
       {
         ghaf = {
-          hardware.definition.configFile = "/dell-latitude/definitions/dell-latitude-7330.nix";
+          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }

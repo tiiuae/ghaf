@@ -90,7 +90,7 @@ in
       inputDevSubmodule = types.submodule {
         options = {
           name = mkOption {
-            type = types.listOf types.any;
+            type = types.listOf types.raw;
             default = [ ];
             description = ''
               List of input device names. Can either be a string, or a list of strings.
