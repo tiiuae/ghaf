@@ -14,4 +14,8 @@ prev.qemu_kvm.overrideAttrs (
   // (final.lib.optionalAttrs (final.lib.versionAtLeast qemu_version "8.1") {
     patches = prev.patches ++ [ ./acpi-devices-passthrough-qemu-8.1.patch ];
   })
+  // (final.lib.optionalAttrs (final.lib.versionAtLeast qemu_version "9.0") {
+    patches = prev.patches ++ [ ./acpi-gpio-passthrough-qemu-9.0.patch ];
+  })
+  
 )

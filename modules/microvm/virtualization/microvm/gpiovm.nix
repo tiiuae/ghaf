@@ -10,17 +10,20 @@
 let
   configHost = config;
   vmName = "gpio-vm";
-  macAddress = "03:00:00:07:06:05";
+  # macAddress = "03:00:00:07:06:05";
 
   isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
 
+  /*
   sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
     inherit pkgs;
     inherit config;
   };
+  */
 
   kernelPath = "${config.system.build.kernel}";
-  guestKernel = "${kernelPath}/Image"; # the host's kernel image can be used in the guest
+  kernel = "${kernelPath}/Image";                  # the host's kernel image can be used in the guest
+  kernelPkg = config.boot.kernelPackages.kernel;   # default kernel (as package)
 
   dtsName = "qemu-gpio-guestvm.dts";
   dtbName = "qemu-gpio-guestvm.dtb";
@@ -203,7 +206,7 @@ let
 
             # mem = 2024;
             # mem = 512;
-            kernel = config.boot.kernelPackages.kernel;   # default would do
+            kernel = kernelPkg;   # default would do
             cpu = "host";
             kernelParams = [
               "rootwait"

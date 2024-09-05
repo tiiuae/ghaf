@@ -1,6 +1,9 @@
 # Copyright 2022-2023 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
+# this derivaton builds Qemu 9.0.x that works for GPIO Passthrough 
+# with the acpi-gpio-passthrough-qemu-9.0.patch (which is applied in this derivation)
+
 { final, prev }:
 let
   pkgs = prev.pkgs;
@@ -11,7 +14,7 @@ let
   qemu_major = final.lib.versions.major qemu_version;
   qemu_minor = final.lib.versions.minor qemu_version;
 
-  qemuGpioPatch = ./qemu-v9.0.2_gpio-virt.patch;
+  qemuGpioPatch = ./acpi-gpio-passthrough-qemu-9.0.patch; # the patch is for v9.0.2
 
 in
   prev.qemu_kvm.overrideAttrs (
@@ -72,6 +75,7 @@ in
         "--enable-linux-io-uring"
         "--enable-canokey"
         "--enable-capstone"
+        "--enable-virtfs"
 
         "--enable-gtk"
         "--enable-opengl"
