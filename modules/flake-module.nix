@@ -20,13 +20,7 @@
         nixpkgs.overlays = [ inputs.ghafpkgs.overlays.default ];
       }
     ];
-    laptop.imports = [
-      ./hardware/definition.nix
-      ./hardware/x86_64-generic
-      ./reference/hardware/laptop.nix
-      ./hardware/common
-      { nixpkgs.overlays = [ inputs.ghafpkgs.overlays.default ]; }
-    ];
+
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
     lanzaboote.imports = [ ./lanzaboote ];
