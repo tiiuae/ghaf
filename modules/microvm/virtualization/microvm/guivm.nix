@@ -245,11 +245,7 @@ in
           if config.ghaf.guest.kernel.hardening.graphics.enable then
             pkgs.linuxPackagesFor guest_graphics_hardened_kernel
           else
-            # TODO: with pkgs.linuxPackages_latest (6.10.2) default brightness
-            # value of ghaf system will change from 96000 (max brightness) to
-            # 4800 (5% of max brightness) which need to be debugged
-            # so, currently align Kernel version which is used by ghaf-host
-            config.boot.zfs.package.latestCompatibleLinuxPackages;
+            pkgs.linuxPackages_latest;
 
         # We need this patch to avoid reserving Intel graphics stolen memory for vm
         # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103
