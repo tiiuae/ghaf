@@ -32,7 +32,6 @@ in
     in
     [
       pkgs.chromium
-      pkgs.pulseaudio
       pkgs.xdg-utils
       xdgPdfItem
       xdgOpenPdf
@@ -47,22 +46,6 @@ in
   extraModules = [
     {
       imports = [ ../programs/chromium.nix ];
-      # Enable pulseaudio for Chromium VM
-      security.rtkit.enable = true;
-      users.extraUsers.ghaf.extraGroups = [
-        "audio"
-        "video"
-      ];
-
-      hardware.pulseaudio = {
-        enable = true;
-        extraConfig = ''
-          load-module module-tunnel-sink-new sink_name=business-speaker server=audio-vm:4713 reconnect_interval_ms=1000
-          load-module module-tunnel-source-new source_name=business-mic server=audio-vm:4713 reconnect_interval_ms=1000
-        '';
-        package = pkgs.pulseaudio-ghaf;
-      };
-
       time.timeZone = config.time.timeZone;
 
       microvm = {
@@ -284,5 +267,6 @@ in
     }
   ];
   borderColor = "#00FF00";
+  ghafAudio.enable = true;
   vtpm.enable = true;
 }

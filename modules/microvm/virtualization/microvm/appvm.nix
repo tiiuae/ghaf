@@ -33,6 +33,7 @@ let
             internalIP = index + 100;
           })
 
+          ./common/ghaf-audio.nix
           ./common/storagevm.nix
 
           # To push logs to central location
@@ -71,6 +72,11 @@ let
                   withPolkit = true;
                   withDebug = configHost.ghaf.profiles.debug.enable;
                   withHardenedConfigs = true;
+                };
+
+                ghaf-audio = {
+                  inherit (vm.ghafAudio) enable;
+                  name = "${vm.name}";
                 };
 
                 storagevm = {
@@ -253,6 +259,7 @@ in
               type = types.nullOr types.str;
               default = null;
             };
+            ghafAudio.enable = lib.mkEnableOption "Ghaf application audio support";
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
           };
         }
