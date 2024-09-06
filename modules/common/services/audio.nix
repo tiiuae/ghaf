@@ -44,7 +44,7 @@ in
                 # Enable TCP socket for VMs pulseaudio clients
                 "server.address" = [
                   {
-                    address = "tcp:${toString cfg.pulseaudioTcpPort}";
+                    address = "tcp:0.0.0.0:${toString cfg.pulseaudioTcpPort}";
                     "client.access" = "unrestricted";
                   }
                 ];

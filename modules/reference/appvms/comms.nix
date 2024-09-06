@@ -26,29 +26,12 @@ in
     pkgs.element-gps
     pkgs.gpsd
     pkgs.tcpdump
-    pkgs.pulseaudio
   ] ++ pkgs.lib.optionals isDendritePineconeEnabled [ dendrite-pinecone ];
   macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
   cores = 4;
   extraModules = [
     {
-      # Enable pulseaudio for user ghaf to access mic
-      security.rtkit.enable = true;
-      users.extraUsers.ghaf.extraGroups = [
-        "audio"
-        "video"
-      ];
-
-      hardware.pulseaudio = {
-        enable = true;
-        extraConfig = ''
-          load-module module-tunnel-sink-new sink_name=comms-speaker server=audio-vm:4713 reconnect_interval_ms=1000
-          load-module module-tunnel-source-new source_name=comms-mic server=audio-vm:4713 reconnect_interval_ms=1000
-        '';
-        package = pkgs.pulseaudio-ghaf;
-      };
-
       systemd = {
         services = {
           element-gps = {
@@ -110,4 +93,5 @@ in
     }
   ];
   borderColor = "#337aff";
+  ghafAudio.enable = true;
 }

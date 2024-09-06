@@ -44,21 +44,6 @@ in
   extraModules = [
     {
       imports = [ ../programs/chromium.nix ];
-      # Enable pulseaudio for Chromium VM
-      security.rtkit.enable = true;
-      users.extraUsers.ghaf.extraGroups = [
-        "audio"
-        "video"
-      ];
-
-      hardware.pulseaudio = {
-        enable = true;
-        extraConfig = ''
-          load-module module-tunnel-sink-new sink_name=chromium-speaker server=audio-vm:4713 reconnect_interval_ms=1000
-          load-module module-tunnel-source-new source_name=chromium-mic server=audio-vm:4713 reconnect_interval_ms=1000
-        '';
-        package = pkgs.pulseaudio-ghaf;
-      };
 
       time.timeZone = config.time.timeZone;
 
@@ -84,5 +69,6 @@ in
     }
   ];
   borderColor = "#630505";
+  ghafAudio.enable = true;
   vtpm.enable = true;
 }
