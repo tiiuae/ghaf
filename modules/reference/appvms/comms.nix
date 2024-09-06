@@ -8,6 +8,7 @@
   ...
 }:
 let
+  name = "comms";
   inherit (lib) hasAttr optionals;
   dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone { };
   isDendritePineconeEnabled =
@@ -17,7 +18,7 @@ let
       false;
 in
 {
-  name = "comms";
+  name = "${name}";
 
   packages = [
     pkgs.chromium
@@ -102,12 +103,17 @@ in
 
       ghaf.givc.appvm = {
         enable = true;
-        name = lib.mkForce "comms-vm";
+        name = lib.mkForce "${name}-vm";
         applications = lib.mkForce ''
           {
           "element": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland",
           "slack":   "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}"
           }'';
+      };
+      ghaf.storagevm = {
+        enable = true;
+        name = "${name}";
+        users.${config.ghaf.users.accounts.user}.directories = [ ".config/" ];
       };
     }
   ];
