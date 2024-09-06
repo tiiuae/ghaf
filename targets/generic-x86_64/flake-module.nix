@@ -9,7 +9,7 @@
   ...
 }:
 let
-  inherit (inputs) nixos-generators;
+  inherit (inputs) nixos-generators nixos-cosmic;
   name = "generic-x86_64";
   system = "x86_64-linux";
   generic-x86 =
@@ -41,6 +41,7 @@ let
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
+          nixos-cosmic.nixosModules.default
           nixos-generators.nixosModules.raw-efi
           self.nixosModules.common
           self.nixosModules.desktop
@@ -73,10 +74,13 @@ let
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
                 # Uncomment this line to use Labwc instead of Weston:
-                #graphics.compositor = "labwc";
+                graphics.compositor = "cosmic";
               };
               reference.programs.windows-launcher.enable = true;
             };
+
+            services.desktopManager.cosmic.enable = true;
+            services.displayManager.cosmic-greeter.enable = true;
 
             #TODO: how to handle the majority of laptops that need a little
             # something extra?

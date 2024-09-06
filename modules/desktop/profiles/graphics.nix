@@ -9,7 +9,7 @@
 }:
 let
   cfg = config.ghaf.profiles.graphics;
-  compositors = [ "labwc" ];
+  compositors = [ "labwc" "cosmic" ];
   renderers = [
     "vulkan"
     "pixman"
