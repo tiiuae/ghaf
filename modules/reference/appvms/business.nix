@@ -43,6 +43,7 @@
             ghaf.reference.programs.google-chrome.enable = true;
             ghaf.reference.programs.google-chrome.openInNormalExtension = true;
             ghaf.services.xdghandlers.enable = true;
+            ghaf.security.apparmor.enable = true;
           }
         ];
       }
