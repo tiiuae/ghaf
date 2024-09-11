@@ -36,31 +36,37 @@ in
     ghaf.graphics.launchers =
       lib.optional cfg.chromium {
         name = "Chromium";
+        description = "Web Browser";
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.icon-pack}/chromium.svg";
       }
       ++ lib.optional cfg.firefox {
         name = "Firefox";
+        description = "Web Browser";
         path = "${pkgs.firefox}/bin/firefox";
         icon = "${pkgs.icon-pack}/firefox.svg";
       }
       ++ lib.optional cfg.element-desktop {
         name = "Element";
+        description = "General Messing Application";
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.icon-pack}/element-desktop.svg";
       }
       ++ lib.optional cfg.gala-app {
         name = "GALA";
+        description = "Secure Android-in-the-Cloud";
         path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
       }
       ++ lib.optional cfg.zathura {
         name = "PDF Viewer";
+        description = "PDF Viewer Application";
         path = "${pkgs.zathura}/bin/zathura";
         icon = "${pkgs.icon-pack}/document-viewer.svg";
       }
       ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) {
         name = "AppFlowy";
+        description = "Productivity & Note-Taking Application";
         path = "${pkgs.appflowy}/bin/appflowy";
         icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
       };

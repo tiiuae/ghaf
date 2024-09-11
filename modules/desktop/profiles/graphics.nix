@@ -49,7 +49,7 @@ in
 
   options.ghaf.graphics = {
     launchers = mkOption {
-      description = "Labwc application launchers to show in launch bar";
+      description = "Application launchers to show in the system drawer or launcher.";
       default = [ ];
       type = types.listOf (
         types.submodule {
@@ -57,6 +57,16 @@ in
             name = mkOption {
               description = "Name of the application";
               type = types.str;
+            };
+            description = mkOption {
+              description = "Description of the application";
+              type = types.str;
+              default = "Secured Ghaf Application";
+            };
+            vm = mkOption {
+              description = "VM name in case this launches an isolated application.";
+              type = types.nullOr types.str;
+              default = null;
             };
             path = mkOption {
               description = "Path to the executable to be launched";

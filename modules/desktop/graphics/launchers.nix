@@ -4,11 +4,14 @@
 let
   toDesktop =
     elem:
+    let
+      prefix = if elem.vm != null then "[${elem.vm}] " else "";
+    in
     (pkgs.makeDesktopItem {
       inherit (elem) name icon;
       genericName = elem.name;
       desktopName = elem.name;
-      comment = "Secured Ghaf Application";
+      comment = "${prefix}${elem.description}";
       exec = elem.path;
     }).overrideAttrs
       (prevAttrs: {
