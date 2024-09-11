@@ -21,4 +21,5 @@
   gtklock = import ./gtklock { inherit prev; };
   hardware-scan = final.callPackage ../../packages/hardware-scan { };
   pulseaudio-ghaf = import ./pulseaudio { inherit prev; };
+  cups = import ./cups { inherit final prev; };
 })

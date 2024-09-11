@@ -85,6 +85,11 @@ let
             firewall.allowedTCPPorts = [ 53 ];
             firewall.allowedUDPPorts = [ 53 ];
           };
+          services.avahi = {
+            enable = true;
+            nssmdns4 = true;
+            reflector = true;
+          };
 
           services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
 

@@ -66,6 +66,12 @@ in
 
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
+
+      # Enable printer service
+      ghaf.services.printer = {
+        enable = true;
+        name = "${name}";
+      };
     }
   ];
   borderColor = "#630505";

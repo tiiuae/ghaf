@@ -29,6 +29,11 @@
         #this vm should be stateless so nothing stored between boots.
         storagevm.enable = lib.mkForce false;
       };
+      # Enable printer service
+      ghaf.services.printer = {
+        enable = true;
+        name = "zathura";
+      };
     }
   ];
   borderColor = "#122263";
