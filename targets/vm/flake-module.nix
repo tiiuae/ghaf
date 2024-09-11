@@ -45,6 +45,7 @@ let
                 applications.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
+                graphics.renderer = "pixman";
               };
             };
           }
