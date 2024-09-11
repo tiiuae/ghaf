@@ -56,82 +56,107 @@ in
               # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
               # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
               name = "Chromium";
+              description = "Isolated General Browsing";
+              vm = "Chromium";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start chromium";
               icon = "${pkgs.icon-pack}/chromium.svg";
             }
 
             {
               name = "Trusted Browser";
+              description = "Isolated Trusted Browsing";
+              vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm chromium";
               icon = "${pkgs.icon-pack}/thorium-browser.svg";
             }
             # TODO must enable the waypipe to support more than one app in a VM
             {
               name = "VPN";
+              description = "GlobalProtect VPN Client";
+              vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gpclient";
               icon = "${pkgs.icon-pack}/yast-vpn.svg";
             }
 
             {
               name = "Microsoft Outlook";
+              description = "Microsoft Email Client";
+              vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm outlook";
               icon = "${pkgs.icon-pack}/ms-outlook.svg";
             }
             {
               name = "Microsoft 365";
+              description = "Microsoft 365 Software Suite";
+              vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm office";
               icon = "${pkgs.icon-pack}/microsoft-365.svg";
             }
             {
               name = "Teams";
+              description = "Microsoft Teams Collaboration Application";
+              vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm teams";
               icon = "${pkgs.icon-pack}/teams-for-linux.svg";
             }
 
             {
               name = "GALA";
+              description = "Secure Android-in-the-Cloud";
+              vm = "GALA";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start gala";
               icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
             }
 
             {
               name = "PDF Viewer";
+              description = "Isolated PDF Viewer";
+              vm = "Zathura";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start zathura";
               icon = "${pkgs.icon-pack}/document-viewer.svg";
             }
 
             {
               name = "Element";
+              description = "General Messenging Application";
+              vm = "Comms";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm element";
               icon = "${pkgs.icon-pack}/element-desktop.svg";
             }
 
             {
               name = "Slack";
+              description = "Teams Collaboration & Messaging Application";
+              vm = "Comms";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm slack";
               icon = "${pkgs.icon-pack}/slack.svg";
             }
 
             {
               name = "AppFlowy";
+              description = "Productivity & Note-Taking Application";
+              vm = "AppFlowy";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start appflowy";
               icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
             }
 
             {
               name = "Network Settings";
+              description = "Manage Network & Wi-Fi Settings";
               path = "${pkgs.nm-launcher}/bin/nm-launcher";
               icon = "${pkgs.icon-pack}/preferences-system-network.svg";
             }
 
             {
               name = "Shutdown";
+              description = "Shutdown System";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";
               icon = "${pkgs.icon-pack}/system-shutdown.svg";
             }
 
             {
               name = "Reboot";
+              description = "Reboot System";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} reboot";
               icon = "${pkgs.icon-pack}/system-reboot.svg";
             }
@@ -139,6 +164,7 @@ in
           ++ optionals config.ghaf.reference.programs.windows-launcher.enable [
             {
               name = "Windows";
+              description = "Virtualized Windows System";
               path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
               icon = "${pkgs.icon-pack}/distributor-logo-windows.svg";
             }

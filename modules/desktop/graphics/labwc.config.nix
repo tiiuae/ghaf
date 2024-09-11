@@ -283,11 +283,13 @@ in
     ghaf.graphics.launchers = [
       {
         name = "Lock";
+        description = "Lock Session";
         path = "${lockCmd}";
         icon = "${pkgs.icon-pack}/system-lock-screen.svg";
       }
       {
         name = "Log Out";
+        description = "Quit Applications & Log Out";
         path = "${pkgs.labwc}/bin/labwc --exit";
         icon = "${pkgs.icon-pack}/system-log-out.svg";
       }

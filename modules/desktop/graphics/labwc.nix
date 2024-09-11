@@ -125,6 +125,7 @@ in
     ghaf.graphics.launchers = lib.mkIf config.ghaf.profiles.debug.enable [
       {
         name = "Terminal";
+        description = "System Terminal";
         path = "${pkgs.foot}/bin/foot";
         icon = "${pkgs.icon-pack}/utilities-terminal.svg";
       }
