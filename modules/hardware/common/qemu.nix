@@ -24,9 +24,6 @@ in
     ghaf.qemu.guivm = optionalAttrs (hasAttr "hardware" config.ghaf) {
       microvm.qemu.extraArgs =
         [
-          # Button
-          "-device"
-          "button"
           # Battery
           "-device"
           "battery"
