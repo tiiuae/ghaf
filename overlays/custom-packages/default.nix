@@ -19,4 +19,5 @@
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui { };
   gtklock = import ./gtklock { inherit prev; };
   hardware-scan = final.callPackage ../../packages/hardware-scan { };
+  swaynotificationcenter = import ./swaynotificationcenter { inherit prev; };
 })

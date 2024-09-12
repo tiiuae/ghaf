@@ -1,0 +1,37 @@
+From 83457033527496147e91746d9fc143b01f2d77c7 Mon Sep 17 00:00:00 2001
+From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+Date: Thu, 12 Sep 2024 12:08:05 +0400
+Subject: [PATCH] Set ghaf color theme
+
+Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
+---
+ data/style/style.scss | 16 ++++++++--------
+ 1 file changed, 8 insertions(+), 8 deletions(-)
+
+diff --git a/data/style/style.scss b/data/style/style.scss
+index 23f07b7..14c2c4f 100644
+--- a/data/style/style.scss
++++ b/data/style/style.scss
+@@ -1,11 +1,11 @@
+-@define-color cc-bg rgba(46, 46, 46, 0.7);
+-
+-@define-color noti-border-color rgba(255, 255, 255, 0.15);
+-@define-color noti-bg rgba(48, 48, 48, 0.8);
+-@define-color noti-bg-opaque rgb(48, 48, 48);
+-@define-color noti-bg-darker rgb(38, 38, 38);
+-@define-color noti-bg-hover rgb(56, 56, 56);
+-@define-color noti-bg-hover-opaque rgb(56, 56, 56);
++@define-color cc-bg rgba(32, 32, 32, 0.9);
++
++@define-color noti-border-color rgba(21, 36, 24, 0.3);
++@define-color noti-bg rgba(32, 32, 32, 0.9);
++@define-color noti-bg-opaque rgb(43, 43, 43);
++@define-color noti-bg-darker rgb(29, 29, 29);
++@define-color noti-bg-hover rgb(29, 29, 29);
++@define-color noti-bg-hover-opaque rgb(29, 29, 29);
+ @define-color noti-bg-focus rgba(68, 68, 68, 0.6);
+ @define-color noti-close-bg rgba(255, 255, 255, 0.1);
+ @define-color noti-close-bg-hover rgba(255, 255, 255, 0.15);
+-- 
+2.46.0
+

@@ -46,7 +46,7 @@ in
             "margin-bottom": 5,
             "margin-left": 200,
             "margin-right": 200,
-            "modules-right": ["pulseaudio", "custom/network1", "battery", "custom/admin", "clock", "tray"],
+            "modules-right": ["pulseaudio", "custom/network1", "battery", "clock", "tray", "custom/admin"],
             "keyboard-state": {
                 "numlock": true,
                 "capslock": true,
@@ -101,12 +101,12 @@ in
               "custom/ghaf-settings": {
                 "format": " ",
                 // Placeholder for the actual Ghaf settings app
-                "on-click": "${pkgs.libnotify}/bin/notify-send 'Ghaf Platform ${lib.strings.fileContents ../../../.version}'",
+                "on-click": "${pkgs.libnotify}/bin/notify-send -a 'Ghaf' 'Ghaf Platform ${lib.strings.fileContents ../../../.version}'",
                 "tooltip": false
               },
               "custom/admin": {
                 "format": " ",
-                "on-click": "${pkgs.nm-launcher}/bin/nm-launcher",
+                "on-click": "${pkgs.swaynotificationcenter}/bin/swaync-client -t",
                 "tooltip": false
               },
               "pulseaudio": {
@@ -211,8 +211,8 @@ in
           #backlight,
           #battery,
           #clock {
-              padding-left: 10;
-              padding-right: 10;
+              padding-left: 10px;
+              padding-right: 10px;
           }
 
           label:focus {
@@ -236,8 +236,8 @@ in
               background-image: url("${ghaf-icon}");
               background-position: center;
               background-repeat: no-repeat;
-              padding-left: 10;
-              padding-right: 10;
+              padding-left: 10px;
+              padding-right: 10px;
           }
 
           #custom-admin {
@@ -245,8 +245,9 @@ in
               background-image: url("${admin-icon}");
               background-position: center;
               background-repeat: no-repeat;
-              padding-left: 10;
-              padding-right: 10;
+              padding-left: 10px;
+              padding-right: 10px;
+              margin-right: 10px;
           }
         '';
 

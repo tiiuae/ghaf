@@ -173,19 +173,27 @@ let
     </openbox_menu>
   '';
 
-  makoConfig = ''
-    font=Inter 12
-    background-color=#202020e6
-    progress-color=source #3D8252e6
-    border-radius=5
-    border-size=0
-    padding=10
-    default-timeout=10000
+  swayncConfig = pkgs.writeText "config.json" ''
+    {
+      "control-center-margin-top": 10,
+      "control-center-margin-right": 10,
+      "control-center-margin-bottom": 5,
+      "image-visibility": "when-available",
+      "widgets": ["buttons-grid", "title", "notifications" ],
+      "buttons-grid": {
+        "actions": [
+          {
+            "label": "WiFi",
+            "command": "${pkgs.nm-launcher}/bin/nm-launcher"
+          }
+        ]
+      }
+    }
   '';
 
   environment = ''
-    XCURSOR_THEME=breeze_cursors
-
+    XCURSOR_SIZE=24
+    XCURSOR_THEME=Adwaita
     # Wayland compatibility
     MOZ_ENABLE_WAYLAND=1
   '';
@@ -207,8 +215,6 @@ in
       "labwc/rc.xml".text = rcXml;
       "labwc/menu.xml".text = menuXml;
       "labwc/environment".text = environment;
-
-      "mako/config".text = makoConfig;
 
       "greetd/environments".text = lib.mkAfter "${labwc-session}/bin/labwc-session\n";
     };
@@ -244,12 +250,12 @@ in
       wantedBy = [ "ghaf-session.target" ];
     };
 
-    systemd.user.services.mako = {
+    systemd.user.services.swaync = {
       enable = true;
       description = "Notification daemon";
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.mako}/bin/mako -c /etc/mako/config";
+        ExecStart = "${pkgs.swaynotificationcenter}/bin/swaync -c ${swayncConfig}";
       };
       partOf = [ "ghaf-session.target" ];
       wantedBy = [ "ghaf-session.target" ];

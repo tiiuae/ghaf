@@ -83,8 +83,6 @@ in
       WLR_RENDERER = cfg.renderer;
       XDG_SESSION_TYPE = "wayland";
       WLR_NO_HARDWARE_CURSORS = if (cfg.renderer == "pixman") then 1 else 0;
-      # 24 is default value set in labwc
-      XCURSOR_SIZE = 24;
       # To Fix "Fontconfig error : No writable cache directories" during new session login
       XDG_CACHE_HOME = "$(mktemp -d)";
       XKB_DEFAULT_LAYOUT = "us,ara,fi";
