@@ -39,7 +39,7 @@ in
     ];
   # TODO create a repository of mac addresses to avoid conflicts
   macAddress = "02:00:00:03:05:01";
-  ramMb = 3072;
+  ramMb = 6144;
   cores = 4;
   extraModules = [
     {
