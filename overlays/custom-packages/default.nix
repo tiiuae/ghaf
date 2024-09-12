@@ -21,10 +21,10 @@ in
   element-gps = final.callPackage ../../packages/element-gps { };
   element-web = final.callPackage ../../packages/element-web { };
   waypipe = import ./waypipe { inherit final prev; };
-  qemu_kvm = import ./qemu { inherit final prev; };
+  # qemu_kvm = import ./qemu { inherit final prev; };
   # we have to patch qemu_kvm directly ... for now
-  # qemu_kvm = import ./qemu/acpi-gpio-passthrough-qemu-9.0.nix { inherit final prev; };
   # qemu_kvm = builtins.mergeAttrs qemuOverlay1 qemuOverlay2;
+  qemu_kvm = import ./qemu/gpio-passthrough-qemu-9.nix { inherit final prev; };
   nm-launcher = final.callPackage ../../packages/nm-launcher { };
   icon-pack = final.callPackage ../../packages/icon-pack { };
   labwc = import ./labwc { inherit prev; };

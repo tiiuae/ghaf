@@ -14,12 +14,12 @@ let
   qemu_major = final.lib.versions.major qemu_version;
   qemu_minor = final.lib.versions.minor qemu_version;
 
-  qemuGpioPatch = ./acpi-gpio-passthrough-qemu-9.0.patch; # the patch is for v9.0.2
+  qemuGpioPatch = ./gpio-passthrough-qemu-9.patch; # the patch is for v9.0.2
 
 in
   prev.qemu_kvm.overrideAttrs (
   _final: prev:
-  (final.lib.optionalAttrs (qemu_major == "9" && qemu_minor == "0") {
+  (final.lib.optionalAttrs (qemu_major == "9") {
     patches = builtins.trace "Patching Qemu for GPIO passthrough"
       prev.patches ++ [ qemuGpioPatch ];
 

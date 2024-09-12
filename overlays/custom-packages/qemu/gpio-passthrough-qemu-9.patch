@@ -266,16 +266,103 @@ index 0000000000..dd4b4221d3
 +#endif
 diff --git a/hw/misc/nvidia_gpio_guest.c b/hw/misc/nvidia_gpio_guest.c
 new file mode 100644
-index 0000000000..4bd0283b00
+index 0000000000..d07d0f6cc8
 --- /dev/null
 +++ b/hw/misc/nvidia_gpio_guest.c
-@@ -0,0 +1,254 @@
+@@ -0,0 +1,343 @@
 +#include "qemu/osdep.h"
 +#include "qemu/qemu-print.h"
 +#include "qemu/log.h"
 +#include "qapi/error.h" /* provides error_fatal() handler */
 +#include "hw/sysbus.h"	/* provides all sysbus registering func */
 +#include "hw/misc/nvidia_gpio_guest.h"
++
++#include "hw/irq.h"
++
++#define TYPE_NVIDIA_IRQ_GUEST "nvidia_irq_guest"
++typedef struct NvidiaIrqGuestState NvidiaIrqGuestState;
++DECLARE_INSTANCE_CHECKER(NvidiaIrqGuestState, NVIDIA_IRQ_GUEST, TYPE_NVIDIA_IRQ_GUEST)
++
++/*
++* DECLARE(sructname##class, functionname, class_typename)
++    structename##Class: The name of the class struct (e.g. NvidiaIrqGuestState)
++    functionname: The name of the object function that's created (e.g. NVIDIA_GPIO_GUEST)
++    class_typename: The name of the class type (e.g. TYPE_NVIDIA_GPIO_GUEST)
++
++ */
++// DECLARE(NvidiaIrqGuestState, NVIDIA_IRQ_GUEST, TYPE_NVIDIA_IRQ_GUEST)
++
++/*
++* DEFINE_INSTANCE_TYPE 
++    structname: The name of the instance struct (e.g. NvidiaGpioGuestState)
++    structename##Class: The name of the class struct (e.g. NvidiaIrqGuestState)
++    instance_typename: The name of the instance type (e.g. TYPE_NVIDIA_GPIO_GUEST)
++    class_typename: The name of the class type (e.g. TYPE_NVIDIA_GPIO_GUEST)
++*/
++// DEFINE_INSTANCE_TYPE(NvidiaGpioGuestState, NvidiaIrqGuestState, NVIDIA_IRQ_GUEST, TYPE_NVIDIA_IRQ_GUEST)
++
++#define MAX_IRQ_LINES 16
++
++struct NvidiaIrqGuestState
++{
++	SysBusDevice parent_obj;
++    qemu_irq * irq;
++};
++
++static void nvidia_gpio_guest_reset(DeviceState *dev) {
++    // Implementation of device reset
++}
++
++static void nvidia_gpio_guest_realize(DeviceState *dev, Error **errp) {
++    NvidiaIrqGuestState *s = NVIDIA_IRQ_GUEST(dev);
++    int i;
++
++    // Allocate an array of IRQ lines
++    s->irq = g_new(qemu_irq, MAX_IRQ_LINES);
++
++    for (i = 0; i < MAX_IRQ_LINES; i++) {
++        sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->irq[i]);
++    }
++}
++
++static void nvidia_gpio_guest_unrealize(DeviceState *dev) {
++    NvidiaIrqGuestState *s = NVIDIA_IRQ_GUEST(dev);
++
++    // Free the IRQ array
++    g_free(s->irq);
++}
++
++static void nvidia_gpio_guest_trigger_irq(NvidiaIrqGuestState *s) {
++    int i;
++    // Trigger the IRQ
++
++    for (i = 0; i < MAX_IRQ_LINES; i++) {
++        qemu_irq_pulse(s->irq[i]);
++    }
++}
++
++static void nvidia_irq_guest_init(ObjectClass *klass, void *data) {
++    DeviceClass *dc = DEVICE_CLASS(klass);
++
++    dc->reset = nvidia_gpio_guest_reset;
++    dc->realize = nvidia_gpio_guest_realize;
++    dc->unrealize = nvidia_gpio_guest_unrealize;
++}
++
++static void nvidia_irq_guest_instance_init(Object *obj)
++{
++	// struct NvidiaIrqGuestState *s = NVIDIA_IRQ_GUEST(obj);
++}
++
++/* create a new type to define the info related to our device */
++static const TypeInfo nvidia_gpio_guest_irq_info = {
++	.name = TYPE_NVIDIA_IRQ_GUEST,
++	.parent = TYPE_SYS_BUS_DEVICE,
++	.instance_size = sizeof(NvidiaIrqGuestState),
++	.instance_init = nvidia_irq_guest_instance_init,
++};
++
++/*-------------------------------------*/
 +
 +#define TYPE_NVIDIA_GPIO_GUEST "nvidia_gpio_guest"
 +typedef struct NvidiaGpioGuestState NvidiaGpioGuestState;
@@ -287,7 +374,7 @@ index 0000000000..4bd0283b00
 +// #define RETURN_OFF 0
 +#define HOST_DEVICE_PATH "/dev/gpio-host"
 +
-+#define GPIO_PT_DEBUG
++// #define GPIO_PT_DEBUG
 +// #define GPIO_PT_DEBUG_VERBOSE
 +
 +_Static_assert(sizeof(uint64_t) == RETURN_SIZE, "size assertion for RETURN_SIZE failed");
@@ -297,6 +384,7 @@ index 0000000000..4bd0283b00
 +
 +struct NvidiaGpioGuestState
 +{
++    // NvidiaIrqGuestState parent; // embed the class struct
 +	SysBusDevice parent_obj;
 +	MemoryRegion iomem;
 +	int host_device_fd;
@@ -318,7 +406,7 @@ index 0000000000..4bd0283b00
 +	uint64_t retval = ( s->return_value >> (addr<<3) ) & mask;
 +
 +	#ifdef GPIO_PT_DEBUG_VERBOSE
-+	qemu_printf("qemu: (   + read	 ) written: %d: addr: %ld, size: %d, return_value: 0x%016lX, retval: 0x%lX\n", s->written, addr, size, s->return_value, retval);
++	qemu_printf("qemu: (read) written: %d: addr: %ld, size: %d, return_value: 0x%016lX, retval: 0x%lX\n", s->written, addr, size, s->return_value, retval);
 +	#endif
 +
 +	s->written -= size;
@@ -340,9 +428,17 @@ index 0000000000..4bd0283b00
 +	}
 +
 +	#ifdef GPIO_PT_DEBUG_VERBOSE
-+	qemu_printf("qemu: (	read	 ) retval(processed): 0x%lX\n", retval);
++	qemu_printf("qemu: (read) retval(processed): 0x%lX\n", retval);
 +	#endif
 +	return retval;
++}
++
++static inline ssize_t safe_write(int fd, const void *buf, size_t count) {
++	ssize_t ret;
++	pthread_mutex_lock(&io_mutex);
++	ret = write(fd, buf, count);
++	pthread_mutex_unlock(&io_mutex);
++	return ret;
 +}
 +
 +/*
@@ -360,14 +456,6 @@ index 0000000000..4bd0283b00
 + *   unsigned int size:  This parameter indicates the size of the data being written, in bytes. It specifies the number of bytes
 + *					   to be written starting from the given address.
 + */
-+
-+static inline ssize_t safe_write(int fd, const void *buf, size_t count) {
-+	ssize_t ret;
-+	pthread_mutex_lock(&io_mutex);
-+	ret = write(fd, buf, count);
-+	pthread_mutex_unlock(&io_mutex);
-+	return ret;
-+}
 +
 +static void nvidia_gpio_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
 +{
@@ -424,8 +512,8 @@ index 0000000000..4bd0283b00
 +
 +			pthread_mutex_lock(&return_mutex);
 +	        #ifdef GPIO_PT_DEBUG_VERBOSE
-+			qemu_printf("qemu: (	 write	 ) +++locked+++ return mutex\n");
-+			qemu_printf("qemu: (	 write	 ) Ready to write, (%d)\n", s->towrite);
++			qemu_printf("qemu: (write) +++locked+++ return mutex\n");
++			qemu_printf("qemu: (write) Ready to write, (%d)\n", s->towrite);
 +            #endif
 +			if ( (ret = safe_write(s->host_device_fd, s->mem, s->towrite)) < 0 )
 +			{
@@ -446,13 +534,13 @@ index 0000000000..4bd0283b00
 +				if ( s->written > 0 && s->written <= RETURN_SIZE ) {
 +					// a return value is available
 +	                #ifdef GPIO_PT_DEBUG_VERBOSE
-+					qemu_printf("qemu: (	 write	 ) Expected return size: %d\n", s->written);
++					qemu_printf("qemu: (write) Expected return size: %d\n", s->written);
 +                    #endif
 +					// note: shift left does not work when we shift 64 bits (8 bytes) because the '1' is lost at 65 bits
 +					mask = ( s->written >= 8) ? (uint64_t)0xFFFFFFFFFFFFFFFF : ( (uint64_t)0x0000000000000001 << (s->written << 3) ) - 1;
 +					s->return_value = *(uint64_t *)(s->mem + RETURN_OFF) & mask;
 +	                #ifdef GPIO_PT_DEBUG_VERBOSE
-+					qemu_printf("qemu: (	 write	 ) Return value 0x%016lX, is copied from raw 0x%016lX, with mask = 0x%016lX\n", s->return_value, *(uint64_t *)(s->mem + RETURN_OFF), mask);
++					qemu_printf("qemu: (write) Return value 0x%016lX, is copied from raw 0x%016lX, with mask = 0x%016lX\n", s->return_value, *(uint64_t *)(s->mem + RETURN_OFF), mask);
 +                    #endif
 +				}
 +				else {
@@ -469,7 +557,7 @@ index 0000000000..4bd0283b00
 +		} // close error check
 +
 +        #ifdef GPIO_PT_DEBUG
-+		qemu_printf("qemu: (	 write --- ) return_value: 0x%016lX\n", s->return_value);
++		qemu_printf("qemu: return_value: 0x%016lX\n", s->return_value);
 +        #endif
 +	}
 +	return;
@@ -500,7 +588,7 @@ index 0000000000..4bd0283b00
 +}
 +
 +/* create a new type to define the info related to our device */
-+static const TypeInfo nvidia_gpio_guest_info = {
++static const TypeInfo nvidia_gpio_guest_chardev_info = {
 +	.name = TYPE_NVIDIA_GPIO_GUEST,
 +	.parent = TYPE_SYS_BUS_DEVICE,
 +	.instance_size = sizeof(NvidiaGpioGuestState),
@@ -509,7 +597,8 @@ index 0000000000..4bd0283b00
 +
 +static void nvidia_gpio_guest_register_types(void)
 +{
-+	type_register_static(&nvidia_gpio_guest_info);
++	type_register_static(&nvidia_gpio_guest_chardev_info);
++	type_register_static(&nvidia_gpio_guest_irq_info);
 +}
 +
 +type_init(nvidia_gpio_guest_register_types)
@@ -561,10 +650,10 @@ index 0000000000..bd11d732d0
 +git diff origin/stable-9.0 > qemu-passthrough.patch
 diff --git a/qemu-passthrough.nix b/qemu-passthrough.nix
 new file mode 100644
-index 0000000000..71135a4d19
+index 0000000000..a45ba609ad
 --- /dev/null
 +++ b/qemu-passthrough.nix
-@@ -0,0 +1,143 @@
+@@ -0,0 +1,211 @@
 +# qemu-passthrough.nix
 +# build with command: nix-build qemu-passthrough.nix
 +{ pkgs ? import <nixpkgs> {}, ... }:
@@ -579,92 +668,160 @@ index 0000000000..71135a4d19
 +  };
 +
 +  buildInputs = with pkgs; [
-+    util-linux
-+    pkg-config
-+    autogen
-+    automake
-+    flex
-+    bison
-+    meson
-+    ninja
-+    cmake
-+    json_c
-+    gcc
-+    gnumake
-+    libtool
-+    valgrind
-+    python3
-+    glib
-+    dbus
-+    pixman
-+    zlib
-+    bzip2
-+    lzo
-+    libgpiod
-+    snappy
-+    curl
-+    libssh
-+    libcap
-+    libepoxy
-+    nettle
-+    attr
-+    systemd
-+    liburing
-+    makeWrapper
-+    mktemp
-+    libdrm
-+    wayland-protocols
-+    sphinx
-+    python311Packages.sphinx-rtd-theme
-+    SDL2
-+    gtk3
-+    gnutls
-+    libslirp
-+    libselinux
++    acpica-tools
 +    alsa-lib
 +    alsa-oss
-+    pulseaudio
-+    pipewire
-+    acpica-tools
-+    pam_p11
-+    pam_u2f
-+    vte
++    attr
++    autoconf
++    autoconf-archive
++    autogen
++    automake
++    # autoreconf-hook
++    baobab
++    basez
++    bat
++    bc
++    bintools
++    bison
++    bzip2
++    canokey-qemu
++    capstone
++    cargo
++    ceph
++    cmake
++    cmocka
++    curl
++    cyrus_sasl
++    dbus
++    dtc
++    fatresize
++    fdtools
++    flex
++    fuse
++    fuse3
++    gawk
++    gcc
++    gcc9  # GCC 9 required for Linux 5.10
++    geany
++    gh
++    git
++    gitg
++    gitty
++    glib
++    gnumake
++    gnutls
++    gparted
++    gsasl
++    gtk3
++    gtk3-x11
++    gtk-vnc
++    gusb
++    iconv
++    icu
++    json_c
++    kconfig-frontends
++    keyutils
++    lazygit
++    libaio
++    libbpf
++    libcacard
++    libcap
++    libcap_ng
++    libcxx
++    libcxxStdenv
++    libdrm
++    libdwg
++    libepoxy
++    libevdev
++    libevdevc
++    libevdevplus
++    libgcrypt
++    libgpiod
 +    libibumad
++    libndctl
 +    libnfs
 +    libseccomp
-+    libxkbcommon
-+    libcacard
-+    libusb1
-+    libaio
-+    libcap_ng
++    libselinux
++    libslirp
++    libssh
++    libsysprof-capture
 +    libtasn1
-+    libgcrypt
-+    keyutils
-+    canokey-qemu
-+    fuse3
-+    libbpf
-+    capstone
-+    fdtools
-+    vde2
-+    texinfo
-+    spice
-+    virglrenderer
++    libtool
++    libtpms
++    libudev0-shim
++    libudev-zero
++    liburing
++    libusb1
++    libusbp
++    libvncserver
++    libxkbcommon
++    libzip
++    lynx
++    lzfse
++    lzo
++    makeWrapper
++    meld
++    meson
++    mktemp
 +    multipath-tools
 +    ncurses
-+    sealcurses
-+    lzfse
-+    gsasl
-+    xgboost
-+    libvncserver
-+    cmocka
-+    basez
++    neovim
++    nettle
++    ninja
++    nix-prefetch-git
++    openssl
++    pam_p11
++    pam_u2f
++    parted
++    patchelf
++    perl
++    picocom
++    pipewire
++    pixman
++    pkg-config
++    polkit
++    proot
++    pulseaudio
++    python3
++    python311Packages.sphinx-rtd-theme
++    qemu_kvm
++    qemu-utils
++    rdma-core
++    ripgrep
++    rng-tools
++    rutabaga_gfx
 +    SDL2
 +    SDL2_image
-+    ceph
-+    gsasl
++    sealcurses
++    snappy
++    sphinx
++    spice
++    spice-autorandr
++    spice-gtk
++    spice-protocol
++    spice-up
++    spice-vdagent
++    ssh-agents
++    sshpass
++    sshs
++    ssh-tools
++    stdenv.cc
++    sysprof
++    systemd
++    texinfo
++    tigervnc
++    unixtools.xxd
++    usbredir
++    util-linux
++    valgrind
++    vde2
++    virglrenderer
++    vte
++    wayland-protocols
++    wget
 +    xdp-tools
-+    fdtools
-+    dtc
++    xgboost
++    zlib
 +  ];
 +
 +  configurePhase = ''
@@ -710,10 +867,10 @@ index 0000000000..71135a4d19
 +
 diff --git a/qemu-passthrough.patch b/qemu-passthrough.patch
 new file mode 100644
-index 0000000000..e1dc27944f
+index 0000000000..896f956096
 --- /dev/null
 +++ b/qemu-passthrough.patch
-@@ -0,0 +1,672 @@
+@@ -0,0 +1,838 @@
 +diff --git a/configs/devices/aarch64-softmmu/default.mak b/configs/devices/aarch64-softmmu/default.mak
 +index f82a04c27d..35dd533d37 100644
 +--- a/configs/devices/aarch64-softmmu/default.mak
@@ -982,16 +1139,103 @@ index 0000000000..e1dc27944f
 ++#endif
 +diff --git a/hw/misc/nvidia_gpio_guest.c b/hw/misc/nvidia_gpio_guest.c
 +new file mode 100644
-+index 0000000000..4bd0283b00
++index 0000000000..d07d0f6cc8
 +--- /dev/null
 ++++ b/hw/misc/nvidia_gpio_guest.c
-+@@ -0,0 +1,254 @@
++@@ -0,0 +1,343 @@
 ++#include "qemu/osdep.h"
 ++#include "qemu/qemu-print.h"
 ++#include "qemu/log.h"
 ++#include "qapi/error.h" /* provides error_fatal() handler */
 ++#include "hw/sysbus.h"	/* provides all sysbus registering func */
 ++#include "hw/misc/nvidia_gpio_guest.h"
+++
+++#include "hw/irq.h"
+++
+++#define TYPE_NVIDIA_IRQ_GUEST "nvidia_irq_guest"
+++typedef struct NvidiaIrqGuestState NvidiaIrqGuestState;
+++DECLARE_INSTANCE_CHECKER(NvidiaIrqGuestState, NVIDIA_IRQ_GUEST, TYPE_NVIDIA_IRQ_GUEST)
+++
+++/*
+++* DECLARE(sructname##class, functionname, class_typename)
+++    structename##Class: The name of the class struct (e.g. NvidiaIrqGuestState)
+++    functionname: The name of the object function that's created (e.g. NVIDIA_GPIO_GUEST)
+++    class_typename: The name of the class type (e.g. TYPE_NVIDIA_GPIO_GUEST)
+++
+++ */
+++// DECLARE(NvidiaIrqGuestState, NVIDIA_IRQ_GUEST, TYPE_NVIDIA_IRQ_GUEST)
+++
+++/*
+++* DEFINE_INSTANCE_TYPE 
+++    structname: The name of the instance struct (e.g. NvidiaGpioGuestState)
+++    structename##Class: The name of the class struct (e.g. NvidiaIrqGuestState)
+++    instance_typename: The name of the instance type (e.g. TYPE_NVIDIA_GPIO_GUEST)
+++    class_typename: The name of the class type (e.g. TYPE_NVIDIA_GPIO_GUEST)
+++*/
+++// DEFINE_INSTANCE_TYPE(NvidiaGpioGuestState, NvidiaIrqGuestState, NVIDIA_IRQ_GUEST, TYPE_NVIDIA_IRQ_GUEST)
+++
+++#define MAX_IRQ_LINES 16
+++
+++struct NvidiaIrqGuestState
+++{
+++	SysBusDevice parent_obj;
+++    qemu_irq * irq;
+++};
+++
+++static void nvidia_gpio_guest_reset(DeviceState *dev) {
+++    // Implementation of device reset
+++}
+++
+++static void nvidia_gpio_guest_realize(DeviceState *dev, Error **errp) {
+++    NvidiaIrqGuestState *s = NVIDIA_IRQ_GUEST(dev);
+++    int i;
+++
+++    // Allocate an array of IRQ lines
+++    s->irq = g_new(qemu_irq, MAX_IRQ_LINES);
+++
+++    for (i = 0; i < MAX_IRQ_LINES; i++) {
+++        sysbus_init_irq(SYS_BUS_DEVICE(dev), &s->irq[i]);
+++    }
+++}
+++
+++static void nvidia_gpio_guest_unrealize(DeviceState *dev) {
+++    NvidiaIrqGuestState *s = NVIDIA_IRQ_GUEST(dev);
+++
+++    // Free the IRQ array
+++    g_free(s->irq);
+++}
+++
+++static void nvidia_gpio_guest_trigger_irq(NvidiaIrqGuestState *s) {
+++    int i;
+++    // Trigger the IRQ
+++
+++    for (i = 0; i < MAX_IRQ_LINES; i++) {
+++        qemu_irq_pulse(s->irq[i]);
+++    }
+++}
+++
+++static void nvidia_irq_guest_init(ObjectClass *klass, void *data) {
+++    DeviceClass *dc = DEVICE_CLASS(klass);
+++
+++    dc->reset = nvidia_gpio_guest_reset;
+++    dc->realize = nvidia_gpio_guest_realize;
+++    dc->unrealize = nvidia_gpio_guest_unrealize;
+++}
+++
+++static void nvidia_irq_guest_instance_init(Object *obj)
+++{
+++	// struct NvidiaIrqGuestState *s = NVIDIA_IRQ_GUEST(obj);
+++}
+++
+++/* create a new type to define the info related to our device */
+++static const TypeInfo nvidia_gpio_guest_irq_info = {
+++	.name = TYPE_NVIDIA_IRQ_GUEST,
+++	.parent = TYPE_SYS_BUS_DEVICE,
+++	.instance_size = sizeof(NvidiaIrqGuestState),
+++	.instance_init = nvidia_irq_guest_instance_init,
+++};
+++
+++/*-------------------------------------*/
 ++
 ++#define TYPE_NVIDIA_GPIO_GUEST "nvidia_gpio_guest"
 ++typedef struct NvidiaGpioGuestState NvidiaGpioGuestState;
@@ -1003,7 +1247,7 @@ index 0000000000..e1dc27944f
 ++// #define RETURN_OFF 0
 ++#define HOST_DEVICE_PATH "/dev/gpio-host"
 ++
-++#define GPIO_PT_DEBUG
+++// #define GPIO_PT_DEBUG
 ++// #define GPIO_PT_DEBUG_VERBOSE
 ++
 ++_Static_assert(sizeof(uint64_t) == RETURN_SIZE, "size assertion for RETURN_SIZE failed");
@@ -1013,6 +1257,7 @@ index 0000000000..e1dc27944f
 ++
 ++struct NvidiaGpioGuestState
 ++{
+++    // NvidiaIrqGuestState parent; // embed the class struct
 ++	SysBusDevice parent_obj;
 ++	MemoryRegion iomem;
 ++	int host_device_fd;
@@ -1034,7 +1279,7 @@ index 0000000000..e1dc27944f
 ++	uint64_t retval = ( s->return_value >> (addr<<3) ) & mask;
 ++
 ++	#ifdef GPIO_PT_DEBUG_VERBOSE
-++	qemu_printf("qemu: (   + read	 ) written: %d: addr: %ld, size: %d, return_value: 0x%016lX, retval: 0x%lX\n", s->written, addr, size, s->return_value, retval);
+++	qemu_printf("qemu: (read) written: %d: addr: %ld, size: %d, return_value: 0x%016lX, retval: 0x%lX\n", s->written, addr, size, s->return_value, retval);
 ++	#endif
 ++
 ++	s->written -= size;
@@ -1056,9 +1301,17 @@ index 0000000000..e1dc27944f
 ++	}
 ++
 ++	#ifdef GPIO_PT_DEBUG_VERBOSE
-++	qemu_printf("qemu: (	read	 ) retval(processed): 0x%lX\n", retval);
+++	qemu_printf("qemu: (read) retval(processed): 0x%lX\n", retval);
 ++	#endif
 ++	return retval;
+++}
+++
+++static inline ssize_t safe_write(int fd, const void *buf, size_t count) {
+++	ssize_t ret;
+++	pthread_mutex_lock(&io_mutex);
+++	ret = write(fd, buf, count);
+++	pthread_mutex_unlock(&io_mutex);
+++	return ret;
 ++}
 ++
 ++/*
@@ -1076,14 +1329,6 @@ index 0000000000..e1dc27944f
 ++ *   unsigned int size:  This parameter indicates the size of the data being written, in bytes. It specifies the number of bytes
 ++ *					   to be written starting from the given address.
 ++ */
-++
-++static inline ssize_t safe_write(int fd, const void *buf, size_t count) {
-++	ssize_t ret;
-++	pthread_mutex_lock(&io_mutex);
-++	ret = write(fd, buf, count);
-++	pthread_mutex_unlock(&io_mutex);
-++	return ret;
-++}
 ++
 ++static void nvidia_gpio_guest_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size)
 ++{
@@ -1140,8 +1385,8 @@ index 0000000000..e1dc27944f
 ++
 ++			pthread_mutex_lock(&return_mutex);
 ++	        #ifdef GPIO_PT_DEBUG_VERBOSE
-++			qemu_printf("qemu: (	 write	 ) +++locked+++ return mutex\n");
-++			qemu_printf("qemu: (	 write	 ) Ready to write, (%d)\n", s->towrite);
+++			qemu_printf("qemu: (write) +++locked+++ return mutex\n");
+++			qemu_printf("qemu: (write) Ready to write, (%d)\n", s->towrite);
 ++            #endif
 ++			if ( (ret = safe_write(s->host_device_fd, s->mem, s->towrite)) < 0 )
 ++			{
@@ -1162,13 +1407,13 @@ index 0000000000..e1dc27944f
 ++				if ( s->written > 0 && s->written <= RETURN_SIZE ) {
 ++					// a return value is available
 ++	                #ifdef GPIO_PT_DEBUG_VERBOSE
-++					qemu_printf("qemu: (	 write	 ) Expected return size: %d\n", s->written);
+++					qemu_printf("qemu: (write) Expected return size: %d\n", s->written);
 ++                    #endif
 ++					// note: shift left does not work when we shift 64 bits (8 bytes) because the '1' is lost at 65 bits
 ++					mask = ( s->written >= 8) ? (uint64_t)0xFFFFFFFFFFFFFFFF : ( (uint64_t)0x0000000000000001 << (s->written << 3) ) - 1;
 ++					s->return_value = *(uint64_t *)(s->mem + RETURN_OFF) & mask;
 ++	                #ifdef GPIO_PT_DEBUG_VERBOSE
-++					qemu_printf("qemu: (	 write	 ) Return value 0x%016lX, is copied from raw 0x%016lX, with mask = 0x%016lX\n", s->return_value, *(uint64_t *)(s->mem + RETURN_OFF), mask);
+++					qemu_printf("qemu: (write) Return value 0x%016lX, is copied from raw 0x%016lX, with mask = 0x%016lX\n", s->return_value, *(uint64_t *)(s->mem + RETURN_OFF), mask);
 ++                    #endif
 ++				}
 ++				else {
@@ -1185,7 +1430,7 @@ index 0000000000..e1dc27944f
 ++		} // close error check
 ++
 ++        #ifdef GPIO_PT_DEBUG
-++		qemu_printf("qemu: (	 write --- ) return_value: 0x%016lX\n", s->return_value);
+++		qemu_printf("qemu: return_value: 0x%016lX\n", s->return_value);
 ++        #endif
 ++	}
 ++	return;
@@ -1216,7 +1461,7 @@ index 0000000000..e1dc27944f
 ++}
 ++
 ++/* create a new type to define the info related to our device */
-++static const TypeInfo nvidia_gpio_guest_info = {
+++static const TypeInfo nvidia_gpio_guest_chardev_info = {
 ++	.name = TYPE_NVIDIA_GPIO_GUEST,
 ++	.parent = TYPE_SYS_BUS_DEVICE,
 ++	.instance_size = sizeof(NvidiaGpioGuestState),
@@ -1225,7 +1470,8 @@ index 0000000000..e1dc27944f
 ++
 ++static void nvidia_gpio_guest_register_types(void)
 ++{
-++	type_register_static(&nvidia_gpio_guest_info);
+++	type_register_static(&nvidia_gpio_guest_chardev_info);
+++	type_register_static(&nvidia_gpio_guest_irq_info);
 ++}
 ++
 ++type_init(nvidia_gpio_guest_register_types)
@@ -1277,10 +1523,10 @@ index 0000000000..e1dc27944f
 ++git diff origin/stable-9.0 > qemu-passthrough.patch
 +diff --git a/qemu-passthrough.nix b/qemu-passthrough.nix
 +new file mode 100644
-+index 0000000000..71135a4d19
++index 0000000000..a45ba609ad
 +--- /dev/null
 ++++ b/qemu-passthrough.nix
-+@@ -0,0 +1,143 @@
++@@ -0,0 +1,211 @@
 ++# qemu-passthrough.nix
 ++# build with command: nix-build qemu-passthrough.nix
 ++{ pkgs ? import <nixpkgs> {}, ... }:
@@ -1295,95 +1541,172 @@ index 0000000000..e1dc27944f
 ++  };
 ++
 ++  buildInputs = with pkgs; [
-++    util-linux
-++    pkg-config
-++    autogen
-++    automake
-++    flex
-++    bison
-++    meson
-++    ninja
-++    cmake
-++    json_c
-++    gcc
-++    gnumake
-++    libtool
-++    valgrind
-++    python3
-++    glib
-++    dbus
-++    pixman
-++    zlib
-++    bzip2
-++    lzo
-++    libgpiod
-++    snappy
-++    curl
-++    libssh
-++    libcap
-++    libepoxy
-++    nettle
-++    attr
-++    systemd
-++    liburing
-++    makeWrapper
-++    mktemp
-++    libdrm
-++    wayland-protocols
-++    sphinx
-++    python311Packages.sphinx-rtd-theme
-++    SDL2
-++    gtk3
-++    gnutls
-++    libslirp
-++    libselinux
+++    acpica-tools
 ++    alsa-lib
 ++    alsa-oss
-++    pulseaudio
-++    pipewire
-++    acpica-tools
-++    pam_p11
-++    pam_u2f
-++    vte
+++    attr
+++    autoconf
+++    autoconf-archive
+++    autogen
+++    automake
+++    # autoreconf-hook
+++    baobab
+++    basez
+++    bat
+++    bc
+++    bintools
+++    bison
+++    bzip2
+++    canokey-qemu
+++    capstone
+++    cargo
+++    ceph
+++    cmake
+++    cmocka
+++    curl
+++    cyrus_sasl
+++    dbus
+++    dtc
+++    fatresize
+++    fdtools
+++    flex
+++    fuse
+++    fuse3
+++    gawk
+++    gcc
+++    gcc9  # GCC 9 required for Linux 5.10
+++    geany
+++    gh
+++    git
+++    gitg
+++    gitty
+++    glib
+++    gnumake
+++    gnutls
+++    gparted
+++    gsasl
+++    gtk3
+++    gtk3-x11
+++    gtk-vnc
+++    gusb
+++    iconv
+++    icu
+++    json_c
+++    kconfig-frontends
+++    keyutils
+++    lazygit
+++    libaio
+++    libbpf
+++    libcacard
+++    libcap
+++    libcap_ng
+++    libcxx
+++    libcxxStdenv
+++    libdrm
+++    libdwg
+++    libepoxy
+++    libevdev
+++    libevdevc
+++    libevdevplus
+++    libgcrypt
+++    libgpiod
 ++    libibumad
+++    libndctl
 ++    libnfs
 ++    libseccomp
-++    libxkbcommon
-++    libcacard
-++    libusb1
-++    libaio
-++    libcap_ng
+++    libselinux
+++    libslirp
+++    libssh
+++    libsysprof-capture
 ++    libtasn1
-++    libgcrypt
-++    keyutils
-++    canokey-qemu
-++    fuse3
-++    libbpf
-++    capstone
-++    fdtools
-++    vde2
-++    texinfo
-++    spice
-++    virglrenderer
+++    libtool
+++    libtpms
+++    libudev0-shim
+++    libudev-zero
+++    liburing
+++    libusb1
+++    libusbp
+++    libvncserver
+++    libxkbcommon
+++    libzip
+++    lynx
+++    lzfse
+++    lzo
+++    makeWrapper
+++    meld
+++    meson
+++    mktemp
 ++    multipath-tools
 ++    ncurses
-++    sealcurses
-++    lzfse
-++    gsasl
-++    xgboost
-++    libvncserver
-++    cmocka
-++    basez
+++    neovim
+++    nettle
+++    ninja
+++    nix-prefetch-git
+++    openssl
+++    pam_p11
+++    pam_u2f
+++    parted
+++    patchelf
+++    perl
+++    picocom
+++    pipewire
+++    pixman
+++    pkg-config
+++    polkit
+++    proot
+++    pulseaudio
+++    python3
+++    python311Packages.sphinx-rtd-theme
+++    qemu_kvm
+++    qemu-utils
+++    rdma-core
+++    ripgrep
+++    rng-tools
+++    rutabaga_gfx
 ++    SDL2
 ++    SDL2_image
-++    ceph
-++    gsasl
+++    sealcurses
+++    snappy
+++    sphinx
+++    spice
+++    spice-autorandr
+++    spice-gtk
+++    spice-protocol
+++    spice-up
+++    spice-vdagent
+++    ssh-agents
+++    sshpass
+++    sshs
+++    ssh-tools
+++    stdenv.cc
+++    sysprof
+++    systemd
+++    texinfo
+++    tigervnc
+++    unixtools.xxd
+++    usbredir
+++    util-linux
+++    valgrind
+++    vde2
+++    virglrenderer
+++    vte
+++    wayland-protocols
+++    wget
 ++    xdp-tools
-++    fdtools
-++    dtc
+++    xgboost
+++    zlib
 ++  ];
 ++
 ++  configurePhase = ''
 ++    ./configure --target-list=aarch64-softmmu \
-++    --ena
+++    --enable-sdl --enable-gtk --enable-opengl \
+++    --disable-dbus-display \
+++    --enable-vnc --enable-vnc-jpeg \
+++    --disable-docs \
+++    --prefix=$out \
+++    --enable-vde \
+++    --enable-vhost-net --enable-vhost-user \
+++  '';
+++  /*
+++    --enable-vhost-kernel --enable-vhost-net --enable-vhost-user
 \ No newline at end of file
