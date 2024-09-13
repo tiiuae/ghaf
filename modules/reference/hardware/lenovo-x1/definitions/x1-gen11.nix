@@ -8,6 +8,7 @@
   # List of system SKUs covered by this configuration
   skus = [
     "LENOVO_MT_21HM_BU_Think_FM_ThinkPad X1 Carbon Gen 11 21HM006EGR"
+    "LENOVO_MT_21HM_BU_Think_FM_ThinkPad X1 Carbon Gen 11 21HM0072MX"
     # TODO Add more SKUs
   ];
 
@@ -84,7 +85,10 @@
     ];
     kernelConfig = {
       stage1.kernelModules = [ "i915" ];
-      kernelParams = [ "earlykms" ];
+      kernelParams = [
+        "earlykms"
+        "i915.enable_dpcd_backlight=3"
+      ];
     };
   };
 
