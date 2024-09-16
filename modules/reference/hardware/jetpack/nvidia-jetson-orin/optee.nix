@@ -43,6 +43,15 @@
         '';
       };
 
+      lockPinAfterFailedLoginAttempts = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = lib.mdDoc ''
+          Locks correspondingly User or SO PIN when reaching maximum
+          failed authentication attemps (continous) limit
+        '';
+      };
+
       heapSize = lib.mkOption {
         type = lib.types.int;
         default = 32768;
