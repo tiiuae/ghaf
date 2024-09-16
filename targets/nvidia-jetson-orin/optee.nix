@@ -16,10 +16,13 @@ _:
     inherit (pkgs.nvidia-jetpack) l4tVersion opteeClient;
     inherit (config.hardware.nvidia-jetpack.devicePkgs) taDevKit;
 
-    opteeSource = pkgs.fetchgit {
-      url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
-      rev = "jetson_${l4tVersion}";
-      sha256 = "sha256-jJOMig2+9FlKA9gJUCH/dva7ZtAq1typZSNGKyM7tlg=";
+    opteeSource = pkgs.applyPatches {
+      src = pkgs.fetchgit {
+        url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
+        rev = "jetson_${l4tVersion}";
+        sha256 = "sha256-jJOMig2+9FlKA9gJUCH/dva7ZtAq1typZSNGKyM7tlg=";
+      };
+      patches = [ ./0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch ];
     };
 
     opteeXtest = stdenv.mkDerivation {
@@ -58,6 +61,9 @@ _:
         "CFG_PKCS11_TA_HEAP_SIZE=${builtins.toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.heapSize}"
         "CFG_PKCS11_TA_AUTH_TEE_IDENTITY=${
           if config.ghaf.hardware.nvidia.orin.optee.pkcs11.authTeeIdentity then "y" else "n"
+        }"
+        "CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS=${
+          if config.ghaf.hardware.nvidia.orin.optee.pkcs11.lockPinAfterFailedLoginAttempts then "y" else "n"
         }"
         "CFG_PKCS11_TA_ALLOW_DIGEST_KEY=y"
         "OPTEE_CLIENT_EXPORT=${opteeClient}"

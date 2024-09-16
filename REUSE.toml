@@ -126,3 +126,10 @@ SPDX-FileCopyrightText = "Copyright 2019-2021 Microchip Corporation."
 path = [
 	"packages/hart-software-services/0001-Workaround-for-a-compilation-issue.patch",
 ]
+
+[[annotations]]
+SPDX-License-Identifier = "BSD-2-Clause"
+SPDX-FileCopyrightText = "Copyright (c) 2017-2020, Linaro Limited"
+path = [
+	"targets/nvidia-jetson-orin/0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch",
+]
