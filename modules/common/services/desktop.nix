@@ -118,7 +118,7 @@ in
 
             {
               name = "Element";
-              description = "General Messenging Application";
+              description = "General Messaging Application";
               vm = "Comms";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm element";
               icon = "${pkgs.icon-pack}/element-desktop.svg";

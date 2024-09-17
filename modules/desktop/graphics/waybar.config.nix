@@ -135,19 +135,18 @@ in
           * {
               font-family: FontAwesome, Inter, sans-serif;
               font-size: 16px;
-              border: none;
-              border-radius: 5px;
+              border-style: none;
+              border-radius: 4px;
           }
 
           window#waybar {
-              background-color: rgba(32, 32, 32, 0.9);
+              background-color: rgba(18, 18, 18, 0.99);
               color: #ffffff;
               transition-property: background-color;
               transition-duration: .5s;
           }
 
           window#waybar.hidden {
-              opacity: 0.2;
           }
 
           window#waybar.termite {

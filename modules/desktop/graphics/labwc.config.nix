@@ -12,19 +12,19 @@ let
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   gtklockStyle = pkgs.writeText "gtklock.css" ''
     window {
-      background: rgba(29, 29, 29, 1);
-      color: #eee;
+      background: rgba(18, 18, 18, 1);
+      color: #fff;
     }
     button {
       box-shadow: none;
       border-radius: 5px;
-      border: 1px solid rgba(255, 255, 255, 0.09);
-      background: rgba(255, 255, 255, 0.06);
+      border: none;
+      background: #171717;
     }
     entry {
-      background-color: rgba (43, 43, 43, 1);
+      background-color: #232323;
       border: 1px solid rgba(46, 46, 46, 1);
-      color: #eee;
+      color: #fff;
     }
     entry:focus {
       box-shadow: none;
@@ -178,7 +178,7 @@ let
 
   makoConfig = ''
     font=Inter 12
-    background-color=#202020e6
+    background-color=#121212
     progress-color=source #3D8252e6
     border-radius=5
     border-size=0
@@ -187,7 +187,8 @@ let
   '';
 
   environment = ''
-    XCURSOR_THEME=breeze_cursors
+    XCURSOR_THEME=Adwaita
+    XCURSOR_SIZE=24
 
     # Wayland compatibility
     MOZ_ENABLE_WAYLAND=1

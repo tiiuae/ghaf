@@ -10,8 +10,8 @@ let
   cfg = config.ghaf.graphics.login-manager;
   gtkgreetStyle = pkgs.writeText "gtkgreet.css" ''
     window {
-      background: rgba(29, 29, 29, 1);
-      color: #eee;
+      background: rgba(18, 18, 18, 1);
+      color: #fff;
     }
     button {
       box-shadow: none;
