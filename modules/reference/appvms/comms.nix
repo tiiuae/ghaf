@@ -43,13 +43,10 @@ in
       hardware.pulseaudio = {
         enable = true;
         extraConfig = ''
-          load-module module-tunnel-sink sink_name=element-speaker server=audio-vm:4713 format=s16le channels=2 rate=48000
-          load-module module-tunnel-source source_name=element-mic server=audio-vm:4713 format=s16le channels=1 rate=48000
-
-          # Set sink and source default max volume to about 90% (0-65536)
-          set-sink-volume element-speaker 60000
-          set-source-volume element-mic 60000
+          load-module module-tunnel-sink-new sink_name=comms-speaker server=audio-vm:4713 reconnect_interval_ms=1000
+          load-module module-tunnel-source-new source_name=comms-mic server=audio-vm:4713 reconnect_interval_ms=1000
         '';
+        package = pkgs.pulseaudio-ghaf;
       };
 
       systemd = {

@@ -34,7 +34,7 @@ in
 
   config = mkIf cfg.enable {
     users = {
-      mutableUsers = true;
+      mutableUsers = false;
       users."${cfg.user}" = {
         isNormalUser = true;
         inherit (cfg) password;
@@ -50,6 +50,7 @@ in
         members = [ cfg.user ];
       };
     };
+
     # to build ghaf as ghaf-user with caches
     nix.settings.trusted-users = mkIf config.ghaf.profiles.debug.enable [ cfg.user ];
   };

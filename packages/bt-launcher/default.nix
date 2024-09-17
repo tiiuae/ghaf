@@ -14,7 +14,7 @@ writeShellApplication {
     export PULSE_SERVER=audio-vm:4713
     export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
-    ${openssh}/bin/ssh -M -S /tmp/control_socket \
+    ${openssh}/bin/ssh -M -S /tmp/control_socket_bt \
         -f -N -q ghaf@audio-vm \
         -i /run/waypipe-ssh/id_ed25519 \
         -o StrictHostKeyChecking=no \
@@ -26,7 +26,7 @@ writeShellApplication {
     ${blueman}/bin/blueman-applet &
     ${blueman}/bin/blueman-manager
     # Use the control socket to close the ssh tunnel.
-    ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@audio-vm
+    ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit ghaf@audio-vm
   '';
 
   meta = {
