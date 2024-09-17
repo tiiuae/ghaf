@@ -21,6 +21,7 @@ let
   audiovmBaseConfiguration = {
     imports = [
       inputs.self.nixosModules.givc-audiovm
+      inputs.impermanence.nixosModules.impermanence
       (import ./common/vm-networking.nix {
         inherit
           config
@@ -30,6 +31,7 @@ let
           ;
         internalIP = 5;
       })
+      ./common/storagevm.nix
       (
         { lib, pkgs, ... }:
         {
@@ -52,9 +54,22 @@ let
               withResolved = true;
               withTimesyncd = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
+              withHardenedConfigs = true;
             };
             givc.audiovm.enable = true;
             services.audio.enable = true;
+            storagevm = {
+              enable = true;
+              name = "audiovm";
+              directories = [
+                {
+                  directory = "/var/lib/bluetooth";
+                  user = "bluetooth";
+                  group = "bluetooth";
+                  mode = "u=rwx,g=,o=";
+                }
+              ];
+            };
           };
 
           environment = {

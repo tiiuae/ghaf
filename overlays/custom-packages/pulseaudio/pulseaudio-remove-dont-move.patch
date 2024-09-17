@@ -1,3 +1,5 @@
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 diff --git a/src/modules/module-tunnel-sink-new.c b/src/modules/module-tunnel-sink-new.c
 index 0b91ce266..ea41c50e2 100644
 --- a/src/modules/module-tunnel-sink-new.c
