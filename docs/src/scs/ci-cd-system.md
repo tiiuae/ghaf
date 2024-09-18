@@ -29,13 +29,10 @@ The software delivery pipeline consists of several stages:
 
 5. On build failure, Builder Controller sends failure notifications to Message Service.
 
-6. Builder Controller uploads all build artifacts to Binary Cache and disk images to Web Server.
+6. Builder Controller uploads all build artifacts to Binary Cache.
 
-7. Test Automation fetches disk images from Binary Cache and runs the hardware test on them.
+7. Test Automation fetches disk images from the Controller and runs the hardware test on them.
 
-8. Test Automation uploads test reports to Web Server.
+8. Test Automation sends test reports to the Controller.
 
-9.  Users can download images from Web Server:
-
-    * release images <https://vedenemo.dev/files/releases/>
-    * images for testing <https://vedenemo.dev/files/build_reports/>.
+9.  Users can download images and test reports from the Controller
