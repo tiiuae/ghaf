@@ -48,6 +48,10 @@ in
           evtest
           # For deleting Linux Boot Manager entries in automated testing
 
+          # Tools for automated GUI-testing
+          ydotool
+          grim
+
           efibootmgr
           # Performance testing
 
