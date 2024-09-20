@@ -48,10 +48,6 @@ in
           evtest
           # For deleting Linux Boot Manager entries in automated testing
 
-          # Tools for automated GUI-testing
-          ydotool
-          grim
-
           efibootmgr
           # Performance testing
 
@@ -83,7 +79,12 @@ in
         config.nixpkgs.hostPlatform.system != "aarch64-linux"
       ) config.boot.kernelPackages.perf
       # LuaJIT (which is sysbench dependency) not available on RISC-V
-      ++ lib.optional (config.nixpkgs.hostPlatform.system != "riscv64-linux") pkgs.sysbench
+      # ydotool and grim are tools for automated GUI-testing, useless on riscv
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system != "riscv64-linux") [
+        pkgs.sysbench
+        ydotool
+        grim
+        ]
       # Icicle Kit performance test script available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system == "riscv64-linux") perf-test-script-icicle
       # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
