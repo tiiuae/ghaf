@@ -82,9 +82,9 @@ in
       # ydotool and grim are tools for automated GUI-testing, useless on riscv
       ++ lib.optionals (config.nixpkgs.hostPlatform.system != "riscv64-linux") [
         pkgs.sysbench
-        ydotool
-        grim
-        ]
+        pkgs.ydotool
+        pkgs.grim
+      ]
       # Icicle Kit performance test script available on RISC-V
       ++ lib.optional (config.nixpkgs.hostPlatform.system == "riscv64-linux") perf-test-script-icicle
       # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
