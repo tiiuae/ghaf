@@ -87,11 +87,6 @@ in
       };
 
       ghaf.reference.programs.chromium.enable = true;
-      ghaf.storagevm = {
-        enable = true;
-        name = "${name}";
-        users.${config.ghaf.users.accounts.user}.directories = [ ".config" ];
-      };
 
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
