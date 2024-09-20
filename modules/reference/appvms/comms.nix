@@ -107,11 +107,6 @@ in
           "slack":   "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}"
           }'';
       };
-      ghaf.storagevm = {
-        enable = true;
-        name = "${name}";
-        users.${config.ghaf.users.accounts.user}.directories = [ ".config/" ];
-      };
     }
   ];
   borderColor = "#337aff";
