@@ -104,7 +104,13 @@ in
         (import ./launchers.nix { inherit pkgs config; })
       ]
       # Grim screenshot tool is used for labwc debug-builds
-      ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.grim ];
+      # satty and slurp add some functionality to bring it
+      # a more modern selection tool
+      ++ lib.optionals config.ghaf.profiles.debug.enable [
+        pkgs.grim
+        pkgs.satty
+        pkgs.slurp
+      ];
 
     # It will create a /etc/pam.d/ file for authentication
     security.pam.services.gtklock = { };

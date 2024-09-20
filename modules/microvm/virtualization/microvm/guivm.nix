@@ -76,6 +76,11 @@ let
                   mode = "u=rwx,g=,o=";
                 }
               ];
+              users.${config.ghaf.users.accounts.user}.directories = [
+                ".config/"
+                "Pictures"
+                "Videos"
+              ];
             };
           };
 
@@ -122,6 +127,10 @@ let
                 pkgs.glxinfo
                 pkgs.libva-utils
               ];
+            sessionVariables = {
+              XDG_PICTURES_DIR = "$HOME/Pictures";
+              XDG_VIDEOS_DIR = "$HOME/Videos";
+            };
           };
 
           time.timeZone = config.time.timeZone;

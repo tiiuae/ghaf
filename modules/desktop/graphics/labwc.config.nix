@@ -10,6 +10,7 @@ let
   cfg = config.ghaf.graphics.labwc;
 
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
+  ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
   gtklockStyle = pkgs.writeText "gtklock.css" ''
     window {
       background: rgba(18, 18, 18, 1);
@@ -91,7 +92,7 @@ let
       </keybind>
       ${lib.optionalString config.ghaf.profiles.debug.enable ''
         <keybind key="Print">
-          <action name="Execute" command="${pkgs.grim}/bin/grim" />
+          <action name="Execute" command="${ghaf-screenshot}/bin/ghaf-screenshot" />
         </keybind>
       ''}
       <keybind key="XF86_MonBrightnessUp">
