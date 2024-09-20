@@ -13,8 +13,11 @@ in
     programs.chromium = {
       enable = true;
 
-      # Fix border glitch when going maximised->minimised.
-      initialPrefs.browser.custom_chrome_frame = false;
+      initialPrefs = {
+        # Fix border glitch when going maximised->minimised.
+        browser.custom_chrome_frame = false;
+        download.prompt_for_download = true;
+      };
 
       # Don't use pdf.js, open externally.
       extraOpts."AlwaysOpenPdfExternally" = true;

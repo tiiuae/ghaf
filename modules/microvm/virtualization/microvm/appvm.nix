@@ -35,6 +35,12 @@ let
 
           ./common/ghaf-audio.nix
           ./common/storagevm.nix
+          (
+            with configHost.ghaf.virtualization.microvm-host;
+            lib.optionalAttrs (sharedVmDirectory.enable && builtins.elem vmName sharedVmDirectory.vms) (
+              import ./common/shared-directory.nix vmName
+            )
+          )
 
           # To push logs to central location
           ../../../common/logging/client.nix
