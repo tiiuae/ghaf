@@ -113,6 +113,7 @@ let
               (rmDesktopEntries [
                 pkgs.waypipe
                 pkgs.networkmanagerapplet
+                pkgs.gnome-calculator
               ])
               ++ [
                 pkgs.nm-launcher
