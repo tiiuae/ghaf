@@ -141,6 +141,13 @@ in
             }
 
             {
+              name = "Calculator";
+              description = "Application that solves mathematical equations";
+              path = "${pkgs.gnome-calculator}/bin/gnome-calculator";
+              icon = "${pkgs.gnome-calculator}/share/icons/hicolor/scalable/apps/org.gnome.Calculator.svg";
+            }
+
+            {
               name = "Network Settings";
               description = "Manage Network & Wi-Fi Settings";
               path = "${pkgs.nm-launcher}/bin/nm-launcher";
