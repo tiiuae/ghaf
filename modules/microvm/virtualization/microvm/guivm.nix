@@ -114,6 +114,7 @@ let
                 pkgs.waypipe
                 pkgs.networkmanagerapplet
                 pkgs.gnome-calculator
+                pkgs.sticky-notes
               ])
               ++ [
                 pkgs.nm-launcher

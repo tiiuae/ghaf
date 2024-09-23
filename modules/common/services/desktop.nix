@@ -148,6 +148,13 @@ in
             }
 
             {
+              name = "Sticky-Notes";
+              description = "Note-Taking Application for quick TODO items";
+              path = "${pkgs.sticky-notes}/bin/com.vixalien.sticky";
+              icon = "${pkgs.sticky-notes}/share/icons/hicolor/scalable/apps/com.vixalien.sticky.svg";
+            }
+
+            {
               name = "Network Settings";
               description = "Manage Network & Wi-Fi Settings";
               path = "${pkgs.nm-launcher}/bin/nm-launcher";
