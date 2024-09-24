@@ -101,7 +101,13 @@ To make our Markdown files maintainable over time and across teams, follow the r
 
     Use an angle bracket (>) for annotations.
     
-    Our mdBook is extended with the [mdbook-alerts](https://github.com/lambdalisue/rs-mdbook-alerts) third-party plugin[^note1] which adds usage of [GitHub Flavored Markdown's Alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts). To emphasize critical information, please use the following syntax:
+    Our mdBook is extended with the [mdbook-alerts](https://github.com/lambdalisue/rs-mdbook-alerts) third-party plugin[^note1] which adds usage of [GitHub Flavored Markdown's Alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts).
+
+    > [!IMPORTANT]
+    > Alerts cannot be nested within other elements. Use the simple angle bracket (>) for nested lists.
+    
+    
+    To emphasize critical information, please use the following syntax:
 
     ```
     > [!NOTE]

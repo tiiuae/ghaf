@@ -22,5 +22,4 @@ To add a new hardware configuration file, do the following:
 1. Create a separate folder for the device in [modules/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/hardware).
 2. Create the new configuration file with hardware-dependent parameters like host information, input and output device parameters, and others.
    
-    > [!TIP]
     > You can use an already existing file as a reference, for example [modules/hardware/lenovo-x1/definitions/x1-gen11.nix](https://github.com/tiiuae/ghaf/blob/main/modules/hardware/lenovo-x1/definitions/x1-gen11.nix). 

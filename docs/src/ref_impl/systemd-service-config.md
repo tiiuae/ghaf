@@ -5,7 +5,12 @@
 
 # systemd Service Hardening
 
-This document outlines systemd service configurations that significantly impact a service's exposure. The following configurations can be utilized to enhance the security of a systemd service:
+This document outlines systemd service configurations that significantly impact a service's exposure.
+
+> [!TIP]
+> For more information on troubleshooting common issues with systemd services, see [Troubleshooting with systemd](/docs/src/troubleshooting/systemd/systemd_trblsh.md).
+
+The following configurations can be utilized to enhance the security of a systemd service:
 
 <table>
 <tr>
@@ -235,7 +240,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 ## 3. User Separation
 
-> **IMPORTANT:** Not applicable for the service runs as root.
+> [!IMPORTANT]
+> Not applicable for the service runs as root.
 
 
 ### 3.1. PrivateUsers

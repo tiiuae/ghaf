@@ -103,7 +103,6 @@ Before you begin:
    2. Connect a Linux laptop to the board with the USB-C cable.
    3. Connect the Linux laptop to the board with a Micro-USB cable to use [serial interface](https://developer.ridgerun.com/wiki/index.php/NVIDIA_Jetson_Orin/In_Board/Getting_in_Board/Serial_Console).
 
-   > [!NOTE]
    > For more information on the board's connections details, see the [Hardware Layout](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/developer_kit_layout.html) section of the Jetson AGX Orin Developer Kit User Guide.
 
 3. After the build is completed, put the board in recovery mode. For more information, see the [Force Recovery](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/howto.html#force-recovery-mode) Mode section in the Jetson AGX Orin Developer Kit User Guide.

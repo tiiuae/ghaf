@@ -35,7 +35,6 @@ The current implementation includes a host configuration for the UARTA passthrou
     };
     ```
 
-    > [!IMPORTANT]
     > These options are integrated to [NVIDIA Jetson Orin targets](https://github.com/tiiuae/ghaf/blob/main/targets/nvidia-jetson-orin/default.nix) but disabled by default until the implementation is finished.
 
 2. Build the target and boot the image. You can write the image to an SSD for testing with a recent NVIDIA UEFI FW.
@@ -68,8 +67,7 @@ The current implementation includes a host configuration for the UARTA passthrou
 
 1. Build a guest kernel according to [UARTA passthrough instructions](https://github.com/jpruiz84/bpmp-virt)[^note1] and use the following script to start the VM:
 
-    > [!IMPORTANT]
-    > IMG is the kernel image and FS the rootfs.
+    > IMG is the kernel image, and FS is the rootfs.
 
     ```
     IMG=$1
