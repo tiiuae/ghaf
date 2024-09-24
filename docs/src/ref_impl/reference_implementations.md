@@ -49,6 +49,8 @@ The same goes with the architectural variants as headless devices or end-user de
    - [labwc Desktop Environment](./labwc.md)
    - [IDS VM Further Development](./idsvm-development.md)
    - [systemd Service Hardening](./systemd-service-config.md)
+- [Troubleshooting](../troubleshooting/troubleshooting.md)
+  - [Troubleshooting with systemd](../troubleshooting/systemd/systemd_trblsh.md)
 - [Ghaf as Library: Templates](./ghaf-based-project.md)
    - [Example Project](./example_project.md)
    - [Modules Options](./modules_options.md)

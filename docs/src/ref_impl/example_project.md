@@ -56,7 +56,6 @@ In case when GUI VM did not start with the error message that the device /dev/mo
 
 1. On the ghaf host, check the devices in `/dev/input/by-path` that contain “-event-” in the name. Use the command like `udevadm info -q all -a /dev/input/by-path/pci-0000:00:15.0-platform-i2c_designware.0-event-mouse | grep name` for the name of each of these devices.
 
-    > [!TIP]
     > By name you can understand which devices belong to the touchpad. For example, on laptops in Finland they look like “SYNA8016:00 06CB:CEB3 Mouse” and “SYNA8016:00 06CB:CEB3 Touchpad”, and in the UAE they are “ELAN067C:00 04F3:31F9 Mouse” and “ELAN067C:00 04F3:31F9 Touchpad.”
 
 2. If there are no such devices in `/dev/input/by-path`, then you can check the devices /dev/input/event* with a similar command.

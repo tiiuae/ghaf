@@ -3,24 +3,28 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Use `strace` to debug initialization sequence
+# Using strace for Debugging Initialization Sequence
 
-`strace` can give detailed insight about system calls made by a service. This is very helpfull in debugging restrictions applied on system calls and capability of any service. Though we can attach `strace` with PID of  a running process, but some time we may need to debug service initialization sequence also.
+`strace` can give detailed information about system calls made by a service. This is helpful in debugging restrictions applied to system calls and the capability of any service. Though we can attach `strace` with the PID of a running process, sometimes we may need to debug the service initialization sequence.
 
-To debug initialization sequence we need to attach `strace` with the service binary in `ExecStart` . To attach strace find out existing `ExecStart` of the service using command:
+To debug the initialization sequence: 
 
-```bash
-$> systemctl cat <service-name>.service | grep ExecStart
-```
+1. Attach `strace` with the service binary in `ExecStart`. For that, find out the existing `ExecStart` of the service by using the command:
 
-It will give  command line options used with service binary. Now we need to override `ExecStart` of the service, in order to attach `strace`. We'll use same options with `strace`too to replicate same scenario. For example to attach `strace` with `auditd` service we'll use following configuration at a suitable location:
+    ```bash
+    $> systemctl cat <service-name>.service | grep ExecStart
+    ```
 
-```Nix
-systemd.services."auditd".serviceConfig.ExecStart = lib.mkForce "${pkgs.strace}/bin/strace -o /etc/auditd_trace.log ${pkgs.audit}/bin/auditd -l -n -s nochange";
-```
+    It will give command line options used with service binary.
+    
+2. Override `ExecStart` of the service to attach `strace`. We will use the same options with `strace` to replicate the same scenario. For example, to attach `strace` with `auditd` service we will use the following configuration at a suitable location:
 
-Command`${pkgs.audit}/bin/auditd -l -n -s nochange`is used in regular `ExecStart`of `auditd`service. In above command we have attached `strace` with the command, which will generate system call traces in file `/etc/auditd_trace.log`
+    ```Nix
+    systemd.services."auditd".serviceConfig.ExecStart = lib.mkForce "${pkgs.strace}/bin/strace -o /etc/auditd_trace.log ${pkgs.audit}/bin/auditd -l -n -s nochange";
+    ```
 
-After modifying above configuration you need to rebuild and load Ghaf image. 
+    The `${pkgs.audit}/bin/auditd -l -n -s nochange` command is used in the regular `ExecStart` of `auditd` service. In the above command, we attached `strace` with the command, which will generate system call traces in `/etc/auditd_trace.log` file.
 
-The log may give you information about the system call restriction which caused the service failure. You can tune your service config accordingly.
+3. After modifying above configuration, rebuild and load a Ghaf image. 
+
+    The log may give you information about the system call restriction that caused the service failure. You can tune your service config accordingly.

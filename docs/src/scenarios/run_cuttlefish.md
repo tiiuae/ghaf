@@ -17,7 +17,6 @@ You can run Android as a VM on Ghaf for testing and development purposes using N
     * For NVIDIA Jetson Orin AGX (ARM64): [cvd-host_package.tar.gz](https://ci.android.com/builds/submitted/9970479/aosp_cf_arm64_phone-userdebug/latest/cvd-host_package.tar.gz) and [aosp_cf_arm64_phone-img-9970479.zip](https://ci.android.com/builds/submitted/9970479/aosp_cf_arm64_phone-userdebug/latest/aosp_cf_arm64_phone-img-9970479.zip)
     * For Generic x86: [cvd-host_package.tar.gz](https://ci.android.com/builds/submitted/9970479/aosp_cf_x86_64_phone-userdebug/latest/cvd-host_package.tar.gz) and [aosp_cf_x86_64_phone-img-9970479.zip](https://ci.android.com/builds/submitted/9970479/aosp_cf_x86_64_phone-userdebug/latest/aosp_cf_x86_64_phone-img-9970479.zip)
 
-    > [!NOTE]
     > Download a host package from the same build as the image.
 
 2. Make sure Internet connection is working in Ghaf. If the system gets an IP address but the DNS server is not responding, set the correct date and time.

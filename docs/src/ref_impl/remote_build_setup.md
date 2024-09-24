@@ -58,7 +58,6 @@ Do the following on a local machine:
    ```
    cd .ssh
    ```
-    > [!TIP]
     > `.ssh` is a user-level access and `/etc/ssh` is system-wide.
 
 

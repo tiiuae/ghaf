@@ -84,8 +84,8 @@ Download the required image and use the following instructions:
 |-------------------------|--------------------|
 | ghaf-23.12_Generic_x86.tar.xz | [Running Ghaf Image for x86 Computer](../ref_impl/build_and_run.md#running-ghaf-image-for-x86-computer) |
 | ghaf-23.12_Lenovo_X1_Carbon_Gen11.tar.xz  | [Running Ghaf Image for Lenovo X1](../ref_impl/build_and_run.md#running-ghaf-image-for-lenovo-x1) |
-| ghaf-23.12_Nvidia_Orin_AGX_cross-compiled-no-demoapps.tar.xz[^note], ghaf-23.12_Nvidia_Orin_AGX_cross-compiled.tar.xz, ghaf-23.12_Nvidia_Orin_AGX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
-| ghaf-23.12_Nvidia_Orin_NX_cross-compiled-no-demoapps[^note].tar.xz, ghaf-23.12_Nvidia_Orin_NX_cross-compiled.tar.xz, ghaf-23.12_Nvidia_Orin_NX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
+| ghaf-23.12_Nvidia_Orin_AGX_cross-compiled-no-demoapps.tar.xz[^note1], ghaf-23.12_Nvidia_Orin_AGX_cross-compiled.tar.xz, ghaf-23.12_Nvidia_Orin_AGX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
+| ghaf-23.12_Nvidia_Orin_NX_cross-compiled-no-demoapps[^note1].tar.xz, ghaf-23.12_Nvidia_Orin_NX_cross-compiled.tar.xz, ghaf-23.12_Nvidia_Orin_NX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
 | ghaf-23.12_PolarFire_RISC-V.tar.xz | [Building Ghaf Image for Microchip Icicle Kit](../ref_impl/build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
 
-[^note] no-demoapps images do not include Chromium, Zathura, and GALA applications.
+[^note1] no-demoapps images do not include Chromium, Zathura, and GALA applications.
