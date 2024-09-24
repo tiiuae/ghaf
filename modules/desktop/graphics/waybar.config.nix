@@ -90,7 +90,7 @@ in
             "interval": 15,
             "exec": "${wifi-signal-strength}/bin/wifi-signal-strength",
             "return-type": "json",
-            "on-click": "nm-launcher",
+            "on-click": "${pkgs.nm-launcher}/bin/nm-launcher",
           },
         ''
         + ''
