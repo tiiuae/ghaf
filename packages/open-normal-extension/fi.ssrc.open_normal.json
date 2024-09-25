@@ -1,0 +1,11 @@
+// SPDX-FileCopyrightText: 2022-2024 TII (SSRC) and the Ghaf contributors
+// SPDX-License-Identifier: Apache-2.0
+// Extension ID here is generated from the public key in manifest.json
+// Note that these comments will be removed during installation
+{
+  "name": "fi.ssrc.open_normal",
+  "description": "Open link in normal browser",
+  "path": "${out}/open_normal.sh",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://ehlgfonodkljjbpedhnphehcflbohngk/"]
+}

@@ -18,6 +18,7 @@
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
   waybar = import ./waybar { inherit prev; };
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui { };
+  open-normal-extension = final.callPackage ../../packages/open-normal-extension { };
   gtklock = import ./gtklock { inherit prev; };
   hardware-scan = final.callPackage ../../packages/hardware-scan { };
   pulseaudio-ghaf = import ./pulseaudio { inherit prev; };
