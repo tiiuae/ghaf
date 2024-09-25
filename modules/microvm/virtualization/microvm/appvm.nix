@@ -121,6 +121,7 @@ let
                 runWaypipe
                 pkgs.tpm2-tools
                 pkgs.opensc
+                pkgs.givc-cli
               ];
 
               security.tpm2 = {

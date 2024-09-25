@@ -36,6 +36,10 @@
       inputs.givc.nixosModules.appvm
       ./common.nix
       ./appvm.nix
+      {
+        # Include givc overlay to import app
+        nixpkgs.overlays = [ inputs.givc.overlays.default ];
+      }
     ];
   };
 }
