@@ -20,6 +20,7 @@ let
     "firefox.svg"
     "microsoft-365.svg"
     "ms-outlook.svg"
+    "org.gnome.TextEditor.svg"
     "preferences-system-network.svg"
     "slack.svg"
     "system-lock-screen.svg"
