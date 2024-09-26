@@ -82,6 +82,10 @@ in
           identifier = "AppFlowy";
           colour = "#4c3f7a";
         }
+        {
+          identifier = "org.gnome.TextEditor";
+          colour = "#353535";
+        }
       ];
       description = "List of applications and their frame colours";
     };

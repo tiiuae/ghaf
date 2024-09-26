@@ -99,6 +99,13 @@ in
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm teams";
               icon = "${pkgs.icon-pack}/teams-for-linux.svg";
             }
+            {
+              name = "Gnome Text Editor";
+              description = "Text Editor and Note-Taking Application";
+              vm = "Business";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gnome-text-editor";
+              icon = "${pkgs.icon-pack}/org.gnome.TextEditor.svg";
+            }
 
             {
               name = "GALA";
