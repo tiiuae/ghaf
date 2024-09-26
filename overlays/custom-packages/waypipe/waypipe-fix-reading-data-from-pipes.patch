@@ -1,0 +1,32 @@
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From 7d4ca594b310bef7c16553fa2fb20b11fc6cc411 Mon Sep 17 00:00:00 2001
+From: Yuri Nesterov <yuriy.nesterov@unikie.com>
+Date: Thu, 3 Oct 2024 23:39:14 +0300
+Subject: [PATCH] Fix reading data from pipes
+
+Currently, pipes become readable only when poll returns POLLHUP.
+This happens when the compositor sends a small amount of data and
+closes the pipe. When the data size is larger than 64 KB the pipe stays
+open and it is never read because the POLLIN event is never requested.
+This fixes the issue.
+---
+ src/shadow.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/shadow.c b/src/shadow.c
+index 9d4c080..bc6c77d 100644
+--- a/src/shadow.c
++++ b/src/shadow.c
+@@ -2270,7 +2270,7 @@ int fill_with_pipes(const struct fd_translation_map *map, struct pollfd *pfds,
+ 		if (cur->type == FDC_PIPE && cur->pipe.fd != -1) {
+ 			pfds[np].fd = cur->pipe.fd;
+ 			pfds[np].events = 0;
+-			if (check_read && cur->pipe.readable) {
++			if (check_read) {
+ 				pfds[np].events |= POLLIN;
+ 			}
+ 			if (cur->pipe.send.used > 0) {
+-- 
+2.43.0
+

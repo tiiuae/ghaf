@@ -4,5 +4,8 @@
 # Waypipe with vsock and window borders
 prev.waypipe.overrideAttrs (_prevAttrs: {
   # Upstream pull request: https://gitlab.freedesktop.org/mstoeckl/waypipe/-/merge_requests/21
-  patches = [ ./waypipe-window-borders.patch ];
+  patches = [
+    ./waypipe-window-borders.patch
+    ./waypipe-fix-reading-data-from-pipes.patch
+  ];
 })
