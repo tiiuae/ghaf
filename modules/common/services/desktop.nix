@@ -155,6 +155,13 @@ in
             }
 
             {
+              name = "File Manager";
+              description = "File manager application";
+              path = "${pkgs.pcmanfm}/bin/pcmanfm";
+              icon = "${pkgs.icon-pack}/system-file-manager.svg";
+            }
+
+            {
               name = "Network Settings";
               description = "Manage Network & Wi-Fi Settings";
               path = "${pkgs.nm-launcher}/bin/nm-launcher";
