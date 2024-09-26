@@ -44,11 +44,9 @@ let
           disable = true;
         }
         {
-          # Currently disabled to leave USB drives connected to the host
           class = 8;
           sublass = 6;
           description = "Mass Storage - SCSI (USB drives)";
-          disable = true;
         }
       ];
       evdevPassthrough = {

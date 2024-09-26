@@ -52,6 +52,7 @@ pkgs.writeShellApplication {
   runtimeInputs = [
     pkgs.coreutils
     pkgs.nwg-drawer
+    pkgs.util-linux
   ];
   bashOptions = [ ];
   text = ''
