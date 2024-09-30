@@ -61,9 +61,11 @@
   };
   disko = {
     memSize = 4096;
-    extraPostVM = ''
-      ${pkgs.zstd}/bin/zstd --compress $out/*raw
-      rm $out/*raw
-    '';
+    imageBuilder = {
+      extraPostVM = ''
+        ${pkgs.zstd}/bin/zstd --compress $out/*raw
+        rm $out/*raw
+      '';
+    };
   };
 }
