@@ -76,7 +76,7 @@ There are no specific requirements for the environment with this release.
 
 ## Installation Instructions
 
-Released images are available at [vedenemo.dev/files/releases/ghaf_23.12/](https://vedenemo.dev/files/releases/ghaf_23.12/).
+Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-23-12/](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-23-12/).
 
 Download the required image and use the following instructions:
 
