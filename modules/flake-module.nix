@@ -7,9 +7,9 @@
 {
   imports = [
     ./disko/flake-module.nix
+    ./givc/flake-module.nix
     ./hardware/flake-module.nix
     ./microvm/flake-module.nix
-    ./givc/flake-module.nix
   ];
 
   flake.nixosModules = {
@@ -21,10 +21,10 @@
       }
     ];
 
+    #TODO: Add the rest of the modules in their own directories with flake-module.nix
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
     lanzaboote.imports = [ ./lanzaboote ];
-    microvm.imports = [ ./microvm ];
     imx8.imports = [ ./reference/hardware/imx8 ];
     jetpack.imports = [ ./reference/hardware/jetpack ];
     jetpack-microvm.imports = [ ./reference/hardware/jetpack-microvm ];
