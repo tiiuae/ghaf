@@ -23,7 +23,7 @@
 
   # ProtectHome=true;
   ProtectSystem = "full";
-  ProtectProc = "noaccess";
+  # ProtectProc = "noaccess";
   # ReadWritePaths=[ "/etc"];
   PrivateTmp = true;
 
@@ -61,7 +61,7 @@
   Delegate = false;
   # KeyringMode="private";
   NoNewPrivileges = true;
-  UMask = 77;
+  # UMask = 77;
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
@@ -80,7 +80,7 @@
   LockPersonality = true;
   MemoryDenyWriteExecute = true;
   RestrictRealtime = true;
-  RestrictSUIDSGID = true;
+  # RestrictSUIDSGID = true;
   # RemoveIPC=true
   SystemCallArchitectures = "native";
   # NotifyAccess=false;
