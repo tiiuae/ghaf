@@ -97,6 +97,7 @@
           rootFsOptions = {
             mountpoint = "none";
             acltype = "posixacl";
+            xattr = "sa";
           };
           # `ashift=12` optimizes alignment for 4K sector size.
           # Since this is an generic image and people might upgrade from one nvme device to another,
@@ -164,6 +165,8 @@
               type = "zfs_fs";
               options = {
                 mountpoint = "/storagevm";
+                acltype = "posixacl";
+                xattr = "sa";
               };
             };
           };

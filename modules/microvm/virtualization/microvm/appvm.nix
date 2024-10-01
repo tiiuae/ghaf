@@ -142,11 +142,13 @@ let
                     tag = "waypipe-ssh-public-key";
                     source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                     mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                    proto = "virtiofs";
                   }
                   {
                     tag = "ro-store";
                     source = "/nix/store";
                     mountPoint = "/nix/.ro-store";
+                    proto = "virtiofs";
                   }
                 ];
                 writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";

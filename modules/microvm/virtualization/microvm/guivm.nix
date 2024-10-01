@@ -68,16 +68,10 @@ let
             storagevm = {
               enable = true;
               name = "guivm";
-              directories = [
-                {
-                  directory = "/home/${config.ghaf.users.accounts.user}/";
-                  inherit (config.ghaf.users.accounts) user;
-                  group = config.ghaf.users.accounts.user;
-                  mode = "u=rwx,g=,o=";
-                }
-              ];
               users.${config.ghaf.users.accounts.user}.directories = [
-                ".config/"
+                ".cache"
+                ".config"
+                ".local"
                 "Pictures"
                 "Videos"
               ];
@@ -160,11 +154,13 @@ let
                 tag = "rw-waypipe-ssh-public-key";
                 source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                 mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                proto = "virtiofs";
               }
               {
                 tag = "ro-store";
                 source = "/nix/store";
                 mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
               }
             ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
