@@ -71,6 +71,10 @@ in
           colour = "#630505";
         }
         {
+          identifier = "Firefox";
+          colour = "#630505";
+        }
+        {
           identifier = "org.pwmt.zathura";
           colour = "#122263";
         }
