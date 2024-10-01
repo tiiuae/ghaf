@@ -31,7 +31,7 @@ let
         withCoredump = cfg.withDebug || cfg.withMachines;
         inherit (cfg) withCryptsetup;
         inherit (cfg) withEfi;
-        withBootloader = cfg.withEfi; # systemd-boot fails if not explicity set
+        inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
         inherit (cfg) withHostnamed;
         withImportd = cfg.withMachines;
@@ -53,6 +53,7 @@ let
         withTimedated = true;
         inherit (cfg) withTimesyncd;
         inherit (cfg) withTpm2Tss;
+        inherit (cfg) withUkify;
         withUtmp = cfg.withJournal || cfg.withAudit;
       }
       // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
@@ -231,7 +232,19 @@ in
     };
 
     withEfi = mkOption {
-      description = "Enable systemd EFI+bootloader functionality.";
+      description = "Enable systemd EFI functionality.";
+      type = types.bool;
+      default = pkgs.stdenv.hostPlatform.isEfi;
+    };
+
+    withBootloader = mkOption {
+      description = "Enable systemd bootloader functionality.";
+      type = types.bool;
+      default = pkgs.stdenv.hostPlatform.isEfi;
+    };
+
+    withUkify = mkOption {
+      description = "Enable systemd UKI functionality.";
       type = types.bool;
       default = pkgs.stdenv.hostPlatform.isEfi;
     };
