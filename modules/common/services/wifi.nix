@@ -25,8 +25,6 @@ in
     };
 
     environment = {
-      # noXlibs=false; needed for NetworkManager stuff
-      noXlibs = false;
 
       etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
         text = ''
