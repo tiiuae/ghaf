@@ -54,7 +54,10 @@ in
   cores = 4;
   extraModules = [
     {
-      imports = [ ../programs/chromium.nix ];
+      imports = [
+        ../programs/chromium.nix
+        ../services/globalprotect-vpn/default.nix
+      ];
       time.timeZone = config.time.timeZone;
 
       microvm = {
@@ -84,9 +87,7 @@ in
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
 
-      # TODO: Add a way to configure the gpclient
-      # also check the openconnect cli options https://discourse.nixos.org/t/globalprotect-vpn/24014/5
-      services.globalprotect = {
+      ghaf.reference.services.globalprotect = {
         enable = true;
         csdWrapper = "${pkgs.openconnect}/libexec/openconnect/hipreport.sh";
       };
