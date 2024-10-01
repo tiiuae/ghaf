@@ -4,7 +4,7 @@
   imports = [
     ./labwc.nix
     ./labwc.config.nix
-    ./waybar.config.nix
+    ./ewwbar.nix
     ./demo-apps.nix
     ./fonts.nix
     ./login-manager.nix

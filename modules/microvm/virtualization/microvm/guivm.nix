@@ -122,6 +122,7 @@ let
                 pkgs.nm-launcher
                 pkgs.bt-launcher
                 pkgs.pamixer
+                pkgs.eww
               ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
