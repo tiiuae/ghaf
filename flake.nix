@@ -29,8 +29,8 @@
 
   inputs = {
     #TODO: clean this up before merging to main
-    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-texinfo"; # "flake:mylocalnixpkgs"; #
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     ghafpkgs = {
       url = "github:tiiuae/ghafpkgs";
