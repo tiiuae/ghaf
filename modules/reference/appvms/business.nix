@@ -93,7 +93,7 @@ in
 
       # Enable dconf and icon pack for gnome text editor
       programs.dconf.enable = true;
-      environment.systemPackages = [ pkgs.gnome.adwaita-icon-theme ];
+      environment.systemPackages = [ pkgs.adwaita-icon-theme ];
 
       #Firewall Settings
       networking = {
