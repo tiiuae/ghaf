@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   blueman,
+  bluez,
   openssh,
   writeShellApplication,
+  gawk,
   lib,
   ...
 }:
@@ -23,10 +25,39 @@ writeShellApplication {
         -o ExitOnForwardFailure=yes \
         -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
-    ${blueman}/bin/blueman-applet &
-    ${blueman}/bin/blueman-manager
     # Use the control socket to close the ssh tunnel.
-    ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit ghaf@audio-vm
+    close-tunnel() {
+      ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit ghaf@audio-vm
+    }
+
+    launch-blueman() {
+      ${blueman}/bin/blueman-applet &
+      ${blueman}/bin/blueman-manager
+      close-tunnel
+    }
+
+    status() {
+      # Get Bluetooth adapter details using bluetoothctl
+      BT_INFO=$(${bluez}/bin/bluetoothctl show)
+
+      # Extract relevant fields
+      BT_POWERED=$(echo "$BT_INFO" | grep "Powered:" | ${gawk}/bin/awk '{print $2}')
+      BT_DISCOVERABLE=$(echo "$BT_INFO" | grep "Discoverable:" | ${gawk}/bin/awk '{print $2}')
+      BT_PAIRABLE=$(echo "$BT_INFO" | grep "Pairable:" | ${gawk}/bin/awk '{print $2}')
+      BT_DISCOVERING=$(echo "$BT_INFO" | grep "Discovering:" | ${gawk}/bin/awk '{print $2}')
+      BT_ALIAS=$(echo "$BT_INFO" | grep "Alias:" | cut -d' ' -f2-)
+
+      status="{\"powered\":\"$BT_POWERED\",\"discoverable\":\"$BT_DISCOVERABLE\",\"pairable\":\"$BT_PAIRABLE\",\"discovering\":\"$BT_DISCOVERING\",\"alias\":\"$BT_ALIAS\"}"
+
+      echo "$status"
+      close-tunnel
+    }
+
+    if [ $# -eq 0 ]; then
+      launch-blueman
+    elif [ "$1" = "status" ]; then
+      status
+    fi
   '';
 
   meta = {
