@@ -98,6 +98,7 @@
           rootFsOptions = {
             mountpoint = "none";
             acltype = "posixacl";
+            xattr = "sa";
           };
           datasets = {
             "root_a" = {
@@ -160,6 +161,8 @@
               type = "zfs_fs";
               options = {
                 mountpoint = "/storagevm";
+                acltype = "posixacl";
+                xattr = "sa";
               };
             };
           };

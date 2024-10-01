@@ -102,6 +102,7 @@ let
                   tag = "ro-store";
                   source = "/nix/store";
                   mountPoint = "/nix/.ro-store";
+                  proto = "virtiofs";
                 }
               ]
               ++ lib.optionals isGuiVmEnabled [
@@ -110,6 +111,7 @@ let
                   tag = config.ghaf.security.sshKeys.waypipeSshPublicKeyName;
                   source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                   mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                  proto = "virtiofs";
                 }
               ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";

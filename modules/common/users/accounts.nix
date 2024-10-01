@@ -53,5 +53,6 @@ in
 
     # to build ghaf as ghaf-user with caches
     nix.settings.trusted-users = mkIf config.ghaf.profiles.debug.enable [ cfg.user ];
+    services.userborn.enable = true;
   };
 }
