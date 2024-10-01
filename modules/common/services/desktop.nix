@@ -69,7 +69,7 @@ in
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm chromium";
               icon = "${pkgs.icon-pack}/thorium-browser.svg";
             }
-            # TODO must enable the waypipe to support more than one app in a VM
+
             {
               name = "VPN";
               description = "GlobalProtect VPN Client";

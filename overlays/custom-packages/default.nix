@@ -21,4 +21,7 @@
   gtklock = import ./gtklock { inherit prev; };
   hardware-scan = final.callPackage ../../packages/hardware-scan { };
   pulseaudio-ghaf = import ./pulseaudio { inherit prev; };
+  globalprotect-openconnect =
+    final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
+      { };
 })
