@@ -26,6 +26,8 @@ in
     pkgs.element-gps
     pkgs.gpsd
     pkgs.tcpdump
+    pkgs.xdg-utils
+    pkgs.zoom-us
   ] ++ pkgs.lib.optionals isDendritePineconeEnabled [ dendrite-pinecone ];
   macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
@@ -87,9 +89,11 @@ in
         applications = lib.mkForce ''
           {
           "element": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland",
-          "slack":   "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}"
+          "slack":   "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}",
+          "zoom":    "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zoom"
           }'';
       };
+      config.chromium.commandLineArgs = "--enable-features=UseOzonePlatform --ozone-platform=wayland";
     }
   ];
   borderColor = "#337aff";
