@@ -5,9 +5,9 @@ let
   drawerCSS = pkgs.writeTextDir "nwg-drawer/drawer.css" ''
     /* Example configuration from: https://github.com/nwg-piotr/nwg-drawer/blob/main/drawer.css */
     window {
-        background-color: rgba(18, 18, 18, 0.99);
+        background-color: #121212;
         color: #fff;
-        border-radius: 7px;
+        border-radius: 4px;
     }
 
     /* search entry */
@@ -62,8 +62,8 @@ pkgs.writeShellApplication {
     # Temporary workaround
     mkdir -p "$XDG_CACHE_HOME" "$XDG_CONFIG_HOME"
     rm -rf "$HOME/.config/nwg-drawer"
-    ln -s "${drawerCSS}/nwg-drawer" "$HOME/.config/"
+    #ln -s "${drawerCSS}/nwg-drawer" "$HOME/.config/"
 
-    nwg-drawer -r -c 5 -mb 60 -ml 440 -mr 440 -mt 420 -nofs -nocats -ovl
+    nwg-drawer -r -c 5 -ml 440 -mr 440 -mt 420 -nofs -nocats -s ${drawerCSS}/nwg-drawer/drawer.css
   '';
 }
