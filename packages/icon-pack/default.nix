@@ -31,6 +31,7 @@ let
     "thorium-browser.svg"
     "utilities-terminal.svg"
     "yast-vpn.svg"
+    "utilities-tweak-tool.svg"
   ];
 in
 runCommand "icon-pack"

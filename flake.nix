@@ -155,6 +155,15 @@
         pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
       };
     };
+
+    ctrl-panel = {
+      url = "github:tiiuae/ghaf-ctrl-panel";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        crane.follows = "givc/crane";
+      };
+    };
   };
 
   outputs =
