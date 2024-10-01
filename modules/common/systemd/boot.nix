@@ -18,11 +18,13 @@ let
     {
       pname = "stage1-systemd";
       inherit (cfgBase) withAudit;
+      inherit (cfgBase) withBootloader;
       inherit (cfgBase) withCryptsetup;
       inherit (cfgBase) withEfi;
       inherit (cfgBase) withFido2;
       inherit (cfgBase) withRepart;
       inherit (cfgBase) withTpm2Tss;
+      inherit (cfgBase) withUkify;
     }
     // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
       withQrencode = true; # Required for systemd-bsod, which is currently hardcoded in nixos
