@@ -34,6 +34,7 @@ in
         services = {
           enable = true;
           dendrite = true;
+          proxy-business = lib.mkForce config.ghaf.reference.appvms.business-vm;
         };
 
         personalize = {
