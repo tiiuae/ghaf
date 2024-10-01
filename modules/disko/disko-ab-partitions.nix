@@ -40,7 +40,6 @@
         ${pkgs.zstd}/bin/zstd --compress $out/*raw
         rm $out/*raw
       '';
-      extraRootModules = [ "zfs" ];
     };
     devices = {
       disk.disk1 = {
