@@ -55,7 +55,7 @@ let
               waypipeBorder = if vm.borderColor != null then "--border \"${vm.borderColor}\"" else "";
               runWaypipe = pkgs.writeScriptBin "run-waypipe" ''
                 #!${pkgs.runtimeShell} -e
-                ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
+                ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server ${config.ghaf.givc.appPrefix}/env XDG_CURRENT_DESKTOP=wlroots XDG_SESSION_TYPE=wayland "$@"
               '';
             in
             {

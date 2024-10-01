@@ -34,6 +34,7 @@ let
     "utilities-terminal.svg"
     "yast-vpn.svg"
     "system-file-manager.svg"
+    "Zoom.svg"
   ];
 in
 runCommand "icon-pack"

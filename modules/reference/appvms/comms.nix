@@ -26,6 +26,8 @@ in
     pkgs.element-gps
     pkgs.gpsd
     pkgs.tcpdump
+    pkgs.xdg-utils
+    pkgs.zoom-us
   ] ++ pkgs.lib.optionals isDendritePineconeEnabled [ dendrite-pinecone ];
   macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
@@ -93,8 +95,14 @@ in
             name = "slack";
             command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
           }
+          {
+            name = "zoom";
+            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zoom";
+          }
         ];
       };
+      environment.sessionVariables.NIXOS_OZONE_WL = "1";
+      xdg.portal.wlr.enable = true;
     }
   ];
   borderColor = "#337aff";

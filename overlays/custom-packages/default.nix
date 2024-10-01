@@ -24,4 +24,5 @@
   globalprotect-openconnect =
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
+  zoom-us = import ./zoom-us { inherit prev; };
 })

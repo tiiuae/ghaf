@@ -117,6 +117,7 @@ let
                 pkgs.bt-launcher
                 pkgs.pamixer
                 pkgs.eww
+                pkgs.zoom-us
               ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
