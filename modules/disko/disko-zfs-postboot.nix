@@ -15,7 +15,7 @@ let
     # Extract the partition number using regex
     if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
       PARTNUM=$(echo "$P_DEVPATH" | ${pkgs.gnugrep}/bin/grep -o '[0-9]*$')
-      PARENT_DISK=$(echo "$P_DEVPATH" | ${pkgs.gnused}/bin/sed 's/[0-9]*$//')
+      PARENT_DISK=/dev/$(${pkgs.util-linux}/bin/lsblk -no pkname "$P_DEVPATH")
     else
       echo "No partition number found in device path: $P_DEVPATH"
     fi
@@ -34,5 +34,8 @@ let
   '';
 in
 {
+  # To debug postBootCommands, one may run
+  # journalctl -u initrd-nixos-activation.service
+  # inside the running Ghaf host.
   boot.postBootCommands = postBootCmds;
 }
