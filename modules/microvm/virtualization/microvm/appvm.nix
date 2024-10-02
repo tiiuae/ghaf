@@ -48,7 +48,10 @@ let
               vmName
               ;
           })
-          ./common/ghaf-audio.nix
+
+          (import (./common/ghaf-audio.nix) {
+            inherit configHost;
+          })
           ./common/storagevm.nix
           ./common/xdgitems.nix
           ./common/xdghandlers.nix
