@@ -19,10 +19,21 @@ let
   waypipeBorder = lib.optionalString (
     cfg.waypipeBorder && vm.borderColor != null
   ) "--border \"${vm.borderColor}\"";
-  runWaypipe = pkgs.writeScriptBin "run-waypipe" ''
-    #!${pkgs.runtimeShell} -e
-    ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString waypipePort} server "$@"
-  '';
+  runWaypipe =
+    let
+      script =
+        if configHost.ghaf.shm.display then
+          ''
+            #!${pkgs.runtimeShell} -e
+            ${pkgs.waypipe}/bin/waypipe -s ${configHost.ghaf.shm.serverSocketPath} server "$@"
+          ''
+        else
+          ''
+            #!${pkgs.runtimeShell} -e
+            ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString waypipePort} server "$@"
+          '';
+    in
+    pkgs.writeScriptBin "run-waypipe" script;
   vsockproxy = pkgs.callPackage ../../../../../packages/vsockproxy { };
   guivmCID = configHost.ghaf.virtualization.microvm.guivm.vsockCID;
 in
@@ -63,7 +74,11 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
+          ExecStart =
+            if configHost.ghaf.shm.display then
+              "${pkgs.waypipe}/bin/waypipe --secctx \"${vm.name}\" ${waypipeBorder} -s ${configHost.ghaf.shm.clientSocketPath} client"
+            else
+              "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
         };
         startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];

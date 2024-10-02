@@ -431,13 +431,13 @@ let
           ${pkgs.systemd}/bin/loginctl lock-session
 
           # Switch off display before suspension
-          WAYLAND_DISPLAY=/run/user/1000/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+          WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
 
           # Send suspend command to host
           ${if useGivc then "${pkgs.givc-cli}/bin/givc-cli ${cliArgs}" else "systemctl"} suspend
 
           # Switch on display on wakeup
-          WAYLAND_DISPLAY=/run/user/1000/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+          WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
           ;;
       *)
           echo "Invalid argument: $1"

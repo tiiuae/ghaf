@@ -41,7 +41,7 @@ writeShellApplication {
         -o UserKnownHostsFile=/dev/null \
         -o StreamLocalBindUnlink=yes \
         -o ExitOnForwardFailure=yes \
-        -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
+        -L /tmp/ssh_session_dbus.sock:/run/user/${builtins.toString config.ghaf.users.accounts.uid}/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     signal0="\UF091F"
     signal1="\UF0922"

@@ -117,7 +117,7 @@ let
                   # Switch off display, if wayland is running
                   if ${pkgs.procps}/bin/pgrep -fl "wayland" > /dev/null; then
                     wl_running=1
-                    WAYLAND_DISPLAY=/run/user/1000/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
                   else
                     wl_running=0
                   fi
@@ -127,7 +127,7 @@ let
 
                   # Enable display
                   if [ "$wl_running" -eq 1 ]; then
-                    WAYLAND_DISPLAY=/run/user/1000/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
                   fi
                   ;;
                 "button/lid LID open")
