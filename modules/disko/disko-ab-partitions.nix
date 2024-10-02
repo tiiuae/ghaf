@@ -47,7 +47,7 @@
     };
     disko = {
       # 8GB is the recommeneded minimum for ZFS, so we are using this for VMs to avoid `cp` oom errors.
-      memSize = 18432;
+      memSize = 25432;
       imageBuilder = {
         extraPostVM = lib.mkIf (config.ghaf.imageBuilder.compression == "zstd") ''
           ${pkgs.zstd}/bin/zstd --compress $out/*raw
