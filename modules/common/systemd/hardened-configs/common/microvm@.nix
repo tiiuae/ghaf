@@ -25,7 +25,7 @@
   ProtectSystem = "full";
   ProtectProc = "noaccess";
   # ReadWritePaths=[ "/etc"];
-  PrivateTmp = true;
+  PrivateTmp = false;
 
   # Not applicable for the service runs as root
   # PrivateMounts=true;

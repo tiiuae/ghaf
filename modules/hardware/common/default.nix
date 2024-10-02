@@ -8,5 +8,6 @@
     ./devices.nix
     ./kernel.nix
     ./qemu.nix
+    ./shared-mem.nix
   ];
 }
