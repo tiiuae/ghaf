@@ -9,6 +9,7 @@
   openssh,
   writeShellApplication,
   lib,
+  uid,
   ...
 }:
 writeShellApplication {
@@ -25,7 +26,7 @@ writeShellApplication {
         -o UserKnownHostsFile=/dev/null \
         -o StreamLocalBindUnlink=yes \
         -o ExitOnForwardFailure=yes \
-        -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
+        -L /tmp/ssh_session_dbus.sock:/run/user/${builtins.toString uid}/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     ${networkmanagerapplet}/bin/nm-applet --indicator
     # Use the control socket to close the ssh tunnel.
