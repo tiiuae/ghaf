@@ -117,6 +117,7 @@ let
                 pkgs.networkmanagerapplet
                 pkgs.gnome-calculator
                 pkgs.sticky-notes
+                pkgs.qview
               ])
               ++ [
                 pkgs.nm-launcher
