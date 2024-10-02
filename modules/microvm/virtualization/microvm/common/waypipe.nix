@@ -15,23 +15,27 @@
 }:
 let
   cfg = config.ghaf.waypipe;
+  cfgShm = configHost.ghaf.shm.service;
   waypipePort = configHost.ghaf.virtualization.microvm.appvm.waypipeBasePort + vmIndex;
   waypipeBorder = lib.optionalString (
     cfg.waypipeBorder && vm.borderColor != null
   ) "--border \"${vm.borderColor}\"";
+  displayOptServer =
+    if cfgShm.gui.enabled then
+      "-s " + cfgShm.gui.serverSocketPath "gui" "-${vm.name}-vm"
+    else
+      "--vsock -s ${toString waypipePort}";
+  displayOptClient =
+    if cfgShm.gui.enabled && (lib.lists.elem "${vm.name}-vm" cfgShm.gui.clients) then
+      "-s " + cfgShm.gui.clientSocketPath
+    else
+      "--vsock -s ${toString waypipePort}";
   runWaypipe =
     let
-      script =
-        if configHost.ghaf.shm.display then
-          ''
-            #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe -s ${configHost.ghaf.shm.serverSocketPath} server "$@"
-          ''
-        else
-          ''
-            #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString waypipePort} server "$@"
-          '';
+      script = ''
+        #!${pkgs.runtimeShell} -e
+        ${pkgs.waypipe}/bin/waypipe ${displayOptClient} server "$@"
+      '';
     in
     pkgs.writeScriptBin "run-waypipe" script;
   vsockproxy = pkgs.callPackage ../../../../../packages/vsockproxy { };
@@ -78,11 +82,10 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart =
-            if configHost.ghaf.shm.display then
-              "${pkgs.waypipe}/bin/waypipe --secctx \"${vm.name}\" ${waypipeBorder} -s ${configHost.ghaf.shm.clientSocketPath} client"
-            else
-              "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
+          ExecStart = "${pkgs.waypipe}/bin/waypipe --secctx \"${vm.name}\" ${waypipeBorder} ${displayOptServer} client";
+          # Waypipe does not handle the SIGTERM signal properly, which is the default signal sent
+          # by systemd when stopping a service
+          KillSignal = "SIGINT";
         };
         startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];
