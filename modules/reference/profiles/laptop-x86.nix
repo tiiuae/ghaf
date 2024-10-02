@@ -135,6 +135,10 @@ in
         };
       };
 
+      # Shared memory configuration
+      shm.enable = true;
+      shm.gui = true;
+
       reference.desktop.applications.enable = true;
     };
   };
