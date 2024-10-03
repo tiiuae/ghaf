@@ -19,7 +19,12 @@
       ghaf.givc.appvm = {
         enable = true;
         name = lib.mkForce "gala-vm";
-        applications = lib.mkForce ''{"gala": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gala --enable-features=UseOzonePlatform --ozone-platform=wayland"}'';
+        applications = [
+          {
+            name = "gala";
+            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+          }
+        ];
       };
     }
   ];

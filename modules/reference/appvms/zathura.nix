@@ -23,7 +23,12 @@
         givc.appvm = {
           enable = true;
           name = lib.mkForce "zathura-vm";
-          applications = lib.mkForce ''{"zathura": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zathura"}'';
+          applications = [
+            {
+              name = "zathura";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zathura";
+            }
+          ];
         };
 
         #this vm should be stateless so nothing stored between boots.

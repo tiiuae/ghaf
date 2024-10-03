@@ -26,8 +26,8 @@ in
       description = "Name of the appvm.";
     };
     applications = mkOption {
-      type = types.str;
-      default = "{}";
+      type = types.listOf types.attrs;
+      default = [ { } ];
       description = "Applications to run in the appvm.";
     };
   };
