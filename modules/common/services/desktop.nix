@@ -140,6 +140,14 @@ in
             }
 
             {
+              name = "Zoom";
+              description = "Zoom Videoconferencing Application";
+              vm = "Comms";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm zoom";
+              icon = "${pkgs.icon-pack}/Zoom.svg";
+            }
+
+            {
               name = "AppFlowy";
               description = "Productivity & Note-Taking Application";
               vm = "AppFlowy";
