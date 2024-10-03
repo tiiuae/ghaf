@@ -63,6 +63,14 @@ in
         microvm-host = {
           enable = true;
           networkSupport = true;
+          sharedVmDirectory = {
+            enable = true;
+            vms = [
+              "business-vm"
+              "chromium-vm"
+              "comms-vm"
+            ];
+          };
         };
 
         microvm = {
