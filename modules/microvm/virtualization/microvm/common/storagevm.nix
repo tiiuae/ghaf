@@ -61,7 +61,15 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    fileSystems.${mountPath}.neededForBoot = true;
+    fileSystems.${mountPath} = {
+      neededForBoot = true;
+      options = lib.mkForce [
+        "rw"
+        "nodev"
+        "nosuid"
+        "noexec"
+      ];
+    };
 
     microvm.shares = [
       {
