@@ -20,7 +20,12 @@
       ghaf.givc.appvm = {
         enable = true;
         name = lib.mkForce "appflowy-vm";
-        applications = lib.mkForce ''{"appflowy": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/appflowy"}'';
+        applications = [
+          {
+            name = "appflowy";
+            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/appflowy";
+          }
+        ];
       };
     }
   ];
