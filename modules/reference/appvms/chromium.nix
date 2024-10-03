@@ -56,10 +56,16 @@ in
       ghaf.givc.appvm = {
         enable = true;
         name = lib.mkForce "chromium-vm";
-        applications = lib.mkForce ''
+        applications = [
           {
-            "chromium": "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}"
-          }'';
+            name = "chromium";
+            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
+            args = [
+              "url"
+              "flag"
+            ];
+          }
+        ];
       };
 
       ghaf.reference.programs.chromium.enable = true;
