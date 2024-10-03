@@ -210,11 +210,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1727670871,
-        "narHash": "sha256-ZetKlO/gk068cleMXV4V7E2AMvjEuRpIBSOccgqS/6I=",
+        "lastModified": 1727854413,
+        "narHash": "sha256-5nysqAzKvv2Yn2eKAyR+U1zjZ535NSRuKNapICkDwfg=",
         "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "b02f0c28ef687985ab32f8ef2aa5ddc137c4472f",
+        "rev": "58ab6179fce5932862707c833b57f4526503399d",
         "type": "github"
       },
       "original": {
