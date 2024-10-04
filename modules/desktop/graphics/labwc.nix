@@ -86,6 +86,10 @@ in
           identifier = "org.gnome.TextEditor";
           colour = "#353535";
         }
+        {
+          identifier = "Okular";
+          colour = "#353535";
+        }
       ];
       description = "List of applications and their frame colours";
     };

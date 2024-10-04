@@ -124,6 +124,14 @@ in
             }
 
             {
+              name = "Okular";
+              description = " PDF Review/Edit/Sign Application";
+              vm = "Business";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm okular";
+              icon = "${pkgs.icon-pack}/AdobeReader9.svg";
+            }
+
+            {
               name = "Element";
               description = "General Messaging Application";
               vm = "Comms";
