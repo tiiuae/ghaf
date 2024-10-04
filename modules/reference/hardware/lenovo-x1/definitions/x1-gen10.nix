@@ -115,10 +115,7 @@
         productId = "51a4";
       }
     ];
-    kernelConfig.kernelParams = [
-      "snd_intel_dspcfg.dsp_driver=3"
-      "snd_sof_intel_hda_common.dmic_num=4"
-    ];
+    kernelConfig.kernelParams = [ "snd_intel_dspcfg.dsp_driver=0" ];
   };
 
   usb = {

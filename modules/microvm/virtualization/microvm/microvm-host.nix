@@ -60,6 +60,13 @@ in
         lib.optionalAttrs config.ghaf.virtualization.microvm.audiovm.enable
           {
             # The + here is a systemd feature to make the script run as root.
+            ExecStartPre = [
+              "+${pkgs.writeShellScript "ACPI-table-permission" ''
+                # The script gives permissionf sot a microvm user
+                # to read ACPI tables of soundcaed mic array.
+                ${pkgs.coreutils}/bin/chmod 444 /sys/firmware/acpi/tables/NHLT
+              ''}"
+            ];
             ExecStopPost = [
               "+${pkgs.writeShellScript "reload-audio" ''
                 # The script makes audio device internal state to reset

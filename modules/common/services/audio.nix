@@ -74,6 +74,31 @@ in
     # Start pipewire on system boot
     systemd.services.pipewire.wantedBy = [ "multi-user.target" ];
 
+    systemd.services."pulseaudio-set-profile" =
+      let
+        pulse-set-profile = pkgs.writeShellScriptBin "pulseaudio-set-profile" ''
+          ${pkgs.pulseaudio}/bin/pactl set-card-profile "alsa_card.pci-0000_00_07.0-platform-skl_hda_dsp_generic" "HiFi (Headphones, Mic1, Mic2)"
+          ${pkgs.pulseaudio}/bin/pactl set-card-profile "alsa_card.pci-0000_00_07.0-platform-skl_hda_dsp_generic" "HiFi (Mic1, Mic2, Speaker)"
+        '';
+      in
+      {
+        enable = true;
+        description = "Force selection of Pulseaudio integrated mic profile";
+        path = [ pulse-set-profile ];
+        wantedBy = [ "multi-user.target" ];
+        after = [ "pipewire.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          StandardOutput = "journal";
+          StandardError = "journal";
+          Environment = "PULSE_SERVER=tcp:localhost:${toString cfg.pulseaudioTcpPort}";
+          ExecStart = "${pulse-set-profile}/bin/pulseaudio-set-profile";
+          Restart = "on-failure";
+          RestartSec = "1";
+        };
+      };
+
     # Open TCP port for the pipewire pulseaudio socket
     networking.firewall.allowedTCPPorts = [ cfg.pulseaudioTcpPort ];
   };
