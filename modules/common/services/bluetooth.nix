@@ -31,6 +31,18 @@ in
       groups."${bluetoothUser}" = { };
     };
 
+    # Persistent storage
+    ghaf = lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+      storagevm.directories = [
+        {
+          directory = "/var/lib/bluetooth";
+          user = "bluetooth";
+          group = "bluetooth";
+          mode = "u=rwx,g=,o=";
+        }
+      ];
+    };
+
     # Uinput kernel module
     boot.kernelModules = [ "uinput" ];
 

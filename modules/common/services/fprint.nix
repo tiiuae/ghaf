@@ -20,8 +20,23 @@ in
     services.fprintd.enable = true;
     environment.systemPackages = [ pkgs.fprintd ];
 
+    ghaf =
+      {
+        systemd.withPolkit = true;
+      }
+      // lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+        # Persistent storage
+        storagevm.directories = [
+          {
+            directory = "/var/lib/fprint";
+            user = "root";
+            group = "root";
+            mode = "u=rwx,g=,o=";
+          }
+        ];
+      };
+
     # Enable polkit and add rules
-    ghaf.systemd.withPolkit = true;
     security = {
       polkit = {
         enable = true;
