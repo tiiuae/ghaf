@@ -61,14 +61,6 @@ let
             storagevm = {
               enable = true;
               name = "audiovm";
-              directories = [
-                {
-                  directory = "/var/lib/bluetooth";
-                  user = "bluetooth";
-                  group = "bluetooth";
-                  mode = "u=rwx,g=,o=";
-                }
-              ];
             };
           };
 
