@@ -45,7 +45,6 @@
            rm $out/*raw
         fi
       '';
-      extraRootModules = [ "zfs" ];
     };
     devices = {
       disk.disk1 = {
