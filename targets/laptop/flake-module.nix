@@ -43,7 +43,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7230" "debug" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
@@ -52,7 +52,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7330" "debug" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
@@ -90,7 +90,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7230" "release" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
@@ -99,7 +99,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7330" "release" [
-      self.nixosModules.disko-basic-partition-v1
+      self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
