@@ -37,8 +37,13 @@
     memSize = 16384;
     imageBuilder = {
       extraPostVM = ''
-        ${pkgs.zstd}/bin/zstd --compress $out/*raw
-        rm $out/*raw
+        # If we build an image, we want compressoin, but not when running interactive disko tests.
+        # Note that vms would currently doesn't work with our lenovo x1 carbon configuration,
+        # because they assume specific hardware to be available.
+        if [ -n "$(ls -A $out/*raw >/dev/null)" ]; then
+           ${pkgs.zstd}/bin/zstd --compress $out/*raw
+           rm $out/*raw
+        fi
       '';
       extraRootModules = [ "zfs" ];
     };
