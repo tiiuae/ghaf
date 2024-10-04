@@ -84,6 +84,12 @@ in
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
 
+      # Enable printer service
+      ghaf.services.printer = {
+        enable = true;
+        name = "${name}";
+      };
+
       # TODO: Add a way to configure the gpclient
       # also check the openconnect cli options https://discourse.nixos.org/t/globalprotect-vpn/24014/5
       services.globalprotect = {
