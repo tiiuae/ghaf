@@ -188,6 +188,14 @@ in
             }
 
             {
+              name = "Video Editor";
+              description = "Losslesscut Video Editor";
+              vm = "Business";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm losslesscut";
+              icon = "${pkgs.losslesscut-bin}/share/icons/losslesscut.png";
+            }
+
+            {
               name = "Shutdown";
               description = "Shutdown System";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";

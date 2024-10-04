@@ -36,6 +36,7 @@ in
       xdgPdfItem
       xdgOpenPdf
       pkgs.globalprotect-openconnect
+      pkgs.losslesscut-bin
       pkgs.openconnect
       pkgs.nftables
       pkgs.gnome-text-editor
@@ -67,7 +68,8 @@ in
             "office":                "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://microsoft365.com ${config.ghaf.givc.idsExtraArgs}",
             "teams":                 "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://teams.microsoft.com ${config.ghaf.givc.idsExtraArgs}",
             "gpclient":              "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gpclient -platform wayland",
-            "gnome-text-editor":     "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gnome-text-editor"
+            "gnome-text-editor":     "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gnome-text-editor",
+            "losslesscut":           "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland"
           }'';
       };
 
