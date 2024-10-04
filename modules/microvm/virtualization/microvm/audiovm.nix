@@ -118,6 +118,8 @@ let
               extraArgs = [
                 "-device"
                 "qemu-xhci"
+                "-acpitable"
+                "file=/sys/firmware/acpi/tables/NHLT"
               ];
             };
           };
