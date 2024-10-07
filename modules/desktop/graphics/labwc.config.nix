@@ -225,64 +225,66 @@ in
       };
     };
 
-    systemd.user.services.ghaf-launcher = {
-      enable = true;
-      description = "Ghaf launcher daemon";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${ghaf-launcher}/bin/ghaf-launcher";
-        Restart = "always";
-        RestartSec = "1";
+    systemd.user.services = {
+      ghaf-launcher = {
+        enable = true;
+        description = "Ghaf launcher daemon";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${ghaf-launcher}/bin/ghaf-launcher";
+          Restart = "always";
+          RestartSec = "1";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
       };
-      partOf = [ "ghaf-session.target" ];
-      wantedBy = [ "ghaf-session.target" ];
-    };
 
-    systemd.user.services.swaybg = {
-      enable = true;
-      description = "Wallpaper daemon";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${pkgs.swaybg}/bin/swaybg -m fill -i ${cfg.wallpaper}";
+      swaybg = {
+        enable = true;
+        description = "Wallpaper daemon";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.swaybg}/bin/swaybg -m fill -i ${cfg.wallpaper}";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
       };
-      partOf = [ "ghaf-session.target" ];
-      wantedBy = [ "ghaf-session.target" ];
-    };
 
-    systemd.user.services.mako = {
-      enable = true;
-      description = "Notification daemon";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${pkgs.mako}/bin/mako -c /etc/mako/config";
+      mako = {
+        enable = true;
+        description = "Notification daemon";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.mako}/bin/mako -c /etc/mako/config";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
       };
-      partOf = [ "ghaf-session.target" ];
-      wantedBy = [ "ghaf-session.target" ];
-    };
 
-    systemd.user.services.lock-event = {
-      enable = true;
-      description = "Lock Event Handler";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = "${pkgs.swayidle}/bin/swayidle lock \"${lockCmd}\"";
+      lock-event = {
+        enable = true;
+        description = "Lock Event Handler";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${pkgs.swayidle}/bin/swayidle lock \"${lockCmd}\"";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
       };
-      partOf = [ "ghaf-session.target" ];
-      wantedBy = [ "ghaf-session.target" ];
-    };
 
-    systemd.user.services.autolock = lib.mkIf cfg.autolock.enable {
-      enable = true;
-      description = "System autolock";
-      serviceConfig = {
-        Type = "simple";
-        ExecStart = ''
-          ${pkgs.swayidle}/bin/swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
-          '${pkgs.chayang}/bin/chayang && ${lockCmd}'
-        '';
+      autolock = lib.mkIf cfg.autolock.enable {
+        enable = true;
+        description = "System autolock";
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = ''
+            ${pkgs.swayidle}/bin/swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
+            '${pkgs.chayang}/bin/chayang && ${lockCmd}'
+          '';
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
       };
-      partOf = [ "ghaf-session.target" ];
-      wantedBy = [ "ghaf-session.target" ];
     };
 
     ghaf.graphics.launchers = [

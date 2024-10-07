@@ -36,39 +36,41 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    services.greetd = {
-      enable = true;
-      settings = {
-        default_session =
-          let
-            greeter-autostart = pkgs.writeShellApplication {
-              name = "greeter-autostart";
-              runtimeInputs = [
-                pkgs.greetd.gtkgreet
-                pkgs.wayland-logout
-              ];
-              text = ''
-                gtkgreet -l -s ${gtkgreetStyle}
-                wayland-logout
-              '';
+    services = {
+      greetd = {
+        enable = true;
+        settings = {
+          default_session =
+            let
+              greeter-autostart = pkgs.writeShellApplication {
+                name = "greeter-autostart";
+                runtimeInputs = [
+                  pkgs.greetd.gtkgreet
+                  pkgs.wayland-logout
+                ];
+                text = ''
+                  gtkgreet -l -s ${gtkgreetStyle}
+                  wayland-logout
+                '';
+              };
+            in
+            {
+              command = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${greeter-autostart}/bin/greeter-autostart";
             };
-          in
-          {
-            command = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${greeter-autostart}/bin/greeter-autostart";
-          };
+        };
       };
-    };
 
-    services.seatd = {
-      enable = true;
-      group = "video";
+      seatd = {
+        enable = true;
+        group = "video";
+      };
+
+      #Allow video group to change brightness
+      udev.extraRules = ''
+        ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chgrp video $sys$devpath/brightness", RUN+="${pkgs.coreutils}/bin/chmod a+w $sys$devpath/brightness"
+      '';
     };
 
     users.users.greeter.extraGroups = [ "video" ];
-
-    #Allow video group to change brightness
-    services.udev.extraRules = ''
-      ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chgrp video $sys$devpath/brightness", RUN+="${pkgs.coreutils}/bin/chmod a+w $sys$devpath/brightness"
-    '';
   };
 }

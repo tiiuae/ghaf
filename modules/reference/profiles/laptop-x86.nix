@@ -53,9 +53,11 @@ in
       hardware = {
         x86_64.common.enable = true;
         tpm2.enable = true;
-        usb.internal.enable = true;
-        usb.external.enable = true;
-        usb.vhotplug.enable = true;
+        usb = {
+          internal.enable = true;
+          external.enable = true;
+          vhotplug.enable = true;
+        };
       };
 
       # Virtualization options
@@ -121,11 +123,16 @@ in
       };
 
       # Logging configuration
-      logging.client.enable = true;
-      logging.client.endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
-      logging.listener.address =
-        "admin-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug";
-      logging.listener.port = 9999;
+      logging = {
+        client = {
+          enable = true;
+          endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
+        };
+        listener = {
+          address = "admin-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug";
+          port = 9999;
+        };
+      };
     };
   };
 }
