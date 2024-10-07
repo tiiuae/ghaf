@@ -33,6 +33,7 @@ let
                 grub.enable = false;
                 generic-extlinux-compatible.enable = true;
               };
+              initrd.systemd.tpm2.enable = false;
             };
 
             # Disable all the default UI applications
