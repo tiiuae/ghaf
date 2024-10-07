@@ -139,6 +139,15 @@ let
             ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
           };
 
+          users.users."proxy-user-network" = {
+            isNormalUser = true;
+            createHome = false;
+            uid = config.ghaf.users.accounts.loginuid;
+            extraGroups = [
+              "networkmanager"
+            ];
+          };
+
           # SSH is very picky about to file permissions and ownership and will
           # accept neither direct path inside /nix/store or symlink that points
           # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by

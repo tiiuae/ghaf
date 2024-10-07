@@ -72,6 +72,17 @@ let
             ] ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
           };
 
+          users.users."proxy-user-audio" = {
+            isNormalUser = true;
+            uid = config.ghaf.users.accounts.loginuid;
+            createHome = false;
+            extraGroups = [
+              "audio"
+              "video"
+              "pipewire"
+            ];
+          };
+
           time.timeZone = config.time.timeZone;
           system.stateVersion = lib.trivial.release;
 

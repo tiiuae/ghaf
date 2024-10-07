@@ -1,6 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 # account for the development time login with sudo rights
 let
   cfg = config.ghaf.users.accounts;
@@ -8,6 +12,7 @@ let
     mkEnableOption
     mkOption
     optionals
+    optionalAttrs
     mkIf
     types
     ;
@@ -18,37 +23,75 @@ in
     enable = mkEnableOption "Default account Setup";
     user = mkOption {
       default = "ghaf";
-      type = with types; str;
+      type = types.str;
       description = ''
-        A default user to create in the system.
+        The admin account with sudo rights.
       '';
     };
     password = mkOption {
       default = "ghaf";
-      type = with types; str;
+      type = types.str;
       description = ''
-        A default password for the user.
+        Default password for the admin user.
+      '';
+    };
+    enableLoginUser = mkEnableOption "Enable login user setup for UI.";
+    loginuser = mkOption {
+      default = "manuel";
+      type = types.str;
+      description = ''
+        Default user account for UI.
+      '';
+    };
+    loginuid = mkOption {
+      default = 1001;
+      type = types.int;
+      description = ''
+        Default UID for the login user.
       '';
     };
   };
 
   config = mkIf cfg.enable {
     users = {
-      mutableUsers = false;
-      users."${cfg.user}" = {
-        isNormalUser = true;
-        inherit (cfg) password;
-        #TODO add "docker" use "lib.optionals"
-        extraGroups = [
-          "wheel"
-          "video"
-          "networkmanager"
-        ] ++ optionals config.security.tpm2.enable [ "tss" ];
-      };
-      groups."${cfg.user}" = {
-        name = cfg.user;
-        members = [ cfg.user ];
-      };
+      mutableUsers = cfg.enableLoginUser;
+      users =
+        {
+          "${cfg.user}" = {
+            isNormalUser = true;
+            inherit (cfg) password;
+            extraGroups =
+              [
+                "wheel"
+                "video"
+              ]
+              ++ optionals config.security.tpm2.enable [ "tss" ]
+              ++ optionals config.ghaf.virtualization.docker.daemon.enable [ "docker" ];
+          };
+        }
+        // optionalAttrs cfg.enableLoginUser {
+          "${cfg.loginuser}" = {
+            isNormalUser = true;
+            uid = cfg.loginuid;
+            inherit (cfg) password;
+            extraGroups = [
+              "video"
+            ];
+          };
+        };
+      groups =
+        {
+          "${cfg.user}" = {
+            name = cfg.user;
+            members = [ cfg.user ];
+          };
+        }
+        // optionalAttrs cfg.enableLoginUser {
+          "${cfg.loginuser}" = {
+            name = cfg.loginuser;
+            members = [ cfg.loginuser ];
+          };
+        };
     };
 
     # to build ghaf as ghaf-user with caches

@@ -1,12 +1,27 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, config, ... }:
+{
+  lib,
+  pkgs,
+  config,
+  ...
+}:
 let
   cfg = config.ghaf.storagevm;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkMerge
+    mkForce
+    types
+    optionals
+    optionalAttrs
+    ;
   mountPath = "/guestStorage";
 in
 {
-  options.ghaf.storagevm = with lib; {
+  options.ghaf.storagevm = {
     enable = mkEnableOption "StorageVM support";
 
     name = mkOption {
@@ -20,7 +35,7 @@ in
       # FIXME: Probably will lead to disgraceful error messages, as we
       # put typechecking on nix impermanence option. But other,
       # proper, ways are much harder.
-      type = types.anything;
+      type = types.listOf types.anything;
       default = [ ];
       example = [
         "/var/lib/nixos"
@@ -88,12 +103,63 @@ in
           "/var/lib/nixos"
         ];
 
-        files = [
-          "/etc/ssh/ssh_host_ed25519_key.pub"
-          "/etc/ssh/ssh_host_ed25519_key"
-        ];
+        files =
+          [
+            "/etc/ssh/ssh_host_ed25519_key.pub"
+            "/etc/ssh/ssh_host_ed25519_key"
+          ]
+          # TODO Remove with userborn
+          ++ optionals config.ghaf.users.accounts.enableLoginUser [
+            "/etc/passwd"
+            "/etc/shadow.backup"
+            "/etc/group"
+            "/etc/etc.lock"
+          ];
       }
       { inherit (cfg) directories users files; }
     ];
+
+    # TODO Remove with userborn. Fixes impermanence problems with /etc
+    system.activationScripts = optionalAttrs config.ghaf.users.accounts.enableLoginUser {
+      "_adjust_before_persist_files" = {
+        deps = [
+          "createPersistentStorageDirs"
+        ];
+        text = ''
+          if [[ ! -f /guestStorage/etc/etc.lock ]]; then
+            cp /etc/passwd /guestStorage/etc && rm /etc/passwd
+            cp /etc/group /guestStorage/etc && rm /etc/group
+            cp /etc/shadow /guestStorage/etc/shadow.backup
+            touch /guestStorage/etc/etc.lock
+            echo "copied and removed passwd, shadow, group"
+          else
+            [[ -f /etc/passwd ]] && rm /etc/passwd
+            [[ -f /etc/group ]] && rm /etc/group
+            rm /etc/shadow
+            cp /guestStorage/etc/shadow.backup /etc/shadow
+          fi
+        '';
+      };
+    };
+
+    systemd = optionalAttrs config.ghaf.users.accounts.enableLoginUser {
+      paths.etc-shadow = {
+        wantedBy = [ "local-fs.target" ];
+        after = [ "local-fs.target" ];
+        pathConfig = {
+          PathChanged = [ "/etc/shadow" ];
+          Unit = "etc-shadow.service";
+        };
+      };
+      services.etc-shadow = {
+        enable = true;
+        wantedBy = [ "local-fs.target" ];
+        after = [ "local-fs.target" ];
+        script = ''
+          ${pkgs.coreutils}/bin/cp /etc/shadow /etc/shadow.backup
+          ${pkgs.coreutils}/bin/chown root:shadow /etc/shadow
+        '';
+      };
+    };
   };
 }
