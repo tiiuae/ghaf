@@ -5,7 +5,7 @@ name:
 let
   cfg = config.ghaf.storagevm;
   shared-mountPath = "/tmp/shared/shares";
-  inherit (config.ghaf.users.accounts) user;
+  user = config.ghaf.users.accounts.loginuser;
   isGuiVm = builtins.stringLength name == 0;
   userDir = "/home/${user}" + (if isGuiVm then "/Shares" else "/Unsafe\ share");
 in

@@ -221,7 +221,7 @@ in
 
     services.greetd.settings = {
       initial_session = lib.mkIf (cfg.autologinUser != null) {
-        user = "ghaf";
+        user = config.ghaf.users.accounts.loginuser;
         command = "${labwc-session}/bin/labwc-session";
       };
     };
