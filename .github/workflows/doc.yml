@@ -8,7 +8,7 @@ on:
     branches:
       - main
     paths:
-      - 'docs/**'
+      - "docs/**"
 jobs:
   deploy:
     name: build doc and deploy to gh pages
