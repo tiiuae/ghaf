@@ -46,14 +46,14 @@ in
           // Allow user to verify fingerprints
           polkit.addRule(function(action, subject) {
           if (action.id == "net.reactivated.fprint.device.verify" &&
-              subject.user == "ghaf") {
+              subject.isInGroup ("users")) {
             return polkit.Result.YES;
             }
           });
           // Allow user to enroll fingerprints
           polkit.addRule(function(action, subject) {
           if (action.id == "net.reactivated.fprint.device.enroll" &&
-              subject.user == "ghaf") {
+              subject.isInGroup ("users")) {
             return polkit.Result.YES;
             }
           });

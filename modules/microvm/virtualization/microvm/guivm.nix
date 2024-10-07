@@ -34,6 +34,7 @@ let
         {
           ghaf = {
             users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
+            users.accounts.enableLoginUser = true;
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               applications.enable = false;
@@ -68,7 +69,7 @@ let
             storagevm = {
               enable = true;
               name = "guivm";
-              users.${config.ghaf.users.accounts.user}.directories = [
+              users.${config.ghaf.users.accounts.loginuser}.directories = [
                 ".cache"
                 ".config"
                 ".local"
@@ -85,9 +86,16 @@ let
               keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
                 set -xeuo pipefail
                 mkdir -p /run/waypipe-ssh
+                mkdir -p /run/user-ssh
                 echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
-                chown ghaf:ghaf /run/waypipe-ssh/*
+                chown ${config.ghaf.users.accounts.user}:${config.ghaf.users.accounts.user} /run/waypipe-ssh/*
                 cp /run/waypipe-ssh/id_ed25519.pub /run/waypipe-ssh-public-key/id_ed25519.pub
+                echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/user-ssh/id_ed25519_net -C "proxy-user-network@net-vm"
+                chown ${config.ghaf.users.accounts.loginuser}:${config.ghaf.users.accounts.loginuser} /run/user-ssh/*
+                cp /run/user-ssh/id_ed25519_net.pub /run/waypipe-ssh-public-key/id_ed25519_net.pub
+                echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/user-ssh/id_ed25519_ad -C "proxy-user-audio@audio-vm"
+                chown ${config.ghaf.users.accounts.loginuser}:${config.ghaf.users.accounts.loginuser} /run/user-ssh/*
+                cp /run/user-ssh/id_ed25519_ad.pub /run/waypipe-ssh-public-key/id_ed25519_ad.pub
               '';
             in
             {
