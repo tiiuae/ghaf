@@ -41,7 +41,6 @@ let
     runtimeInputs = [
       pkgs.systemd
       pkgs.dbus
-      pkgs.brightnessctl
     ];
 
     text =
@@ -54,8 +53,6 @@ let
         systemctl --user reset-failed
         systemctl --user stop ghaf-session.target
         systemctl --user start ghaf-session.target
-        # By default set system brightness to 100% which can be configured later
-        brightnessctl set 100%
       ''
       + cfg.extraAutostart;
   };
