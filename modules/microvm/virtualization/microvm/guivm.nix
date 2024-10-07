@@ -68,6 +68,14 @@ let
             storagevm = {
               enable = true;
               name = "guivm";
+              directories = [
+                {
+                  directory = "/var/lib/private/ollama";
+                  inherit (config.ghaf.users.accounts) user;
+                  group = "ollama";
+                  mode = "u=rwx,g=,o=";
+                }
+              ];
               users.${config.ghaf.users.accounts.user}.directories = [
                 ".cache"
                 ".config"
@@ -147,7 +155,7 @@ let
           microvm = {
             optimize.enable = false;
             vcpu = 2;
-            mem = 2048;
+            mem = 12288;
             hypervisor = "qemu";
             shares = [
               {
@@ -184,7 +192,10 @@ let
           imports = [
             ../../../common
             ../../../desktop
+            ../../../reference/services
           ];
+
+          ghaf.reference.services.ollama = true;
 
           # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
           systemd.user.services.waypipe = {

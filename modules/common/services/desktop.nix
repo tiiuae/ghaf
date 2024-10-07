@@ -196,6 +196,13 @@ in
             }
 
             {
+              name = "Falcon AI";
+              description = "Your local large language model, developed by TII.";
+              path = "${pkgs.alpaca}/bin/alpaca";
+              icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
+            }
+
+            {
               name = "Shutdown";
               description = "Shutdown System";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";

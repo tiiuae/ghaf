@@ -20,7 +20,7 @@ in
       # FIXME: Probably will lead to disgraceful error messages, as we
       # put typechecking on nix impermanence option. But other,
       # proper, ways are much harder.
-      type = types.anything;
+      type = types.listOf types.anything;
       default = [ ];
       example = [
         "/var/lib/nixos"
@@ -51,7 +51,7 @@ in
     };
 
     files = mkOption {
-      type = types.anything;
+      type = types.listOf types.anything;
       default = [ ];
       example = [ "/etc/machine-id" ];
       description = ''
