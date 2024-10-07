@@ -3,10 +3,19 @@
 { lib, config, ... }:
 let
   cfg = config.ghaf.storagevm;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkMerge
+    mkForce
+    types
+    optionals
+    ;
   mountPath = "/guestStorage";
 in
 {
-  options.ghaf.storagevm = with lib; {
+  options.ghaf.storagevm = {
     enable = mkEnableOption "StorageVM support";
 
     name = mkOption {
@@ -85,9 +94,14 @@ in
     environment.persistence.${mountPath} = lib.mkMerge [
       {
         hideMounts = true;
-        directories = [
-          "/var/lib/nixos"
-        ];
+        directories =
+          [
+            "/var/lib/nixos"
+          ]
+          ++ optionals config.ghaf.users.accounts.enableLoginUser [
+            # TODO Replace with userborn setup
+            "/etc"
+          ];
 
         files = [
           "/etc/ssh/ssh_host_ed25519_key.pub"

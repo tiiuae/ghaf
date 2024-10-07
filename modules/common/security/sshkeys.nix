@@ -31,6 +31,16 @@ in
       default = "/run/waypipe-ssh-public-key/id_ed25519.pub";
       description = "The Waypipe public key";
     };
+    userToAudiovmSshPublicKeyFiles = mkOption {
+      type = types.str;
+      default = "/run/waypipe-ssh-public-key/id_ed25519_ad.pub";
+      description = "The Waypipe public key";
+    };
+    userToNetvmSshPublicKeyFiles = mkOption {
+      type = types.str;
+      default = "/run/waypipe-ssh-public-key/id_ed25519_net.pub";
+      description = "The Waypipe public key";
+    };
     sshKeyPath = mkOption {
       type = types.str;
       default = "/run/waypipe-ssh/id_ed25519";

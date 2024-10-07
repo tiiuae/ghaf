@@ -26,7 +26,7 @@ in
     };
     autologinUser = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = config.ghaf.users.accounts.user;
+      default = config.ghaf.users.accounts.loginuser;
       description = ''
         Username of the account that will be automatically logged in to the desktop.
         If unspecified, the login manager is shown as usual.
