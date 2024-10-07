@@ -5,13 +5,11 @@
   imports = [
     inputs.flake-root.flakeModule
     inputs.treefmt-nix.flakeModule
-    inputs.pre-commit-hooks-nix.flakeModule
   ];
   perSystem =
     { config, pkgs, ... }:
     {
       treefmt.config = {
-        package = pkgs.treefmt;
         inherit (config.flake-root) projectRootFile;
 
         programs = {

@@ -1,8 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ inputs, ... }:
 {
+  imports = [ inputs.git-hooks-nix.flakeModule ];
   perSystem =
     {
+      config,
       pkgs,
       self',
       lib,
@@ -25,5 +28,22 @@
         #  pkgs.callPackage ../modules/hardware/x86_64-generic/kernel/host/pkvm/test
         #    { inherit pkgs; };
       } // (lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages);
+
+      pre-commit = {
+        settings = {
+          hooks = {
+            treefmt = {
+              enable = true;
+              package = config.treefmt.build.wrapper;
+              stages = [ "pre-push" ];
+            };
+            reuse = {
+              enable = true;
+              package = pkgs.reuse;
+              stages = [ "pre-push" ];
+            };
+          };
+        };
+      };
     };
 }

@@ -38,7 +38,7 @@
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
         treefmt-nix.follows = "treefmt-nix";
-        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+        pre-commit-hooks-nix.follows = "git-hooks-nix";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -61,8 +61,8 @@
     };
 
     # To ensure that checks are run locally to enforce cleanliness
-    pre-commit-hooks-nix = {
-      url = "github:cachix/pre-commit-hooks.nix";
+    git-hooks-nix = {
+      url = "github:cachix/git-hooks.nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         nixpkgs-stable.follows = "nixpkgs";
@@ -136,7 +136,7 @@
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
         flake-parts.follows = "flake-parts";
-        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+        pre-commit-hooks-nix.follows = "git-hooks-nix";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -153,7 +153,7 @@
         flake-root.follows = "flake-root";
         treefmt-nix.follows = "treefmt-nix";
         devshell.follows = "devshell";
-        pre-commit-hooks-nix.follows = "pre-commit-hooks-nix";
+        pre-commit-hooks-nix.follows = "git-hooks-nix";
       };
     };
   };
