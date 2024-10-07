@@ -47,8 +47,11 @@ in
                 runtimeInputs = [
                   pkgs.greetd.gtkgreet
                   pkgs.wayland-logout
+                  pkgs.brightnessctl
                 ];
                 text = ''
+                  # By default set system brightness to 100% which can be configured later
+                  brightnessctl set 100%
                   gtkgreet -l -s ${gtkgreetStyle}
                   wayland-logout
                 '';
