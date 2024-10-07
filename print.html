@@ -5121,6 +5121,10 @@ list of (submodule)</p>
     colour = "#4c3f7a";
     identifier = "AppFlowy";
   }
+  {
+    colour = "#353535";
+    identifier = "org.gnome.TextEditor";
+  }
 ]
 </code></pre>
 <p><em>Declared by:</em></p>
@@ -5152,7 +5156,7 @@ string</p>
 <p><em>Type:</em>
 path</p>
 <p><em>Default:</em>
-<code>"/nix/store/crfm19lrc2rw4aw5hn504fq31hax2lbc-ghaf-artwork-0.1.0/ghaf-wallpaper.png"</code></p>
+<code>"/nix/store/n4h1i8nlklgi69rysb7f1905h4jzz0xp-ghaf-artwork-0.1.0/ghaf-wallpaper.png"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
@@ -6204,7 +6208,6 @@ list of (attribute set)</p>
       {
         class = 8;
         description = "Mass Storage - SCSI (USB drives)";
-        disable = true;
         sublass = 6;
       }
     ];
@@ -6950,6 +6953,40 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
 </ul>
+<h2 id="ghafreferenceservicesproxy-business"><a class="header" href="#ghafreferenceservicesproxy-business">ghaf.reference.services.proxy-business</a></h2>
+<p>Whether to enable Enable the proxy server service.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services</a></li>
+</ul>
+<h2 id="ghafreferenceservicesproxy-serverenable"><a class="header" href="#ghafreferenceservicesproxy-serverenable">ghaf.reference.services.proxy-server.enable</a></h2>
+<p>Whether to enable Enable proxy server module.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/proxy-server/3proxy-config.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/proxy-server/3proxy-config.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesproxy-serverbindport"><a class="header" href="#ghafreferenceservicesproxy-serverbindport">ghaf.reference.services.proxy-server.bindPort</a></h2>
+<p>Bind port for proxy server</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>3128</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/proxy-server/3proxy-config.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/proxy-server/3proxy-config.nix</a></li>
+</ul>
 <h2 id="ghafsecuritysshkeysgetauthkeysfilename"><a class="header" href="#ghafsecuritysshkeysgetauthkeysfilename">ghaf.security.sshKeys.getAuthKeysFileName</a></h2>
 <p>The name of the get-auth-keys file</p>
 <p><em>Type:</em>
@@ -7069,6 +7106,28 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/desktop.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/desktop.nix</a></li>
+</ul>
+<h2 id="ghafservicesdisksenable"><a class="header" href="#ghafservicesdisksenable">ghaf.services.disks.enable</a></h2>
+<p>Whether to enable Enable disk mount daemon.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/disks.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/disks.nix</a></li>
+</ul>
+<h2 id="ghafservicesdisksfilemanager"><a class="header" href="#ghafservicesdisksfilemanager">ghaf.services.disks.fileManager</a></h2>
+<p>The program to open mounted directories</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"xdg-open"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/disks.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/disks.nix</a></li>
 </ul>
 <h2 id="ghafservicesfirmwareenable"><a class="header" href="#ghafservicesfirmwareenable">ghaf.services.firmware.enable</a></h2>
 <p>Whether to enable PLaceholder for firmware handling.</p>
@@ -7224,6 +7283,16 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix</a></li>
 </ul>
+<h2 id="ghafsystemdwithbootloader"><a class="header" href="#ghafsystemdwithbootloader">ghaf.systemd.withBootloader</a></h2>
+<p>Enable systemd bootloader functionality.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix</a></li>
+</ul>
 <h2 id="ghafsystemdwithcryptsetup"><a class="header" href="#ghafsystemdwithcryptsetup">ghaf.systemd.withCryptsetup</a></h2>
 <p>Enable systemd LUKS2 functionality.</p>
 <p><em>Type:</em>
@@ -7245,7 +7314,7 @@ boolean</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix</a></li>
 </ul>
 <h2 id="ghafsystemdwithefi"><a class="header" href="#ghafsystemdwithefi">ghaf.systemd.withEfi</a></h2>
-<p>Enable systemd EFI+bootloader functionality.</p>
+<p>Enable systemd EFI functionality.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -7414,6 +7483,16 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix</a></li>
 </ul>
+<h2 id="ghafsystemdwithukify"><a class="header" href="#ghafsystemdwithukify">ghaf.systemd.withUkify</a></h2>
+<p>Enable systemd UKI functionality.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix</a></li>
+</ul>
 <h2 id="ghafusersaccountsenable"><a class="header" href="#ghafusersaccountsenable">ghaf.users.accounts.enable</a></h2>
 <p>Whether to enable Default account Setup.</p>
 <p><em>Type:</em>
@@ -7478,7 +7557,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmadminvmextramodules"><a class="header" href="#ghafvirtualizationmicrovmadminvmextramodules">ghaf.virtualization.microvm.adminvm.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -7489,7 +7568,7 @@ unspecified value</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmenable"><a class="header" href="#ghafvirtualizationmicrovmappvmenable">ghaf.virtualization.microvm.appvm.enable</a></h2>
 <p>Whether to enable appvm.</p>
@@ -7501,7 +7580,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmextramodules"><a class="header" href="#ghafvirtualizationmicrovmappvmextramodules">ghaf.virtualization.microvm.appvm.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -7512,7 +7591,7 @@ unspecified value</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvms"><a class="header" href="#ghafvirtualizationmicrovmappvmvms">ghaf.virtualization.microvm.appvm.vms</a></h2>
 <p>List of AppVMs to be created</p>
@@ -7522,7 +7601,7 @@ list of (submodule)</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmspackages"><a class="header" href="#ghafvirtualizationmicrovmappvmvmspackages">ghaf.virtualization.microvm.appvm.vms.*.packages</a></h2>
 <p>Packages that are included into the AppVM</p>
@@ -7532,7 +7611,7 @@ list of package</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsbordercolor"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsbordercolor">ghaf.virtualization.microvm.appvm.vms.*.borderColor</a></h2>
 <p>Border color of the AppVM window</p>
@@ -7542,7 +7621,7 @@ null or string</p>
 <code>null</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmscid"><a class="header" href="#ghafvirtualizationmicrovmappvmvmscid">ghaf.virtualization.microvm.appvm.vms.*.cid</a></h2>
 <p>VSOCK context identifier (CID) for the AppVM
@@ -7553,7 +7632,7 @@ signed integer</p>
 <code>0</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmscores"><a class="header" href="#ghafvirtualizationmicrovmappvmvmscores">ghaf.virtualization.microvm.appvm.vms.*.cores</a></h2>
 <p>Amount of processor cores for this AppVM</p>
@@ -7561,7 +7640,7 @@ signed integer</p>
 signed integer</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsextramodules"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsextramodules">ghaf.virtualization.microvm.appvm.vms.*.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -7572,7 +7651,7 @@ unspecified value</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsghafaudioenable"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsghafaudioenable">ghaf.virtualization.microvm.appvm.vms.*.ghafAudio.enable</a></h2>
 <p>Whether to enable Ghaf application audio support.</p>
@@ -7584,7 +7663,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsmacaddress"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsmacaddress">ghaf.virtualization.microvm.appvm.vms.*.macAddress</a></h2>
 <p>AppVM’s network interface MAC address</p>
@@ -7592,7 +7671,7 @@ boolean</p>
 string</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsname"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsname">ghaf.virtualization.microvm.appvm.vms.*.name</a></h2>
 <p>Name of the AppVM</p>
@@ -7600,7 +7679,7 @@ string</p>
 string</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsrammb"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsrammb">ghaf.virtualization.microvm.appvm.vms.*.ramMb</a></h2>
 <p>Amount of RAM for this AppVM</p>
@@ -7608,7 +7687,7 @@ string</p>
 signed integer</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsvtpmenable"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsvtpmenable">ghaf.virtualization.microvm.appvm.vms.*.vtpm.enable</a></h2>
 <p>Whether to enable vTPM support in the virtual machine.</p>
@@ -7620,7 +7699,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvsockbasecid"><a class="header" href="#ghafvirtualizationmicrovmappvmvsockbasecid">ghaf.virtualization.microvm.appvm.vsockBaseCID</a></h2>
 <p>Context Identifier (CID) of the AppVM VSOCK</p>
@@ -7630,7 +7709,7 @@ signed integer</p>
 <code>100</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmaudiovmenable"><a class="header" href="#ghafvirtualizationmicrovmaudiovmenable">ghaf.virtualization.microvm.audiovm.enable</a></h2>
 <p>Whether to enable AudioVM.</p>
@@ -7642,7 +7721,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmaudiovmaudio"><a class="header" href="#ghafvirtualizationmicrovmaudiovmaudio">ghaf.virtualization.microvm.audiovm.audio</a></h2>
 <p>Enable Audio module configuration.</p>
@@ -7663,7 +7742,7 @@ unspecified value</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmenable"><a class="header" href="#ghafvirtualizationmicrovmguivmenable">ghaf.virtualization.microvm.guivm.enable</a></h2>
 <p>Whether to enable GUIVM.</p>
@@ -7675,7 +7754,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmextramodules"><a class="header" href="#ghafvirtualizationmicrovmguivmextramodules">ghaf.virtualization.microvm.guivm.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -7686,7 +7765,7 @@ unspecified value</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmfprint"><a class="header" href="#ghafvirtualizationmicrovmguivmfprint">ghaf.virtualization.microvm.guivm.fprint</a></h2>
 <p>Enable Fingerprint module configuration.</p>
@@ -7706,7 +7785,7 @@ signed integer</p>
 <code>3</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmwaypipeport"><a class="header" href="#ghafvirtualizationmicrovmguivmwaypipeport">ghaf.virtualization.microvm.guivm.waypipePort</a></h2>
 <p>Waypipe port number to listen for incoming connections from AppVMs</p>
@@ -7716,7 +7795,7 @@ signed integer</p>
 <code>1100</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmyubikey"><a class="header" href="#ghafvirtualizationmicrovmguivmyubikey">ghaf.virtualization.microvm.guivm.yubikey</a></h2>
 <p>Enable Yubikey module configuration.</p>
@@ -7773,7 +7852,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmnetvmextramodules"><a class="header" href="#ghafvirtualizationmicrovmnetvmextramodules">ghaf.virtualization.microvm.netvm.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -7784,7 +7863,7 @@ unspecified value</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmnetvmwifi"><a class="header" href="#ghafvirtualizationmicrovmnetvmwifi">ghaf.virtualization.microvm.netvm.wifi</a></h2>
 <p>Enable Wifi module configuration.</p>
@@ -7806,7 +7885,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovm-hostnetworksupport"><a class="header" href="#ghafvirtualizationmicrovm-hostnetworksupport">ghaf.virtualization.microvm-host.networkSupport</a></h2>
 <p>Whether to enable Network support services to run host applications…</p>
@@ -7818,7 +7897,29 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm">https://github.com/tiiuae/ghaf/blob/main/flake.nix#nixosModules.microvm</a></li>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
+</ul>
+<h2 id="ghafvirtualizationmicrovm-hostsharedvmdirectoryenable"><a class="header" href="#ghafvirtualizationmicrovm-hostsharedvmdirectoryenable">ghaf.virtualization.microvm-host.sharedVmDirectory.enable</a></h2>
+<p>Whether to enable shared directory.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
+</ul>
+<h2 id="ghafvirtualizationmicrovm-hostsharedvmdirectoryvms"><a class="header" href="#ghafvirtualizationmicrovm-hostsharedvmdirectoryvms">ghaf.virtualization.microvm-host.sharedVmDirectory.vms</a></h2>
+<p>List of names of virtual machines for which unsafe shared folder will be enabled.</p>
+<p><em>Type:</em>
+list of string</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
