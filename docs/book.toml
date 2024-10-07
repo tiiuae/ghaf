@@ -17,5 +17,6 @@ git-repository-icon = "fa-github"
 additional-css = ["theme/pagetoc.css"]
 additional-js = ["theme/pagetoc.js"]
 
-[preprocessor.footnote]
 [preprocessor.alerts]
+
+[preprocessor.footnote]

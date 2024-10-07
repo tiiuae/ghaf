@@ -29,43 +29,61 @@
           # Bash
           shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
 
-          yamlfmt.enable = true; # YAML formatter
+          # TODO: treefmt claims it changes the files
+          # though the files are not in the diff
+          # and hence fail in the ci ????
+          #toml-sort.enable = true; # TOML formatter
+          prettier.enable = true; # JavaScript formatter
+
         };
 
-        settings.global.excludes = [
-          "*.key"
-          "*.lock"
-          "*.config"
-          "*.dts"
-          "*.pfx"
-          "*.p12"
-          "*.crt"
-          "*.cer"
-          "*.csr"
-          "*.der"
-          "*.jks"
-          "*.keystore"
-          "*.pem"
-          "*.pkcs12"
-          "*.pfx"
-          "*.p12"
-          "*.pem"
-          "*.pkcs7"
-          "*.p7b"
-          "*.p7c"
-          "*.p7r"
-          "*.p7m"
-          "*.p7s"
-          "*.p8"
-          "*.png"
-          "*.svg"
-          "*.license"
-          "*.db"
-          "*.mp3"
-          "*.txt"
-          #TODO: fix the MD
-          "*.md"
-        ];
+        settings = {
+          formatter = {
+            "statix-check" = {
+              command = "${pkgs.statix}/bin/statix";
+              options = [ "check" ];
+              includes = [ "." ];
+            };
+          };
+
+          global.excludes = [
+            "*.key"
+            "*.lock"
+            "*.config"
+            "*.dts"
+            "*.pfx"
+            "*.p12"
+            "*.crt"
+            "*.cer"
+            "*.csr"
+            "*.der"
+            "*.jks"
+            "*.keystore"
+            "*.pem"
+            "*.pkcs12"
+            "*.pfx"
+            "*.p12"
+            "*.pem"
+            "*.pkcs7"
+            "*.p7b"
+            "*.p7c"
+            "*.p7r"
+            "*.p7m"
+            "*.p7s"
+            "*.p8"
+            "*.png"
+            "*.svg"
+            "*.license"
+            "*.db"
+            "*.mp3"
+            "*.txt"
+            ".version"
+            ".nojekyll"
+            "*.git*"
+            "*.hbs"
+            "*.md"
+          ];
+        };
       };
 
       formatter = config.treefmt.build.wrapper;
