@@ -51,22 +51,17 @@ let
             givc.adminvm.enable = true;
 
             # Log aggregation configuration
-            logging.client.enable = isLoggingEnabled;
-            logging.listener.address = configHost.ghaf.logging.listener.address;
-            logging.listener.port = configHost.ghaf.logging.listener.port;
-            logging.identifierFilePath = "/var/lib/private/alloy/MACAddress";
-            logging.server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+            logging = {
+              client.enable = isLoggingEnabled;
+              listener = {
+                inherit (configHost.ghaf.logging.listener) address port;
+              };
+              identifierFilePath = "/var/lib/private/alloy/MACAddress";
+              server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+            };
           };
 
           system.stateVersion = lib.trivial.release;
-
-          nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-          nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
-          networking = {
-            firewall.allowedTCPPorts = lib.mkIf isLoggingEnabled [ config.ghaf.logging.listener.port ];
-            firewall.allowedUDPPorts = [ ];
-          };
 
           systemd.network = {
             enable = true;
@@ -74,6 +69,16 @@ let
               matchConfig.MACAddress = macAddress;
               linkConfig.ActivationPolicy = "always-up";
             };
+          };
+
+          nixpkgs = {
+            buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
+            hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+          };
+
+          networking.firewall = {
+            allowedTCPPorts = lib.mkIf isLoggingEnabled [ config.ghaf.logging.listener.port ];
+            allowedUDPPorts = [ ];
           };
 
           microvm = {

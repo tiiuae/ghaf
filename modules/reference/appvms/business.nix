@@ -68,50 +68,55 @@ in
         devices = [ ];
       };
 
-      ghaf.givc.appvm = {
-        enable = true;
-        name = lib.mkForce "business-vm";
-        applications = [
-          {
-            name = "chromium";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
-            args = [ "url" ];
-          }
-          {
-            name = "outlook";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://outlook.office.com/mail/ ${config.ghaf.givc.idsExtraArgs}";
-          }
-          {
-            name = "office";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://microsoft365.com ${config.ghaf.givc.idsExtraArgs}";
-          }
-          {
-            name = "teams";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://teams.microsoft.com ${config.ghaf.givc.idsExtraArgs}";
-          }
-          {
-            name = "gpclient";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gpclient -platform wayland";
-          }
-          {
-            name = "gnome-text-editor";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gnome-text-editor";
-          }
-          {
-            name = "losslesscut";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
-          }
-        ];
+      ghaf = {
+        givc.appvm = {
+          enable = true;
+          name = lib.mkForce "business-vm";
+          applications = [
+            {
+              name = "chromium";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
+              args = [ "url" ];
+            }
+            {
+              name = "outlook";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://outlook.office.com/mail/ ${config.ghaf.givc.idsExtraArgs}";
+            }
+            {
+              name = "office";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://microsoft365.com ${config.ghaf.givc.idsExtraArgs}";
+            }
+            {
+              name = "teams";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://teams.microsoft.com ${config.ghaf.givc.idsExtraArgs}";
+            }
+            {
+              name = "gpclient";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gpclient -platform wayland";
+            }
+            {
+              name = "gnome-text-editor";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gnome-text-editor";
+            }
+            {
+              name = "losslesscut";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            }
+          ];
+        };
+
+        reference = {
+          programs.chromium.enable = true;
+
+          services.globalprotect = {
+            enable = true;
+            csdWrapper = "${pkgs.openconnect}/libexec/openconnect/hipreport.sh";
+          };
+        };
       };
 
-      ghaf.reference.programs.chromium.enable = true;
       # Set default PDF XDG handler
       xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
-
-      ghaf.reference.services.globalprotect = {
-        enable = true;
-        csdWrapper = "${pkgs.openconnect}/libexec/openconnect/hipreport.sh";
-      };
 
       # Enable dconf and icon pack for gnome text editor
       programs.dconf.enable = true;
@@ -119,48 +124,50 @@ in
 
       #Firewall Settings
       networking = {
-        firewall.enable = true;
         proxy = {
           default = "http://${netvmAddress}:${toString config.ghaf.reference.services.proxy-server.bindPort}";
           noProxy = "192.168.101.10,${adminvmAddress},127.0.0.1,localhost,${vpnOnlyAddr}";
         };
-        firewall.extraCommands = ''
+        firewall = {
+          enable = true;
+          extraCommands = ''
 
-          add_rule() {
-                local ip=$1
-                iptables -I OUTPUT -p tcp -d $ip --dport 80 -j ACCEPT
-                iptables -I OUTPUT -p tcp -d $ip --dport 443 -j ACCEPT
-                iptables -I INPUT -p tcp -s $ip --sport 80 -j ACCEPT
-                iptables -I INPUT -p tcp -s $ip --sport 443 -j ACCEPT
-              }
-          # Default policy 
-          iptables -P INPUT DROP
+            add_rule() {
+                  local ip=$1
+                  iptables -I OUTPUT -p tcp -d $ip --dport 80 -j ACCEPT
+                  iptables -I OUTPUT -p tcp -d $ip --dport 443 -j ACCEPT
+                  iptables -I INPUT -p tcp -s $ip --sport 80 -j ACCEPT
+                  iptables -I INPUT -p tcp -s $ip --sport 443 -j ACCEPT
+                }
+            # Default policy
+            iptables -P INPUT DROP
 
-          # Block any other unwanted traffic (optional)
-          iptables -N logreject
-          iptables -A logreject -j LOG
-          iptables -A logreject -j REJECT
+            # Block any other unwanted traffic (optional)
+            iptables -N logreject
+            iptables -A logreject -j LOG
+            iptables -A logreject -j REJECT
 
-          # allow everything for local VPN traffic
-          iptables -A INPUT -i tun0 -j ACCEPT
-          iptables -A FORWARD -i tun0 -j ACCEPT
-          iptables -A FORWARD -o tun0 -j ACCEPT
-          iptables -A OUTPUT -o tun0 -j ACCEPT
+            # allow everything for local VPN traffic
+            iptables -A INPUT -i tun0 -j ACCEPT
+            iptables -A FORWARD -i tun0 -j ACCEPT
+            iptables -A FORWARD -o tun0 -j ACCEPT
+            iptables -A OUTPUT -o tun0 -j ACCEPT
 
-          # WARN: if all the traffic including VPN flowing through proxy is intended,
-          # remove "add_rule 151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
-          # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
-          # them to allow acl list in modules/reference/appvms/3proxy-config.nix file.
-          # Allow VPN access.tii.ae 
-          add_rule ${tiiVpnAddr}
+            # WARN: if all the traffic including VPN flowing through proxy is intended,
+            # remove "add_rule 151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
+            # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
+            # them to allow acl list in modules/reference/appvms/3proxy-config.nix file.
+            # Allow VPN access.tii.ae
+            add_rule ${tiiVpnAddr}
 
-          # Block all other HTTP and HTTPS traffic
-          iptables -A OUTPUT -p tcp --dport 80 -j logreject
-          iptables -A OUTPUT -p tcp --dport 443 -j logreject
-          iptables -A OUTPUT -p udp --dport 80 -j logreject
-          iptables -A OUTPUT -p udp --dport 443 -j logreject
+            # Block all other HTTP and HTTPS traffic
+            iptables -A OUTPUT -p tcp --dport 80 -j logreject
+            iptables -A OUTPUT -p tcp --dport 443 -j logreject
+            iptables -A OUTPUT -p udp --dport 80 -j logreject
+            iptables -A OUTPUT -p udp --dport 443 -j logreject
 
-        '';
+          '';
+        };
       };
     }
   ];
