@@ -9,7 +9,10 @@
 }:
 {
   name = "zathura";
-  packages = [ pkgs.zathura ];
+  packages = [ 
+                pkgs.zathura 
+                pkgs.feh
+             ];
   macAddress = "02:00:00:03:07:01";
   ramMb = 512;
   cores = 1;
@@ -27,6 +30,10 @@
             {
               name = "zathura";
               command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zathura";
+            }
+            {
+              name = "feh";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/feh";
             }
           ];
         };
