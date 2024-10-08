@@ -22,12 +22,6 @@ let
   battery-3-icon = "${pkgs.ghaf-artwork}/icons/battery-3.svg";
   battery-charging-icon = "${pkgs.ghaf-artwork}/icons/battery-charging.svg";
 
-  wifi-0-icon = "${pkgs.ghaf-artwork}/icons/wifi-0.svg";
-  wifi-1-icon = "${pkgs.ghaf-artwork}/icons/wifi-1.svg";
-  wifi-2-icon = "${pkgs.ghaf-artwork}/icons/wifi-2.svg";
-  wifi-3-icon = "${pkgs.ghaf-artwork}/icons/wifi-3.svg";
-  wifi-4-icon = "${pkgs.ghaf-artwork}/icons/wifi-4.svg";
-
   volume-0-icon = "${pkgs.ghaf-artwork}/icons/volume-0.svg";
   volume-1-icon = "${pkgs.ghaf-artwork}/icons/volume-1.svg";
   volume-2-icon = "${pkgs.ghaf-artwork}/icons/volume-2.svg";
@@ -107,56 +101,6 @@ let
           ${eww} update calendar_day="$(date +%d)" calendar_month="$(date +%-m)" calendar_year="$(date +%Y)"
       fi
       open-widget "$1" "$2"
-    '';
-  };
-
-  eww-wifi = pkgs.writeShellApplication {
-    name = "eww-wifi";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.grpcurl
-    ];
-    bashOptions = [ ];
-    text = ''
-      grpcurl_cmd_get_active_connection="grpcurl -plaintext 192.168.100.1:9000 wifimanager.WifiService.GetActiveConnection"
-
-      signal() {
-          signal_level=$(echo "$1" | jq '.Signal // empty')
-          echo "$signal_level"
-      }
-
-      icon() {
-          if [ "$1" -lt 30 ]; then
-              echo "${wifi-1-icon}"
-          elif [ "$1" -lt 60 ]; then
-              echo "${wifi-2-icon}"
-          elif [ "$1" -lt 80 ]; then
-              echo "${wifi-3-icon}"
-          else
-              echo "${wifi-4-icon}"
-          fi
-      }
-
-      get() {
-          active_connection=$($grpcurl_cmd_get_active_connection)
-
-          signal=$(signal "$active_connection")
-          icon=$(icon "$signal")
-          connected=$(echo "$active_connection" | jq -r '.Connection // false')
-          ssid=$(echo "$active_connection" | jq -r '.SSID // empty')
-
-          if [ "$connected" = "false" ] || [ -z "$ssid" ]; then
-              icon="${wifi-0-icon}"
-          fi
-          echo "{
-              \"connected\": \"$connected\",
-              \"ssid\": \"$ssid\",
-              \"signal\": \"$signal\",
-              \"icon\": \"$icon\"
-          }"
-      }
-
-      [ "$1" = "get" ] && get && exit
     '';
   };
 
@@ -365,7 +309,6 @@ in
             "date '+%-m'")
         (defpoll calendar_year :interval "10h"
             "date '+%Y'")
-        (defpoll wifi  :interval "5s" :initial "{}" "${eww-wifi}/bin/eww-wifi get")
         (defpoll battery  :interval "2s" :initial "{}" "${eww-bat}/bin/eww-bat get")
         (defpoll brightness  :interval "1s" :initial "{}" "${eww-brightness}/bin/eww-brightness get")
         (defpoll volume  :interval "1s" :initial "{}" "${eww-volume}/bin/eww-volume get")
@@ -517,11 +460,6 @@ in
                 :space-evenly true
                 :spacing 10
                 (widget_button
-                    :icon {wifi.icon}
-                    :header "WiFi"
-                    :subtitle {wifi.ssid ?: "Not connected"}
-                    :onclick "${eww-popup}/bin/eww-popup quick-settings; ${pkgs.nm-launcher}/bin/nm-launcher &")
-                (widget_button
                     :icon "${bluetooth-1-icon}"
                     :header "Bluetooth"
                     :onclick "${eww-popup}/bin/eww-popup quick-settings; ${pkgs.bt-launcher}/bin/bt-launcher &"))
@@ -616,19 +554,6 @@ in
                         capacity <= 30 ? "${battery-1-icon}" :
                             capacity <= 70 ? "${battery-2-icon}" : "${battery-3-icon}" }))
 
-        ;; Wifi ;;
-        (defwidget wifi []
-            (tooltip
-            (label  :class "tooltip"
-                    :text {wifi.connected != 'false' ? "''${wifi.connected}: ''${wifi.ssid}" : "No connection"})
-            (button :class "icon_button"
-                    :onclick "${pkgs.nm-launcher}/bin/nm-launcher &"
-                    (image :path {wifi.connected == "false" ? "${wifi-0-icon}":
-                            "''${wifi.signal ?: -1}" < 0 ? "${wifi-0-icon}" :
-                                "''${wifi.signal ?: -1}" < 30 ? "${wifi-1-icon}" :
-                                    "''${wifi.signal ?: -1}" < 60 ? "${wifi-2-icon}" :
-                                        "''${wifi.signal ?: -1}" < 80 ? "${wifi-3-icon}" : "${wifi-4-icon}"}))))
-
         ;; Bluetooth ;;
         (defwidget bluetooth []
             (button :class "icon_button"
@@ -642,7 +567,7 @@ in
                 :path "${security-icon}")))
 
         ;; Quick settings button ;;
-        (defwidget quick-settings-button [screen wifi-icon bat-icon vol-icon bright-icon]
+        (defwidget quick-settings-button [screen bat-icon vol-icon bright-icon]
             (button :class "icon_button" :onclick "${eww-popup}/bin/eww-popup quick-settings ''${screen} &"
                 (box :orientation "h"
                     :space-evenly "false" 
@@ -656,10 +581,7 @@ in
                         :style "background-image: url(\"''${vol-icon}\")")
                     (box :class "icon"
                         :hexpand false
-                        :style "background-image: url(\"''${bat-icon}\")")
-                    (box :class "icon"
-                        :hexpand false
-                        :style "background-image: url(\"''${wifi-icon}\")"))))
+                        :style "background-image: url(\"''${bat-icon}\")"))))
 
         ;; Power menu launcher ;;
         (defwidget power-menu-launcher [screen]
@@ -681,8 +603,7 @@ in
                 (quick-settings-button :screen screen
                     :bright-icon {brightness.icon}
                     :vol-icon {volume.icon}
-                    :wifi-icon {wifi.icon}
-                    :bat-icon { EWW_BATTERY.BAT0.status == "Charging" ? "${battery-charging-icon}" : 
+                    :bat-icon { EWW_BATTERY.BAT0.status == "Charging" ? "${battery-charging-icon}" :
                                 EWW_BATTERY.BAT0.status == "" ?         "${battery-charging-icon}" :
                                 EWW_BATTERY.BAT0.capacity < 10 ?        "${battery-0-icon}" :
                                 EWW_BATTERY.BAT0.capacity <= 30 ?       "${battery-1-icon}" :
@@ -759,6 +680,7 @@ in
                 :halign "end" 
                 :valign "center" 
                 :spacing 14
+                (systray :prepend-new true :class "tray")
                 (divider)
                 (control :screen screen)
                 (divider)
@@ -1226,6 +1148,29 @@ in
             color: $bg-primary;
         }
 
+        .tray menu {
+          padding: 5px 5px;
+          background-color: $bg-primary;
+
+          >menuitem {
+            font-size: 18px;
+            padding: 2px 5px;
+            color: white;
+
+            &:hover {
+              background-color: $widget-hover;
+            }
+          }
+
+          separator {
+            background-color: white;
+            padding-top: 1px;
+
+            &:last-child {
+              padding: unset;
+            }
+          }
+        }
       '';
 
       # The UNIX file mode bits
