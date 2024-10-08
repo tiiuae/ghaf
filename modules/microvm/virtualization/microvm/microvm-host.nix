@@ -55,6 +55,7 @@ in
         withHardenedConfigs = true;
       };
       ghaf.givc.host.enable = true;
+      services.logind.lidSwitch = "ignore";
 
       # TODO: remove hardcoded paths
       systemd.services."microvm@audio-vm".serviceConfig =
