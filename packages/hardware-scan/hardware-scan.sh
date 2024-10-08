@@ -16,7 +16,7 @@
 #         #! nix-shell -i bash -p pciutils dmidecode usbutils alejandra
 
 usage() {
-cat <<EOF
+    cat <<EOF
 A simple shell script (bash) to detect hardware parameters and write the results to a nix configuration file.
 This file can be used to build a Ghaf-based platform.
 

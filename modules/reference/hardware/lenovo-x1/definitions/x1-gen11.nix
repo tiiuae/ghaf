@@ -34,6 +34,7 @@
           "ELAN067C:00 04F3:31F9 Mouse"
           "SYNA8016:00 06CB:CEB3 Mouse"
           "ELAN067B:00 04F3:31F8 Mouse"
+          "SYNA8017:00 06CB:CEB2 Mouse"
         ]
         "TPPS/2 Elan TrackPoint"
       ];
@@ -49,6 +50,8 @@
           "ELAN067C:00 04F3:31F9 Touchpad"
           "SYNA8016:00 06CB:CEB3 Touchpad"
           "ELAN067B:00 04F3:31F8 Touchpad"
+          "SYNA8017:00 06CB:CEB2 Touchpad"
+          "ELAN901C:00 04F3:2C4E Touchpad"
         ]
       ];
       evdev = [ "/dev/touchpad0" ];
