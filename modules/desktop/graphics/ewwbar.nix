@@ -357,8 +357,8 @@ in
         ;;							   Variables        					     ;;	
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         (defpoll keyboard_layout :interval "1s" "${pkgs.xorg.setxkbmap}/bin/setxkbmap -query | ${pkgs.gawk}/bin/awk '/layout/{print $2}' | tr a-z A-Z")
-        (defpoll time :interval "1s" "date +'%I:%M%p'")
-        (defpoll date :interval "1m" "date +'%a %d/%m' | tr a-z A-Z")
+        (defpoll time :interval "1s" "date +'%H:%M'")
+        (defpoll date :interval "1m" "date +'%a %b %-d'")
         (defpoll calendar_day :interval "10h"
             "date '+%d'")
         (defpoll calendar_month :interval "10h"
@@ -868,7 +868,7 @@ in
             @include widget($padding: 14px, $radius: 6px, $bg: $bg-primary);
         }
 
-        @mixin floating_widget($margin: 0em 0.3em 0em 0em){
+        @mixin floating_widget($margin: 0.3em 0.3em 0em 0em){
             @include unset($rec: true);
             border-radius: 6px;
             margin: $margin;
@@ -1130,7 +1130,6 @@ in
         .eww_bar {
             background-color: $bg-primary;
             padding: 0.2em 1em 0.2em 1em;
-            margin-bottom: 0.3em;
         }
 
         .icon_button {

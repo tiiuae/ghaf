@@ -7,7 +7,6 @@ let
     window {
         background-color: #121212;
         color: #fff;
-        border-radius: 4px;
     }
 
     /* search entry */
@@ -64,6 +63,6 @@ pkgs.writeShellApplication {
     rm -rf "$HOME/.config/nwg-drawer"
     #ln -s "${drawerCSS}/nwg-drawer" "$HOME/.config/"
 
-    nwg-drawer -r -c 5 -ml 440 -mr 440 -mt 420 -nofs -nocats -s ${drawerCSS}/nwg-drawer/drawer.css
+    nwg-drawer -r -nofs -nocats -s ${drawerCSS}/nwg-drawer/drawer.css
   '';
 }
