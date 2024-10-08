@@ -100,8 +100,8 @@ in
               icon = "${pkgs.icon-pack}/teams-for-linux.svg";
             }
             {
-              name = "Gnome Text Editor";
-              description = "Text Editor and Note-Taking Application";
+              name = "Text Editor";
+              description = "Simple Text Editor";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gnome-text-editor";
               icon = "${pkgs.icon-pack}/org.gnome.TextEditor.svg";
@@ -149,21 +149,21 @@ in
 
             {
               name = "Calculator";
-              description = "Application that solves mathematical equations";
+              description = "Solve Math Problems";
               path = "${pkgs.gnome-calculator}/bin/gnome-calculator";
               icon = "${pkgs.gnome-calculator}/share/icons/hicolor/scalable/apps/org.gnome.Calculator.svg";
             }
 
             {
-              name = "Sticky-Notes";
-              description = "Note-Taking Application for quick TODO items";
+              name = "Sticky Notes";
+              description = "Sticky Notes on your Desktop";
               path = "${pkgs.sticky-notes}/bin/com.vixalien.sticky";
               icon = "${pkgs.sticky-notes}/share/icons/hicolor/scalable/apps/com.vixalien.sticky.svg";
             }
 
             {
               name = "File Manager";
-              description = "File manager application";
+              description = "Organize & Manage Files";
               path = "${pkgs.pcmanfm}/bin/pcmanfm";
               icon = "${pkgs.icon-pack}/system-file-manager.svg";
             }
@@ -177,12 +177,14 @@ in
 
             {
               name = "Bluetooth Settings";
+              description = "Manage Bluetooth Devices & Settings";
               path = "${pkgs.bt-launcher}/bin/bt-launcher";
               icon = "${pkgs.icon-pack}/bluetooth-48.svg";
             }
 
             {
               name = "Audio Control";
+              description = "System Audio Control";
               path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:4713";
               icon = "${pkgs.icon-pack}/preferences-sound.svg";
             }

@@ -82,6 +82,10 @@ let
         <delay inner="500" outer="500"/>
       </overlay>
     </snapping>
+    <placement>
+      <policy>cascade</policy>
+      <cascadeOffset x="40" y="30" />
+    </placement>
     <keyboard>
       <default />
       <keybind key="W-l">
