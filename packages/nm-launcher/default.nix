@@ -15,7 +15,8 @@ writeShellApplication {
   name = "nm-launcher";
 
   text = ''
-    export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
+    # Keep only system dbus so nm-applet can talk to network-manager deaemon on net-vm.
+    # export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
     ${openssh}/bin/ssh -M -S /tmp/control_socket \
         -f -N -q ghaf@net-vm \
@@ -26,7 +27,7 @@ writeShellApplication {
         -o ExitOnForwardFailure=yes \
         -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
-    ${networkmanagerapplet}/bin/nm-connection-editor
+    ${networkmanagerapplet}/bin/nm-applet --indicator
     # Use the control socket to close the ssh tunnel.
     ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@net-vm
   '';

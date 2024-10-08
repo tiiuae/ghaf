@@ -200,18 +200,33 @@ let
           ghaf.reference.services.ollama = true;
 
           # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-          systemd.user.services.waypipe = {
-            enable = true;
-            description = "waypipe";
-            serviceConfig = {
-              Type = "simple";
-              ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-              Restart = "always";
-              RestartSec = "1";
+          systemd.user.services = {
+            waypipe = {
+              enable = true;
+              description = "waypipe";
+              serviceConfig = {
+                Type = "simple";
+                ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
+                Restart = "always";
+                RestartSec = "1";
+              };
+              startLimitIntervalSec = 0;
+              partOf = [ "ghaf-session.target" ];
+              wantedBy = [ "ghaf-session.target" ];
             };
-            startLimitIntervalSec = 0;
-            partOf = [ "ghaf-session.target" ];
-            wantedBy = [ "ghaf-session.target" ];
+
+            nm-applet = {
+              enable = true;
+              description = "network manager graphical interface.";
+              serviceConfig = {
+                Type = "simple";
+                Restart = "always";
+                RestartSec = "1";
+                ExecStart = "${pkgs.nm-launcher}/bin/nm-launcher";
+              };
+              partOf = [ "ghaf-session.target" ];
+              wantedBy = [ "ghaf-session.target" ];
+            };
           };
         }
       )
