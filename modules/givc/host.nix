@@ -33,6 +33,7 @@ in
         services = [
           "reboot.target"
           "poweroff.target"
+          "suspend.target"
         ] ++ map (vmName: "microvm@${vmName}.service") (attrNames config.microvm.vms);
         tls.enable = config.ghaf.givc.enableTls;
         admin = config.ghaf.givc.adminConfig;

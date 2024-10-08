@@ -410,11 +410,25 @@ let
     bashOptions = [ ];
     text = ''
       if [ $# -ne 1 ]; then
-      echo "Usage: $0 {reboot|poweroff|suspend}"
+        echo "Usage: $0 {reboot|poweroff|suspend}"
       fi
 
-      case "$1" in (reboot|poweroff|suspend)
+      case "$1" in
+      reboot|poweroff)
           ${if useGivc then "givc-cli ${cliArgs}" else "systemctl"} "$1"
+          ;;
+      suspend)
+          # Lock sessions
+          ${pkgs.systemd}/bin/loginctl lock-session
+
+          # Switch off display before suspension
+          WAYLAND_DISPLAY=/run/user/1000/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+
+          # Send suspend command to host
+          ${if useGivc then "${pkgs.givc-cli}/bin/givc-cli ${cliArgs}" else "systemctl"} suspend
+
+          # Switch on display on wakeup
+          WAYLAND_DISPLAY=/run/user/1000/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
           ;;
       *)
           echo "Invalid argument: $1"
@@ -423,7 +437,6 @@ let
       esac
     '';
   };
-
 in
 {
   config = lib.mkIf cfg.enable {
