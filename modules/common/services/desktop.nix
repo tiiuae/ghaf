@@ -124,6 +124,14 @@ in
             }
 
             {
+              name = "Image Viewer";
+              description = "Isolated Image Viewer";
+              vm = "Zathura";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start feh";
+              icon = "${pkgs.icon-pack}/image-viewer.svg";
+            }
+
+            {
               name = "Element";
               description = "General Messaging Application";
               vm = "Comms";

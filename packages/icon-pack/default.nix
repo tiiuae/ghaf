@@ -16,6 +16,7 @@ let
     "distributor-logo-android.svg"
     "distributor-logo-windows.svg"
     "document-viewer.svg"
+    "image-viewer.svg"
     "element-desktop.svg"
     "firefox.svg"
     "microsoft-365.svg"

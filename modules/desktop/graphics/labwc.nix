@@ -75,6 +75,10 @@ in
           colour = "#122263";
         }
         {
+          identifier = "feh";
+          colour = "#122263";
+        }
+        {
           identifier = "Element";
           colour = "#337aff";
         }
