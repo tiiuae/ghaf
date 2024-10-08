@@ -22,8 +22,9 @@ writeShellApplication {
     zathurapath="/var/tmp/$filename"
     chromiumvmip=$(dig +short chromium-vm | head -1)
     businessvmip=$(dig +short business-vm | head -1)
+    commsvmip=$(dig +short comms-vm | head -1)
 
-    if [[ "$chromiumvmip" != "$REMOTE_ADDR" && "$businessvmip" != "$REMOTE_ADDR" ]]; then
+    if [[ "$chromiumvmip" != "$REMOTE_ADDR" && "$businessvmip" != "$REMOTE_ADDR" && "$commsvmip" != "$REMOTE_ADDR" ]]; then
       echo "Open PDF request received from $REMOTE_ADDR, but it is only permitted for chromium-vm or business-vm"
       exit 0
     fi
