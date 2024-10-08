@@ -21,12 +21,6 @@ let
   battery-3-icon = "${pkgs.ghaf-artwork}/icons/battery-3.svg";
   battery-charging-icon = "${pkgs.ghaf-artwork}/icons/battery-charging.svg";
 
-  wifi-0-icon = "${pkgs.ghaf-artwork}/icons/wifi-0.svg";
-  wifi-1-icon = "${pkgs.ghaf-artwork}/icons/wifi-1.svg";
-  wifi-2-icon = "${pkgs.ghaf-artwork}/icons/wifi-2.svg";
-  wifi-3-icon = "${pkgs.ghaf-artwork}/icons/wifi-3.svg";
-  wifi-4-icon = "${pkgs.ghaf-artwork}/icons/wifi-4.svg";
-
   volume-0-icon = "${pkgs.ghaf-artwork}/icons/volume-0.svg";
   volume-1-icon = "${pkgs.ghaf-artwork}/icons/volume-1.svg";
   volume-2-icon = "${pkgs.ghaf-artwork}/icons/volume-2.svg";
@@ -89,56 +83,6 @@ let
       }
 
       open-widget "$1" "$2"
-    '';
-  };
-
-  eww-wifi = pkgs.writeShellApplication {
-    name = "eww-wifi";
-    runtimeInputs = [
-      pkgs.jq
-      pkgs.grpcurl
-    ];
-    bashOptions = [ ];
-    text = ''
-      grpcurl_cmd_get_active_connection="grpcurl -plaintext 192.168.100.1:9000 wifimanager.WifiService.GetActiveConnection"
-
-      signal() {
-          signal_level=$(echo "$1" | jq '.Signal // empty')
-          echo "$signal_level"
-      }
-
-      icon() {
-          if [ "$1" -lt 30 ]; then
-              echo "${wifi-1-icon}"
-          elif [ "$1" -lt 60 ]; then
-              echo "${wifi-2-icon}"
-          elif [ "$1" -lt 80 ]; then
-              echo "${wifi-3-icon}"
-          else
-              echo "${wifi-4-icon}"
-          fi
-      }
-
-      get() {
-          active_connection=$($grpcurl_cmd_get_active_connection)
-
-          signal=$(signal "$active_connection")
-          icon=$(icon "$signal")
-          connected=$(echo "$active_connection" | jq -r '.Connection // false')
-          ssid=$(echo "$active_connection" | jq -r '.SSID // empty')
-
-          if [ "$connected" = "false" ] || [ -z "$ssid" ]; then
-              icon="${wifi-0-icon}"
-          fi
-          echo "{
-              \"connected\": \"$connected\",
-              \"ssid\": \"$ssid\",
-              \"signal\": \"$signal\",
-              \"icon\": \"$icon\"
-          }"
-      }
-
-      [ "$1" = "get" ] && get && exit
     '';
   };
 
@@ -425,7 +369,6 @@ in
         ;;							   Variables        					     ;;	
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         (defpoll keyboard_layout :interval "5s" "${pkgs.xorg.setxkbmap}/bin/setxkbmap -query | ${pkgs.gawk}/bin/awk '/layout/{print $2}' | tr a-z A-Z")
-        (defpoll wifi  :interval "5s" :initial "{}" "${eww-wifi}/bin/eww-wifi get")
         (defpoll battery  :interval "5s" :initial "{}" "${eww-bat}/bin/eww-bat get")
         (deflisten brightness "${eww-brightness}/bin/eww-brightness listen")
         (deflisten volume "${eww-volume}/bin/eww-volume listen")
@@ -594,13 +537,6 @@ in
                 :spacing 10
                 (box
                     :orientation "h"
-                    :space-evenly true
-                    :spacing 10
-                    (widget_button
-                        :icon {wifi.icon}
-                        :header "WiFi"
-                        :subtitle {wifi.ssid ?: "Not connected"}
-                        :onclick "${eww-popup}/bin/eww-popup quick-settings; ${pkgs.nm-launcher}/bin/nm-launcher &")
                     (widget_button
                         :icon "${bluetooth-1-icon}"
                         :header "Bluetooth"
@@ -679,7 +615,7 @@ in
                             :level { volume.muted == "true" ? "0" : volume.level })))))
 
         ;; Quick Settings Button ;;
-        (defwidget quick-settings-button [screen wifi-icon bat-icon vol-icon bright-icon]
+        (defwidget quick-settings-button [screen bat-icon vol-icon bright-icon]
             (button :class "icon_button" :onclick "${eww-popup}/bin/eww-popup quick-settings ''${screen} &"
                 (box :orientation "h"
                     :space-evenly "false" 
@@ -693,10 +629,7 @@ in
                         :style "background-image: url(\"''${vol-icon}\")")
                     (box :class "icon"
                         :hexpand false
-                        :style "background-image: url(\"''${bat-icon}\")")
-                    (box :class "icon"
-                        :hexpand false
-                        :style "background-image: url(\"''${wifi-icon}\")"))))
+                        :style "background-image: url(\"''${bat-icon}\")"))))
 
         ;; Power Menu Launcher ;;
         (defwidget power-menu-launcher [screen]
@@ -718,7 +651,6 @@ in
                 (quick-settings-button :screen screen
                     :bright-icon {brightness.icon}
                     :vol-icon {volume.icon}
-                    :wifi-icon {wifi.icon}
                     :bat-icon {battery.icon})))
 
         ;; Divider ;;
@@ -788,6 +720,7 @@ in
                 :halign "end" 
                 :valign "center" 
                 :spacing 14
+                (systray :prepend-new true :class "tray")
                 (divider)
                 (control :screen screen)
                 (divider)
@@ -1224,6 +1157,29 @@ in
             }
         }
 
+        .tray menu {
+            padding: 5px 5px;
+            background-color: $bg-primary;
+
+            >menuitem {
+                font-size: 18px;
+                padding: 2px 5px;
+                color: white;
+
+                &:hover {
+                    background-color: $widget-hover;
+                }
+            }
+
+            separator {
+                background-color: white;
+                padding-top: 1px;
+
+                &:last-child {
+                    padding: unset;
+                }
+            }
+        }
       '';
 
       # The UNIX file mode bits
