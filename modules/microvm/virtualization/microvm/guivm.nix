@@ -89,6 +89,35 @@ let
             services.xdghandlers.enable = true;
           };
 
+          # Adding below systemd services to save power by turning off display when system is suspended / lid close
+          systemd.services.display-suspend = {
+            enable = true;
+            description = "Display Suspend Service";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = ''
+                ${pkgs.wlopm}/bin/wlopm --off '*' 
+              '';
+              Environment = ''
+                WAYLAND_DISPLAY=/run/user/1000/wayland-0 
+              '';
+            };
+          };
+
+          systemd.services.display-resume = {
+            enable = true;
+            description = "Display Resume Service";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = ''
+                ${pkgs.wlopm}/bin/wlopm --on '*'  
+              '';
+              Environment = ''
+                WAYLAND_DISPLAY=/run/user/1000/wayland-0 
+              '';
+            };
+          };
+
           systemd.services."waypipe-ssh-keygen" =
             let
               keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''

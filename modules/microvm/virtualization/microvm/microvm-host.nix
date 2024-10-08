@@ -9,6 +9,21 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm-host;
+  manageDisplay =
+    config.ghaf.givc.enable
+    && config.ghaf.virtualization.microvm.adminvm.enable
+    && config.ghaf.virtualization.microvm.guivm.enable;
+
+  inherit (builtins) replaceStrings;
+  cliArgs = replaceStrings [ "\n" ] [ " " ] ''
+    --name ${config.ghaf.givc.adminConfig.name}
+    --addr ${config.ghaf.givc.adminConfig.addr}
+    --port ${config.ghaf.givc.adminConfig.port}
+    ${lib.optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
+    ${lib.optionalString config.ghaf.givc.enableTls "--cert /run/givc/ghaf-host-cert.pem"}
+    ${lib.optionalString config.ghaf.givc.enableTls "--key /run/givc/ghaf-host-key.pem"}
+    ${lib.optionalString (!config.ghaf.givc.enableTls) "--notls"}
+  '';
 in
 {
   imports = [
@@ -54,6 +69,27 @@ in
         withHardenedConfigs = true;
       };
       ghaf.givc.host.enable = true;
+      systemd.services.display-suspend = lib.mkIf manageDisplay {
+        enable = true;
+        description = "Display Suspend Service";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} suspend";
+        };
+        wantedBy = [ "sleep.target" ];
+        before = [ "sleep.target" ];
+      };
+
+      systemd.services.display-resume = lib.mkIf manageDisplay {
+        enable = true;
+        description = "Display Resume Service";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} wakeup";
+        };
+        wantedBy = [ "suspend.target" ];
+        after = [ "suspend.target" ];
+      };
 
       # TODO: remove hardcoded paths
       systemd.services."microvm@audio-vm".serviceConfig =
