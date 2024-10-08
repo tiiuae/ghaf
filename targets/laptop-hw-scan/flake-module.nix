@@ -22,6 +22,8 @@ let
               isoImage.isoBaseName = "ghaf";
               isoImage.squashfsCompression = "zstd -Xcompression-level 3";
               environment.systemPackages = [ self.packages.x86_64-linux.hardware-scan ];
+              networking.networkmanager.enable = true;
+              networking.wireless.enable = false;
               boot.kernelParams = [
                 # TODO AMD support
                 "intel_iommu=on,sm_on"
