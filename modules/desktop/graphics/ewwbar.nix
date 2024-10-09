@@ -498,15 +498,15 @@ in
             (widget_button
                     :icon "${power-icon}"
                     :header "Shutdown"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu; ${eww-power}/bin/eww-power poweroff")
+                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${eww-power}/bin/eww-power poweroff &")
             (widget_button
                     :icon "${suspend-icon}"
                     :header "Suspend"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu; ${eww-power}/bin/eww-power suspend")
+                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${eww-power}/bin/eww-power suspend &")
             (widget_button
                     :icon "${restart-icon}"
                     :header "Reboot"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu; ${eww-power}/bin/eww-power reboot")
+                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${eww-power}/bin/eww-power reboot &")
         ))
         (defwidget settings_buttons []
         (box
