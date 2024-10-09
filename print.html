@@ -4978,16 +4978,6 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix</a></li>
 </ul>
-<h2 id="ghafgraphicsdemo-appsappflowy"><a class="header" href="#ghafgraphicsdemo-appsappflowy">ghaf.graphics.demo-apps.appflowy</a></h2>
-<p>Include package Appflowy to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
 <h2 id="ghafgraphicsdemo-appschromium"><a class="header" href="#ghafgraphicsdemo-appschromium">ghaf.graphics.demo-apps.chromium</a></h2>
 <p>Include package Chromium browser to menu and system environment</p>
 <p><em>Type:</em>
@@ -5114,12 +5104,12 @@ list of (submodule)</p>
     identifier = "org.pwmt.zathura";
   }
   {
-    colour = "#337aff";
-    identifier = "Element";
+    colour = "#122263";
+    identifier = "pqiv";
   }
   {
-    colour = "#4c3f7a";
-    identifier = "AppFlowy";
+    colour = "#337aff";
+    identifier = "Element";
   }
   {
     colour = "#353535";
@@ -5156,7 +5146,7 @@ string</p>
 <p><em>Type:</em>
 path</p>
 <p><em>Default:</em>
-<code>"/nix/store/n4h1i8nlklgi69rysb7f1905h4jzz0xp-ghaf-artwork-0.1.0/ghaf-wallpaper.png"</code></p>
+<code>"/nix/store/n4h1i8nlklgi69rysb7f1905h4jzz0xp-ghaf-artwork-0.1.0/ghaf-desert-sunset.jpg"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
@@ -6652,18 +6642,6 @@ list of (attribute set)</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms">https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms</a></li>
 </ul>
-<h2 id="ghafreferenceappvmsappflowy-vm"><a class="header" href="#ghafreferenceappvmsappflowy-vm">ghaf.reference.appvms.appflowy-vm</a></h2>
-<p>Whether to enable Enable the Appflowy appvm.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms">https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms</a></li>
-</ul>
 <h2 id="ghafreferenceappvmsbusiness-vm"><a class="header" href="#ghafreferenceappvmsbusiness-vm">ghaf.reference.appvms.business-vm</a></h2>
 <p>Whether to enable Enable the Business appvm.</p>
 <p><em>Type:</em>
@@ -6888,7 +6866,7 @@ boolean</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/zathura.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/zathura.nix</a></li>
 </ul>
 <h2 id="ghafreferenceservicesenable"><a class="header" href="#ghafreferenceservicesenable">ghaf.reference.services.enable</a></h2>
-<p>Whether to enable Enable the Ghaf reference services.</p>
+<p>Whether to enable Ghaf reference services.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -6900,7 +6878,7 @@ boolean</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services</a></li>
 </ul>
 <h2 id="ghafreferenceservicesdendrite"><a class="header" href="#ghafreferenceservicesdendrite">ghaf.reference.services.dendrite</a></h2>
-<p>Whether to enable Enable the dendrite-pinecone service.</p>
+<p>Whether to enable dendrite-pinecone service.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -6952,6 +6930,18 @@ string</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesollama"><a class="header" href="#ghafreferenceservicesollama">ghaf.reference.services.ollama</a></h2>
+<p>Whether to enable ollama service.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services</a></li>
 </ul>
 <h2 id="ghafreferenceservicesproxy-business"><a class="header" href="#ghafreferenceservicesproxy-business">ghaf.reference.services.proxy-business</a></h2>
 <p>Whether to enable Enable the proxy server service.</p>
@@ -7153,28 +7143,6 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/fprint.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/fprint.nix</a></li>
 </ul>
-<h2 id="ghafservicespdfopenerenable"><a class="header" href="#ghafservicespdfopenerenable">ghaf.services.pdfopener.enable</a></h2>
-<p>Whether to enable Enable the pdf opening service.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/pdfopen.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/pdfopen.nix</a></li>
-</ul>
-<h2 id="ghafservicespdfopenerxdgpdfport"><a class="header" href="#ghafservicespdfopenerxdgpdfport">ghaf.services.pdfopener.xdgPdfPort</a></h2>
-<p>TCP port for the PDF XDG socket</p>
-<p><em>Type:</em>
-signed integer</p>
-<p><em>Default:</em>
-<code>1200</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/pdfopen.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/pdfopen.nix</a></li>
-</ul>
 <h2 id="ghafserviceswifienable"><a class="header" href="#ghafserviceswifienable">ghaf.services.wifi.enable</a></h2>
 <p>Whether to enable Wifi configuration for the net-vm.</p>
 <p><em>Type:</em>
@@ -7186,6 +7154,40 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/wifi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/wifi.nix</a></li>
+</ul>
+<h2 id="ghafservicesxdghandlersenable"><a class="header" href="#ghafservicesxdghandlersenable">ghaf.services.xdghandlers.enable</a></h2>
+<p>Whether to enable Enable Ghaf XDG handlers.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdghandlers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdghandlers.nix</a></li>
+</ul>
+<h2 id="ghafservicesxdgopenerenable"><a class="header" href="#ghafservicesxdgopenerenable">ghaf.services.xdgopener.enable</a></h2>
+<p>Whether to enable Enable the XDG opening service.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix</a></li>
+</ul>
+<h2 id="ghafservicesxdgopenerxdgport"><a class="header" href="#ghafservicesxdgopenerxdgport">ghaf.services.xdgopener.xdgPort</a></h2>
+<p>TCP port for the XDG socket</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>1200</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix</a></li>
 </ul>
 <h2 id="ghafservicesyubikeyenable"><a class="header" href="#ghafservicesyubikeyenable">ghaf.services.yubikey.enable</a></h2>
 <p>Whether to enable Enable yubikey support which provide 2FA.</p>
@@ -10407,7 +10409,6 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Initial implementation of <a href="release_notes/../architecture/adr/idsvm.html">IDS VM</a> as a defensive network mechanism.</li>
 <li>Support for <a href="https://element.io/">Element</a> chat application.</li>
 <li>GPS location sharing through the Element application.</li>
-<li><a href="https://github.com/AppFlowy-IO/AppFlowy">AppFlowy</a> uses the <a href="https://github.com/flutter">Flutter</a> application framework.</li>
 </ul>
 </li>
 <li>NVIDIA Jetson Orin NX:
