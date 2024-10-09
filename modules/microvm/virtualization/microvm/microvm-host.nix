@@ -44,10 +44,10 @@ in
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
       microvm.host.enable = true;
+      microvm.host.useNotifySockets = true;
       ghaf.systemd = {
         withName = "host-systemd";
         enable = true;
-        boot.enable = true;
         withAudit = config.ghaf.profiles.debug.enable;
         withPolkit = true;
         withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;

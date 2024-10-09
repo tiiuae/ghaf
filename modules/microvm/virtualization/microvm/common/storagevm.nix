@@ -63,13 +63,14 @@ in
   config = lib.mkIf cfg.enable {
     fileSystems.${mountPath} = {
       neededForBoot = true;
-      options = lib.mkForce [
+      options = [
         "rw"
         "nodev"
         "nosuid"
         "noexec"
       ];
     };
+    virtualisation.fileSystems.${mountPath}.device = "/dev/vda";
 
     microvm.shares = [
       {
