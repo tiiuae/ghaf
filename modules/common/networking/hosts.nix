@@ -77,10 +77,6 @@ let
     }
     {
       ip = 104;
-      name = "appflowy-vm";
-    }
-    {
-      ip = 105;
       name = "business-vm";
     }
   ];

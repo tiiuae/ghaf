@@ -140,14 +140,6 @@ in
             }
 
             {
-              name = "AppFlowy";
-              description = "Productivity & Note-Taking Application";
-              vm = "AppFlowy";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start appflowy";
-              icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
-            }
-
-            {
               name = "Calculator";
               description = "Solve Math Problems";
               path = "${pkgs.gnome-calculator}/bin/gnome-calculator";

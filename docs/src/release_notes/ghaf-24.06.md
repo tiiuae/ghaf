@@ -40,7 +40,6 @@ The following target hardware is supported by this release:
   * Initial implementation of [IDS VM](../architecture/adr/idsvm.md) as a defensive network mechanism.
   * Support for [Element](https://element.io/) chat application.
   * GPS location sharing through the Element application.
-  * [AppFlowy](https://github.com/AppFlowy-IO/AppFlowy) uses the [Flutter](https://github.com/flutter) application framework.
 * NVIDIA Jetson Orin NX:
   * UARTI passthrough.
   * The Jetpack baseline software updates and fixes.
