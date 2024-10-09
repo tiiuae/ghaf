@@ -16,7 +16,7 @@
     kernelConfig.kernelParams = [
       "intel_iommu=on,sm_on"
       "iommu=pt"
-      "module_blacklist=i915,xe" # Prevent i915,xe modules from being accidentally used by host
+      "module_blacklist=i915,xe,snd_pcm" # Prevent i915,xe,snd_pcm modules from being accidentally used by host
       "acpi_backlight=vendor"
       "acpi_osi=linux"
     ];
