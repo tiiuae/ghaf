@@ -34,7 +34,7 @@ in
     };
     wallpaper = lib.mkOption {
       type = lib.types.path;
-      default = "${pkgs.ghaf-artwork}/ghaf-wallpaper.png";
+      default = "${pkgs.ghaf-artwork}/ghaf-desert-sunset.jpg";
       description = "Path to the wallpaper image";
     };
     frameColouring = lib.mkOption {
