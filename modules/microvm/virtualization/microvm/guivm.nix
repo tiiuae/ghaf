@@ -86,6 +86,7 @@ let
             };
             services.disks.enable = true;
             services.disks.fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
+            services.xdghandlers.enable = true;
           };
 
           systemd.services."waypipe-ssh-keygen" =

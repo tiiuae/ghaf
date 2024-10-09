@@ -9,7 +9,6 @@
 }:
 let
   #TODO: Move this to a common place
-  xdgPdfPort = 1200;
   name = "business";
   tiiVpnAddr = "151.253.154.18";
   vpnOnlyAddr = "${tiiVpnAddr},jira.tii.ae,access.tii.ae,confluence.tii.ae,i-service.tii.ae,catalyst.atrc.ae";
@@ -20,33 +19,13 @@ let
 in
 {
   name = "${name}";
-  packages =
-    let
-      # PDF XDG handler is executed when the user opens a PDF file in the browser
-      # The xdgopenpdf script sends a command to the guivm with the file path over TCP connection
-      xdgPdfItem = pkgs.makeDesktopItem {
-        name = "ghaf-pdf";
-        desktopName = "Ghaf PDF handler";
-        exec = "${xdgOpenPdf}/bin/xdgopenpdf %u";
-        mimeTypes = [ "application/pdf" ];
-      };
-      xdgOpenPdf = pkgs.writeShellScriptBin "xdgopenpdf" ''
-        filepath=$(/run/current-system/sw/bin/realpath "$1")
-        echo "Opening $filepath" | systemd-cat -p info
-        echo $filepath | ${pkgs.netcat}/bin/nc -N gui-vm ${toString xdgPdfPort}
-      '';
-    in
-    [
-      pkgs.chromium
-      pkgs.xdg-utils
-      xdgPdfItem
-      xdgOpenPdf
-      pkgs.globalprotect-openconnect
-      pkgs.losslesscut-bin
-      pkgs.openconnect
-      pkgs.gnome-text-editor
-    ]
-    ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
+  packages = [
+    pkgs.chromium
+    pkgs.globalprotect-openconnect
+    pkgs.losslesscut-bin
+    pkgs.openconnect
+    pkgs.gnome-text-editor
+  ] ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
 
   # TODO create a repository of mac addresses to avoid conflicts
   macAddress = "02:00:00:03:10:01";
@@ -113,10 +92,9 @@ in
             csdWrapper = "${pkgs.openconnect}/libexec/openconnect/hipreport.sh";
           };
         };
-      };
 
-      # Set default PDF XDG handler
-      xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf.desktop";
+        services.xdghandlers.enable = true;
+      };
 
       # Enable dconf and icon pack for gnome text editor
       programs.dconf.enable = true;

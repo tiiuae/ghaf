@@ -7,7 +7,8 @@
     ./wifi.nix
     ./firmware.nix
     ./desktop.nix
-    ./pdfopen.nix
+    ./xdgopener.nix
+    ./xdghandlers.nix
     ./namespaces.nix
     ./yubikey.nix
     ./bluetooth.nix

@@ -9,7 +9,10 @@
 }:
 {
   name = "zathura";
-  packages = [ pkgs.zathura ];
+  packages = [
+    pkgs.zathura
+    pkgs.pqiv
+  ];
   macAddress = "02:00:00:03:07:01";
   ramMb = 512;
   cores = 1;
