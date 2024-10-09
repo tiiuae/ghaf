@@ -70,9 +70,9 @@ let
       config.ghaf.services.desktop.enable = true;
     };
 
-    # PDF opener
-    pdfOpener = {
-      config.ghaf.services.pdfopener.enable = true;
+    # XDG opener
+    xdgOpener = {
+      config.ghaf.services.xdgopener.enable = true;
     };
 
     # Yubikey module
@@ -165,7 +165,7 @@ in
         serviceModules.desktop
         serviceModules.fprint
         serviceModules.yubikey
-        serviceModules.pdfOpener
+        serviceModules.xdgOpener
         serviceModules.commonNamespace
         serviceModules.givc
         referenceProgramsModule

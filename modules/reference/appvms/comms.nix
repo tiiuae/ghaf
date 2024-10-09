@@ -32,6 +32,8 @@ in
   cores = 4;
   extraModules = [
     {
+      imports = [ ../programs/chromium.nix ];
+
       systemd = {
         services = {
           element-gps = {
@@ -95,6 +97,8 @@ in
           }
         ];
       };
+      ghaf.reference.programs.chromium.enable = true;
+      ghaf.services.xdghandlers.enable = true;
     }
   ];
   borderColor = "#337aff";
