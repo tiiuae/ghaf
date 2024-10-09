@@ -29,7 +29,6 @@ in
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
-    appflowy = mkProgramOption "Appflowy" config.ghaf.graphics.enableDemoApplications;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
@@ -63,12 +62,6 @@ in
         description = "PDF Viewer Application";
         path = "${pkgs.zathura}/bin/zathura";
         icon = "${pkgs.icon-pack}/document-viewer.svg";
-      }
-      ++ lib.optional (cfg.appflowy && pkgs.stdenv.isx86_64) {
-        name = "AppFlowy";
-        description = "Productivity & Note-Taking Application";
-        path = "${pkgs.appflowy}/bin/appflowy";
-        icon = "${pkgs.appflowy}/opt/data/flutter_assets/assets/images/flowy_logo.svg";
       };
   };
 }

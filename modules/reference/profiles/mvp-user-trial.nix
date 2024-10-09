@@ -36,7 +36,6 @@ in
           gala-vm = true;
           zathura-vm = true;
           comms-vm = true;
-          appflowy-vm = true;
           business-vm = true;
         };
 
