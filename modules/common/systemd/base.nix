@@ -16,6 +16,7 @@ let
     mkIf
     mkForce
     types
+    optionalAttrs
     ;
 
   # Override minimal systemd package configuration
@@ -149,6 +150,12 @@ let
       "systemd-networkd-wait-online.service"
       "systemd-networkd.service"
       "systemd-networkd.socket"
+    ])
+    ++ (lib.optionals (!cfg.withAudio) [
+      "sound.target"
+    ])
+    ++ (lib.optionals (!cfg.withBluetooth) [
+      "bluetooth.target"
     ])
     ++ (lib.optionals (!cfg.withDebug) [
       ## Units kept with debug
@@ -307,8 +314,26 @@ in
       default = false;
     };
 
+    withAudio = mkOption {
+      description = "Enable audio functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withBluetooth = mkOption {
+      description = "Enable bluetooth functionality.";
+      type = types.bool;
+      default = false;
+    };
+
     withDebug = mkOption {
       description = "Enable systemd debug functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    verboseLogs = mkOption {
+      description = "Increase systemd log verbosity.";
       type = types.bool;
       default = false;
     };
@@ -324,6 +349,9 @@ in
       # Misc. configurations
       enableEmergencyMode = cfg.withDebug;
       coredump.enable = cfg.withDebug || cfg.withMachines;
+      managerEnvironment = optionalAttrs cfg.verboseLogs {
+        SYSTEMD_LOG_LEVEL = "debug";
+      };
 
       # Service startup optimization
       services.systemd-networkd-wait-online.enable = mkForce false;
