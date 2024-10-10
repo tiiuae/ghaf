@@ -19,6 +19,7 @@
     {
       packages = self.lib.platformPkgs system {
         gala-app = callPackage ./gala { };
+        fingerprint-gui = callPackage ./fingerprint-gui { };
         kernel-hardening-checker = callPackage ./kernel-hardening-checker { };
         make-checks = callPackage ./make-checks { };
         windows-launcher = callPackage ./windows-launcher { enableSpice = false; };
