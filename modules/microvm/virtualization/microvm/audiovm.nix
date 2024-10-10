@@ -89,8 +89,8 @@ let
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
-            vcpu = 1;
-            mem = 256;
+            vcpu = 2;
+            mem = 384;
             hypervisor = "qemu";
             shares =
               [
