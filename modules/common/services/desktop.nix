@@ -161,13 +161,6 @@ in
             }
 
             {
-              name = "Network Settings";
-              description = "Manage Network & Wi-Fi Settings";
-              path = "${pkgs.nm-launcher}/bin/nm-launcher";
-              icon = "${pkgs.icon-pack}/preferences-system-network.svg";
-            }
-
-            {
               name = "Bluetooth Settings";
               description = "Manage Bluetooth Devices & Settings";
               path = "${pkgs.bt-launcher}/bin/bt-launcher";
