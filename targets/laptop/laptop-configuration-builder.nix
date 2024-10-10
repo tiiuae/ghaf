@@ -26,8 +26,6 @@ let
           #TODO see the twisted dependencies in common/desktop
 
           (_: {
-            time.timeZone = "Asia/Dubai";
-
             ghaf = {
               profiles = {
                 # variant type, turn on debug or release
