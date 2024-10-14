@@ -106,6 +106,13 @@ in
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gnome-text-editor";
               icon = "${pkgs.icon-pack}/org.gnome.TextEditor.svg";
             }
+            {
+              name = "Peazip";
+              description = "File Compressor";
+              vm = "Business";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm peazip";
+              icon = "${pkgs.icon-pack}/io.github.peazip.PeaZip.svg";
+            }
 
             {
               name = "GALA";

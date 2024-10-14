@@ -25,6 +25,7 @@ in
     pkgs.losslesscut-bin
     pkgs.openconnect
     pkgs.gnome-text-editor
+    pkgs.peazip
   ] ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
 
   # TODO create a repository of mac addresses to avoid conflicts
@@ -80,6 +81,10 @@ in
             {
               name = "losslesscut";
               command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            }
+            {
+              name = "peazip";
+              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/peazip --platform wayland";
             }
           ];
         };

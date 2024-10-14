@@ -18,6 +18,7 @@ let
     "document-viewer.svg"
     "element-desktop.svg"
     "firefox.svg"
+    "io.github.peazip.PeaZip.svg"
     "microsoft-365.svg"
     "ms-outlook.svg"
     "org.gnome.TextEditor.svg"
