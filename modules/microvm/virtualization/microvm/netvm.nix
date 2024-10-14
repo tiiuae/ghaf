@@ -78,6 +78,8 @@ let
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
 
+            # Provide BPF access to privileged users
+            security.sysctl.network.bpf-access-level = lib.mkForce 1;
           };
 
           time.timeZone = config.time.timeZone;

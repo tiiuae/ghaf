@@ -4,5 +4,6 @@
   imports = [
     ./sshkeys.nix
     ./apparmor
+    ./networking.nix
   ];
 }
