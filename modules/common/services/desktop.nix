@@ -106,6 +106,13 @@ in
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gnome-text-editor";
               icon = "${pkgs.icon-pack}/org.gnome.TextEditor.svg";
             }
+            {
+              name = "Xarchiver";
+              description = "File Compressor";
+              vm = "Business";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm xarchiver";
+              icon = "${pkgs.icon-pack}/xarchiver.svg";
+            }
 
             {
               name = "GALA";
