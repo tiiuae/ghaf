@@ -48,6 +48,7 @@ in
       };
       ghaf.reference.programs.chromium.enable = true;
       ghaf.services.xdghandlers.enable = true;
+      ghaf.security.apparmor.enable = true;
     }
   ];
   borderColor = "#630505";

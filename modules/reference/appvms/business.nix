@@ -93,6 +93,7 @@ in
           };
         };
 
+        security.apparmor.enable = true;
         services.xdghandlers.enable = true;
       };
 
