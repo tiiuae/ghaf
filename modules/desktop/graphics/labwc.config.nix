@@ -148,6 +148,12 @@ let
     <libinput>
       <device category="touchpad"><naturalScroll>yes</naturalScroll></device>
     </libinput>
+    <windowSwitcher show="yes" preview="yes" outlines="yes" allWorkspaces="yes">
+      <fields>
+        <field content="title"  width="75%" />
+        <field content="output"  width="25%" />
+      </fields>
+    </windowSwitcher>
     </labwc_config>
   '';
 
