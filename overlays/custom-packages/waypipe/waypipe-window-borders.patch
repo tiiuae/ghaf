@@ -1,6 +1,8 @@
-From b993dca0e0919cf16c207026605f0fe5a61f479f Mon Sep 17 00:00:00 2001
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From 0046d82edbaddf3436f62118ee4579f47f81aa4e Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
-Date: Fri, 24 May 2024 11:15:41 +0200
+Date: Tue, 15 Oct 2024 17:49:40 +0300
 Subject: [PATCH] Add support for coloured window borders
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
@@ -10,43 +12,32 @@ This is usefor to visually distinguish between different windows when
 using waypipe. The border is drawn around the window and can be
 configured with a hex color and a border size in pixels.
 
-Signed-off-by: Jörg Thalheim <joerg@thalheim.io>
+Co-authored-by: Jörg Thalheim <joerg@thalheim.io>
 ---
  protocols/function_list.txt |   4 ++
- src/handlers.c              | 121 ++++++++++++++++++++++++++++++++++++
+ src/handlers.c              | 123 ++++++++++++++++++++++++++++++++++++
  src/main.h                  |   3 +
  src/parsing.h               |   4 ++
  src/util.c                  |  12 ++++
  src/util.h                  |   6 ++
- src/waypipe.c               |  70 ++++++++++++++++++++-
+ src/waypipe.c               |  72 ++++++++++++++++++++-
  waypipe.scd                 |   5 ++
- 8 files changed, 223 insertions(+), 2 deletions(-)
+ 8 files changed, 227 insertions(+), 2 deletions(-)
 
 diff --git a/protocols/function_list.txt b/protocols/function_list.txt
-index 4acaec5..4750263 100644
+index 4acaec5..8912a93 100644
 --- a/protocols/function_list.txt
 +++ b/protocols/function_list.txt
-@@ -16,6 +16,7 @@ wl_registry_req_bind
- wl_shm_req_create_pool
- wl_shm_pool_req_create_buffer
- wl_shm_pool_req_resize
-+wl_surface_evt_preferred_buffer_scale
- wl_surface_req_attach
- wl_surface_req_commit
- wl_surface_req_damage
-@@ -25,7 +26,10 @@ wl_surface_req_set_buffer_scale
- wp_presentation_evt_clock_id
- wp_presentation_feedback_evt_presented
- wp_presentation_req_feedback
-+xdg_surface_req_get_toplevel
-+xdg_surface_req_set_window_geometry
- xdg_toplevel_req_set_title
+@@ -50,3 +50,7 @@ zwp_linux_dmabuf_v1_req_get_default_feedback
+ zwp_linux_dmabuf_v1_req_get_surface_feedback
+ zwp_primary_selection_offer_v1_req_receive
+ zwp_primary_selection_source_v1_evt_send
 +xdg_wm_base_req_get_xdg_surface
- zwlr_data_control_offer_v1_req_receive
- zwlr_data_control_source_v1_evt_send
- zwlr_export_dmabuf_frame_v1_evt_frame
++xdg_surface_req_set_window_geometry
++xdg_surface_req_get_toplevel
++wl_surface_evt_preferred_buffer_scale
 diff --git a/src/handlers.c b/src/handlers.c
-index c82f4e0..50ff7a3 100644
+index c82f4e0..b0bb30d 100644
 --- a/src/handlers.c
 +++ b/src/handlers.c
 @@ -98,6 +98,7 @@ struct obj_wl_surface {
@@ -71,7 +62,7 @@ index c82f4e0..50ff7a3 100644
  	return new_obj;
  }
  
-@@ -743,6 +751,88 @@ static void rotate_damage_lists(struct obj_wl_surface *surface)
+@@ -743,6 +751,87 @@ static void rotate_damage_lists(struct obj_wl_surface *surface)
  			(SURFACE_DAMAGE_BACKLOG - 1) * sizeof(uint64_t));
  	surface->attached_buffer_uids[0] = 0;
  }
@@ -112,8 +103,7 @@ index c82f4e0..50ff7a3 100644
 +		for (int32_t y = y1; y < y2; y++) {
 +			if (c->a == 255) {
 +				set_pixel(buf, x, y, c);
-+			}
-+			else {
++			} else {
 +				struct color c1;
 +				get_pixel(buf, x, y, &c1);
 +				alpha_blend(&c1, c);
@@ -123,7 +113,7 @@ index c82f4e0..50ff7a3 100644
 +	}
 +}
 +
-+void draw_border(struct context *ctx)
++void draw_border(struct context *ctx, const struct color *border_color, uint32_t border_size)
 +{
 +	struct obj_wl_surface *surface = (struct obj_wl_surface *)ctx->obj;
 +	if (!surface)
@@ -141,17 +131,17 @@ index c82f4e0..50ff7a3 100644
 +		if (ctx->obj->xdg_surface_id) {
 +			struct wp_object *xdg_surface = tracker_get(ctx->tracker, ctx->obj->xdg_surface_id);
 +			if (xdg_surface && xdg_surface->is_window) {
-+			  int32_t scale = surface->preferred_buffer_scale > 0 ? surface->preferred_buffer_scale : 1;
++				int32_t scale = surface->preferred_buffer_scale > 0 ? surface->preferred_buffer_scale : 1;
 +				int32_t x1 = xdg_surface->window_x * scale;
 +				int32_t y1 = xdg_surface->window_y * scale;
 +				int32_t x2 = min(buf->shm_width, (xdg_surface->window_x + xdg_surface->window_width) * scale);
 +				int32_t y2 = min(buf->shm_height, (xdg_surface->window_y + xdg_surface->window_height) * scale);
-+				int32_t border_size = min(min(ctx->g->config->border_size, x2 - x1), y2 - y1);
++				border_size = min(min(border_size, x2 - x1), y2 - y1);
 +
-+				draw_rect(buf, x1, y1, x2, y1 + border_size, &ctx->g->config->border_color); // top
-+				draw_rect(buf, x1, y1 + border_size, x1 + border_size, y2, &ctx->g->config->border_color); // left
-+				draw_rect(buf, x1 + border_size, y2 - border_size, x2, y2, &ctx->g->config->border_color); // bottom
-+				draw_rect(buf, x2 - border_size, y1 + border_size, x2, y2 - border_size, &ctx->g->config->border_color); // right
++				draw_rect(buf, x1, y1, x2, y1 + border_size, border_color); // top
++				draw_rect(buf, x1, y1 + border_size, x1 + border_size, y2, border_color); // left
++				draw_rect(buf, x1 + border_size, y2 - border_size, x2, y2, border_color); // bottom
++				draw_rect(buf, x2 - border_size, y1 + border_size, x2, y2 - border_size, border_color); // right
 +			}
 +		}
 +	}
@@ -160,32 +150,37 @@ index c82f4e0..50ff7a3 100644
  void do_wl_surface_req_commit(struct context *ctx)
  {
  	struct obj_wl_surface *surface = (struct obj_wl_surface *)ctx->obj;
-@@ -760,6 +850,10 @@ void do_wl_surface_req_commit(struct context *ctx)
+@@ -758,8 +847,17 @@ void do_wl_surface_req_commit(struct context *ctx)
+ 	}
+ 	if (ctx->on_display_side) {
  		/* commit signifies a client-side update only */
++
++		/* Global border for all windows - client mode */
++		if (ctx->g->config->border)
++			draw_border(ctx, &ctx->g->config->border_color, ctx->g->config->border_size);
  		return;
  	}
 +
++	/* Global border for all windows - server mode */
 +	if (ctx->g->config->border)
-+		draw_border(ctx);
++		draw_border(ctx, &ctx->g->config->border_color, ctx->g->config->border_size);
 +
  	struct wp_object *obj =
  			tracker_get(ctx->tracker, surface->attached_buffer_id);
  	if (!obj) {
-@@ -921,6 +1015,13 @@ static void append_damage_record(struct obj_wl_surface *surface, int32_t x,
+@@ -921,6 +1019,11 @@ static void append_damage_record(struct obj_wl_surface *surface, int32_t x,
  	damage->width = width;
  	damage->height = height;
  }
-+
 +void do_wl_surface_evt_preferred_buffer_scale(struct context *ctx, int32_t scale)
 +{
 +	struct obj_wl_surface *surface = (struct obj_wl_surface *)ctx->obj;
 +	surface->preferred_buffer_scale = scale;
 +}
-+
  void do_wl_surface_req_damage(struct context *ctx, int32_t x, int32_t y,
  		int32_t width, int32_t height)
  {
-@@ -2021,3 +2122,23 @@ void do_xdg_toplevel_req_set_title(struct context *ctx, const char *str)
+@@ -2021,3 +2124,23 @@ void do_xdg_toplevel_req_set_title(struct context *ctx, const char *str)
  }
  
  const struct wp_interface *the_display_interface = &intf_wl_display;
@@ -274,18 +269,18 @@ index 9970840..8e5cec1 100644
 +
  #endif // WAYPIPE_UTIL_H
 diff --git a/src/waypipe.c b/src/waypipe.c
-index c66a971..0dbec96 100644
+index c66a971..9908677 100644
 --- a/src/waypipe.c
 +++ b/src/waypipe.c
-@@ -86,6 +86,7 @@ static const char usage_string[] =
- 		"                         vsock: [[s]CID:]port\n"
- 		"      --version        print waypipe version and exit\n"
- 		"      --allow-tiled    allow gpu buffers (DMABUFs) with format modifiers\n"
-+		"      --border C,S     server: add a border with hex color C and border size S in hex around the window\n"
- 		"      --control C      server,ssh: set control pipe to reconnect server\n"
- 		"      --display D      server,ssh: the Wayland display name or path\n"
- 		"      --drm-node R     set the local render node. default: /dev/dri/renderD128\n"
-@@ -400,6 +401,53 @@ static int parse_vsock_addr(const char *str, struct main_config *config)
+@@ -98,6 +98,7 @@ static const char usage_string[] =
+ 		"      --video[=V]      compress certain linear dmabufs only with a video codec\n"
+ 		"                         V is list of options: sw,hw,bpf=1.2e5,h264,vp9,av1\n"
+ 		"      --vsock          use vsock instead of unix socket\n"
++		"      --border C,S     add a border with hex color C and border size S in hex around the window\n"
+ 		"\n";
+ 
+ static int usage(int retcode)
+@@ -400,6 +401,55 @@ static int parse_vsock_addr(const char *str, struct main_config *config)
  }
  #endif
  
@@ -303,11 +298,13 @@ index c66a971..0dbec96 100644
 +	c->b = (hex_char_to_int(str[5]) << 4) + hex_char_to_int(str[6]);
 +	if (l == 9)
 +		c->a = (hex_char_to_int(str[7]) << 4) + hex_char_to_int(str[8]);
++	else
++		c->a = 255;
 +
 +	return 0;
 +}
 +
-+static int parse_border(const char *str, struct main_config *config)
++static int parse_border(const char *str, struct color *color, uint32_t *size)
 +{
 +	if (str == NULL)
 +		return -1;
@@ -319,16 +316,16 @@ index c66a971..0dbec96 100644
 +	}
 +	memcpy(tmp, str, l + 1);
 +
-+	char *color = strtok(tmp, ",");
-+	if (color) {
-+		if (parse_color(color, &config->border_color) == -1) {
++	char *c = strtok(tmp, ",");
++	if (c) {
++		if (parse_color(c, color) == -1) {
 +			return -1;
 +		}
 +	}
 +
 +	char *border_size = strtok(NULL, ",");
 +	if (border_size) {
-+		if (parse_uint32(border_size, &config->border_size) == -1) {
++		if (parse_uint32(border_size, size) == -1) {
 +			return -1;
 +		}
 +	}
@@ -339,7 +336,7 @@ index c66a971..0dbec96 100644
  static const char *feature_names[] = {
  		"lz4",
  		"zstd",
-@@ -450,6 +498,7 @@ static const bool feature_flags[] = {
+@@ -450,6 +500,7 @@ static const bool feature_flags[] = {
  #define ARG_BENCH_TEST_SIZE 1012
  #define ARG_VSOCK 1013
  #define ARG_TITLE_PREFIX 1014
@@ -347,7 +344,7 @@ index c66a971..0dbec96 100644
  
  static const struct option options[] = {
  		{"compress", required_argument, NULL, 'c'},
-@@ -473,7 +522,10 @@ static const struct option options[] = {
+@@ -473,7 +524,10 @@ static const struct option options[] = {
  		{"test-size", required_argument, NULL, ARG_BENCH_TEST_SIZE},
  		{"vsock", no_argument, NULL, ARG_VSOCK},
  		{"title-prefix", required_argument, NULL, ARG_TITLE_PREFIX},
@@ -359,18 +356,18 @@ index c66a971..0dbec96 100644
  struct arg_permissions {
  	int val;
  	uint32_t mode_mask;
-@@ -498,7 +550,9 @@ static const struct arg_permissions arg_permissions[] = {
+@@ -498,7 +552,9 @@ static const struct arg_permissions arg_permissions[] = {
  		{ARG_CONTROL, MODE_SSH | MODE_SERVER},
  		{ARG_BENCH_TEST_SIZE, MODE_BENCH},
  		{ARG_VSOCK, MODE_SSH | MODE_CLIENT | MODE_SERVER},
 -		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER}};
 +		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER},
-+		{ARG_BORDER, MODE_SERVER},
++		{ARG_BORDER, MODE_CLIENT | MODE_SERVER | MODE_SSH}
 +};
  
  /* envp is nonstandard, so use environ */
  extern char **environ;
-@@ -541,6 +595,11 @@ int main(int argc, char **argv)
+@@ -541,6 +597,11 @@ int main(int argc, char **argv)
  			.vsock_to_host = false, /* VMADDR_FLAG_TO_HOST */
  			.vsock_port = 0,
  			.title_prefix = NULL,
@@ -382,13 +379,13 @@ index c66a971..0dbec96 100644
  	};
  
  	/* We do not parse any getopt arguments happening after the mode choice
-@@ -724,6 +783,13 @@ int main(int argc, char **argv)
+@@ -724,6 +785,13 @@ int main(int argc, char **argv)
  			}
  			config.title_prefix = optarg;
  			break;
 +		case ARG_BORDER:
 +			config.border = true;
-+			if (parse_border(optarg, &config) == -1) {
++			if (parse_border(optarg, &config.border_color, &config.border_size) == -1) {
 +				fprintf(stderr, "Invalid border argument: %s\n", optarg);
 +				return EXIT_FAILURE;
 +			}
@@ -397,21 +394,21 @@ index c66a971..0dbec96 100644
  			fail = true;
  			break;
 diff --git a/waypipe.scd b/waypipe.scd
-index d0b300d..f555b30 100644
+index d0b300d..c86518f 100644
 --- a/waypipe.scd
 +++ b/waypipe.scd
-@@ -111,6 +111,11 @@ compressible as images containing pictures.
- 	absolute path, the socket will be created in the folder given by the
- 	environment variable _XDG_RUNTIME_DIR_.)
+@@ -176,6 +176,11 @@ compressible as images containing pictures.
+ 	CID is only used in the server mode and can be omitted when connecting from a
+ 	guest virtual machine to host.
  
 +*--border C,S*
-+	For server: add a border with hex color C and border size S in hex around the
-+	window. The hex color should be in the format #RRGGBB or #RRGGBBAA and
-+	the border size is in pixels.
++	Add a border with hex color C and border size S in hex around the window.
++	The hex color should be in the format #RRGGBB or #RRGGBBAA and the border size is
++	in pixels.
 +
- *--drm-node R*
- 	Specify the path *R* to the drm device that this instance of waypipe should
- 	use and (in server mode) notify connecting applications about.
+ # EXAMPLE 
+ 
+ The following *waypipe ssh* subcommand will attempt to run *weston-flower* on
 -- 
-2.45.1
+2.43.0
 

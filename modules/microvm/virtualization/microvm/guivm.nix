@@ -44,6 +44,10 @@ let
             graphics.labwc = {
               autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
               autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
+              securityContext = map (vm: {
+                identifier = vm.name;
+                color = vm.borderColor;
+              }) config.ghaf.virtualization.microvm.appvm.vms;
             };
 
             development = {
@@ -199,41 +203,23 @@ let
 
           ghaf.reference.services.ollama = true;
 
-          # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
-          systemd.user.services = {
-            waypipe = {
-              enable = true;
-              description = "waypipe";
-              serviceConfig = {
-                Type = "simple";
-                ExecStart = "${pkgs.waypipe}/bin/waypipe --vsock -s ${toString cfg.waypipePort} client";
-                Restart = "always";
-                RestartSec = "1";
-              };
-              startLimitIntervalSec = 0;
-              partOf = [ "ghaf-session.target" ];
-              wantedBy = [ "ghaf-session.target" ];
+          systemd.user.services.nm-applet = {
+            enable = true;
+            description = "network manager graphical interface.";
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "1";
+              ExecStart = "${pkgs.nm-launcher}/bin/nm-launcher";
             };
-
-            nm-applet = {
-              enable = true;
-              description = "network manager graphical interface.";
-              serviceConfig = {
-                Type = "simple";
-                Restart = "always";
-                RestartSec = "1";
-                ExecStart = "${pkgs.nm-launcher}/bin/nm-launcher";
-              };
-              partOf = [ "ghaf-session.target" ];
-              wantedBy = [ "ghaf-session.target" ];
-            };
+            partOf = [ "ghaf-session.target" ];
+            wantedBy = [ "ghaf-session.target" ];
           };
         }
       )
     ];
   };
   cfg = config.ghaf.virtualization.microvm.guivm;
-  vsockproxy = pkgs.callPackage ../../../../packages/vsockproxy { };
 
   # Importing kernel builder function and building guest_graphics_hardened_kernel
   buildKernel = import ../../../../packages/kernel { inherit config pkgs lib; };
@@ -264,14 +250,6 @@ in
       default = 3;
       description = ''
         Context Identifier (CID) of the GUIVM VSOCK
-      '';
-    };
-
-    waypipePort = lib.mkOption {
-      type = lib.types.int;
-      default = 1100;
-      description = ''
-        Waypipe port number to listen for incoming connections from AppVMs
       '';
     };
   };
@@ -320,21 +298,5 @@ in
           ExecStart = "${script}/bin/create-waypipe-ssh-public-key-directory";
         };
       };
-
-    # Waypipe in GUIVM needs to communicate with AppVMs over VSOCK
-    # However, VSOCK does not support direct guest to guest communication
-    # The vsockproxy app is used on host as a bridge between AppVMs and GUIVM
-    # It listens for incoming connections from AppVMs and forwards data to GUIVM
-    systemd.services.vsockproxy = {
-      enable = true;
-      description = "vsockproxy";
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1";
-        ExecStart = "${vsockproxy}/bin/vsockproxy ${toString cfg.waypipePort} ${toString cfg.vsockCID} ${toString cfg.waypipePort}";
-      };
-      wantedBy = [ "multi-user.target" ];
-    };
   };
 }
