@@ -5,7 +5,10 @@
 prev.waypipe.overrideAttrs (_prevAttrs: {
   # Upstream pull request: https://gitlab.freedesktop.org/mstoeckl/waypipe/-/merge_requests/21
   patches = [
-    ./waypipe-window-borders.patch
     ./waypipe-fix-reading-data-from-pipes.patch
+    ./waypipe-window-borders.patch
+    ./waypipe-security-context.patch
   ];
+  nativeBuildInputs = _prevAttrs.nativeBuildInputs ++ [ prev.pkgs.wayland-scanner ];
+  buildInputs = _prevAttrs.buildInputs ++ [ prev.pkgs.wayland ];
 })

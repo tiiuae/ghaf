@@ -59,35 +59,27 @@ in
           identifier = "foot";
           colour = "#006305";
         }
-        # TODO these should reference the VM and not the application that is
-        # relayed through waypipe. Ideally this would match using metadata
-        # through Wayland security context.
-        {
-          identifier = "dev.scpp.saca.gala";
-          colour = "#027d7b";
-        }
-        {
-          identifier = "chromium-browser";
-          colour = "#630505";
-        }
-        {
-          identifier = "org.pwmt.zathura";
-          colour = "#122263";
-        }
-        {
-          identifier = "pqiv";
-          colour = "#122263";
-        }
-        {
-          identifier = "Element";
-          colour = "#337aff";
-        }
-        {
-          identifier = "org.gnome.TextEditor";
-          colour = "#353535";
-        }
       ];
       description = "List of applications and their frame colours";
+    };
+    securityContext = lib.mkOption {
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            identifier = lib.mkOption {
+              type = lib.types.str;
+              description = "The identifier attached to the security context";
+            };
+            color = lib.mkOption {
+              type = lib.types.str;
+              example = "#006305";
+              description = "Window frame color";
+            };
+          };
+        }
+      );
+      default = [ ];
+      description = "Wayland security context settings";
     };
     extraAutostart = lib.mkOption {
       type = lib.types.str;
