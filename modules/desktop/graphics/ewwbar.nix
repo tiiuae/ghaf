@@ -61,19 +61,22 @@ let
     runtimeInputs = [ ];
     bashOptions = [ ];
     text = ''
-      widgets=("calendar" "quick-settings" "power-menu")
-      widgets_to_close=()
+      windows=("calendar" "quick-settings" "power-menu")
 
       close-others(){
-          for widget in "''${widgets[@]}"; do
-              if [ "$widget" != "$1" ]; then
-                  widgets_to_close+=("$widget")
+          active_windows=$(${eww} active-windows)
+          close=()
+
+          for window in "''${windows[@]}"; do
+              window_open=$(echo "$active_windows" | grep "$window")
+              if [ "$window" != "$1" ] && [ -n "$window_open" ]; then
+                  close+=("$window")
               fi
           done
-          ${eww} close "''${widgets_to_close[@]}" >/dev/null 2>&1
+          ${eww} close "''${close[@]}"
       }
 
-      open-widget(){
+      open-window(){
           close-others "$1"
           if [ -z "$2" ]; then
               ${eww} open --toggle "$1"
@@ -82,7 +85,7 @@ let
           fi
       }
 
-      open-widget "$1" "$2"
+      open-window "$1" "$2"
     '';
   };
 
@@ -153,27 +156,84 @@ let
     '';
   };
 
-  eww-start = pkgs.writeShellApplication {
-    name = "eww-start";
+  ewwbar-ctrl = pkgs.writeShellApplication {
+    name = "ewwbar-ctrl";
     runtimeInputs = [
       pkgs.wlr-randr
       pkgs.jq
       pkgs.bash
+      pkgs.gawk
+      pkgs.xorg.setxkbmap
     ];
     bashOptions = [ ];
     text = ''
-      # Get number of connected displays using wlr-randr
-      connected_monitors=$(wlr-randr --json | jq 'length')
-      echo Found connected displays: "$connected_monitors"
-      # Launch Eww bar on each screen
-      ${eww} kill
-      ${eww} daemon
-      for ((screen=0; screen<connected_monitors; screen++)); do
-          echo Starting ewwbar for display $screen
-          ${eww} open --no-daemonize --screen "$screen" bar --id bar:$screen --arg screen="$screen"
-      done
-      ${eww} open hotkey-indicator
-      ${eww} update volume="$(${eww-volume}/bin/eww-volume get)" brightness="$(${eww-brightness}/bin/eww-brightness get)"
+      start() {
+        # Get the number of connected displays using wlr-randr and parse the output with jq
+        displays=$(wlr-randr --json | jq 'length')
+        
+        # Check if there are any connected displays
+        if [ "$displays" -eq 0 ]; then
+            echo "No connected displays found."
+            exit 1
+        fi
+
+        echo "Found connected displays: $displays"
+
+        # Start eww daemon
+        ${eww} kill
+        ${eww} daemon
+        sleep 0.2
+        update-vars
+        sleep 0.2
+
+        # Launch ewwbar for each connected display
+        for ((display=0; display<displays; display++)); do
+            echo Starting ewwbar for display $display
+            ${eww} open --no-daemonize --screen "$display" bar --id bar:$display --arg screen="$display"
+        done
+
+        # Open a widget for hotkey indicators only on main display
+        ${eww} open --no-daemonize hotkey-indicator
+      }
+
+      # Reloads current config without opening new windows
+      reload() {
+        ${eww} reload
+        update-vars
+      }
+
+      update-vars() {
+        volume=$(${eww-volume}/bin/eww-volume get)
+        brightness=$(${eww-brightness}/bin/eww-brightness get)
+        battery=$(${eww-bat}/bin/eww-bat get)
+        keyboard_layout=$(setxkbmap -query | awk '/layout/{print $2}' | tr '[:lower:]' '[:upper:]')
+        
+        ${eww} update \
+          volume="$volume" \
+          brightness="$brightness" \
+          battery="$battery" \
+          keyboard_layout="$keyboard_layout"
+      }
+
+      kill() {
+        ${eww} kill
+      }
+
+      case "$1" in
+        start)
+            start
+            ;;
+        reload)
+            reload
+            ;;
+        kill)
+            kill
+            ;;
+        *)
+            echo "Usage: $0 {start|reload|kill}"
+            exit 1
+            ;;
+      esac
     '';
   };
 
@@ -188,16 +248,16 @@ let
     text = ''
       timer_pid=0
 
-        handle_hotkey_indicator() {
-            if [ "$timer_pid" -ne 0 ]; then
-                kill "$timer_pid" 2>/dev/null
-            fi
-            if ! ${eww} active-windows | grep -q "quick-settings"; then
-                ${eww} update hotkey-source="brightness" hotkey-brightness-visible="true"
-            fi
-            ( sleep 2; ${eww} update hotkey-brightness-visible="false") &
-            timer_pid=$!
-        }
+      handle_hotkey_indicator() {
+          if [ "$timer_pid" -ne 0 ]; then
+              kill "$timer_pid" 2>/dev/null
+          fi
+          if ! ${eww} active-windows | grep -q "quick-settings"; then
+              ${eww} update hotkey-source="brightness" hotkey-brightness-visible="true"
+          fi
+          ( sleep 2; ${eww} update hotkey-brightness-visible="false") &
+          timer_pid=$!
+      }
 
       screen_level() {
           brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}'
@@ -540,7 +600,11 @@ in
                     (widget_button
                         :icon "${bluetooth-1-icon}"
                         :header "Bluetooth"
-                        :onclick "${eww-popup}/bin/eww-popup quick-settings; ${pkgs.bt-launcher}/bin/bt-launcher &"))))
+                        :onclick "${eww-popup}/bin/eww-popup quick-settings; ${pkgs.bt-launcher}/bin/bt-launcher &")
+                    (box
+                        :hexpand true
+                        :vexpand true
+                        :class "spacer"))))
 
         ;; Battery Widget In Quick Settings ;;
         (defwidget etc []
@@ -912,7 +976,7 @@ in
                         background-color: #D3D3D3;
 
                         @if $shadows {
-                            box-shadow: 0 0 3px 0 $bg-primary;
+                            box-shadow: 0px 0px 3px 0px $bg-primary;
                         }
                     }
                 }
@@ -927,12 +991,12 @@ in
 
             @if $focusable {
                 trough:focus {
-                    box-shadow: inset 0 0 0 1 $bg-primary;
+                    box-shadow: inset 0px 0px 0px 1px $bg-primary;
 
                     slider {
                         @if $thumb {
                             background-color: red;
-                            box-shadow: inset 0 0 0 1 $bg-primary;
+                            box-shadow: inset 0px 0px 0px 1px $bg-primary;
                         }
                     }
                 }
@@ -1142,7 +1206,7 @@ in
 
                 &.button {
                     color: $stroke-success;
-                    padding: 0.3;
+                    padding: 0.3em;
                     border-radius: 4px;
                     border: none;
 
@@ -1186,18 +1250,31 @@ in
       mode = "0644";
     };
 
+    services.udev.extraRules = ''
+      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="eww-restart.service"
+    '';
+
     systemd.user.services.ewwbar = {
       enable = true;
       description = "ewwbar";
       serviceConfig = {
         Type = "forking";
-        ExecStart = "${eww-start}/bin/eww-start";
+        ExecStart = "${ewwbar-ctrl}/bin/ewwbar-ctrl start";
+        ExecReload = "${ewwbar-ctrl}/bin/ewwbar-ctrl kill";
         Environment = "XDG_CACHE_HOME=/tmp/.ewwcache";
         Restart = "always";
-        RestartSec = 1;
+        RestartSec = "100ms";
       };
       wantedBy = [ "ghaf-session.target" ];
       partOf = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.eww-restart = {
+      description = "eww-restart";
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "systemctl --user reload ewwbar.service || true";
+      };
     };
   };
 }
