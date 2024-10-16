@@ -4,21 +4,17 @@
 # This partition scheme contains three common partitions and ZFS pool.
 # Some partitions are duplicated for the future AB SWupdate implementation.
 #
-# First three partitions are related to the boot process:
+# First two partitions are related to the boot process:
 # - boot : Bootloader partition
 # - ESP-A : (500M) Kernel and initrd
-# - ESP-B : (500M)
 #
 # ZFS datasets do not necessary need to have specified size and can be
 # allocated dynamically. Quotas only restrict the maximum size of
 # datasets, but do not reserve the space in the pool.
 # The ZFS pool contains next datasets:
-# - root-A : (30G) Root FS
-# - root-B : (30G)
-# - vm-storage-A : (30G) Possible standalone pre-built VM images are stored here
-# - vm-storage-B : (30G)
-# - reserved-A : (10G) Reserved dataset, no use
-# - reserved-B : (10G)
+# - root : (30G) Root FS
+# - vm-storage : (30G) Possible standalone pre-built VM images are stored here
+# - reserved : (10G) Reserved dataset, no use
 # - gp-storage : (50G) General purpose storage for some common insecure cases
 # - recovery : (no quota) Recovery factory image is stored here
 # - storagevm: (no quota) Dataset is meant to be used for StorageVM
@@ -34,7 +30,7 @@
   };
   disko = {
     # 8GB is the recommeneded minimum for ZFS, so we are using this for VMs to avoid `cp` oom errors.
-    memSize = 16384;
+    memSize = 17384;
     imageBuilder = {
       extraPostVM = ''
         ${pkgs.zstd}/bin/zstd --compress $out/*raw
@@ -44,7 +40,7 @@
     devices = {
       disk.disk1 = {
         type = "disk";
-        imageSize = "15G";
+        imageSize = "60G";
         content = {
           type = "gpt";
           partitions = {
@@ -54,8 +50,8 @@
               type = "EF02";
               priority = 1; # Needs to be first partition
             };
-            esp_a = {
-              name = "ESP_A";
+            esp = {
+              name = "ESP";
               size = "500M";
               type = "EF00";
               content = {
@@ -68,17 +64,14 @@
                 ];
               };
             };
-            esp_b = {
-              name = "ESP_B";
-              size = "500M";
-              type = "EF00";
+            swap = {
+              size = "38G";
+              type = "8200";
               content = {
-                type = "filesystem";
-                format = "vfat";
-                mountOptions = [
-                  "umask=0077"
-                  "nofail"
-                ];
+                type = "swap";
+                resumeDevice = true; # resume from hiberation from this device
+                # TODO: remove when LUKS is enabled
+                #randomEncryption = true;
               };
             };
             zfs_1 = {
@@ -97,6 +90,7 @@
           rootFsOptions = {
             mountpoint = "none";
             acltype = "posixacl";
+            compression = "lz4";
             xattr = "sa";
           };
           # `ashift=12` optimizes alignment for 4K sector size.
@@ -105,7 +99,7 @@
           # This trades off some space overhead for overall better performance on 4k devices.
           options.ashift = "12";
           datasets = {
-            "root_a" = {
+            "root" = {
               type = "zfs_fs";
               mountpoint = "/";
               options = {
@@ -113,35 +107,14 @@
                 quota = "30G";
               };
             };
-            "vm_storage_a" = {
+            "vm_storage" = {
               type = "zfs_fs";
               options = {
                 mountpoint = "/vm_storage";
                 quota = "30G";
               };
             };
-            "reserved_a" = {
-              type = "zfs_fs";
-              options = {
-                mountpoint = "none";
-                quota = "10G";
-              };
-            };
-            "root_b" = {
-              type = "zfs_fs";
-              options = {
-                mountpoint = "none";
-                quota = "30G";
-              };
-            };
-            "vm_storage_b" = {
-              type = "zfs_fs";
-              options = {
-                mountpoint = "none";
-                quota = "30G";
-              };
-            };
-            "reserved_b" = {
+            "reserved" = {
               type = "zfs_fs";
               options = {
                 mountpoint = "none";
@@ -165,8 +138,6 @@
               type = "zfs_fs";
               options = {
                 mountpoint = "/storagevm";
-                acltype = "posixacl";
-                xattr = "sa";
               };
             };
           };
