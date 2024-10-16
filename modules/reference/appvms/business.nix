@@ -185,7 +185,7 @@ in
       }
     )
   ];
-  borderColor = "#00FF00";
+  borderColor = "#218838";
   ghafAudio.enable = true;
   vtpm.enable = true;
 }

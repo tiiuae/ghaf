@@ -50,7 +50,7 @@ in
       ghaf.services.xdghandlers.enable = true;
     }
   ];
-  borderColor = "#630505";
+  borderColor = "#B83232";
   ghafAudio.enable = true;
   vtpm.enable = true;
 }

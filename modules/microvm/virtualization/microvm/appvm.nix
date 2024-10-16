@@ -19,10 +19,10 @@ let
   };
 
   makeVm =
-    { vm, index }:
+    { vm, vmIndex }:
     let
       vmName = "${vm.name}-vm";
-      cid = if vm.cid > 0 then vm.cid else cfg.vsockBaseCID + index;
+      cid = if vm.cid > 0 then vm.cid else cfg.vsockBaseCID + vmIndex;
       appvmConfiguration = {
         imports = [
           inputs.impermanence.nixosModules.impermanence
@@ -30,7 +30,7 @@ let
           (import ./common/vm-networking.nix {
             inherit config lib vmName;
             inherit (vm) macAddress;
-            internalIP = index + 100;
+            internalIP = vmIndex + 100;
           })
 
           ./common/ghaf-audio.nix
@@ -42,6 +42,15 @@ let
             )
           )
 
+          (import ./common/waypipe.nix {
+            inherit
+              vm
+              vmIndex
+              configHost
+              cid
+              ;
+          })
+
           # To push logs to central location
           ../../../common/logging/client.nix
           (
@@ -51,13 +60,6 @@ let
               pkgs,
               ...
             }:
-            let
-              waypipeBorder = if vm.borderColor != null then "--border \"${vm.borderColor}\"" else "";
-              runWaypipe = pkgs.writeScriptBin "run-waypipe" ''
-                #!${pkgs.runtimeShell} -e
-                ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
-              '';
-            in
             {
               ghaf = {
                 users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
@@ -99,6 +101,8 @@ let
                   ];
                 };
 
+                waypipe.enable = true;
+
                 # Logging client configuration
                 logging.client.enable = configHost.ghaf.logging.client.enable;
                 logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
@@ -118,8 +122,6 @@ let
               nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
               environment.systemPackages = [
-                pkgs.waypipe
-                runWaypipe
                 pkgs.tpm2-tools
                 pkgs.opensc
                 pkgs.givc-cli
@@ -300,6 +302,17 @@ in
         Context Identifier (CID) of the AppVM VSOCK
       '';
     };
+
+    # Every AppVM has its own instance of Waypipe running in the GUIVM and
+    # listening for incoming connections from the AppVM on its own port.
+    # The port number each AppVM uses is waypipeBasePort + vmIndex.
+    waypipeBasePort = lib.mkOption {
+      type = lib.types.int;
+      default = 1100;
+      description = ''
+        Waypipe base port number for AppVMs
+      '';
+    };
   };
 
   config =
@@ -337,11 +350,14 @@ in
             ExecStart = "${swtpmScript}/bin/${vm.name}-swtpm";
           };
         };
+      vmsWithWaypipe = lib.filter (
+        vm: config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.enable
+      ) cfg.vms;
     in
     lib.mkIf cfg.enable {
       microvm.vms =
         let
-          vms = lib.imap0 (index: vm: { "${vm.name}-vm" = makeVm { inherit index vm; }; }) cfg.vms;
+          vms = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) cfg.vms;
         in
         lib.foldr lib.recursiveUpdate { } vms;
 
@@ -354,7 +370,23 @@ in
             };
             "${vm.name}-swtpm" = makeSwtpmService { inherit vm; };
           }) cfg.vms;
+          # Each AppVM with waypipe needs its own instance of vsockproxy on the host
+          proxyServices = map (vm: {
+            "vsockproxy-${vm.name}" =
+              config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.proxyService;
+          }) vmsWithWaypipe;
         in
-        lib.foldr lib.recursiveUpdate { } serviceDependencies;
+        lib.foldr lib.recursiveUpdate { } (serviceDependencies ++ proxyServices);
+
+      # GUIVM needs to have a dedicated waypipe instance for each AppVM
+      ghaf.virtualization.microvm.guivm.extraModules = [
+        {
+          systemd.user.services = lib.foldr lib.recursiveUpdate { } (
+            map (vm: {
+              "waypipe-${vm.name}" = config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.waypipeService;
+            }) vmsWithWaypipe
+          );
+        }
+      ];
     };
 }
