@@ -10,6 +10,7 @@ let
 
   adminvmBaseConfiguration = {
     imports = [
+      inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc-adminvm
       (import ./common/vm-networking.nix {
         inherit
@@ -23,6 +24,7 @@ let
       # We need to retrieve mac address and start log aggregator
       ../../../common/logging/hw-mac-retrieve.nix
       ../../../common/logging/logs-aggregator.nix
+      ./common/storagevm.nix
       (
         { lib, ... }:
         {
@@ -46,6 +48,14 @@ let
               withTimesyncd = true;
               withDebug = configHost.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
+            };
+            storagevm = {
+              enable = true;
+              name = "adminvm";
+              files = [
+                "/etc/locale-givc.conf"
+                "/etc/timezone.conf"
+              ];
             };
 
             givc.adminvm.enable = true;
