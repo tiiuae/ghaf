@@ -42,7 +42,6 @@ let
 
   ssrcUrls = [
     "*.cachix.org"
-    "cache.vedenemo.dev"
     "vedenemo.dev"
     "loki.ghaflogs.vedenemo.dev"
     "ghaflogs.vedenemo.dev"
