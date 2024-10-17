@@ -11,7 +11,6 @@ let
   audiovmHost = "audio-vm";
   audiovmPort = config.ghaf.services.audio.pulseaudioTcpPort;
   address = "tcp:${audiovmHost}:${toString audiovmPort}";
-  reconnectMs = 1000;
 in
 {
   options.ghaf.ghaf-audio = with lib; {
@@ -26,19 +25,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    security.rtkit.enable = true;
-    users.extraUsers.ghaf.extraGroups = [
-      "audio"
-      "video"
-    ];
-
-    hardware.pulseaudio = {
-      enable = true;
-      extraConfig = ''
-        load-module module-tunnel-sink-new sink_name=${cfg.name}.speaker server=${address} reconnect_interval_ms=${toString reconnectMs}
-        load-module module-tunnel-source-new source_name=${cfg.name}.mic server=${address} reconnect_interval_ms=${toString reconnectMs}
-      '';
-      package = pkgs.pulseaudio-ghaf;
+    environment = {
+      systemPackages = [ pkgs.pulseaudio ];
+      sessionVariables = rec {
+        PULSE_SERVER = "${address}";
+      };
     };
   };
 }
