@@ -23,22 +23,31 @@ in
       '';
       type = types.str;
     };
+
+    useTunneling = mkEnableOption "Enable local pulseaudio with tunneling";
   };
 
   config = lib.mkIf cfg.enable {
-    security.rtkit.enable = true;
-    users.extraUsers.ghaf.extraGroups = [
+    security.rtkit.enable = cfg.useTunneling;
+    users.extraUsers.ghaf.extraGroups = lib.mkIf cfg.useTunneling [
       "audio"
       "video"
     ];
 
-    hardware.pulseaudio = {
+    hardware.pulseaudio = lib.mkIf cfg.useTunneling {
       enable = true;
       extraConfig = ''
         load-module module-tunnel-sink-new sink_name=${cfg.name}.speaker server=${address} reconnect_interval_ms=${toString reconnectMs}
         load-module module-tunnel-source-new source_name=${cfg.name}.mic server=${address} reconnect_interval_ms=${toString reconnectMs}
       '';
       package = pkgs.pulseaudio-ghaf;
+    };
+
+    environment = lib.mkIf (!cfg.useTunneling) {
+      systemPackages = [ pkgs.pulseaudio ];
+      sessionVariables = rec {
+        PULSE_SERVER = "${address}";
+      };
     };
   };
 }
