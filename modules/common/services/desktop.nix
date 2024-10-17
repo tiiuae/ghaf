@@ -17,6 +17,7 @@ let
     ;
 
   cfg = config.ghaf.services.desktop;
+  inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
 
   winConfig =
     if (hasAttr "reference" config.ghaf) then
@@ -185,7 +186,7 @@ in
             {
               name = "Audio Control";
               description = "System Audio Control";
-              path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:4713";
+              path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString pulseaudioTcpControlPort}";
               icon = "${pkgs.icon-pack}/preferences-sound.svg";
             }
 

@@ -11,6 +11,7 @@ let
 
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
+  inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
@@ -213,7 +214,7 @@ let
   environment = ''
     XCURSOR_THEME=Adwaita
     XCURSOR_SIZE=24
-    PULSE_SERVER=audio-vm:4713
+    PULSE_SERVER=audio-vm:${toString pulseaudioTcpControlPort}
 
     # Wayland compatibility
     MOZ_ENABLE_WAYLAND=1

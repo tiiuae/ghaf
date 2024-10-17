@@ -13,6 +13,7 @@ let
   cfg = config.ghaf.graphics.labwc;
   useGivc = config.ghaf.givc.enable;
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
+  inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
 
   launcher-icon = "${pkgs.ghaf-artwork}/icons/launcher.svg";
 
@@ -328,7 +329,7 @@ let
     ];
     bashOptions = [ ];
     text = ''
-      export PULSE_SERVER=audio-vm:4713
+      export PULSE_SERVER=audio-vm:${toString pulseaudioTcpControlPort}
       popup_timer_pid=0
 
       show_popup() {
@@ -513,7 +514,7 @@ in
                         :icon-onclick "${eww-volume}/bin/eww-volume mute &"
                         :settings-icon "${arrow-right-icon}"
                         :level { volume.muted == "true" ? "0" : volume.level }
-                        :onchange "PULSE_SERVER=audio-vm:4713 ${pkgs.pamixer}/bin/pamixer --unmute --set-volume {} &")
+                        :onchange "PULSE_SERVER=audio-vm:${toString pulseaudioTcpControlPort} ${pkgs.pamixer}/bin/pamixer --unmute --set-volume {} &")
                 (sys_slider
                         :header "Display"
                         :level {brightness.screen.level}
