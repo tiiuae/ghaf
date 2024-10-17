@@ -32,21 +32,30 @@ let
     noDisplay = true;
   };
   # The xdgopenfile script sends a command to the GUIVM with the file path and type over TCP connection
-  xdgOpenFile = pkgs.writeShellScriptBin "xdgopenfile" ''
-    type=$1
-    filename=$2
-    filepath=$(/run/current-system/sw/bin/realpath "$filename")
-    if [[ -z "$filepath" ]]; then
-      echo "File path is empty in the XDG open script" | systemd-cat -p info
-      exit 1
-    fi
-    if [[ "$type" != "pdf" && "$type" != "image" ]]; then
-      echo "Unknown file type in the XDF open script" | systemd-cat -p info
-      exit 1
-    fi
-    echo "Opening $filepath with type $type" | systemd-cat -p info
-    echo -e "$type\n$filepath" | ${pkgs.netcat}/bin/nc -N gui-vm ${toString config.ghaf.services.xdgopener.xdgPort}
-  '';
+  xdgOpenFile = pkgs.writeShellApplication {
+
+    name = "xdgopenfile";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.netcat
+      pkgs.systemd
+    ];
+    text = ''
+      type=$1
+      filename=$2
+      filepath=$(realpath "$filename")
+      if [[ -z "$filepath" ]]; then
+        echo "File path is empty in the XDG open script" | systemd-cat -p info
+        exit 1
+      fi
+      if [[ "$type" != "pdf" && "$type" != "image" ]]; then
+        echo "Unknown file type in the XDF open script" | systemd-cat -p info
+        exit 1
+      fi
+      echo "Opening $filepath with type $type" | systemd-cat -p info
+      echo -e "$type\n$filepath" | nc -N gui-vm ${toString config.ghaf.services.xdgopener.xdgPort}
+    '';
+  };
 in
 {
   options.ghaf.services.xdghandlers = {
