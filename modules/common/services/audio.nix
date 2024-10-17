@@ -24,6 +24,11 @@ in
       default = 4713;
       description = "TCP port used by Pipewire-pulseaudio service";
     };
+    pulseaudioTcpControlPort = mkOption {
+      type = types.int;
+      default = 4714;
+      description = "TCP port used by Pipewire-pulseaudio control";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -36,7 +41,7 @@ in
       alsa.enable = config.ghaf.development.debug.tools.enable;
       systemWide = true;
       extraConfig = {
-        pipewire."10-remote-simple" = {
+        pipewire."10-remote-pulseaudio" = {
           "context.modules" = [
             {
               name = "libpipewire-module-protocol-pulse";
@@ -45,12 +50,24 @@ in
                 "server.address" = [
                   {
                     address = "tcp:0.0.0.0:${toString cfg.pulseaudioTcpPort}";
-                    "client.access" = "unrestricted";
+                    "client.access" = "restricted";
                   }
                 ];
                 "pulse.min.req" = "1024/48000";
                 "pulse.min.quantum" = "1024/48000";
                 "pulse.idle.timeout" = "3";
+              };
+            }
+            {
+              name = "libpipewire-module-protocol-pulse";
+              args = {
+                # Enable TCP socket for VMs pulseaudio clients
+                "server.address" = [
+                  {
+                    address = "tcp:0.0.0.0:${toString cfg.pulseaudioTcpControlPort}";
+                    "client.access" = "unrestricted";
+                  }
+                ];
               };
             }
           ];
@@ -92,7 +109,7 @@ in
           RemainAfterExit = true;
           StandardOutput = "journal";
           StandardError = "journal";
-          Environment = "PULSE_SERVER=tcp:localhost:${toString cfg.pulseaudioTcpPort}";
+          Environment = "PULSE_SERVER=tcp:localhost:${toString cfg.pulseaudioTcpControlPort}";
           ExecStart = "${pulse-set-profile}/bin/pulseaudio-set-profile";
           Restart = "on-failure";
           RestartSec = "1";
@@ -100,6 +117,9 @@ in
       };
 
     # Open TCP port for the pipewire pulseaudio socket
-    networking.firewall.allowedTCPPorts = [ cfg.pulseaudioTcpPort ];
+    networking.firewall.allowedTCPPorts = [
+      cfg.pulseaudioTcpPort
+      cfg.pulseaudioTcpControlPort
+    ];
   };
 }
