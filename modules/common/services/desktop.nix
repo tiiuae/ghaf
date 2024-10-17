@@ -197,6 +197,12 @@ in
             }
 
             {
+              name = "FPrint Enroll";
+              path = "${pkgs.foot}/bin/foot -H -T Finger_Print_Enrollment -L ${pkgs.fprint-enroll}/bin/finger-print-enroll";
+              icon = "${pkgs.icon-pack}/authy.svg";
+            }
+
+            {
               name = "Shutdown";
               description = "Shutdown System";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";
