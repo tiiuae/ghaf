@@ -1,0 +1,1 @@
+savedcmd_/home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.ko := ld -r -EL  -maarch64elf -z noexecstack --build-id=sha1  -T scripts/module.lds -o /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.ko /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.o /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.mod.o
