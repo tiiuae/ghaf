@@ -11,29 +11,8 @@ let
 
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
-  gtklockStyle = pkgs.writeText "gtklock.css" ''
-    window {
-      background: rgba(18, 18, 18, 1);
-      color: #fff;
-    }
-    button {
-      box-shadow: none;
-      border-radius: 5px;
-      border: none;
-      background: #171717;
-    }
-    entry {
-      background-color: #232323;
-      border: 1px solid rgba(46, 46, 46, 1);
-      color: #fff;
-    }
-    entry:focus {
-      box-shadow: none;
-      border: 1px solid rgba(223, 92, 55, 1);
-    }
-  '';
+  gtklockStyle = pkgs.callPackage ./styles/gtk-lock.nix { };
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
-
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
@@ -293,20 +272,5 @@ in
         wantedBy = [ "ghaf-session.target" ];
       };
     };
-
-    ghaf.graphics.launchers = [
-      {
-        name = "Lock";
-        description = "Lock Session";
-        path = "${lockCmd}";
-        icon = "${pkgs.icon-pack}/system-lock-screen.svg";
-      }
-      {
-        name = "Log Out";
-        description = "Quit Applications & Log Out";
-        path = "${pkgs.labwc}/bin/labwc --exit";
-        icon = "${pkgs.icon-pack}/system-log-out.svg";
-      }
-    ];
   };
 }

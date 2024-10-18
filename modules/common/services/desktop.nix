@@ -197,20 +197,6 @@ in
             }
 
             {
-              name = "Shutdown";
-              description = "Shutdown System";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} poweroff";
-              icon = "${pkgs.icon-pack}/system-shutdown.svg";
-            }
-
-            {
-              name = "Reboot";
-              description = "Reboot System";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} reboot";
-              icon = "${pkgs.icon-pack}/system-reboot.svg";
-            }
-
-            {
               name = "Control panel";
               path = "${pkgs.ctrl-panel}/bin/ctrl-panel";
               icon = "${pkgs.icon-pack}/utilities-tweak-tool.svg";
