@@ -35,16 +35,16 @@ let
   xdgOpenFile = pkgs.writeShellScriptBin "xdgopenfile" ''
     type=$1
     filename=$2
-    filepath=$(/run/current-system/sw/bin/realpath "$filename")
+    filepath=$(${pkgs.coreutils}/bin/realpath "$filename")
     if [[ -z "$filepath" ]]; then
-      echo "File path is empty in the XDG open script" | systemd-cat -p info
+      echo "File path is empty in the XDG open script" | ${pkgs.systemd}/bin/systemd-cat -p info
       exit 1
     fi
     if [[ "$type" != "pdf" && "$type" != "image" ]]; then
-      echo "Unknown file type in the XDF open script" | systemd-cat -p info
+      echo "Unknown file type in the XDF open script" | ${pkgs.systemd}/bin/systemd-cat -p info
       exit 1
     fi
-    echo "Opening $filepath with type $type" | systemd-cat -p info
+    echo "Opening $filepath with type $type" | ${pkgs.systemd}/bin/systemd-cat -p info
     echo -e "$type\n$filepath" | ${pkgs.netcat}/bin/nc -N gui-vm ${toString config.ghaf.services.xdgopener.xdgPort}
   '';
 in
