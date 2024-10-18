@@ -25,4 +25,5 @@
   globalprotect-openconnect =
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
+  fprint-enroll = final.callPackage ../../packages/fprint-enroll { };
 })
