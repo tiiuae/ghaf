@@ -62,7 +62,11 @@ let
       }
     )).overrideAttrs
       (prevAttrs: {
-        patches = prevAttrs.patches ++ [ ./systemd-boot-double-dtb-buffer-size.patch ];
+        patches = prevAttrs.patches ++ [
+          ./systemd-boot-double-dtb-buffer-size.patch
+          ./systemd-re-enable-locale-setting.patch
+          ./systemd-localed-locale-archive.patch
+        ];
       });
 
   # Definition of suppressed system units in systemd configuration. This removes the units and has priority.

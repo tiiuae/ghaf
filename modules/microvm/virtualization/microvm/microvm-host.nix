@@ -46,6 +46,7 @@ in
         withRepart = true;
         withFido2 = true;
         withCryptsetup = true;
+        withLocaled = true;
         withTimesyncd = cfg.networkSupport;
         withNss = cfg.networkSupport;
         withResolved = cfg.networkSupport;
