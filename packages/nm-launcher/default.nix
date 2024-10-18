@@ -19,7 +19,7 @@ writeShellApplication {
     # export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
     ${openssh}/bin/ssh -M -S /tmp/control_socket \
-        -f -N -q proxy-user-network@net-vm \
+        -f -N -q proxyuser@net-vm \
         -i /run/user-ssh/id_ed25519_net \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
@@ -29,7 +29,7 @@ writeShellApplication {
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     ${networkmanagerapplet}/bin/nm-applet --indicator
     # Use the control socket to close the ssh tunnel.
-    ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit proxy-user-network@net-vm
+    ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit proxyuser@net-vm
   '';
 
   meta = {

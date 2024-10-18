@@ -17,7 +17,7 @@ writeShellApplication {
     export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
     ${openssh}/bin/ssh -M -S /tmp/control_socket_bt \
-        -f -N -q proxy-user-audio@audio-vm \
+        -f -N -q proxyuser@audio-vm \
         -i /run/user-ssh/id_ed25519_ad \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
@@ -27,7 +27,7 @@ writeShellApplication {
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     # Use the control socket to close the ssh tunnel.
     close-tunnel() {
-      ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit proxy-user-audio@audio-vm
+      ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit proxyuser@audio-vm
     }
 
     launch-blueman() {
