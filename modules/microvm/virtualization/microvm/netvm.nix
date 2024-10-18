@@ -43,7 +43,7 @@ let
           imports = [ ../../../common ];
 
           ghaf = {
-            users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
+            # Profiles
             profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
@@ -52,6 +52,14 @@ let
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
+            users.accounts = {
+              enableProxyUser = true;
+              proxyuserGroups = [
+                "networkmanager"
+              ];
+            };
+
+            # System
             systemd = {
               enable = true;
               withName = "netvm-systemd";
@@ -63,14 +71,19 @@ let
               withHardenedConfigs = true;
             };
             givc.netvm.enable = true;
-            # Logging client configuration
-            logging.client.enable = config.ghaf.logging.client.enable;
-            logging.client.endpoint = config.ghaf.logging.client.endpoint;
+
+            # Storage
             storagevm = {
               enable = true;
               name = "netvm";
               directories = [ "/etc/NetworkManager/system-connections/" ];
             };
+
+            # Services
+            # Logging client configuration
+            logging.client.enable = config.ghaf.logging.client.enable;
+            logging.client.endpoint = config.ghaf.logging.client.endpoint;
+
           };
 
           time.timeZone = config.time.timeZone;

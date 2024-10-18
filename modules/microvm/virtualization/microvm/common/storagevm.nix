@@ -1,12 +1,23 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.ghaf.storagevm;
-  mountPath = "/guestStorage";
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkMerge
+    types
+    optionals
+    ;
 in
 {
-  options.ghaf.storagevm = with lib; {
+  options.ghaf.storagevm = {
     enable = mkEnableOption "StorageVM support";
 
     name = mkOption {
@@ -14,6 +25,14 @@ in
         Name of the corresponding directory on the storage virtual machine.
       '';
       type = types.str;
+    };
+
+    mountPath = mkOption {
+      description = ''
+        Mount path for the storage virtual machine.
+      '';
+      type = types.str;
+      default = "/guestStorage";
     };
 
     directories = mkOption {
@@ -61,15 +80,16 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    fileSystems.${mountPath} = {
+    fileSystems.${cfg.mountPath} = {
       neededForBoot = true;
-      options = lib.mkForce [
+      options = [
         "rw"
         "nodev"
         "nosuid"
         "noexec"
       ];
     };
+    virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
 
     microvm.shares = [
       {
@@ -77,18 +97,21 @@ in
         proto = "virtiofs";
         securityModel = "passthrough";
         source = "/storagevm/${cfg.name}";
-        mountPoint = mountPath;
+        mountPoint = cfg.mountPath;
       }
     ];
 
-    environment.persistence.${mountPath} = lib.mkMerge [
+    environment.persistence.${cfg.mountPath} = mkMerge [
       {
         hideMounts = true;
-        directories = [
-          "/var/lib/nixos"
-        ];
-
-        files = [
+        directories =
+          [
+            "/var/lib/nixos"
+          ]
+          ++ optionals config.ghaf.users.accounts.enableLoginUser [
+            "/etc"
+          ];
+        files = optionals (!config.ghaf.users.accounts.enableLoginUser) [
           "/etc/ssh/ssh_host_ed25519_key.pub"
           "/etc/ssh/ssh_host_ed25519_key"
         ];

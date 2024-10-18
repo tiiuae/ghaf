@@ -53,7 +53,7 @@ in
         serviceConfig = {
           # The user 'ghaf' is used here to access SSH keys for the scp command
           # This is required to copy files to the zathuravm
-          User = "ghaf";
+          User = "${config.ghaf.users.accounts.user}";
           ExecStart = "${ghaf-xdg-open}/bin/ghaf-xdg-open";
           StandardInput = "socket";
           StandardOutput = "journal";
