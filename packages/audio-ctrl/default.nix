@@ -10,28 +10,18 @@ writeShellApplication {
   text = ''
     export PULSE_SERVER=audio-vm:4713
 
-    unmute() {
-      if [[ "$(pamixer --get-mute)" == "true" ]]; then
-          pamixer -t
-      fi
-    }
-
     case "$1" in
       inc)
-        # Unmute if muted
-        unmute
-        # Increase volume by 5%
-        pamixer -i 5
+        # Unmute and Increase volume by 5%
+        pamixer --unmute --increase 5
         ;;
       dec)
-        # Unmute if muted
-        unmute
-        # Decrease volume by 5%
-        pamixer -d 5
+        # Unmute and Decrease volume by 5%
+        pamixer --unmute --decrease 5
         ;;
       mut)
         # Toggle mute
-        pamixer -t
+        pamixer --toggle-mute
         ;;
       get_mut)
         pamixer --get-mute
@@ -43,11 +33,8 @@ writeShellApplication {
       set)
         # Set volume to a specific level
         if [ -n "$2" ]; then
-          # Unmute if muted
-          if [[ "$(pamixer --get-mute)" == "true" ]]; then
-              pamixer -t
-          fi
-          pamixer --set-volume "$2"
+          # Unmute and set volume
+          pamixer --unmute --set-volume "$2"
         fi
         ;;
       *)
