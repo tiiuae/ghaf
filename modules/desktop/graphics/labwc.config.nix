@@ -12,7 +12,11 @@ let
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
-  lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
+
+  kill-nm-applet = pkgs.writeScriptBin "kill-nm-applet" "${pkgs.procps}/bin/pkill nm-launcher";
+  # We kill nm-applet after every screen lock to prevent stealing focus from the lock screen, otherwise user is unable to login afterwards. As nm-applet is managed by systemd service it automatically restarts after every kill.
+  lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle} -L ${kill-nm-applet}/bin/kill-nm-applet";
+
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
