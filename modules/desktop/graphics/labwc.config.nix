@@ -11,7 +11,7 @@ let
 
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
-  gtklockStyle = pkgs.callPackage ./styles/gtk-lock.nix { };
+  gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
   autostart = pkgs.writeShellApplication {
@@ -68,7 +68,7 @@ let
     <keyboard>
       <default />
       <keybind key="W-l">
-        <action name="Execute" command="${lockCmd}" />
+        <action name="Execute" command="loginctl lock-session" />
       </keybind>
       ${lib.optionalString config.ghaf.profiles.debug.enable ''
         <keybind key="Print">
@@ -265,7 +265,14 @@ in
           Type = "simple";
           ExecStart = ''
             ${pkgs.swayidle}/bin/swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
-            '${pkgs.chayang}/bin/chayang && ${lockCmd}'
+            # Start dimming for 3.5 seconds in the background
+            '${pkgs.chayang}/bin/chayang -d 3.5 & CHAYANG_PID=$!; \
+            sleep 3; \
+            # If chayang is still running (i.e., user hasn't interrupted),
+            # proceed with locking
+            if kill -0 $CHAYANG_PID 2>/dev/null; then \
+              loginctl lock-session; \
+            fi'
           '';
         };
         partOf = [ "ghaf-session.target" ];

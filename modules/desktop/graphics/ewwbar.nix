@@ -12,7 +12,6 @@ let
 
   cfg = config.ghaf.graphics.labwc;
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
-  gtklockStyle = pkgs.callPackage ./styles/gtk-lock.nix { };
 
   launcher-icon = "${pkgs.ghaf-artwork}/icons/launcher.svg";
 
@@ -593,7 +592,7 @@ in
                     :class "power-menu-button"
                     :icon "${lock-icon}"
                     :title "Lock"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle} &")))
+                    :onclick "${eww-popup}/bin/eww-popup power-menu & loginctl lock-session &")))
 
         ;; Quick Settings Buttons ;;
         (defwidget settings_buttons []
