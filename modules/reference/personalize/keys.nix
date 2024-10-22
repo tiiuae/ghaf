@@ -31,7 +31,7 @@ in
 
   config = mkIf cfg.enable {
     users.users.root.openssh.authorizedKeys.keys = authorizedSshKeys;
-    users.users.${config.ghaf.users.accounts.user}.openssh.authorizedKeys.keys = authorizedSshKeys;
+    users.users.${config.ghaf.users.accounts.admin}.openssh.authorizedKeys.keys = authorizedSshKeys;
     ghaf.services.yubikey.u2fKeys = mkForce (concatStrings authorizedYubikeys);
   };
 }

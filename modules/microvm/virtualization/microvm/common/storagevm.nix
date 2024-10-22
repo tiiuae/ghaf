@@ -1,6 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, config, ... }:
+{
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.ghaf.storagevm;
   inherit (lib)
@@ -8,11 +12,9 @@ let
     mkOption
     mkIf
     mkMerge
-    mkForce
     types
     optionals
     ;
-  mountPath = "/guestStorage";
 in
 {
   options.ghaf.storagevm = {
@@ -23,6 +25,14 @@ in
         Name of the corresponding directory on the storage virtual machine.
       '';
       type = types.str;
+    };
+
+    mountPath = mkOption {
+      description = ''
+        Mount path for the storage virtual machine.
+      '';
+      type = types.str;
+      default = "/guestStorage";
     };
 
     directories = mkOption {
@@ -70,7 +80,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    fileSystems.${mountPath} = {
+    fileSystems.${cfg.mountPath} = {
       neededForBoot = true;
       options = [
         "rw"
@@ -79,7 +89,7 @@ in
         "noexec"
       ];
     };
-    virtualisation.fileSystems.${mountPath}.device = "/dev/vda";
+    virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
 
     microvm.shares = [
       {
@@ -87,11 +97,11 @@ in
         proto = "virtiofs";
         securityModel = "passthrough";
         source = "/storagevm/${cfg.name}";
-        mountPoint = mountPath;
+        mountPoint = cfg.mountPath;
       }
     ];
 
-    environment.persistence.${mountPath} = lib.mkMerge [
+    environment.persistence.${cfg.mountPath} = mkMerge [
       {
         hideMounts = true;
         directories =
@@ -99,11 +109,9 @@ in
             "/var/lib/nixos"
           ]
           ++ optionals config.ghaf.users.accounts.enableLoginUser [
-            # TODO Replace with userborn setup
             "/etc"
           ];
-
-        files = [
+        files = optionals (!config.ghaf.users.accounts.enableLoginUser) [
           "/etc/ssh/ssh_host_ed25519_key.pub"
           "/etc/ssh/ssh_host_ed25519_key"
         ];

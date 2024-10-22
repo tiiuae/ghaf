@@ -60,14 +60,16 @@ let
             in
             {
               ghaf = {
-                users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+                # Profiles
+                users.accounts.enableAppUser = true;
                 profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-
                 development = {
                   ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
                   debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
                   nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
                 };
+
+                # Systemd
                 systemd = {
                   enable = true;
                   withName = "appvm-systemd";
@@ -80,15 +82,11 @@ let
                   withHardenedConfigs = true;
                 };
 
-                ghaf-audio = {
-                  inherit (vm.ghafAudio) enable;
-                  name = "${vm.name}";
-                };
-
+                # Storage
                 storagevm = {
                   enable = true;
                   name = "${vm.name}";
-                  users.${config.ghaf.users.accounts.user}.directories = [
+                  users.${config.ghaf.users.accounts.appuser}.directories = [
                     ".config/"
                     "Downloads"
                     "Music"
@@ -98,7 +96,11 @@ let
                   ];
                 };
 
-                # Logging client configuration
+                # Services
+                ghaf-audio = {
+                  inherit (vm.ghafAudio) enable;
+                  name = "${vm.name}";
+                };
                 logging.client.enable = configHost.ghaf.logging.client.enable;
                 logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
               };

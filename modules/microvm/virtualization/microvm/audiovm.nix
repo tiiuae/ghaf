@@ -39,14 +39,23 @@ let
           imports = [ ../../../common ];
 
           ghaf = {
-            users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+            # Profiles
             profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-
             development = {
               ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
             };
+            users.accounts = {
+              enableProxyUser = true;
+              proxyuserGroups = [
+                "audio"
+                "video"
+                "pipewire"
+              ];
+            };
+
+            # System
             systemd = {
               enable = true;
               withName = "audiovm-systemd";
@@ -60,14 +69,18 @@ let
               withHardenedConfigs = true;
             };
             givc.audiovm.enable = true;
-            services.audio.enable = true;
-            # Logging client configuration
-            logging.client.enable = configHost.ghaf.logging.client.enable;
-            logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
+
+            # Storage
             storagevm = {
               enable = true;
               name = "audiovm";
             };
+
+            # Services
+            services.audio.enable = true;
+            # Logging client configuration
+            logging.client.enable = configHost.ghaf.logging.client.enable;
+            logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
           };
 
           environment = {
@@ -76,17 +89,6 @@ let
               pkgs.pamixer
               pkgs.pipewire
             ] ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
-          };
-
-          users.users."proxy-user-audio" = {
-            isNormalUser = true;
-            uid = config.ghaf.users.accounts.loginuid;
-            createHome = false;
-            extraGroups = [
-              "audio"
-              "video"
-              "pipewire"
-            ];
           };
 
           time.timeZone = config.time.timeZone;
