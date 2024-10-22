@@ -161,6 +161,8 @@ let
                       "accel=kvm:tcg,mem-merge=on,sata=off"
                       "-device"
                       "vhost-vsock-pci,guest-cid=${toString cid}"
+                      "-device"
+                      "qemu-xhci"
                     ]
                     ++ lib.optionals vm.vtpm.enable [
                       "-chardev"
