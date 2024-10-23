@@ -17,23 +17,22 @@ writeShellApplication {
     export DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/ssh_session_dbus.sock
     export DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/ssh_system_dbus.sock
     ${openssh}/bin/ssh -M -S /tmp/control_socket_bt \
-        -f -N -q ghaf@audio-vm \
-        -i /run/waypipe-ssh/id_ed25519 \
+        -f -N -q proxyuser@audio-vm \
+        -i /run/user-ssh/id_ed25519_ad \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o StreamLocalBindUnlink=yes \
         -o ExitOnForwardFailure=yes \
-        -L /tmp/ssh_session_dbus.sock:/run/user/1000/bus \
+        -L /tmp/ssh_session_dbus.sock:/run/user/"$UID"/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     # Use the control socket to close the ssh tunnel.
     close-tunnel() {
-      ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit ghaf@audio-vm
+      ${openssh}/bin/ssh -q -S /tmp/control_socket_bt -O exit proxyuser@audio-vm
     }
 
     launch-blueman() {
       ${blueman}/bin/blueman-applet &
       ${blueman}/bin/blueman-manager
-      close-tunnel
     }
 
     status() {
@@ -50,7 +49,6 @@ writeShellApplication {
       status="{\"powered\":\"$BT_POWERED\",\"discoverable\":\"$BT_DISCOVERABLE\",\"pairable\":\"$BT_PAIRABLE\",\"discovering\":\"$BT_DISCOVERING\",\"alias\":\"$BT_ALIAS\"}"
 
       echo "$status"
-      close-tunnel
     }
 
     if [ $# -eq 0 ]; then
@@ -58,6 +56,7 @@ writeShellApplication {
     elif [ "$1" = "status" ]; then
       status
     fi
+    close-tunnel
   '';
 
   meta = {

@@ -33,24 +33,21 @@ let
         { lib, pkgs, ... }:
         {
           ghaf = {
-            users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
+            # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               applications.enable = false;
               graphics.enable = true;
             };
-
-            # To enable screen locking set to true
-            graphics.labwc = {
-              autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
-              autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
-            };
+            users.accounts.enableLoginUser = true;
 
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
+
+            # System
             systemd = {
               enable = true;
               withName = "guivm-systemd";
@@ -62,21 +59,12 @@ let
               withHardenedConfigs = true;
             };
             givc.guivm.enable = true;
-            # Logging client configuration
-            logging.client.enable = config.ghaf.logging.client.enable;
-            logging.client.endpoint = config.ghaf.logging.client.endpoint;
+
+            # Storage
             storagevm = {
               enable = true;
               name = "guivm";
-              directories = [
-                {
-                  directory = "/var/lib/private/ollama";
-                  inherit (config.ghaf.users.accounts) user;
-                  group = "ollama";
-                  mode = "u=rwx,g=,o=";
-                }
-              ];
-              users.${config.ghaf.users.accounts.user}.directories = [
+              users.${config.ghaf.users.accounts.loginuser}.directories = [
                 ".cache"
                 ".config"
                 ".local"
@@ -84,6 +72,15 @@ let
                 "Videos"
               ];
             };
+
+            # Services
+            # To enable screen locking set to true
+            graphics.labwc = {
+              autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
+              autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
+            };
+            logging.client.enable = config.ghaf.logging.client.enable;
+            logging.client.endpoint = config.ghaf.logging.client.endpoint;
             services.disks.enable = true;
             services.disks.fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
             services.xdghandlers.enable = true;
@@ -94,9 +91,16 @@ let
               keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
                 set -xeuo pipefail
                 mkdir -p /run/waypipe-ssh
+                mkdir -p /run/user-ssh
                 echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
-                chown ghaf:ghaf /run/waypipe-ssh/*
+                chown ${config.ghaf.users.accounts.admin}:${config.ghaf.users.accounts.admin} /run/waypipe-ssh/*
                 cp /run/waypipe-ssh/id_ed25519.pub /run/waypipe-ssh-public-key/id_ed25519.pub
+                echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/user-ssh/id_ed25519_net -C "proxyuser@net-vm"
+                chown ${config.ghaf.users.accounts.loginuser}:${config.ghaf.users.accounts.loginuser} /run/user-ssh/*
+                cp /run/user-ssh/id_ed25519_net.pub /run/waypipe-ssh-public-key/id_ed25519_net.pub
+                echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/user-ssh/id_ed25519_ad -C "proxyuser@audio-vm"
+                chown ${config.ghaf.users.accounts.loginuser}:${config.ghaf.users.accounts.loginuser} /run/user-ssh/*
+                cp /run/user-ssh/id_ed25519_ad.pub /run/waypipe-ssh-public-key/id_ed25519_ad.pub
               '';
             in
             {

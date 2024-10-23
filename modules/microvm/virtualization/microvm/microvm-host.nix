@@ -9,6 +9,13 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm-host;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkMerge
+    types
+    ;
 in
 {
   imports = [
@@ -16,44 +23,47 @@ in
     inputs.self.nixosModules.givc-host
   ];
   options.ghaf.virtualization.microvm-host = {
-    enable = lib.mkEnableOption "MicroVM Host";
-    networkSupport = lib.mkEnableOption "Network support services to run host applications.";
+    enable = mkEnableOption "MicroVM Host";
+    networkSupport = mkEnableOption "Network support services to run host applications.";
     sharedVmDirectory = {
-      enable = lib.mkEnableOption "shared directory" // {
+      enable = mkEnableOption "shared directory" // {
         default = true;
       };
 
-      vms = lib.mkOption {
+      vms = mkOption {
         description = ''
           List of names of virtual machines for which unsafe shared folder will be enabled.
         '';
-        type = lib.types.listOf lib.types.str;
+        type = types.listOf types.str;
         default = [ ];
       };
     };
   };
 
-  config = lib.mkMerge [
-    (lib.mkIf cfg.enable {
+  config = mkMerge [
+    (mkIf cfg.enable {
       microvm.host.enable = true;
-      ghaf.systemd = {
-        withName = "host-systemd";
-        enable = true;
-        boot.enable = true;
-        withAudit = config.ghaf.profiles.debug.enable;
-        withPolkit = true;
-        withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
-        withRepart = true;
-        withFido2 = true;
-        withCryptsetup = true;
-        withTimesyncd = cfg.networkSupport;
-        withNss = cfg.networkSupport;
-        withResolved = cfg.networkSupport;
-        withSerial = config.ghaf.profiles.debug.enable;
-        withDebug = config.ghaf.profiles.debug.enable;
-        withHardenedConfigs = true;
+      microvm.host.useNotifySockets = true;
+      ghaf = {
+        # System
+        systemd = {
+          withName = "host-systemd";
+          enable = true;
+          withAudit = config.ghaf.profiles.debug.enable;
+          withPolkit = true;
+          withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
+          withRepart = true;
+          withFido2 = true;
+          withCryptsetup = true;
+          withTimesyncd = cfg.networkSupport;
+          withNss = cfg.networkSupport;
+          withResolved = cfg.networkSupport;
+          withSerial = config.ghaf.profiles.debug.enable;
+          withDebug = config.ghaf.profiles.debug.enable;
+          withHardenedConfigs = true;
+        };
+        givc.host.enable = true;
       };
-      ghaf.givc.host.enable = true;
 
       # TODO: remove hardcoded paths
       systemd.services."microvm@audio-vm".serviceConfig =
@@ -80,7 +90,7 @@ in
           };
 
     })
-    (lib.mkIf cfg.sharedVmDirectory.enable {
+    (mkIf cfg.sharedVmDirectory.enable {
       ghaf.virtualization.microvm.guivm.extraModules = [ (import ./common/shared-directory.nix "") ];
 
       # Create directories required for sharing files with correct permissions.
@@ -88,15 +98,14 @@ in
         let
           vmDirs = map (
             n:
-            "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0700 ${config.ghaf.users.accounts.user} users"
+            "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.accounts.loginuid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /storagevm/shared 0755 root root"
-          "d /storagevm/shared/shares 0700 ${config.ghaf.users.accounts.user} users"
+          "d /storagevm/shared/shares 0760 ${toString config.ghaf.users.accounts.loginuid} users"
         ]
         ++ vmDirs;
-
     })
   ];
 }
