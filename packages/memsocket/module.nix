@@ -15,8 +15,8 @@ stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "shmsockproxy";
-    rev = "851ca1f2d23db764dd817b15aa783d82ab17560f";
-    sha256 = "sha256-8jyciVZccptGaj4u3bDj5YOCfZSsf69FH4yfqcUoB5k=";
+    rev = "2357926b94ed12c050fdbfbfc0f248393a4c9ea1";
+    sha256 = "sha256-9KlHuVbe5qvjRUXj7oyJ1X7CLvqj7/OoVGDWRqpIY2s=";
   };
 
   sourceRoot = "source/module";
