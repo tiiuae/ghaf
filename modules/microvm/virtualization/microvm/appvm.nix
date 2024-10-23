@@ -53,10 +53,17 @@ let
             }:
             let
               waypipeBorder = if vm.borderColor != null then "--border \"${vm.borderColor}\"" else "";
-              runWaypipe = pkgs.writeScriptBin "run-waypipe" ''
-                #!${pkgs.runtimeShell} -e
-                ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
-              '';
+              runWaypipe =
+                if configHost.ghaf.shm.display then
+                  pkgs.writeScriptBin "run-waypipe" ''
+                    #!${pkgs.runtimeShell} -e
+                    ${pkgs.waypipe}/bin/waypipe -s ${configHost.ghaf.shm.serverSocketPath} ${waypipeBorder} server "$@"
+                  ''
+                else
+                  pkgs.writeScriptBin "run-waypipe" ''
+                    #!${pkgs.runtimeShell} -e
+                    ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString configHost.ghaf.virtualization.microvm.guivm.waypipePort} ${waypipeBorder} server "$@"
+                  '';
             in
             {
               ghaf = {

@@ -23,6 +23,13 @@ in
         A default user to create in the system.
       '';
     };
+    uid = mkOption {
+      default = 1000;
+      type = with types; int;
+      description = ''
+        A default user id for the user.
+      '';
+    };
     password = mkOption {
       default = "ghaf";
       type = with types; str;
@@ -38,6 +45,7 @@ in
       users."${cfg.user}" = {
         isNormalUser = true;
         inherit (cfg) password;
+        inherit (cfg) uid;
         #TODO add "docker" use "lib.optionals"
         extraGroups = [
           "wheel"
