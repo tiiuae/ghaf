@@ -3,7 +3,10 @@
 #
 # Modules that should be only imported to host
 #
-{ lib, ... }:
+{
+  lib,
+  ...
+}:
 {
   networking.hostName = lib.mkDefault "ghaf-host";
 

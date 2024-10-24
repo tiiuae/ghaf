@@ -25,6 +25,10 @@ in
         port = "9000";
         tls.enable = config.ghaf.givc.enableTls;
         admin = config.ghaf.givc.adminConfig;
+        services = [
+          "display-suspend.service"
+          "display-resume.service"
+        ];
       };
   };
 }
