@@ -7,5 +7,5 @@
 {
   imports = [ ./sdimage.nix ];
 
-  formatAttr = "sdImage";
+  # formatAttr = "sdImage";
 }

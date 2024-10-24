@@ -6,23 +6,22 @@
   nixpkgs,
   hostConfiguration,
   jetpack-nixos,
-  flash-tools-system,
 }:
 let
-  flashSystem = "x86_64-linux";
+  # Import pkgs for x86_64-linux system
   pkgs = import nixpkgs {
-    system = flashSystem;
+    system = "x86_64-linux";
+    crossSystem = {
+      config = "aarch64-unknown-linux-gnu";
+    };
     overlays = [
       jetpack-nixos.overlays.default
-      (import "${jetpack-nixos}/overlay-with-config.nix" hostConfiguration)
+      (import "${jetpack-nixos}/overlay-with-config.nix" hostConfiguration.config)
     ];
   };
 
-  inherit (pkgs.nvidia-jetpack) flash-tools;
-
-  flashScript = pkgs.nvidia-jetpack.mkFlashScript flash-tools { };
+  # Generate the flash script derivation
+  flashScriptDrv = pkgs.nvidia-jetpack.mkFlashScript { };
 in
-nixpkgs.legacyPackages.${flash-tools-system}.writeShellApplication {
-  name = "flash-ghaf";
-  text = flashScript;
-}
+flashScriptDrv
+
