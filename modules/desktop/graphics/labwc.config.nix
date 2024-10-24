@@ -123,6 +123,13 @@ let
           '') cfg.frameColouring
         )
       }
+      ${
+        lib.concatStringsSep "\n" (
+          map (rule: ''
+            <windowRule sandboxAppId="${rule.identifier}" borderColor="${rule.color}" serverDecoration="yes" skipTaskbar="no"  />
+          '') cfg.securityContext
+        )
+      }
     </windowRules>
     <libinput>
       <device category="touchpad"><naturalScroll>yes</naturalScroll></device>

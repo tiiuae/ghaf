@@ -1,0 +1,565 @@
+# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From dfc51669bfd3609023e0fc31afb2b5532c19bce4 Mon Sep 17 00:00:00 2001
+From: Yuri Nesterov <yuriy.nesterov@unikie.com>
+Date: Thu, 13 Jun 2024 14:49:31 +0300
+Subject: [PATCH] Add support for the Wayland security context protocol
+
+---
+ meson.build                       |   5 +
+ meson_options.txt                 |   1 +
+ protocols/security-context-v1.xml | 180 ++++++++++++++++++++++++++++++
+ src/main.h                        |   1 +
+ src/meson.build                   |  19 ++++
+ src/secctx.c                      | 144 ++++++++++++++++++++++++
+ src/waypipe.c                     |  54 ++++++++-
+ waypipe.scd                       |   4 +
+ 8 files changed, 402 insertions(+), 6 deletions(-)
+ create mode 100644 protocols/security-context-v1.xml
+ create mode 100644 src/secctx.c
+
+diff --git a/meson.build b/meson.build
+index 0bb57d3..e8b2e8d 100644
+--- a/meson.build
++++ b/meson.build
+@@ -99,6 +99,11 @@ if libavcodec.found() and libavutil.found() and libswscale.found()
+ 		config_data.set('HAS_VAAPI', 1, description: 'Enable hardware video (de)compression with VAAPI')
+ 	endif
+ endif
++wayland_scanner = dependency('wayland-scanner', version: '>=1.15.0', required: get_option('with_secctx'), native: true)
++wayland_client = dependency('wayland-client', required: get_option('with_secctx'))
++if wayland_scanner.found() and wayland_client.found()
++	config_data.set('HAS_SECURITY_CONTEXT', 1, description: 'Enable security-context-v1 support')
++endif
+ 
+ waypipe_includes = [include_directories('protocols'), include_directories('src')]
+ if libdrm.found()
+diff --git a/meson_options.txt b/meson_options.txt
+index 2f47494..e40517a 100644
+--- a/meson_options.txt
++++ b/meson_options.txt
+@@ -5,6 +5,7 @@ option('with_lz4', type : 'feature', value : 'auto', description : 'Support LZ4
+ option('with_zstd', type : 'feature', value : 'auto', description : 'Support ZStandard as a compression mechanism')
+ option('with_vaapi', type : 'feature', value : 'auto', description : 'Link with libva and use VAAPI to perform hardware video output color space conversions on GPU')
+ option('with_systemtap', type: 'boolean', value: true, description: 'Enable tracing using sdt and provide static tracepoints for profiling')
++option('with_secctx', type: 'feature', value: 'auto', description: 'Enable support for the Wayland security context protocol')
+ 
+ # It is recommended to keep these on; Waypipe will automatically select the highest available instruction set at runtime
+ option('with_avx512f', type: 'boolean', value: true, description: 'Compile with support for AVX512f SIMD instructions')
+diff --git a/protocols/security-context-v1.xml b/protocols/security-context-v1.xml
+new file mode 100644
+index 0000000..0b14078
+--- /dev/null
++++ b/protocols/security-context-v1.xml
+@@ -0,0 +1,180 @@
++<?xml version="1.0" encoding="UTF-8"?>
++<protocol name="security_context_v1">
++  <copyright>
++    Copyright © 2021 Simon Ser
++
++    Permission is hereby granted, free of charge, to any person obtaining a
++    copy of this software and associated documentation files (the "Software"),
++    to deal in the Software without restriction, including without limitation
++    the rights to use, copy, modify, merge, publish, distribute, sublicense,
++    and/or sell copies of the Software, and to permit persons to whom the
++    Software is furnished to do so, subject to the following conditions:
++
++    The above copyright notice and this permission notice (including the next
++    paragraph) shall be included in all copies or substantial portions of the
++    Software.
++
++    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
++    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
++    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
++    THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
++    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
++    DEALINGS IN THE SOFTWARE.
++  </copyright>
++
++  <interface name="wp_security_context_manager_v1" version="1">
++    <description summary="client security context manager">
++      This interface allows a client to register a new Wayland connection to
++      the compositor and attach a security context to it.
++
++      This is intended to be used by sandboxes. Sandbox engines attach a
++      security context to all connections coming from inside the sandbox. The
++      compositor can then restrict the features that the sandboxed connections
++      can use.
++
++      Compositors should forbid nesting multiple security contexts by not
++      exposing wp_security_context_manager_v1 global to clients with a security
++      context attached, or by sending the nested protocol error. Nested
++      security contexts are dangerous because they can potentially allow
++      privilege escalation of a sandboxed client.
++
++      Warning! The protocol described in this file is currently in the testing
++      phase. Backward compatible changes may be added together with the
++      corresponding interface version bump. Backward incompatible changes can
++      only be done by creating a new major version of the extension.
++    </description>
++
++    <enum name="error">
++      <entry name="invalid_listen_fd" value="1"
++        summary="listening socket FD is invalid"/>
++      <entry name="nested" value="2"
++        summary="nested security contexts are forbidden"/>
++    </enum>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the manager object">
++        Destroy the manager. This doesn't destroy objects created with the
++        manager.
++      </description>
++    </request>
++
++    <request name="create_listener">
++      <description summary="create a new security context">
++        Creates a new security context with a socket listening FD.
++
++        The compositor will accept new client connections on listen_fd.
++        listen_fd must be ready to accept new connections when this request is
++        sent by the client. In other words, the client must call bind(2) and
++        listen(2) before sending the FD.
++
++        close_fd is a FD closed by the client when the compositor should stop
++        accepting new connections on listen_fd.
++
++        The compositor must continue to accept connections on listen_fd when
++        the Wayland client which created the security context disconnects.
++
++        After sending this request, closing listen_fd and close_fd remains the
++        only valid operation on them.
++      </description>
++      <arg name="id" type="new_id" interface="wp_security_context_v1"/>
++      <arg name="listen_fd" type="fd" summary="listening socket FD"/>
++      <arg name="close_fd" type="fd" summary="FD closed when done"/>
++    </request>
++  </interface>
++
++  <interface name="wp_security_context_v1" version="1">
++    <description summary="client security context">
++      The security context allows a client to register a new client and attach
++      security context metadata to the connections.
++
++      When both are set, the combination of the application ID and the sandbox
++      engine must uniquely identify an application. The same application ID
++      will be used across instances (e.g. if the application is restarted, or
++      if the application is started multiple times).
++
++      When both are set, the combination of the instance ID and the sandbox
++      engine must uniquely identify a running instance of an application.
++    </description>
++
++    <enum name="error">
++      <entry name="already_used" value="1"
++        summary="security context has already been committed"/>
++      <entry name="already_set" value="2"
++        summary="metadata has already been set"/>
++      <entry name="invalid_metadata" value="3"
++        summary="metadata is invalid"/>
++    </enum>
++
++    <request name="destroy" type="destructor">
++      <description summary="destroy the security context object">
++        Destroy the security context object.
++      </description>
++    </request>
++
++    <request name="set_sandbox_engine">
++      <description summary="set the sandbox engine">
++        Attach a unique sandbox engine name to the security context. The name
++        should follow the reverse-DNS style (e.g. "org.flatpak").
++
++        A list of well-known engines is maintained at:
++        https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/staging/security-context/engines.md
++
++        It is a protocol error to call this request twice. The already_set
++        error is sent in this case.
++      </description>
++      <arg name="name" type="string" summary="the sandbox engine name"/>
++    </request>
++
++    <request name="set_app_id">
++      <description summary="set the application ID">
++        Attach an application ID to the security context.
++
++        The application ID is an opaque, sandbox-specific identifier for an
++        application. See the well-known engines document for more details:
++        https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/staging/security-context/engines.md
++
++        The compositor may use the application ID to group clients belonging to
++        the same security context application.
++
++        Whether this request is optional or not depends on the sandbox engine used.
++
++        It is a protocol error to call this request twice. The already_set
++        error is sent in this case.
++      </description>
++      <arg name="app_id" type="string" summary="the application ID"/>
++    </request>
++
++    <request name="set_instance_id">
++      <description summary="set the instance ID">
++        Attach an instance ID to the security context.
++
++        The instance ID is an opaque, sandbox-specific identifier for a running
++        instance of an application. See the well-known engines document for
++        more details:
++        https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/staging/security-context/engines.md
++
++        Whether this request is optional or not depends on the sandbox engine used.
++
++        It is a protocol error to call this request twice. The already_set
++        error is sent in this case.
++      </description>
++      <arg name="instance_id" type="string" summary="the instance ID"/>
++    </request>
++
++    <request name="commit">
++      <description summary="register the security context">
++        Atomically register the new client and attach the security context
++        metadata.
++
++        If the provided metadata is inconsistent or does not match with out of
++        band metadata (see
++        https://gitlab.freedesktop.org/wayland/wayland-protocols/-/blob/main/staging/security-context/engines.md),
++        the invalid_metadata error may be sent eventually.
++
++        It's a protocol error to send any request other than "destroy" after
++        this request. In this case, the already_used error is sent.
++      </description>
++    </request>
++  </interface>
++</protocol>
+diff --git a/src/main.h b/src/main.h
+index 919b069..955fb93 100644
+--- a/src/main.h
++++ b/src/main.h
+@@ -49,6 +49,7 @@ struct main_config {
+ 	bool border;
+ 	struct color border_color;
+ 	uint32_t border_size;
++	const char *secctx_app_id;
+ };
+ struct globals {
+ 	const struct main_config *config;
+diff --git a/src/meson.build b/src/meson.build
+index a738737..2b91219 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -52,6 +52,25 @@ if ( host_machine.cpu_family() == 'aarch64' or cc.has_argument('-mfpu=neon') ) a
+ 	kernel_libs += static_library('kernel_neon', 'kernel_neon.c', c_args:neon_args)
+ 	config_data.set('HAVE_NEON', 1, description: 'Compiler supports NEON')
+ endif
++if config_data.has('HAS_SECURITY_CONTEXT')
++	wayland_scanner_prog = find_program(wayland_scanner.get_variable(pkgconfig: 'wayland_scanner'))
++	wl_security_context_xml = '../protocols/security-context-v1.xml'
++	protocols_src += custom_target(
++		'security-context-v1-protocol.c',
++		input: wl_security_context_xml,
++		output: 'security-context-v1-protocol.c',
++		command: [wayland_scanner_prog, 'private-code', '@INPUT@', '@OUTPUT@'],
++	)
++	protocols_src += custom_target(
++		'security-context-v1-protocol.h',
++		input: wl_security_context_xml,
++		output: 'security-context-v1-protocol.h',
++		command: [wayland_scanner_prog, 'client-header', '@INPUT@', '@OUTPUT@'],
++	)
++
++    waypipe_deps += [wayland_client]
++    waypipe_source_files += ['secctx.c']
++endif
+ 
+ configure_file(
+ 	output: 'config-waypipe.h',
+diff --git a/src/secctx.c b/src/secctx.c
+new file mode 100644
+index 0000000..7533f58
+--- /dev/null
++++ b/src/secctx.c
+@@ -0,0 +1,144 @@
++#include "security-context-v1-protocol.h"
++#include "util.h"
++#include <sys/socket.h>
++#include <sys/un.h>
++#include <unistd.h>
++#include <wayland-client.h>
++
++static struct wp_security_context_manager_v1 *security_context_manager = NULL;
++static struct wp_security_context_v1 *security_context = NULL;
++static int listen_fd = -1;
++static int close_fd[2] = {-1, -1};
++
++static void registry_handle_global(void *data, struct wl_registry *registry,
++		uint32_t name, const char *interface, uint32_t version)
++{
++	(void)data;
++	(void)version;
++
++	if (strcmp(interface, "wp_security_context_manager_v1") == 0) {
++		security_context_manager = wl_registry_bind(registry, name,
++				&wp_security_context_manager_v1_interface, 1);
++	}
++}
++
++static void registry_handle_global_remove(
++		void *data, struct wl_registry *registry, uint32_t name)
++{
++	(void)data;
++	(void)registry;
++	(void)name;
++}
++
++static const struct wl_registry_listener registry_listener = {
++		.global = registry_handle_global,
++		.global_remove = registry_handle_global_remove};
++
++void close_security_context()
++{
++	if (close_fd[1] >= 0) {
++		close(close_fd[1]);
++		close_fd[1] = -1;
++	}
++	if (listen_fd >= 0) {
++		close(listen_fd);
++		listen_fd = -1;
++	}
++}
++
++int create_security_context(const char *sock_path, const char *engine,
++		const char *instance_id, const char *app_id)
++{
++	struct wl_display *display = NULL;
++	struct wl_registry *registry = NULL;
++	int res = -1;
++
++	wp_debug("Enabling wayland security context");
++	display = wl_display_connect(NULL);
++	if (display == NULL) {
++		wp_error("Failed to connect to the Wayland compositor");
++		goto cleanup;
++	}
++
++	registry = wl_display_get_registry(display);
++	if (registry == NULL) {
++		wp_error("Failed to get Wayland display registry");
++		goto cleanup;
++	}
++
++	wl_registry_add_listener(registry, &registry_listener, NULL);
++	wl_display_dispatch(display);
++
++	if (wl_display_roundtrip(display) == -1) {
++		wp_error("Failed to execute display roundtrip");
++		goto cleanup;
++	}
++
++	if (!security_context_manager) {
++		wp_error("Security context is not supported by the Wayland compositor");
++		goto cleanup;
++	}
++
++	listen_fd = socket(AF_UNIX, SOCK_STREAM, 0);
++	if (listen_fd < 0) {
++		wp_error("Failed to create a Unix socket for security context");
++		goto cleanup;
++	}
++
++	struct sockaddr_un sockaddr = {0};
++	sockaddr.sun_family = AF_UNIX;
++	strncpy(sockaddr.sun_path, sock_path, sizeof(sockaddr.sun_path) - 1);
++	if (bind(listen_fd, (struct sockaddr *)&sockaddr, sizeof(sockaddr)) !=
++			0) {
++		wp_error("Failed to bind the Unix socket for the security context");
++		goto cleanup;
++	}
++
++	if (listen(listen_fd, 0) != 0) {
++		wp_error("Failed to listen on the Unix socket for the security context");
++		goto cleanup;
++	}
++
++	if (pipe(close_fd)) {
++		wp_error("Failed to create a pipe for the security context");
++		goto cleanup;
++	}
++
++	security_context = wp_security_context_manager_v1_create_listener(
++			security_context_manager, listen_fd, close_fd[0]);
++	if (security_context == NULL) {
++		wp_error("Failed to create a security context listener");
++		goto cleanup;
++	}
++
++	wp_security_context_v1_set_sandbox_engine(security_context, engine);
++	wp_security_context_v1_set_instance_id(security_context, instance_id);
++	wp_security_context_v1_set_app_id(security_context, app_id);
++	wp_security_context_v1_commit(security_context);
++	wp_security_context_v1_destroy(security_context);
++
++	if (wl_display_roundtrip(display) < 0) {
++		wp_error("Failed to execute display roundtrip");
++		goto cleanup;
++	}
++
++	wp_debug("Successfully enabled Wayland security context");
++	res = 0;
++
++cleanup:
++
++	if (res) {
++		close_security_context();
++	}
++	if (security_context_manager) {
++		wp_security_context_manager_v1_destroy(
++				security_context_manager);
++	}
++	if (registry) {
++		wl_registry_destroy(registry);
++	}
++	if (display) {
++		wl_display_disconnect(display);
++	}
++	return res;
++}
+diff --git a/src/waypipe.c b/src/waypipe.c
+index 9908677..f303464 100644
+--- a/src/waypipe.c
++++ b/src/waypipe.c
+@@ -99,6 +99,8 @@ static const char usage_string[] =
+ 		"                         V is list of options: sw,hw,bpf=1.2e5,h264,vp9,av1\n"
+ 		"      --vsock          use vsock instead of unix socket\n"
+ 		"      --border C,S     add a border with hex color C and border size S in hex around the window\n"
++		"      --secctx S       client,ssh: enable Wayland security context protocol\n"
++		"                         S is an app id to be attached to the security context\n"
+ 		"\n";
+ 
+ static int usage(int retcode)
+@@ -501,6 +503,7 @@ static const bool feature_flags[] = {
+ #define ARG_VSOCK 1013
+ #define ARG_TITLE_PREFIX 1014
+ #define ARG_BORDER 1015
++#define ARG_SECCTX 1016
+ 
+ static const struct option options[] = {
+ 		{"compress", required_argument, NULL, 'c'},
+@@ -525,9 +528,9 @@ static const struct option options[] = {
+ 		{"vsock", no_argument, NULL, ARG_VSOCK},
+ 		{"title-prefix", required_argument, NULL, ARG_TITLE_PREFIX},
+ 		{"border", required_argument, NULL, ARG_BORDER},
++		{"secctx", required_argument, NULL, ARG_SECCTX},
+ 		{0, 0, NULL, 0}
+ };
+-
+ struct arg_permissions {
+ 	int val;
+ 	uint32_t mode_mask;
+@@ -553,12 +556,19 @@ static const struct arg_permissions arg_permissions[] = {
+ 		{ARG_BENCH_TEST_SIZE, MODE_BENCH},
+ 		{ARG_VSOCK, MODE_SSH | MODE_CLIENT | MODE_SERVER},
+ 		{ARG_TITLE_PREFIX, MODE_SSH | MODE_CLIENT | MODE_SERVER},
+-		{ARG_BORDER, MODE_CLIENT | MODE_SERVER | MODE_SSH}
++		{ARG_BORDER, MODE_CLIENT | MODE_SERVER | MODE_SSH},
++		{ARG_SECCTX, MODE_SSH | MODE_CLIENT}
+ };
+ 
+ /* envp is nonstandard, so use environ */
+ extern char **environ;
+ 
++#ifdef HAS_SECURITY_CONTEXT
++int create_security_context(const char *sock_path, const char *engine,
++		const char *instance_id, const char *app_id);
++void close_security_context();
++#endif
++
+ int main(int argc, char **argv)
+ {
+ 	bool help = false;
+@@ -601,7 +611,8 @@ int main(int argc, char **argv)
+ 			.border_color = {
+ 				.a = 255, .r = 0, .g = 0, .b = 0
+ 			},
+-			.border_size = 3
++			.border_size = 3,
++			.secctx_app_id = NULL
+ 	};
+ 
+ 	/* We do not parse any getopt arguments happening after the mode choice
+@@ -792,6 +803,14 @@ int main(int argc, char **argv)
+ 				return EXIT_FAILURE;
+ 			}
+ 			break;
++		case ARG_SECCTX:
++#ifdef HAS_SECURITY_CONTEXT
++			config.secctx_app_id = optarg;
++			break;
++#else
++			fprintf(stderr, "Option --secctx not allowed: this copy of Waypipe was not built with support for the Wayland security context protocol.\n");
++			return EXIT_FAILURE;
++#endif
+ 		default:
+ 			fail = true;
+ 			break;
+@@ -900,9 +919,29 @@ int main(int argc, char **argv)
+ 		return EXIT_FAILURE;
+ 	}
+ 
+-	const char *wayland_socket = getenv("WAYLAND_SOCKET");
+-	if (wayland_socket != NULL) {
+-		oneshot = true;
++	const char *wayland_socket = NULL;
++	if (!config.secctx_app_id) {
++		wayland_socket = getenv("WAYLAND_SOCKET");
++		if (wayland_socket != NULL) {
++			oneshot = true;
++		}
++	} else {
++#ifdef HAS_SECURITY_CONTEXT
++		/* Create a new socket, send it to the compositor to attach
++		 * a security context and write it to WAYLAND_DISPLAY */
++		char secctx_sock_path[108];
++		sprintf(secctx_sock_path, "/tmp/waypipe%d", getpid());
++		unlink(secctx_sock_path);
++		char instance_id[21];
++		sprintf(instance_id, "%d", getpid());
++		if (create_security_context(secctx_sock_path, "waypipe",
++				    instance_id, config.secctx_app_id) == 0) {
++			unsetenv("WAYLAND_SOCKET");
++			setenv("WAYLAND_DISPLAY", secctx_sock_path, 1);
++		} else {
++			return EXIT_FAILURE;
++		}
++#endif
+ 	}
+ 
+ 	int ret;
+@@ -1243,6 +1282,9 @@ int main(int argc, char **argv)
+ 			checked_close(channel_folder_fd);
+ 		}
+ 	}
++#ifdef HAS_SECURITY_CONTEXT
++	close_security_context();
++#endif
+ 	checked_close(cwd_fd);
+ 	check_unclosed_fds();
+ 	return ret;
+diff --git a/waypipe.scd b/waypipe.scd
+index c86518f..17afcfb 100644
+--- a/waypipe.scd
++++ b/waypipe.scd
+@@ -181,6 +181,10 @@ compressible as images containing pictures.
+ 	The hex color should be in the format #RRGGBB or #RRGGBBAA and the border size is
+ 	in pixels.
+ 
++*--secctx S*
++	Enable the Wayland security context protocol (client or ssh modes). Specify
++	an application ID *S* that will be attached to the security context.
++
+ # EXAMPLE 
+ 
+ The following *waypipe ssh* subcommand will attempt to run *weston-flower* on
+-- 
+2.43.0
+
