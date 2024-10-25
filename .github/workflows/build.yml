@@ -147,13 +147,16 @@ jobs:
         uses: cachix/install-nix-action@v24
         with:
           extra_nix_config: |
-            trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
-            substituters = https://ghaf-dev.cachix.org?priority=20 https://cache.nixos.org
             connect-timeout = 5
             system-features = nixos-test benchmark big-parallel kvm
             builders-use-substitutes = true
             builders = @/etc/nix/machines
             log-lines = 100
+            # do not build anything locally, delegate all builds to remote builders:
+            max-jobs = 0
+            # allow nix build to use the binary cache(s) configured in ghaf flake:
+            trusted-users = runner
+            accept-flake-config = true
       - name: Configure remote builder
         run: |
           sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
