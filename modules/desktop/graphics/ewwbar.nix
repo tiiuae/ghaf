@@ -12,6 +12,7 @@ let
 
   cfg = config.ghaf.graphics.labwc;
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
+  ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
 
   launcher-icon = "${pkgs.ghaf-artwork}/icons/launcher.svg";
 
@@ -213,12 +214,17 @@ let
         brightness=$(${eww-brightness}/bin/eww-brightness get)
         battery=$(${eww-bat}/bin/eww-bat get)
         keyboard_layout=$(setxkbmap -query | awk '/layout/{print $2}' | tr '[:lower:]' '[:upper:]')
+        workspace=$(${ghaf-workspace}/bin/ghaf-workspace cur)
+        if ! [[ $workspace =~ ^[0-9]+$ ]] ; then
+            workspace="1"
+        fi
         
         ${eww} update \
           volume="$volume" \
           brightness="$brightness" \
           battery="$battery" \
-          keyboard_layout="$keyboard_layout"
+          keyboard_layout="$keyboard_layout" \
+          workspace="$workspace"
       }
 
       kill() {
@@ -438,6 +444,7 @@ in
         (defpoll battery  :interval "5s" :initial "{}" "${eww-bat}/bin/eww-bat get")
         (deflisten brightness "${eww-brightness}/bin/eww-brightness listen")
         (deflisten volume "${eww-volume}/bin/eww-volume listen")
+        (deflisten workspace :initial "1" "${ghaf-workspace}/bin/ghaf-workspace subscribe")
 
         (defvar calendar_day "date '+%d'")
         (defvar calendar_month "date '+%-m'")
@@ -446,6 +453,7 @@ in
         (defvar hotkey-brightness-visible "false")
         (defvar hotkey-volume-visible "false")
         (defvar hotkey-source "volume")
+        (defvar workspaces-visible "false")
         ;; (defpoll bluetooth  :interval "3s" :initial "{}" "${pkgs.bt-launcher}/bin/bt-launcher status")
 
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -455,7 +463,8 @@ in
         (defwidget launcher []
             (button :class "icon_button"
                 :onclick "${pkgs.nwg-drawer}/bin/nwg-drawer &"
-                (image :path "${launcher-icon}")))
+                (box :class "icon"
+                    :style "background-image: url(\"${launcher-icon}\")")))
 
         ;; Generic slider widget ;;
         (defwidget sys_slider [?header icon ?settings-icon level ?onchange ?settings-onclick ?icon-onclick ?class ?font-icon ?min] 
@@ -561,7 +570,7 @@ in
 
         ;; Power Menu Buttons ;;
         (defwidget power_menu []
-        (box
+            (box
             :orientation "v"
             :halign "start"
             :hexpand "false"
@@ -757,13 +766,38 @@ in
                         :year calendar_year))))
 
         ;; Left Widgets ;;
+        (defwidget workspaces []
+            (box :class "workspace"
+                :orientation "h"
+                :space-evenly "false"
+                (button :class "icon_button"
+                        :tooltip "Current workspace"
+                        :onclick {workspaces-visible == "false" ? "''${EWW_CMD} update workspaces-visible=true" : "''${EWW_CMD} update workspaces-visible=false"}
+                        workspace)
+                (revealer 
+                    :transition "slideright"
+                    :duration "250ms"
+                    :reveal workspaces-visible
+                    (eventbox :onhoverlost "''${EWW_CMD} update workspaces-visible=false"
+                        (box :orientation "h"
+                            :space-evenly "true"
+                            (button :class "icon_button"
+                                :onclick "${ghaf-workspace}/bin/ghaf-workspace switch 1; ''${EWW_CMD} update workspaces-visible=false"
+                                "1")
+                            (button :class "icon_button"
+                                :onclick "${ghaf-workspace}/bin/ghaf-workspace switch 2; ''${EWW_CMD} update workspaces-visible=false"
+                                "2"))))))
+
         (defwidget left []
             (box	
                 :orientation "h" 
-                :space-evenly "false" 
+                :space-evenly "false"
+                :spacing 14 
                 :halign "start" 
                 :valign "center" 
-                (launcher)))
+                (launcher)
+                (divider)
+                (workspaces)))
 
         ;; Right Widgets ;;
         (defwidget datetime-locale [screen]
@@ -812,7 +846,7 @@ in
             :geometry (geometry  
                         :x "0px" 
                         :y "0px" 
-                        :height "46px"
+                        :height "36px"
                         :width "100%" 
                         :anchor "top center")
             :wm-ignore true
@@ -887,6 +921,7 @@ in
         * {
             color: $text-base;
             font-family: "Inter";
+            font-size: 14px;
             :disabled {
                 color: $text-disabled;
             }
@@ -1167,6 +1202,11 @@ in
             font-size: 1em;
         }
 
+        .workspace {
+            font-size: 1.2em;
+            font-weight: $font-bold;
+        }
+
         .spacer {
             background-color: transparent;
         }
@@ -1295,6 +1335,7 @@ in
         Type = "oneshot";
         ExecStart = "systemctl --user reload ewwbar.service || true";
       };
+      after = [ "ewwbar.service" ];
     };
   };
 }
