@@ -11,6 +11,7 @@ let
 
   audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
+  ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
   ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
@@ -32,6 +33,18 @@ let
         systemctl --user reset-failed
         systemctl --user stop ghaf-session.target
         systemctl --user start ghaf-session.target
+
+        # Get the current workspace
+        current_workspace=$(${ghaf-workspace}/bin/ghaf-workspace cur 2>/dev/null)
+
+        # Check if the current workspace is a valid number
+        if ! [ "$current_workspace" -ge 1 ] 2>/dev/null; then
+            echo "Invalid workspace detected. Switching to workspace 1..."
+            ${ghaf-workspace}/bin/ghaf-workspace switch 1
+        else
+            ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
+        fi
+        ${ghaf-workspace}/bin/ghaf-workspace max 2
       ''
       + cfg.extraAutostart;
   };
@@ -65,8 +78,23 @@ let
       <policy>cascade</policy>
       <cascadeOffset x="40" y="30" />
     </placement>
+    <desktops number="2">
+      <popupTime>0</popupTime>
+    </desktops>
     <keyboard>
       <default />
+      <keybind key="W-1"><action name="GoToDesktop" to="1" />
+        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace update 1" />
+      </keybind>
+      <keybind key="W-2"><action name="GoToDesktop" to="2" />
+        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace update 2" />
+      </keybind>
+      <keybind key="W-A-Right">
+        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace next" />
+      </keybind>
+      <keybind key="W-A-Left">
+        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace prev" />
+      </keybind>
       <keybind key="W-l">
         <action name="Execute" command="loginctl lock-session" />
       </keybind>
@@ -113,6 +141,9 @@ let
             <mousebind button="Right" action="Press" />
           ''
         }
+      <!--Disable default scrolling behavior of switching workspaces-->
+      <mousebind direction="Up" action="Scroll" />
+      <mousebind direction="Down" action="Scroll" />
       </context>
     </mouse>
     <windowRules>
