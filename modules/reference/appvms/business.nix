@@ -17,6 +17,14 @@ let
   netvmAddress = lib.head (builtins.map (x: x.ip) netvmEntry);
   adminvmEntry = builtins.filter (x: x.name == "admin-vm") config.ghaf.networking.hosts.entries;
   adminvmAddress = lib.head (builtins.map (x: x.ip) adminvmEntry);
+  # Remove rounded corners from the text editor window
+  gnomeTextEditor = pkgs.gnome-text-editor.overrideAttrs (oldAttrs: {
+    postPatch =
+      (oldAttrs.postPatch or "")
+      + ''
+        echo -e '\nwindow { border-radius: 0px; }' >> src/style.css
+      '';
+  });
 in
 {
   name = "${name}";
@@ -26,7 +34,7 @@ in
       pkgs.globalprotect-openconnect
       pkgs.losslesscut-bin
       pkgs.openconnect
-      pkgs.gnome-text-editor
+      gnomeTextEditor
       pkgs.xarchiver
     ]
     ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ]
