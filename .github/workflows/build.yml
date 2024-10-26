@@ -144,7 +144,7 @@ jobs:
           echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
           git log --oneline -n$(( COMMITS + CONTEXT ))
       - name: Install nix
-        uses: cachix/install-nix-action@v24
+        uses: cachix/install-nix-action@v30
         with:
           extra_nix_config: |
             connect-timeout = 5
