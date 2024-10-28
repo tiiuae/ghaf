@@ -63,39 +63,6 @@ let
     ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
   '';
 
-  eww-popup = pkgs.writeShellApplication {
-    name = "eww-popup";
-    runtimeInputs = [ ];
-    bashOptions = [ ];
-    text = ''
-      windows=("calendar" "quick-settings" "power-menu")
-
-      close-others(){
-          active_windows=$(${eww} active-windows)
-          close=()
-
-          for window in "''${windows[@]}"; do
-              window_open=$(echo "$active_windows" | grep "$window")
-              if [ "$window" != "$1" ] && [ -n "$window_open" ]; then
-                  close+=("$window")
-              fi
-          done
-          ${eww} close "''${close[@]}"
-      }
-
-      open-window(){
-          close-others "$1"
-          if [ -z "$2" ]; then
-              ${eww} open --toggle "$1"
-          else
-              ${eww} open --toggle --screen "$2" "$1"
-          fi
-      }
-
-      open-window "$1" "$2"
-    '';
-  };
-
   eww-bat = pkgs.writeShellApplication {
     name = "eww-bat";
     runtimeInputs = [
@@ -200,7 +167,7 @@ let
         done
 
         # Open a widget for hotkey indicators only on main display
-        ${eww} open --no-daemonize hotkey-indicator
+        #${eww} open --no-daemonize hotkey-indicator
       }
 
       # Reloads current config without opening new windows
@@ -258,18 +225,30 @@ let
     ];
     bashOptions = [ ];
     text = ''
-      timer_pid=0
+      popup_timer_pid=0
 
-      handle_hotkey_indicator() {
-          if [ "$timer_pid" -ne 0 ]; then
-              kill "$timer_pid" 2>/dev/null
-          fi
+      show_popup() {
           if ! ${eww} active-windows | grep -q "quick-settings"; then
-              ${eww} update hotkey-source="brightness" hotkey-brightness-visible="true"
+              # Reset timer
+              if [ "$popup_timer_pid" -ne 0 ]; then
+                kill "$popup_timer_pid" 2>/dev/null
+                popup_timer_pid=0
+              fi
+              
+              if ! ${eww} active-windows | grep -q "brightness-popup"; then
+                ${eww} open brightness-popup
+                ${eww} update brightness-popup-visible="true"
+              fi
+              (
+                sleep 2
+                ${eww} update brightness-popup-visible="false"
+                sleep 0.1
+                ${eww} close brightness-popup
+              ) &
+
+              popup_timer_pid=$!
           fi
-          ( sleep 2; ${eww} update hotkey-brightness-visible="false") &
-          timer_pid=$!
-      }
+        }
 
       screen_level() {
           brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}'
@@ -311,7 +290,7 @@ let
         inotifywait -m /sys/class/backlight/*/brightness | \
         while read -r line; do
             if echo "$line" | grep -q "CLOSE_WRITE"; then
-                handle_hotkey_indicator
+                show_popup > /dev/null 2>&1
                 get
             fi
         done
@@ -332,18 +311,29 @@ let
     ];
     bashOptions = [ ];
     text = ''
-        timer_pid=0
+        popup_timer_pid=0
 
-        handle_hotkey_indicator() {
-            if [ "$timer_pid" -ne 0 ]; then
-                kill "$timer_pid" 2>/dev/null
-            fi
+        show_popup() {
+          if ! ${eww} active-windows | grep -q "quick-settings"; then
+              # Reset timer
+              if [ "$popup_timer_pid" -ne 0 ]; then
+                kill "$popup_timer_pid" 2>/dev/null
+                popup_timer_pid=0
+              fi
 
-            if ! ${eww} active-windows | grep -q "quick-settings"; then
-                ${eww} update hotkey-source="volume" hotkey-volume-visible="true"
-            fi
-            ( sleep 2; ${eww} update hotkey-volume-visible="false") &
-            timer_pid=$!
+              if ! ${eww} active-windows | grep -q "volume-popup"; then
+                ${eww} open volume-popup
+                ${eww} update volume-popup-visible="true"
+              fi
+              (
+                sleep 2
+                ${eww} update volume-popup-visible="false"
+                sleep 0.1
+                ${eww} close volume-popup
+              ) &
+
+              popup_timer_pid=$!
+          fi
         }
 
       volume_level() {
@@ -393,7 +383,7 @@ let
 
                 # Check if volume or mute status changed
                 if [[ "$current_volume" != "$prev_volume" || "$current_mute_status" != "$prev_mute_status" ]]; then
-                    handle_hotkey_indicator
+                    show_popup > /dev/null 2>&1
                     get
 
                     # Update previous states
@@ -450,9 +440,8 @@ in
         (defvar calendar_month "date '+%-m'")
         (defvar calendar_year "date '+%Y'")
 
-        (defvar hotkey-brightness-visible "false")
-        (defvar hotkey-volume-visible "false")
-        (defvar hotkey-source "volume")
+        (defvar volume-popup-visible "false")
+        (defvar brightness-popup-visible "false")
         (defvar workspaces-visible "false")
         ;; (defpoll bluetooth  :interval "3s" :initial "{}" "${pkgs.bt-launcher}/bin/bt-launcher status")
 
@@ -581,27 +570,27 @@ in
                     :class "power-menu-button"
                     :icon "${power-icon}"
                     :title "Shutdown"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${eww-power}/bin/eww-power poweroff &")
+                    :onclick "''${EWW_CMD} close power-menu closer & ${eww-power}/bin/eww-power poweroff &")
             (widget_button
                     :class "power-menu-button"
                     :icon "${suspend-icon}"
                     :title "Suspend"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${eww-power}/bin/eww-power suspend &")
+                    :onclick "''${EWW_CMD} close power-menu closer & ${eww-power}/bin/eww-power suspend &")
             (widget_button
                     :class "power-menu-button"
                     :icon "${restart-icon}"
                     :title "Reboot"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${eww-power}/bin/eww-power reboot &")
+                    :onclick "''${EWW_CMD} close power-menu closer & ${eww-power}/bin/eww-power reboot &")
             (widget_button
                     :class "power-menu-button"
                     :icon "${logout-icon}"
                     :title "Log Out"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu & ${pkgs.labwc}/bin/labwc --exit &")
+                    :onclick "''${EWW_CMD} close power-menu closer & ${pkgs.labwc}/bin/labwc --exit &")
             (widget_button
                     :class "power-menu-button"
                     :icon "${lock-icon}"
                     :title "Lock"
-                    :onclick "${eww-popup}/bin/eww-popup power-menu & loginctl lock-session &")))
+                    :onclick "''${EWW_CMD} close power-menu closer & loginctl lock-session &")))
 
         ;; Quick Settings Buttons ;;
         (defwidget settings_buttons []
@@ -613,7 +602,7 @@ in
                     (widget_button
                         :icon "${bluetooth-1-icon}"
                         :header "Bluetooth"
-                        :onclick "${eww-popup}/bin/eww-popup quick-settings & ${pkgs.bt-launcher}/bin/bt-launcher &")
+                        :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.bt-launcher}/bin/bt-launcher &")
                     (box
                         :hexpand true
                         :vexpand true
@@ -637,7 +626,7 @@ in
                 (widget_button
                     :icon "${settings-icon}"
                     :header "Settings"
-                    :onclick "${eww-popup}/bin/eww-popup quick-settings & ${pkgs.ctrl-panel}/bin/ctrl-panel >/dev/null &")))
+                    :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.ctrl-panel}/bin/ctrl-panel >/dev/null &")))
 
         ;; Quick Settings Widget ;;
         (defwidget quick-settings-widget []
@@ -664,34 +653,35 @@ in
                     :orientation "v"
                     (power_menu))))
 
-        ;; Generic Hotkey Indicator Widget ;;
-        (defwidget hotkey_indicator [icon level] 
-            (box :class "hotkey" 
-                :active false
-                (sys_slider
-                    :valign "center"
-                    :icon icon
-                    :level level)))
+        ;; Brightness Popup Widget ;;
+        (defwidget brightness-popup []
+            (revealer :transition "crossfade" :duration "200ms" :reveal brightness-popup-visible
+                (box :class "wrapper_widget"
+                (box :class "hotkey"
+                    (sys_slider
+                        :valign "center"
+                        :icon {brightness.icon}
+                        :level {brightness.screen.level})))))
 
-        ;; Hotkeys Widget ;;
-        (defwidget hotkeys []
-            (revealer :transition "crossfade" :duration "200ms" :reveal { hotkey-brightness-visible || hotkey-volume-visible }
-                (box :vexpand false
-                    :hexpand false
-                    :orientation "v"
-                    :class "wrapper_widget"
-                    (stack :transition "none"
-                        :selected { hotkey-source == "brightness" ? "0" : "1" }
-                        (hotkey_indicator
-                            :icon {brightness.icon}
-                            :level {brightness.screen.level})
-                        (hotkey_indicator
-                            :icon {volume.icon}
-                            :level { volume.muted == "true" ? "0" : volume.level })))))
+        ;; Volume Popup Widget ;;
+        (defwidget volume-popup []
+            (revealer :transition "crossfade" :duration "200ms" :reveal volume-popup-visible
+                (box :class "wrapper_widget"
+                (box :class "hotkey"
+                    (sys_slider
+                        :valign "center"
+                        :icon {volume.icon}
+                        :level {volume.level})))))
 
         ;; Quick Settings Button ;;
         (defwidget quick-settings-button [screen bat-icon vol-icon bright-icon]
-            (button :class "icon_button" :onclick "${eww-popup}/bin/eww-popup quick-settings ''${screen} &"
+            (button :class "icon_button"
+                :onclick "if ''${EWW_CMD} active-windows | grep -q 'quick-settings'; then \
+                            ''${EWW_CMD} close closer quick-settings & \
+                          else \
+                            ''${EWW_CMD} close power-menu calendar & \
+                            ''${EWW_CMD} open --screen ''${screen} closer --arg window=\"quick-settings\" && ''${EWW_CMD} open --screen ''${screen} quick-settings; \
+                          fi &"
                 (box :orientation "h"
                     :space-evenly "false" 
                     :spacing 14
@@ -711,11 +701,20 @@ in
             (button :class "icon_button icon" 
                 :halign "center" 
                 :valign "center" 
-                :onclick "${eww-popup}/bin/eww-popup power-menu ''${screen} &"
+                :onclick "if ''${EWW_CMD} active-windows | grep -q 'power-menu'; then \
+                            ''${EWW_CMD} close closer power-menu & \
+                          else \
+                            ''${EWW_CMD} close quick-settings calendar & \
+                            ''${EWW_CMD} open --screen ''${screen} closer --arg window=\"power-menu\" && ''${EWW_CMD} open --screen ''${screen} power-menu; \
+                          fi &"
                 (box :class "icon"
                     :hexpand false
                     :style "background-image: url(\"${power-icon}\")")))
-
+        ;; Closer Widget ;;
+        ;; This widget, and the closer window, acts as a transparent area that fills the whole screen
+        ;; so the user can close the specified window (widget) simply by clicking "outside"
+        (defwidget closer [window]
+            (eventbox :onclick "(''${EWW_CMD} close ''${window} closer) &"))
         ;; Quick Settings Launcher ;;	
         (defwidget control [screen]
             (box :orientation "h" 
@@ -752,7 +751,13 @@ in
         ;; Date ;;
         (defwidget date [screen]
             (button 
-                :onclick "''${EWW_CMD} update calendar_day=\"$(date +%d)\" calendar_month=\"$(date +%-m)\" calendar_year=\"$(date +%Y)\"; ${eww-popup}/bin/eww-popup calendar ''${screen} &"
+                :onclick "''${EWW_CMD} update calendar_day=\"$(date +%d)\" calendar_month=\"$(date +%-m)\" calendar_year=\"$(date +%Y)\" & \
+                          if ''${EWW_CMD} active-windows | grep -q 'calendar'; then \
+                            ''${EWW_CMD} close closer calendar & \
+                          else \
+                            ''${EWW_CMD} close quick-settings power-menu & \
+                            ''${EWW_CMD} open --screen ''${screen} closer --arg window=\"calendar\" && ''${EWW_CMD} open --screen ''${screen} calendar; \
+                          fi &"
                 :class "icon_button date" "''${formattime(EWW_TIME, "%a %b %-d")}"))
 
         ;; Calendar ;;
@@ -881,14 +886,30 @@ in
             :stacking "fg"
             (power-menu-widget))
 
-        ;; Hotkey indicator window ;;
-        (defwindow hotkey-indicator
+        ;; Volume Popup Window ;;
+        (defwindow volume-popup
             :monitor 0
-            :geometry (geometry :y "150px" 
+            :geometry (geometry :y "150px"
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
-            (hotkeys))
+            (volume-popup))
+
+        ;; Brightness Popup Window ;;
+        (defwindow brightness-popup
+            :monitor 0
+            :geometry (geometry :y "150px"
+                                :x "0px"
+                                :anchor "bottom center")
+            :stacking "overlay"
+            (brightness-popup))
+
+        ;; Closer Window ;;
+        (defwindow closer [window]
+            :geometry (geometry :width "100%" :height "100%")
+            :stacking "fg"
+            :focusable false
+            (closer :window window))
       '';
 
       # The UNIX file mode bits
