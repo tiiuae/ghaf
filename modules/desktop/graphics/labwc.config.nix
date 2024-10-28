@@ -90,6 +90,9 @@ let
       <keybind key="XF86_AudioMute">
         <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl mut" />
       </keybind>
+      <keybind key="XF86_Display">
+        <action name="Execute" command="${lib.getExe pkgs.wdisplays}" />
+      </keybind>
       <keybind key="W-z">
         <action name="ToggleMagnify" />
       </keybind>
