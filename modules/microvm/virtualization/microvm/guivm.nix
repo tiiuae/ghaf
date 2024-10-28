@@ -130,6 +130,7 @@ let
                 pkgs.bt-launcher
                 pkgs.pamixer
                 pkgs.eww
+                pkgs.wlr-randr
               ]
               ++ [ pkgs.ctrl-panel ]
               ++ (lib.optional (
