@@ -33,7 +33,7 @@ in {
     ];
     */
 
-    boot.kernelPatches = [
+    boot.kernelPatches = builtins.trace "host kernel .config for GPIO" [
       {
         name = "Added Configurations to Support GPIO passthrough";
         patch = null;
@@ -101,8 +101,7 @@ in {
           PINCTRL_TEGRA234 = lib.mkDefault lib.kernel.yes;
           PINCTRL_TEGRA_XUSB = lib.mkDefault lib.kernel.yes;
           PINCTRL_TEGRA = lib.mkDefault lib.kernel.yes;
-
-        };
+         };
       }
     ];
   };

@@ -51,12 +51,14 @@ in
         iconv libdwg libdrm dbus libgpiod libtasn1 gsasl cyrus_sasl
         rdma-core libndctl libseccomp capstone multipath-tools dtc libselinux
         perl spice spice-autorandr spice-gtk spice-protocol spice-up spice-vdagent
+        lttng-ust
       ];
 
     configureFlags = 
       prev.configureFlags ++
       [
         "--target-list=aarch64-softmmu"
+        "--enable-kvm"
         "--disable-strip"
         "--disable-docs"
         "--disable-spice"
@@ -87,6 +89,14 @@ in
         "--enable-vhost-net"
         "--enable-vhost-user"
         # "--prefix=$out"
+        "--enable-debug"
+        "--enable-debug-info"
+        "--enable-trace-backends=dtrace"
+        "--enable-trace-backends=ftrace"
+        "--enable-trace-backends=log"
+        "--enable-trace-backends=simple"
+        "--enable-trace-backends=syslog"
+        "--enable-trace-backends=ust"
       ];
 
     /*

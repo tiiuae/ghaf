@@ -14,8 +14,8 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
 +
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
---- a/drivers/Makefile	2024-05-02 12:06:58.097355696 +0000
-+++ b/drivers/Makefile	2024-09-12 11:05:39.335739755 +0000
+--- a/drivers/Makefile	2024-10-07 09:39:18.631025637 +0000
++++ b/drivers/Makefile	2024-10-29 11:09:24.429204915 +0000
 @@ -193,0 +194,7 @@
 +#
 +#
@@ -50,10 +50,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..e7215dd
+index 0000000..67a49e1
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,905 @@
+@@ -0,0 +1,921 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -93,9 +93,14 @@ index 0000000..e7215dd
 +#define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
 +
 +#ifdef GPIO_DEBUG
++  /*
 +  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
 +  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__ , kbasename(__FILE__), ##__VA_ARGS__)
++  */
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' -- " fmt, __func__ , ##__VA_ARGS__)
 +#else
 +  #define deb_info(fmt, ...)
 +  #define deb_debug(fmt, ...)
@@ -143,7 +148,7 @@ index 0000000..e7215dd
 + * a helper function to transfer between guest and host using /dev/gpio-host
 + * mgs: is a pointer to data -- in practice tegra_gpio_pt and tegra_gpio_pt_ext structs
 + * generic return: poiter to return data, may be NULL if we do not expect a return value
-+ */ 
++ */
 +inline void guest_chardev_transfer(void *msg, char msg_len, void *generic_return, int ret_len)
 +{
 +  // encode message length into first byte (LSB bit is preserved for other use)
@@ -159,14 +164,8 @@ index 0000000..e7215dd
 +
 +	// Execute the request by copying to io memory
 +	memcpy_toio(mem_iova, msg, msg_len);
-+  // deb_verbose("PT request value is copied, length = %d", msg_len);
-+
-+  // deb_verbose("PT generic_return pointer: 0x%llX\n", (long long int)generic_return);
-+  // check if we expect a return value
 +  if(generic_return) {
 +    // Read response from io_buffer
-+    // hexDump(DEVICE_NAME, "GPIO: PT dump mem_iova", (char *)mem_iova, MEM_SIZE);
-+    // deb_verbose("ret_len = %d\n", ret_len);
 +    memcpy_fromio(generic_return, (void *)((char *)mem_iova + RETURN_OFF), ret_len); // 32 bits except for tegra186_gpio_get_base_redirect 64 bits
 +    hexDump(DEVICE_NAME, "GPIO: PT transfer (retrieved retval to guest)", generic_return, ret_len );  }
 +}
@@ -175,12 +174,12 @@ index 0000000..e7215dd
 +  void *ret_ptr = (void *)0x01234567ABADFACE; // simulating a pointer with a uint64_t
 +  struct tegra_gpio_pt_ext msg;
 +
++  deb_verbose("\n");
 +  msg.base.signal = TEGRA_186_GETBASE;
 +  msg.base.chipnum = id;
 +  msg.ext.pin = pin;
-+  
++ 
 +  guest_chardev_transfer(&msg, sizeof(msg), &ret_ptr, sizeof(ret_ptr));
-+  deb_verbose(" id = %d, ptr = 0x%p / 0x%016llX", id, ret_ptr, (uint64_t)ret_ptr);
 +  return ret_ptr;
 +}
 +
@@ -189,6 +188,11 @@ index 0000000..e7215dd
 +  u32 ret = 0;
 +  struct tegra_readl_writel rwlmsg;
 +
++  #ifdef GPIO_DEBUG_VERBOSE
++  deb_verbose("\n");
++  dump_stack();
++  #endif
++
 +  rwlmsg.signal = GPIO_READL;
 +  rwlmsg.length = 0; // will be updated later
 +  rwlmsg.rwltype = rwltype;
@@ -196,7 +200,6 @@ index 0000000..e7215dd
 +  rwlmsg.value = 0;  // value field is not used for readl
 +
 +  guest_chardev_transfer(&rwlmsg, sizeof(rwlmsg), &ret, sizeof(ret));
-+  deb_verbose("addr = 0x%p / 0x%016llX, ret = 0x%X", addr, (uint64_t)addr, ret);
 +  return ret;
 +}
 +EXPORT_SYMBOL_GPL(readl_redirect);
@@ -205,6 +208,11 @@ index 0000000..e7215dd
 +inline void writel_redirect( u32 value, void * addr, const unsigned char rwltype) {
 +  struct tegra_readl_writel rwlmsg;
 +
++  #ifdef GPIO_DEBUG_VERBOSE
++  deb_verbose("\n");
++  dump_stack();
++  #endif
++
 +  rwlmsg.signal = GPIO_WRITEL;
 +  rwlmsg.length = 0; // will be updated later
 +  rwlmsg.rwltype = rwltype;
@@ -212,7 +220,6 @@ index 0000000..e7215dd
 +  rwlmsg.value = value;
 +
 +  guest_chardev_transfer(&rwlmsg, sizeof(rwlmsg), NULL, 0);
-+  deb_verbose("addr = 0x%p / 0x%016llX", addr, (uint64_t)addr);
 +}
 +EXPORT_SYMBOL_GPL(writel_redirect);
 +
@@ -220,6 +227,7 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_REQ;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
@@ -232,6 +240,7 @@ index 0000000..e7215dd
 +void gpiochip_generic_free_redirect(struct gpio_chip *chip, unsigned offset) {
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_FREE;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
@@ -245,13 +254,13 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_GET_DIR;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
 +  msg.offset = offset;
 +
 +  guest_chardev_transfer(&msg, sizeof(msg), &ret, sizeof(ret));
-+  deb_verbose(" 0x%X",  ret);
 +  return ret;
 +}
 +
@@ -260,13 +269,13 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_SET_IN;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
 +  msg.offset = offset;
 +
 +  guest_chardev_transfer(&msg, sizeof(msg), &ret, sizeof(ret));
-+  deb_verbose(" 0x%X",  ret);
 +  return ret;
 +}
 +
@@ -275,13 +284,13 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_SET_OUT;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = level;
 +  msg.offset = offset;
 +
 +  guest_chardev_transfer(&msg, sizeof(msg), &ret, sizeof(ret));
-+  deb_verbose(" 0x%X",  ret);
 +  return ret;
 +}
 +
@@ -289,13 +298,13 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_GET;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
 +  msg.offset = offset;
 +
 +  guest_chardev_transfer(&msg, sizeof(msg), &ret, sizeof(ret));
-+  deb_verbose(" 0x%X",  ret);
 +  return ret;
 +}
 +
@@ -303,6 +312,7 @@ index 0000000..e7215dd
 +			      int level) {
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_SET;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = level;
@@ -315,6 +325,8 @@ index 0000000..e7215dd
 +			      int level) {
 +  struct tegra_gpio_pt msg;
 +  struct gpio_chip *chip = find_chip_by_name(name);
++
++  deb_verbose("\n");
 +  msg.signal = GPIO_SET_BY_NAME;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = level;
@@ -329,6 +341,7 @@ index 0000000..e7215dd
 +  int ret = 0;
 +	struct tegra_gpio_pt_ext msg;
 +
++  deb_verbose("\n");
 +  msg.base.signal = GPIO_CONFIG;
 +  msg.base.chipnum = chip->gpiodev->id;
 +  msg.base.level = 0;
@@ -344,6 +357,7 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_TIMESTAMP_CTRL;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
@@ -360,10 +374,11 @@ index 0000000..e7215dd
 +		uint64_t timestamp;
 +		int ret = 0;
 +	}	*/
-+	
-+	int ret = 0;				 
++
++	int ret = 0;				
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_TIMESTAMP_READ;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
@@ -377,7 +392,6 @@ index 0000000..e7215dd
 +	// a hack to read extra return att offset -1
 +  // memcpy_fromio(&ret, (void *)((char *)mem_iova + RETURN_OFF - 1), sizeof(ret)); // 32 bits except for tegra186_gpio_get_base_redirect 64 bits
 +
-+	deb_verbose("timestamp: 0x%016llX\n", *ts);
 +  return ret;
 +}
 +
@@ -386,6 +400,7 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt_ext msg;
 +
++  deb_verbose("\n");
 +  msg.base.signal = GPIO_SUSPEND_CONF;
 +  msg.base.chipnum = chip->gpiodev->id;
 +  msg.base.level = 0;
@@ -401,6 +416,7 @@ index 0000000..e7215dd
 +  int ret = 0;
 +  struct tegra_gpio_pt msg;
 +
++  deb_verbose("\n");
 +  msg.signal = GPIO_ADD_PINRANGES;
 +  msg.chipnum = chip->gpiodev->id;
 +  msg.level = 0;
@@ -410,8 +426,6 @@ index 0000000..e7215dd
 +  return ret;
 +}
 +
-+// unpreserve_all_tegrachips also does unhooking
-+extern void unpreserve_all_tegrachips(void);
 +struct gpio_chip * find_chip_by_id(int id);
 +
 +/**
@@ -453,7 +467,7 @@ index 0000000..e7215dd
 +  // In an earlier versio of the code we stored the gpio struct pointer in a static table
 +  // int this_chip_id = gpio.gpio->gpiodev.id;
 +  // char this_de:avice[12];
-+  if(is_set_up) { 
++  if(is_set_up) {
 +    deb_error("Attempting to set up guest driver twice\n");
 +    return -EPERM;
 +  }
@@ -489,7 +503,7 @@ index 0000000..e7215dd
 +	gpio_guest_proxy_device = device_create(gpio_guest_proxy_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME);
 +	if (IS_ERR(gpio_guest_proxy_device))
 +	{								 // Clean up if there is an error
-+		class_destroy(gpio_guest_proxy_class); 
++		class_destroy(gpio_guest_proxy_class);
 +		unregister_chrdev(major_number, DEVICE_NAME);
 +		deb_error("Failed to create the device\n");
 +		return PTR_ERR(gpio_guest_proxy_device);
@@ -511,6 +525,8 @@ index 0000000..e7215dd
 +}
 +EXPORT_SYMBOL_GPL(tegra_gpio_guest_init);
 +
++// unpreserve_all_tegrachips also does unhooking
++extern void unpreserve_all_tegrachips(void);
 +/*
 + * Removes module, sends appropriate message to kernel
 + */
@@ -525,13 +541,13 @@ index 0000000..e7215dd
 +  unpreserve_all_tegrachips();
 +
 +	device_destroy(gpio_guest_proxy_class, MKDEV(major_number, 0)); // remove the device
-+	class_unregister(gpio_guest_proxy_class);						  // unregister the device class
-+	class_destroy(gpio_guest_proxy_class);						  // remove the device class
-+	unregister_chrdev(major_number, DEVICE_NAME);		  // unregister the major number
++	class_unregister(gpio_guest_proxy_class);           // unregister the device class
++	class_destroy(gpio_guest_proxy_class);              // remove the device class
++	unregister_chrdev(major_number, DEVICE_NAME);       // unregister the major number
 +	deb_info("Goodbye from GPIO passthrough!\n");
 +	unregister_chrdev(major_number, DEVICE_NAME);
 +
-+  is_set_up = false;
++	is_set_up = false;
 +	return 0;
 +}
 +EXPORT_SYMBOL_GPL(tegra_gpio_guest_cleanup);
@@ -635,13 +651,13 @@ index 0000000..e7215dd
 +
 +	deb_info("## writeing %zu bytes to chardev ##", len);
 +
-+	if( len != sizeof(struct tegra_gpio_pt) && 
-+			len != sizeof(struct tegra_gpio_pt_ext) && 
++	if( len != sizeof(struct tegra_gpio_pt) &&
++			len != sizeof(struct tegra_gpio_pt_ext) &&
 +			len != sizeof(struct tegra_readl_writel)  )  {
-+		deb_error("Illegal chardev data length. Expected %ld, %ld or %ld, but got %ld\n", 
-+				sizeof(struct tegra_gpio_pt), 
++		deb_error("Illegal chardev data length. Expected %ld, %ld or %ld, but got %ld\n",
++				sizeof(struct tegra_gpio_pt),
 +				sizeof(struct tegra_gpio_pt_ext),
-+				sizeof(struct tegra_readl_writel), 
++				sizeof(struct tegra_readl_writel),
 +				len);
 +		hexDump (DEVICE_NAME, "Chardev (guest) input error", buffer, len);
 +		return -ENOEXEC; // kbuf not allocated yet
@@ -892,7 +908,7 @@ index 0000000..e7215dd
 +  */
 +
 +	goto noretval;
-+	
++
 +	ret64:
 +	mutex_lock(&chardev_mutex);	// wait for read
 +	return_size = sizeof(ret_64);
@@ -916,7 +932,7 @@ index 0000000..e7215dd
 +	memcpy(return_buffer, &ret_int, return_size);
 +	deb_verbose("retval int (guest): 0x%X", ret_int);
 +	goto ret_end;
-+	
++
 +	noretval:
 +	return_size = 0;
 +	goto exit;
@@ -944,7 +960,7 @@ index 0000000..e7215dd
 +			}
 +			// let Qemu detect we wrote a return value
 +			len = RETURN_OFF + return_size;
-+			deb_verbose("return value size %d copied to buffer (guest): 0x%p / 0x%016llX", return_size, (void *)return_value, return_value);	
++			deb_verbose("return value size %d copied to buffer (guest): 0x%p / 0x%016llX", return_size, (void *)return_value, return_value);
 +			// hexDump(DEVICE_NAME, "Chardev (host write) dump buffer", return_buffer, MEM_SIZE);
 +		} else {
 +			len = -EINVAL; // Buffer too small
@@ -953,7 +969,7 @@ index 0000000..e7215dd
 +	}
 +
 +	unlock:
-+	mutex_unlock(&chardev_mutex);	// allow next write in case retval is received before chardev close and read() is never called  
++	mutex_unlock(&chardev_mutex);	// allow next write in case retval is received before chardev close and read() is never called 
 +
 +	exit:
 +	kfree(kbuf);
@@ -984,10 +1000,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..e9d1e72
+index 0000000..0144111
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,821 @@
+@@ -0,0 +1,833 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO host Proxy Kernel Module
@@ -1340,7 +1356,7 @@ index 0000000..e9d1e72
 +	return len;
 +}
 +
-+void __iomem *tegra186_gpio_get_base_execute(int id, unsigned int pin); // implemented in ./kernel-5.10/drivers/gpio/gpio-tegra186.c
++extern void __iomem *tegra186_gpio_get_base_execute(int id, unsigned int pin); // implemented in ./kernel-5.10/drivers/gpio/gpio-tegra186.c
 +
 +/*
 + * Writes to the device
@@ -1354,6 +1370,7 @@ index 0000000..e9d1e72
 +	char *buffer_pos = (char *)buffer;
 +	void *ret_ptr = NULL;
 +	uint64_t ret_64;
++	// long int ret_long;  // 64 bits
 +	int ret_int;  // 32 bits
 +	int ret;
 +
@@ -1371,13 +1388,13 @@ index 0000000..e9d1e72
 +
 +	deb_info("## writeing %zu bytes to chardev ##", len);
 +
-+	if( len != sizeof(struct tegra_gpio_pt) && 
-+			len != sizeof(struct tegra_gpio_pt_ext) && 
++	if( len != sizeof(struct tegra_gpio_pt) &&
++			len != sizeof(struct tegra_gpio_pt_ext) &&
 +			len != sizeof(struct tegra_readl_writel)  )  {
-+		deb_error("Illegal chardev data length. Expected %ld, %ld or %ld, but got %ld\n", 
-+				sizeof(struct tegra_gpio_pt), 
++		deb_error("Illegal chardev data length. Expected %ld, %ld or %ld, but got %ld\n",
++				sizeof(struct tegra_gpio_pt),
 +				sizeof(struct tegra_gpio_pt_ext),
-+				sizeof(struct tegra_readl_writel), 
++				sizeof(struct tegra_readl_writel),
 +				len);
 +		hexDump (DEVICE_NAME, "Chardev (host) input error", buffer, len);
 +		return -ENOEXEC; // kbuf not allocated yet
@@ -1471,20 +1488,22 @@ index 0000000..e9d1e72
 +  // if switch above is triggered we will either goto retval or goto noretval
 +
 +  chip = find_chip_by_id(kbuf->chipnum);
-+  /*
-+	#ifdef GPIO_DEBUG_VERBOSE
-+		chip_alt = find_chip_by_name(tegra_chiplabel[kbuf->chipnum]);
-+		if(chip != chip_alt) {
-+			deb_debug("conflicting chip pointers -- primary 0x%p, alternative 0x%p", chip, chip_alt);
-+			chip = chip_alt; // we assume find_chip_by_name is more reliable
-+		}
-+	#endif
-+	*/
-+	if(!chip) {
-+		deb_error("chip pointer's pvalue is unexpectedly NULL for chip\n");
-+		len = -ENODEV;
-+		goto exit;
-+	}
++
++/*
++#ifdef GPIO_DEBUG_VERBOSE
++  chip_alt = find_chip_by_name(tegra_chiplabel[kbuf->chipnum]);
++  if(chip != chip_alt) {
++    deb_debug("conflicting chip pointers -- primary 0x%p, alternative 0x%p", chip, chip_alt);
++    chip = chip_alt; // we assume find_chip_by_name is more reliable
++  }
++#endif
++*/
++
++  if(!chip) {
++	deb_error("chip pointer's pvalue is unexpectedly NULL for chip\n");
++	len = -ENODEV;
++	goto exit;
++  }
 +
 +  switch (kbuf->signal) {
 +    case GPIO_REQ:
@@ -1679,7 +1698,7 @@ index 0000000..e9d1e72
 +  */
 +
 +	goto noretval;
-+	
++
 +	ret64:
 +	mutex_lock(&chardev_mutex);	// wait for read
 +	return_size = sizeof(ret_64);
@@ -1706,7 +1725,16 @@ index 0000000..e9d1e72
 +	memcpy(return_buffer, &ret_int, return_size);
 +	deb_verbose("retval int (host): 0x%X", ret_int);
 +	goto ret_end;
-+	
++
++  /*
++	retlong:
++	mutex_lock(&chardev_mutex);	// wait for read
++	return_size = sizeof(ret_long);
++	memcpy(return_buffer, &ret_long, return_size);
++	deb_verbose("retval long (host): 0x%lX", ret_long);
++	goto ret_end;
++  */
++
 +	noretval:
 +	return_size = 0;
 +	goto exit;
@@ -1734,7 +1762,7 @@ index 0000000..e9d1e72
 +			}
 +			// let Qemu detect we wrote a return value
 +			len = RETURN_OFF + return_size;
-+			deb_verbose("return value size %d copied to buffer (host): 0x%p / 0x%016llX", return_size, (void *)return_value, return_value);	
++			deb_verbose("return value size %d copied to buffer (host): 0x%p / 0x%016llX", return_size, (void *)return_value, return_value);
 +			// hexDump(DEVICE_NAME, "Chardev (host write) dump buffer", return_buffer, MEM_SIZE);
 +		} else {
 +			len = -EINVAL; // Buffer too small
@@ -1743,7 +1771,7 @@ index 0000000..e9d1e72
 +	}
 +
 +	unlock:
-+	mutex_unlock(&chardev_mutex);	// allow next write in case retval is received before chardev close and read() is never called  
++	mutex_unlock(&chardev_mutex);	// allow next write in case retval is received before chardev close and read() is never called 
 +
 +	exit:
 +	kfree(kbuf);
@@ -1752,7 +1780,7 @@ index 0000000..e9d1e72
 +
 +int tegra_gpio_host_init(void)
 +{
-+  struct platform_device *pdev = NULL;   // not used -- param is for the kernel module version of code 
++  struct platform_device *pdev = NULL;   // not used -- param is for the kernel module version of code
 +  return gpio_host_proxy_probe(pdev);
 +}
 +EXPORT_SYMBOL_GPL(tegra_gpio_host_init);
@@ -1811,7 +1839,7 @@ index 0000000..e9d1e72
 +*/
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.h b/drivers/gpio-host-proxy/gpio-host-proxy.h
 new file mode 100644
-index 0000000..295c2b6
+index 0000000..79b5944
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.h
 @@ -0,0 +1,132 @@
@@ -1824,7 +1852,7 @@ index 0000000..295c2b6
 +#include <linux/gpio/consumer.h>	// for gpiod_flags
 +
 +// as a workaround this struct is copied here from drivers/gpio/gpiolib.h in kernel-5.10
-+// including the original header file does not work becaue proxy drivers are in an overlay 
++// including the original header file does not work becaue proxy drivers are in an overlay
 +// and relative paths will change (kernel-5.10 will be renamed)
 +// #include ../kernel-5.10/drivers/gpio/gpiolib.h
 +// this copied struct is incomplete and subset of the "real" one
@@ -1834,7 +1862,7 @@ index 0000000..295c2b6
 +  // a huge number of members are removed here -- do not "sizeof" this struct !!!
 +};
 +
-+// size of qemu iomem. 
++// size of qemu iomem.
 +// Note: Must be synchronized with value in qemu (hw/misc/nvidia_gpio_guest.c)
 +#define MEM_SIZE 0x18		// mem size in bytes is three 64 bit words
 +#define RETURN_OFF 0x10		// offset for return value -- two 64 bit words

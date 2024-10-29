@@ -5,8 +5,8 @@
 
   nixConfig = {
     substituters = [
-      "https://dev-cache.vedenemo.dev"
-      "https://cache.vedenemo.dev"
+      # "https://dev-cache.vedenemo.dev"
+      # "https://cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
       "https://cache.nixos.org/"
