@@ -100,30 +100,6 @@ jobs:
       group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.arch }}.${{ matrix.target }}
       cancel-in-progress: true
     steps:
-      - name: Maximize space available on rootfs
-        # Why not use https://github.com/easimon/maximize-build-space directly?
-        # The reason is: we want to maximize the space on rootfs, since that's
-        # where the nix store (`/nix/store`) is located. Github action
-        # https://github.com/easimon/maximize-build-space maximizes
-        # the builder space on ${GITHUB_WORKSPACE}, which is not what we need.
-        # Alternatively, we could move the nix store to ${GITHUB_WORKSPACE}
-        # and use https://github.com/easimon/maximize-build-space as such, but
-        # we suspect other tooling (e.g. cachix) would not work well with such
-        # configuration.
-        run: |
-          echo "Available storage before cleanup:"
-          df -h
-          echo
-          echo "Removing unwanted software... "
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /usr/local/lib/android
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /opt/hostedtoolcache/CodeQL
-          sudo docker image prune --all --force
-          echo "... done"
-          echo
-          echo "Available storage after cleanup:"
-          df -h
       - name: Apt install
         run: sudo apt-get update; sudo apt-get install -y inxi git
       - name: Print runner system info
@@ -147,36 +123,24 @@ jobs:
           git log --oneline -n$(( COMMITS + CONTEXT ))
       - name: Install nix
         uses: cachix/install-nix-action@v30
-        with:
-          extra_nix_config: |
-            connect-timeout = 5
-            system-features = nixos-test benchmark big-parallel kvm
-            builders-use-substitutes = true
-            builders = @/etc/nix/machines
-            log-lines = 100
-            # do not build anything locally, delegate all builds to remote builders:
-            max-jobs = 0
-            # allow nix build to use the binary cache(s) configured in ghaf flake:
-            trusted-users = runner
-            accept-flake-config = true
-      - name: Configure remote builder
+      - name: Prepare build
         run: |
-          sudo sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >/etc/nix/id_builder_key"
+          sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >builder_key"
           sudo sh -c "echo '${{ vars.BUILDER_SSH_KNOWN_HOST }}' >>/etc/ssh/ssh_known_hosts"
-          sudo sh -c "echo '${{ vars.BUILDER_MACHINE_CONFIG }}' >/etc/nix/machines"
-      - name: Install cachix
-        run: |
-          nix-env -iA cachix -f https://cachix.org/api/v1/install
-          echo "Using cachix version:"
-          cachix --version
       - name: Build ${{ matrix.arch }}.${{ matrix.target }}
         run: |
-          if [ "${{ secrets.CACHIX_AUTH_TOKEN }}" == "" ]; then
-            echo "::error::Missing CACHIX_AUTH_TOKEN, will not build"
-            exit 1
+          if [ "${{ matrix.arch }}" == "x86_64-linux" ]; then
+            BUILDER='${{ vars.BUILDER_X86 }}'
+          elif [ "${{ matrix.arch }}" == "aarch64-linux" ]; then
+            BUILDER='${{ vars.BUILDER_AARCH }}'
           else
-            echo "Running nix build, with cachix watch-exec"
-            cachix authtoken ${{ secrets.CACHIX_AUTH_TOKEN }}
-            cachix watch-exec -v ghaf-dev -- \
-              nix build .#packages.${{ matrix.arch }}.${{ matrix.target }}
+            echo "::error::Unknown architecture: '${{ matrix.arch }}'"
+            exit 1
           fi
+          NIX_FAST_BUILD_GITREF="1775c732"
+          nix run github:Mic92/nix-fast-build/"$NIX_FAST_BUILD_GITREF"#nix-fast-build -- \
+            --flake .#packages.${{ matrix.arch }}.${{ matrix.target }} \
+            --remote "$BUILDER" \
+            --remote-ssh-option IdentityFile builder_key \
+            --option accept-flake-config true \
+            --no-download --skip-cached --no-nom
