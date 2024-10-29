@@ -117,7 +117,7 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
     jetpack-nixos = {
-      url = "github:anduril/jetpack-nixos";
+      url = "github:tiiuae/jetpack-nixos/integration";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
