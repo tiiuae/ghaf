@@ -290,6 +290,7 @@ in
         description = "Ghaf launcher daemon";
         serviceConfig = {
           Type = "simple";
+          EnvironmentFile = "-/etc/locale.conf";
           ExecStart = "${pkgs.nwg-drawer}/bin/nwg-drawer -r -nofs -nocats -s ${drawerStyle}";
           Restart = "always";
           RestartSec = "1";
