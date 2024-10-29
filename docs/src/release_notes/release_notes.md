@@ -12,6 +12,8 @@ Release numbering scheme: *ghaf-yy.mm*.
 
 ## In This Chapter
 
+- [Release ghaf-24.09.1](../release_notes/ghaf-24.09.1.md)
+- [Release ghaf-24.09](../release_notes/ghaf-24.09.md)
 - [Release ghaf-24.06](../release_notes/ghaf-24.06.md)
 - [Release ghaf-24.03](../release_notes/ghaf-24.03.md)
 - [Release ghaf-23.12](../release_notes/ghaf-23.12.md)

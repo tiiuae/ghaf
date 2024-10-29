@@ -19,7 +19,7 @@ Since security is the utmost priority, every service has restricted access to re
 
 Our current troubleshooting scenarios are the following:
 
-* [Analyzing system logs](./systemd/systemd-analyzer.md)
+* [Analyzing system logs](./systemd/system-log.md)
 * [Debugging systemd using systemctl](./systemd/systemctl.md)
 * [Inspecting services with systemd-analyze](./systemd/systemd-analyzer.md)
 * [Using strace for debugging the initialization sequence](./systemd/strace.md)
