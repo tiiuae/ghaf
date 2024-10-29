@@ -12,7 +12,7 @@ SPDX-License-Identifier: WTFPL
   <head>
     <!-- Book generated using mdBook -->
     <meta charset="UTF-8" />
-    <title>Debugging systemd Using systemctl - Ghaf Framework</title>
+    <title>Analyzing System Logs - Ghaf Framework</title>
  
     <!-- Custom HTML head -->
     
@@ -118,7 +118,7 @@ SPDX-License-Identifier: WTFPL
       </script>
 
       <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-        <div class="sidebar-scrollbox"><ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../../features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../../architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="../../architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="../../architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li><li class="chapter-item expanded "><a href="../../architecture/adr/idsvm.html"><strong aria-hidden="true">3.2.3.</strong> Intrusion Detection System VM</a></li><li class="chapter-item expanded "><a href="../../architecture/adr/platform-bus-passthrough-support.html"><strong aria-hidden="true">3.2.4.</strong> Platform Bus for Rust VMM</a></li></ol></li><li class="chapter-item expanded "><a href="../../architecture/hardening.html"><strong aria-hidden="true">3.3.</strong> Hardening</a></li><li class="chapter-item expanded "><a href="../../architecture/secureboot.html"><strong aria-hidden="true">3.4.</strong> Secure Boot</a></li><li class="chapter-item expanded "><a href="../../architecture/stack.html"><strong aria-hidden="true">3.5.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">For Developers</li><li class="chapter-item expanded "><a href="../../appendices/contributing_general.html"><strong aria-hidden="true">4.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="../../ref_impl/reference_implementations.html"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../ref_impl/development.html"><strong aria-hidden="true">5.1.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../ref_impl/build_and_run.html"><strong aria-hidden="true">5.1.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="../../ref_impl/remote_build_setup.html"><strong aria-hidden="true">5.1.2.</strong> Running Remote Build on NixOS</a></li><li class="chapter-item expanded "><a href="../../ref_impl/installer.html"><strong aria-hidden="true">5.1.3.</strong> Installer</a></li><li class="chapter-item expanded "><a href="../../ref_impl/cross_compilation.html"><strong aria-hidden="true">5.1.4.</strong> Cross-Compilation</a></li><li class="chapter-item expanded "><a href="../../ref_impl/creating_appvm.html"><strong aria-hidden="true">5.1.5.</strong> Creating Application VM</a></li><li class="chapter-item expanded "><a href="../../ref_impl/hw-config.html"><strong aria-hidden="true">5.1.6.</strong> Hardware Configuration</a></li><li class="chapter-item expanded "><a href="../../ref_impl/profiles-config.html"><strong aria-hidden="true">5.1.7.</strong> Profiles Configuration</a></li><li class="chapter-item expanded "><a href="../../ref_impl/labwc.html"><strong aria-hidden="true">5.1.8.</strong> labwc Desktop Environment</a></li><li class="chapter-item expanded "><a href="../../ref_impl/idsvm-development.html"><strong aria-hidden="true">5.1.9.</strong> IDS VM Further Development</a></li><li class="chapter-item expanded "><a href="../../ref_impl/systemd-service-config.html"><strong aria-hidden="true">5.1.10.</strong> systemd Service Hardening</a></li></ol></li><li class="chapter-item expanded "><a href="../../troubleshooting/troubleshooting.html"><strong aria-hidden="true">5.2.</strong> Troubleshooting</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/system-log.html"><strong aria-hidden="true">5.2.1.</strong> Analyzing System Logs</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/systemctl.html" class="active"><strong aria-hidden="true">5.2.2.</strong> Debugging systemd Using systemctl</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/systemd-analyzer.html"><strong aria-hidden="true">5.2.3.</strong> Inspecting Services with systemd-analyze</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/strace.html"><strong aria-hidden="true">5.2.4.</strong> Using strace for Debugging Initialization Sequence</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/early-shell.html"><strong aria-hidden="true">5.2.5.</strong> Early Shell Access</a></li></ol></li><li class="chapter-item expanded "><a href="../../ref_impl/ghaf-based-project.html"><strong aria-hidden="true">5.3.</strong> Ghaf as Library: Templates</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../ref_impl/example_project.html"><strong aria-hidden="true">5.3.1.</strong> Example Project</a></li><li class="chapter-item expanded "><a href="../../ref_impl/modules_options.html"><strong aria-hidden="true">5.3.2.</strong> Modules Options</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../technologies/technologies.html"><strong aria-hidden="true">6.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../technologies/compartment.html"><strong aria-hidden="true">6.1.</strong> Compartmentalization</a></li><li class="chapter-item expanded "><a href="../../technologies/passthrough.html"><strong aria-hidden="true">6.2.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../technologies/vfio.html"><strong aria-hidden="true">6.2.1.</strong> Binding Device to VFIO Driver</a></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">6.2.2.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_agx_pt_pcie.html"><strong aria-hidden="true">6.2.3.</strong> NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li><li class="chapter-item expanded "><a href="../../technologies/x86_pcie_crosvm.html"><strong aria-hidden="true">6.2.4.</strong> Generic x86: PCIe Passthrough on crosvm</a></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_uarti_net_vm.html"><strong aria-hidden="true">6.2.5.</strong> NVIDIA Jetson: UARTI Passthrough to netvm</a></li><li class="chapter-item expanded "><a href="../../technologies/device_tree_overlays_pt.html"><strong aria-hidden="true">6.2.6.</strong> Device Tree Overlays for Passthrough</a></li></ol></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_virtualization_bpmp.html"><strong aria-hidden="true">6.3.</strong> Platform Bus Virtualization: NVIDIA BPMP</a></li><li class="chapter-item expanded "><a href="../../technologies/hypervisor_options.html"><strong aria-hidden="true">6.4.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Build System and Supply Chain</li><li class="chapter-item expanded "><a href="../../scs/ci-cd-system.html"><strong aria-hidden="true">7.</strong> Continuous Integration and Distribution</a></li><li class="chapter-item expanded "><a href="../../scs/scs.html"><strong aria-hidden="true">8.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../scs/slsa-framework.html"><strong aria-hidden="true">8.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../../scs/basics.html"><strong aria-hidden="true">8.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../../scs/sbom.html"><strong aria-hidden="true">8.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="../../scs/pki.html"><strong aria-hidden="true">8.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../../scs/ghaf-security-fix-automation.html"><strong aria-hidden="true">8.5.</strong> Security Fix Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../../release_notes/release_notes.html"><strong aria-hidden="true">9.</strong> Release Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.09.1.html"><strong aria-hidden="true">9.1.</strong> Release ghaf-24.09.1</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.09.html"><strong aria-hidden="true">9.2.</strong> Release ghaf-24.09</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.06.html"><strong aria-hidden="true">9.3.</strong> Release ghaf-24.06</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.03.html"><strong aria-hidden="true">9.4.</strong> Release ghaf-24.03</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.12.html"><strong aria-hidden="true">9.5.</strong> Release ghaf-23.12</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.09.html"><strong aria-hidden="true">9.6.</strong> Release ghaf-23.09</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.06.html"><strong aria-hidden="true">9.7.</strong> Release ghaf-23.06</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.05.html"><strong aria-hidden="true">9.8.</strong> Release ghaf-23.05</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Ghaf Usage Scenarios</li><li class="chapter-item expanded "><a href="../../scenarios/showcases.html"><strong aria-hidden="true">10.</strong> Showcases</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../scenarios/run_win_vm.html"><strong aria-hidden="true">10.1.</strong> Running Windows VM on Ghaf</a></li><li class="chapter-item expanded "><a href="../../scenarios/run_cuttlefish.html"><strong aria-hidden="true">10.2.</strong> Running Cuttlefish on Ghaf</a></li></ol></li><li class="chapter-item expanded "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">Appendices</li><li class="chapter-item expanded "><a href="../../appendices/glossary.html"><strong aria-hidden="true">11.</strong> Glossary</a></li><li class="chapter-item expanded "><a href="../../research/research.html"><strong aria-hidden="true">12.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../research/passthrough/ethernet.html"><strong aria-hidden="true">12.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="chapter-item expanded "><a href="../../research/installation.html"><strong aria-hidden="true">12.2.</strong> System Installation</a></li></ol></li></ol></div>
+        <div class="sidebar-scrollbox"><ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="../../index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="../../features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="../../architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="../../architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="../../architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li><li class="chapter-item expanded "><a href="../../architecture/adr/idsvm.html"><strong aria-hidden="true">3.2.3.</strong> Intrusion Detection System VM</a></li><li class="chapter-item expanded "><a href="../../architecture/adr/platform-bus-passthrough-support.html"><strong aria-hidden="true">3.2.4.</strong> Platform Bus for Rust VMM</a></li></ol></li><li class="chapter-item expanded "><a href="../../architecture/hardening.html"><strong aria-hidden="true">3.3.</strong> Hardening</a></li><li class="chapter-item expanded "><a href="../../architecture/secureboot.html"><strong aria-hidden="true">3.4.</strong> Secure Boot</a></li><li class="chapter-item expanded "><a href="../../architecture/stack.html"><strong aria-hidden="true">3.5.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">For Developers</li><li class="chapter-item expanded "><a href="../../appendices/contributing_general.html"><strong aria-hidden="true">4.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="../../ref_impl/reference_implementations.html"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../ref_impl/development.html"><strong aria-hidden="true">5.1.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../ref_impl/build_and_run.html"><strong aria-hidden="true">5.1.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="../../ref_impl/remote_build_setup.html"><strong aria-hidden="true">5.1.2.</strong> Running Remote Build on NixOS</a></li><li class="chapter-item expanded "><a href="../../ref_impl/installer.html"><strong aria-hidden="true">5.1.3.</strong> Installer</a></li><li class="chapter-item expanded "><a href="../../ref_impl/cross_compilation.html"><strong aria-hidden="true">5.1.4.</strong> Cross-Compilation</a></li><li class="chapter-item expanded "><a href="../../ref_impl/creating_appvm.html"><strong aria-hidden="true">5.1.5.</strong> Creating Application VM</a></li><li class="chapter-item expanded "><a href="../../ref_impl/hw-config.html"><strong aria-hidden="true">5.1.6.</strong> Hardware Configuration</a></li><li class="chapter-item expanded "><a href="../../ref_impl/profiles-config.html"><strong aria-hidden="true">5.1.7.</strong> Profiles Configuration</a></li><li class="chapter-item expanded "><a href="../../ref_impl/labwc.html"><strong aria-hidden="true">5.1.8.</strong> labwc Desktop Environment</a></li><li class="chapter-item expanded "><a href="../../ref_impl/idsvm-development.html"><strong aria-hidden="true">5.1.9.</strong> IDS VM Further Development</a></li><li class="chapter-item expanded "><a href="../../ref_impl/systemd-service-config.html"><strong aria-hidden="true">5.1.10.</strong> systemd Service Hardening</a></li></ol></li><li class="chapter-item expanded "><a href="../../troubleshooting/troubleshooting.html"><strong aria-hidden="true">5.2.</strong> Troubleshooting</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/system-log.html" class="active"><strong aria-hidden="true">5.2.1.</strong> Analyzing System Logs</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/systemctl.html"><strong aria-hidden="true">5.2.2.</strong> Debugging systemd Using systemctl</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/systemd-analyzer.html"><strong aria-hidden="true">5.2.3.</strong> Inspecting Services with systemd-analyze</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/strace.html"><strong aria-hidden="true">5.2.4.</strong> Using strace for Debugging Initialization Sequence</a></li><li class="chapter-item expanded "><a href="../../troubleshooting/systemd/early-shell.html"><strong aria-hidden="true">5.2.5.</strong> Early Shell Access</a></li></ol></li><li class="chapter-item expanded "><a href="../../ref_impl/ghaf-based-project.html"><strong aria-hidden="true">5.3.</strong> Ghaf as Library: Templates</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../ref_impl/example_project.html"><strong aria-hidden="true">5.3.1.</strong> Example Project</a></li><li class="chapter-item expanded "><a href="../../ref_impl/modules_options.html"><strong aria-hidden="true">5.3.2.</strong> Modules Options</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="../../technologies/technologies.html"><strong aria-hidden="true">6.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../technologies/compartment.html"><strong aria-hidden="true">6.1.</strong> Compartmentalization</a></li><li class="chapter-item expanded "><a href="../../technologies/passthrough.html"><strong aria-hidden="true">6.2.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../technologies/vfio.html"><strong aria-hidden="true">6.2.1.</strong> Binding Device to VFIO Driver</a></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">6.2.2.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_agx_pt_pcie.html"><strong aria-hidden="true">6.2.3.</strong> NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li><li class="chapter-item expanded "><a href="../../technologies/x86_pcie_crosvm.html"><strong aria-hidden="true">6.2.4.</strong> Generic x86: PCIe Passthrough on crosvm</a></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_uarti_net_vm.html"><strong aria-hidden="true">6.2.5.</strong> NVIDIA Jetson: UARTI Passthrough to netvm</a></li><li class="chapter-item expanded "><a href="../../technologies/device_tree_overlays_pt.html"><strong aria-hidden="true">6.2.6.</strong> Device Tree Overlays for Passthrough</a></li></ol></li><li class="chapter-item expanded "><a href="../../technologies/nvidia_virtualization_bpmp.html"><strong aria-hidden="true">6.3.</strong> Platform Bus Virtualization: NVIDIA BPMP</a></li><li class="chapter-item expanded "><a href="../../technologies/hypervisor_options.html"><strong aria-hidden="true">6.4.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Build System and Supply Chain</li><li class="chapter-item expanded "><a href="../../scs/ci-cd-system.html"><strong aria-hidden="true">7.</strong> Continuous Integration and Distribution</a></li><li class="chapter-item expanded "><a href="../../scs/scs.html"><strong aria-hidden="true">8.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../scs/slsa-framework.html"><strong aria-hidden="true">8.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="../../scs/basics.html"><strong aria-hidden="true">8.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="../../scs/sbom.html"><strong aria-hidden="true">8.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="../../scs/pki.html"><strong aria-hidden="true">8.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="../../scs/ghaf-security-fix-automation.html"><strong aria-hidden="true">8.5.</strong> Security Fix Automation</a></li></ol></li><li class="chapter-item expanded "><a href="../../release_notes/release_notes.html"><strong aria-hidden="true">9.</strong> Release Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.09.1.html"><strong aria-hidden="true">9.1.</strong> Release ghaf-24.09.1</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.09.html"><strong aria-hidden="true">9.2.</strong> Release ghaf-24.09</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.06.html"><strong aria-hidden="true">9.3.</strong> Release ghaf-24.06</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-24.03.html"><strong aria-hidden="true">9.4.</strong> Release ghaf-24.03</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.12.html"><strong aria-hidden="true">9.5.</strong> Release ghaf-23.12</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.09.html"><strong aria-hidden="true">9.6.</strong> Release ghaf-23.09</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.06.html"><strong aria-hidden="true">9.7.</strong> Release ghaf-23.06</a></li><li class="chapter-item expanded "><a href="../../release_notes/ghaf-23.05.html"><strong aria-hidden="true">9.8.</strong> Release ghaf-23.05</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Ghaf Usage Scenarios</li><li class="chapter-item expanded "><a href="../../scenarios/showcases.html"><strong aria-hidden="true">10.</strong> Showcases</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../scenarios/run_win_vm.html"><strong aria-hidden="true">10.1.</strong> Running Windows VM on Ghaf</a></li><li class="chapter-item expanded "><a href="../../scenarios/run_cuttlefish.html"><strong aria-hidden="true">10.2.</strong> Running Cuttlefish on Ghaf</a></li></ol></li><li class="chapter-item expanded "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">Appendices</li><li class="chapter-item expanded "><a href="../../appendices/glossary.html"><strong aria-hidden="true">11.</strong> Glossary</a></li><li class="chapter-item expanded "><a href="../../research/research.html"><strong aria-hidden="true">12.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="../../research/passthrough/ethernet.html"><strong aria-hidden="true">12.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="chapter-item expanded "><a href="../../research/installation.html"><strong aria-hidden="true">12.2.</strong> System Installation</a></li></ol></li></ol></div>
         <div id="sidebar-resize-handle" class="sidebar-resize-handle">
           <div class="sidebar-resize-indicator"></div>
         </div>
@@ -349,86 +349,61 @@ SPDX-License-Identifier: WTFPL
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="debugging-systemd-using-systemctl"><a class="header" href="#debugging-systemd-using-systemctl">Debugging systemd Using systemctl</a></h1>
-<p>To debug failed services using <code>systemctl</code>:</p>
-<ol>
-<li>
-<p>List failed services in the system:</p>
-<pre><code class="language-bash">$&gt; sudo systemctl --failed
+<h1 id="analyzing-system-log"><a class="header" href="#analyzing-system-log">Analyzing System Log</a></h1>
+<p><code>systemd</code> has a centralized logging mechanism that collects logs from all user processes in the system and kernel. It is called journal. <code>systemd</code> runs a journal daemon <code>journald</code>, which collects messages from the kernel, initrd (initial RAM disk), services, and etc.</p>
+<p>Analyzing logs is the most effective way to diagnose issues with any systemd service. Ghaf's default systemd log level is set to <code>info</code>. To gain deeper insights into the service state, the log level can be elevated to <code>debug</code> with the following option:</p>
+<pre><code>ghaf.systemd.logLevel = "debug";
 </code></pre>
-<p>You will get a list of failed services. To see a list of all the services in the system, use the command:</p>
-<pre><code>$&gt; sudo systemctl list-unit-files --type=service
-</code></pre>
-</li>
-<li>
-<p>Check status of the failed service for more detailed information:</p>
-<pre><code class="language-bash">$&gt; sudo systemctl status &lt;service_name&gt;.service
-</code></pre>
-</li>
-<li>
-<p>See the service logs for more insight:</p>
-<pre><code>$&gt; sudo journalctl -b -u &lt;service_name&gt;.service
-</code></pre>
-</li>
-<li>
-<p>You can further increase the log level to get debug level information:</p>
+<p>While it is possible to elevate the log level on a live system using <code>systemctl</code>, this option is particularly useful when you need to inspect the startup sequence of critical services that cannot be restarted in a live environment.</p>
+<p>To change the log level to <code>debug</code>, run the following <code>systemctl</code> command:</p>
 <pre><code class="language-bash">$&gt; sudo systemctl log-level debug
 </code></pre>
-<p>Reload the systemd daemon and restart a service:</p>
-<pre><code class="language-bash">$&gt; sudo systemctl daemon-reload
-$&gt; sudo systemctl restart  &lt;service_name&gt;.service
-</code></pre>
-<p>Now you can see debug level information in the service log.</p>
-</li>
-<li>
-<p>You can also attach <code>strace</code> with the service daemon to see system call and signal status:</p>
+<p>It will change the log level for the systemd daemon and all systemd managed services.</p>
+<p>After adjusting the log level, we recommended to reload the systemd daemon and restart the service you are debugging.</p>
+<h2 id="using-journalctl"><a class="header" href="#using-journalctl">Using journalctl</a></h2>
+<p>When <code>journalctl</code> command is run without any option, it will show all the messages, which can be pretty long.</p>
 <ul>
 <li>
-<p>Get the PID of the main process from service status. It is listed as <code>Main PID:</code>.</p>
+<p>You can see logs of specific boot using -b option for example:</p>
+<pre><code class="language-bash">$&gt; journalctl -b  #Log from current boot
+$&gt; journalctl -b -1 #Log from previous boo
+</code></pre>
 </li>
 <li>
-<p>Attach strace with the PID:</p>
-<pre><code class="language-bash">$&gt; sudo strace -f -s 100 -p &lt;Main_PID&gt;
+<p>To list available boots, use the following command:</p>
+<pre><code>$&gt; journalctl --list-boots
 </code></pre>
+</li>
+<li>
+<p>To view the logs generated by any systemd unit, use the <code>-u</code> option. For example, the command below displays all logs recorded by the logind service. You can specify multiple units by using the <code>-u</code> switch more than once.</p>
+<pre><code class="language-bash">$&gt; journalctl -u logind.service
+</code></pre>
+</li>
+<li>
+<p>You can see log messages in real-time, similar to the <code>tail</code> command in Linux. To do this, use the <code>-f</code> option:</p>
+<pre><code class="language-bash">$&gt; journalctl -f
+</code></pre>
+</li>
+<li>
+<p>Similar to the <code>tail</code> command, the <code>-n</code> option allows you to display a specific number of the most recent log entries. The following command shows the last 50 messages logged:</p>
+<pre><code class="language-bash">$&gt; journalctl -n 50
+</code></pre>
+</li>
+<li>
+<p>Log messages can be filtered based on their priority using <code>-p</code> option, for example the following command shows only error message from service logind:</p>
+<pre><code class="language-bash">$&gt; journalctl -p error -u logind.service
+</code></pre>
+</li>
+<li>
+<p>To see kernel message, use:</p>
+<pre><code class="language-bash">$&gt; journalctl -k
+$&gt; journalctl -t kernel
+</code></pre>
+</li>
+<li>
+<p>The <code>-r</code> option displays log entries in reverse chronological order with the latest messages shown first.</p>
 </li>
 </ul>
-</li>
-<li>
-<p>Retune the service configuration in runtime:</p>
-<pre><code class="language-bash">$&gt; systemctl edit --runtime &lt;service_name&gt;.service
-</code></pre>
-<ul>
-<li>
-<p>Uncomment the <code>[Service]</code> section and the configuration you want to enable or disable. You can add any new configuration. This basically overrides your base configuration.</p>
-</li>
-<li>
-<p>Save the configuration as <code>/run/systemd/system/&lt;service_name&gt;.d/override.conf</code>.</p>
-</li>
-<li>
-<p>Reload the systemd daemon and restart the service as mentioned in step 4.</p>
-</li>
-<li>
-<p>You can check if your service is using the new configuration with the command:</p>
-<pre><code>$&gt; sudo systemctl show &lt;service_name&gt;.service
-</code></pre>
-</li>
-<li>
-<p>For checking the base configuration:</p>
-<pre><code class="language-bash">$&gt; sudo systemctl cat &lt;service_name&gt;.service
-</code></pre>
-</li>
-</ul>
-</li>
-<li>
-<p>If the new configuration works for you, you can check the exposure level of the service using the command:</p>
-<pre><code class="language-bash">$&gt; systemd-analyze security
-$&gt; systemd-analyze security &lt;service_name&gt;.service #For detailed information
-</code></pre>
-</li>
-<li>
-<p>Update the configuration in the Ghaf repository and build it. Hardened service configs are available in the directory <a href="https://github.com/tiiuae/ghaf/tree/main/modules/common/systemd/hardened-configs"><code>ghaf/modules/common/systemd/hardened-configs</code></a>.</p>
-</li>
-</ol>
 </div>
               <div class="sidetoc">
                 <nav class="pagetoc"></nav>
@@ -439,7 +414,7 @@ $&gt; systemd-analyze security &lt;service_name&gt;.service #For detailed inform
               <!-- Mobile navigation buttons -->
               <a
                 rel="prev"
-                href="../../troubleshooting/systemd/system-log.html"
+                href="../../troubleshooting/troubleshooting.html"
                 class="mobile-nav-chapters previous"
                 title="Previous chapter"
                 aria-label="Previous chapter"
@@ -450,7 +425,7 @@ $&gt; systemd-analyze security &lt;service_name&gt;.service #For detailed inform
                
               <a
                 rel="next prefetch"
-                href="../../troubleshooting/systemd/systemd-analyzer.html"
+                href="../../troubleshooting/systemd/systemctl.html"
                 class="mobile-nav-chapters next"
                 title="Next chapter"
                 aria-label="Next chapter"
@@ -467,7 +442,7 @@ $&gt; systemd-analyze security &lt;service_name&gt;.service #For detailed inform
         <nav class="nav-wide-wrapper" aria-label="Page navigation">
           <a
             rel="prev"
-            href="../../troubleshooting/systemd/system-log.html"
+            href="../../troubleshooting/troubleshooting.html"
             class="nav-chapters previous"
             title="Previous chapter"
             aria-label="Previous chapter"
@@ -478,7 +453,7 @@ $&gt; systemd-analyze security &lt;service_name&gt;.service #For detailed inform
            
           <a
             rel="next prefetch"
-            href="../../troubleshooting/systemd/systemd-analyzer.html"
+            href="../../troubleshooting/systemd/systemctl.html"
             class="nav-chapters next"
             title="Next chapter"
             aria-label="Next chapter"
