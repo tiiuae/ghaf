@@ -90,7 +90,7 @@ let
       };
   partitionTemplate = pkgs.runCommand "flash.xml" { } (
     ''
-      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >"$out"
+      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >"$out"
 
     ''
     + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
@@ -101,7 +101,7 @@ let
     ''
     + ''
 
-      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
+      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
     ''
   );
 in
