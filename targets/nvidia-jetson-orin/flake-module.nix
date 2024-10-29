@@ -51,35 +51,37 @@ let
             hardware.nvidia.orin = {
               enable = true;
               somType = som;
-              agx.enableNetvmWlanPCIPassthrough = som == "agx";
-              nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+              # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+              # agx.enableNetvmWlanPCIPassthrough = som == "agx";
+              # nx.enableNetvmEthernetPCIPassthrough = som == "nx";
             };
-            hardware.nvidia = {
-              virtualization.enable = true;
-              virtualization.host.bpmp.enable = false;
-              passthroughs.host.uarta.enable = false;
-              passthroughs.uarti_net_vm.enable = som == "agx";
-            };
-            virtualization = {
-              microvm-host = {
-                enable = true;
-                networkSupport = true;
-              };
-              microvm = {
-                netvm = {
-                  enable = true;
-                  extraModules = netvmExtraModules;
-                };
-              };
-            };
+            # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+            # hardware.nvidia = {
+              # virtualization.enable = true;
+              # virtualization.host.bpmp.enable = false;
+              # passthroughs.host.uarta.enable = false;
+              # passthroughs.uarti_net_vm.enable = som == "agx";
+            # };
+            # virtualization = {
+            #   microvm-host = {
+            #     enable = true;
+            #     networkSupport = true;
+            #   };
+            #   microvm = {
+            #     netvm = {
+            #       enable = true;
+            #       extraModules = netvmExtraModules;
+            #     };
+            #   };
+            # };
             host.networking.enable = true;
             profiles = {
-              applications.enable = true;
+              # applications.enable = true;
               release.enable = variant == "release";
               debug.enable = variant == "debug";
               graphics.renderer = "gles2";
             };
-            reference.programs.windows-launcher.enable = true;
+            # reference.programs.windows-launcher.enable = true;
             reference.personalize.keys.enable = variant == "debug";
             graphics.labwc.autolock.enable = false;
           };

@@ -5,6 +5,6 @@
     ./common/bpmp-virt-common
     ./host/bpmp-virt-host
     ./host/uarta-host
-    ./passthrough/uarti-net-vm
+    # ./passthrough/uarti-net-vm
   ];
 }

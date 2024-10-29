@@ -8,7 +8,7 @@ in
   options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough = lib.mkEnableOption "WLAN card PCI passthrough to NetVM";
   config = lib.mkIf cfg.enableNetvmWlanPCIPassthrough {
     # Orin AGX WLAN card PCI passthrough
-    ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
+    # ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
 
     ghaf.virtualization.microvm.netvm.extraModules = [
       {
@@ -33,9 +33,10 @@ in
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
 
-    hardware.deviceTree = {
-      enable = true;
-      name = "tegra234-p3701-host-passthrough.dtb";
-    };
+    # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+    # hardware.deviceTree = {
+    #   enable = true;
+    #   name = "tegra234-p3701-host-passthrough.dtb";
+    # };
   };
 }

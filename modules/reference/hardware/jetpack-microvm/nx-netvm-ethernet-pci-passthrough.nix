@@ -8,7 +8,7 @@ in
   options.ghaf.hardware.nvidia.orin.nx.enableNetvmEthernetPCIPassthrough = lib.mkEnableOption "Ethernet card PCI passthrough to NetVM";
   config = lib.mkIf cfg.enableNetvmEthernetPCIPassthrough {
     # Orin NX Ethernet card PCI Passthrough
-    ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
+    # ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
 
     ghaf.virtualization.microvm.netvm.extraModules = [
       {

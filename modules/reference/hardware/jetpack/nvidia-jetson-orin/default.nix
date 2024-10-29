@@ -7,10 +7,12 @@
     ./partition-template.nix
     ./jetson-orin.nix
 
-    ./pci-passthrough-common.nix
+    # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+    # ./pci-passthrough-common.nix
 
     ./ota-utils-fix.nix
-    ./virtualization
+    # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+    # ./virtualization
 
     ./optee.nix
   ];

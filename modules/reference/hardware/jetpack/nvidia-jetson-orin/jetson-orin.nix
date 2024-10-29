@@ -80,22 +80,23 @@ in
 
       modprobeConfig.enable = true;
 
-      kernelPatches = [
-        {
-          name = "vsock-config";
-          patch = null;
-          extraStructuredConfig = with lib.kernel; {
-            VHOST = yes;
-            VHOST_MENU = yes;
-            VHOST_IOTLB = yes;
-            VHOST_VSOCK = yes;
-            VSOCKETS = yes;
-            VSOCKETS_DIAG = yes;
-            VSOCKETS_LOOPBACK = yes;
-            VIRTIO_VSOCKETS_COMMON = yes;
-          };
-        }
-      ];
+      # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+      # kernelPatches = [
+      #   {
+      #     name = "vsock-config";
+      #     patch = null;
+      #     extraStructuredConfig = with lib.kernel; {
+      #       VHOST = yes;
+      #       VHOST_MENU = yes;
+      #       VHOST_IOTLB = yes;
+      #       VHOST_VSOCK = yes;
+      #       VSOCKETS = yes;
+      #       VSOCKETS_DIAG = yes;
+      #       VSOCKETS_LOOPBACK = yes;
+      #       VIRTIO_VSOCKETS_COMMON = yes;
+      #     };
+      #   }
+      # ];
     };
 
     services.nvpmodel = {
@@ -113,9 +114,10 @@ in
       }
       # Versions of the device tree without PCI passthrough related
       # modifications.
-      // lib.optionalAttrs (cfg.somType == "agx") {
-        name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
-      }
+      # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
+      # // lib.optionalAttrs (cfg.somType == "agx") {
+      #   name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
+      # }
       // lib.optionalAttrs (cfg.somType == "nx") {
         name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
       };
