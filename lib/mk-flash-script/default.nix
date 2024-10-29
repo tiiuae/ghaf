@@ -21,7 +21,8 @@ let
   };
 
   # Generate the flash script derivation
-  flashScriptDrv = pkgs.writeShellScript "flash" (pkgs.nvidia-jetpack.mkFlashScript pkgs.nvidia-jetpack.flash-tools { });
+  flashScriptDrv = pkgs.writeShellScript "flash" (
+    pkgs.nvidia-jetpack.mkFlashScript pkgs.nvidia-jetpack.flash-tools { }
+  );
 in
 flashScriptDrv
-
