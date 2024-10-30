@@ -82,7 +82,7 @@ let
     {
       inherit hostConfiguration;
       name = "${name}-${som}-${variant}";
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.sdImage;
     };
 
   # Base targets
@@ -102,7 +102,7 @@ let
     {
       name = "${tgt.name}-nodemoapps";
       inherit hostConfiguration;
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.sdImage;
     };
 
   nvidia-jetson-orin-agx-debug-nodemoapps = generateNodemoapps nvidia-jetson-orin-agx-debug;
@@ -119,7 +119,7 @@ let
     {
       name = "${tgt.name}-from-x86_64";
       inherit hostConfiguration;
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.sdImage;
     };
 
   nvidia-jetson-orin-agx-debug-from-x86_64 = generateCrossFromX86_64 nvidia-jetson-orin-agx-debug;
