@@ -11,7 +11,6 @@ let
   inherit (lib) optionalString;
 
   cfg = config.ghaf.graphics.labwc;
-  audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
 
   launcher-icon = "${pkgs.ghaf-artwork}/icons/launcher.svg";
@@ -126,7 +125,14 @@ let
         }"
       }
 
-      [ "$1" = "get" ] && get && exit
+      case "$1" in
+        get)
+          get
+          ;;
+        *)
+          echo "Usage: $0 {get}"
+          ;;
+      esac
     '';
   };
 
@@ -228,30 +234,26 @@ let
       popup_timer_pid=0
 
       show_popup() {
-          if ! ${eww} active-windows | grep -q "quick-settings"; then
-              # Reset timer
-              if [ "$popup_timer_pid" -ne 0 ]; then
-                kill "$popup_timer_pid" 2>/dev/null
-                popup_timer_pid=0
-              fi
-              
-              if ! ${eww} active-windows | grep -q "brightness-popup"; then
-                ${eww} open brightness-popup
-                ${eww} update brightness-popup-visible="true"
-              fi
-              (
-                sleep 2
-                ${eww} update brightness-popup-visible="false"
-                sleep 0.1
-                ${eww} close brightness-popup
-              ) &
+        if ! ${eww} active-windows | grep -q "quick-settings"; then
+            # Reset timer
+            if [ "$popup_timer_pid" -ne 0 ]; then
+              kill "$popup_timer_pid" 2>/dev/null
+              popup_timer_pid=0
+            fi
+            
+            if ! ${eww} active-windows | grep -q "brightness-popup"; then
+              ${eww} open brightness-popup
+              ${eww} update brightness-popup-visible="true"
+            fi
+            (
+              sleep 2
+              ${eww} update brightness-popup-visible="false"
+              sleep 0.1
+              ${eww} close brightness-popup
+            ) &
 
-              popup_timer_pid=$!
-          fi
-        }
-
-      screen_level() {
-          brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}'
+            popup_timer_pid=$!
+        fi
       }
 
       icon() {
@@ -276,29 +278,43 @@ let
           fi
       }
 
-      set_screen() {
-          brightnessctl set "$1""%" -q
-      }
-
       get() {
-          brightness=$(screen_level)
+          if [ -z "$1" ]; then
+              brightness=$(brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}')
+          else
+              brightness="$1"
+          fi
           icon=$(icon "$brightness")
           echo "{ \"screen\": { \"level\": \"$brightness\" }, \"icon\": \"$icon\" }"
       }
 
       listen() {
-        inotifywait -m /sys/class/backlight/*/brightness | \
-        while read -r line; do
-            if echo "$line" | grep -q "CLOSE_WRITE"; then
+        prev_brightness=""
+        inotifywait -m -e close_write /sys/class/backlight/*/brightness |
+        while read -r; do
+            current_brightness=$(brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}')
+            get "$current_brightness" &
+            if [[ "$current_brightness" != "$prev_brightness" ]]; then
                 show_popup > /dev/null 2>&1
-                get
+                prev_brightness="$current_brightness"
             fi
         done
       }
 
-      if [[ "$1" == 'get' ]]; then get; fi
-      if [[ "$1" == 'set_screen' ]]; then set_screen "$2"; fi
-      if [[ "$1" == 'listen' ]]; then listen; fi
+      case "$1" in
+        get)
+          get
+          ;;
+        set_screen)
+          brightnessctl set "$2%" -q
+          ;;
+        listen)
+          listen
+          ;;
+        *)
+          echo "Usage: $0 {get|set_screen|listen} [args...]"
+          ;;
+      esac
     '';
   };
 
@@ -307,42 +323,36 @@ let
     runtimeInputs = [
       pkgs.gawk
       pkgs.pulseaudio
-      audio-ctrl
+      pkgs.pamixer
     ];
     bashOptions = [ ];
     text = ''
-        popup_timer_pid=0
+      export PULSE_SERVER=audio-vm:4713
+      popup_timer_pid=0
 
-        show_popup() {
-          if ! ${eww} active-windows | grep -q "quick-settings"; then
-              # Reset timer
-              if [ "$popup_timer_pid" -ne 0 ]; then
-                kill "$popup_timer_pid" 2>/dev/null
-                popup_timer_pid=0
-              fi
+      show_popup() {
+        if ! ${eww} active-windows | grep -q "quick-settings"; then
+            # Reset timer
+            if [ "$popup_timer_pid" -ne 0 ]; then
+              kill "$popup_timer_pid" 2>/dev/null
+              popup_timer_pid=0
+            fi
 
-              if ! ${eww} active-windows | grep -q "volume-popup"; then
-                ${eww} open volume-popup
-                ${eww} update volume-popup-visible="true"
-              fi
-              (
-                sleep 2
-                ${eww} update volume-popup-visible="false"
-                sleep 0.1
-                ${eww} close volume-popup
-              ) &
+            if ! ${eww} active-windows | grep -q "volume-popup"; then
+              ${eww} open volume-popup
+              ${eww} update volume-popup-visible="true"
+            fi
+            (
+              sleep 2
+              ${eww} update volume-popup-visible="false"
+              sleep 0.1
+              ${eww} close volume-popup
+            ) &
 
-              popup_timer_pid=$!
-          fi
-        }
-
-      volume_level() {
-          audio-ctrl get | awk '{print $1 + 0.0}'
+            popup_timer_pid=$!
+        fi
       }
 
-      is_muted() {
-          audio-ctrl get_mut
-      }
 
       icon() {
           if [[ "$2" == "true" || "$1" -eq 0 ]]; then
@@ -356,48 +366,39 @@ let
           fi
       }
 
-      set_volume() {
-          audio-ctrl set "$1"
-      }
-
-      mute() {
-          audio-ctrl mut
-      }
-
       get() {
-          volume=$(volume_level)
-          muted=$(is_muted)
+          volume=$(pamixer --get-volume | awk '{print $1 + 0.0}')
+          muted=$(pamixer --get-mute)
           icon=$(icon "$volume" "$muted")
           echo "{ \"level\": \"$volume\", \"muted\": \"$muted\", \"icon\": \"$icon\" }"
       }
 
       listen() {
-        # Initialize variables to store previous volume and mute state
-        prev_volume=""
-        prev_mute_status=""
-
-        pactl -s audio-vm:4713 subscribe | while read -r event; do
-            if echo "$event" | grep -q "sink"; then
-                current_volume=$(volume_level)
-                current_mute_status=$(is_muted)
-
-                # Check if volume or mute status changed
-                if [[ "$current_volume" != "$prev_volume" || "$current_mute_status" != "$prev_mute_status" ]]; then
-                    show_popup > /dev/null 2>&1
-                    get
-
-                    # Update previous states
-                    prev_volume="$current_volume"
-                    prev_mute_status="$current_mute_status"
-                fi
+        pactl subscribe | while read -r event; do
+            if [[ "$event" == *"change"* ]]; then
+                get &
+                show_popup > /dev/null 2>&1
             fi
         done
       }
 
-      if [[ "$1" == 'get' ]]; then get; fi
-      if [[ "$1" == 'set_volume' ]]; then set_volume "$2"; fi
-      if [[ "$1" == 'listen' ]]; then listen; fi
-      if [[ "$1" == 'mute' ]]; then mute; fi
+      case "$1" in
+        get)
+          get
+          ;;
+        set_volume)
+          pamixer --unmute --set-volume "$2"
+          ;;
+        mute)
+          pamixer --toggle-mute
+          ;;
+        listen)
+          listen
+          ;;
+        *)
+          echo "Usage: $0 {get|set_volume|mute|listen} [args...]"
+          ;;
+      esac
     '';
   };
 
@@ -511,7 +512,7 @@ in
                         :icon-onclick "${eww-volume}/bin/eww-volume mute &"
                         :settings-icon "${arrow-right-icon}"
                         :level { volume.muted == "true" ? "0" : volume.level }
-                        :onchange "${eww-volume}/bin/eww-volume set_volume {} &")
+                        :onchange "PULSE_SERVER=audio-vm:4713 ${pkgs.pamixer}/bin/pamixer --unmute --set-volume {} &")
                 (sys_slider
                         :header "Display"
                         :level {brightness.screen.level}
