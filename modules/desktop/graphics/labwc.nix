@@ -111,6 +111,9 @@ in
     # It will create a /etc/pam.d/ file for authentication
     security.pam.services.gtklock = { };
 
+    # Needed for power commands
+    security.polkit.enable = true;
+
     systemd.user.targets.ghaf-session = {
       enable = true;
       description = "Ghaf labwc session";

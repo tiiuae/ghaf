@@ -259,6 +259,7 @@ in
           Restart = "always";
           RestartSec = "1";
         };
+        startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
       };
