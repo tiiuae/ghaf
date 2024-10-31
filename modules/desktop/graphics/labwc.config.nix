@@ -9,7 +9,6 @@
 let
   cfg = config.ghaf.graphics.labwc;
 
-  audio-ctrl = pkgs.callPackage ../../../packages/audio-ctrl { };
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
@@ -110,13 +109,13 @@ let
         <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set 5%-" />
       </keybind>
       <keybind key="XF86_AudioRaiseVolume">
-        <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl inc" />
+        <action name="Execute" command="${pkgs.pamixer}/bin/pamixer --unmute --increase 5" />
       </keybind>
       <keybind key="XF86_AudioLowerVolume">
-        <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl dec" />
+        <action name="Execute" command="${pkgs.pamixer}/bin/pamixer --unmute --decrease 5" />
       </keybind>
       <keybind key="XF86_AudioMute">
-        <action name="Execute" command="${audio-ctrl}/bin/audio-ctrl mut" />
+        <action name="Execute" command="${pkgs.pamixer}/bin/pamixer --toggle-mute" />
       </keybind>
       <keybind key="W-z">
         <action name="ToggleMagnify" />
@@ -214,6 +213,7 @@ let
   environment = ''
     XCURSOR_THEME=Adwaita
     XCURSOR_SIZE=24
+    PULSE_SERVER=audio-vm:4713
 
     # Wayland compatibility
     MOZ_ENABLE_WAYLAND=1
