@@ -69,8 +69,8 @@ in
             enable = true;
             vms = [
               "business-vm"
-              "chromium-vm"
               "comms-vm"
+              "chrome-vm"
             ];
           };
         };

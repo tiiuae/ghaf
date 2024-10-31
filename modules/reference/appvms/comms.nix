@@ -21,7 +21,7 @@ in
   name = "${name}";
 
   packages = [
-    pkgs.chromium
+    pkgs.google-chrome
     pkgs.element-desktop
     pkgs.element-gps
     pkgs.gpsd
@@ -32,7 +32,11 @@ in
   cores = 4;
   extraModules = [
     {
-      imports = [ ../programs/chromium.nix ];
+      imports = [
+        # ../programs/chromium.nix
+        ../programs/google-chrome.nix
+
+      ];
 
       systemd = {
         services = {
@@ -93,15 +97,15 @@ in
           }
           {
             name = "slack";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
+            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
           }
           {
             name = "zoom";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
+            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
           }
         ];
       };
-      ghaf.reference.programs.chromium.enable = true;
+      ghaf.reference.programs.google-chrome.enable = true;
       ghaf.services.xdghandlers.enable = true;
     }
   ];

@@ -15,6 +15,7 @@ in
   options.ghaf.reference.appvms = {
     enable = lib.mkEnableOption "Enable the Ghaf reference appvms module";
     chromium-vm = lib.mkEnableOption "Enable the Chromium appvm";
+    chrome-vm = lib.mkEnableOption "Enable the Google Chrome appvm";
     gala-vm = lib.mkEnableOption "Enable the Gala appvm";
     zathura-vm = lib.mkEnableOption "Enable the Zathura appvm";
     comms-vm = lib.mkEnableOption ''
@@ -37,6 +38,7 @@ in
     ghaf.reference.appvms = {
       enabled-app-vms =
         (lib.optionals cfg.chromium-vm [ (import ./chromium.nix { inherit pkgs lib config; }) ])
+        ++ (lib.optionals cfg.chrome-vm [ (import ./google-chrome.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.gala-vm [ (import ./gala.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.zathura-vm [ (import ./zathura.nix { inherit pkgs lib config; }) ])
         ++ (lib.optionals cfg.comms-vm [ (import ./comms.nix { inherit pkgs lib config; }) ])

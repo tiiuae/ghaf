@@ -37,6 +37,7 @@ let
     "system-file-manager.svg"
     "utilities-tweak-tool.svg"
     "Zoom.svg"
+    "google-chrome.svg"
   ];
 in
 runCommand "icon-pack"
