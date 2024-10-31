@@ -147,6 +147,14 @@ in
             }
 
             {
+              name = "Zoom";
+              description = "Zoom Videoconferencing Application";
+              vm = "Comms";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm zoom";
+              icon = "${pkgs.icon-pack}/Zoom.svg";
+            }
+
+            {
               name = "Calculator";
               description = "Solve Math Problems";
               path = "${pkgs.gnome-calculator}/bin/gnome-calculator";

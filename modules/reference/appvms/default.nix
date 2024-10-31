@@ -21,6 +21,7 @@ in
       Enable the communications appvm
         - Element
         - Slack
+        - Zoom
     '';
     business-vm = lib.mkEnableOption "Enable the Business appvm";
     enabled-app-vms = lib.mkOption {
