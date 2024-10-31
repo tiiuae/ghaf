@@ -3,10 +3,10 @@
 
 # Ghaf app launcher style
 {
-  pkgs,
+  writeText,
   ...
 }:
-pkgs.writeText "ghaf-launcher.css" ''
+writeText "ghaf-launcher.css" ''
   /* Example configuration from: https://github.com/nwg-piotr/nwg-drawer/blob/main/drawer.css */
   window {
       background-color: #121212;

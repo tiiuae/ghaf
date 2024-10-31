@@ -3,10 +3,10 @@
 
 # Ghaf lock screen style
 {
-  pkgs,
+  writeText,
   ...
 }:
-pkgs.writeText "ghaf-lock.css" ''
+writeText "ghaf-lock.css" ''
   window {
       background: rgba(18, 18, 18, 1);
       color: #fff;
