@@ -36,6 +36,7 @@ let
     "yast-vpn.svg"
     "system-file-manager.svg"
     "utilities-tweak-tool.svg"
+    "Zoom.svg"
   ];
 in
 runCommand "icon-pack"
