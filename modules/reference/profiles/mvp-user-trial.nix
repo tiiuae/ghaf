@@ -32,11 +32,12 @@ in
       reference = {
         appvms = {
           enable = true;
-          chromium-vm = true;
+          chrome-vm = true;
           gala-vm = true;
           zathura-vm = true;
           comms-vm = true;
           business-vm = true;
+
         };
 
         services = {

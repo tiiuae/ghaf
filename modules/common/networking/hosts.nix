@@ -63,7 +63,7 @@ let
     }
     {
       ip = 100;
-      name = "chromium-vm";
+      name = "chrome-vm";
     }
     {
       ip = 101;

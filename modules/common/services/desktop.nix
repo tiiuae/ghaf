@@ -52,23 +52,33 @@ in
             '';
           in
           [
-            {
-              # The SPKI fingerprint is calculated like this:
-              # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
-              # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
-              name = "Chromium";
-              description = "Isolated General Browsing";
-              vm = "Chromium";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start chromium";
-              icon = "${pkgs.icon-pack}/chromium.svg";
-            }
+            # {
+            #   # The SPKI fingerprint is calculated like this:
+            #   # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
+            #   # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
+            #   name = "Chromium";
+            #   description = "Isolated General Browsing";
+            #   vm = "Chromium";
+            #   path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start chromium";
+            #   icon = "${pkgs.icon-pack}/chromium.svg";
+            # }
 
             {
               name = "Trusted Browser";
               description = "Isolated Trusted Browsing";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm chromium";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm google-chrome";
               icon = "${pkgs.icon-pack}/thorium-browser.svg";
+            }
+            {
+              # The SPKI fingerprint is calculated like this:
+              # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
+              # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
+              name = "Google Chrome";
+              description = "Isolated General Browsing";
+              vm = "Chrome";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm chrome-vm google-chrome";
+              icon = "${pkgs.icon-pack}/google-chrome.svg";
             }
 
             {
@@ -127,7 +137,7 @@ in
               name = "PDF Viewer";
               description = "Isolated PDF Viewer";
               vm = "Zathura";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start zathura";
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm zathura-vm zathura";
               icon = "${pkgs.icon-pack}/document-viewer.svg";
             }
 

@@ -30,12 +30,13 @@ in
   name = "${name}";
   packages =
     [
-      pkgs.chromium
+      pkgs.google-chrome
       pkgs.globalprotect-openconnect
       pkgs.losslesscut-bin
       pkgs.openconnect
       gnomeTextEditor
       pkgs.xarchiver
+
     ]
     ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ]
     ++ lib.optionals config.ghaf.givc.enable [ pkgs.open-normal-extension ];
@@ -49,7 +50,8 @@ in
       { pkgs, ... }:
       {
         imports = [
-          ../programs/chromium.nix
+          #    ../programs/chromium.nix
+          ../programs/google-chrome.nix
           ../services/globalprotect-vpn/default.nix
         ];
         time.timeZone = config.time.timeZone;
@@ -68,21 +70,21 @@ in
             name = lib.mkForce "business-vm";
             applications = [
               {
-                name = "chromium";
-                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
+                name = "google-chrome";
+                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
                 args = [ "url" ];
               }
               {
                 name = "outlook";
-                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://outlook.office.com/mail/ ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
+                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://outlook.office.com/mail/ ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
               }
               {
                 name = "office";
-                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://microsoft365.com ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
+                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://microsoft365.com ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
               }
               {
                 name = "teams";
-                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://teams.microsoft.com ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
+                command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://teams.microsoft.com ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension}";
               }
               {
                 name = "gpclient";
@@ -104,7 +106,7 @@ in
           };
 
           reference = {
-            programs.chromium.enable = true;
+            programs.google-chrome.enable = true;
 
             services.globalprotect = {
               enable = true;
@@ -114,12 +116,17 @@ in
 
           services.xdghandlers.enable = true;
         };
-
-        environment.etc."chromium/native-messaging-hosts/fi.ssrc.open_normal.json" =
+        environment.etc."opt/chrome/native-messaging-hosts/fi.ssrc.open_normal.json" =
           mkIf config.ghaf.givc.enable
             {
               source = "${pkgs.open-normal-extension}/fi.ssrc.open_normal.json";
             };
+
+        #   environment.etc."chromium/native-messaging-hosts/fi.ssrc.open_normal.json" =
+        #     mkIf config.ghaf.givc.enable
+        #       {
+        #         source = "${pkgs.open-normal-extension}/fi.ssrc.open_normal.json";
+        #       };
         environment.etc."open-normal-extension.cfg" = mkIf config.ghaf.givc.enable {
           text =
             let

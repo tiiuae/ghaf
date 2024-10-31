@@ -25,6 +25,7 @@ in
 {
   options.ghaf.graphics.demo-apps = {
     chromium = mkProgramOption "Chromium browser" false;
+    google-chrome = mkProgramOption "Google Chrome browser" false;
     firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
@@ -33,7 +34,13 @@ in
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
     ghaf.graphics.launchers =
-      lib.optional cfg.chromium {
+      lib.optional cfg.google-chrome {
+        name = "Google Chrome";
+        description = "Web Browser";
+        path = "${pkgs.google-chrome}/bin/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        icon = "${pkgs.icon-pack}/google-chrome.svg";
+      }
+      ++ lib.optional cfg.chromium {
         name = "Chromium";
         description = "Web Browser";
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";

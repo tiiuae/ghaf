@@ -68,9 +68,10 @@ let
         }
       ];
     }
+
     {
-      name = "ChromiumVM";
-      qmpSocket = "/var/lib/microvms/chromium-vm/chromium-vm.sock";
+      name = "ChromeVM";
+      qmpSocket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
       usbPassthrough = [
         {
           class = 14;

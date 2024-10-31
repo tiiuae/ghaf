@@ -3,7 +3,8 @@
 {
   imports = [
     ./zathura.nix
-    ./chromium.nix
+    # ./chromium.nix
+    ./google-chrome.nix
     ./windows-launcher.nix
   ];
 }
