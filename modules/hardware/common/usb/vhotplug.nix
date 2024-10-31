@@ -75,6 +75,14 @@ let
         {
           class = 14;
           description = "Video (USB Webcams)";
+          ignore = [
+            {
+              # Ignore Lenovo X1 camera since it is attached to the business-vm
+              vendorId = "04f2";
+              productId = "b751";
+              description = "Lenovo X1 Integrated Camera";
+            }
+          ];
         }
       ];
     }
