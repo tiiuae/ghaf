@@ -119,7 +119,8 @@ in
         name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
       }
       // lib.optionalAttrs (cfg.somType == "nx") {
-        name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
+        #TODO: PCI passthrogh related.
+        # name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
       };
   };
 }
