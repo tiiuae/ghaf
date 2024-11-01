@@ -46,7 +46,8 @@
               --disallow-untyped-defs \
               $out
           '';
-      fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+      #  TODO: Commented this line related to 6.8 update
+      # fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
     in
     {
       firmwareSize = 256;
@@ -55,8 +56,9 @@
         ${mkESPContent} \
           --toplevel ${config.system.build.toplevel} \
           --output firmware/ \
-          --device-tree ${fdtPath}
       '';
+			# TODO: Removed this line from above command related to 6.8 update
+			# --device-tree ${fdtPath}
       populateRootCommands = '''';
       postBuildCommands = ''
         img=$out/sd-image/${config.sdImage.imageName}

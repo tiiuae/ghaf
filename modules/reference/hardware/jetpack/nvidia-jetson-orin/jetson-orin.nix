@@ -116,10 +116,9 @@ in
       # modifications.
       # TODO! Disabled for 6.x kernel update, should be fixed and re-enabled!
       // lib.optionalAttrs (cfg.somType == "agx") {
-        name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
+        # name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
       }
       // lib.optionalAttrs (cfg.somType == "nx") {
-        #TODO: PCI passthrogh related.
         # name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
       };
   };
