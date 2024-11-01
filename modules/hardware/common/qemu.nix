@@ -10,6 +10,7 @@ let
     optionals
     optionalAttrs
     ;
+  isBatteryConnected = builtins.pathExists "/sys/class/power_supply/BAT0";
 in
 {
   options.ghaf.qemu = {
@@ -32,12 +33,15 @@ in
           # Button
           "-device"
           "button"
-          # Battery
-          "-device"
-          "battery"
           # AC adapter
           "-device"
           "acad"
+        ]
+        # Enable batteryless operation
+        ++ optionals isBatteryConnected [
+          # Battery
+          "-device"
+          "battery"
         ]
         ++ optionals (hasAttr "yubikey" config.ghaf.hardware.usb.external.qemuExtraArgs) config.ghaf.hardware.usb.external.qemuExtraArgs.yubikey
         ++ optionals (hasAttr "fpr0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.fpr0
