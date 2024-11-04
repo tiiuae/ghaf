@@ -22,8 +22,7 @@ jobs:
       - name: Check nix flake show runs successfully
         run: nix flake show
       - name: evaluation check
-        # parallelize make checks to take arch as an input
-        run: nix develop --command make-checks --workers 2
+        run: nix develop --command make-checks
       - name: Check templates
         run: |
           set -eux -o pipefail
