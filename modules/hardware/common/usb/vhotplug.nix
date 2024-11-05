@@ -78,8 +78,23 @@ let
           ignore = [
             {
               # Ignore Lenovo X1 camera since it is attached to the business-vm
+              # Finland SKU
               vendorId = "04f2";
               productId = "b751";
+              description = "Lenovo X1 Integrated Camera";
+            }
+            {
+              # Ignore Lenovo X1 camera since it is attached to the business-vm
+              # Uae 1st SKU
+              vendorId = "5986";
+              productId = "2145";
+              description = "Lenovo X1 Integrated Camera";
+            }
+            {
+              # Ignore Lenovo X1 camera since it is attached to the business-vm
+              # UAE #2 SKU
+              vendorId = "30c9";
+              productId = "0052";
               description = "Lenovo X1 Integrated Camera";
             }
           ];
