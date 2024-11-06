@@ -4,10 +4,12 @@
 let
   cfg = config.ghaf.networking.hosts;
   inherit (lib)
+    foldr
     mkIf
-    types
     mkOption
     optionals
+    recursiveUpdate
+    types
     ;
 
   hostsEntrySubmodule = types.submodule {
@@ -81,12 +83,6 @@ let
     }
   ];
 
-  mkHostEntryTxt =
-    { ip, name }:
-    "${ipBase}.${toString ip}\t${name}\n"
-    + lib.optionalString config.ghaf.profiles.debug.enable "${debugBase}.${toString ip}\t${name}-debug\n";
-  entriesTxt = map mkHostEntryTxt hostsEntries;
-
   mkHostEntry =
     { ip, name }:
     {
@@ -105,7 +101,7 @@ let
 in
 {
   options.ghaf.networking.hosts = {
-    enable = (lib.mkEnableOption "Ghaf hosts file generation") // {
+    enable = (lib.mkEnableOption "Ghaf hosts entries") // {
       default = true;
     };
     entries = mkOption {
@@ -122,10 +118,10 @@ in
       inherit entries;
     };
 
-    # Generate hosts file
-    environment.etc.hosts = lib.mkForce {
-      text = lib.foldl' (acc: x: acc + x) "127.0.0.1 localhost\n" entriesTxt;
-      mode = "0444";
-    };
+    networking.hosts = foldr recursiveUpdate { } (
+      map (vm: {
+        "${vm.ip}" = [ "${vm.name}" ];
+      }) config.ghaf.networking.hosts.entries
+    );
   };
 }
