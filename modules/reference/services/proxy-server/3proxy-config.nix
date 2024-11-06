@@ -119,6 +119,8 @@ let
     "my.microsoftpersonalcontent.com"
     "*.onedrive.com"
     "cdn.onenote.net"
+    "wvcyna.db.files.1drv.com"
+    "*.storage.live.com"
   ];
   # Concatenate the lists and join with commas
   concatenatedUrls = builtins.concatStringsSep "," (tiiUrls ++ ssrcUrls ++ extraMsUrls);
