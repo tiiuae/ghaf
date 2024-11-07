@@ -39,7 +39,7 @@ in
               };
             in
             {
-              command = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${greeter-autostart}/bin/greeter-autostart";
+              command = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${greeter-autostart}/bin/greeter-autostart >/tmp/greeter.labwc.log 2>&1";
             };
         };
       };

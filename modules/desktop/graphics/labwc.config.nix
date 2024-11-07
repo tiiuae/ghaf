@@ -252,15 +252,15 @@ let
     }
   '';
 
-  labwc-session = pkgs.writeShellApplication {
-    name = "labwc-session";
+  ghaf-session = pkgs.writeShellApplication {
+    name = "ghaf-session";
 
     runtimeInputs = [
       pkgs.labwc
       autostart
     ];
 
-    text = "labwc -C /etc/labwc -s labwc-autostart";
+    text = "labwc -C /etc/labwc -s labwc-autostart >/tmp/session.labwc.log 2>&1";
   };
 in
 {
@@ -272,13 +272,15 @@ in
 
       "mako/config".text = makoConfig;
 
-      "greetd/environments".text = lib.mkAfter "${labwc-session}/bin/labwc-session\n";
+      "greetd/environments".text = lib.mkAfter "ghaf-session\n";
     };
+
+    environment.systemPackages = [ ghaf-session ];
 
     services.greetd.settings = {
       initial_session = lib.mkIf (cfg.autologinUser != null) {
         user = "ghaf";
-        command = "${labwc-session}/bin/labwc-session";
+        command = "ghaf-session";
       };
     };
 
