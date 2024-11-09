@@ -1,6 +1,6 @@
-From f410340a9726885414c80974cdd8809998cced22 Mon Sep 17 00:00:00 2001
+From 88169085d1bc132df660d0466de9e6cc15ea83c0 Mon Sep 17 00:00:00 2001
 From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
-Date: Thu, 2 May 2024 10:02:56 +0400
+Date: Sat, 9 Nov 2024 15:23:20 +0400
 Subject: [PATCH] Add colored borders
 
 This allows to change the frame color of choosen app by using window
@@ -15,39 +15,21 @@ labwc/labwc#1092.
 Co-authored-by: dmitry-erin <dmitry.erin@unikie.com>
 Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
 ---
- include/ssd-internal.h |   5 +-
- include/theme.h        |  10 ++
- include/window-rules.h |  17 +++
- src/config/rcxml.c     |  12 ++
- src/ssd/ssd-border.c   |  21 ++-
- src/ssd/ssd-part.c     |   2 +-
- src/ssd/ssd-titlebar.c | 294 +++++++++++++++++++++++++++--------------
- src/ssd/ssd.c          |   9 +-
- src/theme.c            |  34 ++++-
- src/window-rules.c     |  25 ++++
- 10 files changed, 318 insertions(+), 111 deletions(-)
+ include/theme.h        | 10 ++++++++++
+ include/window-rules.h | 17 +++++++++++++++++
+ src/config/rcxml.c     | 12 ++++++++++++
+ src/ssd/ssd-border.c   | 21 ++++++++++++++++-----
+ src/ssd/ssd-titlebar.c | 23 +++++++++++++++++++++++
+ src/ssd/ssd.c          | 10 +++++++---
+ src/theme.c            | 34 ++++++++++++++++++++++++++++++++--
+ src/window-rules.c     | 25 +++++++++++++++++++++++++
+ 8 files changed, 142 insertions(+), 10 deletions(-)
 
-diff --git a/include/ssd-internal.h b/include/ssd-internal.h
-index fda196e..b0e0cac 100644
---- a/include/ssd-internal.h
-+++ b/include/ssd-internal.h
-@@ -136,8 +136,9 @@ void add_toggled_icon(struct ssd_button *button, struct wl_list *part_list,
- struct ssd_part *add_scene_button_corner(
- 	struct wl_list *part_list, enum ssd_part_type type,
- 	enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
--	struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
--	struct wlr_buffer *hover_buffer, int x, struct view *view);
-+	float *bg_color, struct wlr_buffer *corner_buffer,
-+	struct wlr_buffer *icon_buffer, struct wlr_buffer *hover_buffer,
-+	int x, struct view *view);
- 
- /* SSD internal helpers */
- struct ssd_part *ssd_get_part(
 diff --git a/include/theme.h b/include/theme.h
-index 3993184..d4ab7ed 100644
+index 2b600676..6536ff39 100644
 --- a/include/theme.h
 +++ b/include/theme.h
-@@ -165,4 +165,14 @@ void theme_init(struct theme *theme, struct server *server, const char *theme_na
+@@ -182,4 +182,14 @@ void theme_init(struct theme *theme, struct server *server, const char *theme_na
   */
  void theme_finish(struct theme *theme);
  
@@ -63,7 +45,7 @@ index 3993184..d4ab7ed 100644
 +
  #endif /* LABWC_THEME_H */
 diff --git a/include/window-rules.h b/include/window-rules.h
-index b93bc36..066cc7f 100644
+index b93bc367..066cc7f0 100644
 --- a/include/window-rules.h
 +++ b/include/window-rules.h
 @@ -21,6 +21,7 @@ enum property {
@@ -103,7 +85,7 @@ index b93bc36..066cc7f 100644
 +
  #endif /* LABWC_WINDOW_RULES_H */
 diff --git a/src/config/rcxml.c b/src/config/rcxml.c
-index da0bbde..4a77d34 100644
+index ab221c1b..a469d372 100644
 --- a/src/config/rcxml.c
 +++ b/src/config/rcxml.c
 @@ -35,6 +35,7 @@
@@ -114,7 +96,7 @@ index da0bbde..4a77d34 100644
  
  static bool in_regions;
  static bool in_usable_area_override;
-@@ -167,6 +168,7 @@ fill_window_rule(char *nodename, char *content)
+@@ -307,6 +308,7 @@ fill_window_rule(char *nodename, char *content)
  	if (!strcasecmp(nodename, "windowRule.windowRules")) {
  		current_window_rule = znew(*current_window_rule);
  		current_window_rule->window_type = -1; // Window types are >= 0
@@ -122,7 +104,7 @@ index da0bbde..4a77d34 100644
  		wl_list_append(&rc.window_rules, &current_window_rule->link);
  		wl_list_init(&current_window_rule->actions);
  		return;
-@@ -182,6 +184,8 @@ fill_window_rule(char *nodename, char *content)
+@@ -322,6 +324,8 @@ fill_window_rule(char *nodename, char *content)
  	} else if (!strcmp(nodename, "identifier")) {
  		free(current_window_rule->identifier);
  		current_window_rule->identifier = xstrdup(content);
@@ -131,7 +113,7 @@ index da0bbde..4a77d34 100644
  	} else if (!strcmp(nodename, "title")) {
  		free(current_window_rule->title);
  		current_window_rule->title = xstrdup(content);
-@@ -220,6 +224,14 @@ fill_window_rule(char *nodename, char *content)
+@@ -360,6 +364,14 @@ fill_window_rule(char *nodename, char *content)
  	} else if (!strcasecmp(nodename, "fixedPosition")) {
  		set_property(content, &current_window_rule->fixed_position);
  
@@ -147,7 +129,7 @@ index da0bbde..4a77d34 100644
  	} else if (!strcmp(nodename, "name.action")) {
  		current_window_rule_action = action_create(content);
 diff --git a/src/ssd/ssd-border.c b/src/ssd/ssd-border.c
-index fb1ac28..338cc53 100644
+index aa7c4d5f..7602b683 100644
 --- a/src/ssd/ssd-border.c
 +++ b/src/ssd/ssd-border.c
 @@ -6,6 +6,7 @@
@@ -158,7 +140,7 @@ index fb1ac28..338cc53 100644
  
  #define FOR_EACH_STATE(ssd, tmp) FOR_EACH(tmp, \
  	&(ssd)->border.active, \
-@@ -33,12 +34,22 @@ ssd_border_create(struct ssd *ssd)
+@@ -34,12 +35,22 @@ ssd_border_create(struct ssd *ssd)
  	FOR_EACH_STATE(ssd, subtree) {
  		subtree->tree = wlr_scene_tree_create(ssd->border.tree);
  		parent = subtree->tree;
@@ -172,7 +154,7 @@ index fb1ac28..338cc53 100644
 +		float customColor[4];
 +		bool isCustomColorAvailable = window_rules_get_custom_border_color(view, customColor);
 +		if (isCustomColorAvailable)
-+			color = customColor; 
++			color = customColor;
 +		else  {
 +			if (subtree == &ssd->border.active) {
 +				color = theme->window_active_border_color;
@@ -186,48 +168,19 @@ index fb1ac28..338cc53 100644
  		wl_list_init(&subtree->parts);
  		add_scene_rect(&subtree->parts, LAB_SSD_PART_LEFT, parent,
  			theme->border_width, height, 0, 0, color);
-diff --git a/src/ssd/ssd-part.c b/src/ssd/ssd-part.c
-index 5c90360..6cdb442 100644
---- a/src/ssd/ssd-part.c
-+++ b/src/ssd/ssd-part.c
-@@ -80,7 +80,7 @@ add_scene_buffer(struct wl_list *list, enum ssd_part_type type,
- 
- struct ssd_part *
- add_scene_button_corner(struct wl_list *part_list, enum ssd_part_type type,
--		enum ssd_part_type corner_type, struct wlr_scene_tree *parent,
-+		enum ssd_part_type corner_type, struct wlr_scene_tree *parent, float *bg_color,
- 		struct wlr_buffer *corner_buffer, struct wlr_buffer *icon_buffer,
- 		struct wlr_buffer *hover_buffer, int x, struct view *view)
- {
 diff --git a/src/ssd/ssd-titlebar.c b/src/ssd/ssd-titlebar.c
-index 70d9ca6..e5a3ed0 100644
+index 8591759a..9cececdc 100644
 --- a/src/ssd/ssd-titlebar.c
 +++ b/src/ssd/ssd-titlebar.c
-@@ -1,8 +1,6 @@
- // SPDX-License-Identifier: GPL-2.0-only
- 
- #define _POSIX_C_SOURCE 200809L
--#include <assert.h>
--#include <string.h>
- #include "buffer.h"
- #include "common/mem.h"
- #include "common/scaled-font-buffer.h"
-@@ -13,10 +11,11 @@
+@@ -17,6 +17,7 @@
  #include "ssd-internal.h"
  #include "theme.h"
  #include "view.h"
-+#include <assert.h>
-+#include <string.h>
++#include "window-rules.h"
  
--#define FOR_EACH_STATE(ssd, tmp) FOR_EACH(tmp, \
--	&(ssd)->titlebar.active, \
--	&(ssd)->titlebar.inactive)
-+#define FOR_EACH_STATE(ssd, tmp)                                               \
-+	FOR_EACH(tmp, &(ssd)->titlebar.active, &(ssd)->titlebar.inactive)
- 
- static void set_squared_corners(struct ssd *ssd, bool enable);
- static void set_maximize_alt_icon(struct ssd *ssd, bool enable);
-@@ -26,6 +25,16 @@ ssd_titlebar_create(struct ssd *ssd)
+ #define FOR_EACH_STATE(ssd, tmp) FOR_EACH(tmp, \
+ 	&(ssd)->titlebar.active, \
+@@ -31,6 +32,16 @@ ssd_titlebar_create(struct ssd *ssd)
  {
  	struct view *view = ssd->view;
  	struct theme *theme = view->server->theme;
@@ -242,390 +195,9 @@ index 70d9ca6..e5a3ed0 100644
 +	}
 +
  	int width = view->current.width;
+ 	int corner_width = ssd_get_corner_width();
  
- 	float *color;
-@@ -48,72 +57,108 @@ ssd_titlebar_create(struct ssd *ssd)
- 	ssd->titlebar.tree = wlr_scene_tree_create(ssd->tree);
- 
- 	struct ssd_sub_tree *subtree;
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		subtree->tree = wlr_scene_tree_create(ssd->titlebar.tree);
- 		parent = subtree->tree;
--		wlr_scene_node_set_position(&parent->node, 0, -theme->title_height);
-+		wlr_scene_node_set_position(
-+			&parent->node, 0, -theme->title_height);
-+
- 		if (subtree == &ssd->titlebar.active) {
- 			color = theme->window_active_title_bg_color;
--			corner_top_left = &theme->corner_top_left_active_normal->base;
--			corner_top_right = &theme->corner_top_right_active_normal->base;
--			menu_button_unpressed = &theme->button_menu_active_unpressed->base;
--			iconify_button_unpressed = &theme->button_iconify_active_unpressed->base;
--			close_button_unpressed = &theme->button_close_active_unpressed->base;
--			maximize_button_unpressed = &theme->button_maximize_active_unpressed->base;
--			restore_button_unpressed = &theme->button_restore_active_unpressed->base;
--
--			menu_button_hover = &theme->button_menu_active_hover->base;
--			iconify_button_hover = &theme->button_iconify_active_hover->base;
--			close_button_hover = &theme->button_close_active_hover->base;
--			maximize_button_hover = &theme->button_maximize_active_hover->base;
--			restore_button_hover = &theme->button_restore_active_hover->base;
-+			corner_top_left =
-+				&theme->corner_top_left_active_normal->base;
-+			corner_top_right =
-+				&theme->corner_top_right_active_normal->base;
-+			menu_button_unpressed =
-+				&theme->button_menu_active_unpressed->base;
-+			iconify_button_unpressed =
-+				&theme->button_iconify_active_unpressed->base;
-+			close_button_unpressed =
-+				&theme->button_close_active_unpressed->base;
-+			maximize_button_unpressed =
-+				&theme->button_maximize_active_unpressed->base;
-+			restore_button_unpressed =
-+				&theme->button_restore_active_unpressed->base;
-+
-+			menu_button_hover =
-+				&theme->button_menu_active_hover->base;
-+			iconify_button_hover =
-+				&theme->button_iconify_active_hover->base;
-+			close_button_hover =
-+				&theme->button_close_active_hover->base;
-+			maximize_button_hover =
-+				&theme->button_maximize_active_hover->base;
-+			restore_button_hover =
-+				&theme->button_restore_active_hover->base;
- 		} else {
- 			color = theme->window_inactive_title_bg_color;
--			corner_top_left = &theme->corner_top_left_inactive_normal->base;
--			corner_top_right = &theme->corner_top_right_inactive_normal->base;
--			menu_button_unpressed = &theme->button_menu_inactive_unpressed->base;
--			iconify_button_unpressed = &theme->button_iconify_inactive_unpressed->base;
-+			corner_top_left =
-+				&theme->corner_top_left_inactive_normal->base;
-+			corner_top_right =
-+				&theme->corner_top_right_inactive_normal->base;
-+			menu_button_unpressed =
-+				&theme->button_menu_inactive_unpressed->base;
-+			iconify_button_unpressed =
-+				&theme->button_iconify_inactive_unpressed->base;
- 			maximize_button_unpressed =
--				&theme->button_maximize_inactive_unpressed->base;
--			restore_button_unpressed = &theme->button_restore_inactive_unpressed->base;
--			close_button_unpressed = &theme->button_close_inactive_unpressed->base;
--
--			menu_button_hover = &theme->button_menu_inactive_hover->base;
--			iconify_button_hover = &theme->button_iconify_inactive_hover->base;
--			close_button_hover = &theme->button_close_inactive_hover->base;
--			maximize_button_hover = &theme->button_maximize_inactive_hover->base;
--			restore_button_hover = &theme->button_restore_inactive_hover->base;
-+				&theme->button_maximize_inactive_unpressed
-+					 ->base;
-+			restore_button_unpressed =
-+				&theme->button_restore_inactive_unpressed->base;
-+			close_button_unpressed =
-+				&theme->button_close_inactive_unpressed->base;
-+
-+			menu_button_hover =
-+				&theme->button_menu_inactive_hover->base;
-+			iconify_button_hover =
-+				&theme->button_iconify_inactive_hover->base;
-+			close_button_hover =
-+				&theme->button_close_inactive_hover->base;
-+			maximize_button_hover =
-+				&theme->button_maximize_inactive_hover->base;
-+			restore_button_hover =
-+				&theme->button_restore_inactive_hover->base;
- 
- 			wlr_scene_node_set_enabled(&parent->node, false);
- 		}
-+
- 		wl_list_init(&subtree->parts);
- 
- 		/* Title */
- 		add_scene_rect(&subtree->parts, LAB_SSD_PART_TITLEBAR, parent,
- 			width - theme->window_button_width * SSD_BUTTON_COUNT,
--			theme->title_height, theme->window_button_width, 0, color);
-+			theme->title_height, theme->window_button_width, 0,
-+			color);
- 		/* Buttons */
- 		add_scene_button_corner(&subtree->parts,
--			LAB_SSD_BUTTON_WINDOW_MENU, LAB_SSD_PART_CORNER_TOP_LEFT, parent,
--			corner_top_left, menu_button_unpressed, menu_button_hover, 0, view);
--		add_scene_button(&subtree->parts, LAB_SSD_BUTTON_ICONIFY, parent,
--			color, iconify_button_unpressed, iconify_button_hover,
-+			LAB_SSD_BUTTON_WINDOW_MENU,
-+			LAB_SSD_PART_CORNER_TOP_LEFT, parent, color,
-+			corner_top_left, menu_button_unpressed,
-+			menu_button_hover, 0, view);
-+		add_scene_button(&subtree->parts, LAB_SSD_BUTTON_ICONIFY,
-+			parent, color, iconify_button_unpressed,
-+			iconify_button_hover,
- 			width - theme->window_button_width * 3, view);
- 
- 		/* Maximize button has an alternate state when maximized */
- 		struct ssd_part *btn_max_root = add_scene_button(
--			&subtree->parts, LAB_SSD_BUTTON_MAXIMIZE, parent,
--			color, maximize_button_unpressed, maximize_button_hover,
-+			&subtree->parts, LAB_SSD_BUTTON_MAXIMIZE, parent, color,
-+			maximize_button_unpressed, maximize_button_hover,
- 			width - theme->window_button_width * 2, view);
--		struct ssd_button *btn_max = node_ssd_button_from_node(btn_max_root->node);
--		add_toggled_icon(btn_max, &subtree->parts, LAB_SSD_BUTTON_MAXIMIZE,
--			restore_button_unpressed, restore_button_hover);
--
--		add_scene_button_corner(&subtree->parts,
--			LAB_SSD_BUTTON_CLOSE, LAB_SSD_PART_CORNER_TOP_RIGHT, parent,
--			corner_top_right, close_button_unpressed, close_button_hover,
-+		struct ssd_button *btn_max =
-+			node_ssd_button_from_node(btn_max_root->node);
-+		add_toggled_icon(btn_max, &subtree->parts,
-+			LAB_SSD_BUTTON_MAXIMIZE, restore_button_unpressed,
-+			restore_button_hover);
-+
-+		add_scene_button_corner(&subtree->parts, LAB_SSD_BUTTON_CLOSE,
-+			LAB_SSD_PART_CORNER_TOP_RIGHT, parent, color,
-+			corner_top_right, close_button_unpressed,
-+			close_button_hover,
- 			width - theme->window_button_width * 1, view);
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- 
- 	ssd_update_title(ssd);
- 
-@@ -140,26 +185,40 @@ set_squared_corners(struct ssd *ssd, bool enable)
- {
- 	struct ssd_part *part;
- 	struct ssd_sub_tree *subtree;
--	enum ssd_part_type ssd_type[2] = { LAB_SSD_BUTTON_WINDOW_MENU, LAB_SSD_BUTTON_CLOSE };
-+	enum ssd_part_type ssd_type[2] = {
-+		LAB_SSD_BUTTON_WINDOW_MENU, LAB_SSD_BUTTON_CLOSE};
- 
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		for (size_t i = 0; i < ARRAY_SIZE(ssd_type); i++) {
- 			part = ssd_get_part(&subtree->parts, ssd_type[i]);
--			struct ssd_button *button = node_ssd_button_from_node(part->node);
--
--			/* Toggle background between invisible and titlebar background color */
--			struct wlr_scene_rect *rect = wlr_scene_rect_from_node(button->background);
--			wlr_scene_rect_set_color(rect, !enable ? (float[4]) {0, 0, 0, 0} : (
--				subtree == &ssd->titlebar.active
--					? rc.theme->window_active_title_bg_color
--					: rc.theme->window_inactive_title_bg_color));
-+			struct ssd_button *button =
-+				node_ssd_button_from_node(part->node);
-+
-+			/* Toggle background between invisible and titlebar
-+			 * background color */
-+			struct wlr_scene_rect *rect =
-+				wlr_scene_rect_from_node(button->background);
-+			/*Check for custom color as well*/
-+			float customColor[4];
-+			bool isCustomColorAvailable =
-+				window_rules_get_custom_border_color(
-+					ssd->view, customColor);
-+			wlr_scene_rect_set_color(rect,
-+				isCustomColorAvailable
-+					? customColor
-+					: (!enable ? (float[4]){0, 0, 0, 0}
-+						   : (subtree == &ssd->titlebar.active
-+								   ? rc.theme->window_active_title_bg_color
-+								   : rc.theme->window_inactive_title_bg_color)));
- 
- 			/* Toggle rounded corner image itself */
--			struct wlr_scene_node *rounded_corner =
--				wl_container_of(part->node->link.prev, rounded_corner, link);
-+			struct wlr_scene_node *rounded_corner = wl_container_of(
-+				part->node->link.prev, rounded_corner, link);
- 			wlr_scene_node_set_enabled(rounded_corner, !enable);
- 		}
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- }
- 
- static void
-@@ -169,7 +228,8 @@ set_maximize_alt_icon(struct ssd *ssd, bool enable)
- 	struct ssd_button *button;
- 	struct ssd_sub_tree *subtree;
- 
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		part = ssd_get_part(&subtree->parts, LAB_SSD_BUTTON_MAXIMIZE);
- 		button = node_ssd_button_from_node(part->node);
- 
-@@ -179,10 +239,12 @@ set_maximize_alt_icon(struct ssd *ssd, bool enable)
- 		}
- 
- 		if (button->toggled_hover) {
--			wlr_scene_node_set_enabled(button->toggled_hover, enable);
-+			wlr_scene_node_set_enabled(
-+				button->toggled_hover, enable);
- 			wlr_scene_node_set_enabled(button->hover, !enable);
- 		}
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- }
- 
- void
-@@ -193,11 +255,11 @@ ssd_titlebar_update(struct ssd *ssd)
- 	struct theme *theme = view->server->theme;
- 
- 	bool maximized = view->maximized == VIEW_AXIS_BOTH;
--	bool tiled_not_maximized = view_is_tiled_and_notify_tiled(ssd->view)
--		&& !maximized;
-+	bool tiled_not_maximized =
-+		view_is_tiled_and_notify_tiled(ssd->view) && !maximized;
- 
- 	if (ssd->state.was_maximized != maximized
--			|| ssd->state.was_tiled_not_maximized != tiled_not_maximized) {
-+		|| ssd->state.was_tiled_not_maximized != tiled_not_maximized) {
- 		set_squared_corners(ssd, maximized || tiled_not_maximized);
- 		if (ssd->state.was_maximized != maximized) {
- 			set_maximize_alt_icon(ssd, maximized);
-@@ -212,38 +274,51 @@ ssd_titlebar_update(struct ssd *ssd)
- 
- 	struct ssd_part *part;
- 	struct ssd_sub_tree *subtree;
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		wl_list_for_each(part, &subtree->parts, link) {
- 			switch (part->type) {
- 			case LAB_SSD_PART_TITLEBAR:
- 				wlr_scene_rect_set_size(
- 					wlr_scene_rect_from_node(part->node),
--					width - theme->window_button_width * SSD_BUTTON_COUNT,
-+					width
-+						- theme->window_button_width
-+							  * SSD_BUTTON_COUNT,
- 					theme->title_height);
- 				continue;
- 			case LAB_SSD_BUTTON_ICONIFY:
- 				if (is_direct_child(part->node, subtree)) {
- 					wlr_scene_node_set_position(part->node,
--						width - theme->window_button_width * 3, 0);
-+						width
-+							- theme->window_button_width
-+								  * 3,
-+						0);
- 				}
- 				continue;
- 			case LAB_SSD_BUTTON_MAXIMIZE:
- 				if (is_direct_child(part->node, subtree)) {
- 					wlr_scene_node_set_position(part->node,
--						width - theme->window_button_width * 2, 0);
-+						width
-+							- theme->window_button_width
-+								  * 2,
-+						0);
- 				}
- 				continue;
- 			case LAB_SSD_PART_CORNER_TOP_RIGHT:
- 				if (is_direct_child(part->node, subtree)) {
- 					wlr_scene_node_set_position(part->node,
--						width - theme->window_button_width * 1, 0);
-+						width
-+							- theme->window_button_width
-+								  * 1,
-+						0);
- 				}
- 				continue;
- 			default:
- 				continue;
- 			}
- 		}
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- 	ssd_update_title(ssd);
- }
- 
-@@ -255,11 +330,13 @@ ssd_titlebar_destroy(struct ssd *ssd)
- 	}
- 
- 	struct ssd_sub_tree *subtree;
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		ssd_destroy_parts(&subtree->parts);
- 		wlr_scene_node_destroy(&subtree->tree->node);
- 		subtree->tree = NULL;
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- 
- 	if (ssd->state.title.text) {
- 		free(ssd->state.title.text);
-@@ -288,17 +365,20 @@ ssd_update_title_positions(struct ssd *ssd)
- 	struct view *view = ssd->view;
- 	struct theme *theme = view->server->theme;
- 	int width = view->current.width;
--	int title_bg_width = width - theme->window_button_width * SSD_BUTTON_COUNT;
-+	int title_bg_width =
-+		width - theme->window_button_width * SSD_BUTTON_COUNT;
- 
- 	int x, y;
- 	int buffer_height, buffer_width;
- 	struct ssd_part *part;
- 	struct ssd_sub_tree *subtree;
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLE);
- 		if (!part || !part->node) {
- 			/* view->surface never been mapped */
--			/* Or we somehow failed to allocate a scaled titlebar buffer */
-+			/* Or we somehow failed to allocate a scaled titlebar
-+			 * buffer */
- 			continue;
- 		}
- 
-@@ -314,24 +394,29 @@ ssd_update_title_positions(struct ssd *ssd)
- 		wlr_scene_node_set_enabled(part->node, true);
- 
- 		if (theme->window_label_text_justify == LAB_JUSTIFY_CENTER) {
--			if (buffer_width + theme->window_button_width * 2 <= title_bg_width) {
-+			if (buffer_width + theme->window_button_width * 2
-+				<= title_bg_width) {
- 				/* Center based on the full width */
- 				x = (width - buffer_width) / 2;
- 			} else {
- 				/*
--				 * Center based on the width between the buttons.
--				 * Title jumps around once this is hit but its still
--				 * better than to hide behind the buttons on the right.
-+				 * Center based on the width between the
-+				 * buttons. Title jumps around once this is hit
-+				 * but its still better than to hide behind the
-+				 * buttons on the right.
- 				 */
- 				x += (title_bg_width - buffer_width) / 2;
- 			}
--		} else if (theme->window_label_text_justify == LAB_JUSTIFY_RIGHT) {
-+		} else if (theme->window_label_text_justify
-+			   == LAB_JUSTIFY_RIGHT) {
- 			x += title_bg_width - buffer_width;
--		} else if (theme->window_label_text_justify == LAB_JUSTIFY_LEFT) {
-+		} else if (theme->window_label_text_justify
-+			   == LAB_JUSTIFY_LEFT) {
- 			/* TODO: maybe add some theme x padding here? */
- 		}
- 		wlr_scene_node_set_position(part->node, x, y);
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- }
- 
- void
-@@ -348,6 +433,15 @@ ssd_update_title(struct ssd *ssd)
+@@ -465,6 +476,18 @@ ssd_update_title(struct ssd *ssd)
  	}
  
  	struct theme *theme = view->server->theme;
@@ -638,86 +210,25 @@ index 70d9ca6..e5a3ed0 100644
 +			&custom_theme, view->server, customColor);
 +		theme = &custom_theme;
 +	}
++	printf("%s %f %f %f %f\n", title, customColor[0], customColor[1],
++		customColor[2], customColor[3]);
++
  	struct ssd_state_title *state = &ssd->state.title;
  	bool title_unchanged = state->text && !strcmp(title, state->text);
  
-@@ -358,9 +452,10 @@ ssd_update_title(struct ssd *ssd)
- 	struct ssd_sub_tree *subtree;
- 	struct ssd_state_title_width *dstate;
- 	int title_bg_width = view->current.width
--		- theme->window_button_width * SSD_BUTTON_COUNT;
-+			     - theme->window_button_width * SSD_BUTTON_COUNT;
- 
--	FOR_EACH_STATE(ssd, subtree) {
-+	FOR_EACH_STATE(ssd, subtree)
-+	{
- 		if (subtree == &ssd->titlebar.active) {
- 			dstate = &state->active;
- 			text_color = theme->window_active_label_text_color;
-@@ -378,35 +473,38 @@ ssd_update_title(struct ssd *ssd)
- 			continue;
- 		}
- 
--		if (title_unchanged
--				&& !dstate->truncated && dstate->width < title_bg_width) {
-+		if (title_unchanged && !dstate->truncated
-+			&& dstate->width < title_bg_width) {
- 			/* title the same + we don't need to resize title */
- 			continue;
- 		}
- 
- 		part = ssd_get_part(&subtree->parts, LAB_SSD_PART_TITLE);
- 		if (!part) {
--			/* Initialize part and wlr_scene_buffer without attaching a buffer */
--			part = add_scene_part(&subtree->parts, LAB_SSD_PART_TITLE);
-+			/* Initialize part and wlr_scene_buffer without
-+			 * attaching a buffer */
-+			part = add_scene_part(
-+				&subtree->parts, LAB_SSD_PART_TITLE);
- 			part->buffer = scaled_font_buffer_create(subtree->tree);
- 			if (part->buffer) {
- 				part->node = &part->buffer->scene_buffer->node;
- 			} else {
--				wlr_log(WLR_ERROR, "Failed to create title node");
-+				wlr_log(WLR_ERROR,
-+					"Failed to create title node");
- 			}
- 		}
- 
- 		if (part->buffer) {
- 			scaled_font_buffer_update(part->buffer, title,
--				title_bg_width, font,
--				text_color, bg_color, NULL);
-+				title_bg_width, font, text_color, bg_color,
-+				NULL);
- 		}
- 
- 		/* And finally update the cache */
- 		dstate->width = part->buffer ? part->buffer->width : 0;
- 		dstate->truncated = title_bg_width <= dstate->width;
--
--	} FOR_EACH_END
-+	}
-+	FOR_EACH_END
- 
- 	if (!title_unchanged) {
- 		if (state->text) {
-@@ -426,8 +524,8 @@ ssd_button_set_hover(struct ssd_button *button, bool enabled)
- }
- 
- void
--ssd_update_button_hover(struct wlr_scene_node *node,
--		struct ssd_hover_state *hover_state)
-+ssd_update_button_hover(
-+	struct wlr_scene_node *node, struct ssd_hover_state *hover_state)
- {
- 	struct ssd_button *button = NULL;
- 	if (!node || !node->data) {
 diff --git a/src/ssd/ssd.c b/src/ssd/ssd.c
-index a8c3e17..cb4079c 100644
+index c1e4e0e5..e5099f5c 100644
 --- a/src/ssd/ssd.c
 +++ b/src/ssd/ssd.c
-@@ -412,9 +412,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
+@@ -14,6 +14,7 @@
+ #include "ssd-internal.h"
+ #include "theme.h"
+ #include "view.h"
++#include "window-rules.h"
+ 
+ struct border
+ ssd_thickness(struct view *view)
+@@ -400,9 +401,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
  		return;
  	}
  
@@ -734,10 +245,10 @@ index a8c3e17..cb4079c 100644
  	struct ssd_part *part = ssd_get_part(&ssd->border.active.parts, LAB_SSD_PART_TOP);
  	struct wlr_scene_rect *rect = wlr_scene_rect_from_node(part->node);
 diff --git a/src/theme.c b/src/theme.c
-index d699773..be0e48e 100644
+index c0af2ad6..fa76f28c 100644
 --- a/src/theme.c
 +++ b/src/theme.c
-@@ -401,7 +401,7 @@ hex_to_dec(char c)
+@@ -490,7 +490,7 @@ hex_to_dec(char c)
   * @hex: hex string to be parsed
   * @rgba: pointer to float[4] for return value
   */
@@ -746,16 +257,16 @@ index d699773..be0e48e 100644
  parse_hexstr(const char *hex, float *rgba)
  {
  	if (!hex || hex[0] != '#' || strlen(hex) < 7) {
-@@ -470,7 +470,7 @@ parse_justification(const char *str)
+@@ -559,7 +559,7 @@ parse_justification(const char *str)
  static void
  theme_builtin(struct theme *theme, struct server *server)
  {
 -	theme->border_width = 1;
 +	theme->border_width = 5;
- 	theme->padding_height = 3;
+ 	theme->window_titlebar_padding_height = 0;
+ 	theme->window_titlebar_padding_width = 0;
  	theme->title_height = INT_MIN;
- 	theme->menu_overlap_x = 0;
-@@ -1444,3 +1444,33 @@ theme_finish(struct theme *theme)
+@@ -1618,3 +1618,33 @@ theme_finish(struct theme *theme)
  	zdrop(&theme->shadow_corner_bottom_inactive);
  	zdrop(&theme->shadow_edge_inactive);
  }
@@ -790,15 +301,15 @@ index d699773..be0e48e 100644
 +	load_buttons(theme);
 +}
 diff --git a/src/window-rules.c b/src/window-rules.c
-index f543f7e..5ea5d53 100644
+index ce2131f6..eaba2d6e 100644
 --- a/src/window-rules.c
 +++ b/src/window-rules.c
 @@ -43,6 +43,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
  	return view_matches_query(view, &query);
  }
  
-+void 
-+init_window_rule(struct window_rule *rule) 
++void
++init_window_rule(struct window_rule *rule)
 +{
 +	if (!rule) return;
 +	rule->has_custom_border = false;
@@ -826,9 +337,9 @@ index f543f7e..5ea5d53 100644
 +			}
 +		}
 +	}
-+	
++
 +	return false;
 +}
 -- 
-2.44.1
+2.47.0
 
