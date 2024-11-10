@@ -252,6 +252,21 @@ let
           # We dont enable services.blueman because it adds blueman desktop entry
           services.dbus.packages = [ pkgs.blueman ];
           systemd.packages = [ pkgs.blueman ];
+
+          systemd.user.services.audio-control = {
+            enable = true;
+            description = "Audio Control application";
+
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "5";
+              ExecStart = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=preferences-sound";
+            };
+
+            partOf = [ "ghaf-session.target" ];
+            wantedBy = [ "ghaf-session.target" ];
+          };
         }
       )
     ];
