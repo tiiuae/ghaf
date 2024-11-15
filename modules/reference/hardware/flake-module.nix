@@ -45,6 +45,16 @@
       }
     ];
 
+    hardware-lenovo-t14-amd-gen5.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-t14-amd/definitions/gen-5.nix;
+        ghaf.virtualization.microvm.guivm.extraModules = [
+          ./lenovo-t14-amd/gpu-config.nix
+        ];
+      }
+    ];
+
     hardware-lenovo-x1-2-in-1-gen9.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {

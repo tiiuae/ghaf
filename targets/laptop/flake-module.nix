@@ -93,6 +93,16 @@ let
       }
     ]))
 
+    (laptop-configuration "lenovo-t14-amd-gen5" "debug" (withCommonModules [
+      self.nixosModules.hardware-lenovo-t14-amd-gen5
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+        };
+      }
+    ]))
+
     (laptop-configuration "lenovo-x1-2-in-1-gen9" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-2-in-1-gen9
       {
@@ -233,6 +243,16 @@ let
 
     (laptop-configuration "dell-latitude-7330" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7330
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+        };
+      }
+    ]))
+
+    (laptop-configuration "lenovo-t14-amd-gen5" "release" (withCommonModules [
+      self.nixosModules.hardware-lenovo-t14-amd-gen5
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
