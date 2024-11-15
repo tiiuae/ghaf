@@ -298,8 +298,8 @@ let
             get "$current_brightness" &
             if [[ "$current_brightness" != "$prev_brightness" ]]; then
                 show_popup > /dev/null 2>&1
-                prev_brightness="$current_brightness"
             fi
+            prev_brightness="$current_brightness"
         done
       }
 
@@ -369,17 +369,26 @@ let
       }
 
       get() {
-          volume=$(pamixer --get-volume | awk '{print $1 + 0.0}')
+          if [ -z "$1" ]; then
+              volume=$(pamixer --get-volume)
+          else
+              volume="$1"
+          fi
           muted=$(pamixer --get-mute)
           icon=$(icon "$volume" "$muted")
           echo "{ \"level\": \"$volume\", \"muted\": \"$muted\", \"icon\": \"$icon\" }"
       }
 
       listen() {
+        prev_volume=""
         pactl subscribe | while read -r event; do
             if [[ "$event" == *"change"* ]]; then
-                get &
-                show_popup > /dev/null 2>&1
+                volume=$(pamixer --get-volume)
+                get "$volume" &
+                if [[ "$volume" != "$prev_volume" ]]; then
+                    show_popup > /dev/null 2>&1
+                fi
+                prev_volume="$volume"
             fi
         done
       }
