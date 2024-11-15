@@ -31,7 +31,7 @@ let
           # For WLAN firmwares
           hardware = {
             enableRedistributableFirmware = som == "agx";
-            wirelessRegulatoryDatabase = true;
+            wirelessRegulatoryDatabase = som == "agx";
           };
 
           services.dnsmasq.settings.dhcp-option = [
