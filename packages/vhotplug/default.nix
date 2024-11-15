@@ -15,6 +15,7 @@ python3Packages.buildPythonApplication rec {
   propagatedBuildInputs = [
     python3Packages.pyudev
     python3Packages.psutil
+    python3Packages.inotify-simple
     qemuqmp
   ];
 
@@ -23,7 +24,7 @@ python3Packages.buildPythonApplication rec {
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "vhotplug";
-    rev = "fd05361ed893d06cdb5ac4a538c171e4a86b6f5a";
-    hash = "sha256-6fl5xeSpcIIBKn3dZUAEHiNRRpn9LbYC4Imap5KBH2M=";
+    rev = "dc91f43d90da24782bd32cfc5a79afc9fe74d9e6";
+    hash = "sha256-qyLEUNoXHzj5BjUV0i7YjWA9U206J/BGwgvLkni0kIs=";
   };
 }
