@@ -141,6 +141,7 @@ let
               ++ lib.optionals config.ghaf.profiles.debug.enable [
                 pkgs.glxinfo
                 pkgs.libva-utils
+                pkgs.glib
               ];
             sessionVariables = {
               XDG_PICTURES_DIR = "$HOME/Pictures";
@@ -205,18 +206,9 @@ let
 
           ghaf.reference.services.ollama = true;
 
-          systemd.user.services.nm-applet = {
-            enable = true;
-            description = "network manager graphical interface.";
-            serviceConfig = {
-              Type = "simple";
-              Restart = "always";
-              RestartSec = "1";
-              ExecStart = "${pkgs.nm-launcher}/bin/nm-launcher";
-            };
-            partOf = [ "ghaf-session.target" ];
-            wantedBy = [ "ghaf-session.target" ];
-          };
+          # We dont enable services.blueman because it adds blueman desktop entry
+          services.dbus.packages = [ pkgs.blueman ];
+          systemd.packages = [ pkgs.blueman ];
         }
       )
     ];

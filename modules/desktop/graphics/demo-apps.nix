@@ -38,37 +38,37 @@ in
         name = "Google Chrome";
         description = "Web Browser";
         path = "${pkgs.google-chrome}/bin/google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.icon-pack}/google-chrome.svg";
+        icon = "google-chrome";
       }
       ++ lib.optional cfg.chromium {
         name = "Chromium";
         description = "Web Browser";
         path = "${pkgs.chromium}/bin/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.icon-pack}/chromium.svg";
+        icon = "chromium";
       }
       ++ lib.optional cfg.firefox {
         name = "Firefox";
         description = "Web Browser";
         path = "${pkgs.firefox}/bin/firefox";
-        icon = "${pkgs.icon-pack}/firefox.svg";
+        icon = "firefox";
       }
       ++ lib.optional cfg.element-desktop {
         name = "Element";
-        description = "General Messing Application";
+        description = "General Messaging Application";
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.icon-pack}/element-desktop.svg";
+        icon = "element-desktop";
       }
       ++ lib.optional cfg.gala-app {
         name = "GALA";
         description = "Secure Android-in-the-Cloud";
         path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
+        icon = "distributor-logo-android";
       }
       ++ lib.optional cfg.zathura {
         name = "PDF Viewer";
         description = "PDF Viewer Application";
         path = "${pkgs.zathura}/bin/zathura";
-        icon = "${pkgs.icon-pack}/document-viewer.svg";
+        icon = "document-viewer";
       };
   };
 }
