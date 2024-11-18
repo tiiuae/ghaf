@@ -1,18 +1,12 @@
 {
   "nodes": {
     "crane": {
-      "inputs": {
-        "nixpkgs": [
-          "givc",
-          "nixpkgs"
-        ]
-      },
       "locked": {
-        "lastModified": 1724537630,
-        "narHash": "sha256-gpqINM71zp3kw5XYwUXa84ZtPnCmLLnByuFoYesT1bY=",
+        "lastModified": 1730652660,
+        "narHash": "sha256-+XVYfmVXAiYA0FZT7ijHf555dxCe+AoAT5A6RU+6vSo=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "3e08f4b1fc9aaede5dd511d8f5f4ef27501e49b0",
+        "rev": "a4ca93905455c07cb7e3aca95d4faf7601cba458",
         "type": "github"
       },
       "original": {
@@ -299,17 +293,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1731077327,
-        "narHash": "sha256-YOPfvknMR9xWrL3YeytprRA26n8v8unaP8djFSQpbZA=",
+        "lastModified": 1731935429,
+        "narHash": "sha256-AJ28+HqG9H9NTuvpvyyO5hS8iAqPyHnVpJt6kzXNYbo=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "f48fa34f2c6e52b8ccfcdecb3a71d1858130a242",
+        "rev": "b963b0e0b27f4e30d4f4e65922492a677d1e3c36",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "f48fa34f2c6e52b8ccfcdecb3a71d1858130a242",
         "type": "github"
       }
     },

@@ -39,6 +39,7 @@ in
         isNormalUser = true;
         inherit (cfg) password;
         #TODO add "docker" use "lib.optionals"
+        uid = 1000;
         extraGroups = [
           "wheel"
           "video"

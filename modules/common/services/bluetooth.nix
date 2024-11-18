@@ -84,5 +84,19 @@ in
       User = "${bluetoothUser}";
       Group = "${bluetoothUser}";
     };
+
+    # Add blueman-mechanism helper
+    systemd.services.blueman-mechanism = {
+      enable = true;
+      description = "Blueman mechanism";
+      path = [ pkgs.blueman ];
+      serviceConfig = {
+        Type = "dbus";
+        BusName = "org.blueman.Mechanism";
+        Restart = "always";
+        RestartSec = "1";
+        ExecStart = "${pkgs.blueman}/libexec/blueman-mechanism";
+      };
+    };
   };
 }

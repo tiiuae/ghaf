@@ -5,6 +5,9 @@ let
   cfg = config.ghaf.givc.audiovm;
   inherit (lib) mkEnableOption mkIf;
   hostName = "audio-vm";
+  guivmName = "gui-vm";
+  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
+  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
 in
 {
   options.ghaf.givc.audiovm = {
@@ -13,18 +16,41 @@ in
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
     # Configure audiovm service
-    givc.sysvm =
-      let
-        audiovmEntry = builtins.filter (x: x.name == hostName) config.ghaf.networking.hosts.entries;
-        addr = lib.head (builtins.map (x: x.ip) audiovmEntry);
-      in
-      {
-        enable = true;
+    givc.sysvm = {
+      enable = true;
+      agent = {
         name = hostName;
-        inherit addr;
+        addr = address hostName;
         port = "9000";
-        tls.enable = config.ghaf.givc.enableTls;
-        admin = config.ghaf.givc.adminConfig;
       };
+      tls.enable = config.ghaf.givc.enableTls;
+      admin = config.ghaf.givc.adminConfig;
+      socketProxy = [
+        {
+          transport = {
+            name = guivmName;
+            addr = address guivmName;
+            port = "9011";
+            protocol = "tcp";
+          };
+          socket = "/tmp/dbusproxy_snd.sock";
+        }
+      ];
+    };
+    givc.dbusproxy = {
+      enable = true;
+      system = {
+        enable = true;
+        # TODO Change this with new user setup
+        user = "ghaf";
+        socket = "/tmp/dbusproxy_snd.sock";
+        policy = {
+          talk = [
+            "org.bluez.*"
+            "org.blueman.Mechanism.*"
+          ];
+        };
+      };
+    };
   };
 }
