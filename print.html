@@ -2764,7 +2764,7 @@ You can use an already existing VM file as a reference, for example: <code>modul
 <ul>
 <li><strong>name</strong>: the name of the launcher;</li>
 <li><strong>path</strong>: path to the executable you want to run, like a graphical application;</li>
-<li><strong>icon</strong>: path to an icon to show. If you have an icon package for your launcher, add it here as well: <a href="https://github.com/tiiuae/ghaf/blob/main/packages/icon-pack/default.nix">packages/icon-pack/default.nix</a>.</li>
+<li><strong>icon</strong>: an optional icon for the launcher. If not specified, the system will attempt to find an icon matching the <code>name</code>. You can set this to the name of an icon you expect to be available in the current icon theme (currently "Papirus," defined in <code>modules/desktop/graphics/labwc.nix</code>), or provide a full path to a specific icon file.</li>
 </ul>
 </li>
 </ol>
@@ -5021,6 +5021,16 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
 </ul>
+<h2 id="ghafgraphicsdemo-appsgoogle-chrome"><a class="header" href="#ghafgraphicsdemo-appsgoogle-chrome">ghaf.graphics.demo-apps.google-chrome</a></h2>
+<p>Include package Google Chrome browser to menu and system environment</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
+</ul>
 <h2 id="ghafgraphicsdemo-appszathura"><a class="header" href="#ghafgraphicsdemo-appszathura">ghaf.graphics.demo-apps.zathura</a></h2>
 <p>Include package zathura to menu and system environment</p>
 <p><em>Type:</em>
@@ -5120,6 +5130,73 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
 </ul>
+<h2 id="ghafgraphicslabwcgtk"><a class="header" href="#ghafgraphicslabwcgtk">ghaf.graphics.labwc.gtk</a></h2>
+<p>Global gtk+ configuration</p>
+<p><em>Type:</em>
+submodule</p>
+<p><em>Default:</em></p>
+<pre><code>{
+  colorScheme = "prefer-dark";
+  fontName = "Cantarell";
+  fontSize = "11";
+  iconTheme = "Papirus";
+  theme = "Adwaita";
+}
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslabwcgtkcolorscheme"><a class="header" href="#ghafgraphicslabwcgtkcolorscheme">ghaf.graphics.labwc.gtk.colorScheme</a></h2>
+<p>The preferred color scheme for gtk+. Valid values are ‘default’, ‘prefer-dark’, ‘prefer-light’.</p>
+<p><em>Type:</em>
+one of “default”, “prefer-dark”, “prefer-light”</p>
+<p><em>Example:</em>
+<code>"prefer-dark"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslabwcgtkfontname"><a class="header" href="#ghafgraphicslabwcgtkfontname">ghaf.graphics.labwc.gtk.fontName</a></h2>
+<p>The preferred font family.</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Example:</em>
+<code>"Cantarell"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslabwcgtkfontsize"><a class="header" href="#ghafgraphicslabwcgtkfontsize">ghaf.graphics.labwc.gtk.fontSize</a></h2>
+<p>The preferred default font size.</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Example:</em>
+<code>"11"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslabwcgtkicontheme"><a class="header" href="#ghafgraphicslabwcgtkicontheme">ghaf.graphics.labwc.gtk.iconTheme</a></h2>
+<p>Name of the default icon theme used by gtk+.</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Example:</em>
+<code>"Papirus"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
+</ul>
+<h2 id="ghafgraphicslabwcgtktheme"><a class="header" href="#ghafgraphicslabwcgtktheme">ghaf.graphics.labwc.gtk.theme</a></h2>
+<p>Basename of the default theme used by gtk+.</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Example:</em>
+<code>"Adwaita"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
+</ul>
 <h2 id="ghafgraphicslabwcsecuritycontext"><a class="header" href="#ghafgraphicslabwcsecuritycontext">ghaf.graphics.labwc.securityContext</a></h2>
 <p>Wayland security context settings</p>
 <p><em>Type:</em>
@@ -5179,9 +5256,13 @@ string</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersicon"><a class="header" href="#ghafgraphicslaunchersicon">ghaf.graphics.launchers.*.icon</a></h2>
-<p>Path of the icon</p>
+<p>Optional icon for the launcher. If unspecified, active icon theme will
+be searched to find an icon matching the launcher name. Can be set to an
+icon name from the current theme (Papirus) or a full path to an icon file.</p>
 <p><em>Type:</em>
-path</p>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
@@ -6222,12 +6303,29 @@ list of (attribute set)</p>
     ];
   }
   {
-    name = "ChromiumVM";
-    qmpSocket = "/var/lib/microvms/chromium-vm/chromium-vm.sock";
+    name = "ChromeVM";
+    qmpSocket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
     usbPassthrough = [
       {
         class = 14;
         description = "Video (USB Webcams)";
+        ignore = [
+          {
+            description = "Lenovo X1 Integrated Camera";
+            productId = "b751";
+            vendorId = "04f2";
+          }
+          {
+            description = "Lenovo X1 Integrated Camera";
+            productId = "2145";
+            vendorId = "5986";
+          }
+          {
+            description = "Lenovo X1 Integrated Camera";
+            productId = "0052";
+            vendorId = "30c9";
+          }
+        ];
       }
     ];
   }
@@ -6488,7 +6586,7 @@ list of string</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/namespaces.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/namespaces.nix</a></li>
 </ul>
 <h2 id="ghafnetworkinghostsenable"><a class="header" href="#ghafnetworkinghostsenable">ghaf.networking.hosts.enable</a></h2>
-<p>Whether to enable Ghaf hosts file generation.</p>
+<p>Whether to enable Ghaf hosts entries.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -6661,6 +6759,18 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms">https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms</a></li>
 </ul>
+<h2 id="ghafreferenceappvmschrome-vm"><a class="header" href="#ghafreferenceappvmschrome-vm">ghaf.reference.appvms.chrome-vm</a></h2>
+<p>Whether to enable Enable the Google Chrome appvm.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms">https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms</a></li>
+</ul>
 <h2 id="ghafreferenceappvmschromium-vm"><a class="header" href="#ghafreferenceappvmschromium-vm">ghaf.reference.appvms.chromium-vm</a></h2>
 <p>Whether to enable Enable the Chromium appvm.</p>
 <p><em>Type:</em>
@@ -6677,7 +6787,8 @@ boolean</p>
 <p>Whether to enable Enable the communications appvm</p>
 <ul>
 <li>Element</li>
-<li>Slack
+<li>Slack</li>
+<li>Zoom
 .</li>
 </ul>
 <p><em>Type:</em>
@@ -6792,8 +6903,8 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/mvp-user-trial-extras.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/mvp-user-trial-extras.nix</a></li>
 </ul>
-<h2 id="ghafreferenceprogramschromiumenable"><a class="header" href="#ghafreferenceprogramschromiumenable">ghaf.reference.programs.chromium.enable</a></h2>
-<p>Whether to enable Enable Chromium program settings.</p>
+<h2 id="ghafreferenceprogramsgoogle-chromeenable"><a class="header" href="#ghafreferenceprogramsgoogle-chromeenable">ghaf.reference.programs.google-chrome.enable</a></h2>
+<p>Whether to enable Enable Google chrome program settings.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -6802,9 +6913,62 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/chromium.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/chromium.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix</a></li>
 </ul>
-<h2 id="ghafreferenceprogramschromiumusezathuravm"><a class="header" href="#ghafreferenceprogramschromiumusezathuravm">ghaf.reference.programs.chromium.useZathuraVM</a></h2>
+<h2 id="ghafreferenceprogramsgoogle-chromedefaultpolicy"><a class="header" href="#ghafreferenceprogramsgoogle-chromedefaultpolicy">ghaf.reference.programs.google-chrome.defaultPolicy</a></h2>
+<p>Google chrome policy options. A list of available policies
+can be found in the Chrome Enterprise documentation:
+<a href="https://cloud.google.com/docs/chrome-enterprise/policies/">https://cloud.google.com/docs/chrome-enterprise/policies/</a>
+Make sure the selected policy is supported on Linux and your browser version.</p>
+<p><em>Type:</em>
+attribute set</p>
+<p><em>Default:</em></p>
+<pre><code>{
+  AlwaysOpenPdfExternally = true;
+  DefaultBrowserSettingEnabled = true;
+  DeviceMetricsReportingEnabled = false;
+  MetricsReportingEnabled = false;
+  PromptForDownloadLocation = true;
+  StartupBrowserWindowLaunchSuppressed = true;
+}
+</code></pre>
+<p><em>Example:</em></p>
+<pre><code>{
+  PromptForDownloadLocation=true;
+}
+
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix</a></li>
+</ul>
+<h2 id="ghafreferenceprogramsgoogle-chromeextraopts"><a class="header" href="#ghafreferenceprogramsgoogle-chromeextraopts">ghaf.reference.programs.google-chrome.extraOpts</a></h2>
+<p>Extra google chrome policy options. A list of available policies
+can be found in the Chrome Enterprise documentation:
+<a href="https://cloud.google.com/docs/chrome-enterprise/policies/">https://cloud.google.com/docs/chrome-enterprise/policies/</a>
+Make sure the selected policy is supported on Linux and your browser version.</p>
+<p><em>Type:</em>
+attribute set</p>
+<p><em>Default:</em>
+<code>{ }</code></p>
+<p><em>Example:</em></p>
+<pre><code>{
+  "BrowserSignin" = 0;
+  "SyncDisabled" = true;
+  "PasswordManagerEnabled" = false;
+  "SpellcheckEnabled" = true;
+  "SpellcheckLanguage" = [
+    "de"
+    "en-US"
+  ];
+}
+
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix</a></li>
+</ul>
+<h2 id="ghafreferenceprogramsgoogle-chromeusezathuravm"><a class="header" href="#ghafreferenceprogramsgoogle-chromeusezathuravm">ghaf.reference.programs.google-chrome.useZathuraVM</a></h2>
 <p>Whether to enable Open PDFs in Zathura VM.</p>
 <p><em>Type:</em>
 boolean</p>
@@ -6814,7 +6978,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/chromium.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/chromium.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix</a></li>
 </ul>
 <h2 id="ghafreferenceprogramswindows-launcherenable"><a class="header" href="#ghafreferenceprogramswindows-launcherenable">ghaf.reference.programs.windows-launcher.enable</a></h2>
 <p>Whether to enable Windows launcher.</p>
@@ -7066,6 +7230,16 @@ boolean</p>
 <code>false</code></p>
 <p><em>Example:</em>
 <code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/audio.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/audio.nix</a></li>
+</ul>
+<h2 id="ghafservicesaudiopulseaudiotcpcontrolport"><a class="header" href="#ghafservicesaudiopulseaudiotcpcontrolport">ghaf.services.audio.pulseaudioTcpControlPort</a></h2>
+<p>TCP port used by Pipewire-pulseaudio control</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>4714</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/audio.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/audio.nix</a></li>
@@ -7539,7 +7713,7 @@ string</p>
 <p><em>Type:</em>
 string <em>(read only)</em></p>
 <p><em>Default:</em>
-<code>"24.09.2"</code></p>
+<code>"24.09.3"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/version">https://github.com/tiiuae/ghaf/blob/main/modules/common/version</a></li>

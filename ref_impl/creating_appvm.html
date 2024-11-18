@@ -404,7 +404,7 @@ You can use an already existing VM file as a reference, for example: <code>modul
 <ul>
 <li><strong>name</strong>: the name of the launcher;</li>
 <li><strong>path</strong>: path to the executable you want to run, like a graphical application;</li>
-<li><strong>icon</strong>: path to an icon to show. If you have an icon package for your launcher, add it here as well: <a href="https://github.com/tiiuae/ghaf/blob/main/packages/icon-pack/default.nix">packages/icon-pack/default.nix</a>.</li>
+<li><strong>icon</strong>: an optional icon for the launcher. If not specified, the system will attempt to find an icon matching the <code>name</code>. You can set this to the name of an icon you expect to be available in the current icon theme (currently "Papirus," defined in <code>modules/desktop/graphics/labwc.nix</code>), or provide a full path to a specific icon file.</li>
 </ul>
 </li>
 </ol>
