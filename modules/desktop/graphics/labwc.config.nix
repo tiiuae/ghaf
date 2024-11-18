@@ -11,16 +11,17 @@ let
 
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
+  drawerStyle = pkgs.callPackage ./styles/launcher-style.nix { };
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
   lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
-  ghaf-launcher = pkgs.callPackage ./ghaf-launcher.nix { inherit config pkgs; };
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
     runtimeInputs = [
       pkgs.systemd
       pkgs.dbus
+      pkgs.glib
     ];
 
     text =
@@ -45,6 +46,20 @@ let
             ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
         fi
         ${ghaf-workspace}/bin/ghaf-workspace max 2
+
+        # Write the GTK settings to the settings.ini file in the GTK config directory
+        # Note:
+        # - On Wayland, GTK+ is known for not picking themes from settings.ini.
+        # - We define GTK+ theme on Wayland using gsettings (e.g., `gsettings set org.gnome.desktop.interface ...`).
+        mkdir -p "$XDG_CONFIG_HOME/gtk-3.0"
+        echo -e "${gtk_settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+
+        gnome_schema="org.gnome.desktop.interface"
+
+        gsettings set "$gnome_schema" gtk-theme "${cfg.gtk.theme}"
+        gsettings set "$gnome_schema" icon-theme "${cfg.gtk.iconTheme}"
+        gsettings set "$gnome_schema" font-name "${cfg.gtk.fontName} ${cfg.gtk.fontSize}"
+        gsettings set "$gnome_schema" color-scheme "${cfg.gtk.colorScheme}"
       ''
       + cfg.extraAutostart;
   };
@@ -56,13 +71,13 @@ let
       <name>Ghaf</name>
       <dropShadows>yes</dropShadows>
       <font place="">
-        <name>Inter</name>
+        <name>${cfg.gtk.fontName}</name>
         <size>12</size>
         <slant>normal</slant>
         <weight>bold</weight>
       </font>
       <font place="ActiveWindow">
-        <name>Inter</name>
+        <name>${cfg.gtk.fontName}</name>
         <size>12</size>
         <slant>normal</slant>
         <weight>bold</weight>
@@ -202,13 +217,20 @@ let
   '';
 
   makoConfig = ''
-    font=Inter 12
+    font=${cfg.gtk.fontName} ${cfg.gtk.fontSize}
     background-color=#121212
     progress-color=source #3D8252e6
     border-radius=5
     border-size=0
     padding=10
-    default-timeout=10000
+    icons=1
+    icon-path=/run/current-system/sw/share/icons/${cfg.gtk.iconTheme}
+    max-icon-size=32
+    default-timeout=5000
+    ignore-timeout=1
+
+    [app-name=blueman body~="(.*Authorization request.*)"]
+    invisible=1
   '';
 
   environment = ''
@@ -218,6 +240,16 @@ let
 
     # Wayland compatibility
     MOZ_ENABLE_WAYLAND=1
+  '';
+
+  gtk_settings = ''
+    [Settings]
+    ${
+      if cfg.gtk.colorScheme == "prefer-dark" then
+        "gtk-application-prefer-dark-theme = true"
+      else
+        "gtk-application-prefer-dark-theme = false"
+    }
   '';
 
   labwc-session = pkgs.writeShellApplication {
@@ -256,7 +288,7 @@ in
         description = "Ghaf launcher daemon";
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${ghaf-launcher}/bin/ghaf-launcher";
+          ExecStart = "${pkgs.nwg-drawer}/bin/nwg-drawer -r -nofs -nocats -s ${drawerStyle}";
           Restart = "always";
           RestartSec = "1";
         };
@@ -298,6 +330,44 @@ in
         wantedBy = [ "ghaf-session.target" ];
       };
 
+      nm-applet = {
+        enable = true;
+        description = "network manager graphical interface.";
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${pkgs.nm-launcher}/bin/nm-launcher";
+        };
+        wantedBy = [ "ghaf-session.target" ];
+        partOf = [ "ghaf-session.target" ];
+      };
+
+      # We use existing blueman services and create overrides for both
+      blueman-applet = {
+        enable = true;
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/bt_applet_ssh_system_dbus.sock";
+          ExecStart = [
+            ""
+            "${pkgs.bt-launcher}/bin/bt-launcher applet"
+          ];
+        };
+        wantedBy = [ "ghaf-session.target" ];
+        partOf = [ "ghaf-session.target" ];
+        after = [ "ewwbar.service" ];
+      };
+
+      blueman-manager = {
+        serviceConfig.ExecStart = [
+          ""
+          "${pkgs.bt-launcher}/bin/bt-launcher"
+        ];
+      };
+
       autolock = lib.mkIf cfg.autolock.enable {
         enable = true;
         description = "System autolock";
@@ -317,6 +387,7 @@ in
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
+        after = [ "ewwbar.service" ];
       };
     };
   };

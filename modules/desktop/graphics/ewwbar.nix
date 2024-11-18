@@ -644,8 +644,7 @@ in
                     :spacing 10
                     :orientation "v"
                     (etc)
-                    (sys_sliders)
-                    (settings_buttons))))
+                    (sys_sliders))))
 
         ;; Power Menu Widget ;;
         (defwidget power-menu-widget []
@@ -830,7 +829,7 @@ in
                 :halign "end" 
                 :valign "center" 
                 :spacing 14
-                (systray :prepend-new true :class "tray")
+                (systray :orientation "h" :spacing 14 :prepend-new true :class "tray")
                 (divider)
                 ${lib.optionalString useGivc "(control :screen screen) (divider)"}
                 (datetime-locale :screen screen)
@@ -948,7 +947,7 @@ in
 
         * {
             color: $text-base;
-            font-family: "Inter";
+            font-family: "${cfg.gtk.fontName}";
             font-size: 14px;
             :disabled {
                 color: $text-disabled;
@@ -1091,7 +1090,7 @@ in
             .header {
                 font-size: 0.9em;
                 font-weight: 500;
-                font-family: Inter;
+                font-family: ${cfg.gtk.fontName};
             }
 
             .settings{
@@ -1149,7 +1148,7 @@ in
                 .title {
                     font-size: 0.9em;
                     font-weight: 500;
-                    font-family: Inter;
+                    font-family: ${cfg.gtk.fontName};
                 }
 
                 .subtitle {
@@ -1281,7 +1280,7 @@ in
         }
 
         .tray menu {
-            font-family: Inter;
+            font-family: ${cfg.gtk.fontName};
             font-size: 1.1em;
             background-color: $bg-primary;
 
@@ -1362,7 +1361,7 @@ in
       description = "eww-restart";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "systemctl --user reload ewwbar.service";
+        ExecStart = "systemctl --user try-reload-or-restart ewwbar.service";
         Restart = "on-failure";
         RestartSec = "100ms";
       };

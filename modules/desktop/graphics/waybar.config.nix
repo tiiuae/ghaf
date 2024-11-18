@@ -27,7 +27,6 @@ in
         name = "Terminal";
         description = "System Terminal";
         path = "${pkgs.foot}/bin/foot";
-        icon = "${pkgs.icon-pack}/utilities-terminal.svg";
       }
     ];
     environment.etc."waybar/config" = {

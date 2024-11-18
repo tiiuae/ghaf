@@ -60,7 +60,7 @@ in
             #   description = "Isolated General Browsing";
             #   vm = "Chromium";
             #   path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start chromium";
-            #   icon = "${pkgs.icon-pack}/chromium.svg";
+            #   icon = "chromium";
             # }
 
             {
@@ -68,7 +68,7 @@ in
               description = "Isolated Trusted Browsing";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm google-chrome";
-              icon = "${pkgs.icon-pack}/thorium-browser.svg";
+              icon = "thorium-browser";
             }
             {
               # The SPKI fingerprint is calculated like this:
@@ -78,7 +78,7 @@ in
               description = "Isolated General Browsing";
               vm = "Chrome";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm chrome-vm google-chrome";
-              icon = "${pkgs.icon-pack}/google-chrome.svg";
+              icon = "google-chrome";
             }
 
             {
@@ -86,7 +86,7 @@ in
               description = "GlobalProtect VPN Client";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gpclient";
-              icon = "${pkgs.icon-pack}/yast-vpn.svg";
+              icon = "yast-vpn";
             }
 
             {
@@ -94,35 +94,35 @@ in
               description = "Microsoft Email Client";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm outlook";
-              icon = "${pkgs.icon-pack}/ms-outlook.svg";
+              icon = "ms-outlook";
             }
             {
               name = "Microsoft 365";
               description = "Microsoft 365 Software Suite";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm office";
-              icon = "${pkgs.icon-pack}/microsoft-365.svg";
+              icon = "microsoft-365";
             }
             {
               name = "Teams";
               description = "Microsoft Teams Collaboration Application";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm teams";
-              icon = "${pkgs.icon-pack}/teams-for-linux.svg";
+              icon = "teams-for-linux";
             }
             {
               name = "Text Editor";
               description = "Simple Text Editor";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gnome-text-editor";
-              icon = "${pkgs.icon-pack}/org.gnome.TextEditor.svg";
+              icon = "org.gnome.TextEditor";
             }
             {
               name = "Xarchiver";
               description = "File Compressor";
               vm = "Business";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm xarchiver";
-              icon = "${pkgs.icon-pack}/xarchiver.svg";
+              icon = "xarchiver";
             }
 
             {
@@ -130,7 +130,7 @@ in
               description = "Secure Android-in-the-Cloud";
               vm = "GALA";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start gala";
-              icon = "${pkgs.icon-pack}/distributor-logo-android.svg";
+              icon = "distributor-logo-android";
             }
 
             {
@@ -138,7 +138,7 @@ in
               description = "Isolated PDF Viewer";
               vm = "Zathura";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm zathura-vm zathura";
-              icon = "${pkgs.icon-pack}/document-viewer.svg";
+              icon = "document-viewer";
             }
 
             {
@@ -146,7 +146,7 @@ in
               description = "General Messaging Application";
               vm = "Comms";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm element";
-              icon = "${pkgs.icon-pack}/element-desktop.svg";
+              icon = "element-desktop";
             }
 
             {
@@ -154,7 +154,7 @@ in
               description = "Teams Collaboration & Messaging Application";
               vm = "Comms";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm slack";
-              icon = "${pkgs.icon-pack}/slack.svg";
+              icon = "slack";
             }
 
             {
@@ -162,7 +162,6 @@ in
               description = "Zoom Videoconferencing Application";
               vm = "Comms";
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm zoom";
-              icon = "${pkgs.icon-pack}/Zoom.svg";
             }
 
             {
@@ -183,21 +182,21 @@ in
               name = "File Manager";
               description = "Organize & Manage Files";
               path = "${pkgs.pcmanfm}/bin/pcmanfm";
-              icon = "${pkgs.icon-pack}/system-file-manager.svg";
+              icon = "system-file-manager";
             }
 
             {
               name = "Bluetooth Settings";
               description = "Manage Bluetooth Devices & Settings";
               path = "${pkgs.bt-launcher}/bin/bt-launcher";
-              icon = "${pkgs.icon-pack}/bluetooth-48.svg";
+              icon = "bluetooth-48";
             }
 
             {
               name = "Audio Control";
               description = "System Audio Control";
               path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString pulseaudioTcpControlPort}";
-              icon = "${pkgs.icon-pack}/preferences-sound.svg";
+              icon = "preferences-sound";
             }
 
             {
@@ -218,7 +217,7 @@ in
             {
               name = "Control panel";
               path = "${pkgs.ctrl-panel}/bin/ctrl-panel";
-              icon = "${pkgs.icon-pack}/utilities-tweak-tool.svg";
+              icon = "utilities-tweak-tool";
             }
           ]
           ++ optionals config.ghaf.reference.programs.windows-launcher.enable [
@@ -226,7 +225,7 @@ in
               name = "Windows";
               description = "Virtualized Windows System";
               path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
-              icon = "${pkgs.icon-pack}/distributor-logo-windows.svg";
+              icon = "distributor-logo-windows";
             }
           ];
       };

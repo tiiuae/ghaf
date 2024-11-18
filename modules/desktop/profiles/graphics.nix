@@ -73,8 +73,13 @@ in
               type = types.path;
             };
             icon = mkOption {
-              description = "Path of the icon";
-              type = types.path;
+              description = ''
+                Optional icon for the launcher. If unspecified, active icon theme will 
+                be searched to find an icon matching the launcher name. Can be set to an
+                icon name from the current theme (Papirus) or a full path to an icon file.
+              '';
+              type = types.nullOr (types.path // types.str);
+              default = null;
             };
           };
         }

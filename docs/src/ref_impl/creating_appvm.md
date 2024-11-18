@@ -61,4 +61,4 @@ To create an App VM, do the following:
 
    * **name**: the name of the launcher;
    * **path**: path to the executable you want to run, like a graphical application;
-   * **icon**: path to an icon to show. If you have an icon package for your launcher, add it here as well: [packages/icon-pack/default.nix](https://github.com/tiiuae/ghaf/blob/main/packages/icon-pack/default.nix).
+   * **icon**: an optional icon for the launcher. If not specified, the system will attempt to find an icon matching the `name`. You can set this to the name of an icon you expect to be available in the current icon theme (currently "Papirus," defined in `modules/desktop/graphics/labwc.nix`), or provide a full path to a specific icon file.
