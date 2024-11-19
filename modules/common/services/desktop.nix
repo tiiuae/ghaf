@@ -181,7 +181,9 @@ in
             {
               name = "File Manager";
               description = "Organize & Manage Files";
-              path = "${pkgs.pcmanfm}/bin/pcmanfm";
+              path = "${pkgs.pcmanfm}/bin/pcmanfm ${
+                config.users.users.${config.ghaf.users.accounts.user}.home
+              }/Shares";
               icon = "system-file-manager";
             }
 
