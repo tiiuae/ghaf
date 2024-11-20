@@ -7,11 +7,12 @@
 
 Ghaf is released 4 times per year at the end of each quarter. Additional releases may be made as per request.
 
-Release numbering scheme: *ghaf-yy.mm*.
+Release numbering scheme: *ghaf-yy.mm.patch*.
 
 
 ## In This Chapter
 
+- [Release ghaf-24.09.2](../release_notes/ghaf-24.09.2.md)
 - [Release ghaf-24.09.1](../release_notes/ghaf-24.09.1.md)
 - [Release ghaf-24.09](../release_notes/ghaf-24.09.md)
 - [Release ghaf-24.06](../release_notes/ghaf-24.06.md)
