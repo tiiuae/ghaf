@@ -21,24 +21,21 @@ writeShellApplication {
     read -r sourcepath
     filename=$(basename "$sourcepath")
     zathurapath="/var/tmp/$filename"
-    chromiumvmip=$(dig +short chromium-vm | head -1)
-    googlechromevmip=$(dig +short chrome-vm | head -1)
 
+    googlechromevmip=$(dig +short chrome-vm | head -1)
     businessvmip=$(dig +short business-vm | head -1)
     commsvmip=$(dig +short comms-vm | head -1)
-    guivmip=$(dig +short gui-vm | head -1)
 
 
-    if [[ "$chromiumvmip" != "$REMOTE_ADDR" && \
+    if [[ "127.0.0.1" != "$REMOTE_ADDR" && \
       "$businessvmip" != "$REMOTE_ADDR" && \
       "$googlechromevmip" != "$REMOTE_ADDR" && \
-      "$commsvmip" != "$REMOTE_ADDR" && \
-      "$guivmip" != "$REMOTE_ADDR" ]]; then
-      echo "Open PDF request received from $REMOTE_ADDR, but it is only permitted for chrome-vm,chromium-vm, business-vm, comms-vm, or gui-vm"
+      "$commsvmip" != "$REMOTE_ADDR" ]]; then
+      echo "Open PDF request received from $REMOTE_ADDR, but it is only permitted for chrome-vm, business-vm, comms-vm, or gui-vm"
       exit 0
     fi
 
-    if [[ "$guivmip" != "$REMOTE_ADDR" ]]; then
+    if [[ "127.0.0.1" != "$REMOTE_ADDR" ]]; then
       echo "Copying $sourcepath from $REMOTE_ADDR to $zathurapath in zathura-vm"
       scp -i ${sshKeyPath} -o StrictHostKeyChecking=no "$REMOTE_ADDR":"$sourcepath" zathura-vm:"$zathurapath"
     else
