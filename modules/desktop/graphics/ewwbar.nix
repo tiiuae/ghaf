@@ -1369,7 +1369,7 @@ in
       serviceConfig = {
         Type = "forking";
         ExecStart = "${ewwbar-ctrl}/bin/ewwbar-ctrl start";
-        ExecReload = "${ewwbar-ctrl}/bin/ewwbar-ctrl kill";
+        ExecReload = "${ewwbar-ctrl}/bin/ewwbar-ctrl reload";
         Environment = "XDG_CACHE_HOME=/tmp/.ewwcache";
         Restart = "always";
         RestartSec = "100ms";
@@ -1383,7 +1383,7 @@ in
       description = "eww-restart";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = "systemctl --user try-reload-or-restart ewwbar.service";
+        ExecStart = "systemctl --user try-restart ewwbar.service";
         Restart = "on-failure";
         RestartSec = "100ms";
       };
