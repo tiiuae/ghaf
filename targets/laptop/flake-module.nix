@@ -60,6 +60,16 @@ let
         };
       }
     ])
+    # For now we just build debug profile until everything works
+    (laptop-configuration "lenovo-t14-amd" "debug" [
+      self.nixosModules.disko-ab-partitions-v1
+      {
+        ghaf = {
+          hardware.definition = import ../../modules/reference/hardware/lenovo-t14-amd/definitions/gen-5.nix;
+          reference.profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
 
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
