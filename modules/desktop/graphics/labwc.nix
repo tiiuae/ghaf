@@ -140,6 +140,7 @@ in
           pkgs.labwc
           pkgs.ghaf-theme
           pkgs.papirus-icon-theme
+          pkgs.adwaita-icon-theme
 
           (import ./launchers.nix { inherit pkgs config; })
         ]

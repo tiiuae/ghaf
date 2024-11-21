@@ -220,6 +220,11 @@ let
     font=${cfg.gtk.fontName} ${cfg.gtk.fontSize}
     background-color=#121212
     progress-color=source #3D8252e6
+    on-button-left=invoke-default-action
+    on-button-right=dismiss
+    on-button-middle=dismiss
+    on-touch=dismiss
+    actions=1
     border-radius=5
     border-size=0
     padding=10
@@ -344,6 +349,7 @@ in
         };
         wantedBy = [ "ghaf-session.target" ];
         partOf = [ "ghaf-session.target" ];
+        after = [ "ewwbar.service" ];
       };
 
       # We use existing blueman services and create overrides for both
