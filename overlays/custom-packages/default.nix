@@ -18,7 +18,6 @@
   waybar = import ./waybar { inherit prev; };
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui { };
   open-normal-extension = final.callPackage ../../packages/open-normal-extension { };
-  gtklock = import ./gtklock { inherit prev; };
   hardware-scan = final.callPackage ../../packages/hardware-scan { };
   globalprotect-openconnect =
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect

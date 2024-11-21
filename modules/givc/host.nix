@@ -11,6 +11,8 @@ let
   inherit (builtins) map filter attrNames;
   inherit (lib) mkEnableOption mkIf head;
   hostName = "ghaf-host-debug";
+  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
+  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
 in
 {
   options.ghaf.givc.host = {
@@ -19,24 +21,19 @@ in
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
     # Configure host service
-    givc.host =
-      let
-        getIp =
-          name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.entries));
-        addr = getIp hostName;
-      in
-      {
-        enable = true;
+    givc.host = {
+      enable = true;
+      agent = {
         name = hostName;
-        inherit addr;
+        addr = address hostName;
         port = "9000";
-        services = [
-          "reboot.target"
-          "poweroff.target"
-          "suspend.target"
-        ] ++ map (vmName: "microvm@${vmName}.service") (attrNames config.microvm.vms);
-        tls.enable = config.ghaf.givc.enableTls;
-        admin = config.ghaf.givc.adminConfig;
       };
+      services = [
+        "reboot.target"
+        "poweroff.target"
+      ] ++ map (vmName: "microvm@${vmName}.service") (attrNames config.microvm.vms);
+      tls.enable = config.ghaf.givc.enableTls;
+      admin = config.ghaf.givc.adminConfig;
+    };
   };
 }

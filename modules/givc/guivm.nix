@@ -5,6 +5,10 @@ let
   cfg = config.ghaf.givc.guivm;
   inherit (lib) mkEnableOption mkIf;
   hostName = "gui-vm";
+  netvmName = "net-vm";
+  audiovmName = "audio-vm";
+  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
+  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
 in
 {
   options.ghaf.givc.guivm = {
@@ -13,18 +17,35 @@ in
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
     # Configure guivm service
-    givc.sysvm =
-      let
-        guivmEntry = builtins.filter (x: x.name == hostName) config.ghaf.networking.hosts.entries;
-        addr = lib.head (builtins.map (x: x.ip) guivmEntry);
-      in
-      {
-        enable = true;
+    givc.sysvm = {
+      enable = true;
+      agent = {
         name = hostName;
-        inherit addr;
+        addr = address hostName;
         port = "9000";
-        tls.enable = config.ghaf.givc.enableTls;
-        admin = config.ghaf.givc.adminConfig;
       };
+      tls.enable = config.ghaf.givc.enableTls;
+      admin = config.ghaf.givc.adminConfig;
+      socketProxy = [
+        {
+          transport = {
+            name = netvmName;
+            addr = address netvmName;
+            port = "9010";
+            protocol = "tcp";
+          };
+          socket = "/tmp/dbusproxy_net.sock";
+        }
+        {
+          transport = {
+            name = audiovmName;
+            addr = address audiovmName;
+            port = "9011";
+            protocol = "tcp";
+          };
+          socket = "/tmp/dbusproxy_snd.sock";
+        }
+      ];
+    };
   };
 }

@@ -33,8 +33,34 @@ in
     environment.etc."udiskie.yml".source = yaml.generate "udiskie.yml" {
       program_options = {
         automount = true;
-        tray = "auto";
+        # True - keep tray applet open indefinitely
+        # "auto" - auto hide tray applet when no devices connected
+        tray = true;
+        menu = "flat";
         notify = true;
+        file_manager = cfg.fileManager;
+        menu_checkbox_workaround = false;
+        # True - add a "Managed devices" submenu where
+        # a list of connected USB devices resides.
+        # False - connected USB devices will be shown
+        # in the root udiskie applet menu
+        menu_update_workaround = false;
+        # Command to be executed on any device event
+        # event_hook = "";
+      };
+      quickmenu_actions = [
+        "browse"
+        "mount"
+        "unmount"
+        "eject"
+      ];
+      notifications = {
+        # Customize which notifications are shown for how long.
+        # Possible values are:
+        #   positive number         timeout in seconds
+        #   false                   disable notification
+        #   -1                      use the libnotify default timeout
+        # device_added = false;
       };
     };
 
@@ -42,11 +68,13 @@ in
       enable = true;
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.udiskie}/bin/udiskie -c /etc/udiskie.yml -f ${cfg.fileManager} --appindicator";
+        Restart = "always";
+        RestartSec = "1";
+        ExecStart = "${pkgs.udiskie}/bin/udiskie -c /etc/udiskie.yml";
       };
-      after = [ "ghaf-session.target" ];
-      partOf = [ "ghaf-session.target" ];
       wantedBy = [ "ghaf-session.target" ];
+      partOf = [ "ghaf-session.target" ];
+      after = [ "ewwbar.service" ];
     };
   };
 }
