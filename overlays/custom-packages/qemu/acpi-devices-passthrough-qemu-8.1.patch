@@ -1,45 +1,10 @@
-From 5c3625ba13e1bd8041bf3718c9573948bc6d2b14 Mon Sep 17 00:00:00 2001
-From: Mika Tammi <mika.tammi@unikie.com>
-Date: Fri, 17 Nov 2023 00:06:40 +0200
-Subject: ACPI BATTERY
-
-Signed-off-by: Mika Tammi <mika.tammi@unikie.com>
----
- MAINTAINERS                          |  15 +
- docs/specs/acad.txt                  |  24 ++
- docs/specs/battery.txt               |  23 ++
- docs/specs/button.txt                |  35 ++
- hw/acpi/Kconfig                      |  12 +
- hw/acpi/acad.c                       | 318 +++++++++++++++++
- hw/acpi/battery.c                    | 512 +++++++++++++++++++++++++++
- hw/acpi/button.c                     | 327 +++++++++++++++++
- hw/acpi/core.c                       |  17 +-
- hw/acpi/meson.build                  |   3 +
- hw/acpi/trace-events                 |  17 +
- hw/i386/Kconfig                      |   3 +
- hw/i386/acpi-build.c                 | 182 ++++++++++
- include/hw/acpi/acad.h               |  37 ++
- include/hw/acpi/acpi_dev_interface.h |   3 +
- include/hw/acpi/battery.h            |  43 +++
- include/hw/acpi/button.h             |  35 ++
- 17 files changed, 1604 insertions(+), 2 deletions(-)
- create mode 100644 docs/specs/acad.txt
- create mode 100644 docs/specs/battery.txt
- create mode 100644 docs/specs/button.txt
- create mode 100644 hw/acpi/acad.c
- create mode 100644 hw/acpi/battery.c
- create mode 100644 hw/acpi/button.c
- create mode 100644 include/hw/acpi/acad.h
- create mode 100644 include/hw/acpi/battery.h
- create mode 100644 include/hw/acpi/button.h
-
 diff --git a/MAINTAINERS b/MAINTAINERS
-index 6111b6b4d9..afebd55258 100644
+index 3584d6a6c..6b03c5c58 100644
 --- a/MAINTAINERS
 +++ b/MAINTAINERS
-@@ -2573,6 +2573,21 @@ F: hw/usb/canokey.c
- F: hw/usb/canokey.h
- F: docs/system/devices/canokey.rst
+@@ -2775,6 +2775,21 @@ F: hw/hyperv/hv-balloon*.h
+ F: include/hw/hyperv/dynmem-proto.h
+ F: include/hw/hyperv/hv-balloon.h
  
 +Battery
 +M: Leonid Bloch <lb.workbox@gmail.com>
@@ -61,7 +26,7 @@ index 6111b6b4d9..afebd55258 100644
  Overall Audio backends
 diff --git a/docs/specs/acad.txt b/docs/specs/acad.txt
 new file mode 100644
-index 0000000000..0d563a7b50
+index 000000000..0d563a7b5
 --- /dev/null
 +++ b/docs/specs/acad.txt
 @@ -0,0 +1,24 @@
@@ -91,7 +56,7 @@ index 0000000000..0d563a7b50
 +property allows to override the default one.
 diff --git a/docs/specs/battery.txt b/docs/specs/battery.txt
 new file mode 100644
-index 0000000000..e90324ac03
+index 000000000..e90324ac0
 --- /dev/null
 +++ b/docs/specs/battery.txt
 @@ -0,0 +1,23 @@
@@ -120,7 +85,7 @@ index 0000000000..e90324ac03
 +property allows to override the default one.
 diff --git a/docs/specs/button.txt b/docs/specs/button.txt
 new file mode 100644
-index 0000000000..48e9f3388d
+index 000000000..48e9f3388
 --- /dev/null
 +++ b/docs/specs/button.txt
 @@ -0,0 +1,35 @@
@@ -160,7 +125,7 @@ index 0000000000..48e9f3388d
 +
 +'-device button,procfs_path=/proc/acpi/button,probe_interval=2000'
 diff --git a/hw/acpi/Kconfig b/hw/acpi/Kconfig
-index e07d3204eb..df7db4518f 100644
+index e07d3204e..df7db4518 100644
 --- a/hw/acpi/Kconfig
 +++ b/hw/acpi/Kconfig
 @@ -64,6 +64,18 @@ config ACPI_VIOT
@@ -184,7 +149,7 @@ index e07d3204eb..df7db4518f 100644
      select ACPI
 diff --git a/hw/acpi/acad.c b/hw/acpi/acad.c
 new file mode 100644
-index 0000000000..279452e95f
+index 000000000..279452e95
 --- /dev/null
 +++ b/hw/acpi/acad.c
 @@ -0,0 +1,318 @@
@@ -508,10 +473,10 @@ index 0000000000..279452e95f
 +type_init(acad_register_types)
 diff --git a/hw/acpi/battery.c b/hw/acpi/battery.c
 new file mode 100644
-index 0000000000..afd82594b1
+index 000000000..ad86ad66f
 --- /dev/null
 +++ b/hw/acpi/battery.c
-@@ -0,0 +1,512 @@
+@@ -0,0 +1,529 @@
 +/*
 + * QEMU emulated battery device.
 + *
@@ -570,6 +535,7 @@ index 0000000000..afd82594b1
 +
 +    QEMUTimer *probe_state_timer;
 +    uint64_t probe_state_interval;
++    int dummy; /* 0 - real battery, 1 - faked battery */
 +
 +    char *bat_path;
 +} BatteryState;
@@ -624,6 +590,11 @@ index 0000000000..afd82594b1
 +    int path_len;
 +    uint32_t val;
 +    FILE *ff;
++
++    if (s->dummy) {
++        s->charge_full = 10000000;
++        return;
++    }
 +
 +    path_len = snprintf(file_path, PATH_MAX, "%s/%s", s->bat_path,
 +                        full_file[s->units]);
@@ -680,6 +651,11 @@ index 0000000000..afd82594b1
 +    char val[MAX_ALLOWED_STATE_LENGTH];
 +    FILE *ff;
 +
++    if (s->dummy) {
++        s->state.val = BATTERY_DISCHARGING;
++        return;
++    }
++
 +    path_len = snprintf(file_path, PATH_MAX, "%s/%s", s->bat_path, stat_file);
 +    if (path_len < 0 || path_len >= PATH_MAX) {
 +        warn_report("Could not read the battery state.");
@@ -714,6 +690,11 @@ index 0000000000..afd82594b1
 +    uint64_t val;
 +    FILE *ff;
 +
++    if (s->dummy) {
++        s->rate.val = 0;
++        return;
++    }
++
 +    path_len = snprintf(file_path, PATH_MAX, "%s/%s", s->bat_path,
 +                        rate_file[s->units]);
 +    if (path_len < 0 || path_len >= PATH_MAX) {
@@ -744,6 +725,11 @@ index 0000000000..afd82594b1
 +    int path_len;
 +    uint64_t val;
 +    FILE *ff;
++
++    if (s->dummy) {
++        s->charge.val = 0;
++        return;
++    }
 +
 +    path_len = snprintf(file_path, PATH_MAX, "%s/%s", s->bat_path,
 +                        now_file[s->units]);
@@ -902,14 +888,10 @@ index 0000000000..afd82594b1
 +
 +    trace_battery_realize();
 +
-+    if (!s->bat_path) {
-+        strcpy(err_details, " Try using 'sysfs_path='");
-+    }
-+
++    s->dummy = 0;
 +    if (!get_battery_path(dev)) {
-+        error_setg(errp, "Battery sysfs path not found or unreadable.%s",
-+                   err_details);
-+        return;
++        warn_report("Real battery not found, using dummy information");
++        s->dummy = 1;
 +    }
 +
 +    battery_get_full_charge(s, errp);
@@ -1026,7 +1008,7 @@ index 0000000000..afd82594b1
 +type_init(battery_register_types)
 diff --git a/hw/acpi/button.c b/hw/acpi/button.c
 new file mode 100644
-index 0000000000..edca46ce6d
+index 000000000..edca46ce6
 --- /dev/null
 +++ b/hw/acpi/button.c
 @@ -0,0 +1,327 @@
@@ -1358,10 +1340,10 @@ index 0000000000..edca46ce6d
 +
 +type_init(button_register_types)
 diff --git a/hw/acpi/core.c b/hw/acpi/core.c
-index 00b1e79a30..b992150ad4 100644
+index ec5e127d1..07e477f1b 100644
 --- a/hw/acpi/core.c
 +++ b/hw/acpi/core.c
-@@ -715,19 +715,32 @@ uint32_t acpi_gpe_ioport_readb(ACPIREGS *ar, uint32_t addr)
+@@ -724,19 +724,32 @@ uint32_t acpi_gpe_ioport_readb(ACPIREGS *ar, uint32_t addr)
  void acpi_send_gpe_event(ACPIREGS *ar, qemu_irq irq,
                           AcpiEventStatusBits status)
  {
@@ -1397,10 +1379,10 @@ index 00b1e79a30..b992150ad4 100644
      qemu_set_irq(irq, sci_level);
  
 diff --git a/hw/acpi/meson.build b/hw/acpi/meson.build
-index fc1b952379..c0f6b0c5c7 100644
+index fa5c07db9..90c5ec443 100644
 --- a/hw/acpi/meson.build
 +++ b/hw/acpi/meson.build
-@@ -30,6 +30,9 @@ acpi_ss.add(when: 'CONFIG_PC', if_false: files('acpi-x86-stub.c'))
+@@ -31,6 +31,9 @@ acpi_ss.add(when: 'CONFIG_PC', if_false: files('acpi-x86-stub.c'))
  if have_tpm
    acpi_ss.add(files('tpm.c'))
  endif
@@ -1411,10 +1393,10 @@ index fc1b952379..c0f6b0c5c7 100644
  system_ss.add(when: 'CONFIG_ACPI_PCI_BRIDGE', if_false: files('pci-bridge-stub.c'))
  system_ss.add_all(when: 'CONFIG_ACPI', if_true: acpi_ss)
 diff --git a/hw/acpi/trace-events b/hw/acpi/trace-events
-index 78e0a8670e..749f4176ab 100644
+index edc93e703..ded8579b4 100644
 --- a/hw/acpi/trace-events
 +++ b/hw/acpi/trace-events
-@@ -58,6 +58,23 @@ tco_timer_expired(int timeouts_no, bool strap, bool no_reboot) "timeouts_no=%d n
+@@ -60,6 +60,23 @@ tco_timer_expired(int timeouts_no, bool strap, bool no_reboot) "timeouts_no=%d n
  tco_io_write(uint64_t addr, uint32_t val) "addr=0x%" PRIx64 " val=0x%" PRIx32
  tco_io_read(uint64_t addr, uint32_t val) "addr=0x%" PRIx64 " val=0x%" PRIx32
  
@@ -1439,7 +1421,7 @@ index 78e0a8670e..749f4176ab 100644
  acpi_erst_reg_write(uint64_t addr, uint64_t val, unsigned size) "addr: 0x%04" PRIx64 " <== 0x%016" PRIx64 " (size: %u)"
  acpi_erst_reg_read(uint64_t addr, uint64_t val, unsigned size) " addr: 0x%04" PRIx64 " ==> 0x%016" PRIx64 " (size: %u)"
 diff --git a/hw/i386/Kconfig b/hw/i386/Kconfig
-index 9051083c1e..2e2e169dd4 100644
+index f4a33b6c0..bf80cce01 100644
 --- a/hw/i386/Kconfig
 +++ b/hw/i386/Kconfig
 @@ -31,6 +31,9 @@ config PC
@@ -1450,10 +1432,10 @@ index 9051083c1e..2e2e169dd4 100644
 +    imply AC_ADAPTER
 +    imply BUTTON
      imply NVDIMM
-     select FDC_ISA
+     imply FDC_ISA
      select I8259
 diff --git a/hw/i386/acpi-build.c b/hw/i386/acpi-build.c
-index bb12b0ad43..859c95836f 100644
+index 5d4bd2b71..346a49fe3 100644
 --- a/hw/i386/acpi-build.c
 +++ b/hw/i386/acpi-build.c
 @@ -35,6 +35,9 @@
@@ -1466,7 +1448,7 @@ index bb12b0ad43..859c95836f 100644
  #include "hw/nvram/fw_cfg.h"
  #include "hw/acpi/bios-linker-loader.h"
  #include "hw/acpi/acpi_aml_interface.h"
-@@ -117,6 +120,9 @@ typedef struct AcpiMiscInfo {
+@@ -116,6 +119,9 @@ typedef struct AcpiMiscInfo {
  #ifdef CONFIG_TPM
      TPMVersion tpm_version;
  #endif
@@ -1476,7 +1458,7 @@ index bb12b0ad43..859c95836f 100644
  } AcpiMiscInfo;
  
  typedef struct FwCfgTPMConfig {
-@@ -283,6 +289,9 @@ static void acpi_get_misc_info(AcpiMiscInfo *info)
+@@ -267,6 +273,9 @@ static void acpi_get_misc_info(AcpiMiscInfo *info)
  #ifdef CONFIG_TPM
      info->tpm_version = tpm_get_version(tpm_find());
  #endif
@@ -1486,7 +1468,7 @@ index bb12b0ad43..859c95836f 100644
  }
  
  /*
-@@ -1813,6 +1822,179 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
+@@ -1800,6 +1809,179 @@ build_dsdt(GArray *table_data, BIOSLinker *linker,
          aml_append(sb_scope, dev);
      }
  #endif
@@ -1668,7 +1650,7 @@ index bb12b0ad43..859c95836f 100644
          uint64_t epc_base = pcms->sgx_epc.base;
 diff --git a/include/hw/acpi/acad.h b/include/hw/acpi/acad.h
 new file mode 100644
-index 0000000000..be61c57064
+index 000000000..be61c5706
 --- /dev/null
 +++ b/include/hw/acpi/acad.h
 @@ -0,0 +1,37 @@
@@ -1710,10 +1692,10 @@ index 0000000000..be61c57064
 +
 +#endif
 diff --git a/include/hw/acpi/acpi_dev_interface.h b/include/hw/acpi/acpi_dev_interface.h
-index a1648220ff..adabf8a95d 100644
+index 68d9d15f5..4f5bcc15d 100644
 --- a/include/hw/acpi/acpi_dev_interface.h
 +++ b/include/hw/acpi/acpi_dev_interface.h
-@@ -14,6 +14,9 @@ typedef enum {
+@@ -13,6 +13,9 @@ typedef enum {
      ACPI_NVDIMM_HOTPLUG_STATUS = 16,
      ACPI_VMGENID_CHANGE_STATUS = 32,
      ACPI_POWER_DOWN_STATUS = 64,
@@ -1725,7 +1707,7 @@ index a1648220ff..adabf8a95d 100644
  #define TYPE_ACPI_DEVICE_IF "acpi-device-interface"
 diff --git a/include/hw/acpi/battery.h b/include/hw/acpi/battery.h
 new file mode 100644
-index 0000000000..6224a97d9c
+index 000000000..6224a97d9
 --- /dev/null
 +++ b/include/hw/acpi/battery.h
 @@ -0,0 +1,43 @@
@@ -1774,7 +1756,7 @@ index 0000000000..6224a97d9c
 +#endif
 diff --git a/include/hw/acpi/button.h b/include/hw/acpi/button.h
 new file mode 100644
-index 0000000000..6da17d7cee
+index 000000000..6da17d7ce
 --- /dev/null
 +++ b/include/hw/acpi/button.h
 @@ -0,0 +1,35 @@
@@ -1813,6 +1795,3 @@ index 0000000000..6da17d7cee
 +}
 +
 +#endif
--- 
-2.40.1
-
