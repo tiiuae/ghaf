@@ -37,6 +37,12 @@
           ghaf.reference.programs.google-chrome.enable = true;
           ghaf.services.xdghandlers.enable = true;
           ghaf.security.apparmor.enable = true;
+
+          networking = {
+            firewall.allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
+            firewall.allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+
+          };
         }
       ];
     }
