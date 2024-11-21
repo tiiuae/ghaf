@@ -47,7 +47,6 @@ in
         inherit (cfg) password;
         inherit (cfg) uid;
         #TODO add "docker" use "lib.optionals"
-        uid = 1000;
         extraGroups = [
           "wheel"
           "video"
