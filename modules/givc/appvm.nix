@@ -36,6 +36,7 @@ in
     # Configure appvm service
     givc.appvm = {
       enable = true;
+      inherit (config.ghaf.givc) debug;
       agent = {
         inherit (cfg) name;
         addr = address cfg.name;

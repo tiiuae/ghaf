@@ -23,6 +23,7 @@ in
     # Configure netvm service
     givc.sysvm = {
       enable = true;
+      inherit (config.ghaf.givc) debug;
       agent = {
         name = hostName;
         addr = address hostName;

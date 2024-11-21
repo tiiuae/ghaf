@@ -24,6 +24,7 @@ in
         addr = address hostName;
         port = "9000";
       };
+      inherit (config.ghaf.givc) debug;
       tls.enable = config.ghaf.givc.enableTls;
       admin = config.ghaf.givc.adminConfig;
       socketProxy = [

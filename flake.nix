@@ -144,7 +144,7 @@
     };
 
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:tiiuae/ghaf-givc/63e19e1b61a669a21c1bdd0ae5a8e169b2f2d2f6";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

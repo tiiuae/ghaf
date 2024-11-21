@@ -14,6 +14,7 @@ in
     # Configure admin service
     givc.admin = {
       enable = true;
+      inherit (config.ghaf.givc) debug;
       inherit (config.ghaf.givc.adminConfig) name;
       inherit (config.ghaf.givc.adminConfig) addr;
       inherit (config.ghaf.givc.adminConfig) port;
