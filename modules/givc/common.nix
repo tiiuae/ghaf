@@ -17,6 +17,7 @@ in
 {
   options.ghaf.givc = {
     enable = mkEnableOption "Enable gRPC inter-vm communication";
+    debug = mkEnableOption "Enable givc debug mode";
     enableTls = mkOption {
       description = "Enable TLS for gRPC communication globally, or disable for debugging.";
       type = types.bool;

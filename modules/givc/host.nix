@@ -23,6 +23,7 @@ in
     # Configure host service
     givc.host = {
       enable = true;
+      inherit (config.ghaf.givc) debug;
       agent = {
         name = hostName;
         addr = address hostName;
@@ -31,6 +32,7 @@ in
       services = [
         "reboot.target"
         "poweroff.target"
+        "suspend.target"
       ] ++ map (vmName: "microvm@${vmName}.service") (attrNames config.microvm.vms);
       tls.enable = config.ghaf.givc.enableTls;
       admin = config.ghaf.givc.adminConfig;
