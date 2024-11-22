@@ -14,7 +14,7 @@ let
   drawerStyle = pkgs.callPackage ./styles/launcher-style.nix { };
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
-  lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle}";
+  lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle} -m ${pkgs.gtklock-userinfo-module}/lib/gtklock/userinfo-module.so";
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 

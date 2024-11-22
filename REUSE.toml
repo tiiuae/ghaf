@@ -55,13 +55,11 @@ SPDX-FileCopyrightText = "labwc contributors"
 path = "overlays/custom-packages/labwc/*.patch"
 
 [[annotations]]
-# gtklock doesn't specify if later versions is allowed
 SPDX-License-Identifier = "GPL-3.0-only"
 SPDX-FileCopyrightText = [
-  "Copyright (c) 2022 Kenny Levinsen, Jovan Lanik, Erik Reider, Melih Darcan, Bhaskar Khoraja",
-  "Copyright (c) 2022 Zephyr Lykos"
+  "Copyright (c) 2024 Erik Reider, Jovan Lanik"
 ]
-path = "overlays/custom-packages/gtklock/*.patch"
+path = "overlays/custom-packages/gtklock-userinfo-module/0001-update.patch"
 
 [[annotations]]
 SPDX-License-Identifier = "LGPL-2.1-or-later"
