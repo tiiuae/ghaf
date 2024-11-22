@@ -37,10 +37,7 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## From Overlays
 
-[gtklock: Guard against race condition](https://github.com/jovanlanik/gtklock/pull/95)
-
-[gtklock: Fix black screen SP-4849](https://github.com/jovanlanik/gtklock/commit/e0e7f6d5ae7667fcc3479b6732046c67275b2f2f)
-
+[gtklock-userinfo-module: update](https://github.com/jovanlanik/gtklock-userinfo-module/commit/aa4b5832185d2dd9e7f88826fd9d03e3d5ea1ad6)
 
 ## carried in tiiuae/nixpkgs/...
 [texinfo: cross compile failure](https://github.com/NixOS/nixpkgs/pull/328919)

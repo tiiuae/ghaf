@@ -1,0 +1,28 @@
+From aa4b5832185d2dd9e7f88826fd9d03e3d5ea1ad6 Mon Sep 17 00:00:00 2001
+From: Jovan Lanik <jox969@gmail.com>
+Date: Sun, 3 Nov 2024 10:48:42 +0100
+Subject: [PATCH] update
+
+---
+ source.c | 5 -----
+ 1 file changed, 5 deletions(-)
+
+diff --git a/source.c b/source.c
+index 8a12fbb..a908b5e 100644
+--- a/source.c
++++ b/source.c
+@@ -157,11 +157,6 @@ static void setup_userinfo(struct Window *ctx) {
+ 	gtk_widget_show_all(USERINFO(ctx)->user_revealer);
+ }
+ 
+-void g_module_unload(GModule *m) {
+-	g_object_unref(act_user);
+-	g_object_unref(act_manager);
+-}
+-
+ void on_activation(struct GtkLock *gtklock, int id) {
+ 	self_id = id;
+ 
+-- 
+2.40.1
+
