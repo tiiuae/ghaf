@@ -5,18 +5,41 @@
   lib,
   vmName,
   macAddress,
-  internalIP,
   isGateway ? false,
   ...
 }:
 let
+
+  inherit (lib)
+    head
+    optionals
+    optionalAttrs
+    optionalString
+    ;
+
+  # Network definitions
   networkName = "ethint0";
+
+  # Helper functions
+  networkEntryIp = net: builtins.map (x: x.ip) (builtins.filter (x: vmName == x.name) net);
+  networkAddress =
+    net:
+    let
+      addr = networkEntryIp net;
+      hasAddr = addr != [ ];
+    in
+    "${optionalString hasAddr (head addr)}";
+  releaseNetworkAddress = networkAddress config.ghaf.networking.hosts.entries;
+  debugNetworkAddress = networkAddress config.ghaf.networking.hosts.debugEntries;
+
+  # Gateway address
   netVmEntry = builtins.filter (x: x.name == "net-vm") config.ghaf.networking.hosts.entries;
   netVmAddress = builtins.map (x: x.ip) netVmEntry;
   isIdsvmEnabled = config.ghaf.virtualization.microvm.idsvm.enable;
   idsVmEntry = builtins.filter (x: x.name == "ids-vm") config.ghaf.networking.hosts.entries;
-  idsVmAddress = lib.optionals isIdsvmEnabled (builtins.map (x: x.ip) idsVmEntry);
+  idsVmAddress = optionals isIdsvmEnabled (builtins.map (x: x.ip) idsVmEntry);
   gateway = if isIdsvmEnabled && (vmName != "ids-vm") then idsVmAddress else netVmAddress;
+
 in
 {
   networking = {
@@ -50,16 +73,15 @@ in
     networks."10-${networkName}" = {
       matchConfig.MACAddress = macAddress;
       addresses =
-        [ { Address = "192.168.100.${toString internalIP}/24"; } ]
-        ++ lib.optionals config.ghaf.profiles.debug.enable [
-          {
-            # IP-address for debugging subnet
-            Address = "192.168.101.${toString internalIP}/24";
-          }
+        optionals (releaseNetworkAddress != "") [
+          { Address = "${releaseNetworkAddress}/24"; }
+        ]
+        ++ optionals (debugNetworkAddress != "") [
+          { Address = "${debugNetworkAddress}/24"; }
         ];
       linkConfig.RequiredForOnline = "routable";
       linkConfig.ActivationPolicy = "always-up";
-    } // lib.optionalAttrs (!isGateway) { inherit gateway; };
+    } // optionalAttrs (!isGateway) { inherit gateway; };
   };
 
   # systemd-resolved does not support local names resolution

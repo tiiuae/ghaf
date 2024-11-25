@@ -13,18 +13,17 @@ let
     mkEnableOption
     mkIf
     types
+    head
+    filter
+    strings
     ;
-  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
-  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
+  getIp =
+    name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.entries));
+  admin = head (filter (x: strings.hasInfix ".100." x.addr) config.ghaf.givc.adminConfig.addresses);
 in
 {
   options.ghaf.givc.appvm = {
     enable = mkEnableOption "Enable appvm givc module.";
-    name = mkOption {
-      type = types.str;
-      default = "appvm";
-      description = "Name of the appvm.";
-    };
     applications = mkOption {
       type = types.listOf types.attrs;
       default = [ { } ];
@@ -37,14 +36,14 @@ in
     givc.appvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
+      inherit admin;
       agent = {
-        inherit (cfg) name;
-        addr = address cfg.name;
+        name = config.networking.hostName;
+        addr = getIp config.networking.hostName;
         port = "9000";
       };
       inherit (cfg) applications;
       tls.enable = config.ghaf.givc.enableTls;
-      admin = config.ghaf.givc.adminConfig;
     };
 
     # Quick fix to allow linger (linger option in user def. currently doesn't work, e.g., bc mutable)

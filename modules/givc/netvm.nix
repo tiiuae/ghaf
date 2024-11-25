@@ -8,11 +8,17 @@
 }:
 let
   cfg = config.ghaf.givc.netvm;
-  inherit (lib) mkEnableOption mkIf;
-  hostName = "net-vm";
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    head
+    filter
+    strings
+    ;
+  getIp =
+    name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.entries));
+  admin = head (filter (x: strings.hasInfix ".100." x.addr) config.ghaf.givc.adminConfig.addresses);
   guivmName = "gui-vm";
-  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
-  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
 in
 {
   options.ghaf.givc.netvm = {
@@ -24,20 +30,20 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
+      inherit admin;
       agent = {
-        name = hostName;
-        addr = address hostName;
+        name = config.networking.hostName;
+        addr = getIp config.networking.hostName;
         port = "9000";
       };
       wifiManager = true;
       hwidService = true;
       tls.enable = config.ghaf.givc.enableTls;
-      admin = config.ghaf.givc.adminConfig;
       socketProxy = [
         {
           transport = {
             name = guivmName;
-            addr = address guivmName;
+            addr = getIp guivmName;
             port = "9010";
             protocol = "tcp";
           };

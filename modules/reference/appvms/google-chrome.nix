@@ -34,7 +34,6 @@ in
 
       ghaf.givc.appvm = {
         enable = true;
-        name = lib.mkForce "chrome-vm";
         applications = [
           {
             name = "google-chrome";

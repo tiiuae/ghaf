@@ -16,11 +16,9 @@ in
       enable = true;
       inherit (config.ghaf.givc) debug;
       inherit (config.ghaf.givc.adminConfig) name;
-      inherit (config.ghaf.givc.adminConfig) addr;
-      inherit (config.ghaf.givc.adminConfig) port;
-      inherit (config.ghaf.givc.adminConfig) protocol;
+      inherit (config.ghaf.givc.adminConfig) addresses;
       services = [
-        "givc-ghaf-host-debug.service"
+        "givc-ghaf-host.service"
         "givc-net-vm.service"
         "givc-gui-vm.service"
         "givc-audio-vm.service"

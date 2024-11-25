@@ -7,13 +7,12 @@
   ...
 }:
 let
-  inherit (builtins) hasAttr replaceStrings;
+  inherit (builtins) hasAttr;
   inherit (lib)
     mkIf
     mkEnableOption
     optionals
     optionalAttrs
-    optionalString
     ;
 
   cfg = config.ghaf.services.desktop;
@@ -27,6 +26,7 @@ let
         { }
     else
       { };
+  givc-cli-wrapper = pkgs.callPackage ../../../packages/givc-cli-wrapper { inherit config pkgs lib; };
 in
 # TODO: The desktop configuration needs to be re-worked.
 # TODO it needs to be moved out of common and the launchers have to be set bu the reference programs NOT here
@@ -40,17 +40,6 @@ in
       profiles.graphics.compositor = "labwc";
       graphics = {
         launchers =
-          let
-            cliArgs = replaceStrings [ "\n" ] [ " " ] ''
-              --name ${config.ghaf.givc.adminConfig.name}
-              --addr ${config.ghaf.givc.adminConfig.addr}
-              --port ${config.ghaf.givc.adminConfig.port}
-              ${optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-              ${optionalString config.ghaf.givc.enableTls "--cert /run/givc/gui-vm-cert.pem"}
-              ${optionalString config.ghaf.givc.enableTls "--key /run/givc/gui-vm-key.pem"}
-              ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
-            '';
-          in
           [
             # {
             #   # The SPKI fingerprint is calculated like this:
@@ -59,7 +48,7 @@ in
             #   name = "Chromium";
             #   description = "Isolated General Browsing";
             #   vm = "Chromium";
-            #   path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start chromium";
+            #   path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start chromium";
             #   icon = "chromium";
             # }
 
@@ -67,7 +56,7 @@ in
               name = "Trusted Browser";
               description = "Isolated Trusted Browsing";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm google-chrome";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm google-chrome";
               icon = "thorium-browser";
             }
             {
@@ -77,7 +66,7 @@ in
               name = "Google Chrome";
               description = "Isolated General Browsing";
               vm = "Chrome";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm chrome-vm google-chrome";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm chrome-vm google-chrome";
               icon = "google-chrome";
             }
 
@@ -85,7 +74,7 @@ in
               name = "VPN";
               description = "GlobalProtect VPN Client";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gpclient";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm gpclient";
               icon = "yast-vpn";
             }
 
@@ -93,35 +82,35 @@ in
               name = "Microsoft Outlook";
               description = "Microsoft Email Client";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm outlook";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm outlook";
               icon = "ms-outlook";
             }
             {
               name = "Microsoft 365";
               description = "Microsoft 365 Software Suite";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm office";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm office";
               icon = "microsoft-365";
             }
             {
               name = "Teams";
               description = "Microsoft Teams Collaboration Application";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm teams";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm teams";
               icon = "teams-for-linux";
             }
             {
               name = "Text Editor";
               description = "Simple Text Editor";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm gnome-text-editor";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm gnome-text-editor";
               icon = "org.gnome.TextEditor";
             }
             {
               name = "Xarchiver";
               description = "File Compressor";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm xarchiver";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm xarchiver";
               icon = "xarchiver";
             }
 
@@ -129,7 +118,7 @@ in
               name = "GALA";
               description = "Secure Android-in-the-Cloud";
               vm = "GALA";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start gala";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start gala";
               icon = "distributor-logo-android";
             }
 
@@ -137,7 +126,7 @@ in
               name = "PDF Viewer";
               description = "Isolated PDF Viewer";
               vm = "Zathura";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm zathura-vm zathura";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm zathura-vm zathura";
               icon = "document-viewer";
             }
 
@@ -145,7 +134,7 @@ in
               name = "Element";
               description = "General Messaging Application";
               vm = "Comms";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm element";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm comms-vm element";
               icon = "element-desktop";
             }
 
@@ -153,7 +142,7 @@ in
               name = "Slack";
               description = "Teams Collaboration & Messaging Application";
               vm = "Comms";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm slack";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm comms-vm slack";
               icon = "slack";
             }
 
@@ -161,7 +150,7 @@ in
               name = "Zoom";
               description = "Zoom Videoconferencing Application";
               vm = "Comms";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm comms-vm zoom";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm comms-vm zoom";
             }
 
             {
@@ -203,7 +192,7 @@ in
               name = "Video Editor";
               description = "Losslesscut Video Editor";
               vm = "Business";
-              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm losslesscut";
+              path = "${givc-cli-wrapper}/bin/givc-cli-wrapper start --vm business-vm losslesscut";
               icon = "${pkgs.losslesscut-bin}/share/icons/losslesscut.png";
             }
 
