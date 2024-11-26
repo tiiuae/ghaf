@@ -11,7 +11,6 @@
   element-web = final.callPackage ../../packages/element-web { };
   waypipe = import ./waypipe { inherit final prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
-  nm-launcher = final.callPackage ../../packages/nm-launcher { };
   bt-launcher = final.callPackage ../../packages/bt-launcher { };
   labwc = import ./labwc { inherit prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
