@@ -87,7 +87,7 @@ in
             "interval": 15,
             "exec": "${wifi-signal-strength}/bin/wifi-signal-strength",
             "return-type": "json",
-            "on-click": "${pkgs.nm-launcher}/bin/nm-launcher",
+            "on-click": "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock ${pkgs.networkmanagerapplet}/bin/nm-applet --indicator",
           },
         ''
         + ''
@@ -104,7 +104,7 @@ in
               },
               "custom/admin": {
                 "format": " ",
-                "on-click": "${pkgs.nm-launcher}/bin/nm-launcher",
+                "on-click": "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock ${pkgs.networkmanagerapplet}/bin/nm-applet --indicator",
                 "tooltip": false
               },
               "pulseaudio": {

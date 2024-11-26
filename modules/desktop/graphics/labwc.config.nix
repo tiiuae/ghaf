@@ -345,7 +345,8 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = "${pkgs.nm-launcher}/bin/nm-launcher";
+          Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock";
+          ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
         };
         wantedBy = [ "ghaf-session.target" ];
         partOf = [ "ghaf-session.target" ];

@@ -170,7 +170,6 @@ let
                 pkgs.sticky-notes
               ])
               ++ [
-                pkgs.nm-launcher
                 pkgs.bt-launcher
                 pkgs.pamixer
                 pkgs.eww
