@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  lib,
   pkgs,
   config,
   ...
@@ -18,7 +17,6 @@
       time.timeZone = config.time.timeZone;
       ghaf.givc.appvm = {
         enable = true;
-        name = lib.mkForce "gala-vm";
         applications = [
           {
             name = "gala";

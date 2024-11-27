@@ -8,7 +8,7 @@
   ...
 }:
 let
-  inherit (lib) mkIf optionalString;
+  inherit (lib) mkIf;
   #TODO: Move this to a common place
   name = "business";
   tiiVpnAddr = "151.253.154.18";
@@ -25,6 +25,7 @@ let
         echo -e '\nwindow { border-radius: 0px; }' >> src/style.css
       '';
   });
+  givc-cli-wrapper = pkgs.callPackage ../../../packages/givc-cli-wrapper { inherit config pkgs lib; };
 in
 {
   name = "${name}";
@@ -36,7 +37,7 @@ in
       pkgs.openconnect
       gnomeTextEditor
       pkgs.xarchiver
-
+      givc-cli-wrapper
     ]
     ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ]
     ++ lib.optionals config.ghaf.givc.enable [ pkgs.open-normal-extension ];
@@ -67,7 +68,6 @@ in
         ghaf = {
           givc.appvm = {
             enable = true;
-            name = lib.mkForce "business-vm";
             applications = [
               {
                 name = "google-chrome";
@@ -128,22 +128,10 @@ in
         #         source = "${pkgs.open-normal-extension}/fi.ssrc.open_normal.json";
         #       };
         environment.etc."open-normal-extension.cfg" = mkIf config.ghaf.givc.enable {
-          text =
-            let
-              cliArgs = builtins.replaceStrings [ "\n" ] [ " " ] ''
-                --name ${config.ghaf.givc.adminConfig.name}
-                --addr ${config.ghaf.givc.adminConfig.addr}
-                --port ${config.ghaf.givc.adminConfig.port}
-                ${optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-                ${optionalString config.ghaf.givc.enableTls "--cert /run/givc/business-vm-cert.pem"}
-                ${optionalString config.ghaf.givc.enableTls "--key /run/givc/business-vm-key.pem"}
-                ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
-              '';
-            in
-            ''
-              export GIVC_PATH="${pkgs.givc-cli}"
-              export GIVC_OPTS="${cliArgs}"
-            '';
+          text = ''
+            export GIVC_PATH="${givc-cli-wrapper}"
+            export GIVC_OPTS=""
+          '';
         };
 
         # Enable dconf and icon pack for gnome text editor

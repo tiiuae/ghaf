@@ -91,7 +91,7 @@ let
 
                 storagevm = {
                   enable = true;
-                  name = "${vm.name}";
+                  name = "${vm.name}-vm";
                   users.${config.ghaf.users.accounts.user}.directories = [
                     ".config/"
                     "Downloads"
@@ -125,7 +125,6 @@ let
               environment.systemPackages = [
                 pkgs.tpm2-tools
                 pkgs.opensc
-                pkgs.givc-cli
               ];
 
               security.tpm2 = {

@@ -51,7 +51,7 @@ let
             };
             storagevm = {
               enable = true;
-              name = "adminvm";
+              name = vmName;
               files = [
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"

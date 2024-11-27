@@ -8,11 +8,38 @@ let
     mkEnableOption
     mkIf
     types
+    head
+    filter
     ;
+  name = "admin-vm";
   mitmEnabled =
     config.ghaf.virtualization.microvm.idsvm.enable
     && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;
   mitmExtraArgs = lib.optionalString mitmEnabled "--user-data-dir=/home/${config.ghaf.users.accounts.user}/.config/google-chrome/Default --test-type --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
+  getIp =
+    name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.entries));
+  getIpDebug =
+    name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.debugEntries));
+  addressSubmodule = types.submodule {
+    options = {
+      name = mkOption {
+        description = "Name of the IP range for parsing";
+        type = types.str;
+      };
+      addr = mkOption {
+        description = "IP address of admin server";
+        type = types.str;
+      };
+      port = mkOption {
+        description = "Port of admin server";
+        type = types.str;
+      };
+      protocol = mkOption {
+        description = "Protocol of admin server";
+        type = types.str;
+      };
+    };
+  };
 in
 {
   options.ghaf.givc = {
@@ -21,7 +48,7 @@ in
     enableTls = mkOption {
       description = "Enable TLS for gRPC communication globally, or disable for debugging.";
       type = types.bool;
-      default = false;
+      default = true;
     };
     idsExtraArgs = mkOption {
       description = "Extra arguments for applications when IDS/MITM is enabled.";
@@ -41,17 +68,9 @@ in
             description = "Host name of admin server";
             type = types.str;
           };
-          addr = mkOption {
-            description = "Address of admin server";
-            type = types.str;
-          };
-          port = mkOption {
-            description = "Port of admin server";
-            type = types.str;
-          };
-          protocol = mkOption {
-            description = "Protocol of admin server";
-            type = types.str;
+          addresses = mkOption {
+            description = "Addresses of admin server";
+            type = types.listOf addressSubmodule;
           };
         };
       };
@@ -59,16 +78,22 @@ in
   };
   config = mkIf cfg.enable {
     # Givc admin server configuration
-    ghaf.givc.adminConfig =
-      let
-        adminvmEntry = builtins.filter (x: x.name == "admin-vm-debug") config.ghaf.networking.hosts.entries;
-        addr = lib.head (builtins.map (x: x.ip) adminvmEntry);
-      in
-      {
-        name = "admin-vm-debug";
-        inherit addr;
-        port = "9001";
-        protocol = "tcp";
-      };
+    ghaf.givc.adminConfig = {
+      inherit name;
+      addresses = [
+        {
+          inherit name;
+          addr = getIp name;
+          port = "9001";
+          protocol = "tcp";
+        }
+        {
+          inherit name;
+          addr = getIpDebug name;
+          port = "9001";
+          protocol = "tcp";
+        }
+      ];
+    };
   };
 }

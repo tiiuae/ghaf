@@ -4,9 +4,16 @@
 let
   cfg = config.ghaf.storagevm;
   mountPath = "/guestStorage";
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    types
+    # optionals
+    ;
 in
 {
-  options.ghaf.storagevm = with lib; {
+  options.ghaf.storagevm = {
     enable = mkEnableOption "StorageVM support";
 
     name = mkOption {
@@ -86,6 +93,7 @@ in
         hideMounts = true;
         directories = [
           "/var/lib/nixos"
+          "/etc/givc"
         ];
 
         files = [

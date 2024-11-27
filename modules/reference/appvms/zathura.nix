@@ -25,7 +25,6 @@
 
         givc.appvm = {
           enable = true;
-          name = lib.mkForce "zathura-vm";
           applications = [
             {
               name = "zathura";

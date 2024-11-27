@@ -1,14 +1,24 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   cfg = config.ghaf.givc.guivm;
-  inherit (lib) mkEnableOption mkIf;
-  hostName = "gui-vm";
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    head
+    filter
+    strings
+    ;
+  getIp =
+    name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.entries));
+  admin = head (filter (x: strings.hasInfix ".100." x.addr) config.ghaf.givc.adminConfig.addresses);
   netvmName = "net-vm";
   audiovmName = "audio-vm";
-  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
-  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
 in
 {
   options.ghaf.givc.guivm = {
@@ -19,19 +29,20 @@ in
     # Configure guivm service
     givc.sysvm = {
       enable = true;
+      inherit (config.ghaf.givc) debug;
+      inherit admin;
       agent = {
-        name = hostName;
-        addr = address hostName;
+        name = config.networking.hostName;
+        addr = getIp config.networking.hostName;
         port = "9000";
       };
-      inherit (config.ghaf.givc) debug;
       tls.enable = config.ghaf.givc.enableTls;
-      admin = config.ghaf.givc.adminConfig;
+      enableUserTlsAccess = config.ghaf.givc.enableTls;
       socketProxy = [
         {
           transport = {
             name = netvmName;
-            addr = address netvmName;
+            addr = getIp netvmName;
             port = "9010";
             protocol = "tcp";
           };
@@ -40,7 +51,7 @@ in
         {
           transport = {
             name = audiovmName;
-            addr = address audiovmName;
+            addr = getIp audiovmName;
             port = "9011";
             protocol = "tcp";
           };

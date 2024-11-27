@@ -8,11 +8,22 @@
 }:
 let
   cfg = config.ghaf.givc.host;
-  inherit (builtins) map filter attrNames;
-  inherit (lib) mkEnableOption mkIf head;
-  hostName = "ghaf-host-debug";
-  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
-  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
+  inherit (builtins) map attrNames;
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    head
+    filter
+    strings
+    ;
+  getIp =
+    name: head (map (x: x.ip) (filter (x: x.name == name) config.ghaf.networking.hosts.debugEntries));
+  adminAddress = head (
+    filter (x: strings.hasInfix ".101." x.addr) config.ghaf.givc.adminConfig.addresses
+  );
+  agentAddresses =
+    config.ghaf.networking.hosts.entries
+    ++ (filter (x: lib.strings.hasInfix "host" x.name) config.ghaf.networking.hosts.debugEntries);
 in
 {
   options.ghaf.givc.host = {
@@ -24,9 +35,13 @@ in
     givc.host = {
       enable = true;
       inherit (config.ghaf.givc) debug;
+      admin = {
+        inherit (config.ghaf.givc.adminConfig) name;
+        inherit (adminAddress) addr port protocol;
+      };
       agent = {
-        name = hostName;
-        addr = address hostName;
+        name = config.networking.hostName;
+        addr = getIp config.networking.hostName;
         port = "9000";
       };
       services = [
@@ -35,7 +50,18 @@ in
         "suspend.target"
       ] ++ map (vmName: "microvm@${vmName}.service") (attrNames config.microvm.vms);
       tls.enable = config.ghaf.givc.enableTls;
-      admin = config.ghaf.givc.adminConfig;
+    };
+
+    givc.tls = {
+      enable = config.ghaf.givc.enableTls;
+      agents = map (entry: {
+        inherit (entry) name;
+        addr = entry.ip;
+      }) agentAddresses;
+      adminTlsName = config.ghaf.givc.adminConfig.name;
+      adminAddresses = config.ghaf.givc.adminConfig.addresses;
+      generatorHostName = config.networking.hostName;
+      storagePath = "/storagevm";
     };
   };
 }

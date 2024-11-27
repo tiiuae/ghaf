@@ -7,12 +7,12 @@
   ...
 }:
 let
-  inherit (builtins) replaceStrings;
   inherit (lib) optionalString;
 
   cfg = config.ghaf.graphics.labwc;
   useGivc = config.ghaf.givc.enable;
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
+  givc-cli-wrapper = pkgs.callPackage ../../../packages/givc-cli-wrapper { inherit config pkgs lib; };
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
 
   launcher-icon = "${pkgs.ghaf-artwork}/icons/launcher.svg";
@@ -53,16 +53,6 @@ let
 
   # Called by eww.yuck for updates and reloads
   eww = "${pkgs.eww}/bin/eww -c /etc/eww";
-
-  cliArgs = replaceStrings [ "\n" ] [ " " ] ''
-    --name ${config.ghaf.givc.adminConfig.name}
-    --addr ${config.ghaf.givc.adminConfig.addr}
-    --port ${config.ghaf.givc.adminConfig.port}
-    ${optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-    ${optionalString config.ghaf.givc.enableTls "--cert /run/givc/gui-vm-cert.pem"}
-    ${optionalString config.ghaf.givc.enableTls "--key /run/givc/gui-vm-key.pem"}
-    ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
-  '';
 
   eww-bat = pkgs.writeShellApplication {
     name = "eww-bat";
@@ -193,7 +183,7 @@ let
         if ! [[ $workspace =~ ^[0-9]+$ ]] ; then
             workspace="1"
         fi
-        
+
         ${eww} update \
           volume="$volume" \
           brightness="$brightness" \
@@ -242,7 +232,7 @@ let
               kill "$popup_timer_pid" 2>/dev/null
               popup_timer_pid=0
             fi
-            
+
             if ! ${eww} active-windows | grep -q "brightness-popup"; then
               ${eww} open brightness-popup
               ${eww} update brightness-popup-visible="true"
@@ -415,7 +405,7 @@ let
 
   eww-power = pkgs.writeShellApplication {
     name = "eww-power";
-    runtimeInputs = if useGivc then [ pkgs.givc-cli ] else [ pkgs.systemd ];
+    runtimeInputs = if useGivc then [ givc-cli-wrapper ] else [ pkgs.systemd ];
     bashOptions = [ ];
     text = ''
       if [ $# -ne 1 ]; then
@@ -424,7 +414,7 @@ let
 
       case "$1" in
       reboot|poweroff)
-          ${if useGivc then "givc-cli ${cliArgs}" else "systemctl"} "$1"
+          ${if useGivc then "givc-cli-wrapper" else "systemctl"} "$1"
           ;;
       suspend)
           # Lock sessions
@@ -434,7 +424,7 @@ let
           WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
 
           # Send suspend command to host
-          ${if useGivc then "${pkgs.givc-cli}/bin/givc-cli ${cliArgs}" else "systemctl"} suspend
+          ${if useGivc then "${givc-cli-wrapper}/bin/givc-cli-wrapper" else "systemctl"} suspend
 
           # Switch on display on wakeup
           WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
@@ -453,7 +443,7 @@ in
     environment.etc."eww/eww.yuck" = {
       text = ''
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;;							   Variables        					     ;;	
+        ;;							   Variables        					     ;;
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         (defpoll keyboard_layout :interval "5s" "${pkgs.xorg.setxkbmap}/bin/setxkbmap -query | ${pkgs.gawk}/bin/awk '/layout/{print $2}' | tr a-z A-Z")
         (defpoll battery  :interval "5s" :initial "{}" "${eww-bat}/bin/eww-bat get")
@@ -471,7 +461,7 @@ in
         ;; (defpoll bluetooth  :interval "3s" :initial "{}" "${pkgs.bt-launcher}/bin/bt-launcher status")
 
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;;							    Widgets        							 ;;	
+        ;;							    Widgets        							 ;;
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;; Launcher ;;
         (defwidget launcher []
@@ -481,20 +471,20 @@ in
                     :style "background-image: url(\"${launcher-icon}\")")))
 
         ;; Generic slider widget ;;
-        (defwidget sys_slider [?header icon ?settings-icon level ?onchange ?settings-onclick ?icon-onclick ?class ?font-icon ?min] 
+        (defwidget sys_slider [?header icon ?settings-icon level ?onchange ?settings-onclick ?icon-onclick ?class ?font-icon ?min]
             (box :orientation "v"
                 :class "qs-slider"
                 :spacing 10
                 :space-evenly false
-                (label :class "header" 
-                    :visible { header != "" && header != "null" ? "true" : "false" } 
+                (label :class "header"
+                    :visible { header != "" && header != "null" ? "true" : "false" }
                     :text header
                     :halign "start"
                     :hexpand true)
-                (box :orientation "h" 
+                (box :orientation "h"
                     :valign "end"
                     :space-evenly false
-                    (eventbox 
+                    (eventbox
                         :active { icon-onclick != "" && icon-onclick != "null" ? "true" : "false" }
                         :visible {font-icon == "" ? "true" : "false"}
                         :onclick icon-onclick
@@ -514,9 +504,9 @@ in
                             :halign "fill"
                             :value level
                             :onchange onchange
-                            :max 101 
+                            :max 101
                             :min { min ?: 0 }))
-                    (eventbox 
+                    (eventbox
                         :visible { settings-onclick != "" && settings-onclick != "null" ? "true" : "false" }
                         :onclick settings-onclick
                         :class "settings"
@@ -545,15 +535,15 @@ in
                         :onchange "${eww-brightness}/bin/eww-brightness set_screen {} &")))
 
         ;; Generic Widget Buttons For Quick Settings ;;
-        (defwidget widget_button [icon ?title ?header ?subtitle ?onclick ?font-icon ?class] 
+        (defwidget widget_button [icon ?title ?header ?subtitle ?onclick ?font-icon ?class]
             (eventbox :class { class == "" ? "widget-button" : "''${class}" }
                 :onclick onclick
                 (box :orientation "v"
                     :class "inner-box"
                     :spacing 6
                     :space-evenly false
-                    (label :class "header" 
-                        :visible { header != "" && header != "null" ? "true" : "false" } 
+                    (label :class "header"
+                        :visible { header != "" && header != "null" ? "true" : "false" }
                         :text header
                         :hexpand true
                         :vexpand true
@@ -575,7 +565,7 @@ in
                         (label :class "icon" :visible {font-icon != "" ? "true" : "false"} :text font-icon)
                         (box :class "text"
                             :valign "center"
-                            :orientation "v" 
+                            :orientation "v"
                             :spacing 3
                             :halign "start"
                             :hexpand true
@@ -643,10 +633,10 @@ in
                         :visible { EWW_BATTERY != "" ? "true" : "false" }
                         :header "Battery"
                         :title {EWW_BATTERY != "" ? "''${battery.capacity}%" : "100%"}
-                        :subtitle { battery.status == 'Charging' ? "Charging" : 
-                                    battery.hours != "0" && battery.minutes != "0" ? "''${battery.hours}h ''${battery.minutes}m" : 
+                        :subtitle { battery.status == 'Charging' ? "Charging" :
+                                    battery.hours != "0" && battery.minutes != "0" ? "''${battery.hours}h ''${battery.minutes}m" :
                                     battery.hours == "0" && battery.minutes != "0" ? "''${battery.minutes}m" :
-                                    battery.hours != "0" && battery.minutes == "0" ? "''${battery.hours}h" : 
+                                    battery.hours != "0" && battery.minutes == "0" ? "''${battery.hours}h" :
                                     "" }
                         :icon {battery.icon})
                     (widget_button
@@ -657,10 +647,10 @@ in
 
         ;; Quick Settings Widget ;;
         (defwidget quick-settings-widget []
-            (box :class "floating-widget"  
+            (box :class "floating-widget"
                 :orientation "v"
                 :space-evenly false
-                (box 
+                (box
                     :class "wrapper_widget"
                     :space-evenly false
                     :spacing 10
@@ -670,10 +660,10 @@ in
 
         ;; Power Menu Widget ;;
         (defwidget power-menu-widget []
-            (box :class "floating-widget"  
+            (box :class "floating-widget"
                 :orientation "v"
                 :space-evenly false
-                (box 
+                (box
                     :class "wrapper_widget"
                     :space-evenly false
                     :orientation "v"
@@ -709,9 +699,9 @@ in
                             ''${EWW_CMD} open --screen ''${screen} closer --arg window=\"quick-settings\" && ''${EWW_CMD} open --screen ''${screen} quick-settings; \
                           fi &"
                 (box :orientation "h"
-                    :space-evenly "false" 
+                    :space-evenly "false"
                     :spacing 14
-                    :valign "center" 
+                    :valign "center"
                     (box :class "icon"
                         :hexpand false
                         :style "background-image: url(\"''${bright-icon}\")")
@@ -724,9 +714,9 @@ in
 
         ;; Power Menu Launcher ;;
         (defwidget power-menu-launcher [screen]
-            (button :class "icon_button icon" 
-                :halign "center" 
-                :valign "center" 
+            (button :class "icon_button icon"
+                :halign "center"
+                :valign "center"
                 :onclick "if ''${EWW_CMD} active-windows | grep -q 'power-menu'; then \
                             ''${EWW_CMD} close closer power-menu & \
                           else \
@@ -741,12 +731,12 @@ in
         ;; so the user can close the specified window (widget) simply by clicking "outside"
         (defwidget closer [window]
             (eventbox :onclick "(''${EWW_CMD} close ''${window} closer) &"))
-        ;; Quick Settings Launcher ;;	
+        ;; Quick Settings Launcher ;;
         (defwidget control [screen]
-            (box :orientation "h" 
-                :space-evenly "false" 
+            (box :orientation "h"
+                :space-evenly "false"
                 :spacing 14
-                :valign "center" 
+                :valign "center"
                 :class "control"
                 (quick-settings-button :screen screen
                     :bright-icon {brightness.icon}
@@ -770,13 +760,13 @@ in
 
         ;; Clock ;;
         (defwidget time []
-            (label 
+            (label
                 :text "''${formattime(EWW_TIME, "%H:%M")}"
                 :class "time"))
 
         ;; Date ;;
         (defwidget date [screen]
-            (button 
+            (button
                 :onclick "''${EWW_CMD} update calendar_day=\"$(date +%d)\" calendar_month=\"$(date +%-m)\" calendar_year=\"$(date +%Y)\" & \
                           if ''${EWW_CMD} active-windows | grep -q 'calendar'; then \
                             ''${EWW_CMD} close closer calendar & \
@@ -788,9 +778,9 @@ in
 
         ;; Calendar ;;
         (defwidget cal []
-            (box :class "floating-widget" 
+            (box :class "floating-widget"
                 (box :class "wrapper_widget"
-                    (calendar :class "cal" 
+                    (calendar :class "cal"
                         :show-week-numbers false
                         :day calendar_day
                         :month calendar_month
@@ -805,7 +795,7 @@ in
                         :tooltip "Current workspace"
                         :onclick {workspaces-visible == "false" ? "''${EWW_CMD} update workspaces-visible=true" : "''${EWW_CMD} update workspaces-visible=false"}
                         workspace)
-                (revealer 
+                (revealer
                     :transition "slideright"
                     :duration "250ms"
                     :reveal workspaces-visible
@@ -820,36 +810,36 @@ in
                                 "2"))))))
 
         (defwidget left []
-            (box	
-                :orientation "h" 
+            (box
+                :orientation "h"
                 :space-evenly "false"
-                :spacing 14 
-                :halign "start" 
-                :valign "center" 
+                :spacing 14
+                :halign "start"
+                :valign "center"
                 (launcher)
                 (divider)
                 (workspaces)))
 
         ;; Right Widgets ;;
         (defwidget datetime-locale [screen]
-            (box	
+            (box
                 :orientation "h"
                 :space-evenly "false"
                 :spacing 14
                 (language)
                 (box
-                    :orientation "h" 
-                    :space-evenly "true" 
+                    :orientation "h"
+                    :space-evenly "true"
                     :spacing 14
                     (time)
                     (date :screen screen))))
 
         ;; End Widgets ;;
         (defwidget end [screen]
-            (box :orientation "h" 
-                :space-evenly "false" 
-                :halign "end" 
-                :valign "center" 
+            (box :orientation "h"
+                :space-evenly "false"
+                :halign "end"
+                :valign "center"
                 :spacing 14
                 (systray :orientation "h" :spacing 14 :prepend-new true :class "tray")
                 (divider)
@@ -860,24 +850,24 @@ in
 
         ;; Bar ;;
         (defwidget bar [screen]
-            (box 
+            (box
                 :class "eww_bar"
-                :orientation "h" 
-                :vexpand "false" 
+                :orientation "h"
+                :vexpand "false"
                 :hexpand "false"
                 (left)
                 (end :screen screen)))
 
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-        ;;							       Windows   							 ;;	
+        ;;							       Windows   							 ;;
         ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
         ;; Bar Window ;;
         (defwindow bar [screen]
-            :geometry (geometry  
-                        :x "0px" 
-                        :y "0px" 
+            :geometry (geometry
+                        :x "0px"
+                        :y "0px"
                         :height "36px"
-                        :width "100%" 
+                        :width "100%"
                         :anchor "top center")
             :wm-ignore true
             :windowtype "normal"
@@ -889,7 +879,7 @@ in
 
         ;; Calendar Window ;;
         (defwindow calendar
-            :geometry (geometry :y "0px" 
+            :geometry (geometry :y "0px"
                                 :x "0px"
                                 :anchor "top right")
             :stacking "fg"
@@ -906,7 +896,7 @@ in
         ${lib.optionalString useGivc ''
           ;; Quick settings window ;;
           (defwindow quick-settings
-              :geometry (geometry :y "0px" 
+              :geometry (geometry :y "0px"
                                   :x "0px"
                                   :anchor "top right")
               :stacking "fg"
@@ -1181,21 +1171,21 @@ in
             }
         }
 
-        .qs-widget { 
+        .qs-widget {
             @include unset($rec: true);
             @include qs-widget;
         }
 
-        .wrapper_widget { 
+        .wrapper_widget {
             @include unset($rec: true);
-            @include wrapper_widget; 
+            @include wrapper_widget;
         }
 
         .icon { @include icon; }
 
         .floating-widget { @include floating_widget; }
 
-        .qs-slider { 
+        .qs-slider {
             @include unset($rec: true);
             @include sys-sliders;
             @include qs-widget($min-height: 0px);

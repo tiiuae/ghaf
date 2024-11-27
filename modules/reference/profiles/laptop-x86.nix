@@ -3,8 +3,6 @@
 { config, lib, ... }:
 let
   cfg = config.ghaf.reference.profiles.laptop-x86;
-  listenerAddress = config.ghaf.logging.listener.address;
-  listenerPort = toString config.ghaf.logging.listener.port;
 in
 {
   imports = [
@@ -109,8 +107,7 @@ in
       };
 
       # Enable givc
-      # @TODO change this flag to enable givc in release
-      givc.enable = config.ghaf.profiles.debug.enable;
+      givc.enable = true;
       givc.debug = false;
 
       host = {
@@ -121,18 +118,6 @@ in
       # TODO fix this when defining desktop and apps
       profiles = {
         applications.enable = false;
-      };
-
-      # Logging configuration
-      logging = {
-        client = {
-          enable = true;
-          endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
-        };
-        listener = {
-          address = "admin-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug";
-          port = 9999;
-        };
       };
     };
   };

@@ -9,6 +9,8 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm-host;
+  listenerAddress = config.ghaf.logging.listener.address;
+  listenerPort = toString config.ghaf.logging.listener.port;
 in
 {
   imports = [
@@ -36,25 +38,39 @@ in
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
       microvm.host.enable = true;
-      ghaf.systemd = {
-        withName = "host-systemd";
-        enable = true;
-        boot.enable = true;
-        withAudit = config.ghaf.profiles.debug.enable;
-        withPolkit = true;
-        withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
-        withRepart = true;
-        withFido2 = true;
-        withCryptsetup = true;
-        withLocaled = true;
-        withTimesyncd = cfg.networkSupport;
-        withNss = cfg.networkSupport;
-        withResolved = cfg.networkSupport;
-        withSerial = config.ghaf.profiles.debug.enable;
-        withDebug = config.ghaf.profiles.debug.enable;
-        withHardenedConfigs = true;
+      ghaf = {
+        systemd = {
+          withName = "host-systemd";
+          enable = true;
+          boot.enable = true;
+          withAudit = config.ghaf.profiles.debug.enable;
+          withPolkit = true;
+          withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
+          withRepart = true;
+          withFido2 = true;
+          withCryptsetup = true;
+          withLocaled = true;
+          withTimesyncd = cfg.networkSupport;
+          withNss = cfg.networkSupport;
+          withResolved = cfg.networkSupport;
+          withSerial = config.ghaf.profiles.debug.enable;
+          withDebug = config.ghaf.profiles.debug.enable;
+          withHardenedConfigs = true;
+        };
+        givc.host.enable = true;
+
+        # Logging configuration
+        logging = {
+          client = {
+            enable = true;
+            endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
+          };
+          listener = {
+            address = "admin-vm";
+            port = 9999;
+          };
+        };
       };
-      ghaf.givc.host.enable = true;
       services.logind.lidSwitch = "ignore";
 
       # TODO: remove hardcoded paths

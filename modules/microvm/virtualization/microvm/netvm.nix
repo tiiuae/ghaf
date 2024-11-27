@@ -68,8 +68,10 @@ let
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
             storagevm = {
               enable = true;
-              name = "netvm";
-              directories = [ "/etc/NetworkManager/system-connections/" ];
+              name = vmName;
+              directories = [
+                "/etc/NetworkManager/system-connections/"
+              ];
             };
           };
 

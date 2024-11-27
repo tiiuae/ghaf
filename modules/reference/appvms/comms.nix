@@ -16,6 +16,7 @@ let
       config.ghaf.reference.services.dendrite
     else
       false;
+  givc-cli-wrapper = pkgs.callPackage ../../../packages/givc-cli-wrapper { inherit config pkgs lib; };
 in
 {
   name = "${name}";
@@ -26,6 +27,7 @@ in
     pkgs.element-gps
     pkgs.gpsd
     pkgs.tcpdump
+    givc-cli-wrapper
   ] ++ pkgs.lib.optionals isDendritePineconeEnabled [ dendrite-pinecone ];
   macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
@@ -89,7 +91,6 @@ in
 
       ghaf.givc.appvm = {
         enable = true;
-        name = lib.mkForce "${name}-vm";
         applications = [
           {
             name = "element";

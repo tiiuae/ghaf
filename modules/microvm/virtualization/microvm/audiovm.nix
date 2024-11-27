@@ -64,7 +64,7 @@ let
             logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
             storagevm = {
               enable = true;
-              name = "audiovm";
+              name = vmName;
             };
           };
 

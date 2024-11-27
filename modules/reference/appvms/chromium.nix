@@ -9,11 +9,13 @@
 }:
 let
   name = "chromium";
+  givc-cli-wrapper = pkgs.callPackage ../../../packages/givc-cli-wrapper { inherit config pkgs lib; };
 in
 {
   name = "${name}";
   packages = [
     pkgs.chromium
+    givc-cli-wrapper
   ] ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
   # TODO create a repository of mac addresses to avoid conflicts
   macAddress = "02:00:00:03:05:01";
@@ -34,7 +36,6 @@ in
 
       ghaf.givc.appvm = {
         enable = true;
-        name = lib.mkForce "chromium-vm";
         applications = [
           {
             name = "chromium";
