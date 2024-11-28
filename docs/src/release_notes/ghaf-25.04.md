@@ -123,5 +123,3 @@ Fixed bugs that were present in the [ghaf-25.03](../release_notes/ghaf-25.03.md)
 Released images are available at [archive.vedenemo.dev/ghaf-25.04](https://archive.vedenemo-dev/ghaf-25.04).
 
 Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run.md).
-
-
