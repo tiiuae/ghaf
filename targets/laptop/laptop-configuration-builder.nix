@@ -52,7 +52,7 @@ let
       inherit hostConfiguration;
       inherit variant;
       name = "${machineType}-${variant}";
-      package = hostConfiguration.config.system.build.diskoImages;
+      package = hostConfiguration.config.system.build.ghafImage;
     };
 in
 mkLaptopConfiguration
