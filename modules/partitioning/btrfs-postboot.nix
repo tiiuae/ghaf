@@ -1,14 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  config,
   pkgs,
+  config,
   lib,
   ...
 }:
 let
-  cfg = config.ghaf.partitioning.disko;
-
   postBootCmds = pkgs.writeShellApplication {
     name = "postBootScript";
     runtimeInputs = with pkgs; [
@@ -47,9 +45,13 @@ let
       parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
     '';
   };
+
+  enable =
+    ((builtins.hasAttr "verity" config.ghaf.partitioning) && config.ghaf.partitioning.verity.enable)
+    || ((builtins.hasAttr "disko" config.ghaf.partitioning) && config.ghaf.partitioning.disko.enable);
 in
 {
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf enable {
     # To debug postBootCommands, one may run
     # journalctl -u initrd-nixos-activation.service
     # inside the running Ghaf host.

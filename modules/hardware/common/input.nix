@@ -3,15 +3,10 @@
 #
 { config, lib, ... }:
 let
-  inherit (lib) concatMapStringsSep;
   cfg = config.ghaf.hardware.definition;
 in
 {
   config = {
-    # Disk configuration
-    # TODO Remove or move this
-    disko.devices.disk = cfg.disks;
-
     # Host udev rules for input devices
     services.udev.extraRules = ''
       # Misc

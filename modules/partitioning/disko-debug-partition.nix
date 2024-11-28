@@ -23,7 +23,7 @@ let
 in
 {
   options.ghaf.partitioning.disko = {
-    enable = lib.mkEnableOption "Enable the disko partitioning scheme";
+    enable = lib.mkEnableOption "the disko partitioning scheme";
 
     imageBuilder.compression = lib.mkOption {
       type = lib.types.enum [
@@ -36,6 +36,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    system.build.ghafImage = config.system.build.diskoImages;
     disko = {
       imageBuilder = {
         extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
@@ -44,71 +45,73 @@ in
         '';
       };
       devices = {
-        disk.disk1 = {
-          type = "disk";
-          imageSize = "60G";
-          content = {
-            type = "gpt";
-            partitions = {
-              boot = {
-                name = "boot";
-                size = "1M";
-                type = "EF02";
-                priority = 1; # Needs to be first partition
-              };
-              esp = {
-                name = "ESP";
-                size = "500M";
-                type = "EF00";
-                content = {
-                  type = "filesystem";
-                  format = "vfat";
-                  mountpoint = "/boot";
-                  mountOptions = [
-                    "umask=0077"
-                    "nofail"
-                  ];
+        disk = {
+          disk1 = {
+            type = "disk";
+            imageSize = "60G";
+            content = {
+              type = "gpt";
+              partitions = {
+                boot = {
+                  name = "boot";
+                  size = "1M";
+                  type = "EF02";
+                  priority = 1; # Needs to be first partition
                 };
-                priority = 2;
-              };
-              swap = {
-                size = "12G";
-                type = "8200";
-                content = {
-                  type = "swap";
-                  resumeDevice = true; # resume from hiberation from this device
-                  randomEncryption = true;
+                esp = {
+                  name = "ESP";
+                  size = "500M";
+                  type = "EF00";
+                  content = {
+                    type = "filesystem";
+                    format = "vfat";
+                    mountpoint = "/boot";
+                    mountOptions = [
+                      "umask=0077"
+                      "nofail"
+                    ];
+                  };
+                  priority = 2;
                 };
-                priority = 3;
-              };
-              root = {
-                size = "40G";
-                content = {
-                  type = "filesystem";
-                  format = "ext4";
-                  mountpoint = "/";
-                  mountOptions = [
-                    "noatime"
-                    "nodiratime"
-                  ];
+                swap = {
+                  size = "12G";
+                  type = "8200";
+                  content = {
+                    type = "swap";
+                    resumeDevice = true; # resume from hiberation from this device
+                    randomEncryption = true;
+                  };
+                  priority = 3;
                 };
-                priority = 4;
-              };
-              persist = {
-                size = "100%";
-                content = {
-                  type = "filesystem";
-                  format = "btrfs";
-                  mountpoint = "/persist";
-                  mountOptions = [
-                    "noatime"
-                    "nodiratime"
-                  ];
+                root = {
+                  size = "40G";
+                  content = {
+                    type = "filesystem";
+                    format = "ext4";
+                    mountpoint = "/";
+                    mountOptions = [
+                      "noatime"
+                      "nodiratime"
+                    ];
+                  };
+                  priority = 4;
+                };
+                persist = {
+                  size = "100%";
+                  content = {
+                    type = "filesystem";
+                    format = "btrfs";
+                    mountpoint = "/persist";
+                    mountOptions = [
+                      "noatime"
+                      "nodiratime"
+                    ];
+                  };
                 };
               };
             };
           };
-        };
+        } // (if (builtins.hasAttr "disks" cfg) then cfg.disks else { });
       };
     };
   };

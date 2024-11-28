@@ -6,7 +6,13 @@
     disko-debug-partition.imports = [
       inputs.disko.nixosModules.disko
       ./disko-debug-partition.nix
-      ./disko-postboot.nix
+      ./btrfs-postboot.nix
+    ];
+    verity-release-partition.imports = [
+      ./verity-partition.nix
+      ./verity-repart.nix
+      ./verity-sysupdate.nix
+      ./btrfs-postboot.nix
     ];
   };
 }

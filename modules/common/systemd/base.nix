@@ -16,7 +16,6 @@ let
     mkIf
     mkForce
     types
-    optionalAttrs
     ;
 
   # Override minimal systemd package configuration
@@ -59,6 +58,7 @@ let
         inherit (cfg) withUkify;
         withUserDb = cfg.withHomed;
         withUtmp = cfg.withJournal || cfg.withAudit;
+        inherit (cfg) withSysupdate;
       }
       // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
         withVmspawn = cfg.withMachines;
@@ -313,6 +313,12 @@ in
 
     withSerial = mkOption {
       description = "Enable systemd serial console.";
+      type = types.bool;
+      default = false;
+    };
+
+    withSysupdate = mkOption {
+      description = "Enable systemd system update functionality.";
       type = types.bool;
       default = false;
     };
