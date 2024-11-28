@@ -14,7 +14,6 @@
   bt-launcher = final.callPackage ../../packages/bt-launcher { };
   labwc = import ./labwc { inherit prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
-  waybar = import ./waybar { inherit prev; };
   mitmweb-ui = final.callPackage ../../packages/mitmweb-ui { };
   open-normal-extension = final.callPackage ../../packages/open-normal-extension { };
   hardware-scan = final.callPackage ../../packages/hardware-scan { };

@@ -7,12 +7,14 @@
   ...
 }:
 let
-  inherit (builtins) replaceStrings;
   inherit (lib) optionalString;
 
   cfg = config.ghaf.graphics.labwc;
   useGivc = config.ghaf.givc.enable;
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
+  ghaf-powercontrol = pkgs.callPackage ../../../packages/ghaf-powercontrol {
+    ghafConfig = config.ghaf;
+  };
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
 
   launcher-icon = "${pkgs.ghaf-artwork}/icons/launcher.svg";
@@ -52,17 +54,7 @@ let
   arrow-right-icon = "${pkgs.ghaf-artwork}/icons/arrow-right.svg";
 
   # Called by eww.yuck for updates and reloads
-  eww = "${pkgs.eww}/bin/eww -c /etc/eww";
-
-  cliArgs = replaceStrings [ "\n" ] [ " " ] ''
-    --name ${config.ghaf.givc.adminConfig.name}
-    --addr ${config.ghaf.givc.adminConfig.addr}
-    --port ${config.ghaf.givc.adminConfig.port}
-    ${optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-    ${optionalString config.ghaf.givc.enableTls "--cert /run/givc/gui-vm-cert.pem"}
-    ${optionalString config.ghaf.givc.enableTls "--key /run/givc/gui-vm-key.pem"}
-    ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
-  '';
+  ewwCmd = "${pkgs.eww}/bin/eww -c /etc/eww";
 
   eww-bat = pkgs.writeShellApplication {
     name = "eww-bat";
@@ -162,8 +154,8 @@ let
         echo "Found connected displays: $displays"
 
         # Start eww daemon
-        ${eww} kill
-        ${eww} daemon
+        ${ewwCmd} kill
+        ${ewwCmd} daemon
         sleep 0.2
         update-vars
         sleep 0.2
@@ -171,13 +163,13 @@ let
         # Launch ewwbar for each connected display
         for ((display=0; display<displays; display++)); do
             echo Starting ewwbar for display $display
-            ${eww} open --no-daemonize --screen "$display" bar --id bar:$display --arg screen="$display"
+            ${ewwCmd} open --no-daemonize --screen "$display" bar --id bar:$display --arg screen="$display"
         done
       }
 
       # Reloads current config without opening new windows
       reload() {
-        ${eww} reload
+        ${ewwCmd} reload
         update-vars
       }
 
@@ -194,7 +186,7 @@ let
             workspace="1"
         fi
         
-        ${eww} update \
+        ${ewwCmd} update \
           volume="$volume" \
           brightness="$brightness" \
           battery="$battery" \
@@ -203,7 +195,7 @@ let
       }
 
       kill() {
-        ${eww} kill
+        ${ewwCmd} kill
       }
 
       case "$1" in
@@ -233,31 +225,6 @@ let
     ];
     bashOptions = [ ];
     text = ''
-      popup_timer_pid=0
-
-      show_popup() {
-        if ! ${eww} active-windows | grep -q "quick-settings"; then
-            # Reset timer
-            if [ "$popup_timer_pid" -ne 0 ]; then
-              kill "$popup_timer_pid" 2>/dev/null
-              popup_timer_pid=0
-            fi
-            
-            if ! ${eww} active-windows | grep -q "brightness-popup"; then
-              ${eww} open brightness-popup
-              ${eww} update brightness-popup-visible="true"
-            fi
-            (
-              sleep 2
-              ${eww} update brightness-popup-visible="false"
-              sleep 0.1
-              ${eww} close brightness-popup
-            ) &
-
-            popup_timer_pid=$!
-        fi
-      }
-
       icon() {
           if [ "$1" -eq 0 ]; then
               echo "${brightness-0-icon}"
@@ -281,25 +248,15 @@ let
       }
 
       get() {
-          if [ -z "$1" ]; then
-              brightness=$(brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}')
-          else
-              brightness="$1"
-          fi
+          brightness=$(brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}')
           icon=$(icon "$brightness")
           echo "{ \"screen\": { \"level\": \"$brightness\" }, \"icon\": \"$icon\" }"
       }
 
       listen() {
-        prev_brightness=""
         inotifywait -m -e close_write /sys/class/backlight/*/brightness |
         while read -r; do
-            current_brightness=$(brightnessctl info | grep -oP '(?<=\().+?(?=%)' | awk '{print $1 + 0.0}')
-            get "$current_brightness" &
-            if [[ "$current_brightness" != "$prev_brightness" ]]; then
-                show_popup > /dev/null 2>&1
-            fi
-            prev_brightness="$current_brightness"
+            get &
         done
       }
 
@@ -330,31 +287,6 @@ let
     bashOptions = [ ];
     text = ''
       export PULSE_SERVER=audio-vm:${toString pulseaudioTcpControlPort}
-      popup_timer_pid=0
-
-      show_popup() {
-        if ! ${eww} active-windows | grep -q "quick-settings"; then
-            # Reset timer
-            if [ "$popup_timer_pid" -ne 0 ]; then
-              kill "$popup_timer_pid" 2>/dev/null
-              popup_timer_pid=0
-            fi
-
-            if ! ${eww} active-windows | grep -q "volume-popup"; then
-              ${eww} open volume-popup
-              ${eww} update volume-popup-visible="true"
-            fi
-            (
-              sleep 2
-              ${eww} update volume-popup-visible="false"
-              sleep 0.1
-              ${eww} close volume-popup
-            ) &
-
-            popup_timer_pid=$!
-        fi
-      }
-
 
       icon() {
           if [[ "$2" == "true" || "$1" -eq 0 ]]; then
@@ -369,26 +301,16 @@ let
       }
 
       get() {
-          if [ -z "$1" ]; then
-              volume=$(pamixer --get-volume)
-          else
-              volume="$1"
-          fi
+          volume=$(pamixer --get-volume)
           muted=$(pamixer --get-mute)
           icon=$(icon "$volume" "$muted")
           echo "{ \"level\": \"$volume\", \"muted\": \"$muted\", \"icon\": \"$icon\" }"
       }
 
       listen() {
-        prev_volume=""
         pactl subscribe | while read -r event; do
             if [[ "$event" == *"change"* ]]; then
-                volume=$(pamixer --get-volume)
-                get "$volume" &
-                if [[ "$volume" != "$prev_volume" ]]; then
-                    show_popup > /dev/null 2>&1
-                fi
-                prev_volume="$volume"
+                get &
             fi
         done
       }
@@ -413,39 +335,48 @@ let
     '';
   };
 
-  eww-power = pkgs.writeShellApplication {
-    name = "eww-power";
-    runtimeInputs = if useGivc then [ pkgs.givc-cli ] else [ pkgs.systemd ];
-    bashOptions = [ ];
-    text = ''
-      if [ $# -ne 1 ]; then
-        echo "Usage: $0 {reboot|poweroff|suspend}"
-      fi
+  mkPopupHandler =
+    {
+      name,
+      stateFile,
+      popupName,
+    }:
+    pkgs.writeShellApplication {
+      inherit name;
+      runtimeInputs = [ pkgs.inotify-tools ];
+      # Needed to prevent script from exiting prematurely
+      bashOptions = [ ];
+      text = ''
+        mkdir -p ~/.config/eww
+        echo 1 > ~/.config/eww/${stateFile} && sleep 0.5
+        popup_timer_pid=0
 
-      case "$1" in
-      reboot|poweroff)
-          ${if useGivc then "givc-cli ${cliArgs}" else "systemctl"} "$1"
-          ;;
-      suspend)
-          # Lock sessions
-          ${pkgs.systemd}/bin/loginctl lock-session
+        show_popup() {
+            if [ "$popup_timer_pid" -ne 0 ]; then
+              kill "$popup_timer_pid" 2>/dev/null
+              popup_timer_pid=0
+            fi
 
-          # Switch off display before suspension
-          WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+            if ! ${ewwCmd} active-windows | grep -q "${popupName}"; then
+              ${ewwCmd} open ${popupName}
+              ${ewwCmd} update ${popupName}-visible="true"
+            fi
+            (
+              sleep 2
+              ${ewwCmd} update ${popupName}-visible="false"
+              sleep 0.1
+              ${ewwCmd} close ${popupName}
+            ) &
 
-          # Send suspend command to host
-          ${if useGivc then "${pkgs.givc-cli}/bin/givc-cli ${cliArgs}" else "systemctl"} suspend
+            popup_timer_pid=$!
+        }
 
-          # Switch on display on wakeup
-          WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
-          ;;
-      *)
-          echo "Invalid argument: $1"
-          echo "Usage: $0 {reboot|poweroff|suspend}"
-          ;;
-      esac
-    '';
-  };
+        inotifywait -m -e close_write ~/.config/eww/${stateFile} |
+        while read -r; do
+            show_popup > /dev/null 2>&1
+        done
+      '';
+    };
 in
 {
   config = lib.mkIf cfg.enable {
@@ -538,7 +469,7 @@ in
                         :level { volume.muted == "true" ? "0" : volume.level }
                         :onchange "PULSE_SERVER=audio-vm:${toString pulseaudioTcpControlPort} ${pkgs.pamixer}/bin/pamixer --unmute --set-volume {} &")
                 (sys_slider
-                        :header "Display"
+                        :header "Brightness"
                         :level {brightness.screen.level}
                         :icon {brightness.icon}
                         :min "5"
@@ -593,19 +524,14 @@ in
             :space-evenly "false"
             (widget_button
                     :class "power-menu-button"
-                    :icon "${power-icon}"
-                    :title "Shutdown"
-                    :onclick "''${EWW_CMD} close power-menu closer & ${eww-power}/bin/eww-power poweroff &")
+                    :icon "${lock-icon}"
+                    :title "Lock"
+                    :onclick "''${EWW_CMD} close power-menu closer & loginctl lock-session &")
             (widget_button
                     :class "power-menu-button"
                     :icon "${suspend-icon}"
                     :title "Suspend"
-                    :onclick "''${EWW_CMD} close power-menu closer & ${eww-power}/bin/eww-power suspend &")
-            (widget_button
-                    :class "power-menu-button"
-                    :icon "${restart-icon}"
-                    :title "Reboot"
-                    :onclick "''${EWW_CMD} close power-menu closer & ${eww-power}/bin/eww-power reboot &")
+                    :onclick "''${EWW_CMD} close power-menu closer & ${ghaf-powercontrol}/bin/ghaf-powercontrol suspend &")
             (widget_button
                     :class "power-menu-button"
                     :icon "${logout-icon}"
@@ -613,9 +539,14 @@ in
                     :onclick "''${EWW_CMD} close power-menu closer & ${pkgs.labwc}/bin/labwc --exit &")
             (widget_button
                     :class "power-menu-button"
-                    :icon "${lock-icon}"
-                    :title "Lock"
-                    :onclick "''${EWW_CMD} close power-menu closer & loginctl lock-session &")))
+                    :icon "${restart-icon}"
+                    :title "Reboot"
+                    :onclick "''${EWW_CMD} close power-menu closer & ${ghaf-powercontrol}/bin/ghaf-powercontrol reboot &")
+            (widget_button
+                    :class "power-menu-button"
+                    :icon "${power-icon}"
+                    :title "Shutdown"
+                    :onclick "''${EWW_CMD} close power-menu closer & ${ghaf-powercontrol}/bin/ghaf-powercontrol poweroff &")))
 
         ${lib.optionalString useGivc ''
           ;; Quick Settings Buttons ;;
@@ -766,6 +697,7 @@ in
                 :class "keyboard-layout"
                 :halign "center"
                 :valign "center"
+                :visible "false"
                 (label  :text keyboard_layout)))
 
         ;; Clock ;;
@@ -839,7 +771,7 @@ in
                 (language)
                 (box
                     :orientation "h" 
-                    :space-evenly "true" 
+                    :space-evenly "false" 
                     :spacing 14
                     (time)
                     (date :screen screen))))
@@ -1389,6 +1321,42 @@ in
       };
       startLimitIntervalSec = 0;
       after = [ "ewwbar.service" ];
+    };
+
+    systemd.user.services.eww-brightness-popup = {
+      enable = true;
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${
+          mkPopupHandler {
+            name = "brightness-popup-handler";
+            stateFile = "brightness";
+            popupName = "brightness-popup";
+          }
+        }/bin/brightness-popup-handler";
+        Restart = "on-failure";
+      };
+      after = [ "ewwbar.service" ];
+      wantedBy = [ "ewwbar.service" ];
+      partOf = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.eww-volume-popup = {
+      enable = true;
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${
+          mkPopupHandler {
+            name = "volume-popup-handler";
+            stateFile = "volume";
+            popupName = "volume-popup";
+          }
+        }/bin/volume-popup-handler";
+        Restart = "on-failure";
+      };
+      after = [ "ewwbar.service" ];
+      wantedBy = [ "ewwbar.service" ];
+      partOf = [ "ghaf-session.target" ];
     };
   };
 }

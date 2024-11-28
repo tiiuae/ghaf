@@ -72,9 +72,9 @@ in
         RestartSec = "1";
         ExecStart = "${pkgs.udiskie}/bin/udiskie -c /etc/udiskie.yml";
       };
-      wantedBy = [ "ghaf-session.target" ];
-      partOf = [ "ghaf-session.target" ];
+      wantedBy = [ "ewwbar.service" ];
       after = [ "ewwbar.service" ];
+      partOf = [ "ewwbar.service" ];
     };
   };
 }
