@@ -10,11 +10,14 @@ let
   cfg = config.ghaf.graphics.labwc;
 
   ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
+  ghaf-powercontrol = pkgs.callPackage ../../../packages/ghaf-powercontrol {
+    ghafConfig = config.ghaf;
+  };
   ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
   drawerStyle = pkgs.callPackage ./styles/launcher-style.nix { };
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
-  lockCmd = "${pkgs.gtklock}/bin/gtklock -s ${gtklockStyle} -m ${pkgs.gtklock-userinfo-module}/lib/gtklock/userinfo-module.so";
+  gtklockLayout = pkgs.callPackage ./styles/lock-layout.nix { };
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
@@ -69,7 +72,11 @@ let
     <core><gap>5</gap></core>
     <theme>
       <name>Ghaf</name>
+      <icon>${cfg.gtk.iconTheme}</icon>
       <dropShadows>yes</dropShadows>
+      <titlebar>
+        <layout>icon:iconify,max,close</layout>
+      </titlebar>
       <font place="">
         <name>${cfg.gtk.fontName}</name>
         <size>12</size>
@@ -111,7 +118,7 @@ let
         <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace prev" />
       </keybind>
       <keybind key="W-l">
-        <action name="Execute" command="loginctl lock-session" />
+        <action name="Execute" command="${pkgs.systemd}/bin/loginctl lock-session" />
       </keybind>
       ${lib.optionalString config.ghaf.profiles.debug.enable ''
         <keybind key="Print">
@@ -119,19 +126,19 @@ let
         </keybind>
       ''}
       <keybind key="XF86_MonBrightnessUp">
-        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set +5%" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/brightness; ${pkgs.brightnessctl}/bin/brightnessctl set +5%'" />
       </keybind>
       <keybind key="XF86_MonBrightnessDown">
-        <action name="Execute" command="${pkgs.brightnessctl}/bin/brightnessctl set 5%-" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/brightness; ${pkgs.brightnessctl}/bin/brightnessctl set 5%-'" />
       </keybind>
       <keybind key="XF86_AudioRaiseVolume">
-        <action name="Execute" command="${pkgs.pamixer}/bin/pamixer --unmute --increase 5" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/volume; ${pkgs.pamixer}/bin/pamixer --unmute --increase 5'" />
       </keybind>
       <keybind key="XF86_AudioLowerVolume">
-        <action name="Execute" command="${pkgs.pamixer}/bin/pamixer --unmute --decrease 5" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/volume; ${pkgs.pamixer}/bin/pamixer --unmute --decrease 5'" />
       </keybind>
       <keybind key="XF86_AudioMute">
-        <action name="Execute" command="${pkgs.pamixer}/bin/pamixer --toggle-mute" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/volume; ${pkgs.pamixer}/bin/pamixer --toggle-mute'" />
       </keybind>
       <keybind key="W-z">
         <action name="ToggleMagnify" />
@@ -234,8 +241,51 @@ let
     default-timeout=5000
     ignore-timeout=1
 
+    [urgency=critical]
+    ignore-timeout=0
+
     [app-name=blueman body~="(.*Authorization request.*)"]
     invisible=1
+  '';
+
+  gtklockConfig = ''
+    [main]
+    style=${gtklockStyle}
+    layout=${gtklockLayout}
+    date-format=%A, %b %d
+    modules=${pkgs.gtklock-powerbar-module}/lib/gtklock/powerbar-module.so;${pkgs.gtklock-userinfo-module}/lib/gtklock/userinfo-module.so
+    #background=
+    idle-timeout=30
+    idle-hide=true
+    start-hidden=true
+    #follow-focus=true
+    #lock-command=
+    #unlock-command=
+    #monitor-priority=
+    [userinfo]
+    image-size=128
+    under-clock=true
+    [powerbar]
+    #show-labels=true
+    #linked-buttons=true
+    reboot-command=${ghaf-powercontrol}/bin/ghaf-powercontrol reboot &
+    poweroff-command=${ghaf-powercontrol}/bin/ghaf-powercontrol poweroff &
+    suspend-command=${ghaf-powercontrol}/bin/ghaf-powercontrol suspend &
+    logout-command=${pkgs.labwc}/bin/labwc --exit &
+    #userswitch-command=
+  '';
+
+  swayidleConfig = ''
+    timeout ${
+      toString (builtins.floor (cfg.autolock.duration * 0.8))
+    } 'notify-send -u critical -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity."; brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    timeout ${toString cfg.autolock.duration} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    timeout ${
+      toString (builtins.floor (cfg.autolock.duration * 1.5))
+    } "wlopm --off \*" resume "wlopm --on \*"
+    timeout ${toString (builtins.floor (cfg.autolock.duration * 3))} "ghaf-powercontrol suspend"
+    after-resume "wlopm --on \*; brightnessctl -q -r || brightnessctl -q set 100%"
+    unlock "brightnessctl -q -r || brightnessctl -q set 100%"
   '';
 
   environment = ''
@@ -274,6 +324,10 @@ in
       "labwc/rc.xml".text = rcXml;
       "labwc/menu.xml".text = menuXml;
       "labwc/environment".text = environment;
+
+      "gtklock/config.ini".text = gtklockConfig;
+
+      "swayidle/config".text = swayidleConfig;
 
       "mako/config".text = makoConfig;
 
@@ -332,7 +386,7 @@ in
         description = "Lock Event Handler";
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${pkgs.swayidle}/bin/swayidle lock \"${lockCmd}\"";
+          ExecStart = "${pkgs.swayidle}/bin/swayidle lock \"${pkgs.gtklock}/bin/gtklock -c /etc/gtklock/config.ini\"";
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
@@ -348,9 +402,9 @@ in
           Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock";
           ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
         };
-        wantedBy = [ "ghaf-session.target" ];
-        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ewwbar.service" ];
         after = [ "ewwbar.service" ];
+        partOf = [ "ewwbar.service" ];
       };
 
       # We use existing blueman services and create overrides for both
@@ -360,15 +414,14 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/bt_applet_ssh_system_dbus.sock";
           ExecStart = [
             ""
             "${pkgs.bt-launcher}/bin/bt-launcher applet"
           ];
         };
-        wantedBy = [ "ghaf-session.target" ];
-        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ewwbar.service" ];
         after = [ "ewwbar.service" ];
+        partOf = [ "ewwbar.service" ];
       };
 
       blueman-manager = {
@@ -378,26 +431,22 @@ in
         ];
       };
 
-      autolock = lib.mkIf cfg.autolock.enable {
+      swayidle = lib.mkIf cfg.autolock.enable {
         enable = true;
-        description = "System autolock";
+        description = "System idle handler";
+        path = [
+          pkgs.brightnessctl
+          pkgs.systemd
+          pkgs.wlopm
+          ghaf-powercontrol
+          pkgs.libnotify
+        ];
         serviceConfig = {
           Type = "simple";
-          ExecStart = ''
-            ${pkgs.swayidle}/bin/swayidle -w timeout ${builtins.toString cfg.autolock.duration} \
-            # Start dimming for 3.5 seconds in the background
-            '${pkgs.chayang}/bin/chayang -d 3.5 & CHAYANG_PID=$!; \
-            sleep 3; \
-            # If chayang is still running (i.e., user hasn't interrupted),
-            # proceed with locking
-            if kill -0 $CHAYANG_PID 2>/dev/null; then \
-              loginctl lock-session; \
-            fi'
-          '';
+          ExecStart = "${pkgs.swayidle}/bin/swayidle -w -C /etc/swayidle/config";
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
-        after = [ "ewwbar.service" ];
       };
     };
   };
