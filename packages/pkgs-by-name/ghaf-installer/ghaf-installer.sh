@@ -114,6 +114,13 @@ if [ "$WIPE_ONLY" = true ]; then
 fi
 
 echo "Installing..."
-zstdcat "$IMG_PATH" | dd of="$DEVICE_NAME" bs=32M status=progress
+shopt -s nullglob
+raw_file=("$IMG_PATH"/*.raw)
+
+if [ -f "$IMG_PATH/disk1.raw.zst" ]; then
+  zstdcat "$IMG_PATH/disk1.raw.zst" | dd of="$DEVICE_NAME" bs=32M status=progress
+elif ((${#raw_file[@]})); then
+  dd if="${raw_file[0]}" of="$DEVICE_NAME" bs=32M status=progress
+fi
 
 echo "Installation done. Please remove the installation media and reboot"
