@@ -29,7 +29,7 @@ in
 
   config = {
     # Disk configuration
-    disko.devices.disk = cfg.disks;
+    #disko.devices.disk = cfg.disks;
 
     # Host udev rules for input devices
     services.udev.extraRules = ''
