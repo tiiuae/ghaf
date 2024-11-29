@@ -65,11 +65,6 @@ let
     # Fprint module
     fprint = optionalAttrs cfg.guivm.fprint { config.ghaf.services.fprint.enable = true; };
 
-    # Desktop module
-    desktop = {
-      config.ghaf.services.desktop.enable = true;
-    };
-
     # XDG opener
     xdgOpener = {
       config.ghaf.services.xdgopener.enable = true;
@@ -162,7 +157,6 @@ in
         kernelConfigs.guivm
         firmwareModule
         qemuModules.guivm
-        serviceModules.desktop
         serviceModules.fprint
         serviceModules.yubikey
         serviceModules.xdgOpener
