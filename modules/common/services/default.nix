@@ -6,7 +6,6 @@
     ./audio.nix
     ./wifi.nix
     ./firmware.nix
-    ./desktop.nix
     ./xdgopener.nix
     ./xdghandlers.nix
     ./namespaces.nix
