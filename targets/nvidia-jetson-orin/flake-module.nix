@@ -62,11 +62,14 @@ let
                 enable = true;
                 somType = som;
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
-                nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                #TODO: Kernel patches needs tp ne updated (to linux 6.6.)
+                #nx.enableNetvmEthernetPCIPassthrough = som == "nx";
+                nx.enableNetvmEthernetPCIPassthrough = false;
               };
 
               hardware.nvidia = {
-                virtualization.enable = true;
+                # TODO: BPMP patches require fixing (jetson 36.3 + linux 6.6)
+                virtualization.enable = false;
                 virtualization.host.bpmp.enable = false;
                 passthroughs.host.uarta.enable = false;
                 passthroughs.uarti_net_vm.enable = som == "agx";

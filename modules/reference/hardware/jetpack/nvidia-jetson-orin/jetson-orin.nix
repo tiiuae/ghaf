@@ -56,6 +56,8 @@ in
       firmware.uefi = {
         logo = ../../../../../docs/src/img/1600px-Ghaf_logo.svg;
         edk2NvidiaPatches = [
+
+          # TODO Still valid with jetson 36.3
           # This effectively disables EFI FB Simple Framebuffer, which does
           # not work properly but causes kernel panic during the boot if the
           # HDMI cable is connected during boot time.
@@ -63,7 +65,7 @@ in
           # The patch reverts back to old behavior, which is to always reset
           # the display when exiting UEFI, instead of doing handoff, when
           # means not to reset anything.
-          ./edk2-nvidia-always-reset-display.patch
+          # ./edk2-nvidia-always-reset-display.patch
         ];
       };
     };
@@ -117,7 +119,15 @@ in
         name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
       }
       // lib.optionalAttrs (cfg.somType == "nx") {
-        name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
+        # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
+        # uses "tegra234-p3767-0000-p3509-a02.dtb"-device tree.
+        # p3509-a02 == IO BASE B carrier board
+        # p3767-0000 == Orin NX SOM
+        # p3768-0000 == Official NVIDIA's carrier board
+        # Upstream kernel has only official carrier board device tree,
+        # but it works with IO BASE B carrier board with minor
+        # modifications.
+        name = lib.mkDefault "tegra234-p3768-0000+p3767-0000.dtb";
       };
   };
 }

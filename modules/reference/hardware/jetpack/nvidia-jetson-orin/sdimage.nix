@@ -46,7 +46,7 @@
               --disallow-untyped-defs \
               $out
           '';
-      fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+      fdtPath = "${config.hardware.deviceTree.package}/nvidia/${config.hardware.deviceTree.name}";
     in
     {
       firmwareSize = 256;
