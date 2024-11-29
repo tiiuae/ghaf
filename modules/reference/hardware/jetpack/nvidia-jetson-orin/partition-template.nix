@@ -78,19 +78,19 @@ let
   partitionTemplateReplaceRange =
     if !cfg.flashScriptOverrides.onlyQSPI then
       {
-        firstLineCount = 588;
+        firstLineCount = 618;
         lastLineCount = 2;
       }
     else
       {
         # If we don't flash anything to eMMC, then we don't need to have the
         # <device type="sdmmc_user" ...> </device> XML-tag at all.
-        firstLineCount = 587;
+        firstLineCount = 617;
         lastLineCount = 1;
       };
   partitionTemplate = pkgs.runCommand "flash.xml" { } (
     ''
-      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >"$out"
+      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >"$out"
 
     ''
     + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
@@ -101,7 +101,7 @@ let
     ''
     + ''
 
-      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
+      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
     ''
   );
 in
