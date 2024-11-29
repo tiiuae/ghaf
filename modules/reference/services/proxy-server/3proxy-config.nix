@@ -65,7 +65,7 @@ let
     deny * * * *
     maxconn 200
 
-    proxy -i${netvmAddr} -p${toString cfg.bindPort}
+    proxy -i${cfg.internalAddress} -p${toString cfg.bindPort}
 
     flush
 
@@ -77,6 +77,11 @@ in
 {
   options.ghaf.reference.services.proxy-server = {
     enable = mkEnableOption "Enable proxy server module";
+    internalAddress = lib.mkOption {
+      type = lib.types.str;
+      default = netvmAddr;
+      description = "Internal address for proxy server";
+    };
     bindPort = lib.mkOption {
       type = lib.types.int;
       default = 3128;

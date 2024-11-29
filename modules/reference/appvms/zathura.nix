@@ -4,40 +4,37 @@
 {
   lib,
   pkgs,
-  config,
   ...
 }:
 {
   name = "zathura";
   packages = [
-    pkgs.zathura
+    # Image viewer
     pkgs.pqiv
   ];
   macAddress = "02:00:00:03:07:01";
   ramMb = 512;
   cores = 1;
-  extraModules = [
+  borderColor = "#122263";
+  applications = [
     {
-      imports = [ ../programs/zathura.nix ];
-      time.timeZone = config.time.timeZone;
-      ghaf = {
-        reference.programs.zathura.enable = true;
-
-        givc.appvm = {
-          enable = true;
-          name = lib.mkForce "zathura-vm";
-          applications = [
-            {
-              name = "zathura";
-              command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zathura";
-            }
-          ];
-        };
-
-        #this vm should be stateless so nothing stored between boots.
-        storagevm.enable = lib.mkForce false;
-      };
+      name = "PDF Viewer";
+      description = "Isolated PDF Viewer";
+      packages = [ pkgs.zathura ];
+      icon = "document-viewer";
+      command = "zathura";
+      extraModules = [
+        {
+          imports = [ ../programs/zathura.nix ];
+          ghaf.reference.programs.zathura.enable = true;
+        }
+      ];
     }
   ];
-  borderColor = "#122263";
+  extraModules = [
+    {
+      # This vm should be stateless so nothing stored between boots
+      ghaf.storagevm.enable = lib.mkForce false;
+    }
+  ];
 }
