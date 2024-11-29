@@ -18,6 +18,7 @@ in
     ../../hardware/common
     ../../hardware/definition.nix
     ../../lanzaboote
+    ../desktop
   ];
 
   options.ghaf.reference.profiles.laptop-x86 = {
@@ -134,6 +135,8 @@ in
           port = 9999;
         };
       };
+
+      reference.desktop.applications.enable = true;
     };
   };
 }
