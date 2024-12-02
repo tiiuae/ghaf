@@ -61,7 +61,7 @@ let
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                agx.enableNetvmWlanPCIPassthrough = false;
                 #TODO: Kernel patches needs tp ne updated (to linux 6.6.)
                 #nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 nx.enableNetvmEthernetPCIPassthrough = false;
@@ -69,10 +69,10 @@ let
 
               hardware.nvidia = {
                 # TODO: BPMP patches require fixing (jetson 36.3 + linux 6.6)
-                virtualization.enable = false;
-                virtualization.host.bpmp.enable = false;
+                virtualization.enable = true;
+                virtualization.host.bpmp.enable = true;
                 passthroughs.host.uarta.enable = false;
-                passthroughs.uarti_net_vm.enable = som == "agx";
+                passthroughs.uarti_net_vm.enable = false;
               };
 
               virtualization = {
