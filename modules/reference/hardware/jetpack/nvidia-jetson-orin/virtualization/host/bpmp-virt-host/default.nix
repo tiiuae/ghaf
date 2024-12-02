@@ -45,7 +45,12 @@ in
         name = "bpmp_host_overlay";
         dtsFile = ./bpmp_host_overlay.dts;
       }
-      # TODO: add overlay to support UARTA passthrough
+      {
+        name = "gpu_passthrough_overlay";
+        dtsFile = ./gpu_passthrough_overlay.dts;
+
+        filter = "tegra234-p3737-0000+p3701-0000.dtb";
+      }
     ];
 
 

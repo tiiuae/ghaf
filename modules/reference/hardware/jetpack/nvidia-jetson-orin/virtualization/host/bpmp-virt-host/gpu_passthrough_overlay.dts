@@ -1,0 +1,223 @@
+/*
+ * Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/power/tegra234-powergate.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+
+/ {
+    overlay-name = "BPMP host proxy 2";
+    compatible = "nvidia,tegra234";
+    
+    fragment@0 {
+        target-path = "/";
+        __overlay__ {
+            reserved-memory {
+                // Reserved 256MB memory for the VM
+                vm_cma: vm_cma@80000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x0 0x80000000 0x0 0x30000000>;				// 1.5GB
+                    status = "okay";
+                };
+
+                vm_cma_vram: vm_cma_vram@100000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x01 0x00000000 0x01 0x00000000>;            // 4GB
+                };
+        
+                vm_hs: vm_hs@60000000 {
+                    compatible = "removed-dma-pool";
+                    reg = <0x0 0x60000000 0x0 0x04000000>;				// host1x sem-syncpt-shim
+                    status = "okay";
+                };
+            };
+
+            // Reserved CMA for VM to passthrough
+            vm_cma_p: vm_cma_p@80000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0x80000000 0x0 0x30000000>;              	// 1.5GB
+                dma-coherent;
+                status = "okay";
+            };
+
+            vm_cma_vram_p: vm_cma_vram_p@100000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x01 0x00000000 0x01 0x00000000>;                // 4GB
+                dma-coherent;
+                status = "okay";
+            };
+
+            vm_hs_p: vm_hs_p@60000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0x60000000 0x0 0x04000000>;				// host1x sem-syncpt-shimZ
+                dma-coherent;
+                status = "okay";
+            };
+        };
+    };
+
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            display@13800000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_NVDISPLAY>;
+                dma-coherent;
+                status = "okay";
+                reg-names = "nvdisplay", "dpaux0", "hdacodec", "mipical";
+                reg = <0x0 0x13800000 0x0 0xEFFFF    /* nvdisplay */
+                    0x0 0x155C0000 0x0 0xFFFF     /* dpaux0 */
+                    0x0 0x0242c000 0x0 0x1000     /* hdacodec */
+                    0x0 0x03990000 0x0 0x10000>;  /* mipical */
+                interrupt-names = "nvdisplay", "dpaux0", "hdacodec";
+                interrupts = <0 416 4
+                    0 419 4
+                    0  61 4>;
+            };
+        };
+    };
+
+    fragment@2 {
+        target-path = "/";
+        __overlay__ {
+            dce@d800000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_DCE>;
+                dma-coherent;
+                status = "okay";
+                reg = <0x0 0x0d800000 0x0 0x00800000>;
+                interrupts =
+                    <0 376 0x4>,
+                    <0 377 0x4>;
+                interrupt-names = "wdt-remote",
+                    "dce-sm0";
+            };
+        };
+    };
+
+    // fragment@3 {
+    //     target-path = "/chosen/framebuffer";
+    //     __overlay__ {
+    //         compatible = "dummy";
+    //         status = "okay";
+    //     };
+    // };
+
+
+    fragment@4 {
+        target-path = "/bus@0";
+        __overlay__ {
+            gpu@17000000 {
+                compatible = "nvidia,dummy";
+                iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
+                reg = <0x0 0x17000000 0x0 0x01000000>,
+                    <0x0 0x18000000 0x0 0x01000000>,
+                    <0x0 0x03b41000 0x0 0x00001000>;
+                interrupt-parent = <&gic>;
+                interrupts = <GIC_SPI 68 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 70 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 71 IRQ_TYPE_LEVEL_HIGH>,
+                        <GIC_SPI 67 IRQ_TYPE_LEVEL_HIGH>;
+                interrupt-names = "stall0", "stall1", "stall2", "nonstall";
+                power-domains = <&bpmp TEGRA234_POWER_DOMAIN_GPU>;
+                interconnects = <&mc TEGRA234_MEMORY_CLIENT_NVL1R &emc>,
+                        <&mc TEGRA234_MEMORY_CLIENT_NVL1W &emc>;
+                interconnect-names = "dma-mem", "write";
+                clocks = <&bpmp TEGRA234_CLK_GPUSYS>,
+                    <&bpmp TEGRA234_CLK_GPC0CLK>,
+                    <&bpmp TEGRA234_CLK_GPC1CLK>;
+                clock-names = "sysclk", "gpc0clk", "gpc1clk";
+                resets = <&bpmp TEGRA234_RESET_GPU>;
+                dma-coherent;
+                nvidia,bpmp = <&bpmp>;
+                status = "okay";
+            };
+        };
+    };
+
+
+    fragment@5 {
+        target-path = "/bus@0/host1x@13e00000";
+        __overlay__ {
+            compatible = "nvidia,dummy";
+            iommus = <&smmu_niso1 TEGRA234_SID_HOST1X>;
+            dma-coherent;
+            status = "okay";
+        };
+    };
+
+    fragment@6 {
+        target-path = "/bus@0/host1x@13e00000/vic@15340000";
+        __overlay__ {
+            compatible = "nvidia,dummy";
+            iommus = <&smmu_niso1 TEGRA234_SID_VIC>;
+            dma-coherent;
+            status = "okay";
+        };
+    };
+
+
+    fragment@7 {
+        target-path = "/bus@0/host1x@13e00000/nvdec@15480000";
+        __overlay__ {
+            compatible = "nvidia,dummy";
+            iommus = <&smmu_niso1 TEGRA234_SID_NVDEC>;
+            dma-coherent;
+            status = "okay";
+    };
+    };
+
+    // fragment@8 {
+    //     target-path = "/bus@0/host1x@13e00000/nvjpg@15540000";
+    //     __overlay__ {
+    //         compatible = "nvidia,dummy";
+    //         status = "okay";
+    //     };
+    // };
+
+
+    // Disabled to avoid 
+    // [  522.695005] WARNING: CPU: 0 PID: 963 at drivers/soc/tegra/cbb/tegra234-cbb.c:577 tegra234_cbb_isr+0x130/0x170
+    // [  522.709378] ---[ end trace 4c1e09d24a524cb3 ]---
+    // [  522.717079] CPU:0, Error: cbb-fabric@0x13a00000, irq=22
+    // [  522.725373] **************************************
+    // [  522.733235] CPU:0, Error:cbb-fabric, Errmon:2
+    // [  522.740681] 	  Error Code		: PWRDOWN_ERR
+    // [  522.747687] 	  Overflow		: Multiple PWRDOWN_ERR
+    // [  522.755374] 
+    // [  522.759874] 	  Error Code		: PWRDOWN_ERR
+    // [  522.766961] 	  MASTER_ID		: CCPLEX
+    // [  522.773513] 	  Address		: 0x351804c
+    // [  522.780172] 	  Cache			: 0x1 -- Bufferable 
+    // [  522.787537] 	  Protection		: 0x2 -- Unprivileged, Non-Secure, Data Access
+    // [  522.797600] 	  Access_Type		: Read
+    // [  522.803996] 	  Access_ID		: 0x11
+    // [  522.804006] 	  Fabric		: cbb-fabric
+    // [  522.816589] 	  Slave_Id		: 0x37
+    // [  522.822601] 	  Burst_length		: 0x0
+    // [  522.828849] 	  Burst_type		: 0x1
+    // [  522.834934] 	  Beat_size		: 0x2
+    // [  522.840851] 	  VQC			: 0x0
+    // [  522.846300] 	  GRPSEC		: 0x7e
+    // [  522.852012] 	  FALCONSEC		: 0x0
+    // [  522.857896] 	**************************************
+    fragment@9 {
+        target-path = "/bus@0/hda@3510000";
+        __overlay__ {
+            status = "disabled";
+        };
+    };
+};

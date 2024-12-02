@@ -35,7 +35,7 @@ in
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;
       }
       {
-        name = "Add bpmp-virt kernel modules";
+        name = "Add bpmp-virt modules";
         patch = ./patches/0001-Add-bpmp-virt-modules.patch;
       }
       {

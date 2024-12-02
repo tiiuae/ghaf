@@ -61,10 +61,8 @@ let
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                #TODO: Kernel patches needs to be updated after dtbs comes from nvidia-oot
-                #agx.enableNetvmWlanPCIPassthrough = som == "agx";
                 agx.enableNetvmWlanPCIPassthrough = false;
-                #TODO: Kernel patches needs to be updated after dtbs comes from nvidia-oot
+                #TODO: Kernel patches needs tp ne updated (to linux 6.6.)
                 #nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 nx.enableNetvmEthernetPCIPassthrough = false;
               };
@@ -74,8 +72,6 @@ let
                 virtualization.enable = true;
                 virtualization.host.bpmp.enable = true;
                 passthroughs.host.uarta.enable = false;
-                # Disabled uarti pt until device tree nvidia-oot module is added
-                #passthroughs.uarti_net_vm.enable = som == "agx";
                 passthroughs.uarti_net_vm.enable = false;
               };
 
