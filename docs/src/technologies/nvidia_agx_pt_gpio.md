@@ -35,127 +35,175 @@ A kernel driver in Host is acting as a proxy for the Guest VM to operate the GPI
 
 To prepare GPIO on the host for the passthrough:
 
->Add a virtual node to root in the Device Tree using an overlay file. 
+Add a virtual node to root in the Device Tree using an overlay file. 
    A driver associated to this node will find it using the compatible field.
+
 ```
-        /dts-v1/;
-        /plugin/;
+/dts-v1/;
+/plugin/;
 
-        /{
-            overlay-name = "GPIO passthrough on host";
-            compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
+/{
+    overlay-name = "GPIO passthrough on host";
+    compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
 
-            fragment@0 
-            { target-path = "/";
-                __overlay__ 
-                { gpio_host_proxy 
-                    { compatible = "nvidia,gpio-host-proxy";
-                      status = "okay";
-                    };
-                };
+    fragment@0 
+    { target-path = "/";
+        __overlay__ 
+        { gpio_host_proxy 
+            { compatible = "nvidia,gpio-host-proxy";
+              status = "okay";
             };
-        }; 
+        };
+    };
+};
 ```
 
-
-## Guest Device Tree  
+## Guest Device Tree
   
-  The Guest's Device tree serves two purposes.
-  - to define the _vda_ passthrough device
-  - to select which lines are allowed for passtrough
+The Guest's Device tree serves several purposes.
+
+- to define the _vda_ passthrough device
+- to define the gpiochips and their registers
+- to define the GPIO pins. Not all host pins need to be defined, only the ones intended for passthrough are obligatory.
 
 ### Creating the Guest Device Tree
 
-The Guest's Device Tree is based on the device tree extracted from QEMU VM.
-
->To get the base QEMU device tree, run the following command:
+The Guest's Device Tree should be based on the device tree extracted from QEMU VM.
+To get the base QEMU device tree, run the following command:
 
 ```
-    qemu-system-aarch64 -machine virt,accel=kvm,dumpdtb=virt.dtb -cpu host
+qemu-system-aarch64 -machine virt,accel=kvm,dumpdtb=virt.dtb -cpu host
+```
+
+>The dump creates a DTS file. It can be converted to a DTS file with the command:
+
+```
+dtc -Idtb -Odts -o qemu-gpio-guestvm.dts virt.dtb
+```
+If appropriate, create overlays to amend the extracted Device Tree. If it's convenient, you can edit the DTS directly.
+After Device Tree Source file is edited to include required nodes for GPIO passthrough (see below) it can be compiled with this command.
+
+```
+dtc -Idts -Odtb -o qemu-gpio-guestvm.dtb qemu-gpio-guestvm.dts
 ```
   
-  ### Apply an overlay to define the VDA device
-The Device Tree defines passthrough memory for the /dev/vda passthrough device with the parameter _virtual-pa_.  
->Add the passthrough device as a root node to the virtual machine's device tree:
+### Define the VDA device
+
+>the vda device and its address 'virtual-pa' is defined in the gpio nodes.
+```
+### Define nodes for the GPIO chips 
+>The Device Tree defines passthrough memory for the '/dev/vda' passthrough device with the parameter _virtual-pa_.  
+>Add the passthrough device to the virtual machine's gpio nodes. Note we share the same memory window for both chips.
 
 ```
-        /dts-v1/;
-        /plugin/;
+gpio@2200000 {
+    compatible = "nvidia,tegra234-gpio";
+    virtual-pa = <0x0 0x090c1000>;
+    # ...
+};
 
-        /{
-            overlay-name = "GPIO passthrough on guest";
-            compatible = "nvidia,p3737-0000+p3701-0000\0nvidia,tegra234\0nvidia,tegra23x";
-
-            fragment@0 
-            { target-path = "/";
-                __overlay__
-                {
-                    gpio: gpio {
-                        compatible = "nvidia,tegra234-bpmp";
-                        virtual-pa = <0x0 0x090c0000>; 
-                        status = "okay";
-                    };
-                };
-            };
-        };  
+gpio@c2f0000 {
+    compatible = "nvidia,tegra234-gpio-aon";
+    virtual-pa = <0x0 0x090c1000>;
+    # ...
+};
 ```
 
-> The *gpio* node was added to the root node.
+> The *gpio* node is added to the root node.
 
-### Apply an overlay to define allowed lines for passthrough
+### Define the pins used
 
-The GPIO lines Selected for Passthrough are defined by the Guest's Device Tree
-
->The Device Tree in the Guest virtual machine will determine which Host GPIO pins are visible and usable for the Guest. This is not the only function of the Guest's Device Tree, also see section Guest Device Tree.
+The pinmux chip
 
 ```
-     Selecting pins is TODO -- put guest overlay here
+pinmux@2430000 {
+    compatible = "nvidia,tegra234-pinmux";
+    reg = <0x00 0x2430000 0x00 0x19100 0x00 0xc300000 0x00 0x4000>;
+    #gpio-range-cells = <0x03>;
+    status = "okay";
+    phandle = <0x2e4>;
+
+    # ...
+}...
 ```
 
+### Other defines
+
+In full we will define these symbols. For details look in the [Guest's Device Tree Source](qemu-gpio-guestvm.dts)
+
+```
+__symbols__ {
+		pinmux = "/pinmux@2430000";
+		tegra_pinctrl = "/pinmux@2430000";
+		pex_rst_c5_in_state = "/pinmux@2430000/pex_rst_c5_in";
+		pex_rst_c6_in_state = "/pinmux@2430000/pex_rst_c6_in";
+		pex_rst_c7_in_state = "/pinmux@2430000/pex_rst_c7_in";
+		pex_rst_c10_in_state = "/pinmux@2430000/				pex_rst_c10_in";
+		eqos_mii_rx_input_state_disable = "/pinmux@2430000/eqos_rx_disable";
+		eqos_mii_rx_input_state_enable = "/pinmux@2430000/eqos_rx_enable";
+		sdmmc1_sdexp_disable = "/pinmux@2430000/sdmmc1_sdexp_disable";
+		sdmmc1_sdexp_enable = "/pinmux@2430000/sdmmc1_sdexp_enable";
+  };
+```
+
+### Finish
+
+Revise the section [Creating the Guest Device Tree](#creating-the-guest-device-tree) to create the final DTB file for the Guest's Device Tree
 
 ## Starting the Guest VM
 
-To start the guest VM:
+### Compiling the passthrough kernel 5.10
+
+Clone the repos `git@github.com:KimGSandstrom/gpio-virt.git` and `git@github.com:KimGSandstrom/tegra_kernel-5.10.git`
+Clone both repos into the same subdirectory because, `./gpio-virt` contains an overlay that `./tegra_kernel-5.10` uses.
+
+Successful compile is tested for gcc (GCC) 9.5.0. Set `CONFIG_TEGRA_GPIO_HOST_PROXY` and `CONFIG_TEGRA_GPIO_GUEST_PROXY` as compiler directives or .config defines. Compile from the parent directory using:
+
+```
+make -C tegra_kernel-5.10/ \ 
+     CFLAGS+="--warn-undefined-variable -Wno-dangling-pointer \
+     -Wno-error" ARCH=arm64 O=../kernel_out -j12
+```
+
+### Compiling the Passthrough version of Qemu
+
+Qemu 9.0.1 has been modified to allow passthrough of GPIO. It is available at `git@github.com:KimGSandstrom/qemu-passthrough.git`. A tested configure set for Qemu compile is found in the file `ghaf_configure.sh`.
+
+### To start the guest VM:
 
 1. Set kernel startup paramters on host:
-```
-        iommu=pt vfio.enable_unsafe_noiommu_mode=0 vfio_iommu_type1.allow_unsafe_interrupts=1 vfio_platform.reset_required=0
-```
-2. Set kernel parameters for guest VM in microvm (or QEMU):
+`iommu=pt vfio.enable_unsafe_noiommu_mode=0 vfio_iommu_type1.allow_unsafe_interrupts=1 vfio_platform.reset_required=0`
+
+2. Compile the GPIO kernel as described in [Compiling the passthrough kernel 5.10](#Compiling-the-passthrough-kernel-5.10). This kernel image can be used for both host and guest. Below it is refered to as 'vmlinux'
+
+3. Prepare a qcow2 disk image for the root filesystem.  This can be any Linux installation, for instance NixOS, that the compiled kernel supports. Below this is refered to as rootfs.qcow2
+
+4. Set the rootfs and the device tree for guest (in this documentation 'qemu-gpio-guestvm.dtb') in Qemu parameters
 
 ```
-        rootwait root=/dev/vda console=ttyAMA0
+sudo -E qemu-system-aarch64 \
+    -nographic \
+    -no-reboot \
+    -dtb qemu-gpio-guestvm.dts \
+    -kernel vmlinux \
+    -machine virt,accel=kvm \
+    -append 'rootwait root=/dev/vda rw' \
+    -drive file=rootfs.qcow2,if=virtio,format=qcow2 \
+    -cpu host \
+    -m 2G \
+    -smp 2 \
+    -serial stdio \
+    -monitor pty \
+    -net user,hostfwd=tcp::2222-:22 \
+    -net nic
 ```
-3. Set the device tree for guest according (see section Guest Device Tree)
 
 ## Testing the passtrough
 
-For testing we need to make the Guest VM use GPIO ports. this can be done either via an UARTA VM console, provided by UARTA passthrough, or by letting the VM's systemd testing service use the ports.  
-  
-In both cases GPIO port functionality can be verified from the 40-pin header using a logic analysator connected to the 40-head port. (See Appendix C) 
+During testing a process in the Guest VM will use GPIO ports. `gpioset` and `gpiomon` are suitable programs to use.
+GPIO port functionality can be verified from the 40-pin header using a logic analysator connected to the 40-head port. (See Appendix C)
 
-### Using a VM console over UARTA
-
-If you use the built in systemd service in Guest to test the GPIO ports you do not need to follow the steps to enable UARTA. In earier versions of Tegra kernel code, patches for UARTA/BPMP and GPIO were conflicting. Also, it is not certain that that UARTA and GPIO passthrough is shared in the same virtual machine in future versions of Ghaf.
-
-If you are using UARTA as a debug port, stop the microvm@gpio-vm service if it is running. in the VM execute:
-```
-	sudo systemctl stop microvm@gpio-vm
-```
-
-1. Connect the NVIDIA Jetson AGX Orin Debug USB to your PC and open the serial port ttyACM1 at 115200 bps. You can use picocom with this command:
-
-```
-	picocom -b 115200 /dev/ttyACM1
-```
-2. When the guest VM is launched you can see the VM Linux command line in the opened ttyACM1 terminal.
-3. A script testing the ports vcan be executed or any other CLI commands that set up and use available ports.
-
-### Using the predefined systemd testing service
-
-A systemd service called microvm@gpio-vm is enabled in the Guest VM and it starts to execute a testing script. It is set to execute the _simple-chardev-test.sh_ bash script.  
-  
-To verify pin functionality. Connect a logic analyser to pins GPIO08, GPIO09, GPIO27, GPIO35 on the 40-pin Jetson header. (See appendix C.)
+If input pins are tested another method must be used to generate the input, using the UARTA pins is a possibility.
   
 ## Appendixes  
   
@@ -164,6 +212,7 @@ To verify pin functionality. Connect a logic analyser to pins GPIO08, GPIO09, GP
 Line is the offset from each gpiochoip's base address. Direciton and comment declare defalult use.
 
 ####gpiochip0 / tegra234-gpio - 164 lines  
+
 | gpio line | pin | default direction | comment |
 | ---------|-------|--------|----------------------------------------------------|
 | line   0 | PA.00 | output | consumer=fixed-regulators:regulator@111 |
@@ -336,6 +385,7 @@ Line is the offset from each gpiochoip's base address. Direciton and comment dec
 Line is the offset from each gpiochoip's base address. Direciton and comment declare defalult use.
 
 ####gpiochip1 / tegra234-gpio-aon - 32 lines:
+
 | gpio line | pin | default direction | comment |
 | ---------|-------|--------|----------------------------------------------------|
 | line   0 | PAA.00 | input | |
@@ -373,30 +423,30 @@ Line is the offset from each gpiochoip's base address. Direciton and comment dec
 
 ### Appendix B  
   
-#### Jetson AGX Orin J30 GPIO Expansion Header pinout
+#### Jetson AGX Orin J30 GPIO Expansion Header pinout:
 
-|Line|Sysfs GPIO| Connector Label | Description  |  More         | Pin  || Pin  | Connector Label    | Description   | More   |Line|Sysfs GPIO|  
-|----|----------|-----------------|--------------|---------------|------||------|--------------------|---------------|--------|----|----------|
-|    |          |	3.3 VDC       | Power        | 1A max        | **1**|| **2**| 5.0 VDC            | Power         | 1A max |    |          | 
-|    |          |I2C5_DAT|General I2C5 Data| 1.8/3.3V, I2C Bus 8 | **3**|| **4**| 5.0 VDC            | Power         | 1A max |    |          |
-|    | | 2C_GP5_CLK | General I2C #5 Clock | 1.8/3.3V, I2C Bus 8 | **5**|| **6**| GND                |               |        |    |          |
-|106 | gpio454  |  MCLK05   | Audio Master Clock | 1.8/3.3V      | **7**|| **8**| UART1_TX           | UART #1       |Transmit|    |          |
-|    |          |  GND            |              |               |**9 **||**10**| UART1_RX           | UART #1       |Receive |    |          |
-|112 | gpio460  |  UART1_RTS | UART #1 Request to Send |1.8/3.3V |**11**||**12**| I2S2_CLK           | Audio I2S #2  | Clock  | 50 | gpio398  |
-|108 | gpio456  | **GPIO32**      | GPIO #32     |               |**13**||**14**| GND                                         |    |          |
-|85  | gpio433  | **GPIO27**      | (PWM)        |               |**15**||**16**| **GPIO8**          | GPIO #8       |        | 9  | gpio357  |
-|    |          |  3.3 VDC        | Power        | 1A max        |**17**||**18**| **GPIO35**         | (PWM)         |        | 43 | gpio391  |
-|135 | gpio483  |  SPI1_MOSI      | SPI #1 | Master Out/Slave In |**19**||**20**| GND                |               |        |    |          |
-|134 | gpio482  |  SPI1_MOSI      | SPI #1 | Master In/Slave Out |**21**||**22**| GPIO17             | GPIO #17      |        | 96 | gpio444  | 
-|133 | gpio481  |  SPI1_SCK       | SPI #1 | Shift Clock         |**23**||**24**| SPI1_CS0_N         | SPI #1 |Chip Select #0 | 136| gpio484  |
-|    |             | GND          |              |               |**25**||**26**| SPI1_CS1_N         | SPI #1 |Chip Select #1 | 137| gpio485  |
-|    |             |  I2C2_DAT | General I2C #2 Data | I2C Bus 1 |**27**||**28**| I2C2_CLK | General I2C #2 Clock | I2C Bus 1 |    |          |
-|1   | gpio317	   | CAN0_DIN     |CAN #0        | Data In       |**29**||**30**| GND                |               |        |    |          |
-|0   | gpio316	   | CAN0_DOUT    |CAN #0        | Data Out      |**31**||**32**| **GPIO9**          | GPIO #9       |        |  8 | gpio324  |
-|2   | gpio318	   | CAN1_DOUT    |CAN #1        | Data Out      |**33**||**34**| GND                |               |        |    |          |
-|53  | gpio401     | I2S_FS | AUDIO I2S #2 Left/Right | Clock    |**35**||**36**| UART1_CTS          |UART #1 | Clear to Send | 113| gpio461  |
-|3   | gpio319	   | CAN1_DIN | CAN #1 Data In    |              |**37**||**38**| I2S_SDIN           | Audio I2S #2  |Data In | 52 | gpio400  |
-|    |             |  GND     |                   |              |**39**||**40**| I2S_SDOUT          | Audio I2S #2  |Data Out| 51 | gpio399  |
+|Line|Sysfs GPIO|Connector Label|Description|More|Pin|Pin|Connector Label|Description|More|Line|Sysfs GPIO|
+|----|----------|---------------|-----------|----|---|---|---------------|-----------|----|----|----------|
+|    |       |3.3 VDC   |Power             |1A max              |**1** |**2** |5.0 VDC            |Power       | 1A max |   |       |
+|    |       |I2C5_DAT  |General I2C5 Data |1.8/3.3V, I2C Bus 8 |**3** |**4** |5.0 VDC            |Power       | 1A max |   |       |
+|    |       |2C_GP5_CLK|General I2C #5 Clock |1.8/3.3V, I2C Bus 8 |**5** |**6** |GND             |            |        |   |       |
+|106 |gpio454|MCLK05    |Audio Master Clock|1.8/3.3V            |**7** |**8** |UART1_TX           |UART #1     |Transmit|   |       |
+|    |       |GND       |                  |                    |**9** |**10**|UART1_RX           |UART #1     |Receive |   |       |
+|112 |gpio460|UART1_RTS |UART #1 Request to Send |1.8/3.3V      |**11**|**12**|I2S2_CLK           |Audio I2S #2| Clock  |50 |gpio398|
+|108 |gpio456|**GPIO32**|GPIO #32          |                    |**13**|**14**|GND                |            |        |   |       |
+|85  |gpio433|**GPIO27**|(PWM)             |                    |**15**|**16**|**GPIO8**          |GPIO #8     |        |9  |gpio357|
+|    |       |3.3 VDC   |Power             |1A max              |**17**|**18**|**GPIO35**         |(PWM)       |        |43 |gpio391|
+|135 |gpio483|SPI1_MOSI |SPI #1            |Master Out/Slave In |**19**|**20**|GND                |            |        |   |       |
+|134 |gpio482|SPI1_MOSI |SPI #1            |Master In/Slave Out |**21**|**22**|GPIO17             |GPIO #17    |        |96 |gpio444| 
+|133 |gpio481|SPI1_SCK  |SPI #1            |Shift Clock         |**23**|**24**|SPI1_CS0_N         |SPI #1|Chip Select #0|136|gpio484|
+|    |       |GND       |                  |                    |**25**|**26**|SPI1_CS1_N         |SPI #1|Chip Select #1|137|gpio485|
+|    |       |I2C2_DAT  |General I2C #2 Data |I2C Bus 1         |**27**|**28**|I2C2_CLK | General I2C #2 Clock |I2C Bus 1|  |       |
+|1   |gpio317|CAN0_DIN  |CAN #0            | Data In            |**29**|**30**|GND                |            |        |   |       |
+|0   |gpio316|CAN0_DOUT |CAN #0            | Data Out           |**31**|**32**|**GPIO9**          |GPIO #9     |        |8  |gpio324|
+|2   |gpio318|CAN1_DOUT |CAN #1            | Data Out           |**33**|**34**|GND                |            |        |   |       |
+|53  |gpio401|I2S_FS    |AUDIO I2S #2 Left/Right | Clock        |**35**|**36**|UART1_CTS          |UART #1|Clear to Send|113|gpio461|
+|3   |gpio319|CAN1_DIN  |CAN #1 Data In    |                    |**37**|**38**|I2S_SDIN           |Audio I2S #2|Data In |52 |gpio400|
+|    |       |GND       |                  |                    |**39**|**40**|I2S_SDOUT          |Audio I2S #2|Data Out|51 |gpio399|
 
 On I2C bus 1, there are existing devices on 0x08, 0x40, 0x41. These are denoted as UU by i2cdetect
 Default Setup

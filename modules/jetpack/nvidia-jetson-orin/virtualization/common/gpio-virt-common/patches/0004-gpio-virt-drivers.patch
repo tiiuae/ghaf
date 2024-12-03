@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-10-07 09:39:18.631025637 +0000
-+++ b/drivers/Makefile	2024-10-29 11:09:24.429204915 +0000
++++ b/drivers/Makefile	2024-12-02 09:22:59.545842118 +0000
 @@ -193,0 +194,7 @@
 +#
 +#
@@ -50,10 +50,10 @@ index 0000000..2580e02
 +obj-$(CONFIG_TEGRA_GPIO_GUEST_PROXY) += gpio-guest-proxy.o
 diff --git a/drivers/gpio-guest-proxy/gpio-guest-proxy.c b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
 new file mode 100644
-index 0000000..67a49e1
+index 0000000..99d2356
 --- /dev/null
 +++ b/drivers/gpio-guest-proxy/gpio-guest-proxy.c
-@@ -0,0 +1,921 @@
+@@ -0,0 +1,936 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO Guest Proxy Kernel Module
@@ -79,8 +79,6 @@ index 0000000..67a49e1
 +#include <linux/namei.h>
 +#include <linux/delay.h>
 +
-+#include "../gpio-host-proxy/gpio-host-proxy.h"
-+
 +#define DEVICE_NAME "gpio-guest"   // Device name.
 +#define CLASS_NAME  "chardrv"	  // < The device class -- this is a character device driver
 +
@@ -89,8 +87,8 @@ index 0000000..67a49e1
 +MODULE_DESCRIPTION("NVidia GPIO Guest Proxy Kernel Module");	///< The description -- see modinfo
 +MODULE_VERSION("0.0");						///< A version number to inform users
 +
-+#define GPIO_DEBUG
-+#define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
 +
 +#ifdef GPIO_DEBUG
 +  /*
@@ -119,6 +117,9 @@ index 0000000..67a49e1
 +  #define deb_verbose(fmt, ...)
 +  #define hexDump(...)
 +#endif
++
++#include <gpio-proxy.h>
++#include "../gpio-host-proxy/gpio-host-proxy.h"
 +
 +// MEM_SIZE defined in gpio-host-proxy.h
 +static volatile void __iomem  *mem_iova = NULL;
@@ -168,6 +169,20 @@ index 0000000..67a49e1
 +    // Read response from io_buffer
 +    memcpy_fromio(generic_return, (void *)((char *)mem_iova + RETURN_OFF), ret_len); // 32 bits except for tegra186_gpio_get_base_redirect 64 bits
 +    hexDump(DEVICE_NAME, "GPIO: PT transfer (retrieved retval to guest)", generic_return, ret_len );  }
++}
++
++void *gpio_get_host_values(unsigned char id, unsigned int h_val) {
++  void *ret_ptr = (void *)0x01234567ABADFACE; // simulating a pointer with a uint64_t
++  struct tegra_gpio_pt msg;
++
++  deb_verbose("\n");
++  msg.signal = GPIO_GET_HOST_VALUES;
++  msg.chipnum = id;
++  msg.level = 0;
++  msg.offset = h_val;
++ 
++  guest_chardev_transfer(&msg, sizeof(msg), &ret_ptr, sizeof(ret_ptr));
++  return ret_ptr;
 +}
 +
 +void *tegra186_gpio_get_base_redirect(unsigned char id, unsigned int pin) {
@@ -1000,10 +1015,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..0144111
+index 0000000..354950b
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,833 @@
+@@ -0,0 +1,869 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO host Proxy Kernel Module
@@ -1027,11 +1042,6 @@ index 0000000..0144111
 +#include <linux/namei.h>
 +#include <linux/delay.h>
 +
-+#include "../gpio-host-proxy/gpio-host-proxy.h"
-+const unsigned char rwl_std_type     = RWL_STD;
-+const unsigned char rwl_raw_type     = RWL_RAW;
-+const unsigned char rwl_relaxed_type = RWL_RELAXED;
-+
 +#define DEVICE_NAME "gpio-host"   // Device name.
 +#define CLASS_NAME  "chardrv"	  // < The device class -- this is a character device driver
 +
@@ -1040,8 +1050,8 @@ index 0000000..0144111
 +MODULE_DESCRIPTION("NVidia GPIO Host Proxy Kernel Module");	///< The description -- see modinfo
 +MODULE_VERSION("0.0");						///< A version number to inform users
 +
-+#define GPIO_DEBUG
-+#define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE       // also activates deb_verbose commands
 +
 +#ifdef GPIO_DEBUG
 +  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
@@ -1058,6 +1068,14 @@ index 0000000..0144111
 +#else
 +  #define deb_verbose(fmt, ...)
 +#endif
++
++
++#include <gpio-proxy.h>
++#include "../gpio-host-proxy/gpio-host-proxy.h"
++
++const unsigned char rwl_std_type     = RWL_STD;
++const unsigned char rwl_raw_type     = RWL_RAW;
++const unsigned char rwl_relaxed_type = RWL_RELAXED;
 +
 +extern struct gpio_chip *find_chip_by_name(const char *);
 +extern struct gpio_chip *find_chip_by_id(int);
@@ -1362,6 +1380,8 @@ index 0000000..0144111
 + * Writes to the device
 + */
 +
++extern struct tegra_gpio_local_values gpio_local_values[];
++
 +static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
 +{
 +	struct tegra_gpio_pt *kbuf = NULL;
@@ -1373,6 +1393,7 @@ index 0000000..0144111
 +	// long int ret_long;  // 64 bits
 +	int ret_int;  // 32 bits
 +	int ret;
++        int i;
 +
 +	_Static_assert( sizeof(ret_ptr) == sizeof(return_value),
 +               "ret_ptr size does not match return_value" );
@@ -1437,6 +1458,36 @@ index 0000000..0144111
 +	deb_verbose("Passthrough in host with signal: %c, Chip %d, Offset %d, Level %d", kbuf->signal, kbuf->chipnum, kbuf->offset, kbuf->level);
 +
 +  switch (kbuf->signal) {
++    case GPIO_GET_HOST_VALUES:
++			for ( i = 20; !gpio_local_values[kbuf->chipnum].initialised; i++ )
++				msleep(100);
++			if ( !gpio_local_values[kbuf->chipnum].initialised ) {
++			  deb_info("**error** Could not read gpio_local_values");
++			  ret_ptr = NULL;
++			  goto retptr;
++			}
++				 
++      switch (kbuf->offset) { // we overload offset for defining the variable
++				case GPIO_HOST_VALUE_SECURE:
++					ret_ptr = gpio_local_values[kbuf->chipnum].secure;
++				break;
++				case GPIO_HOST_VALUE_BASE:
++					ret_ptr = gpio_local_values[kbuf->chipnum].base;
++				break;
++				/*
++				case GPIO_HOST_VALUE_GTE_REGS:
++					retptr = gpio_local_values[kbuf->chipnum]->gte_regs;
++				break;
++				case GPIO_HOST_VALUE_GPIO_RVAL:
++					retptr = gpio_local_values[kbuf->chipnum]->gpio_rval;
++				break;
++				*/
++				default:
++					ret_ptr = NULL;
++				break;
++     }
++     goto retptr;
++    break;
 +    case GPIO_READL:
 +      kbuf_rw = (struct tegra_readl_writel *)kbuf;
 +      deb_verbose("readl accessing address 0x%p / 0x%016llX", kbuf_rw->address, (uint64_t)kbuf_rw->address);
@@ -1839,10 +1890,10 @@ index 0000000..0144111
 +*/
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.h b/drivers/gpio-host-proxy/gpio-host-proxy.h
 new file mode 100644
-index 0000000..79b5944
+index 0000000..f05ec1e
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.h
-@@ -0,0 +1,132 @@
+@@ -0,0 +1,133 @@
 +#ifndef __GPIO_HOST_PROXY__H__
 +#define __GPIO_HOST_PROXY__H__
 +
@@ -1869,6 +1920,7 @@ index 0000000..79b5944
 +// #define RETURN_OFF 0
 +#define MAX_CHIP 2
 +
++
 +/* values to be used as "signal" values in struct tegra_gpio_pt */
 +
 +// Note: signals with message size of 8 have a signal value greater than or equal to ascii char 'A'
@@ -1888,7 +1940,7 @@ index 0000000..79b5944
 +#define GPIO_SUSPEND_CONF    'S'   // suspend configure
 +#define GPIO_ADD_PINRANGES   'P'   // add_pin_ranges
 +
-+#define TEGRA_186_GETBASE    'B'   // pastrhrough of tegra186_gpio_get_base in gpio_tegra186.c
++#define TEGRA_186_GETBASE    'B'   // pasthrough of tegra186_gpio_get_base in gpio_tegra186.c
 +
 +// helpers to identify chip
 +#define TEGRA_GPIO_CHIP       0    // tegra-gpio gpio_main_chip
@@ -1913,14 +1965,6 @@ index 0000000..79b5944
 +#define GPIO_CHARDEV_OWNER    '5'   // .owner = THIS_MODULE
 +#define GPIO_CHARDEV_SEEK     '6'   // .llseek = no_llseek
 +#define GPIO_CHARDEV_RELEASE  '7'   // .release = gpio_chrdev_release
-+
-+
-+// Note these externs are also in gpio-proxy.h in the kernel source tree (this proxy code might be in an overlay)
-+// make sure values are synchronised (todo: could be fixed)
-+extern const unsigned char rwl_std_type;
-+extern const unsigned char rwl_raw_type;
-+extern const unsigned char rwl_relaxed_type;
-+
 +
 +// sizeof is rounded to even 64 bit passhtough writes -- no need to optimise size further on an aarch64
 +struct tegra_readl_writel {
@@ -1972,6 +2016,14 @@ index 0000000..79b5944
 +
 +_Static_assert( sizeof(struct tegra_gpio_pt_ext) == 16,
 +               "tegra_gpio_pt_extension size is not 16 bytes." );
++
++struct tegra_gpio_host_values {
++  void __iomem *secure;
++  void __iomem *base;
++  // void __iomem *gte_regs;
++  // struct tegra_gpio_saved_register *gpio_rval;
++  bool initialised;
++};
 +
 +
 +#endif

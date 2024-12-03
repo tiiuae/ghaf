@@ -266,10 +266,10 @@ index 0000000000..dd4b4221d3
 +#endif
 diff --git a/hw/misc/nvidia_gpio_guest.c b/hw/misc/nvidia_gpio_guest.c
 new file mode 100644
-index 0000000000..3f8a976f60
+index 0000000000..a49ca504cb
 --- /dev/null
 +++ b/hw/misc/nvidia_gpio_guest.c
-@@ -0,0 +1,392 @@
+@@ -0,0 +1,516 @@
 +#include "qemu/osdep.h"
 +#include "qemu/qemu-print.h"
 +#include "qemu/log.h"
@@ -282,6 +282,8 @@ index 0000000000..3f8a976f60
 +#include "hw/qdev-core.h"
 +#include "linux/vfio.h"
 +#include "hw/vfio/vfio-common.h"
++#include "hw/sysbus.h"
++#include "exec/address-spaces.h"
 +
 +#define TYPE_NVIDIA_IRQ "nvidia_irq_guest_class"
 +typedef DeviceClass NvidiaIrqClass;
@@ -302,28 +304,39 @@ index 0000000000..3f8a976f60
 +  * gpiochip0 - 164 lines
 +  * gpiochip1 - 32 lines 
 +  */
-+  
++
 +#define GPIOCHIP0_NAME "gpiochip0"
-+#define GPIOCHIP1_NAME "gpiochip1"
-+#define GPIOCHIP0_BASE 0x22000000  // [tegra234-gpio] (164 lines)
-+#define GPIOCHIP1_BASE 0x2F000000  // [tegra234-gpio-aon] (32 lines)
++// reg = <0x00 0x2200000 0x00 0x10000 0x00 0x2210000 0x00 0x10000>;
++#define GPIOCHIP0_REG_BASE 0x2200000  // [tegra234-gpio] (164 lines)
++#define GPIOCHIP0_REG_SIZE  0x20000    // 0x10000+0x10000
 +#define GPIOCHIP0_NUM_LINES 164
-+#define GPIOCHIP1_NUM_LINES 32
 +#define GPIOCHIP0_OFFSET 0x120
-+#define GPIOCHIP1_OFFSET 0x38
 +#define GPIOCHIP0_ACTIVE_LEVEL 1
++
++#define GPIOCHIP1_NAME "gpiochip1"
++// reg = <0x00 0xc2f0000 0x00 0x1000 0x00 0xc2f1000 0x00 0x1000>;
++#define GPIOCHIP1_REG_BASE 0xc2F0000   // [tegra234-gpio-aon] (32 lines)
++#define GPIOCHIP1_REG_SIZE  0x2000     // 0x1000+0x1000
++#define GPIOCHIP1_NUM_LINES 32
++#define GPIOCHIP1_OFFSET 0x38
 +#define GPIOCHIP1_ACTIVE_LEVEL 0
 +// #define GPIOCHIP1_OFFSET 0x6A
++
++#define QEMU_DEBUG_MSG
 +
 +struct NvidiaIrqDevice
 +{
 +	SysBusDevice parent_obj;
 +    qemu_irq *irq;
 +    const char *device_name;
-+    int base_address;
++    int memindex;
++    void *host_memory;
++    int regbase_address;
++    int regbase_size;
 +    int offset;
 +    int num_lines;
 +    int irq_active_level;
++    MemoryRegion mmio;
 +};
 +
 +// Define a function to handle interrupts
@@ -334,7 +347,9 @@ index 0000000000..3f8a976f60
 +    // 0x38  to 0x58  is gpiochip1
 +    NvidiaIrqDevice *dev = opaque;
 +    int index = n - dev->offset;
++    #ifdef QEMU_DEBUG_MSG
 +	qemu_printf("IRQ: %s, dev=%p, index=%d\n", __func__, dev, index);
++    #endif
 +    if(index < 0 || index >= dev->num_lines) {
 +        qemu_printf("IRQ: **Error** Illegal IRQ index (%d)\n", n);
 +        return;
@@ -343,13 +358,71 @@ index 0000000000..3f8a976f60
 +}
 +
 +static void nvidia_gpio_irq_reset(DeviceState *dev) {
++    #ifdef QEMU_DEBUG_MSG
 +	qemu_printf("IRQ: %s, dev=%p\n", __func__, dev);
++    #endif
 +    // Implementation of device reset
 +}
 +
++static int nvidia_gpio_memory_access(void *opaque, hwaddr addr, unsigned int size, bool is_write) {
++    NvidiaIrqDevice *dev = opaque;
++
++    #ifdef QEMU_DEBUG_MSG
++    qemu_printf("IRQ: %s, dev=%p, addr=0x%lx, size=%d, is_write=%d\n", __func__, dev, addr, size, is_write);
++    #endif
++
++    // Forward the memory access to the host's memory
++    if (is_write) {
++        // Write to the host's memory
++        *(uint64_t *)(dev->host_memory + addr) = size;
++    } else {
++        // Read from the host's memory
++        uint64_t value = *(uint64_t *)(dev->host_memory + addr);
++        #ifdef QEMU_DEBUG_MSG
++        qemu_printf("Read value: 0x%lx\n", value);
++        #endif
++    }
++
++    return 0;
++}
++static uint64_t nvidia_gpio_memory_read(void *opaque, hwaddr addr, unsigned int size) {
++    NvidiaIrqDevice *dev = opaque;
++    #ifdef QEMU_DEBUG_MSG
++    qemu_printf("IRQ: %s, dev=%p, addr=0x%lx, size=%d\n", __func__, dev, addr, size);
++    #endif
++
++    // Read from the host's memory
++    uint64_t value = *(uint64_t *)(dev->host_memory + addr);
++    #ifdef QEMU_DEBUG_MSG
++    qemu_printf("Read value: 0x%lx\n", value);
++    #endif
++    return value;
++}
++
++static void nvidia_gpio_memory_write(void *opaque, hwaddr addr, uint64_t data, unsigned int size) {
++    NvidiaIrqDevice *dev = opaque;
++    #ifdef QEMU_DEBUG_MSG
++    qemu_printf("IRQ: %s, addr=0x%lx, size=%d\n", __func__, addr, size);
++    #endif
++
++    // Write to the host's memory
++    *(uint64_t *)(dev->host_memory + addr) = data;
++}
++
++static const MemoryRegionOps nvidia_gpio_mem_ops = {
++    .read = &nvidia_gpio_memory_read,
++    .write = &nvidia_gpio_memory_write,
++    .endianness = DEVICE_NATIVE_ENDIAN,
++    // .valid.min_access_size = 4,
++    // .valid.max_access_size = 4,
++
++};
++
 +static void nvidia_gpio_irq_realize(DeviceState *sdev, Error **errp) {
 +    NvidiaIrqDevice *dev = NVIDIA_IRQ_DEVICE(sdev);
++    #ifdef QEMU_DEBUG_MSG
 +    qemu_printf("IRQ: %s, device=%s, lines=%d, dev=%p\n", __func__, dev->device_name, dev->num_lines, dev);
++    #endif
 +
 +    dev->irq = malloc(sizeof(qemu_irq) * dev->num_lines);
 +    // check for errors
@@ -366,24 +439,69 @@ index 0000000000..3f8a976f60
 +            qemu_printf("IRQ: %s **Error** Null pointer in dev->irq[%d]\n", __func__, i);
 +            return;
 +        }
-+        sysbus_init_irq(SYS_BUS_DEVICE(dev), &dev->irq[i]);    // GPIO does not need System Bus
++        sysbus_init_irq(SYS_BUS_DEVICE(dev), &dev->irq[i]);    // GPIO does not need System Bus ?
 +        // Set up the IRQ routing
 +        qemu_set_irq(dev->irq[i], dev->irq_active_level);      // Set the IRQ trigger level
 +    }
++    #ifdef QEMU_DEBUG_MSG
 +    qemu_printf("IRQ: %s, allocated %d irq lines for %s\n", __func__, dev->num_lines, dev->device_name);
++    #endif
++
++    /* memory passthrough */
++
++    // Create a unique name for the shared memory object
++    char shm_name[64];
++    snprintf(shm_name, sizeof(shm_name), "/%s_shared_memory", dev->device_name);
++
++    // Open the shared memory object
++    int shm_fd = shm_open(shm_name, O_RDWR | O_CREAT, 0600);
++    if (shm_fd == -1) {
++        qemu_printf("IRQ: %s **Error** Failed to create shared memory object\n", __func__);
++        return;
++    }
++
++    // Set the size of the shared memory object
++    if (ftruncate(shm_fd, dev->regbase_size) == -1) {
++        qemu_printf("IRQ: %s **Error** Failed to set shared memory size\n", __func__);
++        close(shm_fd);
++        return;
++    }
++
++    // Map the shared memory into the address space
++    dev->host_memory = mmap(NULL, dev->regbase_size, PROT_READ | PROT_WRITE, MAP_SHARED, shm_fd, 0);
++    if (dev->host_memory == MAP_FAILED) {
++        qemu_printf("IRQ: %s **Error** Failed to map shared memory\n", __func__);
++        close(shm_fd);
++        return;
++    }
++
++    // Close the shared memory file descriptor (mapping remains valid)
++    close(shm_fd);
++
++    // Communicate the shared memory details to the host driver (not shown here)
++
++    // Initialize the MMIO memory region with custom handlers
++    memory_region_init_io(&dev->mmio, OBJECT(dev), &nvidia_gpio_mem_ops, dev, "nvidia-gpio-mmio", dev->regbase_size);
++    // sysbus_init_mmio(SYS_BUS_DEVICE(dev), &dev->mmio);
++    MemoryRegion *sys_mem = get_system_memory();
++    memory_region_add_subregion(sys_mem, dev->regbase_address, &dev->mmio);
 +}
 +
 +// Define the initialisation function to create the virtual IRQ device
 +static void nvidia_irq_guest_instance_init(Object *obj) {
 +    NvidiaIrqDevice *dev = NVIDIA_IRQ_DEVICE(obj);
 +    // struct vfio_device *vfio_dev = vfio_get_device(dev->device_name);
++    #ifdef QEMU_DEBUG_MSG
 +	qemu_printf("IRQ: %s, dev=%p\n", __func__, dev);
++    #endif
 +
 +}
 +
 +static void nvidia_gpio_irq_free(DeviceState *sdev) {
 +    NvidiaIrqDevice *dev = NVIDIA_IRQ_DEVICE(sdev);
++    #ifdef QEMU_DEBUG_MSG
 +	qemu_printf("IRQ: %s, dev=%p\n", __func__, dev);
++    #endif
 +
 +    for (int i = 0; i < dev->num_lines; i++) {
 +        qemu_free_irq(dev->irq[i]);
@@ -394,7 +512,9 @@ index 0000000000..3f8a976f60
 +// Define a function to create the IRQ module class 
 +static void nvidia_irq_guest_class_init(ObjectClass *klass, void *data) {
 +    DeviceClass *dc = DEVICE_CLASS(klass);
++    #ifdef QEMU_DEBUG_MSG
 +	qemu_printf("IRQ: %s, klass=%p\n", __func__, klass);
++    #endif
 +    dc->bus_type = TYPE_SYSTEM_BUS; // Set the bus type
 +    dc->reset = nvidia_gpio_irq_reset;
 +    dc->realize = nvidia_gpio_irq_realize;
@@ -420,7 +540,9 @@ index 0000000000..3f8a976f60
 +    DeviceState *gpiochip0 = qdev_new(TYPE_NVIDIA_IRQ);
 +    NvidiaIrqDevice *chip0_dev = NVIDIA_IRQ_DEVICE(gpiochip0);
 +    chip0_dev->num_lines = GPIOCHIP0_NUM_LINES;
-+    chip0_dev->base_address = GPIOCHIP0_BASE;
++    chip0_dev->memindex = 0;
++    chip0_dev->regbase_address = GPIOCHIP0_REG_BASE;
++    chip0_dev->regbase_size = GPIOCHIP0_REG_SIZE;
 +    chip0_dev->irq_active_level = GPIOCHIP0_ACTIVE_LEVEL;
 +    chip0_dev->offset=GPIOCHIP0_OFFSET;
 +    chip0_dev->device_name = GPIOCHIP0_NAME;
@@ -429,7 +551,9 @@ index 0000000000..3f8a976f60
 +    DeviceState *gpiochip1 = qdev_new(TYPE_NVIDIA_IRQ);
 +    NvidiaIrqDevice *chip1_dev = NVIDIA_IRQ_DEVICE(gpiochip1);
 +    chip1_dev->num_lines = GPIOCHIP1_NUM_LINES;
-+    chip1_dev->base_address = GPIOCHIP1_BASE;
++    chip1_dev->memindex = 1;
++    chip1_dev->regbase_address = GPIOCHIP1_REG_BASE;
++    chip1_dev->regbase_size = GPIOCHIP1_REG_SIZE;
 +    chip1_dev->irq_active_level = GPIOCHIP1_ACTIVE_LEVEL;
 +    chip1_dev->offset=GPIOCHIP1_OFFSET;
 +    chip1_dev->device_name = GPIOCHIP1_NAME;
@@ -629,7 +753,7 @@ index 0000000000..3f8a976f60
 +
 +	if (s->host_device_fd < 0)
 +	{
-+		qemu_printf("%s: **Error** Failed to open the host device..\n", __func__);
++		qemu_printf("%s: **Error** Failed to open the host device\n", __func__);
 +		return;
 +	}
 +

@@ -30,14 +30,18 @@ in {
         patch = null;
         extraStructuredConfig = {
           VFIO_PLATFORM = lib.kernel.yes;
+          VFIO_MDEV = lib.kernel.yes;
+          VFIO_MDEV_DEVICE = lib.kernel.yes;
           TEGRA_GPIO_HOST_PROXY = lib.kernel.yes;
           TEGRA_GPIO_GUEST_PROXY = lib.kernel.yes;
-          
+         
           # EFI = lib.kernel.yes;
           # EFI_STUB = lib.kernel.yes;
+          /*
           # debug options below this line
           LOG_BUF_SHIFT = lib.kernel.freeform ''20'';
-
+          COMPAT_ASLR = lib.kernel.yes;
+          ARCH_SCHED = lib.kernel.yes;
           HW_BREAKPOINT = lib.kernel.yes;
           HAVE_HW_BREAKPOINT = lib.kernel.yes;
           GDB_HW_BREAKPOINT = lib.kernel.yes;
@@ -182,6 +186,7 @@ in {
           XEN_PRIVCMD = lib.mkForce lib.kernel.no;
           XEN_EFI = lib.mkForce lib.kernel.no;
           XEN_AUTO_XLATE = lib.mkForce lib.kernel.no;
+          */
         };
       }
     ];
