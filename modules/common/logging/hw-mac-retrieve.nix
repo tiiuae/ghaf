@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ hostConfig }: 
 {
   config,
   lib,
@@ -12,7 +13,7 @@ let
   macCommand = "${pkgs.hwinfo}/bin/hwinfo --network --only /class/net/wlp0s5f0 |  ${pkgs.gawk}/bin/awk '/Permanent HW Address/ {print $4}'";
   macAddressPath = config.ghaf.logging.identifierFilePath;
 in
-{
+  {
   options.ghaf.logging.identifierFilePath = lib.mkOption {
     description = ''
       This configuration option used to specify the identifier file path.
@@ -28,7 +29,7 @@ in
     # TODO: Remove hw-mac.service and replace with givc rpc later
     systemd.services."hw-mac" = {
       description = "Retrieve MAC address from net-vm";
-      wantedBy = [ "alloy.service" ];
+      wantedBy = if hostConfig.ghaf.virtualization.microvm.guivm.enable then [ "ewwbar.service" ] else [ "alloy.service" ];
       requires = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
@@ -36,7 +37,7 @@ in
         # Make sure we can ssh before we retrieve mac address
         ExecStartPre = "${sshCommand} ls";
         ExecStart = ''
-          ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath}"
+          ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath} "
         '';
         Restart = "on-failure";
         RestartSec = "1";

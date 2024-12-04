@@ -11,6 +11,7 @@ let
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  hostConfig = config;
   guivmBaseConfiguration = {
     imports = [
       inputs.impermanence.nixosModules.impermanence
@@ -29,6 +30,9 @@ let
 
       # To push logs to central location
       ../../../common/logging/client.nix
+      
+      (import ../../../common/logging/hw-mac-retrieve.nix { hostConfig=config; })
+
       (
         { lib, pkgs, ... }:
         let
@@ -82,6 +86,7 @@ let
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            logging.identifierFilePath = "/tmp/MACAddress";
             storagevm = {
               enable = true;
               name = "guivm";
