@@ -1342,7 +1342,7 @@ in
     };
 
     services.udev.extraRules = ''
-      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}="eww-display-trigger.service"
+      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="eww-display-trigger.service"
     '';
 
     systemd.user.services.ewwbar = {

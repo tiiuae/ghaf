@@ -343,6 +343,10 @@ in
       };
     };
 
+    services.udev.extraRules = ''
+      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="mako-reset.service"
+    '';
+
     systemd.user.services = {
       ghaf-launcher = {
         enable = true;
@@ -368,6 +372,13 @@ in
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
+      };
+
+      mako-reset = {
+        enable = true;
+        serviceConfig = {
+          ExecStart = "${pkgs.mako}/bin/makoctl set-mode default";
+        };
       };
 
       mako = {
