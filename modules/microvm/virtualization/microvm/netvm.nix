@@ -71,6 +71,7 @@ let
               name = "netvm";
               directories = [ "/etc/NetworkManager/system-connections/" ];
             };
+            security.sysctl.network.bpf-access-level = lib.mkForce 1; # Provide BPF access to privileged users
           };
 
           time.timeZone = config.time.timeZone;
