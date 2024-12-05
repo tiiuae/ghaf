@@ -195,7 +195,7 @@ in
             {
               name = "Audio Control";
               description = "System Audio Control";
-              path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString pulseaudioTcpControlPort}";
+              path = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString pulseaudioTcpControlPort} --indicator_icon_name=preferences-sound";
               icon = "preferences-sound";
             }
 
