@@ -25,7 +25,7 @@ let
         if configHost.ghaf.shm.display then
           ''
             #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe -s ${configHost.ghaf.shm.serverSocketPath} server "$@"
+            ${pkgs.waypipe}/bin/waypipe -s ${configHost.ghaf.shm.clientSocketPath} server "$@"
           ''
         else
           ''
@@ -76,7 +76,7 @@ in
           RestartSec = "1";
           ExecStart =
             if configHost.ghaf.shm.display then
-              "${pkgs.waypipe}/bin/waypipe --secctx \"${vm.name}\" ${waypipeBorder} -s ${configHost.ghaf.shm.clientSocketPath} client"
+              "${pkgs.waypipe}/bin/waypipe --secctx \"${vm.name}\" ${waypipeBorder} -s ${configHost.ghaf.shm.serverSocketPath} client"
             else
               "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
         };
