@@ -81,6 +81,11 @@ in
       default = [ ];
       description = "Wayland security context settings";
     };
+    maxDesktops = lib.mkOption {
+      type = lib.types.int;
+      default = 4;
+      description = "Max number of virtual desktops.";
+    };
     gtk = lib.mkOption {
       type = lib.types.submodule {
         options = {

@@ -449,6 +449,7 @@ in
 
         (defvar volume-popup-visible "false")
         (defvar brightness-popup-visible "false")
+        (defvar workspace-popup-visible "false")
         (defvar workspaces-visible "false")
         ;; (defpoll bluetooth  :interval "3s" :initial "{}" "${pkgs.bt-launcher}/bin/bt-launcher status")
 
@@ -681,6 +682,13 @@ in
                         :icon {volume.icon}
                         :level {volume.level})))))
 
+        ;; Workspace Popup Widget ;;
+        (defwidget workspace-popup []
+            (revealer :transition "crossfade" :duration "200ms" :reveal workspace-popup-visible :active false
+                (box :class "wrapper_widget"
+                (box :class "hotkey"
+                    (label :text "Desktop ''${workspace}")))))
+
         ;; Quick Settings Button ;;
         (defwidget quick-settings-button [screen bat-icon vol-icon bright-icon]
             (button :class "icon_button"
@@ -785,7 +793,7 @@ in
                 :orientation "h"
                 :space-evenly "false"
                 (button :class "icon_button"
-                        :tooltip "Current workspace"
+                        :tooltip "Current desktop"
                         :onclick {workspaces-visible == "false" ? "''${EWW_CMD} update workspaces-visible=true" : "''${EWW_CMD} update workspaces-visible=false"}
                         workspace)
                 (revealer 
@@ -795,12 +803,15 @@ in
                     (eventbox :onhoverlost "''${EWW_CMD} update workspaces-visible=false"
                         (box :orientation "h"
                             :space-evenly "true"
-                            (button :class "icon_button"
-                                :onclick "${ghaf-workspace}/bin/ghaf-workspace switch 1; ''${EWW_CMD} update workspaces-visible=false"
-                                "1")
-                            (button :class "icon_button"
-                                :onclick "${ghaf-workspace}/bin/ghaf-workspace switch 2; ''${EWW_CMD} update workspaces-visible=false"
-                                "2"))))))
+                            ${
+                              lib.concatStringsSep "\n" (
+                                builtins.map (index: ''
+                                  (button :class "icon_button"
+                                      :onclick "${ghaf-workspace}/bin/ghaf-workspace switch ${toString index}; ''${EWW_CMD} update workspaces-visible=false"
+                                      "${toString index}")
+                                '') (lib.lists.range 1 cfg.maxDesktops)
+                              )
+                            })))))
 
         (defwidget left []
             (box	
@@ -912,6 +923,15 @@ in
                                   :anchor "bottom center")
               :stacking "overlay"
               (brightness-popup))
+
+          ;; Workspace Popup Window ;;
+          (defwindow workspace-popup
+              :monitor 0
+              :geometry (geometry :y "150px"
+                                  :x "0px"
+                                  :anchor "bottom center")
+              :stacking "overlay"
+              (workspace-popup))
         ''}
 
         ;; Closer Window ;;
@@ -1188,6 +1208,7 @@ in
             @include floating_widget($margin: 0, $padding: 10px 12px);
             @include icon;
             .slider{ @include slider($slider-width: 150px, $thumb: false, $slider-height: 5px); }
+            font-size: 1.3em;
         }
 
         .widget-button {@include widget-button; }
@@ -1411,6 +1432,24 @@ in
             popupName = "volume-popup";
           }
         }/bin/volume-popup-handler";
+        Restart = "on-failure";
+      };
+      after = [ "ewwbar.service" ];
+      wantedBy = [ "ewwbar.service" ];
+      partOf = [ "ghaf-session.target" ];
+    };
+
+    systemd.user.services.eww-workspace-popup = {
+      enable = true;
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${
+          mkPopupHandler {
+            name = "workspace-popup-handler";
+            stateFile = "workspace";
+            popupName = "workspace-popup";
+          }
+        }/bin/workspace-popup-handler";
         Restart = "on-failure";
       };
       after = [ "ewwbar.service" ];
