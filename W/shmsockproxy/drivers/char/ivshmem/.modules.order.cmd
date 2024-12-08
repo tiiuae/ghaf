@@ -1,0 +1,1 @@
+savedcmd_/home/vadikas/W/shmsockproxy/drivers/char/ivshmem/modules.order := {   echo /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.o; :; } > /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/modules.order
