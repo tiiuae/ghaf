@@ -140,6 +140,9 @@ let
       <keybind key="XF86_AudioMute">
         <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/volume; ${pkgs.pamixer}/bin/pamixer --toggle-mute'" />
       </keybind>
+      <keybind key="XF86_Display">
+        <action name="Execute" command="${lib.getExe pkgs.wdisplays}" />
+      </keybind>
       <keybind key="W-z">
         <action name="ToggleMagnify" />
       </keybind>
