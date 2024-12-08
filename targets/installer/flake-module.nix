@@ -1,15 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Lenovo X1 Carbon Installer
+# Ghaf x86_64 Installer
 { lib, self, ... }:
 let
-  name = "lenovo-x1-carbon";
   system = "x86_64-linux";
   installer =
-    generation: variant:
+    target: variant:
     let
-      imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw.zst";
+      imagePath = self.packages.x86_64-linux."${target}-${variant}" + "/disk1.raw.zst";
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
@@ -63,14 +62,18 @@ let
     in
     {
       inherit hostConfiguration;
-      name = "${name}-${generation}-${variant}-installer";
+      name = "${target}-${variant}-installer";
       package = hostConfiguration.config.system.build.isoImage;
     };
   targets = [
-    (installer "gen10" "debug")
-    (installer "gen11" "debug")
-    (installer "gen10" "release")
-    (installer "gen11" "release")
+    (installer "lenovo-x1-carbon-gen10" "debug")
+    (installer "lenovo-x1-carbon-gen10" "release")
+    (installer "lenovo-x1-carbon-gen11" "debug")
+    (installer "lenovo-x1-carbon-gen11" "release")
+    (installer "dell-latitude-7230" "debug")
+    (installer "dell-latitude-7230" "release")
+    (installer "dell-latitude-7330" "debug")
+    (installer "dell-latitude-7330" "release")
   ];
 in
 {
