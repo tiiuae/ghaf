@@ -184,6 +184,7 @@ in
             };
           };
 
+          security.apparmor.enable = true;
           services.xdghandlers.enable = true;
         };
         environment.etc."opt/chrome/native-messaging-hosts/fi.ssrc.open_normal.json" =
