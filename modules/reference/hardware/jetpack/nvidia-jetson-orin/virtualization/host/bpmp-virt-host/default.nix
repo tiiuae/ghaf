@@ -27,14 +27,6 @@ in
 
     boot.kernelPatches = [
       {
-        name = "Bpmp virtualization host proxy device tree";
-        patch = ./patches/0001-bpmp-host-proxy-dts.patch;
-      }
-      {
-        name = "Bpmp virtualization host uarta device tree";
-        patch = ./patches/0002-bpmp-host-uarta-dts.patch;
-      }
-      {
         name = "Bpmp virtualization host kernel configuration";
         patch = null;
         extraStructuredConfig = with lib.kernel; {
@@ -43,6 +35,19 @@ in
         };
       }
     ];
+
+    # Enable hardware.deviceTree for handle host dtb overlays
+    hardware.deviceTree.enable = true;
+
+    # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
+    hardware.deviceTree.overlays = [
+      {
+        name = "bpmp_host_overlay";
+        dtsFile = ./bpmp_host_overlay.dts;
+      }
+      # TODO: add overlay to support UARTA passthrough
+    ];
+
 
     # TODO: Consider are these really needed, maybe add only in debug builds?
     environment.systemPackages = with pkgs; [
