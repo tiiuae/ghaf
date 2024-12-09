@@ -7,6 +7,7 @@ let
   vmName = "admin-vm";
   macAddress = "02:00:00:AD:01:01";
   isLoggingEnabled = config.ghaf.logging.client.enable;
+  hostsEntries = import ../../../common/networking/hosts-entries.nix;
 
   adminvmBaseConfiguration = {
     imports = [
@@ -19,7 +20,7 @@ let
           vmName
           macAddress
           ;
-        internalIP = 10;
+        internalIP = hostsEntries.ipByName vmName;
       })
       # We need to retrieve mac address and start log aggregator
       ../../../common/logging/hw-mac-retrieve.nix

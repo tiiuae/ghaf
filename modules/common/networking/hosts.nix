@@ -36,53 +36,8 @@ let
   # debug network hosts are post-fixed: <hostname>-debug
   ipBase = "192.168.100";
   debugBase = "192.168.101";
-  hostsEntries = [
-    {
-      ip = 1;
-      name = "net-vm";
-    }
-    {
-      ip = 2;
-      name = "ghaf-host";
-    }
-    {
-      ip = 3;
-      name = "gui-vm";
-    }
-    {
-      ip = 4;
-      name = "ids-vm";
-    }
-    {
-      ip = 5;
-      name = "audio-vm";
-    }
-    {
-      ip = 10;
-      name = "admin-vm";
-    }
-    {
-      ip = 100;
-      name = "chrome-vm";
-    }
-    {
-      ip = 101;
-      name = "gala-vm";
-    }
-    {
-      ip = 102;
-      name = "zathura-vm";
-    }
-    {
-      ip = 103;
-      name = "comms-vm";
-    }
-    {
-      ip = 104;
-      name = "business-vm";
-    }
-  ];
-
+  hosts-entries = import ./hosts-entries.nix;
+  inherit (hosts-entries) hostsEntries;
   mkHostEntry =
     { ip, name }:
     {

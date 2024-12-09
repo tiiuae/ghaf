@@ -12,6 +12,7 @@ let
   macAddress = "02:00:00:01:01:01";
 
   isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
+  hostsEntries = import ../../../common/networking/hosts-entries.nix;
 
   sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
     inherit pkgs;
@@ -29,7 +30,7 @@ let
           vmName
           macAddress
           ;
-        internalIP = 1;
+        internalIP = hostsEntries.ipByName vmName;
         isGateway = true;
       })
 

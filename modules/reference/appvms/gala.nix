@@ -7,10 +7,16 @@
   config,
   ...
 }:
-{
+let
   name = "gala";
+  hostsEntries = import ../../common/networking/hosts-entries.nix;
+  vmname = name + "-vm";
+in
+{
+  inherit name;
   packages = [ pkgs.gala-app ];
   macAddress = "02:00:00:03:06:01";
+  internalIP = hostsEntries.ipByName vmname;
   ramMb = 1536;
   cores = 2;
   extraModules = [

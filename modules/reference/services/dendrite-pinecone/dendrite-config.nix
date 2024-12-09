@@ -4,6 +4,8 @@
 {
   config.ghaf.reference.services.dendrite-pinecone =
     let
+      hostsEntries = import ../../../common/networking/hosts-entries.nix;
+      vmname = "net-vm";
       externalNic =
         let
           firstPciWifiDevice = lib.head config.ghaf.hardware.definition.network.pciDevices;
@@ -15,9 +17,9 @@
           vmNetworking = import ../../../microvm/virtualization/microvm/common/vm-networking.nix {
             inherit config;
             inherit lib;
-            vmName = "net-vm";
+            vmName = vmname;
             inherit (config.microvm.net-vm) macAddress;
-            internalIP = 1;
+            internalIP = hostsEntries.ipByName vmname;
           };
         in
         "${lib.head vmNetworking.networking.nat.internalInterfaces}";

@@ -9,6 +9,8 @@
 }:
 let
   name = "comms";
+  hostsEntries = import ../../common/networking/hosts-entries.nix;
+  vmname = name + "-vm";
   inherit (lib) hasAttr optionals;
   dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone { };
   isDendritePineconeEnabled =
@@ -28,6 +30,8 @@ in
     pkgs.tcpdump
   ] ++ pkgs.lib.optionals isDendritePineconeEnabled [ dendrite-pinecone ];
   macAddress = "02:00:00:03:09:01";
+  internalIP = hostsEntries.ipByName vmname;
+
   ramMb = 4096;
   cores = 4;
   extraModules = [

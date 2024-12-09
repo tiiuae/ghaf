@@ -9,6 +9,8 @@
 }:
 let
   name = "chromium";
+  hostsEntries = import ../../common/networking/hosts-entries.nix;
+  vmname = name + "-vm";
 in
 {
   name = "${name}";
@@ -17,6 +19,7 @@ in
   ] ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
   # TODO create a repository of mac addresses to avoid conflicts
   macAddress = "02:00:00:03:05:01";
+  internalIP = hostsEntries.ipByName vmname;
   ramMb = 6144;
   cores = 4;
   extraModules = [
