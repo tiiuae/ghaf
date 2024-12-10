@@ -7,7 +7,7 @@
 
 This document describes the GPIO passthrough implementation on the NVIDIA Jetson AGX Orin board. The purpose of GPIO passthrough is to allow a virtual machine to access GPIO via the available GPIO chips.
 
-## GPIO Chips and Lines
+# GPIO Chips and Lines
 
 There are two GPIO chips in Nvidia Jetson AGX controlling GPIO,
 
@@ -26,7 +26,7 @@ See Appendix A.
 Some lines are brought to the pinout of the Jetson 40-pin header. (See Appendix B)
 Note that not all pins on the 40-pin header are controlled by the GPIO chips. Some pins have dedicated driver circuitry, thus not available for GPIO nor for GPIO passthrough.
 
-## GPIO Passthrough Host and Guest kernel modules
+# GPIO Passthrough Host and Guest kernel modules
 
 A kernel driver in Host is acting as a proxy for the Guest VM to operate the GPIO chips and thereby the GPIO lines. This driver is implemented as a built-in kernel module. In Guest the tegra186-gpio kernel driver is hooked to send GPIO request to and receive replies from the /dev/vda device which passes the messages to host-passthrough and the Host's GPIO proxy driver.
 
@@ -89,7 +89,7 @@ dtc -Idts -Odtb -o qemu-gpio-guestvm.dtb qemu-gpio-guestvm.dts
   
 ### Define the VDA device
 
->the vda device and its address 'virtual-pa' is defined in the gpio nodes.
+>The vda device and its address 'virtual-pa' is defined in the gpio nodes.
 ```
 ### Define nodes for the GPIO chips 
 >The Device Tree defines passthrough memory for the '/dev/vda' passthrough device with the parameter _virtual-pa_.  
@@ -148,16 +148,21 @@ __symbols__ {
 
 ### Finish
 
-Revise the section [Creating the Guest Device Tree](#creating-the-guest-device-tree) to create the final DTB file for the Guest's Device Tree
+>Revise the section [Creating the Guest Device Tree](#creating-the-guest-device-tree) to create the final DTB file for the Guest's Device Tree
 
-## Starting the Guest VM
+# Compiling the passthrough versions of Qemu and the Linux kernel
 
-### Compiling the passthrough kernel 5.10
+# Compiling the amended 5.10 passthrough Linux kernel
 
-Clone the repos `git@github.com:KimGSandstrom/gpio-virt.git` and `git@github.com:KimGSandstrom/tegra_kernel-5.10.git`
+>The amended kernel will add built in kernel modules and tweak GPIO code.
+
+>Clone the repos `git@github.com:KimGSandstrom/gpio-virt.git` and `git@github.com:KimGSandstrom/tegra_kernel-5.10.git`
 Clone both repos into the same subdirectory because, `./gpio-virt` contains an overlay that `./tegra_kernel-5.10` uses.
 
-Successful compile is tested for gcc (GCC) 9.5.0. Set `CONFIG_TEGRA_GPIO_HOST_PROXY` and `CONFIG_TEGRA_GPIO_GUEST_PROXY` as compiler directives or .config defines. Compile from the parent directory using:
+>Set `CONFIG_TEGRA_GPIO_HOST_PROXY` and `CONFIG_TEGRA_GPIO_GUEST_PROXY` as compiler directives or .config defines.
+Successful compile is tested for gcc (GCC) 9.5.0. 
+
+>Compile from the parent directory using:
 
 ```
 make -C tegra_kernel-5.10/ \ 
@@ -165,11 +170,49 @@ make -C tegra_kernel-5.10/ \
      -Wno-error" ARCH=arm64 O=../kernel_out -j12
 ```
 
-### Compiling the Passthrough version of Qemu
+## Compiling Qemu emulator
 
-Qemu 9.0.1 has been modified to allow passthrough of GPIO. It is available at `git@github.com:KimGSandstrom/qemu-passthrough.git`. A tested configure set for Qemu compile is found in the file `ghaf_configure.sh`.
+Qemu 9.0.1 has been modified to allow passthrough of GPIO. We need this special 
+version to passthrough GPIO pins to the guest kernel.
+It is available at `git@github.com:KimGSandstrom/qemu-passthrough.git` in the branch `main`. 
+A tested configure command for building Qemu with make, is found in the file `ghaf_configure.sh`. Not all switches are needed in Ghaf, but may be useful for debugging.
 
-### To start the guest VM:
+```
+./configure \
+        --target-list=aarch64-softmmu \
+        --enable-kvm \
+        --enable-debug-info \
+        --disable-strip \
+        --disable-docs \
+        --disable-spice \
+        --enable-tools \
+        --localstatedir=/var \
+        --sysconfdir=/etc \
+        --enable-guest-agent \
+        --enable-numa \
+        --enable-seccomp \
+        --enable-smartcard \
+        --enable-usb-redir \
+        --enable-linux-aio \
+        --enable-tpm \
+        --enable-libiscsi \
+        --enable-linux-io-uring \
+        --enable-canokey \
+        --enable-capstone \
+        --enable-virtfs \
+        --enable-gtk \
+        --enable-opengl \
+        --enable-virglrenderer \
+        --enable-sdl \
+        --enable-vnc \
+        --enable-vnc-jpeg \
+        --enable-vde \
+        --enable-vhost-net \
+        --enable-vhost-user
+
+```
+
+# To start the guest VM:
 
 1. Set kernel startup paramters on host:
 `iommu=pt vfio.enable_unsafe_noiommu_mode=0 vfio_iommu_type1.allow_unsafe_interrupts=1 vfio_platform.reset_required=0`
@@ -198,20 +241,25 @@ sudo -E qemu-system-aarch64 \
     -net nic
 ```
 
+These parameters will start the VM with console at stdio and the Qemu monitor at pty.
+Info on pty teminal is printed to stdio before console uses the io.
+If needed use `picocom` at the allocated port to control Qemu monitor. 
+
 ## Testing the passtrough
 
-During testing a process in the Guest VM will use GPIO ports. `gpioset` and `gpiomon` are suitable programs to use.
-GPIO port functionality can be verified from the 40-pin header using a logic analysator connected to the 40-head port. (See Appendix C)
-
+During testing of the Guest VM use of GPIO ports. `gpioset` and `gpiomon` are suitable programs to use.
+Note, that at the moment input pins have only partial functionality.
 If input pins are tested another method must be used to generate the input, using the UARTA pins is a possibility.
+
+GPIO port functionality can be verified from the 40-pin header using a logic analysator connected to the 40-head port. (See Appendix B)
   
-## Appendixes  
+# Appendixes  
   
 ### Appendix A.1    
   
-Line is the offset from each gpiochoip's base address. Direciton and comment declare defalult use.
+'gpio Line' is the offset count from each gpiochip's base address. Direction and comment declare default use.
 
-####gpiochip0 / tegra234-gpio - 164 lines  
+#### gpiochip0 / tegra234-gpio - 164 lines  
 
 | gpio line | pin | default direction | comment |
 | ---------|-------|--------|----------------------------------------------------|
@@ -384,7 +432,7 @@ Line is the offset from each gpiochoip's base address. Direciton and comment dec
 
 Line is the offset from each gpiochoip's base address. Direciton and comment declare defalult use.
 
-####gpiochip1 / tegra234-gpio-aon - 32 lines:
+#### gpiochip1 / tegra234-gpio-aon - 32 lines:
 
 | gpio line | pin | default direction | comment |
 | ---------|-------|--------|----------------------------------------------------|

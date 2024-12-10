@@ -15,7 +15,7 @@ index dcecc9f6e33f..ed7d58d68ba6 100644
  endmenu
 diff --git a/drivers/Makefile b/drivers/Makefile
 --- a/drivers/Makefile	2024-10-07 09:39:18.631025637 +0000
-+++ b/drivers/Makefile	2024-12-02 09:22:59.545842118 +0000
++++ b/drivers/Makefile	2024-12-09 09:17:27.336411420 +0000
 @@ -193,0 +194,7 @@
 +#
 +#
@@ -1015,10 +1015,10 @@ index 0000000..c2e0184
 +obj-$(CONFIG_TEGRA_GPIO_HOST_PROXY) += gpio-host-proxy.o
 diff --git a/drivers/gpio-host-proxy/gpio-host-proxy.c b/drivers/gpio-host-proxy/gpio-host-proxy.c
 new file mode 100644
-index 0000000..354950b
+index 0000000..1230a75
 --- /dev/null
 +++ b/drivers/gpio-host-proxy/gpio-host-proxy.c
-@@ -0,0 +1,869 @@
+@@ -0,0 +1,867 @@
 +// SPDX-License-Identifier: GPL-2.0-only
 +/**
 + * NVIDIA GPIO host Proxy Kernel Module
@@ -1404,7 +1404,7 @@ index 0000000..354950b
 +  */
 +	struct gpio_chip *chip;
 +  #ifdef GPIO_DEBUG_VERBOSE
-+	  // struct gpio_chip *chip_alt;
++	struct gpio_chip *chip_alt;
 +  #endif
 +
 +	deb_info("## writeing %zu bytes to chardev ##", len);
@@ -1540,7 +1540,6 @@ index 0000000..354950b
 +
 +  chip = find_chip_by_id(kbuf->chipnum);
 +
-+/*
 +#ifdef GPIO_DEBUG_VERBOSE
 +  chip_alt = find_chip_by_name(tegra_chiplabel[kbuf->chipnum]);
 +  if(chip != chip_alt) {
@@ -1548,7 +1547,6 @@ index 0000000..354950b
 +    chip = chip_alt; // we assume find_chip_by_name is more reliable
 +  }
 +#endif
-+*/
 +
 +  if(!chip) {
 +	deb_error("chip pointer's pvalue is unexpectedly NULL for chip\n");

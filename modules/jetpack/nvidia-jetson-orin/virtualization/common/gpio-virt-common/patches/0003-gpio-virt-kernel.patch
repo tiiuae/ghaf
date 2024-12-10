@@ -278,10 +278,10 @@ index f66fc17faee4..37adc552495d 100644
  }
  subsys_initcall(tegra_gpio_init);
 diff --git a/drivers/gpio/gpio-tegra186.c b/drivers/gpio/gpio-tegra186.c
-index 5e57824b283e..72625c824578 100644
+index 5e57824b283e..0968b15d56d4 100644
 --- a/drivers/gpio/gpio-tegra186.c
 +++ b/drivers/gpio/gpio-tegra186.c
-@@ -20,28 +20,144 @@
+@@ -20,28 +20,152 @@
  #include <dt-bindings/gpio/tegra234-gpio.h>
  #include <dt-bindings/gpio/tegra239-gpio.h>
  
@@ -329,11 +329,12 @@ index 5e57824b283e..72625c824578 100644
 +#define GPIO_NOPT_TEST7 7     // tegra186_gpio_probe gpio->secure (when true, i.e. exception; no-pt)
 +
 +// starting at second byte
-+#define GPIO_NOFUNC_TEST0A 0+8  // request
-+#define GPIO_NOFUNC_TEST0B 0+8  // free
-+#define GPIO_NOFUNC_TEST1 1+8   // get_direction				// must be set, exception/local?
-+#define GPIO_NOFUNC_TEST2A 2+8  // direction_input			// must be PT? (thus input access will not work locally?)
-+#define GPIO_NOFUNC_TEST2B 2+8  // direction_output			// must be PT?
++// if NOFUNC_TEST2 is set; error setting the GPIO line values: Operation not permitted
++#define GPIO_NOFUNC_TEST0A 0+8  // request				  // unset, passthrough ?	
++#define GPIO_NOFUNC_TEST0B 0+8  // free						  // unset, passthrough ?	
++#define GPIO_NOFUNC_TEST1 1+8   // get_direction	  // unset, passthrough ?
++#define GPIO_NOFUNC_TEST2A 2+8  // direction_input	// unset, passthrough ?
++#define GPIO_NOFUNC_TEST2B 2+8  // direction_output	// unset, passthrough ?	
 +#define GPIO_NOFUNC_TEST3A 3+8  // get
 +#define GPIO_NOFUNC_TEST3B 3+8  // set
 +#define GPIO_NOFUNC_TEST4 4+8   // set_config
@@ -368,7 +369,14 @@ index 5e57824b283e..72625c824578 100644
 + * #define GPIO_NOPT_TEST16 16+TEST_OFFSET     // tegra_pinctrl_resume
 + */
 +
-+static uint32_t debug_exceptions=0x81ff00ff;    // reasonable guess for correct value,
++/* the value of debug_exceptions can be set with
++ * gpio_tegra186.debug_exceptions=0x81fffaff as
++ * kernel boot parameter
++ */
++
++static uint32_t debug_exceptions=0x81fff8ff;    // alternative guess for correct value,
++// static uint32_t debug_exceptions=0x81ff00ff;    // alternativr guess for correct value,
++// static uint32_t debug_exceptions=0x81ff88ff;    // alternative guess for correct value,
 +																								
 +// Declare debug_exceptions as a module parameter
 +module_param(debug_exceptions, uint, S_IRUGO);
@@ -443,7 +451,7 @@ index 5e57824b283e..72625c824578 100644
  
  /* control registers */
  #define TEGRA186_GPIO_ENABLE_CONFIG 0x00
-@@ -75,45 +191,45 @@
+@@ -75,45 +199,45 @@
  
  /******************** GTE Registers ******************************/
  
@@ -526,7 +534,7 @@ index 5e57824b283e..72625c824578 100644
  
  /* AON GPIOS are mapped to only slice 1 and slice 2 */
  /* GTE Interrupt connections. For slice 1 */
-@@ -180,235 +296,253 @@
+@@ -180,235 +304,253 @@
  /**************************************************************/
  
  struct tegra_gpio_port {
@@ -903,38 +911,38 @@ index 5e57824b283e..72625c824578 100644
 -		return 0;
 -	}
 +  // deb_verbose("\n");
-+
-+  if (tgi->gte_enable == 0) {
-+    dev_err(tgi->gpio.parent, "timestamp is already disabled\n");
-+    return 0;
-+  }
  
 -	val = tegra_gte_readl(tgi, GTE_GPIO_TECTRL);
 -	mask = (GTE_GPIO_TECTRL_ENABLE_MASK << GTE_GPIO_TECTRL_ENABLE_SHIFT);
 -	val &= ~mask;
 -	val |= (GTE_GPIO_TECTRL_ENABLE_DISABLE << GTE_GPIO_TECTRL_ENABLE_SHIFT);
 -	tegra_gte_writel(tgi, GTE_GPIO_TECTRL, val);
-+  val = tegra_gte_readl(tgi, GTE_GPIO_TECTRL);
-+  mask = (GTE_GPIO_TECTRL_ENABLE_MASK << GTE_GPIO_TECTRL_ENABLE_SHIFT);
-+  val &= ~mask;
-+  val |= (GTE_GPIO_TECTRL_ENABLE_DISABLE << GTE_GPIO_TECTRL_ENABLE_SHIFT);
-+  tegra_gte_writel(tgi, GTE_GPIO_TECTRL, val);
++  if (tgi->gte_enable == 0) {
++    dev_err(tgi->gpio.parent, "timestamp is already disabled\n");
++    return 0;
++  }
  
 -	/* Disable Slice mapping as well */
 -	tegra_gte_writel(tgi, (AON_GPIO_SLICE1_INDEX * GTE_GPIO_SLICE_SIZE) +
 -			GTE_GPIO_SLICE0_TETEN, 0);
 -	tegra_gte_writel(tgi, (AON_GPIO_SLICE2_INDEX * GTE_GPIO_SLICE_SIZE) +
 -			GTE_GPIO_SLICE0_TETEN, 0);
++  val = tegra_gte_readl(tgi, GTE_GPIO_TECTRL);
++  mask = (GTE_GPIO_TECTRL_ENABLE_MASK << GTE_GPIO_TECTRL_ENABLE_SHIFT);
++  val &= ~mask;
++  val |= (GTE_GPIO_TECTRL_ENABLE_DISABLE << GTE_GPIO_TECTRL_ENABLE_SHIFT);
++  tegra_gte_writel(tgi, GTE_GPIO_TECTRL, val);
+ 
+-	tgi->gte_enable = 0;
 +  /* Disable Slice mapping as well */
 +  tegra_gte_writel(tgi, (AON_GPIO_SLICE1_INDEX * GTE_GPIO_SLICE_SIZE) +
 +      GTE_GPIO_SLICE0_TETEN, 0);
 +  tegra_gte_writel(tgi, (AON_GPIO_SLICE2_INDEX * GTE_GPIO_SLICE_SIZE) +
 +      GTE_GPIO_SLICE0_TETEN, 0);
  
--	tgi->gte_enable = 0;
-+  tgi->gte_enable = 0;
- 
 -	return 0;
++  tgi->gte_enable = 0;
++
 +  return 0;
  }
  
@@ -943,16 +951,16 @@ index 5e57824b283e..72625c824578 100644
 -	tegra_gte_writel(tgi, GTE_GPIO_TECTRL, 0);
 -	tgi->gte_enable = 0;
 +  // deb_verbose("\n");
- 
--	return 0;
++
 +  tegra_gte_writel(tgi, GTE_GPIO_TECTRL, 0);
 +  tgi->gte_enable = 0;
-+
+ 
+-	return 0;
 +  return 0;
  }
  
  /*****************************************************************/
-@@ -416,1314 +550,1970 @@ int tegra_gte_setup(struct tegra_gpio *tgi)
+@@ -416,1314 +558,1971 @@ int tegra_gte_setup(struct tegra_gpio *tgi)
  static const struct tegra_gpio_port *
  tegra186_gpio_get_port(struct tegra_gpio *gpio, unsigned int *pin)
  {
@@ -992,20 +1000,20 @@ index 5e57824b283e..72625c824578 100644
 -	unsigned int offset;
 +  const struct tegra_gpio_port *port;
 +  unsigned int offset;
-+
-+  // deb_verbose("GPIO, chip \n", gpio->gpio.label);
  
 -	port = tegra186_gpio_get_port(gpio, &pin);
 -	if (!port)
 -		return NULL;
++  // deb_verbose("GPIO, chip \n", gpio->gpio.label);
+ 
+-	offset = port->bank * 0x1000 + port->port * 0x200;
 +  port = tegra186_gpio_get_port(gpio, &pin);
 +  if (!port)
 +    return NULL;
  
--	offset = port->bank * 0x1000 + port->port * 0x200;
-+  offset = port->bank * 0x1000 + port->port * 0x200;
- 
 -	return gpio->base + offset + pin * 0x20;
++  offset = port->bank * 0x1000 + port->port * 0x200;
++
 +  return gpio->base + offset + pin * 0x20;
  }
  
@@ -1051,22 +1059,22 @@ index 5e57824b283e..72625c824578 100644
 -		if ((val & GPIO_VM_RW) != GPIO_VM_RW)
 -			return false;
 -	}
+-
+-	val = __raw_readl(secure + GPIO_SCR_REG);
 +  const struct tegra_gpio_port *port;
 +  unsigned int offset;
  
--	val = __raw_readl(secure + GPIO_SCR_REG);
+-	if ((val & (GPIO_SCR_SEC_ENABLE)) == 0)
+-		return true;
 +  // deb_verbose("GPIO, chip \n", gpio->gpio.label);
  
--	if ((val & (GPIO_SCR_SEC_ENABLE)) == 0)
+-	if ((val & (GPIO_FULL_ACCESS)) == GPIO_FULL_ACCESS)
 -		return true;
 +  port = tegra186_gpio_get_port(gpio, &pin);
 +  if (!port)
 +    return NULL;
 +  offset = port->bank * 0x1000 + port->port * GPIO_SCR_BASE_DIFF;
  
--	if ((val & (GPIO_FULL_ACCESS)) == GPIO_FULL_ACCESS)
--		return true;
--
 -	return false;
 +  return gpio->secure + offset + pin * GPIO_SCR_DIFF;
  }
@@ -1447,28 +1455,28 @@ index 5e57824b283e..72625c824578 100644
 +  struct tegra_gpio *gpio = gpiochip_get_data(chip);
 +  void __iomem *base;
 +  u32 value;
-+
-+  deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
  
 -	base = tegra186_gpio_get_base(gpio, offset);
 -	if (WARN_ON(base == NULL))
 -		return -ENODEV;
-+  base = tegra186_gpio_get_base(gpio, offset);
-+  if (WARN_ON(base == NULL))
-+    return -ENODEV;
++  deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
  
 -	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 -	if (value & TEGRA186_GPIO_ENABLE_CONFIG_OUT)
 -		value = readl(base + TEGRA186_GPIO_OUTPUT_VALUE);
 -	else
 -		value = readl(base + TEGRA186_GPIO_INPUT);
++  base = tegra186_gpio_get_base(gpio, offset);
++  if (WARN_ON(base == NULL))
++    return -ENODEV;
+ 
+-	return value & BIT(0);
 +  value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 +  if (value & TEGRA186_GPIO_ENABLE_CONFIG_OUT)
 +    value = readl(base + TEGRA186_GPIO_OUTPUT_VALUE);
 +  else
 +    value = readl(base + TEGRA186_GPIO_INPUT);
- 
--	return value & BIT(0);
++
 +  return value & BIT(0);
  }
  
@@ -1543,23 +1551,21 @@ index 5e57824b283e..72625c824578 100644
 +  struct tegra_gpio *gpio = gpiochip_get_data(chip);
 +  u32 debounce, value;
 +  void __iomem *base;
-+
-+  deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
  
 -	base = tegra186_gpio_get_base(gpio, offset);
 -	if (base == NULL)
 -		return -ENXIO;
++  deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
+ 
+-	if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
+-		return -ENOTSUPP;
 +  base = tegra186_gpio_get_base(gpio, offset);
 +  if (base == NULL)
 +    return -ENXIO;
  
--	if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
--		return -ENOTSUPP;
+-	debounce = pinconf_to_config_argument(config);
 +  if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
 +    return -ENOTSUPP;
- 
--	debounce = pinconf_to_config_argument(config);
-+  debounce = pinconf_to_config_argument(config);
  
 -	/*
 -	 * The Tegra186 GPIO controller supports a maximum of 255 ms debounce
@@ -1567,6 +1573,9 @@ index 5e57824b283e..72625c824578 100644
 -	 */
 -	if (debounce > 255000)
 -		return -EINVAL;
++  debounce = pinconf_to_config_argument(config);
+ 
+-	debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
 +  /*
 +   * The Tegra186 GPIO controller supports a maximum of 255 ms debounce
 +   * time.
@@ -1574,22 +1583,21 @@ index 5e57824b283e..72625c824578 100644
 +  if (debounce > 255000)
 +    return -EINVAL;
  
--	debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
-+  debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
- 
 -	value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
 -	writel(value, base + TEGRA186_GPIO_DEBOUNCE_CONTROL);
-+  value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
-+  writel(value, base + TEGRA186_GPIO_DEBOUNCE_CONTROL);
++  debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
  
 -	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 -	value |= TEGRA186_GPIO_ENABLE_CONFIG_DEBOUNCE;
 -	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
++  value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
++  writel(value, base + TEGRA186_GPIO_DEBOUNCE_CONTROL);
+ 
+-	return 0;
 +  value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 +  value |= TEGRA186_GPIO_ENABLE_CONFIG_DEBOUNCE;
 +  writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
- 
--	return 0;
++
 +  return 0;
  }
  
@@ -1667,13 +1675,13 @@ index 5e57824b283e..72625c824578 100644
 +
 +    for (j = 0; j < port; j++)
 +      pin += gpio->soc->ports[j].pins;
-+
+ 
+-	return 0;
 +    err = gpiochip_add_pingroup_range(chip, pctldev, pin, group);
 +    if (err < 0)
 +      return err;
 +  }
- 
--	return 0;
++
 +  return 0;
  }
  
@@ -1884,30 +1892,30 @@ index 5e57824b283e..72625c824578 100644
 +  case IRQ_TYPE_EDGE_BOTH:
 +    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_DOUBLE_EDGE;
 +    break;
-+
+ 
+-	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
 +  case IRQ_TYPE_LEVEL_HIGH:
 +    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_LEVEL;
 +    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_LEVEL;
-+    break;
- 
--	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
-+  case IRQ_TYPE_LEVEL_LOW:
-+    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_LEVEL;
 +    break;
  
 -	if ((type & IRQ_TYPE_EDGE_BOTH) == 0)
 -		irq_set_handler_locked(data, handle_level_irq);
 -	else
 -		irq_set_handler_locked(data, handle_edge_irq);
++  case IRQ_TYPE_LEVEL_LOW:
++    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_LEVEL;
++    break;
+ 
+-	if (data->parent_data)
+-		return irq_chip_set_type_parent(data, type);
 +  default:
 +    return -EINVAL;
 +  }
  
--	if (data->parent_data)
--		return irq_chip_set_type_parent(data, type);
-+  writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
- 
 -	return 0;
++  writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
++
 +  if ((type & IRQ_TYPE_EDGE_BOTH) == 0)
 +    irq_set_handler_locked(data, handle_level_irq);
 +  else
@@ -2652,23 +2660,24 @@ index 5e57824b283e..72625c824578 100644
 +#if defined(CONFIG_TEGRA_GPIO_GUEST_PROXY) || defined(CONFIG_TEGRA_GPIO_HOST_PROXY)
 +
 +	static inline void gpio_sethook(struct tegra_gpio *gpio) {
-+		gpio->gpio.request = gpiochip_generic_request_redirect;
-+		gpio->gpio.free = gpiochip_generic_free_redirect;
-+		gpio->gpio.get_direction = tegra186_gpio_get_direction_redirect;
-+		gpio->gpio.direction_input = tegra186_gpio_direction_input_redirect;
-+		gpio->gpio.direction_output = tegra186_gpio_direction_output_redirect;
-+		gpio->gpio.get = tegra186_gpio_get_redirect;
-+		gpio->gpio.set = tegra186_gpio_set_redirect;
-+		gpio->gpio.set_config = tegra186_gpio_set_config_redirect;
++		// default values for redirection
++		gpio->gpio.request = gpiochip_generic_request_redirect;	                // passthrough
++		gpio->gpio.free = gpiochip_generic_free_redirect;	                      // passthrough
++		gpio->gpio.get_direction = tegra186_gpio_get_direction_redirect;	      // passthrough
++		gpio->gpio.direction_input = tegra186_gpio_direction_input_redirect;	  // passthrough
++		gpio->gpio.direction_output = tegra186_gpio_direction_output_redirect;	// passthrough
++		gpio->gpio.get = tegra186_gpio_get;
++		gpio->gpio.set = tegra186_gpio_set;
++		gpio->gpio.set_config = tegra186_gpio_set_config;
 +		// gpio->gpio.get_multiple = N/A;
 +		// gpio->gpio.set_multiple = N/A
 +		// ??? = tegra186_gpio_get_port_redirect;   // not in struct
 +		// ??? = tegra186_gpio_get_base_redirect;   // not in struct
 +		// ??? = tegra186_gpio_get_secure_redirect; // not in struct
-+		gpio->gpio.timestamp_control = tegra_gpio_timestamp_control_redirect;
-+		gpio->gpio.timestamp_read = tegra_gpio_timestamp_read_redirect;
-+		gpio->gpio.suspend_configure = tegra_gpio_suspend_configure_redirect;	// don't do passthrough 
-+		gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges_redirect;
++		gpio->gpio.timestamp_control = tegra_gpio_timestamp_control;
++		gpio->gpio.timestamp_read = tegra_gpio_timestamp_read;
++		gpio->gpio.suspend_configure = tegra_gpio_suspend_configure;
++		gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges;
 +		gpio->gpio.base = -1;
  	}
 +	
@@ -2703,7 +2712,7 @@ index 5e57824b283e..72625c824578 100644
 +    if(!is_debug_exception(GPIO_NOFUNC_TEST5B))
 +      gpio->gpio.timestamp_read = tegra_gpio_timestamp_read_redirect;
 +    if(!is_debug_exception(GPIO_NOFUNC_TEST6))
-+      gpio->gpio.suspend_configure = tegra_gpio_suspend_configure_redirect;	// don't do passthrough 
++      gpio->gpio.suspend_configure = tegra_gpio_suspend_configure_redirect;
 +    if(!is_debug_exception(GPIO_NOFUNC_TEST7))
 +      gpio->gpio.add_pin_ranges = tegra186_gpio_add_pin_ranges_redirect;
 +
@@ -4277,23 +4286,36 @@ index 7dbce4c4ebdf..c0c635f2e6fa 100644
  				    struct lock_class_key *lock_key,
  				    struct lock_class_key *request_key)
 diff --git a/drivers/gpio/gpiolib-legacy.c b/drivers/gpio/gpiolib-legacy.c
-index 30e2476a6dc4..87d41717e23c 100644
+index 30e2476a6dc4..883fd15c78d7 100644
 --- a/drivers/gpio/gpiolib-legacy.c
 +++ b/drivers/gpio/gpiolib-legacy.c
-@@ -6,8 +6,21 @@
+@@ -6,8 +6,34 @@
  
  #include "gpiolib.h"
  
 +// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
-+#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
-+#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++  /*
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__ , kbasename(__FILE__), ##__VA_ARGS__)
++  */
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' -- " fmt, __func__ , ##__VA_ARGS__)
 +#else
-+#define deb_info(fmt, ...)
-+#define deb_debug(fmt, ...)
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++  #define deb_error(fmt, ...)
 +#endif
 +
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
 +
  void gpio_free(unsigned gpio)
  {
@@ -4302,7 +4324,7 @@ index 30e2476a6dc4..87d41717e23c 100644
  	gpiod_free(gpio_to_desc(gpio));
  }
  EXPORT_SYMBOL_GPL(gpio_free);
-@@ -23,6 +36,8 @@ int gpio_request_one(unsigned gpio, unsigned long flags, const char *label)
+@@ -23,6 +49,8 @@ int gpio_request_one(unsigned gpio, unsigned long flags, const char *label)
  	struct gpio_desc *desc;
  	int err;
  
@@ -4311,7 +4333,7 @@ index 30e2476a6dc4..87d41717e23c 100644
  	desc = gpio_to_desc(gpio);
  
  	/* Compatibility: assume unavailable "valid" GPIOs will appear later */
-@@ -69,6 +84,8 @@ int gpio_request(unsigned gpio, const char *label)
+@@ -69,6 +97,8 @@ int gpio_request(unsigned gpio, const char *label)
  {
  	struct gpio_desc *desc = gpio_to_desc(gpio);
  
@@ -4320,7 +4342,7 @@ index 30e2476a6dc4..87d41717e23c 100644
  	/* Compatibility: assume unavailable "valid" GPIOs will appear later */
  	if (!desc && gpio_is_valid(gpio))
  		return -EPROBE_DEFER;
-@@ -86,6 +103,8 @@ int gpio_request_array(const struct gpio *array, size_t num)
+@@ -86,6 +116,8 @@ int gpio_request_array(const struct gpio *array, size_t num)
  {
  	int i, err;
  
@@ -4403,27 +4425,39 @@ index f54b5905e2cc..d589fadb5b55 100644
  		return -EINVAL;
  
 diff --git a/drivers/gpio/gpiolib-sysfs.c b/drivers/gpio/gpiolib-sysfs.c
-index 3ef71ca242ba..bf62aeee66a1 100644
+index 3ef71ca242ba..cabbea8d2b31 100644
 --- a/drivers/gpio/gpiolib-sysfs.c
 +++ b/drivers/gpio/gpiolib-sysfs.c
-@@ -18,6 +18,16 @@
+@@ -17,6 +17,28 @@
+ #define GPIO_IRQF_TRIGGER_RISING	BIT(1)
  #define GPIO_IRQF_TRIGGER_BOTH		(GPIO_IRQF_TRIGGER_FALLING | \
  					 GPIO_IRQF_TRIGGER_RISING)
- 
 +// #define GPIO_DEBUG
 +
 +#ifdef GPIO_DEBUG
-+#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
-+#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++  /*
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__ , kbasename(__FILE__), ##__VA_ARGS__)
++  */
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' -- " fmt, __func__ , ##__VA_ARGS__)
 +#else
-+#define deb_info(fmt, ...)
-+#define deb_debug(fmt, ...)
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++  #define deb_error(fmt, ...)
 +#endif
 +
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
++#endif
+ 
  struct gpiod_data {
  	struct gpio_desc *desc;
- 
-@@ -489,6 +499,8 @@ static ssize_t export_store(struct class *class,
+@@ -489,6 +511,8 @@ static ssize_t export_store(struct class *class,
  	struct gpio_chip	*gc;
  	int			offset;
  
@@ -5803,10 +5837,10 @@ index 94b70e0636fe..fa5952eadcf3 100644
  	ret = bus_register(&gpio_bus_type);
  	if (ret < 0) {
 diff --git a/drivers/pinctrl/core.c b/drivers/pinctrl/core.c
-index c73b34e03aae..4af4bb712e63 100644
+index c73b34e03aae..4d4aa438b147 100644
 --- a/drivers/pinctrl/core.c
 +++ b/drivers/pinctrl/core.c
-@@ -26,16 +26,25 @@
+@@ -26,16 +26,38 @@
  #include <linux/pinctrl/pinctrl.h>
  #include <linux/pinctrl/machine.h>
  
@@ -5825,48 +5859,61 @@ index c73b34e03aae..4af4bb712e63 100644
 +// #define GPIO_DEBUG
 +
 +#ifdef GPIO_DEBUG
-+#define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
-+#define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, ##__VA_ARGS__)
++  /*
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__ , kbasename(__FILE__), ##__VA_ARGS__)
++  */
++  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_debug(fmt, ...)    printk(KERN_DEBUG "GPIO func \'%s\' -- " fmt, __func__, ##__VA_ARGS__)
++  #define deb_error(fmt, ...)    printk(KERN_ERR "GPIO func \'%s\' -- " fmt, __func__ , ##__VA_ARGS__)
 +#else
-+#define deb_info(fmt, ...)
-+#define deb_debug(fmt, ...)
++  #define deb_info(fmt, ...)
++  #define deb_debug(fmt, ...)
++  #define deb_error(fmt, ...)
++#endif
++
++#ifdef GPIO_DEBUG_VERBOSE
++  #define deb_verbose           deb_debug
++#else
++  #define deb_verbose(fmt, ...)
 +#endif
  
  static bool pinctrl_dummy_state;
  
-@@ -101,6 +110,9 @@ struct pinctrl_dev *get_pinctrl_dev_from_devname(const char *devname)
+@@ -101,6 +123,9 @@ struct pinctrl_dev *get_pinctrl_dev_from_devname(const char *devname)
  {
  	struct pinctrl_dev *pctldev;
  
 +	// removed because prints too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!devname)
  		return NULL;
  
-@@ -123,16 +135,20 @@ struct pinctrl_dev *get_pinctrl_dev_from_of_node(struct device_node *np)
+@@ -123,16 +148,20 @@ struct pinctrl_dev *get_pinctrl_dev_from_of_node(struct device_node *np)
  {
  	struct pinctrl_dev *pctldev;
  
 +	// removed because it prints too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pinctrldev_list_mutex);
  
  	list_for_each_entry(pctldev, &pinctrldev_list, node)
  		if (pctldev->dev->of_node == np) {
-+deb_debug("comparing %p and %p", pctldev->dev->of_node, np);  // debug never prints this because we have an empty list?
++		deb_debug("comparing %p and %p", pctldev->dev->of_node, np);  // debug never prints this because we have an empty list?
  			mutex_unlock(&pinctrldev_list_mutex);
  			return pctldev;
  		}
  
  	mutex_unlock(&pinctrldev_list_mutex);
 -
-+deb_debug("Error: failed to find match")
++	deb_debug("Error: failed to find match");
  	return NULL;
  }
  
-@@ -145,6 +161,8 @@ int pin_get_from_name(struct pinctrl_dev *pctldev, const char *name)
+@@ -145,6 +174,8 @@ int pin_get_from_name(struct pinctrl_dev *pctldev, const char *name)
  {
  	unsigned i, pin;
  
@@ -5875,7 +5922,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	/* The pin number can be retrived from the pin controller descriptor */
  	for (i = 0; i < pctldev->desc->npins; i++) {
  		struct pin_desc *desc;
-@@ -168,6 +186,8 @@ const char *pin_get_name(struct pinctrl_dev *pctldev, const unsigned pin)
+@@ -168,6 +199,8 @@ const char *pin_get_name(struct pinctrl_dev *pctldev, const unsigned pin)
  {
  	const struct pin_desc *desc;
  
@@ -5884,57 +5931,57 @@ index c73b34e03aae..4af4bb712e63 100644
  	desc = pin_desc_get(pctldev, pin);
  	if (!desc) {
  		dev_err(pctldev->dev, "failed to get pin(%d) name\n",
-@@ -186,6 +206,9 @@ static void pinctrl_free_pindescs(struct pinctrl_dev *pctldev,
+@@ -186,6 +219,9 @@ static void pinctrl_free_pindescs(struct pinctrl_dev *pctldev,
  {
  	int i;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	for (i = 0; i < num_pins; i++) {
  		struct pin_desc *pindesc;
  
-@@ -206,6 +229,9 @@ static int pinctrl_register_one_pin(struct pinctrl_dev *pctldev,
+@@ -206,6 +242,9 @@ static int pinctrl_register_one_pin(struct pinctrl_dev *pctldev,
  {
  	struct pin_desc *pindesc;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	pindesc = pin_desc_get(pctldev, pin->number);
  	if (pindesc) {
  		dev_err(pctldev->dev, "pin %d already registered\n",
-@@ -247,6 +273,9 @@ static int pinctrl_register_pins(struct pinctrl_dev *pctldev,
+@@ -247,6 +286,9 @@ static int pinctrl_register_pins(struct pinctrl_dev *pctldev,
  	unsigned i;
  	int ret = 0;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	for (i = 0; i < num_descs; i++) {
  		ret = pinctrl_register_one_pin(pctldev, &pins[i]);
  		if (ret)
-@@ -273,6 +302,9 @@ static inline int gpio_to_pin(struct pinctrl_gpio_range *range,
+@@ -273,6 +315,9 @@ static inline int gpio_to_pin(struct pinctrl_gpio_range *range,
  				unsigned int gpio)
  {
  	unsigned int offset = gpio - range->base;
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (range->pins)
  		return range->pins[offset];
  	else
-@@ -292,6 +324,9 @@ pinctrl_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
+@@ -292,6 +337,9 @@ pinctrl_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
  {
  	struct pinctrl_gpio_range *range;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pctldev->mutex);
  	/* Loop over the ranges */
  	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
-@@ -319,13 +354,16 @@ pinctrl_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
+@@ -319,13 +367,16 @@ pinctrl_match_gpio_range(struct pinctrl_dev *pctldev, unsigned gpio)
   * certain GPIO pin doesn't have back-end pinctrl device. If the return value
   * is false, it means that pinctrl device may not be ready.
   */
@@ -5947,12 +5994,12 @@ index c73b34e03aae..4af4bb712e63 100644
  	struct gpio_chip *chip = gpio_to_chip(gpio);
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (WARN(!chip, "no gpio_chip for gpio%i?", gpio))
  		return false;
  
-@@ -353,7 +391,7 @@ static bool pinctrl_ready_for_gpio_range(unsigned gpio)
+@@ -353,7 +404,7 @@ static bool pinctrl_ready_for_gpio_range(unsigned gpio)
  }
  #else
  static bool pinctrl_ready_for_gpio_range(unsigned gpio) { return true; }
@@ -5961,82 +6008,82 @@ index c73b34e03aae..4af4bb712e63 100644
  
  /**
   * pinctrl_get_device_gpio_range() - find device for GPIO range
-@@ -372,6 +410,9 @@ static int pinctrl_get_device_gpio_range(unsigned gpio,
+@@ -372,6 +423,9 @@ static int pinctrl_get_device_gpio_range(unsigned gpio,
  {
  	struct pinctrl_dev *pctldev;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pinctrldev_list_mutex);
  
  	/* Loop over the pin controllers */
-@@ -403,6 +444,9 @@ static int pinctrl_get_device_gpio_range(unsigned gpio,
+@@ -403,6 +457,9 @@ static int pinctrl_get_device_gpio_range(unsigned gpio,
  void pinctrl_add_gpio_range(struct pinctrl_dev *pctldev,
  			    struct pinctrl_gpio_range *range)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pctldev->mutex);
  	list_add_tail(&range->node, &pctldev->gpio_ranges);
  	mutex_unlock(&pctldev->mutex);
-@@ -415,6 +459,9 @@ void pinctrl_add_gpio_ranges(struct pinctrl_dev *pctldev,
+@@ -415,6 +472,9 @@ void pinctrl_add_gpio_ranges(struct pinctrl_dev *pctldev,
  {
  	int i;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	for (i = 0; i < nranges; i++)
  		pinctrl_add_gpio_range(pctldev, &ranges[i]);
  }
-@@ -425,6 +472,9 @@ struct pinctrl_dev *pinctrl_find_and_add_gpio_range(const char *devname,
+@@ -425,6 +485,9 @@ struct pinctrl_dev *pinctrl_find_and_add_gpio_range(const char *devname,
  {
  	struct pinctrl_dev *pctldev;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	pctldev = get_pinctrl_dev_from_devname(devname);
  
  	/*
-@@ -447,6 +497,9 @@ int pinctrl_get_group_pins(struct pinctrl_dev *pctldev, const char *pin_group,
+@@ -447,6 +510,9 @@ int pinctrl_get_group_pins(struct pinctrl_dev *pctldev, const char *pin_group,
  	const struct pinctrl_ops *pctlops = pctldev->desc->pctlops;
  	int gs;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!pctlops->get_group_pins)
  		return -EINVAL;
  
-@@ -464,6 +517,9 @@ pinctrl_find_gpio_range_from_pin_nolock(struct pinctrl_dev *pctldev,
+@@ -464,6 +530,9 @@ pinctrl_find_gpio_range_from_pin_nolock(struct pinctrl_dev *pctldev,
  {
  	struct pinctrl_gpio_range *range;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	/* Loop over the ranges */
  	list_for_each_entry(range, &pctldev->gpio_ranges, node) {
  		/* Check if we're in the valid range */
-@@ -493,6 +549,9 @@ pinctrl_find_gpio_range_from_pin(struct pinctrl_dev *pctldev,
+@@ -493,6 +562,9 @@ pinctrl_find_gpio_range_from_pin(struct pinctrl_dev *pctldev,
  {
  	struct pinctrl_gpio_range *range;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pctldev->mutex);
  	range = pinctrl_find_gpio_range_from_pin_nolock(pctldev, pin);
  	mutex_unlock(&pctldev->mutex);
-@@ -509,13 +568,16 @@ EXPORT_SYMBOL_GPL(pinctrl_find_gpio_range_from_pin);
+@@ -509,13 +581,16 @@ EXPORT_SYMBOL_GPL(pinctrl_find_gpio_range_from_pin);
  void pinctrl_remove_gpio_range(struct pinctrl_dev *pctldev,
  			       struct pinctrl_gpio_range *range)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pctldev->mutex);
  	list_del(&range->node);
@@ -6049,57 +6096,57 @@ index c73b34e03aae..4af4bb712e63 100644
  
  /**
   * pinctrl_generic_get_group_count() - returns the number of pin groups
-@@ -537,6 +599,9 @@ const char *pinctrl_generic_get_group_name(struct pinctrl_dev *pctldev,
+@@ -537,6 +612,9 @@ const char *pinctrl_generic_get_group_name(struct pinctrl_dev *pctldev,
  {
  	struct group_desc *group;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	group = radix_tree_lookup(&pctldev->pin_group_tree,
  				  selector);
  	if (!group)
-@@ -560,6 +625,9 @@ int pinctrl_generic_get_group_pins(struct pinctrl_dev *pctldev,
+@@ -560,6 +638,9 @@ int pinctrl_generic_get_group_pins(struct pinctrl_dev *pctldev,
  {
  	struct group_desc *group;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	group = radix_tree_lookup(&pctldev->pin_group_tree,
  				  selector);
  	if (!group) {
-@@ -585,6 +653,9 @@ struct group_desc *pinctrl_generic_get_group(struct pinctrl_dev *pctldev,
+@@ -585,6 +666,9 @@ struct group_desc *pinctrl_generic_get_group(struct pinctrl_dev *pctldev,
  {
  	struct group_desc *group;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	group = radix_tree_lookup(&pctldev->pin_group_tree,
  				  selector);
  	if (!group)
-@@ -630,6 +701,9 @@ int pinctrl_generic_add_group(struct pinctrl_dev *pctldev, const char *name,
+@@ -630,6 +714,9 @@ int pinctrl_generic_add_group(struct pinctrl_dev *pctldev, const char *name,
  	struct group_desc *group;
  	int selector;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!name)
  		return -EINVAL;
  
-@@ -668,6 +742,9 @@ int pinctrl_generic_remove_group(struct pinctrl_dev *pctldev,
+@@ -668,6 +755,9 @@ int pinctrl_generic_remove_group(struct pinctrl_dev *pctldev,
  {
  	struct group_desc *group;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	group = radix_tree_lookup(&pctldev->pin_group_tree,
  				  selector);
  	if (!group)
-@@ -704,8 +781,8 @@ static void pinctrl_generic_free_groups(struct pinctrl_dev *pctldev)
+@@ -704,8 +794,8 @@ static void pinctrl_generic_free_groups(struct pinctrl_dev *pctldev)
  static inline void pinctrl_generic_free_groups(struct pinctrl_dev *pctldev)
  {
  }
@@ -6110,37 +6157,37 @@ index c73b34e03aae..4af4bb712e63 100644
  /**
   * pinctrl_get_group_selector() - returns the group selector for a group
   * @pctldev: the pin controller handling the group
-@@ -718,6 +795,9 @@ int pinctrl_get_group_selector(struct pinctrl_dev *pctldev,
+@@ -718,6 +808,9 @@ int pinctrl_get_group_selector(struct pinctrl_dev *pctldev,
  	unsigned ngroups = pctlops->get_groups_count(pctldev);
  	unsigned group_selector = 0;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	while (group_selector < ngroups) {
  		const char *gname = pctlops->get_group_name(pctldev,
  							    group_selector);
-@@ -745,6 +825,9 @@ bool pinctrl_gpio_can_use_line(unsigned gpio)
+@@ -745,6 +838,9 @@ bool pinctrl_gpio_can_use_line(unsigned gpio)
  	bool result;
  	int pin;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	/*
  	 * Try to obtain GPIO range, if it fails
  	 * we're probably dealing with GPIO driver
-@@ -781,6 +864,9 @@ int pinctrl_gpio_request(unsigned gpio)
+@@ -781,6 +877,9 @@ int pinctrl_gpio_request(unsigned gpio)
  	int ret;
  	int pin;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
  	if (ret) {
  		if (pinctrl_ready_for_gpio_range(gpio))
-@@ -816,6 +902,8 @@ void pinctrl_gpio_free(unsigned gpio)
+@@ -816,6 +915,8 @@ void pinctrl_gpio_free(unsigned gpio)
  	int ret;
  	int pin;
  
@@ -6149,37 +6196,37 @@ index c73b34e03aae..4af4bb712e63 100644
  	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
  	if (ret) {
  		return;
-@@ -838,6 +926,9 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
+@@ -838,6 +939,9 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
  	int ret;
  	int pin;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
  	if (ret) {
  		return ret;
-@@ -864,6 +955,9 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
+@@ -864,6 +968,9 @@ static int pinctrl_gpio_direction(unsigned gpio, bool input)
   */
  int pinctrl_gpio_direction_input(unsigned gpio)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	return pinctrl_gpio_direction(gpio, true);
  }
  EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_input);
-@@ -878,6 +972,9 @@ EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_input);
+@@ -878,6 +985,9 @@ EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_input);
   */
  int pinctrl_gpio_direction_output(unsigned gpio)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	return pinctrl_gpio_direction(gpio, false);
  }
  EXPORT_SYMBOL_GPL(pinctrl_gpio_direction_output);
-@@ -898,6 +995,8 @@ int pinctrl_gpio_set_config(unsigned gpio, unsigned long config)
+@@ -898,6 +1008,8 @@ int pinctrl_gpio_set_config(unsigned gpio, unsigned long config)
  	struct pinctrl_dev *pctldev;
  	int ret, pin;
  
@@ -6188,137 +6235,137 @@ index c73b34e03aae..4af4bb712e63 100644
  	ret = pinctrl_get_device_gpio_range(gpio, &pctldev, &range);
  	if (ret)
  		return ret;
-@@ -916,6 +1015,9 @@ static struct pinctrl_state *find_state(struct pinctrl *p,
+@@ -916,6 +1028,9 @@ static struct pinctrl_state *find_state(struct pinctrl *p,
  {
  	struct pinctrl_state *state;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	list_for_each_entry(state, &p->states, node)
  		if (!strcmp(state->name, name))
  			return state;
-@@ -928,6 +1030,9 @@ static struct pinctrl_state *create_state(struct pinctrl *p,
+@@ -928,6 +1043,9 @@ static struct pinctrl_state *create_state(struct pinctrl *p,
  {
  	struct pinctrl_state *state;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	state = kzalloc(sizeof(*state), GFP_KERNEL);
  	if (!state)
  		return ERR_PTR(-ENOMEM);
-@@ -947,6 +1052,9 @@ static int add_setting(struct pinctrl *p, struct pinctrl_dev *pctldev,
+@@ -947,6 +1065,9 @@ static int add_setting(struct pinctrl *p, struct pinctrl_dev *pctldev,
  	struct pinctrl_setting *setting;
  	int ret;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	state = find_state(p, map->name);
  	if (!state)
  		state = create_state(p, map->name);
-@@ -1009,6 +1117,9 @@ static struct pinctrl *find_pinctrl(struct device *dev)
+@@ -1009,6 +1130,9 @@ static struct pinctrl *find_pinctrl(struct device *dev)
  {
  	struct pinctrl *p;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pinctrl_list_mutex);
  	list_for_each_entry(p, &pinctrl_list, node)
  		if (p->dev == dev) {
-@@ -1032,6 +1143,9 @@ static struct pinctrl *create_pinctrl(struct device *dev,
+@@ -1032,6 +1156,9 @@ static struct pinctrl *create_pinctrl(struct device *dev,
  	const struct pinctrl_map *map;
  	int ret;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	/*
  	 * create the state cookie holder struct pinctrl for each
  	 * mapping, this is what consumers will get when requesting
-@@ -1115,6 +1229,9 @@ struct pinctrl *pinctrl_get(struct device *dev)
+@@ -1115,6 +1242,9 @@ struct pinctrl *pinctrl_get(struct device *dev)
  {
  	struct pinctrl *p;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (WARN_ON(!dev))
  		return ERR_PTR(-EINVAL);
  
-@@ -1137,6 +1254,9 @@ EXPORT_SYMBOL_GPL(pinctrl_get);
+@@ -1137,6 +1267,9 @@ EXPORT_SYMBOL_GPL(pinctrl_get);
  static void pinctrl_free_setting(bool disable_setting,
  				 struct pinctrl_setting *setting)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	switch (setting->type) {
  	case PIN_MAP_TYPE_MUX_GROUP:
  		if (disable_setting)
-@@ -1157,6 +1277,9 @@ static void pinctrl_free(struct pinctrl *p, bool inlist)
+@@ -1157,6 +1290,9 @@ static void pinctrl_free(struct pinctrl *p, bool inlist)
  	struct pinctrl_state *state, *n1;
  	struct pinctrl_setting *setting, *n2;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pinctrl_list_mutex);
  	list_for_each_entry_safe(state, n1, &p->states, node) {
  		list_for_each_entry_safe(setting, n2, &state->settings, node) {
-@@ -1184,6 +1307,9 @@ static void pinctrl_release(struct kref *kref)
+@@ -1184,6 +1320,9 @@ static void pinctrl_release(struct kref *kref)
  {
  	struct pinctrl *p = container_of(kref, struct pinctrl, users);
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	pinctrl_free(p, true);
  }
  
-@@ -1193,6 +1319,9 @@ static void pinctrl_release(struct kref *kref)
+@@ -1193,6 +1332,9 @@ static void pinctrl_release(struct kref *kref)
   */
  void pinctrl_put(struct pinctrl *p)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	kref_put(&p->users, pinctrl_release);
  }
  EXPORT_SYMBOL_GPL(pinctrl_put);
-@@ -1207,6 +1336,9 @@ struct pinctrl_state *pinctrl_lookup_state(struct pinctrl *p,
+@@ -1207,6 +1349,9 @@ struct pinctrl_state *pinctrl_lookup_state(struct pinctrl *p,
  {
  	struct pinctrl_state *state;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	state = find_state(p, name);
  	if (!state) {
  		if (pinctrl_dummy_state) {
-@@ -1225,6 +1357,9 @@ EXPORT_SYMBOL_GPL(pinctrl_lookup_state);
+@@ -1225,6 +1370,9 @@ EXPORT_SYMBOL_GPL(pinctrl_lookup_state);
  static void pinctrl_link_add(struct pinctrl_dev *pctldev,
  			     struct device *consumer)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (pctldev->desc->link_consumers)
  		device_link_add(consumer, pctldev->dev,
  				DL_FLAG_PM_RUNTIME |
-@@ -1242,6 +1377,9 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
+@@ -1242,6 +1390,9 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
  	struct pinctrl_state *old_state = p->state;
  	int ret;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (p->state) {
  		/*
  		 * For each pinmux setting in the old state, forget SW's record
-@@ -1289,6 +1427,8 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
+@@ -1289,6 +1440,8 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
  unapply_new_state:
  	dev_err(p->dev, "Error applying setting, reverse things back\n");
  
@@ -6327,47 +6374,47 @@ index c73b34e03aae..4af4bb712e63 100644
  	list_for_each_entry(setting2, &state->settings, node) {
  		if (&setting2->node == &setting->node)
  			break;
-@@ -1317,6 +1457,9 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
+@@ -1317,6 +1470,9 @@ static int pinctrl_commit_state(struct pinctrl *p, struct pinctrl_state *state)
   */
  int pinctrl_select_state(struct pinctrl *p, struct pinctrl_state *state)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (p->state == state)
  		return 0;
  
-@@ -1340,6 +1483,9 @@ struct pinctrl *devm_pinctrl_get(struct device *dev)
+@@ -1340,6 +1496,9 @@ struct pinctrl *devm_pinctrl_get(struct device *dev)
  {
  	struct pinctrl **ptr, *p;
  
 +	// printk removed because it triggers far to often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	ptr = devres_alloc(devm_pinctrl_release, sizeof(*ptr), GFP_KERNEL);
  	if (!ptr)
  		return ERR_PTR(-ENOMEM);
-@@ -1360,6 +1506,9 @@ static int devm_pinctrl_match(struct device *dev, void *res, void *data)
+@@ -1360,6 +1519,9 @@ static int devm_pinctrl_match(struct device *dev, void *res, void *data)
  {
  	struct pinctrl **p = res;
  
 +	// printk removed because it triggers far to often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	return *p == data;
  }
  
-@@ -1373,6 +1522,9 @@ static int devm_pinctrl_match(struct device *dev, void *res, void *data)
+@@ -1373,6 +1535,9 @@ static int devm_pinctrl_match(struct device *dev, void *res, void *data)
   */
  void devm_pinctrl_put(struct pinctrl *p)
  {
 +	// printk removed because it triggers far to often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	WARN_ON(devres_release(p->dev, devm_pinctrl_release,
  			       devm_pinctrl_match, p));
  }
-@@ -1391,6 +1543,8 @@ int pinctrl_register_mappings(const struct pinctrl_map *maps,
+@@ -1391,6 +1556,8 @@ int pinctrl_register_mappings(const struct pinctrl_map *maps,
  	int i, ret;
  	struct pinctrl_maps *maps_node;
  
@@ -6376,7 +6423,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	pr_debug("add %u pinctrl maps\n", num_maps);
  
  	/* First sanity check the new mapping */
-@@ -1459,6 +1613,8 @@ void pinctrl_unregister_mappings(const struct pinctrl_map *map)
+@@ -1459,6 +1626,8 @@ void pinctrl_unregister_mappings(const struct pinctrl_map *map)
  {
  	struct pinctrl_maps *maps_node;
  
@@ -6385,7 +6432,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	mutex_lock(&pinctrl_maps_mutex);
  	list_for_each_entry(maps_node, &pinctrl_maps, node) {
  		if (maps_node->maps == map) {
-@@ -1478,6 +1634,8 @@ EXPORT_SYMBOL_GPL(pinctrl_unregister_mappings);
+@@ -1478,6 +1647,8 @@ EXPORT_SYMBOL_GPL(pinctrl_unregister_mappings);
   */
  int pinctrl_force_sleep(struct pinctrl_dev *pctldev)
  {
@@ -6394,7 +6441,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	if (!IS_ERR(pctldev->p) && !IS_ERR(pctldev->hog_sleep))
  		return pinctrl_commit_state(pctldev->p, pctldev->hog_sleep);
  	return 0;
-@@ -1490,6 +1648,8 @@ EXPORT_SYMBOL_GPL(pinctrl_force_sleep);
+@@ -1490,6 +1661,8 @@ EXPORT_SYMBOL_GPL(pinctrl_force_sleep);
   */
  int pinctrl_force_default(struct pinctrl_dev *pctldev)
  {
@@ -6403,37 +6450,37 @@ index c73b34e03aae..4af4bb712e63 100644
  	if (!IS_ERR(pctldev->p) && !IS_ERR(pctldev->hog_default))
  		return pinctrl_commit_state(pctldev->p, pctldev->hog_default);
  	return 0;
-@@ -1509,6 +1669,9 @@ int pinctrl_init_done(struct device *dev)
+@@ -1509,6 +1682,9 @@ int pinctrl_init_done(struct device *dev)
  	struct dev_pin_info *pins = dev->pins;
  	int ret;
  
 +	// printk removed because it triggers far to often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!pins)
  		return 0;
  
-@@ -1534,6 +1697,9 @@ static int pinctrl_select_bound_state(struct device *dev,
+@@ -1534,6 +1710,9 @@ static int pinctrl_select_bound_state(struct device *dev,
  	struct dev_pin_info *pins = dev->pins;
  	int ret;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (IS_ERR(state))
  		return 0; /* No such state */
  	ret = pinctrl_select_state(pins->p, state);
-@@ -1549,6 +1715,9 @@ static int pinctrl_select_bound_state(struct device *dev,
+@@ -1549,6 +1728,9 @@ static int pinctrl_select_bound_state(struct device *dev,
   */
  int pinctrl_select_default_state(struct device *dev)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!dev->pins)
  		return 0;
  
-@@ -1556,7 +1725,7 @@ int pinctrl_select_default_state(struct device *dev)
+@@ -1556,7 +1738,7 @@ int pinctrl_select_default_state(struct device *dev)
  }
  EXPORT_SYMBOL_GPL(pinctrl_select_default_state);
  
@@ -6442,22 +6489,22 @@ index c73b34e03aae..4af4bb712e63 100644
  
  /**
   * pinctrl_pm_select_default_state() - select default pinctrl state for PM
-@@ -1564,6 +1733,9 @@ EXPORT_SYMBOL_GPL(pinctrl_select_default_state);
+@@ -1564,6 +1746,9 @@ EXPORT_SYMBOL_GPL(pinctrl_select_default_state);
   */
  int pinctrl_pm_select_default_state(struct device *dev)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	return pinctrl_select_default_state(dev);
  }
  EXPORT_SYMBOL_GPL(pinctrl_pm_select_default_state);
-@@ -1587,26 +1759,32 @@ EXPORT_SYMBOL_GPL(pinctrl_pm_select_sleep_state);
+@@ -1587,26 +1772,32 @@ EXPORT_SYMBOL_GPL(pinctrl_pm_select_sleep_state);
   */
  int pinctrl_pm_select_idle_state(struct device *dev)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!dev->pins)
  		return 0;
@@ -6485,11 +6532,11 @@ index c73b34e03aae..4af4bb712e63 100644
 +    #endif
 +
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
  
  	seq_printf(s, "registered pins: %d\n", pctldev->desc->npins);
  
-@@ -1624,7 +1802,7 @@ static int pinctrl_pins_show(struct seq_file *s, void *what)
+@@ -1624,7 +1815,7 @@ static int pinctrl_pins_show(struct seq_file *s, void *what)
  
  		seq_printf(s, "pin %d (%s) ", pin, desc->name);
  
@@ -6498,7 +6545,7 @@ index c73b34e03aae..4af4bb712e63 100644
  		gpio_num = -1;
  		list_for_each_entry(range, &pctldev->gpio_ranges, node) {
  			if ((pin >= range->pin_base) &&
-@@ -1641,7 +1819,7 @@ static int pinctrl_pins_show(struct seq_file *s, void *what)
+@@ -1641,7 +1832,7 @@ static int pinctrl_pins_show(struct seq_file *s, void *what)
  			seq_printf(s, "%u:%s ", gpio_num - chip->gpiodev->base, chip->label);
  		else
  			seq_puts(s, "0:? ");
@@ -6507,17 +6554,17 @@ index c73b34e03aae..4af4bb712e63 100644
  
  		/* Driver-specific info per pin */
  		if (ops->pin_dbg_show)
-@@ -1662,6 +1840,9 @@ static int pinctrl_groups_show(struct seq_file *s, void *what)
+@@ -1662,6 +1853,9 @@ static int pinctrl_groups_show(struct seq_file *s, void *what)
  	const struct pinctrl_ops *ops = pctldev->desc->pctlops;
  	unsigned ngroups, selector = 0;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	mutex_lock(&pctldev->mutex);
  
  	ngroups = ops->get_groups_count(pctldev);
-@@ -1707,6 +1888,8 @@ static int pinctrl_gpioranges_show(struct seq_file *s, void *what)
+@@ -1707,6 +1901,8 @@ static int pinctrl_gpioranges_show(struct seq_file *s, void *what)
  	struct pinctrl_dev *pctldev = s->private;
  	struct pinctrl_gpio_range *range;
  
@@ -6526,7 +6573,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	seq_puts(s, "GPIO ranges handled:\n");
  
  	mutex_lock(&pctldev->mutex);
-@@ -1740,6 +1923,8 @@ static int pinctrl_devices_show(struct seq_file *s, void *what)
+@@ -1740,6 +1936,8 @@ static int pinctrl_devices_show(struct seq_file *s, void *what)
  {
  	struct pinctrl_dev *pctldev;
  
@@ -6535,7 +6582,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	seq_puts(s, "name [pinmux] [pinconf]\n");
  
  	mutex_lock(&pinctrldev_list_mutex);
-@@ -1773,6 +1958,8 @@ static inline const char *map_type(enum pinctrl_map_type type)
+@@ -1773,6 +1971,8 @@ static inline const char *map_type(enum pinctrl_map_type type)
  		"CONFIGS_GROUP",
  	};
  
@@ -6544,7 +6591,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	if (type >= ARRAY_SIZE(names))
  		return "UNKNOWN";
  
-@@ -1785,6 +1972,8 @@ static int pinctrl_maps_show(struct seq_file *s, void *what)
+@@ -1785,6 +1985,8 @@ static int pinctrl_maps_show(struct seq_file *s, void *what)
  	int i;
  	const struct pinctrl_map *map;
  
@@ -6553,7 +6600,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	seq_puts(s, "Pinctrl maps:\n");
  
  	mutex_lock(&pinctrl_maps_mutex);
-@@ -1823,6 +2012,8 @@ static int pinctrl_show(struct seq_file *s, void *what)
+@@ -1823,6 +2025,8 @@ static int pinctrl_show(struct seq_file *s, void *what)
  	struct pinctrl_state *state;
  	struct pinctrl_setting *setting;
  
@@ -6562,17 +6609,17 @@ index c73b34e03aae..4af4bb712e63 100644
  	seq_puts(s, "Requested pin control handlers their pinmux maps:\n");
  
  	mutex_lock(&pinctrl_list_mutex);
-@@ -1870,6 +2061,9 @@ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
+@@ -1870,6 +2074,9 @@ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
  	struct dentry *device_root;
  	const char *debugfs_name;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (pctldev->desc->name &&
  			strcmp(dev_name(pctldev->dev), pctldev->desc->name)) {
  		debugfs_name = devm_kasprintf(pctldev->dev, GFP_KERNEL,
-@@ -1906,11 +2100,15 @@ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
+@@ -1906,11 +2113,15 @@ static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
  
  static void pinctrl_remove_device_debugfs(struct pinctrl_dev *pctldev)
  {
@@ -6588,7 +6635,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	debugfs_root = debugfs_create_dir("pinctrl", NULL);
  	if (IS_ERR(debugfs_root) || !debugfs_root) {
  		pr_warn("failed to create debugfs directory\n");
-@@ -1930,22 +2128,30 @@ static void pinctrl_init_debugfs(void)
+@@ -1930,22 +2141,30 @@ static void pinctrl_init_debugfs(void)
  
  static void pinctrl_init_device_debugfs(struct pinctrl_dev *pctldev)
  {
@@ -6616,12 +6663,12 @@ index c73b34e03aae..4af4bb712e63 100644
  	const struct pinctrl_ops *ops = pctldev->desc->pctlops;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	if (!ops ||
  	    !ops->get_groups_count ||
  	    !ops->get_group_name)
-@@ -1967,6 +2173,8 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
+@@ -1967,6 +2186,8 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
  	struct pinctrl_dev *pctldev;
  	int ret;
  
@@ -6630,7 +6677,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	if (!pctldesc)
  		return ERR_PTR(-EINVAL);
  	if (!pctldesc->name)
-@@ -1981,12 +2189,12 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
+@@ -1981,12 +2202,12 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
  	pctldev->desc = pctldesc;
  	pctldev->driver_data = driver_data;
  	INIT_RADIX_TREE(&pctldev->pin_desc_tree, GFP_KERNEL);
@@ -6647,17 +6694,17 @@ index c73b34e03aae..4af4bb712e63 100644
  	INIT_LIST_HEAD(&pctldev->gpio_ranges);
  	INIT_LIST_HEAD(&pctldev->node);
  	pctldev->dev = dev;
-@@ -2033,6 +2241,9 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
+@@ -2033,6 +2254,9 @@ pinctrl_init_controller(struct pinctrl_desc *pctldesc, struct device *dev,
  
  static int pinctrl_claim_hogs(struct pinctrl_dev *pctldev)
  {
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	pctldev->p = create_pinctrl(pctldev->dev, pctldev);
  	if (PTR_ERR(pctldev->p) == -ENODEV) {
  		dev_dbg(pctldev->dev, "no hogs found\n");
-@@ -2073,6 +2284,8 @@ int pinctrl_enable(struct pinctrl_dev *pctldev)
+@@ -2073,6 +2297,8 @@ int pinctrl_enable(struct pinctrl_dev *pctldev)
  {
  	int error;
  
@@ -6666,7 +6713,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	error = pinctrl_claim_hogs(pctldev);
  	if (error) {
  		dev_err(pctldev->dev, "could not claim hogs: %i\n",
-@@ -2112,6 +2325,8 @@ struct pinctrl_dev *pinctrl_register(struct pinctrl_desc *pctldesc,
+@@ -2112,6 +2338,8 @@ struct pinctrl_dev *pinctrl_register(struct pinctrl_desc *pctldesc,
  	struct pinctrl_dev *pctldev;
  	int error;
  
@@ -6675,7 +6722,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	pctldev = pinctrl_init_controller(pctldesc, dev, driver_data);
  	if (IS_ERR(pctldev))
  		return pctldev;
-@@ -2140,6 +2355,8 @@ int pinctrl_register_and_init(struct pinctrl_desc *pctldesc,
+@@ -2140,6 +2368,8 @@ int pinctrl_register_and_init(struct pinctrl_desc *pctldesc,
  {
  	struct pinctrl_dev *p;
  
@@ -6684,7 +6731,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	p = pinctrl_init_controller(pctldesc, dev, driver_data);
  	if (IS_ERR(p))
  		return PTR_ERR(p);
-@@ -2166,6 +2383,8 @@ void pinctrl_unregister(struct pinctrl_dev *pctldev)
+@@ -2166,6 +2396,8 @@ void pinctrl_unregister(struct pinctrl_dev *pctldev)
  {
  	struct pinctrl_gpio_range *range, *n;
  
@@ -6693,7 +6740,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	if (!pctldev)
  		return;
  
-@@ -2200,6 +2419,8 @@ static void devm_pinctrl_dev_release(struct device *dev, void *res)
+@@ -2200,6 +2432,8 @@ static void devm_pinctrl_dev_release(struct device *dev, void *res)
  {
  	struct pinctrl_dev *pctldev = *(struct pinctrl_dev **)res;
  
@@ -6702,7 +6749,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	pinctrl_unregister(pctldev);
  }
  
-@@ -2207,6 +2428,8 @@ static int devm_pinctrl_dev_match(struct device *dev, void *res, void *data)
+@@ -2207,6 +2441,8 @@ static int devm_pinctrl_dev_match(struct device *dev, void *res, void *data)
  {
  	struct pctldev **r = res;
  
@@ -6711,17 +6758,17 @@ index c73b34e03aae..4af4bb712e63 100644
  	if (WARN_ON(!r || !*r))
  		return 0;
  
-@@ -2230,6 +2453,9 @@ struct pinctrl_dev *devm_pinctrl_register(struct device *dev,
+@@ -2230,6 +2466,9 @@ struct pinctrl_dev *devm_pinctrl_register(struct device *dev,
  {
  	struct pinctrl_dev **ptr, *pctldev;
  
 +	// removed because it triggers far too often
-+	// deb_debug("\n");
++	deb_verbose("\n");
 +
  	ptr = devres_alloc(devm_pinctrl_dev_release, sizeof(*ptr), GFP_KERNEL);
  	if (!ptr)
  		return ERR_PTR(-ENOMEM);
-@@ -2266,6 +2492,8 @@ int devm_pinctrl_register_and_init(struct device *dev,
+@@ -2266,6 +2505,8 @@ int devm_pinctrl_register_and_init(struct device *dev,
  	struct pinctrl_dev **ptr;
  	int error;
  
@@ -6730,7 +6777,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	ptr = devres_alloc(devm_pinctrl_dev_release, sizeof(*ptr), GFP_KERNEL);
  	if (!ptr)
  		return -ENOMEM;
-@@ -2290,6 +2518,8 @@ EXPORT_SYMBOL_GPL(devm_pinctrl_register_and_init);
+@@ -2290,6 +2531,8 @@ EXPORT_SYMBOL_GPL(devm_pinctrl_register_and_init);
   */
  void devm_pinctrl_unregister(struct device *dev, struct pinctrl_dev *pctldev)
  {
@@ -6739,7 +6786,7 @@ index c73b34e03aae..4af4bb712e63 100644
  	WARN_ON(devres_release(dev, devm_pinctrl_dev_release,
  			       devm_pinctrl_dev_match, pctldev));
  }
-@@ -2297,6 +2527,8 @@ EXPORT_SYMBOL_GPL(devm_pinctrl_unregister);
+@@ -2297,6 +2540,8 @@ EXPORT_SYMBOL_GPL(devm_pinctrl_unregister);
  
  static int __init pinctrl_init(void)
  {
@@ -7369,15 +7416,15 @@ index cfc75ca9ae2b..320486fd060b 100644
  }
  arch_initcall(tegra124_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra186.c b/drivers/pinctrl/tegra/pinctrl-tegra186.c
-index d78447c55527..53139593493d 100644
+index d78447c55527..0feaad8022fd 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra186.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra186.c
 @@ -918,8 +918,26 @@ static const struct tegra_pinctrl_soc_data tegra186_pinctrl = {
  	.sfsel_in_mux = true,
  };
  
-+// #define GPIO_DEBUG
-+// #define GPIO_DEBUG_VERBOSE
++#define GPIO_DEBUG
++#define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
 +  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)

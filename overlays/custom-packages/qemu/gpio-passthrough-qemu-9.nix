@@ -100,6 +100,16 @@ in
       ];
 
     /*
+    preBuild = ''
+      export CFLAGS="-O2 ${prev.CFLAGS or ""}"
+      export CXXFLAGS="-O2 ${prev.CXXFLAGS or ""}"
+    '';
+
+    buildPhase = ''
+      runHook preBuild
+      make
+    '';
+
     installPhase = ''
       make install
       ln -s $out/bin/qemu-system-aarch64 $out/bin/qemu-passthrough
