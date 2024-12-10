@@ -29,8 +29,7 @@ let
           inputs.self.nixosModules.givc-appvm
           (import ./common/vm-networking.nix {
             inherit config lib vmName;
-            inherit (vm) macAddress;
-            internalIP = vmIndex + 100;
+            inherit (vm) macAddress internalIP;
           })
 
           ./common/ghaf-audio.nix
@@ -239,6 +238,12 @@ in
                 AppVM's network interface MAC address
               '';
               type = types.str;
+            };
+            internalIP = mkOption {
+              description = ''
+                Internal IP address for this AppVM
+              '';
+              type = types.int;
             };
             ramMb = mkOption {
               description = ''

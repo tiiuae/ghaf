@@ -7,10 +7,16 @@
   config,
   ...
 }:
-{
+let
+  hostsEntries = import ../../common/networking/hosts-entries.nix;
   name = "appflowy";
+  vmname = name + "-vm";
+in
+rec {
+  inherit name;
   packages = [ pkgs.appflowy ];
   macAddress = "02:00:00:03:08:01";
+  internalIP = hostsEntries.ipByName vmname;
   ramMb = 768;
   cores = 1;
   extraModules = [

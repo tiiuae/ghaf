@@ -9,6 +9,7 @@
 let
   configHost = config;
   vmName = "ids-vm";
+  hostsEntries = import ../../../../common/networking/hosts-entries.nix;
   macAddress = "02:00:00:01:01:02";
   idsvmBaseConfiguration = {
     imports = [
@@ -19,7 +20,7 @@ let
           vmName
           macAddress
           ;
-        internalIP = 4;
+        internalIP = hostsEntries.ipByName vmName;
       })
       (
         { lib, ... }:

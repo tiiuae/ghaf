@@ -7,13 +7,19 @@
   config,
   ...
 }:
-{
+let
   name = "zathura";
+  hostsEntries = import ../../common/networking/hosts-entries.nix;
+  vmname = name + "-vm";
+in
+{
+  inherit name;
   packages = [
     pkgs.zathura
     pkgs.pqiv
   ];
   macAddress = "02:00:00:03:07:01";
+  internalIP = hostsEntries.ipByName vmname;
   ramMb = 512;
   cores = 1;
   extraModules = [

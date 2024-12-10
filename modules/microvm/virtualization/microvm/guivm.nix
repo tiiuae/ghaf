@@ -11,6 +11,8 @@ let
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  hostsEntries = import ../../../common/networking/hosts-entries.nix;
+
   guivmBaseConfiguration = {
     imports = [
       inputs.impermanence.nixosModules.impermanence
@@ -22,7 +24,7 @@ let
           vmName
           macAddress
           ;
-        internalIP = 3;
+        internalIP = hostsEntries.ipByName vmName;
       })
 
       ./common/storagevm.nix

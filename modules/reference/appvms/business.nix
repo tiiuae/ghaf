@@ -11,6 +11,8 @@ let
   inherit (lib) mkIf optionalString;
   #TODO: Move this to a common place
   name = "business";
+  hostsEntries = import ../../common/networking/hosts-entries.nix;
+  vmname = name + "-vm";
   proxyUserName = "proxy-user";
   proxyGroupName = "proxy-admin";
   tiiVpnAddr = "151.253.154.18";
@@ -114,6 +116,8 @@ in
 
   # TODO create a repository of mac addresses to avoid conflicts
   macAddress = "02:00:00:03:10:01";
+  internalIP = hostsEntries.ipByName vmname;
+
   ramMb = 6144;
   cores = 4;
   extraModules = [

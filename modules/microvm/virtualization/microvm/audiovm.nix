@@ -13,6 +13,7 @@ let
   macAddress = "02:00:00:03:03:03";
   isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
+  hostsEntries = import ../../../common/networking/hosts-entries.nix;
 
   sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
     inherit pkgs;
@@ -30,7 +31,7 @@ let
           vmName
           macAddress
           ;
-        internalIP = 5;
+        internalIP = hostsEntries.ipByName vmName;
       })
       ./common/storagevm.nix
       ../../../common/logging/client.nix
