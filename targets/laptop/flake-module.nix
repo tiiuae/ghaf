@@ -239,6 +239,8 @@ in
     nixosConfigurations = builtins.listToAttrs (
       map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    packages.${system} = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name (self.outputs.lib.genPkgWithFlashScript t.package system)) targets
+    );
   };
 }
