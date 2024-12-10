@@ -12,7 +12,7 @@ let
   mitmEnabled =
     config.ghaf.virtualization.microvm.idsvm.enable
     && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;
-  mitmExtraArgs = lib.optionalString mitmEnabled "--user-data-dir=/home/${config.ghaf.users.accounts.user}/.config/google-chrome/Default --test-type --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
+  mitmExtraArgs = lib.optionalString mitmEnabled "--user-data-dir=/home/${config.ghaf.users.appUser.name}/.config/google-chrome/Default --test-type --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
 in
 {
   options.ghaf.givc = {

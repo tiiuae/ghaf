@@ -62,14 +62,19 @@ let
             }:
             {
               ghaf = {
-                users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+                # Profiles
+                users.appUser = {
+                  enable = true;
+                  name = "appuser";
+                };
                 profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-
                 development = {
                   ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
                   debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
                   nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
                 };
+
+                # Systemd
                 systemd = {
                   enable = true;
                   withName = "appvm-systemd";
@@ -91,8 +96,8 @@ let
 
                 storagevm = {
                   enable = true;
-                  name = "${vm.name}";
-                  users.${config.ghaf.users.accounts.user}.directories = [
+                  name = vmName;
+                  users.${config.ghaf.users.appUser.name}.directories = [
                     ".config/"
                     "Downloads"
                     "Music"

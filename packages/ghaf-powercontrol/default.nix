@@ -24,7 +24,7 @@ let
   useGivc = ghafConfig.givc.enable;
   # Handle Wayland display power state
   waylandDisplayCmd = command: ''
-    WAYLAND_DISPLAY=/run/user/${builtins.toString ghafConfig.users.accounts.uid}/wayland-0 \
+    WAYLAND_DISPLAY=/run/user/${builtins.toString ghafConfig.users.loginUser.uid}/wayland-0 \
     wlopm --${command} '*'
   '';
 in

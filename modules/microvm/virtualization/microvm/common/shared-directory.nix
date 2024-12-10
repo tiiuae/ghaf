@@ -4,10 +4,9 @@ name:
 { lib, config, ... }:
 let
   cfg = config.ghaf.storagevm;
-  shared-mountPath = "/tmp/shared/shares";
-  inherit (config.ghaf.users.accounts) user;
   isGuiVm = builtins.stringLength name == 0;
-  userDir = "/home/${user}" + (if isGuiVm then "/Shares" else "/Unsafe\ share");
+  shared-mountPath = "/tmp/shared/shares";
+  userDir = if isGuiVm then "/Shares" else "/home/${config.ghaf.users.appUser.name}/Unsafe\ share";
 in
 {
   config = lib.mkIf cfg.enable {
@@ -36,6 +35,13 @@ in
         "X-fstrim.notrim"
         "x-gvfs-hide"
       ];
+    };
+
+    # Add bookmark to skel
+    environment.etc = lib.mkIf config.ghaf.users.loginUser.enable {
+      "skel/.gtk-bookmarks".text = ''
+        file:///Shares Shares
+      '';
     };
   };
 }

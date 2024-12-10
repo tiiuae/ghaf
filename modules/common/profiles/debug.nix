@@ -15,7 +15,6 @@ in
   config = lib.mkIf cfg.enable {
     # Enable default accounts and passwords
     ghaf = {
-      users.accounts.enable = true;
       # Enable development on target
       development = {
         nix-setup.enable = true;

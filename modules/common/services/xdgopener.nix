@@ -51,9 +51,9 @@ in
       services."xdg@" = {
         description = "XDG opener";
         serviceConfig = {
-          # The user 'ghaf' is used here to access SSH keys for the scp command
+          # The user 'appUser' is used here to access SSH keys for the scp command
           # This is required to copy files to the zathuravm
-          User = "ghaf";
+          User = "${config.ghaf.users.appUser.name}";
           ExecStart = "${ghaf-xdg-open}/bin/ghaf-xdg-open";
           StandardInput = "socket";
           StandardOutput = "journal";

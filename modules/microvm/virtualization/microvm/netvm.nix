@@ -4,7 +4,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -12,11 +11,6 @@ let
   macAddress = "02:00:00:01:01:01";
 
   isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
-
-  sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
-    inherit pkgs;
-    inherit config;
-  };
 
   netvmBaseConfiguration = {
     imports = [
@@ -43,7 +37,7 @@ let
           imports = [ ../../../common ];
 
           ghaf = {
-            users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
+            # Profiles
             profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
@@ -52,6 +46,17 @@ let
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
+            users = {
+              proxyUser = {
+                enable = true;
+                name = "proxyuser";
+                extraGroups = [
+                  "networkmanager"
+                ];
+              };
+            };
+
+            # System
             systemd = {
               enable = true;
               withName = "netvm-systemd";
@@ -63,14 +68,19 @@ let
               withHardenedConfigs = true;
             };
             givc.netvm.enable = true;
+
+            # Storage
+            storagevm = {
+              enable = true;
+              name = vmName;
+              directories = [ "/etc/NetworkManager/system-connections/" ];
+            };
+
+            # Services
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
-            storagevm = {
-              enable = true;
-              name = "netvm";
-              directories = [ "/etc/NetworkManager/system-connections/" ];
-            };
+
           };
 
           time.timeZone = config.time.timeZone;
@@ -133,18 +143,6 @@ let
                 "qemu-xhci"
               ];
             };
-          };
-
-          fileSystems = lib.mkIf isGuiVmEnabled {
-            ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
-          };
-
-          # SSH is very picky about to file permissions and ownership and will
-          # accept neither direct path inside /nix/store or symlink that points
-          # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
-          # setting mode), instead of symlinking it.
-          environment.etc = lib.mkIf isGuiVmEnabled {
-            ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
           };
         }
       )

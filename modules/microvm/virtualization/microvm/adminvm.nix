@@ -21,6 +21,7 @@ let
           ;
         internalIP = 10;
       })
+      ./common/storagevm.nix
       # We need to retrieve mac address and start log aggregator
       ../../../common/logging/hw-mac-retrieve.nix
       ../../../common/logging/logs-aggregator.nix
@@ -29,7 +30,7 @@ let
         { lib, ... }:
         {
           ghaf = {
-            users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
+            # Profiles
             profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
@@ -38,6 +39,8 @@ let
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
             };
+
+            # System
             systemd = {
               enable = true;
               withName = "adminvm-systemd";
@@ -49,18 +52,19 @@ let
               withDebug = configHost.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
+            givc.adminvm.enable = true;
+
+            # Storage
             storagevm = {
               enable = true;
-              name = "adminvm";
+              name = vmName;
               files = [
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"
               ];
             };
 
-            givc.adminvm.enable = true;
-
-            # Log aggregation configuration
+            # Services
             logging = {
               client.enable = isLoggingEnabled;
               listener = {
