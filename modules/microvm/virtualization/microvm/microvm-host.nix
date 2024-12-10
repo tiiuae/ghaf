@@ -9,6 +9,14 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm-host;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    mkIf
+    mkMerge
+    types
+    ;
+
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
   has_rescan_pci_device = config.ghaf.hardware.definition.audio.rescanPciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
@@ -17,6 +25,7 @@ let
       config.ghaf.hardware.definition.audio.rescanPciDevice
     else
       config.ghaf.hardware.definition.audio.removePciDevice;
+
 in
 {
   imports = [
@@ -24,27 +33,30 @@ in
     inputs.self.nixosModules.givc-host
   ];
   options.ghaf.virtualization.microvm-host = {
-    enable = lib.mkEnableOption "MicroVM Host";
-    networkSupport = lib.mkEnableOption "Network support services to run host applications.";
+    enable = mkEnableOption "MicroVM Host";
+    networkSupport = mkEnableOption "Network support services to run host applications.";
     sharedVmDirectory = {
-      enable = lib.mkEnableOption "shared directory" // {
+      enable = mkEnableOption "shared directory" // {
         default = true;
       };
 
-      vms = lib.mkOption {
+      vms = mkOption {
         description = ''
           List of names of virtual machines for which unsafe shared folder will be enabled.
         '';
-        type = lib.types.listOf lib.types.str;
+        type = types.listOf types.str;
         default = [ ];
       };
     };
   };
 
-  config = lib.mkMerge [
-    (lib.mkIf cfg.enable {
+  config = mkMerge [
+    (mkIf cfg.enable {
       microvm.host.enable = true;
       microvm.host.useNotifySockets = true;
+
+      users.users.microvm.extraGroups = [ "disk" ];
+
       ghaf.systemd = {
         withName = "host-systemd";
         enable = true;
@@ -90,7 +102,7 @@ in
           };
 
     })
-    (lib.mkIf cfg.sharedVmDirectory.enable {
+    (mkIf cfg.sharedVmDirectory.enable {
       ghaf.virtualization.microvm.guivm.extraModules = [ (import ./common/shared-directory.nix "") ];
 
       # Create directories required for sharing files with correct permissions.
@@ -98,15 +110,20 @@ in
         let
           vmDirs = map (
             n:
-            "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0700 ${config.ghaf.users.accounts.user} users"
+            "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /storagevm/shared 0755 root root"
-          "d /storagevm/shared/shares 0700 ${config.ghaf.users.accounts.user} users"
+          "d /storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
         ]
         ++ vmDirs;
-
     })
+    {
+      # Add host directory for persistent home images
+      systemd.tmpfiles.rules = [
+        "d /storagevm/homes 0770 microvm kvm -"
+      ];
+    }
   ];
 }

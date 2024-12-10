@@ -111,7 +111,7 @@ in
       # Enable givc
       # @TODO change this flag to enable givc in release
       givc.enable = config.ghaf.profiles.debug.enable;
-      givc.debug = false;
+      givc.debug = true;
 
       host = {
         networking.enable = true;

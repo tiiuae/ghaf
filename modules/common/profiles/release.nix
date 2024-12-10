@@ -18,6 +18,6 @@ in
     # TODO this needs to be refined when we define a policy for the
     # processes and the UID/groups that should be enabled by default
     # if not already covered by systemd
-    ghaf.users.accounts.enable = true;
+    # ghaf.users.admin.enable = true;
   };
 }

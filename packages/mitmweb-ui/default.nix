@@ -13,9 +13,9 @@ let
     # Create ssh-tunnel between chrome-vm and ids-vm
     ${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 \
         -o StrictHostKeyChecking=no \
-        -t ghaf@chrome-vm \
+        -t ${config.ghaf.users.appUser.name}@chrome-vm \
             ${pkgs.openssh}/bin/ssh -M -S /tmp/control_socket \
-            -f -N -L 8081:localhost:8081 ghaf@${idsvmIP}
+            -f -N -L 8081:localhost:8081 ${config.ghaf.users.appUser.name}@${idsvmIP}
     # TODO: check pipe creation failures
 
     # Launch google-chrome application and open mitmweb page
@@ -27,8 +27,8 @@ let
     # Use the control socket to close the ssh tunnel between chrome-vm and ids-vm
     ${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 \
         -o StrictHostKeyChecking=no \
-        -t ghaf@chrome-vm \
-            ${pkgs.openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@${idsvmIP}
+        -t ${config.ghaf.users.appUser.name}@chrome-vm \
+            ${pkgs.openssh}/bin/ssh -q -S /tmp/control_socket -O exit ${config.ghaf.users.appUser.name}@${idsvmIP}
   '';
 in
 stdenvNoCC.mkDerivation {

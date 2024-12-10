@@ -30,10 +30,11 @@ let
         inherit (cfg) withAudit;
         withCompression = true;
         withCoredump = cfg.withDebug || cfg.withMachines;
-        inherit (cfg) withCryptsetup;
+        withCryptsetup = cfg.withCryptsetup || cfg.withHomed;
         inherit (cfg) withEfi;
         inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
+        inherit (cfg) withHomed;
         inherit (cfg) withHostnamed;
         withImportd = cfg.withMachines;
         withKexectools = cfg.withDebug;
@@ -55,6 +56,7 @@ let
         inherit (cfg) withTimesyncd;
         inherit (cfg) withTpm2Tss;
         inherit (cfg) withUkify;
+        withUserDb = cfg.withHomed;
         withUtmp = cfg.withJournal || cfg.withAudit;
       }
       // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
@@ -226,6 +228,12 @@ in
 
     withRepart = mkOption {
       description = "Enable systemd repart functionality.";
+      type = types.bool;
+      default = false;
+    };
+
+    withHomed = mkOption {
+      description = "Enable systemd homed for users home functionality.";
       type = types.bool;
       default = false;
     };

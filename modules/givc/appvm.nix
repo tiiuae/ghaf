@@ -47,7 +47,7 @@ in
       admin = config.ghaf.givc.adminConfig;
     };
 
-    # Quick fix to allow linger (linger option in user def. currently doesn't work, e.g., bc mutable)
-    systemd.tmpfiles.rules = [ "f /var/lib/systemd/linger/${config.ghaf.users.accounts.user}" ];
+    # Enable lingering
+    users.users.${config.ghaf.users.appUser.name}.linger = true;
   };
 }

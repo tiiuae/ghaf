@@ -31,17 +31,17 @@ writeShellApplication {
     flock -w 60 -x 99 || exit 1
 
     # Return the result as json format for waybar and use the control socket to close the ssh tunnel.
-    trap 'ssh -q -S /tmp/nmcli_socket -O exit ghaf@net-vm && cat "$NETWORK_STATUS_FILE"' EXIT
+    trap 'ssh -q -S /tmp/nmcli_socket -O exit ${config.ghaf.users.admin.name}@net-vm && cat "$NETWORK_STATUS_FILE"' EXIT
 
     # Connect to netvm
     ssh -M -S /tmp/nmcli_socket \
-        -f -N -q ghaf@net-vm \
+        -f -N -q ${config.ghaf.users.admin.name}@net-vm \
         -i /run/waypipe-ssh/id_ed25519 \
         -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o StreamLocalBindUnlink=yes \
         -o ExitOnForwardFailure=yes \
-        -L /tmp/ssh_session_dbus.sock:/run/user/${builtins.toString config.ghaf.users.accounts.uid}/bus \
+        -L /tmp/ssh_session_dbus.sock:/run/user/${builtins.toString config.ghaf.users.admin.uid}/bus \
         -L /tmp/ssh_system_dbus.sock:/run/dbus/system_bus_socket
     signal0="\UF091F"
     signal1="\UF0922"

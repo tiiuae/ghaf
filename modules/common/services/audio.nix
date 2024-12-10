@@ -81,13 +81,6 @@ in
       };
     };
 
-    # Allow ghaf user to access pulseaudio and pipewire
-    users.extraUsers.ghaf.extraGroups = [
-      "audio"
-      "video"
-      "pipewire"
-    ];
-
     # Start pipewire on system boot
     systemd.services.pipewire.wantedBy = [ "multi-user.target" ];
 

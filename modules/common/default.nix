@@ -11,7 +11,7 @@
     ./firewall
     ./profiles
     ./security
-    ./users/accounts.nix
+    ./users
     ./version
     ./virtualization/docker.nix
     ./systemd
