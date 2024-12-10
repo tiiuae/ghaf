@@ -9,7 +9,7 @@ let
   installer =
     generation: variant:
     let
-      imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw.zst";
+      imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/image/disk1.raw.zst";
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
@@ -74,12 +74,29 @@ let
     (installer "gen11" "release")
     (installer "gen12" "release")
   ];
+  genPkgWithFlashScript =
+    pkg:
+    let
+      pkgs = import self.inputs.nixpkgs { inherit system; };
+    in
+    pkgs.linkFarm "ghaf-image" [
+      {
+        name = "image";
+        path = pkg;
+      }
+      {
+        name = "flash-script";
+        path = pkgs.callPackage ../../packages/flash { };
+      }
+    ];
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
       map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    packages.${system} = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name (genPkgWithFlashScript t.package)) targets
+    );
   };
 }

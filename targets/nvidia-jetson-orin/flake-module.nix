@@ -196,9 +196,17 @@ in
     );
 
     packages = {
-      aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      aarch64-linux = builtins.listToAttrs (
+        map (
+          t: lib.nameValuePair t.name (self.outputs.lib.genPkgWithFlashScript t.package "aarch64-linux")
+        ) targets
+      );
       x86_64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
+        builtins.listToAttrs (
+          map (
+            t: lib.nameValuePair t.name (self.outputs.lib.genPkgWithFlashScript t.package "x86_64-linux")
+          ) crossTargets
+        )
         // builtins.listToAttrs (
           map (
             t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")
