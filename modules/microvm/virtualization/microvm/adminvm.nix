@@ -22,7 +22,7 @@ let
         internalIP = 10;
       })
       # We need to retrieve mac address and start log aggregator
-      (import ../../../common/logging/hw-mac-retrieve.nix { hostConfig=config; })
+      (import ../../../common/logging/hw-mac-retrieve.nix { hostConfig = config; })
       ../../../common/logging/logs-aggregator.nix
       ./common/storagevm.nix
       (
