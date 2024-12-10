@@ -1,5 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+{ hostConfig }:
 {
   config,
   lib,
@@ -28,7 +29,11 @@ in
     # TODO: Remove hw-mac.service and replace with givc rpc later
     systemd.services."hw-mac" = {
       description = "Retrieve MAC address from net-vm";
-      wantedBy = [ "alloy.service" ];
+      wantedBy =
+        if hostConfig.ghaf.virtualization.microvm.guivm.enable then
+          [ "ewwbar.service" ]
+        else
+          [ "alloy.service" ];
       requires = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
@@ -36,7 +41,7 @@ in
         # Make sure we can ssh before we retrieve mac address
         ExecStartPre = "${sshCommand} ls";
         ExecStart = ''
-          ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath}"
+          ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath} "
         '';
         Restart = "on-failure";
         RestartSec = "1";

@@ -11,6 +11,7 @@ let
   vmName = "gui-vm";
   macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  hostConfig = config;
   guivmBaseConfiguration = {
     imports = [
       inputs.impermanence.nixosModules.impermanence
@@ -29,6 +30,9 @@ let
 
       # To push logs to central location
       ../../../common/logging/client.nix
+
+      (import ../../../common/logging/hw-mac-retrieve.nix { hostConfig = config; })
+
       (
         { lib, pkgs, ... }:
         let
@@ -82,6 +86,7 @@ let
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            logging.identifierFilePath = "/tmp/MACAddress";
             storagevm = {
               enable = true;
               name = "guivm";
@@ -175,7 +180,20 @@ let
                 pkgs.eww
                 pkgs.wlr-randr
               ]
-              ++ [ pkgs.ctrl-panel ]
+              ++ [
+                pkgs.ctrl-panel
+                (pkgs.writeShellApplication {
+                  name = "github-config";
+                  text = ''
+                    mkdir -p "$HOME"/.config/ctrl-panel
+                    cat > "$HOME"/.config/ctrl-panel/config.toml << EOF
+                    token = "${cfg.githubToken}"
+                    owner = "${cfg.githubOwner}"
+                    repo = "${cfg.githubRepo}"
+                    EOF
+                  '';
+                })
+              ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)
@@ -188,6 +206,7 @@ let
             sessionVariables = {
               XDG_PICTURES_DIR = "$HOME/Pictures";
               XDG_VIDEOS_DIR = "$HOME/Videos";
+              GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
             };
           };
 
@@ -301,6 +320,25 @@ in
       default = 3;
       description = ''
         Context Identifier (CID) of the GUIVM VSOCK
+      '';
+    };
+
+    githubOwner = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        Github owner account of the bug reporter issue
+      '';
+    };
+    githubRepo = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        Github repo of the bug reporter issue
+      '';
+    };
+    githubToken = lib.mkOption {
+      type = lib.types.str;
+      description = ''
+        Personal token of the bug reporter Github account
       '';
     };
   };

@@ -94,6 +94,9 @@ in
           guivm = {
             enable = true;
             extraModules = cfg.guivmExtraModules;
+            githubToken = "xxxxxxxxxxxxxxxxxxxx";
+            githubOwner = "yyyyy";
+            githubRepo = "zzzzzz";
           };
 
           audiovm = {
