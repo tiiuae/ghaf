@@ -174,6 +174,23 @@ let
       inherit jetpack-nixos;
       inherit flash-tools-system;
     };
+
+  genPkgWithFlashScripts =
+    t: system:
+    (import nixpkgs { inherit system; }).linkFarm "ghaf-image" [
+      {
+        name = "image";
+        path = t.package;
+      }
+      {
+        name = "${t.name}-flash-script";
+        path = generate-flash-script t system;
+      }
+      {
+        name = "${t.name}-flash-qspi";
+        path = generate-flash-qspi t system;
+      }
+    ];
 in
 {
   flake = {
@@ -183,7 +200,9 @@ in
 
     packages = {
       aarch64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
+        builtins.listToAttrs (
+          map (t: lib.nameValuePair t.name (genPkgWithFlashScripts t "aarch64-linux")) targets
+        )
         # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
         #               and it simply might not work. Providing the script anyway
         // builtins.listToAttrs (
@@ -195,7 +214,9 @@ in
           map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "aarch64-linux")) targets
         );
       x86_64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
+        builtins.listToAttrs (
+          map (t: lib.nameValuePair t.name (genPkgWithFlashScripts t "x86_64-linux")) crossTargets
+        )
         // builtins.listToAttrs (
           map (t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")) (
             targets ++ crossTargets

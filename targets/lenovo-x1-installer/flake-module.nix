@@ -9,7 +9,7 @@ let
   installer =
     generation: variant:
     let
-      imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw.zst";
+      imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/image/disk1.raw.zst";
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [

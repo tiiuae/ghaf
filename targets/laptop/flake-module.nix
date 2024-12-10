@@ -11,6 +11,8 @@
 let
   system = "x86_64-linux";
 
+  pkgs = import inputs.nixpkgs { inherit system; };
+
   laptop-configuration = import ./laptop-configuration-builder.nix { inherit lib self inputs; };
 
   targets = [
@@ -108,12 +110,28 @@ let
       }
     ])
   ];
+
+  flashScript = pkgs.callPackage ../../packages/flash { };
+  genPkgWithFlashScript =
+    pkg:
+    pkgs.linkFarm "ghaf-image" [
+      {
+        name = "image";
+        path = pkg;
+      }
+      {
+        name = "flashScript";
+        path = flashScript;
+      }
+    ];
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
       map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    packages.${system} = builtins.listToAttrs (
+      map (t: lib.nameValuePair t.name (genPkgWithFlashScript t.package)) targets
+    );
   };
 }
