@@ -48,7 +48,7 @@ let
       <filesystem_type> basic </filesystem_type>
       <size> ROOT_SIZE </size>
       <file_system_attribute> 0 </file_system_attribute>
-      <allocation_attribute> 0x8 </allocation_attribute>
+      <allocation_attribute> 0x808 </allocation_attribute>
       <align_boundary> 16384 </align_boundary>
       <percent_reserved> 0 </percent_reserved>
       <unique_guid> APPUUID </unique_guid>
