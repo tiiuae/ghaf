@@ -63,7 +63,6 @@
       url = "github:cachix/git-hooks.nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        nixpkgs-stable.follows = "nixpkgs";
         flake-compat.follows = "flake-compat";
       };
     };
@@ -116,7 +115,7 @@
 
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos
-      url = "github:anduril/jetpack-nixos/793716c1ca29a1be6d9bea84296a933c4acdddc1";
+      url = "github:anduril/jetpack-nixos";
       #inputs.nixpkgs.follows = "nixpkgs";
     };
 
