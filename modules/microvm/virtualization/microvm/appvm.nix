@@ -137,11 +137,14 @@ let
               nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
               nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-              environment.systemPackages = [
-                pkgs.tpm2-tools
-                pkgs.opensc
-                pkgs.givc-cli
-              ] ++ vm.packages ++ appPackages;
+              environment.systemPackages =
+                [
+                  pkgs.tpm2-tools
+                  pkgs.opensc
+                  pkgs.givc-cli
+                ]
+                ++ vm.packages
+                ++ appPackages;
 
               security.tpm2 = {
                 enable = true;

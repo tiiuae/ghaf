@@ -7,7 +7,6 @@ prev.waypipe.overrideAttrs (_prevAttrs: {
   patches = [
     ./waypipe-fix-reading-data-from-pipes.patch
     ./waypipe-window-borders.patch
-    ./waypipe-security-context.patch
   ];
   nativeBuildInputs = _prevAttrs.nativeBuildInputs ++ [ prev.pkgs.wayland-scanner ];
   buildInputs = _prevAttrs.buildInputs ++ [ prev.pkgs.wayland ];
