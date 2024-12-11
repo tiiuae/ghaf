@@ -110,8 +110,7 @@ in
         enable = lib.mkDefault true;
         # Add the include paths to build the dtb overlays
         dtboBuildExtraIncludePaths = [
-          # NOTE(/TODO): Path is invalid, but is this still needed??
-          "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
+          # Empty.
         ];
       }
 
