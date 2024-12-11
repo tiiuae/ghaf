@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.graphics.labwc;
+  userName = config.ghaf.users.accounts.user;
 in
 {
   options.ghaf.graphics.labwc = {
@@ -26,7 +27,7 @@ in
     };
     autologinUser = lib.mkOption {
       type = lib.types.nullOr lib.types.str;
-      default = config.ghaf.users.accounts.user;
+      default = userName;
       description = ''
         Username of the account that will be automatically logged in to the desktop.
         If unspecified, the login manager is shown as usual.
@@ -190,6 +191,11 @@ in
 
     # DBus service for accessing the list of user accounts and information attached to those accounts
     services.accounts-daemon.enable = true;
+    # We can explicitly specify the icon path, using which user can set custom image when system is locked
+    system.activationScripts.userIcon.text = ''
+      mkdir -p /var/lib/AccountsService/users
+      echo -e "[User]\nIcon=/home/${userName}/Pictures/.face\n" > /var/lib/AccountsService/users/${userName}
+    '';
 
     ghaf.graphics.launchers = lib.mkIf config.ghaf.profiles.debug.enable [
       {
