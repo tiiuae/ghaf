@@ -42,9 +42,8 @@ in
         <https://cloud.google.com/docs/chrome-enterprise/policies/>
         Make sure the selected policy is supported on Linux and your browser version.
       '';
-      default =
-        {
-        };
+      default = {
+      };
       example = lib.literalExpression ''
         {
           "BrowserSignin" = 0;

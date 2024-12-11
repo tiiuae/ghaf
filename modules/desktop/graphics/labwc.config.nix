@@ -104,16 +104,14 @@ let
     </desktops>
     <keyboard>
       <default />
-      ${
-        lib.concatStringsSep "\n" (
-          builtins.map (index: ''
-            <keybind key="W-${toString index}">
-              <action name="GoToDesktop" to="${toString index}" />
-              <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace update ${toString index}'" />
-            </keybind>
-          '') (lib.lists.range 1 cfg.maxDesktops)
-        )
-      }
+      ${lib.concatStringsSep "\n" (
+        builtins.map (index: ''
+          <keybind key="W-${toString index}">
+            <action name="GoToDesktop" to="${toString index}" />
+            <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace update ${toString index}'" />
+          </keybind>
+        '') (lib.lists.range 1 cfg.maxDesktops)
+      )}
       <keybind key="W-A-Right">
         <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace next'" />
       </keybind>
@@ -161,31 +159,25 @@ let
       <context name="Root">
         <mousebind button="Left" action="Press" />
         <mousebind button="Middle" action="Press" />
-        ${
-          lib.optionalString (!config.ghaf.profiles.debug.enable) ''
-            <mousebind button="Right" action="Press" />
-          ''
-        }
+        ${lib.optionalString (!config.ghaf.profiles.debug.enable) ''
+          <mousebind button="Right" action="Press" />
+        ''}
       <!--Disable default scrolling behavior of switching workspaces-->
       <mousebind direction="Up" action="Scroll" />
       <mousebind direction="Down" action="Scroll" />
       </context>
     </mouse>
     <windowRules>
-      ${
-        lib.concatStringsSep "\n" (
-          map (rule: ''
-            <windowRule identifier="${rule.identifier}" borderColor="${rule.colour}" serverDecoration="yes" skipTaskbar="no"  />
-          '') cfg.frameColouring
-        )
-      }
-      ${
-        lib.concatStringsSep "\n" (
-          map (rule: ''
-            <windowRule sandboxAppId="${rule.identifier}" borderColor="${rule.color}" serverDecoration="yes" skipTaskbar="no"  />
-          '') cfg.securityContext
-        )
-      }
+      ${lib.concatStringsSep "\n" (
+        map (rule: ''
+          <windowRule identifier="${rule.identifier}" borderColor="${rule.colour}" serverDecoration="yes" skipTaskbar="no"  />
+        '') cfg.frameColouring
+      )}
+      ${lib.concatStringsSep "\n" (
+        map (rule: ''
+          <windowRule sandboxAppId="${rule.identifier}" borderColor="${rule.color}" serverDecoration="yes" skipTaskbar="no"  />
+        '') cfg.securityContext
+      )}
     </windowRules>
     <libinput>
       <device category="touchpad"><naturalScroll>yes</naturalScroll></device>

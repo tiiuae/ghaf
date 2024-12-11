@@ -23,7 +23,8 @@ in
 
   config = mkIf cfg.enable {
     boot.loader.systemd-boot = {
-      extraFiles."dtbs/${config.hardware.deviceTree.name}" = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+      extraFiles."dtbs/${config.hardware.deviceTree.name}" =
+        "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
       extraInstallCommands = ''
         # Find out the latest generation from loader.conf
         default_cfg=$(${pkgs.coreutils}/bin/cat /boot/loader/loader.conf | ${pkgs.gnugrep}/bin/grep default | ${pkgs.gawk}/bin/awk '{print $2}')
