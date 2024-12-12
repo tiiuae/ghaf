@@ -12,6 +12,7 @@ let
   vmName = "audio-vm";
   macAddress = "02:00:00:03:03:03";
   isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
+  has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
 
   sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
     inherit pkgs;
@@ -119,12 +120,15 @@ let
                   aarch64-linux = "virt";
                 }
                 .${configHost.nixpkgs.hostPlatform.system};
-              extraArgs = [
-                "-device"
-                "qemu-xhci"
-                "-acpitable"
-                "file=/sys/firmware/acpi/tables/NHLT"
-              ];
+              extraArgs =
+                [
+                  "-device"
+                  "qemu-xhci"
+                ]
+                ++ lib.optionals has_acpi_path [
+                  "-acpitable"
+                  "file=${config.ghaf.hardware.definition.audio.acpiPath}"
+                ];
             };
           };
 

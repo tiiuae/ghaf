@@ -2,31 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  lib,
   pkgs,
-  config,
   ...
 }:
 {
   name = "gala";
-  packages = [ pkgs.gala-app ];
   macAddress = "02:00:00:03:06:01";
   ramMb = 1536;
   cores = 2;
-  extraModules = [
+  borderColor = "#027d7b";
+  applications = [
     {
-      time.timeZone = config.time.timeZone;
-      ghaf.givc.appvm = {
-        enable = true;
-        name = lib.mkForce "gala-vm";
-        applications = [
-          {
-            name = "gala";
-            command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-          }
-        ];
-      };
+      name = "GALA";
+      description = "Secure Android-in-the-Cloud";
+      packages = [ pkgs.gala-app ];
+      icon = "distributor-logo-android";
+      command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
     }
   ];
-  borderColor = "#027d7b";
 }

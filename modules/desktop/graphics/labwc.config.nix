@@ -48,7 +48,7 @@ let
         else
             ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
         fi
-        ${ghaf-workspace}/bin/ghaf-workspace max 2
+        ${ghaf-workspace}/bin/ghaf-workspace max ${toString cfg.maxDesktops}
 
         # Write the GTK settings to the settings.ini file in the GTK config directory
         # Note:
@@ -100,22 +100,26 @@ let
       <policy>cascade</policy>
       <cascadeOffset x="40" y="30" />
     </placement>
-    <desktops number="2">
+    <desktops number="${toString cfg.maxDesktops}">
       <popupTime>0</popupTime>
     </desktops>
     <keyboard>
       <default />
-      <keybind key="W-1"><action name="GoToDesktop" to="1" />
-        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace update 1" />
-      </keybind>
-      <keybind key="W-2"><action name="GoToDesktop" to="2" />
-        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace update 2" />
-      </keybind>
+      ${
+        lib.concatStringsSep "\n" (
+          builtins.map (index: ''
+            <keybind key="W-${toString index}">
+              <action name="GoToDesktop" to="${toString index}" />
+              <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace update ${toString index}'" />
+            </keybind>
+          '') (lib.lists.range 1 cfg.maxDesktops)
+        )
+      }
       <keybind key="W-A-Right">
-        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace next" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace next'" />
       </keybind>
       <keybind key="W-A-Left">
-        <action name="Execute" command="${ghaf-workspace}/bin/ghaf-workspace prev" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace prev'" />
       </keybind>
       <keybind key="W-l">
         <action name="Execute" command="${pkgs.systemd}/bin/loginctl lock-session" />
@@ -343,6 +347,10 @@ in
       };
     };
 
+    services.udev.extraRules = ''
+      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="mako-reset.service"
+    '';
+
     systemd.user.services = {
       ghaf-launcher = {
         enable = true;
@@ -368,6 +376,13 @@ in
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
+      };
+
+      mako-reset = {
+        enable = true;
+        serviceConfig = {
+          ExecStart = "${pkgs.mako}/bin/makoctl set-mode default";
+        };
       };
 
       mako = {

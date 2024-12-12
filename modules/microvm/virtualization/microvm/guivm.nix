@@ -42,6 +42,27 @@ let
             ${lib.optionalString config.ghaf.givc.enableTls "--key /run/givc/ghaf-host-key.pem"}
             ${lib.optionalString (!config.ghaf.givc.enableTls) "--notls"}
           '';
+          # A list of applications from all AppVMs
+          virtualApps = lib.lists.concatMap (
+            vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
+          ) config.ghaf.virtualization.microvm.appvm.vms;
+
+          # Launchers for all virtualized applications that run in AppVMs
+          virtualLaunchers = map (app: rec {
+            inherit (app) name;
+            inherit (app) description;
+            #inherit (app) givcName;
+            vm = app.vmName;
+            path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm ${vm} ${app.givcName}";
+            inherit (app) icon;
+          }) virtualApps;
+          # Launchers for all desktop, non-virtualized applications that run in the GUIVM
+          guivmLaunchers = map (app: {
+            inherit (app) name;
+            inherit (app) description;
+            path = app.command;
+            inherit (app) icon;
+          }) cfg.applications;
         in
         {
           ghaf = {
@@ -51,6 +72,9 @@ let
               applications.enable = false;
               graphics.enable = true;
             };
+
+            # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
+            graphics.launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
 
             # To enable screen locking set to true
             graphics.labwc = {
@@ -251,6 +275,21 @@ let
           # We dont enable services.blueman because it adds blueman desktop entry
           services.dbus.packages = [ pkgs.blueman ];
           systemd.packages = [ pkgs.blueman ];
+
+          systemd.user.services.audio-control = {
+            enable = true;
+            description = "Audio Control application";
+
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "5";
+              ExecStart = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=preferences-sound";
+            };
+
+            partOf = [ "ghaf-session.target" ];
+            wantedBy = [ "ghaf-session.target" ];
+          };
         }
       )
     ];
@@ -287,6 +326,37 @@ in
       description = ''
         Context Identifier (CID) of the GUIVM VSOCK
       '';
+    };
+
+    applications = lib.mkOption {
+      description = ''
+        Applications to include in the GUIVM
+      '';
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            name = lib.mkOption {
+              type = lib.types.str;
+              description = "The name of the application";
+            };
+            description = lib.mkOption {
+              type = lib.types.str;
+              description = "A brief description of the application";
+            };
+            icon = lib.mkOption {
+              type = lib.types.str;
+              description = "Application icon";
+              default = null;
+            };
+            command = lib.mkOption {
+              type = lib.types.str;
+              description = "The command to run the application";
+              default = null;
+            };
+          };
+        }
+      );
+      default = [ ];
     };
   };
 

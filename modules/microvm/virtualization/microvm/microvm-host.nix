@@ -9,6 +9,14 @@
 }:
 let
   cfg = config.ghaf.virtualization.microvm-host;
+  has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
+  has_rescan_pci_device = config.ghaf.hardware.definition.audio.rescanPciDevice != null;
+  has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
+  rescan_pci_device =
+    if has_rescan_pci_device then
+      config.ghaf.hardware.definition.audio.rescanPciDevice
+    else
+      config.ghaf.hardware.definition.audio.removePciDevice;
 in
 {
   imports = [
@@ -62,21 +70,21 @@ in
         lib.optionalAttrs config.ghaf.virtualization.microvm.audiovm.enable
           {
             # The + here is a systemd feature to make the script run as root.
-            ExecStartPre = [
+            ExecStartPre = lib.mkIf has_acpi_path [
               "+${pkgs.writeShellScript "ACPI-table-permission" ''
                 # The script gives permissionf sot a microvm user
                 # to read ACPI tables of soundcaed mic array.
-                ${pkgs.coreutils}/bin/chmod 444 /sys/firmware/acpi/tables/NHLT
+                ${pkgs.coreutils}/bin/chmod 444 ${config.ghaf.hardware.definition.audio.acpiPath}
               ''}"
             ];
-            ExecStopPost = [
+            ExecStopPost = lib.mkIf has_remove_pci_device [
               "+${pkgs.writeShellScript "reload-audio" ''
                 # The script makes audio device internal state to reset
                 # This fixes issue of audio device getting into some unexpected
                 # state when the VM is being shutdown during audio mic recording
-                echo "1" > /sys/bus/pci/devices/0000:00:1f.3/remove
+                echo "1" > ${config.ghaf.hardware.definition.audio.removePciDevice}
                 sleep 0.1
-                echo "1" > /sys/bus/pci/devices/0000:00:1f.0/rescan
+                echo "1" > ${rescan_pci_device}
               ''}"
             ];
           };

@@ -60,8 +60,13 @@ in
 {
   options.ghaf.services.xdghandlers = {
     enable = mkEnableOption "Enable Ghaf XDG handlers";
+    handlerPath = lib.mkOption {
+      description = "Path of xdgHandler script.";
+      type = lib.types.str;
+    };
   };
   config = mkIf cfg.enable {
+    ghaf.services.xdghandlers.handlerPath = xdgOpenFile.outPath;
     environment.systemPackages = [
       pkgs.xdg-utils
       xdgPdfItem
