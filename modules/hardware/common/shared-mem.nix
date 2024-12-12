@@ -27,7 +27,7 @@ in
       type = types.bool;
       default = false;
       description = mdDoc ''
-        Enables shared memory communication between virtual machines (VMs)
+        Enables shared memory communication between virtual machines (VMs) and the host
       '';
     };
     memSize = mkOption {
@@ -83,7 +83,7 @@ in
         Enables the memsocket functionality on the host system
       '';
     };
-    instancesCount = mkOption {
+    shmSlots = mkOption {
       type = types.int;
       default =
         if cfg.enable_host then (builtins.length cfg.vms_enabled) + 1 else builtins.length cfg.vms_enabled;
@@ -91,18 +91,18 @@ in
         Number of memory slots allocated in the shared memory region
       '';
     };
-    serverSocketPath = mkOption {
-      type = types.path;
-      default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-server.sock";
-      description = mdDoc ''
-        Specifies the path of the listening socket, which is used by Waypipe 
-        or other server applications as the output socket in server mode for 
-        data transmission
-      '';
-    };
     clientSocketPath = mkOption {
       type = types.path;
       default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-client.sock";
+      description = mdDoc ''
+        Specifies the path of the listening socket, which is used by Waypipe 
+        or other server applications as the output socket in its server mode for 
+        data transmission
+      '';
+    };
+    serverSocketPath = mkOption {
+      type = types.path;
+      default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-server.sock";
       description = mdDoc ''
         Specifies the location of the output socket, which will connected to 
         in order to receive data from AppVMs. This socket must be created by 
@@ -142,7 +142,7 @@ in
       }
       (mkIf cfg.enable_host {
         environment.systemPackages = [
-          (pkgs.callPackage ../../../packages/memsocket { vms = cfg.instancesCount; })
+          (pkgs.callPackage ../../../packages/memsocket { inherit (cfg) shmSlots; })
         ];
       })
       {
@@ -151,7 +151,7 @@ in
             pidFilePath = "/tmp/ivshmem-server.pid";
             ivShMemSrv =
               let
-                vectors = toString (2 * cfg.instancesCount);
+                vectors = toString (2 * cfg.shmSlots);
               in
               pkgs.writeShellScriptBin "ivshmemsrv" ''
                 if [ -S ${cfg.hostSocketPath} ]; then
@@ -180,8 +180,8 @@ in
       {
         microvm.vms =
           let
-            memsocket = pkgs.callPackage ../../../packages/memsocket { vms = cfg.instancesCount; };
-            vectors = toString (2 * cfg.instancesCount);
+            memsocket = pkgs.callPackage ../../../packages/memsocket { inherit (cfg) shmSlots; };
+            vectors = toString (2 * cfg.shmSlots);
             makeAssignment = vmName: {
               ${vmName} = {
                 config = {
@@ -200,7 +200,7 @@ in
                     boot.extraModulePackages = [
                       (pkgs.linuxPackages.callPackage ../../../packages/memsocket/module.nix {
                         inherit (config.microvm.vms.${vmName}.config.config.boot.kernelPackages) kernel;
-                        vmCount = cfg.instancesCount;
+                        inherit (cfg) shmSlots;
                       })
                     ];
                     services = {
@@ -221,7 +221,9 @@ in
                           after = [ "labwc.service" ];
                           serviceConfig = {
                             Type = "simple";
-                            ExecStart = "${memsocket}/bin/memsocket -c ${cfg.clientSocketPath}";
+                            # option '-l -1': listen to all slots. If you want to run other servers
+                            # for some slots, provide a list of handled slots, e.g.: '-l 1,3,5'
+                            ExecStart = "${memsocket}/bin/memsocket -s ${cfg.serverSocketPath} -l -1";
                             Restart = "always";
                             RestartSec = "1";
                           };
@@ -237,7 +239,7 @@ in
                           description = "memsocket";
                           serviceConfig = {
                             Type = "simple";
-                            ExecStart = "${memsocket}/bin/memsocket -s ${cfg.serverSocketPath} ${builtins.toString vmIndex}";
+                            ExecStart = "${memsocket}/bin/memsocket -c ${cfg.clientSocketPath} ${builtins.toString vmIndex}";
                             Restart = "always";
                             RestartSec = "1";
                           };

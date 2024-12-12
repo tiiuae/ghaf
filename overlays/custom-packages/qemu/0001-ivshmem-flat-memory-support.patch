@@ -1,17 +1,17 @@
-From 13229d9e11eaf15eb6679be036364b9d0256f1c1 Mon Sep 17 00:00:00 2001
+From e830291535405f73b9b8d32e97b273b806ed3097 Mon Sep 17 00:00:00 2001
 From: Jaroslaw Kurowski <jaroslaw.kurowski@tii.ae>
-Date: Wed, 10 Jul 2024 15:21:07 +0400
+Date: Thu, 21 Nov 2024 14:19:07 +0400
 Subject: ivshmem flat memory support
 
 ---
- contrib/ivshmem-server/ivshmem-server.c |  6 +-
+ contrib/ivshmem-server/ivshmem-server.c |  7 ++-
  hw/i386/pc_q35.c                        |  2 +
  hw/misc/ivshmem.c                       | 74 ++++++++++++++++++++++---
  include/hw/misc/ivshmem.h               |  1 +
- 4 files changed, 71 insertions(+), 12 deletions(-)
+ 4 files changed, 72 insertions(+), 12 deletions(-)
 
 diff --git a/contrib/ivshmem-server/ivshmem-server.c b/contrib/ivshmem-server/ivshmem-server.c
-index 2f3c732..906c5d0 100644
+index 2f3c732..e7c7774 100644
 --- a/contrib/ivshmem-server/ivshmem-server.c
 +++ b/contrib/ivshmem-server/ivshmem-server.c
 @@ -11,6 +11,7 @@
@@ -35,6 +35,14 @@ index 2f3c732..906c5d0 100644
 +        shm_fd = open(filename, O_RDWR | O_CREAT, 0666);
          g_free(filename);
      }
+ 
+@@ -347,6 +347,7 @@ ivshmem_server_start(IvshmemServer *server)
+ 
+     server->sock_fd = sock_fd;
+     server->shm_fd = shm_fd;
++    server->cur_id = 1;
+ 
+     return 0;
  
 diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
 index c7bc8a2..d76939e 100644
@@ -254,5 +262,5 @@ index 433ef53..43aeab7 100644
  
  #endif /* IVSHMEM_H */
 -- 
-2.45.2
+2.47.0
 
