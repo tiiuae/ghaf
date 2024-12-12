@@ -6,7 +6,7 @@
     xtest = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = lib.mdDoc ''
+      description = ''
         Adds OP-TEE's xtest and related TA/Plugins
       '';
     };
@@ -14,7 +14,7 @@
     pkcs11-tool = lib.mkOption {
       type = lib.types.bool;
       default = false;
-      description = lib.mdDoc ''
+      description = ''
         OpenSC pkcs11-tool, but for a convenience reasons \"pkcs11-tool-optee\" shell
         script is created. It calls pkcs11-tool with "--module"-option set to
         OP-TEE's PKCS#11 library.
@@ -30,7 +30,7 @@
       enable = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = lib.mdDoc ''
+        description = ''
           Adds OP-TEE's PKCS#11 TA.
         '';
       };
@@ -38,7 +38,7 @@
       authTeeIdentity = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = lib.mdDoc ''
+        description = ''
           Enable PKCS#11 TA's TEE Identity based authentication support
         '';
       };
@@ -46,7 +46,7 @@
       lockPinAfterFailedLoginAttempts = lib.mkOption {
         type = lib.types.bool;
         default = true;
-        description = lib.mdDoc ''
+        description = ''
           Locks correspondingly User or SO PIN when reaching maximum
           failed authentication attemps (continous) limit
         '';
@@ -55,7 +55,7 @@
       heapSize = lib.mkOption {
         type = lib.types.int;
         default = 32768;
-        description = lib.mdDoc ''
+        description = ''
           Defines PKCS11 TA heap size. Heap size has a direct
           correlation to its secure storage size. Heap == Storage.
 
@@ -68,7 +68,7 @@
       tokenCount = lib.mkOption {
         type = lib.types.int;
         default = 3;
-        description = lib.mdDoc ''
+        description = ''
           PKCS#11 token count.
 
           NOTE: Redefining token count might corrupt secure storage,
