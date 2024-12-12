@@ -278,10 +278,10 @@ index f66fc17faee4..37adc552495d 100644
  }
  subsys_initcall(tegra_gpio_init);
 diff --git a/drivers/gpio/gpio-tegra186.c b/drivers/gpio/gpio-tegra186.c
-index 5e57824b283e..0968b15d56d4 100644
+index 5e57824b283e..062aa5188b1a 100644
 --- a/drivers/gpio/gpio-tegra186.c
 +++ b/drivers/gpio/gpio-tegra186.c
-@@ -20,28 +20,152 @@
+@@ -20,28 +20,169 @@
  #include <dt-bindings/gpio/tegra234-gpio.h>
  #include <dt-bindings/gpio/tegra239-gpio.h>
  
@@ -318,6 +318,21 @@ index 5e57824b283e..0968b15d56d4 100644
 +
 +#if defined(GPIO_DEBUG_EXCEPTIONS)
 +
++/* if compiled with GPIO_DEBUG_EXCEPTIONS, then
++ *  GPIO_NOPT_TEST1-7   set means; no-PT
++ *  GPIO_NOFUNC_TEST0-7 set means; no-PT
++ *  GPIO_NOPT_TEST8-16  set means; no-PT
++ *  GPIO_RW_TEST31 31		set means; no-PT
++ *  GPIO_NOPT_TEST0 0 	set means; no-PT
++
++ *  if compiled without GPIO_DEBUG_EXCEPTIONS, then
++ *  GPIO_NOPT_TEST1-7   is no-PT
++ *  GPIO_NOFUNC_TEST0-7 is PT
++ *  GPIO_NOPT_TEST8-16  is no-PT
++ *  GPIO_RW_TEST31 31		is no-PT
++ *  GPIO_NOPT_TEST0 0 	is no-PT
++ */
++
 +// starting at first byte
 +// #define GPIO_NOPT_TEST0 0			// pmx_readl pmx_writel - defined in pinctrl-tegra.c
 +#define GPIO_NOPT_TEST1 1			// tegra_gte_read tegra_gte_writel -- Note shared with pinctrl-tegra.c
@@ -330,11 +345,11 @@ index 5e57824b283e..0968b15d56d4 100644
 +
 +// starting at second byte
 +// if NOFUNC_TEST2 is set; error setting the GPIO line values: Operation not permitted
-+#define GPIO_NOFUNC_TEST0A 0+8  // request				  // unset, passthrough ?	
-+#define GPIO_NOFUNC_TEST0B 0+8  // free						  // unset, passthrough ?	
-+#define GPIO_NOFUNC_TEST1 1+8   // get_direction	  // unset, passthrough ?
-+#define GPIO_NOFUNC_TEST2A 2+8  // direction_input	// unset, passthrough ?
-+#define GPIO_NOFUNC_TEST2B 2+8  // direction_output	// unset, passthrough ?	
++#define GPIO_NOFUNC_TEST0A 0+8  // request				  // should be unset, chardev-passthrough ?	
++#define GPIO_NOFUNC_TEST0B 0+8  // free						  // should be unset, chardev-passthrough ?	
++#define GPIO_NOFUNC_TEST1 1+8   // get_direction	  // should be unset, chardev-passthrough ?
++#define GPIO_NOFUNC_TEST2A 2+8  // direction_input	// should be unset, chardev-passthrough ?
++#define GPIO_NOFUNC_TEST2B 2+8  // direction_output	// should be unset, chardev-passthrough ?	
 +#define GPIO_NOFUNC_TEST3A 3+8  // get
 +#define GPIO_NOFUNC_TEST3B 3+8  // set
 +#define GPIO_NOFUNC_TEST4 4+8   // set_config
@@ -345,14 +360,15 @@ index 5e57824b283e..0968b15d56d4 100644
 +
 +// GPIO_NOFUNC_TEST8-16 defined in gpio-tegra.c
 +
++// 'BOTH' test structure is not used
 +#define GPIO_BOTH_TEST 1+24      // allows setting 'both' test	
 +#define GPIO_BOTHFUNC_TEST2 2+24  // get_direction
 +#define GPIO_BOTHFUNC_TEST3 3+24  // direction_input
 +#define GPIO_BOTHFUNC_TEST4 4+24  // direction_output
 +
 +/* note further declarations in gpio-proxy.c and pinctrl-tegra.c
-+ * #define GPIO_RW_TEST31 31
-+ * #define GPIO_NOPT_TEST0 0 
++ * #define GPIO_RW_TEST31 31		// compiled with no debug exception we have no PT
++ * #define GPIO_NOPT_TEST0 0 		// compiled with no debug exception we have no PT
 + * 
 + * // continuing in second part of second section (third byte)
 + * #define TEST_OFFSET      8
@@ -374,8 +390,9 @@ index 5e57824b283e..0968b15d56d4 100644
 + * kernel boot parameter
 + */
 +
-+static uint32_t debug_exceptions=0x81fff8ff;    // alternative guess for correct value,
-+// static uint32_t debug_exceptions=0x81ff00ff;    // alternativr guess for correct value,
++static uint32_t debug_exceptions=0x800000ff;       // guess for correct value,
++// static uint32_t debug_exceptions=0x81fff8ff;    // alternative guess for correct value,
++// static uint32_t debug_exceptions=0x81ff00ff;    // alternative guess for correct value,
 +// static uint32_t debug_exceptions=0x81ff88ff;    // alternative guess for correct value,
 +																								
 +// Declare debug_exceptions as a module parameter
@@ -451,7 +468,7 @@ index 5e57824b283e..0968b15d56d4 100644
  
  /* control registers */
  #define TEGRA186_GPIO_ENABLE_CONFIG 0x00
-@@ -75,45 +199,45 @@
+@@ -75,45 +216,45 @@
  
  /******************** GTE Registers ******************************/
  
@@ -534,7 +551,7 @@ index 5e57824b283e..0968b15d56d4 100644
  
  /* AON GPIOS are mapped to only slice 1 and slice 2 */
  /* GTE Interrupt connections. For slice 1 */
-@@ -180,235 +304,253 @@
+@@ -180,235 +321,253 @@
  /**************************************************************/
  
  struct tegra_gpio_port {
@@ -911,38 +928,38 @@ index 5e57824b283e..0968b15d56d4 100644
 -		return 0;
 -	}
 +  // deb_verbose("\n");
++
++  if (tgi->gte_enable == 0) {
++    dev_err(tgi->gpio.parent, "timestamp is already disabled\n");
++    return 0;
++  }
  
 -	val = tegra_gte_readl(tgi, GTE_GPIO_TECTRL);
 -	mask = (GTE_GPIO_TECTRL_ENABLE_MASK << GTE_GPIO_TECTRL_ENABLE_SHIFT);
 -	val &= ~mask;
 -	val |= (GTE_GPIO_TECTRL_ENABLE_DISABLE << GTE_GPIO_TECTRL_ENABLE_SHIFT);
 -	tegra_gte_writel(tgi, GTE_GPIO_TECTRL, val);
-+  if (tgi->gte_enable == 0) {
-+    dev_err(tgi->gpio.parent, "timestamp is already disabled\n");
-+    return 0;
-+  }
- 
--	/* Disable Slice mapping as well */
--	tegra_gte_writel(tgi, (AON_GPIO_SLICE1_INDEX * GTE_GPIO_SLICE_SIZE) +
--			GTE_GPIO_SLICE0_TETEN, 0);
--	tegra_gte_writel(tgi, (AON_GPIO_SLICE2_INDEX * GTE_GPIO_SLICE_SIZE) +
--			GTE_GPIO_SLICE0_TETEN, 0);
 +  val = tegra_gte_readl(tgi, GTE_GPIO_TECTRL);
 +  mask = (GTE_GPIO_TECTRL_ENABLE_MASK << GTE_GPIO_TECTRL_ENABLE_SHIFT);
 +  val &= ~mask;
 +  val |= (GTE_GPIO_TECTRL_ENABLE_DISABLE << GTE_GPIO_TECTRL_ENABLE_SHIFT);
 +  tegra_gte_writel(tgi, GTE_GPIO_TECTRL, val);
  
--	tgi->gte_enable = 0;
+-	/* Disable Slice mapping as well */
+-	tegra_gte_writel(tgi, (AON_GPIO_SLICE1_INDEX * GTE_GPIO_SLICE_SIZE) +
+-			GTE_GPIO_SLICE0_TETEN, 0);
+-	tegra_gte_writel(tgi, (AON_GPIO_SLICE2_INDEX * GTE_GPIO_SLICE_SIZE) +
+-			GTE_GPIO_SLICE0_TETEN, 0);
 +  /* Disable Slice mapping as well */
 +  tegra_gte_writel(tgi, (AON_GPIO_SLICE1_INDEX * GTE_GPIO_SLICE_SIZE) +
 +      GTE_GPIO_SLICE0_TETEN, 0);
 +  tegra_gte_writel(tgi, (AON_GPIO_SLICE2_INDEX * GTE_GPIO_SLICE_SIZE) +
 +      GTE_GPIO_SLICE0_TETEN, 0);
  
--	return 0;
+-	tgi->gte_enable = 0;
 +  tgi->gte_enable = 0;
-+
+ 
+-	return 0;
 +  return 0;
  }
  
@@ -951,16 +968,16 @@ index 5e57824b283e..0968b15d56d4 100644
 -	tegra_gte_writel(tgi, GTE_GPIO_TECTRL, 0);
 -	tgi->gte_enable = 0;
 +  // deb_verbose("\n");
-+
-+  tegra_gte_writel(tgi, GTE_GPIO_TECTRL, 0);
-+  tgi->gte_enable = 0;
  
 -	return 0;
++  tegra_gte_writel(tgi, GTE_GPIO_TECTRL, 0);
++  tgi->gte_enable = 0;
++
 +  return 0;
  }
  
  /*****************************************************************/
-@@ -416,1314 +558,1971 @@ int tegra_gte_setup(struct tegra_gpio *tgi)
+@@ -416,1314 +575,1971 @@ int tegra_gte_setup(struct tegra_gpio *tgi)
  static const struct tegra_gpio_port *
  tegra186_gpio_get_port(struct tegra_gpio *gpio, unsigned int *pin)
  {
@@ -984,11 +1001,11 @@ index 5e57824b283e..0968b15d56d4 100644
 +      *pin -= start;
 +      return port;
 +    }
-+
-+    start += port->pins;
-+  }
  
 -	return NULL;
++    start += port->pins;
++  }
++
 +  return NULL;
  }
  
@@ -1000,20 +1017,20 @@ index 5e57824b283e..0968b15d56d4 100644
 -	unsigned int offset;
 +  const struct tegra_gpio_port *port;
 +  unsigned int offset;
++
++  // deb_verbose("GPIO, chip \n", gpio->gpio.label);
  
 -	port = tegra186_gpio_get_port(gpio, &pin);
 -	if (!port)
 -		return NULL;
-+  // deb_verbose("GPIO, chip \n", gpio->gpio.label);
- 
--	offset = port->bank * 0x1000 + port->port * 0x200;
 +  port = tegra186_gpio_get_port(gpio, &pin);
 +  if (!port)
 +    return NULL;
  
--	return gpio->base + offset + pin * 0x20;
+-	offset = port->bank * 0x1000 + port->port * 0x200;
 +  offset = port->bank * 0x1000 + port->port * 0x200;
-+
+ 
+-	return gpio->base + offset + pin * 0x20;
 +  return gpio->base + offset + pin * 0x20;
  }
  
@@ -1428,21 +1445,21 @@ index 5e57824b283e..0968b15d56d4 100644
 -	int ret;
 +  struct tegra_gpio *tgi = gpiochip_get_data(chip);
 +  int ret;
-+
-+  deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
  
 -	if (tgi->use_timestamp) {
 -		*ts = tegra_gte_read_fifo(tgi, offset);
 -		ret = 0;
 -	} else
 -		ret = -EOPNOTSUPP;
++  deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
+ 
+-	return ret;
 +  if (tgi->use_timestamp) {
 +    *ts = tegra_gte_read_fifo(tgi, offset);
 +    ret = 0;
 +  } else
 +    ret = -EOPNOTSUPP;
- 
--	return ret;
++
 +  return ret;
  }
  
@@ -1455,28 +1472,28 @@ index 5e57824b283e..0968b15d56d4 100644
 +  struct tegra_gpio *gpio = gpiochip_get_data(chip);
 +  void __iomem *base;
 +  u32 value;
++
++  deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
  
 -	base = tegra186_gpio_get_base(gpio, offset);
 -	if (WARN_ON(base == NULL))
 -		return -ENODEV;
-+  deb_verbose("GPIO chip %s, offset %u\n", chip->label, offset);
++  base = tegra186_gpio_get_base(gpio, offset);
++  if (WARN_ON(base == NULL))
++    return -ENODEV;
  
 -	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 -	if (value & TEGRA186_GPIO_ENABLE_CONFIG_OUT)
 -		value = readl(base + TEGRA186_GPIO_OUTPUT_VALUE);
 -	else
 -		value = readl(base + TEGRA186_GPIO_INPUT);
-+  base = tegra186_gpio_get_base(gpio, offset);
-+  if (WARN_ON(base == NULL))
-+    return -ENODEV;
- 
--	return value & BIT(0);
 +  value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 +  if (value & TEGRA186_GPIO_ENABLE_CONFIG_OUT)
 +    value = readl(base + TEGRA186_GPIO_OUTPUT_VALUE);
 +  else
 +    value = readl(base + TEGRA186_GPIO_INPUT);
-+
+ 
+-	return value & BIT(0);
 +  return value & BIT(0);
  }
  
@@ -1551,21 +1568,23 @@ index 5e57824b283e..0968b15d56d4 100644
 +  struct tegra_gpio *gpio = gpiochip_get_data(chip);
 +  u32 debounce, value;
 +  void __iomem *base;
++
++  deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
  
 -	base = tegra186_gpio_get_base(gpio, offset);
 -	if (base == NULL)
 -		return -ENXIO;
-+  deb_verbose("GPIO, chip %s, offset %u\n", chip->label, offset);
- 
--	if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
--		return -ENOTSUPP;
 +  base = tegra186_gpio_get_base(gpio, offset);
 +  if (base == NULL)
 +    return -ENXIO;
  
--	debounce = pinconf_to_config_argument(config);
+-	if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
+-		return -ENOTSUPP;
 +  if (pinconf_to_config_param(config) != PIN_CONFIG_INPUT_DEBOUNCE)
 +    return -ENOTSUPP;
+ 
+-	debounce = pinconf_to_config_argument(config);
++  debounce = pinconf_to_config_argument(config);
  
 -	/*
 -	 * The Tegra186 GPIO controller supports a maximum of 255 ms debounce
@@ -1573,9 +1592,6 @@ index 5e57824b283e..0968b15d56d4 100644
 -	 */
 -	if (debounce > 255000)
 -		return -EINVAL;
-+  debounce = pinconf_to_config_argument(config);
- 
--	debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
 +  /*
 +   * The Tegra186 GPIO controller supports a maximum of 255 ms debounce
 +   * time.
@@ -1583,21 +1599,22 @@ index 5e57824b283e..0968b15d56d4 100644
 +  if (debounce > 255000)
 +    return -EINVAL;
  
+-	debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
++  debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
+ 
 -	value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
 -	writel(value, base + TEGRA186_GPIO_DEBOUNCE_CONTROL);
-+  debounce = DIV_ROUND_UP(debounce, USEC_PER_MSEC);
++  value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
++  writel(value, base + TEGRA186_GPIO_DEBOUNCE_CONTROL);
  
 -	value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 -	value |= TEGRA186_GPIO_ENABLE_CONFIG_DEBOUNCE;
 -	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
-+  value = TEGRA186_GPIO_DEBOUNCE_CONTROL_THRESHOLD(debounce);
-+  writel(value, base + TEGRA186_GPIO_DEBOUNCE_CONTROL);
- 
--	return 0;
 +  value = readl(base + TEGRA186_GPIO_ENABLE_CONFIG);
 +  value |= TEGRA186_GPIO_ENABLE_CONFIG_DEBOUNCE;
 +  writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
-+
+ 
+-	return 0;
 +  return 0;
  }
  
@@ -1672,11 +1689,11 @@ index 5e57824b283e..0968b15d56d4 100644
 +         port, group);
 +      continue;
 +    }
-+
-+    for (j = 0; j < port; j++)
-+      pin += gpio->soc->ports[j].pins;
  
 -	return 0;
++    for (j = 0; j < port; j++)
++      pin += gpio->soc->ports[j].pins;
++
 +    err = gpiochip_add_pingroup_range(chip, pctldev, pin, group);
 +    if (err < 0)
 +      return err;
@@ -1717,23 +1734,23 @@ index 5e57824b283e..0968b15d56d4 100644
 -	}
 +  port = spec->args[0] / 8;
 +  pin = spec->args[0] % 8;
-+
+ 
+-	for (i = 0; i < port; i++)
+-		offset += gpio->soc->ports[i].pins;
 +  if (port >= gpio->soc->num_ports) {
 +    dev_err(chip->parent, "invalid port number: %u\n", port);
 +    return -EINVAL;
 +  }
  
--	for (i = 0; i < port; i++)
--		offset += gpio->soc->ports[i].pins;
+-	if (flags)
+-		*flags = spec->args[1];
 +  for (i = 0; i < port; i++)
 +    offset += gpio->soc->ports[i].pins;
  
--	if (flags)
--		*flags = spec->args[1];
+-	return offset + pin;
 +  if (flags)
 +    *flags = spec->args[1];
- 
--	return offset + pin;
++
 +  return offset + pin;
  }
  
@@ -1888,32 +1905,32 @@ index 5e57824b283e..0968b15d56d4 100644
 +  case IRQ_TYPE_EDGE_FALLING:
 +    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_SINGLE_EDGE;
 +    break;
-+
-+  case IRQ_TYPE_EDGE_BOTH:
-+    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_DOUBLE_EDGE;
-+    break;
  
 -	writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
-+  case IRQ_TYPE_LEVEL_HIGH:
-+    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_LEVEL;
-+    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_LEVEL;
++  case IRQ_TYPE_EDGE_BOTH:
++    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_DOUBLE_EDGE;
 +    break;
  
 -	if ((type & IRQ_TYPE_EDGE_BOTH) == 0)
 -		irq_set_handler_locked(data, handle_level_irq);
 -	else
 -		irq_set_handler_locked(data, handle_edge_irq);
-+  case IRQ_TYPE_LEVEL_LOW:
++  case IRQ_TYPE_LEVEL_HIGH:
 +    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_LEVEL;
++    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_LEVEL;
 +    break;
  
 -	if (data->parent_data)
 -		return irq_chip_set_type_parent(data, type);
++  case IRQ_TYPE_LEVEL_LOW:
++    value |= TEGRA186_GPIO_ENABLE_CONFIG_TRIGGER_TYPE_LEVEL;
++    break;
+ 
+-	return 0;
 +  default:
 +    return -EINVAL;
 +  }
- 
--	return 0;
++
 +  writel(value, base + TEGRA186_GPIO_ENABLE_CONFIG);
 +
 +  if ((type & IRQ_TYPE_EDGE_BOTH) == 0)
@@ -2194,7 +2211,7 @@ index 5e57824b283e..0968b15d56d4 100644
 +  
 +	#if defined(GPIO_DEBUG_EXCEPTIONS)
 +	bool stash = kernel_is_on_guest; 
-+	if(kernel_is_on_guest && is_debug_exception(GPIO_NOPT_TEST3))
++	if(kernel_is_on_guest && !is_debug_exception(GPIO_NOPT_TEST3))
 +	#endif
 +		kernel_is_on_guest = false; // tmp value for this function
 +
@@ -6796,7 +6813,7 @@ index c73b34e03aae..4d4aa438b147 100644
  	pinctrl_init_debugfs();
  	return 0;
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra.c b/drivers/pinctrl/tegra/pinctrl-tegra.c
-index f9ecbebe6442..99e22809aab6 100644
+index f9ecbebe6442..fc76ffb73c4e 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra.c
 @@ -34,14 +34,73 @@
@@ -6971,7 +6988,7 @@ index f9ecbebe6442..99e22809aab6 100644
 +	bool stash = kernel_is_on_guest;
 +        if(kernel_is_on_guest && is_debug_exception(GPIO_NOPT_TEST8))
 +	#endif
-+          kernel_is_on_guest = false; // tmp value for this function
++          kernel_is_on_guest = false;
 +          
 +	// deb_debug("GPIO %s, device %s\n", pmx->dev->init_name);
 +
@@ -7416,15 +7433,15 @@ index cfc75ca9ae2b..320486fd060b 100644
  }
  arch_initcall(tegra124_pinctrl_init);
 diff --git a/drivers/pinctrl/tegra/pinctrl-tegra186.c b/drivers/pinctrl/tegra/pinctrl-tegra186.c
-index d78447c55527..0feaad8022fd 100644
+index d78447c55527..53139593493d 100644
 --- a/drivers/pinctrl/tegra/pinctrl-tegra186.c
 +++ b/drivers/pinctrl/tegra/pinctrl-tegra186.c
 @@ -918,8 +918,26 @@ static const struct tegra_pinctrl_soc_data tegra186_pinctrl = {
  	.sfsel_in_mux = true,
  };
  
-+#define GPIO_DEBUG
-+#define GPIO_DEBUG_VERBOSE
++// #define GPIO_DEBUG
++// #define GPIO_DEBUG_VERBOSE
 +
 +#ifdef GPIO_DEBUG
 +  #define deb_info(fmt, ...)     printk(KERN_INFO "GPIO func \'%s\' in file \'%s\' -- " fmt, __func__, kbasename(__FILE__), ##__VA_ARGS__)
@@ -7615,10 +7632,10 @@ index 60e087e5b7f5..1e5f56a4a1e1 100644
  arch_initcall(tegra30_pinctrl_init);
 diff --git a/include/gpio-proxy.h b/include/gpio-proxy.h
 new file mode 100644
-index 000000000000..d1c48f3ae929
+index 000000000000..bb9e93c88a6c
 --- /dev/null
 +++ b/include/gpio-proxy.h
-@@ -0,0 +1,220 @@
+@@ -0,0 +1,221 @@
 +#ifndef GPIO_PROXY_H
 +#define GPIO_PROXY_H
 +
@@ -7810,7 +7827,8 @@ index 000000000000..d1c48f3ae929
 +
 +// struct used to transfer setup values from host setup. Needed when guest accesses host. 
 +
-+#else
++#else // GPIO_DEBUG_EXCEPTIONS
++// no PT by default
 +
 +static inline u32 readl_x( void * addr) {
 +    return readl(addr);
