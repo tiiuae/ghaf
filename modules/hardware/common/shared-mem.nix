@@ -17,7 +17,6 @@ let
     mkMerge
     mkIf
     mkOption
-    mdDoc
     types
     ;
 in
@@ -26,14 +25,14 @@ in
     enable = mkOption {
       type = types.bool;
       default = false;
-      description = mdDoc ''
+      description = ''
         Enables shared memory communication between virtual machines (VMs)
       '';
     };
     memSize = mkOption {
       type = types.int;
       default = 16;
-      description = mdDoc ''
+      description = ''
         Specifies the size of the shared memory region, measured in
         megabytes (MB)
       '';
@@ -41,7 +40,7 @@ in
     hugePageSz = mkOption {
       type = types.str;
       default = "2M";
-      description = mdDoc ''
+      description = ''
         Specifies the size of the large memory page area. Supported kernel
         values are 2 MB and 1 GB
       '';
@@ -55,7 +54,7 @@ in
     hostSocketPath = mkOption {
       type = types.path;
       default = "/tmp/ivshmem_socket"; # The value is hardcoded in the application
-      description = mdDoc ''
+      description = ''
         Specifies the path to the shared memory socket, used by QEMU
         instances for inter-VM memory sharing and interrupt signaling
       '';
@@ -63,7 +62,7 @@ in
     flataddr = mkOption {
       type = types.str;
       default = "0x920000000";
-      description = mdDoc ''
+      description = ''
         Maps the shared memory to a physical address if set to a non-zero value.
         The address must be platform-specific and arbitrarily chosen to avoid
         conflicts with other memory areas, such as PCI regions.
@@ -72,14 +71,14 @@ in
     vms_enabled = mkOption {
       type = types.listOf types.str;
       default = [ ];
-      description = mdDoc ''
+      description = ''
         List of vms having access to shared memory
       '';
     };
     enable_host = mkOption {
       type = types.bool;
       default = false;
-      description = mdDoc ''
+      description = ''
         Enables the memsocket functionality on the host system
       '';
     };
@@ -87,15 +86,15 @@ in
       type = types.int;
       default =
         if cfg.enable_host then (builtins.length cfg.vms_enabled) + 1 else builtins.length cfg.vms_enabled;
-      description = mdDoc ''
+      description = ''
         Number of memory slots allocated in the shared memory region
       '';
     };
     serverSocketPath = mkOption {
       type = types.path;
       default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-server.sock";
-      description = mdDoc ''
-        Specifies the path of the listening socket, which is used by Waypipe
+      description = ''
+        Specifies the path of the listening socket, which is used by Waypipe 
         or other server applications as the output socket in server mode for
         data transmission
       '';
@@ -103,8 +102,8 @@ in
     clientSocketPath = mkOption {
       type = types.path;
       default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-client.sock";
-      description = mdDoc ''
-        Specifies the location of the output socket, which will connected to
+      description = ''
+        Specifies the location of the output socket, which will connected to 
         in order to receive data from AppVMs. This socket must be created by
         another application, such as Waypipe, when operating in client mode
       '';
@@ -112,8 +111,8 @@ in
     display = mkOption {
       type = types.bool;
       default = false;
-      description = mdDoc ''
-        Enables the use of shared memory with Waypipe for Wayland-enabled
+      description = ''
+        Enables the use of shared memory with Waypipe for Wayland-enabled 
         applications running on virtual machines (VMs), facilitating
         efficient inter-VM communication
       '';
