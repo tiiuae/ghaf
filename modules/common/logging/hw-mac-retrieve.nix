@@ -28,7 +28,10 @@ in
     # TODO: Remove hw-mac.service and replace with givc rpc later
     systemd.services."hw-mac" = {
       description = "Retrieve MAC address from net-vm";
-      wantedBy = [ "alloy.service" ];
+      wantedBy = [
+        "alloy.service"
+        "multi-user.target"
+      ];
       requires = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
@@ -36,7 +39,7 @@ in
         # Make sure we can ssh before we retrieve mac address
         ExecStartPre = "${sshCommand} ls";
         ExecStart = ''
-          ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath}"
+          ${pkgs.bash}/bin/bash -c "echo -n $(${sshCommand} ${macCommand}) > ${macAddressPath} "
         '';
         Restart = "on-failure";
         RestartSec = "1";

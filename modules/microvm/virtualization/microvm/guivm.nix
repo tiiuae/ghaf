@@ -29,6 +29,9 @@ let
 
       # To push logs to central location
       ../../../common/logging/client.nix
+
+      ../../../common/logging/hw-mac-retrieve.nix
+
       (
         { lib, pkgs, ... }:
         let
@@ -103,9 +106,20 @@ let
               withHardenedConfigs = true;
             };
             givc.guivm.enable = true;
+
             # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            # TODO: Remove when the GIVC sharing is implemented for MAC address
+            logging.identifierFilePath = "/tmp/MACAddress";
+            # Enable github service for control panel bug report
+            services.github = {
+              enable = true;
+              token = "xxxxxxxxxxxxxxxxxxxx";
+              owner = "yyyyy";
+              repo = "zzzzzz";
+            };
+
             storagevm = {
               enable = true;
               name = "guivm";
@@ -199,7 +213,9 @@ let
                 pkgs.eww
                 pkgs.wlr-randr
               ]
-              ++ [ pkgs.ctrl-panel ]
+              ++ [
+                pkgs.ctrl-panel
+              ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)
@@ -212,6 +228,7 @@ let
             sessionVariables = {
               XDG_PICTURES_DIR = "$HOME/Pictures";
               XDG_VIDEOS_DIR = "$HOME/Videos";
+              GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
             };
           };
 
