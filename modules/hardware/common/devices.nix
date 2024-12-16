@@ -81,9 +81,6 @@ in
               ++ config.ghaf.hardware.definition.input.touchpad.evdev
               ++ config.ghaf.hardware.definition.input.misc.evdev
             );
-
-        # TODO: Remove this once wifi-signal-strength is changed
-        ghaf.hardware.definition.network.pciDevices = config.ghaf.hardware.definition.network.pciDevices;
       };
     };
   };

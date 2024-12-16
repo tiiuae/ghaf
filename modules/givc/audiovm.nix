@@ -42,8 +42,7 @@ in
       enable = true;
       system = {
         enable = true;
-        # TODO Change this with new user setup
-        user = "ghaf";
+        user = config.ghaf.users.proxyUser.name;
         socket = "/tmp/dbusproxy_snd.sock";
         policy = {
           talk = [

@@ -342,7 +342,7 @@ in
 
     services.greetd.settings = {
       initial_session = lib.mkIf (cfg.autologinUser != null) {
-        user = "ghaf";
+        user = config.ghaf.users.admin.name;
         command = "ghaf-session";
       };
     };

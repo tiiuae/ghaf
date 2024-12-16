@@ -6,6 +6,7 @@
   dnsutils,
   openssh,
   sshKeyPath,
+  user,
   ...
 }:
 # This script is executed in the GUIVM by the Ghaf XDG systemd service when it receives an XDG open request.
@@ -26,7 +27,6 @@ writeShellApplication {
     businessvmip=$(dig +short business-vm | head -1)
     commsvmip=$(dig +short comms-vm | head -1)
 
-
     if [[ "127.0.0.1" != "$REMOTE_ADDR" && \
       "$businessvmip" != "$REMOTE_ADDR" && \
       "$googlechromevmip" != "$REMOTE_ADDR" && \
@@ -37,23 +37,23 @@ writeShellApplication {
 
     if [[ "127.0.0.1" != "$REMOTE_ADDR" ]]; then
       echo "Copying $sourcepath from $REMOTE_ADDR to $zathurapath in zathura-vm"
-      scp -i ${sshKeyPath} -o StrictHostKeyChecking=no "$REMOTE_ADDR":"$sourcepath" zathura-vm:"$zathurapath"
+      scp -i ${sshKeyPath} -o StrictHostKeyChecking=no ${user}@"$REMOTE_ADDR":"$sourcepath" ${user}@zathura-vm:"$zathurapath"
     else
       echo "Copying $sourcepath from GUIVM to $zathurapath in zathura-vm"
-      scp -i ${sshKeyPath} -o StrictHostKeyChecking=no "$sourcepath" zathura-vm:"$zathurapath"
+      scp -i ${sshKeyPath} -o StrictHostKeyChecking=no "$sourcepath" ${user}@zathura-vm:"$zathurapath"
     fi
 
     echo "Opening $zathurapath in zathura-vm"
     if [[ "$type" == "pdf" ]]; then
-      ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm run-waypipe zathura "'$zathurapath'"
+      ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no ${user}@zathura-vm run-waypipe zathura "'$zathurapath'"
     elif [[ "$type" == "image" ]]; then
-      ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm run-waypipe pqiv -i "'$zathurapath'"
+      ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no ${user}@zathura-vm run-waypipe pqiv -i "'$zathurapath'"
     else
       echo "Unknown type: $type"
     fi
 
     echo "Deleting $zathurapath in zathura-vm"
-    ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no zathura-vm rm -f "$zathurapath"
+    ssh -i ${sshKeyPath} -o StrictHostKeyChecking=no ${user}@zathura-vm rm -f "$zathurapath"
 
   '';
 }

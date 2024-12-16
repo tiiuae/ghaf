@@ -6,7 +6,7 @@
     source =
       let
         script = pkgs.writeShellScriptBin config.ghaf.security.sshKeys.getAuthKeysFileName ''
-          [[ "$1" != "ghaf" ]] && exit 0
+          [[ "$1" != "${config.ghaf.users.appUser.name}" && "$1" != "${config.ghaf.users.admin.name}" ]] && exit 0
           ${pkgs.coreutils}/bin/cat ${config.ghaf.security.sshKeys.waypipeSshPublicKeyFile}
         '';
       in

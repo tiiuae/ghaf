@@ -22,6 +22,7 @@ let
   # into all targets
   ghaf-xdg-open = pkgs.callPackage ../../../packages/ghaf-xdg-open {
     inherit (config.ghaf.security.sshKeys) sshKeyPath;
+    user = config.ghaf.users.appUser.name;
   };
 in
 {
@@ -51,9 +52,6 @@ in
       services."xdg@" = {
         description = "XDG opener";
         serviceConfig = {
-          # The user 'ghaf' is used here to access SSH keys for the scp command
-          # This is required to copy files to the zathuravm
-          User = "ghaf";
           ExecStart = "${ghaf-xdg-open}/bin/ghaf-xdg-open";
           StandardInput = "socket";
           StandardOutput = "journal";

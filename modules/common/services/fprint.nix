@@ -46,36 +46,17 @@ in
           // Allow user to verify fingerprints
           polkit.addRule(function(action, subject) {
           if (action.id == "net.reactivated.fprint.device.verify" &&
-              subject.user == "ghaf") {
+              subject.isInGroup ("users")) {
             return polkit.Result.YES;
             }
           });
           // Allow user to enroll fingerprints
           polkit.addRule(function(action, subject) {
           if (action.id == "net.reactivated.fprint.device.enroll" &&
-              subject.user == "ghaf") {
+              subject.isInGroup ("users")) {
             return polkit.Result.YES;
             }
           });
-        '';
-      };
-      # PAM rules for swaylock fingerprint reader
-      pam.services = {
-        swaylock.text = ''
-          # Account management.
-          account required pam_unix.so
-
-          # Authentication management.
-          auth sufficient pam_unix.so likeauth try_first_pass
-          auth sufficient ${pkgs.fprintd}/lib/security/pam_fprintd.so
-          auth required pam_deny.so
-
-          # Password management.
-          password sufficient pam_unix.so nullok sha512
-
-          # Session management.
-          session required pam_env.so conffile=/etc/pam/environment readenv=0
-          session required pam_unix.so
         '';
       };
     };

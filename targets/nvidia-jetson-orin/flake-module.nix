@@ -88,6 +88,9 @@ let
 
               host.networking.enable = true;
 
+              # Create admin home folder; temporary solution
+              users.admin.createHome = true;
+
               # Enable all the default UI applications
               profiles = {
                 applications.enable = true;
