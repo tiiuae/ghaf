@@ -25,7 +25,6 @@ let
         { lib, ... }:
         {
           ghaf = {
-            users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
             profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
 
             virtualization.microvm.idsvm.mitmproxy.enable =

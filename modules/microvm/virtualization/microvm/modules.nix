@@ -79,6 +79,12 @@ let
     };
   };
 
+  # User account settings
+  managedUserAccounts = {
+    config.ghaf.users.admin = config.ghaf.users.admin;
+    config.ghaf.users.managed = config.ghaf.users.managed;
+  };
+
   # Reference services module
   referenceServiceModule = {
     config.ghaf = optionalAttrs (hasAttr "reference" config.ghaf) {
@@ -139,6 +145,7 @@ in
         serviceModules.wifi
         serviceModules.givc
         referenceServiceModule
+        managedUserAccounts
       ];
       # Audiovm modules
       audiovm.extraModules = optionals cfg.audiovm.enable [
@@ -149,6 +156,7 @@ in
         serviceModules.audio
         serviceModules.givc
         serviceModules.bluetooth
+        managedUserAccounts
       ];
       # Guivm modules
       guivm.extraModules = optionals cfg.guivm.enable [
@@ -163,9 +171,16 @@ in
         serviceModules.commonNamespace
         serviceModules.givc
         referenceProgramsModule
+        managedUserAccounts
       ];
-      adminvm.extraModules = optionals cfg.adminvm.enable [ serviceModules.givc ];
-      appvm.extraModules = optionals cfg.appvm.enable [ serviceModules.givc ];
+      adminvm.extraModules = optionals cfg.adminvm.enable [
+        serviceModules.givc
+        managedUserAccounts
+      ];
+      appvm.extraModules = optionals cfg.appvm.enable [
+        serviceModules.givc
+        managedUserAccounts
+      ];
     };
   };
 }

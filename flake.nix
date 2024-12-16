@@ -140,7 +140,7 @@
     };
 
     impermanence = {
-      url = "github:nix-community/impermanence";
+      url = "github:nix-community/impermanence/32b1094d28d5fbedcc85a403bc08c8877b396255";
     };
 
     givc = {

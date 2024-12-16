@@ -77,14 +77,24 @@ let
             }:
             {
               ghaf = {
-                users.accounts.enable = lib.mkDefault configHost.ghaf.users.accounts.enable;
-                profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+                # Profiles
+                users.appUser = {
+                  enable = true;
+                  extraGroups = [
+                    "audio"
+                    "video"
+                    "users"
+                  ];
+                };
 
+                profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
                 development = {
                   ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
                   debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
                   nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
                 };
+
+                # Systemd
                 systemd = {
                   enable = true;
                   withName = "appvm-systemd";
@@ -106,8 +116,8 @@ let
 
                 storagevm = {
                   enable = true;
-                  name = "${vm.name}";
-                  users.${config.ghaf.users.accounts.user}.directories = [
+                  name = vmName;
+                  users.${config.ghaf.users.appUser.name}.directories = [
                     ".config/"
                     "Downloads"
                     "Music"
@@ -130,7 +140,9 @@ let
               # setting mode), instead of symlinking it.
               environment.etc.${configHost.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} =
                 sshKeysHelper.getAuthKeysSource;
-              services.openssh = configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
+              services.openssh = configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand // {
+                authorizedKeysCommandUser = config.ghaf.users.appUser.name;
+              };
 
               system.stateVersion = lib.trivial.release;
 

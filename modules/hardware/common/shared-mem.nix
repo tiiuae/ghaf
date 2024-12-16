@@ -34,7 +34,7 @@ in
       type = types.int;
       default = 16;
       description = mdDoc ''
-        Specifies the size of the shared memory region, measured in 
+        Specifies the size of the shared memory region, measured in
         megabytes (MB)
       '';
     };
@@ -42,7 +42,7 @@ in
       type = types.str;
       default = "2M";
       description = mdDoc ''
-        Specifies the size of the large memory page area. Supported kernel 
+        Specifies the size of the large memory page area. Supported kernel
         values are 2 MB and 1 GB
       '';
       apply =
@@ -56,7 +56,7 @@ in
       type = types.path;
       default = "/tmp/ivshmem_socket"; # The value is hardcoded in the application
       description = mdDoc ''
-        Specifies the path to the shared memory socket, used by QEMU 
+        Specifies the path to the shared memory socket, used by QEMU
         instances for inter-VM memory sharing and interrupt signaling
       '';
     };
@@ -65,7 +65,7 @@ in
       default = "0x920000000";
       description = mdDoc ''
         Maps the shared memory to a physical address if set to a non-zero value.
-        The address must be platform-specific and arbitrarily chosen to avoid 
+        The address must be platform-specific and arbitrarily chosen to avoid
         conflicts with other memory areas, such as PCI regions.
       '';
     };
@@ -93,19 +93,19 @@ in
     };
     serverSocketPath = mkOption {
       type = types.path;
-      default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-server.sock";
+      default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-server.sock";
       description = mdDoc ''
-        Specifies the path of the listening socket, which is used by Waypipe 
-        or other server applications as the output socket in server mode for 
+        Specifies the path of the listening socket, which is used by Waypipe
+        or other server applications as the output socket in server mode for
         data transmission
       '';
     };
     clientSocketPath = mkOption {
       type = types.path;
-      default = "/run/user/${builtins.toString config.ghaf.users.accounts.uid}/memsocket-client.sock";
+      default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-client.sock";
       description = mdDoc ''
-        Specifies the location of the output socket, which will connected to 
-        in order to receive data from AppVMs. This socket must be created by 
+        Specifies the location of the output socket, which will connected to
+        in order to receive data from AppVMs. This socket must be created by
         another application, such as Waypipe, when operating in client mode
       '';
     };
@@ -113,8 +113,8 @@ in
       type = types.bool;
       default = false;
       description = mdDoc ''
-        Enables the use of shared memory with Waypipe for Wayland-enabled 
-        applications running on virtual machines (VMs), facilitating 
+        Enables the use of shared memory with Waypipe for Wayland-enabled
+        applications running on virtual machines (VMs), facilitating
         efficient inter-VM communication
       '';
     };

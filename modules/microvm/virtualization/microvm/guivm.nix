@@ -66,17 +66,62 @@ let
         in
         {
           ghaf = {
-            users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
+            # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               applications.enable = false;
               graphics.enable = true;
             };
+            users = {
+              loginUser = {
+                enable = true;
+                extraGroups = [
+                  "audio"
+                  "video"
+                  "desktop"
+                ];
+              };
+            };
+
+            development = {
+              ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
+            };
+
+            # System
+            systemd = {
+              enable = true;
+              withName = "guivm-systemd";
+              withAudit = config.ghaf.profiles.debug.enable;
+              withHomed = true;
+              withLocaled = true;
+              withNss = true;
+              withResolved = true;
+              withTimesyncd = true;
+              withDebug = config.ghaf.profiles.debug.enable;
+              withHardenedConfigs = false;
+            };
+            givc.guivm.enable = true;
+
+            # Storage
+            storagevm = {
+              enable = true;
+              name = vmName;
+              directories = [
+                {
+                  directory = "/var/lib/private/ollama";
+                  user = "ollama";
+                  group = "ollama";
+                  mode = "u=rwx,g=,o=";
+                }
+              ];
+            };
+
+            # Services
 
             # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
             graphics.launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
-
-            # To enable screen locking set to true
             graphics.labwc = {
               autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
               autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
@@ -85,46 +130,8 @@ let
                 color = vm.borderColor;
               }) config.ghaf.virtualization.microvm.appvm.vms;
             };
-
-            development = {
-              ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
-            };
-            systemd = {
-              enable = true;
-              withName = "guivm-systemd";
-              withAudit = config.ghaf.profiles.debug.enable;
-              withLocaled = true;
-              withNss = true;
-              withResolved = true;
-              withTimesyncd = true;
-              withDebug = config.ghaf.profiles.debug.enable;
-              withHardenedConfigs = true;
-            };
-            givc.guivm.enable = true;
-            # Logging client configuration
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
-            storagevm = {
-              enable = true;
-              name = "guivm";
-              directories = [
-                {
-                  directory = "/var/lib/private/ollama";
-                  inherit (config.ghaf.users.accounts) user;
-                  group = "ollama";
-                  mode = "u=rwx,g=,o=";
-                }
-              ];
-              users.${config.ghaf.users.accounts.user}.directories = [
-                ".cache"
-                ".config"
-                ".local"
-                "Pictures"
-                "Videos"
-              ];
-            };
             services.disks.enable = true;
             services.disks.fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
             services.xdghandlers.enable = true;
@@ -141,7 +148,7 @@ let
                   # Switch off display, if wayland is running
                   if ${pkgs.procps}/bin/pgrep -fl "wayland" > /dev/null; then
                     wl_running=1
-                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
                   else
                     wl_running=0
                   fi
@@ -151,7 +158,7 @@ let
 
                   # Enable display
                   if [ "$wl_running" -eq 1 ]; then
-                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.accounts.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
                   fi
                   ;;
                 "button/lid LID open")
@@ -163,12 +170,15 @@ let
 
           systemd.services."waypipe-ssh-keygen" =
             let
+              uid = "${toString config.ghaf.users.loginUser.uid}";
+              pubDir = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
               keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
                 set -xeuo pipefail
                 mkdir -p /run/waypipe-ssh
                 echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
-                chown ghaf:ghaf /run/waypipe-ssh/*
-                cp /run/waypipe-ssh/id_ed25519.pub /run/waypipe-ssh-public-key/id_ed25519.pub
+                chown ${uid}:users /run/waypipe-ssh/*
+                cp /run/waypipe-ssh/id_ed25519.pub ${pubDir}/id_ed25519.pub
+                chown -R ${uid}:users ${pubDir}
               '';
             in
             {
@@ -234,7 +244,7 @@ let
             hypervisor = "qemu";
             shares = [
               {
-                tag = "rw-waypipe-ssh-public-key";
+                tag = "waypipe-ssh-public-key";
                 source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                 mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                 proto = "virtiofs";
@@ -382,27 +392,5 @@ in
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
-
-    # This directory needs to be created before any of the microvms start.
-    systemd.services."create-waypipe-ssh-public-key-directory" =
-      let
-        script = pkgs.writeShellScriptBin "create-waypipe-ssh-public-key-directory" ''
-          mkdir -pv ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
-          chown -v microvm ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}
-        '';
-      in
-      {
-        enable = true;
-        description = "Create shared directory on host";
-        path = [ ];
-        wantedBy = [ "microvms.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          StandardOutput = "journal";
-          StandardError = "journal";
-          ExecStart = "${script}/bin/create-waypipe-ssh-public-key-directory";
-        };
-      };
   };
 }
