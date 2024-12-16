@@ -108,15 +108,12 @@ in
 {
   config = lib.mkIf cfg.enable {
     hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-
-    ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands =
+    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands =
       ''
         echo "============================================================"
         echo "ghaf flashing script"
         echo "============================================================"
         echo "ghaf version: ${config.ghaf.version}"
-        echo "cross-compiled build: @isCross@"
-        echo "l4tVersion: @l4tVersion@"
         echo "som: ${config.hardware.nvidia-jetpack.som}"
         echo "carrierBoard: ${config.hardware.nvidia-jetpack.carrierBoard}"
         echo "============================================================"
@@ -131,7 +128,7 @@ in
         #
         # In Section: Adaptation to the Carrier Board with HDMI for the Orin
         #             NX/Nano Modules
-        @patch@ -p0 < ${./tegra2-mb2-bct-scr.patch}
+        "${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
       ''
       + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
         ESP_OFFSET=$(cat "${images}/esp.offset")
@@ -141,12 +138,12 @@ in
 
         img="${images}/sd-image/${config.sdImage.imageName}.zst"
         echo "Extracting ESP partition to $WORKDIR/bootloader/esp.img ..."
-        dd if=<(@pzstd@ -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
+        dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
         echo "Extracting root partition to $WORKDIR/root.img ..."
-        dd if=<(@pzstd@ -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE"
+        dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE"
 
         echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
-        @sed@ -i \
+        "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
           -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
           -e "s#root.img#$WORKDIR/root.img#" \
           -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
