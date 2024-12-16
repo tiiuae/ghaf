@@ -105,6 +105,7 @@
               @{PROC}/sys/fs/inotify/max_user_watches                   r,
               @{PROC}/ati/major                                         r,
 
+              /dev/                                                     r,
               /dev/**                                                   rw,
               /dev/fb0                                                  rw,
               /dev/hidraw@{INTEGER}                                     rw,
@@ -180,6 +181,8 @@
               /tmp/                                                     rw,
         owner /tmp/**                                                   rwkl,
               /tmp/.X[0-9]*-lock                                        r,
+              /tmp/.X11-unix                                            r,
+              /tmp/.XIM-unix                                            r,
 
         deny /boot/EFI/systemd/**                                       r,
         deny /boot/EFI/nixos/**                                         r,
@@ -196,4 +199,5 @@
       }
     '';
   };
+
 }
