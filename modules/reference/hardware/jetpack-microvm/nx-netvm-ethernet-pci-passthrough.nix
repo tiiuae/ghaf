@@ -26,12 +26,13 @@ in
     ];
 
     boot.kernelPatches = [
-      {
-        name = "nx-pci-passthrough-patch";
-        # This patch uses Alex Williamson's patch for enabling overrides for missing ACS capabilities on pci
-        # bus which could be accessed from following link: https://lkml.org/lkml/2013/5/30/513
-        patch = ./pci-passthrough-nx-test.patch;
-      }
+      # TODO: Re-enable if still needed with jetson 36.3 + upstream linux
+      # {
+      #   name = "nx-pci-passthrough-patch";
+      #   # This patch uses Alex Williamson's patch for enabling overrides for missing ACS capabilities on pci
+      #   # bus which could be accessed from following link: https://lkml.org/lkml/2013/5/30/513
+      #   patch = ./pci-passthrough-nx-test.patch;
+      # }
     ];
 
     boot.kernelParams = [
