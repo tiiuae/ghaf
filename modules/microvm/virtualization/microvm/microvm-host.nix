@@ -86,6 +86,11 @@ in
           vmRootDirs = map (vm: "d /storagevm/${vm} 0700 root root -") (
             builtins.attrNames config.microvm.vms
           );
+          vmsWithXdg = lib.filter (
+            vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
+          ) (builtins.attrValues config.microvm.vms);
+          xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
+          xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
         in
         [
           "d /storagevm/homes 0700 microvm kvm -"
@@ -94,7 +99,8 @@ in
         ++ lib.optionals config.ghaf.givc.enable [
           "d /storagevm/givc 0700 microvm kvm -"
         ]
-        ++ vmRootDirs;
+        ++ vmRootDirs
+        ++ xdgRules;
 
       # TODO: remove hardcoded paths
       systemd.services."microvm@audio-vm".serviceConfig =

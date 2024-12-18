@@ -58,7 +58,7 @@ in
 
       ghaf = {
         reference.programs.google-chrome.enable = true;
-        services.xdghandlers.enable = true;
+        xdgitems.enable = true;
         # Disable serial debug console on comms-vm as it makes the serial device owned by
         # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
         # can't access the device if this is enabled.

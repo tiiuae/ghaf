@@ -8,10 +8,6 @@
 }:
 {
   name = "zathura";
-  packages = [
-    # Image viewer
-    pkgs.pqiv
-  ];
   ramMb = 512;
   cores = 1;
   borderColor = "#122263";
@@ -34,6 +30,8 @@
     {
       # This vm should be stateless so nothing stored between boots
       ghaf.storagevm.enable = lib.mkForce false;
+      # Handle PDF and image open requests
+      ghaf.xdghandlers.enable = true;
     }
   ];
 }

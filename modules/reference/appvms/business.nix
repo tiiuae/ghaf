@@ -45,7 +45,7 @@
                 };
               };
 
-              services.xdghandlers.enable = true;
+              xdgitems.enable = true;
               security.apparmor.enable = true;
             };
           }

@@ -23,6 +23,7 @@ let
       })
 
       ./common/storagevm.nix
+      ./common/xdgitems.nix
 
       # To push logs to central location
       ../../../common/logging/client.nix
@@ -119,10 +120,10 @@ let
                 enable = true;
                 fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
               };
-              xdghandlers.enable = true;
             };
 
             reference.services.ollama = true;
+            xdgitems.enable = true;
           };
 
           services = {
