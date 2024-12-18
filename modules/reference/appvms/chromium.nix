@@ -33,7 +33,7 @@
         {
           imports = [ ../programs/chromium.nix ];
           ghaf.reference.programs.chromium.enable = true;
-          ghaf.services.xdghandlers.enable = true;
+          ghaf.xdgitems.enable = true;
         }
       ];
     }

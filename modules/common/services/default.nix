@@ -6,8 +6,6 @@
     ./audio.nix
     ./wifi.nix
     ./firmware.nix
-    ./xdgopener.nix
-    ./xdghandlers.nix
     ./yubikey.nix
     ./bluetooth.nix
     ./disks.nix

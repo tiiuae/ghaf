@@ -50,6 +50,9 @@ let
           })
           ./common/ghaf-audio.nix
           ./common/storagevm.nix
+          ./common/xdgitems.nix
+          ./common/xdghandlers.nix
+
           (
             with configHost.ghaf.virtualization.microvm-host;
             lib.optionalAttrs (sharedVmDirectory.enable && builtins.elem vmName sharedVmDirectory.vms) (
