@@ -188,17 +188,8 @@ in
 
     packages = {
       aarch64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets)
-        # EXPERIMENTAL: The aarch64-linux hosted flashing support is experimental
-        #               and it simply might not work. Providing the script anyway
-        // builtins.listToAttrs (
-          map (
-            t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "aarch64-linux")
-          ) targets
-        )
-        // builtins.listToAttrs (
-          map (t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "aarch64-linux")) targets
-        );
+        # should only build images as the flashers are not supported on aarch64-linux
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
       x86_64-linux =
         builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
         // builtins.listToAttrs (
