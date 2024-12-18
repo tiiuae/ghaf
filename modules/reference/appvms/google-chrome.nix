@@ -35,7 +35,7 @@
         {
           imports = [ ../programs/google-chrome.nix ];
           ghaf.reference.programs.google-chrome.enable = true;
-          ghaf.services.xdghandlers.enable = true;
+          ghaf.xdgitems.enable = true;
           ghaf.security.apparmor.enable = true;
         }
       ];

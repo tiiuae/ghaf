@@ -8,10 +8,6 @@
 }:
 {
   name = "zathura";
-  packages = [
-    # Image viewer
-    pkgs.pqiv
-  ];
   macAddress = "02:00:00:03:07:01";
   ramMb = 512;
   cores = 1;
@@ -35,6 +31,8 @@
     {
       # This vm should be stateless so nothing stored between boots
       ghaf.storagevm.enable = lib.mkForce false;
+      # Handle pdf and image open requests
+      ghaf.xdghandlers.enable = true;
     }
   ];
 }

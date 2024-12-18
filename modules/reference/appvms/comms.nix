@@ -58,7 +58,7 @@ in
       ];
 
       ghaf.reference.programs.google-chrome.enable = true;
-      ghaf.services.xdghandlers.enable = true;
+      ghaf.xdgitems.enable = true;
 
       # Attach GPS receiver to this VM
       microvm.qemu.extraArgs = optionals (
