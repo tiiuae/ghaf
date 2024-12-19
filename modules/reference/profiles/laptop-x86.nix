@@ -137,6 +137,9 @@ in
       };
 
       reference.desktop.applications.enable = true;
+
+      # Disk encryption
+      disk.encryption.enable = true;
     };
   };
 }
