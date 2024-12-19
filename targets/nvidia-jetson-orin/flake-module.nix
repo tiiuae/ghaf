@@ -105,12 +105,14 @@ let
               graphics.labwc.autolock.enable = false;
             };
 
-            #TODO: move to a central place for all platforms
-            nixpkgs.config = {
-              allowUnfree = true;
-              permittedInsecurePackages = [
-                "jitsi-meet-1.0.8043"
-              ];
+            nixpkgs = {
+              #TODO: move to a central place for all platforms
+              config = {
+                allowUnfree = true;
+                permittedInsecurePackages = [
+                  "jitsi-meet-1.0.8043"
+                ];
+              };
             };
           }
 
@@ -158,24 +160,18 @@ let
   mkFlashScript = import ../../lib/mk-flash-script;
   # Generate flash script variant which flashes both QSPI and eMMC
   generate-flash-script =
-    tgt: flash-tools-system:
+    tgt: _flash-tools-system:
     mkFlashScript {
-      inherit nixpkgs;
       inherit (tgt) hostConfiguration;
-      inherit jetpack-nixos;
-      inherit flash-tools-system;
     };
   # Generate flash script variant which flashes QSPI only. Useful for Orin NX
   # and non-eMMC based development.
   generate-flash-qspi =
-    tgt: flash-tools-system:
+    tgt: _flash-tools-system:
     mkFlashScript {
-      inherit nixpkgs;
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
       };
-      inherit jetpack-nixos;
-      inherit flash-tools-system;
     };
 in
 {

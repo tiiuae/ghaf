@@ -9,7 +9,6 @@
 
     ./pci-passthrough-common.nix
 
-    ./ota-utils-fix.nix
     ./virtualization
 
     ./optee.nix

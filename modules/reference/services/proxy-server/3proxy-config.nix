@@ -90,9 +90,8 @@ in
   };
 
   config = mkIf cfg.enable {
-    assertions =
-      [
-      ];
+    assertions = [
+    ];
     # Define a new group for proxy management
     users.groups.${proxyGroupName} = { }; # Create a group named proxy-admin
 
@@ -100,7 +99,7 @@ in
     users.users.${proxyUserName} = {
       isSystemUser = true;
       description = "Proxy User for managing allowlist and services";
-      # extraGroups = [ "${proxyGroupName}" ]; # Adding to 'proxy-admin' for specific access     
+      # extraGroups = [ "${proxyGroupName}" ]; # Adding to 'proxy-admin' for specific access
       group = "${proxyGroupName}";
     };
 
@@ -126,8 +125,8 @@ in
       polkit = {
         enable = true;
         debug = true;
-        # Polkit rules for allowing proxy-user to run proxy related systemctl 
-        # commands without sudo and password requirement 
+        # Polkit rules for allowing proxy-user to run proxy related systemctl
+        # commands without sudo and password requirement
         extraConfig = ''
           polkit.addRule(function(action, subject) {
               if ((action.id == "org.freedesktop.systemd1.manage-units" &&
