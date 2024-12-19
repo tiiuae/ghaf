@@ -24,8 +24,11 @@
   config,
   ...
 }:
+let
+  inherit (lib) mkIf;
+  diskEncryption = config.ghaf.disk.encryption.enable;
+in
 {
-
   options = {
     ghaf.imageBuilder.compression = lib.mkOption {
       type = lib.types.enum [
@@ -44,6 +47,22 @@
     boot = {
       initrd.availableKernelModules = [ "zfs" ];
       supportedFilesystems = [ "zfs" ];
+      zfs.extraPools = [ "zfs_data" ];
+
+      initrd.luks = mkIf diskEncryption {
+        devices = {
+          zfs_data = {
+            device = "/dev/disk/by-partlabel/disk-disk1-zfs_data";
+            crypttabExtraOpts = [ "tpm2-device=auto" ];
+          };
+          swap = {
+            device = "/dev/disk/by-partlabel/disk-disk1-swap";
+            crypttabExtraOpts = [ "tpm2-device=auto" ];
+          };
+        };
+      };
+      # Resume device for encrypted swap partition
+      resumeDevice = "/dev/disk/by-label/swap";
     };
     disko = {
       # 8GB is the recommeneded minimum for ZFS, so we are using this for VMs to avoid `cp` oom errors.
@@ -57,7 +76,7 @@
       devices = {
         disk.disk1 = {
           type = "disk";
-          imageSize = "60G";
+          imageSize = "70G";
           content = {
             type = "gpt";
             partitions = {
@@ -86,23 +105,29 @@
                 type = "8200";
                 content = {
                   type = "swap";
-                  resumeDevice = true; # resume from hiberation from this device
-                  # TODO: remove when LUKS is enabled
-                  #randomEncryption = true;
+                  extraArgs = [ "-L swap" ]; # Label the partition
                 };
               };
-              zfs_1 = {
+              zfs_root = {
+                size = "30G";
+                content = {
+                  type = "zfs";
+                  pool = "zfs_root";
+                };
+              };
+              zfs_data = {
                 size = "100%";
                 content = {
                   type = "zfs";
-                  pool = "zfspool";
+                  pool = "zfs_data";
                 };
               };
             };
           };
         };
+
         zpool = {
-          zfspool = {
+          zfs_root = {
             type = "zpool";
             rootFsOptions = {
               mountpoint = "none";
@@ -124,41 +149,62 @@
                   quota = "30G";
                 };
               };
-              "vm_storage" = {
-                type = "zfs_fs";
-                options = {
-                  mountpoint = "/vm_storage";
-                  quota = "30G";
-                };
-              };
-              "reserved" = {
-                type = "zfs_fs";
-                options = {
-                  mountpoint = "none";
-                  quota = "10G";
-                };
-              };
-              "gp_storage" = {
-                type = "zfs_fs";
-                options = {
-                  mountpoint = "/gp_storage";
-                  quota = "50G";
-                };
-              };
-              "recovery" = {
-                type = "zfs_fs";
-                options = {
-                  mountpoint = "none";
-                };
-              };
-              "storagevm" = {
-                type = "zfs_fs";
-                options = {
-                  mountpoint = "/storagevm";
-                };
-              };
             };
           };
+
+          zfs_data =
+            if !diskEncryption then
+              {
+                type = "zpool";
+                rootFsOptions = {
+                  mountpoint = "none";
+                  acltype = "posixacl";
+                  compression = "lz4";
+                  xattr = "sa";
+                };
+                options.ashift = "12";
+                datasets = {
+                  "vm_storage" = {
+                    type = "zfs_fs";
+                    options = {
+                      mountpoint = "/vm_storage";
+                      quota = "30G";
+                    };
+                  };
+                  "reserved" = {
+                    type = "zfs_fs";
+                    options = {
+                      mountpoint = "none";
+                      quota = "10G";
+                    };
+                  };
+                  "gp_storage" = {
+                    type = "zfs_fs";
+                    options = {
+                      mountpoint = "/gp_storage";
+                      quota = "50G";
+                    };
+                  };
+                  "recovery" = {
+                    type = "zfs_fs";
+                    options = {
+                      mountpoint = "none";
+                    };
+                  };
+                  "storagevm" = {
+                    type = "zfs_fs";
+                    options = {
+                      mountpoint = "/storagevm";
+                    };
+                  };
+                };
+              }
+            else
+              {
+                type = "zpool";
+                # Datasets will be created on first boot
+                datasets = { };
+              };
         };
       };
     };
