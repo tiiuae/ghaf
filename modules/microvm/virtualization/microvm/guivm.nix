@@ -78,7 +78,6 @@ let
                 extraGroups = [
                   "audio"
                   "video"
-                  "desktop"
                 ];
               };
             };
