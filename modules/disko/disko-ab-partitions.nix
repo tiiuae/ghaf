@@ -44,6 +44,7 @@
     boot = {
       initrd.availableKernelModules = [ "zfs" ];
       supportedFilesystems = [ "zfs" ];
+      zfs.extraPools = [ "zfs_data" ];
     };
     disko = {
       # 8GB is the recommeneded minimum for ZFS, so we are using this for VMs to avoid `cp` oom errors.
@@ -57,7 +58,7 @@
       devices = {
         disk.disk1 = {
           type = "disk";
-          imageSize = "60G";
+          imageSize = "70G";
           content = {
             type = "gpt";
             partitions = {
@@ -91,18 +92,32 @@
                   #randomEncryption = true;
                 };
               };
-              zfs_1 = {
-                size = "100%";
+              zfs_root = {
+                size = "30G";
                 content = {
                   type = "zfs";
-                  pool = "zfspool";
+                  pool = "zfs_root";
+                };
+              };
+              zfs_data = {
+                size = "100%";
+                content = {
+                  name = "zfs_data";
+                  type = "luks";
+                  # TODO: Have a better password mechanism later
+                  settings.keyFile = "${pkgs.writeText "password" "ghaf"}";
+                  content = {
+                    type = "zfs";
+                    pool = "zfs_data";
+                  };
                 };
               };
             };
           };
         };
+
         zpool = {
-          zfspool = {
+          zfs_root = {
             type = "zpool";
             rootFsOptions = {
               mountpoint = "none";
@@ -124,6 +139,12 @@
                   quota = "30G";
                 };
               };
+            };
+          };
+
+          zfs_data = {
+            type = "zpool";
+            datasets = {
               "vm_storage" = {
                 type = "zfs_fs";
                 options = {
