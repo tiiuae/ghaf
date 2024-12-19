@@ -90,10 +90,12 @@ in
       # runtimeShell (unixbench dependency) not available on RISC-V nor on cross-compiled Orin AGX/NX
       ++ lib.optional (pkgs.stdenv.hostPlatform == pkgs.stdenv.buildPlatform) pkgs.unixbench
       # Build VLC only on x86. Ffmpeg7 and v4l for camera related testing only on x86
+      # Pulseaudio for audio testing purposes
       ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
         pkgs.vlc
         pkgs.ffmpeg_7
         pkgs.v4l-utils
+        pkgs.pulseaudio
       ]);
   };
 }
