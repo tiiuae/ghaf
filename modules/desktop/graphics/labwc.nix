@@ -166,8 +166,24 @@ in
       };
     };
 
-    # It will create a /etc/pam.d/ file for authentication
-    security.pam.services.gtklock = { };
+    # Create custom PAM rules
+    security.pam.services = {
+      gtklock = { };
+      greetd = {
+        fprintAuth = false; # User needs to enter password to decrypt home
+        rules.account.group = {
+          enable = true;
+          control = "required";
+          modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
+          order = 10000;
+          args = [
+            "user"
+            "ingroup"
+            "video"
+          ];
+        };
+      };
+    };
 
     # Needed for power commands
     security.polkit.enable = true;
@@ -179,7 +195,6 @@ in
         BindsTo = [ "graphical-session.target" ];
         After = [ "graphical-session-pre.target" ];
         Wants = [ "graphical-session-pre.target" ];
-        ConditionGroup = "desktop";
       };
     };
 
