@@ -28,7 +28,8 @@
     #TODO: carrying the extra patch(es) until merged to unstable
     #nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-gbenchmark";
     #nixpkgs.url = "flake:mylocalnixpkgs";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #TODO pinned to the a version to get working
+    nixpkgs.url = "github:NixOS/nixpkgs/3566ab7246670a43abd2ffa913cc62dad9cdf7d5";
 
     ghafpkgs = {
       url = "github:tiiuae/ghafpkgs";
@@ -114,11 +115,9 @@
 
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
-    jetpack-nixos = {
-      #url = "github:anduril/jetpack-nixos
-      url = "github:anduril/jetpack-nixos";
-      #inputs.nixpkgs.follows = "nixpkgs";
-    };
+    #jetpack-nixos.url = "flake:mylocaljetpack";
+    #pinned to the pr https://github.com/anduril/jetpack-nixos/pull/257 until merged
+    jetpack-nixos.url = "github:anduril/jetpack-nixos/4dc254268aea59921268206628b9d911b6703e9e";
 
     disko = {
       url = "github:nix-community/disko";
