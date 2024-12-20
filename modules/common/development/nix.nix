@@ -7,6 +7,7 @@ let
     mkEnableOption
     mkOption
     mkIf
+    mkMerge
     types
     ;
 in
@@ -18,37 +19,49 @@ in
       default = null;
       description = "Path to the nixpkgs repository";
     };
-  };
-
-  config = mkIf cfg.enable {
-    nix = {
-      settings = {
-        experimental-features = [
-          "nix-command"
-          "flakes"
-        ];
-        keep-outputs = true;
-        keep-derivations = true;
-      };
-
-      # avoid scenario where the host rootfs gets filled
-      # with nixos-rebuild ... switch generated excess
-      # generations and becomes unbootable
-      gc = {
-        automatic = true;
-        dates = "daily";
-        options = "--delete-older-than 3d";
-      };
-
-      # Set the path and registry so that e.g. nix-shell and repl work
-      nixPath = lib.mkIf (cfg.nixpkgs != null) [ "nixpkgs=${cfg.nixpkgs}" ];
-
-      registry = lib.mkIf (cfg.nixpkgs != null) {
-        nixpkgs.to = {
-          type = "path";
-          path = cfg.nixpkgs;
-        };
-      };
+    automatic-gc = {
+      enable = mkEnableOption "Enable automatic garbage collection";
     };
   };
+
+  config = mkMerge [
+    (mkIf cfg.enable {
+      nix = {
+        settings = {
+          experimental-features = [
+            "nix-command"
+            "flakes"
+          ];
+          keep-outputs = true;
+          keep-derivations = true;
+        };
+
+        # avoid scenario where the host rootfs gets filled
+        # with nixos-rebuild ... switch generated excess
+        # generations and becomes unbootable
+        gc = mkIf cfg.automatic-gc.enable {
+          automatic = true;
+          dates = "daily";
+          options = "--delete-older-than 3d";
+        };
+
+        # Set the path and registry so that e.g. nix-shell and repl work
+        nixPath = mkIf (cfg.nixpkgs != null) [ "nixpkgs=${cfg.nixpkgs}" ];
+
+        registry = mkIf (cfg.nixpkgs != null) {
+          nixpkgs.to = {
+            type = "path";
+            path = cfg.nixpkgs;
+          };
+        };
+      };
+    })
+
+    (mkIf (!cfg.enable) {
+      nix = {
+        enable = lib.mkForce false;
+        gc.automatic = lib.mkForce false;
+      };
+    })
+  ];
 }
