@@ -158,5 +158,21 @@ nixpkgs.lib.extend (
       # files beneath withough manually having to list all the subsequent files.
       #
       path: builtins.attrValues (lib.mapAttrs (_: import) (rakeLeaves path));
+
+    genPkgWithFlashScript =
+      pkg: system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      pkgs.linkFarm "ghaf-image" [
+        {
+          name = "image";
+          path = pkg;
+        }
+        {
+          name = "flash-script";
+          path = pkgs.callPackage ./packages/flash { };
+        }
+      ];
   }
 )
