@@ -29,7 +29,10 @@ let
       extraGroups = mkOption {
         description = "Extra groups for the login user.";
         type = types.listOf types.str;
-        default = [ ];
+        default = [
+          "audio"
+          "video"
+        ];
       };
       homeSize = mkOption {
         description = ''
@@ -137,12 +140,6 @@ in
               members = [ cfg.appUser.name ];
             };
           })
-          {
-            "desktop" = {
-              name = "desktop";
-              members = [ ];
-            };
-          }
         ];
       };
     }
@@ -177,9 +174,9 @@ in
                 echo -n "Enter your user name: "
                 read -e -r USERNAME
                 USERNAME=''${USERNAME// /_}
-                USERNAME=''${USERNAME//[^a-zA-Z0-9_]/}
+                USERNAME=''${USERNAME//[^a-zA-Z0-9_-]/}
                 USERNAME=''$(echo -n "$USERNAME" | tr '[:upper:]' '[:lower:]')
-                if grep -q -w "$USERNAME:" /etc/passwd; then
+                if grep -q "$USERNAME:" /etc/passwd; then
                   echo "User $USERNAME already exists. Please choose another user name."
                 else
                   ACCEPTABLE_USER=true

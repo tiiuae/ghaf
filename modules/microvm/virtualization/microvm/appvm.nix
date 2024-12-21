@@ -81,8 +81,6 @@ let
                 users.appUser = {
                   enable = true;
                   extraGroups = [
-                    "audio"
-                    "video"
                     "users"
                   ];
                 };
