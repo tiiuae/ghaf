@@ -65,11 +65,6 @@ let
     # Fprint module
     fprint = optionalAttrs cfg.guivm.fprint { config.ghaf.services.fprint.enable = true; };
 
-    # XDG opener
-    xdgOpener = {
-      config.ghaf.services.xdgopener.enable = true;
-    };
-
     # Yubikey module
     yubikey = optionalAttrs cfg.guivm.yubikey { config.ghaf.services.yubikey.enable = true; };
 
@@ -167,7 +162,6 @@ in
         qemuModules.guivm
         serviceModules.fprint
         serviceModules.yubikey
-        serviceModules.xdgOpener
         serviceModules.commonNamespace
         serviceModules.givc
         referenceProgramsModule
