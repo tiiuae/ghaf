@@ -8,14 +8,23 @@
 }:
 let
   cfg = config.ghaf.reference.services;
-  inherit (lib) mkIf;
+  inherit (lib) mkIf optionalAttrs;
 in
 {
   config = mkIf cfg.ollama {
     services.ollama = {
       enable = true;
       openFirewall = true;
-      host = "0.0.0.0";
+      host = "127.0.0.1";
+    };
+
+    ghaf = optionalAttrs (builtins.hasAttr "storagevm" config.ghaf) {
+      storagevm.directories = [
+        {
+          directory = "/var/lib/private/ollama";
+          mode = "u=rwx,g=,o=";
+        }
+      ];
     };
 
     environment.systemPackages = [
@@ -72,23 +81,24 @@ in
     # its own.
     system.userActivationScripts.alpaca-configure = {
       text = ''
-                source ${config.system.build.setEnvironment}
-                mkdir -p $HOME/.config/com.jeffser.Alpaca
-                cat <<EOF > $HOME/.config/com.jeffser.Alpaca/server.json
+        [[ "$UID" != ${toString config.ghaf.users.loginUser.uid} ]] && exit 0
+        source ${config.system.build.setEnvironment}
+        mkdir -p $HOME/.config/com.jeffser.Alpaca
+        cat <<EOF > $HOME/.config/com.jeffser.Alpaca/server.json
         {
-              "remote_url": "http://localhost:11434",
-              "remote_bearer_token": "",
-              "run_remote": true,
-              "local_port": 11435,
-              "run_on_background": false,
-              "powersaver_warning": true,
-              "model_tweaks": {
-                    "temperature": 0.7,
-                    "seed": 0,
-                    "keep_alive": 5
-              },
-              "ollama_overrides": {},
-              "idle_timer": 0
+          "remote_url": "http://localhost:11434",
+          "remote_bearer_token": "",
+          "run_remote": true,
+          "local_port": 11435,
+          "run_on_background": false,
+          "powersaver_warning": true,
+          "model_tweaks": {
+                "temperature": 0.7,
+                "seed": 0,
+                "keep_alive": 5
+          },
+          "ollama_overrides": {},
+          "idle_timer": 0
         }
         EOF
       '';
