@@ -124,7 +124,7 @@ in
         theme = "Adwaita";
         iconTheme = "Papirus";
         colorScheme = "prefer-dark";
-        fontName = "Cantarell";
+        fontName = "Inter";
         fontSize = "11";
       };
       description = "Global gtk+ configuration";
