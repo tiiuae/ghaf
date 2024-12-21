@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Ghaf lock screen layout
-# Base layout taken from gtklock upstream: https://github.com/jovanlanik/gtklock/blob/master/res/gtklock.ui 
+# Base layout taken from gtklock upstream: https://github.com/jovanlanik/gtklock/blob/master/res/gtklock.ui
 {
   writeText,
   ...

@@ -11,6 +11,10 @@ let
 in
 {
   config = lib.mkIf labwc.enable {
-    fonts.packages = builtins.attrValues { inherit (pkgs) inter fira-code-nerdfont hack-font; };
+    fonts.packages = [
+      pkgs.inter
+      pkgs.nerd-fonts.fira-code
+      pkgs.hack-font
+    ];
   };
 }

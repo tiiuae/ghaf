@@ -9,7 +9,6 @@
   element-desktop = import ./element-desktop { inherit prev; };
   element-gps = final.callPackage ../../packages/element-gps { };
   element-web = final.callPackage ../../packages/element-web { };
-  waypipe = import ./waypipe { inherit final prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
   bt-launcher = final.callPackage ../../packages/bt-launcher { };
   labwc = import ./labwc { inherit prev; };
