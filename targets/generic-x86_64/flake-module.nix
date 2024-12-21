@@ -49,6 +49,28 @@ let
           self.nixosModules.hw-x86_64-generic
           self.nixosModules.reference-programs
 
+          (
+            {
+              lib,
+              config,
+              pkgs,
+              modulesPath,
+              ...
+            }:
+            {
+              # https://github.com/nix-community/nixos-generators/blob/master/formats/raw-efi.nix#L24-L29
+              system.build.raw = lib.mkOverride 98 (
+                import "${toString modulesPath}/../lib/make-disk-image.nix" {
+                  inherit lib config pkgs;
+                  partitionTableType = "efi";
+                  inherit (config.virtualisation) diskSize;
+                  format = "raw";
+                  postVM = "${pkgs.zstd}/bin/zstd --compress --rm $out/nixos.img";
+                }
+              );
+            }
+          )
+
           {
             ghaf = {
               hardware.x86_64.common.enable = true;
