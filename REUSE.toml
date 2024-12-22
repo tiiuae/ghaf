@@ -134,3 +134,11 @@ SPDX-FileCopyrightText = "Copyright (c) 2017-2020, Linaro Limited"
 path = [
   "targets/nvidia-jetson-orin/0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch"
 ]
+
+[[annotations]]
+SPDX-License-Identifier = "GPL-3.0-only"
+SPDX-FileCopyrightText = "Copyright (C) 2007 Free Software Foundation, Inc."
+path = [
+  "overlays/custom-packages/gtklock/*.patch"
+]
+
