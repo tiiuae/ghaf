@@ -2,40 +2,55 @@
 # SPDX-License-Identifier: Apache-2.0
 { pkgs, ... }:
 let
-  postBootCmds = ''
-    set -xeuo pipefail
+  zfsPostBoot = pkgs.writeShellApplication {
+    name = "zfsPostBootScript";
+    runtimeInputs = with pkgs; [
+      zfs
+      gnugrep
+      gawk
+      cryptsetup
+      util-linux
+      gptfdisk
+      parted
+    ];
+    text = ''
+      set -xeuo pipefail
 
-    # Check which physical disk is used by ZFS
-    ZFS_POOLNAME=$(${pkgs.zfs}/bin/zpool list | ${pkgs.gnugrep}/bin/grep -v NAME |  ${pkgs.gawk}/bin/awk '{print $1}')
-    ZFS_LOCATION=$(${pkgs.zfs}/bin/zpool status -P | ${pkgs.gnugrep}/bin/grep dev | ${pkgs.gawk}/bin/awk '{print $1}')
+      # Check which physical disk is used by ZFS
+      ENCRYPTED_POOL=zfs_data
+      zpool import -f $ENCRYPTED_POOL
+      ZFS_POOLNAME=$(zpool list | grep -v NAME | grep $ENCRYPTED_POOL | awk '{print $1}')
+      ZFS_LOCATION=$(zpool status -P | grep dev | grep "$ZFS_POOLNAME" | awk '{print $1}')
 
-    # Get the actual device path
-    P_DEVPATH=$(readlink -f "$ZFS_LOCATION")
+      # Get the actual device path
+      P_DEVPATH=$(cryptsetup status "$ZFS_POOLNAME" | grep device | awk '{print $2}')
 
-    # Extract the partition number using regex
-    if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
-      PARTNUM=$(echo "$P_DEVPATH" | ${pkgs.gnugrep}/bin/grep -o '[0-9]*$')
-      PARENT_DISK=/dev/$(${pkgs.util-linux}/bin/lsblk -no pkname "$P_DEVPATH")
-    else
-      echo "No partition number found in device path: $P_DEVPATH"
-    fi
+      # Extract the partition number using regex
+      if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
+        PARTNUM=$(echo "$P_DEVPATH" | grep -o '[0-9]*$')
+        PARENT_DISK=/dev/$(lsblk -no pkname "$P_DEVPATH" | head -n 1)
+      else
+        echo "No partition number found in device path: $P_DEVPATH"
+      fi
 
-    # Fix GPT first
-    ${pkgs.gptfdisk}/bin/sgdisk "$PARENT_DISK" -e
+      # Fix GPT first
+      sgdisk "$PARENT_DISK" -e
 
-    # Call partprobe to update kernel's partitions
-    ${pkgs.parted}/bin/partprobe
+      # Call partprobe to update kernel's partitions
+      partprobe
 
-    # Extend the partition to use unallocated space
-    ${pkgs.parted}/bin/parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
+      # Extend the partition to use unallocated space
+      parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
 
-    # Extend ZFS pool to use newly allocated space
-    ${pkgs.zfs}/bin/zpool online -e "$ZFS_POOLNAME" "$ZFS_LOCATION"
-  '';
+      # Extend ZFS pool to use newly allocated space
+      zpool online -e "$ZFS_POOLNAME" "$ZFS_LOCATION"
+    '';
+  };
+
 in
 {
   # To debug postBootCommands, one may run
   # journalctl -u initrd-nixos-activation.service
   # inside the running Ghaf host.
-  boot.postBootCommands = postBootCmds;
+  boot.postBootCommands = "${zfsPostBoot}/bin/zfsPostBootScript";
 }
