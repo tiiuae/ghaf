@@ -9,7 +9,7 @@
 {
   ## Apparmor profile for Chromium
   config.security.apparmor.policies."bin.chrome" = lib.mkIf config.ghaf.security.apparmor.enable {
-    enforce = lib.mkForce true;
+    state = "enforce";
     profile = ''
       abi <abi/3.0>,
       include <tunables/global>
