@@ -1,4 +1,4 @@
-From 88169085d1bc132df660d0466de9e6cc15ea83c0 Mon Sep 17 00:00:00 2001
+From c4614e2dbaacb8cdbfaf2b28933622fb78669540 Mon Sep 17 00:00:00 2001
 From: Humaid Alqasimi <humaid.alqassimi@tii.ae>
 Date: Sat, 9 Nov 2024 15:23:20 +0400
 Subject: [PATCH] Add colored borders
@@ -18,18 +18,18 @@ Signed-off-by: Humaid Alqasimi <humaid.alqassimi@tii.ae>
  include/theme.h        | 10 ++++++++++
  include/window-rules.h | 17 +++++++++++++++++
  src/config/rcxml.c     | 12 ++++++++++++
- src/ssd/ssd-border.c   | 21 ++++++++++++++++-----
+ src/ssd/ssd-border.c   | 17 +++++++++++++----
  src/ssd/ssd-titlebar.c | 23 +++++++++++++++++++++++
  src/ssd/ssd.c          | 10 +++++++---
  src/theme.c            | 34 ++++++++++++++++++++++++++++++++--
  src/window-rules.c     | 25 +++++++++++++++++++++++++
- 8 files changed, 142 insertions(+), 10 deletions(-)
+ 8 files changed, 139 insertions(+), 9 deletions(-)
 
 diff --git a/include/theme.h b/include/theme.h
-index 2b600676..6536ff39 100644
+index a297e05e..ca8f9cd0 100644
 --- a/include/theme.h
 +++ b/include/theme.h
-@@ -182,4 +182,14 @@ void theme_init(struct theme *theme, struct server *server, const char *theme_na
+@@ -172,4 +172,14 @@ void theme_init(struct theme *theme, struct server *server, const char *theme_na
   */
  void theme_finish(struct theme *theme);
  
@@ -45,7 +45,7 @@ index 2b600676..6536ff39 100644
 +
  #endif /* LABWC_THEME_H */
 diff --git a/include/window-rules.h b/include/window-rules.h
-index b93bc367..066cc7f0 100644
+index 30abfddb..9c566f6d 100644
 --- a/include/window-rules.h
 +++ b/include/window-rules.h
 @@ -21,6 +21,7 @@ enum property {
@@ -56,8 +56,8 @@ index b93bc367..066cc7f0 100644
  struct window_rule {
  	char *identifier;
  	char *title;
-@@ -40,11 +41,27 @@ struct window_rule {
- 	enum property fixed_position;
+@@ -41,11 +42,27 @@ struct window_rule {
+ 	enum property want_absorbed_modifier_release_events;
  
  	struct wl_list link; /* struct rcxml.window_rules */
 +
@@ -85,18 +85,18 @@ index b93bc367..066cc7f0 100644
 +
  #endif /* LABWC_WINDOW_RULES_H */
 diff --git a/src/config/rcxml.c b/src/config/rcxml.c
-index ab221c1b..a469d372 100644
+index bdd84291..7ae29f54 100644
 --- a/src/config/rcxml.c
 +++ b/src/config/rcxml.c
-@@ -35,6 +35,7 @@
+@@ -36,6 +36,7 @@
  #include "view.h"
  #include "window-rules.h"
  #include "workspaces.h"
 +#include "theme.h"
  
- static bool in_regions;
- static bool in_usable_area_override;
-@@ -307,6 +308,7 @@ fill_window_rule(char *nodename, char *content)
+ #define LAB_WLR_VERSION_OLDER_THAN(major, minor, micro) \
+ 	(WLR_VERSION_NUM < (((major) << 16) | ((minor) << 8) | (micro)))
+@@ -310,6 +311,7 @@ fill_window_rule(char *nodename, char *content)
  	if (!strcasecmp(nodename, "windowRule.windowRules")) {
  		current_window_rule = znew(*current_window_rule);
  		current_window_rule->window_type = -1; // Window types are >= 0
@@ -104,18 +104,18 @@ index ab221c1b..a469d372 100644
  		wl_list_append(&rc.window_rules, &current_window_rule->link);
  		wl_list_init(&current_window_rule->actions);
  		return;
-@@ -322,6 +324,8 @@ fill_window_rule(char *nodename, char *content)
+@@ -324,6 +326,8 @@ fill_window_rule(char *nodename, char *content)
+ 	/* Criteria */
  	} else if (!strcmp(nodename, "identifier")) {
- 		free(current_window_rule->identifier);
- 		current_window_rule->identifier = xstrdup(content);
+ 		xstrdup_replace(current_window_rule->identifier, content);
 +		wlr_log(WLR_INFO, "Identifier found: %s=\"%s\"",
 +                        nodename, content);
  	} else if (!strcmp(nodename, "title")) {
- 		free(current_window_rule->title);
- 		current_window_rule->title = xstrdup(content);
-@@ -360,6 +364,14 @@ fill_window_rule(char *nodename, char *content)
- 	} else if (!strcasecmp(nodename, "fixedPosition")) {
- 		set_property(content, &current_window_rule->fixed_position);
+ 		xstrdup_replace(current_window_rule->title, content);
+ 	} else if (!strcmp(nodename, "type")) {
+@@ -361,6 +365,14 @@ fill_window_rule(char *nodename, char *content)
+ 	} else if (!strcasecmp(nodename, "wantAbsorbedModifierReleaseEvents")) {
+ 		set_property(content, &current_window_rule->want_absorbed_modifier_release_events);
  
 +	/* Custom border properties: color */
 +	} else if (!strcasecmp(nodename, "borderColor")) {
@@ -129,7 +129,7 @@ index ab221c1b..a469d372 100644
  	} else if (!strcmp(nodename, "name.action")) {
  		current_window_rule_action = action_create(content);
 diff --git a/src/ssd/ssd-border.c b/src/ssd/ssd-border.c
-index aa7c4d5f..7602b683 100644
+index 435119e2..f986b6bf 100644
 --- a/src/ssd/ssd-border.c
 +++ b/src/ssd/ssd-border.c
 @@ -6,6 +6,7 @@
@@ -140,15 +140,14 @@ index aa7c4d5f..7602b683 100644
  
  #define FOR_EACH_STATE(ssd, tmp) FOR_EACH(tmp, \
  	&(ssd)->border.active, \
-@@ -34,12 +35,22 @@ ssd_border_create(struct ssd *ssd)
+@@ -35,10 +36,18 @@ ssd_border_create(struct ssd *ssd)
  	FOR_EACH_STATE(ssd, subtree) {
  		subtree->tree = wlr_scene_tree_create(ssd->border.tree);
  		parent = subtree->tree;
--		if (subtree == &ssd->border.active) {
--			color = theme->window_active_border_color;
--		} else {
--			color = theme->window_inactive_border_color;
--			wlr_scene_node_set_enabled(&parent->node, false);
+-		active = (subtree == &ssd->border.active) ?
+-			THEME_ACTIVE : THEME_INACTIVE;
+-		wlr_scene_node_set_enabled(&parent->node, active);
+-		color = theme->window[active].border_color;
 +
 +		/* Here the color changing is enough */
 +		float customColor[4];
@@ -156,20 +155,16 @@ index aa7c4d5f..7602b683 100644
 +		if (isCustomColorAvailable)
 +			color = customColor;
 +		else  {
-+			if (subtree == &ssd->border.active) {
-+				color = theme->window_active_border_color;
-+				wlr_scene_node_set_enabled(&parent->node, true);
-+			} else {
-+				color = theme->window_inactive_border_color;
-+				wlr_scene_node_set_enabled(&parent->node, false);
-+			}
- 		}
-+
++			active = (subtree == &ssd->border.active) ?
++				THEME_ACTIVE : THEME_INACTIVE;
++			wlr_scene_node_set_enabled(&parent->node, active);
++			color = theme->window[active].border_color;
++		}
+ 
  		wl_list_init(&subtree->parts);
  		add_scene_rect(&subtree->parts, LAB_SSD_PART_LEFT, parent,
- 			theme->border_width, height, 0, 0, color);
 diff --git a/src/ssd/ssd-titlebar.c b/src/ssd/ssd-titlebar.c
-index 8591759a..9cececdc 100644
+index 47ab4ef1..a094a0a2 100644
 --- a/src/ssd/ssd-titlebar.c
 +++ b/src/ssd/ssd-titlebar.c
 @@ -17,6 +17,7 @@
@@ -197,7 +192,7 @@ index 8591759a..9cececdc 100644
  	int width = view->current.width;
  	int corner_width = ssd_get_corner_width();
  
-@@ -465,6 +476,18 @@ ssd_update_title(struct ssd *ssd)
+@@ -455,6 +466,18 @@ ssd_update_title(struct ssd *ssd)
  	}
  
  	struct theme *theme = view->server->theme;
@@ -217,7 +212,7 @@ index 8591759a..9cececdc 100644
  	bool title_unchanged = state->text && !strcmp(title, state->text);
  
 diff --git a/src/ssd/ssd.c b/src/ssd/ssd.c
-index c1e4e0e5..e5099f5c 100644
+index 49f088b7..a4cd9283 100644
 --- a/src/ssd/ssd.c
 +++ b/src/ssd/ssd.c
 @@ -14,6 +14,7 @@
@@ -228,27 +223,27 @@ index c1e4e0e5..e5099f5c 100644
  
  struct border
  ssd_thickness(struct view *view)
-@@ -400,9 +401,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
+@@ -402,9 +403,12 @@ ssd_enable_keybind_inhibit_indicator(struct ssd *ssd, bool enable)
  		return;
  	}
  
 -	float *color = enable
 -		? rc.theme->window_toggled_keybinds_color
--		: rc.theme->window_active_border_color;
+-		: rc.theme->window[THEME_ACTIVE].border_color;
 +	float customColor[4];
 +	bool isCustomColorAvailable = window_rules_get_custom_border_color(ssd->view, customColor);
 +
 +	float *color = isCustomColorAvailable ? customColor :
 +		(enable ? rc.theme->window_toggled_keybinds_color
-+			: rc.theme->window_active_border_color);
++			: rc.theme->window[THEME_ACTIVE].border_color);
  
  	struct ssd_part *part = ssd_get_part(&ssd->border.active.parts, LAB_SSD_PART_TOP);
  	struct wlr_scene_rect *rect = wlr_scene_rect_from_node(part->node);
 diff --git a/src/theme.c b/src/theme.c
-index c0af2ad6..fa76f28c 100644
+index 2a7111b2..ba7874c5 100644
 --- a/src/theme.c
 +++ b/src/theme.c
-@@ -490,7 +490,7 @@ hex_to_dec(char c)
+@@ -497,7 +497,7 @@ hex_to_dec(char c)
   * @hex: hex string to be parsed
   * @rgba: pointer to float[4] for return value
   */
@@ -257,7 +252,7 @@ index c0af2ad6..fa76f28c 100644
  parse_hexstr(const char *hex, float *rgba)
  {
  	if (!hex || hex[0] != '#' || strlen(hex) < 7) {
-@@ -559,7 +559,7 @@ parse_justification(const char *str)
+@@ -566,7 +566,7 @@ parse_justification(const char *str)
  static void
  theme_builtin(struct theme *theme, struct server *server)
  {
@@ -265,10 +260,10 @@ index c0af2ad6..fa76f28c 100644
 +	theme->border_width = 5;
  	theme->window_titlebar_padding_height = 0;
  	theme->window_titlebar_padding_width = 0;
- 	theme->title_height = INT_MIN;
-@@ -1618,3 +1618,33 @@ theme_finish(struct theme *theme)
- 	zdrop(&theme->shadow_corner_bottom_inactive);
- 	zdrop(&theme->shadow_edge_inactive);
+ 
+@@ -1610,3 +1610,33 @@ theme_finish(struct theme *theme)
+ 		zdrop(&theme->window[active].shadow_edge);
+ 	}
  }
 +
 +void theme_customize_with_border_color(struct theme *theme, struct server
@@ -287,10 +282,10 @@ index c0af2ad6..fa76f28c 100644
 +	theme_read(theme, &paths);
 +	paths_destroy(&paths);
 +
-+	memcpy(theme->window_active_border_color, color, sizeof(float)*4);
-+	memcpy(theme->window_inactive_border_color, color, sizeof(float)*4);
-+	memcpy(theme->window_active_title_bg_color, color, sizeof(float)*4);
-+	memcpy(theme->window_inactive_title_bg_color, color, sizeof(float)*4);
++	memcpy(theme->window[THEME_ACTIVE].border_color, color, sizeof(float)*4);
++	memcpy(theme->window[THEME_INACTIVE].border_color, color, sizeof(float)*4);
++	memcpy(theme->window[THEME_ACTIVE].title_bg_color, color, sizeof(float)*4);
++	memcpy(theme->window[THEME_INACTIVE].title_bg_color, color, sizeof(float)*4);
 +
 +	memcpy(theme->osd_bg_color, color, sizeof(float)*4);
 +	memcpy(theme->osd_border_color, color, sizeof(float)*4);
@@ -301,10 +296,10 @@ index c0af2ad6..fa76f28c 100644
 +	load_buttons(theme);
 +}
 diff --git a/src/window-rules.c b/src/window-rules.c
-index ce2131f6..eaba2d6e 100644
+index 7c88865f..b4b24561 100644
 --- a/src/window-rules.c
 +++ b/src/window-rules.c
-@@ -43,6 +43,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
+@@ -46,6 +46,14 @@ view_matches_criteria(struct window_rule *rule, struct view *view)
  	return view_matches_query(view, &query);
  }
  
@@ -319,7 +314,7 @@ index ce2131f6..eaba2d6e 100644
  void
  window_rules_apply(struct view *view, enum window_rule_event event)
  {
-@@ -109,3 +117,20 @@ window_rules_get_property(struct view *view, const char *property)
+@@ -117,3 +125,20 @@ window_rules_get_property(struct view *view, const char *property)
  	}
  	return LAB_PROP_UNSPECIFIED;
  }
