@@ -158,7 +158,7 @@ index de49d1b..b1761b3 100644
          error_setg(&s->migration_blocker,
                     "Migration is disabled when using feature 'peer mode' in device 'ivshmem'");
 -        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
-+        if (migrate_add_blocker(s->migration_blocker, errp) < 0) {
++        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
 +            error_free(s->migration_blocker);
              return;
          }
@@ -169,7 +169,7 @@ index de49d1b..b1761b3 100644
  
 -    migrate_del_blocker(&s->migration_blocker);
 +    if (s->migration_blocker) {
-+        migrate_del_blocker(s->migration_blocker);
++        migrate_del_blocker(&s->migration_blocker);
 +        error_free(s->migration_blocker);
 +    }
  
