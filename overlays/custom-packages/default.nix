@@ -19,6 +19,5 @@
   globalprotect-openconnect =
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
-  gtklock-userinfo-module = import ./gtklock-userinfo-module { inherit prev; };
   gtklock = import ./gtklock { inherit prev; };
 })
