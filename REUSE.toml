@@ -55,13 +55,6 @@ SPDX-FileCopyrightText = "labwc contributors"
 path = "overlays/custom-packages/labwc/*.patch"
 
 [[annotations]]
-SPDX-License-Identifier = "GPL-3.0-only"
-SPDX-FileCopyrightText = [
-  "Copyright (c) 2024 Erik Reider, Jovan Lanik"
-]
-path = "overlays/custom-packages/gtklock-userinfo-module/0001-update.patch"
-
-[[annotations]]
 SPDX-License-Identifier = "LGPL-2.1-or-later"
 SPDX-FileCopyrightText = "systemd contributors"
 path = [
