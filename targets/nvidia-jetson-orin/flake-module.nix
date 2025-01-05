@@ -129,6 +129,19 @@ let
   nvidia-jetson-orin-agx-release = nvidia-jetson-orin "agx" "release" [ ];
   nvidia-jetson-orin-nx-debug = nvidia-jetson-orin "nx" "debug" [ ];
   nvidia-jetson-orin-nx-release = nvidia-jetson-orin "nx" "release" [ ];
+
+  mkHostImage =
+    eval:
+    let
+      pkg = eval.config.system.build.${eval.config.formatAttr};
+    in
+    pkg
+    // {
+      passthru = pkg.passthru or { } // {
+        inherit eval;
+      };
+    };
+
   generate-nodemoapps =
     tgt:
     tgt
@@ -137,7 +150,7 @@ let
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [ { ghaf.graphics.enableDemoApplications = lib.mkForce false; } ];
       };
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = mkHostImage hostConfiguration;
     };
   generate-cross-from-x86_64 =
     tgt:
@@ -145,7 +158,7 @@ let
     // rec {
       name = tgt.name + "-from-x86_64";
       hostConfiguration = tgt.hostConfiguration.extendModules { modules = [ ./cross-compilation.nix ]; };
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = mkHostImage hostConfiguration;
     };
   # Base targets to use for generating demoapps and cross-compilation targets
   baseTargets = [
