@@ -162,12 +162,37 @@ in
         XDG_DATA_HOME = "$HOME/.local/share";
         XDG_STATE_HOME = "$HOME/.local/state";
         XDG_CACHE_HOME = "$HOME/.cache";
+        XDG_PICTURES_DIR = "$HOME/Pictures";
+        XDG_VIDEOS_DIR = "$HOME/Videos";
         GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
       };
     };
 
-    # It will create a /etc/pam.d/ file for authentication
-    security.pam.services.gtklock = { };
+    # Create custom PAM rules
+    security.pam.services = {
+      gtklock = {
+        rules.auth = {
+          systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint
+          fprintd.args = [ "maxtries=3" ];
+        };
+      };
+      greetd = {
+        fprintAuth = false; # User needs to enter password to decrypt home
+        rules = {
+          account.group = {
+            enable = true;
+            control = "requisite";
+            modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
+            order = 10000;
+            args = [
+              "user"
+              "ingroup"
+              "video"
+            ];
+          };
+        };
+      };
+    };
 
     # Needed for power commands
     security.polkit.enable = true;
@@ -179,7 +204,6 @@ in
         BindsTo = [ "graphical-session.target" ];
         After = [ "graphical-session-pre.target" ];
         Wants = [ "graphical-session-pre.target" ];
-        ConditionGroup = "desktop";
       };
     };
 

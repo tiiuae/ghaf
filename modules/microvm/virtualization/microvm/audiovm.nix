@@ -44,7 +44,6 @@ let
               enable = true;
               extraGroups = [
                 "audio"
-                "video"
                 "pipewire"
               ];
             };

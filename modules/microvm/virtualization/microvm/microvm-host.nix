@@ -134,15 +134,13 @@ in
             '';
           };
         in
-        mkIf config.ghaf.profiles.debug.enable {
+        {
           description = "Remove ghaf login users";
           enable = true;
           path = [ userRemovalScript ];
           unitConfig.ConditionPathExists = "/storagevm/gui-vm/var/lib/nixos/user.lock";
           serviceConfig = {
             Type = "oneshot";
-            StandardOutput = "journal";
-            StandardError = "journal";
             ExecStart = "${userRemovalScript}/bin/remove-users";
           };
         };

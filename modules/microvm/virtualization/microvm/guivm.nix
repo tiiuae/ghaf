@@ -72,17 +72,7 @@ let
               applications.enable = false;
               graphics.enable = true;
             };
-            users = {
-              loginUser = {
-                enable = true;
-                extraGroups = [
-                  "audio"
-                  "video"
-                  "desktop"
-                ];
-              };
-            };
-
+            users.loginUser.enable = true;
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
@@ -108,14 +98,6 @@ let
             storagevm = {
               enable = true;
               name = vmName;
-              directories = [
-                {
-                  directory = "/var/lib/private/ollama";
-                  user = "ollama";
-                  group = "ollama";
-                  mode = "u=rwx,g=,o=";
-                }
-              ];
             };
 
             # Services
@@ -219,10 +201,6 @@ let
                 pkgs.libva-utils
                 pkgs.glib
               ];
-            sessionVariables = {
-              XDG_PICTURES_DIR = "$HOME/Pictures";
-              XDG_VIDEOS_DIR = "$HOME/Videos";
-            };
           };
 
           time.timeZone = config.time.timeZone;
