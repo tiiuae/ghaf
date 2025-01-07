@@ -53,7 +53,7 @@ in
   config = mkMerge [
     (mkIf cfg.enable {
       microvm.host.enable = true;
-      microvm.host.useNotifySockets = true;
+      # microvm.host.useNotifySockets = true;
 
       ghaf.systemd = {
         withName = "host-systemd";
@@ -106,6 +106,9 @@ in
       # Create directories required for sharing files with correct permissions.
       systemd.tmpfiles.rules =
         let
+          vmRootDirs = map (vm: "d /storagevm/${vm} 0700 root root -") (
+            builtins.attrNames config.microvm.vms
+          );
           vmDirs = map (
             n:
             "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
@@ -114,7 +117,10 @@ in
         [
           "d /storagevm/shared 0755 root root"
           "d /storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
+          "d /storagevm/homes 0700 microvm kvm -"
+          "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
+        ++ vmRootDirs
         ++ vmDirs;
     })
     (mkIf config.ghaf.profiles.debug.enable {
@@ -145,11 +151,33 @@ in
           };
         };
     })
-    {
-      # Add host directory for persistent home images
-      systemd.tmpfiles.rules = [
-        "d /storagevm/homes 0770 microvm kvm -"
-      ];
-    }
+    (mkIf config.services.userborn.enable {
+      system.activationScripts.microvm-host = lib.mkForce "";
+      systemd.services."microvm-host-startup" =
+        let
+          microVmStartupScript = pkgs.writeShellApplication {
+            name = "microvm-host-startup";
+            runtimeInputs = [
+              pkgs.coreutils
+            ];
+            text = ''
+              mkdir -p ${config.microvm.stateDir}
+              chown microvm:kvm ${config.microvm.stateDir}
+              chmod g+w ${config.microvm.stateDir}
+            '';
+          };
+        in
+        {
+          enable = true;
+          description = "MicroVM host startup service";
+          wantedBy = [ "userborn.service" ];
+          after = [ "userborn.service" ];
+          unitConfig.ConditionPathExists = "!${config.microvm.stateDir}";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${microVmStartupScript}/bin/microvm-host-startup";
+          };
+        };
+    })
   ];
 }
