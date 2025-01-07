@@ -149,6 +149,7 @@ in
 
       # Enable homed service
       services.homed.enable = true;
+      systemd.services.systemd-homed.serviceConfig.Restart = "on-failure";
 
       # First boot login user setup service
       systemd.services.setup-ghaf-user =
