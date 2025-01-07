@@ -99,6 +99,8 @@ let
             optimize.enable = false;
             #TODO: Add back support cloud-hypervisor
             #the system fails to switch root to the stage2 with cloud-hypervisor
+            mem = 256;
+            balloonMem = 128;
             hypervisor = "qemu";
             shares =
               [

@@ -378,6 +378,34 @@
         "type": "github"
       }
     },
+    "mem-monitor": {
+      "inputs": {
+        "crane": [
+          "givc",
+          "crane"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1736251605,
+        "narHash": "sha256-HGX58utnWNzKOVw0V/5DRJlZK2D6XoDz5aWUwNwpD88=",
+        "owner": "slakkala",
+        "repo": "ghaf-mem-monitor",
+        "rev": "6339508c72e345b624661a0de81c84ff8d8f56f5",
+        "type": "github"
+      },
+      "original": {
+        "owner": "slakkala",
+        "repo": "ghaf-mem-monitor",
+        "rev": "6339508c72e345b624661a0de81c84ff8d8f56f5",
+        "type": "github"
+      }
+    },
     "microvm": {
       "inputs": {
         "flake-utils": [
@@ -389,16 +417,17 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1732122592,
-        "narHash": "sha256-lF54irx92m8ddNDQDtOUjKsZAnsGyPL3QTO7byjlxNg=",
-        "owner": "astro",
+        "lastModified": 1733823552,
+        "narHash": "sha256-neCIrZAsd7wMes5AOnWlBT14Zs7wqsD232hQXsygIr0=",
+        "owner": "slakkala",
         "repo": "microvm.nix",
-        "rev": "19650774c23df84d0b8f315d2527274563497cad",
+        "rev": "9b44cecbddee0523492a3e6f2caa0bc29eb1d24b",
         "type": "github"
       },
       "original": {
-        "owner": "astro",
+        "owner": "slakkala",
         "repo": "microvm.nix",
+        "rev": "9b44cecbddee0523492a3e6f2caa0bc29eb1d24b",
         "type": "github"
       }
     },
@@ -526,6 +555,7 @@
         "impermanence": "impermanence",
         "jetpack-nixos": "jetpack-nixos",
         "lanzaboote": "lanzaboote",
+        "mem-monitor": "mem-monitor",
         "microvm": "microvm",
         "nix-fast-build": "nix-fast-build",
         "nixos-generators": "nixos-generators",
