@@ -26,7 +26,8 @@ in
   options.ghaf.graphics.demo-apps = {
     chromium = mkProgramOption "Chromium browser" false;
     google-chrome = mkProgramOption "Google Chrome browser" false;
-    firefox = mkProgramOption "Firefox browser" config.ghaf.graphics.enableDemoApplications;
+    #TODO: tmp disable firefox as 133 is not working in cross-compilation
+    firefox = mkProgramOption "Firefox browser" false; # config.ghaf.graphics.enableDemoApplications;
     gala-app = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
