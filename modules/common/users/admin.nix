@@ -93,10 +93,12 @@ in
           extraGroups =
             [
               "wheel"
-              "video"
             ]
             ++ cfg.extraGroups
-            ++ optionals cfg.createHome [ "desktop" ]
+            ++ optionals cfg.createHome [
+              "audio"
+              "video"
+            ]
             ++ optionals config.security.tpm2.enable [ "tss" ]
             ++ optionals config.ghaf.virtualization.docker.daemon.enable [ "docker" ];
         };
