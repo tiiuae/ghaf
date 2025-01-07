@@ -17,7 +17,7 @@ in
     pkgs.gpsd
   ] ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
   macAddress = "02:00:00:03:09:01";
-  ramMb = 4096;
+  ramMb = 4000;
   cores = 4;
   borderColor = "#337aff";
   ghafAudio.enable = true;

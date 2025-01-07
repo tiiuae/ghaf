@@ -171,7 +171,8 @@ let
 
               microvm = {
                 optimize.enable = false;
-                mem = vm.ramMb;
+                mem = vm.ramMb / 2;
+                balloonMem = vm.ramMb / 2;
                 vcpu = vm.cores;
                 hypervisor = "qemu";
                 shares = [

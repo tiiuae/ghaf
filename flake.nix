@@ -104,7 +104,7 @@
     };
 
     microvm = {
-      url = "github:astro/microvm.nix";
+      url = "github:slakkala/microvm.nix/9b44cecbddee0523492a3e6f2caa0bc29eb1d24b";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -156,6 +156,15 @@
 
     ctrl-panel = {
       url = "github:tiiuae/ghaf-ctrl-panel/5ca381ba51c05cf370299056f6e377cd6003283f";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        crane.follows = "givc/crane";
+      };
+    };
+
+    mem-monitor = {
+      url = "github:slakkala/ghaf-mem-monitor/6339508c72e345b624661a0de81c84ff8d8f56f5";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
