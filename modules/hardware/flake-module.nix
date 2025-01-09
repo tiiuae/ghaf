@@ -14,7 +14,6 @@
           inputs.ghafpkgs.overlays.default
           (_final: prev: {
             ctrl-panel = inputs.ctrl-panel.packages.${prev.stdenv.hostPlatform.system}.default;
-            mem-monitor = inputs.mem-monitor.packages.${prev.stdenv.hostPlatform.system}.default;
           })
         ];
       }

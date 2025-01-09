@@ -18,5 +18,17 @@
       ./power-control.nix
       ../hardware/common/shared-mem.nix
     ];
+
+    mem-monitor.imports = [
+      {
+        nixpkgs.overlays = [
+          inputs.ghafpkgs.overlays.default
+          (_final: prev: {
+            mem-monitor = inputs.mem-monitor.packages.${prev.stdenv.hostPlatform.system}.default;
+          })
+        ];
+      }
+      ./mem-monitor.nix
+    ];
   };
 }

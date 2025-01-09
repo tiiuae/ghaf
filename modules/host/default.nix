@@ -14,6 +14,5 @@
   imports = [
     # To push logs to central location
     ../common/logging/client.nix
-    ./mem-monitor.nix
   ];
 }
