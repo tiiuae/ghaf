@@ -165,7 +165,7 @@
     };
 
     mem-monitor = {
-      url = "github:slakkala/ghaf-mem-monitor/6339508c72e345b624661a0de81c84ff8d8f56f5";
+      url = "github:slakkala/ghaf-mem-monitor/ea299f370a9e64115ef19f9d8c3ad3832448849f";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

@@ -392,17 +392,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1736251605,
-        "narHash": "sha256-HGX58utnWNzKOVw0V/5DRJlZK2D6XoDz5aWUwNwpD88=",
+        "lastModified": 1736274377,
+        "narHash": "sha256-UdulAAfxOiFOcXZxJ9n9tXSGaqQAc5P6OD2D17HSkMY=",
         "owner": "slakkala",
         "repo": "ghaf-mem-monitor",
-        "rev": "6339508c72e345b624661a0de81c84ff8d8f56f5",
+        "rev": "ea299f370a9e64115ef19f9d8c3ad3832448849f",
         "type": "github"
       },
       "original": {
         "owner": "slakkala",
         "repo": "ghaf-mem-monitor",
-        "rev": "6339508c72e345b624661a0de81c84ff8d8f56f5",
+        "rev": "ea299f370a9e64115ef19f9d8c3ad3832448849f",
         "type": "github"
       }
     },
