@@ -155,6 +155,9 @@ in
       config = netvmBaseConfiguration // {
         imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
       };
+      specialArgs = {
+        configHost = config;
+      };
     };
   };
 }

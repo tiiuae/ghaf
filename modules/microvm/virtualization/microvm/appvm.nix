@@ -231,6 +231,9 @@ let
       config = appvmConfiguration // {
         imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ appExtraModules;
       };
+      specialArgs = {
+        configHost = config;
+      };
     };
 in
 {
