@@ -148,6 +148,9 @@ in
       config = adminvmBaseConfiguration // {
         imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
       };
+      specialArgs = {
+        configHost = config;
+      };
     };
   };
 }

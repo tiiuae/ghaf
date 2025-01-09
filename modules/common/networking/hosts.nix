@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+args@{ config, lib, ... }:
 let
   cfg = config.ghaf.networking.hosts;
   inherit (lib)
@@ -36,52 +36,44 @@ let
   # debug network hosts are post-fixed: <hostname>-debug
   ipBase = "192.168.100";
   debugBase = "192.168.101";
-  hostsEntries = [
-    {
-      ip = 1;
-      name = "net-vm";
-    }
-    {
-      ip = 2;
-      name = "ghaf-host";
-    }
-    {
-      ip = 3;
-      name = "gui-vm";
-    }
-    {
-      ip = 4;
-      name = "ids-vm";
-    }
-    {
-      ip = 5;
-      name = "audio-vm";
-    }
-    {
-      ip = 10;
-      name = "admin-vm";
-    }
-    {
-      ip = 100;
-      name = "chrome-vm";
-    }
-    {
-      ip = 101;
-      name = "gala-vm";
-    }
-    {
-      ip = 102;
-      name = "zathura-vm";
-    }
-    {
-      ip = 103;
-      name = "comms-vm";
-    }
-    {
-      ip = 104;
-      name = "business-vm";
-    }
-  ];
+  hostsEntries =
+    [
+      {
+        ip = 1;
+        name = "net-vm";
+      }
+      {
+        ip = 2;
+        name = "ghaf-host";
+      }
+      {
+        ip = 3;
+        name = "gui-vm";
+      }
+      {
+        ip = 4;
+        name = "ids-vm";
+      }
+      {
+        ip = 5;
+        name = "audio-vm";
+      }
+      {
+        ip = 10;
+        name = "admin-vm";
+      }
+    ]
+    ++ lib.imap0
+      (i: vm: {
+        ip = 100 + i;
+        name = vm.name + "-vm";
+      })
+      (
+        let
+          c = if config.networking.hostName == "ghaf-host" then config else args.configHost;
+        in
+        c.ghaf.virtualization.microvm.appvm.vms or [ ]
+      );
 
   mkHostEntry =
     { ip, name }:

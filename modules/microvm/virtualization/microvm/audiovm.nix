@@ -152,6 +152,9 @@ in
       config = audiovmBaseConfiguration // {
         imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
       };
+      specialArgs = {
+        configHost = config;
+      };
     };
   };
 }

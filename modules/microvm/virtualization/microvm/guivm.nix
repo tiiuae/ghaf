@@ -391,6 +391,9 @@ in
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
+      specialArgs = {
+        configHost = config;
+      };
     };
   };
 }
