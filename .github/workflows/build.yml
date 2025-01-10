@@ -141,7 +141,7 @@ jobs:
             echo "::error::Unknown architecture: '${{ matrix.arch }}'"
             exit 1
           fi
-          NIX_FAST_BUILD_GITREF="1775c732"
+          NIX_FAST_BUILD_GITREF="906af17f"
           nix run github:Mic92/nix-fast-build/"$NIX_FAST_BUILD_GITREF"#nix-fast-build -- \
             --flake .#packages.${{ matrix.arch }}.${{ matrix.target }} \
             --remote "$BUILDER" \
