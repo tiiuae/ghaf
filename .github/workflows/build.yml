@@ -4,6 +4,9 @@
 
 name: build
 on:
+  push:
+    branches:
+      - main
   pull_request_target:
     branches:
       - main
@@ -93,7 +96,7 @@ jobs:
     if: |
       always() &&
       needs.authorize.result == 'success' &&
-      needs.build-yml-check.outputs.result == 'not-changed'
+      needs.build-yml-check.outputs.result == 'build-yml-check-passed'
     concurrency:
       # Cancel any in-progress workflow runs from the same PR or branch,
       # allowing matrix jobs to run concurrently:
@@ -110,6 +113,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
       - name: Rebase
+        if: ${{ github.base_ref != '' }}
         run: |
           BASE="origin/${{ github.base_ref }}"
           COMMITS="$(git rev-list "$BASE".. --count)"
