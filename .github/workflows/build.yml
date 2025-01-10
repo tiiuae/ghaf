@@ -110,20 +110,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          ref: ${{ github.event.pull_request.merge.sha || github.ref }}
           fetch-depth: 0
-      - name: Rebase
-        run: |
-          BASE="origin/${{ github.base_ref }}"
-          COMMITS="$(git rev-list "$BASE".. --count)"
-          CONTEXT=5
-          echo -e "\n[+] Git log before rebase (with $CONTEXT commits context):"
-          git log --oneline -n$(( COMMITS + CONTEXT ))
-          echo -e "\n[+] Rebasing $COMMITS commit(s) on top of '$BASE'"
-          git config user.email "foo@bar.com"; git config user.name "Foo Bar"
-          git rebase "$BASE"
-          echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
-          git log --oneline -n$(( COMMITS + CONTEXT ))
       - name: Install nix
         uses: cachix/install-nix-action@v30
       - name: Prepare build
