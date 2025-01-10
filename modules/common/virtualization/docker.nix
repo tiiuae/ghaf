@@ -33,7 +33,11 @@ in
 
     # Temporary fix for nvidia service restart remove with new nixpkgs reference.
     # systemd.services.nvidia-container-toolkit-cdi-generator.WantedBy = [ "multi-user.target" ];
-    systemd.services.nvidia-cdi-generate.after = [ "multi-user.target" "greetd.service" "avahi-daemon.service" ];
+    systemd.services.nvidia-cdi-generate.after = [
+      "multi-user.target"
+      "greetd.service"
+      "avahi-daemon.service"
+    ];
 
     # Docker Daemon Settings
     virtualisation.docker = {
