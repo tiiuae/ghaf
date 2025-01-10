@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, config, ... }:
+{ config, lib, ... }:
 let
   cfg = config.ghaf.development.cuda;
   inherit (lib) mkEnableOption mkIf;
