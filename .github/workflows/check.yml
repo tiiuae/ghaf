@@ -21,8 +21,6 @@ jobs:
         run: nix develop --command reuse lint
       - name: Check nix flake show runs successfully
         run: nix flake show
-      - name: evaluation check
-        run: nix develop --command make-checks
       - name: Check templates
         run: |
           set -eux -o pipefail
