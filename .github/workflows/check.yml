@@ -22,7 +22,7 @@ jobs:
         run: nix fmt -- --fail-on-change
       - name: Check reuse lint
         run: nix develop --command reuse lint
-      - name: Check ghaf flake evaluates
+      - name: Check nix flake show runs successfully
         run: nix flake show --all-systems
       - name: Check templates
         run: |

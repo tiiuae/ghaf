@@ -1,0 +1,45 @@
+# SPDX-FileCopyrightText: 2022-2025 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: eval
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+jobs:
+  eval:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      matrix:
+        include:
+          - jobid: 0
+          - jobid: 1
+          - jobid: 2
+          - jobid: 3
+          - jobid: 4
+          - jobid: 5
+          - jobid: 6
+          - jobid: 7
+    concurrency:
+      # Cancel any in-progress workflow runs from the same PR or branch,
+      # allowing matrix jobs to run concurrently:
+      group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.jobid }}
+      cancel-in-progress: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.merge.sha || github.ref }}
+          fetch-depth: 0
+      - name: Install nix
+        uses: cachix/install-nix-action@v30
+      - name: Evaluate (jobid=${{ matrix.jobid }})
+        run: |
+          echo "strategy.job-total: ${{ strategy.job-total }}"
+          echo "matrix.jobid: ${{ matrix.jobid }}"
+          nix develop --command .github/eval.sh -j ${{ matrix.jobid }} -m ${{ strategy.job-total }}
