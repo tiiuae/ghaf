@@ -70,16 +70,13 @@ let
     flush
 
   '';
-
-  netvmEntry = builtins.filter (x: x.name == "net-vm") config.ghaf.networking.hosts.entries;
-  netvmAddr = lib.head (builtins.map (x: x.ip) netvmEntry);
 in
 {
   options.ghaf.reference.services.proxy-server = {
     enable = mkEnableOption "Enable proxy server module";
     internalAddress = lib.mkOption {
       type = lib.types.str;
-      default = netvmAddr;
+      default = config.ghaf.networking.hosts."net-vm".ipv4;
       description = "Internal address for proxy server";
     };
     bindPort = lib.mkOption {
@@ -100,7 +97,7 @@ in
     users.users.${proxyUserName} = {
       isSystemUser = true;
       description = "Proxy User for managing allowlist and services";
-      # extraGroups = [ "${proxyGroupName}" ]; # Adding to 'proxy-admin' for specific access     
+      # extraGroups = [ "${proxyGroupName}" ]; # Adding to 'proxy-admin' for specific access
       group = "${proxyGroupName}";
     };
 
@@ -126,8 +123,8 @@ in
       polkit = {
         enable = true;
         debug = true;
-        # Polkit rules for allowing proxy-user to run proxy related systemctl 
-        # commands without sudo and password requirement 
+        # Polkit rules for allowing proxy-user to run proxy related systemctl
+        # commands without sudo and password requirement
         extraConfig = ''
           polkit.addRule(function(action, subject) {
               if ((action.id == "org.freedesktop.systemd1.manage-units" &&

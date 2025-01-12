@@ -8,11 +8,13 @@
 }:
 let
   cfg = config.ghaf.givc.netvm;
-  inherit (lib) mkEnableOption mkIf;
-  hostName = "net-vm";
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    ;
   guivmName = "gui-vm";
-  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
-  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
+  inherit (config.ghaf.networking) hosts;
+  inherit (config.networking) hostName;
 in
 {
   options.ghaf.givc.netvm = {
@@ -24,20 +26,19 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      agent = {
-        name = hostName;
-        addr = address hostName;
+      transport = {
+        name = config.networking.hostName;
+        addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      wifiManager = true;
       hwidService = true;
       tls.enable = config.ghaf.givc.enableTls;
-      admin = config.ghaf.givc.adminConfig;
+      admin = lib.head config.ghaf.givc.adminConfig.addresses;
       socketProxy = [
         {
           transport = {
             name = guivmName;
-            addr = address guivmName;
+            addr = hosts.${guivmName}.ipv4;
             port = "9010";
             protocol = "tcp";
           };
@@ -45,7 +46,6 @@ in
         }
       ];
     };
-
     givc.dbusproxy = {
       enable = true;
       system = {

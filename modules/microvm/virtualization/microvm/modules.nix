@@ -46,11 +46,17 @@ let
     inherit (config.ghaf.qemu) audiovm;
   };
 
+  # Common namespace to pass parameters at built-time from host to VMs
+  commonModule = {
+    config.ghaf.common = config.ghaf.common;
+  };
+
   # Service modules
   serviceModules = {
     # Givc module
     givc = {
       config.ghaf.givc.enable = config.ghaf.givc.enable;
+      config.ghaf.givc.debug = config.ghaf.givc.debug;
     };
 
     # Audio module
@@ -72,11 +78,6 @@ let
 
     # Yubikey module
     yubikey = optionalAttrs cfg.guivm.yubikey { config.ghaf.services.yubikey.enable = true; };
-
-    # Common namespace to share (built-time) between host and VMs
-    commonNamespace = {
-      config.ghaf.namespaces = config.ghaf.namespaces;
-    };
   };
 
   # User account settings
@@ -146,6 +147,7 @@ in
         serviceModules.givc
         referenceServiceModule
         managedUserAccounts
+        commonModule
       ];
       # Audiovm modules
       audiovm.extraModules = optionals cfg.audiovm.enable [
@@ -157,6 +159,7 @@ in
         serviceModules.givc
         serviceModules.bluetooth
         managedUserAccounts
+        commonModule
       ];
       # Guivm modules
       guivm.extraModules = optionals cfg.guivm.enable [
@@ -168,18 +171,20 @@ in
         serviceModules.fprint
         serviceModules.yubikey
         serviceModules.xdgOpener
-        serviceModules.commonNamespace
         serviceModules.givc
         referenceProgramsModule
         managedUserAccounts
+        commonModule
       ];
       adminvm.extraModules = optionals cfg.adminvm.enable [
         serviceModules.givc
         managedUserAccounts
+        commonModule
       ];
       appvm.extraModules = optionals cfg.appvm.enable [
         serviceModules.givc
         managedUserAccounts
+        commonModule
       ];
     };
   };

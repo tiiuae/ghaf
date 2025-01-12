@@ -53,26 +53,29 @@ in
   config = mkMerge [
     (mkIf cfg.enable {
       microvm.host.enable = true;
-      microvm.host.useNotifySockets = true;
+      # microvm.host.useNotifySockets = true;
 
-      ghaf.systemd = {
-        withName = "host-systemd";
-        enable = true;
-        withAudit = config.ghaf.profiles.debug.enable;
-        withPolkit = true;
-        withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
-        withRepart = true;
-        withFido2 = true;
-        withCryptsetup = true;
-        withLocaled = true;
-        withTimesyncd = cfg.networkSupport;
-        withNss = cfg.networkSupport;
-        withResolved = cfg.networkSupport;
-        withSerial = config.ghaf.profiles.debug.enable;
-        withDebug = config.ghaf.profiles.debug.enable;
-        withHardenedConfigs = true;
+      ghaf = {
+        type = "host";
+        systemd = {
+          withName = "host-systemd";
+          enable = true;
+          withAudit = config.ghaf.profiles.debug.enable;
+          withPolkit = true;
+          withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
+          withRepart = true;
+          withFido2 = true;
+          withCryptsetup = true;
+          withLocaled = true;
+          withTimesyncd = cfg.networkSupport;
+          withNss = cfg.networkSupport;
+          withResolved = cfg.networkSupport;
+          withSerial = config.ghaf.profiles.debug.enable;
+          withDebug = config.ghaf.profiles.debug.enable;
+          withHardenedConfigs = true;
+        };
+        givc.host.enable = true;
       };
-      ghaf.givc.host.enable = true;
       services.logind.lidSwitch = "ignore";
 
       # TODO: remove hardcoded paths

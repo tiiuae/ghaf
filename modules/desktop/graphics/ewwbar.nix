@@ -635,7 +635,7 @@ in
                     (widget_button
                         :icon "${settings-icon}"
                         :header "Settings"
-                        :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.ctrl-panel}/bin/ctrl-panel >/dev/null &")))
+                        :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs} >/dev/null &")))
         ''}
 
         ;; Quick Settings Widget ;;

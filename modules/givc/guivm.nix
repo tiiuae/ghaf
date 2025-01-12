@@ -1,14 +1,20 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   cfg = config.ghaf.givc.guivm;
-  inherit (lib) mkEnableOption mkIf;
-  hostName = "gui-vm";
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    ;
   netvmName = "net-vm";
   audiovmName = "audio-vm";
-  vmEntry = vm: builtins.filter (x: x.name == vm) config.ghaf.networking.hosts.entries;
-  address = vm: lib.head (builtins.map (x: x.ip) (vmEntry vm));
+  inherit (config.ghaf.networking) hosts;
+  inherit (config.networking) hostName;
 in
 {
   options.ghaf.givc.guivm = {
@@ -19,19 +25,20 @@ in
     # Configure guivm service
     givc.sysvm = {
       enable = true;
-      agent = {
+      inherit (config.ghaf.givc) debug;
+      transport = {
         name = hostName;
-        addr = address hostName;
+        addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      inherit (config.ghaf.givc) debug;
+      admin = lib.head config.ghaf.givc.adminConfig.addresses;
       tls.enable = config.ghaf.givc.enableTls;
-      admin = config.ghaf.givc.adminConfig;
+      enableUserTlsAccess = true;
       socketProxy = [
         {
           transport = {
             name = netvmName;
-            addr = address netvmName;
+            addr = hosts.${netvmName}.ipv4;
             port = "9010";
             protocol = "tcp";
           };
@@ -40,7 +47,7 @@ in
         {
           transport = {
             name = audiovmName;
-            addr = address audiovmName;
+            addr = hosts.${audiovmName}.ipv4;
             port = "9011";
             protocol = "tcp";
           };

@@ -9,7 +9,6 @@
 let
   configHost = config;
   vmName = "audio-vm";
-  macAddress = "02:00:00:03:03:03";
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
 
   audiovmBaseConfiguration = {
@@ -21,9 +20,7 @@ let
           config
           lib
           vmName
-          macAddress
           ;
-        internalIP = 5;
       })
       ./common/storagevm.nix
       ../../../common/logging/client.nix
@@ -49,6 +46,7 @@ let
             };
 
             # System
+            type = "system-vm";
             systemd = {
               enable = true;
               withName = "audiovm-systemd";
