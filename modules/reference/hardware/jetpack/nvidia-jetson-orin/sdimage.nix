@@ -15,13 +15,14 @@
   config,
   pkgs,
   modulesPath,
+  lib,
   ...
 }:
 {
   imports = [ (modulesPath + "/installer/sd-card/sd-image.nix") ];
 
   boot.loader.grub.enable = false;
-  disabledModules = [ (modulesPath + "/profiles/all-hardware.nix") ];
+  hardware.enableAllHardware = lib.mkForce false;
 
   sdImage =
     let
