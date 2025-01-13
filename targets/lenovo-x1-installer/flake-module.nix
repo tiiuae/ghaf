@@ -33,7 +33,7 @@ let
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
 
-              isoImage.isoBaseName = "ghaf";
+              isoImage.isoBaseName = lib.mkForce "ghaf";
               networking.hostName = "ghaf-installer";
 
               environment.systemPackages = [
