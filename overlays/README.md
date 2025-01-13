@@ -37,8 +37,8 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## From Overlays
 
-https://github.com/NixOS/nixpkgs/pull/370712
-https://github.com/NixOS/nixpkgs/pull/370087
 
 ## carried in tiiuae/nixpkgs/...
-[texinfo: cross compile failure](https://github.com/NixOS/nixpkgs/pull/328919)
+
+## carried as pinned patches
+[jetpack-nixos](https://github.com/anduril/jetpack-nixos/pull/266)
