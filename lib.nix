@@ -43,10 +43,14 @@ nixpkgs.lib.extend (
       lib.filterAttrs (
         _: value:
         let
-          platforms = lib.attrByPath [
-            "meta"
-            "platforms"
-          ] [ ] value;
+          platforms =
+            lib.attrByPath
+              [
+                "meta"
+                "platforms"
+              ]
+              [ ]
+              value;
         in
         lib.elem system platforms
       );

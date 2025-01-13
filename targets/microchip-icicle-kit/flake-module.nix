@@ -54,7 +54,7 @@ let
               "root=/dev/mmcblk0p2"
               "rootdelay=5"
             ];
-            disabledModules = [ "profiles/all-hardware.nix" ];
+            hardware.enableAllHardware = lib.mkForce false;
           }
         ] ++ extraModules;
       };

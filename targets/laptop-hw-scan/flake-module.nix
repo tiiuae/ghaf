@@ -19,7 +19,7 @@ let
                 (import ../../modules/reference/personalize/authorizedSshKeys.nix).authorizedSshKeys;
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
-              isoImage.isoBaseName = "ghaf";
+              isoImage.isoBaseName = lib.mkForce "ghaf";
               isoImage.squashfsCompression = "zstd -Xcompression-level 3";
               environment.systemPackages = [ self.packages.x86_64-linux.hardware-scan ];
               networking.networkmanager.enable = true;

@@ -54,7 +54,7 @@ let
               overlays = [ self.overlays.cross-compilation ];
             };
             hardware.deviceTree.name = lib.mkForce "freescale/imx8mp-evk.dtb";
-            disabledModules = [ "profiles/all-hardware.nix" ];
+            hardware.enableAllHardware = lib.mkForce false;
           }
         ] ++ extraModules;
       };

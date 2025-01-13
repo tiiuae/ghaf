@@ -9,7 +9,6 @@
   element-desktop = import ./element-desktop { inherit prev; };
   element-gps = final.callPackage ../../packages/element-gps { };
   element-web = final.callPackage ../../packages/element-web { };
-  waypipe = import ./waypipe { inherit final prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
   bt-launcher = final.callPackage ../../packages/bt-launcher { };
   labwc = import ./labwc { inherit prev; };
@@ -20,5 +19,4 @@
   globalprotect-openconnect =
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
-  gtklock-userinfo-module = import ./gtklock-userinfo-module { inherit prev; };
 })

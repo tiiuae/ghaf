@@ -37,7 +37,8 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 ## From Overlays
 
-[gtklock-userinfo-module: update](https://github.com/jovanlanik/gtklock-userinfo-module/commit/aa4b5832185d2dd9e7f88826fd9d03e3d5ea1ad6)
 
 ## carried in tiiuae/nixpkgs/...
-[texinfo: cross compile failure](https://github.com/NixOS/nixpkgs/pull/328919)
+
+## carried as pinned patches
+[jetpack-nixos](https://github.com/anduril/jetpack-nixos/pull/266)

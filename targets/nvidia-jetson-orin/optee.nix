@@ -11,10 +11,9 @@ _:
   }:
   let
     # TODO: Refactor this later, if this gets proper implementation on the
-    # 	    jetpack-nixos
+    #    jetpack-nixos
     stdenv = pkgs.gcc9Stdenv;
-    inherit (pkgs.nvidia-jetpack) l4tVersion opteeClient;
-    inherit (config.hardware.nvidia-jetpack.devicePkgs) taDevKit;
+    inherit (pkgs.nvidia-jetpack) l4tVersion opteeClient taDevKit;
 
     opteeSource = pkgs.applyPatches {
       src = pkgs.fetchgit {
