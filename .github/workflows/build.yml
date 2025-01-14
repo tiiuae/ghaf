@@ -38,6 +38,8 @@ jobs:
           echo "github.repository: ${{ github.repository }}"
           echo "github.event.pull_request.head.repo.full_name: ${{ github.event.pull_request.head.repo.full_name }}"
           echo "github.actor: ${{ github.actor }}"
+          echo "github.ref: ${{ github.ref}}"
+          echo "github.event.pull_request.head.sha: ${{github.event.pull_request.head.sha}}"
           echo "authorized_user=$authorized_user"
           echo "authorized_user=$authorized_user" >> "$GITHUB_OUTPUT"
   authorize-internal:
@@ -68,10 +70,32 @@ jobs:
       - name: Authorize
         run: echo "authorized"
   build-yml-check:
-    uses: ./.github/workflows/build-yml-check.yml
+    runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'pull_request_target' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
+          fetch-depth: 0
+      - name: Check if workflow is modified
+        id: build-yml-changed
+        uses: tj-actions/changed-files@v45
+        with:
+          files: .github/workflows/build.yml
+      - name: Send warning
+        run: |
+          if [ "${{ steps.build-yml-changed.outputs.any_changed }}" == "true" ]; then
+            echo "::error::"\
+                 "This change edits workflow file '.github/workflows/build.yml'."\
+                 "Raising this error to notify that the workflow change will only take impact after merge."\
+                 "Therefore, you need to manually test the change (perhaps in a forked repo)"\
+                 "before merging to make sure the change does not break anything."
+
+            exit 1
+          fi
   build_matrix:
     name: "build"
-    needs: [authorize, build-yml-check]
+    needs: [authorize]
     runs-on: ubuntu-latest
     timeout-minutes: 360
     strategy:
@@ -95,8 +119,7 @@ jobs:
             target: nvidia-jetson-orin-agx-debug
     if: |
       always() &&
-      needs.authorize.result == 'success' &&
-      needs.build-yml-check.outputs.result == 'build-yml-check-passed'
+      needs.authorize.result == 'success'
     concurrency:
       # Cancel any in-progress workflow runs from the same PR or branch,
       # allowing matrix jobs to run concurrently:
