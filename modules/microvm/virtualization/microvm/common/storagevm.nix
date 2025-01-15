@@ -114,6 +114,7 @@ in
         hideMounts = true;
         directories = [
           "/var/lib/nixos"
+          "/etc/givc"
         ];
         files = [
           "/etc/ssh/ssh_host_ed25519_key.pub"

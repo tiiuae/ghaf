@@ -7,13 +7,12 @@
   ...
 }:
 let
-  inherit (builtins) hasAttr replaceStrings;
+  inherit (builtins) hasAttr;
   inherit (lib)
     mkIf
     mkEnableOption
     optionals
     optionalAttrs
-    optionalString
     ;
 
   cfg = config.ghaf.services.desktop;
@@ -26,6 +25,7 @@ let
         { }
     else
       { };
+  inherit (config.ghaf.givc) cliArgs;
 in
 # TODO: The desktop configuration needs to be re-worked.
 # TODO it needs to be moved out of common and the launchers have to be set bu the reference programs NOT here
@@ -39,17 +39,6 @@ in
       profiles.graphics.compositor = "labwc";
       graphics = {
         launchers =
-          let
-            cliArgs = replaceStrings [ "\n" ] [ " " ] ''
-              --name ${config.ghaf.givc.adminConfig.name}
-              --addr ${config.ghaf.givc.adminConfig.addr}
-              --port ${config.ghaf.givc.adminConfig.port}
-              ${optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-              ${optionalString config.ghaf.givc.enableTls "--cert /run/givc/gui-vm-cert.pem"}
-              ${optionalString config.ghaf.givc.enableTls "--key /run/givc/gui-vm-key.pem"}
-              ${optionalString (!config.ghaf.givc.enableTls) "--notls"}
-            '';
-          in
           [
             # {
             #   # The SPKI fingerprint is calculated like this:
@@ -215,7 +204,7 @@ in
 
             {
               name = "Control panel";
-              path = "${pkgs.ctrl-panel}/bin/ctrl-panel";
+              path = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
               icon = "utilities-tweak-tool";
             }
           ]

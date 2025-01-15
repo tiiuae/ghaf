@@ -3,7 +3,20 @@
 #
 # TODO: Refactor even more.
 #       This is the old "host/default.nix" file.
-{ lib, ... }:
+#
+# ghaf.common: Interface to share ghaf configs from host to VMs
+#
+{ config, lib, ... }:
+let
+  inherit (builtins) attrNames hasAttr;
+  inherit (lib)
+    mkOption
+    types
+    optionalAttrs
+    optionalString
+    attrsets
+    ;
+in
 {
   imports = [
     # TODO remove this when the minimal config is defined
@@ -14,7 +27,49 @@
     #(modulesPath + "/profiles/minimal.nix")
   ];
 
+  options.ghaf = {
+    common = {
+      vms = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "List of VMs currently enabled.";
+      };
+      systemHosts = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "List of system hosts currently enabled.";
+      };
+      appHosts = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "List of app hosts currently enabled.";
+      };
+    };
+    type = mkOption {
+      description = "Type of the ghaf component. One of 'host', 'system-vm', or 'app-vm'.";
+      type = types.str;
+    };
+  };
+
   config = {
+
+    # Populate the shared namespace
+    ghaf = optionalAttrs (hasAttr "microvm" config) {
+      common = optionalAttrs (hasAttr "vms" config.microvm) {
+        vms = attrNames config.microvm.vms;
+        systemHosts = lib.lists.remove "" (
+          lib.attrsets.mapAttrsToList (
+            n: v: lib.optionalString (v.config.config.ghaf.type == "system-vm") n
+          ) config.microvm.vms
+        );
+        appHosts = lib.lists.remove "" (
+          lib.attrsets.mapAttrsToList (
+            n: v: lib.optionalString (v.config.config.ghaf.type == "app-vm") n
+          ) config.microvm.vms
+        );
+      };
+    };
+
     system.stateVersion = lib.trivial.release;
 
     ####

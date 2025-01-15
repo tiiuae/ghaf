@@ -8,7 +8,6 @@
     ./firmware.nix
     ./xdgopener.nix
     ./xdghandlers.nix
-    ./namespaces.nix
     ./yubikey.nix
     ./bluetooth.nix
     ./disks.nix
