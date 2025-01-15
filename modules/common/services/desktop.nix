@@ -214,7 +214,7 @@ in
             }
 
             {
-              name = "Control panel";
+              name = "Control Panel";
               path = "${pkgs.ctrl-panel}/bin/ctrl-panel";
               icon = "utilities-tweak-tool";
             }
