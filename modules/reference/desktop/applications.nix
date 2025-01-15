@@ -60,8 +60,8 @@ in
         }
 
         {
-          name = "Control panel";
-          description = "Control panel";
+          name = "Control Panel";
+          description = "Control Panel";
           icon = "utilities-tweak-tool";
           command = "${pkgs.ctrl-panel}/bin/ctrl-panel";
         }
