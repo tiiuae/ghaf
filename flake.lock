@@ -329,17 +329,17 @@
         "nixpkgs": "nixpkgs"
       },
       "locked": {
-        "lastModified": 1718600161,
-        "narHash": "sha256-f51gOZCrmNNOFTyfYxPSDxYZPALGydjWsSPVz6skY0o=",
-        "owner": "anduril",
+        "lastModified": 1732866224,
+        "narHash": "sha256-pg3LmLvRuxVVcWRseksc9lAi+Q54hjjXXxls6OPpaUo=",
+        "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "793716c1ca29a1be6d9bea84296a933c4acdddc1",
+        "rev": "e894b0c574a12ce31cc2f49200f6d8cee13ceffd",
         "type": "github"
       },
       "original": {
-        "owner": "anduril",
+        "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "793716c1ca29a1be6d9bea84296a933c4acdddc1",
+        "rev": "e894b0c574a12ce31cc2f49200f6d8cee13ceffd",
         "type": "github"
       }
     },
