@@ -122,9 +122,9 @@ in
       };
       default = {
         theme = "Adwaita";
-        iconTheme = "Papirus";
+        iconTheme = "Papirus-Dark";
         colorScheme = "prefer-dark";
-        fontName = "Cantarell";
+        fontName = "Inter";
         fontSize = "11";
       };
       description = "Global gtk+ configuration";
