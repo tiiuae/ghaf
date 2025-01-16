@@ -35,7 +35,7 @@ in
           name = "File Manager";
           description = "Organize & Manage Files";
           icon = "system-file-manager";
-          command = "${pkgs.pcmanfm}/bin/pcmanfm";
+          command = "${pkgs.pcmanfm}/bin/pcmanfm /Shares";
         }
 
         {

@@ -34,6 +34,9 @@ let
           "video"
         ];
       };
+      readOnlyHome = mkEnableOption "read-only home directory" // {
+        default = true;
+      };
       homeSize = mkOption {
         description = ''
           Size of the home directory for the login user in MB (integer).
@@ -270,6 +273,7 @@ in
               --noexec=true \
               --nodev=true \
               --disk-size=${toString cfg.loginUser.homeSize}M \
+              --access-mode=${if cfg.loginUser.readOnlyHome then "500" else "700"} \
               --shell=/run/current-system/sw/bin/bash \
               --uid=${toString cfg.loginUser.uid} \
               --member-of=users${
