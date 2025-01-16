@@ -20,4 +20,5 @@
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
   gtklock = import ./gtklock { inherit prev; };
+  waypipe = import ./waypipe { inherit prev; };
 })
