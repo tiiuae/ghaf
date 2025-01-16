@@ -9,6 +9,11 @@
 let
   waypipePort = 1100; # TODO: remove hardcoded port number
   idsvmIP = "ids-vm";
+  displayOpt =
+    if configHost.ghaf.shm.service.gui.enabled then
+      "-s ${configHost.ghaf.shm.service.gui.clientSocketPath}"
+    else
+      "--vsock -s ${toString waypipePort}";
   mitmwebUI = pkgs.writeShellScript "mitmweb-ui" ''
     # Create ssh-tunnel between chrome-vm and ids-vm
     ${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 \
@@ -20,7 +25,7 @@ let
 
     # Launch google-chrome application and open mitmweb page
     ${pkgs.openssh}/bin/ssh -i /run/waypipe-ssh/id_ed25519 -o StrictHostKeyChecking=no chrome-vm \
-        ${pkgs.waypipe}/bin/waypipe --border=#ff5733,5 --vsock -s ${toString waypipePort} server \
+        ${pkgs.waypipe}/bin/waypipe --border=#ff5733,5 ${displayOpt}} server \
         google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland \
         http://localhost:8081
 
