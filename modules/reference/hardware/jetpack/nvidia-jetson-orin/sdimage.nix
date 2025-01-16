@@ -60,7 +60,6 @@
       '';
       populateRootCommands = '''';
       postBuildCommands = ''
-        img=$out/sd-image/${config.sdImage.imageName}
         fdisk_output=$(fdisk -l "$img")
 
         # Offsets and sizes are in 512 byte sectors
@@ -83,6 +82,8 @@
       '';
     };
 
+  #TODO: should we use the default
+  #https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/installer/sd-card/sd-image.nix#L177
   fileSystems."/boot" = {
     device = "/dev/disk/by-label/${config.sdImage.firmwarePartitionName}";
     fsType = "vfat";
