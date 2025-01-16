@@ -136,7 +136,7 @@ in
         ROOT_OFFSET=$(cat "${images}/root.offset")
         ROOT_SIZE=$(cat "${images}/root.size")
 
-        img="${images}/sd-image/${config.sdImage.imageName}.zst"
+        img="${images}/sd-image/${config.sdImage.imageName}"
         echo "Extracting ESP partition to $WORKDIR/bootloader/esp.img ..."
         dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
         echo "Extracting root partition to $WORKDIR/root.img ..."
