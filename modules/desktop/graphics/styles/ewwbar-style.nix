@@ -53,7 +53,7 @@
 
   @mixin floating_widget($bg: $bg-primary, $margin: 0.3em 0.3em 0em 0em, $padding: 14px, $radius: 12px, $unset: true) {
       @if $unset {
-        @include unset($rec: true);
+        @include unset;
       }
       background-color: $bg;
       border-radius: $radius;
@@ -68,18 +68,16 @@
       background-size: contain;
       min-height: 24px;
       min-width: 24px;
-      font-family: ${fontName};
-      font-size: 1.5em;
       color: #FFFFFF;
       -gtk-icon-effect: none;
   }
 
-  @mixin icon-button($bg: transparent, $hover-bg: $widget-hover) {
+  @mixin button($bg: transparent, $hover-bg: $widget-hover) {
       @include unset;
       @include icon;
 
       border-radius: 0.25em;
-      padding: 0.3em;
+      padding: 0.4em;
       background-color: $bg;
 
       .icon{
@@ -98,6 +96,10 @@
   }
 
   @mixin slider($slider-width: 225px, $slider-height: 2px, $thumb: true, $thumb-width: 1em, $focusable: true, $radius: 7px, $shadows: true, $trough-bg: $widget-hover, $trough-fg: $stroke-success) {
+      scale {
+          padding: 0px;
+      }
+      
       trough {
           border-radius: $radius;
           border: 0;
@@ -117,6 +119,7 @@
           @if $thumb {
               box-shadow: none;
               background-color: #D3D3D3;
+              background-image: none;
               border: 0 solid transparent;
               border-radius: 50%;
               min-height: $thumb-width;
@@ -127,6 +130,7 @@
               min-width: 0;
               min-height: 0;
               background-color: transparent;
+              background-image: none;
           }
       }
 
@@ -172,14 +176,6 @@
           font-weight: $font-bold;
           font-family: ${fontName};
       }
-
-      .settings{
-          @include icon-button;
-      }
-
-      .icon_settings{
-          @include icon-button;
-      }
   }
 
   @mixin qs-widget($min-height: 70px, $min-width: 150px, $radius: 0.75em, $bg: $widget-bg) {
@@ -189,7 +185,7 @@
       background-color: $bg;
   }
 
-  @mixin widget-button($min-width: 133px, $min-height: 58px, $radius: 0.75em, $bg: $widget-bg, $padding: 0.8em, $icon-padding: 0) {
+  @mixin widget-button($min-width: 133px, $min-height: 58px, $radius: 0.75em, $bg: $widget-bg, $padding: 0.8em) {
       @include qs-widget($min-width: $min-width, $min-height: $min-height);
 
       .inner-box {
@@ -218,7 +214,6 @@
           background-position: center;
           min-height: 24px;
           min-width: 24px;
-          padding: $icon-padding;
       }
 
       .text {
@@ -237,7 +232,7 @@
   }
 
   .qs-widget {
-      @include unset($rec: true);
+      @include unset;
       @include qs-widget;
   }
 
@@ -246,7 +241,7 @@
   .floating-widget { @include floating_widget; }
 
   .qs-slider {
-      @include unset($rec: true);
+      @include unset;
       @include sys-sliders;
       @include qs-widget($min-height: 0px);
       padding: 0.8em;
@@ -254,9 +249,6 @@
 
   .popup {
       .slider{ @include slider($slider-width: 150px, $thumb: false, $slider-height: 5px); }
-      .icon_settings{
-          @include icon-button;
-      }
       font-size: 1.3em;
       :disabled {
           color: $text-base;
@@ -272,8 +264,16 @@
       padding: 0.2em 0.5em 0.2em 0.5em;
   }
 
-  .icon_button {
-      @include icon-button;
+  .default_button {
+      @include button;
+      label {
+        font-size: 0.9em;
+      }
+      .header {
+        font-size: 0.9em;
+        font-weight: $font-bold;
+        font-family: ${fontName};
+      }
   }
 
   .divider {

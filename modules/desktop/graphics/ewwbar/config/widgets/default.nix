@@ -17,13 +17,13 @@ in
 writeText "widgets.yuck" ''
   ;; Launcher ;;
       (defwidget launcher []
-          (button :class "icon_button"
+          (button :class "default_button"
               :onclick "${pkgs.nwg-drawer}/bin/nwg-drawer &"
               (box :class "icon"
                   :style "background-image: url(\"${pkgs.ghaf-artwork}/icons/launcher.svg\")")))
 
       ;; Generic slider widget ;;
-      (defwidget sys_slider [?visible ?header-left ?header-right ?icon ?image ?app_icon ?settings_icon level ?onchange ?settings-onclick ?icon-onclick ?class ?min]
+      (defwidget slider [?visible ?header-left ?header-onclick ?header-right ?icon ?image ?app_icon ?settings_icon level ?onchange ?settings-onclick ?icon-onclick ?class ?min]
           (box :orientation "v"
               :visible { visible ?: "true"}
               :class "''${class}"
@@ -33,19 +33,32 @@ writeText "widgets.yuck" ''
                 :hexpand true
                 :visible { header-left != "" ? "true" : "false" }
                 :orientation "h"
-                :spacing 20
+                :spacing 5
                 :halign "fill"
                 :space-evenly false
                 (label :class "header"
                   :visible { header-left != "" && header-left != "null" ? "true" : "false" }
                   :text header-left
                   :halign "start")
+                (eventbox
+                  :halign "start"
+                  :visible { header-onclick != "" && header-onclick != "null" }
+                  :onclick header-onclick
+                  :height 24
+                  :width 24
+                  :class "default_button"
+                  (image 
+                    :class "icon"
+                    :icon "arrow-down"
+                  )
+                )
                 (label :class "header"
                   :visible { header-right != "" && header-right != "null" ? "true" : "false" }
                   :text header-right
                   :hexpand "true"
                   :limit-width 35
-                  :halign "end"))
+                  :halign "end")
+              )
               (box :orientation "h"
                   :valign "end"
                   :spacing 5
@@ -56,7 +69,98 @@ writeText "widgets.yuck" ''
                       :onclick icon-onclick
                       :height 24
                       :width 24
-                      :class "icon_settings"
+                      :class "default_button"
+                      (box
+                        (image :class "icon" :visible { image != "" } :path image :image-height 24 :image-width 24)
+                        (image 
+                          :class "icon"
+                          :visible { image == "" }
+                          :path {image ?: ""}
+                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "" } 
+                          :image-height 24
+                          :image-width 24
+                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
+                        )
+                      )
+                  )
+                  (eventbox
+                      :class "slider"
+                      :hexpand true
+                      (scale
+                          :orientation "h"
+                          :value level
+                          :round-digits 0
+                          :onchange onchange
+                          :max 100 
+                          :min { min ?: 0 }))
+                  (eventbox
+                      :visible { settings-onclick != "" && settings-onclick != "null" ? "true" : "false" }
+                      :onclick settings-onclick
+                      :height 24
+                      :width 24
+                      :class "default_button"
+                      (image :class "icon" :icon settings_icon)))))
+
+      (defwidget slider_with_children [?visible ?child_0_visible ?child_1_visible ?header-left ?header-onclick ?header-right ?icon ?image ?app_icon ?settings_icon level ?onchange ?settings-onclick ?icon-onclick ?class ?min]
+          (box :orientation "v"
+              :visible { visible ?: "true"}
+              :class "''${class}"
+              :spacing 10
+              :space-evenly false
+              (box :orientation "v" :space-evenly "false" :spacing 0
+              (box
+                :hexpand true
+                :visible { header-left != "" ? "true" : "false" }
+                :orientation "h"
+                :spacing 5
+                :halign "fill"
+                :space-evenly false
+                (eventbox
+                  :halign "start"
+                  :hexpand true
+                  :active { header-onclick != "" && header-onclick != "null" }
+                  :visible { header-left != "" ? "true" : "false" }
+                  :onclick header-onclick
+                  :height 24
+                  :width 24
+                  :class "default_button"
+                  (box :orientation "h" :space-evenly "false" :spacing 5 :halign "fill"
+                    (label :class "header"
+                      :visible { header-left != "" && header-left != "null" ? "true" : "false" }
+                      :text header-left
+                      :halign "start")
+                    (image 
+                      :class "icon"
+                      :icon "arrow-down")
+                  )
+                )
+
+                (label :class "header"
+                  :visible { header-right != "" && header-right != "null" ? "true" : "false" }
+                  :text header-right
+                  :hexpand "true"
+                  :limit-width 35
+                  :halign "end")
+              )
+              (revealer
+                :transition "slidedown"
+                :duration "250ms" 
+                :reveal {child_0_visible ?: "false"}
+                (children :nth 0)
+              )
+              )
+              (box :orientation "v" :space-evenly "false" :spacing 0
+              (box :orientation "h"
+                  :valign "end"
+                  :spacing 5
+                  :space-evenly false
+                  (eventbox
+                      :active { icon-onclick != "" && icon-onclick != "null" ? "true" : "false" }
+                      :visible {image != "" || icon != "" || app_icon != ""}
+                      :onclick icon-onclick
+                      :height 24
+                      :width 24
+                      :class "default_button"
                       (box
                         (image :class "icon" :visible { image != "" } :path image :image-height 24 :image-width 24)
                         (image 
@@ -85,20 +189,29 @@ writeText "widgets.yuck" ''
                       :onclick settings-onclick
                       :height 24
                       :width 24
-                      :class "settings"
+                      :class "default_button"
                       (image :class "icon" :icon settings_icon)))
-          (children)))
-
+              (revealer
+                :transition "slidedown"
+                :duration "250ms" 
+                :reveal {child_1_visible ?: "false"}
+                (children :nth 1)
+              )
+              )))
+      
       (defwidget sys_sliders []
           (box
               :orientation "v"
               :spacing 10
               :hexpand false
               :space-evenly false
-              (sys_slider
+              (slider_with_children
                       :class "qs-slider"
                       :header-left {audio_output.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Speaker" :
                                     audio_output.friendly_name}
+                      :header-onclick "''${EWW_CMD} update audio_output_selector_visible=''${!audio_output_selector_visible} &"
+                      :child_0_visible audio_output_selector_visible
+                      :child_1_visible volume-mixer-visible
                       :image { audio_output.is_muted == "true" || audio_output.volume_percentage == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
                               audio_output.volume_percentage <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
                               audio_output.volume_percentage <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" }
@@ -106,27 +219,27 @@ writeText "widgets.yuck" ''
                       :settings_icon "adjustlevels"
                       :level { audio_output.is_muted == "true" ? "0" : audio_output.volume_percentage }
                       :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_volume {} &"
-                      (revealer
-                        :visible "false"
-                        :transition "slidedown"
-                        :duration "250ms"
-                        :reveal volume-mixer-visible
-                        (box :orientation "v"
-                          (label :text "No audio streams" :visible {arraylength(audio_streams) == 0} :halign "center" :valign "center")
-                          (volume_mixer :visible {arraylength(audio_streams) > 0})
-                        )))
-              (sys_slider
+                      (audio_output_selector)
+                      (box :orientation "v"
+                        (label :text "No audio streams" :visible {arraylength(audio_streams) == 0} :halign "center" :valign "center")
+                        (volume_mixer :visible {arraylength(audio_streams) > 0})
+                      ))
+              (slider_with_children
                       :visible { audio_input.state == "RUNNING" }
                       :class "qs-slider"
                       :header-left {audio_input.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Microphone" :
                                     audio_input.friendly_name }
+                      :header-onclick "''${EWW_CMD} update audio_input_selector_visible=''${!audio_input_selector_visible} &"
+                      :child_0_visible audio_input_selector_visible
                       :icon { audio_input.is_muted == "true" || audio_input.volume_percentage == 0 ? "microphone-sensitivity-muted" : 
                               "microphone-sensitivity-high" }
                       :icon-onclick "${ewwScripts.eww-audio}/bin/eww-audio mute_source ''${audio_input.device_index} &"
                       :level { audio_input.is_muted == "true" ? "0" : audio_input.volume_percentage }
-                      :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_source_volume ''${audio_input.device_index} {} &")
+                      :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_source_volume ''${audio_input.device_index} {} &"
+                      (audio_input_selector)
+                      )
               
-              (sys_slider
+              (slider
                       :class "qs-slider"
                       :header-left "Brightness"
                       :level {brightness.screen.level}
@@ -144,6 +257,48 @@ writeText "widgets.yuck" ''
           )
       )
 
+      (defwidget audio_output_selector []
+        (scroll
+          :hscroll "false"
+          :vscroll "true"
+          :height { 30 * min(4,arraylength(audio_outputs)) }
+          (box :orientation "v" :space-evenly false :spacing 5
+            (for device in {audio_outputs}
+              (button
+                :class "default_button"
+                :onclick "${ewwScripts.eww-audio}/bin/eww-audio set_default_sink ''${device.id} && ''${EWW_CMD} update audio_output_selector_visible=false &"
+                (box :orientation "h" :spacing 10 :space-evenly "false"
+                  (image :halign "start" :icon {device.device_type})
+                  (label :halign "start" :limit-width 30 :text { device.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Speaker" : device.friendly_name })
+                  (image :halign "start" :icon "emblem-ok" :style "opacity: ''${device.is_default ? "1" : "0"}")
+                )
+              )
+            )
+          )
+        )
+      )
+
+      (defwidget audio_input_selector []
+        (scroll
+          :hscroll "false"
+          :vscroll "true"
+          :height { 30 * min(4,arraylength(audio_inputs)) }
+          (box :orientation "v" :space-evenly false :spacing 5
+            (for device in {audio_inputs}
+              (button
+                :class "default_button"
+                :onclick "${ewwScripts.eww-audio}/bin/eww-audio set_default_source ''${device.id} && ''${EWW_CMD} update audio_input_selector_visible=false &"
+                (box :orientation "h" :spacing 10 :space-evenly "false"
+                  (image :halign "start" :icon {device.device_type == "mic" ? "microphone" : device.device_type})
+                  (label :halign "start" :limit-width 30 :text { device.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Microphone" : device.friendly_name })
+                  (image :halign "start" :icon "emblem-ok" :style "opacity: ''${device.is_default ? "1" : "0"}")
+                )
+              )
+            )
+          )
+        )
+      )
+
       (defwidget volume_mixer [?visible]
           (scroll
               :hscroll "false"
@@ -152,7 +307,7 @@ writeText "widgets.yuck" ''
               :height { 30 * min(4,arraylength(audio_streams)) }
               (box :orientation "v" :space-evenly false :spacing 10
                 (for entry in {audio_streams}
-                  (sys_slider 
+                  (slider 
                       :class "qs-slider"
                       :header-left {entry.name}
                       :level {entry.muted == "true" ? "0" : entry.level} 
@@ -305,7 +460,7 @@ writeText "widgets.yuck" ''
       (defwidget brightness-popup []
           (revealer :transition "crossfade" :duration "200ms" :reveal brightness-popup-visible :active false
               (desktop-widget :class "popup"
-                  (sys_slider
+                  (slider
                       :valign "center"
                       :image { brightness.screen.level == 0 ? "${pkgs.ghaf-artwork}/icons/brightness-0.svg" :
                               brightness.screen.level < 12 ? "${pkgs.ghaf-artwork}/icons/brightness-1.svg" :
@@ -322,7 +477,7 @@ writeText "widgets.yuck" ''
       (defwidget volume-popup []
           (revealer :transition "crossfade" :duration "200ms" :reveal volume-popup-visible :active false
               (desktop-widget :class "popup"
-                  (sys_slider
+                  (slider
                       :valign "center"
                       :image { audio_output.is_muted == "true" || audio_output.volume_percentage == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
                               audio_output.volume_percentage <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
@@ -337,8 +492,8 @@ writeText "widgets.yuck" ''
 
       ;; Quick Settings Button ;;
       (defwidget quick-settings-button [screen bat-icon vol-icon bright-icon]
-          (button :class "icon_button"
-              :onclick "${ewwScripts.eww-open-widget}/bin/eww-open-widget quick-settings \"''${screen}\" &"
+          (button :class "default_button"
+              :onclick "''${EWW_CMD} update audio_output_selector_visible=false audio_input_selector_visible=false & ${ewwScripts.eww-open-widget}/bin/eww-open-widget quick-settings \"''${screen}\" &"
               (box :orientation "h"
                   :space-evenly "false"
                   :spacing 14
@@ -360,7 +515,7 @@ writeText "widgets.yuck" ''
 
       ;; Power Menu Launcher ;;
       (defwidget power-menu-launcher [screen]
-          (button :class "icon_button icon" 
+          (button :class "default_button icon" 
               :halign "center" 
               :valign "center" 
               :onclick "${ewwScripts.eww-open-widget}/bin/eww-open-widget power-menu \"''${screen}\" &"
@@ -421,7 +576,7 @@ writeText "widgets.yuck" ''
       (defwidget datetime [screen]
           (button 
               :onclick "${ewwScripts.eww-open-widget}/bin/eww-open-widget calendar \"''${screen}\" &"
-              :class "icon_button date" "''${formattime(EWW_TIME, "%H:%M  %a %b %-d")}"))
+              :class "default_button date" "''${formattime(EWW_TIME, "%H:%M  %a %b %-d")}"))
 
       ;; Calendar ;;
       (defwidget cal []
@@ -437,7 +592,7 @@ writeText "widgets.yuck" ''
           (box :class "workspace"
               :orientation "h"
               :space-evenly "false"
-              (button :class "icon_button"
+              (button :class "default_button"
                       :tooltip "Current desktop"
                       :onclick {workspaces-visible == "false" ? "''${EWW_CMD} update workspaces-visible=true" : "''${EWW_CMD} update workspaces-visible=false"}
                       workspace)
@@ -451,7 +606,7 @@ writeText "widgets.yuck" ''
                           ${
                             lib.concatStringsSep "\n" (
                               builtins.map (index: ''
-                                (button :class "icon_button"
+                                (button :class "default_button"
                                     :onclick "${ghaf-workspace}/bin/ghaf-workspace switch ${toString index}; ''${EWW_CMD} update workspaces-visible=false"
                                     "${toString index}")
                               '') (lib.lists.range 1 cfg.maxDesktops)

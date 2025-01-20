@@ -114,9 +114,13 @@ let
       update-vars() {
         local audio_output
         local audio_input
+        local audio_outputs
+        local audio_inputs
         ${lib.optionalString useGivc ''
           audio_output=$(${eww-audio}/bin/eww-audio get_output)
           audio_input=$(${eww-audio}/bin/eww-audio get_input)
+          audio_outputs=$(${eww-audio}/bin/eww-audio get_outputs)
+          audio_inputs=$(${eww-audio}/bin/eww-audio get_inputs)
         ''}
         brightness=$(${eww-brightness}/bin/eww-brightness get)
         battery=$(${eww-bat}/bin/eww-bat get)
@@ -129,6 +133,8 @@ let
         ${ewwCmd} update \
           audio_output="$audio_output" \
           audio_input="$audio_input" \
+          audio_outputs="$audio_outputs" \
+          audio_inputs="$audio_inputs" \
           brightness="$brightness" \
           battery="$battery" \
           keyboard_layout="$keyboard_layout" \
@@ -243,15 +249,6 @@ let
                 ),
                 is_muted: (.mute // false)
               }
-            ),
-            audio_streams: (
-              $sink_inputs? // [] | map({
-                id:  .index,
-                name: .properties."application.name",
-                icon_name: .properties."application.icon_name",
-                volume_percentage: (.volume."front-left".value_percent | sub("%$"; "")),
-                is_muted: .mute
-              })
             )
           }
           catch halt
@@ -299,6 +296,72 @@ let
             }
           )
           catch halt
+        '
+      }
+
+      get_sink_inputs() {
+        jq -n -c --unbuffered \
+          --argjson sink_inputs "$(pactl -f json list sink-inputs)" '
+          try (
+            [
+              $sink_inputs? // [] | map({
+                id:  (.index // -1),
+                name: (.properties."application.name" // ""),
+                icon_name: (.properties."application.icon_name" // ""),
+                volume_percentage: ((.volume."front-left".value_percent | sub("%$"; "")) // "0"),
+                is_muted: (.mute // false)
+              })
+            ]
+          ) catch halt
+        '
+      }
+
+      get_outputs() {
+        jq -n -c --unbuffered \
+          --argjson sinks "$(pactl -f json list sinks)" \
+          --arg output "$(pactl -f json get-default-sink)" '
+          try (
+            [
+              $sinks[]
+              | select(.properties."device.class" != "monitor")
+              | {
+                  id: (.index // -1),
+                  device_name: (.name // ""),
+                  is_default: ((.name == $output) // false),
+                  volume_percentage: (
+                    (.volume | to_entries | first | .value.value_percent | sub("%$"; "") | tonumber) // 0
+                  ),
+                  state: (.state // ""),
+                  friendly_name: (.description // ""),
+                  is_muted: (.mute // false),
+                  device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "") | ascii_downcase
+                }
+            ]
+          ) catch halt
+        '
+      }
+
+      get_inputs() {
+        jq -n -c --unbuffered \
+          --argjson sources "$(pactl -f json list sources)" \
+          --arg input "$(pactl -f json get-default-source)" '
+          try (
+            [
+              $sources[]
+              | select(.properties."device.class" != "monitor")
+              | {
+                  id: (.index // -1),
+                  device_name: (.name // ""),
+                  is_default: ((.name == $input) // false),
+                  volume_percentage: (
+                    (.volume | to_entries | first | .value.value_percent | sub("%$"; "") | tonumber) // 0
+                  ),
+                  state: (.state // ""),
+                  friendly_name: (.description // ""),
+                  device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "") | ascii_downcase
+                }
+            ]
+          ) catch halt
         '
       }
 
@@ -377,6 +440,15 @@ let
         get_input)
           get_input
           ;;
+        get_outputs)
+          get_outputs
+          ;;
+        get_inputs)
+          get_inputs
+          ;;
+        get_sink_inputs)
+          get_sink_inputs
+          ;;
         set_volume)
           pamixer --unmute --set-volume "$2"
           ;;
@@ -387,6 +459,12 @@ let
         set_source_volume)
           pamixer --source "$2" --unmute --set-volume "$3"
           ;;
+        set_default_source)
+          pactl set-default-source "$2"
+          ;;
+        set_default_sink)
+          pactl set-default-sink "$2"
+          ;;
         mute)
           pamixer --toggle-mute
           ;;
@@ -395,6 +473,11 @@ let
           ;;
         mute_sink_input)
           pactl set-sink-input-mute "$2" toggle
+          ;;
+        listen)
+          pactl subscribe | grep --line-buffered "change" | while read -r event; do
+            get
+          done
           ;;
         listen_output)
           pactl subscribe | grep --line-buffered "change" | while read -r event; do
@@ -406,11 +489,21 @@ let
             get_input
           done
           ;;
+        listen_outputs)
+          pactl subscribe | while read -r event; do
+            get_outputs
+          done
+          ;;
+        listen_inputs)
+          pactl subscribe | while read -r event; do
+            get_inputs
+          done
+          ;;
         listen_sink_inputs)
           listen_sink_inputs
           ;;
         *)
-          echo "Usage: $0 {get|set_volume|mute|listen|listen_sink_inputs} [args...]"
+          echo "Usage: $0 {get|get_output|get_input|get_outputs|get_inputs|set_volume|set_sink_input_volume|set_source_volume|set_default_source|set_default_sink|mute|mute_source|mute_sink_input|listen_output|listen_input|listen_outputs|listen_inputs|listen_sink_inputs} [args...]"
           ;;
       esac
     '';
