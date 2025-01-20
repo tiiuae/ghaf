@@ -114,9 +114,9 @@
     nixos-hardware.url = "github:NixOS/nixos-hardware";
 
     jetpack-nixos = {
-      #url = "github:anduril/jetpack-nixos
-      url = "github:anduril/jetpack-nixos";
-      #inputs.nixpkgs.follows = "nixpkgs";
+      #url = "flake:mylocaljetpack";
+      url = "github:anduril/jetpack-nixos/1413da244db94ad70d8aee02561faa141d2c654f";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
 
     disko = {
