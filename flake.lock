@@ -323,19 +323,22 @@
     },
     "jetpack-nixos": {
       "inputs": {
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": [
+          "nixpkgs"
+        ]
       },
       "locked": {
-        "lastModified": 1737012813,
-        "narHash": "sha256-R1yp3Ql7NQEL9gYvt5sbDyrrFQlAsTAUIZQCLPoxW3E=",
+        "lastModified": 1737368492,
+        "narHash": "sha256-OXYt0IXzVxO+x5fZ76Y42095JRfD/7/9qTRr4T7+8Ew=",
         "owner": "anduril",
         "repo": "jetpack-nixos",
-        "rev": "d8d927bc052678c0ae0054bb73fb01a954091732",
+        "rev": "1413da244db94ad70d8aee02561faa141d2c654f",
         "type": "github"
       },
       "original": {
         "owner": "anduril",
         "repo": "jetpack-nixos",
+        "rev": "1413da244db94ad70d8aee02561faa141d2c654f",
         "type": "github"
       }
     },
@@ -477,22 +480,6 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1735669367,
-        "narHash": "sha256-tfYRbFhMOnYaM4ippqqid3BaLOXoFNdImrfBfCp4zn0=",
-        "owner": "nixos",
-        "repo": "nixpkgs",
-        "rev": "edf04b75c13c2ac0e54df5ec5c543e300f76f1c9",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nixos",
-        "ref": "nixos-24.11",
-        "repo": "nixpkgs",
-        "type": "github"
-      }
-    },
-    "nixpkgs_2": {
-      "locked": {
         "lastModified": 1736883708,
         "narHash": "sha256-uQ+NQ0/xYU0N1CnXsa2zghgNaOPxWpMJXSUJJ9W7140=",
         "owner": "NixOS",
@@ -526,7 +513,7 @@
         "nix-fast-build": "nix-fast-build",
         "nixos-generators": "nixos-generators",
         "nixos-hardware": "nixos-hardware",
-        "nixpkgs": "nixpkgs_2",
+        "nixpkgs": "nixpkgs",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix"
       }
