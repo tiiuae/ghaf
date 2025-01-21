@@ -16,7 +16,7 @@ SPDX-License-Identifier: WTFPL
     <meta name="robots" content="noindex" />
      
     <!-- Custom HTML head -->
-    
+
     <meta name="description" content="Documentation for TII SSRC Secure Technologies." />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#ffffff" />
@@ -158,7 +158,7 @@ SPDX-License-Identifier: WTFPL
 
       <div id="page-wrapper" class="page-wrapper">
         <div class="page">
-                    <div id="menu-bar-hover-placeholder"></div>
+          <div id="menu-bar-hover-placeholder"></div>
           <div id="menu-bar" class="menu-bar sticky">
             <div class="left-buttons">
               <label
@@ -5149,9 +5149,9 @@ submodule</p>
 <p><em>Default:</em></p>
 <pre><code>{
   colorScheme = "prefer-dark";
-  fontName = "Cantarell";
+  fontName = "Inter";
   fontSize = "11";
-  iconTheme = "Papirus";
+  iconTheme = "Papirus-Dark";
   theme = "Adwaita";
 }
 </code></pre>
@@ -5252,7 +5252,7 @@ string</p>
 <p><em>Type:</em>
 path</p>
 <p><em>Default:</em>
-<code>"/nix/store/hpr4r8z5wms16azg4q40lan1dhk1b0dh-ghaf-artwork-0.1.0/ghaf-desert-sunset.jpg"</code></p>
+<code>"/nix/store/snzcy43f28livqwxvs7jripis3v7xka6-ghaf-artwork-0.1.0/ghaf-desert-sunset.jpg"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
@@ -8124,8 +8124,12 @@ boolean</p>
 <p>Extra groups for the login user.</p>
 <p><em>Type:</em>
 list of string</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
+<p><em>Default:</em></p>
+<pre><code>[
+  "audio"
+  "video"
+]
+</code></pre>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/users/desktop.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/users/desktop.nix</a></li>
