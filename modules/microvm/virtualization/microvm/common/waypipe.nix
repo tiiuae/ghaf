@@ -65,6 +65,10 @@ in
       runWaypipe
     ];
 
+    # Ensure that the vulkan drivers are available for the waypipe to utilize
+    # it is already available in the GUIVM so this will ensure it is there in the appvms that enable the waypipe only.
+    hardware.graphics.enable = true;
+
     ghaf.waypipe = {
       # Waypipe service runs in the GUIVM and listens for incoming connections from AppVMs
       waypipeService = {
