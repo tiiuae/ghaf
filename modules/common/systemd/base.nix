@@ -31,6 +31,7 @@ let
         withCompression = true;
         withCoredump = cfg.withDebug || cfg.withMachines;
         withCryptsetup = cfg.withCryptsetup || cfg.withHomed;
+        withOpenSSL = cfg.withFido2 || cfg.withHomed;
         inherit (cfg) withEfi;
         inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
