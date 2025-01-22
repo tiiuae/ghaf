@@ -35,8 +35,8 @@ in
       self.packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64;
     nvidia-jetson-orin-nx-debug-from-x86_64.x86_64-linux =
       self.packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64;
-    microchip-icicle-kit-debug-from-x86_64.x86_64-linux =
-      self.packages.x86_64-linux.microchip-icicle-kit-debug-from-x86_64;
+    #microchip-icicle-kit-debug-from-x86_64.x86_64-linux =
+    # self.packages.x86_64-linux.microchip-icicle-kit-debug-from-x86_64;
 
     # Build also cross-compiled images without demo apps
     nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64.x86_64-linux =
