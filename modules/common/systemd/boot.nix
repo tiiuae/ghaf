@@ -30,6 +30,7 @@ let
       inherit (cfgBase) withRepart;
       inherit (cfgBase) withTpm2Tss;
       inherit (cfgBase) withUkify;
+      withOpenSSL = cfgBase.withFido2;
     }
     // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
       withQrencode = true; # Required for systemd-bsod, which is currently hardcoded in nixos
