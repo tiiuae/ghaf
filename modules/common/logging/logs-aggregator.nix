@@ -35,6 +35,13 @@ in
           }
         }
 
+        loki.process "system" {
+          forward_to = [loki.write.remote.receiver]
+          stage.drop {
+            expression = "GatewayAuthenticator::login"
+          }
+        }
+
         loki.source.journal "journal" {
           path          = "/var/log/journal"
           relabel_rules = discovery.relabel.adminJournal.rules
@@ -67,7 +74,7 @@ in
           }
 
           forward_to = [
-            loki.write.remote.receiver,
+            loki.process.system.receiver,
           ]
         }
       '';
