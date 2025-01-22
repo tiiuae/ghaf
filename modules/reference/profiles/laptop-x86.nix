@@ -104,7 +104,12 @@ in
 
           appvm = {
             enable = true;
-            vms = cfg.enabled-app-vms;
+            vms = builtins.listToAttrs (
+              builtins.map (vm: {
+                inherit (vm) name;
+                value = vm;
+              }) cfg.enabled-app-vms
+            );
           };
         };
       };

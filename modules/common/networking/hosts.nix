@@ -72,7 +72,9 @@ let
         let
           c = if config.networking.hostName == "ghaf-host" then config else args.configHost;
         in
-        c.ghaf.virtualization.microvm.appvm.vms or [ ]
+        lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
+          c.ghaf.virtualization.microvm.appvm.vms or [ ]
+        )
       );
 
   mkHostEntry =

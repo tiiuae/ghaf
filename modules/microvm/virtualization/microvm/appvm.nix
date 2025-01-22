@@ -243,9 +243,10 @@ in
       description = ''
         List of AppVMs to be created
       '';
-      type = types.listOf (
+      type = types.attrsOf (
         types.submodule {
           options = {
+            # enable = mkEnableOption;
             name = mkOption {
               description = ''
                 Name of the AppVM
@@ -363,7 +364,7 @@ in
           };
         }
       );
-      default = [ ];
+      default = { };
     };
 
     extraModules = mkOption {
@@ -399,6 +400,7 @@ in
 
   config =
     let
+      vms = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) cfg.vms;
       makeSwtpmService =
         { vm }:
         let
@@ -434,15 +436,15 @@ in
         };
       vmsWithWaypipe = lib.filter (
         vm: config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.enable
-      ) cfg.vms;
+      ) vms;
     in
     lib.mkIf cfg.enable {
       # Define microvms for each AppVM configuration
       microvm.vms =
         let
-          vms = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) cfg.vms;
+          vms' = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) vms;
         in
-        lib.foldr lib.recursiveUpdate { } vms;
+        lib.foldr lib.recursiveUpdate { } vms';
 
       # Apply host service dependencies, add swtpm
       systemd.services =
@@ -456,7 +458,7 @@ in
               serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
             };
             "${vm.name}-swtpm" = makeSwtpmService { inherit vm; };
-          }) cfg.vms;
+          }) vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
           proxyServices = map (vm: {
             "vsockproxy-${vm.name}" =
