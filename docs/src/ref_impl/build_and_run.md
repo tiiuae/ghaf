@@ -125,7 +125,7 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
 
 1. To build the target image, run the command:
     ```
-    nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-from-x86_64
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
     ```
