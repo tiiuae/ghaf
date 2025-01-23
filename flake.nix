@@ -166,6 +166,14 @@
         crane.follows = "givc/crane";
       };
     };
+
+    ci-test-automation = {
+      url = "github:tiiuae/ci-test-automation";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+      };
+    };
   };
 
   outputs =

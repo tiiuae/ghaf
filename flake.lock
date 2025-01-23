@@ -1,5 +1,28 @@
 {
   "nodes": {
+    "ci-test-automation": {
+      "inputs": {
+        "flake-utils": [
+          "flake-utils"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1737627502,
+        "narHash": "sha256-pSkiyo5C6j/t7LD8typwKGGy9KqnZzsda1SOn/LcUdM=",
+        "owner": "tiiuae",
+        "repo": "ci-test-automation",
+        "rev": "e7a059a7fdcba66385c450a654f203d3761503c0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "ci-test-automation",
+        "type": "github"
+      }
+    },
     "crane": {
       "locked": {
         "lastModified": 1736101677,
@@ -500,6 +523,7 @@
     },
     "root": {
       "inputs": {
+        "ci-test-automation": "ci-test-automation",
         "ctrl-panel": "ctrl-panel",
         "devshell": "devshell",
         "disko": "disko",
