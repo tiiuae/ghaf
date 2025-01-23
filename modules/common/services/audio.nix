@@ -36,7 +36,7 @@ in
     };
     pulseaudioUseShmem = mkOption {
       type = types.bool;
-      default = false;
+      default = true;
       description = "Use shared memory for audio service";
     };
   };
@@ -67,9 +67,6 @@ in
                     "client.access" = "restricted";
                   }
                 ];
-                "pulse.min.req" = "1024/48000";
-                "pulse.min.quantum" = "1024/48000";
-                "pulse.idle.timeout" = "3";
               };
             }
             {
@@ -174,9 +171,12 @@ in
       };
 
     # Open TCP port for the pipewire pulseaudio socket
-    networking.firewall.allowedTCPPorts = [
-      cfg.pulseaudioTcpPort
-      cfg.pulseaudioTcpControlPort
-    ];
+    networking.firewall.allowedTCPPorts =
+      [
+        cfg.pulseaudioTcpControlPort
+      ]
+      ++ lib.optionals (!cfg.pulseaudioUseShmem) [
+        cfg.pulseaudioTcpPort
+      ];
   };
 }

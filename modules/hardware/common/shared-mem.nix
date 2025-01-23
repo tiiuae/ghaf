@@ -144,7 +144,10 @@ in
               userService = false;
               systemdParams = {
                 wantedBy = [ "default.target" ];
-                after = [ "pipewire.service" ];
+                after = [
+                  "pipewire.service"
+                  "pipewire-pulse.socket"
+                ];
                 serviceConfig = {
                   User = "pipewire";
                   Group = "pipewire";
