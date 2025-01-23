@@ -58,6 +58,10 @@ let
       name = "audio-vm";
     }
     {
+      ip = 6;
+      name = "gpu-vm";
+    }
+    {
       ip = 10;
       name = "admin-vm";
     }

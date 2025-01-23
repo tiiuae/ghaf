@@ -10,6 +10,7 @@
       (import ./virtualization/microvm/adminvm.nix { inherit inputs; })
       (import ./virtualization/microvm/appvm.nix { inherit inputs; })
       (import ./virtualization/microvm/guivm.nix { inherit inputs; })
+      (import ./virtualization/microvm/gpuvm.nix { inherit inputs; })
       (import ./virtualization/microvm/audiovm.nix { inherit inputs; })
       ./virtualization/microvm/idsvm/idsvm.nix
       ./virtualization/microvm/idsvm/mitmproxy

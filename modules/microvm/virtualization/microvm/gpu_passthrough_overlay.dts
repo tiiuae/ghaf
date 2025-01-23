@@ -86,6 +86,11 @@
                 interrupts = <0 416 4
                     0 419 4
                     0  61 4>;
+                memory-region = <>;
+		        nvdisplay-niso {
+          			compatible = "nvidia,nvidia,dummy";
+		        	iommus = <>;
+                };
             };
         };
     };
@@ -108,16 +113,18 @@
         };
     };
 
-    // fragment@3 {
-    //     target-path = "/chosen/framebuffer";
-    //     __overlay__ {
-    //         compatible = "dummy";
-    //         status = "okay";
-    //     };
-    // };
-
-
     fragment@3 {
+        target-path = "/chosen";
+        __overlay__ {
+            framebuffer {
+                compatible = "dummy";
+                status = "okay";
+            };
+        };
+    };
+
+
+    fragment@4 {
         target-path = "/bus@0";
         __overlay__ {
             gpu@17000000 {
@@ -148,7 +155,7 @@
         };
     };
 
-    fragment@4 {
+    fragment@5 {
         target-path = "/bus@0";
         __overlay__ {
             host1x@13e00000 {
@@ -157,7 +164,7 @@
         };
     };
 
-    fragment@5 {
+    fragment@6 {
         target-path = "/bus@0/host1x@13e00000";
         __overlay__ {
             vic@15340000  {
@@ -173,7 +180,7 @@
     };
     
     
-    fragment@6 {
+    fragment@7 {
         target-path = "/bus@0";
         __overlay__ {
             host1x_pt@13e00000 {
@@ -289,7 +296,7 @@
     // [  522.846300] 	  GRPSEC		: 0x7e
     // [  522.852012] 	  FALCONSEC		: 0x0
     // [  522.857896] 	**************************************
-    fragment@7 {
+    fragment@8 {
         target-path = "/bus@0/hda@3510000";
         __overlay__ {
             status = "disabled";

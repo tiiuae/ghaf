@@ -86,6 +86,9 @@ let
                     enable = true;
                     extraModules = netvmExtraModules;
                   };
+                  gpuvm = {
+                    enable = true;
+                  };
                 };
               };
 
