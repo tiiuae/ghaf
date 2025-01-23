@@ -111,7 +111,10 @@
       };
     };
 
-    nixos-hardware.url = "github:NixOS/nixos-hardware";
+    nixos-hardware = {
+      #url = "flake:mylocalnixoshw";
+      url = "github:NixOS/nixos-hardware";
+    };
 
     jetpack-nixos = {
       #url = "flake:mylocaljetpack";
