@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX reference boards
-{ lib, config, ... }:
+{ pkgs, lib, config, ... }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
   inherit (lib)
@@ -108,6 +108,7 @@ in
     hardware.deviceTree =
       {
         enable = lib.mkDefault true;
+        dtbSource = "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/";
         # Add the include paths to build the dtb overlays
         dtboBuildExtraIncludePaths = [
           # Empty.
