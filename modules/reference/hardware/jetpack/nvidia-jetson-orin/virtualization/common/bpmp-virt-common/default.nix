@@ -44,6 +44,9 @@ in
       }
     ]; 
 
-    boot.kernelParams = [ "vfio_iommu_type1.allow_unsafe_interrupts=1" ];
+    boot.kernelParams = [ 
+      "vfio_iommu_type1.allow_unsafe_interrupts=1" 
+      "arm-smmu.disable_bypass=0"
+    ];
   };
 }
