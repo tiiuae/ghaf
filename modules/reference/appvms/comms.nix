@@ -8,7 +8,7 @@
   ...
 }:
 let
-  inherit (lib) hasAttr optionals;
+  inherit (lib) hasAttr optionals mkForce;
 in
 {
   name = "comms";
@@ -69,12 +69,44 @@ in
       # GPSD collects data from GPS and makes it available on TCP port 2947
       services.gpsd = {
         enable = true;
+        # Give the ttyUSB0 device for gpsd in case gps was plugged in from boot
+        # This doesn't affect anything if device is not available
         devices = [ "/dev/ttyUSB0" ];
+        # Use safer read-only mode
         readonly = true;
-        debugLevel = 2;
+        # Set debug level to zero so gpsd won't flood the logs unnecessarily
+        debugLevel = 0;
+        # Listen on all IP-addresses
         listenany = true;
-        extraArgs = [ "-n" ]; # Do not wait for a client to connect before polling
+        # Do not wait for a client to connect before polling
+        nowait = true;
+        # Give gpsd the control socket to use, so it will keep running even if there are no gps devices connected
+        extraArgs = [
+          "-F"
+          "/var/run/gpsd.sock"
+        ];
       };
+      services.udev.extraRules =
+        let
+          gps = lib.filter (d: d.name == "gps0") config.ghaf.hardware.definition.usb.external;
+        in
+        if gps != [ ] then
+          let
+            VID = (builtins.head gps).vendorId;
+            PID = (builtins.head gps).productId;
+          in
+          # When USB gps device is inserted run gpsdctl to add the device to gpsd, so it starts monitoring it
+          # (Note that this will be run way before gpsd service is running, if device is already connected when booting.
+          # This does not seem to have any negative effects though)
+          ''
+            ACTION=="add", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="${VID}", ENV{ID_MODEL_ID}=="${PID}", ENV{DEVNAME}=="/dev/ttyUSB*", RUN+="${pkgs.gpsd}/bin/gpsdctl add '%E{DEVNAME}'"
+          ''
+        else
+          null;
+      # Disable serial debug console on comms-vm as it makes the serial device owned by
+      # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
+      # can't access the device if this is enabled.
+      ghaf.development.usb-serial.enable = mkForce false;
     }
   ];
 }
