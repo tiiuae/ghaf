@@ -2068,7 +2068,7 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <p>After the latest firmware is <a href="ref_impl/./build_and_run.html#flashing-nvidia-jetson-orin-agx">flashed</a>, it is possible to use a simplified process by building only the Ghaf disk image and running it from external media:</p>
 <ol>
 <li>To build the target image, run the command:
-<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-from-x86_64
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built using the <code>flash.sh</code> script:
