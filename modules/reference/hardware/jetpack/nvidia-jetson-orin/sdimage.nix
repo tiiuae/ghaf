@@ -47,7 +47,7 @@
               --disallow-untyped-defs \
               $out
           '';
-      fdtPath = builtins.trace "Note: Using DTB from NVIDIA BSP!" "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/${config.hardware.deviceTree.name}";
+      fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
     in
     {
       firmwareSize = 256;
