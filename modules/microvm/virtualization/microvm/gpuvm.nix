@@ -233,6 +233,7 @@ in
     services.udev.extraRules = ''
       # Allow group kvm to all devices that are binded to vfio 
       SUBSYSTEM=="vfio",GROUP="kvm"
+      SUBSYSTEM=="chardrv", KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
     '';
 
     # Make sure that GPU-VM runs after the binding services are enabled
