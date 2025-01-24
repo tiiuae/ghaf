@@ -51,6 +51,8 @@
         };
     in
     {
+      #TODO: use devshell not devShells
+      # also is this needed with nix develop doing all of these tasks
       devShells.kernel-x86 = mkKernelShell {
         platform = "x86_64-generic";
         arch = "x86";
