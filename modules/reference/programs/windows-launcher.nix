@@ -28,7 +28,7 @@ in
     spice-host = lib.mkOption {
       description = "Spice host";
       type = lib.types.str;
-      default = "192.168.101.2";
+      default = config.ghaf.networking.hosts."ghaf-host".ipv4;
     };
   };
 

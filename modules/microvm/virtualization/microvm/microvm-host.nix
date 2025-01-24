@@ -56,6 +56,7 @@ in
       # microvm.host.useNotifySockets = true;
 
       ghaf = {
+        type = "host";
         systemd = {
           withName = "host-systemd";
           enable = true;
@@ -73,12 +74,27 @@ in
           withDebug = config.ghaf.profiles.debug.enable;
           withHardenedConfigs = true;
         };
-
         givc.host.enable = true;
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
       };
 
       services.logind.lidSwitch = "ignore";
+
+      # Create host directories for microvm shares
+      systemd.tmpfiles.rules =
+        let
+          vmRootDirs = map (vm: "d /storagevm/${vm} 0700 root root -") (
+            builtins.attrNames config.microvm.vms
+          );
+        in
+        [
+          "d /storagevm/homes 0700 microvm kvm -"
+          "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
+        ]
+        ++ lib.optionals config.ghaf.givc.enable [
+          "d /storagevm/givc 0700 microvm kvm -"
+        ]
+        ++ vmRootDirs;
 
       # TODO: remove hardcoded paths
       systemd.services."microvm@audio-vm".serviceConfig =
@@ -103,7 +119,6 @@ in
               ''}"
             ];
           };
-
     })
     (mkIf cfg.sharedVmDirectory.enable {
       ghaf.virtualization.microvm.guivm.extraModules = [ (import ./common/shared-directory.nix "") ];
@@ -111,9 +126,6 @@ in
       # Create directories required for sharing files with correct permissions.
       systemd.tmpfiles.rules =
         let
-          vmRootDirs = map (vm: "d /storagevm/${vm} 0700 root root -") (
-            builtins.attrNames config.microvm.vms
-          );
           vmDirs = map (
             n:
             "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
@@ -122,10 +134,7 @@ in
         [
           "d /storagevm/shared 0755 root root"
           "d /storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
-          "d /storagevm/homes 0700 microvm kvm -"
-          "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
-        ++ vmRootDirs
         ++ vmDirs;
     })
     (mkIf config.ghaf.profiles.debug.enable {

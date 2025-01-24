@@ -70,16 +70,13 @@ let
     flush
 
   '';
-
-  netvmEntry = builtins.filter (x: x.name == "net-vm") config.ghaf.networking.hosts.entries;
-  netvmAddr = lib.head (builtins.map (x: x.ip) netvmEntry);
 in
 {
   options.ghaf.reference.services.proxy-server = {
     enable = mkEnableOption "Enable proxy server module";
     internalAddress = lib.mkOption {
       type = lib.types.str;
-      default = netvmAddr;
+      default = config.ghaf.networking.hosts."net-vm".ipv4;
       description = "Internal address for proxy server";
     };
     bindPort = lib.mkOption {

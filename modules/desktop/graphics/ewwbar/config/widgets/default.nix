@@ -6,6 +6,7 @@
   pkgs,
   lib,
   useGivc,
+  cliArgs ? "",
   cfg,
   ewwScripts,
   ghaf-powercontrol,
@@ -47,7 +48,7 @@ writeText "widgets.yuck" ''
                   :height 24
                   :width 24
                   :class "default_button"
-                  (image 
+                  (image
                     :class "icon"
                     :icon "arrow-down"
                   )
@@ -72,13 +73,13 @@ writeText "widgets.yuck" ''
                       :class "default_button"
                       (box
                         (image :class "icon" :visible { image != "" } :path image :image-height 24 :image-width 24)
-                        (image 
+                        (image
                           :class "icon"
                           :visible { image == "" }
-                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
+                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" }
                           :image-height 24
                           :image-width 24
-                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
+                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""}
                         )
                       )
                   )
@@ -90,7 +91,7 @@ writeText "widgets.yuck" ''
                           :value level
                           :round-digits 0
                           :onchange onchange
-                          :max 100 
+                          :max 100
                           :min { min ?: 0 }))
                   (eventbox
                       :visible { settings-onclick != "" && settings-onclick != "null" }
@@ -128,7 +129,7 @@ writeText "widgets.yuck" ''
                       :visible { header-left != "" && header-left != "null" }
                       :text header-left
                       :halign "start")
-                    (image 
+                    (image
                       :class "icon"
                       :icon "arrow-down")
                   )
@@ -143,7 +144,7 @@ writeText "widgets.yuck" ''
               )
               (revealer
                 :transition "slidedown"
-                :duration "250ms" 
+                :duration "250ms"
                 :reveal {child_0_visible ?: "false"}
                 (children :nth 0)
               )
@@ -162,13 +163,13 @@ writeText "widgets.yuck" ''
                       :class "default_button"
                       (box
                         (image :class "icon" :visible { image != "" } :path image :image-height 24 :image-width 24)
-                        (image 
+                        (image
                           :class "icon"
                           :visible { image == "" }
-                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
-                          :image-height 24 
-                          :image-width 24 
-                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
+                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" }
+                          :image-height 24
+                          :image-width 24
+                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""}
                         )
                       )
                   )
@@ -180,7 +181,7 @@ writeText "widgets.yuck" ''
                           :value level
                           :round-digits 0
                           :onchange onchange
-                          :max 100 
+                          :max 100
                           :min { min ?: 0 }))
                   (eventbox
                       :visible { settings-onclick != "" && settings-onclick != "null" }
@@ -191,12 +192,12 @@ writeText "widgets.yuck" ''
                       (image :class "icon" :icon settings_icon)))
               (revealer
                 :transition "slidedown"
-                :duration "250ms" 
+                :duration "250ms"
                 :reveal {child_1_visible ?: "false"}
                 (children :nth 1)
               )
               )))
-      
+
       (defwidget sys_sliders []
           (box
               :orientation "v"
@@ -239,7 +240,7 @@ writeText "widgets.yuck" ''
                       (audio_input_selector)
                       (label :text "Placeholder" :visible false)
                       )
-              
+
               (slider
                       :class "qs-slider"
                       :header-left "Brightness"
@@ -312,10 +313,10 @@ writeText "widgets.yuck" ''
               :height { 30 * min(4,arraylength(audio_streams)) }
               (box :orientation "v" :space-evenly false :spacing 10
                 (for entry in {audio_streams}
-                  (slider 
+                  (slider
                       :class "qs-slider"
                       :header-left {entry.name}
-                      :level {entry.muted == "true" ? "0" : entry.level} 
+                      :level {entry.muted == "true" ? "0" : entry.level}
                       :app_icon {entry.icon_name != "" ? entry.icon_name : "icon-missing"}
                       :image { entry.muted == "true" || entry.level == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
                               entry.level <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
@@ -349,10 +350,10 @@ writeText "widgets.yuck" ''
                       :hexpand true
                       :vexpand true
                       :space-evenly false
-                      (image :class "icon" 
-                        :visible { icon != "" } 
-                        :path icon 
-                        :image-height 24 
+                      (image :class "icon"
+                        :visible { icon != "" }
+                        :path icon
+                        :image-height 24
                         :image-width 24
                         :valign "center"
                         :halign "start")
@@ -433,20 +434,20 @@ writeText "widgets.yuck" ''
                       :icon { battery.status == 'Charging' ? "${pkgs.ghaf-artwork}/icons/battery-charging.svg" :
                               battery.capacity < 10 ? "${pkgs.ghaf-artwork}/icons/battery-0.svg" :
                               battery.capacity < 30 ? "${pkgs.ghaf-artwork}/icons/battery-1.svg" :
-                              battery.capacity < 70 ? "${pkgs.ghaf-artwork}/icons/battery-2.svg" : 
+                              battery.capacity < 70 ? "${pkgs.ghaf-artwork}/icons/battery-2.svg" :
                                                       "${pkgs.ghaf-artwork}/icons/battery-3.svg" })
                   (widget_button
                       :icon "${pkgs.ghaf-artwork}/icons/admin-cog.svg"
                       :header "Settings"
-                      :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.ctrl-panel}/bin/ctrl-panel >/dev/null &")))
+                      :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.ctrl-panel}/bin/ctrl-panel ${cliArgs} >/dev/null &")))
       ''}
 
       ;; Reusable Widgets ;;
       (defwidget desktop-widget [?space-evenly ?spacing ?orientation ?class]
-        (box 
+        (box
           :class "floating-widget ''${class}"
           :space-evenly {space-evenly != "" ? space-evenly : "false"}
-          :spacing {spacing != "" ? spacing : "10"} 
+          :spacing {spacing != "" ? spacing : "10"}
           :orientation {orientation != "" ? orientation : "v"}
           (children)))
 
@@ -504,28 +505,28 @@ writeText "widgets.yuck" ''
                   :spacing 14
                   :valign "center"
                   (image :visible { bright-icon != "" }
-                      :class "icon" 
-                      :path bright-icon 
-                      :image-height 24 
+                      :class "icon"
+                      :path bright-icon
+                      :image-height 24
                       :image-width 24)
                   (image :visible { vol-icon != "" && audio_output != "" }
-                      :class "icon" 
-                      :path vol-icon 
-                      :image-height 24 
+                      :class "icon"
+                      :path vol-icon
+                      :image-height 24
                       :image-width 24)
-                  (image :visible { audio_input != "" && audio_input.state == "RUNNING" } 
+                  (image :visible { audio_input != "" && audio_input.state == "RUNNING" }
                       :icon "microphone-sensitivity-high")
                   (image :visible { bat-icon != "" }
-                      :class "icon" 
-                      :path bat-icon 
-                      :image-height 24 
+                      :class "icon"
+                      :path bat-icon
+                      :image-height 24
                       :image-width 24))))
 
       ;; Power Menu Launcher ;;
       (defwidget power-menu-launcher [screen]
-          (button :class "default_button icon" 
-              :halign "center" 
-              :valign "center" 
+          (button :class "default_button icon"
+              :halign "center"
+              :valign "center"
               :onclick "${ewwScripts.eww-open-widget}/bin/eww-open-widget power-menu \"''${screen}\" &"
               (box :class "icon"
                   :hexpand false
@@ -534,7 +535,7 @@ writeText "widgets.yuck" ''
       ;; This widget, and the closer window, acts as a transparent area that fills the whole screen
       ;; so the user can close the specified window (widget) simply by clicking "outside"
       (defwidget closer [window]
-          (eventbox 
+          (eventbox
             :onclick "(''${EWW_CMD} close ''${window} closer) &"
             :onmiddleclick "(''${EWW_CMD} close ''${window} closer) &"
             :onrightclick "(''${EWW_CMD} close ''${window} closer) &"))
@@ -561,7 +562,7 @@ writeText "widgets.yuck" ''
                   :bat-icon { battery.status == 'Charging' ? "${pkgs.ghaf-artwork}/icons/battery-charging.svg" :
                               battery.capacity < 10 ? "${pkgs.ghaf-artwork}/icons/battery-0.svg" :
                               battery.capacity < 30 ? "${pkgs.ghaf-artwork}/icons/battery-1.svg" :
-                              battery.capacity < 70 ? "${pkgs.ghaf-artwork}/icons/battery-2.svg" : 
+                              battery.capacity < 70 ? "${pkgs.ghaf-artwork}/icons/battery-2.svg" :
                                                       "${pkgs.ghaf-artwork}/icons/battery-3.svg" })))
 
       ;; Divider ;;
@@ -582,14 +583,14 @@ writeText "widgets.yuck" ''
 
       ;; DateTime Widget ;;
       (defwidget datetime [screen]
-          (button 
+          (button
               :onclick "${ewwScripts.eww-open-widget}/bin/eww-open-widget calendar \"''${screen}\" &"
               :class "default_button date" "''${formattime(EWW_TIME, "%H:%M  %a %b %-d")}"))
 
       ;; Calendar ;;
       (defwidget cal []
-          (desktop-widget 
-              (calendar :class "cal" 
+          (desktop-widget
+              (calendar :class "cal"
                   :show-week-numbers false)))
 
       ;; Left Widgets ;;
@@ -619,8 +620,8 @@ writeText "widgets.yuck" ''
                           })))))
 
       (defwidget bar_left []
-          (box	
-              :orientation "h" 
+          (box
+              :orientation "h"
               :space-evenly "false"
               :spacing 14
               :halign "start"
@@ -632,17 +633,17 @@ writeText "widgets.yuck" ''
 
       ;; Center Widgets ;;
       (defwidget bar_center [screen]
-          (box	
-              :orientation "h" 
+          (box
+              :orientation "h"
               :space-evenly "false"
-              :spacing 14 
-              :halign "center" 
-              :valign "center" 
+              :spacing 14
+              :halign "center"
+              :valign "center"
               (datetime :screen screen)))
 
       ;; Right Widgets ;;
       (defwidget datetime-locale [screen]
-          (box	
+          (box
               :orientation "h"
               :space-evenly "false"
               :spacing 14
@@ -651,10 +652,10 @@ writeText "widgets.yuck" ''
 
       ;; End Widgets ;;
       (defwidget bar_right [screen]
-          (box :orientation "h" 
-              :space-evenly "false" 
-              :halign "end" 
-              :valign "center" 
+          (box :orientation "h"
+              :space-evenly "false"
+              :halign "end"
+              :valign "center"
               :spacing 14
               (systray :orientation "h" :spacing 14 :prepend-new true :class "tray")
               (divider)
@@ -663,7 +664,7 @@ writeText "widgets.yuck" ''
 
       ;; Bar ;;
       (defwidget bar [screen]
-          (centerbox 
+          (centerbox
               :class "eww_bar"
               :orientation "h"
               :vexpand "false"

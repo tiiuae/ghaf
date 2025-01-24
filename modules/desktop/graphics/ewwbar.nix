@@ -29,6 +29,7 @@ let
 
   widgets = pkgs.callPackage ./ewwbar/config/widgets {
     inherit useGivc;
+    inherit (config.ghaf.givc) cliArgs;
     inherit ewwScripts;
     inherit pulseaudioTcpControlPort;
     inherit ghaf-powercontrol;
