@@ -19,16 +19,16 @@
       ../hardware/common/shared-mem.nix
     ];
 
-    mem-monitor.imports = [
+    mem-manager.imports = [
       {
         nixpkgs.overlays = [
           inputs.ghafpkgs.overlays.default
           (_final: prev: {
-            mem-monitor = inputs.mem-monitor.packages.${prev.stdenv.hostPlatform.system}.default;
+            inherit (inputs.mem-manager.packages.${prev.stdenv.hostPlatform.system}) mem-manager;
           })
         ];
       }
-      ./mem-monitor.nix
+      ./mem-manager.nix
     ];
   };
 }

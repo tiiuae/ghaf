@@ -104,7 +104,7 @@
     };
 
     microvm = {
-      url = "github:slakkala/microvm.nix/9b44cecbddee0523492a3e6f2caa0bc29eb1d24b";
+      url = "github:slakkala/microvm.nix/9a82c39380ca71762642475ba6a0fb285d1c2990";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -163,12 +163,16 @@
       };
     };
 
-    mem-monitor = {
-      url = "github:slakkala/ghaf-mem-monitor/ea299f370a9e64115ef19f9d8c3ad3832448849f";
+    mem-manager = {
+      url = "github:slakkala/ghaf-mem-manager/c99a822ce8382d7b0c5101092d4dddc1ce51502a";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
+        flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
+        treefmt-nix.follows = "treefmt-nix";
+        devshell.follows = "devshell";
         crane.follows = "givc/crane";
+        pre-commit-hooks-nix.follows = "git-hooks-nix";
       };
     };
   };

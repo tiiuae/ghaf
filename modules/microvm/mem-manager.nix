@@ -1,7 +1,7 @@
 # Copyright 2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# VM memory usage monitor on host
+# VM memory usage manager on host
 #
 {
   pkgs,
@@ -24,14 +24,14 @@ in
             microvmConfig = config.microvm.vms.${name}.config.config.microvm;
           in
           {
-            "ghaf-mem-monitor-${name}" = {
-              description = "Monitor MicroVM '${name}' memory levels";
+            "ghaf-mem-manager-${name}" = {
+              description = "Manage MicroVM '${name}' memory levels";
               after = [ "microvm@${name}.service" ];
               requires = [ "microvm@${name}.service" ];
               serviceConfig = {
                 Type = "simple";
                 WorkingDirectory = "${config.microvm.stateDir}/${name}";
-                ExecStart = "${pkgs.mem-monitor}/bin/ghaf-mem-monitor -s ${name}.sock -m ${
+                ExecStart = "${pkgs.mem-manager}/bin/ghaf-mem-manager -s ${name}.sock -m ${
                   builtins.toString (microvmConfig.mem * 1024 * 1024)
                 } -M ${builtins.toString ((microvmConfig.mem + microvmConfig.balloonMem) * 1024 * 1024)}";
               };
@@ -40,12 +40,12 @@ in
         )
       )
       {
-        balloon-monitor =
+        balloon-manager =
           let
-            balloonvmnames = builtins.map (name: "ghaf-mem-monitor-" + name + ".service") balloonvms;
+            balloonvmnames = builtins.map (name: "ghaf-mem-manager-" + name + ".service") balloonvms;
           in
           {
-            description = "Monitor MicroVM balloons";
+            description = "Manage MicroVM balloons";
             after = balloonvmnames;
             requires = balloonvmnames;
             wantedBy = [ "microvms.target" ];

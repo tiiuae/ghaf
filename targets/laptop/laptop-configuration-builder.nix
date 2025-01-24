@@ -23,7 +23,7 @@ let
 
           #TODO can we move microvm to the profile/laptop-x86?
           self.nixosModules.microvm
-          self.nixosModules.mem-monitor
+          self.nixosModules.mem-manager
           #TODO see the twisted dependencies in common/desktop
 
           (_: {

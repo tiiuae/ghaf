@@ -102,6 +102,7 @@ let
             mem = 256;
             balloonMem = 128;
             hypervisor = "qemu";
+            qemu.oomDeflate = false;
             shares =
               [
                 {

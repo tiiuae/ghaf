@@ -377,31 +377,43 @@
         "type": "github"
       }
     },
-    "mem-monitor": {
+    "mem-manager": {
       "inputs": {
         "crane": [
           "givc",
           "crane"
         ],
-        "flake-utils": [
-          "flake-utils"
+        "devshell": [
+          "devshell"
+        ],
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "flake-root": [
+          "flake-root"
         ],
         "nixpkgs": [
           "nixpkgs"
+        ],
+        "pre-commit-hooks-nix": [
+          "git-hooks-nix"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
         ]
       },
       "locked": {
-        "lastModified": 1736274377,
-        "narHash": "sha256-UdulAAfxOiFOcXZxJ9n9tXSGaqQAc5P6OD2D17HSkMY=",
+        "lastModified": 1737712656,
+        "narHash": "sha256-iBEvtU0fapyqJPYSAxWpjJTlqxWFVi7LYVbiLzQsVEc=",
         "owner": "slakkala",
-        "repo": "ghaf-mem-monitor",
-        "rev": "ea299f370a9e64115ef19f9d8c3ad3832448849f",
+        "repo": "ghaf-mem-manager",
+        "rev": "c99a822ce8382d7b0c5101092d4dddc1ce51502a",
         "type": "github"
       },
       "original": {
         "owner": "slakkala",
-        "repo": "ghaf-mem-monitor",
-        "rev": "ea299f370a9e64115ef19f9d8c3ad3832448849f",
+        "repo": "ghaf-mem-manager",
+        "rev": "c99a822ce8382d7b0c5101092d4dddc1ce51502a",
         "type": "github"
       }
     },
@@ -416,17 +428,17 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1733823552,
-        "narHash": "sha256-neCIrZAsd7wMes5AOnWlBT14Zs7wqsD232hQXsygIr0=",
+        "lastModified": 1737624807,
+        "narHash": "sha256-o/UtAPvHjiYJ8PFnhdql3jiLFs9Xqb7DmXCoUT7m9mc=",
         "owner": "slakkala",
         "repo": "microvm.nix",
-        "rev": "9b44cecbddee0523492a3e6f2caa0bc29eb1d24b",
+        "rev": "9a82c39380ca71762642475ba6a0fb285d1c2990",
         "type": "github"
       },
       "original": {
         "owner": "slakkala",
         "repo": "microvm.nix",
-        "rev": "9b44cecbddee0523492a3e6f2caa0bc29eb1d24b",
+        "rev": "9a82c39380ca71762642475ba6a0fb285d1c2990",
         "type": "github"
       }
     },
@@ -538,7 +550,7 @@
         "impermanence": "impermanence",
         "jetpack-nixos": "jetpack-nixos",
         "lanzaboote": "lanzaboote",
-        "mem-monitor": "mem-monitor",
+        "mem-manager": "mem-manager",
         "microvm": "microvm",
         "nix-fast-build": "nix-fast-build",
         "nixos-generators": "nixos-generators",
