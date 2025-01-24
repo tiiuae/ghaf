@@ -2,41 +2,15 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  ##############
-  # Networking #
-  ##############
   IPAccounting = true;
   IPAddressDeny = "any";
-  RestrictAddressFamilies = [
-    "~AF_PACKET"
-  ];
-
-  ###############
-  # File system #
-  ###############
-
   ProtectSystem = "full";
   ProtectProc = "noaccess";
-  ReadWritePaths = [
-    "/run"
-    "/var/"
-    "/dev/"
-  ];
-
   PrivateMounts = true;
   ProcSubset = "all";
-
-  ##########
-  # Kernel #
-  ##########
-
   ProtectKernelTunables = true;
   ProtectKernelModules = true;
   ProtectKernelLogs = true;
-
-  ########
-  # Misc #
-  ########
   NoNewPrivileges = true;
   UMask = 77;
   ProtectHostname = true;
@@ -50,9 +24,15 @@
   SystemCallArchitectures = "native";
   NotifyAccess = false;
 
-  ################
-  # Capabilities #
-  ################
+  ReadWritePaths = [
+    "/run"
+    "/var/"
+    "/dev/"
+  ];
+
+  RestrictAddressFamilies = [
+    "~AF_PACKET"
+  ];
 
   CapabilityBoundingSet = [
     "CAP_IPC_LOCK"
@@ -65,9 +45,6 @@
     "CAP_DAC_READ_SEARCH"
   ];
 
-  ################
-  # System calls #
-  ################
   SystemCallFilter = [
     "@setuid"
     "@chown"
