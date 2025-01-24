@@ -69,8 +69,10 @@ let
   targets = [
     (installer "gen10" "debug")
     (installer "gen11" "debug")
+    (installer "gen12" "debug")
     (installer "gen10" "release")
     (installer "gen11" "release")
+    (installer "gen12" "release")
   ];
 in
 {
