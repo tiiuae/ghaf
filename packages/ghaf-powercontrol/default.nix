@@ -10,17 +10,6 @@
   ...
 }:
 let
-  inherit (builtins) replaceStrings;
-  inherit (lib) optionalString;
-  cliArgs = replaceStrings [ "\n" ] [ " " ] ''
-    --name ${ghafConfig.givc.adminConfig.name}
-    --addr ${ghafConfig.givc.adminConfig.addr}
-    --port ${ghafConfig.givc.adminConfig.port}
-    ${optionalString ghafConfig.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-    ${optionalString ghafConfig.givc.enableTls "--cert /run/givc/gui-vm-cert.pem"}
-    ${optionalString ghafConfig.givc.enableTls "--key /run/givc/gui-vm-key.pem"}
-    ${optionalString (!ghafConfig.givc.enableTls) "--notls"}
-  '';
   useGivc = ghafConfig.givc.enable;
   # Handle Wayland display power state
   waylandDisplayCmd = command: ''
@@ -37,7 +26,7 @@ writeShellApplication {
   text = ''
     case "$1" in
       reboot|poweroff)
-        ${if useGivc then "givc-cli ${cliArgs}" else "systemctl"} "$1"
+        ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} "$1"
         ;;
       suspend)
         # Lock sessions
@@ -47,7 +36,7 @@ writeShellApplication {
         ${waylandDisplayCmd "off"}
 
         # Send suspend command to host, ensure screen is on in case of failure
-        ${if useGivc then "givc-cli ${cliArgs}" else "systemctl"} suspend \
+        ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend \
           || ${waylandDisplayCmd "on"}
 
         # Switch on display on wakeup

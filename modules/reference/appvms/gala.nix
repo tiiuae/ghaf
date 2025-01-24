@@ -7,7 +7,6 @@
 }:
 {
   name = "gala";
-  macAddress = "02:00:00:03:06:01";
   ramMb = 1536;
   cores = 2;
   borderColor = "#027d7b";

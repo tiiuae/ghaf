@@ -5,7 +5,6 @@
   IPAccounting = true;
   IPAddressAllow = [
     "192.168.100.0/24"
-    "192.168.101.0/24"
   ];
   RestrictAddressFamilies = [ "~AF_INET6" ];
 

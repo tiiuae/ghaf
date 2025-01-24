@@ -35,22 +35,10 @@ in
       };
 
       "open-normal-extension.cfg" = {
-        text =
-          let
-            cliArgs = builtins.replaceStrings [ "\n" ] [ " " ] ''
-              --name ${config.ghaf.givc.adminConfig.name}
-              --addr ${config.ghaf.givc.adminConfig.addr}
-              --port ${config.ghaf.givc.adminConfig.port}
-              ${lib.optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-              ${lib.optionalString config.ghaf.givc.enableTls "--cert /run/givc/business-vm-cert.pem"}
-              ${lib.optionalString config.ghaf.givc.enableTls "--key /run/givc/business-vm-key.pem"}
-              ${lib.optionalString (!config.ghaf.givc.enableTls) "--notls"}
-            '';
-          in
-          ''
-            export GIVC_PATH="${pkgs.givc-cli}"
-            export GIVC_OPTS="${cliArgs}"
-          '';
+        text = ''
+          export GIVC_PATH="${pkgs.givc-cli}"
+          export GIVC_OPTS="${config.ghaf.givc.cliArgs}"
+        '';
       };
     };
   };
