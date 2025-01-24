@@ -98,6 +98,13 @@ let
               productId = "0052";
               description = "Lenovo X1 Integrated Camera";
             }
+            {
+              # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
+              # Finland SKU
+              vendorId = "30c9";
+              productId = "005f";
+              description = "Lenovo X1 Integrated Camera";
+            }
           ];
         }
       ];

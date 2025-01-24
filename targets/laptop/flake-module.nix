@@ -33,6 +33,15 @@ let
         };
       }
     ])
+    (laptop-configuration "lenovo-x1-carbon-gen12" "debug" [
+      self.nixosModules.disko-ab-partitions-v1
+      {
+        ghaf = {
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen12.nix;
+          reference.profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
     (laptop-configuration "lenovo-x1-extras" "debug" [
       self.nixosModules.disko-ab-partitions-v1
       {
@@ -76,6 +85,15 @@ let
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
+          reference.profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
+    (laptop-configuration "lenovo-x1-carbon-gen12" "release" [
+      self.nixosModules.disko-ab-partitions-v1
+      {
+        ghaf = {
+          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen12.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
