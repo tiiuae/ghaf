@@ -4,6 +4,10 @@
 let
   cfg = config.ghaf.givc.adminvm;
   inherit (lib) mkEnableOption mkIf;
+  inherit (config.ghaf.givc.adminConfig) name;
+  systemHosts = lib.lists.subtractLists (config.ghaf.common.appHosts ++ [ name ]) (
+    builtins.attrNames config.ghaf.networking.hosts
+  );
 in
 {
   options.ghaf.givc.adminvm = {
@@ -15,16 +19,9 @@ in
     givc.admin = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      inherit (config.ghaf.givc.adminConfig) name;
-      inherit (config.ghaf.givc.adminConfig) addr;
-      inherit (config.ghaf.givc.adminConfig) port;
-      inherit (config.ghaf.givc.adminConfig) protocol;
-      services = [
-        "givc-ghaf-host-debug.service"
-        "givc-net-vm.service"
-        "givc-gui-vm.service"
-        "givc-audio-vm.service"
-      ];
+      inherit name;
+      inherit (config.ghaf.givc.adminConfig) addresses;
+      services = map (host: "givc-${host}.service") systemHosts;
       tls.enable = config.ghaf.givc.enableTls;
     };
   };

@@ -76,61 +76,78 @@ in
         Files to bind mount to persistent storage.
       '';
     };
+
   };
 
-  config = lib.mkIf cfg.enable {
-    fileSystems.${cfg.mountPath} = {
-      neededForBoot = true;
-      options = [
-        "rw"
-        "nodev"
-        "nosuid"
-        "noexec"
+  config = lib.mkMerge [
+    (lib.mkIf cfg.enable {
+      fileSystems.${cfg.mountPath} = {
+        neededForBoot = true;
+        options = [
+          "rw"
+          "nodev"
+          "nosuid"
+          "noexec"
+        ];
+      };
+      virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
+
+      microvm.shares = [
+        {
+          tag = "hostshare";
+          proto = "virtiofs";
+          securityModel = "passthrough";
+          source = "/storagevm/${cfg.name}";
+          mountPoint = cfg.mountPath;
+        }
       ];
-    };
-    virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
 
-    microvm.shares = [
-      {
-        tag = "hostshare";
-        proto = "virtiofs";
-        securityModel = "passthrough";
-        source = "/storagevm/${cfg.name}";
-        mountPoint = cfg.mountPath;
-      }
-    ];
+      microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
+        {
+          image = "/storagevm/homes/${cfg.name}-home.img";
+          size = builtins.floor (config.ghaf.users.loginUser.homeSize * 1.15);
+          fsType = "ext4";
+          mountPoint = "/home";
+        }
+      ];
 
-    microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
-      {
-        image = "/storagevm/homes/${cfg.name}-home.img";
-        size = builtins.floor (config.ghaf.users.loginUser.homeSize * 1.15);
-        fsType = "ext4";
-        mountPoint = "/home";
-      }
-    ];
+      environment.persistence.${cfg.mountPath} = mkMerge [
+        {
+          hideMounts = true;
+          directories = [
+            "/var/lib/nixos"
+          ];
+          files = [
+            "/etc/ssh/ssh_host_ed25519_key.pub"
+            "/etc/ssh/ssh_host_ed25519_key"
+          ];
+        }
+        { inherit (cfg) directories users files; }
+        (mkIf config.ghaf.users.loginUser.enable {
+          directories = [
+            "/var/lib/systemd/home"
+          ];
+        })
+      ];
 
-    environment.persistence.${cfg.mountPath} = mkMerge [
-      {
-        hideMounts = true;
-        directories = [
-          "/var/lib/nixos"
-        ];
-        files = [
-          "/etc/ssh/ssh_host_ed25519_key.pub"
-          "/etc/ssh/ssh_host_ed25519_key"
-        ];
-      }
-      { inherit (cfg) directories users files; }
-      (mkIf config.ghaf.users.loginUser.enable {
-        directories = [
-          "/var/lib/systemd/home"
-        ];
-      })
-    ];
-
-    # Workaround, fixes homed machine-id dependency
-    environment.etc = lib.optionalAttrs config.ghaf.users.loginUser.enable {
-      machine-id.text = "d8dee68f8d334c79ac8f8229921e0b25";
-    };
-  };
+      # Workaround, fixes homed machine-id dependency
+      environment.etc = lib.optionalAttrs config.ghaf.users.loginUser.enable {
+        machine-id.text = "d8dee68f8d334c79ac8f8229921e0b25";
+      };
+    })
+    (lib.mkIf config.ghaf.givc.enable {
+      virtualisation.fileSystems.${cfg.mountPath} = {
+        device = "/dev/disk/by-label/givc-${cfg.name}";
+      };
+      microvm.volumes = [
+        {
+          image = "/storagevm/givc/${cfg.name}.img";
+          readOnly = true;
+          autoCreate = false;
+          fsType = "ext4";
+          mountPoint = "/etc/givc";
+        }
+      ];
+    })
+  ];
 }

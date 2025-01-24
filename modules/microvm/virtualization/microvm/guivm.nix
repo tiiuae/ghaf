@@ -9,7 +9,6 @@
 }:
 let
   vmName = "gui-vm";
-  macAddress = "02:00:00:02:02:02";
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
@@ -20,9 +19,7 @@ let
           config
           lib
           vmName
-          macAddress
           ;
-        internalIP = 3;
       })
 
       ./common/storagevm.nix
@@ -32,16 +29,6 @@ let
       (
         { lib, pkgs, ... }:
         let
-          inherit (builtins) replaceStrings;
-          cliArgs = replaceStrings [ "\n" ] [ " " ] ''
-            --name ${config.ghaf.givc.adminConfig.name}
-            --addr ${config.ghaf.givc.adminConfig.addr}
-            --port ${config.ghaf.givc.adminConfig.port}
-            ${lib.optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
-            ${lib.optionalString config.ghaf.givc.enableTls "--cert /run/givc/ghaf-host-cert.pem"}
-            ${lib.optionalString config.ghaf.givc.enableTls "--key /run/givc/ghaf-host-key.pem"}
-            ${lib.optionalString (!config.ghaf.givc.enableTls) "--notls"}
-          '';
           # A list of applications from all AppVMs
           virtualApps = lib.lists.concatMap (
             vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
@@ -53,7 +40,7 @@ let
             inherit (app) description;
             #inherit (app) givcName;
             vm = app.vmName;
-            path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm ${vm} ${app.givcName}";
+            path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start --vm ${vm} ${app.givcName}";
             inherit (app) icon;
           }) virtualApps;
           # Launchers for all desktop, non-virtualized applications that run in the GUIVM
@@ -86,6 +73,7 @@ let
             };
 
             # System
+            type = "system-vm";
             systemd = {
               enable = true;
               withName = "guivm-systemd";
@@ -155,7 +143,7 @@ let
                     fi
 
                     # Initiate Suspension
-                    ${pkgs.givc-cli}/bin/givc-cli ${cliArgs} suspend
+                    ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} suspend
 
                     # Enable display
                     if [ "$wl_running" -eq 1 ]; then

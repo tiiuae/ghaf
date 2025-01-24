@@ -1,6 +1,11 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 {
   config.ghaf.reference.services.dendrite-pinecone =
     let
@@ -13,17 +18,13 @@
       internalNic =
         let
           vmNetworking = import ../../../microvm/virtualization/microvm/common/vm-networking.nix {
-            inherit config;
-            inherit lib;
+            inherit config lib pkgs;
             vmName = "net-vm";
-            inherit (config.microvm.net-vm) macAddress;
-            internalIP = 1;
           };
         in
         "${lib.head vmNetworking.networking.nat.internalInterfaces}";
 
-      getCommsVmEntry = builtins.filter (x: x.name == "comms-vm") config.ghaf.networking.hosts.entries;
-      serverIpAddr = lib.head (builtins.map (x: x.ip) getCommsVmEntry);
+      serverIpAddr = config.ghaf.networking.hosts."comms-vm".ipv4;
     in
     {
       enable = lib.mkDefault false;

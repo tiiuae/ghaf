@@ -1,11 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 { inputs }:
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   configHost = config;
   vmName = "admin-vm";
-  macAddress = "02:00:00:AD:01:01";
   isLoggingEnabled = config.ghaf.logging.client.enable;
 
   adminvmBaseConfiguration = {
@@ -17,11 +20,8 @@ let
           config
           lib
           vmName
-          macAddress
           ;
-        internalIP = 10;
       })
-      ./common/storagevm.nix
       # We need to retrieve mac address and start log aggregator
       ../../../common/logging/hw-mac-retrieve.nix
       ../../../common/logging/logs-aggregator.nix
@@ -41,6 +41,7 @@ let
             };
 
             # System
+            type = "system-vm";
             systemd = {
               enable = true;
               withName = "adminvm-systemd";
@@ -76,14 +77,6 @@ let
           };
 
           system.stateVersion = lib.trivial.release;
-
-          systemd.network = {
-            enable = true;
-            networks."10-ethint0" = {
-              matchConfig.MACAddress = macAddress;
-              linkConfig.ActivationPolicy = "always-up";
-            };
-          };
 
           nixpkgs = {
             buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
