@@ -192,6 +192,10 @@
     },
     "ghafpkgs": {
       "inputs": {
+        "crane": [
+          "givc",
+          "crane"
+        ],
         "flake-compat": [
           "flake-compat"
         ],
@@ -210,16 +214,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1734437131,
-        "narHash": "sha256-8Jijyp8QAcRPP4qngoC/FHi3goMP/p/f8oj0vzpLlIg=",
-        "owner": "tiiuae",
+        "lastModified": 1737723085,
+        "narHash": "sha256-snqmuQitktVkYoHXMPD6RxpL8kaHoReTeBlQzHm7vOM=",
+        "owner": "slakkala",
         "repo": "ghafpkgs",
-        "rev": "e088f9dc4aa004a93517874e31e1ed578ed369d1",
+        "rev": "9ed96d61f8606b0ee197defe8053fb6f2eda55a6",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "slakkala",
         "repo": "ghafpkgs",
+        "rev": "9ed96d61f8606b0ee197defe8053fb6f2eda55a6",
         "type": "github"
       }
     },
@@ -377,46 +382,6 @@
         "type": "github"
       }
     },
-    "mem-manager": {
-      "inputs": {
-        "crane": [
-          "givc",
-          "crane"
-        ],
-        "devshell": [
-          "devshell"
-        ],
-        "flake-parts": [
-          "flake-parts"
-        ],
-        "flake-root": [
-          "flake-root"
-        ],
-        "nixpkgs": [
-          "nixpkgs"
-        ],
-        "pre-commit-hooks-nix": [
-          "git-hooks-nix"
-        ],
-        "treefmt-nix": [
-          "treefmt-nix"
-        ]
-      },
-      "locked": {
-        "lastModified": 1737712656,
-        "narHash": "sha256-iBEvtU0fapyqJPYSAxWpjJTlqxWFVi7LYVbiLzQsVEc=",
-        "owner": "slakkala",
-        "repo": "ghaf-mem-manager",
-        "rev": "c99a822ce8382d7b0c5101092d4dddc1ce51502a",
-        "type": "github"
-      },
-      "original": {
-        "owner": "slakkala",
-        "repo": "ghaf-mem-manager",
-        "rev": "c99a822ce8382d7b0c5101092d4dddc1ce51502a",
-        "type": "github"
-      }
-    },
     "microvm": {
       "inputs": {
         "flake-utils": [
@@ -550,7 +515,6 @@
         "impermanence": "impermanence",
         "jetpack-nixos": "jetpack-nixos",
         "lanzaboote": "lanzaboote",
-        "mem-manager": "mem-manager",
         "microvm": "microvm",
         "nix-fast-build": "nix-fast-build",
         "nixos-generators": "nixos-generators",

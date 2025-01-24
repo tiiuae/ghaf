@@ -31,13 +31,14 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      url = "github:slakkala/ghafpkgs/9ed96d61f8606b0ee197defe8053fb6f2eda55a6";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
         treefmt-nix.follows = "treefmt-nix";
         pre-commit-hooks-nix.follows = "git-hooks-nix";
         flake-compat.follows = "flake-compat";
+        crane.follows = "givc/crane";
       };
     };
 
@@ -160,19 +161,6 @@
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
         crane.follows = "givc/crane";
-      };
-    };
-
-    mem-manager = {
-      url = "github:slakkala/ghaf-mem-manager/c99a822ce8382d7b0c5101092d4dddc1ce51502a";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-        flake-root.follows = "flake-root";
-        treefmt-nix.follows = "treefmt-nix";
-        devshell.follows = "devshell";
-        crane.follows = "givc/crane";
-        pre-commit-hooks-nix.follows = "git-hooks-nix";
       };
     };
   };
