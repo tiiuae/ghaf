@@ -400,9 +400,8 @@ in
 
   config =
     let
-      vms = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) cfg.vms;
       makeSwtpmService =
-        { vm }:
+        name: vm:
         let
           swtpmScript = pkgs.writeShellApplication {
             name = "${vm.name}-swtpm";
@@ -434,14 +433,15 @@ in
             ExecStart = "${swtpmScript}/bin/${vm.name}-swtpm";
           };
         };
-      vmsWithWaypipe = lib.filter (
-        vm: config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.enable
-      ) vms;
+      vmsWithWaypipe = lib.filterAttrs (name: _:
+        config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.enable
+      ) cfg.vms;
     in
     lib.mkIf cfg.enable {
       # Define microvms for each AppVM configuration
       microvm.vms =
         let
+          vms = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) cfg.vms;
           vms' = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) vms;
         in
         lib.foldr lib.recursiveUpdate { } vms';
@@ -449,32 +449,32 @@ in
       # Apply host service dependencies, add swtpm
       systemd.services =
         let
-          serviceDependencies = map (vm: {
-            "microvm@${vm.name}-vm" = {
+          serviceDependencies = lib.mapAttrsToList (name: vm: {
+            "microvm@${name}-vm" = {
               # Host service dependencies
               after = optional config.ghaf.services.audio.enable "pulseaudio.service";
               requires = optional config.ghaf.services.audio.enable "pulseaudio.service";
               # Sleep appvms to give gui-vm time to start
               serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
             };
-            "${vm.name}-swtpm" = makeSwtpmService { inherit vm; };
-          }) vms;
+            "${name}-swtpm" = makeSwtpmService name vm;
+          }) cfg.vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
-          proxyServices = map (vm: {
-            "vsockproxy-${vm.name}" =
-              config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.proxyService;
-          }) vmsWithWaypipe;
+          proxyServices = map (name: {
+            "vsockproxy-${name}" =
+              config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.proxyService;
+          }) (builtins.attrNames vmsWithWaypipe);
         in
-        lib.foldr lib.recursiveUpdate { } (serviceDependencies ++ proxyServices);
+          lib.foldr lib.recursiveUpdate { } (serviceDependencies ++ proxyServices);
 
       # GUIVM needs to have a dedicated waypipe instance for each AppVM
       ghaf.virtualization.microvm.guivm.extraModules = [
         {
-          systemd.user.services = lib.foldr lib.recursiveUpdate { } (
-            map (vm: {
-              "waypipe-${vm.name}" = config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.waypipeService;
-            }) vmsWithWaypipe
-          );
+          systemd.user.services =
+            lib.mapAttrs' (name: _: {
+              name = "waypipe-${name}";
+              value = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.waypipeService;
+            }) vmsWithWaypipe;
         }
       ];
     };
