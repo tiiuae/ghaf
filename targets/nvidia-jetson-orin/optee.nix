@@ -18,8 +18,11 @@ _:
     opteeSource = pkgs.applyPatches {
       src = pkgs.fetchgit {
         url = "https://nv-tegra.nvidia.com/r/tegra/optee-src/nv-optee";
-        rev = "jetson_${l4tVersion}";
-        sha256 = "sha256-jJOMig2+9FlKA9gJUCH/dva7ZtAq1typZSNGKyM7tlg=";
+        # Can't use l4tVersion version directly, because it contains an
+        # extra zero. If-else is a sanity check so the sources are
+        # in sync!
+        rev = if l4tVersion == "35.6.0" then "jetson_35.6" else throw "Mismatching OP-TEE sources";
+        sha256 = "sha256-hxgXRNtyZlfFMK8+3vVNxg2O1yrLJTFiFyjnE8Gmqqs=";
       };
       patches = [ ./0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch ];
     };
