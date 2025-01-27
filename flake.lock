@@ -214,17 +214,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1737723085,
-        "narHash": "sha256-snqmuQitktVkYoHXMPD6RxpL8kaHoReTeBlQzHm7vOM=",
-        "owner": "slakkala",
+        "lastModified": 1737955964,
+        "narHash": "sha256-gldXVj34ebtv0odABXUYktMu0VLWuFw6PQsvUc9o/1o=",
+        "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "9ed96d61f8606b0ee197defe8053fb6f2eda55a6",
+        "rev": "776258dc633916a32bb1a8bd8b31160baa26704a",
         "type": "github"
       },
       "original": {
-        "owner": "slakkala",
+        "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "9ed96d61f8606b0ee197defe8053fb6f2eda55a6",
         "type": "github"
       }
     },
@@ -393,17 +392,17 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1737624807,
-        "narHash": "sha256-o/UtAPvHjiYJ8PFnhdql3jiLFs9Xqb7DmXCoUT7m9mc=",
+        "lastModified": 1737768063,
+        "narHash": "sha256-7AGmPPBgLHHWgzzFYDJcyhv/NiuCrpgzg8IyA7Q/H9o=",
         "owner": "slakkala",
         "repo": "microvm.nix",
-        "rev": "9a82c39380ca71762642475ba6a0fb285d1c2990",
+        "rev": "d260ac1bba5cf54e510c348097351b086990cbe5",
         "type": "github"
       },
       "original": {
         "owner": "slakkala",
         "repo": "microvm.nix",
-        "rev": "9a82c39380ca71762642475ba6a0fb285d1c2990",
+        "rev": "d260ac1bba5cf54e510c348097351b086990cbe5",
         "type": "github"
       }
     },

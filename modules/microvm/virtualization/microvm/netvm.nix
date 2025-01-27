@@ -115,7 +115,7 @@ let
             ];
             mem = 256;
             balloonMem = 128;
-            qemu.oomDeflate = false;
+            deflateOnOOM = false;
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
             qemu = {

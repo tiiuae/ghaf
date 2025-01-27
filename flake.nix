@@ -31,7 +31,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     ghafpkgs = {
-      url = "github:slakkala/ghafpkgs/9ed96d61f8606b0ee197defe8053fb6f2eda55a6";
+      url = "github:tiiuae/ghafpkgs";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -105,7 +105,7 @@
     };
 
     microvm = {
-      url = "github:slakkala/microvm.nix/9a82c39380ca71762642475ba6a0fb285d1c2990";
+      url = "github:slakkala/microvm.nix/d260ac1bba5cf54e510c348097351b086990cbe5";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

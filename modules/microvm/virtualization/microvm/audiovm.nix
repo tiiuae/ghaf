@@ -98,7 +98,7 @@ let
             vcpu = 2;
             mem = 256;
             balloonMem = 128;
-            qemu.oomDeflate = false;
+            deflateOnOOM = false;
             hypervisor = "qemu";
             shares = [
               {

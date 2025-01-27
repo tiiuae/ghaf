@@ -173,7 +173,7 @@ let
                 optimize.enable = false;
                 mem = vm.ramMb / 2;
                 balloonMem = vm.ramMb / 2;
-                qemu.oomDeflate = false;
+                deflateOnOOM = false;
                 vcpu = vm.cores;
                 hypervisor = "qemu";
                 shares = [
