@@ -96,9 +96,7 @@ let
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
             vcpu = 2;
-            mem = 256;
-            balloonMem = 128;
-            deflateOnOOM = false;
+            mem = 384;
             hypervisor = "qemu";
             shares = [
               {

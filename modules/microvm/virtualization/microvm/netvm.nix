@@ -113,9 +113,6 @@ let
                 proto = "virtiofs";
               }
             ];
-            mem = 256;
-            balloonMem = 128;
-            deflateOnOOM = false;
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
             qemu = {
