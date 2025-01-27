@@ -43,10 +43,8 @@ runCommandLocal "ghaf-doc"
     # set the package Meta info
     meta = {
       description = "Ghaf Documentation";
-      # TODO should we Only push docs from one Architecture?
       platforms = [
         "x86_64-linux"
-        "aarch64-linux"
       ];
     };
   }

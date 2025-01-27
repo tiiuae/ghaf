@@ -29,7 +29,6 @@ in
     intel-vm-debug.x86_64-linux = self.packages.x86_64-linux.vm-debug;
     nxp-imx8mp-evk-debug.x86_64-linux = self.packages.aarch64-linux.nxp-imx8mp-evk-debug;
     docs.x86_64-linux = self.packages.x86_64-linux.doc;
-    docs.aarch64-linux = self.packages.aarch64-linux.doc;
     # Build cross-compiled images
     nvidia-jetson-orin-agx-debug-from-x86_64.x86_64-linux =
       self.packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64;
