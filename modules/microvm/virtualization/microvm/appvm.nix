@@ -246,13 +246,7 @@ in
       type = types.attrsOf (
         types.submodule {
           options = {
-            # enable = mkEnableOption;
-            name = mkOption {
-              description = ''
-                Name of the AppVM
-              '';
-              type = types.str;
-            };
+            enable = lib.mkEnableOption "this virtual machine";
             applications = mkOption {
               description = ''
                 Applications to include in the AppVM
@@ -400,19 +394,21 @@ in
 
   config =
     let
+      vms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
       makeSwtpmService =
         name: vm:
         let
+          name' = name + "-vm";
           swtpmScript = pkgs.writeShellApplication {
-            name = "${vm.name}-swtpm";
+            name = "${name'}-swtpm";
             runtimeInputs = with pkgs; [
               coreutils
               swtpm
             ];
             text = ''
-              mkdir -p /var/lib/swtpm/${vm.name}-state
-              swtpm socket --tpmstate dir=/var/lib/swtpm/${vm.name}-state \
-                --ctrl type=unixio,path=/var/lib/swtpm/${vm.name}-sock \
+              mkdir -p /var/lib/swtpm/${name'}-state
+              swtpm socket --tpmstate dir=/var/lib/swtpm/${name'}-state \
+                --ctrl type=unixio,path=/var/lib/swtpm/${name'}-sock \
                 --tpm2 \
                 --log level=20
             '';
@@ -420,7 +416,7 @@ in
         in
         lib.mkIf vm.vtpm.enable {
           enable = true;
-          description = "swtpm service for ${vm.name}";
+          description = "swtpm service for ${name'}-vm";
           path = [ swtpmScript ];
           wantedBy = [ "microvms.target" ];
           serviceConfig = {
@@ -430,21 +426,21 @@ in
             StateDirectory = "swtpm";
             StandardOutput = "journal";
             StandardError = "journal";
-            ExecStart = "${swtpmScript}/bin/${vm.name}-swtpm";
+            ExecStart = "${swtpmScript}/bin/${name'}-swtpm";
           };
         };
-      vmsWithWaypipe = lib.filterAttrs (name: _:
-        config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.enable
-      ) cfg.vms;
+      vmsWithWaypipe = lib.filterAttrs (
+        name: _: config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.enable
+      ) vms;
     in
     lib.mkIf cfg.enable {
       # Define microvms for each AppVM configuration
       microvm.vms =
         let
-          vms = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) cfg.vms;
-          vms' = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) vms;
+          vms' = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) vms;
+          vms'' = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) vms';
         in
-        lib.foldr lib.recursiveUpdate { } vms';
+        lib.foldr lib.recursiveUpdate { } vms'';
 
       # Apply host service dependencies, add swtpm
       systemd.services =
@@ -457,24 +453,22 @@ in
               # Sleep appvms to give gui-vm time to start
               serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
             };
-            "${name}-swtpm" = makeSwtpmService name vm;
-          }) cfg.vms;
+            "${name}-vm-swtpm" = makeSwtpmService name vm;
+          }) vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
           proxyServices = map (name: {
-            "vsockproxy-${name}" =
-              config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.proxyService;
+            "vsockproxy-${name}-vm" = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.proxyService;
           }) (builtins.attrNames vmsWithWaypipe);
         in
-          lib.foldr lib.recursiveUpdate { } (serviceDependencies ++ proxyServices);
+        lib.foldr lib.recursiveUpdate { } (serviceDependencies ++ proxyServices);
 
       # GUIVM needs to have a dedicated waypipe instance for each AppVM
       ghaf.virtualization.microvm.guivm.extraModules = [
         {
-          systemd.user.services =
-            lib.mapAttrs' (name: _: {
-              name = "waypipe-${name}";
-              value = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.waypipeService;
-            }) vmsWithWaypipe;
+          systemd.user.services = lib.mapAttrs' (name: _: {
+            name = "waypipe-${name}-vm";
+            value = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.waypipeService;
+          }) vmsWithWaypipe;
         }
       ];
     };

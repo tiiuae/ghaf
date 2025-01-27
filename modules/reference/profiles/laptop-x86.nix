@@ -37,14 +37,6 @@ in
       '';
       default = [ ];
     };
-
-    enabled-app-vms = lib.mkOption {
-      type = lib.types.listOf lib.types.attrs;
-      default = [ ];
-      description = ''
-        List of appvms to include in the Ghaf reference appvms module
-      '';
-    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -102,15 +94,7 @@ in
             audio = true;
           };
 
-          appvm = {
-            enable = true;
-            vms = builtins.listToAttrs (
-              builtins.map (vm: {
-                inherit (vm) name;
-                value = vm;
-              }) cfg.enabled-app-vms
-            );
-          };
+          appvm.enable = true;
         };
       };
 
