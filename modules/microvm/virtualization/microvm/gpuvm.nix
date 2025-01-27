@@ -10,6 +10,7 @@
 let
   vmName = "gpu-vm";
   macAddress = "02:00:00:04:04:04";
+  inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
   sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
     inherit pkgs;
@@ -109,6 +110,36 @@ let
             #   name = "gpuvm";
             #   directories = [ "/etc/NetworkManager/system-connections/" ];
             # };
+          };
+
+          environment = {
+            systemPackages =
+              (rmDesktopEntries [
+                pkgs.waypipe
+                pkgs.networkmanagerapplet
+                pkgs.gnome-calculator
+                pkgs.sticky-notes
+              ])
+              ++ [
+                pkgs.bt-launcher
+                pkgs.pamixer
+                pkgs.eww
+                pkgs.wlr-randr
+              ]
+              ++ (lib.optional (
+                config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
+              ) pkgs.mitmweb-ui)
+              # Packages for checking hardware acceleration
+              ++ lib.optionals config.ghaf.profiles.debug.enable [
+                pkgs.glxinfo
+                pkgs.libva-utils
+                pkgs.glib
+                pkgs.nvidia-jetpack.l4t-tools
+              ];
+            sessionVariables = {
+              XDG_PICTURES_DIR = "$HOME/Pictures";
+              XDG_VIDEOS_DIR = "$HOME/Videos";
+            };
           };
 
           time.timeZone = config.time.timeZone;
