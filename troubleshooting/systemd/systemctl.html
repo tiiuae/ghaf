@@ -1,284 +1,161 @@
-<!-- --
-Copyright 2020 Jorel Ali <contact@jorel.dev>
-Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
-SPDX-License-Identifier: WTFPL
-  ---->
-<!DOCTYPE html>
-<html
-  lang="en"
-  class="light"
-  dir="ltr"
->
-  <head>
-    <!-- Book generated using mdBook -->
-    <meta charset="UTF-8" />
-    <title>Debugging systemd Using systemctl - Ghaf Framework</title>
- 
-    <!-- Custom HTML head -->
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Debugging systemd Using systemctl - Ghaf Framework</title>
 
-    <meta name="description" content="Documentation for TII SSRC Secure Technologies." />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#ffffff" />
 
-    <link rel="icon" href="../../favicon.svg" />
-     
-    <link rel="shortcut icon" href="../../favicon.png" />
-    <link rel="stylesheet" href="../../css/variables.css" />
-    <link rel="stylesheet" href="../../css/general.css" />
-    <link rel="stylesheet" href="../../css/chrome.css" />
-    <link
-      rel="stylesheet"
-      href="../../css/print.css"
-      media="print"
-    />
+        <!-- Custom HTML head -->
 
-    <!-- Fonts -->
-    <link
-      rel="stylesheet"
-      href="../../FontAwesome/css/font-awesome.css"
-    />
-    <link rel="stylesheet" href="../../fonts/fonts.css" />
+        <meta name="description" content="Documentation for TII SSRC Secure Technologies.">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
 
-    <!-- Highlight.js Stylesheets -->
-    <link rel="stylesheet" href="../../highlight.css" />
-    <link rel="stylesheet" href="../../tomorrow-night.css" />
-    <link rel="stylesheet" href="../../ayu-highlight.css" />
+        <link rel="icon" href="../../favicon.svg">
+        <link rel="shortcut icon" href="../../favicon.png">
+        <link rel="stylesheet" href="../../css/variables.css">
+        <link rel="stylesheet" href="../../css/general.css">
+        <link rel="stylesheet" href="../../css/chrome.css">
+        <link rel="stylesheet" href="../../css/print.css" media="print">
 
-    <!-- Custom theme stylesheets -->
-    <link rel="stylesheet" href="../../theme/pagetoc.css" />
-       </head>
-  <body class="sidebar-visible no-js">
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="../../highlight.css">
+        <link rel="stylesheet" href="../../tomorrow-night.css">
+        <link rel="stylesheet" href="../../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "../../";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../../toc.js"></script>
+    </head>
+    <body>
     <div id="body-container">
-      <!-- Provide site root to javascript -->
-      <script>
-        var path_to_root = "../../";
-        var default_theme = window.matchMedia("(prefers-color-scheme: dark)")
-          .matches
-          ? "navy"
-          : "light";
-      </script>
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
 
-      <!-- Work around some values being stored in localStorage wrapped in quotes -->
-      <script>
-        try {
-          var theme = localStorage.getItem("mdbook-theme");
-          var sidebar = localStorage.getItem("mdbook-sidebar");
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
 
-          if (theme.startsWith('"') && theme.endsWith('"')) {
-            localStorage.setItem(
-              "mdbook-theme",
-              theme.slice(1, theme.length - 1),
-            );
-          }
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
 
-          if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
-            localStorage.setItem(
-              "mdbook-sidebar",
-              sidebar.slice(1, sidebar.length - 1),
-            );
-          }
-        } catch (e) {}
-      </script>
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
 
-      <!-- Set the theme before any content is loaded, prevents flash -->
-      <script>
-        var theme;
-        try {
-          theme = localStorage.getItem("mdbook-theme");
-        } catch (e) {}
-        if (theme === null || theme === undefined) {
-          theme = default_theme;
-        }
-        var html = document.querySelector("html");
-        html.classList.remove("light");
-        html.classList.add(theme);
-        var body = document.querySelector("body");
-        body.classList.remove("no-js");
-        body.classList.add("js");
-      </script>
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
 
-      <input type="checkbox" id="sidebar-toggle-anchor" class="hidden" />
-
-      <!-- Hide / unhide sidebar before it is displayed -->
-      <script>
-        var body = document.querySelector("body");
-        var sidebar = null;
-        var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
-        if (document.body.clientWidth >= 1080) {
-          try {
-            sidebar = localStorage.getItem("mdbook-sidebar");
-          } catch (e) {}
-          sidebar = sidebar || "visible";
-        } else {
-          sidebar = "hidden";
-        }
-        sidebar_toggle.checked = sidebar === "visible";
-        body.classList.remove("sidebar-visible");
-        body.classList.add("sidebar-" + sidebar);
-      </script>
-
-      <nav id="sidebar" class="sidebar" aria-label="Table of contents">
-        <div class="sidebar-scrollbox"><ol class="chapter"><li class="chapter-item expanded affix "><li class="part-title">Overview</li><li class="chapter-item expanded "><a href="index.html"><strong aria-hidden="true">1.</strong> About Ghaf</a></li><li class="chapter-item expanded "><a href="features/features.html"><strong aria-hidden="true">2.</strong> Features</a></li><li class="chapter-item expanded "><a href="architecture/architecture.html"><strong aria-hidden="true">3.</strong> Architecture</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/variants.html"><strong aria-hidden="true">3.1.</strong> Architectural Variants</a></li><li class="chapter-item expanded "><a href="architecture/adr.html"><strong aria-hidden="true">3.2.</strong> Architecture Decision Records</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="architecture/adr/minimal-host.html"><strong aria-hidden="true">3.2.1.</strong> Minimal Host</a></li><li class="chapter-item expanded "><a href="architecture/adr/netvm.html"><strong aria-hidden="true">3.2.2.</strong> Networking VM</a></li><li class="chapter-item expanded "><a href="architecture/adr/idsvm.html"><strong aria-hidden="true">3.2.3.</strong> Intrusion Detection System VM</a></li><li class="chapter-item expanded "><a href="architecture/adr/platform-bus-passthrough-support.html"><strong aria-hidden="true">3.2.4.</strong> Platform Bus for Rust VMM</a></li></ol></li><li class="chapter-item expanded "><a href="architecture/hardening.html"><strong aria-hidden="true">3.3.</strong> Hardening</a></li><li class="chapter-item expanded "><a href="architecture/secureboot.html"><strong aria-hidden="true">3.4.</strong> Secure Boot</a></li><li class="chapter-item expanded "><a href="architecture/stack.html"><strong aria-hidden="true">3.5.</strong> Stack</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">For Developers</li><li class="chapter-item expanded "><a href="appendices/contributing_general.html"><strong aria-hidden="true">4.</strong> Contributing</a></li><li class="chapter-item expanded "><a href="ref_impl/reference_implementations.html"><strong aria-hidden="true">5.</strong> Reference Implementations</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="ref_impl/development.html"><strong aria-hidden="true">5.1.</strong> Development</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="ref_impl/build_and_run.html"><strong aria-hidden="true">5.1.1.</strong> Build and Run</a></li><li class="chapter-item expanded "><a href="ref_impl/remote_build_setup.html"><strong aria-hidden="true">5.1.2.</strong> Running Remote Build on NixOS</a></li><li class="chapter-item expanded "><a href="ref_impl/installer.html"><strong aria-hidden="true">5.1.3.</strong> Installer</a></li><li class="chapter-item expanded "><a href="ref_impl/cross_compilation.html"><strong aria-hidden="true">5.1.4.</strong> Cross-Compilation</a></li><li class="chapter-item expanded "><a href="ref_impl/creating_appvm.html"><strong aria-hidden="true">5.1.5.</strong> Creating Application VM</a></li><li class="chapter-item expanded "><a href="ref_impl/hw-config.html"><strong aria-hidden="true">5.1.6.</strong> Hardware Configuration</a></li><li class="chapter-item expanded "><a href="ref_impl/profiles-config.html"><strong aria-hidden="true">5.1.7.</strong> Profiles Configuration</a></li><li class="chapter-item expanded "><a href="ref_impl/labwc.html"><strong aria-hidden="true">5.1.8.</strong> labwc Desktop Environment</a></li><li class="chapter-item expanded "><a href="ref_impl/idsvm-development.html"><strong aria-hidden="true">5.1.9.</strong> IDS VM Further Development</a></li><li class="chapter-item expanded "><a href="ref_impl/systemd-service-config.html"><strong aria-hidden="true">5.1.10.</strong> systemd Service Hardening</a></li></ol></li><li class="chapter-item expanded "><a href="troubleshooting/troubleshooting.html"><strong aria-hidden="true">5.2.</strong> Troubleshooting</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="troubleshooting/systemd/system-log.html"><strong aria-hidden="true">5.2.1.</strong> Analyzing System Logs</a></li><li class="chapter-item expanded "><a href="troubleshooting/systemd/systemctl.html"><strong aria-hidden="true">5.2.2.</strong> Debugging systemd Using systemctl</a></li><li class="chapter-item expanded "><a href="troubleshooting/systemd/systemd-analyzer.html"><strong aria-hidden="true">5.2.3.</strong> Inspecting Services with systemd-analyze</a></li><li class="chapter-item expanded "><a href="troubleshooting/systemd/strace.html"><strong aria-hidden="true">5.2.4.</strong> Using strace for Debugging Initialization Sequence</a></li><li class="chapter-item expanded "><a href="troubleshooting/systemd/early-shell.html"><strong aria-hidden="true">5.2.5.</strong> Early Shell Access</a></li></ol></li><li class="chapter-item expanded "><a href="ref_impl/ghaf-based-project.html"><strong aria-hidden="true">5.3.</strong> Ghaf as Library: Templates</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="ref_impl/example_project.html"><strong aria-hidden="true">5.3.1.</strong> Example Project</a></li><li class="chapter-item expanded "><a href="ref_impl/modules_options.html"><strong aria-hidden="true">5.3.2.</strong> Modules Options</a></li></ol></li></ol></li><li class="chapter-item expanded "><a href="technologies/technologies.html"><strong aria-hidden="true">6.</strong> Technologies</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="technologies/compartment.html"><strong aria-hidden="true">6.1.</strong> Compartmentalization</a></li><li class="chapter-item expanded "><a href="technologies/passthrough.html"><strong aria-hidden="true">6.2.</strong> Passthrough</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="technologies/vfio.html"><strong aria-hidden="true">6.2.1.</strong> Binding Device to VFIO Driver</a></li><li class="chapter-item expanded "><a href="technologies/nvidia_agx_pt_uart.html"><strong aria-hidden="true">6.2.2.</strong> NVIDIA Jetson AGX Orin: UART Passthrough</a></li><li class="chapter-item expanded "><a href="technologies/nvidia_agx_pt_pcie.html"><strong aria-hidden="true">6.2.3.</strong> NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li><li class="chapter-item expanded "><a href="technologies/x86_pcie_crosvm.html"><strong aria-hidden="true">6.2.4.</strong> Generic x86: PCIe Passthrough on crosvm</a></li><li class="chapter-item expanded "><a href="technologies/nvidia_uarti_net_vm.html"><strong aria-hidden="true">6.2.5.</strong> NVIDIA Jetson: UARTI Passthrough to netvm</a></li><li class="chapter-item expanded "><a href="technologies/device_tree_overlays_pt.html"><strong aria-hidden="true">6.2.6.</strong> Device Tree Overlays for Passthrough</a></li></ol></li><li class="chapter-item expanded "><a href="technologies/nvidia_virtualization_bpmp.html"><strong aria-hidden="true">6.3.</strong> Platform Bus Virtualization: NVIDIA BPMP</a></li><li class="chapter-item expanded "><a href="technologies/hypervisor_options.html"><strong aria-hidden="true">6.4.</strong> Hypervisor Options</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Build System and Supply Chain</li><li class="chapter-item expanded "><a href="scs/ci-cd-system.html"><strong aria-hidden="true">7.</strong> Continuous Integration and Distribution</a></li><li class="chapter-item expanded "><a href="scs/scs.html"><strong aria-hidden="true">8.</strong> Supply Chain Security</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scs/slsa-framework.html"><strong aria-hidden="true">8.1.</strong> SLSA Framework</a></li><li class="chapter-item expanded "><a href="scs/basics.html"><strong aria-hidden="true">8.2.</strong> Basic Security Measures</a></li><li class="chapter-item expanded "><a href="scs/sbom.html"><strong aria-hidden="true">8.3.</strong> Software Bill of Materials</a></li><li class="chapter-item expanded "><a href="scs/pki.html"><strong aria-hidden="true">8.4.</strong> Public Key Infrastructure</a></li><li class="chapter-item expanded "><a href="scs/ghaf-security-fix-automation.html"><strong aria-hidden="true">8.5.</strong> Security Fix Automation</a></li></ol></li><li class="chapter-item expanded "><a href="release_notes/release_notes.html"><strong aria-hidden="true">9.</strong> Release Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="release_notes/ghaf-24.12.html"><strong aria-hidden="true">9.1.</strong> Release ghaf-24.12</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.09.4.html"><strong aria-hidden="true">9.2.</strong> Release ghaf-24.09.4</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.09.3.html"><strong aria-hidden="true">9.3.</strong> Release ghaf-24.09.3</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.09.2.html"><strong aria-hidden="true">9.4.</strong> Release ghaf-24.09.2</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.09.1.html"><strong aria-hidden="true">9.5.</strong> Release ghaf-24.09.1</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.09.html"><strong aria-hidden="true">9.6.</strong> Release ghaf-24.09</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.06.html"><strong aria-hidden="true">9.7.</strong> Release ghaf-24.06</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-24.03.html"><strong aria-hidden="true">9.8.</strong> Release ghaf-24.03</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-23.12.html"><strong aria-hidden="true">9.9.</strong> Release ghaf-23.12</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-23.09.html"><strong aria-hidden="true">9.10.</strong> Release ghaf-23.09</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-23.06.html"><strong aria-hidden="true">9.11.</strong> Release ghaf-23.06</a></li><li class="chapter-item expanded "><a href="release_notes/ghaf-23.05.html"><strong aria-hidden="true">9.12.</strong> Release ghaf-23.05</a></li></ol></li><li class="chapter-item expanded "><li class="part-title">Ghaf Usage Scenarios</li><li class="chapter-item expanded "><a href="scenarios/showcases.html"><strong aria-hidden="true">10.</strong> Showcases</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="scenarios/run_win_vm.html"><strong aria-hidden="true">10.1.</strong> Running Windows VM on Ghaf</a></li><li class="chapter-item expanded "><a href="scenarios/run_cuttlefish.html"><strong aria-hidden="true">10.2.</strong> Running Cuttlefish on Ghaf</a></li></ol></li><li class="chapter-item expanded "><li class="spacer"></li><li class="chapter-item expanded affix "><li class="part-title">Appendices</li><li class="chapter-item expanded "><a href="appendices/glossary.html"><strong aria-hidden="true">11.</strong> Glossary</a></li><li class="chapter-item expanded "><a href="research/research.html"><strong aria-hidden="true">12.</strong> Research Notes</a></li><li><ol class="section"><li class="chapter-item expanded "><a href="research/passthrough/ethernet.html"><strong aria-hidden="true">12.1.</strong> i.MX 8QM Ethernet Passthrough</a></li><li class="chapter-item expanded "><a href="research/installation.html"><strong aria-hidden="true">12.2.</strong> System Installation</a></li></ol></li></ol></div>
-        <div id="sidebar-resize-handle" class="sidebar-resize-handle">
-          <div class="sidebar-resize-indicator"></div>
-        </div>
-      </nav>
-
-      <!-- Track and set sidebar scroll position -->
-      <script>
-        var sidebarScrollbox = document.querySelector(
-          "#sidebar .sidebar-scrollbox",
-        );
-        sidebarScrollbox.addEventListener(
-          "click",
-          function (e) {
-            if (e.target.tagName === "A") {
-              sessionStorage.setItem(
-                "sidebar-scroll",
-                sidebarScrollbox.scrollTop,
-              );
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
             }
-          },
-          { passive: true },
-        );
-        var sidebarScrollTop = sessionStorage.getItem("sidebar-scroll");
-        sessionStorage.removeItem("sidebar-scroll");
-        if (sidebarScrollTop) {
-          // preserve sidebar scroll position when navigating via links within sidebar
-          sidebarScrollbox.scrollTop = sidebarScrollTop;
-        } else {
-          // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
-          var activeSection = document.querySelector("#sidebar .active");
-          if (activeSection) {
-            activeSection.scrollIntoView({ block: "center" });
-          }
-        }
-      </script>
+            sidebar_toggle.checked = sidebar === 'visible';
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
 
-      <div id="page-wrapper" class="page-wrapper">
-        <div class="page">
-          <div id="menu-bar-hover-placeholder"></div>
-          <div id="menu-bar" class="menu-bar sticky">
-            <div class="left-buttons">
-              <label
-                id="sidebar-toggle"
-                class="icon-button"
-                for="sidebar-toggle-anchor"
-                title="Toggle Table of Contents"
-                aria-label="Toggle Table of Contents"
-                aria-controls="sidebar"
-              >
-                <i class="fa fa-bars"></i>
-              </label>
-              <button
-                id="theme-toggle"
-                class="icon-button"
-                type="button"
-                title="Change theme"
-                aria-label="Change theme"
-                aria-haspopup="true"
-                aria-expanded="false"
-                aria-controls="theme-list"
-              >
-                <i class="fa fa-paint-brush"></i>
-              </button>
-              <ul
-                id="theme-list"
-                class="theme-popup"
-                aria-label="Themes"
-                role="menu"
-              >
-                <li role="none">
-                  <button role="menuitem" class="theme" id="light">
-                    Light
-                  </button>
-                </li>
-                <li role="none">
-                  <button role="menuitem" class="theme" id="rust">Rust</button>
-                </li>
-                <li role="none">
-                  <button role="menuitem" class="theme" id="coal">Coal</button>
-                </li>
-                <li role="none">
-                  <button role="menuitem" class="theme" id="navy">Navy</button>
-                </li>
-                <li role="none">
-                  <button role="menuitem" class="theme" id="ayu">Ayu</button>
-                </li>
-              </ul>
-              <button
-                id="search-toggle"
-                class="icon-button"
-                type="button"
-                title="Search. (Shortkey: s)"
-                aria-label="Toggle Searchbar"
-                aria-expanded="false"
-                aria-keyshortcuts="S"
-                aria-controls="searchbar"
-              >
-                <i class="fa fa-search"></i>
-              </button>
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
             </div>
+        </nav>
 
-            <h1 class="menu-title">Ghaf Framework</h1>
+        <div id="page-wrapper" class="page-wrapper">
 
-            <div class="right-buttons">
-              <a
-                href="../../print.html"
-                title="Print this book"
-                aria-label="Print this book"
-              >
-                <i id="print-button" class="fa fa-print"></i>
-              </a>
-               
-              <a
-                href="https://github.com/tiiuae/ghaf"
-                title="Git repository"
-                aria-label="Git repository"
-              >
-                <i
-                  id="git-repository-button"
-                  class="fa fa-github"
-                ></i>
-              </a>
-                           </div>
-          </div>
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
 
-          <div id="search-wrapper" class="hidden">
-            <form id="searchbar-outer" class="searchbar-outer">
-              <input
-                type="search"
-                id="searchbar"
-                name="searchbar"
-                placeholder="Search this book ..."
-                aria-controls="searchresults-outer"
-                aria-describedby="searchresults-header"
-              />
-            </form>
-            <div id="searchresults-outer" class="searchresults-outer hidden">
-              <div id="searchresults-header" class="searchresults-header"></div>
-              <ul id="searchresults"></ul>
-            </div>
-          </div>
+                    <h1 class="menu-title">Ghaf Framework</h1>
 
-          <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
-          <script>
-            document
-              .getElementById("sidebar-toggle")
-              .setAttribute("aria-expanded", sidebar === "visible");
-            document
-              .getElementById("sidebar")
-              .setAttribute("aria-hidden", sidebar !== "visible");
-            Array.from(document.querySelectorAll("#sidebar a")).forEach(
-              function (link) {
-                link.setAttribute("tabIndex", sidebar === "visible" ? 0 : -1);
-              },
-            );
-          </script>
+                    <div class="right-buttons">
+                        <a href="../../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/tiiuae/ghaf" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
 
-          <div id="content" class="content">
-            <main>
-              <div class="content-wrap"><style>
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -429,82 +306,55 @@ $&gt; systemd-analyze security &lt;service_name&gt;.service #For detailed inform
 <p>Update the configuration in the Ghaf repository and build it. Hardened service configs are available in the directory <a href="https://github.com/tiiuae/ghaf/tree/main/modules/common/systemd/hardened-configs"><code>ghaf/modules/common/systemd/hardened-configs</code></a>.</p>
 </li>
 </ol>
-</div>
-              <div class="sidetoc">
-                <nav class="pagetoc"></nav>
-              </div>
-            </main>
 
-            <nav class="nav-wrapper" aria-label="Page navigation">
-              <!-- Mobile navigation buttons -->
-              <a
-                rel="prev"
-                href="../../troubleshooting/systemd/system-log.html"
-                class="mobile-nav-chapters previous"
-                title="Previous chapter"
-                aria-label="Previous chapter"
-                aria-keyshortcuts="Left"
-              >
-                <i class="fa fa-angle-left"></i>
-              </a>
-               
-              <a
-                rel="next prefetch"
-                href="../../troubleshooting/systemd/systemd-analyzer.html"
-                class="mobile-nav-chapters next"
-                title="Next chapter"
-                aria-label="Next chapter"
-                aria-keyshortcuts="Right"
-              >
-                <i class="fa fa-angle-right"></i>
-              </a>
+                    </main>
 
-              <div style="clear: both"></div>
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../../troubleshooting/systemd/system-log.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../../troubleshooting/systemd/systemd-analyzer.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../../troubleshooting/systemd/system-log.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../../troubleshooting/systemd/systemd-analyzer.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
             </nav>
-          </div>
+
         </div>
 
-        <nav class="nav-wide-wrapper" aria-label="Page navigation">
-          <a
-            rel="prev"
-            href="../../troubleshooting/systemd/system-log.html"
-            class="nav-chapters previous"
-            title="Previous chapter"
-            aria-label="Previous chapter"
-            aria-keyshortcuts="Left"
-          >
-            <i class="fa fa-angle-left"></i>
-          </a>
-           
-          <a
-            rel="next prefetch"
-            href="../../troubleshooting/systemd/systemd-analyzer.html"
-            class="nav-chapters next"
-            title="Next chapter"
-            aria-label="Next chapter"
-            aria-keyshortcuts="Right"
-          >
-            <i class="fa fa-angle-right"></i>
-          </a>
-        </nav>
-      </div>
 
-   
-      <script>
-        window.playground_copyable = true;
-      </script>
-        
-      <script src="../../elasticlunr.min.js"></script>
-      <script src="../../mark.min.js"></script>
-      <script src="../../searcher.js"></script>
 
-      <script src="../../clipboard.min.js"></script>
-      <script src="../../highlight.js"></script>
-      <script src="../../book.js"></script>
 
-      <!-- Custom JS scripts -->
-      <script src="../../theme/pagetoc.js"></script>
-       
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../../elasticlunr.min.js"></script>
+        <script src="../../mark.min.js"></script>
+        <script src="../../searcher.js"></script>
+
+        <script src="../../clipboard.min.js"></script>
+        <script src="../../highlight.js"></script>
+        <script src="../../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
     </div>
-  </body>
+    </body>
 </html>
