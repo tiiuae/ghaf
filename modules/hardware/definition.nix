@@ -41,6 +41,13 @@ in
               PCI device name (optional)
             '';
           };
+          qemu.deviceExtraArgs = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = ''
+              Device additional arguments (optional)
+            '';
+          };
         };
       };
 
@@ -255,6 +262,7 @@ in
               path = "0000:00:02.0";
               vendorId = "8086";
               productId = "a7a1";
+              qemu.deviceExtraArgs = "x-igd-opregion=on"
             }]
           '';
         };
