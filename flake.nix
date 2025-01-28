@@ -110,7 +110,8 @@
 
     jetpack-nixos = {
       #url = "flake:mylocaljetpack";
-      url = "github:anduril/jetpack-nixos/d1c82127de40e85c9c50295f157e1be59a9ad2a6";
+      #url = "github:anduril/jetpack-nixos/d1c82127de40e85c9c50295f157e1be59a9ad2a6";
+      url = "github:tiiuae/jetpack-nixos/final-stretch";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
