@@ -75,6 +75,7 @@ let
     runtimeInputs = [
       pkgs.wlr-randr
       pkgs.jq
+      pkgs.bc
       pkgs.bash
       pkgs.gawk
       pkgs.xorg.setxkbmap
@@ -97,18 +98,28 @@ let
         ${ewwCmd} daemon --force-wayland 
         update-vars
 
-        # Launch ewwbar for each connected display
-        mapfile -t displays < <(echo "$wlr_randr_output" | jq -r '.[] | select(.enabled == true) | .model')
-        for display_name in "''${displays[@]}"; do
-            echo Opening ewwbar on display "$display_name"
-            ${ewwCmd} open --force-wayland --no-daemonize --screen "$display_name" bar --id bar:"$display_name" --arg screen="$display_name"
+        open-bars "$wlr_randr_output"
+      }
+
+      # EWW can only perform integer scaling by default
+      # Therefore we need to calculate the expected scaled width in pixels
+      open-bars() {
+        local wlr_randr_output=$1
+        echo "$wlr_randr_output" | jq -c --unbuffered '.[] | select(.enabled == true)' | while read -r display; do
+          scale=$(echo "$display" | jq -r '.scale')
+          display_name=$(echo "$display" | jq -r '.model')
+          width=$(echo "$display" | jq -r '.modes[] | select(.current == true) | .width')
+          #scaled_width=$(printf "%.2f" "$(echo "(2 / $scale) * 100" | bc -l)")
+          scaled_width=$(echo "$width / $scale" | bc -l | cut -d'.' -f1)
+          ${ewwCmd} open --force-wayland --no-daemonize --screen "$display_name" bar --id bar:"$display_name" --arg screen="$display_name" --arg width="$scaled_width"
         done
       }
 
       # Reloads current config without opening new windows
       reload() {
-        ${ewwCmd} reload
-        update-vars
+        #${ewwCmd} reload
+        ${ewwCmd} close-all
+        open-bars "$(wlr-randr --json)"
       }
 
       update-vars() {
@@ -270,7 +281,8 @@ let
               volume_percentage: (
                 (.volume | to_entries | first | .value.value_percent | sub("%$"; "")) // "0"
               ),
-              is_muted: (.mute // false)
+              is_muted: (.mute // false),
+              device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "")
             }
           )
           catch halt
@@ -292,7 +304,8 @@ let
               volume_percentage: (
                 (.volume | to_entries | first | .value.value_percent | sub("%$"; "")) // "0"
               ),
-              is_muted: (.mute // false)
+              is_muted: (.mute // false),
+              device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "")
             }
           )
           catch halt
@@ -334,7 +347,7 @@ let
                   state: (.state // ""),
                   friendly_name: (.description // ""),
                   is_muted: (.mute // false),
-                  device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "") | ascii_downcase
+                  device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "")
                 }
             ]
           ) catch halt
@@ -358,7 +371,7 @@ let
                   ),
                   state: (.state // ""),
                   friendly_name: (.description // ""),
-                  device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "") | ascii_downcase
+                  device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "")
                 }
             ]
           ) catch halt
@@ -513,50 +526,30 @@ let
     name = "eww-display";
     runtimeInputs = [
       pkgs.wlr-randr
-      pkgs.jq
-      pkgs.inotify-tools
+      pkgs.systemd
     ];
     bashOptions = [ ];
     text = ''
-      mkdir -p ~/.config/eww
-      echo 1 > ~/.config/eww/display && sleep 0.5
+      CONFIG_FILE="/tmp/display-config.txt"
 
-      open_bar() {
-          local display_name=$1
-          ${ewwCmd} open --force-wayland --no-daemonize --screen "$display_name" bar --id bar:"$display_name" --arg screen="$display_name"
-      }
+      # Function to check if the configuration has changed
+      check_for_changes() {
+          current_config=$(wlr-randr)
+          last_config=$(cat "$CONFIG_FILE" 2>/dev/null)
 
-      close_bar() {
-          local display_name=$1
-          ${ewwCmd} close bar:"$display_name"
-      }
-
-      wlr_randr_output=$(wlr-randr --json)
-      prev_displays=$(echo "$wlr_randr_output" | jq 'length')
-      mapfile -t prev_display_names < <(echo "$wlr_randr_output" | jq -r '.[] | select(.enabled == true) | .model')
-
-      inotifywait -m -e close_write ~/.config/eww/display | while read -r; do
-          wlr_randr_output=$(wlr-randr --json)
-          current_displays=$(echo "$wlr_randr_output" | jq 'length')
-          mapfile -t current_display_names < <(echo "$wlr_randr_output" | jq -r '.[] | select(.enabled == true) | .model')
-
-          if (( current_displays > prev_displays )); then
-              # Open bars for added displays
-              mapfile -t added_displays < <(comm -13 <(printf "%s\n" "''${prev_display_names[@]}" | sort) <(printf "%s\n" "''${current_display_names[@]}" | sort))
-              for display_name in "''${added_displays[@]}"; do
-                  open_bar "$display_name"
-              done
-          elif (( current_displays < prev_displays )); then
-              # Close bars for removed displays
-              mapfile -t removed_displays < <(comm -23 <(printf "%s\n" "''${prev_display_names[@]}" | sort) <(printf "%s\n" "''${current_display_names[@]}" | sort))
-              for display_name in "''${removed_displays[@]}"; do
-                  close_bar "$display_name"
-              done
+          # If there's no previous configuration, write the current one and exit
+          if [ "$current_config" != "$last_config" ]; then
+              echo "$current_config" > "$CONFIG_FILE"
+              return 0  # Change detected
           fi
+          return 1  # No change
+      }
 
-          # Update previous state
-          prev_displays=$current_displays
-          prev_display_names=("''${current_display_names[@]}")
+      while true; do
+          if check_for_changes; then
+              systemctl --user reload ewwbar
+          fi
+          sleep 1
       done
     '';
   };

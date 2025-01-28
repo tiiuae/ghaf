@@ -126,6 +126,9 @@ let
           <action name="Execute" command="${ghaf-screenshot}/bin/ghaf-screenshot" />
         </keybind>
       ''}
+      <keybind key="XF86_Display">
+        <action name="Execute" command="${lib.getExe pkgs.wdisplays}" />
+      </keybind>
       <keybind key="XF86_MonBrightnessUp">
         <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/brightness; ${pkgs.brightnessctl}/bin/brightnessctl set +5%'" />
       </keybind>
@@ -312,6 +315,107 @@ let
 
     text = "labwc -C /etc/labwc -s labwc-autostart >/tmp/session.labwc.log 2>&1";
   };
+
+  auto-display-scale = pkgs.writeShellApplication {
+    name = "auto-display-scale";
+    runtimeInputs = [
+      pkgs.wlr-randr
+      pkgs.jq
+      pkgs.gawk
+      pkgs.bc
+      pkgs.systemd
+    ];
+    bashOptions = [ ];
+    text = ''
+      start() {
+        wlr-randr --json | jq -c --unbuffered '.[] | select(.enabled == true)' | while read -r display; do
+          # Extract necessary details from JSON
+          name=$(echo "$display" | jq -r '.name')
+          width_mm=$(echo "$display" | jq -r '.physical_size.width')
+          height_mm=$(echo "$display" | jq -r '.physical_size.height')
+          mode=$(echo "$display" | jq -c '.modes[] | select(.current == true)')
+          width_px=$(echo "$mode" | jq -r '.width')
+          height_px=$(echo "$mode" | jq -r '.height')
+
+          pos_x=$(echo "$display" | jq -r '.position.x')
+          pos_y=$(echo "$display" | jq -r '.position.y')
+          scale=$(echo "$display" | jq -r '.scale')
+
+          # Validate extracted values
+          if [[ -z "$name" || -z "$width_mm" || -z "$height_mm" || -z "$width_px" || -z "$height_px" || -z "$pos_x" || -z "$pos_y" ]]; then
+              echo "Error: Missing data for display $name. Skipping."
+              continue
+          elif [[ "$(echo "$scale != 1" | bc -l)" -eq 1 ]]; then
+              # Don't adjust scaling if custom scaling is already set
+              continue
+          fi
+
+          # Convert physical dimensions to inches
+          width_in=$(echo "$width_mm" | awk '{print $1 / 25.4}')
+          height_in=$(echo "$height_mm" | awk '{print $1 / 25.4}')
+
+          diagonal_px=$(echo "$width_px $height_px" | awk '{print sqrt($1^2 + $2^2)}')
+          diagonal_in=$(echo "$width_in $height_in" | awk '{print sqrt($1^2 + $2^2)}')
+          ppi=$(echo "$diagonal_px $diagonal_in" | awk '{print $1 / $2}')
+
+          # Check if the display is a TV size
+          is_tv=$(echo "$diagonal_in >= 40" | bc -l) # Consider displays with a diagonal >= 40 inches as TVs
+          if [[ "$is_tv" -eq 1 ]]; then
+              if (( $(echo "$diagonal_in <= 65" | bc -l) )); then
+                  calculated_scale=1.50 # Apply 150% scaling for TVs 65 inches and under
+              else
+                  calculated_scale=1.75 # Apply 175% scaling for TVs larger than 65 inches
+              fi
+          else
+              # Determine scaling factor based on PPI
+              if (( $(echo "$ppi >= 0 && $ppi < 170" | bc -l) )); then
+                  calculated_scale=1        # No scaling for PPI lower than 170
+              elif (( $(echo "$ppi >= 170 && $ppi < 200" | bc -l) )); then
+                  calculated_scale=1.25     # 125% scaling for PPI between 170 and 200
+              elif (( $(echo "$ppi >= 200 && $ppi < 300" | bc -l) )); then
+                  calculated_scale=1.50     # 150% scaling for PPI between 200 and 300
+              else
+                  calculated_scale=2        # 200% scaling for PPI above 300
+              fi
+          fi
+
+          # Apply scaling using wlr-randr
+          wlr-randr --output "$name" --preferred --scale "$calculated_scale" --pos "$pos_x,$pos_y" && \
+            echo "Applied settings for display $name: Scale=$calculated_scale, Position=($pos_x, $pos_y), Size=$diagonal_in inches, PPI=$ppi."
+        done
+      }
+
+      reset() {
+        wlr-randr --json | jq -c --unbuffered '.[] | select(.enabled == true)' | while read -r display; do
+          name=$(echo "$display" | jq -r '.name')
+          echo "Display $name: Resetting scaling"
+          wlr-randr --output "$name" --preferred --scale 1 && echo "Display $name scaling reset to 1"
+        done
+        echo "Done resetting display scaling"
+        systemctl --user reload ewwbar && echo "Ewwbar reloaded"
+      }
+
+      case "$1" in
+        reset)
+            reset
+            ;;
+        *)
+            start
+            ;;
+      esac
+    '';
+  };
+
+  display-event-trigger = pkgs.writeShellApplication {
+    name = "display-event-trigger";
+    runtimeInputs = [ ];
+    bashOptions = [ ];
+    text = ''
+      # Run the following commands in order every time a display change event is detected
+      ${auto-display-scale}/bin/auto-display-scale        # Auto scaling
+      ${pkgs.mako}/bin/makoctl set-mode default   # Reset mako mode so notifications don't break
+    '';
+  };
 in
 {
   config = lib.mkIf cfg.enable {
@@ -339,7 +443,7 @@ in
     };
 
     services.udev.extraRules = ''
-      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="mako-reset.service"
+      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="display-change-trigger.service"
     '';
 
     systemd.user.services = {
@@ -367,13 +471,6 @@ in
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
-      };
-
-      mako-reset = {
-        enable = true;
-        serviceConfig = {
-          ExecStart = "${pkgs.mako}/bin/makoctl set-mode default";
-        };
       };
 
       mako = {
@@ -453,6 +550,36 @@ in
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
+      };
+
+      hidpi-auto-scaling = {
+        description = "HiDPI scaling service at boot";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${auto-display-scale}/bin/auto-display-scale";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
+        before = [
+          "ewwbar.service"
+          "swaybg.service"
+        ];
+      };
+
+      hidpi-auto-scaling-reset = {
+        description = "Reset HiDPI auto scaling performed at boot";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${auto-display-scale}/bin/auto-display-scale reset";
+        };
+      };
+
+      display-change-trigger = {
+        description = "display-change-trigger";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${display-event-trigger}/bin/display-event-trigger";
+        };
       };
     };
   };

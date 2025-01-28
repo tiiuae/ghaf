@@ -108,10 +108,6 @@ in
       mode = "0644";
     };
 
-    services.udev.extraRules = ''
-      ACTION=="change", SUBSYSTEM=="drm", TAG+="systemd", ENV{SYSTEMD_USER_WANTS}+="eww-display-trigger.service"
-    '';
-
     systemd.user.services = {
       ewwbar = {
         enable = true;
