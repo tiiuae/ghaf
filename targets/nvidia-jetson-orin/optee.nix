@@ -21,8 +21,15 @@ _:
         # Can't use l4tVersion version directly, because it contains an
         # extra zero. If-else is a sanity check so the sources are
         # in sync!
-        rev = if l4tVersion == "35.6.0" then "jetson_35.6" else throw "Mismatching OP-TEE sources";
-        sha256 = "sha256-hxgXRNtyZlfFMK8+3vVNxg2O1yrLJTFiFyjnE8Gmqqs=";
+        rev =
+          if l4tVersion == "35.6.0" then
+            "jetson_35.6"
+          else if l4tVersion == "36.4.3" then
+            "jetson_36.4.3"
+          else
+            throw "Mismatching OP-TEE sources";
+
+        sha256 = "sha256-YIkONwvQ3PYF12PcGlX+C4/wlo4n12rrQI3PLnK408k=";
       };
       patches = [ ./0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch ];
     };
