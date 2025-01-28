@@ -116,12 +116,12 @@
       }
 
       slider {
+          border: 0 solid transparent;
+          border-radius: 50%;
+          background-image: none;
+          box-shadow: none;
           @if $thumb {
-              box-shadow: none;
               background-color: #D3D3D3;
-              background-image: none;
-              border: 0 solid transparent;
-              border-radius: 50%;
               min-height: $thumb-width;
               min-width: $thumb-width;
               margin: -($thumb-width / 2) 0;
@@ -130,7 +130,6 @@
               min-width: 0;
               min-height: 0;
               background-color: transparent;
-              background-image: none;
           }
       }
 

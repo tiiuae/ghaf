@@ -207,7 +207,7 @@ writeText "widgets.yuck" ''
               :space-evenly false
               (slider_with_children
                       :class "qs-slider"
-                      :header-left {audio_output.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Speaker" :
+                      :header-left {audio_output.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in ''${audio_output.device_type}" :
                                     audio_output.friendly_name}
                       :header-onclick "''${EWW_CMD} update audio_output_selector_visible=''${!audio_output_selector_visible} &"
                       :child_0_visible audio_output_selector_visible
@@ -227,12 +227,13 @@ writeText "widgets.yuck" ''
               (slider_with_children
                       :visible { audio_input.state == "RUNNING" }
                       :class "qs-slider"
-                      :header-left {audio_input.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Microphone" :
+                      :header-left {audio_input.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in ''${audio_input.device_type}" :
                                     audio_input.friendly_name }
                       :header-onclick "''${EWW_CMD} update audio_input_selector_visible=''${!audio_input_selector_visible} &"
                       :child_0_visible audio_input_selector_visible
-                      :icon { audio_input.is_muted == "true" || audio_input.volume_percentage == 0 ? "microphone-sensitivity-muted" : 
-                              "microphone-sensitivity-high" }
+                      :icon { audio_input.is_muted == "true" || audio_input.volume_percentage == 0 ? "microphone-sensitivity-muted" :
+                              audio_input.volume_percentage <= 25 ? "microphone-sensitivity-low" :
+                              audio_input.volume_percentage <= 75 ? "microphone-sensitivity-medium" : "microphone-sensitivity-high" }
                       :icon-onclick "${ewwScripts.eww-audio}/bin/eww-audio mute_source ''${audio_input.device_index} &"
                       :level { audio_input.is_muted == "true" ? "0" : audio_input.volume_percentage }
                       :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_source_volume ''${audio_input.device_index} {} &"
@@ -268,8 +269,10 @@ writeText "widgets.yuck" ''
                 :class "default_button"
                 :onclick "${ewwScripts.eww-audio}/bin/eww-audio set_default_sink ''${device.id} && ''${EWW_CMD} update audio_output_selector_visible=false &"
                 (box :orientation "h" :spacing 10 :space-evenly "false"
-                  (image :halign "start" :icon {device.device_type})
-                  (label :halign "start" :limit-width 30 :text { device.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Speaker" : device.friendly_name })
+                  (image :halign "start" :path {  device.is_muted == "true" || device.volume_percentage == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
+                                                  device.volume_percentage <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
+                                                  device.volume_percentage <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" })
+                  (label :halign "start" :limit-width 30 :text { device.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in ''${device.device_type}" : device.friendly_name })
                   (image :halign "start" :icon "emblem-ok" :style "opacity: ''${device.is_default ? "1" : "0"}")
                 )
               )
@@ -289,8 +292,10 @@ writeText "widgets.yuck" ''
                 :class "default_button"
                 :onclick "${ewwScripts.eww-audio}/bin/eww-audio set_default_source ''${device.id} && ''${EWW_CMD} update audio_input_selector_visible=false &"
                 (box :orientation "h" :spacing 10 :space-evenly "false"
-                  (image :halign "start" :icon {device.device_type == "mic" ? "microphone" : device.device_type})
-                  (label :halign "start" :limit-width 30 :text { device.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in Microphone" : device.friendly_name })
+                  (image :halign "start" :icon { device.is_muted == "true" || device.volume_percentage == 0 ? "microphone-sensitivity-muted" :
+                                                 device.volume_percentage <= 25 ? "microphone-sensitivity-low" :
+                                                 device.volume_percentage <= 75 ? "microphone-sensitivity-medium" : "microphone-sensitivity-high" })
+                  (label :halign "start" :limit-width 30 :text { device.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in ''${device.device_type}" : device.friendly_name })
                   (image :halign "start" :icon "emblem-ok" :style "opacity: ''${device.is_default ? "1" : "0"}")
                 )
               )
@@ -480,9 +485,9 @@ writeText "widgets.yuck" ''
                   (slider
                       :valign "center"
                       :image { audio_output.is_muted == "true" || audio_output.volume_percentage == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
-                              audio_output.volume_percentage <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
-                              audio_output.volume_percentage <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" }
-                      :level {audio_output.volume_percentage}))))
+                               audio_output.volume_percentage <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
+                               audio_output.volume_percentage <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" }
+                      :level { audio_output.is_muted == "true" ? "0" : audio_output.volume_percentage }))))
 
       ;; Workspace Popup Widget ;;
       (defwidget workspace-popup []

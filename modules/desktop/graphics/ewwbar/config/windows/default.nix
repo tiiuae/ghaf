@@ -9,12 +9,12 @@
 }:
 writeText "windows.yuck" ''
   ;; Bar Window ;;
-      (defwindow bar [screen]
+      (defwindow bar [screen ?width]
           :geometry (geometry  
                       :x "0px" 
                       :y "0px" 
                       :height "28px"
-                      :width "100%" 
+                      :width {width ?: "100%"} 
                       :anchor "top center")
           :focusable "false"
           :hexpand "false"
@@ -53,7 +53,7 @@ writeText "windows.yuck" ''
         ;; Volume Popup Window ;;
         (defwindow volume-popup
             :monitor 0
-            :geometry (geometry :y "150px"
+            :geometry (geometry :y "10%"
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
@@ -62,7 +62,7 @@ writeText "windows.yuck" ''
         ;; Brightness Popup Window ;;
         (defwindow brightness-popup
             :monitor 0
-            :geometry (geometry :y "150px"
+            :geometry (geometry :y "10%"
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
@@ -71,7 +71,7 @@ writeText "windows.yuck" ''
         ;; Workspace Popup Window ;;
         (defwindow workspace-popup
             :monitor 0
-            :geometry (geometry :y "150px"
+            :geometry (geometry :y "10%"
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
