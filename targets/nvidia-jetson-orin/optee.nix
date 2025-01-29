@@ -38,7 +38,15 @@ _:
       pname = "optee_xtest";
       version = l4tVersion;
       src = opteeSource;
-      nativeBuildInputs = [ (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ])) ];
+      nativeBuildInputs = [
+        (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ]))
+        pkgs.openssl
+      ];
+
+      buildInputs = [
+        pkgs.openssl
+      ];
+
       postPatch = ''
         patchShebangs --build $(find optee/optee_test -type d -name scripts -printf '%p ')
       '';
@@ -57,11 +65,20 @@ _:
         runHook postInstall
       '';
     };
+
     pcks11Ta = stdenv.mkDerivation {
       pname = "pkcs11";
       version = l4tVersion;
       src = opteeSource;
-      nativeBuildInputs = [ (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ])) ];
+      nativeBuildInputs = [
+        (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ]))
+        pkgs.openssl
+      ];
+
+      buildInputs = [
+        pkgs.openssl
+      ];
+
       makeFlags = [
         "-C optee/optee_os/ta/pkcs11"
         "CROSS_COMPILE=${stdenv.cc.targetPrefix}"
