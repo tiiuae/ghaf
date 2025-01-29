@@ -36,10 +36,10 @@ in
     ];
 
     boot.kernelPatches = [
-      {
-        name = "agx-pci-passthrough-patch";
-        patch = ./pci-passthrough-agx-test.patch;
-      }
+      # {
+      #   name = "agx-pci-passthrough-patch";
+      #   patch = ./pci-passthrough-agx-test.patch;
+      # }
     ];
 
     boot.kernelParams = [

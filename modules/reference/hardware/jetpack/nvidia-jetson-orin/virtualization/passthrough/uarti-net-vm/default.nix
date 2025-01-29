@@ -51,10 +51,10 @@ in
     systemd.services."microvm@net-vm".after = [ "bindSerial31d0000.service" ];
 
     boot.kernelPatches = [
-      {
-        name = "Add Net-VM device tree with UARTI in platform devices";
-        patch = ./patches/net_vm_dtb_with_uarti.patch;
-      }
+      # {
+      #   name = "Add Net-VM device tree with UARTI in platform devices";
+      #   patch = ./patches/net_vm_dtb_with_uarti.patch;
+      # }
     ];
 
     systemd.services.bindSerial31d0000 = {
@@ -76,15 +76,15 @@ in
     hardware.deviceTree.enable = true;
 
     # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
-    hardware.deviceTree.overlays = [
-      {
-        name = "uarti_pt_host_overlay";
-        dtsFile = ./uarti_pt_host_overlay.dts;
+    # hardware.deviceTree.overlays = [
+    #   {
+    #     name = "uarti_pt_host_overlay";
+    #     dtsFile = ./uarti_pt_host_overlay.dts;
 
-        # Apply overlay only to host passthrough device tree
-        # TODO: make this avaliable if PCI passthrough is disabled
-        filter = "tegra234-p3701-host-passthrough.dtb";
-      }
-    ];
+    #     # Apply overlay only to host passthrough device tree
+    #     # TODO: make this avaliable if PCI passthrough is disabled
+    #     filter = "tegra234-p3701-host-passthrough.dtb";
+    #   }
+    # ];
   };
 }
