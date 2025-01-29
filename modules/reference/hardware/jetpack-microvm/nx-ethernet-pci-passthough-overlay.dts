@@ -1,0 +1,93 @@
+/*
+ * Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/power/tegra234-powergate.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+    overlay-name = "PCI ethernet passthrough";
+    compatible = "nvidia,p3768-0000+p3767-0000";
+
+    fragment@0 {
+        target-path = "/bus@0";
+        __overlay__ {
+            pcie@140a0000 {
+                status = "disabled";
+            };
+
+            // Created a new PCIe node and commented out dma-coherent because with
+            // device tree overlays it is not possible to delete properties
+            pcie_pt@140a0000 {
+                compatible = "nvidia,tegra234-pcie";
+                power-domains = <&bpmp TEGRA234_POWER_DOMAIN_PCIEX4CA>;
+                reg = <0x00 0x140a0000 0x0 0x00020000>, /* appl registers (128K)      */
+                    <0x00 0x2a000000 0x0 0x00040000>, /* configuration space (256K) */
+                    <0x00 0x2a040000 0x0 0x00040000>, /* iATU_DMA reg space (256K)  */
+                    <0x00 0x2a080000 0x0 0x00040000>, /* DBI reg space (256K)       */
+                    <0x35 0x30000000 0x0 0x10000000>; /* ECAM (256MB)               */
+                reg-names = "appl", "config", "atu_dma", "dbi", "ecam";
+
+                #address-cells = <3>;
+                #size-cells = <2>;
+                device_type = "pci";
+
+                num-viewport = <8>;
+                linux,pci-domain = <8>;
+
+                clocks = <&bpmp TEGRA234_CLK_PEX2_C8_CORE>;
+                clock-names = "core";
+
+                resets = <&bpmp TEGRA234_RESET_PEX2_CORE_8_APB>,
+                    <&bpmp TEGRA234_RESET_PEX2_CORE_8>;
+                reset-names = "apb", "core";
+
+                interrupts = <GIC_SPI 356 IRQ_TYPE_LEVEL_HIGH>, /* controller interrupt */
+                        <GIC_SPI 357 IRQ_TYPE_LEVEL_HIGH>; /* MSI interrupt */
+                interrupt-names = "intr", "msi";
+
+                #interrupt-cells = <1>;
+                interrupt-map-mask = <0 0 0 0>;
+                interrupt-map = <0 0 0 0 &gic GIC_SPI 356 IRQ_TYPE_LEVEL_HIGH>;
+
+                nvidia,bpmp = <&bpmp 8>;
+
+                nvidia,aspm-cmrt-us = <60>;
+                nvidia,aspm-pwr-on-t-us = <20>;
+                nvidia,aspm-l0s-entrance-latency-us = <3>;
+
+                bus-range = <0x0 0xff>;
+
+                ranges = <0x43000000 0x32 0x40000000 0x32 0x40000000 0x2 0xe8000000>, /* prefetchable memory (11904 MB) */
+                    <0x02000000 0x0  0x40000000 0x35 0x28000000 0x0 0x08000000>, /* non-prefetchable memory (128 MB) */
+                    <0x01000000 0x0  0x2a100000 0x00 0x2a100000 0x0 0x00100000>; /* downstream I/O (1 MB) */
+
+                interconnects = <&mc TEGRA234_MEMORY_CLIENT_PCIE8AR &emc>,
+                        <&mc TEGRA234_MEMORY_CLIENT_PCIE8AW &emc>;
+                interconnect-names = "dma-mem", "write";
+                iommu-map = <0x0 &smmu_niso1 TEGRA234_SID_PCIE8 0x1000>;
+                iommu-map-mask = <0x0>;
+                //dma-coherent;
+
+                num-lanes = <2>;
+
+                phys = <&p2u_gbe_2>, <&p2u_gbe_3>;
+                phy-names = "p2u-0", "p2u-1";
+
+                vddio-pex-ctl-supply = <&vdd_1v8_ao>;
+                vpcie3v3-supply = <&vdd_3v3_pcie>;
+
+                status = "okay";
+            };
+        };
+    };
+
+};
