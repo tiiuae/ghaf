@@ -1,27 +1,27 @@
-From 18c1ea534dba4a75848fdeea3c55de00ca11c397 Mon Sep 17 00:00:00 2001
+From fb804ee9525d1eb86f6b32757fcef796626fb35d Mon Sep 17 00:00:00 2001
 From: Tanel Dettenborn <tanel@ssrc.tii.ae>
-Date: Sat, 14 Sep 2024 16:45:46 +0300
-Subject: [PATCH] ta: pkcs11: Build time option for controlling pin locking
- Adding a build time option for disabling or enabling pin locking after failed
+Date: Wed, 29 Jan 2025 09:56:34 +0200
+Subject: [PATCH] OPTEE PKCS11 TA: Build time option for controlling pin
+ locking
+
+Adding a build time option for disabling or enabling pin locking after failed
  authentication attempts. Option controls both, User and SO, pins. Default is
  'y'.
 
 Option is called:
  CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS
 
-NOTE: Patch is backported!
-
 Signed-off-by: Tanel Dettenborn <tanel@ssrc.tii.ae>
 ---
- optee/optee_os/ta/pkcs11/src/pkcs11_token.c | 102 +++++++++++---------
- optee/optee_os/ta/pkcs11/sub.mk             |   4 +
- 2 files changed, 60 insertions(+), 46 deletions(-)
+ optee/optee_os/ta/pkcs11/src/pkcs11_token.c | 114 +++++++++++---------
+ optee/optee_os/ta/pkcs11/sub.mk             |   5 +
+ 2 files changed, 67 insertions(+), 52 deletions(-)
 
 diff --git a/optee/optee_os/ta/pkcs11/src/pkcs11_token.c b/optee/optee_os/ta/pkcs11/src/pkcs11_token.c
-index 25ba77827..9882d1cf2 100644
+index 23ecbc7c8..38d467a59 100644
 --- a/optee/optee_os/ta/pkcs11/src/pkcs11_token.c
 +++ b/optee/optee_os/ta/pkcs11/src/pkcs11_token.c
-@@ -884,16 +884,18 @@ enum pkcs11_rc entry_ck_token_initialize(uint32_t ptypes, TEE_Param *params)
+@@ -896,16 +896,18 @@ enum pkcs11_rc entry_ck_token_initialize(uint32_t ptypes, TEE_Param *params)
  		if (rc != PKCS11_CKR_PIN_INCORRECT)
  			return rc;
  
@@ -48,139 +48,154 @@ index 25ba77827..9882d1cf2 100644
  
  		return PKCS11_CKR_PIN_INCORRECT;
  	}
-@@ -1140,35 +1142,39 @@ static enum pkcs11_rc check_so_pin(struct pkcs11_session *session,
- 		if (rc != PKCS11_CKR_PIN_INCORRECT)
- 			return rc;
+@@ -1144,19 +1146,21 @@ static enum pkcs11_rc check_so_pin(struct pkcs11_session *session,
+ 	if (db->flags & PKCS11_CKFT_SO_PIN_LOCKED)
+ 		return PKCS11_CKR_PIN_LOCKED;
  
--		token->db_main->flags |= PKCS11_CKFT_SO_PIN_COUNT_LOW;
--		token->db_main->so_pin_count++;
-+		if (IS_ENABLED(CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS)) {
-+			token->db_main->flags |= PKCS11_CKFT_SO_PIN_COUNT_LOW;
-+			token->db_main->so_pin_count++;
+-	/*
+-	 * Preset the counter and flags conservatively in the database so that
+-	 * the tentative is saved whatever happens next.
+-	 */
+-	db->flags |= PKCS11_CKFT_SO_PIN_COUNT_LOW;
+-	db->so_pin_count++;
++	if (IS_ENABLED(CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS)) {
++		/*
++		 * Preset the counter and flags conservatively in the database so that
++		 * the tentative is saved whatever happens next.
++		 */
++		db->flags |= PKCS11_CKFT_SO_PIN_COUNT_LOW;
++		db->so_pin_count++;
  
--		pin_count = token->db_main->so_pin_count;
--		if (pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX - 1)
--			token->db_main->flags |= PKCS11_CKFT_SO_PIN_FINAL_TRY;
--		if (pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX)
--			token->db_main->flags |= PKCS11_CKFT_SO_PIN_LOCKED;
-+			pin_count = token->db_main->so_pin_count;
-+			if (pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX - 1)
-+				token->db_main->flags |= PKCS11_CKFT_SO_PIN_FINAL_TRY;
-+			if (pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX)
-+				token->db_main->flags |= PKCS11_CKFT_SO_PIN_LOCKED;
+-	if (db->so_pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX - 1)
+-		db->flags |= PKCS11_CKFT_SO_PIN_FINAL_TRY;
+-	else if (db->so_pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX)
+-		db->flags |= PKCS11_CKFT_SO_PIN_LOCKED;
++		if (db->so_pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX - 1)
++			db->flags |= PKCS11_CKFT_SO_PIN_FINAL_TRY;
++		else if (db->so_pin_count == PKCS11_TOKEN_SO_PIN_COUNT_MAX)
++			db->flags |= PKCS11_CKFT_SO_PIN_LOCKED;
  
--		update_persistent_db(token);
-+			update_persistent_db(token);
+-	update_persistent_db(token);
++		update_persistent_db(token);
++	}
  
--		if (token->db_main->flags & PKCS11_CKFT_SO_PIN_LOCKED)
--			return PKCS11_CKR_PIN_LOCKED;
-+			if (token->db_main->flags & PKCS11_CKFT_SO_PIN_LOCKED)
-+				return PKCS11_CKR_PIN_LOCKED;
-+		}
- 
+ 	rc = verify_pin(PKCS11_CKU_SO, pin, pin_size,
+ 			db->so_pin_salt,
+@@ -1168,19 +1172,21 @@ static enum pkcs11_rc check_so_pin(struct pkcs11_session *session,
  		return PKCS11_CKR_PIN_INCORRECT;
  	}
  
--	if (token->db_main->so_pin_count) {
--		token->db_main->so_pin_count = 0;
+-	if (rc)
+-		db->so_pin_count--;
+-	else
+-		db->so_pin_count = 0;
 +	if (IS_ENABLED(CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS)) {
-+		if (token->db_main->so_pin_count) {
-+			token->db_main->so_pin_count = 0;
++		if (rc)
++			db->so_pin_count--;
++		else
++			db->so_pin_count = 0;
  
--		update_persistent_db(token);
+-	db->flags &= ~PKCS11_CKFT_SO_PIN_LOCKED;
+-	if (db->so_pin_count < PKCS11_TOKEN_SO_PIN_COUNT_MAX - 1) {
+-		db->flags &= ~PKCS11_CKFT_SO_PIN_FINAL_TRY;
+-		if (!db->so_pin_count)
+-			db->flags &= ~PKCS11_CKFT_SO_PIN_COUNT_LOW;
 -	}
-+			update_persistent_db(token);
++		db->flags &= ~PKCS11_CKFT_SO_PIN_LOCKED;
++		if (db->so_pin_count < PKCS11_TOKEN_SO_PIN_COUNT_MAX - 1) {
++			db->flags &= ~PKCS11_CKFT_SO_PIN_FINAL_TRY;
++			if (!db->so_pin_count)
++				db->flags &= ~PKCS11_CKFT_SO_PIN_COUNT_LOW;
 +		}
  
--	if (token->db_main->flags & (PKCS11_CKFT_SO_PIN_COUNT_LOW |
--				     PKCS11_CKFT_SO_PIN_FINAL_TRY)) {
--		token->db_main->flags &= ~(PKCS11_CKFT_SO_PIN_COUNT_LOW |
--					   PKCS11_CKFT_SO_PIN_FINAL_TRY);
-+		if (token->db_main->flags & (PKCS11_CKFT_SO_PIN_COUNT_LOW |
-+									 PKCS11_CKFT_SO_PIN_FINAL_TRY)) {
-+			token->db_main->flags &= ~(PKCS11_CKFT_SO_PIN_COUNT_LOW |
-+									   PKCS11_CKFT_SO_PIN_FINAL_TRY);
+-	update_persistent_db(token);
++		update_persistent_db(token);
++	}
  
--		update_persistent_db(token);
-+			update_persistent_db(token);
-+		}
- 	}
+ 	return rc;
+ }
+@@ -1204,19 +1210,21 @@ static enum pkcs11_rc check_user_pin(struct pkcs11_session *session,
+ 	if (db->flags & PKCS11_CKFT_USER_PIN_LOCKED)
+ 		return PKCS11_CKR_PIN_LOCKED;
  
- 	return PKCS11_CKR_OK;
-@@ -1199,35 +1205,39 @@ static enum pkcs11_rc check_user_pin(struct pkcs11_session *session,
- 		if (rc != PKCS11_CKR_PIN_INCORRECT)
- 			return rc;
+-	/*
+-	 * Preset the counter and flags conservatively in the database so that
+-	 * the tentative is saved whatever happens next.
+-	 */
+-	db->flags |= PKCS11_CKFT_USER_PIN_COUNT_LOW;
+-	db->user_pin_count++;
++	if (IS_ENABLED(CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS)) {
++		/*
++		 * Preset the counter and flags conservatively in the database so that
++		 * the tentative is saved whatever happens next.
++		 */
++		db->flags |= PKCS11_CKFT_USER_PIN_COUNT_LOW;
++		db->user_pin_count++;
  
--		token->db_main->flags |= PKCS11_CKFT_USER_PIN_COUNT_LOW;
--		token->db_main->user_pin_count++;
-+		if (IS_ENABLED(CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS)) {
-+			token->db_main->flags |= PKCS11_CKFT_USER_PIN_COUNT_LOW;
-+			token->db_main->user_pin_count++;
+-	if (db->user_pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX - 1)
+-		db->flags |= PKCS11_CKFT_USER_PIN_FINAL_TRY;
+-	else if (db->user_pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX)
+-		db->flags |= PKCS11_CKFT_USER_PIN_LOCKED;
++		if (db->user_pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX - 1)
++			db->flags |= PKCS11_CKFT_USER_PIN_FINAL_TRY;
++		else if (db->user_pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX)
++			db->flags |= PKCS11_CKFT_USER_PIN_LOCKED;
  
--		pin_count = token->db_main->user_pin_count;
--		if (pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX - 1)
--			token->db_main->flags |= PKCS11_CKFT_USER_PIN_FINAL_TRY;
--		if (pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX)
--			token->db_main->flags |= PKCS11_CKFT_USER_PIN_LOCKED;
-+			pin_count = token->db_main->user_pin_count;
-+			if (pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX - 1)
-+				token->db_main->flags |= PKCS11_CKFT_USER_PIN_FINAL_TRY;
-+			if (pin_count == PKCS11_TOKEN_USER_PIN_COUNT_MAX)
-+				token->db_main->flags |= PKCS11_CKFT_USER_PIN_LOCKED;
+-	update_persistent_db(token);
++		update_persistent_db(token);
++	}
  
--		update_persistent_db(token);
-+			update_persistent_db(token);
- 
--		if (token->db_main->flags & PKCS11_CKFT_USER_PIN_LOCKED)
--			return PKCS11_CKR_PIN_LOCKED;
-+			if (token->db_main->flags & PKCS11_CKFT_USER_PIN_LOCKED)
-+				return PKCS11_CKR_PIN_LOCKED;
-+		}
- 
+ 	rc = verify_pin(PKCS11_CKU_USER, pin, pin_size,
+ 			db->user_pin_salt,
+@@ -1228,19 +1236,21 @@ static enum pkcs11_rc check_user_pin(struct pkcs11_session *session,
  		return PKCS11_CKR_PIN_INCORRECT;
  	}
  
--	if (token->db_main->user_pin_count) {
--		token->db_main->user_pin_count = 0;
+-	if (rc)
+-		db->user_pin_count--;
+-	else
+-		db->user_pin_count = 0;
 +	if (IS_ENABLED(CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS)) {
-+		if (token->db_main->user_pin_count) {
-+			token->db_main->user_pin_count = 0;
++		if (rc)
++			db->user_pin_count--;
++		else
++			db->user_pin_count = 0;
  
--		update_persistent_db(token);
+-	db->flags &= ~PKCS11_CKFT_USER_PIN_LOCKED;
+-	if (db->user_pin_count < PKCS11_TOKEN_USER_PIN_COUNT_MAX - 1) {
+-		db->flags &= ~PKCS11_CKFT_USER_PIN_FINAL_TRY;
+-		if (!db->user_pin_count)
+-			db->flags &= ~PKCS11_CKFT_USER_PIN_COUNT_LOW;
 -	}
-+			update_persistent_db(token);
++		db->flags &= ~PKCS11_CKFT_USER_PIN_LOCKED;
++		if (db->user_pin_count < PKCS11_TOKEN_USER_PIN_COUNT_MAX - 1) {
++			db->flags &= ~PKCS11_CKFT_USER_PIN_FINAL_TRY;
++			if (!db->user_pin_count)
++				db->flags &= ~PKCS11_CKFT_USER_PIN_COUNT_LOW;
 +		}
  
--	if (token->db_main->flags & (PKCS11_CKFT_USER_PIN_COUNT_LOW |
--				     PKCS11_CKFT_USER_PIN_FINAL_TRY)) {
--		token->db_main->flags &= ~(PKCS11_CKFT_USER_PIN_COUNT_LOW |
--					   PKCS11_CKFT_USER_PIN_FINAL_TRY);
-+		if (token->db_main->flags & (PKCS11_CKFT_USER_PIN_COUNT_LOW |
-+									 PKCS11_CKFT_USER_PIN_FINAL_TRY)) {
-+			token->db_main->flags &= ~(PKCS11_CKFT_USER_PIN_COUNT_LOW |
-+									   PKCS11_CKFT_USER_PIN_FINAL_TRY);
+-	update_persistent_db(token);
++		update_persistent_db(token);
++	}
  
--		update_persistent_db(token);
-+			update_persistent_db(token);
-+		}
- 	}
- 
- 	return PKCS11_CKR_OK;
+ 	return rc;
+ }
 diff --git a/optee/optee_os/ta/pkcs11/sub.mk b/optee/optee_os/ta/pkcs11/sub.mk
-index 30dd13cb5..c9c401879 100644
+index aa66ee0ef..dd2f18253 100644
 --- a/optee/optee_os/ta/pkcs11/sub.mk
 +++ b/optee/optee_os/ta/pkcs11/sub.mk
-@@ -10,6 +10,10 @@ CFG_PKCS11_TA_HEAP_SIZE ?= (32 * 1024)
- # Defines the number of PKCS11 token implemented by the PKCS11 TA
- CFG_PKCS11_TA_TOKEN_COUNT ?= 3
+@@ -13,6 +13,11 @@ CFG_PKCS11_TA_TOKEN_COUNT ?= 3
+ # When enabled, embed support for object checksum value computation
+ CFG_PKCS11_TA_CHECK_VALUE_ATTRIBUTE ?= y
  
 +# Locks correspondingly User or SO PIN when reaching maximum
 +# failed authentication attemps (continous) limit
 +CFG_PKCS11_TA_LOCK_PIN_AFTER_FAILED_LOGIN_ATTEMPTS ?= y
 +
++
  global-incdirs-y += include
  global-incdirs-y += src
  subdirs-y += src
 -- 
-2.42.2
+2.47.2
 
