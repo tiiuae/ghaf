@@ -1,0 +1,29 @@
+/*
+ * Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+ * SPDX-License-Identifier: CC-BY-SA-4.0
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/clock/tegra234-clock.h>
+#include <dt-bindings/reset/tegra234-reset.h>
+#include <dt-bindings/power/tegra234-powergate.h>
+#include <dt-bindings/memory/tegra234-mc.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+    overlay-name = "PCI ethernet passthrough";
+    compatible = "nvidia,p3701-0000";
+
+    fragment@0 {
+        target-path = "/bus@0";
+        __overlay__ {
+            pcie@14100000 {
+                iommus = <>;
+            };
+        };
+    };
+
+};

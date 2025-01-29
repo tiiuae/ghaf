@@ -35,21 +35,16 @@ in
       }
     ];
 
-    boot.kernelPatches = [
-      # {
-      #   name = "agx-pci-passthrough-patch";
-      #   patch = ./pci-passthrough-agx-test.patch;
-      # }
+    hardware.deviceTree.overlays = [
+      {
+        name = "agx-ethernet-pci-passthough-overlay";
+        dtsFile = ./agx-ethernet-pci-passthough-overlay.dts;
+      }
     ];
 
     boot.kernelParams = [
-      "vfio-pci.ids=10ec:c82f"
+      "vfio-pci.ids=10ec:c822,10ec:c82f"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
-
-    hardware.deviceTree = {
-      enable = true;
-      name = "tegra234-p3701-host-passthrough.dtb";
-    };
   };
 }
