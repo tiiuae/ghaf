@@ -128,7 +128,7 @@ in
         #
         # In Section: Adaptation to the Carrier Board with HDMI for the Orin
         #             NX/Nano Modules
-        "${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
+        #"${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
       ''
       + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
         ESP_OFFSET=$(cat "${images}/esp.offset")
