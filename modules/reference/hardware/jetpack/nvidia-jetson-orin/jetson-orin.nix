@@ -2,7 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX reference boards
-{ pkgs, lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
   inherit (lib)
@@ -66,7 +71,7 @@ in
           # The patch reverts back to old behavior, which is to always reset
           # the display when exiting UEFI, instead of doing handoff, when
           # means not to reset anything.
-         # ./edk2-nvidia-always-reset-display.patch
+          # ./edk2-nvidia-always-reset-display.patch
         ];
       };
     };

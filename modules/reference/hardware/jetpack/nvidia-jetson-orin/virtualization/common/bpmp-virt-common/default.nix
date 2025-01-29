@@ -38,10 +38,10 @@ in
           TEGRA_BPMP_HOST_PROXY = lib.mkDefault no;
         };
       }
-      # {
-      #   name = "Vfio_platform Reset Required False";
-      #   patch = ./patches/0002-vfio_platform-reset-required-false.patch;
-      # }
+      {
+        name = "Vfio_platform Reset Required False";
+        patch = ./patches/0002-vfio_platform-reset-required-false.patch;
+      }
       # {
       #   name = "Bpmp Support Virtualization";
       #   patch = ./patches/0003-bpmp-support-bpmp-virt.patch;
