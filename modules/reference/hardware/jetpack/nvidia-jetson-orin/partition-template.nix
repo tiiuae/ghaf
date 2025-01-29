@@ -50,7 +50,7 @@ let
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <align_boundary> 16384 </align_boundary>
-      <percent_reserved> 0 </percent_reserved>
+      <percent_reserved> 0x808 </percent_reserved>
       <unique_guid> APPUUID </unique_guid>
       <filename> root.img </filename>
       <description> **Required.** Contains the rootfs. This partition must be assigned
@@ -78,19 +78,19 @@ let
   partitionTemplateReplaceRange =
     if !cfg.flashScriptOverrides.onlyQSPI then
       {
-        firstLineCount = 588;
+        firstLineCount = 618;
         lastLineCount = 2;
       }
     else
       {
         # If we don't flash anything to eMMC, then we don't need to have the
         # <device type="sdmmc_user" ...> </device> XML-tag at all.
-        firstLineCount = 587;
+        firstLineCount = 617;
         lastLineCount = 1;
       };
   partitionTemplate = pkgs.runCommand "flash.xml" { } (
     ''
-      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >"$out"
+      head -n ${builtins.toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >"$out"
 
     ''
     + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
@@ -101,7 +101,7 @@ let
     ''
     + ''
 
-      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/t186ref/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
+      tail -n ${builtins.toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
     ''
   );
 in
