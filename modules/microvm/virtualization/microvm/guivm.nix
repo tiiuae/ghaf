@@ -351,6 +351,7 @@ in
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
+      inherit (inputs) nixpkgs;
       config = guivmBaseConfiguration // {
         boot.kernelPackages =
           if config.ghaf.guest.kernel.hardening.graphics.enable then
