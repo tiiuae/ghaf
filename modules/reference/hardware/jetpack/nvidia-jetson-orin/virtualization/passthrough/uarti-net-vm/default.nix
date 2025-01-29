@@ -8,6 +8,36 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.passthroughs.uarti_net_vm;
+
+  # Derivation to build the GPU-VM guest device tree
+  netvm-dtb = pkgs.stdenv.mkDerivation {
+    name = "netvm-dtb";
+    phases = [
+      "unpackPhase"
+      "buildPhase"
+      "installPhase"
+    ];
+    src = ./tegra234-netvm.dts;
+    nativeBuildInputs = with pkgs; [
+      dtc
+    ];
+    unpackPhase = ''
+      cp $src ./tegra234-netvm.dts
+    '';
+    buildPhase = ''
+      $CC -E -nostdinc \
+        -I${config.boot.kernelPackages.nvidia-modules.src}/hardware/nvidia/t23x/nv-public/include/nvidia-oot \
+        -I${config.boot.kernelPackages.nvidia-modules.src}/hardware/nvidia/t23x/nv-public/include/kernel \
+        -undef -D__DTS__ \
+        -x assembler-with-cpp \
+        tegra234-netvm.dts > preprocessed.dts
+      dtc -I dts -O dtb -o tegra234-netvm.dtb preprocessed.dts
+    '';
+    installPhase = ''
+      mkdir -p $out
+      cp tegra234-netvm.dtb $out/
+    '';
+  };
 in
 {
   options.ghaf.hardware.nvidia.passthroughs.uarti_net_vm.enable = lib.mkOption {
@@ -19,7 +49,7 @@ in
   config = lib.mkIf cfg.enable {
     services.udev.extraRules = ''
       # Make group kvm all devices that bind to vfio in iommu group 59
-      SUBSYSTEM=="vfio",KERNEL=="59",GROUP="kvm"
+      SUBSYSTEM=="vfio",GROUP="kvm"
     '';
     ghaf.hardware.nvidia.virtualization.enable = true;
 
@@ -34,7 +64,7 @@ in
             extraArgs = [
               # Add custom dtb to Net-VM with 31d0000.serial in platform devices
               "-dtb"
-              "${config.hardware.deviceTree.package}/tegra234-p3701-ghaf-net-vm.dtb"
+              "${netvm-dtb.out}/tegra234-netvm.dtb"
               # Add UARTI (31d0000.serial) as passtrhough device
               "-device"
               "vfio-platform,host=31d0000.serial"
@@ -49,13 +79,6 @@ in
 
     # Make sure that Net-VM runs after the binding services are enabled
     systemd.services."microvm@net-vm".after = [ "bindSerial31d0000.service" ];
-
-    boot.kernelPatches = [
-      # {
-      #   name = "Add Net-VM device tree with UARTI in platform devices";
-      #   patch = ./patches/net_vm_dtb_with_uarti.patch;
-      # }
-    ];
 
     systemd.services.bindSerial31d0000 = {
       description = "Bind UARTI to the vfio-platform driver";
@@ -75,16 +98,11 @@ in
     # Enable hardware.deviceTree for handle host dtb overlays
     hardware.deviceTree.enable = true;
 
-    # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
-    # hardware.deviceTree.overlays = [
-    #   {
-    #     name = "uarti_pt_host_overlay";
-    #     dtsFile = ./uarti_pt_host_overlay.dts;
-
-    #     # Apply overlay only to host passthrough device tree
-    #     # TODO: make this avaliable if PCI passthrough is disabled
-    #     filter = "tegra234-p3701-host-passthrough.dtb";
-    #   }
-    # ];
+    hardware.deviceTree.overlays = [
+      {
+        name = "uarti_pt_host_overlay";
+        dtsFile = ./uarti_pt_host_overlay.dts;
+      }
+    ];
   };
 }
