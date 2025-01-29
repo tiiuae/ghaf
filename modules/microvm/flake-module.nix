@@ -11,7 +11,7 @@
       (import ./virtualization/microvm/appvm.nix { inherit inputs; })
       (import ./virtualization/microvm/guivm.nix { inherit inputs; })
       (import ./virtualization/microvm/audiovm.nix { inherit inputs; })
-      ./virtualization/microvm/idsvm/idsvm.nix
+      (import ./virtualization/microvm/idsvm/idsvm.nix { inherit inputs; })
       ./virtualization/microvm/idsvm/mitmproxy
       ./virtualization/microvm/modules.nix
       ./networking.nix

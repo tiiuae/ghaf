@@ -163,6 +163,7 @@ in
     microvm.vms."${vmName}" = {
       autostart = true;
       restartIfChanged = false;
+      inherit (inputs) nixpkgs;
       config = netvmBaseConfiguration // {
         imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
       };

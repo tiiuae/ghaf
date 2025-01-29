@@ -148,6 +148,7 @@ in
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
+      inherit (inputs) nixpkgs;
       config = audiovmBaseConfiguration // {
         imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
       };
