@@ -29,6 +29,9 @@ let
 
       # To push logs to central location
       ../../../common/logging/client.nix
+
+      ../../../common/logging/hw-mac-retrieve.nix
+
       (
         { lib, pkgs, ... }:
         let
@@ -94,7 +97,14 @@ let
             };
             givc.guivm.enable = true;
 
-            # Storage
+            # Enable github service for control panel bug report
+            services.github = {
+              enable = true;
+              token = "xxxxxxxxxxxxxxxxxxxx";
+              owner = "yyyyy";
+              repo = "zzzzzz";
+            };
+
             storagevm = {
               enable = true;
               name = vmName;
@@ -114,6 +124,8 @@ let
             };
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
+            # TODO: Remove when the GIVC sharing is implemented for MAC address
+            logging.identifierFilePath = "/tmp/MACAddress";
             services.disks.enable = true;
             services.disks.fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
             services.xdghandlers.enable = true;
@@ -191,7 +203,9 @@ let
                 pkgs.eww
                 pkgs.wlr-randr
               ]
-              ++ [ pkgs.ctrl-panel ]
+              ++ [
+                pkgs.ctrl-panel
+              ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)
@@ -201,6 +215,9 @@ let
                 pkgs.libva-utils
                 pkgs.glib
               ];
+            sessionVariables = {
+              GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
+            };
           };
 
           time.timeZone = config.time.timeZone;

@@ -12,5 +12,6 @@
     ./yubikey.nix
     ./bluetooth.nix
     ./disks.nix
+    ./github.nix
   ];
 }
