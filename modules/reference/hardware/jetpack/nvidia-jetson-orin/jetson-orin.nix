@@ -66,7 +66,7 @@ in
           # The patch reverts back to old behavior, which is to always reset
           # the display when exiting UEFI, instead of doing handoff, when
           # means not to reset anything.
-          ./edk2-nvidia-always-reset-display.patch
+         # ./edk2-nvidia-always-reset-display.patch
         ];
       };
     };
