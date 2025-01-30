@@ -43,9 +43,13 @@ let
             ${lib.optionalString (!config.ghaf.givc.enableTls) "--notls"}
           '';
           # A list of applications from all AppVMs
-          virtualApps = lib.lists.concatMap (
-            vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
-          ) config.ghaf.virtualization.microvm.appvm.vms;
+          virtualApps =
+            lib.lists.concatMap (vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications)
+              (
+                lib.attrsets.mapAttrsToList (
+                  name: vm: { inherit name; } // vm
+                ) config.ghaf.virtualization.microvm.appvm.vms
+              );
 
           # Launchers for all virtualized applications that run in AppVMs
           virtualLaunchers = map (app: rec {
@@ -107,10 +111,17 @@ let
             graphics.labwc = {
               autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
               autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
-              securityContext = map (vm: {
-                identifier = vm.name;
-                color = vm.borderColor;
-              }) config.ghaf.virtualization.microvm.appvm.vms;
+              securityContext =
+                map
+                  (vm: {
+                    identifier = vm.name;
+                    color = vm.borderColor;
+                  })
+                  (
+                    lib.attrsets.mapAttrsToList (
+                      name: vm: { inherit name; } // vm
+                    ) config.ghaf.virtualization.microvm.appvm.vms
+                  );
             };
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
@@ -368,6 +379,9 @@ in
         ];
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
+      };
+      specialArgs = {
+        configHost = config;
       };
     };
   };

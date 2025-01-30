@@ -6,18 +6,20 @@
   ...
 }:
 {
-  name = "gala";
-  macAddress = "02:00:00:03:06:01";
-  ramMb = 1536;
-  cores = 2;
-  borderColor = "#027d7b";
-  applications = [
-    {
-      name = "GALA";
-      description = "Secure Android-in-the-Cloud";
-      packages = [ pkgs.gala-app ];
-      icon = "distributor-logo-android";
-      command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-    }
-  ];
+  gala = {
+
+    macAddress = "02:00:00:03:06:01";
+    ramMb = 1536;
+    cores = 2;
+    borderColor = "#027d7b";
+    applications = [
+      {
+        name = "GALA";
+        description = "Secure Android-in-the-Cloud";
+        packages = [ pkgs.gala-app ];
+        icon = "distributor-logo-android";
+        command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      }
+    ];
+  };
 }
