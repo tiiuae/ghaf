@@ -31,13 +31,13 @@ writeText "widgets.yuck" ''
               :space-evenly false
               (box
                 :hexpand true
-                :visible { header-left != "" ? "true" : "false" }
+                :visible { header-left != "" }
                 :orientation "h"
                 :spacing 5
                 :halign "fill"
                 :space-evenly false
                 (label :class "header"
-                  :visible { header-left != "" && header-left != "null" ? "true" : "false" }
+                  :visible { header-left != "" && header-left != "null" }
                   :text header-left
                   :halign "start")
                 (eventbox
@@ -53,7 +53,7 @@ writeText "widgets.yuck" ''
                   )
                 )
                 (label :class "header"
-                  :visible { header-right != "" && header-right != "null" ? "true" : "false" }
+                  :visible { header-right != "" && header-right != "null" }
                   :text header-right
                   :hexpand "true"
                   :limit-width 35
@@ -64,7 +64,7 @@ writeText "widgets.yuck" ''
                   :spacing 5
                   :space-evenly false
                   (eventbox
-                      :active { icon-onclick != "" && icon-onclick != "null" ? "true" : "false" }
+                      :active { icon-onclick != "" && icon-onclick != "null" }
                       :visible {image != "" || icon != "" || app_icon != ""}
                       :onclick icon-onclick
                       :height 24
@@ -75,8 +75,7 @@ writeText "widgets.yuck" ''
                         (image 
                           :class "icon"
                           :visible { image == "" }
-                          :path {image ?: ""}
-                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "" } 
+                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
                           :image-height 24
                           :image-width 24
                           :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
@@ -94,7 +93,7 @@ writeText "widgets.yuck" ''
                           :max 100 
                           :min { min ?: 0 }))
                   (eventbox
-                      :visible { settings-onclick != "" && settings-onclick != "null" ? "true" : "false" }
+                      :visible { settings-onclick != "" && settings-onclick != "null" }
                       :onclick settings-onclick
                       :height 24
                       :width 24
@@ -110,7 +109,7 @@ writeText "widgets.yuck" ''
               (box :orientation "v" :space-evenly "false" :spacing 0
               (box
                 :hexpand true
-                :visible { header-left != "" ? "true" : "false" }
+                :visible { header-left != "" }
                 :orientation "h"
                 :spacing 5
                 :halign "fill"
@@ -119,14 +118,14 @@ writeText "widgets.yuck" ''
                   :halign "start"
                   :hexpand true
                   :active { header-onclick != "" && header-onclick != "null" }
-                  :visible { header-left != "" ? "true" : "false" }
+                  :visible { header-left != "" }
                   :onclick header-onclick
                   :height 24
                   :width 24
                   :class "default_button"
                   (box :orientation "h" :space-evenly "false" :spacing 5 :halign "fill"
                     (label :class "header"
-                      :visible { header-left != "" && header-left != "null" ? "true" : "false" }
+                      :visible { header-left != "" && header-left != "null" }
                       :text header-left
                       :halign "start")
                     (image 
@@ -136,7 +135,7 @@ writeText "widgets.yuck" ''
                 )
 
                 (label :class "header"
-                  :visible { header-right != "" && header-right != "null" ? "true" : "false" }
+                  :visible { header-right != "" && header-right != "null" }
                   :text header-right
                   :hexpand "true"
                   :limit-width 35
@@ -155,7 +154,7 @@ writeText "widgets.yuck" ''
                   :spacing 5
                   :space-evenly false
                   (eventbox
-                      :active { icon-onclick != "" && icon-onclick != "null" ? "true" : "false" }
+                      :active { icon-onclick != "" && icon-onclick != "null" }
                       :visible {image != "" || icon != "" || app_icon != ""}
                       :onclick icon-onclick
                       :height 24
@@ -166,8 +165,7 @@ writeText "widgets.yuck" ''
                         (image 
                           :class "icon"
                           :visible { image == "" }
-                          :path {image ?: ""}  
-                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "" } 
+                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
                           :image-height 24 
                           :image-width 24 
                           :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
@@ -185,7 +183,7 @@ writeText "widgets.yuck" ''
                           :max 100 
                           :min { min ?: 0 }))
                   (eventbox
-                      :visible { settings-onclick != "" && settings-onclick != "null" ? "true" : "false" }
+                      :visible { settings-onclick != "" && settings-onclick != "null" }
                       :onclick settings-onclick
                       :height 24
                       :width 24
@@ -206,6 +204,7 @@ writeText "widgets.yuck" ''
               :hexpand false
               :space-evenly false
               (slider_with_children
+                      :visible { audio_output != "" }
                       :class "qs-slider"
                       :header-left {audio_output.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in ''${audio_output.device_type}" :
                                     audio_output.friendly_name}
@@ -225,7 +224,7 @@ writeText "widgets.yuck" ''
                         (volume_mixer :visible {arraylength(audio_streams) > 0})
                       ))
               (slider_with_children
-                      :visible { audio_input.state == "RUNNING" }
+                      :visible { audio_input != "" && audio_input.state == "RUNNING" }
                       :class "qs-slider"
                       :header-left {audio_input.friendly_name =~ '.*sof-hda-dsp.*' ? "Built-in ''${audio_input.device_type}" :
                                     audio_input.friendly_name }
@@ -238,6 +237,7 @@ writeText "widgets.yuck" ''
                       :level { audio_input.is_muted == "true" ? "0" : audio_input.volume_percentage }
                       :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_source_volume ''${audio_input.device_index} {} &"
                       (audio_input_selector)
+                      (label :text "Placeholder" :visible false)
                       )
               
               (slider
@@ -316,7 +316,7 @@ writeText "widgets.yuck" ''
                       :class "qs-slider"
                       :header-left {entry.name}
                       :level {entry.muted == "true" ? "0" : entry.level} 
-                      :app_icon {entry.icon_name != "" ? entry.icon_name : ""}
+                      :app_icon {entry.icon_name != "" ? entry.icon_name : "icon-missing"}
                       :image { entry.muted == "true" || entry.level == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
                               entry.level <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
                               entry.level <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" }
@@ -336,7 +336,7 @@ writeText "widgets.yuck" ''
                   :spacing 6
                   :space-evenly false
                   (label :class "header"
-                      :visible { header != "" && header != "null" ? "true" : "false" }
+                      :visible { header != "" && header != "null" }
                       :text header
                       :hexpand true
                       :vexpand true
@@ -363,7 +363,7 @@ writeText "widgets.yuck" ''
                           :halign "start"
                           :hexpand true
                           (label :halign "start" :class "title" :text title)
-                          (label :visible {subtitle != "" ? "true" : "false"} :halign "start" :class "subtitle" :text subtitle :limit-width 13))))))
+                          (label :visible {subtitle != ""} :halign "start" :class "subtitle" :text subtitle :limit-width 13))))))
 
       ;; Power Menu Buttons ;;
       (defwidget power_menu []
@@ -422,7 +422,7 @@ writeText "widgets.yuck" ''
                   :space-evenly true
                   :spacing 10
                   (widget_button
-                      :visible { EWW_BATTERY != "" ? "true" : "false" }
+                      :visible { EWW_BATTERY != "" }
                       :header "Battery"
                       :title {EWW_BATTERY != "" ? "''${battery.capacity}%" : "100%"}
                       :subtitle { battery.status == 'Charging' ? "Charging" :
@@ -503,17 +503,20 @@ writeText "widgets.yuck" ''
                   :space-evenly "false"
                   :spacing 14
                   :valign "center"
-                  (image :class "icon" 
+                  (image :visible { bright-icon != "" }
+                      :class "icon" 
                       :path bright-icon 
                       :image-height 24 
                       :image-width 24)
-                  (image :class "icon" 
+                  (image :visible { vol-icon != "" && audio_output != "" }
+                      :class "icon" 
                       :path vol-icon 
                       :image-height 24 
                       :image-width 24)
-                  (image :visible { audio_input.state == "RUNNING" } 
+                  (image :visible { audio_input != "" && audio_input.state == "RUNNING" } 
                       :icon "microphone-sensitivity-high")
-                  (image :class "icon" 
+                  (image :visible { bat-icon != "" }
+                      :class "icon" 
                       :path bat-icon 
                       :image-height 24 
                       :image-width 24))))
@@ -587,10 +590,7 @@ writeText "widgets.yuck" ''
       (defwidget cal []
           (desktop-widget 
               (calendar :class "cal" 
-                  :show-week-numbers false
-                  :day calendar_day
-                  :month calendar_month
-                  :year calendar_year)))
+                  :show-week-numbers false)))
 
       ;; Left Widgets ;;
       (defwidget workspaces []

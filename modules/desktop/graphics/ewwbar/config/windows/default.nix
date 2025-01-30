@@ -16,7 +16,7 @@ writeText "windows.yuck" ''
                       :height "28px"
                       :width {width ?: "100%"} 
                       :anchor "top center")
-          :focusable "false"
+          :focusable "none"
           :hexpand "false"
           :vexpand "false"
           :stacking "fg"
@@ -28,7 +28,7 @@ writeText "windows.yuck" ''
           :geometry (geometry :y "0px"
                               :x "0px"
                               :anchor "top center")
-          :stacking "fg"
+          :stacking "overlay"
           (cal))
 
       ;; Power menu window ;;
@@ -36,7 +36,7 @@ writeText "windows.yuck" ''
           :geometry (geometry :y "0px"
                               :x "0px"
                               :anchor "top right")
-          :stacking "fg"
+          :stacking "overlay"
           (power-menu-widget))
 
       ${lib.optionalString useGivc ''
@@ -46,7 +46,7 @@ writeText "windows.yuck" ''
                                 :x "0px"
                                 :width "360px"
                                 :anchor "top right")
-            :stacking "fg"
+            :stacking "overlay"
             (quick-settings-widget))
 
 
@@ -57,6 +57,7 @@ writeText "windows.yuck" ''
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
+            :focusable "none"
             (volume-popup))
 
         ;; Brightness Popup Window ;;
@@ -66,6 +67,7 @@ writeText "windows.yuck" ''
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
+            :focusable "none"
             (brightness-popup))
 
         ;; Workspace Popup Window ;;
@@ -75,13 +77,14 @@ writeText "windows.yuck" ''
                                 :x "0px"
                                 :anchor "bottom center")
             :stacking "overlay"
+            :focusable "none"
             (workspace-popup))
       ''}
 
       ;; Closer Window ;;
       (defwindow closer [window]
-          :geometry (geometry :width "100%" :height "100%")
-          :stacking "fg"
-          :focusable false
+          :geometry (geometry :width "300%" :height "300%")
+          :stacking "overlay"
+          :focusable "none"
           (closer :window window))
 ''

@@ -118,6 +118,14 @@ let
       <keybind key="W-A-Left">
         <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace prev'" />
       </keybind>
+      <keybind key="W-S-Right">
+        <action name="SendToDesktop" to="right" follow="no" wrap="yes" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace next'" />
+      </keybind>
+      <keybind key="W-S-Left">
+        <action name="SendToDesktop" to="left" follow="no" wrap="yes" />
+        <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace prev'" />
+      </keybind>
       <keybind key="W-l">
         <action name="Execute" command="${pkgs.systemd}/bin/loginctl lock-session" />
       </keybind>
