@@ -29,6 +29,10 @@ in
       element-gps = {
         description = "Element-gps is a GPS location provider for Element websocket interface.";
         enable = true;
+        # Make sure this service is started after gpsd is running
+        requires = [ "gpsd.service" ];
+        after = [ "gpsd.service" ];
+
         serviceConfig = {
           Type = "simple";
           ExecStart = "${pkgs.element-gps}/bin/main.py";
