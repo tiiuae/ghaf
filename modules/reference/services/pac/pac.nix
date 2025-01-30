@@ -107,12 +107,11 @@ in
       # extraGroups = [ "${proxyGroupName}" ]; # Adding to 'proxy-admin' for specific access
       group = "${proxyGroupName}";
     };
-    environment.etc."proxy/${pacFileName}" = {
-      text = '''';
-      user = "${proxyUserName}"; # Owner is proxy-user
-      group = "${proxyGroupName}"; # Group is proxy-admin
-      mode = "0664"; # Permissions: read/write for owner/group, no permissions for others
-    };
+
+    systemd.tmpfiles.rules = [
+      "f /etc/proxy/${pacFileName} 0664 ${proxyUserName} ${proxyGroupName} - -"
+    ];
+
     systemd.services.pacServer = {
       description = "Http server to make PAC file accessible for web browsers";
       wantedBy = [ "multi-user.target" ];
@@ -125,6 +124,8 @@ in
         Restart = "always"; # Restart the service if it fails
         RestartSec = "15s"; # Wait 15 seconds before restarting
         User = "${proxyUserName}";
+        Group = "${proxyGroupName}";
+
       };
     };
     systemd.services.ghafPacFileFetcher = {
@@ -137,6 +138,8 @@ in
         Restart = "on-failure"; # Restart the service if it fails
         RestartSec = "15s"; # Wait 15 seconds before restarting
         User = "${proxyUserName}";
+        Group = "${proxyGroupName}";
+
       };
     };
     systemd.timers.ghafPacFileFetcher = {
@@ -144,6 +147,8 @@ in
       wantedBy = [ "timers.target" ];
       timerConfig = {
         User = "${proxyUserName}";
+        Group = "${proxyGroupName}";
+
         Persistent = true; # Ensures the timer runs after a system reboot
         OnCalendar = "daily"; # Set to your desired schedule
         OnBootSec = "90s";
