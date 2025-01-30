@@ -73,6 +73,7 @@ in
         withHardenedConfigs = true;
       };
       ghaf.givc.host.enable = true;
+      ghaf.development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
       services.logind.lidSwitch = "ignore";
 
       # TODO: remove hardcoded paths
