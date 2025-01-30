@@ -23,10 +23,6 @@ writeText "variables.yuck" ''
   (defpoll audio_streams :interval "60s" "echo []")
   (deflisten workspace :initial "1" "${ghaf-workspace}/bin/ghaf-workspace subscribe")
 
-  (defvar calendar_day "date '+%d'")
-  (defvar calendar_month "date '+%-m'")
-  (defvar calendar_year "date '+%Y'")
-
   (defvar volume-popup-visible "false")
   (defvar brightness-popup-visible "false")
   (defvar workspace-popup-visible "false")
