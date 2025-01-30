@@ -126,7 +126,7 @@
     # "~CAP_AUDIT_CONTROL"
     # "~CAP_AUDIT_READ"
     # "~CAP_AUDIT_WRITE"
-    "~CAP_SYS_ADMIN"
+    # "~CAP_SYS_ADMIN"
     # "~CAP_SYSLOG"
     # "~CAP_SYS_TIME
   ];
@@ -137,8 +137,8 @@
 
   SystemCallFilter = [
     # "~@clock"
-    # "~@cpu-emulation"
-    # "~@debug"
+    "~@cpu-emulation"
+    "~@debug"
     # "~@module"
     # "~@mount"
     "~@obsolete"
