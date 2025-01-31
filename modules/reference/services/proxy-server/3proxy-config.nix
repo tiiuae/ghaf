@@ -104,21 +104,10 @@ in
     };
 
     # Apply the allowListConfig generated from the list
+    systemd.tmpfiles.rules = builtins.map (
+      path: "f /etc/${path} 0660 ${proxyUserName} ${proxyGroupName} - -"
+    ) allowListPaths;
 
-    # Create environment.etc configuration for each allow list path
-    # Loop over the allowListPaths and apply the configuration directly
-    environment.etc = builtins.foldl' (
-      acc: path:
-      acc
-      // {
-        "${path}" = {
-          text = '''';
-          user = "${proxyUserName}"; # Owner is proxy-user
-          group = "${proxyGroupName}"; # Group is proxy-admin
-          mode = "0660"; # Permissions: read/write for owner/group, no permissions for others
-        };
-      }
-    ) { } allowListPaths;
     # Apply the configurations for each allow list path
     # Allow proxy-admin group to manage specific systemd services without a password
     security = {
@@ -155,6 +144,9 @@ in
     # systemd service for fetching the file
     systemd.services.msFetchUrl = {
       description = "Fetch microsoft URLs periodically with retries if internet is available";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         ExecStart = "${url-fetcher}/bin/url-fetcher -u ${msUrls} -p /etc/${msAllowFilePath}";
@@ -166,6 +158,8 @@ in
         Restart = "on-failure"; # Restart the service if it fails
         RestartSec = "10s"; # Wait 10 seconds before restarting
         User = "${proxyUserName}";
+        Group = "${proxyGroupName}";
+
       };
     };
 
@@ -184,6 +178,9 @@ in
     # systemd service for fetching the file
     systemd.services.ghafFetchUrl = {
       description = "Fetch ghaf related URLs periodically with retries if internet is available";
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
+      wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
         ExecStart = "${url-fetcher}/bin/url-fetcher -f ${ghafUrls} -p /etc/${ghafAllowFilePath}";
@@ -195,6 +192,8 @@ in
         Restart = "on-failure"; # Restart the service if it fails
         RestartSec = "15s"; # Wait 15 seconds before restarting
         User = "${proxyUserName}";
+        Group = "${proxyGroupName}";
+
       };
     };
 
@@ -204,6 +203,8 @@ in
       wantedBy = [ "timers.target" ];
       timerConfig = {
         User = "${proxyUserName}";
+        Group = "${proxyGroupName}";
+
         Persistent = true; # Ensures the timer runs after a system reboot
         OnCalendar = "hourly"; # Set to your desired schedule
         OnBootSec = "90s";
