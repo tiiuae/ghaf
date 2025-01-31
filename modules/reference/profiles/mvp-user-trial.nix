@@ -44,6 +44,7 @@ in
           enable = true;
           dendrite = true;
           proxy-business = lib.mkForce config.ghaf.reference.appvms.business-vm;
+          google-chromecast = true;
         };
 
         personalize = {

@@ -192,6 +192,10 @@
     },
     "ghafpkgs": {
       "inputs": {
+        "crane": [
+          "givc",
+          "crane"
+        ],
         "flake-compat": [
           "flake-compat"
         ],
@@ -210,11 +214,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1737467105,
-        "narHash": "sha256-FyrV1hiqPPT9dSqFPZix5OFSr1aWDGaMte73Td3PLbg=",
+        "lastModified": 1737955964,
+        "narHash": "sha256-gldXVj34ebtv0odABXUYktMu0VLWuFw6PQsvUc9o/1o=",
         "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "49c38a55323729f60992b0664c584c3f325d5314",
+        "rev": "776258dc633916a32bb1a8bd8b31160baa26704a",
         "type": "github"
       },
       "original": {
