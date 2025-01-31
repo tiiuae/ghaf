@@ -59,12 +59,9 @@ let
       qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
       usbPassthrough = [
         {
-          # Currently disabled to avoid breaking remote nixos-rebuild,
-          # which requires an Ethernet adapter connected to the host
           class = 2;
           sublass = 6;
           description = "Communications - Ethernet Networking";
-          disable = true;
         }
       ];
     }
