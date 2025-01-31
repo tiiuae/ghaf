@@ -10,12 +10,9 @@ let
   cfg = config.services.nw-packet-forwarder;
   nw-packet-forwarder = pkgs.callPackage ../../../../packages/nw-packet-forwarder { };
 
-  getChromeVmEntry = builtins.filter (x: x.name == "chrome-vm") config.ghaf.networking.hosts.entries;
-  chromevmIpAddr = lib.head (builtins.map (x: x.ip) getChromeVmEntry);
-  chromevmMac = "02:00:00:03:11:01";
-
-  getNetVmEntry = builtins.filter (x: x.name == "net-vm") config.ghaf.networking.hosts.entries;
-  netVmInternalIp = lib.head (builtins.map (x: x.ip) getNetVmEntry);
+  chromevmIpAddr = config.ghaf.networking.hosts."chrome-vm".ipv4;
+  chromevmMac = config.ghaf.networking.hosts."chrome-vm".mac;
+  netVmInternalIp = config.ghaf.networking.hosts."net-vm".ipv4;
 
   nwPcktFwdUser = "nwpcktfwd-admin";
 in
