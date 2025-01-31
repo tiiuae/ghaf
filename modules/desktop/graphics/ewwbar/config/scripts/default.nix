@@ -263,7 +263,7 @@ let
             )
           }
           catch halt
-        '
+        ' || echo "{}"
       }
 
       get_output() {
@@ -286,7 +286,7 @@ let
             }
           )
           catch halt
-        '
+        ' || echo "{}"
       }
 
       get_input() {
@@ -309,7 +309,7 @@ let
             }
           )
           catch halt
-        '
+        ' || echo "{}"
       }
 
       get_sink_inputs() {
@@ -326,7 +326,7 @@ let
               })
             ]
           ) catch halt
-        '
+        ' || echo "[]"
       }
 
       get_outputs() {
@@ -351,7 +351,7 @@ let
                 }
             ]
           ) catch halt
-        '
+        ' || echo "[]"
       }
 
       get_inputs() {
@@ -371,11 +371,12 @@ let
                   ),
                   state: (.state // ""),
                   friendly_name: (.description // ""),
+                  is_muted: (.mute // false),
                   device_type: (.active_port as $active_port | .ports[] | select(.name == $active_port).type // "")
                 }
             ]
           ) catch halt
-        '
+        ' || echo "[]"
       }
 
       sinkInputs="[]"
@@ -565,18 +566,20 @@ let
       active_windows=$(${ewwCmd} active-windows)
 
       if [[ "$active_windows" == *"$1"* ]]; then
-        ${ewwCmd} close "$1" closer &
+        #${ewwCmd} close "$1" closer &
+        ${ewwCmd} close "$1" &
         exit 0
       fi
 
       # Close all windows except the target
       for window in "''${windows[@]}"; do
-        if [[ "$window" != "$1" ]]; then
+        if [[ "$window" != "$1" && "$active_windows" == *"$window"* ]]; then
           ${ewwCmd} close "$window" &
         fi
       done
 
-      ${ewwCmd} open-many closer "$1" --arg screen="$2" --arg closer:window="$1"
+      #${ewwCmd} open-many closer "$1" --arg screen="$2" --arg closer:window="$1"
+      ${ewwCmd} open "$1" --screen "$2"
     '';
   };
 
