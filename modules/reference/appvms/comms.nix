@@ -102,7 +102,7 @@ in
             ACTION=="add", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="${VID}", ENV{ID_MODEL_ID}=="${PID}", ENV{DEVNAME}=="/dev/ttyUSB*", RUN+="${pkgs.gpsd}/bin/gpsdctl add '%E{DEVNAME}'"
           ''
         else
-          null;
+          '''';
       # Disable serial debug console on comms-vm as it makes the serial device owned by
       # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
       # can't access the device if this is enabled.
