@@ -46,13 +46,6 @@ in
         }
 
         {
-          name = "Audio Control";
-          description = "System Audio Control";
-          icon = "preferences-sound";
-          command = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString pulseaudioTcpControlPort} --indicator_icon_name=preferences-sound";
-        }
-
-        {
           name = "Falcon AI";
           description = "Your local large language model, developed by TII";
           icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
