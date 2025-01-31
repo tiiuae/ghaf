@@ -13,6 +13,9 @@ let
     ;
 in
 {
+  imports = [
+    ../../../../hardware/common/usb/vhotplug.nix
+  ];
   options.ghaf.hardware.nvidia.orin = {
     # Enable the Orin boards
     enable = mkEnableOption "Orin hardware";
@@ -94,6 +97,23 @@ in
             VSOCKETS_LOOPBACK = yes;
             VIRTIO_VSOCKETS_COMMON = yes;
           };
+        }
+      ];
+    };
+
+    ghaf.hardware.usb.vhotplug = {
+      enable = true;
+      rules = [
+        {
+          name = "NetVM";
+          qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
+          usbPassthrough = [
+            {
+              class = 2;
+              sublass = 6;
+              description = "Communications - Ethernet Networking";
+            }
+          ];
         }
       ];
     };

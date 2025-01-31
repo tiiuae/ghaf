@@ -32,6 +32,9 @@
                 pkgs.reuse
                 config.treefmt.build.wrapper
                 (pkgs.callPackage ../packages/flash { })
+                (pkgs.callPackage ../packages/ghaf-build-helper {
+                  inherit (pkgs) writeShellApplication nixos-rebuild ipcalc;
+                })
               ]
               ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
               ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
@@ -48,6 +51,12 @@
               name = "check-license";
               command = "reuse lint";
               category = "linters";
+            }
+            {
+              help = "Ghaf nixos-rebuild command";
+              name = "ghaf-rebuild";
+              command = "ghaf-build-helper $@";
+              category = "builder";
             }
           ];
         };
