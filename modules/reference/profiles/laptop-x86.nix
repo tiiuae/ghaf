@@ -130,7 +130,7 @@ in
           endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
         };
         listener = {
-          address = "admin-vm";
+          address = config.ghaf.networking.hosts.admin-vm.ipv4;
           port = 9999;
         };
       };
