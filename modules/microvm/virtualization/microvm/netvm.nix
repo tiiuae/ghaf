@@ -8,8 +8,6 @@
 }:
 let
   vmName = "net-vm";
-  macAddress = "02:00:00:01:01:01";
-
   netvmBaseConfiguration = {
     imports = [
       inputs.impermanence.nixosModules.impermanence
@@ -19,9 +17,7 @@ let
           config
           lib
           vmName
-          macAddress
           ;
-        internalIP = 1;
         isGateway = true;
       })
 
@@ -54,6 +50,7 @@ let
             };
 
             # System
+            type = "system-vm";
             systemd = {
               enable = true;
               withName = "netvm-systemd";

@@ -16,7 +16,6 @@ in
     pkgs.google-chrome
     pkgs.gpsd
   ] ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
-  macAddress = "02:00:00:03:09:01";
   ramMb = 4096;
   cores = 4;
   borderColor = "#337aff";

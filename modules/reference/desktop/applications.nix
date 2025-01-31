@@ -9,12 +9,13 @@
 let
   cfg = config.ghaf.reference.desktop.applications;
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
+  inherit (lib) mkIf mkEnableOption;
 in
 {
   options.ghaf.reference.desktop.applications = {
-    enable = lib.mkEnableOption "desktop applications";
+    enable = mkEnableOption "desktop applications";
   };
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     ghaf.virtualization.microvm.guivm.applications =
       [
         {
@@ -63,7 +64,7 @@ in
           name = "Control Panel";
           description = "Control Panel";
           icon = "utilities-tweak-tool";
-          command = "${pkgs.ctrl-panel}/bin/ctrl-panel";
+          command = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
         }
       ]
       ++ lib.optionals config.ghaf.reference.programs.windows-launcher.enable (

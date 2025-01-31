@@ -8,24 +8,32 @@
 }:
 let
   cfg = config.ghaf.host.networking;
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    optionals
+    ;
   sshKeysHelper = pkgs.callPackage ../../packages/ssh-keys-helper {
     inherit pkgs;
     inherit config;
   };
+  inherit (config.ghaf.networking) hosts;
+  inherit (config.networking) hostName;
 in
 {
   options.ghaf.host.networking = {
-    enable = lib.mkEnableOption "Host networking";
+    enable = mkEnableOption "Host networking";
     # TODO add options to configure the network, e.g. ip addr etc
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     networking = {
       enableIPv6 = false;
       useNetworkd = true;
       interfaces.virbr0.useDHCP = false;
     };
 
+    # TODO Remove host networking
     systemd.network = {
       netdevs."10-virbr0".netdevConfig = {
         Kind = "bridge";
@@ -35,7 +43,8 @@ in
       networks."10-virbr0" = {
         matchConfig.Name = "virbr0";
         networkConfig.DHCPServer = false;
-        addresses = [ { Address = "192.168.101.2/24"; } ];
+        addresses = [ { Address = "${hosts.${hostName}.ipv4}/24"; } ];
+        gateway = optionals (builtins.hasAttr "net-vm" config.microvm.vms) [ "${hosts."net-vm".ipv4}" ];
       };
       # Connect VM tun/tap device to the bridge
       # TODO configure this based on IF the netvm is enabled

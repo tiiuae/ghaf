@@ -10,9 +10,6 @@
 {
   name = "business";
   packages = lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
-
-  # TODO create a repository of mac addresses to avoid conflicts
-  macAddress = "02:00:00:03:10:01";
   ramMb = 6144;
   cores = 4;
   borderColor = "#218838";

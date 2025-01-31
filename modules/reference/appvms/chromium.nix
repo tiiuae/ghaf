@@ -10,8 +10,6 @@
 {
   name = "chromium";
   packages = lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
-  # TODO create a repository of mac addresses to avoid conflicts
-  macAddress = "02:00:00:03:05:01";
   ramMb = 6144;
   cores = 4;
   borderColor = "#B83232";

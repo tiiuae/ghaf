@@ -110,8 +110,7 @@ in
       };
 
       # Enable givc
-      # @TODO change this flag to enable givc in release
-      givc.enable = config.ghaf.profiles.debug.enable;
+      givc.enable = true;
       givc.debug = false;
 
       host = {
@@ -131,7 +130,7 @@ in
           endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
         };
         listener = {
-          address = "admin-vm" + lib.optionalString config.ghaf.profiles.debug.enable "-debug";
+          address = config.ghaf.networking.hosts.admin-vm.ipv4;
           port = 9999;
         };
       };

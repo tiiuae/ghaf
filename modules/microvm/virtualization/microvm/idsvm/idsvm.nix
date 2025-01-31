@@ -10,22 +10,21 @@
 let
   configHost = config;
   vmName = "ids-vm";
-  macAddress = "02:00:00:01:01:02";
   idsvmBaseConfiguration = {
     imports = [
       (import ../common/vm-networking.nix {
         inherit
           config
           lib
+          pkgs
           vmName
-          macAddress
           ;
-        internalIP = 4;
       })
       (
         { lib, ... }:
         {
           ghaf = {
+            type = "system-vm";
             profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
 
             virtualization.microvm.idsvm.mitmproxy.enable =

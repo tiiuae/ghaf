@@ -169,6 +169,7 @@
         @{ETC}/profiles/**                                              r,
         @{NIX}/var                                                      r,
         @{NIX}/var/**                                                   r,
+        @{RUN}/givc/**                                                  rix,
 
         owner @{run}/user/[0-9]*/                                       rw,
         owner @{run}/user/[0-9]*/**                                     rw,
