@@ -86,6 +86,7 @@ let
       "remote-fs.target"
       "rpcbind.service"
       "rpcbind.target"
+      "systemd-fsck-root.service"
       "systemd-update-done.service"
       "system-update.target"
       "system-update-pre.target"
