@@ -67,7 +67,6 @@ in
 
   config = mkIf cfg.enable {
     boot.initrd = {
-      verbose = cfgBase.verboseLogs;
       services.lvm.enable = true;
       systemd = {
         enable = true;
@@ -79,9 +78,7 @@ in
           pkgs.lvm2
           pkgs.util-linux
         ];
-        managerEnvironment = optionalAttrs cfgBase.verboseLogs {
-          SYSTEMD_LOG_LEVEL = "debug";
-        };
+        managerEnvironment.SYSTEMD_LOG_LEVEL = cfgBase.logLevel;
       };
     };
   };

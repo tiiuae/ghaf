@@ -4,32 +4,19 @@
 let
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
+  inherit (lib) mkIf mkOption types;
 in
 {
   options.ghaf.systemd = {
-    withHardenedConfigs = lib.mkOption {
+    withHardenedConfigs = mkOption {
       description = "Enable common hardened configs.";
-      type = lib.types.bool;
+      type = types.bool;
       default = false;
-    };
-
-    logLevel = lib.mkOption {
-      description = ''
-        Log Level for systemd services.
-                  Available options: "emerg", "alert", "crit", "err", "warning", "info", "debug"
-      '';
-      type = lib.types.str;
-      default = "info";
     };
   };
 
-  config = {
-    systemd = lib.mkMerge [
-      # Apply hardened systemd service configurations
-      (lib.mkIf cfg.withHardenedConfigs (import ./hardened-configs))
-
-      # Set systemd log level
-      { services."_global_".environment.SYSTEMD_LOG_LEVEL = cfg.logLevel; }
-    ];
+  config = mkIf cfg.withHardenedConfigs {
+    # Apply hardened systemd service configurations
+    systemd = import ./hardened-configs;
   };
 }
