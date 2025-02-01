@@ -341,10 +341,22 @@ in
       default = false;
     };
 
-    verboseLogs = mkOption {
-      description = "Increase systemd log verbosity.";
-      type = types.bool;
-      default = false;
+    logLevel = mkOption {
+      description = ''
+        Systemd log verbosity. Must be one of 'debug', 'info', 'notice', 'warning', 'err',
+        'crit', 'alert', 'emerg'. Defaults to 'info'.
+      '';
+      type = types.enum [
+        "debug"
+        "info"
+        "notice"
+        "warning"
+        "err"
+        "crit"
+        "alert"
+        "emerg"
+      ];
+      default = "info";
     };
   };
 
@@ -358,9 +370,8 @@ in
       # Misc. configurations
       enableEmergencyMode = cfg.withDebug;
       coredump.enable = cfg.withDebug || cfg.withMachines;
-      managerEnvironment = optionalAttrs cfg.verboseLogs {
-        SYSTEMD_LOG_LEVEL = "debug";
-      };
+      managerEnvironment.SYSTEMD_LOG_LEVEL = cfg.logLevel;
+      globalEnvironment.SYSTEMD_LOG_LEVEL = cfg.logLevel;
 
       # Service startup optimization
       services.systemd-networkd-wait-online.enable = mkForce false;
