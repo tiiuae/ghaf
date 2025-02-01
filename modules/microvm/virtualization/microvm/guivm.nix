@@ -26,6 +26,7 @@ let
       })
 
       ./common/storagevm.nix
+      ./common/xdgitems.nix
 
       # To push logs to central location
       ../../../common/logging/client.nix
@@ -116,7 +117,7 @@ let
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
             services.disks.enable = true;
             services.disks.fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
-            services.xdghandlers.enable = true;
+            xdgitems.enable = true;
           };
 
           services.acpid = lib.mkIf config.ghaf.givc.enable {
