@@ -5,31 +5,28 @@
 #
 {
   services = {
-    NetworkManager-Dispatcher.serviceConfig = import ./NetworkManager-dispatcher.nix;
+    #NetworkManager-Dispatcher.serviceConfig = import ./NetworkManager-dispatcher.nix;
     alloy.serviceConfig = import ./alloy.nix;
     bluetooth.serviceConfig = import ./bluetooth.nix;
     dbus.serviceConfig = import ./dbus.nix;
-    dnsmasq.serviceConfig = import ./dnsmasq.nix;
+    #dnsmasq.serviceConfig = import ./dnsmasq.nix;
     enable-ksm.serviceConfig = import ./enable-ksm.nix;
-    firewall.serviceConfig = import ./firewall.nix;
+    #firewall.serviceConfig = import ./firewall.nix;
     generate-shutdown-ramfs.serviceConfig = import ./generate-shutdown-ramfs.nix;
     ghaf-session.serviceConfig = import ./ghaf-session.nix;
     greetd.serviceConfig = import ./greetd.nix;
     install-microvm-netvm.serviceConfig = import ./install-microvm-netvm.nix;
     kmod-static-nodes.serviceConfig = import ./kmod-static-nodes.nix;
-    logrotate.serviceConfig = import ./logrotate.nix;
+    #logrotate.serviceConfig = import ./logrotate.nix;
     logrotate-checkconf.serviceConfig = import ./logrotate-checkconf.nix;
     "microvm-tap-interfaces@".serviceConfig = import ./microvm-tap-interfaces.nix;
     "microvm-virtiofsd@".serviceConfig = import ./microvm-virtiofsd.nix;
     "microvm@".serviceConfig = import ./microvm.nix;
-    network-local-commands.serviceConfig = import ./network-local-commands.nix;
     nscd.serviceConfig = import ./nscd.nix;
-    pulseaudio.serviceConfig = import ./pulseaudio.nix;
     rtkit-daemon.serviceConfig = import ./rtkit-daemon.nix;
     seatd.serviceConfig = import ./seatd.nix;
-    systemd-fsck-root.serviceConfig = import ./systemd-fsck-root.nix;
     systemd-journal-catalog-update.serviceConfig = import ./systemd-journal-catalog-update.nix;
-    systemd-journal-flush.serviceConfig = import ./systemd-journal-flush.nix;
+    #systemd-journal-flush.serviceConfig = import ./systemd-journal-flush.nix;
     systemd-networkd-wait-online.serviceConfig = import ./systemd-networkd-wait-online.nix;
     systemd-random-seed.serviceConfig = import ./systemd-random-seed.nix;
     systemd-remount-fs.serviceConfig = import ./systemd-remount-fs.nix;
@@ -50,5 +47,10 @@
     # audit.serviceConfig = import ./audit.nix;
     # sshd.serviceConfig = import ./sshd.nix;
     # "user@".serviceConfig = import ./user.nix;
+
+    # Disabled services
+    # pulseaudio.serviceConfig = import ./pulseaudio.nix;
+    # systemd-fsck-root.serviceConfig = import ./systemd-fsck-root.nix;
+    # network-local-commands.serviceConfig = import ./network-local-commands.nix;
   };
 }
