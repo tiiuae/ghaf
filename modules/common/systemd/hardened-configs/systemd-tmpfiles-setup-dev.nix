@@ -7,7 +7,7 @@
   IPAddressDeny = "any";
   RestrictAddressFamilies = "none";
   ProtectHome = true;
-  ProtectSystem = "full";
+  ProtectSystem = true;
   ProtectProc = "noaccess";
   PrivateTmp = false;
   PrivateMounts = false;

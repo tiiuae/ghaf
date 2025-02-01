@@ -22,7 +22,7 @@
   RestrictRealtime = true;
   RestrictSUIDSGID = true;
   SystemCallArchitectures = "native";
-  NotifyAccess = false;
+  NotifyAccess = "main";
 
   ReadWritePaths = [
     "/run"
