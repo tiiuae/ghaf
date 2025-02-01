@@ -2,102 +2,46 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  ##############
-  # Networking #
-  ##############
-
-  # PrivateNetwork = true;
-  # IPAccounting=yes
+  PrivateNetwork = false;
+  IPAccounting = true;
   IPAddressDeny = "any";
-  RestrictAddressFamilies = [
-    "~AF_PACKET"
-    "~AF_NETLINK"
-    "~AF_UNIX"
-    "~AF_INET"
-    "~AF_INET6"
-  ];
-
-  ###############
-  # File system #
-  ###############
-
-  # ProtectHome=true;
+  RestrictAddressFamilies = "none";
+  ProtectHome = true;
   ProtectSystem = "full";
   ProtectProc = "noaccess";
-  # ReadWritePaths=[ "/etc"];
-  # PrivateTmp=true;
-
-  # Not applicable for the service runs as root
-  # PrivateMounts=true;
-  # ProcSubset="all";
-
-  ###################
-  # User separation #
-  ###################
-
-  # Not applicable for the service runs as root
-  # PrivateUsers=true;
-  # DynamicUser=true;
-
-  ###########
-  # Devices #
-  ###########
-
+  PrivateTmp = false;
+  PrivateMounts = false;
+  ProcSubset = "all";
+  PrivateUsers = false;
+  DynamicUser = false;
   PrivateDevices = true;
   DeviceAllow = [ "/dev/null rw" ];
-
-  ##########
-  # Kernel #
-  ##########
-
-  # ProtectKernelTunables=true;
+  ProtectKernelTunables = false;
   ProtectKernelModules = true;
   ProtectKernelLogs = true;
-
-  ########
-  # Misc #
-  ########
-
   Delegate = false;
-  # KeyringMode="private";
+  KeyringMode = "private";
   NoNewPrivileges = true;
   UMask = 77;
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
   RestrictNamespaces = true;
-  /*
-      RestrictNamespaces=[
-     #"~user"
-     #"~pid"
-     #"~net"
-     #"~uts"
-     #"~mnt"
-     #"~cgroup"
-     #"~ipc"
-    ];
-  */
   LockPersonality = true;
   MemoryDenyWriteExecute = true;
   RestrictRealtime = true;
   RestrictSUIDSGID = true;
-  # RemoveIPC=true
+  RemoveIPC = true;
   SystemCallArchitectures = "native";
-  # NotifyAccess=false;
+  NotifyAccess = "main";
 
-  ################
-  # Capabilities #
-  ################
-
-  #AmbientCapabilities=
   CapabilityBoundingSet = [
     "~CAP_SYS_PACCT"
     "~CAP_KILL"
-    # "~CAP_WAKE_ALARM"
-    # "~CAP_DAC_*
+    "~CAP_WAKE_ALARM"
     "~CAP_FOWNER"
-    # "~CAP_IPC_OWNER"
-    # "~CAP_BPF"
+    "~CAP_IPC_OWNER"
+    "~CAP_BPF"
     "~CAP_LINUX_IMMUTABLE"
     "~CAP_IPC_LOCK"
     "~CAP_SYS_MODULE"
@@ -107,33 +51,21 @@
     "~CAP_BLOCK_SUSPEND"
     "~CAP_LEASE"
     "~CAP_MKNOD"
-    # "~CAP_CHOWN"
-    # "~CAP_FSETID"
-    # "~CAP_SETFCAP"
-    # "~CAP_SETUID"
-    # "~CAP_SETGID"
-    # "~CAP_SETPCAP"
-    # "~CAP_MAC_ADMIN"
-    # "~CAP_MAC_OVERRIDE"
+    "~CAP_CHOWN"
+    "~CAP_FSETID"
+    "~CAP_SETFCAP"
+    "~CAP_MAC_ADMIN"
+    "~CAP_MAC_OVERRIDE"
     "~CAP_SYS_RAWIO"
     "~CAP_SYS_PTRACE"
-    # "~CAP_SYS_NICE"
-    # "~CAP_SYS_RESOURCE"
     "~CAP_NET_ADMIN"
     "~CAP_NET_BIND_SERVICE"
     "~CAP_NET_BROADCAST"
     "~CAP_NET_RAW"
-    # "~CAP_AUDIT_CONTROL"
-    # "~CAP_AUDIT_READ"
-    # "~CAP_AUDIT_WRITE"
     "~CAP_SYS_ADMIN"
-    # "~CAP_SYSLOG"
-    # "~CAP_SYS_TIME
+    "~CAP_SYSLOG"
+    "~CAP_SYS_TIME"
   ];
-
-  ################
-  # System calls #
-  ################
 
   SystemCallFilter = [
     "~@clock"
@@ -142,8 +74,6 @@
     "~@module"
     "~@mount"
     "~@obsolete"
-    # "~@privileged"
-    # "~@raw-io"
     "~@reboot"
     "~@resources"
     "~@swap"
