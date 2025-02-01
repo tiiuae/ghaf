@@ -10,7 +10,7 @@
 
   ProtectHome = true;
   ProtectSystem = "full";
-  ProtectProc = true;
+  ProtectProc = "noaccess";
   PrivateUsers = true;
   DynamicUser = true;
   PrivateDevices = true;
