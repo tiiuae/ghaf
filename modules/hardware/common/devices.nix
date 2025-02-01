@@ -52,7 +52,7 @@ in
         microvm.devices = mkForce (
           builtins.map (d: {
             bus = "pci";
-            inherit (d) path;
+            inherit (d) path qemu;
           }) config.ghaf.hardware.definition.gpu.pciDevices
         );
         ghaf.hardware.definition.gpu.pciDevices = config.ghaf.hardware.definition.gpu.pciDevices;
