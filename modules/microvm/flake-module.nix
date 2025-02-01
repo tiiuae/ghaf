@@ -18,5 +18,18 @@
       ./power-control.nix
       ../hardware/common/shared-mem.nix
     ];
+
+    mem-manager.imports = [
+      {
+        nixpkgs.overlays = [
+          inputs.ghafpkgs.overlays.default
+          (_final: prev: {
+            #inherit (inputs.mem-manager.packages.${prev.stdenv.hostPlatform.system}) mem-manager;
+            mem-manager = inputs.ghafpkgs.packages.${prev.stdenv.hostPlatform.system}.ghaf-mem-manager;
+          })
+        ];
+      }
+      ./mem-manager.nix
+    ];
   };
 }
