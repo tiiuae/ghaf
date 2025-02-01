@@ -6,18 +6,19 @@
 /dts-v1/;
 /plugin/;
 
-#include <dt-bindings/memory/tegra234-smmu-streamid.h>
+#include <dt-bindings/memory/tegra234-mc.h>
 
 /{
     overlay-name = "UARTI passthrough on host";
-    compatible = "nvidia,p3737-0000+p3701-0000";
+    compatible = "nvidia,p3701-0000";
     
     fragment@0 {
         target = <&uarti>;
         __overlay__ {
-            compatible = "arm,dummy";
-            iommus = <&smmu_niso0 TEGRA_SID_NISO1_SMMU_TEST>;
+            compatible = "nvidia,dummy";
+            iommus = <&smmu_niso0 TEGRA234_SID_PASSTHROUGH>;
             status = "okay";
+            dma-coherent;
         };
     };
 };

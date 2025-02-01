@@ -2,7 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX reference boards
-{ lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
   inherit (lib)
@@ -63,7 +68,7 @@ in
           # The patch reverts back to old behavior, which is to always reset
           # the display when exiting UEFI, instead of doing handoff, when
           # means not to reset anything.
-          ./edk2-nvidia-always-reset-display.patch
+          # ./edk2-nvidia-always-reset-display.patch
         ];
       };
     };
@@ -106,18 +111,29 @@ in
     hardware.deviceTree =
       {
         enable = lib.mkDefault true;
+        dtbSource = "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/";
         # Add the include paths to build the dtb overlays
         dtboBuildExtraIncludePaths = [
           "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
         ];
       }
+
+      # NOTE: "-nv.dtb" files are from NVIDIA's BSP
       # Versions of the device tree without PCI passthrough related
       # modifications.
       // lib.optionalAttrs (cfg.somType == "agx") {
-        name = lib.mkDefault "tegra234-p3701-0000-p3737-0000.dtb";
+        name = lib.mkDefault "tegra234-p3737-0000+p3701-0000-nv.dtb";
       }
       // lib.optionalAttrs (cfg.somType == "nx") {
-        name = lib.mkDefault "tegra234-p3767-0000-p3509-a02.dtb";
+        # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
+        # uses "tegra234-p3767-0000-p3509-a02.dtb"-device tree.
+        # p3509-a02 == IO BASE B carrier board
+        # p3767-0000 == Orin NX SOM
+        # p3768-0000 == Official NVIDIA's carrier board
+        # Upstream kernel has only official carrier board device tree,
+        # but it works with IO BASE B carrier board with minor
+        # modifications.
+        name = lib.mkDefault "tegra234-p3768-0000+p3767-0000-nv.dtb";
       };
   };
 }

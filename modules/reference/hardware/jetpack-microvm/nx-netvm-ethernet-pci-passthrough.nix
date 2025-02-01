@@ -19,19 +19,15 @@ in
             path = "0008:01:00.0";
           }
         ];
-        microvm.kernelParams = [
-          "pci=nomsi"
-          "pcie_acs_override=downstream,multifunction"
-        ];
+        # Add 8 seconds delay to wait for PCI devices to get full enumerated
+        microvm.preStart = "/bin/sh -c 'sleep 8'";
       }
     ];
 
-    boot.kernelPatches = [
+    hardware.deviceTree.overlays = [
       {
-        name = "nx-pci-passthrough-patch";
-        # This patch uses Alex Williamson's patch for enabling overrides for missing ACS capabilities on pci
-        # bus which could be accessed from following link: https://lkml.org/lkml/2013/5/30/513
-        patch = ./pci-passthrough-nx-test.patch;
+        name = "nx-ethernet-pci-passthough-overlay";
+        dtsFile = ./nx-ethernet-pci-passthough-overlay.dts;
       }
     ];
 
@@ -39,10 +35,5 @@ in
       "vfio-pci.ids=10ec:8168"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
-
-    hardware.deviceTree = {
-      enable = true;
-      name = "tegra234-p3767-host-passthrough.dtb";
-    };
   };
 }

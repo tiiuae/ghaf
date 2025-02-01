@@ -69,7 +69,9 @@ let
                 virtualization.enable = true;
                 virtualization.host.bpmp.enable = false;
                 passthroughs.host.uarta.enable = false;
-                passthroughs.uarti_net_vm.enable = som == "agx";
+                # TODO: uarti passthrough is currently broken, it will be enabled
+                # later after a further analysis.
+                passthroughs.uarti_net_vm.enable = false;
               };
 
               virtualization = {

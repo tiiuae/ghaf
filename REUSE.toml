@@ -99,7 +99,8 @@ path = [
   "modules/reference/hardware/jetpack-microvm/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
   "modules/common/virtualization/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
-  "modules/microvm/virtualization/microvm/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch"
+  "modules/microvm/virtualization/microvm/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts"
 ]
 
 [[annotations]]
