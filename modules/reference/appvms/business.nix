@@ -40,10 +40,17 @@
               ../programs/google-chrome.nix
             ];
 
-            ghaf.reference.programs.google-chrome.enable = true;
-            ghaf.reference.programs.google-chrome.openInNormalExtension = true;
-            ghaf.services.xdghandlers.enable = true;
-            ghaf.security.apparmor.enable = true;
+            ghaf = {
+              reference = {
+                programs.google-chrome = {
+                  enable = true;
+                  openInNormalExtension = true;
+                };
+              };
+
+              services.xdghandlers.enable = true;
+              security.apparmor.enable = true;
+            };
           }
         ];
       }
@@ -147,13 +154,16 @@
       ];
 
       # Enable Proxy Auto-Configuration service for the browser
-      ghaf.reference.services.pac.enable = true;
-      ghaf.reference.services.pac.proxyAddress =
-        config.ghaf.reference.services.proxy-server.internalAddress;
-      ghaf.reference.services.pac.proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
+      ghaf.reference.services = {
+        pac = {
+          enable = true;
+          proxyAddress = config.ghaf.reference.services.proxy-server.internalAddress;
+          proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
+        };
 
-      # Enable firewall and allow access to TII VPN
-      ghaf.reference.services.firewall.enable = true;
+        # Enable firewall and allow access to TII VPN
+        firewall.enable = true;
+      };
     }
   ];
 }

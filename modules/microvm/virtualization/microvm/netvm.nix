@@ -89,19 +89,21 @@ let
           };
 
           networking = {
-            firewall.allowedTCPPorts = [ 53 ];
-            firewall.allowedUDPPorts = [ 53 ];
-            firewall.extraCommands = lib.mkAfter ''
+            firewall = {
+              allowedTCPPorts = [ 53 ];
+              allowedUDPPorts = [ 53 ];
+              extraCommands = lib.mkAfter ''
 
-              # Set the default policies
-              iptables -P INPUT DROP
-              iptables -P FORWARD ACCEPT
-              iptables -P OUTPUT ACCEPT
+                # Set the default policies
+                iptables -P INPUT DROP
+                iptables -P FORWARD ACCEPT
+                iptables -P OUTPUT ACCEPT
 
-              # Allow loopback traffic
-              iptables -I INPUT -i lo -j ACCEPT
-              iptables -I OUTPUT -o lo -j ACCEPT
-            '';
+                # Allow loopback traffic
+                iptables -I INPUT -i lo -j ACCEPT
+                iptables -I OUTPUT -o lo -j ACCEPT
+              '';
+            };
           };
 
           # WORKAROUND: Create a rule to temporary hardcode device name for Wi-Fi adapter on x86

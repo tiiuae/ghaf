@@ -74,8 +74,10 @@ in
       xdgOpenFile
     ];
 
-    xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf-xdg.desktop";
-    xdg.mime.defaultApplications."image/jpeg" = "ghaf-image-xdg.desktop";
-    xdg.mime.defaultApplications."image/png" = "ghaf-image-xdg.desktop";
+    xdg.mime.defaultApplications = {
+      "application/pdf" = "ghaf-pdf-xdg.desktop";
+      "image/jpeg" = "ghaf-image-xdg.desktop";
+      "image/png" = "ghaf-image-xdg.desktop";
+    };
   };
 }

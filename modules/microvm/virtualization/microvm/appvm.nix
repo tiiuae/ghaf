@@ -258,7 +258,7 @@ in
                 types.submodule (
                   { config, lib, ... }:
                   {
-                    options = rec {
+                    options = {
                       name = mkOption {
                         type = types.str;
                         description = "The name of the application";

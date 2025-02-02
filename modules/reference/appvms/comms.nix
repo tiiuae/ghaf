@@ -57,8 +57,14 @@ in
         ../programs/google-chrome.nix
       ];
 
-      ghaf.reference.programs.google-chrome.enable = true;
-      ghaf.services.xdghandlers.enable = true;
+      ghaf = {
+        reference.programs.google-chrome.enable = true;
+        services.xdghandlers.enable = true;
+        # Disable serial debug console on comms-vm as it makes the serial device owned by
+        # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
+        # can't access the device if this is enabled.
+        development.usb-serial.enable = mkForce false;
+      };
 
       # Attach GPS receiver to this VM
       microvm.qemu.extraArgs = optionals (
@@ -103,10 +109,6 @@ in
           ''
         else
           '''';
-      # Disable serial debug console on comms-vm as it makes the serial device owned by
-      # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
-      # can't access the device if this is enabled.
-      ghaf.development.usb-serial.enable = mkForce false;
     }
   ];
 }

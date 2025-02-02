@@ -108,38 +108,43 @@ in
       group = "${proxyGroupName}";
     };
 
-    systemd.tmpfiles.rules = [
-      "f /etc/proxy/${pacFileName} 0664 ${proxyUserName} ${proxyGroupName} - -"
-    ];
+    systemd = {
+      tmpfiles.rules = [
+        "f /etc/proxy/${pacFileName} 0664 ${proxyUserName} ${proxyGroupName} - -"
+      ];
 
-    systemd.services.pacServer = {
-      description = "Http server to make PAC file accessible for web browsers";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "network.target" ];
-      serviceConfig = {
-        ExecStart = "${pkgs.busybox}/bin/busybox httpd -f -p ${pacServerAddr} -h /etc/proxy";
-        # Ensure ghafFetchUrl starts after the network is up
-        Type = "simple";
-        # Restart policy on failure
-        Restart = "always"; # Restart the service if it fails
-        RestartSec = "15s"; # Wait 15 seconds before restarting
-        User = "${proxyUserName}";
-        Group = "${proxyGroupName}";
+      services = {
+        pacServer = {
+          description = "Http server to make PAC file accessible for web browsers";
+          wantedBy = [ "multi-user.target" ];
+          after = [ "network.target" ];
+          serviceConfig = {
+            ExecStart = "${pkgs.busybox}/bin/busybox httpd -f -p ${pacServerAddr} -h /etc/proxy";
+            # Ensure ghafFetchUrl starts after the network is up
+            Type = "simple";
+            # Restart policy on failure
+            Restart = "always"; # Restart the service if it fails
+            RestartSec = "15s"; # Wait 15 seconds before restarting
+            User = "${proxyUserName}";
+            Group = "${proxyGroupName}";
 
-      };
-    };
-    systemd.services.ghafPacFileFetcher = {
-      description = "Fetch ghaf pac file periodically with retries if internet is available";
-      serviceConfig = {
-        ExecStart = "${_ghafPacFileFetcher}/bin/ghafPacFileFetcher";
-        # Ensure ghafFetchUrl starts after the network is up
-        Type = "simple";
-        # Restart policy on failure
-        Restart = "on-failure"; # Restart the service if it fails
-        RestartSec = "15s"; # Wait 15 seconds before restarting
-        User = "${proxyUserName}";
-        Group = "${proxyGroupName}";
+          };
+        };
 
+        ghafPacFileFetcher = {
+          description = "Fetch ghaf pac file periodically with retries if internet is available";
+          serviceConfig = {
+            ExecStart = "${_ghafPacFileFetcher}/bin/ghafPacFileFetcher";
+            # Ensure ghafFetchUrl starts after the network is up
+            Type = "simple";
+            # Restart policy on failure
+            Restart = "on-failure"; # Restart the service if it fails
+            RestartSec = "15s"; # Wait 15 seconds before restarting
+            User = "${proxyUserName}";
+            Group = "${proxyGroupName}";
+
+          };
+        };
       };
     };
     systemd.timers.ghafPacFileFetcher = {
