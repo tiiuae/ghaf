@@ -53,15 +53,6 @@
       flake = false;
     };
 
-    nix-fast-build = {
-      url = "github:Mic92/nix-fast-build";
-      inputs = {
-        flake-parts.follows = "flake-parts";
-        nixpkgs.follows = "nixpkgs";
-        treefmt-nix.follows = "treefmt-nix";
-      };
-    };
-
     # Dependencies used by other inputs
     systems.url = "github:nix-systems/default";
     devshell = {
