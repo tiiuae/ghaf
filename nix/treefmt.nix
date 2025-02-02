@@ -9,7 +9,7 @@
   perSystem =
     { config, pkgs, ... }:
     {
-      treefmt.config = {
+      treefmt = {
         inherit (config.flake-root) projectRootFile;
 
         programs = {

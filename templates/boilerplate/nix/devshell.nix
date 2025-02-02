@@ -5,7 +5,6 @@
   perSystem =
     {
       pkgs,
-      inputs',
       lib,
       ...
     }:
@@ -25,9 +24,9 @@
               nix-tree
               reuse
               statix
+              nix-fast-build
               ;
           }
-          ++ [ inputs'.nix-fast-build.packages.default ]
           ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
       };
     };
