@@ -149,155 +149,160 @@ in
 
       # Enable homed service
       services.homed.enable = true;
-      systemd.services.systemd-homed.serviceConfig.Restart = "on-failure";
 
-      # First boot login user setup service
-      systemd.services.setup-ghaf-user =
-        let
-          userSetupScript = pkgs.writeShellApplication {
-            name = "setup-ghaf-user";
-            runtimeInputs = [
-              pkgs.coreutils
-              pkgs.ncurses
-              pkgs.brightnessctl
-            ];
-            text = ''
-              brightnessctl set 100%
-              clear
-              echo -e "\e[1;32;1mWelcome to Ghaf \e[0m"
-              echo ""
-              echo "Start by creating your user account."
-              echo ""
+      systemd = {
+        services = {
+          systemd-homed.serviceConfig.Restart = "on-failure";
 
-              # Read new user name
-              ACCEPTABLE_USER=false
-              until $ACCEPTABLE_USER; do
-                echo -n "Enter your user name: "
-                read -e -r USERNAME
-                USERNAME=''${USERNAME// /_}
-                USERNAME=''${USERNAME//[^a-zA-Z0-9_-]/}
-                USERNAME=''$(echo -n "$USERNAME" | tr '[:upper:]' '[:lower:]')
-                if grep -q "$USERNAME:" /etc/passwd; then
-                  echo "User $USERNAME already exists. Please choose another user name."
-                else
-                  ACCEPTABLE_USER=true
-                fi
-              done
+          # First boot login user setup service
+          setup-ghaf-user =
+            let
+              userSetupScript = pkgs.writeShellApplication {
+                name = "setup-ghaf-user";
+                runtimeInputs = [
+                  pkgs.coreutils
+                  pkgs.ncurses
+                  pkgs.brightnessctl
+                ];
+                text = ''
+                  brightnessctl set 100%
+                  clear
+                  echo -e "\e[1;32;1mWelcome to Ghaf \e[0m"
+                  echo ""
+                  echo "Start by creating your user account."
+                  echo ""
 
-              echo ""
-              echo -n "Enter your full name: "
-              read -e -r REALNAME
-              REALNAME=''${REALNAME//[^a-zA-Z ]/}
-              [[ -n "$REALNAME" ]] || REALNAME="$USERNAME";
+                  # Read new user name
+                  ACCEPTABLE_USER=false
+                  until $ACCEPTABLE_USER; do
+                    echo -n "Enter your user name: "
+                    read -e -r USERNAME
+                    USERNAME=''${USERNAME// /_}
+                    USERNAME=''${USERNAME//[^a-zA-Z0-9_-]/}
+                    USERNAME=''$(echo -n "$USERNAME" | tr '[:upper:]' '[:lower:]')
+                    if grep -q "$USERNAME:" /etc/passwd; then
+                      echo "User $USERNAME already exists. Please choose another user name."
+                    else
+                      ACCEPTABLE_USER=true
+                    fi
+                  done
 
-              echo ""
-              echo "Setting up your user account and creating encrypted home folder after you enter your password."
-              echo "This may take a while..."
-              echo ""
+                  echo ""
+                  echo -n "Enter your full name: "
+                  read -e -r REALNAME
+                  REALNAME=''${REALNAME//[^a-zA-Z ]/}
+                  [[ -n "$REALNAME" ]] || REALNAME="$USERNAME";
 
-              # Add login user and home
-              homectl create "$USERNAME" \
-              --real-name="$REALNAME" \
-              --skel=/etc/skel \
-              --storage=luks \
-              --luks-pbkdf-type=argon2id \
-              --enforce-password-policy=true \
-              --drop-caches=true \
-              --nosuid=true \
-              --noexec=true \
-              --nodev=true \
-              --disk-size=${toString cfg.loginUser.homeSize}M \
-              --shell=/run/current-system/sw/bin/bash \
-              --uid=${toString cfg.loginUser.uid} \
-              --member-of=users${
-                optionalString (
-                  cfg.loginUser.extraGroups != [ ]
-                ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
-              }
+                  echo ""
+                  echo "Setting up your user account and creating encrypted home folder after you enter your password."
+                  echo "This may take a while..."
+                  echo ""
 
-              # Lock user creation script
-              install -m 000 /dev/null /var/lib/nixos/user.lock
+                  # Add login user and home
+                  homectl create "$USERNAME" \
+                  --real-name="$REALNAME" \
+                  --skel=/etc/skel \
+                  --storage=luks \
+                  --luks-pbkdf-type=argon2id \
+                  --enforce-password-policy=true \
+                  --drop-caches=true \
+                  --nosuid=true \
+                  --noexec=true \
+                  --nodev=true \
+                  --disk-size=${toString cfg.loginUser.homeSize}M \
+                  --shell=/run/current-system/sw/bin/bash \
+                  --uid=${toString cfg.loginUser.uid} \
+                  --member-of=users${
+                    optionalString (
+                      cfg.loginUser.extraGroups != [ ]
+                    ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
+                  }
 
-              echo ""
-              echo "User $USERNAME created. Starting user session..."
-              sleep 1
-            '';
-          };
-        in
-        {
-          description = "First boot user setup";
-          enable = true;
-          requiredBy = [ "multi-user.target" ];
-          before = [ "greetd.service" ];
-          path = [ userSetupScript ];
-          unitConfig.ConditionPathExists = "!/var/lib/nixos/user.lock";
-          serviceConfig = {
-            Type = "oneshot";
-            StandardInput = "tty";
-            StandardOutput = "tty";
-            StandardError = "journal";
-            TTYPath = "/dev/tty1";
-            TTYReset = true;
-            TTYVHangup = true;
-            ExecStart = "${userSetupScript}/bin/setup-ghaf-user";
-          };
+                  # Lock user creation script
+                  install -m 000 /dev/null /var/lib/nixos/user.lock
+
+                  echo ""
+                  echo "User $USERNAME created. Starting user session..."
+                  sleep 1
+                '';
+              };
+            in
+            {
+              description = "First boot user setup";
+              enable = true;
+              requiredBy = [ "multi-user.target" ];
+              before = [ "greetd.service" ];
+              path = [ userSetupScript ];
+              unitConfig.ConditionPathExists = "!/var/lib/nixos/user.lock";
+              serviceConfig = {
+                Type = "oneshot";
+                StandardInput = "tty";
+                StandardOutput = "tty";
+                StandardError = "journal";
+                TTYPath = "/dev/tty1";
+                TTYReset = true;
+                TTYVHangup = true;
+                ExecStart = "${userSetupScript}/bin/setup-ghaf-user";
+              };
+            };
+
+          setup-test-user =
+            let
+              automatedUserSetupScript = pkgs.writeShellApplication {
+                name = "setup-test-user";
+                runtimeInputs = [
+                  pkgs.coreutils
+                ];
+                text = ''
+                  echo "Automated boot user setup script"
+
+                  # Hardcoded user name
+                  USERNAME="testuser"
+                  REALNAME="Test User"
+                  export PASSWORD="testpw"
+                  export NEWPASSWORD="testpw"
+
+                  # Add login user and home
+                  homectl create "$USERNAME" \
+                  --real-name="$REALNAME" \
+                  --skel=/etc/skel \
+                  --storage=luks \
+                  --luks-pbkdf-type=argon2id \
+                  --enforce-password-policy=true \
+                  --drop-caches=true \
+                  --nosuid=true \
+                  --noexec=true \
+                  --nodev=true \
+                  --disk-size=${toString cfg.loginUser.homeSize}M \
+                  --shell=/run/current-system/sw/bin/bash \
+                  --uid=${toString cfg.loginUser.uid} \
+                  --member-of=users${
+                    optionalString (
+                      cfg.loginUser.extraGroups != [ ]
+                    ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
+                  }
+
+                  # Lock user creation script
+                  install -m 000 /dev/null /var/lib/nixos/user.lock
+                  echo "User $USERNAME created."
+
+                  # Stop interactive user setup service
+                  systemctl stop setup-ghaf-user
+                '';
+              };
+            in
+            mkIf config.ghaf.profiles.debug.enable {
+              description = "Automated boot user setup script";
+              enable = true;
+              path = [ automatedUserSetupScript ];
+              unitConfig.ConditionPathExists = "!/var/lib/nixos/user.lock";
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = "${automatedUserSetupScript}/bin/setup-test-user";
+              };
+            };
         };
-
-      systemd.services.setup-test-user =
-        let
-          automatedUserSetupScript = pkgs.writeShellApplication {
-            name = "setup-test-user";
-            runtimeInputs = [
-              pkgs.coreutils
-            ];
-            text = ''
-              echo "Automated boot user setup script"
-
-              # Hardcoded user name
-              USERNAME="testuser"
-              REALNAME="Test User"
-              export PASSWORD="testpw"
-              export NEWPASSWORD="testpw"
-
-              # Add login user and home
-              homectl create "$USERNAME" \
-              --real-name="$REALNAME" \
-              --skel=/etc/skel \
-              --storage=luks \
-              --luks-pbkdf-type=argon2id \
-              --enforce-password-policy=true \
-              --drop-caches=true \
-              --nosuid=true \
-              --noexec=true \
-              --nodev=true \
-              --disk-size=${toString cfg.loginUser.homeSize}M \
-              --shell=/run/current-system/sw/bin/bash \
-              --uid=${toString cfg.loginUser.uid} \
-              --member-of=users${
-                optionalString (
-                  cfg.loginUser.extraGroups != [ ]
-                ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
-              }
-
-              # Lock user creation script
-              install -m 000 /dev/null /var/lib/nixos/user.lock
-              echo "User $USERNAME created."
-
-              # Stop interactive user setup service
-              systemctl stop setup-ghaf-user
-            '';
-          };
-        in
-        mkIf config.ghaf.profiles.debug.enable {
-          description = "Automated boot user setup script";
-          enable = true;
-          path = [ automatedUserSetupScript ];
-          unitConfig.ConditionPathExists = "!/var/lib/nixos/user.lock";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${automatedUserSetupScript}/bin/setup-test-user";
-          };
-        };
+      };
     })
   ];
 }

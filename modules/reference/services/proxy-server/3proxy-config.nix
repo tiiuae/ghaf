@@ -103,11 +103,6 @@ in
       group = "${proxyGroupName}";
     };
 
-    # Apply the allowListConfig generated from the list
-    systemd.tmpfiles.rules = builtins.map (
-      path: "f /etc/${path} 0660 ${proxyUserName} ${proxyGroupName} - -"
-    ) allowListPaths;
-
     # Apply the configurations for each allow list path
     # Allow proxy-admin group to manage specific systemd services without a password
     security = {
@@ -141,37 +136,45 @@ in
         iptables -I INPUT -p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
       '';
     };
-    # systemd service for fetching the file
-    systemd.services.msFetchUrl = {
-      description = "Fetch microsoft URLs periodically with retries if internet is available";
-      after = [ "network-online.target" ];
-      wants = [ "network-online.target" ];
-      wantedBy = [ "multi-user.target" ];
 
-      serviceConfig = {
-        ExecStart = "${url-fetcher}/bin/url-fetcher -u ${msUrls} -p /etc/${msAllowFilePath}";
-        # Ensure msFetchUrl starts after the network is up
-        Type = "simple";
-        # Retry until systemctl restart 3proxy succeeds
-        ExecStartPost = "${_3proxy-restart}/bin/3proxy-restart";
-        # Restart policy on failure
-        Restart = "on-failure"; # Restart the service if it fails
-        RestartSec = "10s"; # Wait 10 seconds before restarting
-        User = "${proxyUserName}";
-        Group = "${proxyGroupName}";
+    # Apply the allowListConfig generated from the list
+    systemd = {
+      tmpfiles.rules = builtins.map (
+        path: "f /etc/${path} 0660 ${proxyUserName} ${proxyGroupName} - -"
+      ) allowListPaths;
 
+      # systemd service for fetching the file
+      services.msFetchUrl = {
+        description = "Fetch microsoft URLs periodically with retries if internet is available";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+
+        serviceConfig = {
+          ExecStart = "${url-fetcher}/bin/url-fetcher -u ${msUrls} -p /etc/${msAllowFilePath}";
+          # Ensure msFetchUrl starts after the network is up
+          Type = "simple";
+          # Retry until systemctl restart 3proxy succeeds
+          ExecStartPost = "${_3proxy-restart}/bin/3proxy-restart";
+          # Restart policy on failure
+          Restart = "on-failure"; # Restart the service if it fails
+          RestartSec = "10s"; # Wait 10 seconds before restarting
+          User = "${proxyUserName}";
+          Group = "${proxyGroupName}";
+
+        };
       };
-    };
 
-    # systemd timer to trigger the service every 10 minutes
-    systemd.timers.msFetchUrl = {
-      description = "Run msFetchUrl periodically";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        User = "${proxyUserName}";
-        Persistent = true; # Ensures the timer runs after a system reboot
-        OnCalendar = "hourly"; # Set to your desired schedule
-        OnBootSec = "60s";
+      # systemd timer to trigger the service every 10 minutes
+      timers.msFetchUrl = {
+        description = "Run msFetchUrl periodically";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          User = "${proxyUserName}";
+          Persistent = true; # Ensures the timer runs after a system reboot
+          OnCalendar = "hourly"; # Set to your desired schedule
+          OnBootSec = "60s";
+        };
       };
     };
 

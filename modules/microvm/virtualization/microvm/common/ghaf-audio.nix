@@ -44,7 +44,7 @@ in
 
     environment = lib.mkIf (!cfg.useTunneling) {
       systemPackages = [ pkgs.pulseaudio ];
-      sessionVariables = rec {
+      sessionVariables = {
         PULSE_SERVER = "${address}";
       };
     };
