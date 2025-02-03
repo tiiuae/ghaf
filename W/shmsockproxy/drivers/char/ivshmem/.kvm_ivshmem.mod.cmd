@@ -1,0 +1,1 @@
+savedcmd_/home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.mod := printf '%s\n'   kvm_ivshmem.o | awk '!x[$$0]++ { print("/home/vadikas/W/shmsockproxy/drivers/char/ivshmem/"$$0) }' > /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/kvm_ivshmem.mod
