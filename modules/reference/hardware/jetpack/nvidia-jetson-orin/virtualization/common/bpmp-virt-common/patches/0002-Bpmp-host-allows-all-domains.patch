@@ -1,0 +1,26 @@
+From a697932170ca65b32b2d193a7abfe88da614c1ea Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Sun, 1 Dec 2024 20:13:20 +0200
+Subject: [PATCH 2/2] Bpmp-host: allows all domains
+
+Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+---
+ drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c b/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c
+index a17fa9cafe2f..bc22a474756e 100755
+--- a/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c
++++ b/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c
+@@ -38,7 +38,7 @@ MODULE_VERSION("0.1");						 ///< A version number to inform users
+  * "clk_ignore_unused pd_ignore_unused" in kernel command line
+  * 
+ */
+-#define BPMP_HOST_ALLOWS_ALL   0
++#define BPMP_HOST_ALLOWS_ALL   1
+ 
+ #if BPMP_HOST_VERBOSE
+ #define deb_info(...)     printk(KERN_INFO DEVICE_NAME ": "__VA_ARGS__)
+-- 
+2.34.1
+
