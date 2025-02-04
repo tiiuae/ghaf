@@ -66,6 +66,7 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes](release_notes/release_notes.md)
+    - [Release ghaf-24.12.1](release_notes/ghaf-24.12.1.md)
     - [Release ghaf-24.12](release_notes/ghaf-24.12.md)
     - [Release ghaf-24.09.4](release_notes/ghaf-24.09.4.md)
     - [Release ghaf-24.09.3](release_notes/ghaf-24.09.3.md)
