@@ -4,7 +4,7 @@
   stdenv,
   lib,
   debug ? false,
-  vms,
+  shmSlots,
   fetchFromGitHub,
   ...
 }:
@@ -14,11 +14,11 @@ stdenv.mkDerivation {
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "shmsockproxy";
-    rev = "2357926b94ed12c050fdbfbfc0f248393a4c9ea1";
-    sha256 = "sha256-9KlHuVbe5qvjRUXj7oyJ1X7CLvqj7/OoVGDWRqpIY2s=";
+    rev = "ea446dfe3be66004867b6b369950eb16dc04c421";
+    sha256 = "sha256-qxrDHxM2z/bIVsTuNx45zZOjp4+BLheWrvco946OMQM=";
   };
 
-  CFLAGS = "-O2 -DVM_COUNT=" + (toString vms) + (if debug then " -DDEBUG_ON" else "");
+  CFLAGS = "-O2 -DSHM_SLOTS=" + (toString shmSlots) + (if debug then " -DDEBUG_ON" else "");
   sourceRoot = "source/app";
 
   installPhase = ''

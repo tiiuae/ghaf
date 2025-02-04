@@ -1,17 +1,17 @@
-From 13229d9e11eaf15eb6679be036364b9d0256f1c1 Mon Sep 17 00:00:00 2001
+From 51f29d8e1946bd5008f5e5f640ed93df58a2f4d9 Mon Sep 17 00:00:00 2001
 From: Jaroslaw Kurowski <jaroslaw.kurowski@tii.ae>
-Date: Wed, 10 Jul 2024 15:21:07 +0400
+Date: Tue, 31 Dec 2024 13:53:19 +0400
 Subject: ivshmem flat memory support
 
 ---
- contrib/ivshmem-server/ivshmem-server.c |  6 +-
+ contrib/ivshmem-server/ivshmem-server.c |  7 ++--
  hw/i386/pc_q35.c                        |  2 +
- hw/misc/ivshmem.c                       | 74 ++++++++++++++++++++++---
+ hw/misc/ivshmem.c                       | 54 ++++++++++++++++++++++++-
  include/hw/misc/ivshmem.h               |  1 +
- 4 files changed, 71 insertions(+), 12 deletions(-)
+ 4 files changed, 60 insertions(+), 4 deletions(-)
 
 diff --git a/contrib/ivshmem-server/ivshmem-server.c b/contrib/ivshmem-server/ivshmem-server.c
-index 2f3c732..906c5d0 100644
+index 2f3c732..e7c7774 100644
 --- a/contrib/ivshmem-server/ivshmem-server.c
 +++ b/contrib/ivshmem-server/ivshmem-server.c
 @@ -11,6 +11,7 @@
@@ -36,6 +36,14 @@ index 2f3c732..906c5d0 100644
          g_free(filename);
      }
  
+@@ -347,6 +347,7 @@ ivshmem_server_start(IvshmemServer *server)
+ 
+     server->sock_fd = sock_fd;
+     server->shm_fd = shm_fd;
++    server->cur_id = 1;
+ 
+     return 0;
+ 
 diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
 index c7bc8a2..d76939e 100644
 --- a/hw/i386/pc_q35.c
@@ -57,7 +65,7 @@ index c7bc8a2..d76939e 100644
                       pc_q35_compat_defaults, pc_q35_compat_defaults_len);
  }
 diff --git a/hw/misc/ivshmem.c b/hw/misc/ivshmem.c
-index de49d1b..b1761b3 100644
+index de49d1b..1a65fb8 100644
 --- a/hw/misc/ivshmem.c
 +++ b/hw/misc/ivshmem.c
 @@ -36,6 +36,7 @@
@@ -114,7 +122,7 @@ index de49d1b..b1761b3 100644
  
      if (s->ivshmem_bar2) {
          error_setg(errp, "server sent unexpected shared memory message");
-@@ -494,13 +511,26 @@ static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
+@@ -494,13 +511,25 @@ static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
  
      size = buf.st_size;
  
@@ -132,68 +140,16 @@ index de49d1b..b1761b3 100644
 +    }
 +
      /* mmap the region and map into the BAR2 */
--    if (!memory_region_init_ram_from_fd(&s->server_bar2, OBJECT(s),
--                                        "ivshmem.bar2", size, RAM_SHARED,
--                                        fd, 0, errp)) {
-+    memory_region_init_ram_from_fd(&s->server_bar2, OBJECT(s), "ivshmem.bar2",
-+                                   size, RAM_SHARED, fd, 0, &local_err);
-+    if (local_err) {
-+        error_propagate(errp, local_err);
+     if (!memory_region_init_ram_from_fd(&s->server_bar2, OBJECT(s),
+                                         "ivshmem.bar2", size, RAM_SHARED,
+                                         fd, 0, errp)) {
          return;
      }
 -
      s->ivshmem_bar2 = &s->server_bar2;
  }
  
-@@ -832,7 +862,6 @@ static void ivshmem_write_config(PCIDevice *pdev, uint32_t address,
- 
- static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
- {
--    ERRP_GUARD();
-     IVShmemState *s = IVSHMEM_COMMON(dev);
-     Error *err = NULL;
-     uint8_t *pci_conf;
-@@ -902,7 +931,8 @@ static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
-     if (!ivshmem_is_master(s)) {
-         error_setg(&s->migration_blocker,
-                    "Migration is disabled when using feature 'peer mode' in device 'ivshmem'");
--        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
-+        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
-+            error_free(s->migration_blocker);
-             return;
-         }
-     }
-@@ -920,7 +950,10 @@ static void ivshmem_exit(PCIDevice *dev)
-     IVShmemState *s = IVSHMEM_COMMON(dev);
-     int i;
- 
--    migrate_del_blocker(&s->migration_blocker);
-+    if (s->migration_blocker) {
-+        migrate_del_blocker(&s->migration_blocker);
-+        error_free(s->migration_blocker);
-+    }
- 
-     if (memory_region_is_mapped(s->ivshmem_bar2)) {
-         if (!s->hostmem) {
-@@ -1014,7 +1047,7 @@ static const VMStateDescription ivshmem_plain_vmsd = {
-     .minimum_version_id = 0,
-     .pre_load = ivshmem_pre_load,
-     .post_load = ivshmem_post_load,
--    .fields = (const VMStateField[]) {
-+    .fields = (VMStateField[]) {
-         VMSTATE_PCI_DEVICE(parent_obj, IVShmemState),
-         VMSTATE_UINT32(intrstatus, IVShmemState),
-         VMSTATE_UINT32(intrmask, IVShmemState),
-@@ -1068,7 +1101,7 @@ static const VMStateDescription ivshmem_doorbell_vmsd = {
-     .minimum_version_id = 0,
-     .pre_load = ivshmem_pre_load,
-     .post_load = ivshmem_post_load,
--    .fields = (const VMStateField[]) {
-+    .fields = (VMStateField[]) {
-         VMSTATE_PCI_DEVICE(parent_obj, IVShmemState),
-         VMSTATE_MSIX(parent_obj, IVShmemState),
-         VMSTATE_UINT32(intrstatus, IVShmemState),
-@@ -1083,6 +1116,7 @@ static Property ivshmem_doorbell_properties[] = {
+@@ -1083,6 +1112,7 @@ static Property ivshmem_doorbell_properties[] = {
      DEFINE_PROP_BIT("ioeventfd", IVShmemState, features, IVSHMEM_IOEVENTFD,
                      true),
      DEFINE_PROP_ON_OFF_AUTO("master", IVShmemState, master, ON_OFF_AUTO_OFF),
@@ -201,7 +157,7 @@ index de49d1b..b1761b3 100644
      DEFINE_PROP_END_OF_LIST(),
  };
  
-@@ -1115,6 +1149,20 @@ static void ivshmem_doorbell_class_init(ObjectClass *klass, void *data)
+@@ -1115,6 +1145,20 @@ static void ivshmem_doorbell_class_init(ObjectClass *klass, void *data)
      dc->vmsd = &ivshmem_doorbell_vmsd;
  }
  
@@ -222,7 +178,7 @@ index de49d1b..b1761b3 100644
  static const TypeInfo ivshmem_doorbell_info = {
      .name          = TYPE_IVSHMEM_DOORBELL,
      .parent        = TYPE_IVSHMEM_COMMON,
-@@ -1123,11 +1171,19 @@ static const TypeInfo ivshmem_doorbell_info = {
+@@ -1123,11 +1167,19 @@ static const TypeInfo ivshmem_doorbell_info = {
      .class_init    = ivshmem_doorbell_class_init,
  };
  
@@ -254,5 +210,5 @@ index 433ef53..43aeab7 100644
  
  #endif /* IVSHMEM_H */
 -- 
-2.45.2
+2.47.1
 

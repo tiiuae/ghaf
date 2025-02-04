@@ -48,7 +48,9 @@ let
             internalIP = vmIndex + 100;
           })
 
-          ./common/ghaf-audio.nix
+          (import (./common/ghaf-audio.nix) {
+            inherit configHost;
+          })
           ./common/storagevm.nix
           (
             with configHost.ghaf.virtualization.microvm-host;
