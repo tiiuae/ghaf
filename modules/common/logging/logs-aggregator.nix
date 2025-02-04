@@ -38,7 +38,7 @@ in
         loki.process "system" {
           forward_to = [loki.write.remote.receiver]
           stage.drop {
-            expression = "GatewayAuthenticator::login"
+            expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
           }
         }
 
