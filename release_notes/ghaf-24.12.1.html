@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Release ghaf-24.12 - Ghaf Framework</title>
+        <title>Release ghaf-24.12.1 - Ghaf Framework</title>
 
 
         <!-- Custom HTML head -->
@@ -226,100 +226,71 @@
     Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="release-ghaf-2412"><a class="header" href="#release-ghaf-2412">Release ghaf-24.12</a></h1>
-<p>This is a quarterly release for all supported hardware platforms, and it complies with SLSA v1.0 Level 3 requirements.</p>
+<h1 id="release-ghaf-24121"><a class="header" href="#release-ghaf-24121">Release ghaf-24.12.1</a></h1>
+<p>This bi-weekly release brings a major update on Ghaf dependencies, most notably the compiler GCC 14 version.</p>
 <h2 id="release-tag"><a class="header" href="#release-tag">Release Tag</a></h2>
-<p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12</a></p>
+<p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.1">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.1</a></p>
 <h2 id="supported-hardware"><a class="header" href="#supported-hardware">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
 <li>NVIDIA Jetson Orin NX</li>
-<li>Generic x86 (PC)</li>
-<li>Polarfire Icicle Kit</li>
+<li>Generic x86 (PC) (build support only)</li>
 <li>Lenovo ThinkPad X1 Carbon Gen 11</li>
 <li>Lenovo ThinkPad X1 Carbon Gen 10</li>
 <li>NXP i.MX 8M Plus (build support only)</li>
 </ul>
-<h2 id="what-is-new-in-ghaf-2412"><a class="header" href="#what-is-new-in-ghaf-2412">What is New in ghaf-24.12</a></h2>
+<h2 id="what-is-new-in-ghaf-24121"><a class="header" href="#what-is-new-in-ghaf-24121">What is New in ghaf-24.12.1</a></h2>
+<ul>
+<li>Major update on upstream dependencies.</li>
+<li>More robust user account management.</li>
+<li>RISC-V Polarfire Icicle Kit builds are currently disabled but can be re-enabled if needed.</li>
+</ul>
 <p>Lenovo X1 Carbon Gen 10/11:</p>
 <ul>
-<li>Chromium replaced with Google Chrome.</li>
-<li>Zoom web application added into comms-vm.</li>
-<li>Xarchiver file compression application added.</li>
-<li>Audio Control, USB, and Network Manager applets added.</li>
-<li>Bluetooth applet added to the system tray.</li>
-<li>The first version of the Control Panel currently supports the following:
-<ul>
-<li>display resolution and scale settings;</li>
-<li>locale and timezone settings.</li>
-</ul>
-</li>
-<li>The System Idle behavior has been reworked: the screen dims after 4 minutes of inactivity, the session locks in 5 minutes, the screen goes off in 7.5 minutes, and the system suspends in 15 minutes.</li>
-<li>User account management has been added. The user sets a username and password when a device is first booted.</li>
-<li>The username is displayed on a lock screen.</li>
-<li>Dynamic updates of Microsoft endpoint URLs.</li>
-<li>A separate configurable repository for adding allowed URLs for business-vm.</li>
-<li>Auto-reconnect hotplugged devices when the VM restarts.</li>
-<li>Wayland security context protocol enabled.</li>
-<li>Refactored application definitions to make it easier to add and remove applications.</li>
-<li>Hardened greetd.service.</li>
-<li>AppArmor enabled.</li>
-<li>Multiple user experience improvements.</li>
-</ul>
-<p>Lenovo X1 and NVIDIA Jetson Orin NX/AGX Orin:</p>
-<ul>
-<li>Lock and Log Out buttons moved from the applications menu to the power menu.</li>
-<li>Shutdown and Reboot buttons were removed from the applications menu and are now available in the Power menu.</li>
-<li>The Powerbar module is added to the lock screen.</li>
-<li>Run-time multi-monitor support.</li>
-<li>Taskbar control for four virtual desktops.</li>
-<li>Development, testing, and performance tooling improvements.</li>
+<li>Audio device selection and microphone slider are added to the quick settings widget.</li>
+<li>Audio control was removed from the application menu.</li>
 </ul>
 <h2 id="bug-fixes"><a class="header" href="#bug-fixes">Bug Fixes</a></h2>
-<p>Fixed bugs that were present in the <a href="../release_notes/ghaf-24.09.html">ghaf-24.09</a> release:</p>
+<p>Fixed bugs that were present in the <a href="../release_notes/ghaf-24.12.html">ghaf-24.12</a> release:</p>
 <ul>
-<li>It is impossible to change the Wi-Fi network from the Network Settings application.</li>
-<li>Cannot connect to a hidden Wi-Fi network from GUI.</li>
-<li>The taskbar on the extended display is visible only when booting up with an HDMI connection.</li>
-<li>Suspend does not work from the taskbar power menu.</li>
-<li>The Mute status is not visible in the taskbar.</li>
-<li>Bluetooth notification windows stay on a screen.</li>
-<li>Time synchronization between host and VMs does not work in all scenarios.</li>
+<li>A laptop cannot be unlocked after suspension sometimes.</li>
 </ul>
 <h2 id="known-issues-and-limitations"><a class="header" href="#known-issues-and-limitations">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
-<tr><td>Application menu icons are missing in the first boot after the software installation</td><td>In Progress</td><td>Workaround: close and re-open the menu, icons will be available again.</td></tr>
-<tr><td>The Control Panel is non-functional apart from the Display Settings, Local and Timezone settings</td><td>In Progress</td><td>The functionality will be gradually improved in coming releases.</td></tr>
+<tr><td>No audio output via 3.5mm jack</td><td>In Progress</td><td>Workaround: connect the device before booting up.</td></tr>
+<tr><td>Intermittent audio issue after boot</td><td>In Progress</td><td>Workaround: rebooting the system typically resolves the issue.</td></tr>
+<tr><td>Missing application menu icons on the first boot after the software installation</td><td>In Progress</td><td>Workaround: close and re-open the menu to restore icons.</td></tr>
+<tr><td>Control Panel functionality is limited: only Display Settings, Local and Timezone settings are functional</td><td>In Progress</td><td>Additional functionality will be implemented in future releases.</td></tr>
 <tr><td>VPN credentials are not saved</td><td>On Hold</td><td></td></tr>
-<tr><td>The keyboard always boots up with the English layout</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
-<tr><td>Yubikey for unlocking does not work</td><td>In Progress</td><td>Fix in progress.</td></tr>
-<tr><td>The fingerprint scan login does not work</td><td>In Progress</td><td>Fix in progress.</td></tr>
-<tr><td>A laptop cannot be unlocked after suspension sometimes</td><td>In Progress</td><td>Fix in progress. Workaround: log out and log in again.</td></tr>
-<tr><td>A laptop may wake up from a suspended state without user interaction</td><td>In Progress</td><td>Under investigation.</td></tr>
+<tr><td>The keyboard defaults to the English layout on boot</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
+<tr><td>Yubikey for unlocking does not work</td><td>In Progress</td><td>A fix is currently in progress.</td></tr>
+<tr><td>The fingerprint scan login does not function</td><td>Will Not Be Fixed</td><td>Fingerprint authentication will not be supported. Unlocking with a fingerprint is supported.</td></tr>
+<tr><td>A laptop may wake from suspend without user interaction</td><td>In Progress</td><td>The issue is under investigation.</td></tr>
 <tr><td><strong>NVIDIA Jetson AGX Orin / Orin NX</strong></td><td></td><td></td></tr>
-<tr><td>Application menu icons are missing in the first boot after the software installation</td><td>In Progress</td><td>Workaround: close and re-open the menu, icons will be available again.</td></tr>
-<tr><td>The application menu access does not work with the Windows key</td><td>In Progress</td><td>Workaround: the application menu can be accessed through the taskbar in the top left corner.</td></tr>
+<tr><td>Firefox has been disabled</td><td>In Progress</td><td>Firefox will be re-enabled once upstream fixes are available.</td></tr>
+<tr><td>Missing application menu icons on the first boot after the software installation</td><td>In Progress</td><td>Workaround: close and re-open the menu to restore icons.</td></tr>
+<tr><td>The application menu cannot be accessed using the Windows key</td><td>In Progress</td><td>Workaround: access the application menu through the taskbar in the top-left corner.</td></tr>
 <tr><td>The keyboard always boots up with the English layout</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
-<tr><td>The Suspend power option does not work</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
+<tr><td>The Suspend power option is not functioning as expected</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
 </tbody></table>
 </div>
 <h2 id="environment-requirements"><a class="header" href="#environment-requirements">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
 <h2 id="installation-instructions"><a class="header" href="#installation-instructions">Installation Instructions</a></h2>
-<p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12</a>.</p>
+<p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-01">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.1</a>.</p>
 <p>Download the required image and use the following instructions: <a href="../ref_impl/build_and_run">Build and Run</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../release_notes/ghaf-24.12.1.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../release_notes/release_notes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../release_notes/ghaf-24.09.4.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../release_notes/ghaf-24.12.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -329,11 +300,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../release_notes/ghaf-24.12.1.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../release_notes/release_notes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../release_notes/ghaf-24.09.4.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../release_notes/ghaf-24.12.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
