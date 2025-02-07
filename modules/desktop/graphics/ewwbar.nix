@@ -199,6 +199,19 @@ in
         wantedBy = [ "ewwbar.service" ];
         partOf = [ "ghaf-session.target" ];
       };
+
+      eww-fullscreen-update = {
+        enable = true;
+        serviceConfig = {
+          Type = "simple";
+          ExecStart = "${ewwScripts.eww-fullscreen-update}/bin/eww-fullscreen-update";
+          Restart = "on-failure";
+        };
+        after = [ "ewwbar.service" ];
+        wantedBy = [ "ewwbar.service" ];
+        partOf = [ "ghaf-session.target" ];
+      };
+
     };
   };
 }
