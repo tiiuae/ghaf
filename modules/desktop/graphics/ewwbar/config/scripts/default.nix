@@ -583,6 +583,40 @@ let
     '';
   };
 
+  eww-fullscreen-update = pkgs.writeShellApplication {
+    name = "eww-fullscreen-update";
+    runtimeInputs = [
+      pkgs.wlrctl
+      pkgs.systemd
+    ];
+    bashOptions = [ ];
+    text = ''
+
+            echo "Waiting for a window to enter fullscreen mode..."
+            last_fullscreen_state=1
+
+            while true; do
+         # Run `wlrctl toplevel find state:fullscreen` and capture the return code
+      wlrctl toplevel find state:fullscreen
+      current_fullscreen_state=$?
+
+        # If a fullscreen window is detected, and the state has changed
+      if [[ $current_fullscreen_state -eq 0 && $last_fullscreen_state -ne 0 ]]; then
+          echo "Fullscreen window detected!"
+          systemctl --user reload ewwbar
+          last_fullscreen_state=0  # Update the state to fullscreen
+      elif [[ $current_fullscreen_state -ne 0 && $last_fullscreen_state -eq 0 ]]; then
+          # If fullscreen window is no longer detected
+          echo "Fullscreen window exited!"
+          last_fullscreen_state=1  # Update the state to no fullscreen
+      fi
+
+            # Small delay to avoid excessive CPU usage
+            sleep 1
+          done
+    '';
+  };
+
 in
 {
   # Export each shell application as a top-level attribute
@@ -593,5 +627,6 @@ in
     eww-audio
     eww-display
     eww-open-widget
+    eww-fullscreen-update
     ;
 }
