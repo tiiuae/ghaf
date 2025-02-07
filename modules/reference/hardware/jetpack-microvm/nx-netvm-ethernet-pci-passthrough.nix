@@ -1,8 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, config, ... }:
+{
+  pkgs,
+  lib,
+  config,
+  ...
+}:
 let
   cfg = config.ghaf.hardware.nvidia.orin.nx;
+  ethPciDevice = "0008:01:00.0";
 in
 {
   options.ghaf.hardware.nvidia.orin.nx.enableNetvmEthernetPCIPassthrough =
@@ -11,16 +17,31 @@ in
     # Orin NX Ethernet card PCI Passthrough
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
 
+    # Wait up to 60 seconds for ethernet PCI to get enumerated
+    systemd.services."microvm-pci-devices@net-vm".serviceConfig.ExecStartPre = ''
+      ${pkgs.bash}/bin/bash -c ' \
+      TIMEOUT=60; \
+      ELAPSED=0; \
+      while [ ! -e /sys/bus/pci/devices/${ethPciDevice} ]; do \
+        if [ $ELAPSED -ge $TIMEOUT ]; then \
+          echo "Timeout reached: PCI device ${ethPciDevice} did not appear after $TIMEOUT seconds."; \
+          exit 1; \
+        fi; \
+        echo "Waiting for PCI device ${ethPciDevice}... $ELAPSED/$TIMEOUT seconds"; \
+        sleep 1; \
+        ELAPSED=$((ELAPSED + 1)); \
+      done; \
+      echo "PCI device ${ethPciDevice} is present."'
+    '';
+
     ghaf.virtualization.microvm.netvm.extraModules = [
       {
         microvm.devices = [
           {
             bus = "pci";
-            path = "0008:01:00.0";
+            path = ethPciDevice;
           }
         ];
-        # Add 8 seconds delay to wait for PCI devices to get full enumerated
-        microvm.preStart = "/bin/sh -c 'sleep 8'";
       }
     ];
 
