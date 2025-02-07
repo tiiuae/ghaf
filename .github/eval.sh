@@ -21,7 +21,7 @@ RED='' NONE=''
 
 usage () {
     echo ""
-    echo "Usage: $MYNAME [-h] [-v] [-t EVAL_TARGETS] -j JOB_ID -m MAX_JOBS"
+    echo "Usage: $MYNAME [-h] [-v] [-t EVAL_TARGETS] [-j JOB_ID] [-m MAX_JOBS]"
     echo ""
     echo "Helper to evaluate flake targets in github actions"
     echo ""
@@ -53,10 +53,6 @@ on_exit () {
     rm -fr "$TMPDIR" # remove tmpdir
 }
 
-on_err () {
-    kill 0 # kill the master shell and possible subshells
-}
-
 print_err () {
     printf "${RED}Error:${NONE} %b\n" "$1" >&2
 }
@@ -65,7 +61,7 @@ argparse () {
     # Colorize output if stdout is to a terminal (and not to pipe or file)
     if [ -t 1 ]; then RED='\033[1;31m'; NONE='\033[0m'; fi
     # Parse arguments
-    JOB_ID=""; MAX_JOBS=""; EVAL_TARGETS="$DEF_FILTER"; OPTIND=1
+    JOB_ID="0"; MAX_JOBS="1"; EVAL_TARGETS="$DEF_FILTER"; OPTIND=1
     while getopts "hvj:m:t:" copt; do
         case "${copt}" in
             h)
@@ -95,12 +91,6 @@ argparse () {
     shift $((OPTIND-1))
     if [ -n "$*" ]; then
         print_err "unsupported positional argument(s): '$*'"; exit 1
-    fi
-    if [ -z "$JOB_ID" ]; then
-        print_err "missing mandatory option (-j)"; usage; exit 1
-    fi
-    if [ -z "$MAX_JOBS" ]; then
-        print_err "missing mandatory option (-m)"; usage; exit 1
     fi
     if [ "$JOB_ID" -ge "$MAX_JOBS" ]; then
         print_err "'-j' must be smaller than '-m'"; usage; exit 1
@@ -160,16 +150,22 @@ evaluate () {
     cat "$TMPDIR/eval.nix"
     # Evaluate with nix-eval-jobs
     gcroot="$TMPDIR/gcroot"
+    # nix-eval-jobs exits with success status even if the evaluation fails.
+    # It outputs the error to stdout, which we parse below
+    # converting possible eval errors to exit status:
     nix-eval-jobs \
       --accept-flake-config \
       --gc-roots-dir "$gcroot" \
       --force-recurse \
-      --expr "$(cat "$TMPDIR/eval.nix")"
+      --option allow-import-from-derivation false \
+      --expr "$(cat "$TMPDIR/eval.nix")" | tee "$TMPDIR/eval.out"
+    if grep --color "error:" "$TMPDIR/eval.out"; then
+        exit 1
+    fi
 }
 
 main () {
     trap on_exit EXIT
-    trap on_err ERR
     echo "[+] Using tmpdir: '$TMPDIR'"
     argparse "$@"
     exit_unless_command_exists nix-eval-jobs
