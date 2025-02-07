@@ -10,6 +10,7 @@
       ./laptop.nix
       ./common
       {
+        #TODO: why is this here?
         nixpkgs.overlays = [
           inputs.ghafpkgs.overlays.default
           (_final: prev: {
