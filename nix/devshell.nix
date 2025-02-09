@@ -32,9 +32,7 @@
                 pkgs.reuse
                 config.treefmt.build.wrapper
                 (pkgs.callPackage ../packages/flash { })
-                (pkgs.callPackage ../packages/ghaf-build-helper {
-                  inherit (pkgs) writeShellApplication nixos-rebuild ipcalc;
-                })
+                (pkgs.callPackage ../packages/ghaf-build-helper { })
               ]
               ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
               ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
