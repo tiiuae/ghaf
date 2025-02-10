@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 { lib, config, ... }:
 let
+  kernelVersion = config.boot.kernelPackages.kernel.version;
   cfg = config.ghaf.hardware.nvidia.virtualization;
 in
 {
@@ -34,10 +35,13 @@ in
         name = "Vfio_platform Reset Required False";
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;
       }
-      {
+      (if lib.versionAtLeast kernelVersion "6.6" then {
         name = "Add bpmp-virt modules";
-        patch = ./patches/0001-Add-bpmp-virt-modules.patch;
-      }
+        patch = ./patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-6.6.patch;
+      } else if lib.versions.majorMinor kernelVersion == "5.15" then {
+        name = "Add bpmp-virt modules";
+        patch = ./patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch;
+      } else null)
       {
         name = "Bpmp-host: allows all domains";
         patch = ./patches/0002-Bpmp-host-allows-all-domains.patch;

@@ -67,7 +67,7 @@ let
 
               hardware.nvidia = {
                 virtualization.enable = true;
-                virtualization.host.bpmp.enable = false;
+                virtualization.host.bpmp.enable = true;
                 passthroughs.host.uarta.enable = false;
                 # TODO: uarti passthrough is currently broken, it will be enabled
                 # later after a further analysis.

@@ -39,18 +39,12 @@ in
     # Enable hardware.deviceTree for handle host dtb overlays
     hardware.deviceTree.enable = true;
 
-    # Apply the device tree overlay only to tegra234-p3701-host-passthrough.dtb
     hardware.deviceTree.overlays = [
       {
         name = "bpmp_host_overlay";
         dtsFile = ./bpmp_host_overlay.dts;
       }
-      {
-        name = "gpu_passthrough_overlay";
-        dtsFile = ./gpu_passthrough_overlay.dts;
-      }
     ];
-
 
     # TODO: Consider are these really needed, maybe add only in debug builds?
     environment.systemPackages = with pkgs; [
