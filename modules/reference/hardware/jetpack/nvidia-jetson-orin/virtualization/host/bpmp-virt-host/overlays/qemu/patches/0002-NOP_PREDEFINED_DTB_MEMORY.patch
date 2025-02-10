@@ -1,4 +1,4 @@
-From 58e9e2b26043d10410492ca2067a994bccfd3c9d Mon Sep 17 00:00:00 2001
+From 87a9908309aa53c725cbc13a8a06354d71e26df7 Mon Sep 17 00:00:00 2001
 From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
 Date: Tue, 12 Nov 2024 20:29:17 +0000
 Subject: [PATCH 2/4] NOP_PREDEFINED_DTB_MEMORY
@@ -9,7 +9,7 @@ Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
  1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/hw/arm/boot.c b/hw/arm/boot.c
-index d480a7da02..279817a30a 100644
+index 5301d8d318..4806fc73cd 100644
 --- a/hw/arm/boot.c
 +++ b/hw/arm/boot.c
 @@ -41,6 +41,10 @@

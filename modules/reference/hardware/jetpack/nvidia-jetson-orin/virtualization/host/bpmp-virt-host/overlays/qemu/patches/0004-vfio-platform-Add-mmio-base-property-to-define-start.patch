@@ -1,4 +1,4 @@
-From 05019ba78fa0ee627a5c04e192ed107e6c1d5a72 Mon Sep 17 00:00:00 2001
+From 5be9cb0eaccb0f9d45767f94c19d5cf4d6984e00 Mon Sep 17 00:00:00 2001
 From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
 Date: Thu, 21 Nov 2024 10:12:00 +0200
 Subject: [PATCH 4/4] vfio/platform: Add mmio-base property to define start
@@ -25,10 +25,10 @@ Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
  5 files changed, 32 insertions(+), 6 deletions(-)
 
 diff --git a/hw/arm/virt.c b/hw/arm/virt.c
-index 41ed4e9fdd..2622e8498d 100644
+index f26ac71305..ef39667e94 100644
 --- a/hw/arm/virt.c
 +++ b/hw/arm/virt.c
-@@ -184,13 +184,13 @@ static const MemMapEntry base_memmap[] = {
+@@ -185,13 +185,13 @@ static const MemMapEntry base_memmap[] = {
      [VIRT_NVIDIA_BPMP_GUEST] =	{ 0x090c0000, 0x00001000 },
      [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
      /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
@@ -44,7 +44,7 @@ index 41ed4e9fdd..2622e8498d 100644
  };
  
  /*
-@@ -1625,7 +1625,7 @@ static void create_platform_bus(VirtMachineState *vms)
+@@ -1630,7 +1630,7 @@ static void create_platform_bus(VirtMachineState *vms)
      dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
      dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
      qdev_prop_set_uint32(dev, "num_irqs", PLATFORM_BUS_NUM_IRQS);
@@ -54,7 +54,7 @@ index 41ed4e9fdd..2622e8498d 100644
      vms->platform_bus_dev = dev;
  
 diff --git a/hw/core/platform-bus.c b/hw/core/platform-bus.c
-index b8487b26b6..0b435e18f8 100644
+index dc58bf505a..412c7ed593 100644
 --- a/hw/core/platform-bus.c
 +++ b/hw/core/platform-bus.c
 @@ -22,6 +22,7 @@
@@ -95,15 +95,16 @@ index b8487b26b6..0b435e18f8 100644
      if (memory_region_is_mapped(sbdev_mr)) {
          /* Region is already mapped, nothing to do */
          return;
-@@ -144,13 +163,18 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
+@@ -144,7 +163,7 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
       * Look for empty space in the MMIO space that is naturally aligned with
       * the target device's memory region
       */
 -    for (off = 0; off < pbus->mmio_size; off += alignment) {
 +    for (off = mmio_base_off; off < pbus->mmio_size; off += alignment) {
-         if (!memory_region_find(&pbus->mmio, off, size).mr) {
+         MemoryRegion *mr = memory_region_find(&pbus->mmio, off, size).mr;
+         if (!mr) {
              found_region = true;
-             break;
+@@ -154,6 +173,11 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
          }
      }
  
@@ -115,7 +116,7 @@ index b8487b26b6..0b435e18f8 100644
      if (!found_region) {
          error_report("Platform Bus: Can not fit MMIO region of size %"PRIx64,
                       size);
-@@ -203,7 +227,7 @@ static void platform_bus_realize(DeviceState *dev, Error **errp)
+@@ -206,7 +230,7 @@ static void platform_bus_realize(DeviceState *dev, Error **errp)
  
  static Property platform_bus_properties[] = {
      DEFINE_PROP_UINT32("num_irqs", PlatformBusDevice, num_irqs, 0),

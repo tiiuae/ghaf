@@ -1,4 +1,4 @@
-From ab503e7d8fdec67f5eddbb66dc40b29a5b7ca7aa Mon Sep 17 00:00:00 2001
+From 5160c034a3a772f36131a3f13953911f1aa0a0a7 Mon Sep 17 00:00:00 2001
 From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
 Date: Tue, 12 Nov 2024 21:31:11 +0000
 Subject: [PATCH 3/4] Print irqs
