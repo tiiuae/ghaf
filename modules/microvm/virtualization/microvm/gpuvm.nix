@@ -17,8 +17,8 @@ let
     inherit config;
   };
  
-  # Apply patches in nvidia-oot drivers to support display and GPU passthrough
-  nvidia-oot = config.boot.kernelPackages.nvidia-oot.overrideAttrs (oldAttrs: {
+  # Apply patches in nvidia-modules drivers to support display and GPU passthrough
+  nvidia-modules = config.boot.kernelPackages.nvidia-modules.overrideAttrs (oldAttrs: {
     patches = (oldAttrs.patches or []) ++ [
       # Patch for NVGPU driver
       ./0001-gpu-add-support-for-passthrough.patch
@@ -42,11 +42,11 @@ let
     '';
     buildPhase = ''
       echo *********** config.hardware.deviceTree.kernelPackage ************
-      ls -lah ${config.boot.kernelPackages.nvidia-oot.src}
-      ls -lah ${config.boot.kernelPackages.nvidia-oot.src}/hardware/nvidia/t23x/nv-public/include/nvidia-oot/
+      ls -lah ${config.boot.kernelPackages.nvidia-modules.src}
+      ls -lah ${config.boot.kernelPackages.nvidia-modules.src}/hardware/nvidia/t23x/nv-public/include/nvidia-oot/
       $CC -E -nostdinc \
-        -I${config.boot.kernelPackages.nvidia-oot.src}/hardware/nvidia/t23x/nv-public/include/nvidia-oot \
-        -I${config.boot.kernelPackages.nvidia-oot.src}/hardware/nvidia/t23x/nv-public/include/kernel \
+        -I${config.boot.kernelPackages.nvidia-modules.src}/hardware/nvidia/t23x/nv-public/include/nvidia-oot \
+        -I${config.boot.kernelPackages.nvidia-modules.src}/hardware/nvidia/t23x/nv-public/include/kernel \
         -undef -D__DTS__ \
         -x assembler-with-cpp \
         tegra234-gpuvm.dts > preprocessed.dts
@@ -82,7 +82,6 @@ let
           imports = [ ../../../common ];
 
           ghaf = {
-            users.accounts.enable = lib.mkDefault config.ghaf.users.accounts.enable;
             profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
@@ -115,7 +114,7 @@ let
           environment = {
             systemPackages =
               (rmDesktopEntries [
-                pkgs.waypipe
+                #pkgs.waypipe
                 pkgs.networkmanagerapplet
                 pkgs.gnome-calculator
                 pkgs.sticky-notes
@@ -183,13 +182,13 @@ let
                 }
               ]
               ++ lib.optionals isGuiVmEnabled [
-                {
-                  # Add the waypipe-ssh public key to the microvm
-                  tag = config.ghaf.security.sshKeys.waypipeSshPublicKeyName;
-                  source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                  mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                  proto = "virtiofs";
-                }
+                # {
+                #   # Add the waypipe-ssh public key to the microvm
+                #   tag = config.ghaf.security.sshKeys.waypipeSshPublicKeyName;
+                #   source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                #   mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+                #   proto = "virtiofs";
+                # }
               ];
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
@@ -230,9 +229,9 @@ let
             };
           };
 
-          fileSystems = lib.mkIf isGuiVmEnabled {
-            ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
-          };
+          # fileSystems = lib.mkIf isGuiVmEnabled {
+          #   ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
+          # };
 
           # SSH is very picky about to file permissions and ownership and will
           # accept neither direct path inside /nix/store or symlink that points
@@ -320,7 +319,7 @@ in
         
         boot = {
           kernelPackages = config.boot.kernelPackages;
-          extraModulePackages = [nvidia-oot];
+          extraModulePackages = [nvidia-modules];
           kernelPatches = [
             {
               name = "Virtio FS to support microvm";
