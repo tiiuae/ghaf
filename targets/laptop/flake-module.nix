@@ -17,7 +17,7 @@ let
   target-configs = [
     # Laptop Debug configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen10.nix;
@@ -26,7 +26,7 @@ let
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
@@ -35,7 +35,7 @@ let
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen12" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen12.nix;
@@ -44,7 +44,7 @@ let
       }
     ])
     (laptop-configuration "lenovo-x1-extras" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
@@ -53,7 +53,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7230" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
@@ -62,7 +62,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7330" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
@@ -71,7 +71,7 @@ let
       }
     ])
     (laptop-configuration "alienware-m18-R2" "debug" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
@@ -85,7 +85,7 @@ let
 
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen10.nix;
@@ -94,7 +94,7 @@ let
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
@@ -103,7 +103,7 @@ let
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen12" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen12.nix;
@@ -112,7 +112,7 @@ let
       }
     ])
     (laptop-configuration "lenovo-x1-extras" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
@@ -121,7 +121,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7230" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
@@ -130,7 +130,7 @@ let
       }
     ])
     (laptop-configuration "dell-latitude-7330" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
@@ -139,7 +139,7 @@ let
       }
     ])
     (laptop-configuration "alienware-m18-R2" "release" [
-      self.nixosModules.disko-ab-partitions-v1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
