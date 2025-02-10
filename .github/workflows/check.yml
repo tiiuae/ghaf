@@ -19,7 +19,7 @@ jobs:
       - name: Install nix
         uses: cachix/install-nix-action@v30
       - name: Check .nix formatting
-        run: nix fmt -- --fail-on-change
+        run: nix develop --command treefmt --allow-missing-formatter --ci
       - name: Check reuse lint
         run: nix develop --command reuse lint
       - name: Check nix flake show runs successfully
