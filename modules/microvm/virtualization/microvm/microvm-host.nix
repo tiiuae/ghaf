@@ -83,7 +83,7 @@ in
       # Create host directories for microvm shares
       systemd.tmpfiles.rules =
         let
-          vmRootDirs = map (vm: "d /storagevm/${vm} 0700 root root -") (
+          vmRootDirs = map (vm: "d /persist/storagevm/${vm} 0700 root root -") (
             builtins.attrNames config.microvm.vms
           );
           vmsWithXdg = lib.filter (
@@ -93,11 +93,11 @@ in
           xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
         in
         [
-          "d /storagevm/homes 0700 microvm kvm -"
+          "d /persist/storagevm/homes 0700 microvm kvm -"
           "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
         ++ lib.optionals config.ghaf.givc.enable [
-          "d /storagevm/givc 0700 microvm kvm -"
+          "d /persist/storagevm/givc 0700 microvm kvm -"
         ]
         ++ vmRootDirs
         ++ xdgRules;
@@ -134,12 +134,12 @@ in
         let
           vmDirs = map (
             n:
-            "d /storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
+            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
-          "d /storagevm/shared 0755 root root"
-          "d /storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
+          "d /persist/storagevm/shared 0755 root root"
+          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
         ]
         ++ vmDirs;
     })
@@ -154,8 +154,8 @@ in
             ];
             text = ''
               echo "Removing ghaf login user data"
-              rm -r /storagevm/homes/*
-              rm -r /storagevm/gui-vm/var/
+              rm -r /persist/storagevm/homes/*
+              rm -r /persist/storagevm/gui-vm/var/
               echo "All ghaf login user data removed"
             '';
           };
@@ -164,7 +164,7 @@ in
           description = "Remove ghaf login users";
           enable = true;
           path = [ userRemovalScript ];
-          unitConfig.ConditionPathExists = "/storagevm/gui-vm/var/lib/nixos/user.lock";
+          unitConfig.ConditionPathExists = "/persist/storagevm/gui-vm/var/lib/nixos/user.lock";
           serviceConfig = {
             Type = "oneshot";
             ExecStart = "${userRemovalScript}/bin/remove-users";
