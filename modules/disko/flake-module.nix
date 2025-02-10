@@ -3,16 +3,10 @@
 { inputs, ... }:
 {
   flake.nixosModules = {
-    disko-basic-partition-v1.imports = [
+    disko-debug-partition.imports = [
       inputs.disko.nixosModules.disko
-      ./disko-basic-partition-v1.nix
-      ./disko-basic-postboot.nix
-    ];
-
-    disko-ab-partitions-v1.imports = [
-      inputs.disko.nixosModules.disko
-      ./disko-ab-partitions.nix
-      ./disko-zfs-postboot.nix
+      ./disko-debug-partition.nix
+      ./disko-postboot.nix
     ];
   };
 }

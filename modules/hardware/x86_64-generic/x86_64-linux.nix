@@ -36,9 +36,7 @@ in
         systemd-boot.enable = true;
       };
 
-      # TODO the kernel latest is currently broken for zfs.
-      # try to fix on the next update.
-      kernelPackages = pkgs.linuxPackages;
+      kernelPackages = pkgs.linuxPackages_latest;
     };
   };
 }
