@@ -24,11 +24,11 @@ let
     text = ''
       get() {
         BATTERY_PATH="/sys/class/power_supply/BAT0"
-        ENERGY_NOW=$(cat "$BATTERY_PATH/energy_now")
-        POWER_NOW=$(cat "$BATTERY_PATH/power_now")
-        CAPACITY=$(cat "$BATTERY_PATH/capacity")
-        STATUS=$(cat "$BATTERY_PATH/status")
-        if [ "$POWER_NOW" -eq 0 ]; then
+        ENERGY_NOW=$([ -d "$BATTERY_PATH" ] && cat "$BATTERY_PATH/energy_now" || echo 0)
+        POWER_NOW=$([ -d "$BATTERY_PATH" ] && cat "$BATTERY_PATH/power_now" || echo 0)
+        CAPACITY=$([ -d "$BATTERY_PATH" ] && cat "$BATTERY_PATH/capacity" || echo 0)
+        STATUS=$([ -d "$BATTERY_PATH" ] && cat "$BATTERY_PATH/status" || echo 0)
+        if (( POWER_NOW == 0 )); then
             echo "{
                 \"hours\": \"0\",
                 \"minutes_total\": \"0\",
@@ -45,7 +45,7 @@ let
         MINUTES_REMAINDER=$(echo "($TIME_REMAINING - $HOURS) * 60" | bc | awk '{printf "%d\n", $1}')
 
         # If both hours and minutes are 0, return 0 for both
-        if [ "$HOURS" -eq 0 ] && [ "$MINUTES" -eq 0 ]; then
+        if (( HOURS == 0  &&  MINUTES == 0 )); then
             HOURS=0
             MINUTES=0
         fi
