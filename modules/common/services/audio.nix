@@ -78,6 +78,11 @@ in
         "wireplumber.settings" = {
           "bluetooth.autoswitch-to-headset-profile" = "false";
         };
+        # Enable alsa ACP auto profile for headphones
+        "monitor.alsa.properties" = {
+          "alsa.use-acp" = "true";
+          "acp.auto-profile" = "true";
+        };
       };
     };
 
