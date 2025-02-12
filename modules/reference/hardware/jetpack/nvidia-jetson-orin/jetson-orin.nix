@@ -110,7 +110,7 @@ in
           usbPassthrough = [
             {
               class = 2;
-              sublass = 6;
+              subclass = 6;
               description = "Communications - Ethernet Networking";
             }
           ];

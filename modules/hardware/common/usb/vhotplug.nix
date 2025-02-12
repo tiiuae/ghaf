@@ -45,7 +45,7 @@ let
         }
         {
           class = 8;
-          sublass = 6;
+          subclass = 6;
           description = "Mass Storage - SCSI (USB drives)";
         }
       ];
@@ -60,7 +60,7 @@ let
       usbPassthrough = [
         {
           class = 2;
-          sublass = 6;
+          subclass = 6;
           description = "Communications - Ethernet Networking";
         }
       ];
