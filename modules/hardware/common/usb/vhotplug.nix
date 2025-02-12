@@ -63,6 +63,11 @@ let
           subclass = 6;
           description = "Communications - Ethernet Networking";
         }
+        {
+          vendorId = "0b95";
+          productId = "1790";
+          description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
+        }
       ];
     }
 
