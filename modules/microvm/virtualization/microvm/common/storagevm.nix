@@ -135,7 +135,7 @@ in
         machine-id.text = "d8dee68f8d334c79ac8f8229921e0b25";
       };
     })
-    (lib.mkIf config.ghaf.givc.enable {
+    (lib.mkIf (config.ghaf.givc.enable && config.ghaf.givc.enableTls) {
       virtualisation.fileSystems.${cfg.mountPath} = {
         device = "/dev/disk/by-label/givc-${cfg.name}";
       };
