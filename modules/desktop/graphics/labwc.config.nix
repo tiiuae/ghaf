@@ -514,6 +514,22 @@ in
         partOf = [ "ewwbar.service" ];
       };
 
+      audio-control = {
+        enable = true;
+        description = "Audio Control application";
+
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "5";
+          ExecStart = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=audio-subwoofer";
+        };
+
+        partOf = [ "ewwbar.service" ];
+        after = [ "ewwbar.service" ];
+        wantedBy = [ "ewwbar.service" ];
+      };
+
       # We use existing blueman services and create overrides for both
       blueman-applet = {
         enable = true;

@@ -8,7 +8,6 @@
 }:
 let
   cfg = config.ghaf.reference.desktop.applications;
-  inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   inherit (lib) mkIf mkEnableOption;
 in
 {
@@ -44,13 +43,6 @@ in
           description = "Manage Bluetooth Devices & Settings";
           icon = "bluetooth-48";
           command = "${pkgs.bt-launcher}/bin/bt-launcher";
-        }
-
-        {
-          name = "Audio Control";
-          description = "System Audio Control";
-          icon = "preferences-sound";
-          command = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString pulseaudioTcpControlPort} --indicator_icon_name=preferences-sound";
         }
 
         {
