@@ -70,6 +70,7 @@ in
               path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm business-vm google-chrome";
               icon = "thorium-browser";
             }
+
             {
               # The SPKI fingerprint is calculated like this:
               # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
@@ -227,7 +228,15 @@ in
               path = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
               icon = "distributor-logo-windows";
             }
-          ];
+          ]
+          ++ (optionals (config.ghaf.services.wireguard-gui.enable or false) (
+            map (vm: {
+              name = "Wireguard for ${vm}";
+              inherit vm;
+              path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm ${vm}-vm wireguard-gui-launcher";
+              icon = "preferences-system-network";
+            }) (config.ghaf.services.wireguard-gui.vms or [ ])
+          ));
       };
     };
   };

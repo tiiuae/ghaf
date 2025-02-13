@@ -59,7 +59,7 @@ let
               securityContext = map (vm: {
                 identifier = vm.name;
                 color = vm.borderColor;
-              }) config.ghaf.virtualization.microvm.appvm.vms;
+              }) (builtins.attrValues config.ghaf.virtualization.microvm.appvm.vms);
             };
 
             development = {
@@ -159,6 +159,16 @@ let
                 StandardError = "journal";
                 ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
               };
+            };
+
+          environment.etc."ctrl-panel/wireguard-gui-vms.txt" =
+            let
+               vmstxt = lib.concatStringsSep "\n" config.ghaf.services.wireguard-gui.vms;
+            in
+            {
+              text =  ''
+                ${vmstxt}
+              '';
             };
 
           environment = {

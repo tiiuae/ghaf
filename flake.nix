@@ -163,6 +163,11 @@
         crane.follows = "givc/crane";
       };
     };
+
+    wireguard-gui = {
+      url = "github:tiiuae/wireguard-gui";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
