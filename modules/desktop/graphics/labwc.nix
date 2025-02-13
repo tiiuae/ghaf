@@ -84,7 +84,7 @@ in
     maxDesktops = lib.mkOption {
       type = lib.types.int;
       default = 4;
-      description = "Max number of virtual desktops.";
+      description = "Max number of virtual desktops. Valid values are 1 - 8.";
     };
     gtk = lib.mkOption {
       type = lib.types.submodule {
@@ -210,9 +210,6 @@ in
     services.upower.enable = true;
     fonts.fontconfig.defaultFonts.sansSerif = [ "Inter" ];
 
-    # dconf is necessary for gsettings to work
-    programs.dconf.enable = true;
-
     # DBus service for accessing the list of user accounts and information attached to those accounts
     services.accounts-daemon.enable = true;
 
@@ -220,6 +217,7 @@ in
       {
         name = "Terminal";
         description = "System Terminal";
+        icon = "foot";
         path = "${pkgs.foot}/bin/foot";
       }
     ];

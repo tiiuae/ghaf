@@ -48,20 +48,6 @@ let
             ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
         fi
         ${ghaf-workspace}/bin/ghaf-workspace max ${toString cfg.maxDesktops}
-
-        # Write the GTK settings to the settings.ini file in the GTK config directory
-        # Note:
-        # - On Wayland, GTK+ is known for not picking themes from settings.ini.
-        # - We define GTK+ theme on Wayland using gsettings (e.g., `gsettings set org.gnome.desktop.interface ...`).
-        mkdir -p "$XDG_CONFIG_HOME/gtk-3.0"
-        echo -e "${gtk_settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
-
-        gnome_schema="org.gnome.desktop.interface"
-
-        gsettings set "$gnome_schema" gtk-theme "${cfg.gtk.theme}"
-        gsettings set "$gnome_schema" icon-theme "${cfg.gtk.iconTheme}"
-        gsettings set "$gnome_schema" font-name "${cfg.gtk.fontName} ${cfg.gtk.fontSize}"
-        gsettings set "$gnome_schema" color-scheme "${cfg.gtk.colorScheme}"
       ''
       + cfg.extraAutostart;
   };
@@ -101,6 +87,7 @@ let
     </placement>
     <desktops number="${toString cfg.maxDesktops}">
       <popupTime>0</popupTime>
+      <prefix>Desktop</prefix>
     </desktops>
     <keyboard>
       <default />
@@ -303,16 +290,6 @@ let
     MOZ_ENABLE_WAYLAND=1
   '';
 
-  gtk_settings = ''
-    [Settings]
-    ${
-      if cfg.gtk.colorScheme == "prefer-dark" then
-        "gtk-application-prefer-dark-theme = true"
-      else
-        "gtk-application-prefer-dark-theme = false"
-    }
-  '';
-
   ghaf-session = pkgs.writeShellApplication {
     name = "ghaf-session";
 
@@ -347,14 +324,11 @@ let
 
           pos_x=$(echo "$display" | jq -r '.position.x')
           pos_y=$(echo "$display" | jq -r '.position.y')
-          scale=$(echo "$display" | jq -r '.scale')
 
           # Validate extracted values
-          if [[ -z "$name" || -z "$width_mm" || -z "$height_mm" || -z "$width_px" || -z "$height_px" || -z "$pos_x" || -z "$pos_y" ]]; then
-              echo "Error: Missing data for display $name. Skipping."
-              continue
-          elif [[ "$(echo "$scale != 1" | bc -l)" -eq 1 ]]; then
-              # Don't adjust scaling if custom scaling is already set
+          if [[ -z "$name" || -z "$width_mm" || -z "$height_mm" || -z "$width_px" || -z "$height_px" || -z "$pos_x" || -z "$pos_y" || 
+                "$width_mm" -eq 0 || "$height_mm" -eq 0 || "$width_px" -eq 0 || "$height_px" -eq 0 ]]; then
+              echo "Error: Missing or zero data for display $name. Skipping."
               continue
           fi
 
@@ -368,7 +342,9 @@ let
 
           # Check if the display is a TV size
           is_tv=$(echo "$diagonal_in >= 40" | bc -l) # Consider displays with a diagonal >= 40 inches as TVs
-          if [[ "$is_tv" -eq 1 ]]; then
+          is_4k=$(echo "$width_px >= 3840 && $height_px >= 2160" | bc -l)
+          echo "Display detected: is_tv=$is_tv, is_4k=$is_4k, diagonal_in=$diagonal_in, resolution=''${width_px}x''${height_px}"
+          if [[ "$is_tv" -eq 1 && "$is_4k" -eq 1 ]]; then
               if (( $(echo "$diagonal_in <= 65" | bc -l) )); then
                   calculated_scale=1.50 # Apply 150% scaling for TVs 65 inches and under
               else
@@ -388,7 +364,7 @@ let
           fi
 
           # Apply scaling using wlr-randr
-          wlr-randr --output "$name" --preferred --scale "$calculated_scale" --pos "$pos_x,$pos_y" && \
+          wlr-randr --output "$name" --scale "$calculated_scale" --pos "$pos_x,$pos_y" && \
             echo "Applied settings for display $name: Scale=$calculated_scale, Position=($pos_x, $pos_y), Size=$diagonal_in inches, PPI=$ppi."
         done
       }
@@ -442,6 +418,26 @@ in
     };
 
     environment.systemPackages = [ ghaf-session ];
+
+    programs.dconf = {
+      enable = true;
+      profiles.user = {
+        databases = [
+          {
+            lockAll = false;
+            settings = {
+              "org/gnome/desktop/interface" = {
+                color-scheme = cfg.gtk.colorScheme;
+                gtk-theme = cfg.gtk.theme;
+                icon-theme = cfg.gtk.iconTheme;
+                font-name = "${cfg.gtk.fontName} ${cfg.gtk.fontSize}";
+                clock-format = "24h";
+              };
+            };
+          }
+        ];
+      };
+    };
 
     services.greetd.settings = {
       initial_session = lib.mkIf (cfg.autologinUser != null) {

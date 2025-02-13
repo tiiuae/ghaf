@@ -23,6 +23,23 @@ writeText "windows.yuck" ''
           :exclusive "true"
           (bar :screen screen))
 
+      ;; Window manager window ;;
+        (defwindow window-manager
+            :geometry (geometry :y "35px"
+                                :x "0px"
+                                :anchor "bottom center")
+            :stacking "overlay"
+            (window-manager))
+    
+      ;; Window manager trigger zone ;;
+      (defwindow window-manager-trigger [screen]
+          :geometry (geometry :width "500px" 
+                              :height "2px"
+                              :anchor "bottom center")
+          :stacking "overlay"
+          :focusable "none"
+          (window-manager-trigger :screen screen))
+
       ;; Calendar Window ;;
       (defwindow calendar
           :geometry (geometry :y "0px"

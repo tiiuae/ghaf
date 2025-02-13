@@ -31,7 +31,6 @@
   * {
       color: $text-base;
       font-family: "${fontName}";
-      font-size: 14px;
       :disabled {
           color: $text-disabled;
       }
@@ -69,7 +68,6 @@
       min-height: 24px;
       min-width: 24px;
       color: #FFFFFF;
-      -gtk-icon-effect: none;
   }
 
   @mixin button($bg: transparent, $hover-bg: $widget-hover) {
@@ -95,7 +93,7 @@
       }
   }
 
-  @mixin slider($slider-width: 225px, $slider-height: 2px, $thumb: true, $thumb-width: 1em, $focusable: true, $radius: 7px, $shadows: true, $trough-bg: $widget-hover, $trough-fg: $stroke-success) {
+  @mixin slider($slider-width: 150px, $slider-height: 2px, $thumb: true, $thumb-width: 1em, $focusable: true, $radius: 7px, $shadows: true, $trough-bg: $widget-hover, $trough-fg: $stroke-success) {
       scale {
           padding: 0px;
       }
@@ -173,7 +171,6 @@
       .header {
           font-size: 0.9em;
           font-weight: $font-bold;
-          font-family: ${fontName};
       }
   }
 
@@ -184,7 +181,7 @@
       background-color: $bg;
   }
 
-  @mixin widget-button($min-width: 133px, $min-height: 58px, $radius: 0.75em, $bg: $widget-bg, $padding: 0.8em) {
+  @mixin widget-button($min-width: 133px, $min-height: 58px, $radius: 0.75em, $bg: $widget-bg, $padding: 0.9em) {
       @include qs-widget($min-width: $min-width, $min-height: $min-height);
 
       .inner-box {
@@ -219,7 +216,6 @@
           .title {
               font-size: 0.9em;
               font-weight: 500;
-              font-family: ${fontName};
           }
 
           .subtitle {
@@ -243,12 +239,11 @@
       @include unset;
       @include sys-sliders;
       @include qs-widget($min-height: 0px);
-      padding: 0.8em;
+      padding: 0.9em;
   }
 
   .popup {
       .slider{ @include slider($slider-width: 150px, $thumb: false, $slider-height: 5px); }
-      font-size: 1.3em;
       :disabled {
           color: $text-base;
       }
@@ -260,7 +255,6 @@
 
   .eww_bar {
       background-color: $bg-primary;
-      padding: 0.2em 0.5em 0.2em 0.5em;
   }
 
   .default_button {
@@ -271,8 +265,12 @@
       .header {
         font-size: 0.9em;
         font-weight: $font-bold;
-        font-family: ${fontName};
       }
+  }
+
+  .taskbar_button {
+      @include button;
+      padding: 2px 14px;
   }
 
   .divider {
@@ -291,8 +289,6 @@
   }
 
   .date {
-      padding: 0.4em 0.4em;
-      border-radius: 0.25em;
       font-weight: $font-bold;
       font-size: 1em;
   }
@@ -305,27 +301,19 @@
       font-size: 1em;
   }
 
-  .workspace {
-      font-size: 1.2em;
-      font-weight: $font-bold;
-  }
-
   .spacer {
       background-color: transparent;
   }
 
   .cal {
       @include unset($rec: true);
-      font-size: 1.2em;
       padding: 0.2em 0.2em;
 
       calendar {
-          font-size: 1.2em;
           padding: 0.2em 0.2em;
 
           &.header {
               font-weight: $font-bold;
-              font-size: 1.5em;
           }
 
           &.button {
@@ -357,12 +345,9 @@
   }
 
   .tray menu {
-      font-family: ${fontName};
-      font-size: 1.1em;
       background-color: $bg-primary;
 
       >menuitem {
-          font-size: 1em;
           padding: 5px 7px;
 
           &:hover {
@@ -407,5 +392,9 @@
               padding: unset;
           }
       }
+  }
+
+  .tray {
+    padding: 2px 14px;
   }
 ''
