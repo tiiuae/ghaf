@@ -104,7 +104,7 @@ in
 
           appvm = {
             enable = true;
-            vms = cfg.enabled-app-vms;
+            vms = lib.foldl lib.recursiveUpdate {} (lib.imap0 (vmIndex: vm: { ${vm.name} = vm // {inherit vmIndex;}; }) cfg.enabled-app-vms);
           };
         };
       };

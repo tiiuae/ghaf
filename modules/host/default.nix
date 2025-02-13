@@ -11,8 +11,18 @@
   # pkgs that already has overlays in place. Otherwise the overlay will be
   # applied twice.
   nixpkgs.overlays = [ (import ../../overlays/custom-packages) ];
+
+  ghaf.services.wireguard-gui = {
+    enable = true;
+    vms = [
+      "chrome"
+      "business"
+    ];
+  };
+
   imports = [
     # To push logs to central location
+    ../common/services/wireguard-gui.nix
     ../common/logging/client.nix
   ];
 }

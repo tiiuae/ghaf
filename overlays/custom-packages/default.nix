@@ -20,4 +20,6 @@
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
   gtklock = import ./gtklock { inherit prev; };
+  wireguard-gui = final.callPackage ../../packages/wireguard-gui {};
+  wireguard-gui-launcher = final.callPackage ../../packages/wireguard-gui-launcher {};
 })
