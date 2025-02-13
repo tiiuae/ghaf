@@ -478,7 +478,8 @@
         "nixpkgs": "nixpkgs",
         "pkgs-by-name-for-flake-parts": "pkgs-by-name-for-flake-parts",
         "systems": "systems",
-        "treefmt-nix": "treefmt-nix"
+        "treefmt-nix": "treefmt-nix",
+        "wireguard-gui": "wireguard-gui"
       }
     },
     "spectrum": {
@@ -529,6 +530,26 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "wireguard-gui": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1723618204,
+        "narHash": "sha256-kjLoDCX9k7oolZhhlsAF1QJmrcWaHdU11zGLrViOF4w=",
+        "owner": "tiiuae",
+        "repo": "wireguard-gui",
+        "rev": "084522913a393a1c38ed088fa995560f35b10ac0",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "wireguard-gui",
         "type": "github"
       }
     }

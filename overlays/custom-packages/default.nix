@@ -12,4 +12,6 @@
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
   libfm = import ./libfm { inherit prev; };
+  wireguard-gui = final.callPackage ../../packages/wireguard-gui {};
+  wireguard-gui-launcher = final.callPackage ../../packages/wireguard-gui-launcher {};
 })
