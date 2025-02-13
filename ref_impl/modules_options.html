@@ -718,7 +718,7 @@ string</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslabwcmaxdesktops"><a class="header" href="#ghafgraphicslabwcmaxdesktops">ghaf.graphics.labwc.maxDesktops</a></h2>
-<p>Max number of virtual desktops.</p>
+<p>Max number of virtual desktops. Valid values are 1 - 8.</p>
 <p><em>Type:</em>
 signed integer</p>
 <p><em>Default:</em>
@@ -760,7 +760,7 @@ string</p>
 <p><em>Type:</em>
 path</p>
 <p><em>Default:</em>
-<code>"/nix/store/qd6l2x4lkyamxdgkp4y7rbvi7rf0wx39-ghaf-artwork-0.1.0/ghaf-desert-sunset.jpg"</code></p>
+<code>"/nix/store/0376s5fm8cjczdi0f04lsx67mb4zmnaw-ghaf-artwork-0.1.0/ghaf-desert-sunset.jpg"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.nix</a></li>
@@ -1877,7 +1877,7 @@ list of (attribute set)</p>
       {
         class = 8;
         description = "Mass Storage - SCSI (USB drives)";
-        sublass = 6;
+        subclass = 6;
       }
     ];
   }
@@ -1888,7 +1888,12 @@ list of (attribute set)</p>
       {
         class = 2;
         description = "Communications - Ethernet Networking";
-        sublass = 6;
+        subclass = 6;
+      }
+      {
+        description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
+        productId = "1790";
+        vendorId = "0b95";
       }
     ];
   }
@@ -3916,7 +3921,7 @@ string</p>
 <p><em>Type:</em>
 string <em>(read only)</em></p>
 <p><em>Default:</em>
-<code>"24.12.2"</code></p>
+<code>"24.12.3"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/version">https://github.com/tiiuae/ghaf/blob/main/modules/common/version</a></li>
