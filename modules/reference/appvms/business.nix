@@ -129,7 +129,7 @@
         name = "Video Editor";
         description = "Losslesscut Video Editor";
         packages = [ pkgs.losslesscut-bin ];
-        icon = "${pkgs.losslesscut-bin}/share/icons/losslesscut.png";
+        icon = "losslesscut";
         command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
       }
     ];
