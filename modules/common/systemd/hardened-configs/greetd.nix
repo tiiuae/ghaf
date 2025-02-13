@@ -69,6 +69,7 @@
   # System calls #
   ################
   SystemCallFilter = [
+    "mincore"
     "@setuid"
     "@chown"
     "@system-service"
