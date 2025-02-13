@@ -17,6 +17,7 @@
       @{INTEGER}=[0-9]{[0-9],}{[0-9],}{[0-9],}{[0-9],}{[0-9],}{[0-9],}{[0-9],}{[0-9],}{[0-9],}
       @{ETC}=/etc
       @{NIX}=/nix
+      @{RUN}=/run
 
       ${pkgs.google-chrome}/share/google/chrome/google-chrome {
         include <abstractions/base>
