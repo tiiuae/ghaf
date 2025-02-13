@@ -1,5 +1,5 @@
 <!--
-    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+    Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
@@ -66,6 +66,7 @@
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
 - [Release Notes](release_notes/release_notes.md)
+    - [Release ghaf-24.12.2](release_notes/ghaf-24.12.2.md)
     - [Release ghaf-24.12.1](release_notes/ghaf-24.12.1.md)
     - [Release ghaf-24.12](release_notes/ghaf-24.12.md)
     - [Release ghaf-24.09.4](release_notes/ghaf-24.09.4.md)
