@@ -3,14 +3,14 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-# Release ghaf-24.12.1
+# Release ghaf-24.12.2
 
-This bi-weekly release brings a major update on Ghaf dependencies, most notably the compiler GCC 14 version.
+This is a bi-weekly release containing new features and additional hardening for Ghaf.
 
 
 ## Release Tag
 
-<https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.1>
+<https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.2>
 
 
 ## Supported Hardware
@@ -20,28 +20,33 @@ The following target hardware is supported by this release:
 * NVIDIA Jetson AGX Orin
 * NVIDIA Jetson Orin NX
 * Generic x86 (PC) (build support only)
-* Lenovo ThinkPad X1 Carbon Gen 11
-* Lenovo ThinkPad X1 Carbon Gen 10
+* Lenovo ThinkPad X1 Carbon Gen 10, 11, 12
 * NXP i.MX 8M Plus (build support only)
 
 
-## What is New in ghaf-24.12.1
+## What is New in ghaf-24.12.2
 
-  * Major update on upstream dependencies.
-  * More robust user account management.
-  * RISC-V Polarfire Icicle Kit builds are currently disabled but can be re-enabled if needed.
+  * TLS enabled for GIVC.
+  * Reworked networking:
+    * 'debug' network removed
+    * auto-generation of IP and MAC addresses
+  * Disabled NIX tooling in release builds.
+  * Hotplugging of GPS devices.
 
 Lenovo X1 Carbon Gen 10/11:
 
-  * Audio device selection and microphone slider are added to the quick settings widget.
-  * Audio control was removed from the application menu.
+  * Added support for Lenovo ThinkPad X1 Carbon Gen 12.
+  * Hardened systemd config in gui-vm.
+  * Chromecast support on a normal browser.
+  * Added keybindings to move the active window to the next or previous desktop.
+  * Logging improvements.
 
 
 ## Bug Fixes
 
-Fixed bugs that were present in the [ghaf-24.12](../release_notes/ghaf-24.12.md) release:
+Fixed bugs that were present in the [ghaf-24.12.1](../release_notes/ghaf-24.12.1.md) release:
 
-* A laptop cannot be unlocked after suspension sometimes.
+* Element location sharing not working.
 
 
 ## Known Issues and Limitations
@@ -73,6 +78,6 @@ There are no specific requirements for the environment with this release.
 
 ## Installation Instructions
 
-Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.1](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-01).
+Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.2](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-2).
 
 Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run).
