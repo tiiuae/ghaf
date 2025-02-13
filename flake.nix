@@ -153,6 +153,11 @@
       };
     };
 
+    wireguard-gui = {
+      url = "github:tiiuae/wireguard-gui";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     ci-test-automation = {
       url = "github:tiiuae/ci-test-automation";
       inputs = {

@@ -346,6 +346,11 @@ in
               useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
+            # FIXME: Temporary solution to keep order of virtual machines, otherwise hosts file points to wrong vms.
+            vmIndex = mkOption {
+              type = types.int;
+              internal = true;
+            };
           };
         }
       );

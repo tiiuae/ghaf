@@ -200,6 +200,16 @@ let
               };
           };
 
+          environment.etc."ctrl-panel/wireguard-gui-vms.txt" =
+            let
+               vmstxt = lib.concatStringsSep "\n" config.ghaf.services.wireguard-gui.vms;
+            in
+            {
+              text =  ''
+                ${vmstxt}
+              '';
+            };
+
           environment = {
             systemPackages =
               (rmDesktopEntries [
