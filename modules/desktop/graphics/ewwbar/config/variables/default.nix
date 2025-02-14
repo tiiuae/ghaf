@@ -20,7 +20,7 @@ writeText "variables.yuck" ''
   (deflisten audio_input :initial "{}" "${ewwScripts.eww-audio}/bin/eww-audio listen_input")
   (defpoll audio_outputs :interval "1s" "${ewwScripts.eww-audio}/bin/eww-audio get_outputs")
   (defpoll audio_inputs :interval "1s" "${ewwScripts.eww-audio}/bin/eww-audio get_inputs")
-  (defvar audio_streams "[]")
+  (deflisten audio_streams :initial "[]" "${ewwScripts.eww-audio}/bin/eww-audio listen_vms")
   (deflisten workspace :initial "1" "${ghaf-workspace}/bin/ghaf-workspace subscribe")
   (deflisten windows :initial "[]" "${ewwScripts.eww-windows}/bin/eww-windows listen")
 

@@ -117,6 +117,9 @@ in
           Type = "forking";
           ExecStart = "${ewwScripts.ewwbar-ctrl}/bin/ewwbar-ctrl start";
           ExecReload = "${ewwScripts.ewwbar-ctrl}/bin/ewwbar-ctrl reload";
+          ExecStopPost = ''
+            bash -c "dbus-send --session --dest=org.ghaf.Audio --type=method_call --print-reply /org/ghaf/Audio org.ghaf.Audio.UnsubscribeFromDeviceUpdatedSignal"
+          '';
           Restart = "always";
           RestartSec = "100ms";
         };
