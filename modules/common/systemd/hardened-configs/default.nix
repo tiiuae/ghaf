@@ -22,12 +22,9 @@
     "microvm-tap-interfaces@".serviceConfig = import ./microvm-tap-interfaces.nix;
     "microvm-virtiofsd@".serviceConfig = import ./microvm-virtiofsd.nix;
     "microvm@".serviceConfig = import ./microvm.nix;
-    network-local-commands.serviceConfig = import ./network-local-commands.nix;
     nscd.serviceConfig = import ./nscd.nix;
-    pulseaudio.serviceConfig = import ./pulseaudio.nix;
     rtkit-daemon.serviceConfig = import ./rtkit-daemon.nix;
     seatd.serviceConfig = import ./seatd.nix;
-    systemd-fsck-root.serviceConfig = import ./systemd-fsck-root.nix;
     systemd-journal-catalog-update.serviceConfig = import ./systemd-journal-catalog-update.nix;
     systemd-journal-flush.serviceConfig = import ./systemd-journal-flush.nix;
     systemd-networkd-wait-online.serviceConfig = import ./systemd-networkd-wait-online.nix;
@@ -50,5 +47,10 @@
     # audit.serviceConfig = import ./audit.nix;
     # sshd.serviceConfig = import ./sshd.nix;
     # "user@".serviceConfig = import ./user.nix;
+
+    # Disabled services
+    # pulseaudio.serviceConfig = import ./pulseaudio.nix;
+    # systemd-fsck-root.serviceConfig = import ./systemd-fsck-root.nix;
+    # network-local-commands.serviceConfig = import ./network-local-commands.nix;
   };
 }
