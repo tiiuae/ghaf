@@ -84,7 +84,11 @@ let
     text = ''
       start() {
         # Get the number of connected displays using wlr-randr and parse the output with jq
-        wlr_randr_output=$(wlr-randr --json)
+
+        if ! wlr_randr_output=$(wlr-randr --json); then
+          echo "Error: Failed to get display info from wlr-randr"
+          exit 1
+        fi
         displays=$(echo "$wlr_randr_output" | jq 'length')
 
         # Check if there are any connected displays
@@ -120,7 +124,12 @@ let
       reload() {
         #${ewwCmd} reload
         ${ewwCmd} close-all
-        open-bars "$(wlr-randr --json)"
+        if ! wlr_randr_output=$(wlr-randr --json); then
+          echo "Error: Failed to get display info from wlr-randr"
+          exit 1
+        fi
+
+        open-bars "$wlr_randr_output"
       }
 
       update-vars() {
