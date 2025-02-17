@@ -48,6 +48,15 @@ let
             ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
         fi
         ${ghaf-workspace}/bin/ghaf-workspace max ${toString cfg.maxDesktops}
+
+        # Write the GTK settings to the settings.ini file in the GTK config directory
+        # Note:
+        # - On Wayland, GTK+ is known for not picking themes from settings.ini.
+        # - We define GTK+ theme on Wayland using gsettings (e.g., `gsettings set org.gnome.desktop.interface ...`).
+        mkdir -p "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gtk-4.0"
+
+        echo -e "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+        echo -e "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
       ''
       + cfg.extraAutostart;
   };
@@ -300,6 +309,27 @@ let
 
     text = "labwc -C /etc/labwc -s labwc-autostart >/tmp/session.labwc.log 2>&1";
   };
+
+  gtk-settings = ''
+    [Settings]
+    ${
+      if cfg.gtk.colorScheme == "prefer-dark" then
+        "gtk-application-prefer-dark-theme=1"
+      else
+        "gtk-application-prefer-dark-theme=0"
+    }
+    gtk-theme-name=${cfg.gtk.theme}
+    gtk-icon-theme-name=${cfg.gtk.iconTheme}
+    gtk-font-name=${cfg.gtk.fontName} ${cfg.gtk.fontSize}
+    gtk-button-images=1
+    gtk-menu-images=1
+    gtk-enable-event-sounds=1
+    gtk-enable-input-feedback-sounds=1
+    gtk-xft-antialias=1
+    gtk-xft-hinting=1
+    gtk-xft-hintstyle=hintslight
+    gtk-xft-rgba=rgb
+  '';
 
   auto-display-scale = pkgs.writeShellApplication {
     name = "auto-display-scale";
