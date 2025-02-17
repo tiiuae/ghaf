@@ -6,5 +6,6 @@
     ./usb-serial.nix
     ./nix.nix
     ./ssh.nix
+    ./cuda.nix
   ];
 }
