@@ -48,6 +48,9 @@ in
           autologinUser = lib.mkForce null;
         };
       };
+
+      # Disk encryption
+      disk.encryption.enable = true;
     };
   };
 }
