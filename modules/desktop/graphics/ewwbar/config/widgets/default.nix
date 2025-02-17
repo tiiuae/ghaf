@@ -24,10 +24,11 @@ writeText "widgets.yuck" ''
                   :style "background-image: url(\"${pkgs.ghaf-artwork}/icons/launcher.svg\")")))
 
       ;; Generic slider widget ;;
-      (defwidget slider [?visible ?header-left ?header-onclick ?header-right ?icon ?image ?app_icon ?settings_icon level ?onchange ?settings-onclick ?icon-onclick ?class ?min ?slider-active]
+      (defwidget slider [?visible ?header-left ?header-onclick ?header-right ?icon ?image ?app_icon ?settings_icon level ?onchange ?settings-onclick ?icon-onclick ?class ?min ?slider-active ?style]
           (box :orientation "v"
               :visible { visible ?: "true"}
               :class "''${class}"
+              :style "''${style}"
               :spacing 10
               :space-evenly false
               (box
@@ -244,11 +245,12 @@ writeText "widgets.yuck" ''
                               audio_output.volume_percentage <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" }
                       :icon-onclick "${ewwScripts.eww-audio}/bin/eww-audio mute &"
                       :settings_icon "adjustlevels"
+                      :settings-onclick "''${EWW_CMD} update volume-mixer-visible=''${!volume-mixer-visible} &"
                       :level { audio_output.is_muted == "true" ? "0" : audio_output.volume_percentage }
                       :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_volume {} &"
                       (audio_output_selector)
                       (box :orientation "v"
-                        (label :text "No audio streams" :visible {arraylength(audio_streams) == 0} :halign "center" :valign "center")
+                        (label :text "No active VM audio streams" :style "margin: 10px 0;" :visible {arraylength(audio_streams) == 0} :halign "center" :valign "center")
                         (volume_mixer :visible {arraylength(audio_streams) > 0})
                       ))
               (slider_with_children
@@ -336,20 +338,25 @@ writeText "widgets.yuck" ''
           (scroll
               :hscroll "false"
               :vscroll "true"
+              :style "margin: 20px 0;"
+              :height { arraylength(audio_streams) <= 3 ? 80 * arraylength(audio_streams) : 240 }
               :visible { visible ?: "true" }
-              :height { 50 * min(4,arraylength(audio_streams)) }
-              (box :orientation "v" :space-evenly true :spacing 10
+              (box 
+                :orientation "v" 
+                :space-evenly true 
+                :spacing 10
                 (for entry in {audio_streams}
                   (slider
                       :class "qs-slider"
+                      :style "padding: 0 15px 0 0;"
                       :header-left {entry.name}
                       :level {entry.muted == "true" ? "0" : entry.level}
                       :app_icon {entry.icon_name != "" ? entry.icon_name : "icon-missing"}
                       :image { entry.muted == "true" || entry.level == 0 ? "${pkgs.ghaf-artwork}/icons/volume-0.svg" :
                               entry.level <= 25 ? "${pkgs.ghaf-artwork}/icons/volume-1.svg" :
                               entry.level <= 75 ? "${pkgs.ghaf-artwork}/icons/volume-2.svg" : "${pkgs.ghaf-artwork}/icons/volume-3.svg" }
-                      :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_sink_input_volume ''${entry.id} {} &"
-                      :icon-onclick "${ewwScripts.eww-audio}/bin/eww-audio mute_sink_input ''${entry.id} {} &")
+                      :onchange "${ewwScripts.eww-audio}/bin/eww-audio set_vm_volume ''${entry.id} {} &"
+                      :icon-onclick "${ewwScripts.eww-audio}/bin/eww-audio mute_vm ''${entry.id} ''${!entry.muted} &")
                 )
               )
           )

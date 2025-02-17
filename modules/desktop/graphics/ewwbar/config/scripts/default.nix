@@ -412,7 +412,9 @@ let
           esac
       }
 
-      listen_sink_inputs() {
+      listen_vms() {
+        # Subscribing should send an initial list of available resources, so we start listening before subscribing is done
+        (sleep 1; dbus-send --session --dest=org.ghaf.Audio --type=method_call --print-reply /org/ghaf/Audio org.ghaf.Audio.SubscribeToDeviceUpdatedSignal > /dev/null 2>&1) &
         dbus-monitor --session "type='signal',interface='org.ghaf.Audio',member='DeviceUpdated'" | \
         awk '
         /^signal/ {
@@ -439,7 +441,7 @@ let
             else if (isDefault == "") isDefault = $2;
         }
         !capture {
-            if (type == 2) print id, type, name, volume, isMuted, isDefault, event; fflush(stdout);
+            if (type == 4) print id, type, name, volume, isMuted, isDefault, event; fflush(stdout);
         }
         ' | while read -r id type name volume isMuted isDefault event; do
             # Update the JSON array based on the extracted values
@@ -475,6 +477,9 @@ let
           pactl set-sink-input-mute "$2" 0
           pactl set-sink-input-volume "$2" "$3"% 
           ;;
+        set_vm_volume)
+          dbus-send --session --dest=org.ghaf.Audio --type=method_call /org/ghaf/Audio org.ghaf.Audio.SetDeviceVolume int32:"$2" int32:4 int32:"$3"
+          ;;
         set_source_volume)
           pamixer --source "$2" --unmute --set-volume "$3"
           ;;
@@ -486,6 +491,9 @@ let
           ;;
         mute)
           pamixer --toggle-mute
+          ;;
+        mute_vm)
+          dbus-send --session --dest=org.ghaf.Audio --type=method_call /org/ghaf/Audio org.ghaf.Audio.SetDeviceMute int32:"$2" int32:4 boolean:"$3"
           ;;
         mute_source)
           pamixer --source "$2" --toggle-mute
@@ -518,11 +526,11 @@ let
             get_inputs
           done
           ;;
-        listen_sink_inputs)
-          listen_sink_inputs
+        listen_vms)
+          listen_vms
           ;;
         *)
-          echo "Usage: $0 {get|get_output|get_input|get_outputs|get_inputs|set_volume|set_sink_input_volume|set_source_volume|set_default_source|set_default_sink|mute|mute_source|mute_sink_input|listen_output|listen_input|listen_outputs|listen_inputs|listen_sink_inputs} [args...]"
+          echo "Usage: $0 {get|get_output|get_input|get_outputs|get_inputs|set_volume|set_sink_input_volume|set_source_volume|set_default_source|set_default_sink|mute|mute_source|mute_sink_input|listen_output|listen_input|listen_outputs|listen_inputs|listen_vms} [args...]"
           ;;
       esac
     '';
