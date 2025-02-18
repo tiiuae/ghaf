@@ -28,7 +28,10 @@ in
     # TODO: Remove hw-mac.service and replace with givc rpc later
     systemd.services."hw-mac" = {
       description = "Retrieve MAC address from net-vm";
-      wantedBy = [ "alloy.service" ];
+      wantedBy = [
+        "alloy.service"
+        "multi-user.target"
+      ];
       requires = [ "network-online.target" ];
       serviceConfig = {
         Type = "oneshot";
