@@ -501,7 +501,9 @@ in
         serviceConfig = {
           Type = "simple";
           EnvironmentFile = "-/etc/locale.conf";
-          ExecCondition = "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1";
+          ExecCondition = ''
+            ${pkgs.bash}/bin/bash -c "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1"
+          '';
           ExecStart = "${pkgs.nwg-drawer}/bin/nwg-drawer -r -nofs -nocats -s ${drawerStyle}";
           Restart = "always";
           RestartSec = "1";
