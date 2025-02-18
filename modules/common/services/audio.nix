@@ -82,6 +82,7 @@ in
         "monitor.alsa.properties" = {
           "alsa.use-acp" = "true";
           "acp.auto-profile" = "true";
+          "acp.auto-port" = "true";
         };
       };
     };
@@ -150,7 +151,7 @@ in
         };
       in
       {
-        enable = true;
+        enable = false;
         description = "Initialize default audio device profiles";
         wantedBy = [ "multi-user.target" ];
         after = [ "pipewire.target" ];
