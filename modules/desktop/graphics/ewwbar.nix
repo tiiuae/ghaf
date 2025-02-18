@@ -115,11 +115,13 @@ in
         description = "ewwbar";
         serviceConfig = {
           Type = "forking";
-          ExecCondition = "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1";
+          ExecCondition = ''
+            ${pkgs.bash}/bin/bash -c "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1"
+          '';
           ExecStart = "${ewwScripts.ewwbar-ctrl}/bin/ewwbar-ctrl start";
           ExecReload = "${ewwScripts.ewwbar-ctrl}/bin/ewwbar-ctrl reload";
           ExecStopPost = ''
-            bash -c "dbus-send --session --dest=org.ghaf.Audio --type=method_call --print-reply /org/ghaf/Audio org.ghaf.Audio.UnsubscribeFromDeviceUpdatedSignal"
+            ${pkgs.bash}/bin/bash -c "${pkgs.dbus}/bin/dbus-send --session --dest=org.ghaf.Audio --type=method_call --print-reply /org/ghaf/Audio org.ghaf.Audio.UnsubscribeFromDeviceUpdatedSignal"
           '';
           Restart = "always";
           RestartSec = "100ms";
