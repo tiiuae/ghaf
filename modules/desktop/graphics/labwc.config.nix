@@ -422,12 +422,26 @@ let
 
   display-event-trigger = pkgs.writeShellApplication {
     name = "display-event-trigger";
-    runtimeInputs = [ ];
+    runtimeInputs = [
+      auto-display-scale
+      pkgs.mako
+      pkgs.wlr-randr
+    ];
     bashOptions = [ ];
     text = ''
       # Run the following commands in order every time a display change event is detected
-      ${auto-display-scale}/bin/auto-display-scale        # Auto scaling
-      ${pkgs.mako}/bin/makoctl set-mode default   # Reset mako mode so notifications don't break
+      auto-display-scale        # Auto scaling
+      makoctl set-mode default  # Reset mako mode so notifications don't break
+
+      if wlr-randr > /dev/null 2>&1; then
+          # If displays are connected (not headless mode), ensure ewwbar and ghaf-launcher are running
+          systemctl --user is-active --quiet ewwbar || systemctl --user reload-or-restart ewwbar
+          systemctl --user is-active --quiet ghaf-launcher || systemctl --user reload-or-restart ghaf-launcher
+      else
+          # If all displays were disconnected, we can stop ghaf-launcher and ewwbar services
+          echo "No displays connected. Stopping ghaf-launcher and ewwbar services"
+          systemctl --user stop ewwbar ghaf-launcher
+      fi
     '';
   };
 in
@@ -487,6 +501,7 @@ in
         serviceConfig = {
           Type = "simple";
           EnvironmentFile = "-/etc/locale.conf";
+          ExecCondition = "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1";
           ExecStart = "${pkgs.nwg-drawer}/bin/nwg-drawer -r -nofs -nocats -s ${drawerStyle}";
           Restart = "always";
           RestartSec = "1";

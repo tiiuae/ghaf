@@ -115,6 +115,7 @@ in
         description = "ewwbar";
         serviceConfig = {
           Type = "forking";
+          ExecCondition = "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1";
           ExecStart = "${ewwScripts.ewwbar-ctrl}/bin/ewwbar-ctrl start";
           ExecReload = "${ewwScripts.ewwbar-ctrl}/bin/ewwbar-ctrl reload";
           ExecStopPost = ''
@@ -143,16 +144,7 @@ in
         };
         after = [ "ewwbar.service" ];
         wantedBy = [ "ewwbar.service" ];
-        partOf = [ "ghaf-session.target" ];
-      };
-
-      eww-display-trigger = {
-        description = "eww-display-trigger";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${pkgs.bash}/bin/bash -c 'echo 1 > ~/.config/eww/display'";
-        };
-        after = [ "ewwbar.service" ];
+        partOf = [ "ewwbar.service" ];
       };
 
       eww-display-handler = {
@@ -164,7 +156,7 @@ in
         };
         after = [ "ewwbar.service" ];
         wantedBy = [ "ewwbar.service" ];
-        partOf = [ "ghaf-session.target" ];
+        partOf = [ "ewwbar.service" ];
       };
 
       eww-volume-popup = {
@@ -182,7 +174,7 @@ in
         };
         after = [ "ewwbar.service" ];
         wantedBy = [ "ewwbar.service" ];
-        partOf = [ "ghaf-session.target" ];
+        partOf = [ "ewwbar.service" ];
       };
 
       eww-workspace-popup = {
@@ -200,7 +192,7 @@ in
         };
         after = [ "ewwbar.service" ];
         wantedBy = [ "ewwbar.service" ];
-        partOf = [ "ghaf-session.target" ];
+        partOf = [ "ewwbar.service" ];
       };
 
       eww-fullscreen-update = {
@@ -212,7 +204,7 @@ in
         };
         after = [ "ewwbar.service" ];
         wantedBy = [ "ewwbar.service" ];
-        partOf = [ "ghaf-session.target" ];
+        partOf = [ "ewwbar.service" ];
       };
 
     };
