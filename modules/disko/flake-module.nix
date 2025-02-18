@@ -13,6 +13,7 @@
       inputs.disko.nixosModules.disko
       ./disko-ab-partitions.nix
       ./disko-zfs-postboot.nix
+      ./disk-encryption.nix
     ];
   };
 }
