@@ -50,7 +50,7 @@ in
       adminTlsName = config.ghaf.givc.adminConfig.name;
       adminAddresses = config.ghaf.givc.adminConfig.addresses;
       generatorHostName = hostName;
-      storagePath = "/storagevm/givc";
+      storagePath = "/persist/storagevm/givc";
     };
   };
 }
