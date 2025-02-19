@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -45,10 +44,6 @@ in
         efi.canTouchEfiVariables = true;
         systemd-boot.enable = true;
       };
-
-      # TODO the kernel latest is currently broken for zfs.
-      # try to fix on the next update.
-      kernelPackages = pkgs.linuxPackages;
     };
   };
 }
