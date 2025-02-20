@@ -53,6 +53,8 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
+    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts";
+
     flake-root.url = "github:srid/flake-root";
 
     # Format all the things
@@ -189,6 +191,7 @@
       ];
 
       imports = [
+        inputs.pkgs-by-name-for-flake-parts.flakeModule
         ./overlays/flake-module.nix
         ./modules/flake-module.nix
         ./nix/flake-module.nix
