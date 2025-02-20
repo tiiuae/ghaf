@@ -49,10 +49,32 @@ let
               firewall.kernel-modules.enable = true;
               reference.personalize.keys.enable = variant == "debug";
             };
+
             nixpkgs = {
+              #TODO; we shoudl specify the build platform
+              # for both native and cross-compiled cases
               buildPlatform.system = "x86_64-linux";
-              overlays = [ self.overlays.cross-compilation ];
+
+              # Increase the support for different devices by allowing the use
+              # of proprietary drivers from the respective vendors
+              config = {
+                allowUnfree = true;
+                #jitsi was deemed insecure because of an obsecure potential security
+                #vulnerability but it is still used by many people
+                permittedInsecurePackages = [
+                  "jitsi-meet-1.0.8043"
+                ];
+              };
+
+              overlays = [
+                inputs.ghafpkgs.overlays.default
+                inputs.givc.overlays.default
+                inputs.self.overlays.own-pkgs-overlay
+                inputs.self.overlays.custom-packages
+              ];
+
             };
+
             hardware.deviceTree.name = lib.mkForce "freescale/imx8mp-evk.dtb";
             hardware.enableAllHardware = lib.mkForce false;
           }

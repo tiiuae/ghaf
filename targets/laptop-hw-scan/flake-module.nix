@@ -29,6 +29,14 @@ let
                 "intel_iommu=on,sm_on"
                 "iommu=pt"
               ];
+
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+
+                # Increase the support for different devices by allowing the use
+                # of proprietary drivers from the respective vendors
+                config.allowUnfree = true;
+              };
             }
           )
         ];

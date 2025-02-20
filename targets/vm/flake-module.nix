@@ -48,6 +48,28 @@ let
                 graphics.renderer = "pixman";
               };
             };
+
+            nixpkgs = {
+              hostPlatform.system = "x86_64-linux";
+
+              # Increase the support for different devices by allowing the use
+              # of proprietary drivers from the respective vendors
+              config = {
+                allowUnfree = true;
+                #jitsi was deemed insecure because of an obsecure potential security
+                #vulnerability but it is still used by many people
+                permittedInsecurePackages = [
+                  "jitsi-meet-1.0.8043"
+                ];
+              };
+
+              overlays = [
+                inputs.ghafpkgs.overlays.default
+                inputs.givc.overlays.default
+                inputs.self.overlays.own-pkgs-overlay
+                inputs.self.overlays.custom-packages
+              ];
+            };
           }
         ];
       };

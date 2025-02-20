@@ -8,7 +8,6 @@
 }:
 let
   cfg = config.services.nw-packet-forwarder;
-  nw-packet-forwarder = pkgs.callPackage ../../../../packages/nw-packet-forwarder { };
 
   chromevmIpAddr = config.ghaf.networking.hosts."chrome-vm".ipv4;
   chromevmMac = config.ghaf.networking.hosts."chrome-vm".mac;

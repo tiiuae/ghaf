@@ -11,6 +11,7 @@
       config,
       pkgs,
       system,
+      self',
       ...
     }:
     {
@@ -31,8 +32,8 @@
                 pkgs.nixVersions.latest
                 pkgs.reuse
                 config.treefmt.build.wrapper
-                (pkgs.callPackage ../packages/flash { })
-                (pkgs.callPackage ../packages/ghaf-build-helper { })
+                #TODO: can these be made available through pkgs?
+                self'.legacyPackages.ghaf-build-helper
               ]
               ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
               ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;

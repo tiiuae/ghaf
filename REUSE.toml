@@ -71,7 +71,7 @@ path = "overlays/custom-packages/waypipe/waypipe-window-borders.patch"
 [[annotations]]
 SPDX-License-Identifier = "Apache-2.0"
 SPDX-FileCopyrightText = "Copyright 2023 The Matrix.org Foundation C.I.C."
-path = "packages/element-web/*.patch"
+path = "packages/pkgs-by-name/element-web/*.patch"
 
 [[annotations]]
 SPDX-License-Identifier = "Apache-2.0"

@@ -8,7 +8,7 @@
 }:
 let
   cfg = config.ghaf.reference.programs.windows-launcher;
-  windows-launcher = pkgs.callPackage ../../../packages/windows-launcher { enableSpice = cfg.spice; };
+  windows-launcher = pkgs.windows-launcher.override { enableSpice = cfg.spice; };
 in
 {
   #TODO fix all these imports to correct scoping
