@@ -54,6 +54,8 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
+    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts";
+
     flake-root.url = "github:srid/flake-root";
 
     # Format all the things
@@ -175,31 +177,32 @@
     let
       lib = import ./lib.nix { inherit inputs; };
     in
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      # Toggle this to allow debugging in the repl
-      # see:https://flake.parts/debug
-      debug = false;
+    flake-parts.lib.mkFlake
+      {
+        inherit inputs;
+        specialArgs = { inherit lib; };
+      }
+      {
+        # Toggle this to allow debugging in the repl
+        # see:https://flake.parts/debug
+        debug = false;
 
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-        # RISC-V is a target built from cross compilation and is not
-        # included as a host build possibility at this point
-        # Future HW permitting this can be re-evaluated
-        #"riscv64-linux"
-      ];
+        systems = [
+          "x86_64-linux"
+          "aarch64-linux"
+        ];
 
-      imports = [
-        ./overlays/flake-module.nix
-        ./modules/flake-module.nix
-        ./nix/flake-module.nix
-        ./packages/flake-module.nix
-        ./targets/flake-module.nix
-        ./hydrajobs/flake-module.nix
-        ./templates/flake-module.nix
-        ./tests/flake-module.nix
-      ];
+        imports = [
+          ./overlays/flake-module.nix
+          ./modules/flake-module.nix
+          ./nix/flake-module.nix
+          ./packages/flake-module.nix
+          ./targets/flake-module.nix
+          ./hydrajobs/flake-module.nix
+          ./templates/flake-module.nix
+          ./tests/flake-module.nix
+        ];
 
-      flake.lib = lib;
-    };
+        flake.lib = lib;
+      };
 }

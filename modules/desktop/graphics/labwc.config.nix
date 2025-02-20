@@ -8,15 +8,12 @@
 }:
 let
   cfg = config.ghaf.graphics.labwc;
-
-  ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
-  ghaf-powercontrol = pkgs.callPackage ../../../packages/ghaf-powercontrol {
-    ghafConfig = config.ghaf;
-  };
-  ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
-  drawerStyle = pkgs.callPackage ./styles/launcher-style.nix { };
+  inherit (pkgs) ghaf-workspace ghaf-screenshot;
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
+  ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
+  drawerStyle = pkgs.callPackage ./styles/launcher-style.nix { };
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
+
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
@@ -367,7 +364,7 @@ let
           pos_y=$(echo "$display" | jq -r '.position.y')
 
           # Validate extracted values
-          if [[ -z "$name" || -z "$width_mm" || -z "$height_mm" || -z "$width_px" || -z "$height_px" || -z "$pos_x" || -z "$pos_y" || 
+          if [[ -z "$name" || -z "$width_mm" || -z "$height_mm" || -z "$width_px" || -z "$height_px" || -z "$pos_x" || -z "$pos_y" ||
                 "$width_mm" -eq 0 || "$height_mm" -eq 0 || "$width_px" -eq 0 || "$height_px" -eq 0 ]]; then
               echo "Error: Missing or zero data for display $name. Skipping."
               continue

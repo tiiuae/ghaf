@@ -27,10 +27,8 @@ let
       # Packages and extra modules from all applications defined in the appvm
       appPackages = builtins.concatLists (map (app: app.packages) vm.applications);
       appExtraModules = builtins.concatLists (map (app: app.extraModules) vm.applications);
-      sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
-        inherit pkgs;
-        config = configHost;
-      };
+      sshKeysHelper = pkgs.callPackage ./ssh-keys-helper.nix { config = configHost; };
+
       appvmConfiguration = {
         imports = [
           inputs.impermanence.nixosModules.impermanence
@@ -142,6 +140,7 @@ let
               # accept neither direct path inside /nix/store or symlink that points
               # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
               # setting mode), instead of symlinking it.
+
               environment.etc.${configHost.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} =
                 sshKeysHelper.getAuthKeysSource;
               services.openssh = configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand // {

@@ -1,9 +1,13 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ lib, inputs, ... }:
+{ inputs, ... }:
 {
   perSystem =
-    { system, ... }:
+    {
+      system,
+      lib,
+      ...
+    }:
     {
       # customise pkgs
       _module.args.pkgs = import inputs.nixpkgs {
@@ -14,6 +18,7 @@
             "jitsi-meet-1.0.8043"
           ];
         };
+
       };
       # make custom top-level lib available to all `perSystem` functions
       _module.args.lib = lib;

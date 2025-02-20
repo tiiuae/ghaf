@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
+
 # Laptop Installer
 { lib, self, ... }:
 let
@@ -14,9 +15,6 @@ let
         modules = [
           (
             { pkgs, modulesPath, ... }:
-            let
-              installScript = pkgs.callPackage ../../packages/installer { };
-            in
             {
               imports = [ "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
 
@@ -36,7 +34,7 @@ let
               networking.hostName = "ghaf-installer";
 
               environment.systemPackages = [
-                installScript
+                self.packages.x86_64-linux.ghaf-installer
                 self.packages.x86_64-linux.hardware-scan
               ];
 

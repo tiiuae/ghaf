@@ -1,30 +1,32 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ self, inputs, ... }:
 {
-  # flake.packages.x86_64-linux.hart-software-services =
-  #   self.nixosConfigurations.microchip-icicle-kit-debug-from-x86_64.pkgs.callPackage
-  #     ./hart-software-services
-  #     { };
+  self,
+  inputs,
+  ...
+}:
+{
+  imports = [
+    inputs.pkgs-by-name-for-flake-parts.flakeModule
+    ./own-pkgs-overlay.nix
+  ];
   perSystem =
     {
       pkgs,
-      lib,
       system,
+      lib,
       ...
     }:
     let
       inherit (pkgs) callPackage;
     in
     {
+      #use the pkgs-by-name-for-flake-parts to get the packages
+      # exposed to downstream projects
+      pkgsDirectory = ./pkgs-by-name;
+
+      #fix these to be the correct packages placement
       packages = self.lib.platformPkgs system {
-        gala-app = callPackage ./gala { };
-        kernel-hardening-checker = callPackage ./kernel-hardening-checker { };
-        make-checks = callPackage ./make-checks { };
-        windows-launcher = callPackage ./windows-launcher { enableSpice = false; };
-        windows-launcher-spice = callPackage ./windows-launcher { enableSpice = true; };
-        hardware-scan = callPackage ./hardware-scan { };
-        ghaf-screenshot = callPackage ./ghaf-screenshot { };
         doc = callPackage ../docs {
           revision = lib.strings.fileContents ../.version;
           options =

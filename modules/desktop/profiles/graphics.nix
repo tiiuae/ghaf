@@ -15,7 +15,6 @@ let
     "pixman"
     "gles2"
   ];
-  ghaf-open = pkgs.callPackage ../../../packages/ghaf-open { };
 
   inherit (lib)
     mkEnableOption
@@ -91,7 +90,7 @@ in
   config = mkIf cfg.enable {
     hardware.graphics = {
       enable = true;
-      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86 [ pkgs.intel-media-driver ];
+      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86_64 [ pkgs.intel-media-driver ];
     };
     environment = {
       sessionVariables = {
@@ -105,7 +104,7 @@ in
         _JAVA_AWT_WM_NONREPARENTING = 1;
       };
 
-      systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ ghaf-open ];
+      systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ pkgs.ghaf-open ];
     };
 
     ghaf.graphics = {

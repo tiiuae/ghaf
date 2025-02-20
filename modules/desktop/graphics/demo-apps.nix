@@ -28,7 +28,7 @@ in
     google-chrome = mkProgramOption "Google Chrome browser" false;
     #TODO: tmp disable firefox as 133 is not working in cross-compilation
     firefox = mkProgramOption "Firefox browser" false; # config.ghaf.graphics.enableDemoApplications;
-    gala-app = mkProgramOption "Gala App" false;
+    gala = mkProgramOption "Gala App" false;
     element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
   };
@@ -59,10 +59,10 @@ in
         path = "${pkgs.element-desktop}/bin/element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "element-desktop";
       }
-      ++ lib.optional cfg.gala-app {
+      ++ lib.optional cfg.gala {
         name = "GALA";
         description = "Secure Android-in-the-Cloud";
-        path = "${pkgs.gala-app}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        path = "${pkgs.gala}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
         icon = "distributor-logo-android";
       }
       ++ lib.optional cfg.zathura {
