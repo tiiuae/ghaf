@@ -57,7 +57,7 @@ let
       echo "Opening $filepath with type $type"
       cp -f "$filepath" "/run/xdg/$type/$filename"
       dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$filename"
-      ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start --vm zathura-vm "xdg-$type" -- "$dst"
+      ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm zathura-vm "xdg-$type" -- "$dst"
     '';
   };
 in
