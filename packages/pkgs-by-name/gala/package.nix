@@ -83,14 +83,16 @@ let
     wayland
   ];
 in
-stdenv.mkDerivation rec {
-  name = "gala";
+stdenv.mkDerivation (finalAttrs: {
+  pname = "gala";
+  version = "0.1.30.1";
 
   nativeBuildInputs = [ unzip ];
 
   buildInputs = [ unzip ];
 
   # See meta.platforms section for supported platforms
+  # TODO: use pname and version when the url is fixed
   src =
     if stdenv.isAarch64 then
       fetchurl {
@@ -108,31 +110,31 @@ stdenv.mkDerivation rec {
   intLibPath = "$out/gala/swiftshader";
 
   unpackPhase = ''
-    mkdir -p ${targetPath}
-    unzip $src -d ${targetPath}
+    mkdir -p ${finalAttrs.targetPath}
+    unzip $src -d ${finalAttrs.targetPath}
   '';
 
   rpath = lib.concatStringsSep ":" [
     libPath
-    targetPath
-    intLibPath
+    finalAttrs.targetPath
+    finalAttrs.intLibPath
   ];
 
   fixupPhase = ''
     patchelf \
       --set-interpreter "${dynamic-linker}" \
-      --set-rpath "${rpath}" \
-      ${targetPath}/dev.scpp.saca.gala
+      --set-rpath "${finalAttrs.rpath}" \
+      ${finalAttrs.targetPath}/dev.scpp.saca.gala
 
     mkdir -p $out/bin
     ln -s $out/gala/dev.scpp.saca.gala $out/bin/gala
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Google Android look-alike";
     platforms = [
       "aarch64-linux"
       "x86_64-linux"
     ];
   };
-}
+})

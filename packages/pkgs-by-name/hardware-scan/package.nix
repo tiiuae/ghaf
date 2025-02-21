@@ -9,7 +9,6 @@
   pciutils,
   usbutils,
   dmidecode,
-  alejandra,
 }:
 writeShellApplication {
   name = "hardware-scan";
@@ -18,7 +17,6 @@ writeShellApplication {
     pciutils
     usbutils
     dmidecode
-    alejandra
   ];
   text = builtins.readFile ./hardware-scan.sh;
   meta = {

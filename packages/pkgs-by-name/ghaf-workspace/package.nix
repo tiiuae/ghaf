@@ -1,15 +1,18 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  pkgs,
-  ...
+  writeShellApplication,
+  wtype,
+  inotify-tools,
 }:
-pkgs.writeShellApplication {
+writeShellApplication {
   name = "ghaf-workspace";
+
   runtimeInputs = [
-    pkgs.wtype
-    pkgs.inotify-tools
+    wtype
+    inotify-tools
   ];
+
   text = ''
     WORKSPACE_DIR="$HOME/.config/labwc"
     WORKSPACE_FILE="$WORKSPACE_DIR/current-workspace"

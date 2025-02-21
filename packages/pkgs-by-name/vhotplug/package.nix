@@ -2,13 +2,14 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   python3Packages,
-  pkgs,
   fetchFromGitHub,
+  callPackage,
 }:
 let
-  qemuqmp = pkgs.callPackage ../qemuqmp { };
+  #can we just pass the qwmuqmp in the package list above
+  qemuqmp = callPackage ../qemuqmp { };
 in
-python3Packages.buildPythonApplication rec {
+python3Packages.buildPythonApplication {
   pname = "vhotplug";
   version = "0.1";
 

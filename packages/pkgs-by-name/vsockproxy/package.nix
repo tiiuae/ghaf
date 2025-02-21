@@ -7,7 +7,8 @@
   stdenv,
 }:
 stdenv.mkDerivation {
-  name = "vsockproxy";
+  pname = "vsockproxy";
+  version = "0.1";
 
   depsBuildBuild = [
     meson

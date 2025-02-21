@@ -545,9 +545,6 @@ usb = {
 };
 }
 EOF
-
-    # Format the output file
-    alejandra --quiet "$CONFIG_FILE"
     echo "> File written: $CONFIG_FILE"
 }
 
@@ -563,7 +560,7 @@ fi
 
 # Run commands
 for cmd in "$@"; do
-	case $cmd in
+case $cmd in
     -s | --sys)
         echo "> Scanning system information..."
         detect_system_info

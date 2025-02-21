@@ -5,7 +5,6 @@
   slurp,
   grim,
   writeShellApplication,
-  ...
 }:
 
 #write a writeShellApplication to take screenshots using grim sluro and satty

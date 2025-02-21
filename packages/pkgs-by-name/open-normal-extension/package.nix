@@ -1,11 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  stdenvNoCC,
-  pkgs,
   lib,
+  stdenvNoCC,
   makeWrapper,
-  ...
+  coreutils,
 }:
 stdenvNoCC.mkDerivation {
   name = "open-normal-extension";
@@ -15,7 +14,7 @@ stdenvNoCC.mkDerivation {
   nativeBuildInputs = [ makeWrapper ];
 
   buildInputs = [
-    pkgs.coreutils
+    coreutils
   ];
 
   postInstall = ''
@@ -31,10 +30,10 @@ stdenvNoCC.mkDerivation {
     # Note that comments are explicitly allowed in browser extension's manifest.json
 
     # Make sure od is available in PATH for the action script
-    wrapProgram "$out/open_normal.sh" --prefix PATH : ${lib.makeBinPath [ pkgs.coreutils ]}
+    wrapProgram "$out/open_normal.sh" --prefix PATH : ${lib.makeBinPath [ coreutils ]}
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Browser extension for trusted browser to launch normal browser";
     platforms = [
       "x86_64-linux"

@@ -10,7 +10,6 @@
   writeShellApplication,
   nix-eval-jobs,
   jq,
-  ...
 }:
 writeShellApplication {
   name = "make-checks";

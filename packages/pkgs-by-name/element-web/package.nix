@@ -23,6 +23,7 @@ stdenv.mkDerivation (
   builtins.removeAttrs pinData [ "hashes" ]
   // {
     pname = "element-web";
+    #TODO:where is the version
 
     src = fetchFromGitHub {
       owner = "vector-im";
@@ -91,7 +92,7 @@ stdenv.mkDerivation (
       changelog = "https://github.com/vector-im/element-web/blob/v${finalAttrs.version}/CHANGELOG.md";
       maintainers = lib.teams.matrix.members;
       license = lib.licenses.asl20;
-      platforms = lib.platforms.all;
+      platforms = lib.platforms.linux;
     };
   }
 )
