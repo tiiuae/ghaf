@@ -20,6 +20,8 @@
         nixpkgs.overlays = [
           inputs.ghafpkgs.overlays.default
           inputs.givc.overlays.default
+          inputs.self.overlays.default
+          inputs.self.overlays.custom-packages
         ];
       }
     ];

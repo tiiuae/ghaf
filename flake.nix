@@ -191,7 +191,6 @@
       ];
 
       imports = [
-        inputs.pkgs-by-name-for-flake-parts.flakeModule
         ./overlays/flake-module.nix
         ./modules/flake-module.nix
         ./nix/flake-module.nix

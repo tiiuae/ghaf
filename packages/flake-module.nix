@@ -2,11 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 { self, inputs, ... }:
 {
+  imports = [
+    inputs.pkgs-by-name-for-flake-parts.flakeModule
+  ];
   perSystem =
     {
-      config,
-      self',
-      inputs',
       pkgs,
       system,
       lib,
