@@ -11,12 +11,89 @@ let
   vmName = "gpu-vm";
   macAddress = "02:00:00:04:04:04";
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
-  isGuiVmEnabled = config.ghaf.virtualization.microvm.guivm.enable;
-  sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
-    inherit pkgs;
-    inherit config;
+
+  ollama-jetson = pkgs.stdenv.mkDerivation rec {
+    pname = "ollama-jetson";
+    version = "0.5.11";
+
+    src = pkgs.fetchurl {
+      url = "https://github.com/ollama/ollama/releases/download/v${version}/ollama-linux-arm64.tgz";
+      sha256 = "sha256-5NhY0q6gCPRfyaZvYkgNr7Mi/NtwfI/PM2Gg7irzfko=";
+    };
+
+    jetpackSrc = pkgs.fetchurl {
+      url = "https://github.com/ollama/ollama/releases/download/v${version}/ollama-linux-arm64-jetpack6.tgz";
+      sha256 = "sha256-f5UhEYEAn0cKgAv0jOC7JbplSDEygxGS/gun/AphTq0=";
+    };
+
+    nativeBuildInputs = with pkgs; [
+      autoPatchelfHook
+      makeWrapper
+    ];
+
+    buildInputs = with pkgs; [
+      stdenv.cc.cc.lib
+      nvidia-jetpack.l4t-cuda
+      nvidia-jetpack.cudaPackages.cuda_cudart
+      nvidia-jetpack.cudaPackages.cuda_cuobjdump
+      nvidia-jetpack.cudaPackages.cuda_cupti
+      nvidia-jetpack.cudaPackages.cuda_cuxxfilt
+      nvidia-jetpack.cudaPackages.cuda_documentation
+      nvidia-jetpack.cudaPackages.cuda_nvcc
+      nvidia-jetpack.cudaPackages.cuda_nvdisasm
+      nvidia-jetpack.cudaPackages.cuda_nvml_dev
+      nvidia-jetpack.cudaPackages.cuda_nvprune
+      nvidia-jetpack.cudaPackages.cuda_nvrtc
+      nvidia-jetpack.cudaPackages.cuda_nvtx
+      nvidia-jetpack.cudaPackages.cuda_sanitizer_api
+      nvidia-jetpack.cudaPackages.cuda_profiler_api
+      nvidia-jetpack.cudaPackages.libcublas
+      nvidia-jetpack.cudaPackages.libcufft
+      nvidia-jetpack.cudaPackages.libcurand
+      nvidia-jetpack.cudaPackages.libnpp
+    ];
+
+    dontStrip = true;
+    
+    autoPatchelfIgnoreMissingDeps = [ "libcuda.so.1" ];
+
+    sourceRoot = ".";
+
+    unpackPhase = ''
+      tar xzf $src
+      tar xzf $jetpackSrc
+    '';
+
+    installPhase = ''
+      # Create directories
+      mkdir -p $out/bin
+      mkdir -p $out/lib/ollama/cuda_jetpack6
+
+      # Install main binary
+      install -Dm755 bin/ollama $out/bin/ollama
+
+      # Install base libraries
+      cp -P lib/ollama/libggml-base.so $out/lib/ollama/
+      cp -P lib/ollama/libggml-cpu-*.so $out/lib/ollama/
+
+      # Install JetPack libraries
+      cp -P lib/ollama/cuda_jetpack6/* $out/lib/ollama/cuda_jetpack6/
+
+      # Wrap the binary with LD_LIBRARY_PATH
+      wrapProgram $out/bin/ollama \
+        --set LD_LIBRARY_PATH "${pkgs.nvidia-jetpack.l4t-cuda}/lib"
+    '';
+
+    meta = with lib; {
+      description = "Ollama for Jetson devices";
+      homepage = "https://github.com/ollama/ollama";
+      license = licenses.mit;
+      platforms = [ "aarch64-linux" ];
+      maintainers = with maintainers; [ ];
+    };
   };
- 
+
+
   # Apply patches in nvidia-modules drivers to support display and GPU passthrough
   nvidia-modules = config.boot.kernelPackages.nvidia-modules.overrideAttrs (oldAttrs: {
     patches = (oldAttrs.patches or []) ++ [
@@ -36,6 +113,7 @@ let
     src = ./tegra234-gpuvm.dts;
     nativeBuildInputs = with pkgs; [
       dtc
+      binutils
     ];
     unpackPhase = ''
       cp $src ./tegra234-gpuvm.dts
@@ -77,39 +155,161 @@ let
       # To push logs to central location
       ../../../common/logging/client.nix
       (
-        { lib, ... }:
-        {
-          imports = [ ../../../common ];
+        { lib, pkgs, ... }:
+        let
+          inherit (builtins) replaceStrings;
+          cliArgs = replaceStrings [ "\n" ] [ " " ] ''
+            --name ${config.ghaf.givc.adminConfig.name}
+            --addr ${config.ghaf.givc.adminConfig.addr}
+            --port ${config.ghaf.givc.adminConfig.port}
+            ${lib.optionalString config.ghaf.givc.enableTls "--cacert /run/givc/ca-cert.pem"}
+            ${lib.optionalString config.ghaf.givc.enableTls "--cert /run/givc/ghaf-host-cert.pem"}
+            ${lib.optionalString config.ghaf.givc.enableTls "--key /run/givc/ghaf-host-key.pem"}
+            ${lib.optionalString (!config.ghaf.givc.enableTls) "--notls"}
+          '';
+          # A list of applications from all AppVMs
+          virtualApps = lib.lists.concatMap (
+            vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
+          ) config.ghaf.virtualization.microvm.appvm.vms;
 
+          # Launchers for all virtualized applications that run in AppVMs
+          virtualLaunchers = map (app: rec {
+            inherit (app) name;
+            inherit (app) description;
+            #inherit (app) givcName;
+            vm = app.vmName;
+            path = "${pkgs.givc-cli}/bin/givc-cli ${cliArgs} start --vm ${vm} ${app.givcName}";
+            inherit (app) icon;
+          }) virtualApps;
+          # Launchers for all desktop, non-virtualized applications that run in the GUIVM
+          guivmLaunchers = map (app: {
+            inherit (app) name;
+            inherit (app) description;
+            path = app.command;
+            inherit (app) icon;
+          }) cfg.applications;
+        in
+        {
           ghaf = {
-            profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
+            # Profiles
+            profiles = {
+              debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
+              applications.enable = false;
+              graphics.enable = true;
+            };
+
+            users.admin = {
+              enable = true;
+              extraGroups = [
+                "audio"
+                "video"
+                "ollama"
+              ];
+            };
+
             development = {
-              # NOTE: SSH port also becomes accessible on the network interface
-              #       that has been passed through to gpuvm
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
+
+            # System
             systemd = {
               enable = true;
               withName = "gpuvm-systemd";
               withAudit = config.ghaf.profiles.debug.enable;
-              withPolkit = true;
+              withHomed = true;
+              withLocaled = true;
+              withNss = true;
               withResolved = true;
               withTimesyncd = true;
               withDebug = config.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
-            #givc.gpuvm.enable = true;
-            # Logging client configuration
+            givc.guivm.enable = true;
+
+            # Storage
+            storagevm = {
+              enable = true;
+              name = vmName;
+            };
+
+            # Services
+
+            # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
+            graphics.launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
+            graphics.labwc = {
+              autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
+              autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
+              securityContext = map (vm: {
+                identifier = vm.name;
+                color = vm.borderColor;
+              }) config.ghaf.virtualization.microvm.appvm.vms;
+            };
             logging.client.enable = config.ghaf.logging.client.enable;
             logging.client.endpoint = config.ghaf.logging.client.endpoint;
-            # storagevm = {
-            #   enable = true;
-            #   name = "gpuvm";
-            #   directories = [ "/etc/NetworkManager/system-connections/" ];
-            # };
+            services.disks.enable = true;
+            services.disks.fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
+            services.xdghandlers.enable = true;
           };
+
+          services.acpid = lib.mkIf config.ghaf.givc.enable {
+            enable = true;
+            lidEventCommands = ''
+              case "$1" in
+                "button/lid LID close")
+                  # Lock sessions
+                  ${pkgs.systemd}/bin/loginctl lock-sessions
+
+                  # Switch off display, if wayland is running
+                  if ${pkgs.procps}/bin/pgrep -fl "wayland" > /dev/null; then
+                    wl_running=1
+                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+                  else
+                    wl_running=0
+                  fi
+
+                  # Initiate Suspension
+                  ${pkgs.givc-cli}/bin/givc-cli ${cliArgs} suspend
+
+                  # Enable display
+                  if [ "$wl_running" -eq 1 ]; then
+                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+                  fi
+                  ;;
+                "button/lid LID open")
+                  # Command to run when the lid is opened
+                  ;;
+              esac
+            '';
+          };
+
+          # systemd.services."waypipe-ssh-keygen" =
+          #   let
+          #     uid = "${toString config.ghaf.users.loginUser.uid}";
+          #     pubDir = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+          #     keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
+          #       set -xeuo pipefail
+          #       mkdir -p /run/waypipe-ssh
+          #       echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
+          #       chown ${uid}:users /run/waypipe-ssh/*
+          #       cp /run/waypipe-ssh/id_ed25519.pub ${pubDir}/id_ed25519.pub
+          #       chown -R ${uid}:users ${pubDir}
+          #     '';
+          #   in
+          #   {
+          #     enable = true;
+          #     description = "Generate SSH keys for Waypipe";
+          #     path = [ keygenScript ];
+          #     wantedBy = [ "multi-user.target" ];
+          #     serviceConfig = {
+          #       Type = "oneshot";
+          #       RemainAfterExit = true;
+          #       StandardOutput = "journal";
+          #       StandardError = "journal";
+          #       ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
+          #     };
+          #   };
 
           environment = {
             systemPackages =
@@ -124,7 +324,13 @@ let
                 pkgs.pamixer
                 pkgs.eww
                 pkgs.wlr-randr
+                ollama-jetson
+                pkgs.nvidia-jetpack.l4t-tools
+                pkgs.nvidia-jetpack.l4t-cuda
+                pkgs.nvidia-jetpack.l4t-firmware
+                pkgs.nvidia-jetpack.l4t-wayland
               ]
+              #++ [ pkgs.ctrl-panel ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)
@@ -133,12 +339,7 @@ let
                 pkgs.glxinfo
                 pkgs.libva-utils
                 pkgs.glib
-                pkgs.nvidia-jetpack.l4t-tools
               ];
-            sessionVariables = {
-              XDG_PICTURES_DIR = "$HOME/Pictures";
-              XDG_VIDEOS_DIR = "$HOME/Videos";
-            };
           };
 
           time.timeZone = config.time.timeZone;
@@ -149,60 +350,39 @@ let
             hostPlatform.system = config.nixpkgs.hostPlatform.system;
           };
 
-          networking = {
-            firewall.allowedTCPPorts = [ 53 ];
-            firewall.allowedUDPPorts = [ 53 ];
-          };
-
-          services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
-
-          # WORKAROUND: Create a rule to temporary hardcode device name for Wi-Fi adapter on x86
-          # TODO this is a dirty hack to guard against adding this to Nvidia/vm targets which
-          # dont have that definition structure yet defined. FIXME.
-          # TODO the hardware.definition should not even be exposed in targets that do not consume it
-          # services.udev.extraRules = lib.mkIf (config.ghaf.hardware.definition.network.pciDevices != [ ]) ''
-          #   SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).vendorId}", ATTRS{device}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).productId}", NAME="${(lib.head config.ghaf.hardware.definition.network.pciDevices).name}"
-          # '';
+          # Suspend inside Qemu causes segfault
+          # See: https://gitlab.com/qemu-project/qemu/-/issues/2321
+          services.logind.lidSwitch = "ignore";
 
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
             vcpu = 4;
-            mem = 4096;
+            mem = 6000;
             hypervisor = "qemu";   
             kernelParams = [ "loglevel=7 debug clk_ignore_unused pd_ignore_unused log_buf_len=128M" ];
 
-            shares =
-              [
+
+            shares = [
+              # {
+              #   tag = "waypipe-ssh-public-key";
+              #   source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+              #   mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
+              #   proto = "virtiofs";
+              # }
                 {
                   tag = "ro-store";
                   source = "/nix/store";
                   mountPoint = "/nix/.ro-store";
                   proto = "virtiofs";
                 }
-              ]
-              ++ lib.optionals isGuiVmEnabled [
-                # {
-                #   # Add the waypipe-ssh public key to the microvm
-                #   tag = config.ghaf.security.sshKeys.waypipeSshPublicKeyName;
-                #   source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                #   mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                #   proto = "virtiofs";
-                # }
               ];
-
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+
             qemu = {
-              machine =
-                {
-                  # Use the same machine type as the host
-                  x86_64-linux = "q35";
-                  aarch64-linux = "virt";
-                }
-                .${config.nixpkgs.hostPlatform.system};
               extraArgs = [
                 "-device"
-                "qemu-xhci"
+                "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
                 "-dtb"
                 "${gpuvm-dtb.out}/tegra234-gpuvm.dtb"               
                 "-device"
@@ -226,19 +406,42 @@ let
                 "-device"
                 "vfio-platform,host=13800000.display"
               ];
+
+              machine =
+                {
+                  # Use the same machine type as the host
+                  x86_64-linux = "q35";
+                  aarch64-linux = "virt";
+                }
+                .${config.nixpkgs.hostPlatform.system};
             };
           };
 
-          # fileSystems = lib.mkIf isGuiVmEnabled {
-          #   ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir}.options = [ "ro" ];
-          # };
+          imports = [
+            ../../../common
+            ../../../desktop
+            ../../../reference/services
+          ];
 
-          # SSH is very picky about to file permissions and ownership and will
-          # accept neither direct path inside /nix/store or symlink that points
-          # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
-          # setting mode), instead of symlinking it.
-          environment.etc = lib.mkIf isGuiVmEnabled {
-            ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
+          #ghaf.reference.services.ollama = true;
+
+          # We dont enable services.blueman because it adds blueman desktop entry
+          services.dbus.packages = [ pkgs.blueman ];
+          systemd.packages = [ pkgs.blueman ];
+
+          systemd.user.services.audio-control = {
+            enable = true;
+            description = "Audio Control application";
+
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "5";
+              ExecStart = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=preferences-sound";
+            };
+
+            partOf = [ "ghaf-session.target" ];
+            wantedBy = [ "ghaf-session.target" ];
           };
         }
       )
@@ -257,6 +460,51 @@ in
       '';
       default = [ ];
     };
+
+    # GUIVM uses a VSOCK which requires a CID
+    # There are several special addresses:
+    # VMADDR_CID_HYPERVISOR (0) is reserved for services built into the hypervisor
+    # VMADDR_CID_LOCAL (1) is the well-known address for local communication (loopback)
+    # VMADDR_CID_HOST (2) is the well-known address of the host
+    # CID 3 is the lowest available number for guest virtual machines
+    vsockCID = lib.mkOption {
+      type = lib.types.int;
+      default = 3;
+      description = ''
+        Context Identifier (CID) of the GUIVM VSOCK
+      '';
+    };
+
+    applications = lib.mkOption {
+      description = ''
+        Applications to include in the GUIVM
+      '';
+      type = lib.types.listOf (
+        lib.types.submodule {
+          options = {
+            name = lib.mkOption {
+              type = lib.types.str;
+              description = "The name of the application";
+            };
+            description = lib.mkOption {
+              type = lib.types.str;
+              description = "A brief description of the application";
+            };
+            icon = lib.mkOption {
+              type = lib.types.str;
+              description = "Application icon";
+              default = null;
+            };
+            command = lib.mkOption {
+              type = lib.types.str;
+              description = "The command to run the application";
+              default = null;
+            };
+          };
+        }
+      );
+      default = [ ];
+  };
   };
 
   config = lib.mkIf cfg.enable {
@@ -313,10 +561,22 @@ in
 
     microvm.vms."${vmName}" = {
       autostart = true;
-      restartIfChanged = false;
+      inherit (inputs) nixpkgs;
       config = gpuvmBaseConfiguration // {
+        hardware.nvidia = {
+          #package = config.boot.kernelPackages.nvidiaPackages.beta;  # or stable
+          modesetting.enable = true;
+          open = false;  # Important for Tegra
+        };
+
+        hardware.firmwareCompression = lib.mkForce "none";
+        hardware.firmware = with pkgs.nvidia-jetpack; [
+          l4t-firmware
+          l4t-xusb-firmware # usb firmware also present in linux-firmware package, but that package is huge and has much more than needed
+          cudaPackages.vpi2-firmware # Optional, but needed for pva_auth_allowlist firmware file used by VPI2
+        ];
+
         imports = gpuvmBaseConfiguration.imports ++ cfg.extraModules;
-        
         boot = {
           kernelPackages = config.boot.kernelPackages;
           extraModulePackages = [nvidia-modules];
@@ -367,8 +627,6 @@ in
             ];
           };
         };
-
-
       };
     };
   };
