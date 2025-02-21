@@ -8,7 +8,7 @@
 }:
 let
   cfg = config.ghaf.givc.host;
-  inherit (builtins) map attrNames;
+  inherit (builtins) map;
   inherit (lib)
     mkEnableOption
     mkIf
