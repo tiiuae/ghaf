@@ -10,7 +10,7 @@ in
   ];
 
   perSystem =
-    { self', system, ... }:
+    { system, ... }:
     {
       # customise pkgs
       _module.args.pkgs = import inputs.nixpkgs {
@@ -26,6 +26,6 @@ in
       _module.args.lib = lib;
 
       # add the default overlay that will include our packages
-      overlayAttrs = lib.flattenPkgs "/" [ ] self'.legacyPackages;
+      overlayAttrs = lib.flattenPkgs "/" [ ] inputs.self.legacyPackages;
     };
 }
