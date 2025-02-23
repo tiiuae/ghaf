@@ -1,7 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  lib,
   blueman,
   bluez,
   writeShellApplication,
@@ -64,6 +63,9 @@ writeShellApplication {
 
   meta = {
     description = "Script to launch blueman to configure bluetooth of audiovm using D-Bus via GIVC.";
-    platforms = lib.platforms.linux;
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

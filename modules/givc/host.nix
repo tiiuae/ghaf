@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  givc,
   ...
 }:
 let

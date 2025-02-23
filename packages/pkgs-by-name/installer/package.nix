@@ -18,4 +18,11 @@ writeShellApplication {
     ncurses # Needed for `clear` command
   ];
   text = builtins.readFile ./ghaf-installer.sh;
+  meta = {
+    description = "Installer script for the Ghaf project";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

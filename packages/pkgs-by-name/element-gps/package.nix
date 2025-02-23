@@ -1,7 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  lib,
   python3Packages,
 }:
 python3Packages.buildPythonApplication {
@@ -13,6 +12,9 @@ python3Packages.buildPythonApplication {
   src = ./.;
   meta = {
     description = "Point-to-point messaging server for Matrix";
-    platforms = lib.platforms.linux;
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

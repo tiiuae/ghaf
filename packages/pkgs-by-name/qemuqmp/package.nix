@@ -22,5 +22,9 @@ python3Packages.buildPythonPackage rec {
     homepage = "https://www.qemu.org/";
     description = "QEMU Monitor Protocol library";
     license = lib.licenses.lgpl2Plus;
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
 }

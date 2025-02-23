@@ -3,12 +3,8 @@
 {
   python3Packages,
   fetchFromGitHub,
-  callPackage,
+  qemuqmp,
 }:
-let
-  #can we just pass the qwmuqmp in the package list above
-  qemuqmp = callPackage ../qemuqmp { };
-in
 python3Packages.buildPythonApplication {
   pname = "vhotplug";
   version = "0.1";
@@ -27,5 +23,12 @@ python3Packages.buildPythonApplication {
     repo = "vhotplug";
     rev = "dc91f43d90da24782bd32cfc5a79afc9fe74d9e6";
     hash = "sha256-qyLEUNoXHzj5BjUV0i7YjWA9U206J/BGwgvLkni0kIs=";
+  };
+
+  meta = {
+    description = "Virtio Hotplug";
+    platforms = [
+      "x86_64-linux"
+    ];
   };
 }

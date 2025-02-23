@@ -176,27 +176,32 @@
     let
       lib = import ./lib.nix { inherit inputs; };
     in
-    flake-parts.lib.mkFlake { inherit inputs; } {
-      # Toggle this to allow debugging in the repl
-      # see:https://flake.parts/debug
-      debug = false;
+    flake-parts.lib.mkFlake
+      {
+        inherit inputs;
+        specialArgs = { inherit lib; };
+      }
+      {
+        # Toggle this to allow debugging in the repl
+        # see:https://flake.parts/debug
+        debug = false;
 
-      systems = [
-        "x86_64-linux"
-        "aarch64-linux"
-      ];
+        systems = [
+          "x86_64-linux"
+          "aarch64-linux"
+        ];
 
-      imports = [
-        ./overlays/flake-module.nix
-        ./modules/flake-module.nix
-        ./nix/flake-module.nix
-        ./packages/flake-module.nix
-        ./targets/flake-module.nix
-        ./hydrajobs/flake-module.nix
-        ./templates/flake-module.nix
-        ./tests/flake-module.nix
-      ];
+        imports = [
+          ./overlays/flake-module.nix
+          ./modules/flake-module.nix
+          ./nix/flake-module.nix
+          ./packages/flake-module.nix
+          ./targets/flake-module.nix
+          ./hydrajobs/flake-module.nix
+          ./templates/flake-module.nix
+          ./tests/flake-module.nix
+        ];
 
-      flake.lib = lib;
-    };
+        flake.lib = lib;
+      };
 }

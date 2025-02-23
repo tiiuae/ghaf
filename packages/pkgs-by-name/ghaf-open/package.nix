@@ -38,4 +38,11 @@ writeShellApplication {
 
     eval "$(awk '/^Exec=/{sub(/^Exec=/, ""); print}' "$APPS/$1.desktop") ''${*:2}"
   '';
+  meta = {
+    description = "Open applications from the command line";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

@@ -14,4 +14,12 @@ python3Packages.buildPythonApplication rec {
     rev = "cce3be96474ddb0e1e59b1b5e5b539c5e99c054b";
     sha256 = "sha256-b+k2BSNF9Lc4WQnH7bYg87BEKLY2aSQ6a768SWT6w+Y=";
   };
+
+  meta = {
+    description = "Kernel Hardening Checker";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

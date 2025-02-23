@@ -1,9 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ self, inputs, ... }:
+{
+  self,
+  inputs,
+  ...
+}:
 {
   imports = [
     inputs.pkgs-by-name-for-flake-parts.flakeModule
+    ./own-pkgs-overlay.nix
   ];
   perSystem =
     {

@@ -14,4 +14,11 @@ writeShellApplication {
     zstd
   ];
   text = builtins.readFile ./flash.sh;
+  meta = {
+    description = "Flashingscript for the Ghaf project";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

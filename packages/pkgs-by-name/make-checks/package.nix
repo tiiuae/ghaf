@@ -65,4 +65,11 @@ writeShellApplication {
     #TODO: should we remove gcroot?
     exit "$retError"
   '';
+  meta = {
+    description = "Check that all of the projects can be evaluated.";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

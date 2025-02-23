@@ -10,8 +10,4 @@
   labwc = import ./labwc { inherit prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
-  #TODO move this to a proper place
-  globalprotect-openconnect =
-    final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
-      { };
 })

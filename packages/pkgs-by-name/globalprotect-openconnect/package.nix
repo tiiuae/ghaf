@@ -1,18 +1,14 @@
 # Copyright 2024 NixOS Contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  stdenv,
   lib,
   fetchurl,
   cmake,
-  qtwebsockets,
-  qtwebengine,
-  qtkeychain,
-  wrapQtAppsHook,
+  libsForQt5,
   openconnect,
 }:
 
-stdenv.mkDerivation rec {
+libsForQt5.mkDerivation rec {
   pname = "globalprotect-openconnect";
   version = "1.4.9";
 
@@ -23,14 +19,14 @@ stdenv.mkDerivation rec {
 
   nativeBuildInputs = [
     cmake
-    wrapQtAppsHook
+    libsForQt5.wrapQtAppsHook
   ];
 
   buildInputs = [
     openconnect
-    qtwebsockets
-    qtwebengine
-    qtkeychain
+    libsForQt5.qtwebsockets
+    libsForQt5.qtwebengine
+    libsForQt5.qtkeychain
   ];
 
   patchPhase = ''
@@ -40,10 +36,13 @@ stdenv.mkDerivation rec {
       --replace /etc/gpservice $out/etc/gpservice;
   '';
 
-  meta = with lib; {
+  meta = {
     description = "GlobalProtect VPN client (GUI) for Linux based on OpenConnect that supports SAML auth mode";
     homepage = "https://github.com/yuezk/GlobalProtect-openconnect";
-    license = licenses.gpl3Only;
-    platforms = platforms.linux;
+    license = lib.licenses.gpl3Only;
+    platforms = [
+      "x86_64-linux"
+      "aarch64-linux"
+    ];
   };
 }

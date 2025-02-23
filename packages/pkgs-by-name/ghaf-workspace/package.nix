@@ -166,4 +166,11 @@ writeShellApplication {
             ;;
     esac
   '';
+  meta = {
+    description = "Script to manage workspaces using wtype";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

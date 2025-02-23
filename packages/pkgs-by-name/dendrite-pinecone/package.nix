@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  lib,
   buildGoModule,
   fetchFromGitHub,
 }:
@@ -31,6 +30,9 @@ buildGoModule {
 
   meta = {
     description = "Point-to-point messaging server for Matrix";
-    platforms = lib.platforms.linux;
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
   };
 }

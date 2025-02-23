@@ -38,4 +38,11 @@ writeShellApplication {
         -t ghaf@chrome-vm \
             ${openssh}/bin/ssh -q -S /tmp/control_socket -O exit ghaf@${idsvmIP}
   '';
+  meta = {
+    description = "UI for mitmweb";
+    platforms = [
+      "aarch64-linux"
+      "x86_64-linux"
+    ];
+  };
 }

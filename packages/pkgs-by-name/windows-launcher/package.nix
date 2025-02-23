@@ -10,7 +10,6 @@
   #TODO: this should probably be converted to writeShellApplication
   writeShellScript,
   enableSpice ? false,
-  ...
 }:
 let
   ovmfPrefix =
