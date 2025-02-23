@@ -2,16 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 
 {
-  callPackage,
+  ghaf-workspace,
   writeText,
   setxkbmap,
   ewwScripts,
   gawk,
   ...
 }:
-let
-  ghaf-workspace = callPackage ../../../../../../packages/ghaf-workspace { };
-in
 writeText "variables.yuck" ''
   (defpoll keyboard_layout :interval "5s" "${setxkbmap}/bin/setxkbmap -query | ${gawk}/bin/awk '/layout/{print $2}' | tr a-z A-Z")
   (defpoll battery :interval "5s" :initial "{}" "${ewwScripts.eww-bat}/bin/eww-bat get")

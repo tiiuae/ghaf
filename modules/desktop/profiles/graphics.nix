@@ -15,7 +15,6 @@ let
     "pixman"
     "gles2"
   ];
-  ghaf-open = pkgs.callPackage ../../../packages/ghaf-open { };
 
   inherit (lib)
     mkEnableOption
@@ -105,7 +104,7 @@ in
         _JAVA_AWT_WM_NONREPARENTING = 1;
       };
 
-      systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ ghaf-open ];
+      systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ pkgs.ghaf-open ];
     };
 
     ghaf.graphics = {

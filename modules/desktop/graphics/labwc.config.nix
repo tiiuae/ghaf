@@ -8,15 +8,14 @@
 }:
 let
   cfg = config.ghaf.graphics.labwc;
-
-  ghaf-screenshot = pkgs.callPackage ../../../packages/ghaf-screenshot { };
+  inherit (pkgs) ghaf-workspace ghaf-screenshot;
+  inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   ghaf-powercontrol = pkgs.callPackage ../../../packages/ghaf-powercontrol {
     ghafConfig = config.ghaf;
   };
-  ghaf-workspace = pkgs.callPackage ../../../packages/ghaf-workspace { };
   drawerStyle = pkgs.callPackage ./styles/launcher-style.nix { };
-  inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
   gtklockStyle = pkgs.callPackage ./styles/lock-style.nix { };
+
   autostart = pkgs.writeShellApplication {
     name = "labwc-autostart";
 
