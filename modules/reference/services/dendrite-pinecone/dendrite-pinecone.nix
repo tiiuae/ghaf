@@ -3,14 +3,12 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
   cfg = config.ghaf.reference.services.dendrite-pinecone;
   #TODO: this seems to be unused check later
   inherit (config.ghaf.reference) services;
-  inherit (pkgs) dendrite;
   inherit (lib)
     mkEnableOption
     mkOption
