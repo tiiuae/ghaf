@@ -226,11 +226,6 @@ let
           time.timeZone = config.time.timeZone;
           system.stateVersion = lib.trivial.release;
 
-          nixpkgs = {
-            buildPlatform.system = config.nixpkgs.buildPlatform.system;
-            hostPlatform.system = config.nixpkgs.hostPlatform.system;
-          };
-
           microvm = {
             optimize.enable = false;
             vcpu = 2;

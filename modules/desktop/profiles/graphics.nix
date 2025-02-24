@@ -90,7 +90,7 @@ in
   config = mkIf cfg.enable {
     hardware.graphics = {
       enable = true;
-      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86 [ pkgs.intel-media-driver ];
+      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86_64 [ pkgs.intel-media-driver ];
     };
     environment = {
       sessionVariables = {

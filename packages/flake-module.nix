@@ -22,7 +22,8 @@
     in
     {
       #use the pkgs-by-name-for-flake-parts to get the packages
-      pkgsDirectory = ./pkgs-by-name;
+      # exposed to downstream projects
+      #pkgsDirectory = ./pkgs-by-name;
 
       #fix these to be the correct packages placement
       packages = self.lib.platformPkgs system {
@@ -39,7 +40,7 @@
                   self.nixosModules.microvm
                   self.nixosModules.disko-ab-partitions-v1
                   {
-                    nixpkgs.hostPlatform = "x86_64-linux";
+                    #nixpkgs.hostPlatform = "x86_64-linux";
                     ghaf.hardware.definition = import ../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
                   }
                 ];

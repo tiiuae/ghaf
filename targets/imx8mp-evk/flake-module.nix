@@ -51,7 +51,8 @@ let
             };
 
             nixpkgs = {
-              hostPlatform.system = system;
+              #hostPlatform.system = "aarch64-linux";
+
               #TODO; we shoudl specify the build platform
               # for both native and cross-compiled cases
               buildPlatform.system = "x86_64-linux";

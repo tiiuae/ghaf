@@ -148,9 +148,6 @@ let
 
               system.stateVersion = lib.trivial.release;
 
-              nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-              nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
               environment.systemPackages =
                 [
                   pkgs.tpm2-tools

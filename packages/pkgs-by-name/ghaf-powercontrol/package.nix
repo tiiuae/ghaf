@@ -50,6 +50,8 @@ writeShellApplication {
 
   meta = {
     description = "Wrapper script to control Ghaf power states using systemctl or GIVC.";
-    platforms = lib.platforms.linux;
+    platforms = [
+      "x86_64-linux"
+    ];
   };
 }

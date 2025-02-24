@@ -13,7 +13,7 @@ let
     mkIf
     optionals
     ;
-  sshKeysHelper = pkgs.sshKeysHelper { inherit config; };
+  sshKeysHelper = pkgs.sshKeysHelper.override { inherit config; };
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
 in
