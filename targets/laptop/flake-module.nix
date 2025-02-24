@@ -69,6 +69,15 @@ let
         };
       }
     ])
+    (laptop-configuration "alienware-m18" "debug" [
+      self.nixosModules.disko-ab-partitions-v1
+      {
+        ghaf = {
+          hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
+          reference.profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
 
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
@@ -121,6 +130,15 @@ let
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
+          reference.profiles.mvp-user-trial.enable = true;
+        };
+      }
+    ])
+    (laptop-configuration "alienware-m18" "release" [
+      self.nixosModules.disko-ab-partitions-v1
+      {
+        ghaf = {
+          hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }

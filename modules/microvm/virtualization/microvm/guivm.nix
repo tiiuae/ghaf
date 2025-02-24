@@ -126,6 +126,34 @@ let
             xdgitems.enable = true;
           };
 
+          hardware = {
+
+            graphics = {
+              enable = true;
+            };
+            nvidia = {
+              modesetting.enable = true;
+              powerManagement.enable = false;
+              powerManagement.finegrained = false;
+              forceFullCompositionPipeline = true;
+              open = true;
+              nvidiaSettings = true;
+              package = config.boot.kernelPackages.nvidiaPackages.beta;
+              prime = {
+                intelBusId = "PCI:0:11:0";
+                nvidiaBusId = "PCI:0:13:0";
+                #offload.enable = lib.mkForce true;
+                #offload.enableOffloadCmd = lib.mkForce true;
+                sync.enable = lib.mkForce true;
+              };
+            };
+          };
+
+          #Load nvidia driver for Xorg and Wayland
+          services.xserver.videoDrivers = [ "nvidia" ];
+          boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
+          #boot.extraModulePackages = [ config.boot.kernelPackages.nvidia_x11 ];
+
           services = {
             acpid = lib.mkIf config.ghaf.givc.enable {
               enable = true;
@@ -350,12 +378,12 @@ in
 
         # We need this patch to avoid reserving Intel graphics stolen memory for vm
         # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103
-        boot.kernelPatches = [
-          {
-            name = "gpu-passthrough-fix";
-            patch = ./0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch;
-          }
-        ];
+        # boot.kernelPatches = [
+        #   {
+        #     name = "gpu-passthrough-fix";
+        #     patch = ./0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch;
+        #   }
+        # ];
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
