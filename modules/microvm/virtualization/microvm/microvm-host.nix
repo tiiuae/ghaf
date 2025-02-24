@@ -119,9 +119,9 @@ in
                 # The script makes audio device internal state to reset
                 # This fixes issue of audio device getting into some unexpected
                 # state when the VM is being shutdown during audio mic recording
-                echo "1" > ${config.ghaf.hardware.definition.audio.removePciDevice}
+                echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
                 sleep 0.1
-                echo "1" > ${rescan_pci_device}
+                echo "1" > /sys/bus/pci/devices/${rescan_pci_device}/rescan
               ''}"
             ];
           };
