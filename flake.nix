@@ -41,6 +41,7 @@
         pre-commit-hooks-nix.follows = "git-hooks-nix";
         flake-compat.follows = "flake-compat";
         crane.follows = "givc/crane";
+        devshell.follows = "devshell";
       };
     };
 
