@@ -113,7 +113,10 @@
     jetpack-nixos = {
       #url = "flake:mylocaljetpack";
       #url = "github:anduril/jetpack-nixos/d1c82127de40e85c9c50295f157e1be59a9ad2a6";
-      url = "github:tiiuae/jetpack-nixos/final-stretch";
+      # In this branch these commits have been reverted:
+      # 33dd57c Select kernel version based on Jetson BSP version
+      # 8e3bbfa rebase onto the upstream jetpack
+      url = "github:tiiuae/jetpack-nixos/bk-final-stretch";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

@@ -1,0 +1,246 @@
+From 615fc45c8887bc7394d4a1ae523bc93c8e86b812 Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Sun, 19 Jan 2025 23:04:40 +0200
+Subject: [PATCH 3/3] Add support for display passthrough
+
+- Static dram configuration in kdispImportImpData_IMPL
+- Add NV_DISPLAY_IN_VM to simulate running in Nvidia hypervisor
+- Force nv_alloc_coherent_pages to allocate in CMA with 0x2000 min si
+---
+ nvdisplay/kernel-open/nvidia/nv-dma.c         | 17 +++++++
+ nvdisplay/kernel-open/nvidia/nv-vm.c          | 46 +++++++++++++++++--
+ nvdisplay/kernel-open/nvidia/os-interface.c   | 23 +++++++++-
+ .../nvidia/src/kernel/gpu/disp/kern_disp.c    | 13 ++++++
+ 4 files changed, 93 insertions(+), 6 deletions(-)
+
+diff --git a/nvdisplay/kernel-open/nvidia/nv-dma.c b/nvdisplay/kernel-open/nvidia/nv-dma.c
+index c07f7c8..e698e4a 100644
+--- a/nvdisplay/kernel-open/nvidia/nv-dma.c
++++ b/nvdisplay/kernel-open/nvidia/nv-dma.c
+@@ -62,6 +62,14 @@ static NV_STATUS nv_dma_map_contig(
+ )
+ {
+ #if defined(NV_DMA_MAP_PAGE_ATTRS_PRESENT) && defined(NV_DMA_ATTR_SKIP_CPU_SYNC_PRESENT)
++    
++
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, dma_map->pages[0]:                  0x%016llX\n", __FUNCTION__, (NvU64)dma_map->pages[0]);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, dma_map->cache_type:                0x%016llX\n", __FUNCTION__, (NvU64)dma_map->cache_type);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, dma_map->contiguous:                0x%016llX\n", __FUNCTION__, (NvU64)dma_map->contiguous);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, dev_name(dma_map->dev:              %s\n", __FUNCTION__, dev_name(dma_map->dev));
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, dma_map->page_count * PAGE_SIZE:    0x%016llX\n", __FUNCTION__, (NvU64)dma_map->page_count * PAGE_SIZE);
++    
+     *va = dma_map_page_attrs(dma_map->dev, dma_map->pages[0], 0,
+                              dma_map->page_count * PAGE_SIZE,
+                              DMA_BIDIRECTIONAL,
+@@ -653,6 +661,15 @@ NV_STATUS NV_API_CALL nv_dma_map_alloc
+     NvU32 cache_type = NV_MEMORY_CACHED;
+     NvU64 pages_size = sizeof(struct page *) * (contig ? 1 : page_count);
+ 
++    nv_printf(NV_DBG_MEMINFO, "\n\nNVRM: VM: %s, d: %d\n", __FUNCTION__, __LINE__);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, priv:                 0x%016llX\n", __FUNCTION__, (NvU64)priv);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, *priv:                0x%016llX\n", __FUNCTION__, (NvU64)*priv);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, *va_array:            0x%016llX\n", __FUNCTION__, (NvU64)*va_array);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, at:                   0x%016llX\n", __FUNCTION__, (NvU64)at);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, at->flags.user:       0x%016llX\n", __FUNCTION__, (NvU64)at->flags.user);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, at->flags.physical:   0x%016llX\n", __FUNCTION__, (NvU64)at->flags.physical);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: %s, contig:               0x%016llX\n", __FUNCTION__, (NvU64)contig);
++
+     /* If we have an imported SGT, just use that directly. */
+     if (at && at->import_sgt)
+     {
+diff --git a/nvdisplay/kernel-open/nvidia/nv-vm.c b/nvdisplay/kernel-open/nvidia/nv-vm.c
+index d183b7c..ef7dbcd 100644
+--- a/nvdisplay/kernel-open/nvidia/nv-vm.c
++++ b/nvdisplay/kernel-open/nvidia/nv-vm.c
+@@ -25,6 +25,8 @@
+ #include "nv.h"
+ #include "nv-linux.h"
+ 
++#define NV_DISPLAY_IN_VM    1
++
+ static inline void nv_set_contig_memory_uc(nvidia_pte_t *page_ptr, NvU32 num_pages)
+ {
+ #if defined(NV_SET_MEMORY_UC_PRESENT)
+@@ -310,10 +312,25 @@ static NV_STATUS nv_alloc_coherent_pages(
+ 
+     gfp_mask = nv_compute_gfp_mask(nv, at);
+ 
+-    virt_addr = (unsigned long)dma_alloc_coherent(dev,
+-                                                  at->num_pages * PAGE_SIZE,
+-                                                  &bus_addr,
+-                                                  gfp_mask);
++    gfp_mask = GFP_KERNEL | __GFP_ZERO | GFP_DMA;
++
++    if(at->num_pages == 1){
++        nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, at->num_pages:  0x%016llX, allocating 2\n", __FUNCTION__, (NvU64)(at->num_pages * PAGE_SIZE));
++        virt_addr = (unsigned long)dma_alloc_coherent(dev,
++                                                2 * PAGE_SIZE,
++                                                &bus_addr,
++                                                gfp_mask);
++    }
++    else{
++        virt_addr = (unsigned long)dma_alloc_coherent(dev,
++                                                at->num_pages * PAGE_SIZE,
++                                                &bus_addr,
++                                                gfp_mask);
++    }
++
++    nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, bus_addr:                   0x%016llX\n", __FUNCTION__, (NvU64)bus_addr);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, virt_addr:                  0x%016llX\n", __FUNCTION__, (NvU64)virt_addr);
++    
+     if (!virt_addr)
+     {
+         nv_printf(NV_DBG_MEMINFO,
+@@ -326,9 +343,21 @@ static NV_STATUS nv_alloc_coherent_pages(
+         page_ptr = at->page_table[i];
+ 
+         page_ptr->virt_addr = virt_addr + i * PAGE_SIZE;
++#if NV_DISPLAY_IN_VM        
++        page_ptr->phys_addr = bus_addr + i * PAGE_SIZE;
++#else
+         page_ptr->phys_addr = virt_to_phys((void *)page_ptr->virt_addr);
++#endif
+         page_ptr->dma_addr  = bus_addr + i * PAGE_SIZE;
++        nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, bus_addr:               0x%016llX\n", __FUNCTION__, (NvU64)bus_addr);
++        nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, page_ptr->dma_addr[%d]: 0x%016llX\n", __FUNCTION__, i, (NvU64)page_ptr->dma_addr);
++
+     }
++    i = 0;
++    nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, at->page_table[i]->virt_addr[%d]:     0x%016llX\n", __FUNCTION__, i, (NvU64)at->page_table[i]->virt_addr);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, at->page_table[i]->phys_addr[%d]:     0x%016llX\n", __FUNCTION__, i, (NvU64)at->page_table[i]->phys_addr);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, at->page_table[i]->dma_addr[%d]:      0x%016llX\n", __FUNCTION__, i, (NvU64)at->page_table[i]->dma_addr);
++    nv_printf(NV_DBG_MEMINFO, "NVRM: VM: %s, bus_addr:                             0x%016llX\n", __FUNCTION__, (NvU64)bus_addr);
+ 
+     if (at->cache_type != NV_MEMORY_CACHED)
+     {
+@@ -338,6 +367,11 @@ static NV_STATUS nv_alloc_coherent_pages(
+     }
+ 
+     at->flags.coherent = NV_TRUE;
++
++#if NV_DISPLAY_IN_VM        
++        at->flags.physical = NV_TRUE;
++#endif
++    
+     return NV_OK;
+ }
+ 
+@@ -442,6 +476,10 @@ NV_STATUS nv_alloc_contig_pages(
+ 
+     at->flags.coherent = NV_FALSE;
+ 
++#if NV_DISPLAY_IN_VM        
++        at->flags.physical = NV_TRUE;
++#endif
++
+     return NV_OK;
+ 
+ failed:
+diff --git a/nvdisplay/kernel-open/nvidia/os-interface.c b/nvdisplay/kernel-open/nvidia/os-interface.c
+index c5007b4..f5e6c5c 100644
+--- a/nvdisplay/kernel-open/nvidia/os-interface.c
++++ b/nvdisplay/kernel-open/nvidia/os-interface.c
+@@ -20,6 +20,7 @@
+  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  * DEALINGS IN THE SOFTWARE.
+  */
++#define NV_DISPLAY_IN_VM    1
+ 
+ #define  __NO_VERSION__
+ 
+@@ -772,7 +773,7 @@ NV_STATUS NV_API_CALL os_get_current_thread(NvU64 *threadId)
+ /*******************************************************************************/
+ 
+ // The current debug display level (default to maximum debug level)
+-NvU32 cur_debuglevel = 0xffffffff;
++NvU32 cur_debuglevel = 1;
+ 
+ /*
+  * The binary core of RM (nv-kernel.o) calls both out_string, and nv_printf.
+@@ -796,7 +797,7 @@ int NV_API_CALL nv_printf(NvU32 debuglevel, const char *printf_format, ...)
+     // avoiding a problem with kernel stack size.
+     static char buff[NV_PRINT_LOCAL_BUFF_LEN_MAX];
+ 
+-    if (debuglevel >= ((cur_debuglevel >> 4) & 0x3))
++    if (1)
+     {
+         size_t length;
+ 
+@@ -916,7 +917,12 @@ static NvBool NV_API_CALL xen_support_fully_virtualized_kernel(void)
+ #if defined(NV_XEN_SUPPORT_FULLY_VIRTUALIZED_KERNEL)
+     return (os_is_vgx_hyper());
+ #endif
++
++#if NV_DISPLAY_IN_VM        
++    return (os_is_vgx_hyper());
++#else
+     return NV_FALSE;
++#endif
+ }
+ 
+ void* NV_API_CALL os_map_kernel_space(
+@@ -967,6 +973,9 @@ void* NV_API_CALL os_map_kernel_space(
+             return NULL;
+     }
+ 
++    //printk(KERN_EMERG "NVRM: %s, mapped: 0x%010llX to 0x%010llX, s: 0x%010llX, m: %d\n", __func__, 
++    //    (u64)start, (u64)vaddr, (u64)size_bytes, mode);
++
+     return vaddr;
+ }
+ 
+@@ -1361,17 +1370,27 @@ NvBool NV_API_CALL os_is_xen_dom0(void)
+ #if defined(NV_DOM0_KERNEL_PRESENT)
+     return NV_TRUE;
+ #else
++    
++#if NV_DISPLAY_IN_VM        
++    return NV_TRUE;
++#else
+     return NV_FALSE;
+ #endif
++
++#endif
+ }
+ 
+ NvBool NV_API_CALL os_is_vgx_hyper(void)
+ {
+ #if defined(NV_VGX_HYPER)
+     return NV_TRUE;
++#else
++#if NV_DISPLAY_IN_VM        
++    return NV_TRUE;
+ #else
+     return NV_FALSE;
+ #endif
++#endif
+ }
+ 
+ NV_STATUS NV_API_CALL os_inject_vgx_msi(NvU16 guestID, NvU64 msiAddr, NvU32 msiData)
+diff --git a/nvdisplay/src/nvidia/src/kernel/gpu/disp/kern_disp.c b/nvdisplay/src/nvidia/src/kernel/gpu/disp/kern_disp.c
+index 0351895..65d81cc 100644
+--- a/nvdisplay/src/nvidia/src/kernel/gpu/disp/kern_disp.c
++++ b/nvdisplay/src/nvidia/src/kernel/gpu/disp/kern_disp.c
+@@ -582,6 +582,19 @@ kdispImportImpData_IMPL(KernelDisplay *pKernelDisplay)
+ 
+     NV_ASSERT_OK_OR_RETURN(osTegraSocGetImpImportData(&params.tegraImpImportData));
+ 
++
++    // TODO: replace later with get dram info virtualization
++    params.tegraImpImportData.dram_type = 2;
++    params.tegraImpImportData.num_dram_channels = 8;
++
++    nv_printf(LEVEL_INFO, "\n\n");
++    nv_printf(LEVEL_INFO, "NVRM: %s, sizeof(params.tegraImpImportData):                %d\n", __FUNCTION__, sizeof(params.tegraImpImportData));
++    nv_printf(LEVEL_INFO, "NVRM: %s, params.tegraImpImportData.max_iso_bw_kbps):       %d\n", __FUNCTION__, params.tegraImpImportData.max_iso_bw_kbps);
++    nv_printf(LEVEL_INFO, "NVRM: %s, params.tegraImpImportData.dram_type):             %d\n", __FUNCTION__, params.tegraImpImportData.dram_type);
++    nv_printf(LEVEL_INFO, "NVRM: %s, params.tegraImpImportData.num_dram_channels):     %d\n", __FUNCTION__, params.tegraImpImportData.num_dram_channels);
++    nv_printf(LEVEL_INFO, "NVRM: %s, params.tegraImpImportData.num_dram_clk_entries):  %d\n", __FUNCTION__, params.tegraImpImportData.num_dram_clk_entries);
++
++
+     NV_ASSERT_OK_OR_RETURN(pRmApi->Control(pRmApi, hClient, hSubdevice,
+                            NV2080_CTRL_CMD_INTERNAL_DISPLAY_SET_IMP_INIT_INFO,
+                            &params, sizeof(params)));
+-- 
+2.34.1
+
