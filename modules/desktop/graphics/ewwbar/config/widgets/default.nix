@@ -413,27 +413,27 @@ writeText "widgets.yuck" ''
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/lock.svg"
                   :title "Lock"
-                  :onclick "''${EWW_CMD} close power-menu closer & loginctl lock-session &")
+                  :onclick "''${EWW_CMD} close power-menu & loginctl lock-session &")
           (widget_button
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/suspend.svg"
                   :title "Suspend"
-                  :onclick "''${EWW_CMD} close power-menu closer & ${ghaf-powercontrol}/bin/ghaf-powercontrol suspend &")
+                  :onclick "''${EWW_CMD} close power-menu & ${ghaf-powercontrol}/bin/ghaf-powercontrol suspend &")
           (widget_button
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/logout.svg"
                   :title "Log Out"
-                  :onclick "''${EWW_CMD} close power-menu closer & ${pkgs.labwc}/bin/labwc --exit &")
+                  :onclick "''${EWW_CMD} close power-menu & ${pkgs.labwc}/bin/labwc --exit &")
           (widget_button
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/restart.svg"
                   :title "Reboot"
-                  :onclick "''${EWW_CMD} close power-menu closer & ${ghaf-powercontrol}/bin/ghaf-powercontrol reboot &")
+                  :onclick "''${EWW_CMD} close power-menu & ${ghaf-powercontrol}/bin/ghaf-powercontrol reboot &")
           (widget_button
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/power.svg"
                   :title "Shutdown"
-                  :onclick "''${EWW_CMD} close power-menu closer & ${ghaf-powercontrol}/bin/ghaf-powercontrol poweroff &")))
+                  :onclick "''${EWW_CMD} close power-menu & ${ghaf-powercontrol}/bin/ghaf-powercontrol poweroff &")))
 
       ${lib.optionalString useGivc ''
         ;; Quick Settings Buttons ;;
@@ -446,7 +446,7 @@ writeText "widgets.yuck" ''
                     (widget_button
                         :icon "${pkgs.ghaf-artwork}/icons/bluetooth-1.svg"
                         :header "Bluetooth"
-                        :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.bt-launcher}/bin/bt-launcher &")
+                        :onclick "''${EWW_CMD} close quick-settings & ${pkgs.bt-launcher}/bin/bt-launcher &")
                     (box
                         :hexpand true
                         :vexpand true
@@ -473,7 +473,7 @@ writeText "widgets.yuck" ''
                   (widget_button
                       :icon "${pkgs.ghaf-artwork}/icons/admin-cog.svg"
                       :header "Settings"
-                      :onclick "''${EWW_CMD} close quick-settings closer & ${pkgs.ctrl-panel}/bin/ctrl-panel ${cliArgs} >/dev/null &")))
+                      :onclick "''${EWW_CMD} close quick-settings & ${pkgs.ctrl-panel}/bin/ctrl-panel ${cliArgs} >/dev/null &")))
       ''}
 
       ;; Reusable Widgets ;;
