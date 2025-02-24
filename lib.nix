@@ -53,5 +53,21 @@ nixpkgs.lib.extend (
         in
         lib.elem system platforms
       );
+
+    genPkgWithFlashScript =
+      pkg: system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+      in
+      pkgs.linkFarm "ghaf-image" [
+        {
+          name = "image";
+          path = pkg;
+        }
+        {
+          name = "flash-script";
+          path = pkgs.callPackage ./packages/flash { };
+        }
+      ];
   }
 )
