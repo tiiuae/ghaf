@@ -62,6 +62,8 @@ in
           # Grpc testing
 
           grpcurl
+
+          lshw
           ;
       }
       ++
