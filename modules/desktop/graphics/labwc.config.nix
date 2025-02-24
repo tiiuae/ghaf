@@ -426,21 +426,56 @@ let
       auto-display-scale
       pkgs.mako
       pkgs.wlr-randr
+      pkgs.jq
     ];
     bashOptions = [ ];
     text = ''
-      # Run the following commands in order every time a display change event is detected
+      stop_services() {
+        echo "Stopping ghaf-launcher and ewwbar services."
+        systemctl --user stop ewwbar ghaf-launcher
+      }
+
       auto-display-scale        # Auto scaling
       makoctl set-mode default  # Reset mako mode so notifications don't break
 
-      if wlr-randr > /dev/null 2>&1; then
-          # If displays are connected (not headless mode), ensure ewwbar and ghaf-launcher are running
-          systemctl --user is-active --quiet ewwbar || systemctl --user reload-or-restart ewwbar
-          systemctl --user is-active --quiet ghaf-launcher || systemctl --user reload-or-restart ghaf-launcher
-      else
-          # If all displays were disconnected, we can stop ghaf-launcher and ewwbar services
-          echo "No displays connected. Stopping ghaf-launcher and ewwbar services"
-          systemctl --user stop ewwbar ghaf-launcher
+      # Retrieve display information
+      if ! wlr_output_json=$(wlr-randr --json); then
+        echo "Error: Failed to get display info from wlr-randr"
+        stop_services
+      fi
+
+      # Check if any displays are connected
+      if ! echo "$wlr_output_json" | jq -e 'length > 0' > /dev/null; then
+        echo "Error: No connected displays found."
+        stop_services
+      fi
+
+      # If displays are connected (not headless mode), ensure ewwbar and ghaf-launcher are running
+      systemctl --user is-active --quiet ewwbar || systemctl --user reload-or-restart ewwbar
+      systemctl --user is-active --quiet ghaf-launcher || systemctl --user reload-or-restart ghaf-launcher
+    '';
+  };
+
+  display-connected = pkgs.writeShellApplication {
+    name = "display-connected";
+    runtimeInputs = [
+      pkgs.jq
+      pkgs.wlr-randr
+    ];
+    bashOptions = [ ];
+    text = ''
+      # Exits with error if no display is detected
+
+      # Retrieve display information
+      if ! wlr_output_json=$(wlr-randr --json); then
+        echo "Error: Failed to get display info from wlr-randr"
+        exit 1
+      fi
+
+      # Check if any displays are connected
+      if ! echo "$wlr_output_json" | jq -e 'length > 0' > /dev/null; then
+        echo "Error: No connected displays found."
+        exit 1
       fi
     '';
   };
@@ -501,9 +536,7 @@ in
         serviceConfig = {
           Type = "simple";
           EnvironmentFile = "-/etc/locale.conf";
-          ExecCondition = ''
-            ${pkgs.bash}/bin/bash -c "${pkgs.wlr-randr}/bin/wlr-randr > /dev/null 2>&1"
-          '';
+          ExecCondition = "${display-connected}/bin/display-connected";
           ExecStart = "${pkgs.nwg-drawer}/bin/nwg-drawer -r -nofs -nocats -s ${drawerStyle}";
           Restart = "always";
           RestartSec = "1";
@@ -554,6 +587,7 @@ in
           Restart = "always";
           RestartSec = "1";
           Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock";
+          ExecCondition = "${display-connected}/bin/display-connected";
           ExecStart = "${pkgs.networkmanagerapplet}/bin/nm-applet --indicator";
         };
         wantedBy = [ "ewwbar.service" ];
@@ -569,6 +603,7 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "5";
+          ExecCondition = "${display-connected}/bin/display-connected";
           ExecStart = "${pkgs.ghaf-audio-control}/bin/GhafAudioControlStandalone --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=audio-subwoofer";
         };
 
