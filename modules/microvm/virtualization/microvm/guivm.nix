@@ -27,6 +27,9 @@ let
 
       # To push logs to central location
       ../../../common/logging/client.nix
+
+      ../../../common/logging/hw-mac-retrieve.nix
+
       (
         { lib, pkgs, ... }:
         let
@@ -90,7 +93,14 @@ let
 
             givc.guivm.enable = true;
 
-            # Storage
+            # Enable github service for control panel bug report
+            services.github = {
+              enable = true;
+              token = "xxxxxxxxxxxxxxxxxxxx"; # Will be updated when the user login
+              owner = "tiiuae";
+              repo = "ghaf-bugreports";
+            };
+
             storagevm = {
               enable = true;
               name = vmName;
@@ -114,6 +124,8 @@ let
             logging.client = {
               inherit (config.ghaf.logging.client) enable endpoint;
             };
+            # TODO: Remove when the GIVC sharing is implemented for MAC address
+            logging.identifierFilePath = "/tmp/MACAddress";
 
             services = {
               disks = {
@@ -211,7 +223,9 @@ let
                 pkgs.eww
                 pkgs.wlr-randr
               ]
-              ++ [ pkgs.ctrl-panel ]
+              ++ [
+                pkgs.ctrl-panel
+              ]
               ++ (lib.optional (
                 config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
               ) pkgs.mitmweb-ui)
@@ -221,6 +235,12 @@ let
                 pkgs.libva-utils
                 pkgs.glib
               ];
+            sessionVariables = {
+              GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
+              # TODO: Current client ID belongs to the "GitHub CLI" OAuth app. Replace it with TII Github app
+              # GITHUB App Client ID for bug reporting login
+              GITHUB_CLIENT_ID = "178c6fc778ccc68e1d6a";
+            };
           };
 
           time.timeZone = config.time.timeZone;
