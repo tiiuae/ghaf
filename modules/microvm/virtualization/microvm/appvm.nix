@@ -27,10 +27,8 @@ let
       # Packages and extra modules from all applications defined in the appvm
       appPackages = builtins.concatLists (map (app: app.packages) vm.applications);
       appExtraModules = builtins.concatLists (map (app: app.extraModules) vm.applications);
-      sshKeysHelper = pkgs.callPackage ../../../../packages/ssh-keys-helper {
-        inherit pkgs;
-        config = configHost;
-      };
+      sshKeysHelper = pkgs.sshKeysHelper.override { config = configHost; };
+
       appvmConfiguration = {
         imports = [
           inputs.impermanence.nixosModules.impermanence

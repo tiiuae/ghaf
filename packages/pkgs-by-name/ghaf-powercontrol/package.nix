@@ -3,11 +3,10 @@
 {
   writeShellApplication,
   lib,
-  ghafConfig,
   systemd,
   wlopm,
   givc-cli,
-  ...
+  ghafConfig ? { },
 }:
 let
   useGivc = ghafConfig.givc.enable;

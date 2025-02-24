@@ -100,6 +100,29 @@ let
               reference.programs.windows-launcher.enable = true;
             };
 
+            nixpkgs = {
+              hostPlatform.system = system;
+
+              # Increase the support for different devices by allowing the use
+              # of proprietary drivers from the respective vendors
+              config = {
+                allowUnfree = true;
+                #jitsi was deemed insecure because of an obsecure potential security
+                #vulnerability but it is still used by many people
+                permittedInsecurePackages = [
+                  "jitsi-meet-1.0.8043"
+                ];
+              };
+
+              overlays = [
+                inputs.ghafpkgs.overlays.default
+                inputs.givc.overlays.default
+                inputs.self.overlays.own-pkgs-overlay
+                inputs.self.overlays.custom-packages
+              ];
+
+            };
+
             #TODO: how to handle the majority of laptops that need a little
             # something extra?
             # SEE: https://github.com/NixOS/nixos-hardware/blob/master/flake.nix

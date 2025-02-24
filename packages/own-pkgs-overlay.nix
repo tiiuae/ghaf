@@ -11,20 +11,23 @@
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
+    ghaf-powercontrol = final.callPackage ./pkgs-by-name/ghaf-powercontrol/package.nix { };
     ghaf-screenshot = final.callPackage ./pkgs-by-name/ghaf-screenshot/package.nix { };
     ghaf-workspace = final.callPackage ./pkgs-by-name/ghaf-workspace/package.nix { };
     globalprotect-openconnect =
       final.callPackage ./pkgs-by-name/globalprotect-openconnect/package.nix
         { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
-    installer = final.callPackage ./pkgs-by-name/installer/package.nix { };
+    ghaf-installer = final.callPackage ./pkgs-by-name/installer/package.nix { };
     kernel-hardening-checker =
       final.callPackage ./pkgs-by-name/kernel-hardening-checker/package.nix
         { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
+    memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     mitmweb-ui = final.callPackage ./pkgs-by-name/mitmweb-ui/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     qemuqmp = final.callPackage ./pkgs-by-name/qemuqmp/package.nix { };
+    sshKeysHelper = final.callPackage ./pkgs-by-name/ssh-keys-helper/package.nix { };
     vhotplug = final.callPackage ./pkgs-by-name/vhotplug/package.nix { };
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };

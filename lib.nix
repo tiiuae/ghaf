@@ -9,7 +9,7 @@ let
   inherit (inputs) nixpkgs;
 in
 nixpkgs.lib.extend (
-  lib: _: rec {
+  lib: _: {
     /*
          *
          Filters Nix packages based on the target system platform.
@@ -53,14 +53,5 @@ nixpkgs.lib.extend (
         in
         lib.elem system platforms
       );
-
-    flattenPkgs =
-      separator: path: value:
-      if lib.isDerivation value then
-        {
-          ${lib.concatStringsSep separator path} = value;
-        }
-      else
-        lib.concatMapAttrs (name: flattenPkgs separator (path ++ [ name ])) value;
   }
 )

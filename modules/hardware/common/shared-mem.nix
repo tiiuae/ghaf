@@ -94,7 +94,7 @@ in
       type = types.path;
       default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-server.sock";
       description = ''
-        Specifies the path of the listening socket, which is used by Waypipe 
+        Specifies the path of the listening socket, which is used by Waypipe
         or other server applications as the output socket in server mode for
         data transmission
       '';
@@ -103,7 +103,7 @@ in
       type = types.path;
       default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-client.sock";
       description = ''
-        Specifies the location of the output socket, which will connected to 
+        Specifies the location of the output socket, which will connected to
         in order to receive data from AppVMs. This socket must be created by
         another application, such as Waypipe, when operating in client mode
       '';
@@ -112,7 +112,7 @@ in
       type = types.bool;
       default = false;
       description = ''
-        Enables the use of shared memory with Waypipe for Wayland-enabled 
+        Enables the use of shared memory with Waypipe for Wayland-enabled
         applications running on virtual machines (VMs), facilitating
         efficient inter-VM communication
       '';
@@ -141,7 +141,7 @@ in
       }
       (mkIf cfg.enable_host {
         environment.systemPackages = [
-          (pkgs.callPackage ../../../packages/memsocket { vms = cfg.instancesCount; })
+          (pkgs.memsocket.override { vms = cfg.instancesCount; })
         ];
       })
       {
@@ -179,7 +179,7 @@ in
       {
         microvm.vms =
           let
-            memsocket = pkgs.callPackage ../../../packages/memsocket { vms = cfg.instancesCount; };
+            memsocket = pkgs.memsocket.override { vms = cfg.instancesCount; };
             vectors = toString (2 * cfg.instancesCount);
             makeAssignment = vmName: {
               ${vmName} = {
@@ -197,7 +197,8 @@ in
                       kernelParams = [ "kvm_ivshmem.flataddr=${cfg.flataddr}" ];
                     };
                     boot.extraModulePackages = [
-                      (pkgs.linuxPackages.callPackage ../../../packages/memsocket/module.nix {
+                      # TODO: fix this to not call back to packages dir
+                      (pkgs.linuxPackages.callPackage ../../../packages/pkgs-by-name/memsocket/module.nix {
                         inherit (config.microvm.vms.${vmName}.config.config.boot.kernelPackages) kernel;
                         vmCount = cfg.instancesCount;
                       })
