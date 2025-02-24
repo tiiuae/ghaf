@@ -10,9 +10,7 @@ let
 
   cfg = config.ghaf.graphics.labwc;
   useGivc = config.ghaf.givc.enable;
-  ghaf-powercontrol = pkgs.callPackage ../../../packages/ghaf-powercontrol {
-    ghafConfig = config.ghaf;
-  };
+  ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
   inherit (config.ghaf.services.audio) pulseaudioTcpControlPort;
 
   # Called by eww.yuck for updates and reloads

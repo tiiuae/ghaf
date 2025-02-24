@@ -16,7 +16,6 @@ let
     literalExpression
     ;
 
-  vhotplug = pkgs.callPackage ../../../../packages/vhotplug { };
   defaultRules = [
     {
       name = "GUIVM";
@@ -215,7 +214,7 @@ in
         Type = "simple";
         Restart = "always";
         RestartSec = "1";
-        ExecStart = "${vhotplug}/bin/vhotplug -a -c /etc/vhotplug.conf";
+        ExecStart = "${pkgs.vhotplug}/bin/vhotplug -a -c /etc/vhotplug.conf";
       };
       startLimitIntervalSec = 0;
     };

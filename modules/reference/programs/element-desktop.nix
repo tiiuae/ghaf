@@ -8,7 +8,6 @@
 }:
 let
   cfg = config.ghaf.reference.programs.element-desktop;
-  dendrite-pinecone = pkgs.callPackage ../../../packages/dendrite-pinecone { };
   isDendritePineconeEnabled =
     if (lib.hasAttr "services" config.ghaf.reference) then
       config.ghaf.reference.services.dendrite
@@ -47,7 +46,7 @@ in
         enable = true;
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${dendrite-pinecone}/bin/dendrite-demo-pinecone";
+          ExecStart = "${pkgs.dendrite-pinecone}/bin/dendrite-demo-pinecone";
           Restart = "on-failure";
           RestartSec = "2";
         };
@@ -56,8 +55,8 @@ in
     };
 
     networking = pkgs.lib.mkIf isDendritePineconeEnabled {
-      firewall.allowedTCPPorts = [ dendrite-pinecone.TcpPortInt ];
-      firewall.allowedUDPPorts = [ dendrite-pinecone.McastUdpPortInt ];
+      firewall.allowedTCPPorts = [ pkgs.dendrite-pinecone.TcpPortInt ];
+      firewall.allowedUDPPorts = [ pkgs.dendrite-pinecone.McastUdpPortInt ];
     };
 
   };

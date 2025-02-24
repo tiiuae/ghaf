@@ -48,7 +48,7 @@ let
             nixpkgs = {
               buildPlatform.system = "x86_64-linux";
               hostPlatform.system = "riscv64-linux";
-              overlays = [ self.overlays.cross-compilation ];
+              #overlays = [ self.overlays.cross-compilation ];
             };
             boot.kernelParams = [
               "root=/dev/mmcblk0p2"

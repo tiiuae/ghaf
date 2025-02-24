@@ -34,7 +34,6 @@ let
   # FIXME: Only one attribute supported. What about ISO?
   imagePath = testingConfig.config.system.build.diskoImages + "/disk1.raw.zst";
   targetPath = "/dev/vdb";
-  installScript = pkgs.callPackage ../../packages/installer { };
   installerInput = pkgs.lib.strings.escapeNixString "${targetPath}\ny\ny\n";
 in
 pkgs.nixosTest {
@@ -48,7 +47,7 @@ pkgs.nixosTest {
     };
 
     environment.systemPackages = [
-      installScript
+      pkgs.ghaf-installer
       self.packages.x86_64-linux.hardware-scan
     ];
   };

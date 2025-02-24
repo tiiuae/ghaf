@@ -41,9 +41,6 @@ let
 
           system.stateVersion = lib.trivial.release;
 
-          nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-          nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
           microvm.hypervisor = "qemu";
 
           environment.systemPackages = [

@@ -12,9 +12,6 @@
   ghaf-powercontrol,
   ...
 }:
-let
-  ghaf-workspace = pkgs.callPackage ../../../../../../packages/ghaf-workspace { };
-in
 writeText "widgets.yuck" ''
   ;; Launcher ;;
       (defwidget launcher []
@@ -655,7 +652,7 @@ writeText "widgets.yuck" ''
                                 (button 
                                     :class "taskbar_button"
                                     :style "padding: 2px 7px;"
-                                    :onclick "${ghaf-workspace}/bin/ghaf-workspace switch ${toString index}; ''${EWW_CMD} update workspaces-visible=false"
+                                    :onclick "${pkgs.ghaf-workspace}/bin/ghaf-workspace switch ${toString index}; ''${EWW_CMD} update workspaces-visible=false"
                                     (image 
                                       :class "icon"
                                       :active {workspace == ${toString index}}

@@ -78,10 +78,7 @@ let
 
           system.stateVersion = lib.trivial.release;
 
-          nixpkgs = {
-            buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-            hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-          };
+         # nixpkgs = configHost.nixpkgs.flake.source;
 
           networking.firewall = {
             allowedTCPPorts = lib.mkIf isLoggingEnabled [ config.ghaf.logging.listener.port ];
@@ -138,7 +135,7 @@ in
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
       autostart = true;
-      inherit (inputs) nixpkgs;
+       nixpkgs = configHost.nixpkgs.flake.source;
       config = adminvmBaseConfiguration // {
         imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
       };

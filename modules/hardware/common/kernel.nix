@@ -19,6 +19,7 @@ let
     ;
 
   # Only x86 targets with hw definition supported at the moment
+  # TODO: this should at the very least be isx86_64
   inherit (pkgs.stdenv.hostPlatform) isx86;
   fullVirtualization = isx86 && (hasAttr "hardware" config.ghaf);
 in

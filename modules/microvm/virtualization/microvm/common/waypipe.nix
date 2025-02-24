@@ -34,7 +34,6 @@ let
           '';
     in
     pkgs.writeScriptBin "run-waypipe" script;
-  vsockproxy = pkgs.callPackage ../../../../../packages/vsockproxy { };
   guivmCID = configHost.ghaf.virtualization.microvm.guivm.vsockCID;
 in
 {
@@ -97,7 +96,7 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = "${vsockproxy}/bin/vsockproxy ${toString waypipePort} ${toString guivmCID} ${toString waypipePort} ${toString cid}";
+          ExecStart = "${pkgs.vsockproxy}/bin/vsockproxy ${toString waypipePort} ${toString guivmCID} ${toString waypipePort} ${toString cid}";
         };
         startLimitIntervalSec = 0;
         wantedBy = [ "multi-user.target" ];

@@ -85,11 +85,6 @@ let
           time.timeZone = config.time.timeZone;
           system.stateVersion = lib.trivial.release;
 
-          nixpkgs = {
-            buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-            hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-          };
-
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
