@@ -30,9 +30,10 @@ let
         { lib, pkgs, ... }:
         let
           # A list of applications from all AppVMs
+          enabledVms = lib.filterAttrs (_: vm: vm.enable) config.ghaf.virtualization.microvm.appvm.vms;
           virtualApps = lib.lists.concatMap (
             vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
-          ) config.ghaf.virtualization.microvm.appvm.vms;
+          ) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
 
           # Launchers for all virtualized applications that run in AppVMs
           virtualLaunchers = map (app: rec {
@@ -113,7 +114,7 @@ let
                 securityContext = map (vm: {
                   identifier = vm.name;
                   color = vm.borderColor;
-                }) config.ghaf.virtualization.microvm.appvm.vms;
+                }) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
               };
             };
 
