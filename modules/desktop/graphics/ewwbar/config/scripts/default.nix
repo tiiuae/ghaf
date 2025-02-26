@@ -12,8 +12,6 @@
 let
   ewwCmd = "${pkgs.eww}/bin/eww -c /etc/eww";
 
-  ghaf-workspace = pkgs.callPackage ../../../../../../packages/ghaf-workspace { };
-
   eww-bat = pkgs.writeShellApplication {
     name = "eww-bat";
     runtimeInputs = [
@@ -147,7 +145,7 @@ let
         battery=$(${eww-bat}/bin/eww-bat get)
         windows=$(${eww-windows}/bin/eww-windows list)
         keyboard_layout=$(setxkbmap -query | awk '/layout/{print $2}' | tr '[:lower:]' '[:upper:]')
-        workspace=$(${ghaf-workspace}/bin/ghaf-workspace cur)
+        workspace=$(${pkgs.ghaf-workspace}/bin/ghaf-workspace cur)
         if ! [[ $workspace =~ ^[0-9]+$ ]] ; then
             workspace="1"
         fi

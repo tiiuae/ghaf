@@ -2,7 +2,11 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Lenovo X1 Carbon Installer
-{ lib, self, ... }:
+{
+  lib,
+  self,
+  ...
+}:
 let
   name = "lenovo-x1-carbon";
   system = "x86_64-linux";
@@ -15,9 +19,6 @@ let
         modules = [
           (
             { pkgs, modulesPath, ... }:
-            let
-              installScript = pkgs.callPackage ../../packages/installer { };
-            in
             {
               imports = [ "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
 
@@ -37,7 +38,7 @@ let
               networking.hostName = "ghaf-installer";
 
               environment.systemPackages = [
-                installScript
+                pkgs.ghaf-installer
                 self.packages.x86_64-linux.hardware-scan
               ];
 

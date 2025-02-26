@@ -17,10 +17,6 @@
       ./common
       {
         ghaf.development.nix-setup.nixpkgs = inputs.nixpkgs;
-        nixpkgs.overlays = [
-          inputs.ghafpkgs.overlays.default
-          inputs.givc.overlays.default
-        ];
       }
     ];
 

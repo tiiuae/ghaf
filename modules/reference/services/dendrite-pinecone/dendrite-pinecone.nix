@@ -3,13 +3,12 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
   cfg = config.ghaf.reference.services.dendrite-pinecone;
+  #TODO: this seems to be unused check later
   inherit (config.ghaf.reference) services;
-  dendrite-pineconePkg = pkgs.callPackage ../../../../packages/dendrite-pinecone/default.nix { };
   inherit (lib)
     mkEnableOption
     mkOption
@@ -43,6 +42,46 @@ in
         Dendrite Server Ip address
       '';
     };
+
+    TcpPort = mkOption {
+      type = types.str;
+      default = "49000";
+      description = ''
+        TCP port for dendrite pinecone
+      '';
+    };
+    McastUdpPort = mkOption {
+      type = types.str;
+      default = "60606";
+      description = ''
+        Multicast UDP port for dendrite pinecone
+      '';
+    };
+
+    McastUdpIp = mkOption {
+      type = types.str;
+      default = "239.0.0.114";
+      description = ''
+        Multicast UDP IP for dendrite pinecone
+      '';
+    };
+
+    TcpPortInt = mkOption {
+      type = types.int;
+      default = 49000;
+      description = ''
+        TCP port for dendrite pinecone
+      '';
+    };
+
+    McastUdpPortInt = mkOption {
+      type = types.int;
+      default = 60606;
+      description = ''
+        Multicast UDP port for dendrite pinecone
+      '';
+    };
+
   };
 
   config = mkIf cfg.enable {
@@ -65,10 +104,10 @@ in
       enable = true;
       bindingNic = "${cfg.externalNic}";
       rules = ''
-        mgroup from ${cfg.externalNic} group ${dendrite-pineconePkg.McastUdpIp}
-        mgroup from ${cfg.internalNic} group ${dendrite-pineconePkg.McastUdpIp}
-        mroute from ${cfg.externalNic} group ${dendrite-pineconePkg.McastUdpIp} to ${cfg.internalNic}
-        mroute from ${cfg.internalNic} group ${dendrite-pineconePkg.McastUdpIp} to ${cfg.externalNic}
+        mgroup from ${cfg.externalNic} group ${cfg.McastUdpIp}
+        mgroup from ${cfg.internalNic} group ${cfg.McastUdpIp}
+        mroute from ${cfg.externalNic} group ${cfg.McastUdpIp} to ${cfg.internalNic}
+        mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to ${cfg.externalNic}
       '';
     };
     networking = {
@@ -78,22 +117,22 @@ in
         # TODO: Move all these TcpPort and things like that, to the options of
         #       this module, away from from package itself.
 
-        # Forward incoming TCP traffic on port ${dendrite-pineconePkg.TcpPort} to internal network(comms-vm)
-        iptables -t nat -I PREROUTING -i ${cfg.externalNic} -p tcp --dport ${dendrite-pineconePkg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${dendrite-pineconePkg.TcpPort}
+        # Forward incoming TCP traffic on port ${cfg.TcpPort} to internal network(comms-vm)
+        iptables -t nat -I PREROUTING -i ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${cfg.TcpPort}
 
         # Enable NAT for outgoing traffic
-        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --dport ${dendrite-pineconePkg.TcpPort} -j MASQUERADE
+        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j MASQUERADE
 
         # Enable NAT for outgoing traffic
-        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --sport ${dendrite-pineconePkg.TcpPort} -j MASQUERADE
+        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --sport ${cfg.TcpPort} -j MASQUERADE
 
         # Enable NAT for outgoing udp multicast traffic
-        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p udp -d ${dendrite-pineconePkg.McastUdpIp} --dport ${dendrite-pineconePkg.McastUdpPort} -j MASQUERADE
+        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p udp -d ${cfg.McastUdpIp} --dport ${cfg.McastUdpPort} -j MASQUERADE
 
         # https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
-        iptables -t mangle -I PREROUTING -i ${cfg.externalNic} -d ${dendrite-pineconePkg.McastUdpIp} -j TTL --ttl-set 1
+        iptables -t mangle -I PREROUTING -i ${cfg.externalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-set 1
         # ttl value must be set to 1 for avoiding multicast looping
-        iptables -t mangle -I PREROUTING -i ${cfg.internalNic} -d ${dendrite-pineconePkg.McastUdpIp} -j TTL --ttl-inc 1
+        iptables -t mangle -I PREROUTING -i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1
 
       ";
     };

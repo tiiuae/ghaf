@@ -4,7 +4,7 @@
 # Flake module for exporting overlays
 {
   flake.overlays = {
-    cross-compilation = import ./cross-compilation;
+    #cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
   };
 }

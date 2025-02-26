@@ -14,7 +14,7 @@
     {
       name = "GALA";
       description = "Secure Android-in-the-Cloud";
-      packages = [ pkgs.gala-app ];
+      packages = [ pkgs.gala ];
       icon = "distributor-logo-android";
       command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
     }

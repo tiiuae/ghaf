@@ -13,19 +13,11 @@
       inputs.givc.nixosModules.tls
       ./common.nix
       ./host.nix
-      {
-        # Include givc overlay to import app
-        nixpkgs.overlays = [ inputs.givc.overlays.default ];
-      }
     ];
     givc-guivm.imports = [
       inputs.givc.nixosModules.sysvm
       ./common.nix
       ./guivm.nix
-      {
-        # Include givc overlay to import app
-        nixpkgs.overlays = [ inputs.givc.overlays.default ];
-      }
     ];
     givc-netvm.imports = [
       inputs.givc.nixosModules.sysvm
@@ -41,10 +33,6 @@
       inputs.givc.nixosModules.appvm
       ./common.nix
       ./appvm.nix
-      {
-        # Include givc overlay to import app
-        nixpkgs.overlays = [ inputs.givc.overlays.default ];
-      }
     ];
   };
 }

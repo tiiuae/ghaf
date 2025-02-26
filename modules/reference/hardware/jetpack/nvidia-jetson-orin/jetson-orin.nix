@@ -76,8 +76,6 @@ in
       };
     };
 
-    nixpkgs.hostPlatform.system = "aarch64-linux";
-
     ghaf.boot.loader.systemd-boot-dtb.enable = true;
 
     boot = {
