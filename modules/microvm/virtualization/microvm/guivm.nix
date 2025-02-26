@@ -41,7 +41,7 @@ let
             inherit (app) description;
             #inherit (app) givcName;
             vm = app.vmName;
-            path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start --vm ${vm} ${app.givcName}";
+            path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
             inherit (app) icon;
           }) virtualApps;
           # Launchers for all desktop, non-virtualized applications that run in the GUIVM

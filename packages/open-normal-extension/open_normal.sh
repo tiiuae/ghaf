@@ -57,7 +57,7 @@ if [ -r "$CFGF" ]; then
     else
         # Do not complain about double quotes, $GIVC_OPTS is purposefully unquoted here
         # shellcheck disable=SC2086
-        "${GIVC_PATH}/bin/givc-cli" $GIVC_OPTS start --vm chrome-vm google-chrome -- "${URL}" > /dev/null 2>&1
+        "${GIVC_PATH}/bin/givc-cli" $GIVC_OPTS start app --vm chrome-vm google-chrome -- "${URL}" > /dev/null 2>&1
         RES=$?
         # Just return the exit value of givc-cli back to the browser
         Msg "{\"status\":\"${RES}\"}"
