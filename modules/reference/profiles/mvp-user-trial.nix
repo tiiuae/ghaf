@@ -37,20 +37,24 @@ in
         "chrome-vm"
       ];
 
-      reference = {
-        appvms = {
-          enable = true;
-          chrome-vm = true;
-          gala-vm = true;
-          zathura-vm = true;
-          comms-vm = true;
-          business-vm = true;
+      virtualization.microvm.appvm = {
+        enable = true;
+        vms = {
+          chrome.enable = true;
+          gala.enable = true;
+          zathura.enable = true;
+          comms.enable = true;
+          business.enable = true;
         };
+      };
+
+      reference = {
+        appvms.enable = true;
 
         services = {
           enable = true;
           dendrite = true;
-          proxy-business = lib.mkForce config.ghaf.reference.appvms.business-vm;
+          proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
           google-chromecast = true;
         };
 
@@ -78,7 +82,6 @@ in
               ghaf.reference.services.ollama = true;
             }
           ];
-          inherit (config.ghaf.reference.appvms) enabled-app-vms;
         };
       };
 

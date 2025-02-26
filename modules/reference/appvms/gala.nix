@@ -6,17 +6,18 @@
   ...
 }:
 {
-  name = "gala";
-  ramMb = 1536;
-  cores = 2;
-  borderColor = "#027d7b";
-  applications = [
-    {
-      name = "GALA";
-      description = "Secure Android-in-the-Cloud";
-      packages = [ pkgs.gala ];
-      icon = "distributor-logo-android";
-      command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
-    }
-  ];
+  gala = {
+    ramMb = 1536;
+    cores = 2;
+    borderColor = "#027d7b";
+    applications = [
+      {
+        name = "GALA";
+        description = "Secure Android-in-the-Cloud";
+        packages = [ pkgs.gala ];
+        icon = "distributor-logo-android";
+        command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+      }
+    ];
+  };
 }
