@@ -1,0 +1,15 @@
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+diff --git a/src/base/fm-folder.c.bak b/src/base/fm-folder.c
+index a29339f..01cec8e 100644
+--- a/src/base/fm-folder.c.bak
++++ b/src/base/fm-folder.c
+@@ -694,6 +694,8 @@ static void on_folder_changed(GFileMonitor* mon, GFile* gf, GFile* other, GFileM
+             queue_reload(folder);
+             break;
+         case G_FILE_MONITOR_EVENT_ATTRIBUTE_CHANGED:
++            queue_reload(folder);
++            break;
+         case G_FILE_MONITOR_EVENT_CHANGED:
+             folder->pending_change_notify = TRUE;
+             G_LOCK(lists);

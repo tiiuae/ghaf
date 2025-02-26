@@ -25,7 +25,7 @@ let
       config.ghaf.hardware.definition.audio.rescanPciDevice
     else
       config.ghaf.hardware.definition.audio.removePciDevice;
-
+  vinotify = pkgs.callPackage ../../../../packages/vinotify { };
 in
 {
   imports = [
@@ -46,6 +46,10 @@ in
         '';
         type = types.listOf types.str;
         default = [ ];
+      };
+
+      inotifyPassthrough = mkEnableOption "inotify passthrough" // {
+        default = true;
       };
     };
   };
@@ -142,6 +146,41 @@ in
           "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
         ]
         ++ vmDirs;
+    })
+    (mkIf (cfg.sharedVmDirectory.enable && cfg.sharedVmDirectory.inotifyPassthrough) {
+      # Enable passthrough of the shared folder inotify events from the host to the GUI VM
+      # This is required for the file manager to refresh the shared folder content when it is updated from AppVMs
+      systemd.services.vinotify = {
+        enable = true;
+        description = "vinotify";
+        wantedBy = [ "microvms.target" ];
+        before = [ "microvms.target" ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${vinotify}/bin/vinotify --cid ${toString config.ghaf.virtualization.microvm.guivm.vsockCID} --port 2000 --path /persist/storagevm/shared/shares --mode host";
+        };
+        startLimitIntervalSec = 0;
+      };
+
+      # Receive shared folder inotify events from the host to automatically refresh the file manager
+      ghaf.virtualization.microvm.guivm.extraModules = [
+        {
+          systemd.services.vinotify = {
+            enable = true;
+            description = "vinotify";
+            wantedBy = [ "multi-user.target" ];
+            serviceConfig = {
+              Type = "simple";
+              Restart = "always";
+              RestartSec = "1";
+              ExecStart = "${vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
+            };
+            startLimitIntervalSec = 0;
+          };
+        }
+      ];
     })
     (mkIf config.ghaf.profiles.debug.enable {
       # Host service to remove user

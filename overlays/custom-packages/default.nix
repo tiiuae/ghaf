@@ -11,4 +11,5 @@
   qemu_kvm = import ./qemu { inherit final prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
+  libfm = import ./libfm { inherit prev; };
 })
