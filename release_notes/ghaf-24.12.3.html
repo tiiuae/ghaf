@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Release Notes - Ghaf Framework</title>
+        <title>Release ghaf-24.12.3 - Ghaf Framework</title>
 
 
         <!-- Custom HTML head -->
@@ -226,37 +226,68 @@
     Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="ghaf-release-notes"><a class="header" href="#ghaf-release-notes">Ghaf Release Notes</a></h1>
-<p>Ghaf is released 4 times per year at the end of each quarter. Additional releases or point releases may be made as per request. Point releases are related to user trials as a way to get the fixes and feature requests out faster.</p>
-<p>Release numbering scheme: <em>ghaf-yy.mm</em>.</p>
-<h2 id="in-this-chapter"><a class="header" href="#in-this-chapter">In This Chapter</a></h2>
+<h1 id="release-ghaf-24123"><a class="header" href="#release-ghaf-24123">Release ghaf-24.12.3</a></h1>
+<p>This is a bi-weekly release with a major update to JetPack 6.2 for NVIDIA platforms.</p>
+<h2 id="release-tag"><a class="header" href="#release-tag">Release Tag</a></h2>
+<p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.3">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.3</a></p>
+<h2 id="supported-hardware"><a class="header" href="#supported-hardware">Supported Hardware</a></h2>
+<p>The following target hardware is supported by this release:</p>
 <ul>
-<li><a href="../release_notes/ghaf-24.12.3.html">Release ghaf-24.12.3</a></li>
-<li><a href="../release_notes/ghaf-24.12.2.html">Release ghaf-24.12.2</a></li>
-<li><a href="../release_notes/ghaf-24.12.1.html">Release ghaf-24.12.1</a></li>
-<li><a href="../release_notes/ghaf-24.12.html">Release ghaf-24.12</a></li>
-<li><a href="../release_notes/ghaf-24.09.4.html">Release ghaf-24.09.4</a></li>
-<li><a href="../release_notes/ghaf-24.09.3.html">Release ghaf-24.09.3</a></li>
-<li><a href="../release_notes/ghaf-24.09.2.html">Release ghaf-24.09.2</a></li>
-<li><a href="../release_notes/ghaf-24.09.1.html">Release ghaf-24.09.1</a></li>
-<li><a href="../release_notes/ghaf-24.09.html">Release ghaf-24.09</a></li>
-<li><a href="../release_notes/ghaf-24.06.html">Release ghaf-24.06</a></li>
-<li><a href="../release_notes/ghaf-24.03.html">Release ghaf-24.03</a></li>
-<li><a href="../release_notes/ghaf-23.12.html">Release ghaf-23.12</a></li>
-<li><a href="../release_notes/ghaf-23.09.html">Release ghaf-23.09</a></li>
-<li><a href="../release_notes/ghaf-23.06.html">Release ghaf-23.06</a></li>
-<li><a href="../release_notes/ghaf-23.05.html">Release ghaf-23.05</a></li>
+<li>NVIDIA Jetson AGX Orin</li>
+<li>NVIDIA Jetson Orin NX</li>
+<li>Generic x86 (PC)—build support only</li>
+<li>Lenovo ThinkPad X1 Carbon Gen 10, 11, 12</li>
+<li>NXP i.MX 8M Plus—build support only</li>
 </ul>
+<h2 id="what-is-new-in-ghaf-24123"><a class="header" href="#what-is-new-in-ghaf-24123">What is New in ghaf-24.12.3</a></h2>
+<p>Lenovo X1 Carbon:</p>
+<ul>
+<li>Window Manager widget added.</li>
+<li>VM-level Audio Control added.</li>
+<li>XDG-handlers using GIVC instead of SSH.</li>
+</ul>
+<p>NVIDIA Jetson Orin AGX/NX:</p>
+<ul>
+<li>JetPack 6.2 including NVIDIA Jetson Linux 36.4.3 with Linux kernel 5.15.</li>
+</ul>
+<h2 id="bug-fixes"><a class="header" href="#bug-fixes">Bug Fixes</a></h2>
+<p>Fixed bugs that were present in the <a href="../release_notes/ghaf-24.12.2.html">ghaf-24.12.2</a> release:</p>
+<ul>
+<li>Audio output via 3.5mm jack.</li>
+<li>Missing application menu icons on the first boot after the software installation.</li>
+</ul>
+<h2 id="known-issues-and-limitations"><a class="header" href="#known-issues-and-limitations">Known Issues and Limitations</a></h2>
+<div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
+<tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
+<tr><td>Location sharing does not work</td><td>In Progress</td><td>The issue is under investigation.</td></tr>
+<tr><td>Intermittent audio issue after boot</td><td>In Progress</td><td>Workaround: rebooting the system typically resolves the issue.</td></tr>
+<tr><td>Control Panel functionality is limited: only Display Settings, Local and Timezone settings are functional</td><td>In Progress</td><td>Additional functionality will be implemented in future releases.</td></tr>
+<tr><td>VPN credentials are not saved</td><td>On Hold</td><td></td></tr>
+<tr><td>The keyboard defaults to the English layout on boot</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
+<tr><td>Yubikey for unlocking does not work</td><td>In Progress</td><td>A fix is currently in progress.</td></tr>
+<tr><td>A laptop may wake from suspend without user interaction</td><td>In Progress</td><td>The issue is under investigation.</td></tr>
+<tr><td><strong>NVIDIA Jetson AGX Orin / Orin NX</strong></td><td></td><td></td></tr>
+<tr><td>Firefox has been disabled</td><td>In Progress</td><td>Firefox will be re-enabled once upstream fixes are available.</td></tr>
+<tr><td>The application menu cannot be accessed using the Windows key</td><td>In Progress</td><td>Workaround: access the application menu through the taskbar in the top-left corner.</td></tr>
+<tr><td>The keyboard always boots up with the English layout</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
+<tr><td>The Suspend power option is not functioning as expected</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
+</tbody></table>
+</div>
+<h2 id="environment-requirements"><a class="header" href="#environment-requirements">Environment Requirements</a></h2>
+<p>There are no specific requirements for the environment with this release.</p>
+<h2 id="installation-instructions"><a class="header" href="#installation-instructions">Installation Instructions</a></h2>
+<p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-3">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.3</a>.</p>
+<p>Download the required image and use the following instructions: <a href="../ref_impl/build_and_run">Build and Run</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../scs/ghaf-security-fix-automation.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../release_notes/release_notes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../release_notes/ghaf-24.12.3.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../release_notes/ghaf-24.12.2.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -266,11 +297,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../scs/ghaf-security-fix-automation.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../release_notes/release_notes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../release_notes/ghaf-24.12.3.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../release_notes/ghaf-24.12.2.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

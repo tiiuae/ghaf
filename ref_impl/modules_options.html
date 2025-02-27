@@ -310,7 +310,7 @@ boolean</p>
 <h2 id="ghafdevelopmentnix-setupnixpkgs"><a class="header" href="#ghafdevelopmentnix-setupnixpkgs">ghaf.development.nix-setup.nixpkgs</a></h2>
 <p>Path to the nixpkgs repository</p>
 <p><em>Type:</em>
-null or path</p>
+null or absolute path</p>
 <p><em>Default:</em>
 <code>null</code></p>
 <p><em>Declared by:</em></p>
@@ -758,7 +758,7 @@ string</p>
 <h2 id="ghafgraphicslabwcwallpaper"><a class="header" href="#ghafgraphicslabwcwallpaper">ghaf.graphics.labwc.wallpaper</a></h2>
 <p>Path to the wallpaper image</p>
 <p><em>Type:</em>
-path</p>
+absolute path</p>
 <p><em>Default:</em>
 <code>"/nix/store/0376s5fm8cjczdi0f04lsx67mb4zmnaw-ghaf-artwork-0.1.0/ghaf-desert-sunset.jpg"</code></p>
 <p><em>Declared by:</em></p>
@@ -808,7 +808,7 @@ string</p>
 <h2 id="ghafgraphicslauncherspath"><a class="header" href="#ghafgraphicslauncherspath">ghaf.graphics.launchers.*.path</a></h2>
 <p>Path to the executable to be launched</p>
 <p><em>Type:</em>
-path</p>
+absolute path</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
@@ -3086,48 +3086,6 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/wifi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/wifi.nix</a></li>
 </ul>
-<h2 id="ghafservicesxdghandlersenable"><a class="header" href="#ghafservicesxdghandlersenable">ghaf.services.xdghandlers.enable</a></h2>
-<p>Whether to enable Enable Ghaf XDG handlers.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdghandlers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdghandlers.nix</a></li>
-</ul>
-<h2 id="ghafservicesxdghandlershandlerpath"><a class="header" href="#ghafservicesxdghandlershandlerpath">ghaf.services.xdghandlers.handlerPath</a></h2>
-<p>Path of xdgHandler script.</p>
-<p><em>Type:</em>
-string</p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdghandlers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdghandlers.nix</a></li>
-</ul>
-<h2 id="ghafservicesxdgopenerenable"><a class="header" href="#ghafservicesxdgopenerenable">ghaf.services.xdgopener.enable</a></h2>
-<p>Whether to enable Enable the XDG opening service.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix</a></li>
-</ul>
-<h2 id="ghafservicesxdgopenerxdgport"><a class="header" href="#ghafservicesxdgopenerxdgport">ghaf.services.xdgopener.xdgPort</a></h2>
-<p>TCP port for the XDG socket</p>
-<p><em>Type:</em>
-signed integer</p>
-<p><em>Default:</em>
-<code>1200</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/xdgopener.nix</a></li>
-</ul>
 <h2 id="ghafservicesyubikeyenable"><a class="header" href="#ghafservicesyubikeyenable">ghaf.services.yubikey.enable</a></h2>
 <p>Whether to enable Enable yubikey support which provide 2FA.</p>
 <p><em>Type:</em>
@@ -3177,7 +3135,7 @@ boolean</p>
 in order to receive data from AppVMs. This socket must be created by
 another application, such as Waypipe, when operating in client mode</p>
 <p><em>Type:</em>
-path</p>
+absolute path</p>
 <p><em>Default:</em>
 <code>"/run/user/1000/memsocket-client.sock"</code></p>
 <p><em>Declared by:</em></p>
@@ -3212,7 +3170,7 @@ string</p>
 <p>Specifies the path to the shared memory socket, used by QEMU
 instances for inter-VM memory sharing and interrupt signaling</p>
 <p><em>Type:</em>
-path</p>
+absolute path</p>
 <p><em>Default:</em>
 <code>"/tmp/ivshmem_socket"</code></p>
 <p><em>Declared by:</em></p>
@@ -3256,7 +3214,7 @@ signed integer</p>
 or other server applications as the output socket in server mode for
 data transmission</p>
 <p><em>Type:</em>
-path</p>
+absolute path</p>
 <p><em>Default:</em>
 <code>"/run/user/1000/memsocket-server.sock"</code></p>
 <p><em>Declared by:</em></p>
@@ -3921,7 +3879,7 @@ string</p>
 <p><em>Type:</em>
 string <em>(read only)</em></p>
 <p><em>Default:</em>
-<code>"24.12.3"</code></p>
+<code>"24.12.4"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/version">https://github.com/tiiuae/ghaf/blob/main/modules/common/version</a></li>
