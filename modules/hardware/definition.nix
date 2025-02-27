@@ -5,7 +5,7 @@
 #
 # The point of this module is to only store information about the hardware
 # configuration, and the logic that uses this information should be elsewhere.
-{ lib, ... }:
+{ pkgs, lib, ... }:
 let
   inherit (lib) mkOption types literalExpression;
 in
@@ -286,8 +286,10 @@ in
         };
         acpiPath = mkOption {
           description = "Path to ACPI file to add to a VM";
-          type = types.nullOr types.str;
-          default = null;
+          type = types.nullOr types.path;
+          # Add ACPI table file to audioVM to enable Lenovo X1 microphone array profile
+          # As we will be mostly using ACPI path for different generations of X1 so keep as default
+          default = if pkgs.stdenv.hostPlatform.isx86_64 then "/sys/firmware/acpi/tables/NHLT" else null;
         };
         # With the current implementation, the whole PCI IOMMU group 14:
         #   00:1f.x in the example from Lenovo X1 Carbon
