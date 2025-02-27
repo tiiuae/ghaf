@@ -70,7 +70,7 @@ async def read_continuous_gps(data):
         data.stop_event.set()
 
 
-async def handler(websocket, path, gps_state):
+async def handler(websocket, gps_state):
     print("New connection received")
     while not gps_state.abort_websockets:
         async with gps_state.condition:
