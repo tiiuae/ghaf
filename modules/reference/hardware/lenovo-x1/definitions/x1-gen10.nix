@@ -91,10 +91,6 @@
   audio = {
     # Force a PCI device reset to the device to get pci device to the default state at shutdown
     removePciDevice = "0000:00:1f.3";
-    # Force a PCI device rescan after resetting a device to refind the device on host
-    rescanPciDevice = "0000:00:1f.0";
-    # Add acpi table to audioVM to enable microphone array profile
-    acpiPath = "/sys/firmware/acpi/tables/NHLT";
 
     pciDevices = [
       {
