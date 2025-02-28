@@ -134,7 +134,11 @@ in
       map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
     packages = {
-      x86_64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      x86_64-linux = builtins.listToAttrs (
+        map (
+          t: lib.nameValuePair t.name (self.outputs.lib.genPkgWithFlashScript t.package "x86_64-linux")
+        ) targets
+      );
     };
   };
 }
