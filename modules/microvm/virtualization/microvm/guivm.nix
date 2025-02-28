@@ -33,7 +33,7 @@ let
           # A list of applications from all AppVMs
           virtualApps = lib.lists.concatMap (
             vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
-          ) config.ghaf.virtualization.microvm.appvm.vms;
+          ) (builtins.attrValues config.ghaf.virtualization.microvm.appvm.vms);
 
           # Launchers for all virtualized applications that run in AppVMs
           virtualLaunchers = map (app: rec {
@@ -107,7 +107,7 @@ let
                 securityContext = map (vm: {
                   identifier = vm.name;
                   color = vm.borderColor;
-                }) config.ghaf.virtualization.microvm.appvm.vms;
+                }) (builtins.attrValues config.ghaf.virtualization.microvm.appvm.vms);
               };
             };
 
@@ -196,6 +196,16 @@ let
                 };
               };
           };
+
+          environment.etc."ctrl-panel/wireguard-gui-vms.txt" =
+            let
+               vmstxt = lib.concatStringsSep "\n" config.ghaf.services.wireguard-gui.vms;
+            in
+            {
+              text =  ''
+                ${vmstxt}
+              '';
+            };
 
           environment = {
             systemPackages =
