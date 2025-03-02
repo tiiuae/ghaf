@@ -12,8 +12,9 @@ let
   system = "x86_64-linux";
 
   laptop-configuration = import ./laptop-configuration-builder.nix { inherit lib self inputs; };
+  laptop-installer = import ./laptop-installer-builder.nix { inherit lib self inputs; };
 
-  targets = [
+  target-configs = [
     # Laptop Debug configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" [
       self.nixosModules.disko-ab-partitions-v1
@@ -69,7 +70,7 @@ let
         };
       }
     ])
-    (laptop-configuration "alienware-m18" "debug" [
+    (laptop-configuration "alienware-m18-R2" "debug" [
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
@@ -137,7 +138,7 @@ let
         };
       }
     ])
-    (laptop-configuration "alienware-m18" "release" [
+    (laptop-configuration "alienware-m18-R2" "release" [
       self.nixosModules.disko-ab-partitions-v1
       {
         ghaf = {
@@ -150,6 +151,11 @@ let
       }
     ])
   ];
+
+  # map all of the defined configurations to an installer image
+  target-installers = map (t: laptop-installer t.name t.variant) target-configs;
+
+  targets = target-configs ++ target-installers;
 in
 {
   flake = {
