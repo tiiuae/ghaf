@@ -39,6 +39,7 @@ let
     in
     {
       inherit hostConfiguration;
+      inherit variant;
       name = "${machineType}-${variant}";
       package = hostConfiguration.config.system.build.diskoImages;
     };

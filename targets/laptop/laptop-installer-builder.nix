@@ -1,14 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Lenovo X1 Carbon Installer
+# Laptop Installer
 { lib, self, ... }:
 let
   system = "x86_64-linux";
-  installer =
-    name: generation: variant:
+  mkLaptopInstaller =
+    name: variant:
     let
-      imagePath = self.packages.x86_64-linux."${name}-${generation}-${variant}" + "/disk1.raw.zst";
+      imagePath = self.packages.x86_64-linux."${name}" + "/disk1.raw.zst";
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
@@ -62,29 +62,8 @@ let
     in
     {
       inherit hostConfiguration;
-      name = "${name}-${generation}-${variant}-installer";
+      name = "${name}-installer";
       package = hostConfiguration.config.system.build.isoImage;
     };
-  targets = [
-    (installer "alienware" "m18" "debug")
-    (installer "alienware" "m18" "release")
-    (installer "dell-latitude" "7230" "debug")
-    (installer "dell-latitude" "7330" "debug")
-    (installer "dell-latitude" "7230" "release")
-    (installer "dell-latitude" "7330" "release")
-    (installer "lenovo-x1-carbon" "gen10" "debug")
-    (installer "lenovo-x1-carbon" "gen11" "debug")
-    (installer "lenovo-x1-carbon" "gen12" "debug")
-    (installer "lenovo-x1-carbon" "gen10" "release")
-    (installer "lenovo-x1-carbon" "gen11" "release")
-    (installer "lenovo-x1-carbon" "gen12" "release")
-  ];
 in
-{
-  flake = {
-    nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
-    );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
-  };
-}
+mkLaptopInstaller
