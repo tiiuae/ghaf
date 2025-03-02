@@ -74,6 +74,9 @@ let
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
+          virtualization.microvm.guivm.extraModules = [
+            (import ../../modules/reference/hardware/alienware/extra-config.nix)
+          ];
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -139,6 +142,9 @@ let
       {
         ghaf = {
           hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
+          virtualization.microvm.guivm.extraModules = [
+            (import ../../modules/reference/hardware/alienware/extra-config.nix)
+          ];
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
