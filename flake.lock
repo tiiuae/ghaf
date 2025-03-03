@@ -352,16 +352,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1740056450,
-        "narHash": "sha256-cMxgdrC/WzhBwpjHVyw3+OYOLVurvSB5eB6rOOxOy8c=",
+        "lastModified": 1740148838,
+        "narHash": "sha256-QeCQ5jTbbBZhHHX4nZ/fkAZEEBlu4kgUUlEQlnRc7L0=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "d2577fd465a4d4cd05a9d46c92ea0cbf594f1326",
+        "rev": "f20c8e9560c0ff0ee1e0f9584dc890c722238fc5",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "final-stretch",
+        "ref": "bk-final-stretch",
         "repo": "jetpack-nixos",
         "type": "github"
       }
@@ -409,15 +409,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1739104176,
-        "narHash": "sha256-bNvtud2PUcbYM0i5Uq1v01Dcgq7RuhVKfjaSKkW2KRI=",
-        "owner": "astro",
+        "lastModified": 1740496835,
+        "narHash": "sha256-JvT4Sb5TdwN7xAW35ygjpSovO68QXStD0tPDiS2/gFA=",
+        "owner": "jpruiz84",
         "repo": "microvm.nix",
-        "rev": "d3a9b7504d420a1ffd7c83c1bb8fe57deaf939d2",
+        "rev": "df3ad67128e7595306ee5fb121acfffbef563ea7",
         "type": "github"
       },
       "original": {
-        "owner": "astro",
+        "owner": "jpruiz84",
+        "ref": "fix_mkfs_arm64",
         "repo": "microvm.nix",
         "type": "github"
       }
