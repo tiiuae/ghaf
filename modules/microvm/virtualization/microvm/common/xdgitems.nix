@@ -75,7 +75,7 @@ in
     xdgHostRoot = lib.mkOption {
       description = "Path of the XDG root folder used for file sharing between VMs";
       type = lib.types.str;
-      default = "/storagevm/xdg";
+      default = "/persist/storagevm/xdg";
     };
 
     xdgHostPaths = lib.mkOption {

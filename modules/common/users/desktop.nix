@@ -204,6 +204,7 @@ in
                   --skel=/etc/skel \
                   --storage=luks \
                   --luks-pbkdf-type=argon2id \
+                  --fs-type=btrfs \
                   --enforce-password-policy=true \
                   --drop-caches=true \
                   --nosuid=true \

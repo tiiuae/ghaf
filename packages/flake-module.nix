@@ -36,7 +36,7 @@
                   self.nixosModules.laptop
                   inputs.lanzaboote.nixosModules.lanzaboote
                   self.nixosModules.microvm
-                  self.nixosModules.disko-ab-partitions-v1
+                  self.nixosModules.disko-debug-partition
                   {
                     nixpkgs.hostPlatform = "x86_64-linux";
                     ghaf.hardware.definition = import ../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;

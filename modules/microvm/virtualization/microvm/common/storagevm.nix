@@ -97,16 +97,16 @@ in
           tag = "hostshare";
           proto = "virtiofs";
           securityModel = "passthrough";
-          source = "/storagevm/${cfg.name}";
+          source = "/persist/storagevm/${cfg.name}";
           mountPoint = cfg.mountPath;
         }
       ];
 
       microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
         {
-          image = "/storagevm/homes/${cfg.name}-home.img";
+          image = "/persist/storagevm/homes/${cfg.name}-home.img";
           size = builtins.floor (config.ghaf.users.loginUser.homeSize * 1.15);
-          fsType = "ext4";
+          fsType = "btrfs";
           mountPoint = "/home";
         }
       ];
@@ -141,7 +141,7 @@ in
       };
       microvm.volumes = [
         {
-          image = "/storagevm/givc/${cfg.name}.img";
+          image = "/persist/storagevm/givc/${cfg.name}.img";
           readOnly = true;
           autoCreate = false;
           fsType = "ext4";

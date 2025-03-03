@@ -24,9 +24,6 @@ let
       (_: {
         testing.initrdBackdoor = true;
         services.openssh.enable = true;
-        # https://github.com/nix-community/disko/blob/e55f9a8678adc02024a4877c2a403e3f6daf24fe/lib/interactive-vm.nix#L63
-        boot.zfs.devNodes = "/dev/disk/by-uuid"; # needed because /dev/disk/by-id is empty in qemu-vms
-        boot.zfs.forceImportAll = true;
       })
     ];
   };
