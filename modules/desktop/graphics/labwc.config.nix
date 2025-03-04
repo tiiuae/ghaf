@@ -273,7 +273,7 @@ let
     reboot-command=${ghaf-powercontrol}/bin/ghaf-powercontrol reboot &
     poweroff-command=${ghaf-powercontrol}/bin/ghaf-powercontrol poweroff &
     suspend-command=${ghaf-powercontrol}/bin/ghaf-powercontrol suspend &
-    logout-command=${pkgs.labwc}/bin/labwc --exit &
+    logout-command=
     #userswitch-command=
   '';
 

@@ -423,7 +423,7 @@ writeText "widgets.yuck" ''
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/logout.svg"
                   :title "Log Out"
-                  :onclick "''${EWW_CMD} close power-menu & ${pkgs.labwc}/bin/labwc --exit &")
+                  :onclick "''${EWW_CMD} close power-menu & ${ghaf-powercontrol}/bin/ghaf-powercontrol logout &")
           (widget_button
                   :class "power-menu-button"
                   :icon "${pkgs.ghaf-artwork}/icons/restart.svg"
