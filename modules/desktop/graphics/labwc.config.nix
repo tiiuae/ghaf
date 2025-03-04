@@ -331,8 +331,8 @@ let
     gtk-xft-rgba=rgb
   '';
 
-  auto-display-scale = pkgs.writeShellApplication {
-    name = "auto-display-scale";
+  ghaf-display = pkgs.writeShellApplication {
+    name = "ghaf-display";
     runtimeInputs = [
       pkgs.wlr-randr
       pkgs.jq
@@ -342,10 +342,21 @@ let
     ];
     bashOptions = [ ];
     text = ''
-      start() {
+      TMP_CONFIG=$(mktemp -t tmp-display-config.XXXXXXX)
+      WLR_RANDR_CONFIG=
+      CONFIG="$HOME/.config/display/config"
+
+      auto-scale() {
         wlr-randr --json | jq -c --unbuffered '.[] | select(.enabled == true)' | while read -r display; do
           # Extract necessary details from JSON
           name=$(echo "$display" | jq -r '.name')
+          current_scale=$(echo "$display" | jq -r '.scale')
+
+          if (( $(echo "$current_scale != 1" | bc -l) )); then
+              echo "Skipping $name: Scaling is already set to $current_scale"
+              continue
+          fi
+
           width_mm=$(echo "$display" | jq -r '.physical_size.width')
           height_mm=$(echo "$display" | jq -r '.physical_size.height')
           mode=$(echo "$display" | jq -c '.modes[] | select(.current == true)')
@@ -399,7 +410,7 @@ let
         done
       }
 
-      reset() {
+      reset-scale() {
         wlr-randr --json | jq -c --unbuffered '.[] | select(.enabled == true)' | while read -r display; do
           name=$(echo "$display" | jq -r '.name')
           echo "Display $name: Resetting scaling"
@@ -409,13 +420,92 @@ let
         systemctl --user reload ewwbar && echo "Ewwbar reloaded"
       }
 
+      # Generate a simple config that can be executed directly by wlr-randr
+      generate-config() {
+          [[ -z "$WLR_RANDR_CONFIG" ]] && WLR_RANDR_CONFIG=$(wlr-randr)
+
+          echo "$WLR_RANDR_CONFIG" | awk '
+              /^[^ ]/ {output=$1} 
+              /Position:/ { pos=$2 }
+              /Enabled:/ { 
+                  enabled = ($2 == "yes" ? "--on" : "--off"); 
+                  if (enabled == "--off") { 
+                      print "--output " output " " enabled; 
+                      next 
+                  } 
+              }
+              /Transform:/ { transform=$2 }
+              /Scale:/ {scale=$2; print "--output " output " " enabled " --pos " pos " --scale " scale " --transform " transform}
+          ' > "$CONFIG"
+      }
+
+      check-for-changes() {
+          WLR_RANDR_CONFIG=$(wlr-randr)
+          last_config=$(cat "$TMP_CONFIG" 2>/dev/null)
+
+          if [ "$WLR_RANDR_CONFIG" != "$last_config" ]; then
+              echo "$WLR_RANDR_CONFIG" > "$TMP_CONFIG"
+              return 0
+          fi
+          return 1
+      }
+
+      apply-config() {
+          # Ensure the config file exists
+          if [ ! -f "$CONFIG" ]; then
+              echo "Config file not found: $CONFIG"
+              exit 1
+          fi
+
+          # Read and apply each line as a wlr-randr command
+          while IFS= read -r line; do
+              if [[ -n "$line" ]]; then
+                  echo "Applying display config: wlr-randr $line"
+                  eval "wlr-randr $line" || echo "Warning: config '$line' could not be applied"
+              fi
+          done < "$CONFIG"
+      }
+
       case "$1" in
-        reset)
-            reset
+        reset-scale)
+            reset-scale
+            ;;
+        auto-scale)
+            auto-scale
+            ;;
+        apply-config)
+            apply-config
+            ;;
+        generate-config)
+            generate-config
+            ;;
+        monitor)
+            mkdir -p ~/.config/display && touch "$CONFIG"
+            CMD=''${2:-"systemctl --user reload ewwbar"}  # Command to execute
+            SLEEP_DURATION=''${3:-1}  # Sleep duration
+
+            while true; do
+                if check-for-changes; then
+                    eval "$CMD"
+                fi
+                sleep "$SLEEP_DURATION"
+            done
+            ;;
+        boot-setup)
+            apply-config || true
+            auto-scale
             ;;
         *)
-            start
-            ;;
+            echo "Unknown command"
+            echo
+            echo "Commands:"
+            echo "  reset-scale                           - Resets all displays to their default scale (100%)."
+            echo "  auto-scale                            - Automatically adjusts scaling based on display size and resolution."
+            echo "  apply-config                          - Applies the saved display configuration from $CONFIG."
+            echo "  generate-config                       - Generates a new display configuration at $CONFIG."
+            echo "  monitor [command] [polling_interval]  - Continuously monitors for display changes every [polling_interval] by and runs [command]."
+            echo "  boot-setup                            - Applies saved display config and performs automatic scaling."
+            exit 1
       esac
     '';
   };
@@ -423,7 +513,7 @@ let
   display-event-trigger = pkgs.writeShellApplication {
     name = "display-event-trigger";
     runtimeInputs = [
-      auto-display-scale
+      ghaf-display
       pkgs.mako
       pkgs.wlr-randr
       pkgs.jq
@@ -435,7 +525,7 @@ let
         systemctl --user stop ewwbar ghaf-launcher
       }
 
-      auto-display-scale        # Auto scaling
+      ghaf-display auto-scale   # Auto scaling
       makoctl set-mode default  # Reset mako mode so notifications don't break
 
       # Retrieve display information
@@ -655,10 +745,10 @@ in
       };
 
       hidpi-auto-scaling = {
-        description = "HiDPI scaling service at boot";
+        description = "Automatic scaling";
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${auto-display-scale}/bin/auto-display-scale";
+          ExecStart = "${ghaf-display}/bin/ghaf-display boot-setup";
         };
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];
@@ -672,7 +762,7 @@ in
         description = "Reset HiDPI auto scaling performed at boot";
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${auto-display-scale}/bin/auto-display-scale reset";
+          ExecStart = "${ghaf-display}/bin/ghaf-display reset-scale";
         };
       };
 
@@ -682,6 +772,32 @@ in
           Type = "oneshot";
           ExecStart = "${display-event-trigger}/bin/display-event-trigger";
         };
+      };
+
+      display-config-monitor = {
+        # Check for display changes every 60s and generate display config
+        description = "Display config monitor";
+        serviceConfig = {
+          ExecStart = "${ghaf-display}/bin/ghaf-display monitor \"${ghaf-display}/bin/ghaf-display generate-config\" 60";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
+        before = [ "ewwbar.service" ];
+        after = [ "hidpi-auto-scaling.service" ];
+      };
+
+      ewwbar-reload-monitor = {
+        # Check for display changes every 1s and reload ewwbar
+        description = "Ewwbar reload monitor";
+        serviceConfig = {
+          ExecStart = "${ghaf-display}/bin/ghaf-display monitor \"systemctl --user reload ewwbar\" 1";
+        };
+        partOf = [ "ghaf-session.target" ];
+        wantedBy = [ "ghaf-session.target" ];
+        after = [
+          "hidpi-auto-scaling.service"
+          "ewwbar.service"
+        ];
       };
     };
   };

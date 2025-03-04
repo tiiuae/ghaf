@@ -545,38 +545,6 @@ let
     '';
   };
 
-  eww-display = pkgs.writeShellApplication {
-    name = "eww-display";
-    runtimeInputs = [
-      pkgs.wlr-randr
-      pkgs.systemd
-    ];
-    bashOptions = [ ];
-    text = ''
-      CONFIG_FILE="/tmp/display-config.txt"
-
-      # Function to check if the configuration has changed
-      check_for_changes() {
-          current_config=$(wlr-randr)
-          last_config=$(cat "$CONFIG_FILE" 2>/dev/null)
-
-          # If there's no previous configuration, write the current one and exit
-          if [ "$current_config" != "$last_config" ]; then
-              echo "$current_config" > "$CONFIG_FILE"
-              return 0  # Change detected
-          fi
-          return 1  # No change
-      }
-
-      while true; do
-          if check_for_changes; then
-              systemctl --user reload ewwbar
-          fi
-          sleep 1
-      done
-    '';
-  };
-
   eww-open-widget = pkgs.writeShellApplication {
     name = "eww-open-widget";
     bashOptions = [ ];
@@ -728,7 +696,6 @@ in
     ewwbar-ctrl
     eww-brightness
     eww-audio
-    eww-display
     eww-open-widget
     eww-windows
     eww-fullscreen-update
