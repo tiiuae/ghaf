@@ -20,4 +20,5 @@
     final.libsForQt5.callPackage ../../packages/globalprotect-openconnect
       { };
   gtklock = import ./gtklock { inherit prev; };
+  libfm = import ./libfm { inherit prev; };
 })
