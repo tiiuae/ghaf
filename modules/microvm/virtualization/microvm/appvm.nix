@@ -245,7 +245,7 @@ in
       description = ''
         List of AppVMs to be created
       '';
-      type = types.listOf (
+      type = lib.types.attrsOf (
         types.submodule {
           options = {
             name = mkOption {
@@ -362,6 +362,11 @@ in
               useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
+            # FIXME: Temporary solution to keep order of virtual machines, otherwise hosts file points to wrong vms.
+            vmIndex = mkOption {
+              type = types.int;
+              internal = true;
+            };
           };
         }
       );
@@ -436,13 +441,13 @@ in
         };
       vmsWithWaypipe = lib.filter (
         vm: config.microvm.vms."${vm.name}-vm".config.config.ghaf.waypipe.enable
-      ) cfg.vms;
+      ) (builtins.attrValues cfg.vms);
     in
     lib.mkIf cfg.enable {
       # Define microvms for each AppVM configuration
       microvm.vms =
         let
-          vms = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) cfg.vms;
+          vms = builtins.map (vm: { "${vm.name}-vm" = makeVm { inherit (vm) vmIndex; inherit vm; }; }) (builtins.attrValues cfg.vms);
         in
         lib.foldr lib.recursiveUpdate { } vms;
 
@@ -458,7 +463,7 @@ in
               serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
             };
             "${vm.name}-swtpm" = makeSwtpmService { inherit vm; };
-          }) cfg.vms;
+          }) (builtins.attrValues cfg.vms);
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
           proxyServices = map (vm: {
             "vsockproxy-${vm.name}" =
