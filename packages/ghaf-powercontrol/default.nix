@@ -7,6 +7,7 @@
   systemd,
   wlopm,
   givc-cli,
+  wayland-logout,
   ...
 }:
 let
@@ -22,8 +23,29 @@ writeShellApplication {
   runtimeInputs = [
     systemd
     wlopm
+    wayland-logout
   ] ++ (lib.optional useGivc givc-cli);
   text = ''
+    help_msg() {
+        cat << EOF
+    Usage: $(basename "$0") [OPTION]
+
+    Control Ghaf power states and user sessions.
+
+    Options:
+      reboot        Reboot the system using 'givc-cli' if enabled, otherwise 'systemctl'.
+      poweroff      Power off the system using 'givc-cli' if enabled, otherwise 'systemctl'.
+      suspend       Lock session, turn off display, suspend, and restore display on wake.
+      logout        Log out using 'wayland-logout' and force-kill user session processes.
+      help, --help  Show this help message and exit.
+    EOF
+    }
+
+    if [ -z "$1" ]; then
+        help_msg
+        exit 0
+    fi
+
     case "$1" in
       reboot|poweroff)
         ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} "$1"
@@ -42,10 +64,18 @@ writeShellApplication {
         # Switch on display on wakeup
         ${waylandDisplayCmd "on"}
         ;;
-      *)
-        echo "Unknown option. Supported: reboot, poweroff, suspend."
-        exit 1
+      logout)
+        wayland-logout
+        loginctl kill-user "$USER" -s SIGKILL
         ;;
+      help|--help)
+          help_msg
+          exit 0
+          ;;
+      *)
+          help_msg
+          exit 1
+          ;;
     esac
   '';
 
