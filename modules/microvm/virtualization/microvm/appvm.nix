@@ -176,6 +176,8 @@ let
               microvm = {
                 optimize.enable = false;
                 mem = vm.ramMb;
+                balloonMem = builtins.ceil (vm.ramMb * vm.balloonRatio);
+                deflateOnOOM = false;
                 vcpu = vm.cores;
                 hypervisor = "qemu";
                 shares = [
@@ -325,9 +327,16 @@ in
             };
             ramMb = mkOption {
               description = ''
-                Amount of RAM for this AppVM
+                Minimum amount of RAM for this AppVM
               '';
               type = types.int;
+            };
+            balloonRatio = mkOption {
+              description = ''
+                Amount of dynamic RAM for this AppVM as a multiple of ramMb
+              '';
+              type = types.number;
+              default = 2;
             };
             cores = mkOption {
               description = ''
