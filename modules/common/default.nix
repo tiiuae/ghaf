@@ -14,6 +14,7 @@
     ./users
     ./version
     ./virtualization/docker.nix
+    ./virtualization/podman.nix
     ./systemd
     ./services
     ./networking
