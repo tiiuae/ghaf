@@ -31,7 +31,7 @@ let
           # For WLAN firmwares
           hardware = {
             enableRedistributableFirmware = som == "agx";
-            wirelessRegulatoryDatabase = true;
+            wirelessRegulatoryDatabase = som == "agx";
           };
 
           services.dnsmasq.settings.dhcp-option = [
@@ -58,6 +58,9 @@ let
 
           {
             ghaf = {
+              #virtualization.podman.daemon.enable = true;
+              virtualization.docker.daemon.enable = true;
+
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
