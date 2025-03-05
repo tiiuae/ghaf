@@ -18,7 +18,7 @@ in
         proto = "virtiofs";
         securityModel = "passthrough";
         # We want double dir to keep root permission for `shared` directory and `shares` will be allowed to view and change by user.
-        source = "/storagevm/shared/shares" + (if !isGuiVm then "/Unsafe\ ${name}\ share/" else "");
+        source = "/persist/storagevm/shared/shares" + (if !isGuiVm then "/Unsafe\ ${name}\ share/" else "");
         mountPoint = shared-mountPath;
       }
     ];
