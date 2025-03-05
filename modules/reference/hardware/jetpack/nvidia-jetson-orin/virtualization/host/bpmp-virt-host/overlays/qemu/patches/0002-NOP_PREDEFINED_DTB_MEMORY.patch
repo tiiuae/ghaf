@@ -1,0 +1,38 @@
+From 87a9908309aa53c725cbc13a8a06354d71e26df7 Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Tue, 12 Nov 2024 20:29:17 +0000
+Subject: [PATCH 2/4] NOP_PREDEFINED_DTB_MEMORY
+
+Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+---
+ hw/arm/boot.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/hw/arm/boot.c b/hw/arm/boot.c
+index 5301d8d318..4806fc73cd 100644
+--- a/hw/arm/boot.c
++++ b/hw/arm/boot.c
+@@ -41,6 +41,10 @@
+ 
+ #define BOOTLOADER_MAX_SIZE         (4 * KiB)
+ 
++/* Put in zero if you do not want that Qemu removes the
++ * memory configuraiton on the device tree */
++#define NOP_PREDEFINED_DTB_MEMORY      0
++
+ AddressSpace *arm_boot_address_space(ARMCPU *cpu,
+                                      const struct arm_boot_info *info)
+ {
+@@ -579,7 +583,8 @@ int arm_load_dtb(hwaddr addr, const struct arm_boot_info *binfo,
+         goto fail;
+     }
+     while (node_path[n]) {
+-        if (g_str_has_prefix(node_path[n], "/memory")) {
++        if (NOP_PREDEFINED_DTB_MEMORY &&
++                g_str_has_prefix(node_path[n], "/memory")) {
+             qemu_fdt_nop_node(fdt, node_path[n]);
+         }
+         n++;
+-- 
+2.34.1
+
