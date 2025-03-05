@@ -25,8 +25,6 @@ let
       ./common/storagevm.nix
       ./common/xdgitems.nix
 
-      # To push logs to central location
-      ../../../common/logging/client.nix
       (
         { lib, pkgs, ... }:
         let
@@ -111,9 +109,8 @@ let
               };
             };
 
-            logging.client = {
-              inherit (config.ghaf.logging.client) enable endpoint;
-            };
+            # Logging
+            logging.client.enable = config.ghaf.logging.enable;
 
             services = {
               disks = {

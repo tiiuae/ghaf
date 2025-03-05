@@ -9,7 +9,6 @@
 let
   configHost = config;
   vmName = "admin-vm";
-  isLoggingEnabled = config.ghaf.logging.client.enable;
 
   adminvmBaseConfiguration = {
     imports = [
@@ -22,9 +21,6 @@ let
           vmName
           ;
       })
-      # We need to retrieve mac address and start log aggregator
-      ../../../common/logging/hw-mac-retrieve.nix
-      ../../../common/logging/logs-aggregator.nix
       ./common/storagevm.nix
       (
         { lib, ... }:
@@ -67,12 +63,10 @@ let
 
             # Services
             logging = {
-              client.enable = isLoggingEnabled;
-              listener = {
-                inherit (configHost.ghaf.logging.listener) address port;
+              server = {
+                inherit (configHost.ghaf.logging) enable;
+                identifierFilePath = "/var/lib/private/alloy/MACAddress";
               };
-              identifierFilePath = "/var/lib/private/alloy/MACAddress";
-              server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
             };
           };
 
@@ -81,11 +75,6 @@ let
           nixpkgs = {
             buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
             hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-          };
-
-          networking.firewall = {
-            allowedTCPPorts = lib.mkIf isLoggingEnabled [ config.ghaf.logging.listener.port ];
-            allowedUDPPorts = [ ];
           };
 
           microvm = {
@@ -102,7 +91,7 @@ let
                   proto = "virtiofs";
                 }
               ]
-              ++ lib.optionals isLoggingEnabled [
+              ++ lib.optionals config.ghaf.logging.server.enable [
                 {
                   # Creating a persistent log-store which is mapped on ghaf-host
                   # This is only to preserve logs state across adminvm reboots
