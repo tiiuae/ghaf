@@ -3,4 +3,6 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-(_final: _prev: { })
+(final: prev: {
+  libqmi = import ./libqmi { inherit final prev; };
+})
