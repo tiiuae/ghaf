@@ -10,11 +10,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1740726745,
-        "narHash": "sha256-ROi3SP749WpMFqRCvt+ULEC3fgB12jvWuZoOYMOO8kw=",
+        "lastModified": 1741173045,
+        "narHash": "sha256-EzM3S+kHqXvMwF/eKkQtSkPEp/Kw7GxoY7L0H2Kw/Ao=",
         "owner": "tiiuae",
         "repo": "ci-test-automation",
-        "rev": "29d61af8770f8f5c67fa83693a20b7264de57842",
+        "rev": "0ccee63cf3c595aae3ac8ddb933736ec586245a1",
         "type": "github"
       },
       "original": {
@@ -475,11 +475,11 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1740828860,
-        "narHash": "sha256-cjbHI+zUzK5CPsQZqMhE3npTyYFt9tJ3+ohcfaOF/WM=",
+        "lastModified": 1741010256,
+        "narHash": "sha256-WZNlK/KX7Sni0RyqLSqLPbK8k08Kq7H7RijPJbq9KHM=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "303bd8071377433a2d8f76e684ec773d70c5b642",
+        "rev": "ba487dbc9d04e0634c64e3b1f0d25839a0a68246",
         "type": "github"
       },
       "original": {
