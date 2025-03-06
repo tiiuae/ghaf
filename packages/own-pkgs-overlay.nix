@@ -24,7 +24,6 @@
         { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
-    mitmweb-ui = final.callPackage ./pkgs-by-name/mitmweb-ui/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     qemuqmp = final.callPackage ./pkgs-by-name/qemuqmp/package.nix { };
     vhotplug = final.callPackage ./pkgs-by-name/vhotplug/package.nix { };

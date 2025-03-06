@@ -223,12 +223,7 @@ let
                 pkgs.eww
                 pkgs.wlr-randr
               ]
-              ++ [
-                pkgs.ctrl-panel
-              ]
-              ++ (lib.optional (
-                config.ghaf.profiles.debug.enable && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
-              ) pkgs.mitmweb-ui)
+              ++ [ pkgs.ctrl-panel ]
               # Packages for checking hardware acceleration
               ++ lib.optionals config.ghaf.profiles.debug.enable [
                 pkgs.glxinfo
