@@ -10,7 +10,7 @@
 }:
 let
   balloonvms = builtins.filter (
-    name: (config.microvm.vms.${name}.config.config.microvm.balloonMem or 0) >= 0
+    name: (config.microvm.vms.${name}.config.config.microvm.balloonMem or 0) > 0
   ) (builtins.attrNames (config.microvm.vms or { }));
 in
 {
