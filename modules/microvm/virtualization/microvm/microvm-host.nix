@@ -18,14 +18,7 @@ let
     ;
 
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
-  has_rescan_pci_device = config.ghaf.hardware.definition.audio.rescanPciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
-  rescan_pci_device =
-    if has_rescan_pci_device then
-      config.ghaf.hardware.definition.audio.rescanPciDevice
-    else
-      config.ghaf.hardware.definition.audio.removePciDevice;
-
 in
 {
   imports = [
@@ -121,7 +114,7 @@ in
                 # state when the VM is being shutdown during audio mic recording
                 echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
                 sleep 0.1
-                echo "1" > /sys/bus/pci/devices/${rescan_pci_device}/rescan
+                echo "1" > /sys/bus/pci/rescan
               ''}"
             ];
           };
