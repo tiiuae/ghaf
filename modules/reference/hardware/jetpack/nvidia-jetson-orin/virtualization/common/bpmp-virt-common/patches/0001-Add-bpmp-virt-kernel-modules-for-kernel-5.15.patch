@@ -1,0 +1,1277 @@
+From 075ba79048b01663923554aeb79cf850ff2b0dd0 Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Tue, 4 Feb 2025 12:04:42 +0200
+Subject: [PATCH 1/1] Add bpmp-virt kernel modules for kernel 5.15
+
+Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+---
+ drivers/firmware/tegra/Kconfig                |   3 +
+ drivers/firmware/tegra/Makefile               |   2 +
+ .../firmware/tegra/bpmp-guest-proxy/Kconfig   |  11 +
+ .../firmware/tegra/bpmp-guest-proxy/Makefile  |   1 +
+ .../tegra/bpmp-guest-proxy/bpmp-guest-proxy.c | 463 ++++++++++++++++
+ .../firmware/tegra/bpmp-host-proxy/Kconfig    |  10 +
+ .../firmware/tegra/bpmp-host-proxy/Makefile   |   1 +
+ .../tegra/bpmp-host-proxy/bpmp-host-proxy.c   | 520 ++++++++++++++++++
+ .../tegra/bpmp-host-proxy/bpmp-host-proxy.h   |  20 +
+ drivers/firmware/tegra/bpmp-tegra186.c        |  18 +
+ drivers/firmware/tegra/bpmp.c                 |  71 ++-
+ 11 files changed, 1119 insertions(+), 1 deletion(-)
+ create mode 100644 drivers/firmware/tegra/bpmp-guest-proxy/Kconfig
+ create mode 100644 drivers/firmware/tegra/bpmp-guest-proxy/Makefile
+ create mode 100644 drivers/firmware/tegra/bpmp-guest-proxy/bpmp-guest-proxy.c
+ create mode 100644 drivers/firmware/tegra/bpmp-host-proxy/Kconfig
+ create mode 100644 drivers/firmware/tegra/bpmp-host-proxy/Makefile
+ create mode 100755 drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c
+ create mode 100644 drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.h
+
+diff --git a/drivers/firmware/tegra/Kconfig b/drivers/firmware/tegra/Kconfig
+index 1c8ba1f47c7c..fcf03cf3fd44 100644
+--- a/drivers/firmware/tegra/Kconfig
++++ b/drivers/firmware/tegra/Kconfig
+@@ -24,3 +24,6 @@ config TEGRA_BPMP
+ 	  firmware running on BPMP.
+ 
+ endmenu
++
++source "drivers/firmware/tegra/bpmp-host-proxy/Kconfig"
++source "drivers/firmware/tegra/bpmp-guest-proxy/Kconfig"
+diff --git a/drivers/firmware/tegra/Makefile b/drivers/firmware/tegra/Makefile
+index 620cf3fdd607..ae29c36badcd 100644
+--- a/drivers/firmware/tegra/Makefile
++++ b/drivers/firmware/tegra/Makefile
+@@ -7,3 +7,5 @@ tegra-bpmp-$(CONFIG_ARCH_TEGRA_234_SOC)	+= bpmp-tegra186.o
+ tegra-bpmp-$(CONFIG_DEBUG_FS)	+= bpmp-debugfs.o
+ obj-$(CONFIG_TEGRA_BPMP)	+= tegra-bpmp.o
+ obj-$(CONFIG_TEGRA_IVC)		+= ivc.o
++obj-y	+= bpmp-host-proxy/
++obj-y	+= bpmp-guest-proxy/
+diff --git a/drivers/firmware/tegra/bpmp-guest-proxy/Kconfig b/drivers/firmware/tegra/bpmp-guest-proxy/Kconfig
+new file mode 100644
+index 000000000000..33877730ad5b
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-guest-proxy/Kconfig
+@@ -0,0 +1,11 @@
++config TEGRA_BPMP_GUEST_PROXY
++	bool "Tegra BPMP guest proxy driver"
++	depends on TEGRA_BPMP
++	help
++	The Tegra BPMP guest proxy driver, virtualize the BPMP transfer
++	function, allowing the guest to have access to the host BPMP.
++
++	Say Y here to enable this driver and to compile this driver as a module, 
++	choose M here. If unsure, say N
++
++
+diff --git a/drivers/firmware/tegra/bpmp-guest-proxy/Makefile b/drivers/firmware/tegra/bpmp-guest-proxy/Makefile
+new file mode 100644
+index 000000000000..ac22344a1596
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-guest-proxy/Makefile
+@@ -0,0 +1 @@
++obj-$(CONFIG_TEGRA_BPMP_GUEST_PROXY) += bpmp-guest-proxy.o
+diff --git a/drivers/firmware/tegra/bpmp-guest-proxy/bpmp-guest-proxy.c b/drivers/firmware/tegra/bpmp-guest-proxy/bpmp-guest-proxy.c
+new file mode 100644
+index 000000000000..51012d8001a1
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-guest-proxy/bpmp-guest-proxy.c
+@@ -0,0 +1,463 @@
++/**
++ * 
++ * NVIDIA BPMP Guest Proxy Kernel Module
++ * (c) 2023 Unikie, Oy
++ * (c) 2023 Vadim Likholetov vadim.likholetov@unikie.com
++ * 
++*/
++#include <linux/module.h>	  // Core header for modules.
++#include <linux/device.h>	  // Supports driver model.
++#include <linux/kernel.h>	  // Kernel header for convenient functions.
++#include <linux/fs.h>		  // File-system support.
++#include <linux/uaccess.h>	  // User access copy function support.
++#include <linux/slab.h>
++#include <linux/mm.h>
++#include <linux/memory_hotplug.h>
++#include <linux/io.h>
++#include <soc/tegra/bpmp.h>
++
++
++#define DEVICE_NAME "bpmp-guest" // Device name.
++#define CLASS_NAME "char"	  
++
++MODULE_LICENSE("GPL");						 
++MODULE_AUTHOR("Vadim Likholetov");					 
++MODULE_DESCRIPTION("NVidia BPMP Guest Proxy Kernel Module"); 
++MODULE_VERSION("0.1");				 
++
++
++#define TX_BUF         0x0000
++#define RX_BUF         0x0200
++#define TX_SIZ         0x0400
++#define RX_SIZ         0x0408
++#define RET_COD        0x0410
++#define MRQ            0x0500
++#define MEM_SIZE       0x0600
++#define MESSAGE_SIZE   0x0200
++
++
++#define BPMP_GUEST_VERBOSE    0
++
++#if BPMP_GUEST_VERBOSE
++#define deb_info(...)     printk(KERN_INFO DEVICE_NAME ": "__VA_ARGS__)
++#else
++#define deb_info(...)
++#endif
++
++#define deb_error(...)    printk(KERN_ALERT DEVICE_NAME ": "__VA_ARGS__)
++
++
++static volatile void __iomem  *mem_iova = NULL;
++
++extern int tegra_bpmp_transfer(struct tegra_bpmp *, struct tegra_bpmp_message *);
++extern struct tegra_bpmp *tegra_bpmp_host_device;
++int my_tegra_bpmp_transfer(struct tegra_bpmp *, struct tegra_bpmp_message *);
++
++
++extern int (*tegra_bpmp_transfer_redirect)(struct tegra_bpmp *, struct tegra_bpmp_message *);
++extern int tegra_bpmp_outloud;
++extern uint64_t bpmp_vpa;
++
++
++/**
++ * Important variables that store data and keep track of relevant information.
++ */
++static int major_number;
++
++static struct class *bpmp_guest_proxy_class = NULL;	///< The device-driver class struct pointer
++static struct device *bpmp_guest_proxy_device = NULL; ///< The device-driver device struct pointer
++
++/**
++ * Prototype functions for file operations.
++ */
++static int open(struct inode *, struct file *);
++static int close(struct inode *, struct file *);
++static ssize_t read(struct file *, char *, size_t, loff_t *);
++static ssize_t write(struct file *, const char *, size_t, loff_t *);
++
++/**
++ * File operations structure and the functions it points to.
++ */
++static struct file_operations fops =
++	{
++		.owner = THIS_MODULE,
++		.open = open,
++		.release = close,
++		.read = read,
++		.write = write,
++};
++
++
++#if BPMP_GUEST_VERBOSE
++// Usage:
++//     hexDump(desc, addr, len, perLine);
++//         desc:    if non-NULL, printed as a description before hex dump.
++//         addr:    the address to start dumping from.
++//         len:     the number of bytes to dump.
++//         perLine: number of bytes on each output line.
++void static hexDump (
++    const char * desc,
++    const void * addr,
++    const int len
++) {
++    // Silently ignore silly per-line values.
++
++    int i;
++    unsigned char buff[17];
++	unsigned char out_buff[200];
++	unsigned char *p_out_buff = out_buff;
++    const unsigned char * pc = (const unsigned char *)addr;
++
++
++
++    // Output description if given.
++
++    if (desc != NULL) printk ("%s:\n", desc);
++
++    // Length checks.
++
++    if (len == 0) {
++        printk("  ZERO LENGTH\n");
++        return;
++    }
++    if (len < 0) {
++        printk("  NEGATIVE LENGTH: %d\n", len);
++        return;
++    }
++
++	if(len > 2046){
++        printk("  VERY LONG: %d\n", len);
++        return;
++    }
++
++    // Process every byte in the data.
++
++    for (i = 0; i < len; i++) {
++        // Multiple of perLine means new or first line (with line offset).
++
++        if ((i % 16) == 0) {
++            // Only print previous-line ASCII buffer for lines beyond first.
++
++            if (i != 0) {
++				p_out_buff += sprintf (p_out_buff, "  %s\n", buff);
++				printk("%s", out_buff);
++				memset(out_buff, 0, sizeof(out_buff));
++				p_out_buff = out_buff;
++			}
++            // Output the offset of current line.
++
++            p_out_buff += sprintf (p_out_buff,"  %04x ", i);
++        }
++
++        // Now the hex code for the specific character.
++
++        p_out_buff += sprintf (p_out_buff, " %02x", pc[i]);
++
++        // And buffer a printable ASCII character for later.
++
++        if ((pc[i] < 0x20) || (pc[i] > 0x7e)) // isprint() may be better.
++            buff[i % 16] = '.';
++        else
++            buff[i % 16] = pc[i];
++        buff[(i % 16) + 1] = '\0';
++    }
++
++    // Pad out last line if not exactly perLine characters.
++
++    while ((i % 16) != 0) {
++        p_out_buff += sprintf (p_out_buff, "   ");
++        i++;
++    }
++
++    // And print the final ASCII buffer.
++
++    p_out_buff += sprintf (p_out_buff, "  %s\n", buff);
++
++	printk("%s", out_buff);
++}
++#else
++	#define hexDump(...)
++#endif
++
++/**
++ * Initializes module at installation
++ */
++int tegra_bpmp_guest_init(void)
++{
++
++	
++	deb_info("%s, installing module.", __func__);
++
++	deb_info("bpmp_vpa: 0x%llX", bpmp_vpa);
++
++	if(!bpmp_vpa){
++		deb_error("Failed, bpmp_vpa not defined\n");
++	}
++
++	// Allocate a major number for the device.
++	major_number = register_chrdev(0, DEVICE_NAME, &fops);
++	if (major_number < 0)
++	{
++		deb_error("could not register number.\n");
++		return major_number;
++	}
++	deb_info("registered correctly with major number %d\n", major_number);
++
++	// Register the device class
++	bpmp_guest_proxy_class = class_create(THIS_MODULE, CLASS_NAME);
++	if (IS_ERR(bpmp_guest_proxy_class))
++	{ // Check for error and clean up if there is
++		unregister_chrdev(major_number, DEVICE_NAME);
++		deb_error("Failed to register device class\n");
++		return PTR_ERR(bpmp_guest_proxy_class); // Correct way to return an error on a pointer
++	}
++	deb_info("device class registered correctly\n");
++
++	// Register the device driver
++	bpmp_guest_proxy_device = device_create(bpmp_guest_proxy_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME);
++	if (IS_ERR(bpmp_guest_proxy_device))
++	{								 // Clean up if there is an error
++		class_destroy(bpmp_guest_proxy_class); 
++		unregister_chrdev(major_number, DEVICE_NAME);
++		deb_error("Failed to create the device\n");
++		return PTR_ERR(bpmp_guest_proxy_device);
++	}
++	deb_info("device class created correctly\n"); // Made it! device was initialized
++
++	// map iomem
++	mem_iova = ioremap(bpmp_vpa, MEM_SIZE);
++
++	if (!mem_iova) {
++        deb_error("ioremap failed\n");
++        return -ENOMEM;
++    }
++
++	deb_info("bpmp_vpa: 0x%llX, mem_iova: %p\n", bpmp_vpa, mem_iova);
++
++	tegra_bpmp_transfer_redirect = my_tegra_bpmp_transfer; // Hook func
++
++	return 0;
++}
++
++EXPORT_SYMBOL(tegra_bpmp_guest_init);
++
++
++
++/*
++ * Removes module, sends appropriate message to kernel
++ */
++void tegra_bpmp_guest_cleanup(void)
++{
++	deb_info("removing module.\n");
++
++	// unmap iomem
++	iounmap((void __iomem*)bpmp_vpa);
++
++    tegra_bpmp_transfer_redirect = NULL;   // unhook function
++	device_destroy(bpmp_guest_proxy_class, MKDEV(major_number, 0)); // remove the device
++	class_unregister(bpmp_guest_proxy_class);						  // unregister the device class
++	class_destroy(bpmp_guest_proxy_class);						  // remove the device class
++	unregister_chrdev(major_number, DEVICE_NAME);		  // unregister the major number
++	deb_info("Goodbye from the LKM!\n");
++	unregister_chrdev(major_number, DEVICE_NAME);
++	return;
++}
++
++/*
++ * Opens device module, sends appropriate message to kernel
++ */
++static int open(struct inode *inodep, struct file *filep)
++{
++	deb_info("device opened.\n");
++    tegra_bpmp_outloud = 1;
++	return 0;
++}
++
++/*
++ * Closes device module, sends appropriate message to kernel
++ */
++static int close(struct inode *inodep, struct file *filep)
++{
++	deb_info("device closed.\n");
++    tegra_bpmp_outloud = 0;
++	return 0;
++}
++
++/*
++ * Reads from device, displays in userspace, and deletes the read data
++ */
++static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset)
++{
++	deb_info("read stub");
++	return 0;
++}
++
++
++
++int my_tegra_bpmp_transfer(struct tegra_bpmp *bpmp, struct tegra_bpmp_message *msg)
++{   
++
++	unsigned char io_buffer[MEM_SIZE];
++	size_t org_tx_size = 0;
++	size_t org_rx_size = 0;
++
++	deb_info("%s\n", __func__);
++
++	memset(io_buffer, 0, sizeof(io_buffer));
++
++    if (msg->tx.size >= MESSAGE_SIZE)
++		return -EINVAL;
++
++	org_tx_size = msg->tx.size;
++	org_rx_size = msg->rx.size;
++
++	// Copy msg, tx data and rx data to a single io_buffer
++    memcpy(&io_buffer[TX_BUF], msg->tx.data, msg->tx.size);
++	memcpy(&io_buffer[TX_SIZ], &msg->tx.size, sizeof(msg->tx.size));
++	
++	memcpy(&io_buffer[RX_BUF], msg->rx.data, msg->rx.size);
++	memcpy(&io_buffer[RX_SIZ], &msg->rx.size, sizeof(msg->rx.size));
++
++	memcpy(&io_buffer[MRQ], &msg->mrq, sizeof(msg->mrq));
++	
++
++    hexDump("msg", &msg, sizeof(struct tegra_bpmp_message));
++    deb_info("msg.tx.data: %p\n", msg->tx.data);
++    hexDump("msg.tx.data", msg->tx.data, msg->tx.size);
++	deb_info("msg->rx.size: %ld\n", msg->rx.size);
++	
++	// Execute the request by coping the io_buffer
++	memcpy_toio(mem_iova, io_buffer, MEM_SIZE);
++
++	// Read response to io_buffer
++	memcpy_fromio(io_buffer, mem_iova, MEM_SIZE);
++
++	// Copy from io_buffer to msg, tx data and rx data
++	memcpy(&msg->tx.size, &io_buffer[TX_SIZ], sizeof(msg->tx.size));
++	memcpy(&msg->rx.size, &io_buffer[RX_SIZ], sizeof(msg->rx.size));
++	
++	// If new msg->tx/rx.size is greater than the original msg->tx/rx.size, 
++	// use the original because it is the max size of the destination buffer.
++	if(msg->tx.size > org_tx_size)
++		msg->tx.size = org_tx_size;
++
++	if(msg->rx.size > org_rx_size)
++		msg->rx.size = org_rx_size;
++
++	// Do not return error if buffers not defined, because for some cases
++	// the BPMP communicates with empty buffer
++	if(msg->tx.data)
++		memcpy((void *)msg->tx.data, &io_buffer[TX_BUF], msg->tx.size);
++
++	if(msg->rx.data)
++		memcpy(msg->rx.data, &io_buffer[RX_BUF], msg->rx.size);
++	
++	memcpy(&msg->rx.ret, &io_buffer[RET_COD], sizeof(msg->rx.ret));
++
++	deb_info("%s, END ret: %d\n", __func__, msg->rx.ret);
++
++    return msg->rx.ret;
++}
++
++/*
++ * Writes to the device
++ */
++
++#define BUF_SIZE 1024 
++
++static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
++{
++
++	int ret = len;
++	struct tegra_bpmp_message *kbuf = NULL;
++	void *txbuf = NULL;
++	void *rxbuf = NULL;
++	void *usertxbuf = NULL;
++	void *userrxbuf = NULL;
++
++	if (len > 65535) {	/* paranoia */
++		deb_error("count %zu exceeds max # of bytes allowed, "
++			"aborting write\n", len);
++		goto out_nomem;
++	}
++
++	deb_info(" wants to write %zu bytes\n", len);
++
++	if (len!=sizeof(struct tegra_bpmp_message ))
++	{
++		deb_error("message size %zu != %zu", len, sizeof(struct tegra_bpmp_message));
++		goto out_notok;
++	}
++
++	ret = -ENOMEM;
++	kbuf = kmalloc(len, GFP_KERNEL);
++	txbuf = kmalloc(BUF_SIZE, GFP_KERNEL);
++	rxbuf = kmalloc(BUF_SIZE, GFP_KERNEL);
++
++	if (!kbuf || !txbuf || !rxbuf)
++		goto out_nomem;
++
++	memset(kbuf, 0, len);
++	memset(txbuf, 0, len);
++	memset(rxbuf, 0, len);
++
++	ret = -EFAULT;
++	
++	if (copy_from_user(kbuf, buffer, len)) {
++		deb_error("copy_from_user(1) failed\n");
++		goto out_cfu;
++	}
++
++	if (copy_from_user(txbuf, kbuf->tx.data, kbuf->tx.size)) {
++		deb_error("copy_from_user(2) failed\n");
++		goto out_cfu;
++	}
++
++	if (copy_from_user(rxbuf, kbuf->rx.data, kbuf->rx.size)) {
++		deb_error("copy_from_user(3) failed\n");
++		goto out_cfu;
++	}	
++
++	usertxbuf = (void*)kbuf->tx.data; //save userspace buffers addresses
++	userrxbuf = kbuf->rx.data;
++
++	kbuf->tx.data=txbuf; //reassing to kernel space buffers
++	kbuf->rx.data=rxbuf;
++
++
++	ret = tegra_bpmp_transfer(tegra_bpmp_host_device, (struct tegra_bpmp_message *)kbuf);
++
++
++
++	if (copy_to_user((void *)usertxbuf, kbuf->tx.data, kbuf->tx.size)) {
++		deb_error("copy_to_user(2) failed\n");
++		goto out_notok;
++	}
++
++	if (copy_to_user((void *)userrxbuf, kbuf->rx.data, kbuf->rx.size)) {
++		deb_error("copy_to_user(3) failed\n");
++		goto out_notok;
++	}
++
++	kbuf->tx.data=usertxbuf;
++	kbuf->rx.data=userrxbuf;
++	
++	if (copy_to_user((void *)buffer, kbuf, len)) {
++		deb_error("copy_to_user(1) failed\n");
++		goto out_notok;
++	}
++
++
++
++	kfree(kbuf);
++	return len;
++out_notok:
++out_nomem:
++	deb_error ("memory allocation failed");
++out_cfu:
++	kfree(kbuf);
++	kfree(txbuf);
++	kfree(rxbuf);
++    return -EINVAL;
++}
++
+diff --git a/drivers/firmware/tegra/bpmp-host-proxy/Kconfig b/drivers/firmware/tegra/bpmp-host-proxy/Kconfig
+new file mode 100644
+index 000000000000..08eb89367064
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-host-proxy/Kconfig
+@@ -0,0 +1,10 @@
++config TEGRA_BPMP_HOST_PROXY
++    depends on TEGRA_BPMP
++	bool "Tegra BPMP host proxy support"
++	help
++	  Exposes the BPMP capabilities to the user level, in order to support the 
++	  BPMP dependent devices passthrough to the virtual machines.
++
++	  Say Y here to enable this driver and to compile this driver as a module, 
++	  choose M here. If unsure, say N
++
+diff --git a/drivers/firmware/tegra/bpmp-host-proxy/Makefile b/drivers/firmware/tegra/bpmp-host-proxy/Makefile
+new file mode 100644
+index 000000000000..ecc7233d8360
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-host-proxy/Makefile
+@@ -0,0 +1 @@
++obj-$(CONFIG_TEGRA_BPMP_HOST_PROXY) += bpmp-host-proxy.o
+diff --git a/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c b/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c
+new file mode 100755
+index 000000000000..409c97fde642
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.c
+@@ -0,0 +1,520 @@
++/**
++ * 
++ * NVIDIA BPMP Host Proxy Kernel Module
++ * (c) 2023 Unikie, Oy
++ * (c) 2023 Vadim Likholetov vadim.likholetov@unikie.com
++ * 
++*/
++#include <linux/module.h>	  // Core header for modules.
++#include <linux/device.h>	  // Supports driver model.
++#include <linux/kernel.h>	  // Kernel header for convenient functions.
++#include <linux/fs.h>		  // File-system support.
++#include <linux/uaccess.h>	  // User access copy function support.
++#include <linux/slab.h>
++#include <soc/tegra/bpmp.h>
++#include <linux/platform_device.h>
++#include "bpmp-host-proxy.h"
++
++
++#define DEVICE_NAME "bpmp-host"   // Device name.
++#define CLASS_NAME  "chardrv"	  // < The device class -- this is a character device driver
++
++MODULE_LICENSE("GPL");						 ///< The license type -- this affects available functionality
++MODULE_AUTHOR("Vadim Likholetov");					 ///< The author -- visible when you use modinfo
++MODULE_DESCRIPTION("NVidia BPMP Host Proxy Kernel Module"); ///< The description -- see modinfo
++MODULE_VERSION("0.1");						 ///< A version number to inform users
++
++
++#define BPMP_HOST_VERBOSE    0
++
++/**
++ * Put this flag in 0 in order that the BPMP host proxy only allows
++ * the allowed BPMP resources to be used by the VMs.
++ * 
++ * Put this flag in 1 in order that the BPMP host proxy allows
++ * all the BPMP resources to be accessible by the virtual machines.
++ * This option is useful for debugging, but is INSECURE, and it could
++ * stop the host. To avoid stop the host use 
++ * "clk_ignore_unused pd_ignore_unused" in kernel command line
++ * 
++*/
++#define BPMP_HOST_ALLOWS_ALL   0
++
++#if BPMP_HOST_VERBOSE
++#define deb_info(...)     printk(KERN_INFO DEVICE_NAME ": "__VA_ARGS__)
++#else
++#define deb_info(...)
++#endif
++
++#define deb_error(...)    printk(KERN_ALERT DEVICE_NAME ": "__VA_ARGS__)
++#define deb_warn(...)     printk(KERN_WARNING DEVICE_NAME ": "__VA_ARGS__)
++
++/**
++ * Important variables that store data and keep track of relevant information.
++ */
++static int major_number;
++
++static struct class *bpmp_host_proxy_class = NULL;	///< The device-driver class struct pointer
++static struct device *bpmp_host_proxy_device = NULL; ///< The device-driver device struct pointer
++
++/**
++ * Prototype functions for file operations.
++ */
++static int open(struct inode *, struct file *);
++static int close(struct inode *, struct file *);
++static ssize_t read(struct file *, char *, size_t, loff_t *);
++static ssize_t write(struct file *, const char *, size_t, loff_t *);
++
++/**
++ * File operations structure and the functions it points to.
++ */
++static struct file_operations fops =
++	{
++		.owner = THIS_MODULE,
++		.open = open,
++		.release = close,
++		.read = read,
++		.write = write,
++};
++
++// BPMP allowed resources structure
++static struct bpmp_allowed_res bpmp_ares; 
++
++#if BPMP_HOST_VERBOSE
++// Usage:
++//     hexDump(desc, addr, len, perLine);
++//         desc:    if non-NULL, printed as a description before hex dump.
++//         addr:    the address to start dumping from.
++//         len:     the number of bytes to dump.
++//         perLine: number of bytes on each output line.
++void static hexDump (
++    const char * desc,
++    const void * addr,
++    const int len
++) {
++    // Silently ignore silly per-line values.
++
++    int i;
++    unsigned char buff[17];
++	unsigned char out_buff[4000];
++	unsigned char *p_out_buff = out_buff;
++    const unsigned char * pc = (const unsigned char *)addr;
++
++
++
++    // Output description if given.
++
++    if (desc != NULL) printk ("%s:\n", desc);
++
++    // Length checks.
++
++    if (len == 0) {
++        printk(DEVICE_NAME ":   ZERO LENGTH\n");
++        return;
++    }
++    if (len < 0) {
++        printk(DEVICE_NAME ":   NEGATIVE LENGTH: %d\n", len);
++        return;
++    }
++
++	if(len > 400){
++        printk(DEVICE_NAME ":   VERY LONG: %d\n", len);
++        return;
++    }
++
++    // Process every byte in the data.
++
++    for (i = 0; i < len; i++) {
++        // Multiple of perLine means new or first line (with line offset).
++
++        if ((i % 16) == 0) {
++            // Only print previous-line ASCII buffer for lines beyond first.
++
++            if (i != 0) {
++				p_out_buff += sprintf (p_out_buff, "  %s\n", buff);
++			}
++            // Output the offset of current line.
++
++            p_out_buff += sprintf (p_out_buff,"  %04x ", i);
++        }
++
++        // Now the hex code for the specific character.
++
++        p_out_buff += sprintf (p_out_buff, " %02x", pc[i]);
++
++        // And buffer a printable ASCII character for later.
++
++        if ((pc[i] < 0x20) || (pc[i] > 0x7e)) // isprint() may be better.
++            buff[i % 16] = '.';
++        else
++            buff[i % 16] = pc[i];
++        buff[(i % 16) + 1] = '\0';
++    }
++
++    // Pad out last line if not exactly perLine characters.
++
++    while ((i % 16) != 0) {
++        p_out_buff += sprintf (p_out_buff, "   ");
++        i++;
++    }
++
++    // And print the final ASCII buffer.
++
++    p_out_buff += sprintf (p_out_buff, "  %s\n", buff);
++
++	printk(DEVICE_NAME ": %s", out_buff);
++}
++#else
++	#define hexDump(...)
++#endif
++
++/**
++ * Initializes module at installation
++ */
++static int bpmp_host_proxy_probe(struct platform_device *pdev)
++{
++	int i;
++	
++	deb_info("%s, installing module.", __func__);
++
++	// Read allowed clocks and resets from the device tree
++	// if they are defined or BPMP_HOST_ALLOWS_ALL continue
++	bpmp_ares.clocks_size = of_property_read_variable_u32_array(pdev->dev.of_node, 
++		"allowed-clocks", bpmp_ares.clock, 0, BPMP_HOST_MAX_CLOCKS_SIZE);
++
++	if(!bpmp_ares.clocks_size && !BPMP_HOST_ALLOWS_ALL){
++		deb_error("No allowed clocks defined");
++		return EINVAL;
++	}
++
++	deb_info("bpmp_ares.clocks_size: %d", bpmp_ares.clocks_size);
++	for (i = 0; i < bpmp_ares.clocks_size; i++)	{
++		deb_info("bpmp_ares.clock %d", bpmp_ares.clock[i]);
++	}
++
++	bpmp_ares.resets_size = of_property_read_variable_u32_array(pdev->dev.of_node, 
++		"allowed-resets", bpmp_ares.reset, 0, BPMP_HOST_MAX_RESETS_SIZE);
++
++	if(!bpmp_ares.resets_size && !BPMP_HOST_ALLOWS_ALL){
++		deb_error("No allowed resets defined");
++		return EINVAL;
++	}
++
++	deb_info("bpmp_ares.resets_size: %d", bpmp_ares.resets_size);
++	for (i = 0; i < bpmp_ares.resets_size; i++)	{
++		deb_info("bpmp_ares.reset %d", bpmp_ares.reset[i]);
++	}
++
++
++	// Read allowed power domains from the device tree
++	bpmp_ares.pd_size = of_property_read_variable_u32_array(pdev->dev.of_node, 
++		"allowed-power-domains", bpmp_ares.pd, 0, BPMP_HOST_MAX_POWER_DOMAINS_SIZE);
++
++	deb_info("bpmp_ares.pd_size: %d", bpmp_ares.pd_size);
++	for (i = 0; i < bpmp_ares.pd_size; i++)	{
++		deb_info("bpmp_ares.pd %d", bpmp_ares.pd[i]);
++	}
++
++	// Allocate a major number for the device.
++	major_number = register_chrdev(0, DEVICE_NAME, &fops);
++	if (major_number < 0)
++	{
++		deb_error("could not register number.\n");
++		return major_number;
++	}
++	deb_info("registered correctly with major number %d\n", major_number);
++
++	// Register the device class
++	bpmp_host_proxy_class = class_create(THIS_MODULE, CLASS_NAME);
++	if (IS_ERR(bpmp_host_proxy_class))
++	{ // Check for error and clean up if there is
++		unregister_chrdev(major_number, DEVICE_NAME);
++		deb_error("Failed to register device class\n");
++		return PTR_ERR(bpmp_host_proxy_class); // Correct way to return an error on a pointer
++	}
++	deb_info("device class registered correctly\n");
++
++	// Register the device driver
++	bpmp_host_proxy_device = device_create(bpmp_host_proxy_class, NULL, MKDEV(major_number, 0), NULL, DEVICE_NAME);
++	if (IS_ERR(bpmp_host_proxy_device))
++	{								 // Clean up if there is an error
++		class_destroy(bpmp_host_proxy_class); 
++		unregister_chrdev(major_number, DEVICE_NAME);
++		deb_error("Failed to create the device\n");
++		return PTR_ERR(bpmp_host_proxy_device);
++	}
++
++	deb_info("device class created correctly\n"); // Made it! device was initialized
++
++	return 0;
++}
++
++
++
++/*
++ * Removes module, sends appropriate message to kernel
++ */
++static int bpmp_host_proxy_remove(struct platform_device *pdev)
++{
++	deb_info("removing module.\n");
++	device_destroy(bpmp_host_proxy_class, MKDEV(major_number, 0)); // remove the device
++	class_unregister(bpmp_host_proxy_class);						  // unregister the device class
++	class_destroy(bpmp_host_proxy_class);						  // remove the device class
++	unregister_chrdev(major_number, DEVICE_NAME);		  // unregister the major number
++	deb_info("Goodbye from the LKM!\n");
++	unregister_chrdev(major_number, DEVICE_NAME);
++	return 0;
++}
++
++/*
++ * Opens device module, sends appropriate message to kernel
++ */
++static int open(struct inode *inodep, struct file *filep)
++{
++	deb_info("device opened.\n");
++	return 0;
++}
++
++/*
++ * Closes device module, sends appropriate message to kernel
++ */
++static int close(struct inode *inodep, struct file *filep)
++{
++	deb_info("device closed.\n");
++	return 0;
++}
++
++/*
++ * Reads from device, displays in userspace, and deletes the read data
++ */
++static ssize_t read(struct file *filep, char *buffer, size_t len, loff_t *offset)
++{
++	deb_info("read stub");
++	return 0;
++}
++
++/*
++ * Checks if the msg that wants to transmit through the
++ * bpmp-host is allowed by the device tree configuration
++ */
++static bool check_if_allowed(struct tegra_bpmp_message *msg)
++{
++	struct mrq_reset_request *reset_req = NULL;
++	struct mrq_clk_request *clock_req = NULL;
++	struct mrq_pg_request *pg_req = NULL;
++	uint32_t clk_cmd = 0;
++	int i = 0;
++
++	// Allow get information, DVFS, ISO Client and bandwidth mrqs
++	if(msg->mrq == MRQ_PING ||
++	   msg->mrq == MRQ_QUERY_TAG ||
++	   msg->mrq == MRQ_THREADED_PING ||
++	   msg->mrq == MRQ_QUERY_ABI ||
++	   msg->mrq == MRQ_DEBUG ||
++	   msg->mrq == MRQ_EMC_DVFS_LATENCY ||
++	   msg->mrq == MRQ_EMC_DVFS_EMCHUB ||
++	   msg->mrq == MRQ_ISO_CLIENT ||
++	   msg->mrq == MRQ_STRAP ||
++	   msg->mrq == MRQ_BWMGR || 
++	   msg->mrq == MRQ_QUERY_FW_TAG ){
++		return true;
++	}
++
++	// Check for reset and clock mrq
++	if(msg->mrq == MRQ_RESET){
++		reset_req = (struct mrq_reset_request*) msg->tx.data;
++
++		for(i = 0; i < bpmp_ares.resets_size; i++){
++			if(bpmp_ares.reset[i] == reset_req->reset_id){
++				return true;
++			}
++		}
++		deb_warn("Warning, reset not allowed for: %d", reset_req->reset_id);
++		return false;
++	}
++	else if (msg->mrq == MRQ_CLK){
++		clock_req = (struct mrq_clk_request*) msg->tx.data;
++
++		for(i = 0; i < bpmp_ares.clocks_size; i++){
++			// bits[23..0] are the clock id
++			if(bpmp_ares.clock[i] == (clock_req->cmd_and_id & 0x0FFF)){
++				return true;
++			}
++		}
++
++		clk_cmd = (clock_req->cmd_and_id >> 24) & 0x000F;
++
++		// If there is a get info command, allow it no matters the ID
++		if(clk_cmd == CMD_CLK_GET_MAX_CLK_ID ||
++		   clk_cmd == CMD_CLK_GET_ALL_INFO ||
++		   clk_cmd == CMD_CLK_GET_PARENT){
++			return true;
++		}
++
++		deb_warn("Warning, clock not allowed for: %d, with command: %d", 
++			clock_req->cmd_and_id & 0x0FFF, clk_cmd);
++		return false;
++	}
++	else if(msg->mrq == MRQ_PG){
++		pg_req = (struct mrq_pg_request*) msg->tx.data;
++
++		for(i = 0; i < bpmp_ares.pd_size; i++){
++			if(bpmp_ares.pd[i] == pg_req->id){
++				return true;
++			}
++		}
++		
++		// If there is a get info command, allow it no matters the ID
++		if(pg_req->cmd == CMD_PG_GET_STATE ||
++		   pg_req->cmd == CMD_PG_GET_NAME ||
++		   pg_req->cmd == CMD_PG_GET_MAX_ID){
++			return true;
++		}
++
++		deb_warn("Warning, pg not allowed for: %d, with command: %d", 
++			pg_req->id, pg_req->cmd);
++		return false;
++	}
++
++	deb_warn("Warning, msg->mrq %d not allowed", msg->mrq);
++
++	return false;
++}
++
++extern int tegra_bpmp_transfer(struct tegra_bpmp *, struct tegra_bpmp_message *);
++extern struct tegra_bpmp *tegra_bpmp_host_device;
++
++#define BUF_SIZE 1024 
++
++/*
++ * Writes to the device
++ */
++
++static ssize_t write(struct file *filep, const char *buffer, size_t len, loff_t *offset)
++{
++
++	int ret = len;
++	struct tegra_bpmp_message *kbuf = NULL;
++	void *txbuf = NULL;
++	void *rxbuf = NULL;
++	void *usertxbuf = NULL;
++	void *userrxbuf = NULL;
++
++	if (len > 65535) {	/* paranoia */
++		deb_error("count %zu exceeds max # of bytes allowed, "
++			"aborting write\n", len);
++		goto out_nomem;
++	}
++
++	ret = -ENOMEM;
++	kbuf = kmalloc(len, GFP_KERNEL);
++
++
++	if (!kbuf)
++		goto out_nomem;
++
++	memset(kbuf, 0, len);
++
++	ret = -EFAULT;
++	
++	// Copy header
++	if (copy_from_user(kbuf, buffer, len)) {
++		deb_error("copy_from_user(1) failed\n");
++		goto out_cfu;
++	}
++
++	deb_info("\nwants to write %zu bytes, with mrq: %d\n", len, kbuf->mrq);
++
++	if(kbuf->tx.size > 0){
++		txbuf = kmalloc(BUF_SIZE, GFP_KERNEL);
++		if (!txbuf)
++			goto out_nomem;
++		memset(txbuf, 0, BUF_SIZE);
++		if (copy_from_user(txbuf, kbuf->tx.data, kbuf->tx.size)) {
++			deb_error("copy_from_user(2) failed\n");
++			goto out_cfu;
++		}
++	}
++
++	rxbuf = kmalloc(BUF_SIZE, GFP_KERNEL);
++	if (!rxbuf)
++		goto out_nomem;
++	
++	memset(rxbuf, 0, BUF_SIZE);
++	if (copy_from_user(rxbuf, kbuf->rx.data, kbuf->rx.size)) {
++		deb_error("copy_from_user(3) failed\n");
++		goto out_cfu;
++	}	
++
++
++	usertxbuf = (void*)kbuf->tx.data; //save userspace buffers addresses
++	userrxbuf = kbuf->rx.data;
++
++
++	kbuf->tx.data = txbuf; //reassing to kernel space buffers
++	kbuf->rx.data = rxbuf;
++
++	if(!tegra_bpmp_host_device){
++		deb_error("host device not initialised, can't do transfer!");
++		return -EFAULT;
++	}
++
++	// Only continue if allowed or BPMP_HOST_ALLOWS_ALL
++	if(!check_if_allowed(kbuf) && !BPMP_HOST_ALLOWS_ALL){
++		goto out_cfu;
++	}
++
++	hexDump (DEVICE_NAME ": kbuf", kbuf, len);
++	hexDump (DEVICE_NAME ": txbuf", txbuf, kbuf->tx.size);
++
++	ret = tegra_bpmp_transfer(tegra_bpmp_host_device, (struct tegra_bpmp_message *)kbuf);
++
++
++
++	if (copy_to_user((void *)usertxbuf, kbuf->tx.data, kbuf->tx.size)) {
++		deb_error("copy_to_user(2) failed\n");
++		goto out_notok;
++	}
++
++	if (copy_to_user((void *)userrxbuf, kbuf->rx.data, kbuf->rx.size)) {
++		deb_error("copy_to_user(3) failed\n");
++		goto out_notok;
++	}
++
++	kbuf->tx.data=usertxbuf;
++	kbuf->rx.data=userrxbuf;
++	
++	if (copy_to_user((void *)buffer, kbuf, len)) {
++		deb_error("copy_to_user(1) failed\n");
++		goto out_notok;
++	}
++
++
++
++	kfree(kbuf);
++	return len;
++out_notok:
++out_nomem:
++	deb_error("memory allocation failed");
++out_cfu:
++	kfree(kbuf);
++	kfree(txbuf);
++	kfree(rxbuf);
++    return -EINVAL;
++
++}
++
++static const struct of_device_id bpmp_host_proxy_ids[] = {
++	{ .compatible = "nvidia,bpmp-host-proxy" },
++	{ }
++};
++
++static struct platform_driver bpmp_host_proxy_driver = {
++	.driver = {
++		.name = "bpmp_host_proxy",
++		.of_match_table = bpmp_host_proxy_ids,
++	},
++	.probe = bpmp_host_proxy_probe,
++	.remove = bpmp_host_proxy_remove,
++};
++builtin_platform_driver(bpmp_host_proxy_driver);
+\ No newline at end of file
+diff --git a/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.h b/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.h
+new file mode 100644
+index 000000000000..ddc8b8211f71
+--- /dev/null
++++ b/drivers/firmware/tegra/bpmp-host-proxy/bpmp-host-proxy.h
+@@ -0,0 +1,20 @@
++#ifndef __BPMP_HOST_PROXY__H__
++#define __BPMP_HOST_PROXY__H__
++
++#include <linux/types.h>
++
++#define BPMP_HOST_MAX_CLOCKS_SIZE          256
++#define BPMP_HOST_MAX_RESETS_SIZE          256
++#define BPMP_HOST_MAX_POWER_DOMAINS_SIZE   256
++
++struct bpmp_allowed_res {
++	int clocks_size;
++    uint32_t clock[BPMP_HOST_MAX_CLOCKS_SIZE];
++    int resets_size;
++    uint32_t reset[BPMP_HOST_MAX_RESETS_SIZE];
++    int pd_size;
++    uint32_t pd[BPMP_HOST_MAX_POWER_DOMAINS_SIZE];
++
++};
++
++#endif
+\ No newline at end of file
+diff --git a/drivers/firmware/tegra/bpmp-tegra186.c b/drivers/firmware/tegra/bpmp-tegra186.c
+index 63ab21d89c2c..c98fbb47c5b0 100644
+--- a/drivers/firmware/tegra/bpmp-tegra186.c
++++ b/drivers/firmware/tegra/bpmp-tegra186.c
+@@ -28,6 +28,9 @@ struct tegra186_bpmp {
+ 	} mbox;
+ };
+ 
++extern uint64_t bpmp_vpa;
++int tegra_bpmp_guest_init(void);
++
+ static inline struct tegra_bpmp *
+ mbox_client_to_bpmp(struct mbox_client *client)
+ {
+@@ -173,6 +176,16 @@ static int tegra186_bpmp_init(struct tegra_bpmp *bpmp)
+ 	bpmp->priv = priv;
+ 	priv->parent = bpmp;
+ 
++#ifdef CONFIG_TEGRA_BPMP_GUEST_PROXY
++	// If virtual-pa node is defined, it means that we are using a virtual BPMP
++	// then we have to initialize the bpmp-guest
++	err = of_property_read_u64(bpmp->dev->of_node, "virtual-pa", &bpmp_vpa);
++	if(!err){
++		printk("BPMP virtual-pa: 0x%llX", bpmp_vpa);
++		return tegra_bpmp_guest_init();
++	}
++#endif
++
+ 	priv->tx.pool = of_gen_pool_get(bpmp->dev->of_node, "shmem", 0);
+ 	if (!priv->tx.pool) {
+ 		dev_err(bpmp->dev, "TX shmem pool not found\n");
+@@ -263,6 +276,11 @@ static void tegra186_bpmp_deinit(struct tegra_bpmp *bpmp)
+ 	struct tegra186_bpmp *priv = bpmp->priv;
+ 	unsigned int i;
+ 
++	// If using BPMP guest proxy, do no deinit the module
++	if(bpmp_vpa){
++		return;
++	}
++
+ 	mbox_free_channel(priv->mbox.channel);
+ 
+ 	for (i = 0; i < bpmp->threaded.count; i++)
+diff --git a/drivers/firmware/tegra/bpmp.c b/drivers/firmware/tegra/bpmp.c
+index 1c01b894ea28..9b6bb0089d59 100644
+--- a/drivers/firmware/tegra/bpmp.c
++++ b/drivers/firmware/tegra/bpmp.c
+@@ -77,6 +77,21 @@ struct tegra_bpmp *of_tegra_bpmp_get(void)
+ }
+ EXPORT_SYMBOL_GPL(of_tegra_bpmp_get);
+ 
++
++// For bpmp-virt module
++struct tegra_bpmp *tegra_bpmp_host_device = NULL;
++EXPORT_SYMBOL_GPL(tegra_bpmp_host_device);
++
++int (*tegra_bpmp_transfer_redirect)(struct tegra_bpmp *bpmp,
++			struct tegra_bpmp_message *msg) = NULL;
++int tegra_bpmp_outloud = 0;
++uint64_t bpmp_vpa = 0;
++
++EXPORT_SYMBOL_GPL(tegra_bpmp_transfer_redirect);
++EXPORT_SYMBOL_GPL(tegra_bpmp_outloud);
++EXPORT_SYMBOL_GPL(bpmp_vpa);
++
++
+ struct tegra_bpmp *tegra_bpmp_get(struct device *dev)
+ {
+ 	struct platform_device *pdev;
+@@ -102,6 +117,7 @@ struct tegra_bpmp *tegra_bpmp_get(struct device *dev)
+ 
+ put:
+ 	of_node_put(np);
++	tegra_bpmp_host_device = bpmp;
+ 	return bpmp;
+ }
+ EXPORT_SYMBOL_GPL(tegra_bpmp_get);
+@@ -368,6 +384,25 @@ int tegra_bpmp_transfer_atomic(struct tegra_bpmp *bpmp,
+ 
+ 	spin_lock(&bpmp->atomic_tx_lock);
+ 
++	// vadikas -- redirect request to virtio module
++	if (tegra_bpmp_transfer_redirect) {
++		if (tegra_bpmp_outloud){
++	        printk("tegra_bpmp_transfer_redirect tx: %x tx.size= %ld \n",
++				msg->mrq, msg->tx.size);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect tx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	    }
++		err = (*tegra_bpmp_transfer_redirect)(bpmp, msg);
++
++	    if (tegra_bpmp_outloud){
++	        printk("tegra_bpmp_transfer_redirect rx: err=%d\n msg->rx.ret=%d",
++				err, msg->rx.ret);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect rx:" ,
++				DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	    }
++		return err;
++	}
++
+ 	err = tegra_bpmp_channel_write(channel, msg->mrq, MSG_ACK,
+ 				       msg->tx.data, msg->tx.size);
+ 	if (err < 0) {
+@@ -403,8 +438,35 @@ int tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
+ 	if (!tegra_bpmp_message_valid(msg))
+ 		return -EINVAL;
+ 
++	// vadikas -- redirect request to virtio module
++	if (tegra_bpmp_transfer_redirect) {
++		if (tegra_bpmp_outloud && (msg->mrq != 0x4B)){
++			printk("\n");
++	        printk("tegra_bpmp_transfer_redirect tx,msg->mrq: 0x%0X tx.size=%ld \n",
++				msg->mrq, msg->tx.size);
++	        print_hex_dump(KERN_INFO, "tegra_bpmp_transfer_redirect tx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	    }
++
++		err = (*tegra_bpmp_transfer_redirect)(bpmp, msg);
++
++	    if (tegra_bpmp_outloud && (msg->mrq != 0x4B)){
++	        printk("tegra_bpmp_transfer_redirect rx: err=%d, msg->rx.ret=%d, msg->rx.size:%ld\n",
++				err, msg->rx.ret, msg->rx.size);
++	        print_hex_dump(KERN_INFO,"tegra_bpmp_transfer_redirect rx:",
++				DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	    }
++		return err;
++	}
++
+ 	channel = tegra_bpmp_write_threaded(bpmp, msg->mrq, msg->tx.data,
+ 					    msg->tx.size);
++
++	if (tegra_bpmp_outloud){
++	    printk("tegra_bpmp_transfer tx: %x tx.size= %ld \n", msg->mrq, msg->tx.size);
++	    print_hex_dump(KERN_INFO, "tegra_bpmp_transfer tx:" ,DUMP_PREFIX_NONE, 16, 1, msg->tx.data, msg->tx.size, false);
++	}
++
+ 	if (IS_ERR(channel))
+ 		return PTR_ERR(channel);
+ 
+@@ -418,8 +480,15 @@ int tegra_bpmp_transfer(struct tegra_bpmp *bpmp,
+ 	if (err == 0)
+ 		return -ETIMEDOUT;
+ 
+-	return tegra_bpmp_channel_read(channel, msg->rx.data, msg->rx.size,
++	err = tegra_bpmp_channel_read(channel, msg->rx.data, msg->rx.size,
+ 				       &msg->rx.ret);
++
++	if(tegra_bpmp_outloud){
++	    printk("tegra_bpmp_transfer rx: err=%d\n msg->rx.ret=%d", err, msg->rx.ret);
++	    print_hex_dump(KERN_INFO,"tegra_bpmp_transfer rx:" ,DUMP_PREFIX_NONE, 16, 1, msg->rx.data, msg->rx.size, false);
++	}
++
++	return err;
+ }
+ EXPORT_SYMBOL_GPL(tegra_bpmp_transfer);
+ 
+-- 
+2.34.1
+
