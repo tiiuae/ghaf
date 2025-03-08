@@ -12,11 +12,10 @@ let
   vmName = "ids-vm";
   idsvmBaseConfiguration = {
     imports = [
-      (import ../common/vm-networking.nix {
+      (import ../../common/vm-networking.nix {
         inherit
           config
           lib
-          pkgs
           vmName
           ;
       })
@@ -64,7 +63,7 @@ let
           };
 
           imports = [
-            ../../../../common
+            ../../../common
             ./mitmproxy
           ];
         }

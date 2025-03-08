@@ -19,7 +19,7 @@ path = [
   "modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86",
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
   "modules/lanzaboote/demo-secure-boot-keys/**/*",
-  "modules/microvm/virtualization/microvm/idsvm/mitmproxy/mitmproxy-ca/*"
+  "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*"
 ]
 
 [[annotations]]
@@ -99,7 +99,7 @@ path = [
   "modules/reference/hardware/jetpack-microvm/*.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/patches/net_vm_dtb_with_uarti.patch",
   "modules/common/virtualization/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch",
-  "modules/microvm/virtualization/microvm/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
+  "modules/microvm/sysvms/0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch",
   "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/passthrough/uarti-net-vm/tegra234-netvm.dts"
 ]
 

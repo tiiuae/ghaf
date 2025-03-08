@@ -9,12 +9,12 @@
 }:
 let
   vmName = "gui-vm";
-  inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc-guivm
-      (import ./common/vm-networking.nix {
+      (import ../common/vm-networking.nix {
         inherit
           config
           lib
@@ -22,13 +22,13 @@ let
           ;
       })
 
-      ./common/storagevm.nix
-      ./common/xdgitems.nix
+      ../common/storagevm.nix
+      ../common/xdgitems.nix
 
       # To push logs to central location
-      ../../../common/logging/client.nix
+      ../../common/logging/client.nix
 
-      ../../../common/logging/hw-mac-retrieve.nix
+      ../../common/logging/hw-mac-retrieve.nix
 
       (
         { lib, pkgs, ... }:
@@ -57,9 +57,10 @@ let
         in
         {
           imports = [
-            ../../../common
-            ../../../desktop
-            ../../../reference/services
+            ../../common
+            ../../desktop
+            #TODO: inception cross reference. FIX: this
+            ../../reference/services
           ];
 
           ghaf = {
@@ -288,9 +289,10 @@ let
   };
   cfg = config.ghaf.virtualization.microvm.guivm;
 
+  #TODO: fix the kernel includes and builders to be more modular and centrailized
   # Importing kernel builder function and building guest_graphics_hardened_kernel
-  buildKernel = import ../../../../packages/kernel { inherit config pkgs lib; };
-  config_baseline = ../../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
+  buildKernel = import ../../../packages/kernel { inherit config pkgs lib; };
+  config_baseline = ../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
   guest_graphics_hardened_kernel = buildKernel { inherit config_baseline; };
 
 in

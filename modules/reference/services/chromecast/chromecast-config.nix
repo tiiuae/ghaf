@@ -12,7 +12,7 @@
 
       internalNic =
         let
-          vmNetworking = import ../../../microvm/virtualization/microvm/common/vm-networking.nix {
+          vmNetworking = import ../../../microvm/common/vm-networking.nix {
             inherit config;
             inherit lib;
             vmName = "net-vm";
