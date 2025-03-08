@@ -58,8 +58,8 @@ let
 
           {
             ghaf = {
-              #virtualization.podman.daemon.enable = true;
-              virtualization.docker.daemon.enable = true;
+              #virtualisation.nvidia-podman.daemon.enable = true;
+              virtualisation.nvidia-docker.daemon.enable = true;
 
               hardware.nvidia.orin = {
                 enable = true;

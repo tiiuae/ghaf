@@ -100,7 +100,7 @@ in
               "video"
             ]
             ++ optionals config.security.tpm2.enable [ "tss" ]
-            ++ optionals config.ghaf.virtualization.docker.daemon.enable [ "docker" ];
+            ++ optionals config.virtualisation.docker.enable [ "docker" ];
         };
       };
       groups = {

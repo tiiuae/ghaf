@@ -13,8 +13,7 @@
     ./security
     ./users
     ./version
-    ./virtualization/docker.nix
-    ./virtualization/podman.nix
+    ./virtualisation
     ./systemd
     ./services
     ./networking
