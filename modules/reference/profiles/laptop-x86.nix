@@ -68,11 +68,6 @@ in
           networkSupport = true;
           sharedVmDirectory = {
             enable = true;
-            vms = [
-              "business-vm"
-              "comms-vm"
-              "chrome-vm"
-            ];
           };
         };
 
