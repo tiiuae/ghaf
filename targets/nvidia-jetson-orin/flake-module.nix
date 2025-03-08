@@ -10,7 +10,7 @@
   ...
 }:
 let
-  inherit (inputs) nixpkgs nixos-generators jetpack-nixos;
+  inherit (inputs) nixos-generators jetpack-nixos;
   name = "nvidia-jetson-orin";
   system = "aarch64-linux";
   nvidia-jetson-orin =
@@ -188,22 +188,6 @@ let
   # Add nodemoapps targets
   targets = baseTargets ++ (map generate-nodemoapps baseTargets);
   crossTargets = map generate-cross-from-x86_64 targets;
-  mkFlashScript = import ../../lib/mk-flash-script;
-  # Generate flash script variant which flashes both QSPI and eMMC
-  generate-flash-script =
-    tgt: _flash-tools-system:
-    mkFlashScript {
-      inherit (tgt) hostConfiguration;
-    };
-  # Generate flash script variant which flashes QSPI only. Useful for Orin NX
-  # and non-eMMC based development.
-  generate-flash-qspi =
-    tgt: _flash-tools-system:
-    mkFlashScript {
-      hostConfiguration = tgt.hostConfiguration.extendModules {
-        modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
-      };
-    };
 in
 {
   flake = {
@@ -217,12 +201,16 @@ in
         builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
         // builtins.listToAttrs (
           map (
-            t: lib.nameValuePair "${t.name}-flash-script" (generate-flash-script t "x86_64-linux")
+            t: lib.nameValuePair "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.flashScript
           ) crossTargets
         )
         // builtins.listToAttrs (
           map (
-            t: lib.nameValuePair "${t.name}-flash-qspi" (generate-flash-qspi t "x86_64-linux")
+            t:
+            lib.nameValuePair "${t.name}-flash-qspi"
+              (t.hostConfiguration.extendModules {
+                modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
+              }).pkgs.nvidia-jetpack.flashScript
           ) crossTargets
         );
     };
