@@ -68,7 +68,7 @@ let
           })
 
           # To push logs to central location
-          ../../../common/logging/client.nix
+          ../common/logging/client.nix
           (
             {
               lib,
@@ -168,7 +168,7 @@ let
 
               security.pki.certificateFiles =
                 lib.mkIf configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
-                  [ ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem ];
+                  [ ./sysvms/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem ];
 
               time.timeZone = configHost.time.timeZone;
 
@@ -223,7 +223,7 @@ let
               };
               fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = [ "ro" ];
 
-              imports = [ ../../../common ];
+              imports = [ ../common ];
             }
           )
         ];

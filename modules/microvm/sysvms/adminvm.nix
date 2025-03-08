@@ -15,7 +15,7 @@ let
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc-adminvm
-      (import ./common/vm-networking.nix {
+      (import ../common/vm-networking.nix {
         inherit
           config
           lib
@@ -23,9 +23,9 @@ let
           ;
       })
       # We need to retrieve mac address and start log aggregator
-      ../../../common/logging/hw-mac-retrieve.nix
-      ../../../common/logging/logs-aggregator.nix
-      ./common/storagevm.nix
+      ../../common/logging/hw-mac-retrieve.nix
+      ../../common/logging/logs-aggregator.nix
+      ../common/storagevm.nix
       (
         { lib, ... }:
         {
@@ -115,7 +115,7 @@ let
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
           };
-          imports = [ ../../../common ];
+          imports = [ ../../common ];
         }
       )
     ];

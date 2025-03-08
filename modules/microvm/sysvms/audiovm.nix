@@ -15,19 +15,19 @@ let
     imports = [
       inputs.self.nixosModules.givc-audiovm
       inputs.impermanence.nixosModules.impermanence
-      (import ./common/vm-networking.nix {
+      (import ../common/vm-networking.nix {
         inherit
           config
           lib
           vmName
           ;
       })
-      ./common/storagevm.nix
-      ../../../common/logging/client.nix
+      ../common/storagevm.nix
+      ../../common/logging/client.nix
       (
         { lib, pkgs, ... }:
         {
-          imports = [ ../../../common ];
+          imports = [ ../../common ];
 
           ghaf = {
             # Profiles

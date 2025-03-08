@@ -25,7 +25,6 @@ let
       config.ghaf.hardware.definition.audio.rescanPciDevice
     else
       config.ghaf.hardware.definition.audio.removePciDevice;
-  vinotify = pkgs.callPackage ../../../../packages/vinotify { };
 in
 {
   imports = [
@@ -159,7 +158,7 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = "${vinotify}/bin/vinotify --cid ${toString config.ghaf.virtualization.microvm.guivm.vsockCID} --port 2000 --path /persist/storagevm/shared/shares --mode host";
+          ExecStart = "${pkgs.vinotify}/bin/vinotify --cid ${toString config.ghaf.virtualization.microvm.guivm.vsockCID} --port 2000 --path /persist/storagevm/shared/shares --mode host";
         };
         startLimitIntervalSec = 0;
       };
@@ -175,7 +174,7 @@ in
               Type = "simple";
               Restart = "always";
               RestartSec = "1";
-              ExecStart = "${vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
+              ExecStart = "${pkgs.vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
             };
             startLimitIntervalSec = 0;
           };

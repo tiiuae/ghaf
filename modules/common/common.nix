@@ -13,8 +13,6 @@ let
     mkOption
     types
     optionalAttrs
-    optionalString
-    attrsets
     hasAttrByPath
     ;
 in

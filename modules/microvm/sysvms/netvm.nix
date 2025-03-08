@@ -12,7 +12,7 @@ let
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc-netvm
-      (import ./common/vm-networking.nix {
+      (import ../common/vm-networking.nix {
         inherit
           config
           lib
@@ -21,14 +21,14 @@ let
         isGateway = true;
       })
 
-      ./common/storagevm.nix
+      ../common/storagevm.nix
 
       # To push logs to central location
-      ../../../common/logging/client.nix
+      ../../common/logging/client.nix
       (
         { lib, ... }:
         {
-          imports = [ ../../../common ];
+          imports = [ ../../common ];
 
           ghaf = {
             # Profiles
