@@ -29,6 +29,13 @@ in
         };
       };
 
+      # Enable shared directories for the selected VMs
+      virtualization.microvm-host.sharedVmDirectory.vms = [
+        "business-vm"
+        "comms-vm"
+        "chrome-vm"
+      ];
+
       reference = {
         appvms = {
           enable = true;
@@ -37,7 +44,6 @@ in
           zathura-vm = true;
           comms-vm = true;
           business-vm = true;
-
         };
 
         services = {
