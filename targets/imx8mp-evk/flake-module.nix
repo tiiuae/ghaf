@@ -51,10 +51,6 @@ let
             };
 
             nixpkgs = {
-              #TODO; we shoudl specify the build platform
-              # for both native and cross-compiled cases
-              buildPlatform.system = "x86_64-linux";
-
               # Increase the support for different devices by allowing the use
               # of proprietary drivers from the respective vendors
               config = {
@@ -92,14 +88,28 @@ let
     (nxp-imx8mp-evk "debug" debugModules)
     (nxp-imx8mp-evk "release" releaseModules)
   ];
+
+  generate-cross-from-x86_64 =
+    tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-from-x86_64";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [ { nixpkgs.buildPlatform.system = "x86_64-linux"; } ]; # buildPlatform to force cross-compilation
+      };
+      package = hostConfiguration.config.system.build.sdImage;
+    };
+
+  crossTargets = map generate-cross-from-x86_64 targets;
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
+      map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets)
     );
     packages = {
       aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      x86_64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets);
     };
   };
 }
