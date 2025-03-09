@@ -9,7 +9,6 @@
 let
   configHost = config;
   vmName = "admin-vm";
-  isLoggingEnabled = config.ghaf.logging.client.enable;
 
   adminvmBaseConfiguration = {
     imports = [
@@ -22,9 +21,6 @@ let
           vmName
           ;
       })
-      # We need to retrieve mac address and start log aggregator
-      ../../common/logging/hw-mac-retrieve.nix
-      ../../common/logging/logs-aggregator.nix
       ../common/storagevm.nix
       (
         { lib, ... }:
@@ -67,12 +63,9 @@ let
 
             # Services
             logging = {
-              client.enable = isLoggingEnabled;
-              listener = {
-                inherit (configHost.ghaf.logging.listener) address port;
+              server = {
+                inherit (configHost.ghaf.logging) enable;
               };
-              identifierFilePath = "/var/lib/private/alloy/MACAddress";
-              server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
             };
           };
 
@@ -81,11 +74,6 @@ let
           nixpkgs = {
             buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
             hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-          };
-
-          networking.firewall = {
-            allowedTCPPorts = lib.mkIf isLoggingEnabled [ config.ghaf.logging.listener.port ];
-            allowedUDPPorts = [ ];
           };
 
           microvm = {
@@ -101,13 +89,19 @@ let
                   mountPoint = "/nix/.ro-store";
                   proto = "virtiofs";
                 }
+                {
+                  tag = "ghaf-common";
+                  source = "/persist/common";
+                  mountPoint = "/etc/common";
+                  proto = "virtiofs";
+                }
               ]
-              ++ lib.optionals isLoggingEnabled [
+              ++ lib.optionals config.ghaf.logging.enable [
                 {
                   # Creating a persistent log-store which is mapped on ghaf-host
                   # This is only to preserve logs state across adminvm reboots
                   tag = "log-store";
-                  source = "/var/lib/private/alloy";
+                  source = "/persist/storagevm/admin-vm/var/lib/private/alloy";
                   mountPoint = "/var/lib/private/alloy";
                   proto = "virtiofs";
                 }

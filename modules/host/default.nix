@@ -5,10 +5,6 @@
 #
 { lib, ... }:
 {
+  # TODO Move this and remove this file
   networking.hostName = lib.mkDefault "ghaf-host";
-
-  imports = [
-    # To push logs to central location
-    ../common/logging/client.nix
-  ];
 }

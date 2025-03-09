@@ -25,11 +25,6 @@ let
       ../common/storagevm.nix
       ../common/xdgitems.nix
 
-      # To push logs to central location
-      ../../common/logging/client.nix
-
-      ../../common/logging/hw-mac-retrieve.nix
-
       (
         { lib, pkgs, ... }:
         let
@@ -122,11 +117,8 @@ let
               };
             };
 
-            logging.client = {
-              inherit (config.ghaf.logging.client) enable endpoint;
-            };
-            # TODO: Remove when the GIVC sharing is implemented for MAC address
-            logging.identifierFilePath = "/tmp/MACAddress";
+            # Logging
+            logging.client.enable = config.ghaf.logging.enable;
 
             services = {
               disks = {
@@ -231,12 +223,6 @@ let
                 pkgs.libva-utils
                 pkgs.glib
               ];
-            sessionVariables = {
-              GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
-              # TODO: Current client ID belongs to the "GitHub CLI" OAuth app. Replace it with TII Github app
-              # GITHUB App Client ID for bug reporting login
-              GITHUB_CLIENT_ID = "178c6fc778ccc68e1d6a";
-            };
           };
 
           time.timeZone = config.time.timeZone;
@@ -263,6 +249,12 @@ let
                 tag = "ro-store";
                 source = "/nix/store";
                 mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
+              {
+                tag = "ghaf-common";
+                source = "/persist/common";
+                mountPoint = "/etc/common";
                 proto = "virtiofs";
               }
             ];

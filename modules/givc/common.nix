@@ -89,6 +89,14 @@ in
   };
 
   config = mkIf cfg.enable {
+
+    assertions = [
+      {
+        assertion = cfg.debug -> (!config.ghaf.logging.enable);
+        message = "Do not enable givc debug and logging simultaneously, you may leak private information.";
+      }
+    ];
+
     # Generic givc configs
     ghaf.givc = {
       inherit idsExtraArgs;

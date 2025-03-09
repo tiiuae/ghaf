@@ -1,31 +1,60 @@
-# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
-  endpointUrl = config.ghaf.logging.server.endpoint;
-  listenerAddress = config.ghaf.logging.listener.address;
-  listenerPort = toString config.ghaf.logging.listener.port;
-  macAddressPath = config.ghaf.logging.identifierFilePath;
+  cfg = config.ghaf.logging.server;
 in
 {
-  options.ghaf.logging.server.endpoint = lib.mkOption {
-    description = ''
-      Assign endpoint url value to the alloy.service running in
-      admin-vm. This endpoint URL will include protocol, upstream
-      address along with port value.
-    '';
-    type = lib.types.str;
+  options.ghaf.logging.server = {
+    enable = lib.mkEnableOption "Enable logs aggregator server";
+    endpoint = lib.mkOption {
+      description = ''
+        Assign endpoint url value to the alloy.service running in
+        admin-vm. This endpoint URL will include protocol, upstream
+        address along with port value.
+      '';
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+    };
+    identifierFilePath = lib.mkOption {
+      description = ''
+        This configuration option used to specify the identifier file path.
+        The identifier file will be text file which have unique identification
+        value per machine so that when logs will be uploaded to cloud
+        we can identify its origin.
+      '';
+      type = lib.types.nullOr lib.types.path;
+      example = "/etc/common/device-id";
+      default = "/etc/common/device-id";
+    };
   };
 
-  config = lib.mkIf config.ghaf.logging.client.enable {
+  config = lib.mkIf config.ghaf.logging.server.enable {
+
+    assertions = [
+      {
+        assertion = cfg.endpoint != null;
+        message = "Please provide endpoint URL for logs aggregator server, or disable the module.";
+      }
+      {
+        assertion = cfg.identifierFilePath != null;
+        message = "Please provide the identifierFilePath for logs aggregator server, or disable the module.";
+      }
+    ];
+
     environment.etc."loki/pass" = {
       text = "ghaf";
     };
+
     environment.etc."alloy/logs-aggregator.alloy" = {
       text = ''
         local.file "macAddress" {
           // Alloy service can read file in this specific location
-          filename = "${macAddressPath}"
+          filename = "${cfg.identifierFilePath}"
         }
         discovery.relabel "adminJournal" {
           targets = []
@@ -50,7 +79,7 @@ in
 
         loki.write "remote" {
           endpoint {
-            url = "${endpointUrl}"
+            url = "${cfg.endpoint}"
             // TODO: To be replaced with stronger authentication method
             basic_auth {
               username = "ghaf"
@@ -69,8 +98,8 @@ in
 
         loki.source.api "listener" {
           http {
-            listen_address = "${listenerAddress}"
-            listen_port = ${listenerPort}
+            listen_address = "${config.ghaf.logging.listener.address}"
+            listen_port = ${toString config.ghaf.logging.listener.port}
           }
 
           forward_to = [
@@ -83,10 +112,14 @@ in
     };
 
     services.alloy.enable = true;
-    systemd.services.alloy.serviceConfig.after = [ "hw-mac.service" ];
     # If there is no internet connection , shutdown/reboot will take around 100sec
     # So, to fix that problem we need to add stop timeout
     # https://github.com/grafana/loki/issues/6533
     systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
+
+    networking.firewall = {
+      allowedTCPPorts = [ config.ghaf.logging.listener.port ];
+      allowedUDPPorts = [ ];
+    };
   };
 }

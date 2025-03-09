@@ -1,21 +1,32 @@
-# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
   cfg = config.ghaf.logging.client;
-  endpointUrl = config.ghaf.logging.client.endpoint;
+  inherit (config.ghaf.logging) listener;
 in
 {
-  options.ghaf.logging.client.endpoint = lib.mkOption {
-    description = ''
-      Assign endpoint url value to the alloy.service running in
-      different log producers. This endpoint URL will include
-      protocol, upstream, address along with port value.
-    '';
-    type = lib.types.str;
+  options.ghaf.logging.client = {
+    enable = lib.mkEnableOption "Enable the alloy client service";
+    endpoint = lib.mkOption {
+      description = ''
+        Assign endpoint url value to the alloy.service running in
+        different log producers. This endpoint URL will include
+        protocol, upstream, address along with port value.
+      '';
+      type = lib.types.str;
+      default = "http://${listener.address}:${toString listener.port}/loki/api/v1/push";
+    };
   };
-
   config = lib.mkIf cfg.enable {
+
+    assertions = [
+      {
+        assertion = listener.address != "";
+        message = "Please provide a listener address, or disable the module.";
+      }
+    ];
+
     environment.etc."alloy/client.alloy" = {
       text = ''
         discovery.relabel "journal" {
@@ -34,7 +45,7 @@ in
 
         loki.write "adminvm" {
           endpoint {
-            url = "${endpointUrl}"
+            url = "${cfg.endpoint}"
           }
         }
       '';
