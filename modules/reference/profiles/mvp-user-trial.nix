@@ -10,6 +10,7 @@ in
     ../programs
     ../services
     ../personalize
+    ../desktop
   ];
 
   options.ghaf.reference.profiles.mvp-user-trial = {
@@ -57,22 +58,32 @@ in
           keys.enable = true;
         };
 
-        profiles = {
-          laptop-x86 = {
-            enable = true;
-            netvmExtraModules = [
-              ../services
-              ../personalize
-              { ghaf.reference.personalize.keys.enable = true; }
-            ];
-            guivmExtraModules = [
-              ../programs
-              ../personalize
-              { ghaf.reference.personalize.keys.enable = true; }
-            ];
-            inherit (config.ghaf.reference.appvms) enabled-app-vms;
-          };
+        desktop.applications.enable = true;
+      };
+
+      profiles = {
+        laptop-x86 = {
+          enable = true;
+          netvmExtraModules = [
+            ../services
+            ../personalize
+            { ghaf.reference.personalize.keys.enable = true; }
+          ];
+          guivmExtraModules = [
+            ../programs
+            ../personalize
+            { ghaf.reference.personalize.keys.enable = true; }
+          ];
+          inherit (config.ghaf.reference.appvms) enabled-app-vms;
         };
+      };
+
+
+       # Enable logging
+      logging = {
+        enable = true;
+        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+        listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
       };
     };
   };
