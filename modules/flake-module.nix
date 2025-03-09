@@ -10,6 +10,7 @@
     ./givc/flake-module.nix
     ./hardware/flake-module.nix
     ./microvm/flake-module.nix
+    ./reference/hardware/flake-module.nix
   ];
 
   flake.nixosModules = {
@@ -24,10 +25,6 @@
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
     lanzaboote.imports = [ ./lanzaboote ];
-    imx8.imports = [ ./reference/hardware/imx8 ];
-    jetpack.imports = [ ./reference/hardware/jetpack ];
-    jetpack-microvm.imports = [ ./reference/hardware/jetpack-microvm ];
-    polarfire.imports = [ ./reference/hardware/polarfire ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-personalize.imports = [ ./reference/personalize ];
     reference-profiles.imports = [ ./reference/profiles ];

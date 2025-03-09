@@ -1,4 +1,4 @@
-# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
   # System name
@@ -14,7 +14,7 @@
       "iommu=pt"
       "acpi_backlight=vendor"
       "acpi_osi=linux"
-      "module_blacklist=i915,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl"
+      "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl"
     ];
   };
 
@@ -98,14 +98,17 @@
       }
     ];
     kernelConfig = {
-      stage1.kernelModules = [ "i915" ];
+      stage1.kernelModules = [ ];
       stage2.kernelModules = [ ];
-      kernelParams = [ "earlykms" ];
+      kernelParams = [ ];
     };
   };
 
   # Audio device for passthrough to audiovm
   audio = {
+    removePciDevice = "0000:00:1f.3";
+    rescanPciDevice = "0000:00:1f.0";
+    acpiPath = "/sys/firmware/acpi/tables/NHLT";
     pciDevices = [
       {
         # ISA bridge: Intel Corporation Alder Lake LPC Controller (rev 01)
@@ -152,7 +155,7 @@
         "snd_sof_pci_intel_tgl"
         "spi_intel_pci"
       ];
-      kernelParams = [ ];
+      kernelParams = [ "snd_intel_dspcfg.dsp_driver=0" ];
     };
   };
 
@@ -163,6 +166,11 @@
         name = "gps0";
         hostbus = "3";
         hostport = "7";
+      }
+      {
+        name = "bt0";
+        hostbus = "3";
+        hostport = "10";
       }
     ];
     external = [
