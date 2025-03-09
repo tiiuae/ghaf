@@ -40,6 +40,13 @@ in
 
   config = mkIf cfg.enable {
 
+    environment.sessionVariables = {
+      GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
+      # TODO: Current client ID belongs to the "GitHub CLI" OAuth app. Replace it with TII Github app
+      # GITHUB App Client ID for bug reporting login
+      GITHUB_CLIENT_ID = "178c6fc778ccc68e1d6a";
+    };
+
     systemd.user.services."github-config" =
       let
         configScript = pkgs.writeShellScriptBin "github-config" ''

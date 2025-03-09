@@ -23,7 +23,6 @@ let
           ;
       })
       ../common/storagevm.nix
-      ../../common/logging/client.nix
       (
         { lib, pkgs, ... }:
         {
@@ -69,9 +68,7 @@ let
 
             # Services
             services.audio.enable = true;
-            # Logging client configuration
-            logging.client.enable = configHost.ghaf.logging.client.enable;
-            logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
+            logging.client.enable = configHost.ghaf.logging.enable;
           };
 
           environment = {

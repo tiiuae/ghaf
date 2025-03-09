@@ -3,8 +3,6 @@
 { config, lib, ... }:
 let
   cfg = config.ghaf.reference.profiles.laptop-x86;
-  listenerAddress = config.ghaf.logging.listener.address;
-  listenerPort = toString config.ghaf.logging.listener.port;
 in
 {
   imports = [
@@ -118,16 +116,11 @@ in
         applications.enable = false;
       };
 
-      # Logging configuration
+      # Enable logging
       logging = {
-        client = {
-          enable = true;
-          endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
-        };
-        listener = {
-          address = config.ghaf.networking.hosts.admin-vm.ipv4;
-          port = 9999;
-        };
+        enable = true;
+        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+        listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
       };
 
       reference.desktop.applications.enable = true;
