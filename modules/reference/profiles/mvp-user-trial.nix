@@ -3,6 +3,8 @@
 { config, lib, ... }:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
+  listenerAddress = config.ghaf.logging.listener.address;
+  listenerPort = toString config.ghaf.logging.listener.port;
 in
 {
   imports = [
@@ -10,6 +12,7 @@ in
     ../programs
     ../services
     ../personalize
+    ../desktop
   ];
 
   options.ghaf.reference.profiles.mvp-user-trial = {
@@ -57,23 +60,38 @@ in
           keys.enable = true;
         };
 
-        profiles = {
-          laptop-x86 = {
-            enable = true;
-            netvmExtraModules = [
-              ../services
-              ../personalize
-              { ghaf.reference.personalize.keys.enable = true; }
-            ];
-            guivmExtraModules = [
-              ../programs
-              ../personalize
-              { ghaf.reference.personalize.keys.enable = true; }
-            ];
-            inherit (config.ghaf.reference.appvms) enabled-app-vms;
-          };
+        desktop.applications.enable = true;
+      };
+
+      profiles = {
+        laptop-x86 = {
+          enable = true;
+          netvmExtraModules = [
+            ../services
+            ../personalize
+            { ghaf.reference.personalize.keys.enable = true; }
+          ];
+          guivmExtraModules = [
+            ../programs
+            ../personalize
+            { ghaf.reference.personalize.keys.enable = true; }
+          ];
+          inherit (config.ghaf.reference.appvms) enabled-app-vms;
         };
       };
+
+      # Logging configuration
+      logging = {
+        client = {
+          enable = true;
+          endpoint = "http://${listenerAddress}:${listenerPort}/loki/api/v1/push";
+        };
+        listener = {
+          address = config.ghaf.networking.hosts.admin-vm.ipv4;
+          port = 9999;
+        };
+      };
+
     };
   };
 }

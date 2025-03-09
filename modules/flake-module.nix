@@ -28,6 +28,7 @@
     jetpack.imports = [ ./reference/hardware/jetpack ];
     jetpack-microvm.imports = [ ./reference/hardware/jetpack-microvm ];
     polarfire.imports = [ ./reference/hardware/polarfire ];
+    profiles.imports = [ ./profiles ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-personalize.imports = [ ./reference/personalize ];
     reference-profiles.imports = [ ./reference/profiles ];
