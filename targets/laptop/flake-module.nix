@@ -18,66 +18,63 @@ let
     # Laptop Debug configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen10
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen10.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen12" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen12
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen12.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "lenovo-x1-extras" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial-extras.enable = true;
         };
       }
     ])
     (laptop-configuration "dell-latitude-7230" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-dell-latitude-7230
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "dell-latitude-7330" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-dell-latitude-7330
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "alienware-m18-R2" "debug" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-alienware-m18-r2
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
-          virtualization.microvm.guivm.extraModules = [
-            (import ../../modules/reference/hardware/alienware/extra-config.nix)
-          ];
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
@@ -86,66 +83,63 @@ let
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen10
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen10.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen11" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "lenovo-x1-carbon-gen12" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen12
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen12.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "lenovo-x1-extras" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
           reference.profiles.mvp-user-trial-extras.enable = true;
         };
       }
     ])
     (laptop-configuration "dell-latitude-7230" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-dell-latitude-7230
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7230.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "dell-latitude-7330" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-dell-latitude-7330
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/dell-latitude/definitions/dell-latitude-7330.nix;
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
     ])
     (laptop-configuration "alienware-m18-R2" "release" [
       self.nixosModules.disko-debug-partition
+      self.nixosModules.hardware-alienware-m18-r2
       {
         ghaf = {
-          hardware.definition = import ../../modules/reference/hardware/alienware/alienware-m18.nix;
-          virtualization.microvm.guivm.extraModules = [
-            (import ../../modules/reference/hardware/alienware/extra-config.nix)
-          ];
           reference.profiles.mvp-user-trial.enable = true;
         };
       }
