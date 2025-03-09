@@ -66,9 +66,6 @@ let
               cid
               ;
           })
-
-          # To push logs to central location
-          ../common/logging/client.nix
           (
             {
               lib,
@@ -131,9 +128,8 @@ let
 
                 waypipe.enable = true;
 
-                # Logging client configuration
-                logging.client.enable = configHost.ghaf.logging.client.enable;
-                logging.client.endpoint = configHost.ghaf.logging.client.endpoint;
+                # Logging
+                logging.client.enable = configHost.ghaf.logging.enable;
               };
 
               # SSH is very picky about the file permissions and ownership and will

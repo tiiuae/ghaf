@@ -23,8 +23,6 @@ let
 
       ../common/storagevm.nix
 
-      # To push logs to central location
-      ../../common/logging/client.nix
       (
         { lib, ... }:
         {
@@ -71,10 +69,9 @@ let
             };
 
             # Services
-            # Logging client configuration
-            logging.client.enable = config.ghaf.logging.client.enable;
-            logging.client.endpoint = config.ghaf.logging.client.endpoint;
 
+            # Logging
+            logging.client.enable = config.ghaf.logging.enable;
           };
 
           time.timeZone = config.time.timeZone;

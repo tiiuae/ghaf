@@ -79,6 +79,7 @@ in
         };
         givc.host.enable = true;
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
+        logging.client.enable = config.ghaf.logging.enable;
       };
 
       services.logind.lidSwitch = "ignore";
@@ -96,11 +97,15 @@ in
           xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
         in
         [
+          "d /persist/common 0755 root root -"
           "d /persist/storagevm/homes 0700 microvm kvm -"
           "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
         ++ lib.optionals config.ghaf.givc.enable [
           "d /persist/storagevm/givc 0700 microvm kvm -"
+        ]
+        ++ lib.optionals config.ghaf.logging.enable [
+          "d /persist/storagevm/admin-vm/var/lib/private/alloy 0700 microvm kvm -"
         ]
         ++ vmRootDirs
         ++ xdgRules;
@@ -128,6 +133,25 @@ in
               ''}"
             ];
           };
+
+      # Generate anonymous unique device identifier
+      systemd.services.generate-device-id = {
+        enable = true;
+        description = "Generate device unique id";
+        wantedBy = [ "local-fs.target" ];
+        after = [ "local-fs.target" ];
+        unitConfig.ConditionPathExists = "!/persist/common/device-id";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.writeShellScript "generate-device-id" ''
+            # Generate a unique device id for the device
+            echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
+          ''}";
+          RemainAfterExit = true;
+          Restart = "on-failure";
+          RestartSec = "1";
+        };
+      };
     })
     (mkIf cfg.sharedVmDirectory.enable {
       ghaf.virtualization.microvm.guivm.extraModules = [ (import ./common/shared-directory.nix "") ];

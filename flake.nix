@@ -143,7 +143,7 @@
     };
 
     givc = {
-      url = "github:tiiuae/ghaf-givc/62a62c682435a216e324e262f28c7184ab45663e";
+      url = "github:tiiuae/ghaf-givc/ce0b6b9b5f9f245cb51413d30a30078d5aa1d9fe";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -155,7 +155,7 @@
     };
 
     ctrl-panel = {
-      url = "github:tiiuae/ghaf-ctrl-panel/b3c198bd7d85bdc61aa78803a69925bc81f424bb";
+      url = "github:tiiuae/ghaf-ctrl-panel/dbc0788f61fad2dd6f326ef4191465f9271f4a43";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

@@ -86,6 +86,19 @@ let
 
     # Yubikey module
     yubikey = optionalAttrs cfg.guivm.yubikey { config.ghaf.services.yubikey.enable = true; };
+
+    # Logging module
+    logging = {
+      config.ghaf.logging = {
+        inherit (configHost.ghaf.logging) enable;
+        listener = {
+          inherit (configHost.ghaf.logging.listener) address;
+        };
+        server = {
+          inherit (configHost.ghaf.logging.server) endpoint;
+        };
+      };
+    };
   };
 
   # User account settings
@@ -167,6 +180,7 @@ in
         firmwareModule
         serviceModules.wifi
         serviceModules.givc
+        serviceModules.logging
         referenceServiceModule
         managedUserAccounts
         commonModule
@@ -180,6 +194,7 @@ in
         serviceModules.audio
         serviceModules.givc
         serviceModules.bluetooth
+        serviceModules.logging
         managedUserAccounts
         commonModule
       ];
@@ -193,17 +208,20 @@ in
         serviceModules.fprint
         serviceModules.yubikey
         serviceModules.givc
+        serviceModules.logging
         referenceProgramsModule
         managedUserAccounts
         commonModule
       ];
       adminvm.extraModules = optionals cfg.adminvm.enable [
         serviceModules.givc
+        serviceModules.logging
         managedUserAccounts
         commonModule
       ];
       appvm.extraModules = optionals cfg.appvm.enable [
         serviceModules.givc
+        serviceModules.logging
         managedUserAccounts
         commonModule
       ];
