@@ -5,7 +5,6 @@
 #
 {
   imports = [
-    ./mvp-user-trial.nix
-    ./mvp-user-trial-extras.nix
+    ./laptop-x86.nix
   ];
 }
