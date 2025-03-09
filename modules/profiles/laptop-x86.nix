@@ -2,24 +2,25 @@
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
-  cfg = config.ghaf.reference.profiles.laptop-x86;
+  cfg = config.ghaf.profiles.laptop-x86;
 in
 {
   imports = [
-    ../../desktop/graphics
-    ../../common
-    ../../host
+    ../desktop/graphics
+    ../common
+    ../host
     #TODO how to reference the miocrovm module here?
     #self.nixosModules.microvm
     #../microvm
-    ../../hardware/x86_64-generic
-    ../../hardware/common
-    ../../hardware/definition.nix
-    ../../lanzaboote
-    ../desktop
+    ../hardware/x86_64-generic
+    ../hardware/common
+    ../hardware/definition.nix
+
+    #TODO should lanzaboote be here?
+    ../lanzaboote
   ];
 
-  options.ghaf.reference.profiles.laptop-x86 = {
+  options.ghaf.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
 
     netvmExtraModules = lib.mkOption {
@@ -109,21 +110,6 @@ in
       host = {
         networking.enable = true;
       };
-
-      # UI applications
-      # TODO fix this when defining desktop and apps
-      profiles = {
-        applications.enable = false;
-      };
-
-      # Enable logging
-      logging = {
-        enable = true;
-        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
-        listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
-      };
-
-      reference.desktop.applications.enable = true;
     };
   };
 }

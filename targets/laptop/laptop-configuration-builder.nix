@@ -18,13 +18,9 @@ let
         inherit system;
         specialArgs = inputs;
         modules = [
-          self.nixosModules.reference-profiles
+          self.nixosModules.profiles
           self.nixosModules.laptop
-          inputs.lanzaboote.nixosModules.lanzaboote
-
-          #TODO can we move microvm to the profile/laptop-x86?
           self.nixosModules.microvm
-          #TODO see the twisted dependencies in common/desktop
 
           {
             ghaf = {

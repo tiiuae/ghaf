@@ -25,6 +25,7 @@
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
     lanzaboote.imports = [ ./lanzaboote ];
+    profiles.imports = [ ./profiles ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-personalize.imports = [ ./reference/personalize ];
     reference-profiles.imports = [ ./reference/profiles ];
