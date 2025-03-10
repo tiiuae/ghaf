@@ -39,9 +39,10 @@
                   inputs.lanzaboote.nixosModules.lanzaboote
                   self.nixosModules.microvm
                   self.nixosModules.disko-debug-partition
+                  self.nixosModules.hardware-lenovo-x1-carbon-gen11
+                  self.nixosModules.profiles-laptop
                   {
                     nixpkgs.hostPlatform = "x86_64-linux";
-                    ghaf.hardware.definition = import ../modules/reference/hardware/lenovo-x1/definitions/x1-gen11.nix;
                   }
                 ];
               };

@@ -21,6 +21,8 @@ let
           self.nixosModules.desktop
           self.nixosModules.host
           self.nixosModules.microvm
+          self.nixosModules.profiles
+          self.nixosModules.reference-host-demo-apps
           self.nixosModules.hw-x86_64-generic
 
           {
@@ -42,11 +44,15 @@ let
 
               # Enable all the default UI applications
               profiles = {
-                applications.enable = true;
+                graphics = {
+                  enable = true;
+                  renderer = "pixman";
+                };
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
-                graphics.renderer = "pixman";
               };
+
+              reference.host-demo-apps.demo-apps.enableDemoApplications = true;
             };
 
             nixpkgs = {

@@ -6,7 +6,7 @@ let
 in
 {
   imports = [
-    ../desktop/graphics
+    ./graphics.nix
     ../common
     ../host
     #TODO how to reference the miocrovm module here?

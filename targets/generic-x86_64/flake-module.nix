@@ -47,6 +47,8 @@ let
           self.nixosModules.host
           self.nixosModules.microvm
           self.nixosModules.hw-x86_64-generic
+          self.nixosModules.profiles
+          self.nixosModules.reference-host-demo-apps
           self.nixosModules.reference-programs
 
           (
@@ -91,13 +93,14 @@ let
 
               # Enable all the default UI applications
               profiles = {
-                applications.enable = true;
+                graphics.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
                 # Uncomment this line to use Labwc instead of Weston:
                 #graphics.compositor = "labwc";
               };
               reference.programs.windows-launcher.enable = true;
+              reference.host-demo-apps.demo-apps.enableDemoApplications = true;
             };
 
             nixpkgs = {

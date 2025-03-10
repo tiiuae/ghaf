@@ -1,35 +1,51 @@
-# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ pkgs, config, ... }:
+#
+{ lib, ... }:
 let
-  toDesktop =
-    elem:
-    let
-      prefix = if elem.vm != null then "[${elem.vm}] " else "";
-      icon = if elem.icon != null then elem.icon else elem.name;
-
-      extraCheckPhase =
-        if builtins.isPath icon then
-          ''
-            # Check that the icon's path exists
-            [[ -f "${icon}" ]] || (echo "The icon's path ${icon} doesn't exist" && exit 1)
-          ''
-        else
-          "";
-    in
-    (pkgs.makeDesktopItem {
-      inherit (elem) name;
-      genericName = elem.name;
-      desktopName = elem.name;
-      inherit icon;
-      comment = "${prefix}${elem.description}";
-      exec = elem.path;
-    }).overrideAttrs
-      (prevAttrs: {
-        checkPhase = prevAttrs.checkPhase + extraCheckPhase;
-      });
+  inherit (lib)
+    mkOption
+    types
+    ;
 in
-pkgs.symlinkJoin {
-  name = "ghaf-desktop-entries";
-  paths = map toDesktop config.ghaf.graphics.launchers;
+{
+  options.ghaf.graphics = {
+    launchers = mkOption {
+      description = "Application launchers to show in the system drawer or launcher.";
+      default = [ ];
+      type = types.listOf (
+        types.submodule {
+          options = {
+            name = mkOption {
+              description = "Name of the application";
+              type = types.str;
+            };
+            description = mkOption {
+              description = "Description of the application";
+              type = types.str;
+              default = "Secured Ghaf Application";
+            };
+            vm = mkOption {
+              description = "VM name in case this launches an isolated application.";
+              type = types.nullOr types.str;
+              default = null;
+            };
+            path = mkOption {
+              description = "Path to the executable to be launched";
+              type = types.path;
+            };
+            icon = mkOption {
+              description = ''
+                Optional icon for the launcher. If unspecified, active icon theme will
+                be searched to find an icon matching the launcher name. Can be set to an
+                icon name from the current theme (Papirus) or a full path to an icon file.
+              '';
+              type = types.nullOr (types.path // types.str);
+              default = null;
+            };
+          };
+        }
+      );
+    };
+  };
 }

@@ -78,8 +78,7 @@ in
         };
       };
 
-
-       # Enable logging
+      # Enable logging
       logging = {
         enable = true;
         server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";

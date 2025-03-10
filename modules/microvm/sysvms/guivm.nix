@@ -14,6 +14,7 @@ let
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc-guivm
+      inputs.self.nixosModules.profiles
       (import ../common/vm-networking.nix {
         inherit
           config
@@ -62,7 +63,6 @@ let
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
-              applications.enable = false;
               graphics.enable = true;
             };
             users.loginUser.enable = true;
