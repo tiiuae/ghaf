@@ -19,6 +19,7 @@ let
         specialArgs = inputs;
         modules = [
           self.nixosModules.profiles
+          self.nixosModules.profiles-laptop
           self.nixosModules.laptop
           self.nixosModules.microvm
 

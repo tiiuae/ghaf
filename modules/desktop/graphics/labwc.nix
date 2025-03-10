@@ -147,7 +147,7 @@ in
           pkgs.papirus-icon-theme
           pkgs.adwaita-icon-theme
 
-          (import ./launchers.nix { inherit pkgs config; })
+          (import ./launchers-pkg.nix { inherit pkgs config; })
         ]
         # Grim screenshot tool is used for labwc debug-builds
         # satty and slurp add some functionality to bring it

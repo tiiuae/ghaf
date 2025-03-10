@@ -53,6 +53,8 @@ let
           self.nixosModules.jetpack
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
+          self.nixosModules.profiles
+          self.nixosModules.reference-host-demo-apps
           self.nixosModules.reference-programs
           self.nixosModules.reference-personalize
 
@@ -98,13 +100,18 @@ let
 
               # Enable all the default UI applications
               profiles = {
-                applications.enable = true;
+                graphics = {
+                  enable = true;
+                  renderer = "gles2";
+                };
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
-                graphics.renderer = "gles2";
               };
+
               reference.programs.windows-launcher.enable = true;
               reference.personalize.keys.enable = variant == "debug";
+
+              reference.host-demo-apps.demo-apps.enableDemoApplications = true;
 
               # To enable screen locking set to true
               graphics.labwc.autolock.enable = false;
@@ -166,7 +173,9 @@ let
     // rec {
       name = tgt.name + "-nodemoapps";
       hostConfiguration = tgt.hostConfiguration.extendModules {
-        modules = [ { ghaf.graphics.enableDemoApplications = lib.mkForce false; } ];
+        modules = [
+          { ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications = lib.mkForce false; }
+        ];
       };
       package = mkHostImage hostConfiguration;
     };

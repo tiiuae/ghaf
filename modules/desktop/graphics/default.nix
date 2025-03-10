@@ -4,8 +4,8 @@
   imports = [
     ./labwc.nix
     ./labwc.config.nix
+    ./launchers.nix
     ./ewwbar.nix
-    ./demo-apps.nix
     ./fonts.nix
     ./login-manager.nix
     ./boot.nix

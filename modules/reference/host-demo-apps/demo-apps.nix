@@ -7,7 +7,7 @@
   ...
 }:
 let
-  cfg = config.ghaf.graphics.demo-apps;
+  cfg = config.ghaf.reference.host-demo-apps.demo-apps;
 
   /*
     Generate launchers to be used in the application drawer
@@ -23,14 +23,15 @@ let
     };
 in
 {
-  options.ghaf.graphics.demo-apps = {
+  options.ghaf.reference.host-demo-apps.demo-apps = {
+    enableDemoApplications = lib.mkEnableOption "some applications for demoing";
     chromium = mkProgramOption "Chromium browser" false;
     google-chrome = mkProgramOption "Google Chrome browser" false;
     #TODO: tmp disable firefox as 133 is not working in cross-compilation
     firefox = mkProgramOption "Firefox browser" false; # config.ghaf.graphics.enableDemoApplications;
     gala = mkProgramOption "Gala App" false;
-    element-desktop = mkProgramOption "Element desktop" config.ghaf.graphics.enableDemoApplications;
-    zathura = mkProgramOption "zathura" config.ghaf.graphics.enableDemoApplications;
+    element-desktop = mkProgramOption "Element desktop" config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
+    zathura = mkProgramOption "zathura" config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
   };
 
   config = lib.mkIf config.ghaf.profiles.graphics.enable {
