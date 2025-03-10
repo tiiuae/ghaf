@@ -29,8 +29,9 @@ in
 {
   imports = [
     inputs.impermanence.nixosModules.impermanence
-    inputs.self.nixosModules.givc-host
+    inputs.self.nixosModules.givc
   ];
+
   options.ghaf.virtualization.microvm-host = {
     enable = mkEnableOption "MicroVM Host";
     networkSupport = mkEnableOption "Network support services to run host applications.";

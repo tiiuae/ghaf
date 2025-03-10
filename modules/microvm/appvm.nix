@@ -32,7 +32,7 @@ let
       appvmConfiguration = {
         imports = [
           inputs.impermanence.nixosModules.impermanence
-          inputs.self.nixosModules.givc-appvm
+          inputs.self.nixosModules.givc
           {
             ghaf.givc.appvm = {
               enable = true;
