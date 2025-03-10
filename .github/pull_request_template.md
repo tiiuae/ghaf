@@ -34,6 +34,9 @@ Summary of the proposed changes in the PR description in your own words. For dep
 ## Instructions for Testing
 
 - [ ] List all targets that this applies to:
+  - [ ] AGX
+  - [ ] NX
+  - [ ] x86_64
 - [ ] Is this a new feature
   - [ ] List the test steps to verify:
 - [ ] If it is an improvement how does it impact existing functionality?
