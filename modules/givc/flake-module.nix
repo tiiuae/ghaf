@@ -3,35 +3,19 @@
 { inputs, ... }:
 {
   flake.nixosModules = {
-    givc-adminvm.imports = [
+    givc.imports = [
       inputs.givc.nixosModules.admin
-      ./common.nix
-      ./adminvm.nix
-    ];
-    givc-host.imports = [
       inputs.givc.nixosModules.host
       inputs.givc.nixosModules.tls
-      ./common.nix
-      ./host.nix
-    ];
-    givc-guivm.imports = [
+      inputs.givc.nixosModules.dbus
       inputs.givc.nixosModules.sysvm
-      ./common.nix
-      ./guivm.nix
-    ];
-    givc-netvm.imports = [
-      inputs.givc.nixosModules.sysvm
-      ./common.nix
-      ./netvm.nix
-    ];
-    givc-audiovm.imports = [
-      inputs.givc.nixosModules.sysvm
-      ./common.nix
-      ./audiovm.nix
-    ];
-    givc-appvm.imports = [
       inputs.givc.nixosModules.appvm
       ./common.nix
+      ./adminvm.nix
+      ./host.nix
+      ./guivm.nix
+      ./netvm.nix
+      ./audiovm.nix
       ./appvm.nix
     ];
   };

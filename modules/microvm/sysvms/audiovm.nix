@@ -13,8 +13,8 @@ let
 
   audiovmBaseConfiguration = {
     imports = [
-      inputs.self.nixosModules.givc-audiovm
       inputs.impermanence.nixosModules.impermanence
+      inputs.self.nixosModules.givc
       (import ../common/vm-networking.nix {
         inherit
           config
