@@ -42,7 +42,12 @@
                   self.nixosModules.hardware-lenovo-x1-carbon-gen11
                   self.nixosModules.profiles-laptop
                   {
-                    nixpkgs.hostPlatform = "x86_64-linux";
+                    nixpkgs = {
+                      hostPlatform = "x86_64-linux";
+                      overlays = [
+                        inputs.ghafpkgs.overlays.default
+                      ];
+                    };
                   }
                 ];
               };
