@@ -14,13 +14,7 @@ let
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
-      (import ../common/vm-networking.nix {
-        inherit
-          config
-          lib
-          vmName
-          ;
-      })
+      inputs.self.nixosModules.vm-modules
       ../common/storagevm.nix
       (
         { lib, ... }:
@@ -59,6 +53,12 @@ let
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"
               ];
+            };
+
+            # Networking
+            virtualization.microvm.vm-networking = {
+              enable = true;
+              inherit vmName;
             };
 
             # Services

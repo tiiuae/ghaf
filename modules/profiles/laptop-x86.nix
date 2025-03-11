@@ -8,7 +8,6 @@ in
   imports = [
     ./graphics.nix
     ../common
-    ../host
     #TODO how to reference the miocrovm module here?
     #self.nixosModules.microvm
     #../microvm

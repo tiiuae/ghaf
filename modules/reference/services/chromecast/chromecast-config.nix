@@ -9,19 +9,7 @@
           firstPciWifiDevice = lib.head config.ghaf.hardware.definition.network.pciDevices;
         in
         "${firstPciWifiDevice.name}";
-
-      internalNic =
-        let
-          vmNetworking = import ../../../microvm/common/vm-networking.nix {
-            inherit config;
-            inherit lib;
-            vmName = "net-vm";
-            inherit (config.microvm.net-vm) macAddress;
-            internalIP = 1;
-          };
-        in
-        "${lib.head vmNetworking.networking.nat.internalInterfaces}";
-
+      internalNic = "ethint0";
     in
     {
       enable = lib.mkDefault false;

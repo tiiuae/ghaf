@@ -44,7 +44,6 @@ let
           nixos-generators.nixosModules.raw-efi
           self.nixosModules.common
           self.nixosModules.desktop
-          self.nixosModules.host
           self.nixosModules.microvm
           self.nixosModules.hw-x86_64-generic
           self.nixosModules.profiles

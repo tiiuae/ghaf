@@ -22,8 +22,8 @@ let
         };
         modules = [
           nixos-hardware.nixosModules.nxp-imx8mp-evk
+          self.nixosModules.microvm
           self.nixosModules.common
-          self.nixosModules.host
           self.nixosModules.imx8
           self.nixosModules.reference-personalize
           {

@@ -12,15 +12,7 @@ let
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
-      (import ../common/vm-networking.nix {
-        inherit
-          config
-          lib
-          vmName
-          ;
-        isGateway = true;
-      })
-
+      inputs.self.nixosModules.vm-modules
       ../common/storagevm.nix
 
       (
@@ -68,9 +60,14 @@ let
               directories = [ "/etc/NetworkManager/system-connections/" ];
             };
 
-            # Services
+            # Networking
+            virtualization.microvm.vm-networking = {
+              enable = true;
+              isGateway = true;
+              inherit vmName;
+            };
 
-            # Logging
+            # Services
             logging.client.enable = config.ghaf.logging.enable;
           };
 

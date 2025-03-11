@@ -12,13 +12,7 @@ let
   vmName = "ids-vm";
   idsvmBaseConfiguration = {
     imports = [
-      (import ../../common/vm-networking.nix {
-        inherit
-          config
-          lib
-          vmName
-          ;
-      })
+      inputs.self.nixosModules.vm-modules
       (
         { lib, ... }:
         {
@@ -35,6 +29,11 @@ let
               ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+            };
+            virtualization.microvm.vm-networking = {
+              enable = true;
+              isGateway = true;
+              inherit vmName;
             };
           };
 
