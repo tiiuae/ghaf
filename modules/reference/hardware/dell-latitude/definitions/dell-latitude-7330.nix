@@ -75,6 +75,16 @@
         # Detected kernel driver: iwlwifi
         # Detected kernel modules: iwlwifi
       }
+      # Network controller may enumerate on different PCI device even for same Dell model
+      {
+        # Network controller: Intel Corporation Wi-Fi 6E(802.11ax) AX210/AX1675* 2x2 [Typhoon Peak] (rev 1a)
+        name = "wlp0s5f0";
+        path = "0000:71:00.0";
+        vendorId = "8086";
+        productId = "2725";
+        # Detected kernel driver: iwlwifi
+        # Detected kernel modules: iwlwifi
+      }
     ];
     kernelConfig = {
       # Kernel modules are indicative only, please investigate with lsmod/modinfo
