@@ -1,14 +1,19 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-name:
 { lib, config, ... }:
 let
-  cfg = config.ghaf.storagevm;
-  isGuiVm = builtins.stringLength name == 0;
+  cfg = config.ghaf.storagevm.shared-folders;
+  inherit (lib) mkEnableOption;
   shared-mountPath = "/tmp/shared/shares";
-  userDir = if isGuiVm then "/Shares" else "/home/${config.ghaf.users.appUser.name}/Unsafe\ share";
+  userDir =
+    if cfg.isGuiVm then "/Shares" else "/home/${config.ghaf.users.appUser.name}/Unsafe\ share";
 in
 {
+  options.ghaf.storagevm.shared-folders = {
+    enable = mkEnableOption "Enable shared directory";
+    isGuiVm = mkEnableOption "Indicate if the VM is the GUI VM";
+  };
+
   config = lib.mkIf cfg.enable {
     fileSystems.${shared-mountPath}.neededForBoot = true;
 
@@ -18,7 +23,9 @@ in
         proto = "virtiofs";
         securityModel = "passthrough";
         # We want double dir to keep root permission for `shared` directory and `shares` will be allowed to view and change by user.
-        source = "/persist/storagevm/shared/shares" + (if !isGuiVm then "/Unsafe\ ${name}\ share/" else "");
+        source =
+          "/persist/storagevm/shared/shares"
+          + (if !cfg.isGuiVm then "/Unsafe\ ${config.networking.hostName}\ share/" else "");
         mountPoint = shared-mountPath;
       }
     ];

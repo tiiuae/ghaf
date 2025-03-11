@@ -149,8 +149,6 @@ in
       };
     })
     (mkIf cfg.sharedVmDirectory.enable {
-      ghaf.virtualization.microvm.guivm.extraModules = [ (import ../common/shared-directory.nix "") ];
-
       # Create directories required for sharing files with correct permissions.
       systemd.tmpfiles.rules =
         let
