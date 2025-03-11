@@ -19,7 +19,6 @@ let
           nixos-generators.nixosModules.vm
           self.nixosModules.common
           self.nixosModules.desktop
-          self.nixosModules.host
           self.nixosModules.microvm
           self.nixosModules.profiles
           self.nixosModules.reference-host-demo-apps

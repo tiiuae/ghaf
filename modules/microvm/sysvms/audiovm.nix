@@ -15,13 +15,7 @@ let
     imports = [
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
-      (import ../common/vm-networking.nix {
-        inherit
-          config
-          lib
-          vmName
-          ;
-      })
+      inputs.self.nixosModules.vm-modules
       ../common/storagevm.nix
       (
         { lib, pkgs, ... }:
@@ -64,6 +58,12 @@ let
             storagevm = {
               enable = true;
               name = vmName;
+            };
+
+            # Networking
+            virtualization.microvm.vm-networking = {
+              enable = true;
+              inherit vmName;
             };
 
             # Services

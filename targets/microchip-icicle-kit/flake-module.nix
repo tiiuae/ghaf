@@ -19,8 +19,8 @@ let
         inherit system;
         modules = [
           nixos-hardware.nixosModules.microchip-icicle-kit
+          self.nixosModules.microvm
           self.nixosModules.common
-          self.nixosModules.host
           self.nixosModules.polarfire
           self.nixosModules.reference-personalize
 

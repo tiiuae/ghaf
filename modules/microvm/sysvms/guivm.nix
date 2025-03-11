@@ -15,13 +15,7 @@ let
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.givc
       inputs.impermanence.nixosModules.impermanence
-      (import ../common/vm-networking.nix {
-        inherit
-          config
-          lib
-          vmName
-          ;
-      })
+      inputs.self.nixosModules.vm-modules
 
       ../common/storagevm.nix
       ../common/xdgitems.nix
@@ -89,20 +83,25 @@ let
 
             givc.guivm.enable = true;
 
-            # Enable github service for control panel bug report
+            # Storage
+            storagevm = {
+              enable = true;
+              name = vmName;
+            };
+
+            # Networking
+            virtualization.microvm.vm-networking = {
+              enable = true;
+              inherit vmName;
+            };
+
+            # Services
             services.github = {
               enable = true;
               token = "xxxxxxxxxxxxxxxxxxxx"; # Will be updated when the user login
               owner = "tiiuae";
               repo = "ghaf-bugreports";
             };
-
-            storagevm = {
-              enable = true;
-              name = vmName;
-            };
-
-            # Services
 
             # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
             graphics = {

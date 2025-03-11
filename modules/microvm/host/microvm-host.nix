@@ -24,6 +24,7 @@ in
   imports = [
     inputs.impermanence.nixosModules.impermanence
     inputs.self.nixosModules.givc
+    ./networking.nix
   ];
 
   options.ghaf.virtualization.microvm-host = {
@@ -49,6 +50,8 @@ in
   };
 
   config = mkMerge [
+    # Always set the hostname
+    { networking.hostName = lib.mkDefault "ghaf-host"; }
     (mkIf cfg.enable {
       microvm.host.enable = true;
       # microvm.host.useNotifySockets = true;
@@ -146,7 +149,7 @@ in
       };
     })
     (mkIf cfg.sharedVmDirectory.enable {
-      ghaf.virtualization.microvm.guivm.extraModules = [ (import ./common/shared-directory.nix "") ];
+      ghaf.virtualization.microvm.guivm.extraModules = [ (import ../common/shared-directory.nix "") ];
 
       # Create directories required for sharing files with correct permissions.
       systemd.tmpfiles.rules =
@@ -197,7 +200,7 @@ in
         }
       ];
     })
-    (mkIf config.ghaf.profiles.debug.enable {
+    (mkIf (cfg.enable && config.ghaf.profiles.debug.enable) {
       # Host service to remove user
       systemd.services.remove-users =
         let
@@ -225,7 +228,7 @@ in
           };
         };
     })
-    (mkIf config.services.userborn.enable {
+    (mkIf (cfg.enable && config.services.userborn.enable) {
       system.activationScripts.microvm-host = lib.mkForce "";
       systemd.services."microvm-host-startup" =
         let

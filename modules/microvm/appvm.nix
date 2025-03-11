@@ -27,25 +27,19 @@ let
       # Packages and extra modules from all applications defined in the appvm
       appPackages = builtins.concatLists (map (app: app.packages) vm.applications);
       appExtraModules = builtins.concatLists (map (app: app.extraModules) vm.applications);
-      sshKeysHelper = pkgs.callPackage ./ssh-keys-helper.nix { config = configHost; };
+      sshKeysHelper = pkgs.callPackage ./common/ssh-keys-helper.nix { config = configHost; };
 
       appvmConfiguration = {
         imports = [
           inputs.impermanence.nixosModules.impermanence
           inputs.self.nixosModules.givc
+          inputs.self.nixosModules.vm-modules
           {
             ghaf.givc.appvm = {
               enable = true;
               applications = givcApplications;
             };
           }
-          (import ./common/vm-networking.nix {
-            inherit
-              config
-              lib
-              vmName
-              ;
-          })
           ./common/ghaf-audio.nix
           ./common/storagevm.nix
           ./common/xdgitems.nix
@@ -107,12 +101,7 @@ let
                   withHardenedConfigs = true;
                 };
 
-                ghaf-audio = {
-                  inherit (vm.ghafAudio) enable;
-                  inherit (vm.ghafAudio) useTunneling;
-                  name = "${vm.name}";
-                };
-
+                # Storage
                 storagevm = {
                   enable = true;
                   name = vmName;
@@ -126,9 +115,19 @@ let
                   ];
                 };
 
-                waypipe.enable = true;
+                # Networking
+                virtualization.microvm.vm-networking = {
+                  enable = true;
+                  inherit vmName;
+                };
 
-                # Logging
+                # Services
+                waypipe.enable = true;
+                ghaf-audio = {
+                  inherit (vm.ghafAudio) enable;
+                  inherit (vm.ghafAudio) useTunneling;
+                  name = "${vm.name}";
+                };
                 logging.client.enable = configHost.ghaf.logging.enable;
               };
 

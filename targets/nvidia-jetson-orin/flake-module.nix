@@ -49,7 +49,6 @@ let
           jetpack-nixos.nixosModules.default
           self.nixosModules.common
           self.nixosModules.desktop
-          self.nixosModules.host
           self.nixosModules.jetpack
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
