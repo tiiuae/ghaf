@@ -44,7 +44,7 @@ pkgs.nixosTest {
     };
 
     environment.systemPackages = [
-      pkgs.ghaf-installer
+      self.packages.x86_64-linux.ghaf-installer
       self.packages.x86_64-linux.hardware-scan
     ];
   };
