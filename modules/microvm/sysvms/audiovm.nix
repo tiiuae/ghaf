@@ -16,7 +16,6 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
-      ../common/storagevm.nix
       (
         { lib, pkgs, ... }:
         {

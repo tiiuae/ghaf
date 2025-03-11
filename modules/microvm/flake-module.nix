@@ -21,9 +21,9 @@
       ./mem-manager.nix
     ];
     vm-modules.imports = [
-      # ./common/ghaf-audio.nix
-      # ./common/shared-directory.nix
-      # ./common/storage-vm.nix
+      ./common/ghaf-audio.nix
+      ./common/shared-directory.nix
+      ./common/storagevm.nix
       ./common/vm-networking.nix
       # ./common/waypipe.nix
       # ./common/xdghandlers.nix

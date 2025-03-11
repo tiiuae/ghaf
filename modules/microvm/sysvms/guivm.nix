@@ -17,7 +17,6 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
 
-      ../common/storagevm.nix
       ../common/xdgitems.nix
 
       (
@@ -87,6 +86,10 @@ let
             storagevm = {
               enable = true;
               name = vmName;
+              shared-folders = {
+                enable = true;
+                isGuiVm = true;
+              };
             };
 
             # Networking

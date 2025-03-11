@@ -8,10 +8,11 @@
   ...
 }:
 let
-  inherit (lib) mkOption types optional;
-
-  configHost = config;
   cfg = config.ghaf.virtualization.microvm.appvm;
+  configHost = config;
+
+  inherit (lib) mkOption types optional;
+  inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
 
   makeVm =
     { vm, vmIndex }:
@@ -40,17 +41,8 @@ let
               applications = givcApplications;
             };
           }
-          ./common/ghaf-audio.nix
-          ./common/storagevm.nix
           ./common/xdgitems.nix
           ./common/xdghandlers.nix
-
-          (
-            with configHost.ghaf.virtualization.microvm-host;
-            lib.optionalAttrs (sharedVmDirectory.enable && builtins.elem vmName sharedVmDirectory.vms) (
-              import ./common/shared-directory.nix vmName
-            )
-          )
 
           (import ./common/waypipe.nix {
             inherit
@@ -113,6 +105,7 @@ let
                     "Documents"
                     "Videos"
                   ];
+                  shared-folders.enable = sharedVmDirectory.enable && builtins.elem vmName sharedVmDirectory.vms;
                 };
 
                 # Networking
