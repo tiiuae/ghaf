@@ -18,5 +18,9 @@
       ./power-control.nix
       ../hardware/common/shared-mem.nix
     ];
+
+    mem-manager.imports = [
+      ./mem-manager.nix
+    ];
   };
 }
