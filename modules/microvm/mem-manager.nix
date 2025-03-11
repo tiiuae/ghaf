@@ -31,7 +31,7 @@ in
               serviceConfig = {
                 Type = "simple";
                 WorkingDirectory = "${config.microvm.stateDir}/${name}";
-                ExecStart = "${pkgs.mem-manager}/bin/ghaf-mem-manager -s ${name}.sock -m ${
+                ExecStart = "${pkgs.ghaf-mem-manager}/bin/ghaf-mem-manager -s ${name}.sock -m ${
                   builtins.toString (microvmConfig.mem * 1024 * 1024)
                 } -M ${builtins.toString ((microvmConfig.mem + microvmConfig.balloonMem) * 1024 * 1024)}";
               };
