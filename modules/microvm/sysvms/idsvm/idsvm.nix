@@ -12,7 +12,9 @@ let
   vmName = "ids-vm";
   idsvmBaseConfiguration = {
     imports = [
+      inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
+      inputs.self.nixosModules.givc
       (
         { lib, ... }:
         {

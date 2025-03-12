@@ -11,14 +11,18 @@ let
   cfg = config.ghaf.virtualization.microvm.appvm;
   configHost = config;
 
-  inherit (lib) mkOption types optional;
+  inherit (lib)
+    mkOption
+    types
+    optional
+    optionalAttrs
+    ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
 
   makeVm =
     { vm, vmIndex }:
     let
       vmName = "${vm.name}-vm";
-      cid = if vm.cid > 0 then vm.cid else cfg.vsockBaseCID + vmIndex;
       # A list of applications for the GIVC service
       givcApplications = map (app: {
         name = app.givcName;
@@ -41,17 +45,6 @@ let
               applications = givcApplications;
             };
           }
-          ./common/xdgitems.nix
-          ./common/xdghandlers.nix
-
-          (import ./common/waypipe.nix {
-            inherit
-              vm
-              vmIndex
-              configHost
-              cid
-              ;
-          })
           (
             {
               lib,
@@ -115,7 +108,15 @@ let
                 };
 
                 # Services
-                waypipe.enable = true;
+                waypipe =
+                  {
+                    enable = true;
+                    inherit vm;
+                  }
+                  // optionalAttrs configHost.ghaf.shm.enable {
+                    inherit (configHost.ghaf.shm) serverSocketPath;
+                  };
+
                 ghaf-audio = {
                   inherit (vm.ghafAudio) enable;
                   inherit (vm.ghafAudio) useTunneling;
@@ -189,7 +190,7 @@ let
                       "-M"
                       "accel=kvm:tcg,mem-merge=on,sata=off"
                       "-device"
-                      "vhost-vsock-pci,guest-cid=${toString cid}"
+                      "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
                       "-device"
                       "qemu-xhci"
                     ]
@@ -338,14 +339,6 @@ in
               '';
               default = [ ];
             };
-            cid = mkOption {
-              description = ''
-                VSOCK context identifier (CID) for the AppVM
-                Default value 0 means auto-assign using vsockBaseCID and AppVM index
-              '';
-              type = types.int;
-              default = 0;
-            };
             borderColor = mkOption {
               description = ''
                 Border color of the AppVM window
@@ -370,28 +363,6 @@ in
         appvm's NixOS configuration.
       '';
       default = [ ];
-    };
-
-    # Base VSOCK CID which is used for auto assigning CIDs for all AppVMs
-    # For example, when it's set to 100, AppVMs will get 100, 101, 102, etc.
-    # It is also possible to override the auto assinged CID using the vms.cid option
-    vsockBaseCID = lib.mkOption {
-      type = lib.types.int;
-      default = 100;
-      description = ''
-        Context Identifier (CID) of the AppVM VSOCK
-      '';
-    };
-
-    # Every AppVM has its own instance of Waypipe running in the GUIVM and
-    # listening for incoming connections from the AppVM on its own port.
-    # The port number each AppVM uses is waypipeBasePort + vmIndex.
-    waypipeBasePort = lib.mkOption {
-      type = lib.types.int;
-      default = 1100;
-      description = ''
-        Waypipe base port number for AppVMs
-      '';
     };
   };
 

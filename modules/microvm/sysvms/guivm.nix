@@ -17,8 +17,6 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
 
-      ../common/xdgitems.nix
-
       (
         { lib, pkgs, ... }:
         let
@@ -128,8 +126,6 @@ let
                 fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
               };
             };
-
-            reference.services.ollama = true;
             xdgitems.enable = true;
           };
 
@@ -265,7 +261,7 @@ let
             qemu = {
               extraArgs = [
                 "-device"
-                "vhost-vsock-pci,guest-cid=${toString cfg.vsockCID}"
+                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
               ];
 
               machine =
@@ -300,20 +296,6 @@ in
         GUIVM's NixOS configuration.
       '';
       default = [ ];
-    };
-
-    # GUIVM uses a VSOCK which requires a CID
-    # There are several special addresses:
-    # VMADDR_CID_HYPERVISOR (0) is reserved for services built into the hypervisor
-    # VMADDR_CID_LOCAL (1) is the well-known address for local communication (loopback)
-    # VMADDR_CID_HOST (2) is the well-known address of the host
-    # CID 3 is the lowest available number for guest virtual machines
-    vsockCID = lib.mkOption {
-      type = lib.types.int;
-      default = 3;
-      description = ''
-        Context Identifier (CID) of the GUIVM VSOCK
-      '';
     };
 
     applications = lib.mkOption {

@@ -8,6 +8,7 @@ let
     recursiveUpdate
     optionalString
     types
+    length
     trivial
     listToAttrs
     nameValuePair
@@ -41,6 +42,15 @@ let
           IPv6 address as string.
         '';
       };
+      cid = mkOption {
+        type = types.int;
+        description = ''
+          Vsock CID (Context IDentifier) as integer:
+          - VMADDR_CID_HYPERVISOR (0) is reserved for services built into the hypervisor
+          - VMADDR_CID_LOCAL (1) is the well-known address for local communication (loopback)
+          - VMADDR_CID_HOST (2) is the well-known address of the host
+        '';
+      };
     };
   };
 
@@ -63,6 +73,7 @@ let
       mac = "${macBaseAddress}${optionalString (idx < 16) "0"}${trivial.toHexString idx}";
       ipv4 = "${ipv4BaseAddress}${toString idx}";
       ipv6 = "${ipv6BaseAddress}${toString idx}";
+      cid = if name == "net-vm" then (length hostList) + 1 else idx;
     }) hostList
     ++ lib.lists.imap1 (
       index: name:
@@ -74,6 +85,7 @@ let
         mac = "${macBaseAddress}${optionalString (idx < 16) "0"}${trivial.toHexString idx}";
         ipv4 = "${ipv4BaseAddress}${toString idx}";
         ipv6 = "${ipv6BaseAddress}${toString idx}";
+        cid = idx;
       }
     ) config.ghaf.common.appHosts;
 in

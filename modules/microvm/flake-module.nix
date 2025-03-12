@@ -25,9 +25,9 @@
       ./common/shared-directory.nix
       ./common/storagevm.nix
       ./common/vm-networking.nix
-      # ./common/waypipe.nix
-      # ./common/xdghandlers.nix
-      # ./common/xdgitems.nix
+      ./common/waypipe.nix
+      ./common/xdghandlers.nix
+      ./common/xdgitems.nix
     ];
   };
 }
