@@ -163,41 +163,48 @@ in
         ]
         ++ vmDirs;
     })
-    (mkIf (cfg.sharedVmDirectory.enable && cfg.sharedVmDirectory.inotifyPassthrough) {
-      # Enable passthrough of the shared folder inotify events from the host to the GUI VM
-      # This is required for the file manager to refresh the shared folder content when it is updated from AppVMs
-      systemd.services.vinotify = {
-        enable = true;
-        description = "vinotify";
-        wantedBy = [ "microvms.target" ];
-        before = [ "microvms.target" ];
-        serviceConfig = {
-          Type = "simple";
-          Restart = "always";
-          RestartSec = "1";
-          ExecStart = "${pkgs.vinotify}/bin/vinotify --cid ${toString config.ghaf.virtualization.microvm.guivm.vsockCID} --port 2000 --path /persist/storagevm/shared/shares --mode host";
-        };
-        startLimitIntervalSec = 0;
-      };
-
-      # Receive shared folder inotify events from the host to automatically refresh the file manager
-      ghaf.virtualization.microvm.guivm.extraModules = [
-        {
-          systemd.services.vinotify = {
-            enable = true;
-            description = "vinotify";
-            wantedBy = [ "multi-user.target" ];
-            serviceConfig = {
-              Type = "simple";
-              Restart = "always";
-              RestartSec = "1";
-              ExecStart = "${pkgs.vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
-            };
-            startLimitIntervalSec = 0;
+    (mkIf
+      (
+        cfg.sharedVmDirectory.enable
+        && cfg.sharedVmDirectory.inotifyPassthrough
+        && config.ghaf.virtualization.microvm.guivm.enable
+      )
+      {
+        # Enable passthrough of the shared folder inotify events from the host to the GUI VM
+        # This is required for the file manager to refresh the shared folder content when it is updated from AppVMs
+        systemd.services.vinotify = {
+          enable = true;
+          description = "vinotify";
+          wantedBy = [ "microvms.target" ];
+          before = [ "microvms.target" ];
+          serviceConfig = {
+            Type = "simple";
+            Restart = "always";
+            RestartSec = "1";
+            ExecStart = "${pkgs.vinotify}/bin/vinotify --cid ${toString config.ghaf.networking.hosts.gui-vm.cid} --port 2000 --path /persist/storagevm/shared/shares --mode host";
           };
-        }
-      ];
-    })
+          startLimitIntervalSec = 0;
+        };
+
+        # Receive shared folder inotify events from the host to automatically refresh the file manager
+        ghaf.virtualization.microvm.guivm.extraModules = [
+          {
+            systemd.services.vinotify = {
+              enable = true;
+              description = "vinotify";
+              wantedBy = [ "multi-user.target" ];
+              serviceConfig = {
+                Type = "simple";
+                Restart = "always";
+                RestartSec = "1";
+                ExecStart = "${pkgs.vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
+              };
+              startLimitIntervalSec = 0;
+            };
+          }
+        ];
+      }
+    )
     (mkIf (cfg.enable && config.ghaf.profiles.debug.enable) {
       # Host service to remove user
       systemd.services.remove-users =

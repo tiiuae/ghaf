@@ -70,9 +70,13 @@ in
             { ghaf.reference.personalize.keys.enable = true; }
           ];
           guivmExtraModules = [
+            ../services
             ../programs
             ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
+            {
+              ghaf.reference.personalize.keys.enable = true;
+              ghaf.reference.services.ollama = true;
+            }
           ];
           inherit (config.ghaf.reference.appvms) enabled-app-vms;
         };
