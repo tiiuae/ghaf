@@ -102,5 +102,5 @@ There are no specific requirements for the environment with this release.
 
 Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12).
 
-Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run).
+Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run.md).
 
