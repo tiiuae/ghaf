@@ -271,6 +271,18 @@ list of string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix</a></li>
 </ul>
+<h2 id="ghafdevelopmentcudaenable"><a class="header" href="#ghafdevelopmentcudaenable">ghaf.development.cuda.enable</a></h2>
+<p>Whether to enable CUDA Support.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/development/cuda.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/development/cuda.nix</a></li>
+</ul>
 <h2 id="ghafdevelopmentdebugtoolsenable"><a class="header" href="#ghafdevelopmentdebugtoolsenable">ghaf.development.debug.tools.enable</a></h2>
 <p>Whether to enable Debug Tools.</p>
 <p><em>Type:</em>
@@ -431,6 +443,18 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
 </ul>
+<h2 id="ghafgivcadminvmenable"><a class="header" href="#ghafgivcadminvmenable">ghaf.givc.adminvm.enable</a></h2>
+<p>Whether to enable Enable adminvm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/adminvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/adminvm.nix</a></li>
+</ul>
 <h2 id="ghafgivcappprefix"><a class="header" href="#ghafgivcappprefix">ghaf.givc.appPrefix</a></h2>
 <p>Common application path prefix.</p>
 <p><em>Type:</em>
@@ -438,6 +462,43 @@ string</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
+</ul>
+<h2 id="ghafgivcappvmenable"><a class="header" href="#ghafgivcappvmenable">ghaf.givc.appvm.enable</a></h2>
+<p>Whether to enable Enable appvm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix</a></li>
+</ul>
+<h2 id="ghafgivcappvmapplications"><a class="header" href="#ghafgivcappvmapplications">ghaf.givc.appvm.applications</a></h2>
+<p>Applications to run in the appvm.</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em></p>
+<pre><code>[
+  { }
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix</a></li>
+</ul>
+<h2 id="ghafgivcaudiovmenable"><a class="header" href="#ghafgivcaudiovmenable">ghaf.givc.audiovm.enable</a></h2>
+<p>Whether to enable Enable audiovm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/audiovm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/audiovm.nix</a></li>
 </ul>
 <h2 id="ghafgivccliargs"><a class="header" href="#ghafgivccliargs">ghaf.givc.cliArgs</a></h2>
 <p>Arguments for the givc-cli to contact the admin service.</p>
@@ -459,6 +520,18 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
 </ul>
+<h2 id="ghafgivcguivmenable"><a class="header" href="#ghafgivcguivmenable">ghaf.givc.guivm.enable</a></h2>
+<p>Whether to enable Enable guivm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/guivm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/guivm.nix</a></li>
+</ul>
 <h2 id="ghafgivchostenable"><a class="header" href="#ghafgivchostenable">ghaf.givc.host.enable</a></h2>
 <p>Whether to enable Enable host givc module…</p>
 <p><em>Type:</em>
@@ -479,8 +552,8 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
 </ul>
-<h2 id="ghafgraphicsenabledemoapplications"><a class="header" href="#ghafgraphicsenabledemoapplications">ghaf.graphics.enableDemoApplications</a></h2>
-<p>Whether to enable some applications for demoing.</p>
+<h2 id="ghafgivcnetvmenable"><a class="header" href="#ghafgivcnetvmenable">ghaf.givc.netvm.enable</a></h2>
+<p>Whether to enable Enable netvm givc module…</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -489,7 +562,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/netvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/netvm.nix</a></li>
 </ul>
 <h2 id="ghafgraphicsbootenable"><a class="header" href="#ghafgraphicsbootenable">ghaf.graphics.boot.enable</a></h2>
 <p>Enables graphical boot with plymouth.</p>
@@ -500,66 +573,6 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appschromium"><a class="header" href="#ghafgraphicsdemo-appschromium">ghaf.graphics.demo-apps.chromium</a></h2>
-<p>Include package Chromium browser to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appselement-desktop"><a class="header" href="#ghafgraphicsdemo-appselement-desktop">ghaf.graphics.demo-apps.element-desktop</a></h2>
-<p>Include package Element desktop to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appsfirefox"><a class="header" href="#ghafgraphicsdemo-appsfirefox">ghaf.graphics.demo-apps.firefox</a></h2>
-<p>Include package Firefox browser to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appsgala-app"><a class="header" href="#ghafgraphicsdemo-appsgala-app">ghaf.graphics.demo-apps.gala-app</a></h2>
-<p>Include package Gala App to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appsgoogle-chrome"><a class="header" href="#ghafgraphicsdemo-appsgoogle-chrome">ghaf.graphics.demo-apps.google-chrome</a></h2>
-<p>Include package Google Chrome browser to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appszathura"><a class="header" href="#ghafgraphicsdemo-appszathura">ghaf.graphics.demo-apps.zathura</a></h2>
-<p>Include package zathura to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslabwcenable"><a class="header" href="#ghafgraphicslabwcenable">ghaf.graphics.labwc.enable</a></h2>
 <p>Whether to enable labwc.</p>
@@ -773,7 +786,7 @@ list of (submodule)</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersdescription"><a class="header" href="#ghafgraphicslaunchersdescription">ghaf.graphics.launchers.*.description</a></h2>
 <p>Description of the application</p>
@@ -783,7 +796,7 @@ string</p>
 <code>"Secured Ghaf Application"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersicon"><a class="header" href="#ghafgraphicslaunchersicon">ghaf.graphics.launchers.*.icon</a></h2>
 <p>Optional icon for the launcher. If unspecified, active icon theme will
@@ -795,7 +808,7 @@ null or string</p>
 <code>null</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersname"><a class="header" href="#ghafgraphicslaunchersname">ghaf.graphics.launchers.*.name</a></h2>
 <p>Name of the application</p>
@@ -803,7 +816,7 @@ null or string</p>
 string</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslauncherspath"><a class="header" href="#ghafgraphicslauncherspath">ghaf.graphics.launchers.*.path</a></h2>
 <p>Path to the executable to be launched</p>
@@ -811,7 +824,7 @@ string</p>
 absolute path</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersvm"><a class="header" href="#ghafgraphicslaunchersvm">ghaf.graphics.launchers.*.vm</a></h2>
 <p>VM name in case this launches an isolated application.</p>
@@ -821,7 +834,7 @@ null or string</p>
 <code>null</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslogin-managerenable"><a class="header" href="#ghafgraphicslogin-managerenable">ghaf.graphics.login-manager.enable</a></h2>
 <p>Whether to enable login manager using greetd.</p>
@@ -858,9 +871,9 @@ boolean</p>
 <h2 id="ghafhardwaredefinitionaudioacpipath"><a class="header" href="#ghafhardwaredefinitionaudioacpipath">ghaf.hardware.definition.audio.acpiPath</a></h2>
 <p>Path to ACPI file to add to a VM</p>
 <p><em>Type:</em>
-null or string</p>
+null or absolute path</p>
 <p><em>Default:</em>
-<code>null</code></p>
+<code>"/sys/firmware/acpi/tables/NHLT"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
@@ -2108,7 +2121,7 @@ one of “none”, “zstd”</p>
 <code>"zstd"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-ab-partitions.nix">https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-ab-partitions.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-debug-partition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-debug-partition.nix</a></li>
 </ul>
 <h2 id="ghafkernelaudiovm"><a class="header" href="#ghafkernelaudiovm">ghaf.kernel.audiovm</a></h2>
 <p>AudioVM kernel configuration</p>
@@ -2140,8 +2153,8 @@ attribute set</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/kernel.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/kernel.nix</a></li>
 </ul>
-<h2 id="ghafloggingclientenable"><a class="header" href="#ghafloggingclientenable">ghaf.logging.client.enable</a></h2>
-<p>Enable logging client service. Currently we have grafana alloy
+<h2 id="ghafloggingenable"><a class="header" href="#ghafloggingenable">ghaf.logging.enable</a></h2>
+<p>Enable logging service. Currently we have grafana alloy
 running as client which will upload system journal logs to
 grafana alloy running in admin-vm.</p>
 <p><em>Type:</em>
@@ -2150,7 +2163,19 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix</a></li>
+</ul>
+<h2 id="ghafloggingclientenable"><a class="header" href="#ghafloggingclientenable">ghaf.logging.client.enable</a></h2>
+<p>Whether to enable Enable the alloy client service.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix</a></li>
 </ul>
 <h2 id="ghafloggingclientendpoint"><a class="header" href="#ghafloggingclientendpoint">ghaf.logging.client.endpoint</a></h2>
 <p>Assign endpoint url value to the alloy.service running in
@@ -2158,6 +2183,8 @@ different log producers. This endpoint URL will include
 protocol, upstream, address along with port value.</p>
 <p><em>Type:</em>
 string</p>
+<p><em>Default:</em>
+<code>"http://:9999/loki/api/v1/push"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix</a></li>
@@ -2168,9 +2195,11 @@ push logs and where admin-vm alloy.service will be
 keep on listening or receiving logs.</p>
 <p><em>Type:</em>
 string</p>
+<p><em>Default:</em>
+<code>""</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix</a></li>
 </ul>
 <h2 id="ghaflogginglistenerport"><a class="header" href="#ghaflogginglistenerport">ghaf.logging.listener.port</a></h2>
 <p>Listener port for the logproto endpoint which will be
@@ -2183,7 +2212,46 @@ the admin-vm firewall.</p>
 <code>9999</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix</a></li>
+</ul>
+<h2 id="ghafloggingserverenable"><a class="header" href="#ghafloggingserverenable">ghaf.logging.server.enable</a></h2>
+<p>Whether to enable Enable logs aggregator server.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix</a></li>
+</ul>
+<h2 id="ghafloggingserverendpoint"><a class="header" href="#ghafloggingserverendpoint">ghaf.logging.server.endpoint</a></h2>
+<p>Assign endpoint url value to the alloy.service running in
+admin-vm. This endpoint URL will include protocol, upstream
+address along with port value.</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix</a></li>
+</ul>
+<h2 id="ghafloggingserveridentifierfilepath"><a class="header" href="#ghafloggingserveridentifierfilepath">ghaf.logging.server.identifierFilePath</a></h2>
+<p>This configuration option used to specify the identifier file path.
+The identifier file will be text file which have unique identification
+value per machine so that when logs will be uploaded to cloud
+we can identify its origin.</p>
+<p><em>Type:</em>
+null or absolute path</p>
+<p><em>Default:</em>
+<code>"/etc/common/device-id"</code></p>
+<p><em>Example:</em>
+<code>"/etc/common/device-id"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix</a></li>
 </ul>
 <h2 id="ghafnetworkinghosts"><a class="header" href="#ghafnetworkinghosts">ghaf.networking.hosts</a></h2>
 <p>List of hosts entries.</p>
@@ -2227,18 +2295,6 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix</a></li>
 </ul>
-<h2 id="ghafprofilesapplicationsenable"><a class="header" href="#ghafprofilesapplicationsenable">ghaf.profiles.applications.enable</a></h2>
-<p>Whether to enable Some sample applications.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/applications.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/applications.nix</a></li>
-</ul>
 <h2 id="ghafprofilesdebugenable"><a class="header" href="#ghafprofilesdebugenable">ghaf.profiles.debug.enable</a></h2>
 <p>Whether to enable debug profile.</p>
 <p><em>Type:</em>
@@ -2261,7 +2317,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafprofilesgraphicscompositor"><a class="header" href="#ghafprofilesgraphicscompositor">ghaf.profiles.graphics.compositor</a></h2>
 <p>Which Wayland compositor to use.</p>
@@ -2272,7 +2328,7 @@ value “labwc” (singular enum)</p>
 <code>"labwc"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafprofilesgraphicsrenderer"><a class="header" href="#ghafprofilesgraphicsrenderer">ghaf.profiles.graphics.renderer</a></h2>
 <p>Which wlroots renderer to use.</p>
@@ -2283,7 +2339,7 @@ one of “vulkan”, “pixman”, “gles2”</p>
 <code>"gles2"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafprofileshost-hardeningenable"><a class="header" href="#ghafprofileshost-hardeningenable">ghaf.profiles.host-hardening.enable</a></h2>
 <p>Whether to enable Host hardening profile.</p>
@@ -2296,6 +2352,48 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/profiles/host-hardening.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/profiles/host-hardening.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86enable"><a class="header" href="#ghafprofileslaptop-x86enable">ghaf.profiles.laptop-x86.enable</a></h2>
+<p>Whether to enable Enable the basic x86 laptop config.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86enabled-app-vms"><a class="header" href="#ghafprofileslaptop-x86enabled-app-vms">ghaf.profiles.laptop-x86.enabled-app-vms</a></h2>
+<p>List of appvms to include in the Ghaf reference appvms module</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86guivmextramodules"><a class="header" href="#ghafprofileslaptop-x86guivmextramodules">ghaf.profiles.laptop-x86.guivmExtraModules</a></h2>
+<p>List of additional modules to be passed to the guivm.</p>
+<p><em>Type:</em>
+unspecified value</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86netvmextramodules"><a class="header" href="#ghafprofileslaptop-x86netvmextramodules">ghaf.profiles.laptop-x86.netvmExtraModules</a></h2>
+<p>List of additional modules to be passed to the netvm.</p>
+<p><em>Type:</em>
+unspecified value</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
 </ul>
 <h2 id="ghafprofilesreleaseenable"><a class="header" href="#ghafprofilesreleaseenable">ghaf.profiles.release.enable</a></h2>
 <p>Whether to enable release profile.</p>
@@ -2452,48 +2550,6 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/personalize/keys.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/personalize/keys.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86enable"><a class="header" href="#ghafreferenceprofileslaptop-x86enable">ghaf.reference.profiles.laptop-x86.enable</a></h2>
-<p>Whether to enable Enable the basic x86 laptop config.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86enabled-app-vms"><a class="header" href="#ghafreferenceprofileslaptop-x86enabled-app-vms">ghaf.reference.profiles.laptop-x86.enabled-app-vms</a></h2>
-<p>List of appvms to include in the Ghaf reference appvms module</p>
-<p><em>Type:</em>
-list of (attribute set)</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86guivmextramodules"><a class="header" href="#ghafreferenceprofileslaptop-x86guivmextramodules">ghaf.reference.profiles.laptop-x86.guivmExtraModules</a></h2>
-<p>List of additional modules to be passed to the guivm.</p>
-<p><em>Type:</em>
-unspecified value</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86netvmextramodules"><a class="header" href="#ghafreferenceprofileslaptop-x86netvmextramodules">ghaf.reference.profiles.laptop-x86.netvmExtraModules</a></h2>
-<p>List of additional modules to be passed to the netvm.</p>
-<p><em>Type:</em>
-unspecified value</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
 </ul>
 <h2 id="ghafreferenceprofilesmvp-user-trialenable"><a class="header" href="#ghafreferenceprofilesmvp-user-trialenable">ghaf.reference.profiles.mvp-user-trial.enable</a></h2>
 <p>Whether to enable Enable the mvp configuration for apps and services.</p>
@@ -2802,6 +2858,56 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
 </ul>
+<h2 id="ghafreferenceservicesdendrite-pineconemcastudpip"><a class="header" href="#ghafreferenceservicesdendrite-pineconemcastudpip">ghaf.reference.services.dendrite-pinecone.McastUdpIp</a></h2>
+<p>Multicast UDP IP for dendrite pinecone</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"239.0.0.114"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconemcastudpport"><a class="header" href="#ghafreferenceservicesdendrite-pineconemcastudpport">ghaf.reference.services.dendrite-pinecone.McastUdpPort</a></h2>
+<p>Multicast UDP port for dendrite pinecone</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"60606"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconemcastudpportint"><a class="header" href="#ghafreferenceservicesdendrite-pineconemcastudpportint">ghaf.reference.services.dendrite-pinecone.McastUdpPortInt</a></h2>
+<p>Multicast UDP port for dendrite pinecone</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>60606</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconetcpport"><a class="header" href="#ghafreferenceservicesdendrite-pineconetcpport">ghaf.reference.services.dendrite-pinecone.TcpPort</a></h2>
+<p>TCP port for dendrite pinecone</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"49000"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconetcpportint"><a class="header" href="#ghafreferenceservicesdendrite-pineconetcpportint">ghaf.reference.services.dendrite-pinecone.TcpPortInt</a></h2>
+<p>TCP port for dendrite pinecone</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>49000</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
 <h2 id="ghafreferenceservicesdendrite-pineconeexternalnic"><a class="header" href="#ghafreferenceservicesdendrite-pineconeexternalnic">ghaf.reference.services.dendrite-pinecone.externalNic</a></h2>
 <p>External network interface</p>
 <p><em>Type:</em>
@@ -3073,6 +3179,42 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/fprint.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/fprint.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubenable"><a class="header" href="#ghafservicesgithubenable">ghaf.services.github.enable</a></h2>
+<p>Whether to enable Github configurations.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubowner"><a class="header" href="#ghafservicesgithubowner">ghaf.services.github.owner</a></h2>
+<p>Github owner account of the bug reporter issue</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubrepo"><a class="header" href="#ghafservicesgithubrepo">ghaf.services.github.repo</a></h2>
+<p>Github repo of the bug reporter issue</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubtoken"><a class="header" href="#ghafservicesgithubtoken">ghaf.services.github.token</a></h2>
+<p>Personal token of the bug reporter Github account</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
 </ul>
 <h2 id="ghafserviceswifienable"><a class="header" href="#ghafserviceswifienable">ghaf.services.wifi.enable</a></h2>
 <p>Whether to enable Wifi configuration for the net-vm.</p>
@@ -3879,13 +4021,13 @@ string</p>
 <p><em>Type:</em>
 string <em>(read only)</em></p>
 <p><em>Default:</em>
-<code>"24.12.4"</code></p>
+<code>"24.12.5"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/version">https://github.com/tiiuae/ghaf/blob/main/modules/common/version</a></li>
 </ul>
-<h2 id="ghafvirtualizationdockerdaemonenable"><a class="header" href="#ghafvirtualizationdockerdaemonenable">ghaf.virtualization.docker.daemon.enable</a></h2>
-<p>Whether to enable Docker Daemon.</p>
+<h2 id="ghafvirtualisationnvidia-dockerdaemonenable"><a class="header" href="#ghafvirtualisationnvidia-dockerdaemonenable">ghaf.virtualisation.nvidia-docker.daemon.enable</a></h2>
+<p>Whether to enable Nvidia Docker Daemon.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -3894,7 +4036,19 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualization/docker.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualization/docker.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-docker.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-docker.nix</a></li>
+</ul>
+<h2 id="ghafvirtualisationnvidia-podmandaemonenable"><a class="header" href="#ghafvirtualisationnvidia-podmandaemonenable">ghaf.virtualisation.nvidia-podman.daemon.enable</a></h2>
+<p>Whether to enable Nvidia Podman Daemon.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-podman.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-podman.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmadminvmenable"><a class="header" href="#ghafvirtualizationmicrovmadminvmenable">ghaf.virtualization.microvm.adminvm.enable</a></h2>
 <p>Whether to enable AdminVM.</p>
@@ -4046,6 +4200,16 @@ string</p>
 <ul>
 <li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
+<h2 id="ghafvirtualizationmicrovmappvmvmsballoonratio"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsballoonratio">ghaf.virtualization.microvm.appvm.vms.*.balloonRatio</a></h2>
+<p>Amount of dynamic RAM for this AppVM as a multiple of ramMb</p>
+<p><em>Type:</em>
+signed integer or floating point number</p>
+<p><em>Default:</em>
+<code>2</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
+</ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsbordercolor"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsbordercolor">ghaf.virtualization.microvm.appvm.vms.*.borderColor</a></h2>
 <p>Border color of the AppVM window</p>
 <p><em>Type:</em>
@@ -4127,7 +4291,7 @@ string</p>
 <li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsrammb"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsrammb">ghaf.virtualization.microvm.appvm.vms.*.ramMb</a></h2>
-<p>Amount of RAM for this AppVM</p>
+<p>Minimum amount of RAM for this AppVM</p>
 <p><em>Type:</em>
 signed integer</p>
 <p><em>Declared by:</em></p>
@@ -4186,7 +4350,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmaudiovmextramodules"><a class="header" href="#ghafvirtualizationmicrovmaudiovmextramodules">ghaf.virtualization.microvm.audiovm.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -4276,7 +4440,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmvsockcid"><a class="header" href="#ghafvirtualizationmicrovmguivmvsockcid">ghaf.virtualization.microvm.guivm.vsockCID</a></h2>
 <p>Context Identifier (CID) of the GUIVM VSOCK</p>
@@ -4296,7 +4460,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmidsvmenable"><a class="header" href="#ghafvirtualizationmicrovmidsvmenable">ghaf.virtualization.microvm.idsvm.enable</a></h2>
 <p>Whether to enable Whether to enable IDS-VM on the system.</p>
@@ -4331,7 +4495,30 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/idsvm/mitmproxy</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmidsvmmitmproxywebuienabled"><a class="header" href="#ghafvirtualizationmicrovmidsvmmitmproxywebuienabled">ghaf.virtualization.microvm.idsvm.mitmproxy.webUIEnabled</a></h2>
+<p>Whether to enable mitmproxyWebUI on ids-vm</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmidsvmmitmproxywebuiport"><a class="header" href="#ghafvirtualizationmicrovmidsvmmitmproxywebuiport">ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPort</a></h2>
+<p>MitmwebUI port</p>
+<p><em>Type:</em>
+list of 16 bit unsigned integer; between 0 and 65535 (both inclusive) <em>(read only)</em></p>
+<p><em>Default:</em></p>
+<pre><code>[
+  8081
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmnetvmenable"><a class="header" href="#ghafvirtualizationmicrovmnetvmenable">ghaf.virtualization.microvm.netvm.enable</a></h2>
 <p>Whether to enable NetVM.</p>
@@ -4364,7 +4551,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovm-hostenable"><a class="header" href="#ghafvirtualizationmicrovm-hostenable">ghaf.virtualization.microvm-host.enable</a></h2>
 <p>Whether to enable MicroVM Host.</p>
@@ -4392,6 +4579,18 @@ boolean</p>
 </ul>
 <h2 id="ghafvirtualizationmicrovm-hostsharedvmdirectoryenable"><a class="header" href="#ghafvirtualizationmicrovm-hostsharedvmdirectoryenable">ghaf.virtualization.microvm-host.sharedVmDirectory.enable</a></h2>
 <p>Whether to enable shared directory.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
+</ul>
+<h2 id="ghafvirtualizationmicrovm-hostsharedvmdirectoryinotifypassthrough"><a class="header" href="#ghafvirtualizationmicrovm-hostsharedvmdirectoryinotifypassthrough">ghaf.virtualization.microvm-host.sharedVmDirectory.inotifyPassthrough</a></h2>
+<p>Whether to enable inotify passthrough.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>

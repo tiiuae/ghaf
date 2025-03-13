@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Release ghaf-24.12.3 - Ghaf Framework</title>
+        <title>Release ghaf-24.12.4 - Ghaf Framework</title>
 
 
         <!-- Custom HTML head -->
@@ -226,40 +226,47 @@
     Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="release-ghaf-24123"><a class="header" href="#release-ghaf-24123">Release ghaf-24.12.3</a></h1>
-<p>This is a bi-weekly release with a major update to JetPack 6.2 for NVIDIA platforms.</p>
+<h1 id="release-ghaf-24124"><a class="header" href="#release-ghaf-24124">Release ghaf-24.12.4</a></h1>
+<p>This is a bi-weekly release for Ghaf adding support for Nvidia containers and CUDA 12.x for Nvidia platforms based on JetPack 6</p>
 <h2 id="release-tag"><a class="header" href="#release-tag">Release Tag</a></h2>
-<p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.3">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.3</a></p>
+<p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.4">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.4</a></p>
 <h2 id="supported-hardware"><a class="header" href="#supported-hardware">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
 <li>NVIDIA Jetson Orin NX</li>
-<li>Generic x86 (PC)—build support only</li>
 <li>Lenovo ThinkPad X1 Carbon Gen 10, 11, 12</li>
-<li>NXP i.MX 8M Plus—build support only</li>
+<li>Dell Latitude 7230, 7330</li>
+<li>Alienware M18</li>
+<li>Generic x86 (PC)</li>
+<li>NXP i.MX 8M Plus - build support only</li>
 </ul>
-<h2 id="what-is-new-in-ghaf-24123"><a class="header" href="#what-is-new-in-ghaf-24123">What is New in ghaf-24.12.3</a></h2>
-<p>Lenovo X1 Carbon:</p>
+<h2 id="what-is-new-in-ghaf-24124"><a class="header" href="#what-is-new-in-ghaf-24124">What is New in ghaf-24.12.4</a></h2>
 <ul>
-<li>Window Manager widget added.</li>
-<li>VM-level Audio Control added.</li>
-<li>XDG-handlers using GIVC instead of SSH.</li>
+<li>General refactoring and modularization</li>
+<li>Support for Alienware M18 laptop added</li>
 </ul>
-<p>NVIDIA Jetson Orin AGX/NX:</p>
+<p>Lenovo X1 Carbon / x86 platforms:</p>
 <ul>
-<li>JetPack 6.2 including NVIDIA Jetson Linux 36.4.3 with Linux kernel 5.15.</li>
+<li>File system changes for debug builds: ext4 used for root, btrfs for persistence partition</li>
+<li>MitmWebUI app replaces mitmweb-ui script in chrome-vm</li>
+</ul>
+<p>Nvidia Jetson Orin AGX/NX:</p>
+<ul>
+<li>Docker with Nvidia container and CUDA 12.x support</li>
+<li>Podman support, disabled by default</li>
 </ul>
 <h2 id="bug-fixes"><a class="header" href="#bug-fixes">Bug Fixes</a></h2>
-<p>Fixed bugs that were present in the <a href="../release_notes/ghaf-24.12.2.html">ghaf-24.12.2</a> release:</p>
+<p>Fixed bugs that were present in the <a href="../release_notes/ghaf-24.12.3.html">ghaf-24.12.3</a> release:</p>
 <ul>
-<li>Audio output via 3.5mm jack.</li>
-<li>Missing application menu icons on the first boot after the software installation.</li>
+<li>Location sharing does not work</li>
+<li>File manager not displaying downloaded file</li>
 </ul>
 <h2 id="known-issues-and-limitations"><a class="header" href="#known-issues-and-limitations">Known Issues and Limitations</a></h2>
+<p>Note: Provenance file signature verification failed with this release build due to issues in the build system</p>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
-<tr><td>Location sharing does not work</td><td>In Progress</td><td>The issue is under investigation.</td></tr>
+<tr><td>Sending bug report from Control Panel causes Control Panel to crash</td><td>In Progress</td><td>Under investigation</td></tr>
 <tr><td>Intermittent audio issue after boot</td><td>In Progress</td><td>Workaround: rebooting the system typically resolves the issue.</td></tr>
 <tr><td>Control Panel functionality is limited: only Display Settings, Local and Timezone settings are functional</td><td>In Progress</td><td>Additional functionality will be implemented in future releases.</td></tr>
 <tr><td>VPN credentials are not saved</td><td>On Hold</td><td></td></tr>
@@ -276,18 +283,18 @@
 <h2 id="environment-requirements"><a class="header" href="#environment-requirements">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
 <h2 id="installation-instructions"><a class="header" href="#installation-instructions">Installation Instructions</a></h2>
-<p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-3">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.3</a>.</p>
+<p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-4">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.4</a>.</p>
 <p>Download the required image and use the following instructions: <a href="../ref_impl/build_and_run">Build and Run</a>.</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../release_notes/ghaf-24.12.4.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../release_notes/release_notes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../release_notes/ghaf-24.12.2.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../release_notes/ghaf-24.12.3.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -297,11 +304,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../release_notes/ghaf-24.12.4.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../release_notes/release_notes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../release_notes/ghaf-24.12.2.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../release_notes/ghaf-24.12.3.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

@@ -4702,6 +4702,18 @@ list of string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix</a></li>
 </ul>
+<h2 id="ghafdevelopmentcudaenable"><a class="header" href="#ghafdevelopmentcudaenable">ghaf.development.cuda.enable</a></h2>
+<p>Whether to enable CUDA Support.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/development/cuda.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/development/cuda.nix</a></li>
+</ul>
 <h2 id="ghafdevelopmentdebugtoolsenable"><a class="header" href="#ghafdevelopmentdebugtoolsenable">ghaf.development.debug.tools.enable</a></h2>
 <p>Whether to enable Debug Tools.</p>
 <p><em>Type:</em>
@@ -4862,6 +4874,18 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
 </ul>
+<h2 id="ghafgivcadminvmenable"><a class="header" href="#ghafgivcadminvmenable">ghaf.givc.adminvm.enable</a></h2>
+<p>Whether to enable Enable adminvm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/adminvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/adminvm.nix</a></li>
+</ul>
 <h2 id="ghafgivcappprefix"><a class="header" href="#ghafgivcappprefix">ghaf.givc.appPrefix</a></h2>
 <p>Common application path prefix.</p>
 <p><em>Type:</em>
@@ -4869,6 +4893,43 @@ string</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
+</ul>
+<h2 id="ghafgivcappvmenable"><a class="header" href="#ghafgivcappvmenable">ghaf.givc.appvm.enable</a></h2>
+<p>Whether to enable Enable appvm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix</a></li>
+</ul>
+<h2 id="ghafgivcappvmapplications"><a class="header" href="#ghafgivcappvmapplications">ghaf.givc.appvm.applications</a></h2>
+<p>Applications to run in the appvm.</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em></p>
+<pre><code>[
+  { }
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/appvm.nix</a></li>
+</ul>
+<h2 id="ghafgivcaudiovmenable"><a class="header" href="#ghafgivcaudiovmenable">ghaf.givc.audiovm.enable</a></h2>
+<p>Whether to enable Enable audiovm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/audiovm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/audiovm.nix</a></li>
 </ul>
 <h2 id="ghafgivccliargs"><a class="header" href="#ghafgivccliargs">ghaf.givc.cliArgs</a></h2>
 <p>Arguments for the givc-cli to contact the admin service.</p>
@@ -4890,6 +4951,18 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
 </ul>
+<h2 id="ghafgivcguivmenable"><a class="header" href="#ghafgivcguivmenable">ghaf.givc.guivm.enable</a></h2>
+<p>Whether to enable Enable guivm givc module…</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/guivm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/guivm.nix</a></li>
+</ul>
 <h2 id="ghafgivchostenable"><a class="header" href="#ghafgivchostenable">ghaf.givc.host.enable</a></h2>
 <p>Whether to enable Enable host givc module…</p>
 <p><em>Type:</em>
@@ -4910,8 +4983,8 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/common.nix</a></li>
 </ul>
-<h2 id="ghafgraphicsenabledemoapplications"><a class="header" href="#ghafgraphicsenabledemoapplications">ghaf.graphics.enableDemoApplications</a></h2>
-<p>Whether to enable some applications for demoing.</p>
+<h2 id="ghafgivcnetvmenable"><a class="header" href="#ghafgivcnetvmenable">ghaf.givc.netvm.enable</a></h2>
+<p>Whether to enable Enable netvm givc module…</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -4920,7 +4993,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/givc/netvm.nix">https://github.com/tiiuae/ghaf/blob/main/modules/givc/netvm.nix</a></li>
 </ul>
 <h2 id="ghafgraphicsbootenable"><a class="header" href="#ghafgraphicsbootenable">ghaf.graphics.boot.enable</a></h2>
 <p>Enables graphical boot with plymouth.</p>
@@ -4931,66 +5004,6 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appschromium"><a class="header" href="#ghafgraphicsdemo-appschromium">ghaf.graphics.demo-apps.chromium</a></h2>
-<p>Include package Chromium browser to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appselement-desktop"><a class="header" href="#ghafgraphicsdemo-appselement-desktop">ghaf.graphics.demo-apps.element-desktop</a></h2>
-<p>Include package Element desktop to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appsfirefox"><a class="header" href="#ghafgraphicsdemo-appsfirefox">ghaf.graphics.demo-apps.firefox</a></h2>
-<p>Include package Firefox browser to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appsgala-app"><a class="header" href="#ghafgraphicsdemo-appsgala-app">ghaf.graphics.demo-apps.gala-app</a></h2>
-<p>Include package Gala App to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appsgoogle-chrome"><a class="header" href="#ghafgraphicsdemo-appsgoogle-chrome">ghaf.graphics.demo-apps.google-chrome</a></h2>
-<p>Include package Google Chrome browser to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsdemo-appszathura"><a class="header" href="#ghafgraphicsdemo-appszathura">ghaf.graphics.demo-apps.zathura</a></h2>
-<p>Include package zathura to menu and system environment</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/demo-apps.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslabwcenable"><a class="header" href="#ghafgraphicslabwcenable">ghaf.graphics.labwc.enable</a></h2>
 <p>Whether to enable labwc.</p>
@@ -5204,7 +5217,7 @@ list of (submodule)</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersdescription"><a class="header" href="#ghafgraphicslaunchersdescription">ghaf.graphics.launchers.*.description</a></h2>
 <p>Description of the application</p>
@@ -5214,7 +5227,7 @@ string</p>
 <code>"Secured Ghaf Application"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersicon"><a class="header" href="#ghafgraphicslaunchersicon">ghaf.graphics.launchers.*.icon</a></h2>
 <p>Optional icon for the launcher. If unspecified, active icon theme will
@@ -5226,7 +5239,7 @@ null or string</p>
 <code>null</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersname"><a class="header" href="#ghafgraphicslaunchersname">ghaf.graphics.launchers.*.name</a></h2>
 <p>Name of the application</p>
@@ -5234,7 +5247,7 @@ null or string</p>
 string</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslauncherspath"><a class="header" href="#ghafgraphicslauncherspath">ghaf.graphics.launchers.*.path</a></h2>
 <p>Path to the executable to be launched</p>
@@ -5242,7 +5255,7 @@ string</p>
 absolute path</p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslaunchersvm"><a class="header" href="#ghafgraphicslaunchersvm">ghaf.graphics.launchers.*.vm</a></h2>
 <p>VM name in case this launches an isolated application.</p>
@@ -5252,7 +5265,7 @@ null or string</p>
 <code>null</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/launchers.nix</a></li>
 </ul>
 <h2 id="ghafgraphicslogin-managerenable"><a class="header" href="#ghafgraphicslogin-managerenable">ghaf.graphics.login-manager.enable</a></h2>
 <p>Whether to enable login manager using greetd.</p>
@@ -5289,9 +5302,9 @@ boolean</p>
 <h2 id="ghafhardwaredefinitionaudioacpipath"><a class="header" href="#ghafhardwaredefinitionaudioacpipath">ghaf.hardware.definition.audio.acpiPath</a></h2>
 <p>Path to ACPI file to add to a VM</p>
 <p><em>Type:</em>
-null or string</p>
+null or absolute path</p>
 <p><em>Default:</em>
-<code>null</code></p>
+<code>"/sys/firmware/acpi/tables/NHLT"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
@@ -6539,7 +6552,7 @@ one of “none”, “zstd”</p>
 <code>"zstd"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-ab-partitions.nix">https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-ab-partitions.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-debug-partition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/disko/disko-debug-partition.nix</a></li>
 </ul>
 <h2 id="ghafkernelaudiovm"><a class="header" href="#ghafkernelaudiovm">ghaf.kernel.audiovm</a></h2>
 <p>AudioVM kernel configuration</p>
@@ -6571,8 +6584,8 @@ attribute set</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/kernel.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/kernel.nix</a></li>
 </ul>
-<h2 id="ghafloggingclientenable"><a class="header" href="#ghafloggingclientenable">ghaf.logging.client.enable</a></h2>
-<p>Enable logging client service. Currently we have grafana alloy
+<h2 id="ghafloggingenable"><a class="header" href="#ghafloggingenable">ghaf.logging.enable</a></h2>
+<p>Enable logging service. Currently we have grafana alloy
 running as client which will upload system journal logs to
 grafana alloy running in admin-vm.</p>
 <p><em>Type:</em>
@@ -6581,7 +6594,19 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix</a></li>
+</ul>
+<h2 id="ghafloggingclientenable"><a class="header" href="#ghafloggingclientenable">ghaf.logging.client.enable</a></h2>
+<p>Whether to enable Enable the alloy client service.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix</a></li>
 </ul>
 <h2 id="ghafloggingclientendpoint"><a class="header" href="#ghafloggingclientendpoint">ghaf.logging.client.endpoint</a></h2>
 <p>Assign endpoint url value to the alloy.service running in
@@ -6589,6 +6614,8 @@ different log producers. This endpoint URL will include
 protocol, upstream, address along with port value.</p>
 <p><em>Type:</em>
 string</p>
+<p><em>Default:</em>
+<code>"http://:9999/loki/api/v1/push"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/client.nix</a></li>
@@ -6599,9 +6626,11 @@ push logs and where admin-vm alloy.service will be
 keep on listening or receiving logs.</p>
 <p><em>Type:</em>
 string</p>
+<p><em>Default:</em>
+<code>""</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix</a></li>
 </ul>
 <h2 id="ghaflogginglistenerport"><a class="header" href="#ghaflogginglistenerport">ghaf.logging.listener.port</a></h2>
 <p>Listener port for the logproto endpoint which will be
@@ -6614,7 +6643,46 @@ the admin-vm firewall.</p>
 <code>9999</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/common.nix</a></li>
+</ul>
+<h2 id="ghafloggingserverenable"><a class="header" href="#ghafloggingserverenable">ghaf.logging.server.enable</a></h2>
+<p>Whether to enable Enable logs aggregator server.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix</a></li>
+</ul>
+<h2 id="ghafloggingserverendpoint"><a class="header" href="#ghafloggingserverendpoint">ghaf.logging.server.endpoint</a></h2>
+<p>Assign endpoint url value to the alloy.service running in
+admin-vm. This endpoint URL will include protocol, upstream
+address along with port value.</p>
+<p><em>Type:</em>
+null or string</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix</a></li>
+</ul>
+<h2 id="ghafloggingserveridentifierfilepath"><a class="header" href="#ghafloggingserveridentifierfilepath">ghaf.logging.server.identifierFilePath</a></h2>
+<p>This configuration option used to specify the identifier file path.
+The identifier file will be text file which have unique identification
+value per machine so that when logs will be uploaded to cloud
+we can identify its origin.</p>
+<p><em>Type:</em>
+null or absolute path</p>
+<p><em>Default:</em>
+<code>"/etc/common/device-id"</code></p>
+<p><em>Example:</em>
+<code>"/etc/common/device-id"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/logging/server.nix</a></li>
 </ul>
 <h2 id="ghafnetworkinghosts"><a class="header" href="#ghafnetworkinghosts">ghaf.networking.hosts</a></h2>
 <p>List of hosts entries.</p>
@@ -6658,18 +6726,6 @@ string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix</a></li>
 </ul>
-<h2 id="ghafprofilesapplicationsenable"><a class="header" href="#ghafprofilesapplicationsenable">ghaf.profiles.applications.enable</a></h2>
-<p>Whether to enable Some sample applications.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/applications.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/applications.nix</a></li>
-</ul>
 <h2 id="ghafprofilesdebugenable"><a class="header" href="#ghafprofilesdebugenable">ghaf.profiles.debug.enable</a></h2>
 <p>Whether to enable debug profile.</p>
 <p><em>Type:</em>
@@ -6692,7 +6748,7 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafprofilesgraphicscompositor"><a class="header" href="#ghafprofilesgraphicscompositor">ghaf.profiles.graphics.compositor</a></h2>
 <p>Which Wayland compositor to use.</p>
@@ -6703,7 +6759,7 @@ value “labwc” (singular enum)</p>
 <code>"labwc"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafprofilesgraphicsrenderer"><a class="header" href="#ghafprofilesgraphicsrenderer">ghaf.profiles.graphics.renderer</a></h2>
 <p>Which wlroots renderer to use.</p>
@@ -6714,7 +6770,7 @@ one of “vulkan”, “pixman”, “gles2”</p>
 <code>"gles2"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/profiles/graphics.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
 <h2 id="ghafprofileshost-hardeningenable"><a class="header" href="#ghafprofileshost-hardeningenable">ghaf.profiles.host-hardening.enable</a></h2>
 <p>Whether to enable Host hardening profile.</p>
@@ -6727,6 +6783,48 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/profiles/host-hardening.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/profiles/host-hardening.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86enable"><a class="header" href="#ghafprofileslaptop-x86enable">ghaf.profiles.laptop-x86.enable</a></h2>
+<p>Whether to enable Enable the basic x86 laptop config.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86enabled-app-vms"><a class="header" href="#ghafprofileslaptop-x86enabled-app-vms">ghaf.profiles.laptop-x86.enabled-app-vms</a></h2>
+<p>List of appvms to include in the Ghaf reference appvms module</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86guivmextramodules"><a class="header" href="#ghafprofileslaptop-x86guivmextramodules">ghaf.profiles.laptop-x86.guivmExtraModules</a></h2>
+<p>List of additional modules to be passed to the guivm.</p>
+<p><em>Type:</em>
+unspecified value</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
+</ul>
+<h2 id="ghafprofileslaptop-x86netvmextramodules"><a class="header" href="#ghafprofileslaptop-x86netvmextramodules">ghaf.profiles.laptop-x86.netvmExtraModules</a></h2>
+<p>List of additional modules to be passed to the netvm.</p>
+<p><em>Type:</em>
+unspecified value</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/laptop-x86.nix</a></li>
 </ul>
 <h2 id="ghafprofilesreleaseenable"><a class="header" href="#ghafprofilesreleaseenable">ghaf.profiles.release.enable</a></h2>
 <p>Whether to enable release profile.</p>
@@ -6883,48 +6981,6 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/personalize/keys.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/personalize/keys.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86enable"><a class="header" href="#ghafreferenceprofileslaptop-x86enable">ghaf.reference.profiles.laptop-x86.enable</a></h2>
-<p>Whether to enable Enable the basic x86 laptop config.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Example:</em>
-<code>true</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86enabled-app-vms"><a class="header" href="#ghafreferenceprofileslaptop-x86enabled-app-vms">ghaf.reference.profiles.laptop-x86.enabled-app-vms</a></h2>
-<p>List of appvms to include in the Ghaf reference appvms module</p>
-<p><em>Type:</em>
-list of (attribute set)</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86guivmextramodules"><a class="header" href="#ghafreferenceprofileslaptop-x86guivmextramodules">ghaf.reference.profiles.laptop-x86.guivmExtraModules</a></h2>
-<p>List of additional modules to be passed to the guivm.</p>
-<p><em>Type:</em>
-unspecified value</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
-</ul>
-<h2 id="ghafreferenceprofileslaptop-x86netvmextramodules"><a class="header" href="#ghafreferenceprofileslaptop-x86netvmextramodules">ghaf.reference.profiles.laptop-x86.netvmExtraModules</a></h2>
-<p>List of additional modules to be passed to the netvm.</p>
-<p><em>Type:</em>
-unspecified value</p>
-<p><em>Default:</em>
-<code>[ ]</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/profiles/laptop-x86.nix</a></li>
 </ul>
 <h2 id="ghafreferenceprofilesmvp-user-trialenable"><a class="header" href="#ghafreferenceprofilesmvp-user-trialenable">ghaf.reference.profiles.mvp-user-trial.enable</a></h2>
 <p>Whether to enable Enable the mvp configuration for apps and services.</p>
@@ -7233,6 +7289,56 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
 </ul>
+<h2 id="ghafreferenceservicesdendrite-pineconemcastudpip"><a class="header" href="#ghafreferenceservicesdendrite-pineconemcastudpip">ghaf.reference.services.dendrite-pinecone.McastUdpIp</a></h2>
+<p>Multicast UDP IP for dendrite pinecone</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"239.0.0.114"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconemcastudpport"><a class="header" href="#ghafreferenceservicesdendrite-pineconemcastudpport">ghaf.reference.services.dendrite-pinecone.McastUdpPort</a></h2>
+<p>Multicast UDP port for dendrite pinecone</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"60606"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconemcastudpportint"><a class="header" href="#ghafreferenceservicesdendrite-pineconemcastudpportint">ghaf.reference.services.dendrite-pinecone.McastUdpPortInt</a></h2>
+<p>Multicast UDP port for dendrite pinecone</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>60606</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconetcpport"><a class="header" href="#ghafreferenceservicesdendrite-pineconetcpport">ghaf.reference.services.dendrite-pinecone.TcpPort</a></h2>
+<p>TCP port for dendrite pinecone</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Default:</em>
+<code>"49000"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
+<h2 id="ghafreferenceservicesdendrite-pineconetcpportint"><a class="header" href="#ghafreferenceservicesdendrite-pineconetcpportint">ghaf.reference.services.dendrite-pinecone.TcpPortInt</a></h2>
+<p>TCP port for dendrite pinecone</p>
+<p><em>Type:</em>
+signed integer</p>
+<p><em>Default:</em>
+<code>49000</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/dendrite-pinecone/dendrite-pinecone.nix</a></li>
+</ul>
 <h2 id="ghafreferenceservicesdendrite-pineconeexternalnic"><a class="header" href="#ghafreferenceservicesdendrite-pineconeexternalnic">ghaf.reference.services.dendrite-pinecone.externalNic</a></h2>
 <p>External network interface</p>
 <p><em>Type:</em>
@@ -7504,6 +7610,42 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/fprint.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/fprint.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubenable"><a class="header" href="#ghafservicesgithubenable">ghaf.services.github.enable</a></h2>
+<p>Whether to enable Github configurations.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubowner"><a class="header" href="#ghafservicesgithubowner">ghaf.services.github.owner</a></h2>
+<p>Github owner account of the bug reporter issue</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubrepo"><a class="header" href="#ghafservicesgithubrepo">ghaf.services.github.repo</a></h2>
+<p>Github repo of the bug reporter issue</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
+</ul>
+<h2 id="ghafservicesgithubtoken"><a class="header" href="#ghafservicesgithubtoken">ghaf.services.github.token</a></h2>
+<p>Personal token of the bug reporter Github account</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/services/github.nix</a></li>
 </ul>
 <h2 id="ghafserviceswifienable"><a class="header" href="#ghafserviceswifienable">ghaf.services.wifi.enable</a></h2>
 <p>Whether to enable Wifi configuration for the net-vm.</p>
@@ -8310,13 +8452,13 @@ string</p>
 <p><em>Type:</em>
 string <em>(read only)</em></p>
 <p><em>Default:</em>
-<code>"24.12.4"</code></p>
+<code>"24.12.5"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/version">https://github.com/tiiuae/ghaf/blob/main/modules/common/version</a></li>
 </ul>
-<h2 id="ghafvirtualizationdockerdaemonenable"><a class="header" href="#ghafvirtualizationdockerdaemonenable">ghaf.virtualization.docker.daemon.enable</a></h2>
-<p>Whether to enable Docker Daemon.</p>
+<h2 id="ghafvirtualisationnvidia-dockerdaemonenable"><a class="header" href="#ghafvirtualisationnvidia-dockerdaemonenable">ghaf.virtualisation.nvidia-docker.daemon.enable</a></h2>
+<p>Whether to enable Nvidia Docker Daemon.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -8325,7 +8467,19 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualization/docker.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualization/docker.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-docker.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-docker.nix</a></li>
+</ul>
+<h2 id="ghafvirtualisationnvidia-podmandaemonenable"><a class="header" href="#ghafvirtualisationnvidia-podmandaemonenable">ghaf.virtualisation.nvidia-podman.daemon.enable</a></h2>
+<p>Whether to enable Nvidia Podman Daemon.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-podman.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/virtualisation/nvidia-podman.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmadminvmenable"><a class="header" href="#ghafvirtualizationmicrovmadminvmenable">ghaf.virtualization.microvm.adminvm.enable</a></h2>
 <p>Whether to enable AdminVM.</p>
@@ -8477,6 +8631,16 @@ string</p>
 <ul>
 <li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
+<h2 id="ghafvirtualizationmicrovmappvmvmsballoonratio"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsballoonratio">ghaf.virtualization.microvm.appvm.vms.*.balloonRatio</a></h2>
+<p>Amount of dynamic RAM for this AppVM as a multiple of ramMb</p>
+<p><em>Type:</em>
+signed integer or floating point number</p>
+<p><em>Default:</em>
+<code>2</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
+</ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsbordercolor"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsbordercolor">ghaf.virtualization.microvm.appvm.vms.*.borderColor</a></h2>
 <p>Border color of the AppVM window</p>
 <p><em>Type:</em>
@@ -8558,7 +8722,7 @@ string</p>
 <li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmappvmvmsrammb"><a class="header" href="#ghafvirtualizationmicrovmappvmvmsrammb">ghaf.virtualization.microvm.appvm.vms.*.ramMb</a></h2>
-<p>Amount of RAM for this AppVM</p>
+<p>Minimum amount of RAM for this AppVM</p>
 <p><em>Type:</em>
 signed integer</p>
 <p><em>Declared by:</em></p>
@@ -8617,7 +8781,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmaudiovmextramodules"><a class="header" href="#ghafvirtualizationmicrovmaudiovmextramodules">ghaf.virtualization.microvm.audiovm.extraModules</a></h2>
 <p>List of additional modules to be imported and evaluated as part of
@@ -8707,7 +8871,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmguivmvsockcid"><a class="header" href="#ghafvirtualizationmicrovmguivmvsockcid">ghaf.virtualization.microvm.guivm.vsockCID</a></h2>
 <p>Context Identifier (CID) of the GUIVM VSOCK</p>
@@ -8727,7 +8891,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmidsvmenable"><a class="header" href="#ghafvirtualizationmicrovmidsvmenable">ghaf.virtualization.microvm.idsvm.enable</a></h2>
 <p>Whether to enable Whether to enable IDS-VM on the system.</p>
@@ -8762,7 +8926,30 @@ boolean</p>
 <code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/idsvm/mitmproxy</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmidsvmmitmproxywebuienabled"><a class="header" href="#ghafvirtualizationmicrovmidsvmmitmproxywebuienabled">ghaf.virtualization.microvm.idsvm.mitmproxy.webUIEnabled</a></h2>
+<p>Whether to enable mitmproxyWebUI on ids-vm</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmidsvmmitmproxywebuiport"><a class="header" href="#ghafvirtualizationmicrovmidsvmmitmproxywebuiport">ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPort</a></h2>
+<p>MitmwebUI port</p>
+<p><em>Type:</em>
+list of 16 bit unsigned integer; between 0 and 65535 (both inclusive) <em>(read only)</em></p>
+<p><em>Default:</em></p>
+<pre><code>[
+  8081
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovmnetvmenable"><a class="header" href="#ghafvirtualizationmicrovmnetvmenable">ghaf.virtualization.microvm.netvm.enable</a></h2>
 <p>Whether to enable NetVM.</p>
@@ -8795,7 +8982,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/modules.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/modules.nix</a></li>
 </ul>
 <h2 id="ghafvirtualizationmicrovm-hostenable"><a class="header" href="#ghafvirtualizationmicrovm-hostenable">ghaf.virtualization.microvm-host.enable</a></h2>
 <p>Whether to enable MicroVM Host.</p>
@@ -8823,6 +9010,18 @@ boolean</p>
 </ul>
 <h2 id="ghafvirtualizationmicrovm-hostsharedvmdirectoryenable"><a class="header" href="#ghafvirtualizationmicrovm-hostsharedvmdirectoryenable">ghaf.virtualization.microvm-host.sharedVmDirectory.enable</a></h2>
 <p>Whether to enable shared directory.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li>[https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/flake-module.nix, via option flake.nixosModules.microvm)</li>
+</ul>
+<h2 id="ghafvirtualizationmicrovm-hostsharedvmdirectoryinotifypassthrough"><a class="header" href="#ghafvirtualizationmicrovm-hostsharedvmdirectoryinotifypassthrough">ghaf.virtualization.microvm-host.sharedVmDirectory.inotifyPassthrough</a></h2>
+<p>Whether to enable inotify passthrough.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -11217,6 +11416,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <p>Release numbering scheme: <em>ghaf-yy.mm</em>.</p>
 <h2 id="in-this-chapter-4"><a class="header" href="#in-this-chapter-4">In This Chapter</a></h2>
 <ul>
+<li><a href="release_notes/../release_notes/ghaf-24.12.4.html">Release ghaf-24.12.4</a></li>
 <li><a href="release_notes/../release_notes/ghaf-24.12.3.html">Release ghaf-24.12.3</a></li>
 <li><a href="release_notes/../release_notes/ghaf-24.12.2.html">Release ghaf-24.12.2</a></li>
 <li><a href="release_notes/../release_notes/ghaf-24.12.1.html">Release ghaf-24.12.1</a></li>
@@ -11304,11 +11504,141 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
     Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
+<h1 id="release-ghaf-24124"><a class="header" href="#release-ghaf-24124">Release ghaf-24.12.4</a></h1>
+<p>This is a bi-weekly release for Ghaf adding support for Nvidia containers and CUDA 12.x for Nvidia platforms based on JetPack 6</p>
+<h2 id="release-tag"><a class="header" href="#release-tag">Release Tag</a></h2>
+<p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.4">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.4</a></p>
+<h2 id="supported-hardware"><a class="header" href="#supported-hardware">Supported Hardware</a></h2>
+<p>The following target hardware is supported by this release:</p>
+<ul>
+<li>NVIDIA Jetson AGX Orin</li>
+<li>NVIDIA Jetson Orin NX</li>
+<li>Lenovo ThinkPad X1 Carbon Gen 10, 11, 12</li>
+<li>Dell Latitude 7230, 7330</li>
+<li>Alienware M18</li>
+<li>Generic x86 (PC)</li>
+<li>NXP i.MX 8M Plus - build support only</li>
+</ul>
+<h2 id="what-is-new-in-ghaf-24124"><a class="header" href="#what-is-new-in-ghaf-24124">What is New in ghaf-24.12.4</a></h2>
+<ul>
+<li>General refactoring and modularization</li>
+<li>Support for Alienware M18 laptop added</li>
+</ul>
+<p>Lenovo X1 Carbon / x86 platforms:</p>
+<ul>
+<li>File system changes for debug builds: ext4 used for root, btrfs for persistence partition</li>
+<li>MitmWebUI app replaces mitmweb-ui script in chrome-vm</li>
+</ul>
+<p>Nvidia Jetson Orin AGX/NX:</p>
+<ul>
+<li>Docker with Nvidia container and CUDA 12.x support</li>
+<li>Podman support, disabled by default</li>
+</ul>
+<h2 id="bug-fixes"><a class="header" href="#bug-fixes">Bug Fixes</a></h2>
+<p>Fixed bugs that were present in the <a href="release_notes/../release_notes/ghaf-24.12.3.html">ghaf-24.12.3</a> release:</p>
+<ul>
+<li>Location sharing does not work</li>
+<li>File manager not displaying downloaded file</li>
+</ul>
+<h2 id="known-issues-and-limitations"><a class="header" href="#known-issues-and-limitations">Known Issues and Limitations</a></h2>
+<p>Note: Provenance file signature verification failed with this release build due to issues in the build system</p>
+<div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
+<tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
+<tr><td>Sending bug report from Control Panel causes Control Panel to crash</td><td>In Progress</td><td>Under investigation</td></tr>
+<tr><td>Intermittent audio issue after boot</td><td>In Progress</td><td>Workaround: rebooting the system typically resolves the issue.</td></tr>
+<tr><td>Control Panel functionality is limited: only Display Settings, Local and Timezone settings are functional</td><td>In Progress</td><td>Additional functionality will be implemented in future releases.</td></tr>
+<tr><td>VPN credentials are not saved</td><td>On Hold</td><td></td></tr>
+<tr><td>The keyboard defaults to the English layout on boot</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
+<tr><td>Yubikey for unlocking does not work</td><td>In Progress</td><td>A fix is currently in progress.</td></tr>
+<tr><td>A laptop may wake from suspend without user interaction</td><td>In Progress</td><td>The issue is under investigation.</td></tr>
+<tr><td><strong>NVIDIA Jetson AGX Orin / Orin NX</strong></td><td></td><td></td></tr>
+<tr><td>Firefox has been disabled</td><td>In Progress</td><td>Firefox will be re-enabled once upstream fixes are available.</td></tr>
+<tr><td>The application menu cannot be accessed using the Windows key</td><td>In Progress</td><td>Workaround: access the application menu through the taskbar in the top-left corner.</td></tr>
+<tr><td>The keyboard always boots up with the English layout</td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
+<tr><td>The Suspend power option is not functioning as expected</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
+</tbody></table>
+</div>
+<h2 id="environment-requirements"><a class="header" href="#environment-requirements">Environment Requirements</a></h2>
+<p>There are no specific requirements for the environment with this release.</p>
+<h2 id="installation-instructions"><a class="header" href="#installation-instructions">Installation Instructions</a></h2>
+<p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-4">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.4</a>.</p>
+<p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
+<div style="break-before: page; page-break-before: always;"></div><style>
+.mdbook-alerts {
+  padding: 8px 16px;
+  margin-bottom: 16px;
+  border-left: 0.25em solid var(--mdbook-alerts-color);
+}
+
+.mdbook-alerts > *:first-child {
+  margin-top: 0;
+}
+
+.mdbook-alerts > *:last-child {
+  margin-bottom: 0;
+}
+
+.mdbook-alerts-title {
+  display: flex;
+  font-weight: 600;
+  align-items: center;
+  line-height: 1;
+  color: var(--mdbook-alerts-color);
+  text-transform: capitalize;
+}
+
+.mdbook-alerts-icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-right: 0.2em;
+  background-color: currentColor;
+  -webkit-mask: no-repeat center / 100%;
+  mask: no-repeat center / 100%;
+  -webkit-mask-image: var(--mdbook-alerts-icon);
+  mask-image: var(--mdbook-alerts-icon);
+}
+
+.mdbook-alerts-note {
+  --mdbook-alerts-color: rgb(9, 105, 218);
+  /* https://icon-sets.iconify.design/material-symbols/info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16v-4q0-.425-.288-.712T12 11q-.425 0-.712.288T11 12v4q0 .425.288.713T12 17m0-8q.425 0 .713-.288T13 8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8q0 .425.288.713T12 9m0 13q-2.075 0-3.9-.788t-3.175-2.137q-1.35-1.35-2.137-3.175T2 12q0-2.075.788-3.9t2.137-3.175q1.35-1.35 3.175-2.137T12 2q2.075 0 3.9.788t3.175 2.137q1.35 1.35 2.138 3.175T22 12q0 2.075-.788 3.9t-2.137 3.175q-1.35 1.35-3.175 2.138T12 22m0-2q3.35 0 5.675-2.325T20 12q0-3.35-2.325-5.675T12 4Q8.65 4 6.325 6.325T4 12q0 3.35 2.325 5.675T12 20m0-8"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-tip {
+  --mdbook-alerts-color: rgb(26, 127, 55);
+  /* https://icon-sets.iconify.design/material-symbols/lightbulb-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 22q-.825 0-1.412-.587T10 20h4q0 .825-.587 1.413T12 22m-3-3q-.425 0-.712-.288T8 18q0-.425.288-.712T9 17h6q.425 0 .713.288T16 18q0 .425-.288.713T15 19zm-.75-3q-1.725-1.025-2.738-2.75T4.5 9.5q0-3.125 2.188-5.312T12 2q3.125 0 5.313 2.188T19.5 9.5q0 2.025-1.012 3.75T15.75 16zm.6-2h6.3q1.125-.8 1.738-1.975T17.5 9.5q0-2.3-1.6-3.9T12 4Q9.7 4 8.1 5.6T6.5 9.5q0 1.35.613 2.525T8.85 14M12 14"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-important {
+  --mdbook-alerts-color: rgb(130, 80, 223);
+  /* https://icon-sets.iconify.design/material-symbols/chat-info-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 7q.425 0 .713-.288T13 6q0-.425-.288-.712T12 5q-.425 0-.712.288T11 6q0 .425.288.713T12 7m0 8q.425 0 .713-.288T13 14v-4q0-.425-.288-.712T12 9q-.425 0-.712.288T11 10v4q0 .425.288.713T12 15m-6 3l-2.3 2.3q-.475.475-1.088.213T2 19.575V4q0-.825.588-1.412T4 2h16q.825 0 1.413.588T22 4v12q0 .825-.587 1.413T20 18zm-.85-2H20V4H4v13.125zM4 16V4z"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-warning {
+  --mdbook-alerts-color: rgb(154, 103, 0);
+  /* https://icon-sets.iconify.design/material-symbols/warning-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M2.725 21q-.275 0-.5-.137t-.35-.363q-.125-.225-.137-.488t.137-.512l9.25-16q.15-.25.388-.375T12 3q.25 0 .488.125t.387.375l9.25 16q.15.25.138.513t-.138.487q-.125.225-.35.363t-.5.137zm1.725-2h15.1L12 6zM12 18q.425 0 .713-.288T13 17q0-.425-.288-.712T12 16q-.425 0-.712.288T11 17q0 .425.288.713T12 18m0-3q.425 0 .713-.288T13 14v-3q0-.425-.288-.712T12 10q-.425 0-.712.288T11 11v3q0 .425.288.713T12 15m0-2.5"%2F%3E%3C%2Fsvg%3E');
+}
+
+.mdbook-alerts-caution {
+  --mdbook-alerts-color: rgb(207, 34, 46);
+  /* https://icon-sets.iconify.design/material-symbols/brightness-alert-outline-rounded/ */
+  --mdbook-alerts-icon: url('data:image/svg+xml,%3Csvg xmlns="http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg" width="24" height="24" viewBox="0 0 24 24"%3E%3Cpath fill="currentColor" d="M12 17q.425 0 .713-.288T13 16q0-.425-.288-.712T12 15q-.425 0-.712.288T11 16q0 .425.288.713T12 17m0-4q.425 0 .713-.288T13 12V8q0-.425-.288-.712T12 7q-.425 0-.712.288T11 8v4q0 .425.288.713T12 13m-3.35 7H6q-.825 0-1.412-.587T4 18v-2.65L2.075 13.4q-.275-.3-.425-.662T1.5 12q0-.375.15-.737t.425-.663L4 8.65V6q0-.825.588-1.412T6 4h2.65l1.95-1.925q.3-.275.663-.425T12 1.5q.375 0 .738.15t.662.425L15.35 4H18q.825 0 1.413.588T20 6v2.65l1.925 1.95q.275.3.425.663t.15.737q0 .375-.15.738t-.425.662L20 15.35V18q0 .825-.587 1.413T18 20h-2.65l-1.95 1.925q-.3.275-.662.425T12 22.5q-.375 0-.737-.15t-.663-.425zm.85-2l2.5 2.5l2.5-2.5H18v-3.5l2.5-2.5L18 9.5V6h-3.5L12 3.5L9.5 6H6v3.5L3.5 12L6 14.5V18zm2.5-6"%2F%3E%3C%2Fsvg%3E');
+}
+
+</style>
+<!--
+    Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
 <h1 id="release-ghaf-24123"><a class="header" href="#release-ghaf-24123">Release ghaf-24.12.3</a></h1>
 <p>This is a bi-weekly release with a major update to JetPack 6.2 for NVIDIA platforms.</p>
-<h2 id="release-tag"><a class="header" href="#release-tag">Release Tag</a></h2>
+<h2 id="release-tag-1"><a class="header" href="#release-tag-1">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.3">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.3</a></p>
-<h2 id="supported-hardware"><a class="header" href="#supported-hardware">Supported Hardware</a></h2>
+<h2 id="supported-hardware-1"><a class="header" href="#supported-hardware-1">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -11328,13 +11658,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <ul>
 <li>JetPack 6.2 including NVIDIA Jetson Linux 36.4.3 with Linux kernel 5.15.</li>
 </ul>
-<h2 id="bug-fixes"><a class="header" href="#bug-fixes">Bug Fixes</a></h2>
+<h2 id="bug-fixes-1"><a class="header" href="#bug-fixes-1">Bug Fixes</a></h2>
 <p>Fixed bugs that were present in the <a href="release_notes/../release_notes/ghaf-24.12.2.html">ghaf-24.12.2</a> release:</p>
 <ul>
 <li>Audio output via 3.5mm jack.</li>
 <li>Missing application menu icons on the first boot after the software installation.</li>
 </ul>
-<h2 id="known-issues-and-limitations"><a class="header" href="#known-issues-and-limitations">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-1"><a class="header" href="#known-issues-and-limitations-1">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
 <tr><td>Location sharing does not work</td><td>In Progress</td><td>The issue is under investigation.</td></tr>
@@ -11351,9 +11681,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The Suspend power option is not functioning as expected</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements"><a class="header" href="#environment-requirements">Environment Requirements</a></h2>
+<h2 id="environment-requirements-1"><a class="header" href="#environment-requirements-1">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions"><a class="header" href="#installation-instructions">Installation Instructions</a></h2>
+<h2 id="installation-instructions-1"><a class="header" href="#installation-instructions-1">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-3">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.3</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -11429,9 +11759,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 -->
 <h1 id="release-ghaf-24122"><a class="header" href="#release-ghaf-24122">Release ghaf-24.12.2</a></h1>
 <p>This is a bi-weekly release containing new features and additional hardening for Ghaf.</p>
-<h2 id="release-tag-1"><a class="header" href="#release-tag-1">Release Tag</a></h2>
+<h2 id="release-tag-2"><a class="header" href="#release-tag-2">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.2">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.2</a></p>
-<h2 id="supported-hardware-1"><a class="header" href="#supported-hardware-1">Supported Hardware</a></h2>
+<h2 id="supported-hardware-2"><a class="header" href="#supported-hardware-2">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -11460,12 +11790,12 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Added keybindings to move the active window to the next or previous desktop.</li>
 <li>Logging improvements.</li>
 </ul>
-<h2 id="bug-fixes-1"><a class="header" href="#bug-fixes-1">Bug Fixes</a></h2>
+<h2 id="bug-fixes-2"><a class="header" href="#bug-fixes-2">Bug Fixes</a></h2>
 <p>Fixed bugs that were present in the <a href="release_notes/../release_notes/ghaf-24.12.1.html">ghaf-24.12.1</a> release:</p>
 <ul>
 <li>Element location sharing not working.</li>
 </ul>
-<h2 id="known-issues-and-limitations-1"><a class="header" href="#known-issues-and-limitations-1">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-2"><a class="header" href="#known-issues-and-limitations-2">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
 <tr><td>No audio output via 3.5mm jack</td><td>In Progress</td><td>Workaround: connect the device before booting up.</td></tr>
@@ -11485,9 +11815,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The Suspend power option is not functioning as expected</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-1"><a class="header" href="#environment-requirements-1">Environment Requirements</a></h2>
+<h2 id="environment-requirements-2"><a class="header" href="#environment-requirements-2">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-1"><a class="header" href="#installation-instructions-1">Installation Instructions</a></h2>
+<h2 id="installation-instructions-2"><a class="header" href="#installation-instructions-2">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-2">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.2</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -11563,9 +11893,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 -->
 <h1 id="release-ghaf-24121"><a class="header" href="#release-ghaf-24121">Release ghaf-24.12.1</a></h1>
 <p>This bi-weekly release brings a major update on Ghaf dependencies, most notably the compiler GCC 14 version.</p>
-<h2 id="release-tag-2"><a class="header" href="#release-tag-2">Release Tag</a></h2>
+<h2 id="release-tag-3"><a class="header" href="#release-tag-3">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.1">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12.1</a></p>
-<h2 id="supported-hardware-2"><a class="header" href="#supported-hardware-2">Supported Hardware</a></h2>
+<h2 id="supported-hardware-3"><a class="header" href="#supported-hardware-3">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -11586,12 +11916,12 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Audio device selection and microphone slider are added to the quick settings widget.</li>
 <li>Audio control was removed from the application menu.</li>
 </ul>
-<h2 id="bug-fixes-2"><a class="header" href="#bug-fixes-2">Bug Fixes</a></h2>
+<h2 id="bug-fixes-3"><a class="header" href="#bug-fixes-3">Bug Fixes</a></h2>
 <p>Fixed bugs that were present in the <a href="release_notes/../release_notes/ghaf-24.12.html">ghaf-24.12</a> release:</p>
 <ul>
 <li>A laptop cannot be unlocked after suspension sometimes.</li>
 </ul>
-<h2 id="known-issues-and-limitations-2"><a class="header" href="#known-issues-and-limitations-2">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-3"><a class="header" href="#known-issues-and-limitations-3">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
 <tr><td>No audio output via 3.5mm jack</td><td>In Progress</td><td>Workaround: connect the device before booting up.</td></tr>
@@ -11611,9 +11941,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The Suspend power option is not functioning as expected</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-2"><a class="header" href="#environment-requirements-2">Environment Requirements</a></h2>
+<h2 id="environment-requirements-3"><a class="header" href="#environment-requirements-3">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-2"><a class="header" href="#installation-instructions-2">Installation Instructions</a></h2>
+<h2 id="installation-instructions-3"><a class="header" href="#installation-instructions-3">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12-01">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12.1</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -11689,9 +12019,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 -->
 <h1 id="release-ghaf-2412"><a class="header" href="#release-ghaf-2412">Release ghaf-24.12</a></h1>
 <p>This is a quarterly release for all supported hardware platforms, and it complies with SLSA v1.0 Level 3 requirements.</p>
-<h2 id="release-tag-3"><a class="header" href="#release-tag-3">Release Tag</a></h2>
+<h2 id="release-tag-4"><a class="header" href="#release-tag-4">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.12</a></p>
-<h2 id="supported-hardware-3"><a class="header" href="#supported-hardware-3">Supported Hardware</a></h2>
+<h2 id="supported-hardware-4"><a class="header" href="#supported-hardware-4">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -11737,7 +12067,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Taskbar control for four virtual desktops.</li>
 <li>Development, testing, and performance tooling improvements.</li>
 </ul>
-<h2 id="bug-fixes-3"><a class="header" href="#bug-fixes-3">Bug Fixes</a></h2>
+<h2 id="bug-fixes-4"><a class="header" href="#bug-fixes-4">Bug Fixes</a></h2>
 <p>Fixed bugs that were present in the <a href="release_notes/../release_notes/ghaf-24.09.html">ghaf-24.09</a> release:</p>
 <ul>
 <li>It is impossible to change the Wi-Fi network from the Network Settings application.</li>
@@ -11748,7 +12078,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Bluetooth notification windows stay on a screen.</li>
 <li>Time synchronization between host and VMs does not work in all scenarios.</li>
 </ul>
-<h2 id="known-issues-and-limitations-3"><a class="header" href="#known-issues-and-limitations-3">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-4"><a class="header" href="#known-issues-and-limitations-4">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>Lenovo X1</strong></td><td></td><td></td></tr>
 <tr><td>Application menu icons are missing in the first boot after the software installation</td><td>In Progress</td><td>Workaround: close and re-open the menu, icons will be available again.</td></tr>
@@ -11766,9 +12096,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The Suspend power option does not work</td><td>In Progress</td><td>Behavior is locking the device.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-3"><a class="header" href="#environment-requirements-3">Environment Requirements</a></h2>
+<h2 id="environment-requirements-4"><a class="header" href="#environment-requirements-4">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-3"><a class="header" href="#installation-instructions-3">Installation Instructions</a></h2>
+<h2 id="installation-instructions-4"><a class="header" href="#installation-instructions-4">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-12</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -11845,9 +12175,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-24094"><a class="header" href="#release-ghaf-24094">Release ghaf-24.09.4</a></h1>
 <p>This patch release is targeted at <a href="release_notes/../scenarios/showcases.html#secure-laptop">Secure Laptop</a> (Lenovo X1 Carbon) test participants and brings in new features and bug fixes.</p>
 <p>Lenovo X1 Carbon has been fully tested for this release, other platforms have been sanity-tested only.</p>
-<h2 id="release-tag-4"><a class="header" href="#release-tag-4">Release Tag</a></h2>
+<h2 id="release-tag-5"><a class="header" href="#release-tag-5">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.4">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.4</a></p>
-<h2 id="supported-hardware-4"><a class="header" href="#supported-hardware-4">Supported Hardware</a></h2>
+<h2 id="supported-hardware-5"><a class="header" href="#supported-hardware-5">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -11867,13 +12197,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>System idle behavior reworked.</li>
 <li>Allowed URLs for business-vm are now fetched from the separate configurable repository.</li>
 </ul>
-<h2 id="bug-fixes-4"><a class="header" href="#bug-fixes-4">Bug Fixes</a></h2>
+<h2 id="bug-fixes-5"><a class="header" href="#bug-fixes-5">Bug Fixes</a></h2>
 <ul>
 <li>Some cursor types are missing causing a cursor to disappear in some cases.</li>
 <li>Cannot open images and PDF files from the file manager.</li>
 <li>Suspend does not work from the taskbar power menu.</li>
 </ul>
-<h2 id="known-issues-and-limitations-4"><a class="header" href="#known-issues-and-limitations-4">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-5"><a class="header" href="#known-issues-and-limitations-5">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>Application menu icons are missing in the first boot after the software installation </td><td>In Progress</td><td>Workaround: close and re-open the menu, icons will be available again.</td></tr>
 <tr><td>The Control Panel is non-functional apart from the Display Settings, Local and Timezone settings </td><td>In Progress</td><td>The functionality will be gradually improved in coming releases.</td></tr>
@@ -11882,9 +12212,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The keyboard boots up with the English layout </td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-4"><a class="header" href="#environment-requirements-4">Environment Requirements</a></h2>
+<h2 id="environment-requirements-5"><a class="header" href="#environment-requirements-5">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-4"><a class="header" href="#installation-instructions-4">Installation Instructions</a></h2>
+<h2 id="installation-instructions-5"><a class="header" href="#installation-instructions-5">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-4">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-4</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -11961,9 +12291,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-24093"><a class="header" href="#release-ghaf-24093">Release ghaf-24.09.3</a></h1>
 <p>This patch release is targeted at <a href="release_notes/../scenarios/showcases.html#secure-laptop">Secure Laptop</a> (Lenovo X1 Carbon) test participants and brings in new features and bug fixes.</p>
 <p>Lenovo X1 Carbon has been fully tested for this release, other platforms have been sanity-tested only.</p>
-<h2 id="release-tag-5"><a class="header" href="#release-tag-5">Release Tag</a></h2>
+<h2 id="release-tag-6"><a class="header" href="#release-tag-6">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.3">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.3</a></p>
-<h2 id="supported-hardware-5"><a class="header" href="#supported-hardware-5">Supported Hardware</a></h2>
+<h2 id="supported-hardware-6"><a class="header" href="#supported-hardware-6">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -11983,13 +12313,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Bluetooth applet added to the system tray.</li>
 <li>Auto-reconnect hotplugged devices when the VM restarts.</li>
 </ul>
-<h2 id="bug-fixes-5"><a class="header" href="#bug-fixes-5">Bug Fixes</a></h2>
+<h2 id="bug-fixes-6"><a class="header" href="#bug-fixes-6">Bug Fixes</a></h2>
 <ul>
 <li>NVIDIA Jetson AGX Orin/Orin NX: the taskbar is no longer available.</li>
 <li>Bluetooth notification windows stay on the screen.</li>
 <li>Audio recording is delayed by several seconds.</li>
 </ul>
-<h2 id="known-issues-and-limitations-5"><a class="header" href="#known-issues-and-limitations-5">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-6"><a class="header" href="#known-issues-and-limitations-6">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>Application menu icons are missing in the first boot after the software installation </td><td>In Progress</td><td>Workaround: close and re-open the menu, icons will be available again.</td></tr>
 <tr><td>Some cursor types are missing causing a cursor to disappear in some cases </td><td>In Progress</td><td>Will be fixed in ghaf-24.09.4.</td></tr>
@@ -12001,9 +12331,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The keyboard always boots up with the English layout </td><td>In Progress</td><td>Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-5"><a class="header" href="#environment-requirements-5">Environment Requirements</a></h2>
+<h2 id="environment-requirements-6"><a class="header" href="#environment-requirements-6">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-5"><a class="header" href="#installation-instructions-5">Installation Instructions</a></h2>
+<h2 id="installation-instructions-6"><a class="header" href="#installation-instructions-6">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-3">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-3</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
@@ -12083,9 +12413,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-24092"><a class="header" href="#release-ghaf-24092">Release ghaf-24.09.2</a></h1>
 <p>This patch release is targeted at <a href="release_notes/../scenarios/showcases.html#secure-laptop">Secure Laptop</a> (Lenovo X1 Carbon) test participants and brings in new features and bug fixes.</p>
 <p>Lenovo X1 Carbon has been fully tested for this release, other platforms have been sanity-tested only.</p>
-<h2 id="release-tag-6"><a class="header" href="#release-tag-6">Release Tag</a></h2>
+<h2 id="release-tag-7"><a class="header" href="#release-tag-7">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.2">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.2</a></p>
-<h2 id="supported-hardware-6"><a class="header" href="#supported-hardware-6">Supported Hardware</a></h2>
+<h2 id="supported-hardware-7"><a class="header" href="#supported-hardware-7">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12107,14 +12437,14 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Zoom web application added into comms-vm.</li>
 <li>Display resolution and Scale settings added to the Control Panel.</li>
 </ul>
-<h2 id="bug-fixes-6"><a class="header" href="#bug-fixes-6">Bug Fixes</a></h2>
+<h2 id="bug-fixes-7"><a class="header" href="#bug-fixes-7">Bug Fixes</a></h2>
 <ul>
 <li>The USB camera is not working on Chromium VM.</li>
 <li>Double login issue with the Autolock feature on.</li>
 <li>The Control Panel is causing a high CPU load in GUI VM.</li>
 <li>Volume and brightness pop-ups do not close automatically.</li>
 </ul>
-<h2 id="known-issues-and-limitations-6"><a class="header" href="#known-issues-and-limitations-6">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-7"><a class="header" href="#known-issues-and-limitations-7">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>The Control Panel is non-functional apart from Display settings </td><td>In Progress</td><td></td></tr>
 <tr><td>Cannot log in to the Element chat with a Google account</td><td>In Progress</td><td>Workaround: create a user specifically for Element.</td></tr>
@@ -12125,9 +12455,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Bluetooth notification windows stay on a screen </td><td>In Progress</td><td>Workaround: use the Esc key to remove pop-up windows.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-6"><a class="header" href="#environment-requirements-6">Environment Requirements</a></h2>
+<h2 id="environment-requirements-7"><a class="header" href="#environment-requirements-7">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-6"><a class="header" href="#installation-instructions-6">Installation Instructions</a></h2>
+<h2 id="installation-instructions-7"><a class="header" href="#installation-instructions-7">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-2">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-2</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -12204,9 +12534,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-24091"><a class="header" href="#release-ghaf-24091">Release ghaf-24.09.1</a></h1>
 <p>This patch release is targeted at <a href="release_notes/../scenarios/showcases.html#secure-laptop">Secure Laptop</a> (Lenovo X1 Carbon) test participants and brings in new features and bug fixes.</p>
 <p>Lenovo X1 Carbon has been fully tested for this release, other platforms have been sanity-tested only.</p>
-<h2 id="release-tag-7"><a class="header" href="#release-tag-7">Release Tag</a></h2>
+<h2 id="release-tag-8"><a class="header" href="#release-tag-8">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.1">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09.1</a></p>
-<h2 id="supported-hardware-7"><a class="header" href="#supported-hardware-7">Supported Hardware</a></h2>
+<h2 id="supported-hardware-8"><a class="header" href="#supported-hardware-8">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12227,14 +12557,14 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Shutdown and Reboot buttons were removed from the applications menu and are now available in the Power menu.</li>
 <li>Multiple monitors support.</li>
 </ul>
-<h2 id="bug-fixes-7"><a class="header" href="#bug-fixes-7">Bug Fixes</a></h2>
+<h2 id="bug-fixes-8"><a class="header" href="#bug-fixes-8">Bug Fixes</a></h2>
 <p>Fixed bugs that were in the ghaf-24.09 release:</p>
 <ul>
 <li>It is impossible to change the Wi-Fi network from the Network Settings application.</li>
 <li>The taskbar on extended display is visible only when booting up with HDMI connected.</li>
 <li>The Mute status is not visible in the taskbar.</li>
 </ul>
-<h2 id="known-issues-and-limitations-7"><a class="header" href="#known-issues-and-limitations-7">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-8"><a class="header" href="#known-issues-and-limitations-8">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>The external USB camera is not working on Chromium VM</td><td>In Progress</td><td>A fix is in progress.</td></tr>
 <tr><td>Cannot log in to the Element chat with a Google account</td><td>In Progress</td><td>Workaround: create a user specifically for Element.</td></tr>
@@ -12245,9 +12575,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Bluetooth notification windows stay on a screen </td><td>In Progress</td><td>Workaround: use the Esc key to remove pop-up windows.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-7"><a class="header" href="#environment-requirements-7">Environment Requirements</a></h2>
+<h2 id="environment-requirements-8"><a class="header" href="#environment-requirements-8">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-7"><a class="header" href="#installation-instructions-7">Installation Instructions</a></h2>
+<h2 id="installation-instructions-8"><a class="header" href="#installation-instructions-8">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-1">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-1</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -12322,9 +12652,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="release-ghaf-2409"><a class="header" href="#release-ghaf-2409">Release ghaf-24.09</a></h1>
-<h2 id="release-tag-8"><a class="header" href="#release-tag-8">Release Tag</a></h2>
+<h2 id="release-tag-9"><a class="header" href="#release-tag-9">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.09</a></p>
-<h2 id="supported-hardware-8"><a class="header" href="#supported-hardware-8">Supported Hardware</a></h2>
+<h2 id="supported-hardware-9"><a class="header" href="#supported-hardware-9">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12370,10 +12700,10 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Further refactoring and modularization of the Ghaf framework.</li>
 <li>Development, testing, and performance tooling improvements.</li>
 </ul>
-<h2 id="bug-fixes-8"><a class="header" href="#bug-fixes-8">Bug Fixes</a></h2>
+<h2 id="bug-fixes-9"><a class="header" href="#bug-fixes-9">Bug Fixes</a></h2>
 <p>Fixed bugs that were in the ghaf-24.06 release:</p>
 <p>N/A</p>
-<h2 id="known-issues-and-limitations-8"><a class="header" href="#known-issues-and-limitations-8">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-9"><a class="header" href="#known-issues-and-limitations-9">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td><strong>NVIDIA Jetson AGX Orin / Orin NX</strong></td><td></td><td></td></tr>
 <tr><td>Cannot log in to the Element chat with a Google account</td><td>In Progress</td><td>Under investigation.</td></tr>
@@ -12394,9 +12724,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Bluetooth notification windows stay on a screen </td><td>In Progress</td><td>Workaround: use the Esc key to remove pop-up windows.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-8"><a class="header" href="#environment-requirements-8">Environment Requirements</a></h2>
+<h2 id="environment-requirements-9"><a class="header" href="#environment-requirements-9">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-8"><a class="header" href="#installation-instructions-8">Installation Instructions</a></h2>
+<h2 id="installation-instructions-9"><a class="header" href="#installation-instructions-9">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run">Build and Run</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -12471,9 +12801,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="release-ghaf-2406"><a class="header" href="#release-ghaf-2406">Release ghaf-24.06</a></h1>
-<h2 id="release-tag-9"><a class="header" href="#release-tag-9">Release Tag</a></h2>
+<h2 id="release-tag-10"><a class="header" href="#release-tag-10">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.06">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.06</a></p>
-<h2 id="supported-hardware-9"><a class="header" href="#supported-hardware-9">Supported Hardware</a></h2>
+<h2 id="supported-hardware-10"><a class="header" href="#supported-hardware-10">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12515,13 +12845,13 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Further refactoring and modularization of Ghaf Framework.</li>
 <li>Development, testing, and performance tooling improvements.</li>
 </ul>
-<h2 id="bug-fixes-9"><a class="header" href="#bug-fixes-9">Bug Fixes</a></h2>
+<h2 id="bug-fixes-10"><a class="header" href="#bug-fixes-10">Bug Fixes</a></h2>
 <p>Fixed bugs that were in the ghaf-24.03 release:</p>
 <ul>
 <li>Icons do not launch applications when a netvm is restarted.</li>
 <li>Closing and reopening a deck lid of a Lenovo ThinkPad X1 laptop with Ghaf running causes instability.</li>
 </ul>
-<h2 id="known-issues-and-limitations-9"><a class="header" href="#known-issues-and-limitations-9">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-10"><a class="header" href="#known-issues-and-limitations-10">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>Cannot log in to the Element chat with a Google account</td><td>In Progress</td><td>Workaround for x86: create a user specifically for Element.</td></tr>
 <tr><td>Windows launcher application does not work on AGX</td><td>In Progress</td><td>Workaround: launch a Windows VM from the command line.</td></tr>
@@ -12532,9 +12862,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>The Element application cannot find a camera</td><td>In Progress</td><td>Under investigation.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-9"><a class="header" href="#environment-requirements-9">Environment Requirements</a></h2>
+<h2 id="environment-requirements-10"><a class="header" href="#environment-requirements-10">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-9"><a class="header" href="#installation-instructions-9">Installation Instructions</a></h2>
+<h2 id="installation-instructions-10"><a class="header" href="#installation-instructions-10">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-06/">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-06</a>.</p>
 <p>Download the required image and use the following instructions:</p>
 <div class="table-wrapper"><table><thead><tr><th>Release Image</th><th>Build and Run</th></tr></thead><tbody>
@@ -12618,9 +12948,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 <h1 id="release-ghaf-2403"><a class="header" href="#release-ghaf-2403">Release ghaf-24.03</a></h1>
-<h2 id="release-tag-10"><a class="header" href="#release-tag-10">Release Tag</a></h2>
+<h2 id="release-tag-11"><a class="header" href="#release-tag-11">Release Tag</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.03">https://github.com/tiiuae/ghaf/releases/tag/ghaf-24.03</a></p>
-<h2 id="supported-hardware-10"><a class="header" href="#supported-hardware-10">Supported Hardware</a></h2>
+<h2 id="supported-hardware-11"><a class="header" href="#supported-hardware-11">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12654,14 +12984,14 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Further modularization of the Ghaf framework: <a href="release_notes/../ref_impl/ghaf-based-project.html">Ghaf as Library: Templates</a>.</li>
 <li>Development, testing, and performance tooling improvements.</li>
 </ul>
-<h2 id="bug-fixes-10"><a class="header" href="#bug-fixes-10">Bug Fixes</a></h2>
+<h2 id="bug-fixes-11"><a class="header" href="#bug-fixes-11">Bug Fixes</a></h2>
 <p>Fixed bugs that were in the ghaf-23.12 release:</p>
 <ul>
 <li>The GALA application does not work.</li>
 <li>Copying text from the browser address bar to another application does not work.</li>
 <li>The taskbar disappears after the external display is disconnected from Lenovo X1.</li>
 </ul>
-<h2 id="known-issues-and-limitations-10"><a class="header" href="#known-issues-and-limitations-10">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-11"><a class="header" href="#known-issues-and-limitations-11">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>Cannot log in to the Element chat with a Google account</td><td>In Progress</td><td>Workaround for x86: create a user specifically for Element.</td></tr>
 <tr><td>Windows launcher application does not work on AGX</td><td>In Progress</td><td>Workaround: launch a Windows VM from the command line.</td></tr>
@@ -12671,9 +13001,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Cannot connect to a hidden Wi-Fi network from GUI</td><td>In Progress</td><td>Workaround:  connect with SSH to a netvm and run the command: <code>nmcli dev wifi connect SSID password PASSWORD hidden yes</code>.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-10"><a class="header" href="#environment-requirements-10">Environment Requirements</a></h2>
+<h2 id="environment-requirements-11"><a class="header" href="#environment-requirements-11">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-10"><a class="header" href="#installation-instructions-10">Installation Instructions</a></h2>
+<h2 id="installation-instructions-11"><a class="header" href="#installation-instructions-11">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-03/">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-03</a>.</p>
 <p>Download the required image and use the following instructions:</p>
 <div class="table-wrapper"><table><thead><tr><th>Release Image</th><th>Build and Run</th></tr></thead><tbody>
@@ -12759,7 +13089,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-2312"><a class="header" href="#release-ghaf-2312">Release ghaf-23.12</a></h1>
 <h2 id="release-branch"><a class="header" href="#release-branch">Release Branch</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/tree/ghaf-23.12">https://github.com/tiiuae/ghaf/tree/ghaf-23.12</a></p>
-<h2 id="supported-hardware-11"><a class="header" href="#supported-hardware-11">Supported Hardware</a></h2>
+<h2 id="supported-hardware-12"><a class="header" href="#supported-hardware-12">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12795,7 +13125,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>SLSA v1.0 level 2 compatible build.</li>
 <li>Development, testing, and performance tooling improvements.</li>
 </ul>
-<h2 id="bug-fixes-11"><a class="header" href="#bug-fixes-11">Bug Fixes</a></h2>
+<h2 id="bug-fixes-12"><a class="header" href="#bug-fixes-12">Bug Fixes</a></h2>
 <p>Fixed bugs that were in the ghaf-23.09 release:</p>
 <ul>
 <li>Chromium AppVM does not boot up on X1.</li>
@@ -12804,7 +13134,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Personal security keys cannot be created.</li>
 <li>Cannot move the Element window by dragging with the mouse.</li>
 </ul>
-<h2 id="known-issues-and-limitations-11"><a class="header" href="#known-issues-and-limitations-11">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-12"><a class="header" href="#known-issues-and-limitations-12">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>The GALA application does not work</td><td>In Progress</td><td>Will be fixed in the next release.</td></tr>
 <tr><td>Cannot log in to the Element chat with a Google account</td><td>In Progress</td><td>Workaround for x86: create a user specifically for Element.</td></tr>
@@ -12816,9 +13146,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Applications do not open from icons when net-vm is restarted</td><td>In Progress</td><td>Workaround: Restart App VMs.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-11"><a class="header" href="#environment-requirements-11">Environment Requirements</a></h2>
+<h2 id="environment-requirements-12"><a class="header" href="#environment-requirements-12">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-11"><a class="header" href="#installation-instructions-11">Installation Instructions</a></h2>
+<h2 id="installation-instructions-12"><a class="header" href="#installation-instructions-12">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-23-12/">ghafreleasesstorage.z16.web.core.windows.net/ghaf-23-12</a>.</p>
 <p>Download the required image and use the following instructions:</p>
 <div class="table-wrapper"><table><thead><tr><th>Release Image</th><th>Build and Run</th></tr></thead><tbody>
@@ -12904,7 +13234,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-2309"><a class="header" href="#release-ghaf-2309">Release ghaf-23.09</a></h1>
 <h2 id="release-branch-1"><a class="header" href="#release-branch-1">Release Branch</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/tree/ghaf-23.09">https://github.com/tiiuae/ghaf/tree/ghaf-23.09</a></p>
-<h2 id="supported-hardware-12"><a class="header" href="#supported-hardware-12">Supported Hardware</a></h2>
+<h2 id="supported-hardware-13"><a class="header" href="#supported-hardware-13">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin</li>
@@ -12935,7 +13265,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </li>
 <li>Cross-compilation of the ARM targets (NVIDIA) on the x86 server (with demo applications excluded).</li>
 </ul>
-<h2 id="bug-fixes-12"><a class="header" href="#bug-fixes-12">Bug Fixes</a></h2>
+<h2 id="bug-fixes-13"><a class="header" href="#bug-fixes-13">Bug Fixes</a></h2>
 <p>Fixed bugs that were in the ghaf-23.06 release:</p>
 <ul>
 <li>NVIDIA Jetson AGX Orin:
@@ -12945,7 +13275,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </li>
 <li>No Windows launcher in x86 build.</li>
 </ul>
-<h2 id="known-issues-and-limitations-12"><a class="header" href="#known-issues-and-limitations-12">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-13"><a class="header" href="#known-issues-and-limitations-13">Known Issues and Limitations</a></h2>
 <div class="table-wrapper"><table><thead><tr><th>Issue</th><th>Status</th><th>Comments</th></tr></thead><tbody>
 <tr><td>Chromium App VM does not boot up on X1</td><td>In Progress</td><td>Intermittent timing issue, under investigation.</td></tr>
 <tr><td>The GALA app does not work</td><td>In Progress</td><td>Will be fixed in the next release.</td></tr>
@@ -12959,9 +13289,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <tr><td>Windows launcher application does not work</td><td>In Progress</td><td>Workaround: launch Windows VM from the command line.</td></tr>
 </tbody></table>
 </div>
-<h2 id="environment-requirements-12"><a class="header" href="#environment-requirements-12">Environment Requirements</a></h2>
+<h2 id="environment-requirements-13"><a class="header" href="#environment-requirements-13">Environment Requirements</a></h2>
 <p>There are no specific requirements for the environment with this release.</p>
-<h2 id="installation-instructions-12"><a class="header" href="#installation-instructions-12">Installation Instructions</a></h2>
+<h2 id="installation-instructions-13"><a class="header" href="#installation-instructions-13">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-23/">ghafreleasesstorage.z16.web.core.windows.net/ghaf-23</a>.</p>
 <p>Download the required image and use the following instructions:</p>
 <div class="table-wrapper"><table><thead><tr><th>Release Image</th><th>Build and Run</th></tr></thead><tbody>
@@ -13044,7 +13374,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-2306"><a class="header" href="#release-ghaf-2306">Release ghaf-23.06</a></h1>
 <h2 id="release-branch-2"><a class="header" href="#release-branch-2">Release Branch</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/tree/ghaf-23.06">https://github.com/tiiuae/ghaf/tree/ghaf-23.06</a></p>
-<h2 id="supported-hardware-13"><a class="header" href="#supported-hardware-13">Supported Hardware</a></h2>
+<h2 id="supported-hardware-14"><a class="header" href="#supported-hardware-14">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NXP i.MX 8QM-MEK</li>
@@ -13063,9 +13393,9 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <li>Ghaf version information (query).</li>
 <li>NixOS is updated to NixOS 23.05: <a href="https://discourse.nixos.org/t/nixos-23-05-released/28649">NixOS 23.05 released!</a></li>
 </ul>
-<h2 id="bug-fixes-13"><a class="header" href="#bug-fixes-13">Bug Fixes</a></h2>
+<h2 id="bug-fixes-14"><a class="header" href="#bug-fixes-14">Bug Fixes</a></h2>
 <p>Build time is used as the current time on NVIDIA Jetson AGX Orin.</p>
-<h2 id="known-issues-and-limitations-13"><a class="header" href="#known-issues-and-limitations-13">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-14"><a class="header" href="#known-issues-and-limitations-14">Known Issues and Limitations</a></h2>
 <ul>
 <li>Known since ghaf-23.05:
 <ul>
@@ -13157,7 +13487,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h1 id="release-ghaf-2305"><a class="header" href="#release-ghaf-2305">Release ghaf-23.05</a></h1>
 <h2 id="release-branch-3"><a class="header" href="#release-branch-3">Release Branch</a></h2>
 <p><a href="https://github.com/tiiuae/ghaf/tree/ghaf-23.05">https://github.com/tiiuae/ghaf/tree/ghaf-23.05</a></p>
-<h2 id="supported-hardware-14"><a class="header" href="#supported-hardware-14">Supported Hardware</a></h2>
+<h2 id="supported-hardware-15"><a class="header" href="#supported-hardware-15">Supported Hardware</a></h2>
 <p>The following target hardware is supported by this release:</p>
 <ul>
 <li>NXP i.MX 8QM-MEK</li>
@@ -13180,7 +13510,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 </p>
 <p>Ghaf Framework is under active development, some of the features may not be stable.</p>
 </div>
-<h2 id="known-issues-and-limitations-14"><a class="header" href="#known-issues-and-limitations-14">Known Issues and Limitations</a></h2>
+<h2 id="known-issues-and-limitations-15"><a class="header" href="#known-issues-and-limitations-15">Known Issues and Limitations</a></h2>
 <ul>
 <li>Build time is used as the current time on NVIDIA Jetson AGX Orin.
 <ul>
