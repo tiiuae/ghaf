@@ -69,7 +69,7 @@ There are no specific requirements for the environment with this release.
 
 Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-3](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-3).
 
-Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run).
+Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run.md).
 
 
 [^note1]: Secure Android Cloud Application
