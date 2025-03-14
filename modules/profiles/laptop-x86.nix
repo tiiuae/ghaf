@@ -15,9 +15,6 @@ in
     ../hardware/x86_64-generic
     ../hardware/common
     ../hardware/definition.nix
-
-    #TODO should lanzaboote be here?
-    ../lanzaboote
   ];
 
   options.ghaf.profiles.laptop-x86 = {

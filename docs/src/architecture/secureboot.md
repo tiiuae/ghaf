@@ -11,8 +11,7 @@ The reader is expected to know the fundamentals of UEFI and have a basic underst
 
 ## Enabling Secure Boot
 
-Secure Boot can be enabled on NixOS using [Lanzaboote](https://github.com/nix-community/lanzaboote). Secure Boot is a UEFI feature that only allows trusted operating systems to boot.
-Lanzaboote has two components: lzbt and stub. lzbt signs and installs the boot files on the ESP. stub is a UEFI application that loads the kernel and initrd from the ESP.
+TODO: This needs to be filled later with UKI description.
 
 ## Creating Secure Boot Keys
 
@@ -31,22 +30,4 @@ For demonstration purposes, we use pre-generated secure keys which are **unsecur
 Currently, the Secure Boot feature is enabled in debug builds only, since secure key creation requires sudo rights.
 
 ### Secure Boot Verification
-* For enabling secure boot instructions, see the [Part 2: Enabling Secure Boot](https://github.com/nix-community/lanzaboote/blob/master/docs/QUICK_START.md#part-2-enabling-secure-boot) section of the NixOS Secure Boot Quick Start Guide.
-
-* Make sure your Secure Boot is enabled from the BIOS menu.
-* Once you boot your system with Secure Boot enabled, enroll keys with the following command:
-```
-$ sudo sbctl enroll-keys --microsoft
-```
-
-Reboot the system to activate Secure Boot in the user mode:
-
-```
-$ bootctl status
-System:
-      Firmware: UEFI 2.70 (Lenovo 0.4720)
- Firmware Arch: x64
-   Secure Boot: enabled (user)
-  TPM2 Support: yes
-  Boot into FW: supported
-```
+* TODO: this needs to be filled.

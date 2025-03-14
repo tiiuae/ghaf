@@ -36,7 +36,6 @@
                 modules = [
                   self.nixosModules.reference-profiles
                   self.nixosModules.laptop
-                  inputs.lanzaboote.nixosModules.lanzaboote
                   self.nixosModules.microvm
                   self.nixosModules.disko-debug-partition
                   self.nixosModules.hardware-lenovo-x1-carbon-gen11

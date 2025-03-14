@@ -25,7 +25,6 @@
     #TODO: Add the rest of the modules in their own directories with flake-module.nix
     desktop.imports = [ ./desktop ];
     host.imports = [ ./host ];
-    lanzaboote.imports = [ ./lanzaboote ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-host-demo-apps.imports = [ ./reference/host-demo-apps ];
     reference-personalize.imports = [ ./reference/personalize ];
