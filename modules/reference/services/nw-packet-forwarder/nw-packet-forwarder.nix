@@ -125,13 +125,13 @@ in
         # Restart the service if it fails
         Restart = "on-failure";
         # Wait 5s before restarting.
-        RestartSec = "5s";
+        RestartSec = "30s";
         AmbientCapabilities = "CAP_NET_RAW CAP_NET_ADMIN";
         CapabilityBoundingSet = "CAP_NET_RAW CAP_NET_ADMIN";
         # PrivateTmp = true;
         # PrivateDevices = true;
         ProtectHome = true;
-        # NoNewPrivileges=true;
+        NoNewPrivileges = true;
         ProtectControlGroups = true;
         ProtectSystem = "full";
       };
