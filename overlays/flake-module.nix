@@ -8,7 +8,7 @@
 }:
 {
   flake.overlays = {
-    #cross-compilation = import ./cross-compilation;
+    cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
 
     # This is a composition of all the overlays that are used in the project
