@@ -230,8 +230,7 @@
 <p>This section describes Secure Boot and how to create secure keys.</p>
 <p>The reader is expected to know the fundamentals of UEFI and have a basic understanding of Secure Boot <a href="https://uefi.org/specifications">UEFI specification</a>.</p>
 <h2 id="enabling-secure-boot"><a class="header" href="#enabling-secure-boot">Enabling Secure Boot</a></h2>
-<p>Secure Boot can be enabled on NixOS using <a href="https://github.com/nix-community/lanzaboote">Lanzaboote</a>. Secure Boot is a UEFI feature that only allows trusted operating systems to boot.
-Lanzaboote has two components: lzbt and stub. lzbt signs and installs the boot files on the ESP. stub is a UEFI application that loads the kernel and initrd from the ESP.</p>
+<p>TODO: This needs to be filled later with UKI description.</p>
 <h2 id="creating-secure-boot-keys"><a class="header" href="#creating-secure-boot-keys">Creating Secure Boot Keys</a></h2>
 <p>Secure Boot keys can be created with <a href="https://github.com/Foxboron/sbctl">sbctl</a>, a Secure Boot Manager. sbctl is available in Nixpkgs as pkgs.sbctl.</p>
 <p>After you installed sbctl or entered a Nix shell, use the following command to create your Secure Boot keys:</p>
@@ -243,27 +242,8 @@ Lanzaboote has two components: lzbt and stub. lzbt signs and installs the boot f
 Currently, the Secure Boot feature is enabled in debug builds only, since secure key creation requires sudo rights.</p>
 <h3 id="secure-boot-verification"><a class="header" href="#secure-boot-verification">Secure Boot Verification</a></h3>
 <ul>
-<li>
-<p>For enabling secure boot instructions, see the <a href="https://github.com/nix-community/lanzaboote/blob/master/docs/QUICK_START.md#part-2-enabling-secure-boot">Part 2: Enabling Secure Boot</a> section of the NixOS Secure Boot Quick Start Guide.</p>
-</li>
-<li>
-<p>Make sure your Secure Boot is enabled from the BIOS menu.</p>
-</li>
-<li>
-<p>Once you boot your system with Secure Boot enabled, enroll keys with the following command:</p>
-</li>
+<li>TODO: this needs to be filled.</li>
 </ul>
-<pre><code>$ sudo sbctl enroll-keys --microsoft
-</code></pre>
-<p>Reboot the system to activate Secure Boot in the user mode:</p>
-<pre><code>$ bootctl status
-System:
-      Firmware: UEFI 2.70 (Lenovo 0.4720)
- Firmware Arch: x64
-   Secure Boot: enabled (user)
-  TPM2 Support: yes
-  Boot into FW: supported
-</code></pre>
 
                     </main>
 
