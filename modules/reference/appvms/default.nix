@@ -32,6 +32,20 @@ in
         List of appvms to include in the Ghaf reference appvms module
       '';
     };
+    shm-audio-enabled-vms = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        List of appvms that use shared memory to handle audio data
+      '';
+    };
+    shm-gui-enabled-vms = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        List of appvms that use shared memory to handle GUI data
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {

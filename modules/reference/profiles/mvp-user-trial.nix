@@ -37,29 +37,44 @@ in
         "chrome-vm"
       ];
 
-      reference = {
-        appvms = {
-          enable = true;
-          chrome-vm = true;
-          gala-vm = true;
-          zathura-vm = true;
-          comms-vm = true;
-          business-vm = true;
-        };
+      reference =
+        let
+          vms = {
+            chrome-vm = true;
+            gala-vm = true;
+            zathura-vm = true;
+            comms-vm = true;
+            business-vm = true;
+          };
+        in
+        {
+          appvms =
+            {
+              enable = true;
+            }
+            // vms
+            // {
+              # Allow the above app VMs to access shared memory for GUI data handling
+              shm-gui-enabled-vms = builtins.attrNames vms;
+            }
+            # Allow the above app VMs to access shared memory for audio data handling
+            // {
+              shm-audio-enabled-vms = builtins.attrNames vms;
+            };
 
-        services = {
-          enable = true;
-          dendrite = true;
-          proxy-business = lib.mkForce config.ghaf.reference.appvms.business-vm;
-          google-chromecast = true;
-        };
+          services = {
+            enable = true;
+            dendrite = true;
+            proxy-business = lib.mkForce config.ghaf.reference.appvms.business-vm;
+            google-chromecast = true;
+          };
 
-        personalize = {
-          keys.enable = true;
-        };
+          personalize = {
+            keys.enable = true;
+          };
 
-        desktop.applications.enable = true;
-      };
+          desktop.applications.enable = true;
+        };
 
       profiles = {
         laptop-x86 = {

@@ -107,6 +107,10 @@ in
       host = {
         networking.enable = true;
       };
+
+      # Shared memory configuration
+      shm.enable = true;
+      shm.gui = true;
     };
   };
 }
