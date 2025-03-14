@@ -62,13 +62,7 @@ let
                 ];
               };
 
-              overlays = [
-                inputs.ghafpkgs.overlays.default
-                inputs.givc.overlays.default
-                inputs.self.overlays.own-pkgs-overlay
-                inputs.self.overlays.custom-packages
-              ];
-
+              overlays = [ self.overlays.default ];
             };
 
             hardware.deviceTree.name = lib.mkForce "freescale/imx8mp-evk.dtb";
