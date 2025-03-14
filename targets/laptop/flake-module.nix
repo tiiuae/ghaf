@@ -18,7 +18,6 @@ let
   commonModules = [
     self.nixosModules.disko-debug-partition
     self.nixosModules.reference-profiles
-    inputs.lanzaboote.nixosModules.lanzaboote
   ];
 
   # concatinate modules that are specific to a target

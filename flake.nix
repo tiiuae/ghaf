@@ -128,16 +128,6 @@
     #
     # Security
     #
-    lanzaboote = {
-      url = "github:nix-community/lanzaboote/v0.4.2";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-        flake-parts.follows = "flake-parts";
-        pre-commit-hooks-nix.follows = "git-hooks-nix";
-        flake-compat.follows = "flake-compat";
-      };
-    };
-
     impermanence = {
       url = "github:nix-community/impermanence/32b1094d28d5fbedcc85a403bc08c8877b396255";
     };

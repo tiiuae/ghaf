@@ -18,7 +18,6 @@ path = [
   "modules/common/development/audio_test/test_file1.mp3",
   "modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86",
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
-  "modules/lanzaboote/demo-secure-boot-keys/**/*",
   "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*"
 ]
 
