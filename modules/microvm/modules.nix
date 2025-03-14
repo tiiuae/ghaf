@@ -213,16 +213,22 @@ in
         managedUserAccounts
         commonModule
       ];
+      # Adminvm modules
       adminvm.extraModules = optionals cfg.adminvm.enable [
         serviceModules.givc
         serviceModules.logging
         managedUserAccounts
         commonModule
       ];
+      # Appvm modules
       appvm.extraModules = optionals cfg.appvm.enable [
         serviceModules.givc
         serviceModules.logging
         managedUserAccounts
+        commonModule
+      ];
+      # Idsvm modules
+      idsvm.extraModules = optionals cfg.idsvm.enable [
         commonModule
       ];
     };
