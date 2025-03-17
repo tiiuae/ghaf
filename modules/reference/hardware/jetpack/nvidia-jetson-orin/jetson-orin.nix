@@ -19,6 +19,7 @@ let
 in
 {
   imports = [
+    #TODO: fix me
     ../../../../hardware/common/usb/vhotplug.nix
   ];
   options.ghaf.hardware.nvidia.orin = {
@@ -78,7 +79,7 @@ in
 
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
-    ghaf.boot.loader.systemd-boot-dtb.enable = true;
+    ghaf.hardware.aarch64.systemd-boot-dtb.enable = true;
 
     boot = {
       loader = {

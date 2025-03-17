@@ -3,8 +3,10 @@
 #
 # ghaf's integration to jetpack-nixos
 #
+{ inputs }:
 {
   imports = [
+    inputs.self.nixosModules.aarch64-generic
     ./profiles
     ./nvidia-jetson-orin
   ];
