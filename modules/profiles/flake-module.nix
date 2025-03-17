@@ -8,7 +8,7 @@
     # Only entries that can be included in those targets without causing conflicts should be included here
     profiles-common.imports = [
       (import ./graphics.nix { inherit inputs; })
-      ./debug.nix
+      (import ./debug.nix { inherit inputs; })
       ./release.nix
     ];
 

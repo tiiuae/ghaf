@@ -6,7 +6,6 @@
 {
   imports = [
     ./common.nix
-    ./development
     ./firewall
     ./profiles
     ./security

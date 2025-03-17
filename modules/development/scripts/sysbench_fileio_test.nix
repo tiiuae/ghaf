@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ writeShellApplication, lib, ... }:
+{ writeShellApplication }:
 writeShellApplication {
   name = "sysbench-fileio-test";
   text = ''
@@ -43,7 +43,7 @@ writeShellApplication {
 
     echo -e "\nTest finished.\n"
   '';
-  meta = with lib; {
+  meta = {
     description = "Script for sysbench fileio tests";
   };
 }

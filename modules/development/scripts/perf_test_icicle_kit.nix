@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ writeShellApplication, lib, ... }:
+{ writeShellApplication }:
 writeShellApplication {
   name = "perf-test-icicle-kit";
   text = ''
@@ -19,7 +19,7 @@ writeShellApplication {
     perf bench internals kallsyms-parse -i 10;
     } | tee -a perf_results_YYYY-MM-DD_BUILDER-BuildID_SDorEMMC
   '';
-  meta = with lib; {
+  meta = {
     description = "Perf test script customized for measuring ghaf performance on Microchip Icicle Kit target";
   };
 }
