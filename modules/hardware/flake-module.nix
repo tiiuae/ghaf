@@ -13,5 +13,8 @@
       ./definition.nix
       ./x86_64-generic
     ];
+    aarch64-generic.imports = [
+      ./aarch64/systemd-boot-dtb.nix
+    ];
   };
 }

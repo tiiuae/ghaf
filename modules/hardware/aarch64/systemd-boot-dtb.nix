@@ -13,11 +13,11 @@
   ...
 }:
 let
-  cfg = config.ghaf.boot.loader.systemd-boot-dtb;
+  cfg = config.ghaf.hardware.aarch64.systemd-boot-dtb;
   inherit (lib) mkEnableOption mkIf;
 in
 {
-  options.ghaf.boot.loader.systemd-boot-dtb = {
+  options.ghaf.hardware.aarch64.systemd-boot-dtb = {
     enable = mkEnableOption "systemd-boot-dtb";
   };
 
