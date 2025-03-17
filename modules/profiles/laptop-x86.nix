@@ -6,7 +6,6 @@ let
 in
 {
   imports = [
-    ./graphics.nix
     ../common
     #TODO how to reference the miocrovm module here?
     #self.nixosModules.microvm

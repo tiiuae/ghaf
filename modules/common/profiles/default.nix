@@ -2,8 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./debug.nix
-    ./release.nix
     ./host-hardening.nix
   ];
 }

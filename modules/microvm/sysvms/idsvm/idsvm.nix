@@ -15,6 +15,7 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.givc
+      inputs.self.nixosModules.profiles-common
       (
         { lib, ... }:
         {
@@ -64,6 +65,7 @@ let
           };
 
           imports = [
+            #TODO: fix the common include
             ../../../common
             ./mitmproxy
           ];

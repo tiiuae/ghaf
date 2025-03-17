@@ -20,7 +20,7 @@ let
           self.nixosModules.common
           self.nixosModules.desktop
           self.nixosModules.microvm
-          self.nixosModules.profiles
+          self.nixosModules.profiles-common
           self.nixosModules.reference-host-demo-apps
           self.nixosModules.hw-x86_64-generic
 

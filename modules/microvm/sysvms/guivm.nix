@@ -9,10 +9,11 @@
 }:
 let
   vmName = "gui-vm";
+  #TODO do not import from a path like this
   inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
-      inputs.self.nixosModules.profiles
+      inputs.self.nixosModules.profiles-common
       inputs.self.nixosModules.givc
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
@@ -45,8 +46,8 @@ let
         in
         {
           imports = [
+            #TODO break this into the modules required
             ../../common
-            ../../desktop
             #TODO: inception cross reference. FIX: this
             ../../reference/services
           ];

@@ -16,6 +16,8 @@ in
     # Enable default accounts and passwords
     ghaf = {
       # Enable development on target
+      # TODO: we should import the module that defines the development namespace
+      # see the graphics.nix example including the desktop module to get ghaf.graphics
       development = {
         nix-setup.enable = true;
         # Enable some basic monitoring and debug tools
