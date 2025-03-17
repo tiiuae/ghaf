@@ -48,7 +48,6 @@ let
           ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
           jetpack-nixos.nixosModules.default
           self.nixosModules.common
-          self.nixosModules.desktop
           self.nixosModules.jetpack
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm

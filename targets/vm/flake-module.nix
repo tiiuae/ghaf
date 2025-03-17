@@ -18,7 +18,6 @@ let
         modules = [
           nixos-generators.nixosModules.vm
           self.nixosModules.common
-          self.nixosModules.desktop
           self.nixosModules.microvm
           self.nixosModules.profiles-common
           self.nixosModules.reference-host-demo-apps
