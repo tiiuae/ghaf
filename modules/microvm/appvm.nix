@@ -20,7 +20,7 @@ let
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
 
   makeVm =
-    { vm, vmIndex }:
+    { vm, vmIndex }: # TODO the vmIndex is not used. but it is passed when calling makeVm
     let
       vmName = "${vm.name}-vm";
       # A list of applications for the GIVC service
@@ -39,6 +39,7 @@ let
           inputs.impermanence.nixosModules.impermanence
           inputs.self.nixosModules.givc
           inputs.self.nixosModules.vm-modules
+          inputs.self.nixosModules.profiles-common
           {
             ghaf.givc.appvm = {
               enable = true;

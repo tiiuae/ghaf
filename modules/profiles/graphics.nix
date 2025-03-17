@@ -1,6 +1,7 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
+{ inputs }:
 {
   config,
   lib,
@@ -24,6 +25,10 @@ let
     ;
 in
 {
+  imports = [
+    inputs.self.nixosModules.desktop
+  ];
+
   options.ghaf.profiles.graphics = {
     enable = mkEnableOption "Graphics profile";
     compositor = mkOption {

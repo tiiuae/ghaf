@@ -26,6 +26,7 @@ let
           self.nixosModules.common
           self.nixosModules.imx8
           self.nixosModules.reference-personalize
+          self.nixosModules.profiles-common
           {
             boot = {
               kernelParams = lib.mkForce [ "root=/dev/mmcblk0p2" ];

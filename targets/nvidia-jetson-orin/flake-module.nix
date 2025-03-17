@@ -52,7 +52,7 @@ let
           self.nixosModules.jetpack
           self.nixosModules.jetpack-microvm
           self.nixosModules.microvm
-          self.nixosModules.profiles
+          self.nixosModules.profiles-common
           self.nixosModules.reference-host-demo-apps
           self.nixosModules.reference-programs
           self.nixosModules.reference-personalize

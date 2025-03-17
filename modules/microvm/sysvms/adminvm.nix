@@ -15,6 +15,7 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
+      inputs.self.nixosModules.profiles-common
       (
         { lib, ... }:
         {
@@ -108,6 +109,7 @@ let
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
           };
+          #TODO break this into the modules required
           imports = [ ../../common ];
         }
       )

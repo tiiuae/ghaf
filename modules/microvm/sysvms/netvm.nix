@@ -13,10 +13,12 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
+      inputs.self.nixosModules.profiles-common
 
       (
         { lib, ... }:
         {
+          #TODO break this into the modules required
           imports = [ ../../common ];
 
           ghaf = {
