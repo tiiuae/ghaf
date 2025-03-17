@@ -17,7 +17,7 @@ let
 
   inherit (lib) mkEnableOption mkIf;
   #TODO; make sure that the lib is exported correctly and remove this cross file import
-  inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  inherit (import ../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
 in
 {
   options.ghaf.development.debug.tools = {

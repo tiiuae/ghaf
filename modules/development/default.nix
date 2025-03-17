@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
+    ./cuda.nix
     ./debug-tools.nix
-    ./usb-serial.nix
     ./nix.nix
     ./ssh.nix
-    ./cuda.nix
+    ./usb-serial.nix
   ];
 }

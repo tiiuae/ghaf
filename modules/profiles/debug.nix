@@ -1,11 +1,16 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
+{ inputs }:
 { config, lib, ... }:
 let
   cfg = config.ghaf.profiles.debug;
 in
 {
+  imports = [
+    inputs.self.nixosModules.development
+  ];
+
   options.ghaf.profiles.debug = {
     enable = (lib.mkEnableOption "debug profile") // {
       default = !config.ghaf.profiles.release.enable;

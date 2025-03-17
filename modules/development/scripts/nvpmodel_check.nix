@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ writeShellApplication, lib, ... }:
+{ writeShellApplication }:
 writeShellApplication {
   name = "nvpmodel-check";
   text = ''
@@ -27,7 +27,7 @@ writeShellApplication {
     fi
     exit 1
   '';
-  meta = with lib; {
+  meta = {
     description = "
         Script for checking power mode of an Orin AGX/NX target.
         If executed in correct environment (ghaf-host) it gives return code 0 when the power mode number is as expected.

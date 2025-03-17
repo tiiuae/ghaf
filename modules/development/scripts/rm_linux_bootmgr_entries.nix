@@ -1,6 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ writeShellApplication, lib, ... }:
+{ writeShellApplication }:
 writeShellApplication {
   name = "rm-linux-bootmgrs";
   text = ''
@@ -9,7 +9,7 @@ writeShellApplication {
       sudo efibootmgr -q -b "''${id}" -B
     done
   '';
-  meta = with lib; {
+  meta = {
     description = "Helper script for removing all Linux Boot Manager entries from UEFI Boot order list";
   };
 }
