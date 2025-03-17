@@ -114,8 +114,9 @@ let
                     enable = true;
                     inherit vm;
                   }
-                  // optionalAttrs configHost.ghaf.shm.enable {
-                    inherit (configHost.ghaf.shm) serverSocketPath;
+                  // optionalAttrs configHost.ghaf.shm.gui {
+                    inherit (configHost.ghaf.shm.service.gui) clientSocketPath;
+                    inherit (configHost.ghaf.shm.service.gui) serverSocketPath;
                   };
 
                 ghaf-audio = {
@@ -350,7 +351,20 @@ in
       );
       default = { };
     };
-
+    shm-audio-enabled-vms = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        List of appvms that use shared memory to handle audio data
+      '';
+    };
+    shm-gui-enabled-vms = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ ];
+      description = ''
+        List of appvms that use shared memory to handle GUI data
+      '';
+    };
     extraModules = mkOption {
       description = ''
         List of additional modules to be imported and evaluated as part of
