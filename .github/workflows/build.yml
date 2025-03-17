@@ -150,7 +150,7 @@ jobs:
           echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
           git log --oneline -n$(( COMMITS + CONTEXT ))
       - name: Install nix
-        uses: cachix/install-nix-action@v30
+        uses: cachix/install-nix-action@v31
       - name: Prepare build
         run: |
           sh -c "umask 377; echo '${{ secrets.BUILDER_SSH_KEY }}' >builder_key"
