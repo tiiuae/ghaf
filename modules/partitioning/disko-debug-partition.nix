@@ -18,10 +18,14 @@
   config,
   ...
 }:
+let
+  cfg = config.ghaf.partitioning.disko;
+in
 {
+  options.ghaf.partitioning.disko = {
+    enable = lib.mkEnableOption "Enable the disko partitioning scheme";
 
-  options = {
-    ghaf.imageBuilder.compression = lib.mkOption {
+    imageBuilder.compression = lib.mkOption {
       type = lib.types.enum [
         "none"
         "zstd"
@@ -30,10 +34,11 @@
       default = "zstd";
     };
   };
-  config = {
+
+  config = lib.mkIf cfg.enable {
     disko = {
       imageBuilder = {
-        extraPostVM = lib.mkIf (config.ghaf.imageBuilder.compression == "zstd") ''
+        extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
           ${pkgs.zstd}/bin/zstd --compress $out/*raw
           rm $out/*raw
         '';

@@ -6,7 +6,7 @@
 { inputs, ... }:
 {
   imports = [
-    ./disko/flake-module.nix
+    ./partitioning/flake-module.nix
     ./givc/flake-module.nix
     ./hardware/flake-module.nix
     ./microvm/flake-module.nix
