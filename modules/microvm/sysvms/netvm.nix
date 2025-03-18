@@ -14,13 +14,11 @@ let
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.profiles-common
+      inputs.self.nixosModules.common
 
       (
         { lib, ... }:
         {
-          #TODO break this into the modules required
-          imports = [ ../../common ];
-
           ghaf = {
             # Profiles
             profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;

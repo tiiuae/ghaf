@@ -21,7 +21,7 @@ let
   pkvm_patch = [
     {
       name = "pkvm-patch";
-      patch = ../../../../../common/virtualization/pkvm/0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch;
+      patch = ./0001-pkvm-enable-pkvm-on-intel-x86-6.1-lts.patch;
       structuredExtraConfig = with lib.kernel; {
         KVM_INTEL = yes;
         KSM = no;
