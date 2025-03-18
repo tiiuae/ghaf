@@ -43,8 +43,10 @@
     #TODO: Technically all the module imports can happen at this level
     # without the need to drive the inputs down another level.
     # could make discoverability easier.
-    jetpack.imports = [ (import ./jetpack { inherit inputs; }) ];
-    jetpack-microvm.imports = [ ./jetpack-microvm ];
+    jetpack.imports = [
+      ./jetpack
+      inputs.self.nixosModules.aarch64-generic
+    ];
     polarfire.imports = [ ./polarfire ];
   };
 }

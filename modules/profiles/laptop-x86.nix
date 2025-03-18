@@ -5,16 +5,6 @@ let
   cfg = config.ghaf.profiles.laptop-x86;
 in
 {
-  imports = [
-    ../common
-    #TODO how to reference the miocrovm module here?
-    #self.nixosModules.microvm
-    #../microvm
-    ../hardware/x86_64-generic
-    ../hardware/common
-    ../hardware/definition.nix
-  ];
-
   options.ghaf.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
 
