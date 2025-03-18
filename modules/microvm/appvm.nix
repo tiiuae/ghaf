@@ -40,6 +40,7 @@ let
           inputs.self.nixosModules.givc
           inputs.self.nixosModules.vm-modules
           inputs.self.nixosModules.profiles-common
+          inputs.self.nixosModules.common
           {
             ghaf.givc.appvm = {
               enable = true;
@@ -214,8 +215,6 @@ let
                 };
               };
               fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = [ "ro" ];
-
-              imports = [ ../common ];
             }
           )
         ];

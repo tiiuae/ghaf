@@ -17,6 +17,7 @@ let
       inputs.self.nixosModules.givc
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
+      inputs.self.nixosModules.common
 
       (
         { lib, pkgs, ... }:
@@ -46,8 +47,6 @@ let
         in
         {
           imports = [
-            #TODO break this into the modules required
-            ../../common
             #TODO: inception cross reference. FIX: this
             ../../reference/services
           ];

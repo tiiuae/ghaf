@@ -16,9 +16,14 @@ let
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.profiles-common
+      inputs.self.nixosModules.common
       (
         { lib, ... }:
         {
+          imports = [
+            ./mitmproxy
+          ];
+
           ghaf = {
             type = "system-vm";
             profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
@@ -63,12 +68,6 @@ let
             ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
           };
-
-          imports = [
-            #TODO: fix the common include
-            ../../../common
-            ./mitmproxy
-          ];
         }
       )
     ];
