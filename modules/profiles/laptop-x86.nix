@@ -72,16 +72,6 @@ in
             enable = true;
             audio = true;
           };
-          appvm = {
-            enable = true;
-            vms = {
-              chrome.enable = true;
-              gala.enable = true;
-              zathura.enable = true;
-              comms.enable = true;
-              business.enable = true;
-            };
-          };
         };
       };
 
