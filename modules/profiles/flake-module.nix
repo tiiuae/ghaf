@@ -6,9 +6,12 @@
   flake.nixosModules = {
     # The top-level profile should import all the common modules that can be shared across all targets
     # Only entries that can be included in those targets without causing conflicts should be included here
-    profiles-common.imports = [
-      (import ./graphics.nix { inherit inputs; })
-      (import ./debug.nix { inherit inputs; })
+    profiles.imports = [
+      inputs.self.nixosModules.common
+      inputs.self.nixosModules.desktop
+      inputs.self.nixosModules.development
+      ./graphics.nix
+      ./debug.nix
       ./release.nix
     ];
 

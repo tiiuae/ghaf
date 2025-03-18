@@ -16,8 +16,7 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
-      inputs.self.nixosModules.profiles-common
-      inputs.self.nixosModules.common
+      inputs.self.nixosModules.profiles
       (
         { lib, pkgs, ... }:
         {

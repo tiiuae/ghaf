@@ -13,11 +13,10 @@ let
   inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
-      inputs.self.nixosModules.profiles-common
+      inputs.self.nixosModules.profiles
       inputs.self.nixosModules.givc
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
-      inputs.self.nixosModules.common
 
       (
         { lib, pkgs, ... }:

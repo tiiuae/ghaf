@@ -42,10 +42,9 @@ let
         inherit system;
         modules = [
           nixos-generators.nixosModules.raw-efi
-          self.nixosModules.common
           self.nixosModules.microvm
           self.nixosModules.hw-x86_64-generic
-          self.nixosModules.profiles-common
+          self.nixosModules.profiles
           self.nixosModules.reference-host-demo-apps
           self.nixosModules.reference-programs
 
