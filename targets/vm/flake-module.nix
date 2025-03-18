@@ -17,9 +17,8 @@ let
         inherit system;
         modules = [
           nixos-generators.nixosModules.vm
-          self.nixosModules.common
           self.nixosModules.microvm
-          self.nixosModules.profiles-common
+          self.nixosModules.profiles
           self.nixosModules.reference-host-demo-apps
           self.nixosModules.hw-x86_64-generic
 
