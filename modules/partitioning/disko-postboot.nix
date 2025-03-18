@@ -1,7 +1,14 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ pkgs, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
+  cfg = config.ghaf.partitioning.disko;
+
   postBootCmds = ''
     set -xeuo pipefail
 
@@ -31,33 +38,34 @@ let
   '';
 in
 {
-  # To debug postBootCommands, one may run
-  # journalctl -u initrd-nixos-activation.service
-  # inside the running Ghaf host.
-  boot.postBootCommands = postBootCmds;
+  config = lib.mkIf cfg.enable {
+    # To debug postBootCommands, one may run
+    # journalctl -u initrd-nixos-activation.service
+    # inside the running Ghaf host.
+    boot.postBootCommands = postBootCmds;
 
-  systemd.services.extendbtrfs =
-    let
-      extendbtrfs = pkgs.writeShellApplication {
-        name = "extendbtrfs";
-        runtimeInputs = [ pkgs.btrfs-progs ];
-        text = ''
-          # Extend btrfs to use newly allocated space
-          ${pkgs.btrfs-progs}/bin/btrfs filesystem resize max /persist
-        '';
+    systemd.services.extendbtrfs =
+      let
+        extendbtrfs = pkgs.writeShellApplication {
+          name = "extendbtrfs";
+          runtimeInputs = [ pkgs.btrfs-progs ];
+          text = ''
+            # Extend btrfs to use newly allocated space
+            ${pkgs.btrfs-progs}/bin/btrfs filesystem resize max /persist
+          '';
+        };
+      in
+      {
+        enable = true;
+        description = "Extend the persistence partition";
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          StandardOutput = "journal";
+          StandardError = "journal";
+          ExecStart = "${extendbtrfs}/bin/extendbtrfs";
+        };
       };
-    in
-    {
-      enable = true;
-      description = "Extend the persistence partition";
-      wantedBy = [ "multi-user.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        StandardOutput = "journal";
-        StandardError = "journal";
-        ExecStart = "${extendbtrfs}/bin/extendbtrfs";
-      };
-    };
-
+  };
 }
