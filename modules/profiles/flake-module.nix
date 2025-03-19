@@ -8,7 +8,7 @@
     # Only entries that can be included in those targets without causing conflicts should be included here
     profiles.imports = [
       inputs.self.nixosModules.common
-      inputs.self.nixosModules.desktop
+      inputs.self.nixosModules.graphics
       inputs.self.nixosModules.development
       ./graphics.nix
       ./debug.nix

@@ -3,7 +3,6 @@
 #
 # Modules to be exported from Flake
 #
-{ ... }:
 {
   imports = [
     ./partitioning/flake-module.nix
@@ -14,11 +13,11 @@
     ./profiles/flake-module.nix
     ./common/flake-module.nix
     ./development/flake-module.nix
+    ./graphics/flake-module.nix
   ];
 
   flake.nixosModules = {
     #TODO: Add the rest of the modules in their own directories with flake-module.nix
-    desktop.imports = [ ./desktop ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-host-demo-apps.imports = [ ./reference/host-demo-apps ];
     reference-personalize.imports = [ ./reference/personalize ];
