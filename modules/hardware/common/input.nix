@@ -25,9 +25,8 @@ let
     ) deviceList;
 in
 {
-  imports = [ ./definition.nix ];
-
   config = {
+    # TODO Move this out
     # Disk configuration
     disko.devices.disk = cfg.disks;
 
