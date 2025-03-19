@@ -20,7 +20,6 @@ let
         modules = [
           self.nixosModules.profiles
           self.nixosModules.profiles-laptop
-          self.nixosModules.laptop
           self.nixosModules.microvm
           self.nixosModules.mem-manager
 

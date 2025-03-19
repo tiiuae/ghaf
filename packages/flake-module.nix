@@ -35,7 +35,7 @@
                 # derived from targets/laptop/laptop-configuration-builder.nix + lenovo-x1-carbon-gen10
                 modules = [
                   self.nixosModules.reference-profiles
-                  self.nixosModules.laptop
+                  self.nixosModules.hw-laptop
                   self.nixosModules.microvm
                   self.nixosModules.disko-debug-partition
                   self.nixosModules.hardware-lenovo-x1-carbon-gen11
