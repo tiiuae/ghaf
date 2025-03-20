@@ -13,21 +13,17 @@ on:
 permissions:
   contents: read
 jobs:
-  # This workflow uses environment-based authorization together
-  # with 'pull_request_target' trigger as explained in:
-  # https://ssrc.atlassian.net/wiki/x/OABjMg
   check-identity:
     if: ${{ github.repository == 'tiiuae/ghaf' }} # Skip in forks
     runs-on: ubuntu-latest
     outputs:
-      authorized_user: ${{ steps.check-authorized-user.outputs.authorized_user}}
+      authorized_user: ${{ steps.check-authorized-user.outputs.authorized_user }}
     environment: "internal-build-workflow"
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           egress-policy: audit
-
       - name: Check identity
         id: check-authorized-user
         shell: bash
@@ -44,53 +40,35 @@ jobs:
           echo "github.repository: ${{ github.repository }}"
           echo "github.event.pull_request.head.repo.full_name: ${{ github.event.pull_request.head.repo.full_name }}"
           echo "github.actor: ${{ github.actor }}"
-          echo "github.ref: ${{ github.ref}}"
-          echo "github.event.pull_request.head.sha: ${{github.event.pull_request.head.sha}}"
+          echo "github.ref: ${{ github.ref }}"
+          echo "github.event.pull_request.head.sha: ${{github.event.pull_request.head.sha }}"
           echo "authorized_user=$authorized_user"
           echo "authorized_user=$authorized_user" >> "$GITHUB_OUTPUT"
-  authorize-internal:
-    needs: [check-identity]
-    runs-on: ubuntu-latest
-    if: ${{ needs.check-identity.outputs.authorized_user == 'True' }}
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
-        with:
-          egress-policy: audit
 
-      - name: Authorize internal
-        run: echo "authorized"
-  authorize-external:
-    needs: [check-identity]
-    runs-on: ubuntu-latest
-    if: ${{ needs.check-identity.outputs.authorized_user == 'False' }}
-    environment: ${{ ( github.event_name == 'pull_request_target' && github.event.pull_request.head.repo.full_name != github.repository && 'external-build-workflow' ) || ( 'internal-build-workflow' ) }}
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
-        with:
-          egress-policy: audit
-
-      - name: Authorize external
-        run: echo "authorized"
+  # Authorization passes without approval if:
+  # - The event is not a pull request (e.g. push to main)
+  # - Pull request comes from another branch in the same repo
+  # - Author is in our predefined list of authorized users
+  # Otherwise, the workflow requires manual approval from a maintainer
+  # as configured in the 'external-build-workflow' github environment
   authorize:
-    needs: [authorize-internal, authorize-external]
+    needs: [check-identity]
+    environment: ${{
+      ( github.event_name != 'pull_request_target' ||
+        github.event.pull_request.head.repo.full_name == github.repository ||
+        needs.check-identity.outputs.authorized_user == 'True' )
+      && 'internal-build-workflow' || 'external-build-workflow' }}
     runs-on: ubuntu-latest
-    # See: https://github.com/actions/runner/issues/491#issuecomment-660122693
-    if: |
-      always() &&
-      (needs.authorize-internal.result == 'success' || needs.authorize-internal.result == 'skipped') &&
-      (needs.authorize-external.result == 'success' || needs.authorize-external.result == 'skipped') &&
-       !(needs.authorize-internal.result == 'skipped' && needs.authorize-external.result == 'skipped')
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           egress-policy: audit
+      - run: echo "Auth OK"
 
-      - name: Authorize
-        run: echo "authorized"
-  build-yml-check:
+  # Send a warning and fail this job if the workflow file was changed.
+  # Rest of the workflow continues as normal but the job failure will grab author's attention.
+  no-workflow-changes:
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request_target' }}
     steps:
@@ -98,27 +76,26 @@ jobs:
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           egress-policy: audit
-
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
       - name: Check if workflow is modified
-        id: build-yml-changed
+        id: workflow-changed
         uses: tj-actions/changed-files@2f7c5bfce28377bc069a65ba478de0a74aa0ca32 # v46.0.1
         with:
           files: .github/workflows/build.yml
       - name: Send warning
         run: |
-          if [ "${{ steps.build-yml-changed.outputs.any_changed }}" == "true" ]; then
+          if [ "${{ steps.workflow-changed.outputs.any_changed }}" == "true" ]; then
             echo "::error::"\
                  "This change edits workflow file '.github/workflows/build.yml'."\
                  "Raising this error to notify that the workflow change will only take impact after merge."\
-                 "Therefore, you need to manually test the change (perhaps in a forked repo)"\
+                 "Therefore, you need to manually test the change (perhaps in a forked repo) "\
                  "before merging to make sure the change does not break anything."
-
             exit 1
           fi
+
   build_matrix:
     name: "build"
     needs: [authorize]
@@ -135,17 +112,12 @@ jobs:
             target: nvidia-jetson-orin-agx-debug-from-x86_64
           - arch: x86_64-linux
             target: nvidia-jetson-orin-nx-debug-from-x86_64
-         # - arch: x86_64-linux
-         #  target: microchip-icicle-kit-debug-from-x86_64
           - arch: x86_64-linux
             target: doc
           - arch: aarch64-linux
             target: nvidia-jetson-orin-nx-debug
           - arch: aarch64-linux
             target: nvidia-jetson-orin-agx-debug
-    if: |
-      always() &&
-      needs.authorize.result == 'success'
     concurrency:
       # Cancel any in-progress workflow runs from the same PR or branch,
       # allowing matrix jobs to run concurrently:
@@ -156,7 +128,6 @@ jobs:
         uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481 # v2.11.0
         with:
           egress-policy: audit
-
       - name: Apt install
         run: sudo apt-get update; sudo apt-get install -y inxi git
       - name: Print runner system info
