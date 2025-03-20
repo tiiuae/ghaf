@@ -138,4 +138,3 @@ SPDX-FileCopyrightText = "Copyright (C) 2007 Free Software Foundation, Inc."
 path = [
   "overlays/custom-packages/gtklock/*.patch"
 ]
-
