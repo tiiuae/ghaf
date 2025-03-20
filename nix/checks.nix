@@ -42,6 +42,10 @@
               package = pkgs.reuse;
               stages = [ "pre-push" ];
             };
+            end-of-file-fixer = {
+              enable = true;
+              stages = [ "pre-push" ];
+            };
           };
         };
       };
