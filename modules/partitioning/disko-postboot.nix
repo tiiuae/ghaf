@@ -9,40 +9,51 @@
 let
   cfg = config.ghaf.partitioning.disko;
 
-  postBootCmds = ''
-    set -xeuo pipefail
+  postBootCmds = pkgs.writeShellApplication {
+    name = "postBootScript";
+    runtimeInputs = with pkgs; [
+      btrfs-progs
+      gnugrep
+      gawk
+      util-linux
+      gptfdisk
+      parted
+    ];
+    text = ''
+      set -xeuo pipefail
 
-    # Check which physical disk is used by btrfs
-    # TODO use a label in case there are more than one btrfs partitions/subvolumes
-    BTRFS_LOCATION=$(${pkgs.btrfs-progs}/bin/btrfs fi show | ${pkgs.gnugrep}/bin/grep \/dev | ${pkgs.gawk}/bin/awk '{print $8}')
+      # Check which physical disk is used by btrfs
+      # TODO use a label in case there are more than one btrfs partitions/subvolumes
+      BTRFS_LOCATION=$(btrfs filesystem show | grep '/dev' | awk '{print $8}')
 
-    # Get the actual device path
-    P_DEVPATH=$(readlink -f "$BTRFS_LOCATION")
+      # Get the actual device path
+      P_DEVPATH=$(readlink -f "$BTRFS_LOCATION")
 
-    # Extract the partition number using regex
-    if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
-      PARTNUM=$(echo "$P_DEVPATH" | ${pkgs.gnugrep}/bin/grep -o '[0-9]*$')
-      PARENT_DISK=/dev/$(${pkgs.util-linux}/bin/lsblk -no pkname "$P_DEVPATH")
-    else
-      echo "No partition number found in device path: $P_DEVPATH"
-    fi
+      # Extract the partition number using regex
+      if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
+        PARTNUM=$(echo "$P_DEVPATH" | grep -o '[0-9]*$')
+        PARENT_DISK=/dev/$(lsblk -no pkname "$P_DEVPATH")
+      else
+        echo "No partition number found in device path: $P_DEVPATH"
+      fi
 
-    # Fix GPT first
-    ${pkgs.gptfdisk}/bin/sgdisk "$PARENT_DISK" -e
+      # Fix GPT first
+      sgdisk "$PARENT_DISK" -e
 
-    # Call partprobe to update kernel's partitions
-    ${pkgs.parted}/bin/partprobe
+      # Call partprobe to update kernel's partitions
+      partprobe
 
-    # Extend the partition to use unallocated space
-    ${pkgs.parted}/bin/parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
-  '';
+      # Extend the partition to use unallocated space
+      parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
+    '';
+  };
 in
 {
   config = lib.mkIf cfg.enable {
     # To debug postBootCommands, one may run
     # journalctl -u initrd-nixos-activation.service
     # inside the running Ghaf host.
-    boot.postBootCommands = postBootCmds;
+    boot.postBootCommands = "${postBootCmds}/bin/postBootScript";
 
     systemd.services.extendbtrfs =
       let
