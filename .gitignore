@@ -9,3 +9,4 @@ ghaf-host.qcow2
 .idea
 linux-*/
 gcroot/
+.pre-commit-config.yaml
