@@ -4,7 +4,6 @@
 
 # Laptop Installer
 {
-  inputs,
   lib,
   self,
   ...
@@ -12,36 +11,21 @@
 let
   system = "x86_64-linux";
   mkLaptopInstaller =
-    name: variant:
+    name: imagePath: extraModules:
     let
-      imagePath = self.packages.x86_64-linux."${name}" + "/disk1.raw.zst";
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
           (
-            {
-              pkgs,
-              config,
-              modulesPath,
-              ...
-            }:
+            { pkgs, modulesPath, ... }:
             {
               imports = [
                 "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
-                inputs.self.nixosModules.common
-                inputs.self.nixosModules.development
-                inputs.self.nixosModules.reference-personalize
               ];
 
               environment.sessionVariables = {
                 IMG_PATH = imagePath;
               };
-
-              # SSH key to installer for test automation.
-              # TODO: find a cleaner way to achieve this.
-              users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (
-                variant == "debug"
-              ) config.ghaf.reference.personalize.keys.authorizedSshKeys;
 
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
@@ -71,7 +55,7 @@ let
               boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
             }
           )
-        ];
+        ] ++ extraModules;
       };
     in
     {
