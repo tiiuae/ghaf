@@ -23,7 +23,8 @@
       final.callPackage ./pkgs-by-name/kernel-hardening-checker/package.nix
         { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
-    memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
+    memsocket-app = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
+    memsocket-module = final.callPackage ./pkgs-by-name/memsocket/module.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     qemuqmp = final.callPackage ./pkgs-by-name/qemuqmp/package.nix { };
     vhotplug = final.callPackage ./pkgs-by-name/vhotplug/package.nix { };
