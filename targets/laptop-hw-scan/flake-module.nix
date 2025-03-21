@@ -2,7 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Laptop image to run hardware scan and generate config files
-{ lib, self, ... }:
+{
+  inputs,
+  lib,
+  self,
+  ...
+}:
 let
   name = "laptop-hw-scan";
   system = "x86_64-linux";
@@ -12,11 +17,16 @@ let
         inherit system;
         modules = [
           (
-            { modulesPath, ... }:
+            { config, modulesPath, ... }:
             {
-              imports = [ "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
+              imports = [
+                "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+                inputs.self.nixosModules.common
+                inputs.self.nixosModules.development
+                inputs.self.nixosModules.reference-personalize
+              ];
               users.users.nixos.openssh.authorizedKeys.keys =
-                (import ../../modules/reference/personalize/authorizedSshKeys.nix).authorizedSshKeys;
+                config.ghaf.reference.personalize.keys.authorizedSshKeys;
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
               isoImage.isoBaseName = lib.mkForce "ghaf";

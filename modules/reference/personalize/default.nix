@@ -4,5 +4,6 @@
   imports = [
     ./keys.nix
     ./accounts.nix
+    ./authorizedSshKeys.nix
   ];
 }

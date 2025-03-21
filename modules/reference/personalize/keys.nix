@@ -21,8 +21,6 @@ let
     #4
     "ghaf:QaA1B4u1GzLt+HSwXpMxmdCOKiBN4WZSUAuEXZahNSpcv8xiYagp0ntVsl8TOx4K+sKls3gTn37Uso/dmncwdA==,mr0Nhwkok7VLUtkBMryOA0lZghU23SCYtU3CZeW5P4WVtnPax3N/6GkfuAv6Zw5ejC4BDvov3oKHTQT/F8eYqA==,es256,+presence"
   ];
-
-  inherit ((import ./authorizedSshKeys.nix)) authorizedSshKeys;
 in
 {
   options.ghaf.reference.personalize.keys = {
@@ -30,8 +28,8 @@ in
   };
 
   config = mkIf cfg.enable {
-    users.users.root.openssh.authorizedKeys.keys = authorizedSshKeys;
-    users.users.${config.ghaf.users.admin.name}.openssh.authorizedKeys.keys = authorizedSshKeys;
+    users.users.root.openssh.authorizedKeys.keys = cfg.authorizedSshKeys;
+    users.users.${config.ghaf.users.admin.name}.openssh.authorizedKeys.keys = cfg.authorizedSshKeys;
     ghaf.services.yubikey.u2fKeys = mkForce (concatStrings authorizedYubikeys);
   };
 }
