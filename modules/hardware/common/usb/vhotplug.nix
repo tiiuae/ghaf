@@ -172,6 +172,16 @@ in
       '';
     };
 
+    extraRules = mkOption {
+      description = ''
+        List of extra udev rules to be added to the system. Uses the same format as vhotplug.rules,
+        and is appended to the default rules. This is useful for adding rules for additional VMs while
+        keeping the ghaf defaults.
+      '';
+      type = types.listOf types.attrs;
+      default = [ ];
+    };
+
     enableEvdevPassthrough = mkOption {
       description = ''
         Enable passthrough of non-USB input devices on startup using QEMU virtio-input-host-pci device.
@@ -203,7 +213,7 @@ in
       KERNEL=="event*", GROUP="kvm"
     '';
 
-    environment.etc."vhotplug.conf".text = builtins.toJSON { vms = cfg.rules; };
+    environment.etc."vhotplug.conf".text = builtins.toJSON { vms = cfg.rules ++ cfg.extraRules; };
 
     systemd.services.vhotplug = {
       enable = true;
