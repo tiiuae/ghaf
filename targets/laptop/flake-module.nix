@@ -12,6 +12,7 @@ let
   system = "x86_64-linux";
 
   laptop-configuration = import ./laptop-configuration-builder.nix { inherit lib self inputs; };
+  release-laptop-configuration = import ./laptop-release-builder.nix { inherit lib self inputs; };
   laptop-installer = import ./laptop-installer-builder.nix { inherit lib self inputs; };
 
   # setup some commonality between the configurations
@@ -52,6 +53,7 @@ let
         };
       }
     ]))
+  /*
     (laptop-configuration "lenovo-x1-extras" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
@@ -61,6 +63,7 @@ let
         };
       }
     ]))
+*/
     (laptop-configuration "dell-latitude-7230" "debug" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7230
       {
@@ -118,15 +121,15 @@ let
         };
       }
     ]))
-    (laptop-configuration "lenovo-x1-extras" "release" (withCommonModules [
+    (release-laptop-configuration "lenovo-x1-extras" "debug" false [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      self.nixosModules.reference-profiles
       {
         ghaf = {
           reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.disko.enable = true;
         };
       }
-    ]))
+    ])
 
     (laptop-configuration "dell-latitude-7230" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7230

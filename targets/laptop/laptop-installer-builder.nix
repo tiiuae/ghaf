@@ -9,7 +9,8 @@ let
   mkLaptopInstaller =
     name: variant:
     let
-      imagePath = self.packages.x86_64-linux."${name}" + "/disk1.raw.zst";
+      imagePath = self.packages.x86_64-linux."${name}";
+
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
