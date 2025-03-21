@@ -3,7 +3,12 @@
 #
 
 # Laptop Installer
-{ lib, self, ... }:
+{
+  inputs,
+  lib,
+  self,
+  ...
+}:
 let
   system = "x86_64-linux";
   mkLaptopInstaller =
@@ -14,18 +19,29 @@ let
         inherit system;
         modules = [
           (
-            { pkgs, modulesPath, ... }:
             {
-              imports = [ "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix" ];
+              pkgs,
+              config,
+              modulesPath,
+              ...
+            }:
+            {
+              imports = [
+                "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
+                inputs.self.nixosModules.common
+                inputs.self.nixosModules.development
+                inputs.self.nixosModules.reference-personalize
+              ];
 
               environment.sessionVariables = {
                 IMG_PATH = imagePath;
               };
 
               # SSH key to installer for test automation.
+              # TODO: find a cleaner way to achieve this.
               users.users.nixos.openssh.authorizedKeys.keys = lib.mkIf (
                 variant == "debug"
-              ) (import ../../modules/reference/personalize/authorizedSshKeys.nix).authorizedSshKeys;
+              ) config.ghaf.reference.personalize.keys.authorizedSshKeys;
 
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
               systemd.services.sshd.wantedBy = lib.mkForce [ "multi-user.target" ];
