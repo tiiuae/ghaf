@@ -23,6 +23,22 @@ let
   # concatinate modules that are specific to a target
   withCommonModules = specificModules: specificModules ++ commonModules;
 
+  installerModules = [
+    (
+      { config, ... }:
+      {
+        imports = [
+          self.nixosModules.common
+          self.nixosModules.development
+          self.nixosModules.reference-personalize
+        ];
+
+        users.users.nixos.openssh.authorizedKeys.keys =
+          config.ghaf.reference.personalize.keys.authorizedSshKeys;
+      }
+    )
+  ];
+
   target-configs = [
     # Laptop Debug configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" (withCommonModules [
@@ -158,7 +174,10 @@ let
   ];
 
   # map all of the defined configurations to an installer image
-  target-installers = map (t: laptop-installer t.name t.variant) target-configs;
+  target-installers = map (
+    t:
+    laptop-installer t.name (self.packages.x86_64-linux.${t.name} + "/disk1.raw.zst") installerModules
+  ) target-configs;
 
   targets = target-configs ++ target-installers;
 in
