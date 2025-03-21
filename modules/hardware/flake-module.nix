@@ -3,13 +3,19 @@
 {
 
   flake.nixosModules = {
-    laptop.imports = [
+    x86_64-hw-laptop.imports = [
       ./definition.nix
       ./x86_64-generic
-      ./laptop.nix
-      ./common
+      ./common/usb/internal.nix
+      ./common/usb/external.nix
+      ./common/usb/vhotplug.nix
+      ./common/devices.nix
+      ./common/kernel.nix
+      ./common/input.nix
+      ./common/qemu.nix
+      ./common/shared-mem.nix
     ];
-    hw-x86_64-generic.imports = [
+    x86_64-hw-generic.imports = [
       ./definition.nix
       ./x86_64-generic
     ];

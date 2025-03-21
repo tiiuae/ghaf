@@ -8,8 +8,8 @@
     # Only entries that can be included in those targets without causing conflicts should be included here
     profiles.imports = [
       inputs.self.nixosModules.common
-      inputs.self.nixosModules.desktop
       inputs.self.nixosModules.development
+      inputs.self.nixosModules.graphics
       ./graphics.nix
       ./debug.nix
       ./release.nix
@@ -18,9 +18,10 @@
     # speciic profiles that are needed for certain classes of devices should be included below.
     # This can be on a category basis or integrated into an existing category if it has a common base
     profiles-laptop.imports = [
+      inputs.self.nixosModules.microvm
+      inputs.self.nixosModules.x86_64-hw-laptop
+      inputs.self.nixosModules.disko-debug-partition
       ./laptop-x86.nix
-      inputs.self.nixosModules.common
-      inputs.self.nixosModules.laptop
     ];
   };
 }
