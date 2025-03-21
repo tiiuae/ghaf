@@ -79,6 +79,16 @@ let
         };
       }
     ]))
+    # TODO: Remove once we can have better way to detect network PCI device
+    (laptop-configuration "dell-latitude-7330-72" "debug" (withCommonModules [
+      self.nixosModules.hardware-dell-latitude-7330-72
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+        };
+      }
+    ]))
     (laptop-configuration "alienware-m18-R2" "debug" (withCommonModules [
       self.nixosModules.hardware-alienware-m18-r2
       {
@@ -139,6 +149,16 @@ let
     ]))
     (laptop-configuration "dell-latitude-7330" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7330
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+        };
+      }
+    ]))
+    # TODO: Remove once we can have better way to detect network PCI device
+    (laptop-configuration "dell-latitude-7330-72" "release" (withCommonModules [
+      self.nixosModules.hardware-dell-latitude-7330-72
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
