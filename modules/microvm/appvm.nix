@@ -15,6 +15,7 @@ let
     mkOption
     types
     optional
+    optionals
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
@@ -144,14 +145,14 @@ let
 
               environment.systemPackages =
                 [
-                  pkgs.tpm2-tools
                   pkgs.opensc
                   pkgs.givc-cli
                 ]
                 ++ vm.packages
-                ++ appPackages;
+                ++ appPackages
+                ++ optionals vm.vtpm.enable [ pkgs.tpm2-tools ];
 
-              security.tpm2 = {
+              security.tpm2 = optionalAttrs vm.vtpm.enable {
                 enable = true;
                 abrmd.enable = true;
               };
