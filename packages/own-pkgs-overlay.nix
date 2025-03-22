@@ -30,5 +30,6 @@
     vinotify = final.callPackage ./pkgs-by-name/vinotify/package.nix { };
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
+    wireguard-gui = final.callPackage ./pkgs-by-name/wireguard-gui/package.nix { };
   };
 }

@@ -154,7 +154,7 @@
     };
 
     wireguard-gui = {
-      url = "github:tiiuae/wireguard-gui";
+      url = "github:enesoztrk/wireguard-gui";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
