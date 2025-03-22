@@ -132,7 +132,15 @@
           icon = "losslesscut";
           command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
         }
-      ];
+      ]
+      ++ (lib.optionals config.ghaf.reference.services.wireguard-gui [
+        {
+          name = "Wireguard BusinessVM";
+          description = "WireGuard VPN configuration tool";
+          icon = "airvpn";
+          command = "wireguard-gui-launcher";
+        }
+      ]);
     extraModules = [
 
       {
@@ -148,6 +156,7 @@
         imports = [
           ../services/pac/pac.nix
           ../services/firewall/firewall.nix
+          ../services/wireguard-gui/wireguard-gui.nix
         ];
 
         # Enable Proxy Auto-Configuration service for the browser
@@ -160,6 +169,10 @@
 
           # Enable firewall and allow access to TII VPN
           firewall.enable = true;
+
+          # Enable WireGuard GUI
+          wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
+
         };
       }
     ];

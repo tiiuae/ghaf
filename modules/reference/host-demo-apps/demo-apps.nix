@@ -71,14 +71,6 @@ in
         description = "PDF Viewer Application";
         path = "${pkgs.zathura}/bin/zathura";
         icon = "document-viewer";
-      }
-      ++ (lib.optionals (config.ghaf.services.wireguard-gui.enable or false) (
-            map (vm: {
-              name = "Wireguard for ${vm}";
-              inherit vm;
-              path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm}-vm wireguard-gui-launcher";
-              icon = "preferences-system-network";
-            }) (config.ghaf.services.wireguard-gui.vms or [ ])
-          ));
+      };
   };
 }

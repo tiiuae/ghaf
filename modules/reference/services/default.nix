@@ -2,10 +2,25 @@
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
-  inherit (lib) mkEnableOption mkIf mkForce;
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkForce
+    ;
   cfg = config.ghaf.reference.services;
   isNetVM = "net-vm" == config.system.name;
   isGuiVM = "gui-vm" == config.system.name;
+
+  appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "vms" ] { } config;
+  wireguardGuiEnabledVms = lib.lists.map (app: app.vmName) (
+    lib.lists.filter (app: app.command == "wireguard-gui-launcher") (
+      lib.lists.concatMap (vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications) (
+        lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
+          lib.filterAttrs (_: vm: vm.enable) appVms
+        )
+      )
+    )
+  );
 in
 {
   imports = [
@@ -17,6 +32,7 @@ in
     ./chromecast/chromecast.nix
     ./chromecast/chromecast-config.nix
     ./nw-packet-forwarder/nw-packet-forwarder.nix
+    ./wireguard-gui/wireguard-gui-config.nix
   ];
   options.ghaf.reference.services = {
     enable = mkEnableOption "Ghaf reference services";
@@ -24,6 +40,7 @@ in
     proxy-business = mkEnableOption "Enable the proxy server service";
     google-chromecast = mkEnableOption "Chromecast service";
     alpaca-ollama = mkEnableOption "Alpaca/ollama service";
+    wireguard-gui = mkEnableOption "Wireguard GUI service";
   };
   config = mkIf cfg.enable {
     ghaf.reference.services = {
@@ -31,6 +48,10 @@ in
       proxy-server.enable = mkForce (cfg.proxy-business && isNetVM);
       chromecast.enable = mkForce (cfg.google-chromecast && isNetVM);
       ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
+      wireguard-gui-config = {
+        vms = mkIf (wireguardGuiEnabledVms != [ ]) (mkForce wireguardGuiEnabledVms);
+        enable = mkForce (cfg.wireguard-gui && isGuiVM);
+      };
     };
   };
 }

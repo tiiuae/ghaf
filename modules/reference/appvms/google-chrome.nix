@@ -57,7 +57,7 @@
             name = "MitmWebUI";
             description = "MitmWebUI";
             packages = [ pkgs.google-chrome ];
-            icon = "airvpn";
+            icon = "nmap";
             command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}";
             extraModules = [
               {
@@ -68,6 +68,14 @@
             ];
           }
         )
+      ])
+      ++ (lib.optionals config.ghaf.reference.services.wireguard-gui [
+        {
+          name = "Wireguard ChromeVM";
+          description = "WireGuard VPN configuration tool for app-vms";
+          icon = "airvpn";
+          command = "wireguard-gui-launcher";
+        }
       ]);
     extraModules = [
       {
@@ -77,6 +85,13 @@
         #   && (hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
         # ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
         microvm.devices = [ ];
+
+        imports = [
+          ../services/wireguard-gui/wireguard-gui.nix
+        ];
+        # Enable WireGuard GUI
+        ghaf.reference.services.wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
+
       }
     ];
   };
