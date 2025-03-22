@@ -29,7 +29,6 @@ in
           autologinUser = lib.mkForce null;
         };
       };
-
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "business-vm"
@@ -57,6 +56,7 @@ in
           proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
           google-chromecast = true;
           alpaca-ollama = true;
+          wireguard-gui = true;
         };
 
         personalize = {

@@ -154,8 +154,13 @@
     };
 
     wireguard-gui = {
-      url = "github:tiiuae/wireguard-gui";
-      inputs.nixpkgs.follows = "nixpkgs";
+      url = "github:enesoztrk/wireguard-gui/56b92f8d4d8cf006e53d9fa5373709b00663a45e";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        crane.follows = "givc/crane";
+      };
+
     };
 
     ci-test-automation = {

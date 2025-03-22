@@ -1,5 +1,21 @@
 {
   "nodes": {
+    "advisory-db": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1743497737,
+        "narHash": "sha256-aIyfoxIds4Y54bZ3atFv1YxSvWpXgmy+BUtykv4wBgk=",
+        "owner": "rustsec",
+        "repo": "advisory-db",
+        "rev": "758fb16a52d7b9776a94856bd9d4ef6140d4946e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "rustsec",
+        "repo": "advisory-db",
+        "type": "github"
+      }
+    },
     "ci-test-automation": {
       "inputs": {
         "flake-utils": [
@@ -482,6 +498,27 @@
         "wireguard-gui": "wireguard-gui"
       }
     },
+    "rust-overlay": {
+      "inputs": {
+        "nixpkgs": [
+          "wireguard-gui",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1743475035,
+        "narHash": "sha256-uLjVsb4Rxnp1zmFdPCDmdODd4RY6ETOeRj0IkC0ij/4=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "bee11c51c2cda3ac57c9e0149d94b86cc1b00d13",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
     "spectrum": {
       "flake": false,
       "locked": {
@@ -535,21 +572,31 @@
     },
     "wireguard-gui": {
       "inputs": {
+        "advisory-db": "advisory-db",
+        "crane": [
+          "givc",
+          "crane"
+        ],
+        "flake-utils": [
+          "flake-utils"
+        ],
         "nixpkgs": [
           "nixpkgs"
-        ]
+        ],
+        "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1723618204,
-        "narHash": "sha256-kjLoDCX9k7oolZhhlsAF1QJmrcWaHdU11zGLrViOF4w=",
-        "owner": "tiiuae",
+        "lastModified": 1743533788,
+        "narHash": "sha256-/FuPAmoOMDG2DJAHB1ZMe2c+MrpI1DSU9HTq8rDT5s4=",
+        "owner": "enesoztrk",
         "repo": "wireguard-gui",
-        "rev": "084522913a393a1c38ed088fa995560f35b10ac0",
+        "rev": "56b92f8d4d8cf006e53d9fa5373709b00663a45e",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "enesoztrk",
         "repo": "wireguard-gui",
+        "rev": "56b92f8d4d8cf006e53d9fa5373709b00663a45e",
         "type": "github"
       }
     }
