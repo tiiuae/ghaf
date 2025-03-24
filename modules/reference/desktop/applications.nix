@@ -52,7 +52,7 @@ in
           command = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
         }
       ]
-      ++ lib.optionals config.ghaf.reference.services.ollama [
+      ++ lib.optionals config.ghaf.reference.services.alpaca-ollama [
         {
           name = "Falcon AI";
           description = "Your local large language model, developed by TII";

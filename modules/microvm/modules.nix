@@ -209,6 +209,7 @@ in
         serviceModules.yubikey
         serviceModules.givc
         serviceModules.logging
+        referenceServiceModule
         referenceProgramsModule
         managedUserAccounts
         commonModule

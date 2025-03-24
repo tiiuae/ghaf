@@ -7,11 +7,15 @@
   ...
 }:
 let
-  cfg = config.ghaf.reference.services;
-  inherit (lib) mkIf optionalAttrs;
+  cfg = config.ghaf.reference.services.ollama;
+  inherit (lib) mkEnableOption mkIf optionalAttrs;
 in
 {
-  config = mkIf cfg.ollama {
+  options.ghaf.reference.services.ollama = {
+    enable = mkEnableOption "Enable the ollama service";
+  };
+
+  config = mkIf cfg.enable {
     services.ollama = {
       enable = true;
       openFirewall = true;
