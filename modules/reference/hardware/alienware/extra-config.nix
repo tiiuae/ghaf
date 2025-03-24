@@ -18,7 +18,7 @@
       powerManagement.finegrained = false;
       forceFullCompositionPipeline = true;
       open = false;
-      nvidiaSettings = true;
+      nvidiaSettings = false;
       prime = {
         intelBusId = "PCI:0:11:0";
         nvidiaBusId = "PCI:0:12:0";
