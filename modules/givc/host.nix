@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -53,5 +54,9 @@ in
       generatorHostName = hostName;
       storagePath = "/persist/storagevm/givc";
     };
+    environment.systemPackages = [
+      pkgs.givc-cli
+      pkgs.ota-update
+    ];
   };
 }

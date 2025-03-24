@@ -220,6 +220,7 @@ let
                 pkgs.glxinfo
                 pkgs.libva-utils
                 pkgs.glib
+                pkgs.givc-cli
               ];
           };
 
