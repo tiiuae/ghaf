@@ -46,17 +46,18 @@ in
         }
 
         {
-          name = "Falcon AI";
-          description = "Your local large language model, developed by TII";
-          icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
-          command = "${pkgs.alpaca}/bin/alpaca";
-        }
-
-        {
           name = "Control Panel";
           description = "Control Panel";
           icon = "utilities-tweak-tool";
           command = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
+        }
+      ]
+      ++ lib.optionals config.ghaf.reference.services.ollama [
+        {
+          name = "Falcon AI";
+          description = "Your local large language model, developed by TII";
+          icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
+          command = "${pkgs.alpaca}/bin/alpaca";
         }
       ]
       ++ lib.optionals config.ghaf.reference.programs.windows-launcher.enable (
