@@ -56,6 +56,7 @@ in
           dendrite = true;
           proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
           google-chromecast = true;
+          alpaca-ollama = true;
         };
 
         personalize = {
@@ -77,10 +78,7 @@ in
             ../services
             ../programs
             ../personalize
-            {
-              ghaf.reference.personalize.keys.enable = true;
-              ghaf.reference.services.ollama = true;
-            }
+            { ghaf.reference.personalize.keys.enable = true; }
           ];
         };
       };

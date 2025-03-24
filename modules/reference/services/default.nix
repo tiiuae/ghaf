@@ -5,6 +5,7 @@ let
   inherit (lib) mkEnableOption mkIf mkForce;
   cfg = config.ghaf.reference.services;
   isNetVM = "net-vm" == config.system.name;
+  isGuiVM = "gui-vm" == config.system.name;
 in
 {
   imports = [
@@ -16,20 +17,20 @@ in
     ./chromecast/chromecast.nix
     ./chromecast/chromecast-config.nix
     ./nw-packet-forwarder/nw-packet-forwarder.nix
-
   ];
   options.ghaf.reference.services = {
     enable = mkEnableOption "Ghaf reference services";
     dendrite = mkEnableOption "dendrite-pinecone service";
     proxy-business = mkEnableOption "Enable the proxy server service";
     google-chromecast = mkEnableOption "Chromecast service";
-    ollama = mkEnableOption "ollama service";
+    alpaca-ollama = mkEnableOption "Alpaca/ollama service";
   };
   config = mkIf cfg.enable {
     ghaf.reference.services = {
       dendrite-pinecone.enable = mkForce (cfg.dendrite && isNetVM);
       proxy-server.enable = mkForce (cfg.proxy-business && isNetVM);
       chromecast.enable = mkForce (cfg.google-chromecast && isNetVM);
+      ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
     };
   };
 }
