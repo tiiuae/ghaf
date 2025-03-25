@@ -23,6 +23,7 @@ Summary of the proposed changes in the PR description in your own words. For dep
   - [ ] Tested on Lenovo X1 `x86_64`
   - [ ] Tested on Jetson Orin NX or AGX `aarch64`
   - [ ] Tested on Polarfire `riscv64`
+  - [ ] Tested on Dell Latitude `x86_64`
 - [ ] Author has run `make-checks` and it passes
 - [ ] All automatic Github Action checks pass - see [actions](https://github.com/tiiuae/ghaf/actions)
 - [ ] Author has added reviewers and removed PR draft status
@@ -40,4 +41,3 @@ Summary of the proposed changes in the PR description in your own words. For dep
 - [ ] Is this a new feature
   - [ ] List the test steps to verify:
 - [ ] If it is an improvement how does it impact existing functionality?
-
