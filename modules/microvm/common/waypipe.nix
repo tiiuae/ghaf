@@ -107,9 +107,9 @@ in
           RestartSec = "1";
           ExecStart =
             if cfg.serverSocketPath != null then
-              "${pkgs.waypipe}/bin/waypipe --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${cfg.serverSocketPath} client"
+              "${pkgs.waypipe}/bin/waypipe --title-prefix \"[${cfg.vm.name}-vm] \" --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${cfg.serverSocketPath} client"
             else
-              "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
+              "${pkgs.waypipe}/bin/waypipe --title-prefix \"[${cfg.vm.name}-vm] \" --vsock --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
         };
         startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];

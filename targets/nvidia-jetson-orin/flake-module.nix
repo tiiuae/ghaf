@@ -99,6 +99,7 @@ let
                 graphics = {
                   enable = true;
                   renderer = "gles2";
+                  compositor = "labwc";
                   idleManagement.enable = false;
                 };
                 release.enable = variant == "release";
