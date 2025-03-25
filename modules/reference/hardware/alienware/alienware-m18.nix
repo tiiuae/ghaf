@@ -39,7 +39,12 @@
     };
 
     touchpad = {
-      name = [ "VEN_04F3:00 04F3:328A Touchpad" ];
+      name = [
+        [
+          "VEN_04F3:00 04F3:328A Touchpad"
+          "VEN_06CB:00 06CB:CEFB Touchpad"
+        ]
+      ];
       evdev = [ "/dev/touchpad0" ];
     };
 
