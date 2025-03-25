@@ -1,4 +1,4 @@
-# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
   # System name
@@ -70,7 +70,7 @@
         # Network controller: Intel Corporation Wi-Fi 6E(802.11ax) AX210/AX1675* 2x2 [Typhoon Peak] (rev 1a)
         # Network controller may enumerate on different PCI bus even for same Dell model
         name = "wlp0s5f0";
-        path = "0000:72:00.0";
+        path = "0000:71:00.0";
         vendorId = "8086";
         productId = "2725";
         # Detected kernel driver: iwlwifi

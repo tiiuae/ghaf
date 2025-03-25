@@ -26,9 +26,9 @@
     ];
     # New variant as network device may enumerate on different PCI BUS on same model of Dell 7330
     # TODO: Remove once we can have better way to detect network PCI device
-    hardware-dell-latitude-7330-72.imports = [
+    hardware-dell-latitude-7330-71.imports = [
       {
-        ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330-72.nix;
+        ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330-71.nix;
       }
     ];
     hardware-lenovo-x1-carbon-gen10.imports = [
