@@ -96,8 +96,8 @@ let
       }
     ]))
     # TODO: Remove once we can have better way to detect network PCI device
-    (laptop-configuration "dell-latitude-7330-72" "debug" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7330-72
+    (laptop-configuration "dell-latitude-7330-71" "debug" (withCommonModules [
+      self.nixosModules.hardware-dell-latitude-7330-71
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
@@ -173,8 +173,8 @@ let
       }
     ]))
     # TODO: Remove once we can have better way to detect network PCI device
-    (laptop-configuration "dell-latitude-7330-72" "release" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7330-72
+    (laptop-configuration "dell-latitude-7330-71" "release" (withCommonModules [
+      self.nixosModules.hardware-dell-latitude-7330-71
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
