@@ -23,6 +23,7 @@ in
 {
   imports = [
     inputs.impermanence.nixosModules.impermanence
+    inputs.self.nixosModules.mem-manager
     inputs.self.nixosModules.givc
     ./networking.nix
   ];

@@ -1,9 +1,6 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
-let
-  cfg = config.ghaf.reference.profiles.mvp-user-trial;
-in
 {
   imports = [
     ../appvms
@@ -13,11 +10,7 @@ in
     ../desktop
   ];
 
-  options.ghaf.reference.profiles.mvp-user-trial = {
-    enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
-  };
-
-  config = lib.mkIf cfg.enable {
+  config = {
     ghaf = {
       # Enable below option for session lock feature
       graphics = {
