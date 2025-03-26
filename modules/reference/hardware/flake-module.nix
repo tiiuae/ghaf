@@ -3,7 +3,7 @@
 #
 # Reference hardware modules
 #
-{ inputs, ... }:
+{ inputs, lib, ... }:
 {
   flake.nixosModules = {
     hardware-alienware-m18-r2.imports = [
@@ -34,6 +34,16 @@
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330-71.nix;
       }
     ];
+    hardware-demo-tower-mk1.imports = [
+      {
+        ghaf.hardware.definition = import ./demo-tower/demo-tower.nix;
+        ghaf.hardware.tpm2.enable = lib.mkForce false;
+        ghaf.virtualization.microvm.guivm.extraModules = [
+          (import ./demo-tower/extra-config.nix)
+        ];
+      }
+    ];
+
     hardware-lenovo-x1-carbon-gen10.imports = [
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
