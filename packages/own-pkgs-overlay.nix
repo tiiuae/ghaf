@@ -26,6 +26,7 @@
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     qemuqmp = final.callPackage ./pkgs-by-name/qemuqmp/package.nix { };
+    rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     vhotplug = final.callPackage ./pkgs-by-name/vhotplug/package.nix { };
     vinotify = final.callPackage ./pkgs-by-name/vinotify/package.nix { };
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };

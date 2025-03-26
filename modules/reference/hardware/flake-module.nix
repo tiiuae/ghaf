@@ -12,6 +12,9 @@
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./alienware/extra-config.nix)
         ];
+        ghaf.virtualization.microvm.netvm.extraModules = [
+          (import ./alienware/net-config.nix)
+        ];
       }
     ];
     hardware-dell-latitude-7230.imports = [
