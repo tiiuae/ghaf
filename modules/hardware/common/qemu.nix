@@ -28,7 +28,7 @@ in
   config = {
     ghaf.qemu.guivm = optionalAttrs (hasAttr "hardware" config.ghaf) {
       microvm.qemu.extraArgs =
-        [
+        optionals (config.ghaf.hardware.definition.type == "laptop") [
           # Button
           "-device"
           "button"
@@ -40,6 +40,7 @@ in
           "acad"
         ]
         ++ optionals (hasAttr "yubikey" config.ghaf.hardware.usb.external.qemuExtraArgs) config.ghaf.hardware.usb.external.qemuExtraArgs.yubikey
+        ++ optionals (hasAttr "usbKBD" config.ghaf.hardware.usb.external.qemuExtraArgs) config.ghaf.hardware.usb.external.qemuExtraArgs.usbKBD
         ++ optionals (hasAttr "fpr0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.fpr0
         ++ optionals config.ghaf.hardware.usb.vhotplug.enableEvdevPassthrough builtins.concatMap (n: [
           "-device"

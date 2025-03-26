@@ -172,6 +172,12 @@ in
         default = [ ];
       };
 
+      type = mkOption {
+        description = "Type of hardware (laptop, desktop, server)";
+        type = types.str;
+        default = "laptop";
+      };
+
       host = {
         kernelConfig = mkOption {
           description = "Host kernel configuration";
