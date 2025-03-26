@@ -41,7 +41,7 @@ let
 
   # Kernel configurations
   kernelConfigs = optionalAttrs fullVirtualization {
-    inherit (configHost.ghaf.kernel) guivm audiovm;
+    inherit (configHost.ghaf.kernel) guivm audiovm netvm;
   };
 
   # Firmware module
@@ -177,6 +177,7 @@ in
       # Netvm modules
       netvm.extraModules = optionals cfg.netvm.enable [
         deviceModules.netvmPCIPassthroughModule
+        kernelConfigs.netvm
         firmwareModule
         serviceModules.wifi
         serviceModules.givc
