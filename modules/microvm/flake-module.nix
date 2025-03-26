@@ -18,8 +18,9 @@
     ];
 
     mem-manager.imports = [
-      ./mem-manager.nix
+      ./host/mem-manager.nix
     ];
+
     vm-modules.imports = [
       ./common/ghaf-audio.nix
       ./common/shared-directory.nix

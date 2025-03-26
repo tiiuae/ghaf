@@ -1,23 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
-let
-  cfg = config.ghaf.reference.profiles.mvp-user-trial-extras;
-in
 {
-  imports = [ ./mvp-user-trial.nix ];
-
-  options.ghaf.reference.profiles.mvp-user-trial-extras = {
-    enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
-  };
-
-  config = lib.mkIf cfg.enable {
+  config = {
     ghaf = {
       reference = {
-        profiles = {
-          mvp-user-trial.enable = true;
-        };
-
         programs = {
           windows-launcher = {
             enable = true;
