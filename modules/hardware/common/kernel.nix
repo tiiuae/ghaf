@@ -40,6 +40,11 @@ in
       default = { };
       description = "AudioVM kernel configuration";
     };
+    netvm = mkOption {
+      type = types.attrs;
+      default = { };
+      description = "NetVM kernel configuration";
+    };
   };
 
   config = {
@@ -84,6 +89,15 @@ in
           };
           inherit (config.ghaf.hardware.definition.audio.kernelConfig.stage2) kernelModules;
           inherit (config.ghaf.hardware.definition.audio.kernelConfig) kernelParams;
+        };
+      };
+      netvm = {
+        boot = {
+          initrd = {
+            inherit (config.ghaf.hardware.definition.network.kernelConfig.stage1) kernelModules;
+          };
+          inherit (config.ghaf.hardware.definition.network.kernelConfig.stage2) kernelModules;
+          inherit (config.ghaf.hardware.definition.network.kernelConfig) kernelParams;
         };
       };
     };
