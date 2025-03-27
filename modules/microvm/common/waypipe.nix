@@ -24,13 +24,15 @@ let
   waypipeBorder = strings.optionalString (
     cfg.waypipeBorder && cfg.vm.borderColor != null
   ) "--border \"${cfg.vm.borderColor}\"";
+  serverSocketPath =
+    if cfg.serverSocketPath != null then cfg.serverSocketPath "gui" "-${cfg.vm.name}-vm" else null;
   runWaypipe =
     let
       script =
         if cfg.serverSocketPath != null then
           ''
             #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe -s ${cfg.serverSocketPath} server "$@"
+            ${pkgs.waypipe}/bin/waypipe -s ${cfg.clientSocketPath} server "$@"
           ''
         else
           ''
@@ -78,9 +80,15 @@ in
       default = 1100;
     };
 
+    clientSocketPath = mkOption {
+      description = "Waypipe client socket path";
+      type = types.nullOr types.path;
+      default = null;
+    };
+
     serverSocketPath = mkOption {
       description = "Waypipe server socket path";
-      type = types.nullOr types.str;
+      type = types.nullOr (types.functionTo (types.functionTo types.path));
       default = null;
     };
   };
@@ -107,9 +115,10 @@ in
           RestartSec = "1";
           ExecStart =
             if cfg.serverSocketPath != null then
-              "${pkgs.waypipe}/bin/waypipe --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${cfg.serverSocketPath} client"
+              "${pkgs.waypipe}/bin/waypipe --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${serverSocketPath} client"
             else
               "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
+          KillSignal = "SIGINT";
         };
         startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];
