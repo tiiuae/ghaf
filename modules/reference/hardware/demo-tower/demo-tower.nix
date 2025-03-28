@@ -143,6 +143,7 @@
       stage2.kernelModules = [ ];
       kernelParams = [
         "earlykms"
+        "module_blacklist=nouveau"
       ];
     };
   };

@@ -6,5 +6,6 @@
 {
   imports = [
     ./graphics
+    ./nvidia-gpu
   ];
 }

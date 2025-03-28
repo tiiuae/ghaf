@@ -13,10 +13,10 @@
   host_build ? false,
 }:
 let
-  kernel_package = pkgs.linux_latest;
+  kernel_package = pkgs.linux;
   version = "${kernel_package.version}-ghaf-hardened";
   modDirVersion = version;
-  base_kernel = pkgs.linuxManualConfig rec {
+  base_kernel = pkgs.linuxManualConfig {
     inherit (kernel_package) src;
     inherit version modDirVersion kernelPatches;
     /*
