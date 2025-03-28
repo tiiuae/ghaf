@@ -836,6 +836,106 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/login-manager.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/login-manager.nix</a></li>
 </ul>
+<h2 id="ghafgraphicsnvidia-setupenable"><a class="header" href="#ghafgraphicsnvidia-setupenable">ghaf.graphics.nvidia-setup.enable</a></h2>
+<p>Whether to enable Enable Nvidia setup.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupprimeenable"><a class="header" href="#ghafgraphicsnvidia-setupprimeenable">ghaf.graphics.nvidia-setup.prime.enable</a></h2>
+<p>Whether to configure prime offload.</p>
+<p>This will allow on-demand offloading of rendering tasks to the
+NVIDIA GPU, all other rendering will happen on the GPU
+integrated in the CPU.</p>
+<p>The GPU <em>should</em> be turned off whenever it is not in use, so
+this shouldn’t cause increased battery drain, but there are
+some reports floating around that this isn’t always the case -
+likely especially for older devices. Feel free to turn it off
+if you find this doesn’t work properly for you.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/prime.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/prime.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupvaapienable"><a class="header" href="#ghafgraphicsnvidia-setupvaapienable">ghaf.graphics.nvidia-setup.vaapi.enable</a></h2>
+<p>Whether to enable the NVIDIA vaapi driver.</p>
+<p>This allows using the NVIDIA GPU for decoding video streams
+instead of using software decoding on the CPU.</p>
+<p>This particularly makes sense for desktop computers without an
+iGPU, as on those software en/decoding will take a lot of
+processing power while the NVIDIA GPU’s encoding capacity
+isn’t doing anything, so this option is enabled by default
+there.</p>
+<p>However, on machines with an iGPU, the dGPU’s en/decoding
+capabilities are often more limited than those of the iGPU,
+and require more power, so this is disabled there by default -
+it may still make sense from time to time, so feel free to
+experiment.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupvaapifirefoxenable"><a class="header" href="#ghafgraphicsnvidia-setupvaapifirefoxenable">ghaf.graphics.nvidia-setup.vaapi.firefox.enable</a></h2>
+<p>Configure Firefox to used the vaapi driver for video decoding.</p>
+<p>Note that this requires disabling the <a href="https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#data-decoder-rdd-process">RDD
+sandbox</a>.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupvaapifirefoxav1support"><a class="header" href="#ghafgraphicsnvidia-setupvaapifirefoxav1support">ghaf.graphics.nvidia-setup.vaapi.firefox.av1Support</a></h2>
+<p>Whether to enable av1 support.</p>
+<p>This will not work on Turing (e.g. Geforce 2xxx) and
+earlier, and is therefore disabled by default there.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupvaapimaxinstances"><a class="header" href="#ghafgraphicsnvidia-setupvaapimaxinstances">ghaf.graphics.nvidia-setup.vaapi.maxInstances</a></h2>
+<p>The maximum number of concurrent instances of the driver.</p>
+<p>Sometimes useful for graphics cards with little VRAM.</p>
+<p><em>Type:</em>
+null or signed integer</p>
+<p><em>Default:</em>
+<code>null</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupwithintegratedgpu"><a class="header" href="#ghafgraphicsnvidia-setupwithintegratedgpu">ghaf.graphics.nvidia-setup.withIntegratedGPU</a></h2>
+<p>Whether the computer has a separate integrated GPU.</p>
+<p>This also configures the machine to use the integrated GPU for
+other things like software decoding, so keep this enabled even
+if you separately disable offload rendering.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu</a></li>
+</ul>
 <h2 id="ghafguestkernelhardeningenable"><a class="header" href="#ghafguestkernelhardeningenable">ghaf.guest.kernel.hardening.enable</a></h2>
 <p>Enable Ghaf Guest hardening feature</p>
 <p><em>Type:</em>
@@ -2349,6 +2449,17 @@ boolean</p>
 value “labwc” (singular enum)</p>
 <p><em>Default:</em>
 <code>"labwc"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
+<h2 id="ghafprofilesgraphicsidlemanagementenable"><a class="header" href="#ghafprofilesgraphicsidlemanagementenable">ghaf.profiles.graphics.idleManagement.enable</a></h2>
+<p>Enable or disable system idle management using swayidle.</p>
+<p>When enabled, this will handle automatic screen dimming, locking, and suspending.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
