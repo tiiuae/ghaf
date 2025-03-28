@@ -44,6 +44,17 @@ in
         Choose one of: ${lib.concatStringsSep "," renderers}
       '';
     };
+    idleManagement = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Enable or disable system idle management using swayidle.
+
+          When enabled, this will handle automatic screen dimming, locking, and suspending.
+        '';
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -68,6 +79,7 @@ in
 
     ghaf.graphics = {
       labwc.enable = cfg.compositor == "labwc";
+      labwc.autolock.enable = cfg.idleManagement.enable;
     };
   };
 }
