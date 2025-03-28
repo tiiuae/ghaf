@@ -21,7 +21,7 @@ let
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
 
   makeVm =
-    { vm, vmIndex }: # TODO the vmIndex is not used. but it is passed when calling makeVm
+    { vm }:
     let
       vmName = "${vm.name}-vm";
       # A list of applications for the GIVC service
@@ -346,6 +346,7 @@ in
               useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
+
           };
         }
       );
@@ -410,7 +411,7 @@ in
       microvm.vms =
         let
           vms' = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) vms;
-          vms'' = lib.imap0 (vmIndex: vm: { "${vm.name}-vm" = makeVm { inherit vmIndex vm; }; }) vms';
+          vms'' = map (vm: { "${vm.name}-vm" = makeVm { inherit vm; }; }) vms';
         in
         lib.foldr lib.recursiveUpdate { } vms'';
 

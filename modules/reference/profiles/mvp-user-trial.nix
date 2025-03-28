@@ -28,7 +28,6 @@ in
           autologinUser = lib.mkForce null;
         };
       };
-
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "business-vm"
@@ -56,6 +55,22 @@ in
           proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
           google-chromecast = true;
           alpaca-ollama = true;
+          wireguard-gui =
+            let
+              wireguardGuiEnabledVms = lib.lists.map (app: app.vmName) (
+                lib.lists.filter (app: app.command == "wireguard-gui-launcher") (
+                  lib.lists.concatMap (vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications) (
+                    lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
+                      lib.filterAttrs (_: vm: vm.enable) config.ghaf.virtualization.microvm.appvm.vms
+                    )
+                  )
+                )
+              );
+            in
+            {
+              enable = true;
+              vms = lib.mkForce wireguardGuiEnabledVms;
+            };
         };
 
         personalize = {
