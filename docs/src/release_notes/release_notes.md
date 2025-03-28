@@ -5,13 +5,14 @@
 
 # Ghaf Release Notes
 
-Ghaf is released 4 times per year at the end of each quarter. Additional releases or point releases may be made as per request. Point releases are related to user trials as a way to get the fixes and feature requests out faster.
+Ghaf is released at the end of each month (starting from March 2025). Additional releases or point releases may be made as per request.
 
 Release numbering scheme: *ghaf-yy.mm*.
 
 
 ## In This Chapter
 
+- [Release ghaf-25.03](../release_notes/ghaf-25.03.md)
 - [Release ghaf-24.12.4](../release_notes/ghaf-24.12.4.md)
 - [Release ghaf-24.12.3](../release_notes/ghaf-24.12.3.md)
 - [Release ghaf-24.12.2](../release_notes/ghaf-24.12.2.md)
