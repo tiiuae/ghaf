@@ -91,13 +91,13 @@
   # GPU devices for passthrough to guivm
   gpu = {
     pciDevices = [
-      {
-        # VGA compatible controller [0300]: Intel Corporation Raptor Lake-S UHD Graphics [8086:a788] (rev 04)
-        name = "gpu0-0";
-        path = "0000:00:02.0";
-        vendorId = "8086";
-        productId = "a788";
-      }
+      # {
+      #   # VGA compatible controller [0300]: Intel Corporation Raptor Lake-S UHD Graphics [8086:a788] (rev 04)
+      #   name = "gpu0-0";
+      #   path = "0000:00:02.0";
+      #   vendorId = "8086";
+      #   productId = "a788";
+      # }
       {
         # VGA compatible controller: NVIDIA Corporation AD103M / GN21-X11 [GeForce RTX 4090 Laptop GPU] (rev a1)
         name = "gpu1-0";

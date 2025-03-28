@@ -56,7 +56,7 @@
       devShells.kernel-x86 = mkKernelShell {
         platform = "x86_64-generic";
         arch = "x86";
-        linux = pkgs.linux_latest;
+        inherit (pkgs) linux;
       };
       devShells.kernel-jetson-orin = mkKernelShell {
         platform = "jetson-orin";
