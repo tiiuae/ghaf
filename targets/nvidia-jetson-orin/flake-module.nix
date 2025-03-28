@@ -99,6 +99,7 @@ let
                 graphics = {
                   enable = true;
                   renderer = "gles2";
+                  idleManagement.enable = false;
                 };
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
@@ -108,9 +109,6 @@ let
               reference.personalize.keys.enable = variant == "debug";
 
               reference.host-demo-apps.demo-apps.enableDemoApplications = true;
-
-              # To enable screen locking set to true
-              graphics.labwc.autolock.enable = false;
             };
 
             nixpkgs = {

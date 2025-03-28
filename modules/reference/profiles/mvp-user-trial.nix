@@ -25,7 +25,6 @@ in
         #just yet :)
         # boot.enable = lib.mkForce true;
         labwc = {
-          autolock.enable = lib.mkForce true;
           autologinUser = lib.mkForce null;
         };
       };
