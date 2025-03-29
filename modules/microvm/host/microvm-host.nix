@@ -78,6 +78,8 @@ in
         givc.host.enable = true;
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
+
+        graphics.nvidia-setup.enable = true;
       };
 
       services.logind.lidSwitch = "ignore";
