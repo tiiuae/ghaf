@@ -35,7 +35,7 @@ in
         automount = true;
         # True - keep tray applet open indefinitely
         # "auto" - auto hide tray applet when no devices connected
-        tray = true;
+        tray = "auto";
         menu = "flat";
         notify = true;
         file_manager = cfg.fileManager;
@@ -48,6 +48,12 @@ in
         # Command to be executed on any device event
         # event_hook = "";
       };
+      device_config = [
+        {
+          device_file = "/dev/loop*";
+          ignore = true;
+        }
+      ];
       quickmenu_actions = [
         "browse"
         "mount"
@@ -72,9 +78,9 @@ in
         RestartSec = "1";
         ExecStart = "${pkgs.udiskie}/bin/udiskie -c /etc/udiskie.yml";
       };
-      wantedBy = [ "ewwbar.service" ];
-      after = [ "ewwbar.service" ];
-      partOf = [ "ewwbar.service" ];
+      wantedBy = [ "ghaf-session.target" ];
+      after = [ "ghaf-session.target" ];
+      partOf = [ "ghaf-session.target" ];
     };
   };
 }

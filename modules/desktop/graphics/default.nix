@@ -4,6 +4,7 @@
   imports = [
     ./labwc.nix
     ./labwc.config.nix
+    ./cosmic.nix
     ./launchers.nix
     ./ewwbar.nix
     ./fonts.nix

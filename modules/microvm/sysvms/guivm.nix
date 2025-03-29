@@ -15,6 +15,7 @@ let
     imports = [
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.givc
+      inputs.nixos-cosmic.nixosModules.default
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.vm-modules
 
@@ -123,7 +124,7 @@ let
             services = {
               disks = {
                 enable = true;
-                fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
+                fileManager = lib.mkIf config.ghaf.graphics.labwc.enable "${pkgs.pcmanfm}/bin/pcmanfm";
               };
             };
             xdgitems.enable = true;
@@ -161,9 +162,17 @@ let
               '';
             };
 
-            # Suspend inside Qemu causes segfault
-            # See: https://gitlab.com/qemu-project/qemu/-/issues/2321
-            logind.lidSwitch = "ignore";
+            desktopManager.cosmic.enable = config.ghaf.profiles.graphics.compositor == "cosmic";
+            displayManager.cosmic-greeter.enable = config.ghaf.profiles.graphics.compositor == "cosmic";
+
+            logind = {
+              lidSwitch = "ignore";
+              killUserProcesses = true;
+              extraConfig = ''
+                IdleAction=lock
+                UserStopDelaySec=0
+              '';
+            };
 
             # We dont enable services.blueman because it adds blueman desktop entry
             dbus.packages = [ pkgs.blueman ];
@@ -221,6 +230,8 @@ let
                 pkgs.libva-utils
                 pkgs.glib
               ];
+            # TODO: Remove unnecessary cosmic packages
+            cosmic.excludePackages = [ ];
           };
 
           time.timeZone = config.time.timeZone;
