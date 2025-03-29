@@ -43,7 +43,18 @@
         ];
       }
     ];
-
+    hardware-desktop-5080-mk1.imports = [
+      {
+        ghaf.hardware.definition = import ./desktop-5080/desktop-5080.nix;
+        boot.extraModprobeConfig = ''
+          options disable_idle_d3=1
+          options enable_sriov=0
+        '';
+        ghaf.virtualization.microvm.guivm.extraModules = [
+          (import ./desktop-5080/extra-config.nix)
+        ];
+      }
+    ];
     hardware-lenovo-x1-carbon-gen10.imports = [
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
