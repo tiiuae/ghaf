@@ -39,4 +39,6 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 [gtklock: Multiple errors on wrong password](https://github.com/jovanlanik/gtklock/pull/119)
 
+[libqmi: Failure to cross compile](https://github.com/NixOS/nixpkgs/issues/384946)
+
 ## carried in tiiuae/nixpkgs/...

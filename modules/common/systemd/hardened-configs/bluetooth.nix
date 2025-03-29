@@ -1,15 +1,15 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  ProtectProc = "noaccess";
+  #  ProtectProc = lib.mkForce "noaccess";
   ProcSubset = "pid";
   ProtectHome = true;
   ProtectSystem = "full";
   PrivateTmp = true;
   PrivateMounts = true;
   UMask = 77;
-  ProtectKernelTunables = true;
-  ProtectKernelModules = true;
+  # ProtectKernelTunables = lib.mkForce true;
+  #ProtectKernelModules = lib.mkForce true;
   ProtectKernelLogs = true;
   KeyringMode = "private";
   ProtectHostname = true;
