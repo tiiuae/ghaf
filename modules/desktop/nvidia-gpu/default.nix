@@ -53,7 +53,7 @@ in
         # than it actually fixes. so leave it to off by default
         #forceFullCompositionPipeline = true;
         # TODO: testing the open drivers recommended by nvidia
-        open = true; # false;
+        open = false; # true;
         nvidiaSettings = true;
         package = config.boot.kernelPackages.nvidiaPackages.beta; # was beta
 
