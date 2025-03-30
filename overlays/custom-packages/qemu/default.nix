@@ -23,5 +23,35 @@ prev.qemu_kvm.overrideAttrs (
       + ''
         cp contrib/ivshmem-server/ivshmem-server $out/bin
       '';
+    # Design defence: we need to permit evaluate 'vfio-pci,host=$(some-script)' statements, and forbid evaluating other arguments
+    # Only way to do it without heavy patching of microvm itself -- inject wrapper into qemu package via overlaying
+    postFixup =
+      (prev.postFixup or "")
+      + ''
+        injectQemuWrapper() {
+            local prog="$1"
+            local wrapper="$2"
+            local hidden
+
+            assertExecutable "$prog"
+
+            # Renaming borrowed from wrapProgramShell() of nixpkgs
+            hidden="$(dirname "$prog")/.$(basename "$prog")"-wrapped
+            while [ -e "$hidden" ]; do
+              hidden="''${hidden}_"
+            done
+            mv "$prog" "$hidden"
+
+            install -m0755 $wrapper $prog
+            substituteInPlace "$prog" \
+                --replace-fail "/bin/bash" "${final.runtimeShell}" \
+                --replace-fail "@UNWRAPPED@" "$hidden"
+        }
+        set -x
+        for each in $out/bin/qemu-system-*; do
+            injectQemuWrapper "$each" "${./wrapper.sh}"
+        done
+        set +x
+      '';
   }
 )
