@@ -11,9 +11,6 @@ let
   windows-launcher = pkgs.windows-launcher.override { enableSpice = cfg.spice; };
 in
 {
-  #TODO fix all these imports to correct scoping
-  imports = [ ../../desktop ];
-
   options.ghaf.reference.programs.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
 
