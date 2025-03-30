@@ -52,6 +52,13 @@ in
       }
     ];
 
+    boot.kernelPatches = [
+      {
+        name = lib.debug.traceVal "vfio-true";
+        patch = ./0001-ARM-SMMU-drivers-return-always-true-for-IOMMU_CAP_CA.patch;
+      }
+    ];
+
     boot.kernelParams = [
       "vfio-pci.ids=10ec:8168"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
