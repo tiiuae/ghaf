@@ -6,6 +6,7 @@
     ./usb/external.nix
     ./usb/vhotplug.nix
     ./devices.nix
+    ./input.nix
     ./kernel.nix
     ./qemu.nix
     ./shared-mem.nix

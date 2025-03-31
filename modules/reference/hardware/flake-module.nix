@@ -7,6 +7,7 @@
 {
   flake.nixosModules = {
     hardware-alienware-m18-r2.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./alienware/alienware-m18.nix;
         ghaf.virtualization.microvm.guivm.extraModules = [
@@ -18,11 +19,13 @@
       }
     ];
     hardware-dell-latitude-7230.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix;
       }
     ];
     hardware-dell-latitude-7330-72.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330-72.nix;
       }
@@ -30,11 +33,13 @@
     # New variant as network device may enumerate on different PCI BUS on same model of Dell 7330
     # TODO: Remove once we can have better way to detect network PCI device
     hardware-dell-latitude-7330-71.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330-71.nix;
       }
     ];
     hardware-demo-tower-mk1.imports = [
+      inputs.self.nixosModules.hardware-x86_64-desktop
       {
         ghaf.hardware.definition = import ./demo-tower/demo-tower.nix;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
@@ -45,16 +50,19 @@
     ];
 
     hardware-lenovo-x1-carbon-gen10.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
       }
     ];
     hardware-lenovo-x1-carbon-gen11.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
       }
     ];
     hardware-lenovo-x1-carbon-gen12.imports = [
+      inputs.self.nixosModules.hardware-x86_64-laptop
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
       }
@@ -65,7 +73,7 @@
     # could make discoverability easier.
     jetpack.imports = [
       ./jetpack
-      inputs.self.nixosModules.aarch64-generic
+      inputs.self.nixosModules.hardware-aarch64-generic
     ];
     polarfire.imports = [ ./polarfire ];
   };
