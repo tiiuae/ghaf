@@ -35,12 +35,9 @@
                 # derived from targets/laptop/laptop-configuration-builder.nix + lenovo-x1-carbon-gen10
                 modules = [
                   self.nixosModules.reference-profiles
-                  self.nixosModules.laptop
-                  self.nixosModules.microvm
                   self.nixosModules.disko-debug-partition
                   self.nixosModules.hardware-lenovo-x1-carbon-gen11
                   self.nixosModules.profiles-laptop
-                  self.nixosModules.profiles
                   {
                     nixpkgs = {
                       hostPlatform = "x86_64-linux";

@@ -25,10 +25,9 @@ let
     ) deviceList;
 in
 {
-  imports = [ ./definition.nix ];
-
   config = {
     # Disk configuration
+    # TODO Remove or move this
     disko.devices.disk = cfg.disks;
 
     # Host udev rules for input devices
