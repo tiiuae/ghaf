@@ -25,7 +25,7 @@ The following target hardware is supported by this release:
 * Generic x86 (PC)
 * NXP i.MX 8M Plus
 
-## What is New in ghaf-24.12.4
+## What is New in ghaf-25.03
 
 Main changes since ghaf-24.12:
 
