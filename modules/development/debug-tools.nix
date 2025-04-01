@@ -67,6 +67,7 @@ in
           lshw
           ;
       }
+      ++ [ pkgs.kitty.terminfo ]
       ++
         # Match perf version with kernel.
         [
