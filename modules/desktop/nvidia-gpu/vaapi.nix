@@ -97,6 +97,9 @@ in
       "media.ffmpeg.vaapi.enabled" = true;
       "media.rdd-ffmpeg.enabled" = true;
       "media.av1.enabled" = cfg.firefox.av1Support;
+      #TODO: enable when the 137 release notes show which flags to show
+      #"media.hevc.enabled" = true;
+      #"dom.media.webcodecs.h265.enabled" = true;
       "gfx.x11-egl.force-enabled" = true;
       "widget.dmabuf.force-enabled" = true;
     };

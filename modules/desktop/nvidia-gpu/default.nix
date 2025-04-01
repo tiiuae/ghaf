@@ -40,6 +40,9 @@ in
         pkgs.egl-wayland
         pkgs.mesa
         pkgs.libGL
+        # some vulkan stuff
+        #pkgs.libvdpau-va-gl
+        pkgs.vulkan-loader
       ];
 
       nvidia = {
@@ -51,11 +54,12 @@ in
         powerManagement.enable = false;
         # TODO: this may fix screen tearing but if not needed it can cause more issues
         # than it actually fixes. so leave it to off by default
-        #forceFullCompositionPipeline = true;
-        # TODO: testing the open drivers recommended by nvidia
-        open = true; # false;
+        forceFullCompositionPipeline = false;
+        # TODO: testing the open drivers recommended by nvidia, fails to load the cuda modules
+        # and hence fails vaapi support
+        open = false; # true;
         nvidiaSettings = true;
-        package = config.boot.kernelPackages.nvidiaPackages.beta; # was beta
+        package = config.boot.kernelPackages.nvidiaPackages.beta; # was stable
 
         dynamicBoost.enable = cfg.enable && cfg.withIntegratedGPU;
       };
@@ -63,6 +67,8 @@ in
 
     # Load nvidia driver for Xorg and Wayland
     services.xserver.videoDrivers = [ "nvidia" ];
+
+    environment.systemPackages = [ pkgs.vulkan-tools ];
 
     boot = {
       # TODO: what exactly does xanmod package bring?
@@ -84,6 +90,10 @@ in
           # Current monitor does not support it, but this is useful for
           # the future
           "NVreg_RegistryDwords=RMUseSwI2c=0x01;RMI2cSpeed=100"
+
+          # The nvidia cuda initialization fails if this is not set in
+          # the newer drivers.
+          "NVreg_PreserveVideoMemoryAllocations=1"
         ];
     };
 
