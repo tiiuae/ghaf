@@ -9,7 +9,6 @@
 let
   configHost = config;
   vmName = "audio-vm";
-  has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
 
   audiovmBaseConfiguration = {
     imports = [
@@ -108,15 +107,10 @@ let
                   aarch64-linux = "virt";
                 }
                 .${configHost.nixpkgs.hostPlatform.system};
-              extraArgs =
-                [
-                  "-device"
-                  "qemu-xhci"
-                ]
-                ++ lib.optionals has_acpi_path [
-                  "-acpitable"
-                  "file=${config.ghaf.hardware.definition.audio.acpiPath}"
-                ];
+              extraArgs = [
+                "-device"
+                "qemu-xhci"
+              ];
             };
           };
         }

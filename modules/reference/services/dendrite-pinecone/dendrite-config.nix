@@ -5,21 +5,18 @@
   lib,
   ...
 }:
+let
+  inherit (lib) optionalAttrs hasAttrByPath;
+  isHost = hasAttrByPath [
+    "hardware"
+    "devices"
+  ] config.ghaf;
+in
 {
-  config.ghaf.reference.services.dendrite-pinecone =
-    let
-      externalNic =
-        let
-          firstPciWifiDevice = lib.head config.ghaf.hardware.definition.network.pciDevices;
-        in
-        "${firstPciWifiDevice.name}";
-      internalNic = "ethint0";
-      serverIpAddr = config.ghaf.networking.hosts."comms-vm".ipv4;
-    in
-    {
-      enable = lib.mkDefault false;
-      inherit externalNic;
-      inherit internalNic;
-      inherit serverIpAddr;
-    };
+  config.ghaf.reference.services.dendrite-pinecone = optionalAttrs isHost {
+    enable = lib.mkDefault false;
+    externalNic = (lib.head config.ghaf.hardware.definition.network.pciDevices).name;
+    internalNic = "ethint0";
+    serverIpAddr = config.ghaf.networking.hosts."comms-vm".ipv4;
+  };
 }

@@ -94,14 +94,6 @@ let
             };
           };
 
-          # WORKAROUND: Create a rule to temporary hardcode device name for Wi-Fi adapter on x86
-          # TODO this is a dirty hack to guard against adding this to Nvidia/vm targets which
-          # dont have that definition structure yet defined. FIXME.
-          # TODO the hardware.definition should not even be exposed in targets that do not consume it
-          services.udev.extraRules = lib.mkIf (config.ghaf.hardware.definition.network.pciDevices != [ ]) ''
-            SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).vendorId}", ATTRS{device}=="0x${(lib.head config.ghaf.hardware.definition.network.pciDevices).productId}", NAME="${(lib.head config.ghaf.hardware.definition.network.pciDevices).name}"
-          '';
-
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;

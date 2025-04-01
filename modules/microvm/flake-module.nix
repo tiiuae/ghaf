@@ -4,7 +4,6 @@
 {
   flake.nixosModules = {
     microvm.imports = [
-      inputs.microvm.nixosModules.host
       (import ./host/microvm-host.nix { inherit inputs; })
       (import ./sysvms/netvm.nix { inherit inputs; })
       (import ./sysvms/adminvm.nix { inherit inputs; })
@@ -14,12 +13,12 @@
       (import ./sysvms/idsvm/idsvm.nix { inherit inputs; })
       ./sysvms/idsvm/mitmproxy
       ./modules.nix
-      ../hardware/common/shared-mem.nix
     ];
 
     mem-manager.imports = [
-      ./mem-manager.nix
+      ./host/mem-manager.nix
     ];
+
     vm-modules.imports = [
       ./common/ghaf-audio.nix
       ./common/shared-directory.nix
