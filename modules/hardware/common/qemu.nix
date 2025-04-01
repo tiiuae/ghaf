@@ -26,7 +26,7 @@ in
   };
 
   config = {
-    ghaf.qemu.guivm = optionalAttrs (hasAttr "hardware" config.ghaf) {
+    ghaf.qemu.guivm = optionalAttrs (config.ghaf.type == "host") {
       microvm.qemu.extraArgs =
         optionals (config.ghaf.hardware.definition.type == "laptop") [
           # Button
@@ -47,8 +47,13 @@ in
           "pcie-root-port,bus=pcie.0,id=${config.ghaf.hardware.usb.vhotplug.pcieBusPrefix}${toString n},chassis=${toString n}"
         ]) (lib.range 1 config.ghaf.hardware.usb.vhotplug.pciePortCount);
     };
-    ghaf.qemu.audiovm = optionalAttrs (hasAttr "hardware" config.ghaf) {
-      microvm.qemu.extraArgs = optionals (hasAttr "bt0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.bt0;
+    ghaf.qemu.audiovm = optionalAttrs (config.ghaf.type == "host") {
+      microvm.qemu.extraArgs =
+        optionals (hasAttr "bt0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.bt0
+        ++ optionals (config.ghaf.hardware.definition.audio.acpiPath != null) [
+          "-acpitable"
+          "file=${config.ghaf.hardware.definition.audio.acpiPath}"
+        ];
     };
   };
 }

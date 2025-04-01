@@ -18,7 +18,7 @@ let
         inherit system;
         specialArgs = inputs;
         modules = [
-          self.nixosModules.profiles-laptop
+          self.nixosModules.profiles-workstation
           {
             ghaf = {
               profiles = {
