@@ -11,11 +11,6 @@
 }:
 let
   useGivc = ghafConfig.givc.enable;
-  # Handle Wayland display power state
-  waylandDisplayCmd = command: ''
-    WAYLAND_DISPLAY=/run/user/${builtins.toString ghafConfig.users.loginUser.uid}/wayland-0 \
-    wlopm --${command} '*'
-  '';
 in
 writeShellApplication {
   name = "ghaf-powercontrol";
@@ -55,15 +50,19 @@ writeShellApplication {
         # Lock sessions
         loginctl lock-session
 
+        if [ -z "$WAYLAND_DISPLAY" ]; then
+          export WAYLAND_DISPLAY="/run/user/${toString ghafConfig.users.loginUser.uid}/wayland-0"
+        fi
+
         # Switch off display before suspension
-        ${waylandDisplayCmd "off"}
+        wlopm --off '*' || true
 
         # Send suspend command to host, ensure screen is on in case of failure
         ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend \
-          || ${waylandDisplayCmd "on"}
+          || wlopm --on '*' || true
 
         # Switch on display on wakeup
-        ${waylandDisplayCmd "on"}
+        wlopm --on '*' || true
         ;;
       logout)
         wayland-logout

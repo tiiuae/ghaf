@@ -32,13 +32,6 @@ in
         }
 
         {
-          name = "File Manager";
-          description = "Organize & Manage Files";
-          icon = "system-file-manager";
-          command = "${pkgs.pcmanfm}/bin/pcmanfm";
-        }
-
-        {
           name = "Bluetooth Settings";
           description = "Manage Bluetooth Devices & Settings";
           icon = "bluetooth-48";
@@ -46,10 +39,18 @@ in
         }
 
         {
-          name = "Control Panel";
-          description = "Control Panel";
+          name = "Ghaf Control Panel";
+          description = "Ghaf Control Panel";
           icon = "utilities-tweak-tool";
           command = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
+        }
+      ]
+      ++ lib.optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
+        {
+          name = "File Manager";
+          description = "Organize & Manage Files";
+          icon = "system-file-manager";
+          command = "${pkgs.pcmanfm}/bin/pcmanfm";
         }
       ]
       ++ lib.optionals config.ghaf.reference.services.alpaca-ollama [
