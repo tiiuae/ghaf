@@ -23,7 +23,10 @@
     ];
 
     #TODO: Add the rest of the modules in their own directories with flake-module.nix
-    desktop.imports = [ ./desktop ];
+    desktop.imports = [
+      inputs.nixos-cosmic.nixosModules.default
+      ./desktop
+    ];
     development.imports = [ ./development ];
     reference-appvms.imports = [ ./reference/appvms ];
     reference-host-demo-apps.imports = [ ./reference/host-demo-apps ];
