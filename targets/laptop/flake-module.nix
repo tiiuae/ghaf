@@ -111,6 +111,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
+          profiles.graphics.idleManagement.enable = lib.mkForce false;
         };
       }
     ]))
@@ -120,6 +121,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
+          profiles.graphics.idleManagement.enable = lib.mkForce false;
         };
       }
     ]))
