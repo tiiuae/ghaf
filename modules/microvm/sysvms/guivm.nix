@@ -134,6 +134,7 @@ let
             acpid = lib.mkIf config.ghaf.givc.enable {
               enable = true;
               lidEventCommands = ''
+                wl_running=1
                 case "$1" in
                   "button/lid LID close")
                     # Lock sessions
@@ -147,16 +148,24 @@ let
                       wl_running=0
                     fi
 
-                    # Initiate Suspension
-                    ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} suspend
+                    ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''
+                      # Initiate Suspension
+                      ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} suspend
 
-                    # Enable display
-                    if [ "$wl_running" -eq 1 ]; then
-                      WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
-                    fi
+                      # Enable display
+                      if [ "$wl_running" -eq 1 ]; then
+                        WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+                      fi
+                    ''}
                     ;;
                   "button/lid LID open")
                     # Command to run when the lid is opened
+                    ${lib.optionalString (!config.ghaf.profiles.graphics.allowSuspend) ''
+                      # Enable display
+                      if [ "$wl_running" -eq 1 ]; then
+                        WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+                      fi
+                    ''}
                     ;;
                 esac
               '';

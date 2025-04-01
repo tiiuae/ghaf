@@ -75,7 +75,7 @@ let
     # Graphics profiles module
     graphics = {
       config.ghaf.profiles.graphics = {
-        inherit (configHost.ghaf.profiles.graphics) compositor renderer;
+        inherit (configHost.ghaf.profiles.graphics) compositor renderer allowSuspend;
         idleManagement = {
           inherit (configHost.ghaf.profiles.graphics.idleManagement) enable;
         };

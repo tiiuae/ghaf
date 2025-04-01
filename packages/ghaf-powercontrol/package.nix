@@ -5,9 +5,11 @@
   lib,
   systemd,
   wlopm,
+  libnotify,
   wayland-logout,
   givc-cli ? null,
   ghafConfig ? { },
+  ghaf-artwork ? null,
 }:
 let
   useGivc = ghafConfig.givc.enable;
@@ -24,6 +26,7 @@ writeShellApplication {
     systemd
     wlopm
     wayland-logout
+    libnotify
   ] ++ (lib.optional useGivc givc-cli);
 
   text = ''
@@ -52,19 +55,31 @@ writeShellApplication {
         ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} "$1"
         ;;
       suspend)
-        # Lock sessions
-        loginctl lock-session
+      ${
+        if ghafConfig.profiles.graphics.allowSuspend then
+          ''
+            # Lock sessions
+            loginctl lock-session
 
-        # Switch off display before suspension
-        ${waylandDisplayCmd "off"}
+            # Switch off display before suspension
+            ${waylandDisplayCmd "off"}
 
-        # Send suspend command to host, ensure screen is on in case of failure
-        ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend \
-          || ${waylandDisplayCmd "on"}
+            # Send suspend command to host, ensure screen is on in case of failure
+            ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend \
+              || ${waylandDisplayCmd "on"}
 
-        # Switch on display on wakeup
-        ${waylandDisplayCmd "on"}
-        ;;
+            # Switch on display on wakeup
+            ${waylandDisplayCmd "on"}
+          ''
+        else
+          ''
+            MSG="Suspend functionality is currently not enabled on this system."
+            echo "$MSG"
+            notify-send -i ${ghaf-artwork}/icons/suspend.svg 'Ghaf Power Control' "$MSG"
+            exit 1
+          ''
+      }
+      ;;
       logout)
         wayland-logout
         loginctl kill-user "$USER" -s SIGKILL
