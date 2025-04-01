@@ -72,6 +72,16 @@ let
       };
     };
 
+    # Graphics profiles module
+    graphics = {
+      config.ghaf.profiles.graphics = {
+        inherit (configHost.ghaf.profiles.graphics) compositor renderer;
+        idleManagement = {
+          inherit (configHost.ghaf.profiles.graphics.idleManagement) enable;
+        };
+      };
+    };
+
     # Audio module
     audio = optionalAttrs cfg.audiovm.audio { config.ghaf.services.audio.enable = true; };
 
@@ -206,6 +216,7 @@ in
         kernelConfigs.guivm
         firmwareModule
         qemuModules.guivm
+        serviceModules.graphics
         serviceModules.fprint
         serviceModules.yubikey
         serviceModules.givc

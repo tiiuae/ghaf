@@ -18,6 +18,7 @@ let
   commonModules = [
     self.nixosModules.disko-debug-partition
     self.nixosModules.reference-profiles
+    self.nixosModules.profiles
   ];
 
   # concatinate modules that are specific to a target
@@ -111,7 +112,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = lib.mkForce false;
+          profiles.graphics.idleManagement.enable = false;
         };
       }
     ]))
@@ -121,7 +122,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = lib.mkForce false;
+          profiles.graphics.idleManagement.enable = false;
         };
       }
     ]))
