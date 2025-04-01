@@ -55,6 +55,14 @@ in
         '';
       };
     };
+    allowSuspend = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Allow the system to suspend. When enabled, the system will suspend via either the suspend icon,
+        lid close, or button press.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
