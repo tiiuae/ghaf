@@ -5,14 +5,6 @@ let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
 in
 {
-  imports = [
-    ../appvms
-    ../programs
-    ../services
-    ../personalize
-    ../desktop
-  ];
-
   options.ghaf.reference.profiles.mvp-user-trial = {
     enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
   };
