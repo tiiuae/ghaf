@@ -9,8 +9,7 @@
 }:
 let
   vmName = "gpu-vm";
-  macAddress = "02:00:00:04:04:04";
-  inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
 
   ollama-jetson = pkgs.stdenv.mkDerivation rec {
     pname = "ollama-jetson";
@@ -54,7 +53,7 @@ let
     ];
 
     dontStrip = true;
-    
+
     autoPatchelfIgnoreMissingDeps = [ "libcuda.so.1" ];
 
     sourceRoot = ".";
@@ -93,10 +92,9 @@ let
     };
   };
 
-
   # Apply patches in nvidia-modules drivers to support display and GPU passthrough
   nvidia-modules = config.boot.kernelPackages.nvidia-modules.overrideAttrs (oldAttrs: {
-    patches = (oldAttrs.patches or []) ++ [
+    patches = (oldAttrs.patches or [ ]) ++ [
       # Patch for NVGPU driver
       ./gpuvm_res/0001-gpu-add-support-for-passthrough.patch
       # Patch for NVMAP, DRM, and MC modules to support passthrough
@@ -105,11 +103,15 @@ let
       ./gpuvm_res/0003-Add-support-for-display-passthrough.patch
     ];
   });
- 
+
   # Derivation to build the GPU-VM guest device tree
   gpuvm-dtb = pkgs.stdenv.mkDerivation {
     name = "gpuvm-dtb";
-    phases = [ "unpackPhase" "buildPhase" "installPhase" ];
+    phases = [
+      "unpackPhase"
+      "buildPhase"
+      "installPhase"
+    ];
     src = ./gpuvm_res/tegra234-gpuvm.dts;
     nativeBuildInputs = with pkgs; [
       dtc
@@ -138,25 +140,28 @@ let
 
   gpuvmBaseConfiguration = {
     imports = [
+      inputs.self.nixosModules.profiles
       inputs.impermanence.nixosModules.impermanence
-      inputs.self.nixosModules.givc-guivm
-      (import ./common/vm-networking.nix {
-        inherit
-          config
-          lib
-          vmName
-          ;
-      })
+      inputs.self.nixosModules.givc
+      inputs.self.nixosModules.vm-modules
+      # (import ../common/vm-networking.nix {
+      #   inherit
+      #     config
+      #     lib
+      #     vmName
+      #     ;
+      # })
 
-      ./common/storagevm.nix
+      # ../common/storagevm.nix
       #./common/xdgitems.nix
 
       # To push logs to central location
-      ../../../common/logging/client.nix
+      # ../../common/logging/client.nix
       (
         { lib, pkgs, ... }:
         let
           # A list of applications from all AppVMs
+          enabledVms = lib.filterAttrs (_: vm: vm.enable) config.ghaf.virtualization.microvm.appvm.vms;
           virtualApps = lib.lists.concatMap (
             vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
           ) config.ghaf.virtualization.microvm.appvm.vms;
@@ -167,6 +172,7 @@ let
             inherit (app) description;
             #inherit (app) givcName;
             vm = app.vmName;
+            # TODO: Has givc command been updated? Guivm has `start app..`, investigate..
             path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start --vm ${vm} ${app.givcName}";
             inherit (app) icon;
           }) virtualApps;
@@ -180,23 +186,23 @@ let
         in
         {
           imports = [
-            ../../../common
-            ../../../desktop
-            ../../../reference/services
+            ../../common
+            ../../desktop
+            ../../reference/services
           ];
 
           ghaf = {
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
-              applications.enable = false;
+              # applications.enable = false;
               graphics.enable = true;
             };
             users.loginUser.enable = true;
 
             # Temporary solution
-            users.admin.extraGroups = [ 
-              "aduio" 
+            users.admin.extraGroups = [
+              "aduio"
               "video"
             ];
 
@@ -228,31 +234,45 @@ let
               enable = true;
               name = vmName;
             };
-            
+
+            # Networking
+            # ----------------
+            # TODO: Temporarily disabled becasue of the following:
+            # error: attribute 'gpu-vm' missing
+            #  at /nix/store/hpc80jcslcl6glx2j081g88rymcxya0r-source/modules/microvm/common/vm-networking.nix:73:43:
+            #      72|       links."10-${cfg.interfaceName}" = {
+            #      73|         matchConfig.PermanentMACAddress = hosts.${cfg.vmName}.mac;
+            #        |                                           ^
+            #      74|         linkConfig.Name = cfg.interfaceName;
+            # ----------------
+            # virtualization.microvm.vm-networking = {
+            #   enable = true;
+            #   inherit vmName;
+            # };
+
             # Services
 
             # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
             graphics = {
               launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
               labwc = {
-              autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
-              autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
-              securityContext = map (vm: {
-                identifier = vm.name;
-                color = vm.borderColor;
-              }) config.ghaf.virtualization.microvm.appvm.vms;
-            };
+                autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
+                autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
+                securityContext = map (vm: {
+                  identifier = vm.name;
+                  color = vm.borderColor;
+                }) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
+              };
             };
 
-            logging.client = {
-              inherit (config.ghaf.logging.client) enable endpoint;
-            };
+            # Logging
+            logging.client.enable = config.ghaf.logging.enable;
 
             services = {
               disks = {
                 enable = true;
                 fileManager = "${pkgs.pcmanfm}/bin/pcmanfm";
-          };
+              };
             };
 
             #reference.services.ollama = true;
@@ -261,35 +281,35 @@ let
 
           services = {
             acpid = lib.mkIf config.ghaf.givc.enable {
-            enable = true;
-            lidEventCommands = ''
-              case "$1" in
-                "button/lid LID close")
-                  # Lock sessions
-                  ${pkgs.systemd}/bin/loginctl lock-sessions
+              enable = true;
+              lidEventCommands = ''
+                case "$1" in
+                  "button/lid LID close")
+                    # Lock sessions
+                    ${pkgs.systemd}/bin/loginctl lock-sessions
 
-                  # Switch off display, if wayland is running
-                  if ${pkgs.procps}/bin/pgrep -fl "wayland" > /dev/null; then
-                    wl_running=1
-                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
-                  else
-                    wl_running=0
-                  fi
+                    # Switch off display, if wayland is running
+                    if ${pkgs.procps}/bin/pgrep -fl "wayland" > /dev/null; then
+                      wl_running=1
+                      WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
+                    else
+                      wl_running=0
+                    fi
 
-                  # Initiate Suspension
-                    ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} suspend
+                    # Initiate Suspension
+                      ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} suspend
 
-                  # Enable display
-                  if [ "$wl_running" -eq 1 ]; then
-                    WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
-                  fi
-                  ;;
-                "button/lid LID open")
-                  # Command to run when the lid is opened
-                  ;;
-              esac
-            '';
-          };
+                    # Enable display
+                    if [ "$wl_running" -eq 1 ]; then
+                      WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
+                    fi
+                    ;;
+                  "button/lid LID open")
+                    # Command to run when the lid is opened
+                    ;;
+                esac
+              '';
+            };
 
             # Suspend inside Qemu causes segfault
             # See: https://gitlab.com/qemu-project/qemu/-/issues/2321
@@ -382,7 +402,6 @@ let
             # but are used in the host.
             kernelParams = [ "clk_ignore_unused pd_ignore_unused" ];
 
-
             shares = [
               # {
               #   tag = "waypipe-ssh-public-key";
@@ -390,13 +409,13 @@ let
               #   mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
               #   proto = "virtiofs";
               # }
-                {
-                  tag = "ro-store";
-                  source = "/nix/store";
-                  mountPoint = "/nix/.ro-store";
-                  proto = "virtiofs";
-                }
-              ];
+              {
+                tag = "ro-store";
+                source = "/nix/store";
+                mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
+            ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
             qemu = {
@@ -404,7 +423,7 @@ let
               # Devices to passthrough to the GPU-VM
               extraArgs = [
                 "-dtb"
-                "${gpuvm-dtb.out}/tegra234-gpuvm.dtb"               
+                "${gpuvm-dtb.out}/tegra234-gpuvm.dtb"
                 "-device"
                 "vfio-platform,host=60000000.vm_hs_p,mmio-base=0x60000000"
                 "-device"
@@ -497,12 +516,12 @@ in
         }
       );
       default = [ ];
-  };
+    };
   };
 
   config = lib.mkIf cfg.enable {
     services.udev.extraRules = ''
-      # Allow group kvm to all devices that are binded to vfio 
+      # Allow group kvm to all devices that are binded to vfio
       SUBSYSTEM=="vfio",GROUP="kvm"
       SUBSYSTEM=="chardrv", KERNEL=="bpmp-host", GROUP="kvm", MODE="0660"
     '';
@@ -558,7 +577,7 @@ in
       config = gpuvmBaseConfiguration // {
         hardware.nvidia = {
           modesetting.enable = true;
-          open = false;  # Important for Tegra
+          open = false; # Important for Tegra
         };
 
         # Create admin home folder; temporary solution
@@ -571,7 +590,6 @@ in
           l4t-xusb-firmware # usb firmware also present in linux-firmware package, but that package is huge and has much more than needed
           cudaPackages.vpi2-firmware # Optional, but needed for pva_auth_allowlist firmware file used by VPI2
         ];
-
 
         #####################################################################
         # Nvidia graphics for wayland are commeted becuase it is not working
@@ -591,7 +609,6 @@ in
         #     ''
         #       logind-check-graphical = false
         #     '';
-
 
         # # Force the driver, since otherwise the fbdev or modesetting X11 drivers
         # # may be used, which don't work and can interfere with the correct
@@ -650,14 +667,11 @@ in
         #     l4t-wayland
         #   ];
 
-
-
         imports = gpuvmBaseConfiguration.imports ++ cfg.extraModules;
         boot = {
-          kernelPackages = config.boot.kernelPackages;
-          extraModulePackages = [nvidia-modules];
+          inherit (config.boot) kernelPackages;
+          extraModulePackages = [ nvidia-modules ];
 
-          
           #####################################################################
           # Nvidia modules for wayland are commeted becuase it is not working
           # and when enable the GPU applications do not work
@@ -675,7 +689,6 @@ in
           #   nvidia-drm
           #   options nvidia-drm modeset=1
           # '';
-
 
           kernelPatches = [
             {
@@ -701,7 +714,7 @@ in
           # Modules to support microvm storage system
           initrd = {
             # Override the available kernel modules
-            availableKernelModules = lib.mkForce [ 
+            availableKernelModules = lib.mkForce [
               "virtio_mmio"
               "virtio_pci"
               "virtio_blk"
@@ -713,7 +726,7 @@ in
               "ext4"
             ];
             # Override the required kernel modules
-            kernelModules = lib.mkForce [ 
+            kernelModules = lib.mkForce [
               "virtio_mmio"
               "virtio_pci"
               "virtio_blk"
