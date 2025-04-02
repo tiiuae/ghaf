@@ -245,40 +245,6 @@
 <h2 id="hardware-security-module"><a class="header" href="#hardware-security-module">Hardware Security Module</a></h2>
 <p>On-premises solution can be further improved by adding a Hardware Security Module (HSM). It is a physical device for managing cryptographic material such as digital keys.</p>
 <p>HSM can be also used to perform cryptographic operations such as digital signing, encryption, and decryption. The HSM contains one or more Secure Cryptoprocessors that are dedicated microprocessors optimized for carrying out cryptographic operations.</p>
-<p>One example of affordable HSM solutions is YubiHSM developed by Yubico.</p>
-<h3 id="hsm-variants-for-consideration"><a class="header" href="#hsm-variants-for-consideration">HSM Variants for Consideration</a></h3>
-<p>The following HSM solutions are considered for the Ghaf project:</p>
-<ul>
-<li><a href="https://www.yubico.com/fi/product/yubihsm-2/" title="YubiHSM2">YubiHSM2</a></li>
-<li><a href="https://shop.nitrokey.com/shop/product/nkhs2-nitrokey-hsm-2-7" title="NitrokeyHSM2">NitrokeyHSM2</a></li>
-<li><a href="https://github.com/opendnssec/SoftHSMv2" title="SoftHSMv2">SoftHSMv2</a></li>
-<li>BreadboardHSM</li>
-</ul>
-<p>The following table provides feature comparison of the proposed solutions:</p>
-<div class="mdbook-alerts mdbook-alerts-important">
-<p class="mdbook-alerts-title">
-  <span class="mdbook-alerts-icon"></span>
-  important
-</p>
-<p>Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.</p>
-</div>
-<div class="table-wrapper"><table><thead><tr><th>Feature</th><th>YubiHSM 2</th><th>NitrokeyHSM2</th><th>SoftHSMv2</th><th>BreadboardHSM</th></tr></thead><tbody>
-<tr><td>Secure key storage</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
-<tr><td>ECC</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
-<tr><td>EdDSA (ed25519)</td><td>✓</td><td></td><td>?</td><td></td></tr>
-<tr><td>ECDSA</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
-<tr><td>RSA</td><td>✓</td><td>✓</td><td>✓</td><td></td></tr>
-<tr><td>PKCS#11 interface</td><td>✓</td><td>✓</td><td>✓</td><td>✓</td></tr>
-<tr><td>Network shareable</td><td>✓</td><td></td><td>✓</td><td></td></tr>
-<tr><td>M of N wrap rule</td><td>✓</td><td>✓</td><td></td><td></td></tr>
-<tr><td>Tamper evident audit logging</td><td>✓</td><td></td><td></td><td></td></tr>
-<tr><td>Storage capacity</td><td>128KB, 255xAny ECC</td><td>76KB, 35xECC-512</td><td></td><td>9.7Kb, 16 slots</td></tr>
-<tr><td>Price</td><td>650EUR (VAT 0%)</td><td>99 EUR</td><td>FOSS</td><td>HW Costs</td></tr>
-</tbody></table>
-</div>
-<p>YubiHSM2 is the leading solution considering its cryptographic capabilities. However, taking into account quite modest needs of SCS, NitrokeyHSM2 represents an adequate option.</p>
-<p>The main benefit of YubiHSM2 from SCS perspective is its native support of EdDSA-curve25519, which is the one that NixOS is using for package signing. Thus YubiHSM2 could be used directly with NixOS. However, as the package doesn't change in transit from the Build System to the Consumer, usage of inbuilt tooling is not always necessary.</p>
-<p>BreadboardHSM solution is based on Microchip ATECC608B (TrustFLEX + cryptoauthlib + gtutls), though development work is still ongoing at the time of writing this document. The SoftHSMv2 and BreadboardHSM are taken for comparison showing what can be achieved using FOSS variants.</p>
 <h2 id="ca-hierarchy-options"><a class="header" href="#ca-hierarchy-options">CA Hierarchy Options</a></h2>
 <p>CA usually consists of:</p>
 <ul>

@@ -2442,6 +2442,17 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
 </ul>
+<h2 id="ghafprofilesgraphicsallowsuspend"><a class="header" href="#ghafprofilesgraphicsallowsuspend">ghaf.profiles.graphics.allowSuspend</a></h2>
+<p>Allow the system to suspend. When enabled, the system will suspend via either the suspend icon,
+lid close, or button press.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix</a></li>
+</ul>
 <h2 id="ghafprofilesgraphicscompositor"><a class="header" href="#ghafprofilesgraphicscompositor">ghaf.profiles.graphics.compositor</a></h2>
 <p>Which Wayland compositor to use.</p>
 <p>Choose one of: labwc</p>
@@ -3079,6 +3090,46 @@ string</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/proxy-server/3proxy-config.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/proxy-server/3proxy-config.nix</a></li>
+</ul>
+<h2 id="ghafreferenceserviceswireguard-gui"><a class="header" href="#ghafreferenceserviceswireguard-gui">ghaf.reference.services.wireguard-gui</a></h2>
+<p>Whether to enable Wireguard GUI service.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services</a></li>
+</ul>
+<h2 id="ghafreferenceserviceswireguard-gui-configenable"><a class="header" href="#ghafreferenceserviceswireguard-gui-configenable">ghaf.reference.services.wireguard-gui-config.enable</a></h2>
+<p>Whether to enable Wireguard guivm configuration.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/wireguard-gui/wireguard-gui-config.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/wireguard-gui/wireguard-gui-config.nix</a></li>
+</ul>
+<h2 id="ghafreferenceserviceswireguard-gui-configvms"><a class="header" href="#ghafreferenceserviceswireguard-gui-configvms">ghaf.reference.services.wireguard-gui-config.vms</a></h2>
+<p>List of VM names where Wireguard GUI should be enabled.</p>
+<p><em>Type:</em>
+list of string</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Example:</em></p>
+<pre><code>[
+  "business-vm"
+  "chrome-vm"
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/wireguard-gui/wireguard-gui-config.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/services/wireguard-gui/wireguard-gui-config.nix</a></li>
 </ul>
 <h2 id="ghafsecurityapparmorenable"><a class="header" href="#ghafsecurityapparmorenable">ghaf.security.apparmor.enable</a></h2>
 <p>Enable Apparmor security.</p>

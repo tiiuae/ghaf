@@ -237,7 +237,8 @@
 <li>
 <p><strong>Automated vulnerability analysis</strong> is a scripted job triggered on a daily basis in Ghaf CI/CD. It consists of the following actions:</p>
 <p><strong>(1)</strong> Locally (temporarily) update the Ghaf flake lock file. Temporary lock file update is needed so the Ghaf dependencies are up-to-date with the nixpkgs input Ghaf is pinned to. Otherwise, the automated analysis results would also include vulnerabilities that have been fixed in nixpkgs upstream since the last Ghaf flake lock update.</p>
-<p><strong>(2)</strong> Run automated vulnerability analysis tooling for each relevant Ghaf build target. For Ghaf, being Nix-based, we propose to use <a href="https://github.com/tiiuae/sbomnix/tree/main/scripts/nixupdate#nix_secupdates">nix_secupdates</a> for automated vulnerability analysis. As a result of this step, the tooling generates an auto-triaged vulnerability report, which will be the main input for the manual analysis.</p>
+<p><strong>(2)</strong> Run automated vulnerability analysis tooling for each relevant Ghaf build target. For Ghaf, being Nix-based, we use <a href="https://github.com/tiiuae/sbomnix/tree/main/scripts/nixupdate#nix_secupdates">nix_secupdates</a> for automated vulnerability analysis. As a result of this step, the tooling generates an auto-triaged vulnerability report, which will be the main input for the manual analysis.</p>
+<p>Results of daily automated vulnerability analysis is available at <a href="https://github.com/tiiuae/ghafscan/tree/main/reports">https://github.com/tiiuae/ghafscan/tree/main/reports</a></p>
 </li>
 <li>
 <p><strong>Manual vulnerability analysis</strong> is a manual process, which is also executed on daily basis.</p>
