@@ -54,7 +54,7 @@
       inputs.nixpkgs-lib.follows = "nixpkgs";
     };
 
-    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts";
+    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts/7013e769c509a97cfe53c5924b45b273021225c3";
 
     flake-root.url = "github:srid/flake-root";
 
