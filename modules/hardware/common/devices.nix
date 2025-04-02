@@ -2,7 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
 let
-  inherit (lib) mkOption types mkForce;
+  inherit (lib)
+    mkOption
+    types
+    mkForce
+    concatMapStringsSep
+    ;
 in
 {
   options.ghaf.hardware.devices = {
@@ -45,7 +50,12 @@ in
             inherit (d) path;
           }) config.ghaf.hardware.definition.network.pciDevices
         );
-        ghaf.hardware.definition.network.pciDevices = config.ghaf.hardware.definition.network.pciDevices;
+        services.udev.extraRules = ''
+          ${concatMapStringsSep "/n" (
+            d:
+            ''SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${d.vendorId}", ATTRS{device}=="0x${d.productId}", NAME="${d.name}"''
+          ) config.ghaf.hardware.definition.network.pciDevices}
+        '';
       };
 
       guivmPCIPassthroughModule = {
@@ -55,7 +65,6 @@ in
             inherit (d) path qemu;
           }) config.ghaf.hardware.definition.gpu.pciDevices
         );
-        ghaf.hardware.definition.gpu.pciDevices = config.ghaf.hardware.definition.gpu.pciDevices;
       };
 
       audiovmPCIPassthroughModule = {
@@ -65,7 +74,6 @@ in
             inherit (d) path;
           }) config.ghaf.hardware.definition.audio.pciDevices
         );
-        ghaf.hardware.definition.audio.pciDevices = config.ghaf.hardware.definition.audio.pciDevices;
       };
 
       guivmVirtioInputHostEvdevModule = {

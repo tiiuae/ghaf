@@ -17,10 +17,10 @@
 
     # speciic profiles that are needed for certain classes of devices should be included below.
     # This can be on a category basis or integrated into an existing category if it has a common base
-    profiles-laptop.imports = [
+    profiles-workstation.imports = [
+      inputs.self.nixosModules.profiles
+      inputs.self.nixosModules.microvm
       ./laptop-x86.nix
-      inputs.self.nixosModules.common
-      inputs.self.nixosModules.laptop
     ];
   };
 }

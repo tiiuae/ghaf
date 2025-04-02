@@ -20,7 +20,7 @@ let
           self.nixosModules.microvm
           self.nixosModules.profiles
           self.nixosModules.reference-host-demo-apps
-          self.nixosModules.hw-x86_64-generic
+          self.nixosModules.hardware-x86_64-generic
 
           {
             ghaf = {
