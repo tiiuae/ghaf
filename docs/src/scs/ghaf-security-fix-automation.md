@@ -22,7 +22,9 @@ The process consists of two parts - **automated** and **manual**:
 
   **(1)** Locally (temporarily) update the Ghaf flake lock file. Temporary lock file update is needed so the Ghaf dependencies are up-to-date with the nixpkgs input Ghaf is pinned to. Otherwise, the automated analysis results would also include vulnerabilities that have been fixed in nixpkgs upstream since the last Ghaf flake lock update.
 
-  **(2)** Run automated vulnerability analysis tooling for each relevant Ghaf build target. For Ghaf, being Nix-based, we propose to use [nix_secupdates](https://github.com/tiiuae/sbomnix/tree/main/scripts/nixupdate#nix_secupdates) for automated vulnerability analysis. As a result of this step, the tooling generates an auto-triaged vulnerability report, which will be the main input for the manual analysis.
+  **(2)** Run automated vulnerability analysis tooling for each relevant Ghaf build target. For Ghaf, being Nix-based, we use [nix_secupdates](https://github.com/tiiuae/sbomnix/tree/main/scripts/nixupdate#nix_secupdates) for automated vulnerability analysis. As a result of this step, the tooling generates an auto-triaged vulnerability report, which will be the main input for the manual analysis.
+
+  Results of daily automated vulnerability analysis is available at <https://github.com/tiiuae/ghafscan/tree/main/reports>
 
 - **Manual vulnerability analysis** is a manual process, which is also executed on daily basis.
 
