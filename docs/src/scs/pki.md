@@ -30,44 +30,6 @@ On-premises solution can be further improved by adding a Hardware Security Modul
 
 HSM can be also used to perform cryptographic operations such as digital signing, encryption, and decryption. The HSM contains one or more Secure Cryptoprocessors that are dedicated microprocessors optimized for carrying out cryptographic operations. 
 
-One example of affordable HSM solutions is YubiHSM developed by Yubico.
-
-
-### HSM Variants for Consideration
-
-The following HSM solutions are considered for the Ghaf project:
-
-  - [YubiHSM2](https://www.yubico.com/fi/product/yubihsm-2/ "YubiHSM2")
-  - [NitrokeyHSM2](https://shop.nitrokey.com/shop/product/nkhs2-nitrokey-hsm-2-7 "NitrokeyHSM2")
-  - [SoftHSMv2](https://github.com/opendnssec/SoftHSMv2 "SoftHSMv2")
-  - BreadboardHSM
-
-The following table provides feature comparison of the proposed solutions: 
-
-> [!IMPORTANT]
-> Since the feature list is quite extensive, the table is limited to the features that are either planned to be used in Ghaf or might benefit the project in the future.
-
-| Feature                      | YubiHSM 2    | NitrokeyHSM2 | SoftHSMv2    | BreadboardHSM |
-|------------------------------|--------------|--------------|--------------|---------------|
-| Secure key storage           |       ✓      |       ✓      |       ✓      |       ✓       |
-| ECC                          |       ✓      |       ✓      |       ✓      |       ✓       |
-| EdDSA (ed25519)              |       ✓      |              |       ?      |               |
-| ECDSA                        |       ✓      |       ✓      |       ✓      |       ✓       |
-| RSA                          |       ✓      |       ✓      |       ✓      |               |
-| PKCS#11 interface            |       ✓      |       ✓      |       ✓      |       ✓       |
-| Network shareable            |       ✓      |              |       ✓      |               |
-| M of N wrap rule             |       ✓      |       ✓      |              |               |
-| Tamper evident audit logging |       ✓      |              |              |               |
-| Storage capacity             | 128KB, 255xAny ECC | 76KB, 35xECC-512 |    | 9.7Kb, 16 slots |
-| Price                        | 650EUR (VAT 0%) | 99 EUR | FOSS | HW Costs |
-
-YubiHSM2 is the leading solution considering its cryptographic capabilities. However, taking into account quite modest needs of SCS, NitrokeyHSM2 represents an adequate option. 
-
-The main benefit of YubiHSM2 from SCS perspective is its native support of EdDSA-curve25519, which is the one that NixOS is using for package signing. Thus YubiHSM2 could be used directly with NixOS. However, as the package doesn't change in transit from the Build System to the Consumer, usage of inbuilt tooling is not always necessary.
-
-BreadboardHSM solution is based on Microchip ATECC608B (TrustFLEX + cryptoauthlib + gtutls), though development work is still ongoing at the time of writing this document. The SoftHSMv2 and BreadboardHSM are taken for comparison showing what can be achieved using FOSS variants. 
-
-
 ## CA Hierarchy Options
 
 CA usually consists of:

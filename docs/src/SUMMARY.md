@@ -61,7 +61,6 @@
 - [Continuous Integration and Distribution](scs/ci-cd-system.md)
 - [Supply Chain Security](scs/scs.md)
     - [SLSA Framework](scs/slsa-framework.md)
-    - [Basic Security Measures](scs/basics.md)
     - [Software Bill of Materials](scs/sbom.md)
     - [Public Key Infrastructure](scs/pki.md)
     - [Security Fix Automation](scs/ghaf-security-fix-automation.md)
