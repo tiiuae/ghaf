@@ -78,14 +78,7 @@ let
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 # Currently we have mostly xavier nx based carrier boards
-                # ----------------
-                # TODO: Disabled because of the following evaluation error:
-                # error: A definition for option `hardware.nvidia-jetpack.carrierBoard' is not of type `one of "generic", "devkit"'. Definition values:
-                #  - In `/nix/store/cy6yqhhkxs1xcssnj2y0hak7zpcryd9r-source/modules/reference/hardware/jetpack/nvidia-jetson-orin/jetson-orin.nix': "xavierNXdevkit"
-                #
-                # This error is due to us using an older branch of jetpack-nixos. The following commit is required to make this work https://github.com/tiiuae/jetpack-nixos/commit/98f0466341a3b3a6188961dd346089528f4bfb3c
-                # ----------------
-                # carrierBoard = if som == "nx" then "xavierNXdevkit" else "devkit";
+                carrierBoard = if som == "nx" then "xavierNXdevkit" else "devkit";
               };
 
               hardware.nvidia = {
