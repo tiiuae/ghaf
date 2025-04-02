@@ -11,7 +11,7 @@
   ProtectKernelTunables = true;
   ProtectKernelModules = true;
   ProtectKernelLogs = true;
-  NoNewPrivileges = true;
+  NoNewPrivileges = false;
   UMask = 77;
   ProtectHostname = true;
   ProtectClock = true;
