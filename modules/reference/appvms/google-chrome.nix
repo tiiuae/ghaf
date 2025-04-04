@@ -68,14 +68,6 @@
             ];
           }
         )
-      ])
-      ++ (lib.optionals config.ghaf.reference.services.wireguard-gui [
-        {
-          name = "Wireguard ChromeVM";
-          description = "WireGuard VPN configuration tool for app-vms";
-          icon = "airvpn";
-          command = "wireguard-gui-launcher";
-        }
       ]);
     extraModules = [
       {

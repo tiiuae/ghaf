@@ -145,7 +145,7 @@
     };
 
     ctrl-panel = {
-      url = "github:tiiuae/ghaf-ctrl-panel/555a414a5d50eed7f17e7f45221eba0261c40dc6";
+      url = "github:tiiuae/ghaf-ctrl-panel/c598cf55ed9cc9be29f88d78bf2495393292335c";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

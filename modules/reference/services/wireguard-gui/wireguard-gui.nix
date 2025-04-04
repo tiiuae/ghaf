@@ -35,10 +35,16 @@ in
         #  files = [ "/etc/wireguard/wg0.conf" ];
       };
 
+    ghaf.givc.appvm.applications = [
+      {
+        name = "wireguard-gui";
+        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${wireguard-gui-launcher}/bin/wireguard-gui-launcher";
+      }
+    ];
+
     environment.systemPackages = [
       pkgs.polkit
       pkgs.wireguard-tools
-      wireguard-gui-launcher
     ];
 
     security.polkit = {

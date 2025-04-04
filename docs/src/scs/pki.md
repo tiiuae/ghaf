@@ -48,4 +48,3 @@ In a three-tier CA, an intermediate CA is placed between the Root CA and the Sub
 The following diagram describes the proposed CA for the SCS. The three-tier CA is chosen based on the high-security level and the potential need to scale it to several projects, later on, keeping the main control under the same Root CA.
 
 ![Proposed CA](../img/ca_implementation.drawio.png "CA Implementation Proposal")
-
