@@ -144,19 +144,6 @@ let
       inputs.impermanence.nixosModules.impermanence
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
-      # (import ../common/vm-networking.nix {
-      #   inherit
-      #     config
-      #     lib
-      #     vmName
-      #     ;
-      # })
-
-      # ../common/storagevm.nix
-      #./common/xdgitems.nix
-
-      # To push logs to central location
-      # ../../common/logging/client.nix
       (
         { lib, pkgs, ... }:
         let
@@ -173,7 +160,7 @@ let
             #inherit (app) givcName;
             vm = app.vmName;
             # TODO: Has givc command been updated? Guivm has `start app..`, investigate..
-            path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start --vm ${vm} ${app.givcName}";
+            path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
             inherit (app) icon;
           }) virtualApps;
           # Launchers for all desktop, non-virtualized applications that run in the GUIVM
@@ -195,7 +182,6 @@ let
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
-              # applications.enable = false;
               graphics.enable = true;
             };
             users.loginUser.enable = true;
@@ -227,7 +213,7 @@ let
               withHardenedConfigs = true;
             };
 
-            givc.guivm.enable = true;
+            # givc.guivm.enable = true;
 
             # Storage
             storagevm = {
@@ -245,10 +231,10 @@ let
             #        |                                           ^
             #      74|         linkConfig.Name = cfg.interfaceName;
             # ----------------
-            # virtualization.microvm.vm-networking = {
-            #   enable = true;
-            #   inherit vmName;
-            # };
+            virtualization.microvm.vm-networking = {
+              enable = true;
+              inherit vmName;
+            };
 
             # Services
 
@@ -463,7 +449,7 @@ let
 in
 {
   options.ghaf.virtualization.microvm.gpuvm = {
-    enable = lib.mkEnableOption "gpuvm";
+    enable = lib.mkEnableOption "GPUVM";
 
     extraModules = lib.mkOption {
       description = ''
