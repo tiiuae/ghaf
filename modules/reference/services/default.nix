@@ -13,13 +13,22 @@ let
 
   appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "vms" ] { } config;
   wireguardGuiEnabledVms = lib.lists.map (app: app.vmName) (
-    lib.lists.filter (app: app.command == "wireguard-gui-launcher") (
-      lib.lists.concatMap (vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications) (
-        lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
-          lib.filterAttrs (_: vm: vm.enable) appVms
+    lib.lists.filter
+      (
+        app:
+        let
+          services = lib.attrByPath [ "ghaf" "reference" "services" ] { } app;
+          wgService = services."wireguard-gui" or null;
+        in
+        wgService != null && (wgService.enable or false)
+      )
+      (
+        lib.lists.concatMap (vm: map (app: (app // { vmName = "${vm.name}-vm"; })) vm.extraModules) (
+          lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
+            lib.filterAttrs (_: vm: vm.enable) appVms
+          )
         )
       )
-    )
   );
 in
 {

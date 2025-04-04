@@ -132,15 +132,7 @@
           icon = "losslesscut";
           command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
         }
-      ]
-      ++ (lib.optionals config.ghaf.reference.services.wireguard-gui [
-        {
-          name = "Wireguard BusinessVM";
-          description = "WireGuard VPN configuration tool";
-          icon = "airvpn";
-          command = "wireguard-gui-launcher";
-        }
-      ]);
+      ];
     extraModules = [
 
       {
