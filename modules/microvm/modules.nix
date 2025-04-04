@@ -229,6 +229,12 @@ in
       idsvm.extraModules = optionals cfg.idsvm.enable [
         commonModule
       ];
+    } // {
+      # Common modules
+      gpuvm.extraModules = optionals cfg.gpuvm.enable [
+        managedUserAccounts
+        commonModule
+      ];
     };
   };
 }
