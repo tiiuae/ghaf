@@ -53,7 +53,6 @@ let
     ];
 
     dontStrip = true;
-
     autoPatchelfIgnoreMissingDeps = [ "libcuda.so.1" ];
 
     sourceRoot = ".";
