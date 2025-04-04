@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 { lib, config, ... }:
 let
+  kernelVersion = config.boot.kernelPackages.kernel.version;
   cfg = config.ghaf.hardware.nvidia.virtualization;
 in
 {
@@ -20,19 +21,11 @@ in
   config = lib.mkIf cfg.enable {
     boot.kernelPatches = [
       {
-        name = "Added Configurations to Support Vda";
+        name = "Added Configurations to Support VFIO";
         patch = null;
         extraStructuredConfig = with lib.kernel; {
-          PCI_STUB = lib.mkDefault yes;
           VFIO = lib.mkDefault yes;
-          VIRTIO_PCI = lib.mkDefault yes;
-          VIRTIO_MMIO = lib.mkDefault yes;
-          HOTPLUG_PCI = lib.mkDefault yes;
-          PCI_DEBUG = lib.mkDefault yes;
-          PCI_HOST_GENERIC = lib.mkDefault yes;
           VFIO_IOMMU_TYPE1 = lib.mkDefault yes;
-          HOTPLUG_PCI_ACPI = lib.mkDefault yes;
-          PCI_HOST_COMMON = lib.mkDefault yes;
           VFIO_PLATFORM = lib.mkDefault yes;
           TEGRA_BPMP_GUEST_PROXY = lib.mkDefault no;
           TEGRA_BPMP_HOST_PROXY = lib.mkDefault no;
@@ -42,20 +35,33 @@ in
         name = "Vfio_platform Reset Required False";
         patch = ./patches/0002-vfio_platform-reset-required-false.patch;
       }
-      # {
-      #   name = "Bpmp Support Virtualization";
-      #   patch = ./patches/0003-bpmp-support-bpmp-virt.patch;
-      # }
-      # {
-      #   name = "Bpmp Virt Drivers";
-      #   patch = ./patches/0004-bpmp-virt-drivers-5-15.patch;
-      # }
-      # {
-      #   name = "Bpmp Overlay";
-      #   patch = ./patches/0005-bpmp-overlay.patch;
-      # }
+      (
+        if lib.versionAtLeast kernelVersion "6.6" then
+          {
+            name = "Add bpmp-virt modules";
+            patch = ./patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-6.6.patch;
+          }
+        else if lib.versions.majorMinor kernelVersion == "5.15" then
+          {
+            name = "Add bpmp-virt modules";
+            patch = ./patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch;
+          }
+        else
+          null
+      )
+      {
+        # This patch allows all BPMP (clocks, reset, and power) domains to be accessed
+        # by the virtual machine. This is required if not all domains are defined in
+        # the host device tree. After the passthrough is working, the required domains
+        # should be defined in the host device tree and this patch should be commented.
+        name = "Bpmp-host: allows all domains";
+        patch = ./patches/0002-Bpmp-host-allows-all-domains.patch;
+      }
     ];
 
-    boot.kernelParams = [ "vfio_iommu_type1.allow_unsafe_interrupts=1" ];
+    boot.kernelParams = [
+      "vfio_iommu_type1.allow_unsafe_interrupts=1"
+      "arm-smmu.disable_bypass=0"
+    ];
   };
 }
