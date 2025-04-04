@@ -22,9 +22,9 @@
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix;
       }
     ];
-    hardware-dell-latitude-7330.imports = [
+    hardware-dell-latitude-7330-72.imports = [
       {
-        ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
+        ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330-72.nix;
       }
     ];
     # New variant as network device may enumerate on different PCI BUS on same model of Dell 7330
