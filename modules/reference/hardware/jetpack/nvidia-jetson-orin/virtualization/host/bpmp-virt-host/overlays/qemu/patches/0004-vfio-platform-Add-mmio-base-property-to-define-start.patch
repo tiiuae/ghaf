@@ -164,4 +164,3 @@ index c414c3dffc..90575b5852 100644
  typedef struct VFIOPlatformDevice VFIOPlatformDevice;
 -- 
 2.34.1
-
