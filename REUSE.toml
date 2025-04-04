@@ -22,8 +22,14 @@ path = [
   "modules/development/audio_test/test_file1.mp3",
   "modules/hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86",
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
+<<<<<<< HEAD
   "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*",
   "modules/reference/hardware/jetpack/0001-ARM-SMMU-drivers-return-always-true-for-IOMMU_CAP_CA.patch"
+=======
+  "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*"
+  "modules/microvm/sysvms/gpuvm_res/*",
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/*",
+>>>>>>> f730c80 (Add patch files to REUSE.toml)
 ]
 
 [[annotations]]
