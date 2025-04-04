@@ -88,7 +88,7 @@ let
       }
     ]))
     (laptop-configuration "dell-latitude-7330" "debug" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7330
+      self.nixosModules.hardware-dell-latitude-7330-72
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
@@ -177,7 +177,7 @@ let
       }
     ]))
     (laptop-configuration "dell-latitude-7330" "release" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7330
+      self.nixosModules.hardware-dell-latitude-7330-72
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
