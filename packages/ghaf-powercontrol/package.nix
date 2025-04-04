@@ -13,14 +13,11 @@
 }:
 let
   useGivc = ghafConfig.givc.enable;
-  # Handle Wayland display power state
-  waylandDisplayCmd = command: ''
-    WAYLAND_DISPLAY=/run/user/${builtins.toString ghafConfig.users.loginUser.uid}/wayland-0 \
-    wlopm --${command} '*'
-  '';
 in
 writeShellApplication {
   name = "ghaf-powercontrol";
+
+  bashOptions = [ ];
 
   runtimeInputs = [
     systemd
@@ -50,6 +47,40 @@ writeShellApplication {
         exit 0
     fi
 
+    try_toggle_displays() {
+      local cmd
+      local uid=${toString ghafConfig.users.loginUser.uid}
+
+      # Determine the wlopm command
+      if [ "$1" = true ]; then
+        cmd="wlopm --on '*'"
+      else
+        cmd="wlopm --off '*'"
+      fi
+
+      # Try wlopm without setting WAYLAND_DISPLAY first
+      if eval "$cmd"; then
+        return 0
+      fi
+
+      # Try each wayland-N socket
+      echo "Trying to find a valid wayland socket..."
+      for i in {0..9}; do
+        export WAYLAND_DISPLAY="/run/user/$uid/wayland-$i"
+        echo "Trying WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
+        if [ -e "$WAYLAND_DISPLAY" ]; then
+          if eval "$cmd"; then
+            echo "Displays toggled successfully with WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
+            return 0
+          fi
+        fi
+      done
+
+      echo "Could not find a valid wayland socket"
+      echo "Displays could not be toggled"
+      return 1
+    }
+
     case "$1" in
       reboot|poweroff)
         ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} "$1"
@@ -59,17 +90,25 @@ writeShellApplication {
         if ghafConfig.profiles.graphics.allowSuspend then
           ''
             # Lock sessions
+            echo "Locking session..."
             loginctl lock-session
 
-            # Switch off display before suspension
-            ${waylandDisplayCmd "off"}
+            echo "Turning off displays..."
+            try_toggle_displays false || true
 
             # Send suspend command to host, ensure screen is on in case of failure
             ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend \
-              || ${waylandDisplayCmd "on"}
+              || try_toggle_displays true || true
 
             # Switch on display on wakeup
-            ${waylandDisplayCmd "on"}
+            echo "Wake up detected, turning on displays..."
+            # Wait a little to ensure system is awake
+            sleep 1
+            # Sanity check turn off displays
+            try_toggle_displays false || true
+            # Turn on displays
+            # NOTE: This is a workaround for the issue where the display does not turn on after suspend
+            try_toggle_displays true || true
           ''
         else
           ''
