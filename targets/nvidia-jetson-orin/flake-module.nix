@@ -102,6 +102,8 @@ let
                   enable = true;
                   renderer = "gles2";
                   idleManagement.enable = false;
+                  # Disable suspend by default, not working as intended
+                  allowSuspend = false;
                 };
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
