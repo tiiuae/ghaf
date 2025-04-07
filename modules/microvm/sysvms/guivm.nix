@@ -271,6 +271,8 @@ let
             qemu = {
               extraArgs = [
                 "-device"
+                "qemu-xhci"
+                "-device"
                 "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
               ];
 
