@@ -29,53 +29,47 @@ in
       audio_test.source = ./audio_test;
     };
     environment.systemPackages =
-      builtins.attrValues {
-        inherit (pkgs)
-          # For lspci:
+      [
+        # For lspci:
+        pkgs.pciutils
+        # For lsusb:
+        pkgs.usbutils
+        # Useful in NetVM
+        pkgs.ethtool
+        # Basic monitors
+        pkgs.iftop
+        pkgs.iotop
+        pkgs.traceroute
+        pkgs.dig
+        pkgs.evtest
 
-          pciutils
-          # For lsusb:
+        # for finding and navigation
+        pkgs.fd
+        (pkgs.ripgrep.override { withPCRE2 = true; })
 
-          usbutils
-          # Useful in NetVM
+        # For deleting Linux Boot Manager entries in automated testing
+        pkgs.efibootmgr
 
-          ethtool
-          # Basic monitors
+        # Performance testing
+        pkgs.speedtest-cli
+        pkgs.iperf
+        pkgs.tree
+        pkgs.file
 
-          iftop
-          iotop
-          traceroute
-          dig
-          evtest
-          # For deleting Linux Boot Manager entries in automated testing
+        # to build ghaf on target
+        pkgs.git
 
-          efibootmgr
-          # Performance testing
+        # Grpc testing
+        pkgs.grpcurl
 
-          speedtest-cli
-          iperf
-          tree
-          file
+        pkgs.lshw
 
-          # to build ghaf on target
-          git
-
-          # Grpc testing
-
-          grpcurl
-
-          lshw
-          ;
-      }
-      ++
-        # Match perf version with kernel.
-        [
-          #(config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
-          sysbench-test-script
-          sysbench-fileio-test-script
-          nvpmodel-check
-          rm-linux-bootmgrs
-        ]
+        #(config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
+        sysbench-test-script
+        sysbench-fileio-test-script
+        nvpmodel-check
+        rm-linux-bootmgrs
+      ]
       ++ rmDesktopEntries [ pkgs.htop ]
       #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
       ++ lib.optional (
@@ -98,5 +92,12 @@ in
         pkgs.ffmpeg_7
         pkgs.v4l-utils
       ]);
+
+    programs = {
+      fzf = {
+        fuzzyCompletion = true;
+        keybindings = true;
+      };
+    };
   };
 }
