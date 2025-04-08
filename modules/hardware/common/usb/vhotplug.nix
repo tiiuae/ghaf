@@ -47,6 +47,10 @@ let
           subclass = 6;
           description = "Mass Storage - SCSI (USB drives)";
         }
+        {
+          class = 17;
+          description = "USB-C alternate modes supported by device";
+        }
       ];
       evdevPassthrough = {
         enable = cfg.enableEvdevPassthrough;

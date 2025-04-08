@@ -93,6 +93,8 @@
         path = "0000:00:02.0";
         vendorId = "8086";
         productId = "46aa";
+        # opregion is required for type-c display to work
+        qemu.deviceExtraArgs = "x-igd-opregion=on";
         # Detected kernel driver: i915
         # Detected kernel modules: i915
       }
