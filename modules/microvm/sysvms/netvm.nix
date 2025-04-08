@@ -57,13 +57,6 @@ let
               directories = [ "/etc/NetworkManager/system-connections/" ];
             };
 
-            # Networking
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              isGateway = true;
-              inherit vmName;
-            };
-
             # Services
             logging.client.enable = config.ghaf.logging.enable;
           };
@@ -139,16 +132,41 @@ in
       '';
       default = [ ];
     };
+    extraNetworking = lib.mkOption {
+      type =
+        let
+          extraNetworkingType = import ../../common/networking/common_types.nix { inherit lib; };
+        in
+        extraNetworkingType;
+      description = "Extra Networking option";
+      default = { };
+    };
   };
 
   config = lib.mkIf cfg.enable {
+
+    ghaf.common.extraNetworking.hosts.net-vm = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = true;
       restartIfChanged = false;
       inherit (inputs) nixpkgs;
       config = netvmBaseConfiguration // {
         imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
+        # Networking
+        ghaf.virtualization.microvm.vm-networking =
+          {
+            enable = true;
+            isGateway = true;
+            inherit vmName;
+          }
+          // lib.optionalAttrs ((cfg.extraNetworking.interfaceName or null) != null) {
+            inherit (cfg.extraNetworking) interfaceName;
+          };
+
       };
+
     };
+
   };
 }

@@ -24,6 +24,7 @@ in
     # This line breaks build of GUIVM. No investigations of a
     # root cause are done so far.
     #(modulesPath + "/profiles/minimal.nix")
+
   ];
 
   options.ghaf = {
@@ -42,6 +43,17 @@ in
         type = types.listOf types.str;
         default = [ ];
         description = "List of app hosts currently enabled.";
+      };
+      extraNetworking = {
+        hosts = mkOption {
+          type =
+            let
+              extraNetworkingType = import ./networking/common_types.nix { inherit lib; };
+            in
+            types.attrsOf extraNetworkingType;
+          description = "Extra host entries that override or extend the generated ones.";
+          default = { };
+        };
       };
       hardware = {
         nics = mkOption {
@@ -69,8 +81,8 @@ in
         "app-vm"
       ];
     };
-  };
 
+  };
   config = {
 
     # Populate the shared namespace

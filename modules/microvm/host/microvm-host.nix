@@ -33,6 +33,15 @@ in
   options.ghaf.virtualization.microvm-host = {
     enable = mkEnableOption "MicroVM Host";
     networkSupport = mkEnableOption "Network support services to run host applications.";
+    extraNetworking = lib.mkOption {
+      type =
+        let
+          extraNetworkingType = import ../../common/networking/common_types.nix { inherit lib; };
+        in
+        extraNetworkingType;
+      description = "Extra Networking option";
+      default = { };
+    };
     sharedVmDirectory = {
       enable = mkEnableOption "shared directory" // {
         default = true;
@@ -49,12 +58,11 @@ in
       inotifyPassthrough = mkEnableOption "inotify passthrough" // {
         default = true;
       };
+
     };
   };
 
   config = mkMerge [
-    # Always set the hostname
-    { networking.hostName = lib.mkDefault "ghaf-host"; }
     (mkIf cfg.enable {
       microvm.host.enable = true;
       # microvm.host.useNotifySockets = true;
@@ -81,6 +89,7 @@ in
         givc.host.enable = true;
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
+        common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
       };
 
       services.logind.lidSwitch = "ignore";
