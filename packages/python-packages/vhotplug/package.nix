@@ -1,18 +1,21 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  python3Packages,
+  buildPythonApplication,
   fetchFromGitHub,
   qemuqmp,
+  pyudev,
+  psutil,
+  inotify-simple,
 }:
-python3Packages.buildPythonApplication {
+buildPythonApplication {
   pname = "vhotplug";
   version = "0.1";
 
   propagatedBuildInputs = [
-    python3Packages.pyudev
-    python3Packages.psutil
-    python3Packages.inotify-simple
+    pyudev
+    psutil
+    inotify-simple
     qemuqmp
   ];
 
