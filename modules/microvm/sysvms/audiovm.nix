@@ -7,6 +7,8 @@
   ...
 }:
 let
+  buildVm = import ../common/build-sysvm.nix { inherit lib inputs config; };
+
   configHost = config;
   vmName = "audio-vm";
 
@@ -55,12 +57,6 @@ let
             storagevm = {
               enable = true;
               name = vmName;
-            };
-
-            # Networking
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              inherit vmName;
             };
 
             # Services
@@ -130,15 +126,13 @@ in
       '';
       default = [ ];
     };
-  };
-
-  config = lib.mkIf cfg.enable {
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      config = audiovmBaseConfiguration // {
-        imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
-      };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
     };
   };
+
+  config = lib.mkIf cfg.enable (buildVm vmName cfg audiovmBaseConfiguration);
+
 }
