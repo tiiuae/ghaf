@@ -7,6 +7,8 @@
   ...
 }:
 let
+  buildVm = import ../common/build-sysvm.nix { inherit lib inputs config; };
+
   vmName = "net-vm";
   netvmBaseConfiguration = {
     imports = [
@@ -55,13 +57,6 @@ let
               enable = true;
               name = vmName;
               directories = [ "/etc/NetworkManager/system-connections/" ];
-            };
-
-            # Networking
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              isGateway = true;
-              inherit vmName;
             };
 
             # Services
@@ -139,16 +134,22 @@ in
       '';
       default = [ ];
     };
-  };
-
-  config = lib.mkIf cfg.enable {
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      restartIfChanged = false;
-      inherit (inputs) nixpkgs;
-      config = netvmBaseConfiguration // {
-        imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
     };
   };
+  config =
+    let
+      baseCfg = buildVm vmName cfg netvmBaseConfiguration;
+      overrideVm = {
+        microvm.vms.${vmName} = {
+          config.ghaf.virtualization.microvm.vm-networking.isGateway = true;
+          restartIfChanged = false;
+        };
+      };
+    in
+    lib.mkIf cfg.enable (lib.recursiveUpdate baseCfg overrideVm);
+
 }

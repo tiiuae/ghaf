@@ -8,6 +8,7 @@
   ...
 }:
 let
+  buildVm = import ../../common/build-sysvm.nix { inherit lib inputs config; };
   configHost = config;
   vmName = "ids-vm";
   idsvmBaseConfiguration = {
@@ -37,11 +38,7 @@ let
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
             };
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              isGateway = true;
-              inherit vmName;
-            };
+
           };
 
           system.stateVersion = lib.trivial.release;
@@ -84,15 +81,21 @@ in
       '';
       default = [ ];
     };
-  };
-
-  config = lib.mkIf cfg.enable {
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      config = idsvmBaseConfiguration // {
-        imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
     };
   };
+
+  config =
+    let
+      baseCfg = buildVm vmName cfg idsvmBaseConfiguration;
+      overrideVm = {
+        microvm.vms.${vmName} = {
+          config.ghaf.virtualization.microvm.vm-networking.isGateway = true;
+        };
+      };
+    in
+    lib.mkIf cfg.enable (lib.recursiveUpdate baseCfg overrideVm);
 }
