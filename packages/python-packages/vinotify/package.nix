@@ -1,14 +1,15 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  python3Packages,
+  buildPythonApplication,
+  inotify-simple,
 }:
-python3Packages.buildPythonApplication rec {
+buildPythonApplication {
   pname = "vinotify";
   version = "0.1";
 
   propagatedBuildInputs = [
-    python3Packages.inotify-simple
+    inotify-simple
   ];
 
   doCheck = false;

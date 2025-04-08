@@ -1,11 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  python3Packages,
+  buildPythonPackage,
   fetchPypi,
   lib,
+  setuptools-scm,
 }:
-python3Packages.buildPythonPackage rec {
+buildPythonPackage rec {
   pname = "qemu.qmp";
   version = "0.0.3";
 
@@ -16,7 +17,7 @@ python3Packages.buildPythonPackage rec {
 
   pyproject = true;
 
-  nativeBuildInputs = [ python3Packages.setuptools-scm ];
+  nativeBuildInputs = [ setuptools-scm ];
 
   meta = {
     homepage = "https://www.qemu.org/";

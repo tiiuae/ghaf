@@ -5,7 +5,7 @@
   flake.overlays.own-pkgs-overlay = final: _prev: {
     bt-launcher = final.callPackage ./pkgs-by-name/bt-launcher/package.nix { };
     dendrite-pinecone = final.callPackage ./pkgs-by-name/dendrite-pinecone/package.nix { };
-    element-gps = final.callPackage ./pkgs-by-name/element-gps/package.nix { };
+    element-gps = final.python3Packages.callPackage ./python-packages/element-gps/package.nix { };
     element-web = final.callPackage ./pkgs-by-name/element-web/package.nix { };
     flash-script = final.callPackage ./pkgs-by-name/flash-script/package.nix { };
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
@@ -20,15 +20,15 @@
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     kernel-hardening-checker =
-      final.callPackage ./pkgs-by-name/kernel-hardening-checker/package.nix
+      final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
         { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
-    qemuqmp = final.callPackage ./pkgs-by-name/qemuqmp/package.nix { };
+    qemuqmp = final.python3Packages.callPackage ./python-packages/qemuqmp/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
-    vhotplug = final.callPackage ./pkgs-by-name/vhotplug/package.nix { };
-    vinotify = final.callPackage ./pkgs-by-name/vinotify/package.nix { };
+    vhotplug = final.python3Packages.callPackage ./python-packages/vhotplug/package.nix { };
+    vinotify = final.python3Packages.callPackage ./python-packages/vinotify/package.nix { };
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
   };
