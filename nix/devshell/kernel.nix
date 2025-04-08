@@ -5,7 +5,6 @@
   perSystem =
     {
       pkgs,
-      self',
       system,
       ...
     }:
@@ -23,7 +22,7 @@
           packages = [
             pkgs.ncurses
             pkgs.pkg-config
-            self'.packages.kernel-hardening-checker
+            pkgs.kernel-hardening-checker
           ] ++ extraPackages;
 
           inputsFrom = [ linux ];
