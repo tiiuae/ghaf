@@ -137,16 +137,25 @@ in
       '';
       default = [ ];
     };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
+    };
   };
-
   config = lib.mkIf cfg.enable {
+    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = !config.ghaf.microvm-boot.enable;
       restartIfChanged = false;
       inherit (inputs) nixpkgs;
+      specialArgs = { inherit lib; };
+
       config = netvmBaseConfiguration // {
         imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
   };
+
 }

@@ -8,6 +8,7 @@
   ...
 }:
 let
+
   vmName = "gui-vm";
   #TODO do not import from a path like this
   inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
@@ -288,7 +289,11 @@ in
       '';
       default = [ ];
     };
-
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
+    };
     applications = lib.mkOption {
       description = ''
         Applications to include in the GUIVM
@@ -320,11 +325,14 @@ in
       default = [ ];
     };
   };
-
   config = lib.mkIf cfg.enable {
+    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = !config.ghaf.microvm-boot.enable;
       inherit (inputs) nixpkgs;
+      specialArgs = { inherit lib; };
+
       config = guivmBaseConfiguration // {
         boot.kernelPackages =
           if config.ghaf.guest.kernel.hardening.graphics.enable then
@@ -345,4 +353,5 @@ in
       };
     };
   };
+
 }

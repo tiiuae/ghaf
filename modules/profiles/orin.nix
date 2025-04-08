@@ -19,15 +19,6 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
-      profiles.graphics = {
-        enable = true;
-        renderer = "gles2";
-        compositor = "labwc";
-        idleManagement.enable = false;
-        # Disable suspend by default, not working as intended
-        allowSuspend = false;
-      };
-
       reference.programs.windows-launcher.enable = true;
       reference.host-demo-apps.demo-apps.enableDemoApplications = true;
 
@@ -45,20 +36,41 @@ in
         microvm-host = {
           enable = true;
           networkSupport = true;
-          # sharedVmDirectory = {
-          #   enable = true;
-          # };
+          sharedVmDirectory = {
+            enable = false;
+          };
         };
 
         microvm = {
           netvm = {
             enable = true;
-            #wifi = true;
+            wifi = false;
             extraModules = cfg.netvmExtraModules;
           };
 
           adminvm = {
+            enable = true;
+            extraModules = [
+              {
+                config.ghaf = {
+                  inherit (config.ghaf) common;
+                };
+              }
+            ];
+          };
+
+          idsvm = {
             enable = false;
+          };
+
+          guivm = {
+            enable = false;
+            #extraModules = cfg.guivmExtraModules;
+          };
+
+          audiovm = {
+            enable = false;
+            #audio = true;
           };
         };
 
@@ -69,8 +81,8 @@ in
       # Disable givc
       givc.enable = false;
 
-      host = {
-        networking.enable = true;
+      host.networking = {
+        enable = true;
       };
 
       # Create admin home folder; temporary solution

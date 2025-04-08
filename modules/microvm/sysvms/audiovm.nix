@@ -55,13 +55,11 @@ let
               enable = true;
               name = vmName;
             };
-
             # Networking
             virtualization.microvm.vm-networking = {
               enable = true;
               inherit vmName;
             };
-
             # Services
             services.audio.enable = true;
             logging.client.enable = configHost.ghaf.logging.enable;
@@ -130,15 +128,25 @@ in
       '';
       default = [ ];
     };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = !config.ghaf.microvm-boot.enable;
       inherit (inputs) nixpkgs;
+      specialArgs = { inherit lib; };
+
       config = audiovmBaseConfiguration // {
         imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
   };
+
 }
