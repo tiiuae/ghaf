@@ -89,12 +89,21 @@ in
       '';
       default = [ ];
     };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = true;
       inherit (inputs) nixpkgs;
+      specialArgs = { inherit lib; };
+
       config = idsvmBaseConfiguration // {
         imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;
       };

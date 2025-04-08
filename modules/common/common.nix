@@ -43,6 +43,13 @@ in
         default = [ ];
         description = "List of app hosts currently enabled.";
       };
+      extraNetworking = {
+        hosts = mkOption {
+          type = types.attrsOf lib.types.networking;
+          description = "Extra host entries that override or extend the generated ones.";
+          default = { };
+        };
+      };
       hardware = {
         nics = mkOption {
           type = types.listOf types.attrs;
@@ -69,9 +76,35 @@ in
         "app-vm"
       ];
     };
-  };
 
+  };
   config = {
+
+    assertions = lib.flatten (
+      map (
+        vmName:
+        let
+          vmAttr = config.ghaf.common.extraNetworking.hosts.${vmName};
+        in
+        [
+          {
+            assertion = (vmAttr.cid or null) == null;
+            message = "VM '${vmName}' cannot override 'cid'";
+          }
+          {
+            assertion = (vmAttr.name or null) == null;
+            message = "VM '${vmName}' cannot override 'name'";
+          }
+
+          {
+            # Only the host cannot override the internal nic name and mac address
+            assertion =
+              if vmName == "ghaf-host" then (vmAttr.interfaceName == null && vmAttr.mac == null) else true;
+            message = "VM '${vmName}' cannot override 'interfaceName' or 'mac'";
+          }
+        ]
+      ) (builtins.attrNames config.ghaf.common.extraNetworking.hosts)
+    );
 
     # Populate the shared namespace
     ghaf =

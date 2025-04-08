@@ -4,9 +4,9 @@
 # Configuration for NVIDIA Jetson Orin AGX/NX
 #
 {
-  inputs,
   lib,
   self,
+  inputs,
   ...
 }:
 let
@@ -28,11 +28,9 @@ let
     (nixos-generators + "/format-module.nix")
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
     jetpack-nixos.nixosModules.default
-    #self.nixosModules.microvm
-    self.nixosModules.profiles
     self.nixosModules.reference-host-demo-apps
-    self.nixosModules.reference-programs
-    self.nixosModules.reference-personalize
+    self.nixosModules.reference-profiles-orin
+    self.nixosModules.profiles
   ];
 
   # concatinate modules that are specific to a target
@@ -43,16 +41,25 @@ let
     (orin-configuration "nvidia-jetson-orin" "agx" "debug" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-agx
       {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
       }
     ]))
     (orin-configuration "nvidia-jetson-orin" "agx64" "debug" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-agx64
       {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
       }
     ]))
     (orin-configuration "nvidia-jetson-orin" "nx" "debug" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-nx
       {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
       }
     ]))
 
@@ -60,16 +67,25 @@ let
     (orin-configuration "nvidia-jetson-orin" "agx" "release" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-agx
       {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
       }
     ]))
     (orin-configuration "nvidia-jetson-orin" "agx64" "release" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-agx64
       {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
       }
     ]))
     (orin-configuration "nvidia-jetson-orin" "nx" "release" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-nx
       {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
       }
     ]))
   ];
