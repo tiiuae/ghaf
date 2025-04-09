@@ -43,6 +43,23 @@ in
         default = [ ];
         description = "List of app hosts currently enabled.";
       };
+      hardware = {
+        nics = mkOption {
+          type = types.listOf types.attrs;
+          default = [ { } ];
+          description = "List of network interfaces currently enabled for passthrough.";
+        };
+        gpus = mkOption {
+          type = types.listOf types.attrs;
+          default = [ { } ];
+          description = "List of GPUs currently enabled for passthrough.";
+        };
+        audio = mkOption {
+          type = types.listOf types.attrs;
+          default = [ { } ];
+          description = "List of Audio PCI devices currently enabled for passthrough.";
+        };
+      };
     };
     type = mkOption {
       description = "Type of the ghaf component. One of 'host', 'system-vm', or 'app-vm'.";
@@ -76,6 +93,11 @@ in
                 n: v: lib.optionalString (v.config.config.ghaf.type == "app-vm") n
               ) config.microvm.vms
             );
+            hardware = {
+              nics = config.ghaf.hardware.definition.network.pciDevices;
+              gpus = config.ghaf.hardware.definition.gpu.pciDevices;
+              audio = config.ghaf.hardware.definition.audio.pciDevices;
+            };
           };
         };
 
