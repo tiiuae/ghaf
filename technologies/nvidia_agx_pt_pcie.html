@@ -31,10 +31,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
@@ -44,8 +45,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +60,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,8 +74,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -109,6 +111,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -250,7 +253,7 @@
 </p>
 <p>Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.</p>
 </div>
-<p>The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards <sup class="footnote-reference"><a href="#note1">1</a></sup> may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.</p>
+<p>The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards <sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.</p>
 <div class="mdbook-alerts mdbook-alerts-important">
 <p class="mdbook-alerts-title">
   <span class="mdbook-alerts-icon"></span>
@@ -323,13 +326,13 @@ device which is passed through needs its own QEMU <code>-device</code> argument 
 <pre><code>-device vfio-pci,host="0001:01:00.0"
 </code></pre>
 <h3 id="arm64-pci-device-interrupts"><a class="header" href="#arm64-pci-device-interrupts">ARM64 PCI Device Interrupts</a></h3>
-<p>Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU <sup class="footnote-reference"><a href="#note2">2</a></sup>.</p>
+<p>Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU <sup class="footnote-reference" id="fr-note2-1"><a href="#footnote-note2">2</a></sup>.</p>
 <p>To get interrupts to work in the guest, we need to signal the kernel to disable MSI for our passthrough device. There are two ways of doing it:</p>
 <ol>
 <li>To modify the host device tree by disabling MSI completely from the whole PCI bus.</li>
 <li>To disable MSI only from the guest by using the <code>pci=nomsi</code> kernel argument with QEMU. Disabling MSI is not required for the x86 QEMU guest as it has MSI support.</li>
 </ol>
-<p>The command below is provided only as a test example for passing through a PCI device for AArch64 <sup class="footnote-reference"><a href="#note3">3</a></sup>:</p>
+<p>The command below is provided only as a test example for passing through a PCI device for AArch64 <sup class="footnote-reference" id="fr-note3-1"><a href="#footnote-note3">3</a></sup>:</p>
 <pre><code>qemu-system-aarch64 \
     -nographic \
     -machine virt,accel=kvm \
@@ -363,16 +366,17 @@ index ac626b3bef..d6fb597aee 100644
 
 </code></pre>
 <p>After these changes, compile QEMU and install it on the host system.</p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>An example of a power-hungry card is a graphics accelerator card.</p>
-</div>
-<div class="footnote-definition" id="note2"><sup class="footnote-definition-label">2</sup>
-<p>Our approach of using ARM as a VM host with passthroughs fairly new so it is hard to search for help or references online, but this bug <a href="https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1832394">qemu-system-aarch64 error</a> seems to be close enough. The main hint of MSI not being fully supported yet by QEMU on ARM64 comes from the case when the device starts working only with MSI disabled from the guest kernel argument.</p>
-</div>
-<div class="footnote-definition" id="note3"><sup class="footnote-definition-label">3</sup>
-<p>It may require some changes for real usage.</p>
-</div>
-
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>An example of a power-hungry card is a graphics accelerator card. <a href="#fr-note1-1">↩</a></p>
+</li>
+<li id="footnote-note2">
+<p>Our approach of using ARM as a VM host with passthroughs fairly new so it is hard to search for help or references online, but this bug <a href="https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1832394">qemu-system-aarch64 error</a> seems to be close enough. The main hint of MSI not being fully supported yet by QEMU on ARM64 comes from the case when the device starts working only with MSI disabled from the guest kernel argument. <a href="#fr-note2-1">↩</a></p>
+</li>
+<li id="footnote-note3">
+<p>It may require some changes for real usage. <a href="#fr-note3-1">↩</a></p>
+</li>
+</ol>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

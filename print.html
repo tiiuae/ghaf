@@ -32,10 +32,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc.js"></script>
@@ -45,8 +46,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -60,7 +61,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -73,8 +75,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -110,6 +112,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -573,7 +576,7 @@
 <ul>
 <li>
 <p><code>Default</code><br />
-A default variant. Supports <a href="architecture/./adr/minimal-host.html">minimal host</a>, GUI VM<sup class="footnote-reference"><a href="#note1">1</a></sup> and <a href="architecture/./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="architecture/./stack.html">Stack</a>.</p>
+A default variant. Supports <a href="architecture/./adr/minimal-host.html">minimal host</a>, GUI VM<sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> and <a href="architecture/./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="architecture/./stack.html">Stack</a>.</p>
 </li>
 <li>
 <p><code>Headless</code><br />
@@ -594,11 +597,11 @@ A variant for hardware with no support for virtualization. May run any software,
 <tr><td><code>Host Only</code></td><td>Yes</td><td>No</td><td>May be supported but not included</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>No Virtualization</code></td><td>Yes or no</td><td>Native on host</td><td>Not supported</td><td>Raspberry Pi, RISC-V</td></tr>
 </tbody></table>
-</div>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
-</div>
-<div style="break-before: page; page-break-before: always;"></div><style>
+</div><hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough. <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol><div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -3004,16 +3007,17 @@ or</li>
 <p>Enforcing network traffic to go through IDS VM is crucial to the IDS VM functionality. It is achieved by setting the IDS VM to be the gateway of other VMs in <a href="https://thekelleys.org.uk/dnsmasq/doc.html">dnsmasq</a> configuration of Net VM. There is a risk that one could change the gateway settings of the VM to bypass the IDS VM. This however requires root (sudo) rights and it is assumed here that these rights are enabled only in the debug build.</p>
 <h2 id="mitmproxy"><a class="header" href="#mitmproxy">mitmproxy</a></h2>
 <p><a href="https://mitmproxy.org/"><strong>mitmproxy</strong></a> is a free and open-source interactive HTTPS proxy. It is your Swiss Army Knife for debugging, testing, privacy measurements, and penetration testing. It can be used to intercept, inspect, modify and replay web traffic such as HTTP/1, HTTP/2, WebSockets, or any other SSL/TLS-protected protocols.</p>
-<p>In IDS VM, we use <strong>mitmweb</strong><sup class="footnote-reference"><a href="#note1">1</a></sup> tool to demonstrate mitmproxy's capabilities. It provides a web-based user interface that allows interactive examination and modification of HTTP(s) traffic. The mtmproxy package also includes a console tool that provides the same functionalities in a text-based interface and a command-line tool <strong>mitmdump</strong> to view, record, and programmatically transform HTTP(s) traffic.</p>
+<p>In IDS VM, we use <strong>mitmweb</strong><sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> tool to demonstrate mitmproxy's capabilities. It provides a web-based user interface that allows interactive examination and modification of HTTP(s) traffic. The mtmproxy package also includes a console tool that provides the same functionalities in a text-based interface and a command-line tool <strong>mitmdump</strong> to view, record, and programmatically transform HTTP(s) traffic.</p>
 <p>The mitmweb tool is run in <em>ids-vm</em> as a systemd service. It starts automatically when <em>ids-vm</em> boots up. The UI it provides is accessible at <a href="http://localhost:8081">http://localhost:8081</a>, so it is available from <em>ids-vm</em> only. However, with SSH port forwarding it is possible to access the UI from other VMs. To that purpose, GUI VM has a script <em>mitmweb-ui</em> that creates an SSH tunnel between <em>ids-vm</em> and <em>chromium-vm</em>, launches Chromium, and connects to the UI address.</p>
 <h2 id="certificates"><a class="header" href="#certificates">Certificates</a></h2>
 <p>mitmproxy can decrypt encrypted traffic on the fly, as long as the client trusts mitmproxy's built-in certificate authority (CA). CA certificates are the same for all <em>ids-vm</em> instances, as they are hardcoded to the IDS VM implementation. In the release version, these should be randomly generated and stored securely.</p>
 <p>By default, any of the clients should not trust mitmproxy's CA. These CA certificates should be installed in the OS's CA storage. However, many client applications (web browsers, for example) use their own CA bundles, and importing custom certificates there can be complicated or require manual user interaction. In our case, this difficulty is circumvented in <em>chromium-vm</em> by disabling certificate verification errors, if the certificate chain contains a certificate which SPKI fingerprint matches that of mitmproxy's CA certificate fingerprint. This does not degrade server verification security since mitmproxy validates upstream certificates using a certified Python package which provides Mozilla's CA Bundle.</p>
 <p>Some applications use certificate pinning to prevent man-in-the-middle attacks. As a consequence mitmproxy's certificates will not be accepted by these applications without patching applications manually. Other option is to set mitmproxy to use ignore_hosts option to prevent mitmproxy from intercepting traffic to these specific domains.</p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p><strong>mitmproxy</strong> is an interactive, SSL/TLS-capable intercepting proxy with a console interface for HTTP/1, HTTP/2, and WebSockets. <strong>mitmweb</strong> is a web-based interface for mitmproxy. <strong>mitmdump</strong> is the command-line version of mitmproxy. Source: <a href="https://docs.mitmproxy.org/stable/#3-powerful-core-tools">mitmproxy docs</a>.</p>
-</div>
-<div style="break-before: page; page-break-before: always;"></div><style>
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p><strong>mitmproxy</strong> is an interactive, SSL/TLS-capable intercepting proxy with a console interface for HTTP/1, HTTP/2, and WebSockets. <strong>mitmweb</strong> is a web-based interface for mitmproxy. <strong>mitmdump</strong> is the command-line version of mitmproxy. Source: <a href="https://docs.mitmproxy.org/stable/#3-powerful-core-tools">mitmproxy docs</a>. <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol><div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -4650,6 +4654,45 @@ list of string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix</a></li>
 </ul>
+<h2 id="ghafcommonhardwareaudio"><a class="header" href="#ghafcommonhardwareaudio">ghaf.common.hardware.audio</a></h2>
+<p>List of Audio PCI devices currently enabled for passthrough.</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em></p>
+<pre><code>[
+  { }
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix</a></li>
+</ul>
+<h2 id="ghafcommonhardwaregpus"><a class="header" href="#ghafcommonhardwaregpus">ghaf.common.hardware.gpus</a></h2>
+<p>List of GPUs currently enabled for passthrough.</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em></p>
+<pre><code>[
+  { }
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix</a></li>
+</ul>
+<h2 id="ghafcommonhardwarenics"><a class="header" href="#ghafcommonhardwarenics">ghaf.common.hardware.nics</a></h2>
+<p>List of network interfaces currently enabled for passthrough.</p>
+<p><em>Type:</em>
+list of (attribute set)</p>
+<p><em>Default:</em></p>
+<pre><code>[
+  { }
+]
+</code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/common.nix</a></li>
+</ul>
 <h2 id="ghafcommonsystemhosts"><a class="header" href="#ghafcommonsystemhosts">ghaf.common.systemHosts</a></h2>
 <p>List of system hosts currently enabled.</p>
 <p><em>Type:</em>
@@ -5346,6 +5389,36 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu</a></li>
+</ul>
+<h2 id="ghafgraphicspower-managerenable"><a class="header" href="#ghafgraphicspower-managerenable">ghaf.graphics.power-manager.enable</a></h2>
+<p>Override logind power management using ghaf-powercontrol</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/power-manager.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/power-manager.nix</a></li>
+</ul>
+<h2 id="ghafgraphicspower-managerenableshutdownlistener"><a class="header" href="#ghafgraphicspower-managerenableshutdownlistener">ghaf.graphics.power-manager.enableShutdownListener</a></h2>
+<p>Enable the shutdown/reboot signal listener service</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/power-manager.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/power-manager.nix</a></li>
+</ul>
+<h2 id="ghafgraphicspower-managerenablesuspendlistener"><a class="header" href="#ghafgraphicspower-managerenablesuspendlistener">ghaf.graphics.power-manager.enableSuspendListener</a></h2>
+<p>Enable the suspend signal listener service</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/power-manager.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/power-manager.nix</a></li>
 </ul>
 <h2 id="ghafguestkernelhardeningenable"><a class="header" href="#ghafguestkernelhardeningenable">ghaf.guest.kernel.hardening.enable</a></h2>
 <p>Enable Ghaf Guest hardening feature</p>
@@ -6413,6 +6486,10 @@ list of (attribute set)</p>
         description = "Mass Storage - SCSI (USB drives)";
         subclass = 6;
       }
+      {
+        class = 17;
+        description = "USB-C alternate modes supported by device";
+      }
     ];
   }
   {
@@ -7028,6 +7105,8 @@ list of string</p>
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINfyjcPGIRHEtXZgoF7wImA5gEY6ytIfkBeipz4lwnj6 Ganga.Ram@tii.ae"
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEA7p7hHPvPT6uTU44Nb/p9/DT9mOi8mpqNllnpfawDE tanel@nixos"
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIwGPH/oOrD1g15uiPV4gBKGk7f8ZBSyMEaptKOVs3NG jaroslawkurowski@TII-JaroslawKurowski"
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAINS5sjFgJ+OKjQQrxdlxsdG5lodd5Zei7BXCaWc/E8R9 rodrigo.pino@tii.ae"
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGll9sWYdGc2xi9oQ25TEcI1D3T4n8MMXoMT+lJdE/KC milla@nixos"
   "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIAolaKCuIUBQSBFGFZI1taNX+JTAr8edqUts7A6k2Kv7"
 ]
 </code></pre>
@@ -7796,7 +7875,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmenable_host"><a class="header" href="#ghafshmenable_host">ghaf.shm.enable_host</a></h2>
 <p>Enables the memsocket functionality on the host system</p>
@@ -7806,7 +7885,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmclientsocketpath"><a class="header" href="#ghafshmclientsocketpath">ghaf.shm.clientSocketPath</a></h2>
 <p>Specifies the location of the output socket, which will connected to
@@ -7818,7 +7897,7 @@ absolute path</p>
 <code>"/run/user/1000/memsocket-client.sock"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmdisplay"><a class="header" href="#ghafshmdisplay">ghaf.shm.display</a></h2>
 <p>Enables the use of shared memory with Waypipe for Wayland-enabled
@@ -7830,7 +7909,7 @@ boolean</p>
 <code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmflataddr"><a class="header" href="#ghafshmflataddr">ghaf.shm.flataddr</a></h2>
 <p>Maps the shared memory to a physical address if set to a non-zero value.
@@ -7842,7 +7921,7 @@ string</p>
 <code>"0x920000000"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmhostsocketpath"><a class="header" href="#ghafshmhostsocketpath">ghaf.shm.hostSocketPath</a></h2>
 <p>Specifies the path to the shared memory socket, used by QEMU
@@ -7853,7 +7932,7 @@ absolute path</p>
 <code>"/tmp/ivshmem_socket"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmhugepagesz"><a class="header" href="#ghafshmhugepagesz">ghaf.shm.hugePageSz</a></h2>
 <p>Specifies the size of the large memory page area. Supported kernel
@@ -7864,7 +7943,7 @@ string</p>
 <code>"2M"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshminstancescount"><a class="header" href="#ghafshminstancescount">ghaf.shm.instancesCount</a></h2>
 <p>Number of memory slots allocated in the shared memory region</p>
@@ -7874,7 +7953,7 @@ signed integer</p>
 <code>0</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmmemsize"><a class="header" href="#ghafshmmemsize">ghaf.shm.memSize</a></h2>
 <p>Specifies the size of the shared memory region, measured in
@@ -7885,7 +7964,7 @@ signed integer</p>
 <code>16</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmserversocketpath"><a class="header" href="#ghafshmserversocketpath">ghaf.shm.serverSocketPath</a></h2>
 <p>Specifies the path of the listening socket, which is used by Waypipe
@@ -7897,7 +7976,7 @@ absolute path</p>
 <code>"/run/user/1000/memsocket-server.sock"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafshmvms_enabled"><a class="header" href="#ghafshmvms_enabled">ghaf.shm.vms_enabled</a></h2>
 <p>List of vms having access to shared memory</p>
@@ -7907,7 +7986,7 @@ list of string</p>
 <code>[ ]</code></p>
 <p><em>Declared by:</em></p>
 <ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/common/shared-mem.nix</a></li>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/host/shared-mem.nix</a></li>
 </ul>
 <h2 id="ghafsystemdenable"><a class="header" href="#ghafsystemdenable">ghaf.systemd.enable</a></h2>
 <p>Whether to enable Enable minimal systemd configuration…</p>
@@ -9583,8 +9662,8 @@ driverctl unset-override ${DEVICE}
 </div>
 <p>In this table:</p>
 <ul>
-<li>The first column shows how the UART units are defined in the UART device tree file <em>tegra234-soc-uart.dtsi</em> <sup class="footnote-reference"><a href="#note1">1</a></sup>.</li>
-<li>The second and third columns show the CPU and SoC pin connections. Note that for UART2 and UART5 these are swapped. The pin mapping configuration is described in the file <em>tegra234-mb1-bct-pinmux-p3701-0000.dtsi</em> <sup class="footnote-reference"><a href="#note2">2</a></sup>. This device tree file is automatically generated by the macro Excel file <em>Jetson_AGX_Orin_Series_Pinmux_Config_Template_1.5.xlsm</em> which is available at the official Jetson Download Center as the <em>Jetson AGX Orin Series Pinmux</em>.</li>
+<li>The first column shows how the UART units are defined in the UART device tree file <em>tegra234-soc-uart.dtsi</em> <sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup>.</li>
+<li>The second and third columns show the CPU and SoC pin connections. Note that for UART2 and UART5 these are swapped. The pin mapping configuration is described in the file <em>tegra234-mb1-bct-pinmux-p3701-0000.dtsi</em> <sup class="footnote-reference" id="fr-note2-1"><a href="#footnote-note2">2</a></sup>. This device tree file is automatically generated by the macro Excel file <em>Jetson_AGX_Orin_Series_Pinmux_Config_Template_1.5.xlsm</em> which is available at the official Jetson Download Center as the <em>Jetson AGX Orin Series Pinmux</em>.</li>
 <li>The last column describes where the UART units are connected to the exterior.</li>
 </ul>
 <div class="mdbook-alerts mdbook-alerts-note">
@@ -9592,7 +9671,7 @@ driverctl unset-override ${DEVICE}
   <span class="mdbook-alerts-icon"></span>
   note
 </p>
-<p>Only two UART units are connected to the micro USB debug interface. The UART7 is not connected by default but it can be connected to the debug interface ttyACM1 by swapping the fuse resistors (see Debug MCU page 7 on P3737_A04_Concept_schematics.pdf <sup class="footnote-reference"><a href="#note3">3</a></sup>).</p>
+<p>Only two UART units are connected to the micro USB debug interface. The UART7 is not connected by default but it can be connected to the debug interface ttyACM1 by swapping the fuse resistors (see Debug MCU page 7 on P3737_A04_Concept_schematics.pdf <sup class="footnote-reference" id="fr-note3-1"><a href="#footnote-note3">3</a></sup>).</p>
 </div>
 <h2 id="uarti-selected-for-passthrough"><a class="header" href="#uarti-selected-for-passthrough">UARTI Selected for Passthrough</a></h2>
 <p>The UARTI unit was selected to do the first "Hello world" passthrough implementation as it does not show any dependencies on its device tree:</p>
@@ -9608,7 +9687,7 @@ driverctl unset-override ${DEVICE}
 <p>To prepare the UARTI on the host for the passthrough:</p>
 <ol>
 <li>
-<p>Modify the UARTI node in the <em>tegra234-soc-uart.dtsi</em> device tree file <sup class="footnote-reference"><a href="#note1">1</a></sup>:</p>
+<p>Modify the UARTI node in the <em>tegra234-soc-uart.dtsi</em> device tree file <sup class="footnote-reference" id="fr-note1-2"><a href="#footnote-note1">1</a></sup>:</p>
 <ul>
 <li><strong>compatible:</strong> put a dummy driver associated to this node so that the kernel will not bind any driver to this UART unit.</li>
 <li><strong>iommus:</strong> add the iommus field with the test stream ID <em>TEGRA_SID_NISO1_SMMU_TEST</em> which by default is not used by any other device.</li>
@@ -9685,16 +9764,17 @@ echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </li>
 </ol>
 <p>When the guest VM is launched you can see the VM Linux command line in the opened ttyACM1 terminal.</p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>kernel_src/hardware/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi</p>
-</div>
-<div class="footnote-definition" id="note2"><sup class="footnote-definition-label">2</sup>
-<p>bootloader/t186ref/BCT/tegra234-mb1-bct-pinmux-p3701-0000.dtsi available in the BSP sources on: https://developer.nvidia.com/embedded/jetson-linux-r3521</p>
-</div>
-<div class="footnote-definition" id="note3"><sup class="footnote-definition-label">3</sup>
-<p>Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf available in https://developer.nvidia.com/jetson-agx-orin-developer-kit-carrier-board-design-files-a04</p>
-</div>
-<div style="break-before: page; page-break-before: always;"></div><style>
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>kernel_src/hardware/nvidia/soc/t23x/kernel-dts/tegra234-soc/tegra234-soc-uart.dtsi <a href="#fr-note1-1">↩</a> <a href="#fr-note1-2">↩2</a></p>
+</li>
+<li id="footnote-note2">
+<p>bootloader/t186ref/BCT/tegra234-mb1-bct-pinmux-p3701-0000.dtsi available in the BSP sources on: https://developer.nvidia.com/embedded/jetson-linux-r3521 <a href="#fr-note2-1">↩</a></p>
+</li>
+<li id="footnote-note3">
+<p>Jetson_AGX_Orin_DevKit_Carrier_Board_Design_Files_A04_20221003/P3737_A04_Concept_schematics.pdf available in https://developer.nvidia.com/jetson-agx-orin-developer-kit-carrier-board-design-files-a04 <a href="#fr-note3-1">↩</a></p>
+</li>
+</ol><div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -9789,7 +9869,7 @@ echo 31d0000.serial &gt; /sys/bus/platform/drivers/vfio-platform/bind
 </p>
 <p>Make sure to remove the cover carefully for not ripping the whole cover off along with the antenna cables.</p>
 </div>
-<p>The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards <sup class="footnote-reference"><a href="#note1">1</a></sup> may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.</p>
+<p>The PCIe slot is simular to one inside a desktop computer. One key difference: the Jetson AGX Orin board has limited 12V power output capabilities and can only output a maximum of 40W power to its PCIe slot. Regular desktop PCIe slot can output 75W at 12V so some more power-hungry PCIe cards <sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> may not work with the Jetson AGX Orin board. There may also be a risk of damaging the board if a card tries to pull too much power from the PCIe socket.</p>
 <div class="mdbook-alerts mdbook-alerts-important">
 <p class="mdbook-alerts-title">
   <span class="mdbook-alerts-icon"></span>
@@ -9862,13 +9942,13 @@ device which is passed through needs its own QEMU <code>-device</code> argument 
 <pre><code>-device vfio-pci,host="0001:01:00.0"
 </code></pre>
 <h3 id="arm64-pci-device-interrupts"><a class="header" href="#arm64-pci-device-interrupts">ARM64 PCI Device Interrupts</a></h3>
-<p>Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU <sup class="footnote-reference"><a href="#note2">2</a></sup>.</p>
+<p>Modern PCI devices use the Message Signaled Interrupts (MSI) method to limit the need for physical hardware interrupt pins. As passing through PCI or any other devices is fairly new to QEMU, it seems MSI in ARM64 is not supported by QEMU <sup class="footnote-reference" id="fr-note2-1"><a href="#footnote-note2">2</a></sup>.</p>
 <p>To get interrupts to work in the guest, we need to signal the kernel to disable MSI for our passthrough device. There are two ways of doing it:</p>
 <ol>
 <li>To modify the host device tree by disabling MSI completely from the whole PCI bus.</li>
 <li>To disable MSI only from the guest by using the <code>pci=nomsi</code> kernel argument with QEMU. Disabling MSI is not required for the x86 QEMU guest as it has MSI support.</li>
 </ol>
-<p>The command below is provided only as a test example for passing through a PCI device for AArch64 <sup class="footnote-reference"><a href="#note3">3</a></sup>:</p>
+<p>The command below is provided only as a test example for passing through a PCI device for AArch64 <sup class="footnote-reference" id="fr-note3-1"><a href="#footnote-note3">3</a></sup>:</p>
 <pre><code>qemu-system-aarch64 \
     -nographic \
     -machine virt,accel=kvm \
@@ -9902,16 +9982,17 @@ index ac626b3bef..d6fb597aee 100644
 
 </code></pre>
 <p>After these changes, compile QEMU and install it on the host system.</p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>An example of a power-hungry card is a graphics accelerator card.</p>
-</div>
-<div class="footnote-definition" id="note2"><sup class="footnote-definition-label">2</sup>
-<p>Our approach of using ARM as a VM host with passthroughs fairly new so it is hard to search for help or references online, but this bug <a href="https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1832394">qemu-system-aarch64 error</a> seems to be close enough. The main hint of MSI not being fully supported yet by QEMU on ARM64 comes from the case when the device starts working only with MSI disabled from the guest kernel argument.</p>
-</div>
-<div class="footnote-definition" id="note3"><sup class="footnote-definition-label">3</sup>
-<p>It may require some changes for real usage.</p>
-</div>
-<div style="break-before: page; page-break-before: always;"></div><style>
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>An example of a power-hungry card is a graphics accelerator card. <a href="#fr-note1-1">↩</a></p>
+</li>
+<li id="footnote-note2">
+<p>Our approach of using ARM as a VM host with passthroughs fairly new so it is hard to search for help or references online, but this bug <a href="https://bugs.launchpad.net/ubuntu/+source/libvirt/+bug/1832394">qemu-system-aarch64 error</a> seems to be close enough. The main hint of MSI not being fully supported yet by QEMU on ARM64 comes from the case when the device starts working only with MSI disabled from the guest kernel argument. <a href="#fr-note2-1">↩</a></p>
+</li>
+<li id="footnote-note3">
+<p>It may require some changes for real usage. <a href="#fr-note3-1">↩</a></p>
+</li>
+</ol><div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -10485,7 +10566,7 @@ lrwxrwxrwx 1 root root 0 Dec  8 08:26 /sys/bus/platform/drivers/vfio-platform/31
 </div>
 <ol>
 <li>
-<p>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a><sup class="footnote-reference"><a href="#note1">1</a></sup> and use the following script to start the VM:</p>
+<p>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a><sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> and use the following script to start the VM:</p>
 <blockquote>
 <p>IMG is the kernel image, and FS is the rootfs.</p>
 </blockquote>
@@ -10519,10 +10600,11 @@ qemu-system-aarch64 \
 </ol>
 <h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
 <p><a href="technologies/./nvidia_agx_pt_uart.html#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm.</p>
-</div>
-<div style="break-before: page; page-break-before: always;"></div><style>
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm. <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol><div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;
@@ -10764,22 +10846,37 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <p>Builder Controller arranges builds on Remote Builders to make disk images and other release artifacts.</p>
 </li>
 <li>
-<p>After the building is done, Remote Builder sends disk images to Builder Controller to create provenance files and sign disk images and provenance files.</p>
+<p>After the building is done, Remote Builder sends disk images and other release artifacts to Builder Controller.</p>
 </li>
 <li>
 <p>On build failure, Builder Controller sends failure notifications to Message Service.</p>
 </li>
 <li>
+<p>Builder controller creates provenance files and signs disk images and provenance files with the Signing Service.</p>
+</li>
+<li>
 <p>Builder Controller uploads all build artifacts to Binary Cache.</p>
 </li>
 <li>
-<p>Test Automation fetches disk images from the Controller and runs the hardware test on them.</p>
+<p>Builder Controller uploads disk images to Artifact Storage.</p>
 </li>
 <li>
-<p>Test Automation sends test reports to the Controller.</p>
+<p>Builder controller triggers automated hardware tests on Test Automation Agent.</p>
 </li>
 <li>
-<p>Users can download images and test reports from the Controller</p>
+<p>Test Automation Agent fetches disk images from the Artifact Storage and runs the hardware test on them.</p>
+</li>
+<li>
+<p>Test Automation Agent sends test reports to the Builder Controller.</p>
+</li>
+<li>
+<p>Builder Controller uploads test reports to Artifact Storage.</p>
+</li>
+<li>
+<p>Users can download disk images, disk image signatures, provenance files, provenance file signatures and test reports from the Controller.</p>
+</li>
+<li>
+<p>Users can verify disk image signatures and provenance file signatures with Signing Service.</p>
 </li>
 </ol>
 <div style="break-before: page; page-break-before: always;"></div><style>
@@ -12372,7 +12469,7 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <ul>
 <li>Chromium was replaced with Google Chrome.</li>
 <li>Dynamic updates of Microsoft endpoint URLs.</li>
-<li>Updated GALA version 0.1.30 with SACA<sup class="footnote-reference"><a href="#note1">1</a></sup>.</li>
+<li>Updated GALA version 0.1.30 with SACA<sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup>.</li>
 <li>Bluetooth applet added to the system tray.</li>
 <li>Auto-reconnect hotplugged devices when the VM restarts.</li>
 </ul>
@@ -12399,10 +12496,11 @@ irtio-pmem-pci,memdev=mem1,id=nv1'
 <h2 id="installation-instructions-7"><a class="header" href="#installation-instructions-7">Installation Instructions</a></h2>
 <p>Released images are available at <a href="https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-3">ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-09-3</a>.</p>
 <p>Download the required image and use the following instructions: <a href="release_notes/../ref_impl/build_and_run.html">Build and Run</a>.</p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>Secure Android Cloud Application</p>
-</div>
-<div style="break-before: page; page-break-before: always;"></div><style>
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>Secure Android Cloud Application <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol><div style="break-before: page; page-break-before: always;"></div><style>
 .mdbook-alerts {
   padding: 8px 16px;
   margin-bottom: 16px;

@@ -31,10 +31,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
@@ -44,8 +45,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +60,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,8 +74,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -109,6 +111,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -233,16 +236,17 @@
 <p>Enforcing network traffic to go through IDS VM is crucial to the IDS VM functionality. It is achieved by setting the IDS VM to be the gateway of other VMs in <a href="https://thekelleys.org.uk/dnsmasq/doc.html">dnsmasq</a> configuration of Net VM. There is a risk that one could change the gateway settings of the VM to bypass the IDS VM. This however requires root (sudo) rights and it is assumed here that these rights are enabled only in the debug build.</p>
 <h2 id="mitmproxy"><a class="header" href="#mitmproxy">mitmproxy</a></h2>
 <p><a href="https://mitmproxy.org/"><strong>mitmproxy</strong></a> is a free and open-source interactive HTTPS proxy. It is your Swiss Army Knife for debugging, testing, privacy measurements, and penetration testing. It can be used to intercept, inspect, modify and replay web traffic such as HTTP/1, HTTP/2, WebSockets, or any other SSL/TLS-protected protocols.</p>
-<p>In IDS VM, we use <strong>mitmweb</strong><sup class="footnote-reference"><a href="#note1">1</a></sup> tool to demonstrate mitmproxy's capabilities. It provides a web-based user interface that allows interactive examination and modification of HTTP(s) traffic. The mtmproxy package also includes a console tool that provides the same functionalities in a text-based interface and a command-line tool <strong>mitmdump</strong> to view, record, and programmatically transform HTTP(s) traffic.</p>
+<p>In IDS VM, we use <strong>mitmweb</strong><sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> tool to demonstrate mitmproxy's capabilities. It provides a web-based user interface that allows interactive examination and modification of HTTP(s) traffic. The mtmproxy package also includes a console tool that provides the same functionalities in a text-based interface and a command-line tool <strong>mitmdump</strong> to view, record, and programmatically transform HTTP(s) traffic.</p>
 <p>The mitmweb tool is run in <em>ids-vm</em> as a systemd service. It starts automatically when <em>ids-vm</em> boots up. The UI it provides is accessible at <a href="http://localhost:8081">http://localhost:8081</a>, so it is available from <em>ids-vm</em> only. However, with SSH port forwarding it is possible to access the UI from other VMs. To that purpose, GUI VM has a script <em>mitmweb-ui</em> that creates an SSH tunnel between <em>ids-vm</em> and <em>chromium-vm</em>, launches Chromium, and connects to the UI address.</p>
 <h2 id="certificates"><a class="header" href="#certificates">Certificates</a></h2>
 <p>mitmproxy can decrypt encrypted traffic on the fly, as long as the client trusts mitmproxy's built-in certificate authority (CA). CA certificates are the same for all <em>ids-vm</em> instances, as they are hardcoded to the IDS VM implementation. In the release version, these should be randomly generated and stored securely.</p>
 <p>By default, any of the clients should not trust mitmproxy's CA. These CA certificates should be installed in the OS's CA storage. However, many client applications (web browsers, for example) use their own CA bundles, and importing custom certificates there can be complicated or require manual user interaction. In our case, this difficulty is circumvented in <em>chromium-vm</em> by disabling certificate verification errors, if the certificate chain contains a certificate which SPKI fingerprint matches that of mitmproxy's CA certificate fingerprint. This does not degrade server verification security since mitmproxy validates upstream certificates using a certified Python package which provides Mozilla's CA Bundle.</p>
 <p>Some applications use certificate pinning to prevent man-in-the-middle attacks. As a consequence mitmproxy's certificates will not be accepted by these applications without patching applications manually. Other option is to set mitmproxy to use ignore_hosts option to prevent mitmproxy from intercepting traffic to these specific domains.</p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p><strong>mitmproxy</strong> is an interactive, SSL/TLS-capable intercepting proxy with a console interface for HTTP/1, HTTP/2, and WebSockets. <strong>mitmweb</strong> is a web-based interface for mitmproxy. <strong>mitmdump</strong> is the command-line version of mitmproxy. Source: <a href="https://docs.mitmproxy.org/stable/#3-powerful-core-tools">mitmproxy docs</a>.</p>
-</div>
-
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p><strong>mitmproxy</strong> is an interactive, SSL/TLS-capable intercepting proxy with a console interface for HTTP/1, HTTP/2, and WebSockets. <strong>mitmweb</strong> is a web-based interface for mitmproxy. <strong>mitmdump</strong> is the command-line version of mitmproxy. Source: <a href="https://docs.mitmproxy.org/stable/#3-powerful-core-tools">mitmproxy docs</a>. <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

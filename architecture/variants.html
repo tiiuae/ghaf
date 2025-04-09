@@ -31,10 +31,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
@@ -44,8 +45,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +60,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,8 +74,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -109,6 +111,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -231,7 +234,7 @@
 <ul>
 <li>
 <p><code>Default</code><br />
-A default variant. Supports <a href="./adr/minimal-host.html">minimal host</a>, GUI VM<sup class="footnote-reference"><a href="#note1">1</a></sup> and <a href="./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="./stack.html">Stack</a>.</p>
+A default variant. Supports <a href="./adr/minimal-host.html">minimal host</a>, GUI VM<sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> and <a href="./adr/netvm.html">netvm</a>. May host other VMs. For more information, see <a href="./stack.html">Stack</a>.</p>
 </li>
 <li>
 <p><code>Headless</code><br />
@@ -252,11 +255,11 @@ A variant for hardware with no support for virtualization. May run any software,
 <tr><td><code>Host Only</code></td><td>Yes</td><td>No</td><td>May be supported but not included</td><td>Jetson, generic x86</td></tr>
 <tr><td><code>No Virtualization</code></td><td>Yes or no</td><td>Native on host</td><td>Not supported</td><td>Raspberry Pi, RISC-V</td></tr>
 </tbody></table>
-</div>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough.</p>
-</div>
-
+</div><hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>As of early 2023, the graphics stack is deployed on a host to support application development. Work is ongoing to define the GUI VM and isolate graphics with GPU passthrough. <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">

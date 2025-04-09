@@ -31,10 +31,11 @@
         <!-- Custom theme stylesheets -->
 
 
-        <!-- Provide site root to javascript -->
+        <!-- Provide site root and default themes to javascript -->
         <script>
-            var path_to_root = "../";
-            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc.js"></script>
@@ -44,8 +45,8 @@
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
-                var theme = localStorage.getItem('mdbook-theme');
-                var sidebar = localStorage.getItem('mdbook-sidebar');
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
 
                 if (theme.startsWith('"') && theme.endsWith('"')) {
                     localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
@@ -59,7 +60,8 @@
 
         <!-- Set the theme before any content is loaded, prevents flash -->
         <script>
-            var theme;
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
             try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
             if (theme === null || theme === undefined) { theme = default_theme; }
             const html = document.documentElement;
@@ -72,8 +74,8 @@
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
-            var sidebar = null;
-            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -109,6 +111,7 @@
                             <i class="fa fa-paint-brush"></i>
                         </button>
                         <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
                             <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
@@ -282,7 +285,7 @@ lrwxrwxrwx 1 root root 0 Dec  8 08:26 /sys/bus/platform/drivers/vfio-platform/31
 </div>
 <ol>
 <li>
-<p>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a><sup class="footnote-reference"><a href="#note1">1</a></sup> and use the following script to start the VM:</p>
+<p>Build a guest kernel according to <a href="https://github.com/jpruiz84/bpmp-virt">UARTA passthrough instructions</a><sup class="footnote-reference" id="fr-note1-1"><a href="#footnote-note1">1</a></sup> and use the following script to start the VM:</p>
 <blockquote>
 <p>IMG is the kernel image, and FS is the rootfs.</p>
 </blockquote>
@@ -316,10 +319,11 @@ qemu-system-aarch64 \
 </ol>
 <h2 id="related-topics"><a class="header" href="#related-topics">Related Topics</a></h2>
 <p><a href="./nvidia_agx_pt_uart.html#nvidia-jetson-agx-orin-uart-passthrough">NVIDIA Jetson AGX Orin: UART Passthrough</a></p>
-<div class="footnote-definition" id="note1"><sup class="footnote-definition-label">1</sup>
-<p>That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm.</p>
-</div>
-
+<hr>
+<ol class="footnote-definition"><li id="footnote-note1">
+<p>That documentation is in the <a href="https://github.com/jpruiz84/bpmp-virt">bpmp-virt</a> side repository, as that approach does not use microvm. <a href="#fr-note1-1">↩</a></p>
+</li>
+</ol>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
