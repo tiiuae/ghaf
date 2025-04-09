@@ -68,17 +68,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1741641951,
-        "narHash": "sha256-eWR/1gZGZYTQTLlW2G1H2ERJIDSHtWySfJzLpyHi7d0=",
+        "lastModified": 1743755278,
+        "narHash": "sha256-8NROCZ3L/NJiglBDyecv3w5+cE7ITkWevS/nZQqWutA=",
         "owner": "tiiuae",
         "repo": "ghaf-ctrl-panel",
-        "rev": "555a414a5d50eed7f17e7f45221eba0261c40dc6",
+        "rev": "c598cf55ed9cc9be29f88d78bf2495393292335c",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "ghaf-ctrl-panel",
-        "rev": "555a414a5d50eed7f17e7f45221eba0261c40dc6",
+        "rev": "c598cf55ed9cc9be29f88d78bf2495393292335c",
         "type": "github"
       }
     },
@@ -471,6 +471,7 @@
       "original": {
         "owner": "drupol",
         "repo": "pkgs-by-name-for-flake-parts",
+        "rev": "7013e769c509a97cfe53c5924b45b273021225c3",
         "type": "github"
       }
     },
