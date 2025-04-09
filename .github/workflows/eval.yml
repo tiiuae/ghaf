@@ -50,4 +50,4 @@ jobs:
         run: |
           echo "strategy.job-total: ${{ strategy.job-total }}"
           echo "matrix.jobid: ${{ matrix.jobid }}"
-          nix develop --command .github/eval.sh -j ${{ matrix.jobid }} -m ${{ strategy.job-total }}
+          nix develop --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m ${{ strategy.job-total }}
