@@ -68,7 +68,12 @@ in
   config = mkIf cfg.enable {
     hardware.graphics = {
       enable = true;
-      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86_64 [ pkgs.intel-media-driver ];
+      extraPackages = mkIf pkgs.stdenv.hostPlatform.isx86_64 [
+        pkgs.intel-media-driver
+        pkgs.mesa
+        pkgs.libGL
+        pkgs.vulkan-loader
+      ];
     };
     environment = {
       sessionVariables = {

@@ -38,11 +38,8 @@ in
     hardware = {
       graphics.extraPackages = [
         pkgs.egl-wayland
-        pkgs.mesa
-        pkgs.libGL
         # some vulkan stuff
         #pkgs.libvdpau-va-gl
-        pkgs.vulkan-loader
       ];
 
       nvidia = {
@@ -67,8 +64,6 @@ in
 
     # Load nvidia driver for Xorg and Wayland
     services.xserver.videoDrivers = [ "nvidia" ];
-
-    environment.systemPackages = [ pkgs.vulkan-tools ];
 
     boot = {
       # TODO: what exactly does xanmod package bring?
