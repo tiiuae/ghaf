@@ -32,7 +32,6 @@
       ];
       evdev = [
         "/dev/mouse0"
-        "/dev/mouse1"
       ];
     };
 
@@ -43,7 +42,6 @@
         "EETI8082:00 0EEF:C004 Stylus"
       ];
       evdev = [
-        "/dev/touchpad0"
         "/dev/touchpad1"
         "/dev/touchpad2"
       ];
