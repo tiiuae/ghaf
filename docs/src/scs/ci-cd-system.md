@@ -25,14 +25,24 @@ The software delivery pipeline consists of several stages:
 
 3. Builder Controller arranges builds on Remote Builders to make disk images and other release artifacts.
 
-4. After the building is done, Remote Builder sends disk images to Builder Controller to create provenance files and sign disk images and provenance files.
+4. After the building is done, Remote Builder sends disk images and other release artifacts to Builder Controller.
 
 5. On build failure, Builder Controller sends failure notifications to Message Service.
 
-6. Builder Controller uploads all build artifacts to Binary Cache.
+6. Builder controller creates provenance files and signs disk images and provenance files with the Signing Service.
 
-7. Test Automation fetches disk images from the Controller and runs the hardware test on them.
+7. Builder Controller uploads all build artifacts to Binary Cache.
 
-8. Test Automation sends test reports to the Controller.
+8. Builder Controller uploads disk images to Artifact Storage.
 
-9.  Users can download images and test reports from the Controller
+9. Builder controller triggers automated hardware tests on Test Automation Agent. 
+
+10. Test Automation Agent fetches disk images from the Artifact Storage and runs the hardware test on them. 
+
+11. Test Automation Agent sends test reports to the Builder Controller. 
+
+12. Builder Controller uploads test reports to Artifact Storage.
+
+13.  Users can download disk images, disk image signatures, provenance files, provenance file signatures and test reports from the Controller.
+
+14. Users can verify disk image signatures and provenance file signatures with Signing Service.
