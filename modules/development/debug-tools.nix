@@ -91,6 +91,9 @@ in
         pkgs.vlc
         pkgs.ffmpeg_7
         pkgs.v4l-utils
+        pkgs.intel-gpu-tools
+        pkgs.vulkan-tools
+        pkgs.glmark2
       ]);
 
     programs = {
