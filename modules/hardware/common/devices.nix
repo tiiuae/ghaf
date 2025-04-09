@@ -50,12 +50,10 @@ in
             inherit (d) path;
           }) config.ghaf.hardware.definition.network.pciDevices
         );
-        services.udev.extraRules = ''
-          ${concatMapStringsSep "/n" (
-            d:
-            ''SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${d.vendorId}", ATTRS{device}=="0x${d.productId}", NAME="${d.name}"''
-          ) config.ghaf.hardware.definition.network.pciDevices}
-        '';
+        services.udev.extraRules = concatMapStringsSep "\n" (
+          d:
+          ''SUBSYSTEM=="net", ACTION=="add", ATTRS{vendor}=="0x${d.vendorId}", ATTRS{device}=="0x${d.productId}", NAME="${d.name}"''
+        ) config.ghaf.hardware.definition.network.pciDevices;
       };
 
       guivmPCIPassthroughModule = {
