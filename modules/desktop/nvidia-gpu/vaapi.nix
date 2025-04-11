@@ -37,7 +37,6 @@ in
         experiment.
 
       '';
-
     };
 
     maxInstances = lib.mkOption {
@@ -48,31 +47,6 @@ in
 
         Sometimes useful for graphics cards with little VRAM.
       '';
-    };
-
-    # TODO: Add the same for the chrome browser
-    firefox = {
-      enable = lib.mkOption {
-        type = lib.types.bool;
-        default = config.programs.firefox.enable;
-        description = ''
-          Configure Firefox to used the vaapi driver for video decoding.
-
-          Note that this requires disabling the [RDD
-          sandbox](https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#data-decoder-rdd-process).
-        '';
-      };
-
-      av1Support = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-        description = ''
-          Whether to enable av1 support.
-
-          This will not work on Turing (e.g. Geforce 2xxx) and
-          earlier, and is therefore disabled by default there.
-        '';
-      };
     };
   };
 
@@ -85,23 +59,11 @@ in
           NVD_BACKEND = "direct";
           LIBVA_DRIVER_NAME = "nvidia";
         }
-        // lib.optionalAttrs (cfg.maxInstances != null) { NVD_MAX_INSTANCES = toString cfg.maxInstances; }
-        // lib.optionalAttrs cfg.firefox.enable { MOZ_DISABLE_RDD_SANDBOX = "1"; };
+        // lib.optionalAttrs (cfg.maxInstances != null) { NVD_MAX_INSTANCES = toString cfg.maxInstances; };
     };
 
     hardware.graphics.extraPackages = [
       pkgs.nvidia-vaapi-driver
     ];
-
-    programs.firefox.preferences = lib.mkIf cfg.firefox.enable {
-      "media.ffmpeg.vaapi.enabled" = true;
-      "media.rdd-ffmpeg.enabled" = true;
-      "media.av1.enabled" = cfg.firefox.av1Support;
-      #TODO: enable when the 137 release notes show which flags to show
-      #"media.hevc.enabled" = true;
-      #"dom.media.webcodecs.h265.enabled" = true;
-      "gfx.x11-egl.force-enabled" = true;
-      "widget.dmabuf.force-enabled" = true;
-    };
   };
 }
