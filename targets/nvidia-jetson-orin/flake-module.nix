@@ -101,6 +101,7 @@ let
                 graphics = {
                   enable = true;
                   renderer = "gles2";
+                  compositor = "labwc";
                   idleManagement.enable = false;
                   # Disable suspend by default, not working as intended
                   allowSuspend = false;

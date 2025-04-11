@@ -60,6 +60,7 @@ writeShellApplication {
 
       # Try wlopm without setting WAYLAND_DISPLAY first
       if eval "$cmd"; then
+        echo "Displays turned on successfully"
         return 0
       fi
 
@@ -102,12 +103,6 @@ writeShellApplication {
 
             # Switch on display on wakeup
             echo "Wake up detected, turning on displays..."
-            # Wait a little to ensure system is awake
-            sleep 1
-            # Sanity check turn off displays
-            try_toggle_displays false || true
-            # Turn on displays
-            # NOTE: This is a workaround for the issue where the display does not turn on after suspend
             try_toggle_displays true || true
           ''
         else

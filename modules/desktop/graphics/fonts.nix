@@ -7,14 +7,22 @@
   ...
 }:
 let
-  inherit (config.ghaf.graphics) labwc;
+  inherit (config.ghaf.graphics) labwc cosmic;
 in
 {
-  config = lib.mkIf labwc.enable {
-    fonts.packages = [
-      pkgs.inter
-      pkgs.nerd-fonts.fira-code
-      pkgs.hack-font
-    ];
+  config = lib.mkIf (labwc.enable || cosmic.enable) {
+    fonts.packages =
+      [
+        pkgs.inter
+      ]
+      ++ (
+        if labwc.enable then
+          [
+            pkgs.nerd-fonts.fira-code
+            pkgs.hack-font
+          ]
+        else
+          [ ]
+      );
   };
 }

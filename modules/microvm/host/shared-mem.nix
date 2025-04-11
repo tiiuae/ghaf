@@ -218,13 +218,13 @@ in
                         {
                           enable = true;
                           description = "memsocket";
-                          after = [ "labwc.service" ];
                           serviceConfig = {
                             Type = "simple";
                             ExecStart = "${memsocket}/bin/memsocket -c ${cfg.clientSocketPath}";
                             Restart = "always";
                             RestartSec = "1";
                           };
+                          after = [ "ghaf-session.target" ];
                           wantedBy = [ "ghaf-session.target" ];
                         }
                       else
