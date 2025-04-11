@@ -9,7 +9,10 @@
 }:
 let
   cfg = config.ghaf.profiles.graphics;
-  compositors = [ "labwc" ];
+  compositors = [
+    "labwc"
+    "cosmic"
+  ];
   renderers = [
     "vulkan"
     "pixman"
@@ -93,6 +96,7 @@ in
     ghaf.graphics = {
       labwc.enable = cfg.compositor == "labwc";
       labwc.autolock.enable = cfg.idleManagement.enable;
+      cosmic.enable = cfg.compositor == "cosmic";
     };
   };
 }

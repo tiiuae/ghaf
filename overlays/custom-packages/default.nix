@@ -12,4 +12,8 @@
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
   libfm = import ./libfm { inherit prev; };
+  cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
+  cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
+  cosmic-session = import ./cosmic/cosmic-session { inherit prev; };
+  cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
 })

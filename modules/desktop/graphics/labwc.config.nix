@@ -51,9 +51,8 @@ let
         # - On Wayland, GTK+ is known for not picking themes from settings.ini.
         # - We define GTK+ theme on Wayland using gsettings (e.g., `gsettings set org.gnome.desktop.interface ...`).
         mkdir -p "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gtk-4.0"
-
-        echo -e "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
-        echo -e "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
+        [ ! -f "$XDG_CONFIG_HOME/gtk-3.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+        [ ! -f "$XDG_CONFIG_HOME/gtk-4.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
       ''
       + cfg.extraAutostart;
   };

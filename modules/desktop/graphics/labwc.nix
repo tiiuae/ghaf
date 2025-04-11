@@ -199,7 +199,7 @@ in
 
     systemd.user.targets.ghaf-session = {
       enable = true;
-      description = "Ghaf labwc session";
+      description = "Ghaf graphical session";
       unitConfig = {
         BindsTo = [ "graphical-session.target" ];
         After = [ "graphical-session-pre.target" ];
