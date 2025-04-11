@@ -7,5 +7,6 @@
     ./google-chrome.nix
     ./windows-launcher.nix
     ./element-desktop.nix
+    ./firefox.nix
   ];
 }
