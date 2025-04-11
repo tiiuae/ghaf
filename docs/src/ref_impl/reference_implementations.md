@@ -47,6 +47,7 @@ The same goes with the architectural variants as headless devices or end-user de
    - [Hardware Configuration](ref_impl/hw-config.md)
    - [Profiles Configuration](ref_impl/profiles-config.md)
    - [labwc Desktop Environment](./labwc.md)
+   - [COSMIC Desktop Environment](./cosmic.md)
    - [IDS VM Further Development](./idsvm-development.md)
    - [systemd Service Hardening](./systemd-service-config.md)
 - [Troubleshooting](../troubleshooting/troubleshooting.md)

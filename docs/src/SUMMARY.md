@@ -33,6 +33,7 @@
     - [Hardware Configuration](ref_impl/hw-config.md)
     - [Profiles Configuration](ref_impl/profiles-config.md)
     - [labwc Desktop Environment](ref_impl/labwc.md)
+    - [COSMIC Desktop Environment](ref_impl/cosmic.md)
     - [IDS VM Further Development](ref_impl/idsvm-development.md)
     - [systemd Service Hardening](ref_impl/systemd-service-config.md)
   - [Troubleshooting](troubleshooting/troubleshooting.md)
