@@ -1,0 +1,75 @@
+<!--
+    Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
+# COSMIC Desktop Environment
+
+[COSMIC](https://github.com/pop-os/cosmic-epoch) is a modern, configurable, and lightweight Wayland desktop environment developed by System76. It is designed to be fast, efficient and user-friendly while maintaining a professional appearance.
+As of February 2025, COSMIC's latest release is Alpha 6, with a beta release planned in the coming months.
+
+## Enabling COSMIC in Ghaf
+
+While COSMIC is not the default desktop environment in Ghaf, it can be enabled manually. To enable COSMIC DE in Ghaf, modify the graphics configuration as shown below:
+
+```nix
+profiles.graphics.compositor = "cosmic";
+```
+
+This configuration sets COSMIC as the active desktop environment for Ghaf.
+
+> **Note**: Starting from April 2025, COSMIC DE is fully integrated into NixOS options, and its tools are included in `nixpkgs`. Prior to this, COSMIC had to be added to Ghaf from the external flake [nixos-cosmic](https://github.com/lilyinstarlight/nixos-cosmic).
+
+## Configuration Components
+
+COSMIC's configuration in Ghaf consists of several key components:
+
+### 1. Core COSMIC DE Configuration
+
+COSMIC handles its configuration via simple Rust Object Notation (RON) files located in the user's home directory under `.config/cosmic`. 
+
+In the Ghaf Nix configuration, however, we have introduced a conversion mechanism where the entire directory tree is represented by a single YAML file (`cosmic.config.yaml`). This YAML file acts as the system default COSMIC configuration and is applied to all fresh installations of Ghaf. 
+
+If the user makes manual changes to the configuration while using Ghaf, those changes will take precedence over the system defaults.
+
+### 2. Ghaf COSMIC Nix Configuration
+
+The `cosmic.nix` module in Ghaf customizes COSMIC to better align with the system's requirements. Below are the key modifications and adjustments made:
+
+#### Disabled COSMIC Settings pages
+- **User Management**: The `page-users` feature in COSMIC settings is disabled.
+- **Power Settings**: The `page-power` feature is removed, as power management is handled by `swayidle` and `ghaf-powercontrol`.
+- **Sound Settings**: The `page-sound` feature is disabled, with audio control managed by a custom service.
+
+#### Replacements and Overrides
+- **Icon Theme**: The default COSMIC icon theme is changed to Papirus icon theme.
+- **GTK Settings**: Some default GTK settings are applied to ensure a consistent look and feel.
+- **Session Management**: COSMIC's session management integrates with `ghaf-session.target` for better control of Ghaf services.
+- **Power Management**: `swayidle` replaces `cosmic-idle` as the default idle and power manager, including configuration for automatic suspend and brightness adjustments.
+- **Audio Control**: A custom Ghaf audio control service works alongside the COSMIC audio applet to provide Ghaf-specific audio control features.
+
+#### Additional Changes
+- **DBUS Proxy Integration**: Custom DBUS proxy sockets are added for audio, network, and Bluetooth applets.
+- **Configuration Format**: COSMIC's configuration is centralized into a single YAML file (`cosmic.config.yaml`) for easier management and deployment. This configuration is installed as an explicit package `ghaf-cosmic-config`, the derivation of which can be found in `cosmic.nix`.
+- **Disabled Services**: Several default services, such as `geoclue2`, `pipewire`, and `gnome-keyring`, are explicitly disabled.
+
+These changes ensure that COSMIC in Ghaf is tailored to the system's specific needs.
+
+## Configuration Files
+The main configuration files are located in the `modules/desktop/graphics/` directory:
+
+```
+modules/desktop/graphics/
+├── cosmic-config/
+│   ├── cosmic-config-to-yaml.sh    # Helper script to convert `.config/cosmic` to a YAML config
+│   └── cosmic.config.yaml          # Main COSMIC desktop configuration which expands into `.config/cosmic`
+└── cosmic.nix                      # Main COSMIC Nix configuration
+```
+
+## Known Limitations
+
+- COSMIC does not allow forcing Server-Side Decorations for apps running under COSMIC
+- COSMIC does not yet support all common Wayland protocols (e.g. zwlr_virtual_pointer_manager_v1, etc.)
+- COSMIC is still in relatively early development, with a Beta release planned some time in 2025
+
+For more detailed information about COSMIC's architecture and features, visit the [COSMIC Epoch repository](https://github.com/pop-os/cosmic-epoch) and the [System76 COSMIC Epoch homepage](https://system76.com/cosmic/).

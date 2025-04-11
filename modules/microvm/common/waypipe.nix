@@ -106,10 +106,20 @@ in
           Restart = "always";
           RestartSec = "1";
           ExecStart =
-            if cfg.serverSocketPath != null then
-              "${pkgs.waypipe}/bin/waypipe --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${cfg.serverSocketPath} client"
-            else
-              "${pkgs.waypipe}/bin/waypipe --vsock --secctx \"${cfg.vm.name}\" ${waypipeBorder} -s ${toString waypipePort} client";
+            let
+              titlePrefix = lib.optionalString (
+                config.ghaf.profiles.graphics.compositor == "cosmic"
+              ) ''--title-prefix "[${cfg.vm.name}-vm] "'';
+              secctx = "--secctx \"${cfg.vm.name}\"";
+              socketPath =
+                if cfg.serverSocketPath != null then
+                  "-s ${cfg.serverSocketPath} client"
+                else
+                  "--vsock -s ${toString waypipePort} client";
+            in
+            ''
+              ${pkgs.waypipe}/bin/waypipe ${titlePrefix} ${secctx} ${waypipeBorder} ${socketPath}
+            '';
         };
         startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];

@@ -92,6 +92,15 @@
           ];
         }
         {
+          name = "Video Editor";
+          description = "Losslesscut Video Editor";
+          packages = [ pkgs.losslesscut-bin ];
+          icon = "losslesscut";
+          command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        }
+      ]
+      ++ lib.optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
+        {
           name = "Text Editor";
           description = "Simple Text Editor";
           packages =
@@ -124,13 +133,6 @@
           packages = [ pkgs.xarchiver ];
           icon = "xarchiver";
           command = "xarchiver";
-        }
-        {
-          name = "Video Editor";
-          description = "Losslesscut Video Editor";
-          packages = [ pkgs.losslesscut-bin ];
-          icon = "losslesscut";
-          command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
         }
       ];
     extraModules = [
