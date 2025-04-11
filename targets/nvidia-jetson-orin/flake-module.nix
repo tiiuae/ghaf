@@ -64,13 +64,13 @@ let
                 somType = som;
                 agx.enableNetvmWlanPCIPassthrough = som == "agx";
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
-                # Currntly we have mostly xavier nx based carrier boards
+                # Currently we have mostly xavier nx based carrier boards
                 carrierBoard = if som == "nx" then "xavierNXdevkit" else "devkit";
               };
 
               hardware.nvidia = {
                 virtualization.enable = true;
-                virtualization.host.bpmp.enable = false;
+                virtualization.host.bpmp.enable = true;
                 passthroughs.host.uarta.enable = false;
                 # TODO: uarti passthrough is currently broken, it will be enabled
                 # later after a further analysis.
@@ -87,6 +87,9 @@ let
                   netvm = {
                     enable = true;
                     extraModules = netvmExtraModules;
+                  };
+                  gpuvm = {
+                    enable = true;
                   };
                 };
               };
