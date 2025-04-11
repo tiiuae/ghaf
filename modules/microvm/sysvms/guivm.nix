@@ -76,7 +76,7 @@ let
               withResolved = true;
               withTimesyncd = true;
               withDebug = config.ghaf.profiles.debug.enable;
-              withHardenedConfigs = true;
+              withHardenedConfigs = false;
             };
 
             givc.guivm.enable = true;
