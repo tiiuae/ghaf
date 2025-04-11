@@ -24,8 +24,8 @@ buildPythonApplication {
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "vhotplug";
-    rev = "dc91f43d90da24782bd32cfc5a79afc9fe74d9e6";
-    hash = "sha256-qyLEUNoXHzj5BjUV0i7YjWA9U206J/BGwgvLkni0kIs=";
+    rev = "6fa43f4e64ab130632a3f88eaf3d53108a0cc3b5";
+    hash = "sha256-B0VQ+sJhmU77UOf87SWu2rVrKJq8kweXYkBd0A21Ipo=";
   };
 
   meta = {
