@@ -587,17 +587,17 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1743533788,
-        "narHash": "sha256-/FuPAmoOMDG2DJAHB1ZMe2c+MrpI1DSU9HTq8rDT5s4=",
+        "lastModified": 1744614681,
+        "narHash": "sha256-dO8ULUHYmBYww++hrPOM2hzhpQ45QPyZHw4TO8QtXAQ=",
         "owner": "enesoztrk",
         "repo": "wireguard-gui",
-        "rev": "56b92f8d4d8cf006e53d9fa5373709b00663a45e",
+        "rev": "97c0e80aad9ca6589a94112b773dd7797609443e",
         "type": "github"
       },
       "original": {
         "owner": "enesoztrk",
         "repo": "wireguard-gui",
-        "rev": "56b92f8d4d8cf006e53d9fa5373709b00663a45e",
+        "rev": "97c0e80aad9ca6589a94112b773dd7797609443e",
         "type": "github"
       }
     }
