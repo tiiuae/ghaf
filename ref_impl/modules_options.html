@@ -604,6 +604,30 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/boot.nix</a></li>
 </ul>
+<h2 id="ghafgraphicscosmicenable"><a class="header" href="#ghafgraphicscosmicenable">ghaf.graphics.cosmic.enable</a></h2>
+<p>Whether to enable cosmic.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
+</ul>
+<h2 id="ghafgraphicsintel-setupenable"><a class="header" href="#ghafgraphicsintel-setupenable">ghaf.graphics.intel-setup.enable</a></h2>
+<p>Whether to enable Enable Intel GPU setup.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Example:</em>
+<code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/intel-gpu">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/intel-gpu</a></li>
+</ul>
 <h2 id="ghafgraphicslabwcenable"><a class="header" href="#ghafgraphicslabwcenable">ghaf.graphics.labwc.enable</a></h2>
 <p>Whether to enable labwc.</p>
 <p><em>Type:</em>
@@ -922,30 +946,6 @@ capabilities are often more limited than those of the iGPU,
 and require more power, so this is disabled there by default -
 it may still make sense from time to time, so feel free to
 experiment.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsnvidia-setupvaapifirefoxenable"><a class="header" href="#ghafgraphicsnvidia-setupvaapifirefoxenable">ghaf.graphics.nvidia-setup.vaapi.firefox.enable</a></h2>
-<p>Configure Firefox to used the vaapi driver for video decoding.</p>
-<p>Note that this requires disabling the <a href="https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#data-decoder-rdd-process">RDD
-sandbox</a>.</p>
-<p><em>Type:</em>
-boolean</p>
-<p><em>Default:</em>
-<code>false</code></p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu/vaapi.nix</a></li>
-</ul>
-<h2 id="ghafgraphicsnvidia-setupvaapifirefoxav1support"><a class="header" href="#ghafgraphicsnvidia-setupvaapifirefoxav1support">ghaf.graphics.nvidia-setup.vaapi.firefox.av1Support</a></h2>
-<p>Whether to enable av1 support.</p>
-<p>This will not work on Turing (e.g. Geforce 2xxx) and
-earlier, and is therefore disabled by default there.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -2531,9 +2531,9 @@ boolean</p>
 </ul>
 <h2 id="ghafprofilesgraphicscompositor"><a class="header" href="#ghafprofilesgraphicscompositor">ghaf.profiles.graphics.compositor</a></h2>
 <p>Which Wayland compositor to use.</p>
-<p>Choose one of: labwc</p>
+<p>Choose one of: labwc,cosmic</p>
 <p><em>Type:</em>
-value “labwc” (singular enum)</p>
+one of “labwc”, “cosmic”</p>
 <p><em>Default:</em>
 <code>"labwc"</code></p>
 <p><em>Declared by:</em></p>
@@ -2761,6 +2761,18 @@ boolean</p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/element-desktop.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/element-desktop.nix</a></li>
+</ul>
+<h2 id="ghafreferenceprogramsfirefoxenable"><a class="header" href="#ghafreferenceprogramsfirefoxenable">ghaf.reference.programs.firefox.enable</a></h2>
+<p>Configure Firefox to used the vaapi driver for video decoding.</p>
+<p>Note that this requires disabling the <a href="https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#data-decoder-rdd-process">RDD
+sandbox</a>.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/firefox.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/firefox.nix</a></li>
 </ul>
 <h2 id="ghafreferenceprogramsgoogle-chromeenable"><a class="header" href="#ghafreferenceprogramsgoogle-chromeenable">ghaf.reference.programs.google-chrome.enable</a></h2>
 <p>Whether to enable Enable Google chrome program settings.</p>
