@@ -24,7 +24,7 @@ in
 
   config = lib.mkIf cfg.enable {
     # TODO: another stray overlay that should be centralized.
-    nixpkgs.overlays = [ (import ./overlays/qemu) ];
+    # nixpkgs.overlays = [ (import ./overlays/qemu) ];
 
     boot.kernelPatches = [
       {
