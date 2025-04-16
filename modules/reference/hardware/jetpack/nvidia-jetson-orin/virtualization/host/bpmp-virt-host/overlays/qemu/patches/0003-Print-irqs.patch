@@ -1,0 +1,45 @@
+From 5160c034a3a772f36131a3f13953911f1aa0a0a7 Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Tue, 12 Nov 2024 21:31:11 +0000
+Subject: [PATCH 3/4] Print irqs
+
+Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+---
+ hw/vfio/platform.c | 14 ++++++++++++++
+ 1 file changed, 14 insertions(+)
+
+diff --git a/hw/vfio/platform.c b/hw/vfio/platform.c
+index a85c199c76..76b2f0acb9 100644
+--- a/hw/vfio/platform.c
++++ b/hw/vfio/platform.c
+@@ -364,6 +364,14 @@ static int vfio_set_resample_eventfd(VFIOINTp *intp)
+     return 0;
+ }
+ 
++struct IRQState_t {
++    Object parent_obj;
++
++    qemu_irq_handler handler;
++    void *opaque;
++    int n;
++};
++
+ /**
+  * vfio_start_irqfd_injection - starts the virtual IRQ injection using
+  * irqfd
+@@ -385,6 +393,12 @@ static void vfio_start_irqfd_injection(SysBusDevice *sbdev, qemu_irq irq)
+ 
+     QLIST_FOREACH(intp, &vdev->intp_list, next) {
+         if (intp->qemuirq == irq) {
++            // Print the virtual IRQ assgined to each device
++            if(intp->qemuirq){
++                struct IRQState_t *v1;
++                v1 = (struct IRQState_t*)intp->qemuirq;
++                info_report("QEMU IRQ No: 0x%X, dec: %d, pin: %d", v1->n, v1->n, intp->pin);
++            }
+             break;
+         }
+     }
+-- 
+2.34.1
+

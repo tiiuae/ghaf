@@ -1,0 +1,167 @@
+From 5be9cb0eaccb0f9d45767f94c19d5cf4d6984e00 Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Thu, 21 Nov 2024 10:12:00 +0200
+Subject: [PATCH 4/4] vfio/platform: Add mmio-base property to define start
+ address for MMIO mapping
+
+Some platform devices have large MMIO regions (e.g., GPU reserved memory). For
+certain devices, it's preferable to have a 1:1 address translation in the VM to
+avoid modifying driver source code.
+
+This patch:
+
+1. Increases the VFIO platform bus size from 32MB to 130GB.
+2. Changes the mmio_size property from 32 to 64 bits.
+3. Adds an mmio-base property to define the starting MMIO address for mapping
+   the VFIO device.
+
+Signed-off-by: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+---
+ hw/arm/virt.c                   |  6 +++---
+ hw/core/platform-bus.c          | 28 ++++++++++++++++++++++++++--
+ hw/vfio/platform.c              |  1 +
+ include/hw/platform-bus.h       |  2 +-
+ include/hw/vfio/vfio-platform.h |  1 +
+ 5 files changed, 32 insertions(+), 6 deletions(-)
+
+diff --git a/hw/arm/virt.c b/hw/arm/virt.c
+index f26ac71305..ef39667e94 100644
+--- a/hw/arm/virt.c
++++ b/hw/arm/virt.c
+@@ -185,13 +185,13 @@ static const MemMapEntry base_memmap[] = {
+     [VIRT_NVIDIA_BPMP_GUEST] =	{ 0x090c0000, 0x00001000 },
+     [VIRT_MMIO] =               { 0x0a000000, 0x00000200 },
+     /* ...repeating for a total of NUM_VIRTIO_TRANSPORTS, each of that size */
+-    [VIRT_PLATFORM_BUS] =       { 0x0c000000, 0x02000000 },
++    [VIRT_PLATFORM_BUS] =       { 0x60000000, 0x1FC0000000 },          // 130048MB
+     [VIRT_SECURE_MEM] =         { 0x0e000000, 0x01000000 },
+     [VIRT_PCIE_MMIO] =          { 0x10000000, 0x2eff0000 },
+     [VIRT_PCIE_PIO] =           { 0x3eff0000, 0x00010000 },
+     [VIRT_PCIE_ECAM] =          { 0x3f000000, 0x01000000 },
+     /* Actual RAM size depends on initial RAM and device memory settings */
+-    [VIRT_MEM] =                { GiB, LEGACY_RAMLIMIT_BYTES },
++    [VIRT_MEM] =                { 0x2000000000, LEGACY_RAMLIMIT_BYTES },
+ };
+ 
+ /*
+@@ -1630,7 +1630,7 @@ static void create_platform_bus(VirtMachineState *vms)
+     dev = qdev_new(TYPE_PLATFORM_BUS_DEVICE);
+     dev->id = g_strdup(TYPE_PLATFORM_BUS_DEVICE);
+     qdev_prop_set_uint32(dev, "num_irqs", PLATFORM_BUS_NUM_IRQS);
+-    qdev_prop_set_uint32(dev, "mmio_size", vms->memmap[VIRT_PLATFORM_BUS].size);
++    qdev_prop_set_uint64(dev, "mmio_size", vms->memmap[VIRT_PLATFORM_BUS].size);
+     sysbus_realize_and_unref(SYS_BUS_DEVICE(dev), &error_fatal);
+     vms->platform_bus_dev = dev;
+ 
+diff --git a/hw/core/platform-bus.c b/hw/core/platform-bus.c
+index dc58bf505a..412c7ed593 100644
+--- a/hw/core/platform-bus.c
++++ b/hw/core/platform-bus.c
+@@ -22,6 +22,7 @@
+ #include "qemu/osdep.h"
+ #include "hw/platform-bus.h"
+ #include "hw/qdev-properties.h"
++#include "hw/vfio/vfio-platform.h"
+ #include "qapi/error.h"
+ #include "qemu/error-report.h"
+ #include "qemu/module.h"
+@@ -130,11 +131,29 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
+                                   int n)
+ {
+     MemoryRegion *sbdev_mr = sysbus_mmio_get_region(sbdev, n);
++    VFIOPlatformDevice *vdev = VFIO_PLATFORM_DEVICE(sbdev);
+     uint64_t size = memory_region_size(sbdev_mr);
+     uint64_t alignment = (1ULL << (63 - clz64(size + size - 1)));
+     uint64_t off;
++    uint64_t mmio_base_off;
+     bool found_region = false;
+ 
++    if (vdev->mmio_base) {
++        if(vdev->mmio_base < pbus->mmio.addr ||
++           vdev->mmio_base >= pbus->mmio.addr + pbus->mmio_size){
++            error_report("Platform Bus: MMIO base 0x%"PRIx64
++                " outside platform bus region [0x%"PRIx64",0x%"PRIx64"]",
++                vdev->mmio_base,
++                pbus->mmio.addr,
++                pbus->mmio.addr + pbus->mmio_size);
++            exit(1);
++        }
++
++        mmio_base_off = vdev->mmio_base - pbus->mmio.addr;
++    } else {
++        mmio_base_off = 0;
++    }
++
+     if (memory_region_is_mapped(sbdev_mr)) {
+         /* Region is already mapped, nothing to do */
+         return;
+@@ -144,7 +163,7 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
+      * Look for empty space in the MMIO space that is naturally aligned with
+      * the target device's memory region
+      */
+-    for (off = 0; off < pbus->mmio_size; off += alignment) {
++    for (off = mmio_base_off; off < pbus->mmio_size; off += alignment) {
+         MemoryRegion *mr = memory_region_find(&pbus->mmio, off, size).mr;
+         if (!mr) {
+             found_region = true;
+@@ -154,6 +173,11 @@ static void platform_bus_map_mmio(PlatformBusDevice *pbus, SysBusDevice *sbdev,
+         }
+     }
+ 
++    if (vdev->mmio_base && vdev->mmio_base != off + pbus->mmio.addr) {
++        warn_report("Platform Bus: Not able to map in mmio base: 0x%"PRIx64,
++            vdev->mmio_base);
++    }
++
+     if (!found_region) {
+         error_report("Platform Bus: Can not fit MMIO region of size %"PRIx64,
+                      size);
+@@ -206,7 +230,7 @@ static void platform_bus_realize(DeviceState *dev, Error **errp)
+ 
+ static Property platform_bus_properties[] = {
+     DEFINE_PROP_UINT32("num_irqs", PlatformBusDevice, num_irqs, 0),
+-    DEFINE_PROP_UINT32("mmio_size", PlatformBusDevice, mmio_size, 0),
++    DEFINE_PROP_UINT64("mmio_size", PlatformBusDevice, mmio_size, 0),
+     DEFINE_PROP_END_OF_LIST()
+ };
+ 
+diff --git a/hw/vfio/platform.c b/hw/vfio/platform.c
+index 76b2f0acb9..dffc417c98 100644
+--- a/hw/vfio/platform.c
++++ b/hw/vfio/platform.c
+@@ -654,6 +654,7 @@ static Property vfio_platform_dev_properties[] = {
+     DEFINE_PROP_LINK("iommufd", VFIOPlatformDevice, vbasedev.iommufd,
+                      TYPE_IOMMUFD_BACKEND, IOMMUFDBackend *),
+ #endif
++    DEFINE_PROP_UINT64("mmio-base", VFIOPlatformDevice, mmio_base, 0),
+     DEFINE_PROP_END_OF_LIST(),
+ };
+ 
+diff --git a/include/hw/platform-bus.h b/include/hw/platform-bus.h
+index 44f30c5353..4e9913a5d7 100644
+--- a/include/hw/platform-bus.h
++++ b/include/hw/platform-bus.h
+@@ -34,7 +34,7 @@ struct PlatformBusDevice {
+     SysBusDevice parent_obj;
+ 
+     /*< public >*/
+-    uint32_t mmio_size;
++    uint64_t mmio_size;
+     MemoryRegion mmio;
+ 
+     uint32_t num_irqs;
+diff --git a/include/hw/vfio/vfio-platform.h b/include/hw/vfio/vfio-platform.h
+index c414c3dffc..90575b5852 100644
+--- a/include/hw/vfio/vfio-platform.h
++++ b/include/hw/vfio/vfio-platform.h
+@@ -59,6 +59,7 @@ struct VFIOPlatformDevice {
+     uint32_t mmap_timeout; /* delay to re-enable mmaps after interrupt */
+     QEMUTimer *mmap_timer; /* allows fast-path resume after IRQ hit */
+     QemuMutex intp_mutex; /* protect the intp_list IRQ state */
++    uint64_t mmio_base; /* base address to start looking for mmio */
+     bool irqfd_allowed; /* debug option to force irqfd on/off */
+ };
+ typedef struct VFIOPlatformDevice VFIOPlatformDevice;
+-- 
+2.34.1
+
