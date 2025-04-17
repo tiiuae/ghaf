@@ -32,7 +32,7 @@ in
       "gfx.x11-egl.force-enabled" = true;
       "widget.dmabuf.force-enabled" = true;
       "gfx.webrender.all" = true;
-      "media.hrdware-video-decoding.force-enabled" = true;
+      "media.hardware-video-decoding.force-enabled" = true;
     };
 
     # Disable the RDD sandbox
