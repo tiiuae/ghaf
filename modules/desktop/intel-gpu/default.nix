@@ -21,15 +21,13 @@ in
       # hardware.graphics since NixOS 24.11
       enable = true;
       extraPackages = with pkgs; [
-        intel-media-driver # LIBVA_DRIVER_NAME=iHD
-        intel-vaapi-driver # LIBVA_DRIVER_NAME=i965 (older but might work better for Firefox/Chromium)
-        libvdpau-va-gl
+        intel-media-driver # For Broadwell (2014) or newer processors, use LIBVA_DRIVER_NAME=iHD
+        vpl-gpu-rt # QSV on 11th gen or newer
       ];
     };
 
-    # TODO: to check if i965 is indeed better
     environment.sessionVariables = {
       LIBVA_DRIVER_NAME = "iHD";
-    }; # Force intel-media-driver
+    }; # Force to use intel-media-driver
   };
 }
