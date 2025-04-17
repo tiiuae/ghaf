@@ -5,6 +5,7 @@
 # packages.
 #
 (final: prev: {
+  alpaca = import ./alpaca { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };
   gtklock = import ./gtklock { inherit prev; };
   labwc = import ./labwc { inherit prev; };

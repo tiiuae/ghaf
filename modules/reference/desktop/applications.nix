@@ -9,6 +9,9 @@
 let
   cfg = config.ghaf.reference.desktop.applications;
   inherit (lib) mkIf mkEnableOption;
+  falcon-launcher = pkgs.falcon-launcher.override {
+    inherit (pkgs) ghaf-artwork;
+  };
 in
 {
   options.ghaf.reference.desktop.applications = {
@@ -58,7 +61,7 @@ in
           name = "Falcon AI";
           description = "Your local large language model, developed by TII";
           icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
-          command = "${pkgs.alpaca}/bin/alpaca";
+          command = "${pkgs.falcon-launcher}/bin/falcon-launcher";
         }
       ]
       ++ lib.optionals config.ghaf.reference.programs.windows-launcher.enable (
