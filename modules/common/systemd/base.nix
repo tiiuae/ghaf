@@ -59,6 +59,7 @@ let
         inherit (cfg) withUkify;
         withUserDb = cfg.withHomed;
         withUtmp = cfg.withJournal || cfg.withAudit;
+        withSysupdate = true;
       }
       // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
         withVmspawn = cfg.withMachines;
@@ -230,7 +231,7 @@ in
     withRepart = mkOption {
       description = "Enable systemd repart functionality.";
       type = types.bool;
-      default = false;
+      default = true;
     };
 
     withHomed = mkOption {
@@ -290,13 +291,13 @@ in
     withCryptsetup = mkOption {
       description = "Enable systemd LUKS2 functionality.";
       type = types.bool;
-      default = false;
+      default = true;
     };
 
     withFido2 = mkOption {
       description = "Enable systemd Fido2 token functionality.";
       type = types.bool;
-      default = false;
+      default = true;
     };
 
     withTpm2Tss = mkOption {

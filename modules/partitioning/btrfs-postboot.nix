@@ -1,14 +1,10 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  config,
   pkgs,
-  lib,
   ...
 }:
 let
-  cfg = config.ghaf.partitioning.disko;
-
   postBootCmds = pkgs.writeShellApplication {
     name = "postBootScript";
     runtimeInputs = with pkgs; [
@@ -49,7 +45,7 @@ let
   };
 in
 {
-  config = lib.mkIf cfg.enable {
+  config = {
     # To debug postBootCommands, one may run
     # journalctl -u initrd-nixos-activation.service
     # inside the running Ghaf host.

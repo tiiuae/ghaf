@@ -16,7 +16,6 @@ let
 
   # setup some commonality between the configurations
   commonModules = [
-    self.nixosModules.disko-debug-partition
     self.nixosModules.reference-profiles
     self.nixosModules.profiles
   ];
@@ -44,74 +43,74 @@ let
     # Laptop Debug configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen10
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "lenovo-x1-carbon-gen11" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "lenovo-x1-carbon-gen12" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen12
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "lenovo-x1-extras" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      self.nixosModules.verity-release-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "dell-latitude-7230" "debug" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7230
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "dell-latitude-7330" "debug" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7330-72
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     # TODO: Remove once we can have better way to detect network PCI device
     (laptop-configuration "dell-latitude-7330-71" "debug" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7330-71
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "alienware-m18-R2" "debug" (withCommonModules [
       self.nixosModules.hardware-alienware-m18-r2
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
           profiles.graphics.idleManagement.enable = false;
           profiles.graphics.allowSuspend = false;
         };
@@ -119,10 +118,10 @@ let
     ]))
     (laptop-configuration "demo-tower-mk1" "debug" (withCommonModules [
       self.nixosModules.hardware-demo-tower-mk1
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
           profiles.graphics.idleManagement.enable = false;
         };
       }
@@ -131,76 +130,74 @@ let
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen10
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "lenovo-x1-carbon-gen11" "release" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
-
     ]))
     (laptop-configuration "lenovo-x1-carbon-gen12" "release" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen12
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "lenovo-x1-extras" "release" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      self.nixosModules.verity-release-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
-
     (laptop-configuration "dell-latitude-7230" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7230
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "dell-latitude-7330" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7330-72
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     # TODO: Remove once we can have better way to detect network PCI device
     (laptop-configuration "dell-latitude-7330-71" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7330-71
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
     (laptop-configuration "alienware-m18-R2" "release" (withCommonModules [
       self.nixosModules.hardware-alienware-m18-r2
+      self.nixosModules.disko-debug-partition
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
         };
       }
     ]))
@@ -208,8 +205,7 @@ let
 
   # map all of the defined configurations to an installer image
   target-installers = map (
-    t:
-    laptop-installer t.name (self.packages.x86_64-linux.${t.name} + "/disk1.raw.zst") installerModules
+    t: laptop-installer t.name self.packages.x86_64-linux.${t.name} installerModules
   ) target-configs;
 
   targets = target-configs ++ target-installers;

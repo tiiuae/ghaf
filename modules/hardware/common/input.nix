@@ -26,10 +26,6 @@ let
 in
 {
   config = {
-    # Disk configuration
-    # TODO Remove or move this
-    disko.devices.disk = cfg.disks;
-
     # Host udev rules for input devices
     services.udev.extraRules = ''
       # Keyboard
