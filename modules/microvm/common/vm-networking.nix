@@ -75,7 +75,9 @@ in
       };
       networks."10-${cfg.interfaceName}" = {
         matchConfig.MACAddress = hosts.${cfg.vmName}.mac;
-        addresses = [ { Address = "${hosts.${cfg.vmName}.ipv4}/24"; } ];
+        addresses = [
+          { Address = "${hosts.${cfg.vmName}.ipv4}/${toString hosts.${cfg.vmName}.ipv4SubnetPrefixLength}"; }
+        ];
         linkConfig.RequiredForOnline = "routable";
         linkConfig.ActivationPolicy = "always-up";
       } // lib.optionalAttrs (!cfg.isGateway) { inherit gateway; };

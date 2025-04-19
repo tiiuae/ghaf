@@ -19,7 +19,6 @@ let
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
-
   makeVm =
     { vm }:
     let
@@ -104,10 +103,14 @@ let
                 };
 
                 # Networking
-                virtualization.microvm.vm-networking = {
-                  enable = true;
-                  inherit vmName;
-                };
+                virtualization.microvm.vm-networking =
+                  {
+                    enable = true;
+                    inherit vmName;
+                  }
+                  // lib.optionalAttrs ((vm.extraNetworking.interfaceName or null) != null) {
+                    inherit (vm.extraNetworking) interfaceName;
+                  };
 
                 # Services
                 waypipe =
@@ -302,11 +305,14 @@ in
               type = types.listOf types.package;
               default = [ ];
             };
-            macAddress = mkOption {
-              description = ''
-                AppVM's network interface MAC address
-              '';
-              type = types.str;
+            extraNetworking = lib.mkOption {
+              type =
+                let
+                  extraNetworkingType = import ../common/networking/common_types.nix { inherit lib; };
+                in
+                extraNetworkingType;
+              description = "Extra Networking option";
+              default = { };
             };
             ramMb = mkOption {
               description = ''
@@ -444,5 +450,13 @@ in
           }) vmsWithWaypipe;
         }
       ];
+
+      ghaf.common.extraNetworking.hosts = lib.mapAttrs' (name: vm: {
+        name = "${name}-vm";
+        value = lib.recursiveUpdate vm.extraNetworking {
+          name = "${name}-vm"; # For example, add or override the `name` field
+        };
+      }) vms;
+
     };
 }

@@ -37,11 +37,7 @@ let
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
             };
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              isGateway = true;
-              inherit vmName;
-            };
+
           };
 
           system.stateVersion = lib.trivial.release;
@@ -84,14 +80,37 @@ in
       '';
       default = [ ];
     };
+    extraNetworking = lib.mkOption {
+      type =
+        let
+          extraNetworkingType = import ../../../common/networking/common_types.nix { inherit lib; };
+        in
+        extraNetworkingType;
+      description = "Extra Networking option";
+      default = { };
+    };
   };
 
   config = lib.mkIf cfg.enable {
+
+    ghaf.common.extraNetworking.hosts.ids-vm = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = true;
       inherit (inputs) nixpkgs;
       config = idsvmBaseConfiguration // {
         imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;
+
+        ghaf.virtualization.microvm.vm-networking =
+          {
+            enable = true;
+            isGateway = true;
+            inherit vmName;
+          }
+          // lib.optionalAttrs ((cfg.extraNetworking.interfaceName or null) != null) {
+            inherit (cfg.extraNetworking) interfaceName;
+          };
+
       };
     };
   };
