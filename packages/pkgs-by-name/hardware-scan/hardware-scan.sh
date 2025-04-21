@@ -30,7 +30,7 @@ Options:
   -a | --audio         Detect sound devices for passthrough usage with auto-search
   -u | --usb           Detect USB devices for passthrough usage
   -d | --disk          Detect disks to use
-  -i | --input         Detect input devices for passthrough usage
+  -i | --input         Detect misc input devices for passthrough usage (excluding keyboard, mouse, touchpad)
   -e | --ext           Dump hardware info for later review (lspci, lsusb, dmidecode, etc.) into hwinfo/. Overwrites existing files.
   -h | --help          This help message
 
@@ -47,9 +47,6 @@ system_name=""
 system_sku=""
 declare -A pci_devices=()
 declare -A kernel_modules=()
-keyboard_attr_names=()
-mouse_attr_names=()
-touchpad_attr_names=()
 misc_devlinks=()
 misc_attr_names=()
 usb_devices=()
@@ -218,9 +215,6 @@ detect_pci_devices() {
 detect_input_devices() {
 
     local input_events=()
-    local keyboard_devices=()
-    local mouse_devices=()
-    local touchpad_devices=()
 
     while IFS= read -r line; do
         input_events+=("$line")
@@ -229,74 +223,10 @@ detect_input_devices() {
     # Use udevadm to iterate through input_events and determine devices
     for event in "${input_events[@]}"; do
         device_info=$(udevadm info --query=all --name="$event")
-        if [[ $device_info =~ ID_INPUT_KEYBOARD=1 ]]; then
-            keyboard_devices+=("$event")
-        elif [[ $device_info =~ ID_INPUT_KEY=1 ]] || [[ $device_info =~ ID_INPUT_SWITCH=1 ]]; then
+        if [[ $device_info =~ ID_INPUT_KEY=1 ]] || [[ $device_info =~ ID_INPUT_SWITCH=1 ]]; then
             misc_devices+=("$event")
         fi
-        if [[ $device_info =~ ID_INPUT_MOUSE=1 ]] && ! [[ $device_info =~ ID_INPUT_TOUCHPAD=1 ]]; then
-            mouse_devices+=("$event")
-        elif [[ $device_info =~ ID_INPUT_TOUCHPAD=1 ]]; then
-            touchpad_devices+=("$event")
-        fi
-        if [[ $device_info =~ ID_INPUT_TOUCHSCREEN=1 ]] || [[ $device_info =~ ID_INPUT_TABLET=1 ]]; then
-            touchpad_devices+=("$event")
-        fi
     done
-    # Check if any keyboard device found
-    if [ ${#keyboard_devices[@]} -eq 0 ]; then
-        echo "# No keyboard device found."
-    fi
-    # Check if any mouse device found
-    if [ ${#mouse_devices[@]} -eq 0 ]; then
-        echo "# No mouse device found."
-    fi
-
-    # Use udevadm to query keyboard info
-    tmp_names=()
-    for event in "${keyboard_devices[@]}"; do
-        keyboard_attr_name=$(udevadm info -a "$event" | grep "ATTRS{name}" | head -1 | awk -F "==" '{print $2}' | tr -d '\n')
-        tmp_names+=("$keyboard_attr_name")
-    done
-    # Remove duplicates
-    for elem in "${tmp_names[@]}"; do
-        if [[ ! " ${keyboard_attr_names[*]} " =~ $elem ]]; then
-            keyboard_attr_names+=("$elem")
-        fi
-    done
-
-    # Use udevadm to query mouse info
-    tmp_names=()
-    for event in "${mouse_devices[@]}"; do
-        mouse_attr_name=$(udevadm info -a "$event" | grep "ATTRS{name}" | head -1 | awk -F "==" '{print $2}' | tr -d '\n')
-        tmp_names+=("$mouse_attr_name")
-    done
-
-    # Remove duplicates
-    for elem in "${tmp_names[@]}"; do
-        if [[ ! " ${mouse_attr_names[*]} " =~ $elem ]]; then
-            mouse_attr_names+=("$elem")
-        fi
-    done
-
-    # Use udevadm to query touchpad info
-    tmp_names=()
-    for event in "${touchpad_devices[@]}"; do
-        touchpad_attr_name=$(udevadm info -a "$event" | grep "ATTRS{name}" | head -1 | awk -F "==" '{print $2}' | tr -d '\n')
-        tmp_names+=("$touchpad_attr_name")
-    done
-
-    # Remove duplicates
-    for elem in "${tmp_names[@]}"; do
-        if [[ ! " ${touchpad_attr_names[*]} " =~ $elem ]]; then
-            touchpad_attr_names+=("$elem")
-        fi
-    done
-
-    # Create evdev entries
-    for i in "${!keyboard_attr_names[@]}"; do keyboard_devlinks+=("\"/dev/keyboard$i\""); done
-    for i in "${!mouse_attr_names[@]}"; do mouse_devlinks+=("\"/dev/mouse$i\""); done
-    for i in "${!touchpad_attr_names[@]}"; do touchpad_devlinks+=("\"/dev/touchpad$i\""); done
 
     # Use udevadm to query misc info (INPUT_KEY, INPUT_SWITCH)
     tmp_devs=()
@@ -321,9 +251,6 @@ detect_input_devices() {
     done
 
     if $verbose; then
-        echo -e "Detected keyboard device names:\n${keyboard_attr_names[*]}\n"
-        echo -e "Detected mouse device names:\n${mouse_attr_names[*]}\n"
-        echo -e "Detected touchpad device names:\n${touchpad_attr_names[*]}\n"
         echo -e "Miscellaneous device names:\n${misc_attr_names[*]}\n"
         echo -e "Miscellaneous device links:\n${misc_devlinks[*]}\n"
     fi
@@ -447,33 +374,6 @@ host = {
 
 # Input devices
 input = {
-    keyboard = {
-        name = [
-            ${keyboard_attr_names[@]}
-        ];
-        evdev = [
-            ${keyboard_devlinks[@]}
-        ];
-    };
-
-    mouse = {
-        name = [
-            ${mouse_attr_names[@]}
-        ];
-        evdev = [
-            ${mouse_devlinks[@]}
-        ];
-    };
-
-    touchpad = {
-        name = [
-            ${touchpad_attr_names[@]}
-        ];
-        evdev = [
-            ${touchpad_devlinks[@]}
-        ];
-    };
-
     misc = {
         name = [
             # ${misc_attr_names[@]}
