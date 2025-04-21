@@ -22,33 +22,6 @@
   };
 
   input = {
-    keyboard = {
-      name = [ "AT Translated Set 2 keyboard" ];
-      evdev = [ "/dev/input/by-path/platform-i8042-serio-0-event-kbd" ];
-    };
-
-    mouse = {
-      name = [
-        [
-          "ELAN06D5:00 04F3:32B7 Mouse"
-        ]
-        "TPPS/2 Elan TrackPoint"
-      ];
-      evdev = [
-        "/dev/mouse0"
-        "/dev/mouse1"
-      ];
-    };
-
-    touchpad = {
-      name = [
-        [
-          "ELAN06D5:00 04F3:32B7 Touchpad"
-        ]
-      ];
-      evdev = [ "/dev/touchpad0" ];
-    };
-
     misc = {
       name = [ "ThinkPad Extra Buttons" ];
       evdev = [ "/dev/input/by-path/platform-thinkpad_acpi-event" ];

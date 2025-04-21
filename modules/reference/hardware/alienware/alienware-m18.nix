@@ -22,32 +22,6 @@
 
   # Input devices
   input = {
-    keyboard = {
-      name = [
-        "AT Translated Set 2 keyboard"
-        "DELL Technologies Keyboard"
-      ];
-      evdev = [
-        "/dev/keyboard0"
-        "/dev/keyboard1"
-      ];
-    };
-
-    mouse = {
-      name = [ "PS/2 Generic Mouse" ];
-      evdev = [ "/dev/mouse0" ];
-    };
-
-    touchpad = {
-      name = [
-        [
-          "VEN_04F3:00 04F3:328A Touchpad"
-          "VEN_06CB:00 06CB:CEFB Touchpad"
-        ]
-      ];
-      evdev = [ "/dev/touchpad0" ];
-    };
-
     misc = {
       name = [
         # "Dell WMI hotkeys" "HDA NVidia HDMI/DP,pcm=8" "HDA NVidia HDMI/DP,pcm=9" "Video Bus" "sof-hda-dsp Headphone Mic" "sof-hda-dsp HDMI/DP,pcm=3" "sof-hda-dsp HDMI/DP,pcm=4" "Lid Switch" "sof-hda-dsp HDMI/DP,pcm=5" "Power Button" "Sleep Button" "Intel HID events" "Intel HID 5 button array" "HDA NVidia HDMI/DP,pcm=3" "HDA NVidia HDMI/DP,pcm=7"
