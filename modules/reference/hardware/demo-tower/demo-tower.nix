@@ -22,21 +22,6 @@
 
   # Input devices
   input = {
-    keyboard = {
-      name = [ ];
-      evdev = [ ];
-    };
-
-    mouse = {
-      name = [ ];
-      evdev = [ ];
-    };
-
-    touchpad = {
-      name = [ ];
-      evdev = [ ];
-    };
-
     misc = {
       name = [
         # "HDA NVidia HDMI/DP,pcm=3" "HDA NVidia HDMI/DP,pcm=7" "HDA NVidia HDMI/DP,pcm=8" "HDA NVidia HDMI/DP,pcm=9" "Generic USB Audio Consumer Control" "Generic USB Audio" "Power Button"

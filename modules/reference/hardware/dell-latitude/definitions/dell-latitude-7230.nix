@@ -20,35 +20,6 @@
 
   # Input devices
   input = {
-    keyboard = {
-      name = [ "AT Translated Set 2 keyboard" ];
-      evdev = [ "/dev/keyboard0" ];
-    };
-
-    mouse = {
-      name = [
-        "PS/2 Generic Mouse"
-        "SYNAPTICS Synaptics HIDUSB TouchPad V1.05 Mouse"
-      ];
-      evdev = [
-        "/dev/mouse0"
-        "/dev/mouse1"
-      ];
-    };
-
-    touchpad = {
-      name = [
-        "SYNAPTICS Synaptics HIDUSB TouchPad V1.05 Touchpad"
-        "EETI8082:00 0EEF:C004"
-        "EETI8082:00 0EEF:C004 Stylus"
-      ];
-      evdev = [
-        "/dev/touchpad0"
-        "/dev/touchpad1"
-        "/dev/touchpad2"
-      ];
-    };
-
     misc = {
       name = [
         # "Intel HID events" "Dell WMI hotkeys" "Video Bus" "HDA Intel PCH Headphone Mic" "HDA Intel PCH HDMI/DP,pcm=3" "HDA Intel PCH HDMI/DP,pcm=7" "HDA Intel PCH HDMI/DP,pcm=8" "HDA Intel PCH HDMI/DP,pcm=9" "Intel HID 5 button array" "Lid Switch" "Power Button" "Sleep Button"
