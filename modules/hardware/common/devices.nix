@@ -75,18 +75,10 @@ in
       };
 
       guivmVirtioInputHostEvdevModule = {
-        microvm.qemu.extraArgs =
-          builtins.concatMap
-            (d: [
-              "-device"
-              "virtio-input-host-pci,evdev=${d}"
-            ])
-            (
-              config.ghaf.hardware.definition.input.keyboard.evdev
-              ++ config.ghaf.hardware.definition.input.mouse.evdev
-              ++ config.ghaf.hardware.definition.input.touchpad.evdev
-              ++ config.ghaf.hardware.definition.input.misc.evdev
-            );
+        microvm.qemu.extraArgs = builtins.concatMap (d: [
+          "-device"
+          "virtio-input-host-pci,evdev=${d}"
+        ]) config.ghaf.hardware.definition.input.misc.evdev;
       };
     };
   };
