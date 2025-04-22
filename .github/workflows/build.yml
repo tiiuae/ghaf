@@ -13,62 +13,31 @@ on:
 permissions:
   contents: read
 jobs:
-  check-identity:
-    if: ${{ github.repository == 'tiiuae/ghaf' }} # Skip in forks
+  debug:
     runs-on: ubuntu-latest
-    outputs:
-      authorized_user: ${{ steps.check-authorized-user.outputs.authorized_user }}
-    environment: "internal-build-workflow"
     steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
-        with:
-          egress-policy: audit
-      - name: Check identity
-        id: check-authorized-user
-        shell: bash
+      - name: Debug
         run: |
-          authorized_user='False'
-          for user in ${{ vars.AUTHORIZED_USERS }};
-          do
-            if [ "$user" = "${{ github.actor }}" ]; then
-              authorized_user='True'
-              break
-            fi
-          done
           echo "github.event_name: ${{ github.event_name }}"
           echo "github.repository: ${{ github.repository }}"
           echo "github.event.pull_request.head.repo.full_name: ${{ github.event.pull_request.head.repo.full_name }}"
           echo "github.actor: ${{ github.actor }}"
           echo "github.ref: ${{ github.ref }}"
-          echo "github.event.pull_request.head.sha: ${{github.event.pull_request.head.sha }}"
-          echo "authorized_user=$authorized_user"
-          echo "authorized_user=$authorized_user" >> "$GITHUB_OUTPUT"
-
-  # Authorization passes without approval if:
-  # - The event is not a pull request (e.g. push to main)
-  # - Pull request comes from another branch in the same repo
-  # - Author is in our predefined list of authorized users
-  # Otherwise, the workflow requires manual approval from a maintainer
-  # as configured in the 'external-build-workflow' github environment
+          echo "github.event.pull_request.head.sha: ${{ github.event.pull_request.head.sha }}"
   authorize:
-    needs: [check-identity]
-    environment: ${{
-      ( github.event_name != 'pull_request_target' ||
-        github.event.pull_request.head.repo.full_name == github.repository ||
-        needs.check-identity.outputs.authorized_user == 'True' )
-      && 'internal-build-workflow' || 'external-build-workflow' }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf # v2.11.1
-        with:
-          egress-policy: audit
-      - run: echo "Auth OK"
-
-  # Send a warning and fail this job if the workflow file was changed.
-  # Rest of the workflow continues as normal but the job failure will grab author's attention.
+    # Important: 'authorize' must run before checkout to ensure 'authorize.yml'
+    # runs the base version, not the untrusted version from the PR.
+    uses: ./.github/workflows/authorize.yml
+    # Skip running in forked repositories, since the workflow run would fail
+    # due to missing repository secret(s):
+    if: ${{ github.repository == 'tiiuae/ghaf' }}
+    with:
+      github-org: tiiuae
+    secrets:
+      read-org-members: ${{ secrets.READ_ORG_MEMBERS }}
   no-workflow-changes:
+    # Send a warning and fail this job if the workflow file was changed.
+    # Rest of the workflow continues as normal but the job failure will grab author's attention.
     runs-on: ubuntu-latest
     if: ${{ github.event_name == 'pull_request_target' }}
     steps:
@@ -95,10 +64,10 @@ jobs:
                  "before merging to make sure the change does not break anything."
             exit 1
           fi
-
   build_matrix:
     name: "build"
     needs: [authorize]
+    if: needs.authorize.outputs.result == 'authorized'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     strategy:

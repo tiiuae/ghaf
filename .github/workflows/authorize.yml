@@ -1,0 +1,68 @@
+# SPDX-FileCopyrightText: 2025 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: authorize
+
+permissions: {}
+
+on:
+  workflow_call:
+    secrets:
+      read-org-members:
+        description: "Github token with read access to organization members"
+        required: true
+    inputs:
+      github-org:
+        description: "Github organization name"
+        required: true
+        type: string
+    outputs:
+      result:
+        value: ${{ jobs.authorize.outputs.result }}
+
+jobs:
+  is-org-member:
+    runs-on: ubuntu-latest
+    outputs:
+      is_org_member: ${{ steps.check-is-org-member.outputs.is_org_member }}
+    environment: "internal"
+    steps:
+      - name: Check identity
+        id: check-is-org-member
+        shell: bash
+        # More details: https://docs.github.com/en/rest/orgs/members
+        run: |
+          is_org_member='False'
+          response=$(curl -L -o /dev/null -w "%{http_code}" \
+            -H "Accept: application/vnd.github+json" \
+            -H "Authorization: Bearer ${{ secrets.read-org-members }}" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            "https://api.github.com/orgs/${{ inputs.github-org }}/members/${{ github.actor }}")
+          if [ "$response" == "204" ]; then
+            is_org_member='True'
+          fi
+          echo "is_org_member=$is_org_member"
+          echo "is_org_member=$is_org_member" >>"$GITHUB_OUTPUT"
+  authorize:
+    outputs:
+      result: ${{ steps.set-output.outputs.result }}
+    needs: [is-org-member]
+    # Authorization passes without approval if:
+    # - The event is not a pull request (e.g. push to main) or
+    # - Pull request comes from another branch in the same repo or
+    # - Github actor is a member of 'github-org' organization
+    # Otherwise, the workflow requires manual approval from a maintainer
+    # as configured in the 'external' github environment
+    environment: ${{
+      ( github.event_name != 'pull_request_target' ||
+        github.event.pull_request.head.repo.full_name == github.repository ||
+        needs.is-org-member.outputs.is_org_member == 'True' )
+      && 'internal' || 'external' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set output
+        id: set-output
+        run: |
+          echo "Auth OK"
+          echo "result=authorized" >>"$GITHUB_OUTPUT"
