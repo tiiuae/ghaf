@@ -35,7 +35,7 @@ in
     };
 
     somType = mkOption {
-      description = "SoM config Type (NX|AGX|Nano)";
+      description = "SoM config Type (NX|AGX32|AGX64|Nano)";
       type = types.str;
       default = "agx";
     };
@@ -50,11 +50,11 @@ in
   config = mkIf cfg.enable {
     hardware.nvidia-jetpack = {
       enable = true;
-      som = "orin-${cfg.somType}";
+      som = if ((cfg.somType == "agx") || (cfg.somType == "agx64")) then "orin-agx" else "orin-nx";
       carrierBoard = "${cfg.carrierBoard}";
       modesetting.enable = true;
 
-      flashScriptOverrides = lib.optionalAttrs (cfg.somType == "agx") {
+      flashScriptOverrides = lib.optionalAttrs ((cfg.somType == "agx") || (cfg.somType == "agx64")) {
         flashArgs = lib.mkForce [
           "-r"
           config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard
@@ -149,6 +149,9 @@ in
       # modifications.
       // lib.optionalAttrs (cfg.somType == "agx") {
         name = lib.mkDefault "tegra234-p3737-0000+p3701-0000-nv.dtb";
+      }
+      // lib.optionalAttrs (cfg.somType == "agx64") {
+        name = lib.mkDefault "tegra234-p3737-0000+p3701-0005-nv.dtb";
       }
       // lib.optionalAttrs (cfg.somType == "nx") {
         # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
