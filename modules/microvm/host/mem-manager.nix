@@ -6,11 +6,12 @@
 {
   pkgs,
   config,
+  lib,
   ...
 }:
 let
   balloonvms = builtins.filter (
-    name: (config.microvm.vms.${name}.config.config.microvm.balloonMem or 0) > 0
+    name: (config.microvm.vms.${name}.config.config.microvm.balloon or false)
   ) (builtins.attrNames (config.microvm.vms or { }));
 in
 {
@@ -22,6 +23,7 @@ in
         // (
           let
             microvmConfig = config.microvm.vms.${name}.config.config.microvm;
+            appvmConfig = config.ghaf.virtualization.microvm.appvm.vms.${lib.removeSuffix "-vm" name};
           in
           {
             "ghaf-mem-manager-${name}" = {
@@ -32,8 +34,8 @@ in
                 Type = "simple";
                 WorkingDirectory = "${config.microvm.stateDir}/${name}";
                 ExecStart = "${pkgs.ghaf-mem-manager}/bin/ghaf-mem-manager -s ${name}.sock -m ${
-                  builtins.toString (microvmConfig.mem * 1024 * 1024)
-                } -M ${builtins.toString ((microvmConfig.mem + microvmConfig.balloonMem) * 1024 * 1024)}";
+                  builtins.toString (appvmConfig.ramMb * 1024 * 1024)
+                } -M ${builtins.toString (microvmConfig.mem * 1024 * 1024)}";
               };
             };
           }

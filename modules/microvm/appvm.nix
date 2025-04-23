@@ -165,8 +165,8 @@ let
 
               microvm = {
                 optimize.enable = false;
-                mem = vm.ramMb;
-                balloonMem = builtins.ceil (vm.ramMb * vm.balloonRatio);
+                mem = vm.ramMb * (vm.balloonRatio + 1);
+                balloon = vm.balloonRatio > 0;
                 deflateOnOOM = false;
                 vcpu = vm.cores;
                 hypervisor = "qemu";
