@@ -7,12 +7,12 @@
   ...
 }:
 let
-  cfg = config.ghaf.hardware.nvidia.orin.agx;
+  cfg = config.ghaf.hardware.nvidia.orin;
 in
 {
   options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
     lib.mkEnableOption "WLAN card PCI passthrough to NetVM";
-  config = lib.mkIf cfg.enableNetvmWlanPCIPassthrough {
+  config = lib.mkIf cfg.agx.enableNetvmWlanPCIPassthrough {
     # Orin AGX WLAN card PCI passthrough
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
 
@@ -38,7 +38,11 @@ in
     hardware.deviceTree.overlays = [
       {
         name = "agx-ethernet-pci-passthough-overlay";
-        dtsFile = ./agx-ethernet-pci-passthough-overlay.dts;
+        dtsFile =
+          if (cfg.somType == "agx64") then
+            ./agx64-ethernet-pci-passthrough-overlay.dts
+          else
+            ./agx-ethernet-pci-passthrough-overlay.dts;
       }
     ];
 

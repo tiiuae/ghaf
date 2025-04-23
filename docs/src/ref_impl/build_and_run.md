@@ -96,6 +96,11 @@ Before you begin:
     ```
     nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-flash-script
     ```
+    The above command is for AGX 32GB version. For the AGX 64GB RAM version please
+    use:
+    ```
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx64-debug-flash-script
+    ```
     It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give "yes" answers to all script questions. The building process takes around 1,5 hours.
 
 2. Set up the following connections:
@@ -126,6 +131,11 @@ After the latest firmware is [flashed](./build_and_run.md#flashing-nvidia-jetson
 1. To build the target image, run the command:
     ```
     nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-from-x86_64
+    ```
+    The above command is for AGX 32GB version. For the AGX 64GB RAM version please
+    use:
+    ```
+    nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx64-debug
     ```
 2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
     ```
@@ -198,4 +208,3 @@ In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image 
      * You can directly flash a NixOS image to an onboard MMC card: `./packages/flash/flash.sh -d /dev/<YOUR_MMC_DEVICE> -i result/<IMAGE_NAME>`.
 
 For more information on how to access the MMC card as a USB disk, see [MPFS Icicle Kit User Guide](https://tinyurl.com/48wycdka).
-

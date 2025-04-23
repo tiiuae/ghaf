@@ -26,12 +26,12 @@ let
           # not.
 
           # To enable or disable wireless
-          networking.wireless.enable = som == "agx";
+          networking.wireless.enable = (som == "agx") || (som == "agx64");
 
           # For WLAN firmwares
           hardware = {
-            enableRedistributableFirmware = som == "agx";
-            wirelessRegulatoryDatabase = som == "agx";
+            enableRedistributableFirmware = (som == "agx") || (som == "agx64");
+            wirelessRegulatoryDatabase = (som == "agx") || (som == "agx64");
           };
 
           services.dnsmasq.settings.dhcp-option = [
@@ -62,7 +62,7 @@ let
               hardware.nvidia.orin = {
                 enable = true;
                 somType = som;
-                agx.enableNetvmWlanPCIPassthrough = som == "agx";
+                agx.enableNetvmWlanPCIPassthrough = (som == "agx") || (som == "agx64");
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 # Currntly we have mostly xavier nx based carrier boards
                 carrierBoard = if som == "nx" then "xavierNXdevkit" else "devkit";
@@ -145,6 +145,8 @@ let
     };
   nvidia-jetson-orin-agx-debug = nvidia-jetson-orin "agx" "debug" [ ];
   nvidia-jetson-orin-agx-release = nvidia-jetson-orin "agx" "release" [ ];
+  nvidia-jetson-orin-agx64-debug = nvidia-jetson-orin "agx64" "debug" [ ];
+  nvidia-jetson-orin-agx64-release = nvidia-jetson-orin "agx64" "release" [ ];
   nvidia-jetson-orin-nx-debug = nvidia-jetson-orin "nx" "debug" [ ];
   nvidia-jetson-orin-nx-release = nvidia-jetson-orin "nx" "release" [ ];
 
@@ -184,6 +186,8 @@ let
   baseTargets = [
     nvidia-jetson-orin-agx-debug
     nvidia-jetson-orin-agx-release
+    nvidia-jetson-orin-agx64-debug
+    nvidia-jetson-orin-agx64-release
     nvidia-jetson-orin-nx-debug
     nvidia-jetson-orin-nx-release
   ];
