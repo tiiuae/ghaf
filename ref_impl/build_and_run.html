@@ -310,6 +310,10 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <p>Run the command:</p>
 <pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-flash-script
 </code></pre>
+<p>The above command is for AGX 32GB version. For the AGX 64GB RAM version please
+use:</p>
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx64-debug-flash-script
+</code></pre>
 <p>It will build the Ghaf image and bootloader firmware, and prepare the flashing script. Give "yes" answers to all script questions. The building process takes around 1,5 hours.</p>
 </li>
 <li>
@@ -345,6 +349,10 @@ To see all Ghaf-supported outputs, type <code>nix flake show</code>.</li>
 <ol>
 <li>To build the target image, run the command:
 <pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx-debug-from-x86_64
+</code></pre>
+The above command is for AGX 32GB version. For the AGX 64GB RAM version please
+use:
+<pre><code>nix build github:tiiuae/ghaf#nvidia-jetson-orin-agx64-debug
 </code></pre>
 </li>
 <li>After the build is completed, prepare a USB boot media with the target image you built using the <code>flash.sh</code> script:
