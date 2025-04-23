@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2025 TII (SSRC) and the Ghaf contributors
 #
 # SPDX-License-Identifier: Apache-2.0
 
@@ -10,8 +10,10 @@ on:
   pull_request_target:
     branches:
       - main
+
 permissions:
   contents: read
+
 jobs:
   debug:
     runs-on: ubuntu-latest
@@ -35,35 +37,6 @@ jobs:
       github-org: tiiuae
     secrets:
       read-org-members: ${{ secrets.READ_ORG_MEMBERS }}
-  no-workflow-changes:
-    # Send a warning and fail this job if the workflow file was changed.
-    # Rest of the workflow continues as normal but the job failure will grab author's attention.
-    runs-on: ubuntu-latest
-    if: ${{ github.event_name == 'pull_request_target' }}
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
-        with:
-          egress-policy: audit
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-        with:
-          ref: ${{ github.event.pull_request.head.sha || github.ref }}
-          fetch-depth: 0
-      - name: Check if workflow is modified
-        id: workflow-changed
-        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
-        with:
-          files: .github/workflows/build.yml
-      - name: Send warning
-        run: |
-          if [ "${{ steps.workflow-changed.outputs.any_changed }}" == "true" ]; then
-            echo "::error::"\
-                 "This change edits workflow file '.github/workflows/build.yml'."\
-                 "Raising this error to notify that the workflow change will only take impact after merge."\
-                 "Therefore, you need to manually test the change (perhaps in a forked repo) "\
-                 "before merging to make sure the change does not break anything."
-            exit 1
-          fi
   build_matrix:
     name: "build"
     needs: [authorize]

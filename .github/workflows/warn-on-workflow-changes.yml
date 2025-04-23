@@ -1,0 +1,46 @@
+# SPDX-FileCopyrightText: 2025 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: warn
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  warn-on-workflow-changes:
+    # Send a warning and fail this job if any of the listed workflow files are changed.
+    # Other workflows continue as normal but the failure will grab author's attention.
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: Check if workflow is modified
+        id: workflow-changed
+        uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
+        with:
+          files: |
+            .github/workflows/authorize.yml
+            .github/workflows/build.yml
+      - name: Send warning
+        run: |
+          if [ "${{ steps.workflow-changed.outputs.any_changed }}" == "true" ]; then
+            echo "::error::"\
+                 "This change edits a workflow file that triggers on 'pull_request_target'. "\
+                 "Raising this error to notify that the workflow change will only take "\
+                 "impact after merge. "\
+                 "Therefore, you need to manually test the change (perhaps in a forked repo) "\
+                 "before merging to make sure the change does not break anything." \
+                 "Workflow run results, as reported in the github PR actions for this change, "\
+                 "will be misleading."
+            exit 1
+          fi
