@@ -349,7 +349,7 @@ in
 
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
-      autostart = true;
+      autostart = !config.ghaf.boot.enable;
       inherit (inputs) nixpkgs;
       config = guivmBaseConfiguration // {
         boot.kernelPackages =

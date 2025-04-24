@@ -28,6 +28,7 @@ in
     inputs.self.nixosModules.mem-manager
     ./networking.nix
     ./shared-mem.nix
+    ./boot.nix
   ];
 
   options.ghaf.virtualization.microvm-host = {
@@ -61,6 +62,9 @@ in
 
       ghaf = {
         type = "host";
+        boot = {
+          inherit (config.ghaf.virtualization.microvm.guivm) enable;
+        };
         systemd = {
           withName = "host-systemd";
           enable = true;
