@@ -35,7 +35,7 @@ let
       #!${pkgs.runtimeShell}
       file="$1"
       echo "XDG open image: $file"
-      ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/pqiv -i "$file"
+      ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/oculante "$file"
       rm "$file"
     '';
   };
@@ -47,9 +47,9 @@ in
 
   config = lib.mkIf (cfg.enable && config.ghaf.givc.enable) {
 
-    environment.systemPackages = [
-      pkgs.zathura
-      pkgs.pqiv
+    environment.systemPackages = with pkgs; [
+      zathura
+      oculante
     ];
 
     # Set up GIVC applications for XDG scripts

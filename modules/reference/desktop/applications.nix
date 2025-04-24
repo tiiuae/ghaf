@@ -28,13 +28,6 @@ in
         }
 
         {
-          name = "Sticky Notes";
-          description = "Sticky Notes on your Desktop";
-          icon = "${pkgs.sticky-notes}/share/icons/hicolor/scalable/apps/com.vixalien.sticky.svg";
-          command = "${pkgs.sticky-notes}/bin/com.vixalien.sticky";
-        }
-
-        {
           name = "Bluetooth Settings";
           description = "Manage Bluetooth Devices & Settings";
           icon = "bluetooth-48";
@@ -54,6 +47,14 @@ in
           description = "Organize & Manage Files";
           icon = "system-file-manager";
           command = "${pkgs.pcmanfm}/bin/pcmanfm";
+        }
+
+        # com.vixalien.sticky segfaults in COSMIC DE
+        {
+          name = "Sticky Notes";
+          description = "Sticky Notes on your Desktop";
+          icon = "${pkgs.sticky-notes}/share/icons/hicolor/scalable/apps/com.vixalien.sticky.svg";
+          command = "${pkgs.sticky-notes}/bin/com.vixalien.sticky";
         }
       ]
       ++ lib.optionals config.ghaf.reference.services.alpaca-ollama [

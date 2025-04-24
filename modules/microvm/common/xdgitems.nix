@@ -11,10 +11,61 @@ let
   vmName = config.ghaf.storagevm.name;
   inherit (cfg) xdgHostRoot;
 
+  # Taken from supported MIME types by Oculante
+  # Ref.: https://github.com/woelper/oculante/blob/master/res/oculante.desktop
+  supportedImageMimeTypes = [
+    "image/bmp"
+    "image/gif"
+    "image/vnd.microsoft.icon"
+    "image/jpeg"
+    "image/jp2"
+    "image/png"
+    "image/pnm"
+    "image/x-tga"
+    "image/jxl"
+    "image/avif"
+    "image/tiff"
+    "image/webp"
+    "image/octet-stream"
+    "image/svg+xml"
+    "image/exr"
+    "image/x-exr"
+    "image/x-dcraw"
+    "image/x-nikon-nef"
+    "image/x-canon-cr2"
+    "image/x-adobe-dng"
+    "image/x-epson-erf"
+    "image/x-fuji-raf"
+    "image/x-sony-arw"
+    "image/x-sony-srf"
+    "image/x-sony-sr2"
+    "image/x-panasonic-raw/x-portable-pixmap"
+    "image/heic"
+    "image/x-qoi"
+  ];
+
+  # Maps a list of MIME types to a default application as an attribute set.
+  # Example:
+  #   setDefaultAppForTypes ["text/plain", "image/png"] "my-app.desktop"
+  #   would produce:
+  #   {
+  #     "text/plain" = "my-app.desktop";
+  #     "image/png" = "my-app.desktop";
+  #   }
+  setDefaultAppForTypes =
+    mimeTypes: defaultApplication:
+    lib.listToAttrs (
+      map (mimeType: {
+        name = mimeType;
+        value = defaultApplication;
+      }) mimeTypes
+    );
+
   # XDG item for PDF
   xdgPdfItem = pkgs.makeDesktopItem {
     name = "ghaf-pdf-xdg";
     desktopName = "Ghaf PDF Viewer";
+    icon = "document-viewer";
     exec = "${xdgOpenFile}/bin/xdgopenfile pdf %f";
     mimeTypes = [ "application/pdf" ];
     noDisplay = true;
@@ -24,11 +75,9 @@ let
   xdgImageItem = pkgs.makeDesktopItem {
     name = "ghaf-image-xdg";
     desktopName = "Ghaf Image Viewer";
+    icon = "multimedia-photo-viewer";
     exec = "${xdgOpenFile}/bin/xdgopenfile image %f";
-    mimeTypes = [
-      "image/jpeg"
-      "image/png"
-    ];
+    mimeTypes = supportedImageMimeTypes;
     noDisplay = true;
   };
 
@@ -103,9 +152,11 @@ in
     ];
 
     # Set up XDG items for each supported MIME type
-    xdg.mime.defaultApplications."application/pdf" = "ghaf-pdf-xdg.desktop";
-    xdg.mime.defaultApplications."image/jpeg" = "ghaf-image-xdg.desktop";
-    xdg.mime.defaultApplications."image/png" = "ghaf-image-xdg.desktop";
+    xdg.mime.defaultApplications =
+      setDefaultAppForTypes supportedImageMimeTypes "ghaf-image-xdg.desktop"
+      // {
+        "application/pdf" = "ghaf-pdf-xdg.desktop";
+      };
 
     # Set up MicroVM shares for each MIME type and mount them to /run/xdg
     # These shares are also passed to the VMs that handle XDG requests
