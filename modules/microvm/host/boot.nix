@@ -42,27 +42,39 @@ in
       };
     };
 
-    systemd.services = {
-
-      appvm-startup = {
-        description = "AppVM startup";
-        serviceConfig = {
-          type = "oneshot";
-          ExecStartPre = optionalString appvm.enable ''
-            ${pkgs.wait-for-unit}/bin/wait-for-unit \
-            ${hosts.admin-vm.ipv4} 9001 \
-            gui-vm \
-            greetd.service
-          '';
-          ExecStart = "/bin/sh -c exit"; # no-op
-          RemainAfterExit = true;
+    systemd.services =
+      {
+        # Service to wait for gui-vm to reach greetd.service
+        appvm-startup = {
+          description = "AppVM startup";
+          serviceConfig = {
+            type = "oneshot";
+            ExecStartPre = optionalString appvm.enable ''
+              ${pkgs.wait-for-unit}/bin/wait-for-unit \
+              ${hosts.admin-vm.ipv4} 9001 \
+              gui-vm \
+              greetd.service
+            '';
+            ExecStart = "/bin/sh -c exit"; # no-op
+            RemainAfterExit = true;
+          };
         };
-      };
 
-      # Delay logging service on host
-      alloy = optionalAttrs logging.enable {
-        after = [ "microvms.target" ];
-      };
-    };
+        # Delay logging service on host
+        alloy = optionalAttrs logging.enable {
+          after = [ "microvms.target" ];
+        };
+      }
+      // builtins.foldl' (
+        result: name:
+        result
+        // {
+          # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
+          # in ExecStop of the microvm@ service fails and causes the service to restart.
+          "microvm@${name}".serviceConfig = {
+            Restart = "on-abnormal";
+          };
+        }
+      ) { } (builtins.attrNames config.microvm.vms);
   };
 }
