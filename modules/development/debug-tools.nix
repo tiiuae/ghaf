@@ -51,7 +51,7 @@ in
         pkgs.efibootmgr
 
         # Performance testing
-        pkgs.speedtest-cli
+        pkgs.ookla-speedtest
         pkgs.iperf
         pkgs.tree
         pkgs.file
