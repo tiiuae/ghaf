@@ -48,7 +48,7 @@ Security Team:
 * Brian McGillion (@brianmcgillion)
 * Manuel Bluhm (@mbssrc)
 * Henri Rosten (@henrirosten)
-* Mika Tammi (@mikatammi)
+* Ganga Ram (@gngram)
 
 Security Team membership is currently considered on a case-by-case basis.
 
