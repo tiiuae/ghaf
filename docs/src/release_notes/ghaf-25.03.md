@@ -11,7 +11,7 @@ This is a quarterly release which has been fully tested on Nvidia Orin NX, Nvidi
 
 ## Release Tag
 
-https://github.com/tiiuae/ghaf/releases/tag/ghaf-25.03
+<https://github.com/tiiuae/ghaf/releases/tag/ghaf-25.03>
 
 ## Supported Hardware
 
@@ -98,6 +98,6 @@ There are no specific requirements for the environment with this release.
 
 ## Installation Instructions
 
-Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-25-03](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-25-03).
+Released images are available at [archive.vedenemo.dev/ghaf-25.03](https://archive.vedenemo.dev/ghaf-25.03/).
 
 Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run.md).
