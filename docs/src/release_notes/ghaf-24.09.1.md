@@ -72,4 +72,3 @@ There are no specific requirements for the environment with this release.
 Released images are available at [archive.vedenemo.dev/ghaf-24.09.1](https://archive.vedenemo.dev/ghaf-24.09.1/).
 
 Download the required image and use the following instructions: [Build and Run](../ref_impl/build_and_run.md).
-
