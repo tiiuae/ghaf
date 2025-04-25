@@ -94,6 +94,8 @@ in
         pkgs.intel-gpu-tools
         pkgs.vulkan-tools
         pkgs.glmark2
+        pkgs.kitty.terminfo
+        pkgs.ghostty.terminfo
       ]);
 
     programs = {
