@@ -70,7 +70,7 @@ There are no specific requirements for the environment with this release.
 
 ## Installation Instructions
 
-Released images are available at [ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-03](https://ghafreleasesstorage.z16.web.core.windows.net/ghaf-24-03/).
+Released images are available at [archive.vedenemo.dev/ghaf-24.03](https://archive.vedenemo.dev/ghaf-24.03/).
 
 Download the required image and use the following instructions:
 
@@ -82,4 +82,4 @@ Download the required image and use the following instructions:
 | ghaf-24.03_Nvidia_Orin_NX_cross-compiled-no-demoapps[^note1].tar.xz, ghaf-24.03_Nvidia_Orin_NX_cross-compiled.tar.xz, ghaf-24.03_Nvidia_Orin_NX_native-build.tar.xz | [Ghaf Image for NVIDIA Jetson Orin AGX](../ref_impl/build_and_run.md#ghaf-image-for-nvidia-jetson-orin-agx) |
 | ghaf-24.03_PolarFire_RISC-V.tar.xz | [Building Ghaf Image for Microchip Icicle Kit](../ref_impl/build_and_run.md#building-ghaf-image-for-microchip-icicle-kit) |
 
-[^note1] no-demoapps images do not include Chromium, Zathura, and GALA applications.
+[^note1]: no-demoapps images do not include Chromium, Zathura, and GALA applications.
