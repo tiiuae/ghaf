@@ -54,8 +54,10 @@
         - [Generic x86: PCIe Passthrough on crosvm](technologies/x86_pcie_crosvm.md)
         - [NVIDIA Jetson: UARTI Passthrough to netvm](technologies/nvidia_uarti_net_vm.md)
         - [Device Tree Overlays for Passthrough](technologies/device_tree_overlays_pt.md)
+        - [x86: GPU Passthrough with qemu](technologies/x86_gpu_passthrough_qemu.md)
     - [Platform Bus Virtualization: NVIDIA BPMP](technologies/nvidia_virtualization_bpmp.md)
     - [Hypervisor Options](technologies/hypervisor_options.md)
+    - [Hardware Acceleration](technologies/hardware_acceleration.md)
 
 # Build System and Supply Chain
 
