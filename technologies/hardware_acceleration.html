@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Passthrough - Ghaf Framework</title>
+        <title>Hardware Acceleration - Ghaf Framework</title>
 
 
         <!-- Custom HTML head -->
@@ -226,32 +226,125 @@
 
 </style>
 <!--
-    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+    Copyright 2025 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
-<h1 id="devices-passthrough"><a class="header" href="#devices-passthrough">Devices Passthrough</a></h1>
-<p>Devices passthrough to virtual machines (VM) allows us to isolate the device drivers
-and their memory access in one or several VMs. This reduces the Trusted Code Base (TCB) in the host, due to the passed-through device drivers can be removed completely from the host kernel.</p>
-<p>Whether the device platform is x86 or ARM, the passthrough device needs to be bound to the VFIO device driver by the host system before it can be passed through to the guest environment. For more information, see <a href="vfio.html">Binding Device to VFIO Driver</a>.</p>
-<p>Our current supported passthrough devices implementations:</p>
+<h1 id="hardware-acceleration-in-linux"><a class="header" href="#hardware-acceleration-in-linux">Hardware acceleration in Linux</a></h1>
+<p>Hardware acceleration refers to offloading certain tasks, typically graphical or computational, from the CPU to specialized hardware components like the GPU, video decoder/encoder, or other accelerators. This can greatly improve system performance and efficiency, especially for graphics rendering, video playback, and certain compute-heavy applications.</p>
+<h3 id="types-of-hardware-acceleration"><a class="header" href="#types-of-hardware-acceleration">Types of Hardware Acceleration</a></h3>
+<ol>
+<li><strong>GPU Acceleration (Graphics)</strong></li>
+</ol>
 <ul>
-<li><a href="nvidia_agx_pt_uart.html">NVIDIA Jetson AGX Orin: UART Passthrough</a></li>
-<li><a href="nvidia_agx_pt_pcie.html">NVIDIA Jetson AGX Orin: PCIe Passthrough</a></li>
-<li><a href="x86_pcie_crosvm.html">Generic x86: PCIe Passthrough on crosvm</a></li>
-<li><a href="nvidia_uarti_net_vm.html">NVIDIA Jetson: UARTI Passthrough to netvm</a></li>
-<li><a href="device_tree_overlays_pt.html">Device Tree Overlays for Passthrough</a></li>
-<li><a href="x86_gpu_passthrough_qemu.html">x86: GPU Passthrough with qemu</a></li>
+<li>
+<p>Used for rendering GUIs, 3D applications or desktops like <a href="https://github.com/labwc/labwc">labwc</a>, <a href="https://github.com/pop-os/cosmic-epoch">cosmic</a>.</p>
+</li>
+<li>
+<p>APIs involved:</p>
+<ul>
+<li><strong>OpenGL / Vulkan</strong></li>
+<li><strong>Mesa 3D</strong> (open-source graphics library)</li>
 </ul>
+</li>
+</ul>
+<ol start="2">
+<li><strong>Video Acceleration (Decode/Encode)</strong></li>
+</ol>
+<ul>
+<li>
+<p>Useful for smooth playback of high-definition video.</p>
+</li>
+<li>
+<p>Libraries/interfaces:</p>
+<ul>
+<li><strong>VA-API (Video Acceleration API)</strong> – Intel, AMD</li>
+<li><strong>VDPAU</strong> (Video Decode and Presentation API for Unix) – NVIDIA</li>
+<li><strong>NVDEC / NVENC</strong> – NVIDIA proprietary decoding/encoding</li>
+<li><strong>V4L2 (Video4Linux)</strong> – General video capture/encode API</li>
+</ul>
+</li>
+</ul>
+<ol start="3">
+<li><strong>Compute Acceleration</strong></li>
+</ol>
+<ul>
+<li>
+<p>Used in AI, ML, and general purpose GPU computing.</p>
+</li>
+<li>
+<p>Technologies:</p>
+<ul>
+<li><strong>OpenCL</strong> (open standard)</li>
+<li><strong>CUDA</strong> (NVIDIA-specific)</li>
+</ul>
+</li>
+</ul>
+<h3 id="-how-to-check-if-its-enabled"><a class="header" href="#-how-to-check-if-its-enabled">⚙️ How to Check If It's Enabled</a></h3>
+<ol>
+<li>
+<p><strong>GPU Info</strong></p>
+<pre><code class="language-sh">glxinfo | grep "OpenGL renderer"
+</code></pre>
+</li>
+<li>
+<p><strong>Video Acceleration Check</strong></p>
+<pre><code class="language-sh">vainfo      # For VA-API
+
+vdpauinfo   # For VDPAU
+</code></pre>
+</li>
+<li>
+<p><strong>GPU workload check</strong></p>
+<pre><code class="language-sh">intel_gpu_top # For Intel Platforms
+
+nvidia-smi    # For Nvidia Platforms
+</code></pre>
+</li>
+<li>
+<p><strong>General Acceleration</strong></p>
+</li>
+</ol>
+<ul>
+<li>
+<p>Monitor CPU usage during video playback using <code>htop</code> or <code>top</code>.</p>
+</li>
+<li>
+<p>If CPU usuage is low, hardware acceleration is likely working.</p>
+</li>
+</ul>
+<h3 id="-video-hardware-acceleration-support-in-browsers"><a class="header" href="#-video-hardware-acceleration-support-in-browsers">🎥 Video hardware acceleration support in browsers</a></h3>
+<ol>
+<li>
+<p>For Firefox</p>
+<ul>
+<li>
+<p>In URL type following:</p>
+<pre><code class="language-sh">about:support # Then scroll down to find Media section to find Codecs supported with Hardware Decoding
+</code></pre>
+</li>
+</ul>
+</li>
+<li>
+<p>For Chrome</p>
+<ul>
+<li>
+<p>In URL type following:</p>
+<pre><code class="language-sh">chrome://gpu # Then scroll down to bottom to find `Video Acceleration Information`
+</code></pre>
+</li>
+</ul>
+</li>
+</ol>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-                            <a rel="prev" href="../technologies/compartment.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                            <a rel="prev" href="../technologies/hypervisor_options.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                                 <i class="fa fa-angle-left"></i>
                             </a>
 
-                            <a rel="next prefetch" href="../technologies/vfio.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next prefetch" href="../scs/ci-cd-system.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -261,11 +354,11 @@ and their memory access in one or several VMs. This reduces the Trusted Code Bas
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-                    <a rel="prev" href="../technologies/compartment.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                    <a rel="prev" href="../technologies/hypervisor_options.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
                         <i class="fa fa-angle-left"></i>
                     </a>
 
-                    <a rel="next prefetch" href="../technologies/vfio.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next prefetch" href="../scs/ci-cd-system.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>
