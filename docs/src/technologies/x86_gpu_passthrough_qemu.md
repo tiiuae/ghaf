@@ -1,0 +1,61 @@
+<!--
+    Copyright 2025 TII (SSRC) and the Ghaf contributors
+    SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
+# x86 GPU Device Passthrough with Qemu
+
+
+### Overview
+
+* GPU passthrough allows a virtual machine (VM) to use a dedicated GPU, enabling near-native performance for 3D workloads, media decoding/encoding and other GPU-intensive tasks. 
+* QEMU combined with libvirt is a common stack used for this on Linux.
+
+### 1. Requirements
+**Hardware**
+* CPU with IOMMU support:
+    * Intel VT-d (Intel IOMMU)
+    * AMD-Vi (AMD)
+
+### 2. Enable IOMMU in the Bootloader
+* Make sure following parameters added to kernel command line.
+
+  ```sh
+  # For Intel CPUs
+  "intel_iommu=on"
+
+  # For AMD CPUs
+  "amd_iommu=on"
+   ```
+### 3. Identify the GPU
+* List devices
+
+  ```sh
+  lspci -nn
+  ```
+### 4. Isolate GPU with VFIO
+* Blacklist the GPU driver on the host system so it won't be used. Example
+  ```sh
+  # For Intel GPUs
+  "module_blacklist=i915,xe"
+  ```
+* Bind Devices to VFIO
+  ```sh
+  options vfio-pci.ids=<VendorId>:<DeviceId>
+  ```
+
+### 5. Verify GPU Passthrough Works in QEMU
+On Graphics VM (`gui-vm`) run the following commands.
+
+* To verifiy PCI device passthrough:
+  ```sh
+  lspci | grep VGA
+  ```
+
+* Check the driver:
+  ```sh
+  $ lshw -c display
+  ```
+
+### Limitation
+With GPU passthrough to a specific VM, the GPU cannot be used for other VMs. However, sometimes we may need the GPU to be shared across different VMs, which is not possible with the current implementation.
