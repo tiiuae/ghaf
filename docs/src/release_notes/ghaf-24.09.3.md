@@ -73,4 +73,3 @@ Download the required image and use the following instructions: [Build and Run](
 
 
 [^note1]: Secure Android Cloud Application
-
