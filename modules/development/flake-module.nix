@@ -6,6 +6,7 @@
     development.imports = [
       ./cuda.nix
       ./debug-tools.nix
+      ./dt-gui.nix
       ./nix.nix
       ./ssh.nix
       ./usb-serial.nix

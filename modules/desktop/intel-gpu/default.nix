@@ -23,6 +23,7 @@ in
       extraPackages = with pkgs; [
         intel-media-driver # For Broadwell (2014) or newer processors, use LIBVA_DRIVER_NAME=iHD
         vpl-gpu-rt # QSV on 11th gen or newer
+        intel-compute-runtime
       ];
     };
 
