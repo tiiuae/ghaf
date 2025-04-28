@@ -8,13 +8,13 @@
       "https://prod-cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
-      "https://cache.nixos.org/"
+      "https://cache.nixos.org"
     ];
     extra-trusted-substituters = [
       "https://prod-cache.vedenemo.dev"
       "https://cache.ssrcdevops.tii.ae"
       "https://ghaf-dev.cachix.org"
-      "https://cache.nixos.org/"
+      "https://cache.nixos.org"
     ];
     extra-trusted-public-keys = [
       "prod-cache.vedenemo.dev~1:JcytRNMJJdYJVQCYwLNsrfVhct5dhCK2D3fa6O1WHOI="
@@ -28,7 +28,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    #nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-gbenchmark";
+    #nixpkgs.url = "github:tiiuae/nixpkgs/unstable-tmp-patches";
     #nixpkgs.url = "flake:mylocalnixpkgs";
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
