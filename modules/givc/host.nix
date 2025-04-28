@@ -48,8 +48,6 @@ in
         name = n;
         addr = v.ipv4;
       }) hosts;
-      adminTlsName = config.ghaf.givc.adminConfig.name;
-      adminAddresses = config.ghaf.givc.adminConfig.addresses;
       generatorHostName = hostName;
       storagePath = "/persist/storagevm/givc";
     };
