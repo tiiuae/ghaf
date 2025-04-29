@@ -134,20 +134,6 @@ let
         };
   };
 
-  # Reference programs module
-  referenceProgramsModule = {
-    config.ghaf =
-      optionalAttrs
-        (hasAttrByPath [
-          "reference"
-          "programs"
-        ] config.ghaf)
-        {
-          reference = {
-            inherit (configHost.ghaf.reference) programs;
-          };
-        };
-  };
 in
 {
   options.ghaf.virtualization.microvm = {
@@ -222,7 +208,6 @@ in
         serviceModules.givc
         serviceModules.logging
         referenceServiceModule
-        referenceProgramsModule
         managedUserAccounts
         commonModule
       ];
