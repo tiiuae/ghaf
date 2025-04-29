@@ -116,7 +116,7 @@ writeShellApplication {
       ;;
       logout)
         wayland-logout
-        loginctl kill-user "$USER" -s SIGKILL
+        loginctl kill-user "$USER" -s SIGTERM # Allow services to clean up
         ;;
       help|--help)
           help_msg
