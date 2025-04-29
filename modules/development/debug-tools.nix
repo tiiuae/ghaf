@@ -89,11 +89,8 @@ in
       # Build VLC only on x86. Ffmpeg7 and v4l for camera related testing only on x86
       ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
         pkgs.vlc
-        pkgs.ffmpeg_7
+        pkgs.ffmpeg_7-full
         pkgs.v4l-utils
-        pkgs.intel-gpu-tools
-        pkgs.vulkan-tools
-        pkgs.glmark2
         pkgs.kitty.terminfo
         pkgs.ghostty.terminfo
       ]);
