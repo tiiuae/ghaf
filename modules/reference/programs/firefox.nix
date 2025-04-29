@@ -23,7 +23,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    programs.firefox.preferences = lib.mkIf cfg.firefox.enable {
+    programs.firefox.preferences = {
       "media.ffmpeg.vaapi.enabled" = true;
       "media.rdd-ffmpeg.enabled" = true;
       "media.av1.enabled" = true;
@@ -37,7 +37,10 @@ in
 
     # Disable the RDD sandbox
     # See https://firefox-source-docs.mozilla.org/dom/ipc/process_model.html#data-decoder-rdd-process
-    environment.variables = {
+    environment.sessionVariables = {
+      MOZ_DISABLE_RDD_SANDBOX = "1";
+    };
+    ghaf.graphics.labwc.extraVariables = {
       MOZ_DISABLE_RDD_SANDBOX = "1";
     };
   };

@@ -134,6 +134,11 @@ in
       default = "";
       description = "These lines go to the end of labwc autoconfig";
     };
+    extraVariables = lib.mkOption {
+      type = lib.types.attrs;
+      default = { };
+      description = "Extra environment variables applied to ghaf application launcher.";
+    };
   };
 
   config = lib.mkIf cfg.enable {

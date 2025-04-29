@@ -421,14 +421,14 @@ let
           [[ -z "$WLR_RANDR_CONFIG" ]] && WLR_RANDR_CONFIG=$(wlr-randr)
 
           echo "$WLR_RANDR_CONFIG" | awk '
-              /^[^ ]/ {output=$1} 
+              /^[^ ]/ {output=$1}
               /Position:/ { pos=$2 }
-              /Enabled:/ { 
-                  enabled = ($2 == "yes" ? "--on" : "--off"); 
-                  if (enabled == "--off") { 
-                      print "--output " output " " enabled; 
-                      next 
-                  } 
+              /Enabled:/ {
+                  enabled = ($2 == "yes" ? "--on" : "--off");
+                  if (enabled == "--off") {
+                      print "--output " output " " enabled;
+                      next
+                  }
               }
               /Transform:/ { transform=$2 }
               /Scale:/ {scale=$2; print "--output " output " " enabled " --pos " pos " --scale " scale " --transform " transform}
@@ -627,6 +627,7 @@ in
           Restart = "always";
           RestartSec = "1";
         };
+        environment = cfg.extraVariables;
         startLimitIntervalSec = 0;
         partOf = [ "ghaf-session.target" ];
         wantedBy = [ "ghaf-session.target" ];

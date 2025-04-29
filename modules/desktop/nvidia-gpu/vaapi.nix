@@ -11,6 +11,12 @@
 }:
 let
   cfg = config.ghaf.graphics.nvidia-setup.vaapi;
+  environmentVariables =
+    {
+      NVD_BACKEND = "direct";
+      LIBVA_DRIVER_NAME = "nvidia";
+    }
+    // lib.optionalAttrs (cfg.maxInstances != null) { NVD_MAX_INSTANCES = toString cfg.maxInstances; };
 in
 {
   options.ghaf.graphics.nvidia-setup.vaapi = {
@@ -54,13 +60,10 @@ in
   config = lib.mkIf cfg.enable {
     environment = {
       systemPackages = [ pkgs.libva-utils ];
-      variables =
-        {
-          NVD_BACKEND = "direct";
-          LIBVA_DRIVER_NAME = "nvidia";
-        }
-        // lib.optionalAttrs (cfg.maxInstances != null) { NVD_MAX_INSTANCES = toString cfg.maxInstances; };
+      sessionVariables = environmentVariables;
     };
+
+    ghaf.graphics.labwc.extraVariables = environmentVariables;
 
     hardware.graphics.extraPackages = [
       pkgs.nvidia-vaapi-driver

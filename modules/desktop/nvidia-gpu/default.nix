@@ -11,6 +11,17 @@
 }:
 let
   cfg = config.ghaf.graphics.nvidia-setup;
+
+  environmentVariables = {
+    # Required to run the correct GBM backend for nvidia GPUs on wayland
+    GBM_BACKEND = "nvidia-drm";
+    # Apparently, without this nouveau may attempt to be used instead
+    # (despite it being blacklisted)
+    __GLX_VENDOR_LIBRARY_NAME = "nvidia";
+    # Hardware cursors are currently broken on wlroots
+    # TODO: is this still the case? seems that nixos defaults to 0
+    WLR_NO_HARDWARE_CURSORS = lib.mkForce "1";
+  };
 in
 {
   imports = [
@@ -92,15 +103,7 @@ in
         ];
     };
 
-    environment.variables = {
-      # Required to run the correct GBM backend for nvidia GPUs on wayland
-      GBM_BACKEND = "nvidia-drm";
-      # Apparently, without this nouveau may attempt to be used instead
-      # (despite it being blacklisted)
-      __GLX_VENDOR_LIBRARY_NAME = "nvidia";
-      # Hardware cursors are currently broken on wlroots
-      # TODO: is this still the case? seems that nixos defaults to 0
-      WLR_NO_HARDWARE_CURSORS = lib.mkForce "1";
-    };
+    environment.sessionVariables = environmentVariables;
+    ghaf.graphics.labwc.extraVariables = environmentVariables;
   };
 }
