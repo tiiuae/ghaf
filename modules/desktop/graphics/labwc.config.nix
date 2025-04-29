@@ -338,7 +338,7 @@ let
     ];
     bashOptions = [ ];
     text = ''
-      TMP_CONFIG=$(mktemp -t tmp-display-config.XXXXXXX)
+      TMP_CONFIG=
       WLR_RANDR_CONFIG=
       CONFIG="$HOME/.config/display/config"
 
@@ -437,10 +437,9 @@ let
 
       check-for-changes() {
           WLR_RANDR_CONFIG=$(wlr-randr)
-          last_config=$(cat "$TMP_CONFIG" 2>/dev/null)
 
-          if [ "$WLR_RANDR_CONFIG" != "$last_config" ]; then
-              echo "$WLR_RANDR_CONFIG" > "$TMP_CONFIG"
+          if [ "$WLR_RANDR_CONFIG" != "$TMP_CONFIG" ]; then
+              TMP_CONFIG="$WLR_RANDR_CONFIG"
               return 0
           fi
           return 1
