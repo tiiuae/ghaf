@@ -1,11 +1,9 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs, ... }:
 {
   perSystem =
     {
       pkgs,
-      system,
       ...
     }:
     let
@@ -56,14 +54,6 @@
         platform = "x86_64-generic";
         arch = "x86";
         inherit (pkgs) linux;
-      };
-      devShells.kernel-jetson-orin = mkKernelShell {
-        platform = "jetson-orin";
-        linux = inputs.jetpack-nixos.legacyPackages.${system}.kernel;
-        extraPackages = [ pkgs.gawk ];
-        shellHook = ''
-          patchShebangs scripts/
-        '';
       };
     };
 }
