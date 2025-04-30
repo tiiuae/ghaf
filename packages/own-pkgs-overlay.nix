@@ -24,7 +24,8 @@
       final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
         { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
-    memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
+    memsocket-app = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
+    memsocket-module = final.callPackage ./pkgs-by-name/memsocket/module.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     qemuqmp = final.python3Packages.callPackage ./python-packages/qemuqmp/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
