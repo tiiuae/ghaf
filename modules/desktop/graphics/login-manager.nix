@@ -55,6 +55,10 @@ in
       '';
     };
 
+    systemd.services.greetd.serviceConfig = {
+      RestartSec = "1";
+    };
+
     users.users.greeter.extraGroups = [ "video" ];
   };
 }

@@ -14,117 +14,125 @@ let
     types
     mkIf
     literalExpression
+    optionals
     ;
 
-  defaultRules = [
-    {
-      name = "GUIVM";
-      qmpSocket = "/var/lib/microvms/gui-vm/gui-vm.sock";
-      usbPassthrough = [
+  defaultRules =
+    [
+      {
+        name = "GUIVM";
+        qmpSocket = "/var/lib/microvms/gui-vm/gui-vm.sock";
+        usbPassthrough = [
+          {
+            class = 3;
+            protocol = 1;
+            description = "HID Keyboard";
+          }
+          {
+            class = 3;
+            protocol = 2;
+            description = "HID Mouse";
+          }
+          {
+            class = 11;
+            description = "Chip/SmartCard (e.g. YubiKey)";
+          }
+          {
+            class = 224;
+            subclass = 1;
+            protocol = 1;
+            description = "Bluetooth";
+            disable = true;
+          }
+          {
+            class = 8;
+            subclass = 6;
+            description = "Mass Storage - SCSI (USB drives)";
+          }
+          {
+            class = 17;
+            description = "USB-C alternate modes supported by device";
+          }
+        ];
+        evdevPassthrough = {
+          enable = cfg.enableEvdevPassthrough;
+          inherit (cfg) pcieBusPrefix;
+        };
+      }
+      {
+        name = "NetVM";
+        qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
+        usbPassthrough = [
+          {
+            class = 2;
+            subclass = 6;
+            description = "Communications - Ethernet Networking";
+          }
+          {
+            vendorId = "0b95";
+            productId = "1790";
+            description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
+          }
+        ];
+      }
+      {
+        name = "AudioVM";
+        qmpSocket = "/var/lib/microvms/audio-vm/audio-vm.sock";
+        usbPassthrough = [
+          {
+            class = 1;
+            description = "Audio";
+          }
+        ];
+      }
+    ]
+    ++ optionals
+      (
+        config.ghaf.virtualization.microvm.appvm.enable
+        && config.ghaf.virtualization.microvm.appvm.vms.chrome.enable
+      )
+      [
         {
-          class = 3;
-          protocol = 1;
-          description = "HID Keyboard";
-        }
-        {
-          class = 3;
-          protocol = 2;
-          description = "HID Mouse";
-        }
-        {
-          class = 11;
-          description = "Chip/SmartCard (e.g. YubiKey)";
-        }
-        {
-          class = 224;
-          subclass = 1;
-          protocol = 1;
-          description = "Bluetooth";
-          disable = true;
-        }
-        {
-          class = 8;
-          subclass = 6;
-          description = "Mass Storage - SCSI (USB drives)";
-        }
-        {
-          class = 17;
-          description = "USB-C alternate modes supported by device";
-        }
-      ];
-      evdevPassthrough = {
-        enable = cfg.enableEvdevPassthrough;
-        inherit (cfg) pcieBusPrefix;
-      };
-    }
-    {
-      name = "NetVM";
-      qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
-      usbPassthrough = [
-        {
-          class = 2;
-          subclass = 6;
-          description = "Communications - Ethernet Networking";
-        }
-        {
-          vendorId = "0b95";
-          productId = "1790";
-          description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
-        }
-      ];
-    }
-
-    {
-      name = "ChromeVM";
-      qmpSocket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
-      usbPassthrough = [
-        {
-          class = 14;
-          description = "Video (USB Webcams)";
-          ignore = [
+          name = "ChromeVM";
+          qmpSocket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
+          usbPassthrough = [
             {
-              # Ignore Lenovo X1 camera since it is attached to the business-vm
-              # Finland SKU
-              vendorId = "04f2";
-              productId = "b751";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore Lenovo X1 camera since it is attached to the business-vm
-              # Uae 1st SKU
-              vendorId = "5986";
-              productId = "2145";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore Lenovo X1 camera since it is attached to the business-vm
-              # UAE #2 SKU
-              vendorId = "30c9";
-              productId = "0052";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
-              # Finland SKU
-              vendorId = "30c9";
-              productId = "005f";
-              description = "Lenovo X1 Integrated Camera";
+              class = 14;
+              description = "Video (USB Webcams)";
+              ignore = [
+                {
+                  # Ignore Lenovo X1 camera since it is attached to the business-vm
+                  # Finland SKU
+                  vendorId = "04f2";
+                  productId = "b751";
+                  description = "Lenovo X1 Integrated Camera";
+                }
+                {
+                  # Ignore Lenovo X1 camera since it is attached to the business-vm
+                  # Uae 1st SKU
+                  vendorId = "5986";
+                  productId = "2145";
+                  description = "Lenovo X1 Integrated Camera";
+                }
+                {
+                  # Ignore Lenovo X1 camera since it is attached to the business-vm
+                  # UAE #2 SKU
+                  vendorId = "30c9";
+                  productId = "0052";
+                  description = "Lenovo X1 Integrated Camera";
+                }
+                {
+                  # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
+                  # Finland SKU
+                  vendorId = "30c9";
+                  productId = "005f";
+                  description = "Lenovo X1 Integrated Camera";
+                }
+              ];
             }
           ];
         }
       ];
-    }
-    {
-      name = "AudioVM";
-      qmpSocket = "/var/lib/microvms/audio-vm/audio-vm.sock";
-      usbPassthrough = [
-        {
-          class = 1;
-          description = "Audio";
-        }
-      ];
-    }
-  ];
 in
 {
   options.ghaf.hardware.usb.vhotplug = {

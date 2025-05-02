@@ -48,7 +48,16 @@
         ];
       }
     ];
-
+    hardware-tower-5080.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./tower-5080/tower-5080.nix;
+        ghaf.hardware.tpm2.enable = lib.mkForce false;
+        ghaf.virtualization.microvm.guivm.extraModules = [
+          (import ./tower-5080/extra-config.nix)
+        ];
+      }
+    ];
     hardware-lenovo-x1-carbon-gen10.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
