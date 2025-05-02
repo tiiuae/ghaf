@@ -127,6 +127,16 @@ let
         };
       }
     ]))
+    (laptop-configuration "tower-5080" "debug" (withCommonModules [
+      self.nixosModules.hardware-tower-5080
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          profiles.graphics.idleManagement.enable = false;
+        };
+      }
+    ]))
     (laptop-configuration "lenovo-x1-gen11-cosmic" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {

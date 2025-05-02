@@ -42,6 +42,14 @@ in
         if you separately disable offload rendering.
       '';
     };
+    openDrivers = lib.mkOption {
+      type = lib.types.bool;
+      default = false;
+      description = ''
+        Whether to use the open source drivers instead of the nvidia
+        proprietary drivers, e.g., for Blackwell architectures.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -55,21 +63,17 @@ in
 
       nvidia = {
         modesetting.enable = lib.mkDefault true;
-
         gsp.enable = true;
+        open = cfg.openDrivers;
+        nvidiaSettings = true;
+        package = config.boot.kernelPackages.nvidiaPackages.production; # beta; # was stable
 
+        dynamicBoost.enable = cfg.enable && cfg.withIntegratedGPU;
         # TODO: test enabling these to resume from sleep/suspend states
         powerManagement.enable = false;
         # TODO: this may fix screen tearing but if not needed it can cause more issues
         # than it actually fixes. so leave it to off by default
         forceFullCompositionPipeline = false;
-        # TODO: testing the open drivers recommended by nvidia, fails to load the cuda modules
-        # and hence fails vaapi support
-        open = false; # true;
-        nvidiaSettings = true;
-        package = config.boot.kernelPackages.nvidiaPackages.beta; # was stable
-
-        dynamicBoost.enable = cfg.enable && cfg.withIntegratedGPU;
       };
     };
 
