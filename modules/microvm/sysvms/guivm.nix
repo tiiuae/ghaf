@@ -117,6 +117,12 @@ let
                   color = vm.borderColor;
                 }) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
               };
+              cosmic = {
+                securityContext.rules = map (vm: {
+                  identifier = vm.name;
+                  color = vm.borderColor;
+                }) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
+              };
             };
 
             # Logging

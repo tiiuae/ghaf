@@ -15,6 +15,7 @@ let
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit lib pkgs;
+    secctx = cfg.securityContext;
   };
 
   autostart = pkgs.writeShellApplication {
@@ -69,6 +70,39 @@ in
 {
   options.ghaf.graphics.cosmic = {
     enable = lib.mkEnableOption "cosmic";
+
+    securityContext = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          borderWidth = lib.mkOption {
+            type = lib.types.ints.positive;
+            default = 4;
+            description = "Default border width";
+          };
+
+          rules = lib.mkOption {
+            type = lib.types.listOf (
+              lib.types.submodule {
+                options = {
+                  identifier = lib.mkOption {
+                    type = lib.types.str;
+                    description = "The identifier attached to the security context";
+                  };
+                  color = lib.mkOption {
+                    type = lib.types.str;
+                    example = "#006305";
+                    description = "Window border color";
+                  };
+                };
+              }
+            );
+            default = [ ];
+            description = "List of security contexts rules";
+          };
+        };
+      };
+      description = "Security context settings";
+    };
   };
 
   config = lib.mkIf cfg.enable {
