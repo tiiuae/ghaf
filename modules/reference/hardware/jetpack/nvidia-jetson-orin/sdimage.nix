@@ -26,9 +26,9 @@
 
   sdImage =
     let
-      mkESPContentSource = pkgs.substituteAll {
-        src = ./mk-esp-contents.py;
-        isExecutable = true;
+      # TODO do we really need replaceVars just to set the python string in the
+      # shbang?
+      mkESPContentSource = pkgs.replaceVars ./mk-esp-contents.py {
         inherit (pkgs.buildPackages) python3;
       };
       mkESPContent =
