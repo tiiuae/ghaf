@@ -3,9 +3,29 @@
 {
   lib,
   pkgs,
+  secctx,
   ...
 }:
 
+let
+  securityContextConfig = pkgs.writeText "cosmic_security_context" ''
+    (
+      border_size: ${toString secctx.borderWidth},
+      rules:
+      [
+        ${lib.concatStrings (
+          map (rule: ''
+            (
+              sandbox_engine: "waypipe",
+              app_id: "${rule.identifier}",
+              border_color: "${rule.color}",
+            ),
+          '') secctx.rules
+        )}
+      ],
+    )
+  '';
+in
 pkgs.stdenv.mkDerivation rec {
   pname = "ghaf-cosmic-config";
   version = "0.1";
@@ -38,6 +58,7 @@ pkgs.stdenv.mkDerivation rec {
     mkdir -p $out/share/cosmic
     cp -rf cosmic-unpacked/* $out/share/cosmic/
     rm -rf cosmic-unpacked
+    cp ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
   '';
 
   postInstall = ''
