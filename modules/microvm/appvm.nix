@@ -14,11 +14,11 @@ let
   inherit (lib)
     mkOption
     types
-    optional
     optionals
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
+  inherit (configHost.ghaf.networking) hosts;
 
   makeVm =
     { vm }:
@@ -221,7 +221,7 @@ let
       };
     in
     {
-      autostart = true;
+      autostart = !configHost.ghaf.boot.enable;
       inherit (inputs) nixpkgs;
       config = appvmConfiguration // {
         imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ appExtraModules;
@@ -389,7 +389,8 @@ in
           enable = true;
           description = "swtpm service for ${name}";
           path = [ swtpmScript ];
-          wantedBy = [ "microvms.target" ];
+          wantedBy = [ "multi-user.target" ];
+          after = [ "appvm-startup.target" ];
           serviceConfig = {
             Type = "simple";
             User = "microvm";
@@ -419,12 +420,15 @@ in
       systemd.services =
         let
           serviceDependencies = lib.mapAttrsToList (name: vm: {
-            "microvm@${name}-vm" = {
-              # Host service dependencies
-              after = optional config.ghaf.services.audio.enable "pulseaudio.service";
-              requires = optional config.ghaf.services.audio.enable "pulseaudio.service";
-              # Sleep appvms to give gui-vm time to start
-              serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
+            "microvm@${name}-vm" = optionalAttrs configHost.ghaf.boot.enable {
+              requiredBy = [ "microvms.target" ];
+              requires = [ "appvm-startup.target" ];
+              after = [ "appvm-startup.target" ];
+            };
+            "microvm-virtiofsd@${name}-vm" = optionalAttrs configHost.ghaf.boot.enable {
+              requiredBy = [ "microvms.target" ];
+              requires = [ "appvm-startup.target" ];
+              after = [ "appvm-startup.target" ];
             };
             "${name}-vm-swtpm" = makeSwtpmService name vm;
           }) vms;

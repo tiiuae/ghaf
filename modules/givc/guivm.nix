@@ -31,6 +31,11 @@ in
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
+      services = [
+        "reboot.target"
+        "poweroff.target"
+        "greetd.service"
+      ];
       admin = lib.head config.ghaf.givc.adminConfig.addresses;
       tls.enable = config.ghaf.givc.enableTls;
       enableUserTlsAccess = true;
