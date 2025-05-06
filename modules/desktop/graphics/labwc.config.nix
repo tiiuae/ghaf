@@ -317,8 +317,6 @@ let
     gtk-theme-name=${cfg.gtk.theme}
     gtk-icon-theme-name=${cfg.gtk.iconTheme}
     gtk-font-name=${cfg.gtk.fontName} ${cfg.gtk.fontSize}
-    gtk-button-images=1
-    gtk-menu-images=1
     gtk-enable-event-sounds=1
     gtk-enable-input-feedback-sounds=1
     gtk-xft-antialias=1
@@ -622,7 +620,9 @@ in
           Type = "simple";
           EnvironmentFile = "-/etc/locale.conf";
           ExecCondition = "${display-connected}/bin/display-connected";
-          ExecStart = "${pkgs.nwg-drawer}/bin/nwg-drawer -r -nofs -nocats -s ${drawerStyle}";
+          ExecStart = ''
+            ${lib.getExe pkgs.bash} -c "PATH=/run/current-system/sw/bin:$PATH ${lib.getExe pkgs.nwg-drawer} -r -nofs -nocats -s ${drawerStyle}"
+          '';
           Restart = "always";
           RestartSec = "1";
         };
