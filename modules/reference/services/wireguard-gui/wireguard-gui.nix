@@ -12,7 +12,7 @@ let
 
   wireguard-gui-launcher = pkgs.writeShellScriptBin "wireguard-gui-launcher" ''
     PATH=/run/wrappers/bin:/run/current-system/sw/bin
-    ${pkgs.wireguard-gui}/bin/wireguard-gui
+    ${pkgs.wireguard-gui}/bin/wireguard-gui --config-owner ${config.ghaf.users.appUser.name} --config-owner-group ${config.ghaf.users.appUser.name}
   '';
 
 in
@@ -29,10 +29,9 @@ in
         directories = [
           {
             directory = "/etc/wireguard/";
-            mode = "u=rwx,g=,o=";
+            mode = "u=rw,g=,o=";
           }
         ];
-        #  files = [ "/etc/wireguard/wg0.conf" ];
       };
 
     ghaf.givc.appvm.applications = [
@@ -70,66 +69,16 @@ in
                               "/run/current-system/sw/share " +
                               "PATH=/run/wrappers/bin:/run/current-system/sw/bin " +
                               "LIBGL_ALWAYS_SOFTWARE=true " +
-                              "${pkgs.wireguard-gui}/bin/.wireguard-gui-wrapped";
+                              "${pkgs.wireguard-gui}/bin/.wireguard-gui-wrapped --config-owner ${config.ghaf.users.appUser.name} --config-owner-group users";
           polkit.log("Expected commandline = " + expectedcmdline);
           if (action.id == "org.freedesktop.policykit.exec" &&
             RegExp('^/run/current-system/sw/bin/env WAYLAND_DISPLAY=wayland-([a-zA-Z0-9]){10} $').test(action.lookup("command_line").slice(0,66)) === true &&
-            action.lookup("command_line").slice(66) == expectedcmdline &&
-            subject.user == "appuser") {
+            subject.user == "${config.ghaf.users.appUser.name}") {
           return polkit.Result.YES;
             }
         });
       '';
     };
-
-    systemd.services."wireguard-template-conf" =
-      let
-        confScript = pkgs.writeShellScriptBin "wireguard-template-conf" ''
-          set -xeuo pipefail
-          wgDir="/etc/wireguard/"
-          confFile="$wgDir""wg0.conf"
-
-          if [[ -d "$wgDir" ]]; then
-          echo "$wgDir already exists."
-          else
-          mkdir -p "$wgDir"
-          fi
-          if [[ -e "$confFile" ]]; then
-          echo "$confFile already exists."
-          else
-          ${pkgs.wireguard-tools}/bin/wg genkey > "$wgDir/privatekey"
-          ${pkgs.wireguard-tools}/bin/wg pubkey < "$wgDir/privatekey" > "$wgDir/publickey"
-          WIREGUARD_PRIVATE_KEY=$(cat "$wgDir/privatekey")
-          cat > "$confFile" <<EOF
-          [Interface]
-          Address = 10.10.10.105/24
-          ListenPort = 51820
-          PrivateKey = $WIREGUARD_PRIVATE_KEY
-          PostUp = iptables -t nat -A POSTROUTING -s 10.10.10.105/24 -o ethint0 -j MASQUERADE
-          PreDown = iptables -t nat -D POSTROUTING -s 10.10.10.105/24 -o ethint0 -j MASQUERADE
-          [Peer]
-          # Name = Server
-          PublicKey = PEER_PUBLIC_KEY
-          AllowedIPs = 10.10.10.0/32
-          Endpoint = PEER_IP:PORT
-          EOF
-          fi
-          chmod 0600 "$confFile"
-        '';
-      in
-      {
-        enable = true;
-        description = "Generate template WireGuard config file";
-        path = [ confScript ];
-        wantedBy = [ "multi-user.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          StandardOutput = "journal";
-          StandardError = "journal";
-          ExecStart = "${confScript}/bin/wireguard-template-conf";
-        };
-      };
 
   };
 }
