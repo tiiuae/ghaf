@@ -1,0 +1,4 @@
+./ivshmem-server -vF -n 10 -M shM  -l 16M&
+sleep 3
+chmod a+rwx /tmp/ivsh*
+./ivshmem-client -v 
