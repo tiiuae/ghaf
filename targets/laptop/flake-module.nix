@@ -17,6 +17,7 @@ let
   # setup some commonality between the configurations
   commonModules = [
     self.nixosModules.disko-debug-partition
+    self.nixosModules.verity-release-partition
     self.nixosModules.reference-profiles
     self.nixosModules.profiles
   ];
@@ -75,6 +76,16 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial-extras.enable = true;
           partitioning.disko.enable = true;
+        };
+      }
+    ]))
+    (laptop-configuration "lenovo-x1-gen11-hardening" "debug" (withCommonModules [
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      {
+        ghaf = {
+          # TODO profiles.kernel-hardening.enable = true;
+          reference.profiles.mvp-user-trial-extras.enable = true;
+          partitioning.verity.enable = true;
         };
       }
     ]))
@@ -166,7 +177,6 @@ let
           partitioning.disko.enable = true;
         };
       }
-
     ]))
     (laptop-configuration "lenovo-x1-carbon-gen12" "release" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen12
@@ -186,7 +196,16 @@ let
         };
       }
     ]))
-
+    (laptop-configuration "lenovo-x1-gen11-hardening" "release" (withCommonModules [
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      {
+        ghaf = {
+          # TODO profiles.kernel-hardening.enable = true;
+          reference.profiles.mvp-user-trial-extras.enable = true;
+          partitioning.verity.enable = true;
+        };
+      }
+    ]))
     (laptop-configuration "dell-latitude-7230" "release" (withCommonModules [
       self.nixosModules.hardware-dell-latitude-7230
       {
@@ -228,8 +247,7 @@ let
 
   # map all of the defined configurations to an installer image
   target-installers = map (
-    t:
-    laptop-installer t.name (self.packages.x86_64-linux.${t.name} + "/disk1.raw.zst") installerModules
+    t: laptop-installer t.name self.packages.x86_64-linux.${t.name} installerModules
   ) target-configs;
 
   targets = target-configs ++ target-installers;

@@ -23,8 +23,11 @@ in
     hardware.enableAllFirmware = true;
 
     boot = {
-      # Enable normal Linux console on the display
-      kernelParams = [ "console=tty0" ];
+      # Enable normal Linux console on the display, and QR code kernel panic
+      kernelParams = [
+        "console=tty0"
+        "drm.panic_screen=qr_code"
+      ];
 
       # To enable installation of ghaf into NVMe drives
       initrd.availableKernelModules = [
