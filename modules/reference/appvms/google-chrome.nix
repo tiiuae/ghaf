@@ -51,6 +51,7 @@
         (
           let
             mitmWebUIport = config.ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPort;
+            mitmWebUIpswd = config.ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPswd;
             idsvmIpAddr = config.ghaf.networking.hosts."ids-vm".ipv4;
           in
           {
@@ -58,7 +59,7 @@
             description = "MitmWebUI";
             packages = [ pkgs.google-chrome ];
             icon = "nmap";
-            command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}";
+            command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
             extraModules = [
               {
                 networking = {
