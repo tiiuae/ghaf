@@ -66,7 +66,7 @@ nixpkgs.lib.extend (
         }
         {
           name = "flash-script";
-          path = pkgs.callPackage ./packages/flash { };
+          path = pkgs.callPackage ./packages/pkgs-by-name/flash-script/package.nix { };
         }
       ];
   }
