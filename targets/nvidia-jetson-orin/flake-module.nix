@@ -66,6 +66,7 @@ let
                 nx.enableNetvmEthernetPCIPassthrough = som == "nx";
                 # Currntly we have mostly xavier nx based carrier boards
                 carrierBoard = if som == "nx" then "xavierNXdevkit" else "devkit";
+                kernelVersion = "upstream-6-6";
               };
 
               hardware.nvidia = {
