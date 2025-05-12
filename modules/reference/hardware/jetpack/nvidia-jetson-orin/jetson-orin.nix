@@ -45,6 +45,12 @@ in
       type = types.str;
       default = "devkit";
     };
+
+    kernelVersion = mkOption {
+      description = "Kernel version";
+      type = types.str;
+      default = "bsp-default";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -53,7 +59,7 @@ in
       som = if ((cfg.somType == "agx") || (cfg.somType == "agx64")) then "orin-agx" else "orin-nx";
       carrierBoard = "${cfg.carrierBoard}";
       modesetting.enable = true;
-
+      kernel.version = "${cfg.kernelVersion}";
       flashScriptOverrides = lib.optionalAttrs ((cfg.somType == "agx") || (cfg.somType == "agx64")) {
         flashArgs = lib.mkForce [
           "-r"
