@@ -32,6 +32,14 @@ in
         MitmwebUI port
       '';
     };
+    webUIPswd = lib.mkOption {
+      type = lib.types.str;
+      readOnly = true;
+      default = "ghaf";
+      description = ''
+        MitmwebUI password
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -51,7 +59,7 @@ in
     systemd.services."mitmweb-server" =
       let
         mitmwebScript = pkgs.writeShellScriptBin "mitmweb-server" ''
-          ${pkgs.mitmproxy}/bin/mitmweb --web-host localhost --web-port ${toString mitmwebUIport} --set confdir=/etc/mitmproxy
+          ${pkgs.mitmproxy}/bin/mitmweb --web-host localhost --web-port ${toString mitmwebUIport} --set confdir=/etc/mitmproxy --set web_debug=true --set web_password='${cfg.webUIPswd}'
         '';
       in
       {
