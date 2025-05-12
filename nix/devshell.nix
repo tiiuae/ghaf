@@ -4,7 +4,6 @@
 {
   imports = [
     inputs.devshell.flakeModule
-    ./devshell/kernel.nix
   ];
   perSystem =
     {
