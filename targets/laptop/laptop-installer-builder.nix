@@ -10,7 +10,6 @@
 }:
 let
   system = "x86_64-linux";
-
   mkLaptopInstaller =
     name: imagePath: extraModules:
     let
@@ -64,49 +63,5 @@ let
       name = "${name}-installer";
       package = hostConfiguration.config.system.build.isoImage;
     };
-
-  # Define the installer function
-  installer = generation: variant:
-    let
-      name = "lenovo-x1-${generation}-${variant}";
-      imagePath = self.packages.x86_64-linux."${name}" + "/image/disk1.raw.zst";
-    in
-      mkLaptopInstaller name imagePath [];
-
-  # List of targets
-  targets = [
-    (installer "gen10" "debug")
-    (installer "gen11" "debug")
-    (installer "gen12" "debug")
-    (installer "gen10" "release")
-    (installer "gen11" "release")
-    (installer "gen12" "release")
-  ];
-
-  # Function to bundle image and flash script
-  genPkgWithFlashScript =
-    pkg:
-    let
-      pkgs = import self.inputs.nixpkgs { inherit system; };
-    in
-    pkgs.linkFarm "ghaf-image" [
-      {
-        name = "image";
-        path = pkg;
-      }
-      {
-        name = "flash-script";
-        path = pkgs.callPackage ../../packages/flash { };
-      }
-    ];
 in
-{
-  flake = {
-    nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) targets
-    );
-    packages.${system} = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name (genPkgWithFlashScript t.package)) targets
-    );
-  };
-}
+mkLaptopInstaller
