@@ -28,10 +28,6 @@
     };
   };
 
-  disks = {
-    disk1.device = "/dev/nvme0n1";
-  };
-
   network.pciDevices = [
     {
       # Network controller [0280]: Intel Corporation Meteor Lake PCH CNVi WiFi [8086:7e40](rev 20)

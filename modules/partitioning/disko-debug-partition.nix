@@ -111,7 +111,7 @@ in
               };
             };
           };
-        } // (if (builtins.hasAttr "disks" cfg) then cfg.disks else { });
+        };
       };
     };
   };
