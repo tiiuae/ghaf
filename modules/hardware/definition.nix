@@ -212,26 +212,6 @@ in
         };
       };
 
-      disks = mkOption {
-        description = "Disks to format and mount";
-        type = types.attrsOf (
-          types.submodule {
-            options.device = mkOption {
-              type = types.str;
-              description = ''
-                Path to the disk
-              '';
-            };
-          }
-        );
-        default = { };
-        example = literalExpression ''
-          {
-            disk1.device = "/dev/nvme0n1";
-          }
-        '';
-      };
-
       network = {
         # TODO? Should add NetVM enabler here?
         # netvm.enable = mkEnableOption = "NetVM";

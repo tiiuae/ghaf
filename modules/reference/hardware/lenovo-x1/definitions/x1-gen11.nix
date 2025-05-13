@@ -29,10 +29,6 @@
     };
   };
 
-  disks = {
-    disk1.device = "/dev/nvme0n1";
-  };
-
   network.pciDevices = [
     {
       # Passthrough Intel WiFi card

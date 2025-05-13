@@ -34,11 +34,6 @@
     };
   };
 
-  # Main disk device
-  disks = {
-    disk1.device = "/dev/nvme0n1";
-  };
-
   # Network devices for passthrough to netvm
   network.pciDevices = [
     {
