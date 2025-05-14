@@ -76,6 +76,12 @@
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
       }
     ];
+    hardware-lenovo-x1-carbon-gen13.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
+      }
+    ];
     imx8.imports = [ ./imx8 ];
     #TODO: Technically all the module imports can happen at this level
     # without the need to drive the inputs down another level.
