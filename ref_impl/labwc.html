@@ -231,12 +231,8 @@
 -->
 <h1 id="labwc-desktop-environment"><a class="header" href="#labwc-desktop-environment">labwc Desktop Environment</a></h1>
 <p><a href="https://labwc.github.io/">labwc</a> is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.</p>
-<p>To use labwc as your default desktop environment, add it as a module to Ghaf:</p>
-<ul>
-<li>change the configuration option <code>profiles.graphics.compositor = "labwc"</code>
-or</li>
-<li>uncomment the corresponding line in the <a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix">guivm.nix</a> file.</li>
-</ul>
+<p>Labwc is the default compositor in Ghaf set in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix">graphics.nix</a>.
+It can also be explicitly enabled by specifying the configuration option <code>profiles.graphics.compositor = "labwc"</code>.</p>
 <p>The basis of the labwc configuration is the set of following files: <code>rc.xml</code>, <code>menu.xml</code>, <code>autostart</code>, and <code>environment</code>. These files can be edited by substituting in the labwc overlay <code>overlays/custom-packages/labwc/default.nix</code>.</p>
 <h2 id="window-border-coloring"><a class="header" href="#window-border-coloring">Window Border Coloring</a></h2>
 <p>The border color concept illustrates the application trustworthiness in a user-friendly manner. The color shows the application's security level and allows avoiding user's mistakes. The same approach can be found in other projects, for example, <a href="https://www.qubes-os.org/doc/getting-started/#color--security">QubeOS</a>.</p>
@@ -249,12 +245,41 @@ or</li>
 <p>According to the labwc specification, the <strong>identifier</strong> parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.</p>
 </div>
 <p>For example, the foot terminal with Aqua colored frame:</p>
-<pre><code>&lt;windowRules&gt;
+<pre><code class="language-xml">&lt;windowRules&gt;
   &lt;windowRule identifier="Foot" borderColor="#00FFFF" serverDecoration="yes" skipTaskbar="yes"  /&gt;
   &lt;windowRule identifier="firefox" borderColor="#FF0000" serverDecoration="yes" skipTaskbar="yes"  /&gt;
 &lt;/windowRules&gt;
 </code></pre>
 <p><img src="../img/colored_foot_frame.png" alt="Foot Terminal with Aqua Colored Frame" /></p>
+<h2 id="touch-display-mapping-in-labwc"><a class="header" href="#touch-display-mapping-in-labwc">Touch Display Mapping in Labwc</a></h2>
+<h3 id="overview"><a class="header" href="#overview">Overview</a></h3>
+<p>With a touch-capable display connected, touch input may be misaligned in multi-display setups using Labwc.
+The touch area often spans all connected screens instead of the intended one.
+To resolve this, the touch input must be explicitly mapped to the correct display output.</p>
+<h3 id="configuration"><a class="header" href="#configuration">Configuration</a></h3>
+<p>Add the following entry to Ghaf's Labwc configuration in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.config.nix">labwc.config.nix</a>:</p>
+<pre><code class="language-xml">&lt;touch deviceName="[libinput device name]" mapToOutput="[display output name]" mouseEmulation="no"/&gt;
+</code></pre>
+<ul>
+<li><code>deviceName</code>: Name of the touch input device from <code>libinput list-devices</code></li>
+<li><code>mapToOutput</code>: Name of the display output (e.g., <code>DP-1</code>)</li>
+</ul>
+<h4 id="steps-how-to-get-the-correct-devicename-and-display-output"><a class="header" href="#steps-how-to-get-the-correct-devicename-and-display-output">Steps How To Get The Correct <code>deviceName</code> and display output</a></h4>
+<ol>
+<li>In Ghaf, run <code>libinput list-devices</code> to get the touch device name.</li>
+<li>In Ghaf, run <code>wlr-randr</code> to get the display port used by the touch device (e.g. <code>DP-1</code>).</li>
+<li>Add the <code>&lt;touch&gt;</code> config entry to the Ghaf Labwc config in <a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.config.nix">labwc.config.nix</a>.</li>
+<li>Rebuild the target Ghaf system.</li>
+</ol>
+<h4 id="example-touch-config-entry"><a class="header" href="#example-touch-config-entry">Example Touch Config Entry</a></h4>
+<pre><code class="language-xml">&lt;touch deviceName="FlatFrog FlatFrog DA-TK55P-20P2WE-M4-00e5" mapToOutput="DP-1" mouseEmulation="no"/&gt;
+</code></pre>
+<h3 id="notes"><a class="header" href="#notes">Notes</a></h3>
+<ul>
+<li>Ensure names match exactly.</li>
+<li>Mapping may need to be updated if ports or displays change.</li>
+<li>Labwc touch config documentation: https://labwc.github.io/labwc-config.5.html#touch</li>
+</ul>
 
                     </main>
 

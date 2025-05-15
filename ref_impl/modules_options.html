@@ -628,6 +628,52 @@ boolean</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
 </ul>
+<h2 id="ghafgraphicscosmicsecuritycontext"><a class="header" href="#ghafgraphicscosmicsecuritycontext">ghaf.graphics.cosmic.securityContext</a></h2>
+<p>Security context settings</p>
+<p><em>Type:</em>
+submodule</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
+</ul>
+<h2 id="ghafgraphicscosmicsecuritycontextborderwidth"><a class="header" href="#ghafgraphicscosmicsecuritycontextborderwidth">ghaf.graphics.cosmic.securityContext.borderWidth</a></h2>
+<p>Default border width</p>
+<p><em>Type:</em>
+positive integer, meaning &gt;0</p>
+<p><em>Default:</em>
+<code>4</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
+</ul>
+<h2 id="ghafgraphicscosmicsecuritycontextrules"><a class="header" href="#ghafgraphicscosmicsecuritycontextrules">ghaf.graphics.cosmic.securityContext.rules</a></h2>
+<p>List of security contexts rules</p>
+<p><em>Type:</em>
+list of (submodule)</p>
+<p><em>Default:</em>
+<code>[ ]</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
+</ul>
+<h2 id="ghafgraphicscosmicsecuritycontextrulescolor"><a class="header" href="#ghafgraphicscosmicsecuritycontextrulescolor">ghaf.graphics.cosmic.securityContext.rules.*.color</a></h2>
+<p>Window border color</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Example:</em>
+<code>"#006305"</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
+</ul>
+<h2 id="ghafgraphicscosmicsecuritycontextrulesidentifier"><a class="header" href="#ghafgraphicscosmicsecuritycontextrulesidentifier">ghaf.graphics.cosmic.securityContext.rules.*.identifier</a></h2>
+<p>The identifier attached to the security context</p>
+<p><em>Type:</em>
+string</p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/cosmic</a></li>
+</ul>
 <h2 id="ghafgraphicsintel-setupenable"><a class="header" href="#ghafgraphicsintel-setupenable">ghaf.graphics.intel-setup.enable</a></h2>
 <p>Whether to enable Enable Intel GPU setup.</p>
 <p><em>Type:</em>
@@ -932,6 +978,17 @@ boolean</p>
 <code>false</code></p>
 <p><em>Example:</em>
 <code>true</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu</a></li>
+</ul>
+<h2 id="ghafgraphicsnvidia-setupopendrivers"><a class="header" href="#ghafgraphicsnvidia-setupopendrivers">ghaf.graphics.nvidia-setup.openDrivers</a></h2>
+<p>Whether to use the open source drivers instead of the nvidia
+proprietary drivers, e.g., for Blackwell architectures.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu">https://github.com/tiiuae/ghaf/blob/main/modules/desktop/nvidia-gpu</a></li>
@@ -2115,38 +2172,6 @@ list of (attribute set)</p>
         description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
         productId = "1790";
         vendorId = "0b95";
-      }
-    ];
-  }
-  {
-    name = "ChromeVM";
-    qmpSocket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
-    usbPassthrough = [
-      {
-        class = 14;
-        description = "Video (USB Webcams)";
-        ignore = [
-          {
-            description = "Lenovo X1 Integrated Camera";
-            productId = "b751";
-            vendorId = "04f2";
-          }
-          {
-            description = "Lenovo X1 Integrated Camera";
-            productId = "2145";
-            vendorId = "5986";
-          }
-          {
-            description = "Lenovo X1 Integrated Camera";
-            productId = "0052";
-            vendorId = "30c9";
-          }
-          {
-            description = "Lenovo X1 Integrated Camera";
-            productId = "005f";
-            vendorId = "30c9";
-          }
-        ];
       }
     ];
   }
@@ -4716,6 +4741,16 @@ list of 16 bit unsigned integer; between 0 and 65535 (both inclusive) <em>(read 
   8081
 ]
 </code></pre>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
+</ul>
+<h2 id="ghafvirtualizationmicrovmidsvmmitmproxywebuipswd"><a class="header" href="#ghafvirtualizationmicrovmidsvmmitmproxywebuipswd">ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPswd</a></h2>
+<p>MitmwebUI password</p>
+<p><em>Type:</em>
+string <em>(read only)</em></p>
+<p><em>Default:</em>
+<code>"ghaf"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy">https://github.com/tiiuae/ghaf/blob/main/modules/microvm/sysvms/idsvm/mitmproxy</a></li>
