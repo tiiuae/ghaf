@@ -7,16 +7,10 @@
 
 [labwc](https://labwc.github.io/) is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.
 
-
-To use labwc as your default desktop environment, add it as a module to Ghaf:
-
-* change the configuration option `profiles.graphics.compositor = "labwc"`
-or
-* uncomment the corresponding line in the [guivm.nix](https://github.com/tiiuae/ghaf/blob/main/modules/microvm/virtualization/microvm/guivm.nix) file.
-
+Labwc is the default compositor in Ghaf set in [graphics.nix](https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix).
+It can also be explicitly enabled by specifying the configuration option `profiles.graphics.compositor = "labwc"`.
 
 The basis of the labwc configuration is the set of following files: `rc.xml`, `menu.xml`, `autostart`, and `environment`. These files can be edited by substituting in the labwc overlay `overlays/custom-packages/labwc/default.nix`.
-
 
 ## Window Border Coloring
 
@@ -28,7 +22,8 @@ Ghaf uses patched labwc which makes it possible to change the border color for t
 > According to the labwc specification, the **identifier** parameter is case-sensitive and relates to app_id for native Wayland windows and WM_CLASS for XWayland clients.
 
 For example, the foot terminal with Aqua colored frame:
-```
+
+```xml
 <windowRules>
   <windowRule identifier="Foot" borderColor="#00FFFF" serverDecoration="yes" skipTaskbar="yes"  />
   <windowRule identifier="firefox" borderColor="#FF0000" serverDecoration="yes" skipTaskbar="yes"  />
@@ -36,3 +31,41 @@ For example, the foot terminal with Aqua colored frame:
 ```
 
 ![Foot Terminal with Aqua Colored Frame](../img/colored_foot_frame.png)
+
+## Touch Display Mapping in Labwc
+
+### Overview
+
+With a touch-capable display connected, touch input may be misaligned in multi-display setups using Labwc.
+The touch area often spans all connected screens instead of the intended one.
+To resolve this, the touch input must be explicitly mapped to the correct display output.
+
+### Configuration
+
+Add the following entry to Ghaf's Labwc configuration in [labwc.config.nix](https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.config.nix):
+
+```xml
+<touch deviceName="[libinput device name]" mapToOutput="[display output name]" mouseEmulation="no"/>
+```
+
+- `deviceName`: Name of the touch input device from `libinput list-devices`
+- `mapToOutput`: Name of the display output (e.g., `DP-1`)
+
+#### Steps How To Get The Correct `deviceName` and display output
+
+1. In Ghaf, run `libinput list-devices` to get the touch device name.
+2. In Ghaf, run `wlr-randr` to get the display port used by the touch device (e.g. `DP-1`).
+3. Add the `<touch>` config entry to the Ghaf Labwc config in [labwc.config.nix](https://github.com/tiiuae/ghaf/blob/main/modules/desktop/graphics/labwc.config.nix).
+4. Rebuild the target Ghaf system.
+
+#### Example Touch Config Entry
+
+```xml
+<touch deviceName="FlatFrog FlatFrog DA-TK55P-20P2WE-M4-00e5" mapToOutput="DP-1" mouseEmulation="no"/>
+```
+
+### Notes
+
+- Ensure names match exactly.
+- Mapping may need to be updated if ports or displays change.
+- Labwc touch config documentation: https://labwc.github.io/labwc-config.5.html#touch

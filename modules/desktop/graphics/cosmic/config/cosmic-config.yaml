@@ -23,7 +23,7 @@ com.system76.CosmicBackground:
   all: |
     (
         output: "all",
-        source: None,
+        source: Path("/run/current-system/sw/share/backgrounds/ghaf/"),
         filter_by_theme: true,
         rotation_frequency: 3600,
         filter_method: Lanczos,
@@ -108,7 +108,7 @@ com.system76.CosmicPanel.Dock:
   layer: Overlay
   margin: 4
   name: "Dock"
-  opacity: 1.0
+  opacity: 0.75
   output: All
   padding: 0
   plugins_center: |
@@ -139,7 +139,7 @@ com.system76.CosmicPanel.Panel:
   layer: Top
   margin: 0
   name: "Panel"
-  opacity: 1.0
+  opacity: 0.15
   output: All
   padding: 0
   plugins_center: |
@@ -303,14 +303,14 @@ com.system76.CosmicSettings.WindowRules:
     [
     	// Any appid title only matching
     	(
-    		appid: ".*", 
+    		appid: ".*",
     		titles: [
     			"Discord Updater",
     		]
     	),
     	// Empty appid title only matches
     	(
-    		appid: "", 
+    		appid: "",
     		titles: [
     			"Steam",
     			"wl-clipboard",
