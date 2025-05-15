@@ -48,7 +48,7 @@ writeShellApplication {
     else
         # Start new download
         echo 1 > "$DOWNLOAD_FLAG"
-        NOTIFICATION_ID=$(notify-send -i "$FALCON_AI_ICON_PATH" "Downloading $LLM_FRIENDLY_NAME" "The app will open once the download is complete" --print-id)
+        NOTIFICATION_ID=$(notify-send -a "Falcon AI" -i "$FALCON_AI_ICON_PATH" "Downloading $LLM_FRIENDLY_NAME" "The app will open once the download is complete" --print-id)
     fi
 
     # Temp file to capture full Ollama pull output
@@ -57,6 +57,7 @@ writeShellApplication {
     # Check for connectivity to Ollama's model registry
     if ! curl --connect-timeout 3 -I https://ollama.com 2>&1; then
       notify-send --replace-id="$NOTIFICATION_ID" \
+          -a "Falcon AI" \
           -i "$FALCON_AI_ICON_PATH" \
           "No Internet Connection" "Cannot download $LLM_FRIENDLY_NAME\nCheck your connection and try again"
       exit 1
@@ -73,6 +74,7 @@ writeShellApplication {
             NOTIFICATION_ID=$(notify-send --print-id --replace-id="$NOTIFICATION_ID" \
                 -u critical \
                 -h int:value:"$percent" \
+                -a "Falcon AI" \
                 -i "$FALCON_AI_ICON_PATH" \
                 "Downloading $LLM_FRIENDLY_NAME  $percent%" \
                 "The app will open once the download is complete")
@@ -85,6 +87,7 @@ writeShellApplication {
     if [[ $status -eq 0 ]]; then
         echo "Download completed successfully"
         notify-send --replace-id="$NOTIFICATION_ID" \
+            -a "Falcon AI" \
             -i "$FALCON_AI_ICON_PATH" \
             "Download complete" \
             "The application will now open"
@@ -94,6 +97,7 @@ writeShellApplication {
         echo "Download failed with status $status"
         error_msg=$(tail -n 1 "$TMP_LOG")
         notify-send --replace-id="$NOTIFICATION_ID" \
+            -a "Falcon AI" \
             -i "$FALCON_AI_ICON_PATH" \
             "Failed to download $LLM_FRIENDLY_NAME" \
             "Error occurred:\n''${error_msg}"
