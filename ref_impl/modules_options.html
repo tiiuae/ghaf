@@ -1282,30 +1282,6 @@ null or string</p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
 </ul>
-<h2 id="ghafhardwaredefinitiondisks"><a class="header" href="#ghafhardwaredefinitiondisks">ghaf.hardware.definition.disks</a></h2>
-<p>Disks to format and mount</p>
-<p><em>Type:</em>
-attribute set of (submodule)</p>
-<p><em>Default:</em>
-<code>{ }</code></p>
-<p><em>Example:</em></p>
-<pre><code>{
-  disk1.device = "/dev/nvme0n1";
-}
-
-</code></pre>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
-</ul>
-<h2 id="ghafhardwaredefinitiondisksnamedevice"><a class="header" href="#ghafhardwaredefinitiondisksnamedevice">ghaf.hardware.definition.disks.&lt;name&gt;.device</a></h2>
-<p>Path to the disk</p>
-<p><em>Type:</em>
-string</p>
-<p><em>Declared by:</em></p>
-<ul>
-<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix">https://github.com/tiiuae/ghaf/blob/main/modules/hardware/definition.nix</a></li>
-</ul>
 <h2 id="ghafhardwaredefinitiongpukernelconfig"><a class="header" href="#ghafhardwaredefinitiongpukernelconfig">ghaf.hardware.definition.gpu.kernelConfig</a></h2>
 <p>Hardware specific kernel configuration for gpu devices</p>
 <p><em>Type:</em>
@@ -2520,7 +2496,7 @@ string</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/networking/hosts.nix</a></li>
 </ul>
 <h2 id="ghafpartitioningdiskoenable"><a class="header" href="#ghafpartitioningdiskoenable">ghaf.partitioning.disko.enable</a></h2>
-<p>Whether to enable Enable the disko partitioning scheme.</p>
+<p>Whether to enable the disko partitioning scheme.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
@@ -3890,6 +3866,16 @@ boolean</p>
 </ul>
 <h2 id="ghafsystemdwithserial"><a class="header" href="#ghafsystemdwithserial">ghaf.systemd.withSerial</a></h2>
 <p>Enable systemd serial console.</p>
+<p><em>Type:</em>
+boolean</p>
+<p><em>Default:</em>
+<code>false</code></p>
+<p><em>Declared by:</em></p>
+<ul>
+<li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/systemd/base.nix</a></li>
+</ul>
+<h2 id="ghafsystemdwithsysupdate"><a class="header" href="#ghafsystemdwithsysupdate">ghaf.systemd.withSysupdate</a></h2>
+<p>Enable systemd system update functionality.</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em>
