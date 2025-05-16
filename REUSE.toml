@@ -32,7 +32,11 @@ SPDX-FileCopyrightText = "2022-2024 TII (SSRC) and the Ghaf contributors"
 precedence = "closest"
 path = [
   "docs/**/*.svg",
-  "docs/**/*.png"
+  "docs/**/*.png",
+  "docs/**/*.mdx",
+  "docs/**/*.astro",
+  "docs/package-lock.json",
+  "docs/package.json",
 ]
 
 [[annotations]]

@@ -16,7 +16,7 @@
             inherit (pkgs)
               alejandra
               git
-              mdbook
+              nodejs
               nix
               nixci
               nixos-rebuild

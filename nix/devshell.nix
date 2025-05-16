@@ -23,7 +23,7 @@
             packages =
               [
                 pkgs.jq
-                pkgs.mdbook
+                pkgs.nodejs
                 pkgs.nix-eval-jobs
                 pkgs.nix-fast-build
                 pkgs.nix-output-monitor
