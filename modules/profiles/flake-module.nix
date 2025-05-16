@@ -22,5 +22,13 @@
       inputs.self.nixosModules.microvm
       ./laptop-x86.nix
     ];
+
+    profiles-orin.imports = [
+      #inputs.jetpack-nixos.nixosModules.default
+      #inputs.self.nixosModules.jetpack
+      ./orin.nix
+      inputs.self.nixosModules.profiles
+      inputs.self.nixosModules.microvm
+    ];
   };
 }

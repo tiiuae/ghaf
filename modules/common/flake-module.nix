@@ -12,7 +12,7 @@
       ./security
       ./users
       ./version
-      ./virtualisation
+      ./virtualization
       ./systemd
       ./services
       ./networking
