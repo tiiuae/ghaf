@@ -91,20 +91,7 @@ The seven rules of a great Git commit message are originally from Google. Origin
 
 ## Contributing Documentation
 
-The Ghaf project is free and open source. We use [mdBook](https://rust-lang.github.io/mdBook/index.html) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting. Sources are written in Markdown.
-
-Add [license](https://github.com/tiiuae/ghaf#licensing) information on top of all your source doc files as in the example:
-
-    <!--
-        Copyright [year project started]-[current year], [project founder] and the [project name] contributors
-        SPDX-License-Identifier: CC-BY-SA-4.0
-    -->
-
-<!--
-    Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
-    SPDX-License-Identifier: CC-BY-SA-4.0
--->
-
+The Ghaf project is free and open source. We use [Starlight](https://starlight.astro.build) and [Nix](https://nixos.org/manual/nix/stable/introduction.html) for building the documentation and GitHub Pages for hosting. Sources are written in Markdown.
 
 ### Working with Documentation Source Files
 
@@ -133,7 +120,7 @@ Create a pull request to propose and collaborate on changes to a repository. Ple
 9. Submit your changes for review using the GitHub UI.
 10. After publishing keep your ear to the ground for any feedback and comments in [Pull requests](https://github.com/tiiuae/ghaf/pulls).
 
-When a merge to main occurs it will automatically build and deploy to <https://tiiuae.github.io/ghaf/>.
+When a merge to main occurs it will automatically build and deploy to <https://ghaf.tii.ae>.
 
 
 ### Manual of Style

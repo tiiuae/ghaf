@@ -1,17 +1,19 @@
-# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
-# SPDX-License-Identifier: CC-BY-SA-4.0
-# TODO should this be refactored
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 {
+  buildNpmPackage,
   lib,
-  runCommandLocal,
   nixosOptionsDoc,
-  mdbook,
-  mdbook-alerts,
-  mdbook-footnote,
+  runCommandLocal,
+  pkg-config,
+  nodejs,
+  vips,
   revision ? "",
   options ? { },
+  ...
 }:
 let
+
   optionsDocMd =
     (nixosOptionsDoc {
       inherit revision options;
@@ -24,30 +26,31 @@ let
   combinedSrc = runCommandLocal "ghaf-doc-src" { } ''
     mkdir $out
     cp -r ${./.}/* $out
-    chmod +w $out/src/ref_impl/modules_options.md
+    chmod +w $out/src/content/docs/ghaf/dev/library/modules_options.mdx
 
     # Refer to master branch files in github
-    sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/ref_impl/modules_options.md
+    sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/content/docs/ghaf/dev/library/modules_options.mdx
   '';
 in
-# TODO Change this, runCommandLocal is not intended for longer running processes
-runCommandLocal "ghaf-doc"
-  {
-    nativeBuildInputs = [
-      mdbook
-      mdbook-footnote
-      mdbook-alerts
-    ];
-    src = combinedSrc;
+buildNpmPackage (_finalAttrs: {
+  pname = "ghaf-docs";
+  version = "0.1.0";
+  src = combinedSrc;
+  inherit nodejs;
 
-    # set the package Meta info
-    meta = {
-      description = "Ghaf Documentation";
-      platforms = [
-        "x86_64-linux"
-      ];
-    };
-  }
-  ''
-    ${mdbook}/bin/mdbook build -d $out $src
-  ''
+  buildInputs = [
+    vips
+  ];
+
+  nativeBuildInputs = [
+    pkg-config
+  ];
+  installPhase = ''
+    runHook preInstall
+    cp -pr --reflink=auto dist $out/
+    runHook postInstall
+  '';
+
+  npmDepsHash = "sha256-pxrstYsJAfYCBVhQbkMlj3rjYVtSGondzvYGQFydB8w=";
+
+})

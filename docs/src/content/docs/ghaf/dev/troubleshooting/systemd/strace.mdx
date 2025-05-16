@@ -1,0 +1,27 @@
+---
+title: Using strace for Debugging Initialization Sequence
+---
+
+`strace` can give detailed information about system calls made by a service. This is helpful in debugging restrictions applied to system calls and the capability of any service. Though we can attach `strace` with the PID of a running process, sometimes we may need to debug the service initialization sequence.
+
+To debug the initialization sequence:
+
+1. Attach `strace` with the service binary in `ExecStart`. For that, find out the existing `ExecStart` of the service by using the command:
+
+   ```sh
+   systemctl cat <service-name>.service | grep ExecStart
+   ```
+
+   It will give command line options used with service binary.
+
+2. Override `ExecStart` of the service to attach `strace`. We will use the same options with `strace` to replicate the same scenario. For example, to attach `strace` with `auditd` service we will use the following configuration at a suitable location:
+
+   ```nix
+   systemd.services."auditd".serviceConfig.ExecStart = lib.mkForce "${pkgs.strace}/bin/strace -o /etc/auditd_trace.log ${pkgs.audit}/bin/auditd -l -n -s nochange";
+   ```
+
+   The `${pkgs.audit}/bin/auditd -l -n -s nochange` command is used in the regular `ExecStart` of `auditd` service. In the above command, we attached `strace` with the command, which will generate system call traces in `/etc/auditd_trace.log` file.
+
+3. After modifying above configuration, rebuild and load a Ghaf image.
+
+   The log may give you information about the system call restriction that caused the service failure. You can tune your service config accordingly.

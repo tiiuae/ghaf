@@ -3,29 +3,14 @@
     SPDX-License-Identifier: CC-BY-SA-4.0
 -->
 
-[comment]: # (blank line)  
-[comment]: # (Comment text goes here.)  
-[comment]: # (blank line)  
-[comment]: # (Make sure add a double space after each comment line.)  
-
 # Documentation Style Guide
 
 Here you can find the standards we follow for writing, formatting, and organizing Ghaf documentation. Please follow these guidelines and conventions when editing the documentation.
 
-Writing guidelines:
-- [Documentation Style Guide](#documentation-style-guide)
-  - [Voice and Tone](#voice-and-tone)
-  - [Fonts and Colors](#fonts-and-colors)
-  - [Markdown Syntax](#markdown-syntax)
-  - [Headings](#headings)
-  - [Spelling and Punctuation](#spelling-and-punctuation)
-  - [References](#references)
-  - [Tips and Tricks](#tips-and-tricks)
-
 
 ## Voice and Tone
 
-* Write in plain English—a universal language that makes information clear and better to understand:
+* Write in plain US English—a universal language that makes information clear and better to understand:
   * Use simple tenses and active voice.
   * Understandable language, fewer gerunds.
   * Short, sharp sentence. Try to use 15-20 words max.
@@ -47,16 +32,12 @@ Writing guidelines:
 ## Fonts and Colors
 
 * Font
-
-    The [Roboto font](https://fonts.google.com/specimen/Roboto) family is used in Ghaf digital platforms. Roboto is available via an open-source license.
-
+  The [Roboto font](https://fonts.google.com/specimen/Roboto) family is used in Ghaf digital platforms. Roboto is available via an open-source license.
 * Ghaf colors
-
-    * Primary color is Light green (#5AC379).
-    * Secondary colors:
-
-        * Dark green (#3D8252), Orange (#F15025), Yellow (#FABC3C)
-        * Light grey (#3A3A3A), Mid grey (#232323), Dark grey (#121212)
+  * Primary color is Light green (#5AC379).
+  * Secondary colors:
+    * Dark green (#3D8252), Orange (#F15025), Yellow (#FABC3C)
+    * Light grey (#3A3A3A), Mid grey (#232323), Dark grey (#121212)
 
 
 ## Markdown Syntax
@@ -64,84 +45,13 @@ Writing guidelines:
 Before you begin:
 
 * If you are new to Markdown, see [Markdown Cheat Sheet](https://www.markdownguide.org/cheat-sheet/).
-* Since Ghaf documentation is built with mdBook, you can use [mdBook's team tutorial](https://rust-lang.github.io/mdBook/format/markdown.html) for general syntax as well:
-
-  * Text and paragraphs
-  * Headings
-  * Lists
-  * Links
-  * Images
-  * Extensions: strikethrough, footnotes, tables, task lists, smart punctuation
-
-
-To make our Markdown files maintainable over time and across teams, follow the rules:
-
-* Headings
-  
-    Add spacing to headings: two newlines before and one after.
-
-* Code
-  
-    Use double backtick quotes (`) before and after the content that you want to wrap: ``x86-64``.
-
-* Code blocks
-
-    There are two ways to create code blocks:
-    * Use three backticks (```) on the lines before and after the code block.
-    * Indent every line of the block by at least four spaces or one tab. To put a code block within a list item, the code block needs to be indented twice.
-
-* Reference to a source code
-
-    Instead of copying and pasting the entire code, and putting it in a code block, you can create a reference to the code as in the [example](https://github.com/stevemar/code-reference-in-readme/blob/main/README.md).
-    Do the following:
-    * In GitHub, open the file with a source code (the source blob) and select a string or several strings (press and hold the Shift key).
-    * From the menu [...], select **Copy permalink** and paste the link to your .md file.
-
-* Notes with quoting
-
-    Use an angle bracket (>) for annotations.
-    
-    Our mdBook is extended with the [mdbook-alerts](https://github.com/lambdalisue/rs-mdbook-alerts) third-party plugin[^note1] which adds usage of [GitHub Flavored Markdown's Alerts](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#alerts).
-
-    > [!IMPORTANT]
-    > Alerts cannot be nested within other elements. Use the simple angle bracket (>) for nested lists.
-    
-    
-    To emphasize critical information, please use the following syntax:
-
-    ```
-    > [!NOTE]
-    > Useful information that users should know, even when skimming content.
-
-    > [!TIP]
-    > Helpful advice for doing things better or more easily.
-
-    > [!IMPORTANT]
-    > Key information users need to know to achieve their goal.
-
-    > [!WARNING]
-    > Urgent info that needs immediate user attention to avoid problems.
-
-    > [!CAUTION]
-    > Advises about risks or negative outcomes of certain actions.
-    ```
-
-* Footnotes
-    
-    For footnote references, use an identifier inside brackets. For example:  
-    in a text: `... this template[^note1] ...`  
-    at the end of the file: `[^note1]: This template is based on...`
-
+* Since Ghaf documentation is built with Starlight which uses MDX, you can see [Starlight documentation](https://starlight.astro.build/components/using-components/) website for examples.
+  * Also the [MDX guides](https://mdxjs.com/) may be useful.
 * Markdown shields (badges)
-
     In [README.md](../README.md) and [README-docs.md](./README-docs.md), we used those emblems so that the user can see the needed information at first glance. In fact, it is just a reference link. To make your own shield, use [shields.io](https://shields.io/).
-
 * Unicode characters
-
-    For GitHub .md files (not for GitHub Pages), emojis are welcome :octocat:.  
+    For GitHub .md files (not for GitHub Pages), emojis are welcome :octocat:.
     Check [Supported GitHub emojis](https://github-emoji-picker.vercel.app/) for more inspiration.
-
-
 
 ## Headings
 
@@ -158,17 +68,17 @@ In Ghaf documentation, we do not use articles in headings as soon as the meaning
 
 * We use standard United States (U.S.) English throughout all technical publications.
 
-    In cases where US spelling differs from UK spelling, use the US spelling. There is no need to fix one by replacing it with the other. 
+    In cases where US spelling differs from UK spelling, use the US spelling. There is no need to fix one by replacing it with the other.
 
     For additional information, see [Manual of Style Wikipedia:Manual of Style/Spelling](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style/Spelling) and [American and British English spelling differences](https://en.wikipedia.org/wiki/American_and_British_English_spelling_differences).
 
 * Use serial (Oxford) commas.
-  
+
     The Oxford comma is a comma placed immediately before a coordinating conjunction (and, or) in a series of 3 or more items.
 
 * Write the full name when first mentioned with the acronym in brackets: *Supply Chain Security (SCS)*.
-  
-    For more information on abbreviations and usage of articles before them, see the [Glossary](https://tiiuae.github.io/ghaf/appendices/glossary.html) section of Ghaf documentation.
+
+    For more information on abbreviations and usage of articles before them, see the [Glossary](https://ghaf.tii.ae/ghaf/appendices/glossary/) section of Ghaf documentation.
 
 * Numbers
 
@@ -177,7 +87,7 @@ In Ghaf documentation, we do not use articles in headings as soon as the meaning
 
 * Date format
 
-    In written American English, the month of the date comes before the day and year: 
+    In written American English, the month of the date comes before the day and year:
     * The full date format is month-day-year: *November 7, 2022*.
     * A shorter date format includes only numbers separated by slashes: *11/7/2022*.
 
@@ -199,7 +109,7 @@ In Ghaf documentation, we do not use articles in headings as soon as the meaning
 * Dashes and hyphens
 
     * dodgy dashes:
-        * em dash (—) || use to separate extra information or mark a break in a sentence 
+        * em dash (—) || use to separate extra information or mark a break in a sentence
        > Called such since the dash is approximately the width of a typed letter M in traditional typesetting.
        >
         > Also, the em dash may serve as a sort of bullet point.
@@ -220,7 +130,7 @@ In Ghaf documentation, we do not use articles in headings as soon as the meaning
 
 For references (additional information on sections, terms and any other issues in a document that require supplementary explanation) use the following combination:
 
-* *for more information on X, see B* 
+* *for more information on X, see B*
 * *to learn how to X, see B*
 
 
@@ -242,6 +152,3 @@ Congratulations! You found the Room of Requirement that adjusts itself to its se
 
 
 Happy writing!
-
-
-[^note1]: For the full list of available community-developed plugins for extending mdBook, see [Third party plugins](https://github.com/rust-lang/mdBook/wiki/Third-party-plugins).
