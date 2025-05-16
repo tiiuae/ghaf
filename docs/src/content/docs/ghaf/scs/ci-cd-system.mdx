@@ -1,0 +1,45 @@
+---
+title: Continuous Integration and Distribution
+---
+
+Ghaf Framework uses a CI/CD (Continuous Integration and Continuous Delivery) approach that aims to automate the process of building, testing, and deploying software.
+
+Our goal is to have the ability to deploy code quickly and safely: once a build is deployed, the next build undergoes testing, while the latest build is being coded.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside type="caution">Currently, Continuous Deployment is not set up.</Aside>
+
+## General Process
+
+![CI/CD Architecture](@assets/ghaf/CICD_general.drawio.png "Ghaf CI/CD Architecture")
+
+The software delivery pipeline consists of several stages:
+
+1. Contributors make changes in the code and create a pull/merge request to merge changes from one personal fork or branch into the upstream repository/branch.
+
+2. Builder Controller checks source code repositories for changes and fetches them.
+
+3. Builder Controller arranges builds on Remote Builders to make disk images and other release artifacts.
+
+4. After the building is done, Remote Builder sends disk images and other release artifacts to Builder Controller.
+
+5. On build failure, Builder Controller sends failure notifications to Message Service.
+
+6. Builder controller creates provenance files and signs disk images and provenance files with the Signing Service.
+
+7. Builder Controller uploads all build artifacts to Binary Cache.
+
+8. Builder Controller uploads disk images to Artifact Storage.
+
+9. Builder controller triggers automated hardware tests on Test Automation Agent.
+
+10. Test Automation Agent fetches disk images from the Artifact Storage and runs the hardware test on them.
+
+11. Test Automation Agent sends test reports to the Builder Controller.
+
+12. Builder Controller uploads test reports to Artifact Storage.
+
+13. Users can download disk images, disk image signatures, provenance files, provenance file signatures and test reports from the Controller.
+
+14. Users can verify disk image signatures and provenance file signatures with Signing Service.

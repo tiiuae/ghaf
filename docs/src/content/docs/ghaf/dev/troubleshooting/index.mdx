@@ -1,0 +1,19 @@
+---
+title: Troubleshooting
+---
+
+## Troubleshooting with systemd
+
+Ghaf uses systemd and systemctl to manage services.
+
+This document focuses on troubleshooting common issues with systemd services on Ghaf.
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside type="tip">
+  For more information on configurations that can be utilized to enhance the
+  security of a systemd service, see [systemd Service
+  Hardening](/ghaf/dev/ref/systemd-service-config).
+</Aside>
+
+Since security is the utmost priority, every service has restricted access to resources, which is achieved through hardened service configurations. While these restrictions enhance security, they may also limit the functionality of certain services. If a service fails, it may be necessary to adjust its configuration to restore functionality.
