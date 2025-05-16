@@ -1,0 +1,81 @@
+---
+title: Hardware acceleration in Linux
+---
+
+Hardware acceleration refers to offloading certain tasks, typically graphical or computational, from the CPU to specialized hardware components like the GPU, video decoder/encoder, or other accelerators. This can greatly improve system performance and efficiency, especially for graphics rendering, video playback, and certain compute-heavy applications.
+
+### Types of Hardware Acceleration
+
+1. **GPU Acceleration (Graphics)**
+
+- Used for rendering GUIs, 3D applications or desktops like [labwc](https://github.com/labwc/labwc), [cosmic](https://github.com/pop-os/cosmic-epoch).
+
+- APIs involved:
+  - **OpenGL / Vulkan**
+  - **Mesa 3D** (open-source graphics library)
+
+2. **Video Acceleration (Decode/Encode)**
+
+- Useful for smooth playback of high-definition video.
+
+- Libraries/interfaces:
+  - **VA-API (Video Acceleration API)** – Intel, AMD
+  - **VDPAU** (Video Decode and Presentation API for Unix) – NVIDIA
+  - **NVDEC / NVENC** – NVIDIA proprietary decoding/encoding
+  - **V4L2 (Video4Linux)** – General video capture/encode API
+
+3. **Compute Acceleration**
+
+- Used in AI, ML, and general purpose GPU computing.
+
+- Technologies:
+  - **OpenCL** (open standard)
+  - **CUDA** (NVIDIA-specific)
+
+### ⚙️ How to Check If It's Enabled
+
+1. **GPU Info**
+
+   ```sh
+   glxinfo | grep "OpenGL renderer"
+   ```
+
+2. **Video Acceleration Check**
+
+   ```sh
+   vainfo      # For VA-API
+
+   vdpauinfo   # For VDPAU
+   ```
+
+3. **GPU workload check**
+
+   ```sh
+   intel_gpu_top # For Intel Platforms
+
+   nvidia-smi    # For Nvidia Platforms
+   ```
+
+4. **General Acceleration**
+
+- Monitor CPU usage during video playback using `htop` or `top`.
+
+- If CPU usuage is low, hardware acceleration is likely working.
+
+### 🎥 Video hardware acceleration support in browsers
+
+1. For Firefox
+
+   - In URL type following:
+
+     ```sh
+     about:support # Then scroll down to find Media section to find Codecs supported with Hardware Decoding
+     ```
+
+2. For Chrome
+
+   - In URL type following:
+
+     ```sh
+     chrome://gpu # Then scroll down to bottom to find `Video Acceleration Information`
+     ```

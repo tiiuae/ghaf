@@ -1,0 +1,18 @@
+---
+title: Architecture Decision Records
+sidebar:
+  label: ADRs
+---
+
+Architecturally significant decisions are recorded as [architecture decision records (ADR)](https://adr.github.io).
+
+The Ghaf platform decision log:
+
+| Decision Record                                                                       | Status                                                       |
+| ------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| [Minimal Host](/ghaf/overview/arch/adr/minimal-host)                                  | Proposed.                                                    |
+| [Networking VM](/ghaf/overview/arch/adr/netvm)                                        | Proposed, partially implemented for development and testing. |
+| [IDS VM](/ghaf/overview/arch/adr/idsvm)                                               | Proposed, partially implemented for development and testing. |
+| [Platform Bus for Rust VMM](/ghaf/overview/arch/adr/platform-bus-passthrough-support) | Proposed, WIP.                                               |
+
+To create an architectural decision proposal, open [a pull request](https://github.com/tiiuae/ghaf/blob/main/CONTRIBUTING.md#contributing-documentation) and use the [decision record template](https://github.com/tiiuae/ghaf/blob/main/docs/src/content/ghaf/overview/arch/adr/template.md). Contributions to the Ghaf architecture decisions are welcome.

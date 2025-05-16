@@ -1,0 +1,61 @@
+---
+title: Ghaf Framework
+description: Building systems based on zero-trust
+template: splash
+hero:
+  tagline: Building systems based on zero-trust.
+  image:
+    file: ../../assets/ghaf-logo.svg
+  actions:
+    - text: Learn More
+      link: /ghaf/overview/
+      icon: right-arrow
+    - text: GitHub repository
+      link: https://github.com/tiiuae/ghaf
+      icon: external
+      variant: minimal
+---
+
+import {
+  Card,
+  CardGrid,
+  Code,
+  LinkButton,
+} from "@astrojs/starlight/components";
+
+<Card title="Get Started">
+  <Code lang="sh" code="nix flake init -t github:tiiuae/ghaf#boilerplate" />
+  <LinkButton
+    href="/ghaf/overview/"
+    variant="secondary"
+    icon="open-book"
+    iconPlacement="start"
+  >
+    Developer Reference
+  </LinkButton>
+</Card>
+
+## Design Principles
+
+<CardGrid>
+  <Card title="Edge security" icon="up-caret">
+    The Ghaf security architecture under development by SSRC aims to provide an
+    understandable yet comprehensive view of security controls in the Platform
+    so that vendors can make informed decisions and adopt the Platform for their
+    use cases.
+  </Card>
+  <Card title="Zero trust" icon="magnifier">
+    The Ghaf Platform aims to apply the general security principles of zero
+    trust within the software architecture and to act as an enabler for ZTA for
+    edge devices within organizations.
+  </Card>
+  <Card title="Trusted computing Base" icon="laptop">
+    The general principle for establishing the trusted Ghaf Platform code base
+    is to rely on audited software and proven security modules while carefully
+    evaluating and integrating new concepts.
+  </Card>
+  <Card title="Configurable, declarative & reproducible" icon="document">
+    Powered by Nix, system can be declared and reproduced bit-by-bit. Learn
+    more.
+  </Card>
+</CardGrid>
