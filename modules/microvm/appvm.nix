@@ -19,7 +19,6 @@ let
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
-
   makeVm =
     { vm }:
     let
@@ -223,6 +222,7 @@ let
     {
       autostart = true;
       inherit (inputs) nixpkgs;
+      specialArgs = { inherit lib; };
       config = appvmConfiguration // {
         imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ appExtraModules;
       };
@@ -302,11 +302,10 @@ in
               type = types.listOf types.package;
               default = [ ];
             };
-            macAddress = mkOption {
-              description = ''
-                AppVM's network interface MAC address
-              '';
-              type = types.str;
+            extraNetworking = lib.mkOption {
+              type = types.networking;
+              description = "Extra Networking option";
+              default = { };
             };
             ramMb = mkOption {
               description = ''
@@ -444,5 +443,11 @@ in
           }) vmsWithWaypipe;
         }
       ];
+
+      ghaf.common.extraNetworking.hosts = lib.mapAttrs' (name: vm: {
+        name = "${name}-vm";
+        value = vm.extraNetworking or { };
+      }) vms;
+
     };
 }

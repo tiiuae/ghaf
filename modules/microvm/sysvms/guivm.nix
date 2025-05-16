@@ -8,9 +8,12 @@
   ...
 }:
 let
+
   vmName = "gui-vm";
   #TODO do not import from a path like this
   inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  buildVm = import ../common/build-sysvm.nix { inherit lib inputs config; };
+
   guivmBaseConfiguration = {
     imports = [
       inputs.self.nixosModules.profiles
@@ -90,12 +93,6 @@ let
                 enable = true;
                 isGuiVm = true;
               };
-            };
-
-            # Networking
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              inherit vmName;
             };
 
             # Services
@@ -321,7 +318,11 @@ in
       '';
       default = [ ];
     };
-
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
+    };
     applications = lib.mkOption {
       description = ''
         Applications to include in the GUIVM
@@ -353,29 +354,28 @@ in
       default = [ ];
     };
   };
+  config =
+    let
+      baseCfg = buildVm vmName cfg guivmBaseConfiguration;
+      overrideVm = {
+        microvm.vms.${vmName}.config = {
+          boot.kernelPackages =
+            if config.ghaf.guest.kernel.hardening.graphics.enable then
+              pkgs.linuxPackagesFor guest_graphics_hardened_kernel
+            else
+              pkgs.linuxPackages;
 
-  config = lib.mkIf cfg.enable {
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      config = guivmBaseConfiguration // {
-        boot.kernelPackages =
-          if config.ghaf.guest.kernel.hardening.graphics.enable then
-            pkgs.linuxPackagesFor guest_graphics_hardened_kernel
-          else
-            pkgs.linuxPackages;
-
-        # We need this patch to avoid reserving Intel graphics stolen memory for vm
-        # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103
-        boot.kernelPatches = [
-          {
-            name = "gpu-passthrough-fix";
-            patch = ./0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch;
-          }
-        ];
-
-        imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
+          # We need this patch to avoid reserving Intel graphics stolen memory for vm
+          # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103
+          boot.kernelPatches = [
+            {
+              name = "gpu-passthrough-fix";
+              patch = ./0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch;
+            }
+          ];
+        };
       };
-    };
-  };
+    in
+    lib.mkIf cfg.enable (lib.recursiveUpdate baseCfg overrideVm);
+
 }
