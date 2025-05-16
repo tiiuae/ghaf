@@ -83,13 +83,24 @@
       }
     ];
     imx8.imports = [ ./imx8 ];
-    #TODO: Technically all the module imports can happen at this level
-    # without the need to drive the inputs down another level.
-    # could make discoverability easier.
-    jetpack.imports = [
-      ./jetpack
-      inputs.self.nixosModules.hardware-aarch64-generic
-    ];
     polarfire.imports = [ ./polarfire ];
+    hardware-nvidia-jetson-orin-agx.imports = [
+      ./jetpack
+      ./jetpack/nvidia-jetson-orin/optee.nix
+      inputs.self.nixosModules.hardware-aarch64-generic
+      ./jetpack/agx/orin-agx.nix
+    ];
+    hardware-nvidia-jetson-orin-agx64.imports = [
+      ./jetpack
+      ./jetpack/nvidia-jetson-orin/optee.nix
+      inputs.self.nixosModules.hardware-aarch64-generic
+      ./jetpack/agx/orin-agx64.nix
+    ];
+    hardware-nvidia-jetson-orin-nx.imports = [
+      ./jetpack
+      ./jetpack/nvidia-jetson-orin/optee.nix
+      inputs.self.nixosModules.hardware-aarch64-generic
+      ./jetpack/nx/orin-nx.nix
+    ];
   };
 }
