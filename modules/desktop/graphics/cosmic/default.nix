@@ -76,7 +76,7 @@ in
         options = {
           borderWidth = lib.mkOption {
             type = lib.types.ints.positive;
-            default = 4;
+            default = 6;
             description = "Default border width";
           };
 
