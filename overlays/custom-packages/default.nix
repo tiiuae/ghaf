@@ -17,5 +17,7 @@
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
   cosmic-session = import ./cosmic/cosmic-session { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
-  cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
+  #TODO: this is a temporary patch until the upstream is fixed
+  #TODO: disabled for now until rebased onto the latest version
+  #cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
 })
