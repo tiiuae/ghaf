@@ -62,7 +62,9 @@ let
     {
       inherit hostConfiguration;
       name = "${name}-installer";
-      package = hostConfiguration.config.system.build.isoImage;
+      package = hostConfiguration.config.system.build.isoImage.overrideAttrs {
+        buildCommandPath = ../../overlays/lib/make-iso9660-image.sh;
+      };
     };
 in
 mkLaptopInstaller
