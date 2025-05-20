@@ -54,35 +54,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    hardware.nvidia-jetpack = {
-      enable = true;
-      som = if ((cfg.somType == "agx") || (cfg.somType == "agx64")) then "orin-agx" else "orin-nx";
-      carrierBoard = "${cfg.carrierBoard}";
-      modesetting.enable = true;
-      kernel.version = "${cfg.kernelVersion}";
-      flashScriptOverrides = lib.optionalAttrs ((cfg.somType == "agx") || (cfg.somType == "agx64")) {
-        flashArgs = lib.mkForce [
-          "-r"
-          config.hardware.nvidia-jetpack.flashScriptOverrides.targetBoard
-          "mmcblk0p1"
-        ];
-      };
-
-      firmware.uefi = {
-        logo = ../../../../../docs/src/img/1600px-Ghaf_logo.svg;
-        edk2NvidiaPatches = [
-          # This effectively disables EFI FB Simple Framebuffer, which does
-          # not work properly but causes kernel panic during the boot if the
-          # HDMI cable is connected during boot time.
-          #
-          # The patch reverts back to old behavior, which is to always reset
-          # the display when exiting UEFI, instead of doing handoff, when
-          # means not to reset anything.
-          # ./edk2-nvidia-always-reset-display.patch
-        ];
-      };
-    };
-
+    hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
     ghaf.hardware.aarch64.systemd-boot-dtb.enable = true;
@@ -140,35 +112,17 @@ in
       # Enable all CPU cores, full power consumption (50W on AGX, 25W on NX)
       profileNumber = lib.mkDefault 3;
     };
-    hardware.deviceTree =
-      {
-        enable = lib.mkDefault true;
-        dtbSource = "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/";
-        # Add the include paths to build the dtb overlays
-        dtboBuildExtraIncludePaths = [
-          "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
-        ];
-      }
+    hardware.deviceTree = {
+      enable = lib.mkDefault true;
+      dtbSource = "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/";
+      # Add the include paths to build the dtb overlays
+      dtboBuildExtraIncludePaths = [
+        "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
+      ];
+    };
 
-      # NOTE: "-nv.dtb" files are from NVIDIA's BSP
-      # Versions of the device tree without PCI passthrough related
-      # modifications.
-      // lib.optionalAttrs (cfg.somType == "agx") {
-        name = lib.mkDefault "tegra234-p3737-0000+p3701-0000-nv.dtb";
-      }
-      // lib.optionalAttrs (cfg.somType == "agx64") {
-        name = lib.mkDefault "tegra234-p3737-0000+p3701-0005-nv.dtb";
-      }
-      // lib.optionalAttrs (cfg.somType == "nx") {
-        # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
-        # uses "tegra234-p3767-0000-p3509-a02.dtb"-device tree.
-        # p3509-a02 == IO BASE B carrier board
-        # p3767-0000 == Orin NX SOM
-        # p3768-0000 == Official NVIDIA's carrier board
-        # Upstream kernel has only official carrier board device tree,
-        # but it works with IO BASE B carrier board with minor
-        # modifications.
-        name = lib.mkDefault "tegra234-p3768-0000+p3767-0000-nv.dtb";
-      };
+    # NOTE: "-nv.dtb" files are from NVIDIA's BSP
+    # Versions of the device tree without PCI passthrough related
+    # modifications.
   };
 }
