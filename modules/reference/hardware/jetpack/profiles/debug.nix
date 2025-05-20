@@ -12,5 +12,6 @@ in
       xtest = true;
       pkcs11-tool = true;
     };
+    ghaf.reference.personalize.keys.enable = true;
   };
 }
