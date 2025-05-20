@@ -22,6 +22,12 @@ in
       type = lib.types.bool;
       default = false;
     };
+
+    sysupdate = lib.mkOption {
+      description = "Enable systemd sysupdate";
+      type = lib.types.bool;
+      default = false;
+    };
   };
 
   imports = [
