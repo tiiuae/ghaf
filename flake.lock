@@ -68,11 +68,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1747702237,
-        "narHash": "sha256-qJ9dq2BVXWdKSN/+7VNVJ15xC4mwVJg7YZaxMHnwSu4=",
+        "lastModified": 1747827183,
+        "narHash": "sha256-14PUUTt/smRNfjAdJqgwYf8bAg6tQVlLURoFr3q41RA=",
         "owner": "tiiuae",
         "repo": "ghaf-ctrl-panel",
-        "rev": "4072b8eebc6830e20eac020b7b3b04f15805e0af",
+        "rev": "2bbf909cd3e76ea802dfa61d4b0f5ec04b0272ea",
         "type": "github"
       },
       "original": {
@@ -376,11 +376,11 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1747417232,
-        "narHash": "sha256-7Ii0POxd3S/q9iOoZdYJORINP6yQYu/GO0d7emNvr+I=",
+        "lastModified": 1747834517,
+        "narHash": "sha256-7WjxRd+sGvT6kLSzjTYBgo5M9iYZcgdkjI3idNl1xq0=",
         "owner": "astro",
         "repo": "microvm.nix",
-        "rev": "5beafebf8bcee75aebf23ca6ec46d13d471b0146",
+        "rev": "46d194b93251d3300d7a3fc78e46b802ba615687",
         "type": "github"
       },
       "original": {
