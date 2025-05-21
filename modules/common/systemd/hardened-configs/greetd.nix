@@ -18,7 +18,7 @@
   ProtectControlGroups = true;
   RestrictNamespaces = true;
   LockPersonality = true;
-  MemoryDenyWriteExecute = true;
+  MemoryDenyWriteExecute = false;
   RestrictRealtime = true;
   RestrictSUIDSGID = true;
   SystemCallArchitectures = "native";
