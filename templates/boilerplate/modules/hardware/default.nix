@@ -137,12 +137,5 @@
         hostport = "6";
       }
     ];
-    external = [
-      {
-        name = "gps0";
-        vendorId = "067b";
-        productId = "23a3";
-      }
-    ];
   };
 }

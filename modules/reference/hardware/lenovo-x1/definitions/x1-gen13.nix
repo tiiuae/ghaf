@@ -121,18 +121,5 @@
         hostport = "4";
       }
     ];
-    external = [
-      # Add external USB devices here
-      {
-        name = "gps0";
-        vendorId = "067b";
-        productId = "23a3";
-      }
-      {
-        name = "yubikey";
-        vendorId = "1050";
-        productId = "0407";
-      }
-    ];
   };
 }
