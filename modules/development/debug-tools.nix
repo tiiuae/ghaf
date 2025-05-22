@@ -63,6 +63,8 @@ in
         pkgs.grpcurl
 
         pkgs.lshw
+        # Tools for joysticks and serial peripherals
+        pkgs.linuxConsoleTools
 
         #(config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
         sysbench-test-script
