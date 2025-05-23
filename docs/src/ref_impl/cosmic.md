@@ -6,11 +6,12 @@
 # COSMIC Desktop Environment
 
 [COSMIC](https://github.com/pop-os/cosmic-epoch) is a modern, configurable, and lightweight Wayland desktop environment developed by System76. It is designed to be fast, efficient and user-friendly while maintaining a professional appearance.
-As of February 2025, COSMIC's latest release is Alpha 6, with a beta release planned in the coming months.
+As of April 2025, COSMIC's latest release is Alpha 7, with a beta release planned in the coming months.
 
 ## Enabling COSMIC in Ghaf
 
-While COSMIC is not the default desktop environment in Ghaf, it can be enabled manually. To enable COSMIC DE in Ghaf, modify the graphics configuration as shown below:
+COSMIC is the default desktop environment in Ghaf.
+If you wish to explicitly configure or customize the desktop environment, you can still set it manually in your graphics configuration:
 
 ```nix
 profiles.graphics.compositor = "cosmic";
@@ -26,9 +27,9 @@ COSMIC's configuration in Ghaf consists of several key components:
 
 ### 1. Core COSMIC DE Configuration
 
-COSMIC handles its configuration via simple Rust Object Notation (RON) files located in the user's home directory under `.config/cosmic`. 
+COSMIC handles its configuration via simple Rust Object Notation (RON) files located in the user's home directory under `.config/cosmic`.
 
-In the Ghaf Nix configuration, however, we have introduced a conversion mechanism where the entire directory tree is represented by a single YAML file (`cosmic.config.yaml`). This YAML file acts as the system default COSMIC configuration and is applied to all fresh installations of Ghaf. 
+In the Ghaf Nix configuration, however, we have introduced a conversion mechanism where the entire directory tree is represented by a single YAML file (`cosmic.config.yaml`). This YAML file acts as the system default COSMIC configuration and is applied to all fresh installations of Ghaf.
 
 If the user makes manual changes to the configuration while using Ghaf, those changes will take precedence over the system defaults.
 
@@ -37,11 +38,13 @@ If the user makes manual changes to the configuration while using Ghaf, those ch
 The `cosmic.nix` module in Ghaf customizes COSMIC to better align with the system's requirements. Below are the key modifications and adjustments made:
 
 #### Disabled COSMIC Settings pages
+
 - **User Management**: The `page-users` feature in COSMIC settings is disabled.
 - **Power Settings**: The `page-power` feature is removed, as power management is handled by `swayidle` and `ghaf-powercontrol`.
 - **Sound Settings**: The `page-sound` feature is disabled, with audio control managed by a custom service.
 
 #### Replacements and Overrides
+
 - **Icon Theme**: The default COSMIC icon theme is changed to Papirus icon theme.
 - **GTK Settings**: Some default GTK settings are applied to ensure a consistent look and feel.
 - **Session Management**: COSMIC's session management integrates with `ghaf-session.target` for better control of Ghaf services.
@@ -49,6 +52,7 @@ The `cosmic.nix` module in Ghaf customizes COSMIC to better align with the syste
 - **Audio Control**: A custom Ghaf audio control service works alongside the COSMIC audio applet to provide Ghaf-specific audio control features.
 
 #### Additional Changes
+
 - **DBUS Proxy Integration**: Custom DBUS proxy sockets are added for audio, network, and Bluetooth applets.
 - **Configuration Format**: COSMIC's configuration is centralized into a single YAML file (`cosmic.config.yaml`) for easier management and deployment. This configuration is installed as an explicit package `ghaf-cosmic-config`, the derivation of which can be found in `cosmic.nix`.
 - **Disabled Services**: Several default services, such as `geoclue2`, `pipewire`, and `gnome-keyring`, are explicitly disabled.
@@ -56,6 +60,7 @@ The `cosmic.nix` module in Ghaf customizes COSMIC to better align with the syste
 These changes ensure that COSMIC in Ghaf is tailored to the system's specific needs.
 
 ## Configuration Files
+
 The main configuration files are located in the `modules/desktop/graphics/` directory:
 
 ```

@@ -77,7 +77,8 @@ in
           borderWidth = lib.mkOption {
             type = lib.types.ints.positive;
             default = 4;
-            description = "Default border width";
+            example = 4;
+            description = "Default border width in pixels";
           };
 
           rules = lib.mkOption {
@@ -86,6 +87,7 @@ in
                 options = {
                   identifier = lib.mkOption {
                     type = lib.types.str;
+                    example = "chrome-vm";
                     description = "The identifier attached to the security context";
                   };
                   color = lib.mkOption {
@@ -96,10 +98,13 @@ in
                 };
               }
             );
-            default = [ ];
             description = "List of security contexts rules";
           };
         };
+      };
+      default = {
+        borderWidth = 4;
+        rules = [ ];
       };
       description = "Security context settings";
     };
@@ -121,6 +126,7 @@ in
         [
           papirus-icon-theme-grey
           adwaita-icon-theme
+          ghaf-wallpapers
           pamixer
           (import ../launchers-pkg.nix { inherit pkgs config; })
           # Nix's evaluation order installs ghaf-cosmic-config after cosmic tools.
@@ -344,7 +350,7 @@ in
     services.gvfs.enable = lib.mkForce false;
     services.avahi.enable = lib.mkForce false;
     security.rtkit.enable = lib.mkForce false;
-    services.geoclue2.enable = lib.mkForce false;
+    # services.geoclue2.enable = lib.mkForce false;
     networking.networkmanager.enable = lib.mkForce false;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     # services.upower.enable = lib.mkForce false;
