@@ -8,6 +8,16 @@
 }:
 
 let
+  # Converts a color from an HTML string like "#ff0000" to a vector of floats
+  convertColor =
+    color:
+    let
+      r = (lib.trivial.fromHexString (builtins.substring 1 2 color)) / 255.0;
+      g = (lib.trivial.fromHexString (builtins.substring 3 2 color)) / 255.0;
+      b = (lib.trivial.fromHexString (builtins.substring 5 2 color)) / 255.0;
+    in
+    "(${toString r}, ${toString g}, ${toString b})";
+  # Security context config for Cosmic Compositor
   securityContextConfig = pkgs.writeText "cosmic_security_context" ''
     (
       border_size: ${toString secctx.borderWidth},
@@ -18,7 +28,7 @@ let
             (
               sandbox_engine: "waypipe",
               app_id: "${rule.identifier}",
-              border_color: "${rule.color}",
+              border_color: ${convertColor rule.color},
             ),
           '') secctx.rules
         )}
