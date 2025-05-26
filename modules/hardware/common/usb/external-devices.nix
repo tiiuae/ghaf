@@ -28,6 +28,24 @@ _: {
         vendorId = "045e";
         productId = "0b12";
       }
+      # Crazyradio (normal operation)
+      {
+        name = "crazyradio0";
+        vendorId = "1915";
+        productId = "7777";
+      }
+      # Crazyradio bootloader
+      {
+        name = "crazyradio1";
+        vendorId = "1915";
+        productId = "0101";
+      }
+      # Crazyflie (over USB)
+      {
+        name = "crazyflie0";
+        vendorId = "0483";
+        productId = "5740";
+      }
     ];
   };
 }
