@@ -10,3 +10,4 @@ ghaf-host.qcow2
 linux-*/
 gcroot/
 .pre-commit-config.yaml
+.aider*
