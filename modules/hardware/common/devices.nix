@@ -1,6 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  pkgs,
+  config,
+  lib,
+  ...
+}:
 let
   inherit (lib)
     mkOption
@@ -45,10 +50,20 @@ in
     ghaf.hardware.devices = {
       netvmPCIPassthroughModule = {
         microvm.devices = mkForce (
-          builtins.map (d: {
-            bus = "pci";
-            inherit (d) path;
-          }) config.ghaf.hardware.definition.network.pciDevices
+          builtins.map (
+            d:
+            let
+              pciPath =
+                if (d.path == "") then
+                  "$(${pkgs.pciutils}/bin/lspci -Dnn | ${pkgs.gnugrep}/bin/grep ${d.vendorId}:${d.productId} | ${pkgs.coreutils}/bin/cut -c 1-12 | ${pkgs.coreutils}/bin/head -n 1)"
+                else
+                  d.path;
+            in
+            {
+              bus = "pci";
+              path = pciPath;
+            }
+          ) config.ghaf.hardware.definition.network.pciDevices
         );
         services.udev.extraRules = concatMapStringsSep "\n" (
           d:
