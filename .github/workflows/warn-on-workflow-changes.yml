@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Check if workflow is modified
         id: workflow-changed
         uses: tj-actions/changed-files@ed68ef82c095e0d48ec87eccea555d944a631a4c # v46.0.5
@@ -32,8 +33,9 @@ jobs:
             .github/workflows/authorize.yml
             .github/workflows/build.yml
       - name: Send warning
+        shell: bash
         run: |
-          if [ "${{ steps.workflow-changed.outputs.any_changed }}" == "true" ]; then
+          if [ "${ANY_WORKFLOWS_CHANGED}" == "true" ]; then
             echo "::error::"\
                  "This change edits a workflow file that triggers on 'pull_request_target'. "\
                  "Raising this error to notify that the workflow change will only take "\
@@ -44,3 +46,5 @@ jobs:
                  "will be misleading."
             exit 1
           fi
+        env:
+          ANY_WORKFLOWS_CHANGED: ${{ steps.workflow-changed.outputs.any_changed }}

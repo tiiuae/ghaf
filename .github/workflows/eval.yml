@@ -44,10 +44,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.merge.sha || github.ref }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Install nix
         uses: cachix/install-nix-action@526118121621777ccd86f79b04685a9319637641 # v31
       - name: Evaluate (jobid=${{ matrix.jobid }})
         run: |
-          echo "strategy.job-total: ${{ strategy.job-total }}"
+          echo "JOB_TOTAL: ${JOB_TOTAL}"
           echo "matrix.jobid: ${{ matrix.jobid }}"
-          nix develop --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m ${{ strategy.job-total }}
+          nix develop --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m "${JOB_TOTAL}"
+        env:
+          JOB_TOTAL: ${{ strategy.job-total }}
