@@ -63,6 +63,7 @@ let
                     "audio"
                     "video"
                     "users"
+                    "plugdev"
                   ];
                 };
 

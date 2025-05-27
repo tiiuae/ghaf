@@ -28,6 +28,12 @@ _: {
         vendorId = "045e";
         productId = "0b12";
       }
+      # Microsoft Corp. Xbox One wireless controller
+      {
+        name = "xbox2";
+        vendorId = "045e";
+        productId = "02ea";
+      }
       # Crazyradio (normal operation)
       {
         name = "crazyradio0";
