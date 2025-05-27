@@ -15,17 +15,6 @@ permissions:
   contents: read
 
 jobs:
-  debug:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Debug
-        run: |
-          echo "github.event_name: ${{ github.event_name }}"
-          echo "github.repository: ${{ github.repository }}"
-          echo "github.event.pull_request.head.repo.full_name: ${{ github.event.pull_request.head.repo.full_name }}"
-          echo "github.actor: ${{ github.actor }}"
-          echo "github.ref: ${{ github.ref }}"
-          echo "github.event.pull_request.head.sha: ${{ github.event.pull_request.head.sha }}"
   authorize:
     # Important: 'authorize' must run before checkout to ensure 'authorize.yml'
     # runs the base version, not the untrusted version from the PR.
@@ -83,10 +72,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
+          persist-credentials: false
       - name: Rebase
         if: ${{ github.base_ref != '' }}
         run: |
-          BASE="origin/${{ github.base_ref }}"
+          BASE="origin/${BASE_REF}"
           COMMITS="$(git rev-list "$BASE".. --count)"
           CONTEXT=5
           echo -e "\n[+] Git log before rebase (with $CONTEXT commits context):"
@@ -96,17 +86,21 @@ jobs:
           git rebase "$BASE"
           echo -e "\n[+] Git log after rebase (with $CONTEXT commits context):"
           git log --oneline -n$(( COMMITS + CONTEXT ))
+        env:
+          BASE_REF: ${{ github.base_ref }}
       - name: Install nix
         uses: cachix/install-nix-action@526118121621777ccd86f79b04685a9319637641 # v31
       - name: Prepare remote builds
         run: |
-          sudo sh -c "echo '${{ vars.BUILDER_SSH_KNOWN_HOST }}' >>/etc/ssh/ssh_known_hosts"
+          sudo sh -c "echo '${BUILDER_SSH_KNOWN_HOST}' >>/etc/ssh/ssh_known_hosts"
+        env:
+          BUILDER_SSH_KNOWN_HOST: ${{ vars.BUILDER_SSH_KNOWN_HOST }}
       - name: Build ${{ matrix.arch }}.${{ matrix.target }}
         run: |
           if [ "${{ matrix.arch }}" == "x86_64-linux" ]; then
-            BUILDER='${{ vars.BUILDER_X86 }}'
+            BUILDER="${BUILDER_X86}"
           elif [ "${{ matrix.arch }}" == "aarch64-linux" ]; then
-            BUILDER='${{ vars.BUILDER_AARCH }}'
+            BUILDER="${BUILDER_AARCH}"
           else
             echo "::error::Unknown architecture: '${{ matrix.arch }}'"
             exit 1
@@ -116,3 +110,6 @@ jobs:
             --remote "$BUILDER" \
             --option accept-flake-config true \
             --no-download --skip-cached --no-nom
+        env:
+          BUILDER_X86: ${{ vars.BUILDER_X86 }}
+          BUILDER_AARCH: ${{ vars.BUILDER_AARCH }}

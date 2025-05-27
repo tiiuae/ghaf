@@ -34,17 +34,21 @@ jobs:
         # More details: https://docs.github.com/en/rest/orgs/members
         run: |
           is_org_member='False'
-          actor_enc=$(printf '%s' '${{ github.actor }}' | jq -sRr '@uri')
+          actor_enc=$(printf '%s' "${GITHUB_ACTOR}" | jq -sRr '@uri')
+          org_enc=$(printf '%s' "${GITHUB_ORG}" | jq -sRr '@uri')
           response=$(curl -L -o /dev/null -w "%{http_code}" \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.read-org-members }}" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/orgs/${{ inputs.github-org }}/members/$actor_enc")
+            "https://api.github.com/orgs/${org_enc}/members/${actor_enc}")
           if [ "$response" == "204" ]; then
             is_org_member='True'
           fi
           echo "is_org_member=$is_org_member"
           echo "is_org_member=$is_org_member" >>"$GITHUB_OUTPUT"
+        env:
+          GITHUB_ORG: ${{ inputs.github-org }}
+          GITHUB_ACTOR: ${{ github.actor }}
   authorize:
     outputs:
       result: ${{ steps.set-output.outputs.result }}
