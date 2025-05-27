@@ -25,7 +25,6 @@ let
 in
 {
   imports = [
-    ./prime.nix
     ./vaapi.nix
   ];
 

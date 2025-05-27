@@ -10,9 +10,11 @@
       inputs.self.nixosModules.graphics
       inputs.self.nixosModules.nvidia-gpu
       inputs.self.nixosModules.intel-gpu
+      inputs.self.nixosModules.hybrid-gpu
     ];
     graphics.imports = [ ./graphics ];
     nvidia-gpu.imports = [ ./nvidia-gpu ];
     intel-gpu.imports = [ ./intel-gpu ];
+    hybrid-gpu.imports = [ ./hybrid-gpu ];
   };
 }
