@@ -57,7 +57,10 @@ let
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               graphics.enable = true;
             };
-            users.loginUser.enable = true;
+            users.loginUser = {
+              enable = true;
+              fidoAuth = true;
+            };
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
