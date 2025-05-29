@@ -256,7 +256,8 @@ let
           microvm = {
             optimize.enable = false;
             vcpu = 2;
-            mem = 12288;
+            # mem = 12288;
+            mem = 2047;
             hypervisor = "qemu";
             shares = [
               {
@@ -356,7 +357,7 @@ in
 
   config = lib.mkIf cfg.enable {
     microvm.vms."${vmName}" = {
-      autostart = true;
+      autostart = !config.ghaf.microvm-boot.enable;
       inherit (inputs) nixpkgs;
       config = guivmBaseConfiguration // {
         boot.kernelPackages =

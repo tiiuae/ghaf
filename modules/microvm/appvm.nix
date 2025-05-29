@@ -14,11 +14,11 @@ let
   inherit (lib)
     mkOption
     types
-    optional
     optionals
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
+  inherit (configHost.ghaf.networking) hosts;
 
   makeVm =
     { vm }:
@@ -222,7 +222,7 @@ let
       };
     in
     {
-      autostart = true;
+      autostart = !configHost.ghaf.microvm-boot.enable;
       inherit (inputs) nixpkgs;
       config = appvmConfiguration // {
         imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ appExtraModules;
@@ -347,7 +347,17 @@ in
               useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
-
+            bootPriority = mkOption {
+              description = ''
+                Boot priority of the AppVM.
+              '';
+              type = types.enum [
+                "low"
+                "medium"
+                "high"
+              ];
+              default = "medium";
+            };
           };
         }
       );
@@ -390,9 +400,11 @@ in
           enable = true;
           description = "swtpm service for ${name}";
           path = [ swtpmScript ];
-          wantedBy = [ "microvms.target" ];
+          wantedBy = [ "local-fs.target" ];
+          after = [ "local-fs.target" ];
           serviceConfig = {
             Type = "simple";
+            Slice = "system-appvms-${name}.slice";
             User = "microvm";
             Restart = "always";
             StateDirectory = "swtpm";
@@ -420,13 +432,6 @@ in
       systemd.services =
         let
           serviceDependencies = lib.mapAttrsToList (name: vm: {
-            "microvm@${name}-vm" = {
-              # Host service dependencies
-              after = optional config.ghaf.services.audio.enable "pulseaudio.service";
-              requires = optional config.ghaf.services.audio.enable "pulseaudio.service";
-              # Sleep appvms to give gui-vm time to start
-              serviceConfig.ExecStartPre = "/bin/sh -c 'sleep 8'";
-            };
             "${name}-vm-swtpm" = makeSwtpmService name vm;
           }) vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
