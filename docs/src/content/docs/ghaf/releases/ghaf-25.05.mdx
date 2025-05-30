@@ -1,0 +1,102 @@
+---
+title: Release ghaf-25.05
+sidebar:
+  order: 9981
+  badge:
+    text: Latest
+    variant: success
+---
+
+This is a monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX and Lenovo X1 Carbon Gen11 platforms. 
+
+This release complies with SLSA v1.0 level 3 requirements.
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-25.05
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson AGX Orin
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13
+- Dell Latitude 7230, 7330
+- Alienware M18
+- NXP i.MX 8M Plus
+
+
+## What's Changed
+* version: start the May release cycle by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1173
+* docs: update docs by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1175
+* docs: Add x86 GPU PT and hardware acceleration by @vunnyso in https://github.com/tiiuae/ghaf/pull/1174
+* terminfo: Install terminfo for better rendering by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1176
+* cosmic: Add an x1 target to trial cosmic desktop by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1178
+* iGPU: Add compute engine offload capability by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1179
+* refactor(desktop): remove sticky notes from cosmic, switch to oculante img viewer by @kajusnau in https://github.com/tiiuae/ghaf/pull/1171
+* cleanup: move packages to dt-gui by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1181
+* Docs: add ghaf-25.04 release notes by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1182
+* Fix GPU Accelleration by @mbssrc in https://github.com/tiiuae/ghaf/pull/1183
+* bugfix: cleanup display tmp files on logout by @kajusnau in https://github.com/tiiuae/ghaf/pull/1180
+* docs: Point to new archive by @ktusawrk in https://github.com/tiiuae/ghaf/pull/1177
+* build(deps): bump cachix/install-nix-action from 31.2.0 to 31.3.0 by @dependabot in https://github.com/tiiuae/ghaf/pull/1184
+* build(deps): bump github/codeql-action from 3.28.16 to 3.28.17 by @dependabot in https://github.com/tiiuae/ghaf/pull/1187
+* fix(desktop): adjust ghaf-launcher env vars by @kajusnau in https://github.com/tiiuae/ghaf/pull/1190
+* New demo tower hardware with RTX 5080 by @mbssrc in https://github.com/tiiuae/ghaf/pull/1186
+* bump ghaf-givc by @gngram in https://github.com/tiiuae/ghaf/pull/1185
+* Add security context indicator to COSMIC by @nesteroff in https://github.com/tiiuae/ghaf/pull/1193
+* bump:wireguard reactivating buttons and improvements by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1192
+* bump: jetpack-nixos by @TanelDettenborn in https://github.com/tiiuae/ghaf/pull/1191
+* build(deps): bump actions/dependency-review-action from 4.6.0 to 4.7.0 by @dependabot in https://github.com/tiiuae/ghaf/pull/1194
+* fix: add configurable password for mitmweb UI by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1197
+* build(deps): bump actions/dependency-review-action from 4.7.0 to 4.7.1 by @dependabot in https://github.com/tiiuae/ghaf/pull/1198
+* feat: Kernel version option for NVIDIA Orin NX/AGX targets by @TanelDettenborn in https://github.com/tiiuae/ghaf/pull/1195
+* refactor: cosmic, labwc docs, desktop improvements by @kajusnau in https://github.com/tiiuae/ghaf/pull/1200
+* hardware: Add the lenovo x1 gen 13 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1199
+* lenovo-x1-gen11-hardening: build image with dm-verity by @humaidq-tii in https://github.com/tiiuae/ghaf/pull/1074
+* build(deps): bump github/codeql-action from 3.28.17 to 3.28.18 by @dependabot in https://github.com/tiiuae/ghaf/pull/1204
+* bump: standard bump by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1158
+* Orin rework by @emrahbillur in https://github.com/tiiuae/ghaf/pull/1201
+* Remove the older caches by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1209
+* fix: Include the latest version of sticky-notes by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1206
+* Fix Sticky Notes segfault in Cosmic by @gngram in https://github.com/tiiuae/ghaf/pull/1210
+* vhotplug: Set precedence of ChromeVM over AudioVM by @vunnyso in https://github.com/tiiuae/ghaf/pull/1213
+* fix: repair the imx8 building by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1214
+* usb: Added a common stub for external usb devices by @vunnyso in https://github.com/tiiuae/ghaf/pull/1215
+* docs: Migrate to Astro Starlight by @humaidq-tii in https://github.com/tiiuae/ghaf/pull/1203
+* bump: bump to pick up some fixes by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1218
+* Update COSMIC security context indicator patch by @nesteroff in https://github.com/tiiuae/ghaf/pull/1205
+* bump(ctrl-panel): bump ctrl-panel by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1211
+
+
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-25.04...ghaf-25.05
+
+## Bug Fixes
+
+Fixed bugs that were present in the [ghaf-25.04](https://github.com/tiiuae/ghaf/releases/ghaf-25.04) release:
+
+- Sending bug report from Control Panel causes Control Panel to crash
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| The keyboard defaults to the English layout on boot                                                       | In Progress | Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout. |
+| Element app is not supported in this version of Ghaf                                                      | On hold     |                                                                            |
+| **Lenovo X1**                                                                                             |             |                                                                            |
+| Downloading large file (10G) crashes the browser                                                          | In progress | Issue is under investigation                                               |
+| GALA app is not supported in this version of Ghaf                                                         | On hold     |                                                                            |                                                        |
+| Control Panel functionality is limited: only Display Settings, Local and Timezone settings, CPU/memory information  are functional | In Progress | Additional functionality will be implemented in future releases.           |
+| Yubikey for unlocking does not work                                                                       | In Progress | A fix is currently in progress.                                            |
+| A laptop may wake from suspend without user interaction                                                   | In Progress | The issue is under investigation.                                          |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| Firefox has been disabled                                                                                 | In Progress | Firefox will be re-enabled once upstream fixes are available.              |
+| The Suspend power option is not functioning as expected                                                   | In Progress | Behavior is locking the device.                                            |
+
+## Installation Instructions
+
+Released images are available at [archive.vedenemo.dev/ghaf-25.05](https://archive.vedenemo-dev/ghaf-25.05).
+
+Download the required image and use the following instructions: [Build and Run](/ghaf/dev/ref/build_and_run).
