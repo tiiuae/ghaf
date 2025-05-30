@@ -4,8 +4,8 @@ title: labwc Desktop Environment
 
 [labwc](https://labwc.github.io/) is a configurable and lightweight wlroots-based Wayland-compatible desktop environment.
 
-Labwc is the default compositor in Ghaf set in [graphics.nix](https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix).
-It can also be explicitly enabled by specifying the configuration option `profiles.graphics.compositor = "labwc"`.
+As of May 2025, Labwc is no longer the default compositor in Ghaf.
+Labwc can still be explicitly enabled by specifying the configuration option `profiles.graphics.compositor = "labwc"` or adjusting the default compositor value in [graphics.nix](https://github.com/tiiuae/ghaf/blob/main/modules/profiles/graphics.nix).
 
 The basis of the labwc configuration is the set of following files: `rc.xml`, `menu.xml`, `autostart`, and `environment`. These files can be edited by substituting in the labwc overlay `overlays/custom-packages/labwc/default.nix`.
 
