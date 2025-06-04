@@ -147,16 +147,6 @@ let
         };
       }
     ]))
-    (laptop-configuration "lenovo-x1-gen11-cosmic" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          profiles.graphics.compositor = "cosmic";
-        };
-      }
-    ]))
 
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" (withCommonModules [
