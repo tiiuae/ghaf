@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
+    ./disk-encryption.nix
     ./sshkeys.nix
     ./apparmor
     ./audit

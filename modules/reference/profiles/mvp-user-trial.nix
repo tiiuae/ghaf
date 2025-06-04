@@ -98,6 +98,9 @@ in
         listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
       };
 
+      # Disk encryption
+      storage.encryption.enable = false;
+
       # Enable audit
       security.audit.enable = false;
 
