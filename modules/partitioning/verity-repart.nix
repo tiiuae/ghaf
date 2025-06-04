@@ -34,6 +34,16 @@ in
           };
         };
 
+        "01-swap" = {
+          repartConfig = {
+            Type = "swap";
+            Format = "swap";
+            Label = "swap";
+            SizeMinBytes = "10G";
+            SizeMaxBytes = "10G";
+          };
+        };
+
         # Verity tree for the Nix store.
         "10-root-verity-a" = {
           repartConfig = {

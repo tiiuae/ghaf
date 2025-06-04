@@ -102,6 +102,12 @@ in
     # System is now immutable
     system.switch.enable = false;
 
+    swapDevices = [
+      {
+        device = "/dev/disk/by-partlabel/swap";
+      }
+    ];
+
     fileSystems =
       let
         tmpfsConfig = {
