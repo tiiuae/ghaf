@@ -20,6 +20,10 @@
 }:
 let
   cfg = config.ghaf.partitioning.disko;
+  defaultPassword = pkgs.writeTextFile {
+    name = "disko-default-password";
+    text = "";
+  };
 in
 {
   options.ghaf.partitioning.disko = {
@@ -73,16 +77,36 @@ in
                   };
                   priority = 2;
                 };
-                swap = {
-                  size = "12G";
-                  type = "8200";
-                  content = {
-                    type = "swap";
-                    resumeDevice = true; # resume from hiberation from this device
-                    randomEncryption = true;
-                  };
-                  priority = 3;
-                };
+                swap =
+                  if config.ghaf.storage.encryption.enable then
+                    {
+                      size = "12G";
+                      content = {
+                        type = "luks";
+                        name = "swap";
+                        askPassword = false;
+                        initrdUnlock = false;
+                        settings = {
+                          keyFile = "${defaultPassword}";
+                        };
+                        content = {
+                          type = "swap";
+                          resumeDevice = true; # resume from hiberation from this device
+                        };
+                      };
+                      priority = 3;
+                    }
+                  else
+                    {
+                      size = "12G";
+                      type = "8200";
+                      content = {
+                        type = "swap";
+                        resumeDevice = true; # resume from hiberation from this device
+                        randomEncryption = true;
+                      };
+                      priority = 3;
+                    };
                 root = {
                   size = "40G";
                   content = {
@@ -96,18 +120,42 @@ in
                   };
                   priority = 4;
                 };
-                persist = {
-                  size = "100%";
-                  content = {
-                    type = "filesystem";
-                    format = "btrfs";
-                    mountpoint = "/persist";
-                    mountOptions = [
-                      "noatime"
-                      "nodiratime"
-                    ];
-                  };
-                };
+                persist =
+                  if config.ghaf.storage.encryption.enable then
+                    {
+                      size = "2G";
+                      content = {
+                        type = "luks";
+                        name = "persist";
+                        askPassword = false;
+                        initrdUnlock = false;
+                        settings = {
+                          keyFile = "${defaultPassword}";
+                        };
+                        content = {
+                          type = "filesystem";
+                          format = "btrfs";
+                          mountpoint = "/persist";
+                          mountOptions = [
+                            "noatime"
+                            "nodiratime"
+                          ];
+                        };
+                      };
+                    }
+                  else
+                    {
+                      size = "100%";
+                      content = {
+                        type = "filesystem";
+                        format = "btrfs";
+                        mountpoint = "/persist";
+                        mountOptions = [
+                          "noatime"
+                          "nodiratime"
+                        ];
+                      };
+                    };
               };
             };
           };
