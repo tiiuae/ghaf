@@ -99,13 +99,43 @@ in
           };
         };
 
+        "40-swap" = {
+          repartConfig =
+            {
+              Type = "swap";
+              Format = "swap";
+              Label = "swap";
+              UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
+            }
+            // (
+              if config.ghaf.storage.encryption.enable then
+                {
+                  Encrypt = "key-file";
+                  # Since the partition is pre-encrypted, it doesn't compress well
+                  # (compressed size ~= initial size) and takes up a large portion
+                  # of the image file.
+                  # Make the initial swap small and expand it later on the device
+                  SizeMinBytes = "64M";
+                  SizeMaxBytes = "64M";
+                  # Free space to expand on device
+                  PaddingMinBytes = "8G";
+                  PaddingMaxBytes = "8G";
+                }
+              else
+                {
+                  SizeMinBytes = "8G";
+                  SizeMaxBytes = "8G";
+                }
+            );
+        };
+
         # Persistence partition.
         "50-persist" = {
           repartConfig = {
             Type = "linux-generic";
             Label = "persist";
             Format = "btrfs";
-            SizeMinBytes = "3G";
+            SizeMinBytes = "500M";
             MakeDirectories = builtins.toString [
               "/storagevm"
             ];
