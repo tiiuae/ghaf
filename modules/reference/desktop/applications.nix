@@ -40,14 +40,6 @@ in
           icon = "utilities-tweak-tool";
           command = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
         }
-      ]
-      ++ lib.optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
-        {
-          name = "File Manager";
-          description = "Organize & Manage Files";
-          icon = "system-file-manager";
-          command = "${pkgs.pcmanfm}/bin/pcmanfm";
-        }
 
         # com.vixalien.sticky segfaults in COSMIC DE
         {
@@ -55,6 +47,14 @@ in
           description = "Sticky Notes on your Desktop";
           icon = "${pkgs.sticky-notes}/share/icons/hicolor/scalable/apps/com.vixalien.sticky.svg";
           command = "${pkgs.sticky-notes}/bin/com.vixalien.sticky";
+        }
+      ]
+      ++ lib.optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
+        {
+          name = "File Manager";
+          description = "Organize & Manage Files";
+          icon = "system-file-manager";
+          command = "${pkgs.pcmanfm}/bin/pcmanfm";
         }
       ]
       ++ lib.optionals config.ghaf.reference.services.alpaca-ollama [

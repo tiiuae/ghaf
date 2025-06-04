@@ -48,7 +48,7 @@ writeShellApplication {
     else
         # Start new download
         echo 1 > "$DOWNLOAD_FLAG"
-        NOTIFICATION_ID=$(notify-send -a "Falcon AI" -i "$FALCON_AI_ICON_PATH" "Downloading $LLM_FRIENDLY_NAME" "The app will open once the download is complete" --print-id)
+        NOTIFICATION_ID=$(notify-send -a "Falcon AI" -h "string:image-path:$FALCON_AI_ICON_PATH" -h byte:urgency:1 -t 5000 "Downloading $LLM_FRIENDLY_NAME" "The app will open once the download is complete" --print-id)
     fi
 
     # Temp file to capture full Ollama pull output
@@ -57,8 +57,10 @@ writeShellApplication {
     # Check for connectivity to Ollama's model registry
     if ! curl --connect-timeout 3 -I https://ollama.com 2>&1; then
       notify-send --replace-id="$NOTIFICATION_ID" \
+          -h byte:urgency:1 \
+          -t 5000 \
           -a "Falcon AI" \
-          -i "$FALCON_AI_ICON_PATH" \
+          -h "string:image-path:$FALCON_AI_ICON_PATH" \
           "No Internet Connection" "Cannot download $LLM_FRIENDLY_NAME\nCheck your connection and try again"
       exit 1
     fi
@@ -72,10 +74,10 @@ writeShellApplication {
             [[ "$percent" == "$last_percent" ]] && continue
             last_percent="$percent"
             NOTIFICATION_ID=$(notify-send --print-id --replace-id="$NOTIFICATION_ID" \
-                -u critical \
-                -h int:value:"$percent" \
+                -h byte:urgency:2 \
+                -t 120000 \
+                -h "string:image-path:$FALCON_AI_ICON_PATH" \
                 -a "Falcon AI" \
-                -i "$FALCON_AI_ICON_PATH" \
                 "Downloading $LLM_FRIENDLY_NAME  $percent%" \
                 "The app will open once the download is complete")
         fi
@@ -87,8 +89,10 @@ writeShellApplication {
     if [[ $status -eq 0 ]]; then
         echo "Download completed successfully"
         notify-send --replace-id="$NOTIFICATION_ID" \
+            -h byte:urgency:0 \
+            -t 3000 \
             -a "Falcon AI" \
-            -i "$FALCON_AI_ICON_PATH" \
+            -h "string:image-path:$FALCON_AI_ICON_PATH" \
             "Download complete" \
             "The application will now open"
         alpaca
@@ -97,8 +101,10 @@ writeShellApplication {
         echo "Download failed with status $status"
         error_msg=$(tail -n 1 "$TMP_LOG")
         notify-send --replace-id="$NOTIFICATION_ID" \
+            -h byte:urgency:2 \
+            -t 5000 \
             -a "Falcon AI" \
-            -i "$FALCON_AI_ICON_PATH" \
+            -h "string:image-path:$FALCON_AI_ICON_PATH" \
             "Failed to download $LLM_FRIENDLY_NAME" \
             "Error occurred:\n''${error_msg}"
     fi

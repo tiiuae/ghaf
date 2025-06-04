@@ -145,17 +145,18 @@ com.system76.CosmicPanel.Panel:
   plugins_center: |
     Some([
         "com.system76.CosmicAppletTime",
+        "com.system76.CosmicAppletNotifications",
     ])
   plugins_wings: |
     Some(([
-        "com.system76.CosmicAppletWorkspaces",
+        "com.system76.CosmicPanelAppButton",
+        "com.system76.CosmicPanelWorkspacesButton",
     ], [
         "com.system76.CosmicAppletInputSources",
         "com.system76.CosmicAppletStatusArea",
         "com.system76.CosmicAppletTiling",
         "com.system76.CosmicAppletAudio",
         "com.system76.CosmicAppletBattery",
-        "com.system76.CosmicAppletNotifications",
         "com.system76.CosmicAppletPower",
     ]))
   size: XS
@@ -3324,7 +3325,11 @@ com.system76.CosmicTheme.Mode:
 
 com.system76.CosmicTk:
   apply_theme_global: true
+  show_minimize: true
+  show_maximize: true
   icon_theme: "Papirus"
+  interface_density: Standard
+  header_size: Standard
   interface_font: |
     (
         family: "Inter",
