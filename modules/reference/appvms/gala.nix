@@ -9,6 +9,7 @@
   gala = {
     ramMb = 1536;
     cores = 2;
+    bootPriority = "low";
     borderColor = "#027d7b";
     applications = [
       {
