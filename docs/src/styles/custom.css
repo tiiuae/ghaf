@@ -32,3 +32,15 @@
   --sl-color-gray-7: #f4f7f5;
   --sl-color-black: #ffffff;
 }
+/* Center align images. */
+.center-img {
+  display: block;
+  float: none;
+  margin-left: auto;
+  margin-right: auto;
+}
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 80px;
+}

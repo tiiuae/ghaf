@@ -1,0 +1,117 @@
+---
+title: GIVC Architecture
+description: Ghaf/gRPC Inter-Vm Communication (GIVC) architecture overview
+---
+import { Tabs, TabItem } from '@astrojs/starlight/components';
+import { Image } from 'astro:assets';
+import givcNorm from '@assets/givc/givc_norm.drawio.png';
+import givcReg from '@assets/givc/givc_reg.drawio.png';
+import givcApp from '@assets/givc/givc_app.drawio.png';
+import givcDbus from '@assets/givc/givc_dbus.drawio.png';
+import givcSys from '@assets/givc/givc_sys.drawio.png';
+
+The GIVC framework is a modular set of configurable networked components running in the different VMs of a Ghaf-based platform.
+The modularity of the Rust and Go components allows to create a framework of services that organize cross-vm dependencies.
+
+<Tabs syncKey="architecture" defaultValue="Components">
+<TabItem label="Components">
+    <Image src={givcNorm} alt="Components" class="center-img"/>
+</TabItem>
+<TabItem label="Registration">
+    <Image src={givcReg} alt="Registration" class="center-img"/>
+</TabItem>
+<TabItem label="Applications">
+    <Image src={givcApp} alt="Application Management" class="center-img"/>
+</TabItem>
+<TabItem label="System">
+    <Image src={givcSys} alt="System Commands" class="center-img"/>
+</TabItem>
+<TabItem label="Dbus-Applications">
+    <Image src={givcDbus} alt="Dbus Applications" class="center-img"/>
+</TabItem>
+</Tabs>
+
+
+### Components
+
+#### Code structure
+The [Admin Service](#admin-service) and [Agent Modules](#agent-modules) components follow a simple structure in two layers:
+
+|   Layer         | Description                                   |
+| --------------- | --------------------------------------------- |
+| Transport Layer | The Transport layer is responsible for implementing gRPC interfaces and middleware configuration, including authentication and authorization. A generic gRPC implementation is provided for all non call-specific functions. It implements all functions required by the auto-generated gRPC interface for the services, and remote client connections required by a service or functionality. |
+| Control Layer   | The Control Layer (aka business logic) implements the functionality of the service. After arguments are unwrapped in the Transport Layer, arguments are (filtered/validated and) forwarded to the particular service implementation. |
+
+Note that much of the gRPC code is auto-generated from the protobuffer definitions, and thus does not require manual implementation. The auto-generated code is augmented with generic configuration for GIVC.
+
+#### Admin Service
+
+The admin service runs in the admin-vm, a specialized VM providing system management services.
+The service implementation provides
+
+* System-wide service registry to track applications, system services, and host VM services
+* Monitoring functionality to update registry with current status information
+* Application and service administration functionality to proxy requests to the respective VM or host
+* System reboot, suspend, and poweroff functionality
+
+#### Agent Modules
+
+The GIVC agent is the service that runs in the host and VMs. The agent implementation provides multiple configurable module and services, utilizing a common set of modules.
+
+The agent is currently used in three configurations:
+
+* Host module
+* Sysvm module
+* Appvm module
+
+All modules use the systemd manager module that connects to the systemd bus allows to control systemd units remotely, including services and targets. At the time of writing, only one of these modules can be enabled in a VM/host at a time. Note that depending on the module, each agent reports a different type to the admin service.
+
+##### Host Module
+
+The `host` module connects to the hosts system bus and manages host services and targets. Only one host module must be active in a system. The host module further implements the required services to generate givc certificates via the TLS module, which are then provided to the VMs via virtio read-only shares. All VM services (currently microvm-based) should be registered with the module, which whitelists and registers them with the admin service.
+
+##### Sysvm Module
+
+The `sysvm` module connects to a VMs system bus, and manages VM system services and targets. This module should be used for system VMs that provide services to the system, usually using direct hardware access via passthrough devices such as network adapters or GPU.
+
+##### Appvm Module
+
+The `appvm` module runs in a user session and connects to the session bus in an application VM. Its main responsibility is to register applications with the admin service, and provide management services and configurations to allow remote machines to start and stop applications with required arguments. Thus, all applications are run as services and are manageable via systemd interfaces, similar to system services.
+
+#### CLI Application
+
+The CLI application is a binary that provides a simple interface to connect to the admin service, which then proxies requests to the respective VMs accordingly. Alternatively, tools like `grpcurl` may be used to issue remote procedure calls.
+
+### Startup and Registration
+Virtual machines are started as part of the host systemd startup procedure. The [GIVC agents](#agent-modules) in [application VM](#appvm-module), [service VM](#sysvm-module) and the [host](#host-module) are started when the VMs boot, and connect to the [Admin Service](#admin-service).
+
+Each agent is statically configured with their respective functionality, and locally registers these services with their gRPC server. After agent start, these remote services and their RPCs are then available on the network.
+During startup, the agents wait for the [Admin Service](#admin-service) to be available and then register themselves as well as their services with the [Admin Service](#admin-service) via their gRPC client.
+
+Applications are registered on-demand as detailed in [Application Start](#application-start).
+
+### Application Management
+Applications either live in the GuiVM (as in a traditional desktop), or a virtual machine. If they run in the GuiVM, they are not registered and monitored by the [Admin Service](#admin-service). If they run in an [AppVM](#appvm-module) however, the application is administrated and monitored via GIVC.
+
+Note that because the applications are running in a different VM, they also run under a different user as the AppVMs users are statically defined. The user-session on the application VM is started automatically if the VM is up, and the agent is run and connects to that users session bus.
+
+> **HINT**
+> To inspect the application user in an application VM, you can use `machinectl shell <appuser>@.host`. SSH login with this user should generally be unavailable.
+
+#### Application Start
+Applications are typically started by a user, but application start can be automated or remotely triggered. If started by a user from the GuiVM running a users desktop session, the [GIVC CLI](#cli-application) initiates a connection to the [Admin Service](#admin-service), which then proxies the request to the respective VM, evaluates its status, and registers it.
+
+Applications _must_ be registered with the respective agent through the nixos configuration options. Only then, the command and permitted application argument types are whitelisted and available for remote call.
+
+#### Application Monitoring
+The [Admin Service](#admin-service) monitors and queries an applications status in regular intervals. If an application is closed (or goes away for other reasons), the application is automatically de-registered and its references removed. A list of running applications can be queried from the [Admin Service](#admin-service).
+
+#### Service and Unit Start
+System services can be started as usual in the VM, or remotely. Any service (or systemd unit for that matter) that is intended to be managed remotely _must_ be registered with the agent via the modules configuration interface. It then is automatically registered with the [Admin Service](#admin-service) during agent startup.
+
+### Dbus Applications
+In this context, "Dbus Applications" are applications that interact with a dbus in a different VM, typically to interact with system services that use hardware features that are not available in the [AppVM](#appvm-module) or GuiVM, but another [SysVM](#sysvm-module).
+
+The "Dbus Applications" are typically applications that configure functionality related to isolated devices, e.g. network, audio, bluetooth. They connect to the remote machine via a local socket, which is connected to the remote VM via the Socket Proxy. The remote VM hosting the dbus service uses an xdg-dbus-proxy that filters only traffic to allowed namspaces and provides a socket, which is connected to the applications socket via the socket proxy.
+
+> **Note** Contrary to all other services, the DBUS/socket proxy connects two agents - no traffic is proxied by the [Admin Service](#admin-service).

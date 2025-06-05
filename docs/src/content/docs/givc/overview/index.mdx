@@ -1,0 +1,43 @@
+---
+title: GIVC Framework
+description: Overview of the GIVC framework
+---
+import { Image } from 'astro:assets';
+import ghafLogo from '@assets/givc/givc.png';
+
+The Ghaf/gRPC Inter-Vm Communication (GIVC) framework is a collection of services to to administrate and control virtual machines, their services, and applications across the [Ghaf Framework](https://github.com/tiiuae/ghaf).
+
+<Image src={ghafLogo} alt="Ghaf/GRPC Inter-Vm Communication" class="center-img"/>
+
+Albeit being efficient, GIVC as a control channel does not do heavy lifting - graphics, file transfers, and other high-bandwidth or low-latency tasks are implemented with more efficient technologies and out of scope for this framework.
+
+## Technologies
+
+The framework is written in Rust and Go, modern languages providing excellent features for microservices, and exports its
+components as Nix modules and packages, described in the Nix language. As part of the [Ghaf Framework](https://ghaf.tii.ae/ghaf/overview/), this project inherits many technology dependencies from Ghaf itself.
+
+<div class="logo-container">
+  <Image src="https://avatars.githubusercontent.com/u/7802525?s=200&v=4" alt="grpc" width="100px" height="50px"/>
+  [gRPC](https://grpc.io/)
+  The high performance and versatile RPC framework offers performant binary serialization, scalability, bi-directional streaming, and works across multiple platforms and languages.
+</div>
+<div class="logo-container">
+  <Image src="https://avatars.githubusercontent.com/u/5430905?s=200&v=4" alt="rust" width="100px" height="100px"/>
+ [Rust](https://www.rust-lang.org/)
+  The systems programming language with a focus on safety and performance. Rust is used for the admin component, providing a solid foundation for the framework.
+</div>
+<div class="logo-container">
+  <Image src="https://avatars.githubusercontent.com/u/4314092?s=200&v=4" alt="go" width="100px" height="100px"/>
+  [Go](https://go.dev/)
+  The programming language designed for simplicity and efficiency. Go is used for the GIVC agent modules, providing a lightweight and efficient implementation.
+</div>
+<div class="logo-container">
+  <Image src="https://avatars.githubusercontent.com/u/487568?s=200&v=4" alt="nixos" width="100px" height="100px"/>
+  [NixOS](https://github.com/NixOS)
+  The purely-functional Linux distribution with over [120k packages](https://search.nixos.org/packages). GIVC exports NixOS modules and packages to allow integration with the Ghaf Framework.
+</div>
+<div class="logo-container">
+  <Image src="https://avatars.githubusercontent.com/u/1918868?s=200&v=4" alt="systemd" width="100px" height="100px"/>
+  [systemd](https://systemd.io/)
+  The system and service manager for Linux. GIVC uses systemd to manage services and applications in the VMs, providing a consistent and reliable way to control them.
+</div>
