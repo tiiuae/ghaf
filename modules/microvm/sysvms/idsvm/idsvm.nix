@@ -74,6 +74,10 @@ let
   cfg = config.ghaf.virtualization.microvm.idsvm;
 in
 {
+  imports = [
+    ./mitmproxy
+  ];
+
   options.ghaf.virtualization.microvm.idsvm = {
     enable = lib.mkEnableOption "Whether to enable IDS-VM on the system";
 
