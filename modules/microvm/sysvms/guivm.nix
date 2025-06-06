@@ -141,48 +141,8 @@ let
           };
 
           services = {
-            acpid = lib.mkIf config.ghaf.givc.enable {
-              enable = true;
-              lidEventCommands = ''
-                wl_running=1
-                case "$1" in
-                  "button/lid LID close")
-                    # Lock sessions
-                    ${pkgs.systemd}/bin/loginctl lock-sessions
-
-                    # Switch off display, if wayland is running
-                    if ${pkgs.procps}/bin/pgrep -fl "wayland" > /dev/null; then
-                      wl_running=1
-                      WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --off '*'
-                    else
-                      wl_running=0
-                    fi
-
-                    ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''
-                      # Initiate Suspension
-                      ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} suspend
-
-                      # Enable display
-                      if [ "$wl_running" -eq 1 ]; then
-                        WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
-                      fi
-                    ''}
-                    ;;
-                  "button/lid LID open")
-                    # Command to run when the lid is opened
-                    ${lib.optionalString (!config.ghaf.profiles.graphics.allowSuspend) ''
-                      # Enable display
-                      if [ "$wl_running" -eq 1 ]; then
-                        WAYLAND_DISPLAY=/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/wayland-0 ${pkgs.wlopm}/bin/wlopm --on '*'
-                      fi
-                    ''}
-                    ;;
-                esac
-              '';
-            };
-
             logind = {
-              lidSwitch = "ignore";
+              lidSwitch = "suspend";
               killUserProcesses = true;
               extraConfig = ''
                 IdleAction=lock

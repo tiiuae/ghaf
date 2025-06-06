@@ -42,12 +42,11 @@ let
   swayidleConfig = ''
     timeout ${
       toString (builtins.floor (300 * 0.8))
-    } 'notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity."; brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    } '${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
     timeout ${toString 300} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
-    timeout ${toString (builtins.floor (300 * 1.5))} "wlopm --off \*" resume "wlopm --on \*"
-    timeout ${toString (builtins.floor (300 * 3))} "ghaf-powercontrol suspend"
-    after-resume "wlopm --on \*; brightnessctl -q -r || brightnessctl -q set 100%"
-    unlock "brightnessctl -q -r || brightnessctl -q set 100%"
+    ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''timeout ${
+      toString (builtins.floor (300 * 3))
+    } "systemctl suspend"''}
   '';
 
   gtk-settings = ''
@@ -77,7 +76,8 @@ in
           borderWidth = lib.mkOption {
             type = lib.types.ints.positive;
             default = 6;
-            description = "Default border width";
+            example = 6;
+            description = "Default border width in pixels";
           };
 
           rules = lib.mkOption {
@@ -86,6 +86,7 @@ in
                 options = {
                   identifier = lib.mkOption {
                     type = lib.types.str;
+                    example = "chrome-vm";
                     description = "The identifier attached to the security context";
                   };
                   color = lib.mkOption {
@@ -96,10 +97,13 @@ in
                 };
               }
             );
-            default = [ ];
             description = "List of security contexts rules";
           };
         };
+      };
+      default = {
+        borderWidth = 4;
+        rules = [ ];
       };
       description = "Security context settings";
     };
@@ -121,6 +125,7 @@ in
         [
           papirus-icon-theme-grey
           adwaita-icon-theme
+          ghaf-wallpapers
           pamixer
           (import ../launchers-pkg.nix { inherit pkgs config; })
           # Nix's evaluation order installs ghaf-cosmic-config after cosmic tools.
@@ -144,6 +149,7 @@ in
         GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
         # Enable zwlr_data_control_manager_v1 protocol for COSMIC Utilities - Clipboard Manager to work
         COSMIC_DATA_CONTROL_ENABLED = 1;
+        RUST_LOG = if config.ghaf.profiles.debug.enable then "info" else "error";
       };
       etc."xdg/user-dirs.defaults".text = ''
         #DOWNLOAD=Downloads
@@ -338,13 +344,20 @@ in
       };
     };
 
+    systemd.sleep.extraConfig = lib.mkIf (!config.ghaf.profiles.graphics.allowSuspend) ''
+      AllowSuspend=no
+      AllowHibernation=no
+      AllowHybridSleep=no
+      AllowSuspendThenHibernate=no
+    '';
+
     # Following are changes made to default COSMIC configuration done by services.desktopManager.cosmic
     hardware.bluetooth.enable = lib.mkForce false;
     # services.acpid.enable = lib.mkForce false;
     services.gvfs.enable = lib.mkForce false;
     services.avahi.enable = lib.mkForce false;
     security.rtkit.enable = lib.mkForce false;
-    services.geoclue2.enable = lib.mkForce false;
+    # services.geoclue2.enable = lib.mkForce false;
     networking.networkmanager.enable = lib.mkForce false;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     # services.upower.enable = lib.mkForce false;

@@ -31,7 +31,7 @@ in
     enable = mkEnableOption "Graphics profile";
     compositor = mkOption {
       type = types.enum compositors;
-      default = "labwc";
+      default = "cosmic";
       description = ''
         Which Wayland compositor to use.
 

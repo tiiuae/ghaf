@@ -13,10 +13,12 @@
 }:
 let
   cfg = config.ghaf.graphics.power-manager;
+  useGivc = config.ghaf.givc.enable;
   inherit (lib)
     mkIf
     mkOption
     types
+    optionalString
     ;
 
   ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
@@ -33,17 +35,25 @@ let
       pkgs.systemd
       ghaf-powercontrol
     ];
+    # If running on host, suspension will proceed normally
+    # If running on VM, suspension will be caught and ghaf-powercontrol will handle it:
+    # 1. Turn off displays and let VM suspend and wake up on its own
+    #    (this relies on the VM not being capable of properly suspending on its own)
+    # 2. When VM wakes up, ghaf-powercontrol will inititate the proper suspension
+    # 3. When system wakes up, ghaf-powercontrol will perform the wake-up procedures
+    # This approach provides a smoother suspension experience on VMs
     text = ''
-      systemd-inhibit --what=sleep --who="ghaf-powercontrol" \
-        --why="Handling ghaf suspend" --mode=delay \
-          dbus-monitor --system "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'" | \
-            while read -r line; do
-              if echo "$line" | grep -q "boolean true"; then
-                echo "Found prepare for sleep signal"
-                echo "Suspending via ghaf-powercontrol"
-                ghaf-powercontrol suspend
-              fi
-            done
+      dbus-monitor --system "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForSleep'" | \
+        while read -r line; do
+          if echo "$line" | grep -q "boolean true"; then
+            echo "Found prepare for sleep signal"
+            ${if useGivc then "ghaf-powercontrol turn-off-displays" else "ghaf-powercontrol suspend"}
+          elif echo "$line" | grep -q "boolean false"; then
+            echo "Found wake up signal"
+            ${optionalString useGivc "ghaf-powercontrol suspend"}
+            ghaf-powercontrol wakeup
+          fi
+        done
     '';
   };
 
