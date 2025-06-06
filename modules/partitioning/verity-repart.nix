@@ -122,12 +122,9 @@ in
               "/storagevm"
             ];
             UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
-            # When Encrypt is "key-file" and the key file isn't specified, the 
+            # When Encrypt is "key-file" and the key file isn't specified, the
             # disk will be LUKS formatted with an empty passphrase
-            Encrypt = 
-              if config.ghaf.storage.encryption.enable
-              then "key-file"
-              else "none";
+            Encrypt = if config.ghaf.storage.encryption.enable then "key-file" else "none";
 
             # Factory reset option will format this partition, which stores all
             # the system & user state.
