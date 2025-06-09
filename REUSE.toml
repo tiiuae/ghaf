@@ -51,7 +51,8 @@ SPDX-FileCopyrightText = [
 ]
 path = [
   "overlays/custom-packages/qemu/*.patch",
-  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-qemu-v8.1.3_bpmp-virt.patch"
+  "modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-qemu-v8.1.3_bpmp-virt.patch",
+  "modules/microvm/sysvms/gpuvm_res/qemu/patches/*.patch",
 ]
 
 [[annotations]]
