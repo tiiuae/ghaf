@@ -550,9 +550,19 @@ in
       }
     ];
 
-    microvm.vms."${vmName}" = {
+    microvm.vms."${vmName}" = let
+
+      qemuOverlay = import ./gpuvm_res/qemu;
+      pkgs = import inputs.nixpkgs { system = "aarch64-linux"; overlays = [
+			  qemuOverlay 
+				inputs.self.overlays.default
+				inputs.self.overlays.cross-compilation
+				inputs.self.overlays.own-pkgs-overlay
+				inputs.jetpack-nixos.overlays.default
+      ];};
+    in {
       autostart = true;
-      inherit (inputs) nixpkgs;
+      inherit pkgs;
       config = gpuvmBaseConfiguration // {
         hardware.nvidia = {
           modesetting.enable = true;
