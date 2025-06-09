@@ -6,6 +6,8 @@
   systemd,
   wlopm,
   libnotify,
+  toybox,
+  jq,
   wayland-logout,
   givc-cli ? null,
   ghafConfig ? { },
@@ -24,21 +26,34 @@ writeShellApplication {
     wlopm
     wayland-logout
     libnotify
+    toybox
+    jq
   ] ++ (lib.optional useGivc givc-cli);
 
   text = ''
     help_msg() {
-        cat << EOF
-    Usage: $(basename "$0") [OPTION]
+      cat << EOF
+    Usage: $(basename "$0") <COMMAND> [OPTIONS]
 
-    Control Ghaf power states and user sessions.
+    Control Ghaf power states, display power, and user sessions.
 
-    Options:
-      reboot        Reboot the system using 'givc-cli' if enabled, otherwise 'systemctl'.
-      poweroff      Power off the system using 'givc-cli' if enabled, otherwise 'systemctl'.
-      suspend       Lock session, turn off display, suspend, and restore display on wake.
-      logout        Log out using 'wayland-logout' and force-kill user session processes.
-      help, --help  Show this help message and exit.
+    Commands:
+      reboot                  Reboot the system using 'givc-cli' if enabled, otherwise 'systemctl'.
+      poweroff                Power off the system using 'givc-cli' if enabled, otherwise 'systemctl'.
+      suspend                 Suspend the system after locking the session and turning off displays.
+      wakeup                  Trigger wakeup procedures, such as restoring displays or USB controllers (used after suspend).
+      logout                  Log out the current user using 'wayland-logout' and terminate user processes.
+      turn-off-displays [DISPLAY]
+                              Turn off a specific display (e.g., eDP-1), or all displays if none is provided.
+      turn-on-displays [DISPLAY]
+                              Turn on a specific display or all displays if none is provided.
+      help, --help            Show this help message and exit.
+
+    Examples:
+      $(basename "$0") suspend
+      $(basename "$0") turn-off-displays eDP-1
+      $(basename "$0") turn-on-displays             # Turns on all displays
+
     EOF
     }
 
@@ -48,38 +63,89 @@ writeShellApplication {
     fi
 
     try_toggle_displays() {
-      local cmd
-      local uid=${toString ghafConfig.users.loginUser.uid}
+      local action=$1
+      local display_name=''${2:-'*'}
+      local uid
 
-      # Determine the wlopm command
-      if [ "$1" = true ]; then
-        cmd="wlopm --on '*'"
+      # Determine the UID of the user session to operate on
+      uid=$(loginctl list-sessions --json=short | jq -e '.[] | select(.class == "greeter") | .uid')
+      if [ -n "$uid" ]; then
+        echo "Using greeter session UID: $uid"
       else
-        cmd="wlopm --off '*'"
+        uid=${toString ghafConfig.users.loginUser.uid}
+        echo "Using login user session UID: $uid"
       fi
 
-      # Try wlopm without setting WAYLAND_DISPLAY first
-      if eval "$cmd"; then
-        echo "Displays turned on successfully"
-        return 0
+      if [ "$action" != "on" ] && [ "$action" != "off" ]; then
+        echo "Error: First argument must be 'on' or 'off'"
+        return 1
       fi
 
-      # Try each wayland-N socket
-      echo "Trying to find a valid wayland socket..."
+      local cmd="wlopm --$action '$display_name'"
+
+      echo "Attempting to turn displays '$display_name' $action..."
+
+      # Try without setting WAYLAND_DISPLAY
+      if [ -n "$WAYLAND_DISPLAY" ]; then
+        # Try without setting WAYLAND_DISPLAY
+        if eval "$cmd"; then
+          echo "Displays turned $action successfully on wayland socket $WAYLAND_DISPLAY"
+          return 0
+        fi
+      fi
+
+      echo "Searching for a valid Wayland socket..."
+
       for i in {0..9}; do
         export WAYLAND_DISPLAY="/run/user/$uid/wayland-$i"
-        echo "Trying WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
-        if [ -e "$WAYLAND_DISPLAY" ]; then
-          if eval "$cmd"; then
-            echo "Displays toggled successfully with WAYLAND_DISPLAY=$WAYLAND_DISPLAY"
-            return 0
-          fi
+        echo "Trying wayland socket $WAYLAND_DISPLAY to turn displays $action..."
+        if [ -e "$WAYLAND_DISPLAY" ] && eval "$cmd"; then
+          echo "Displays turned $action successfully on wayland socket $WAYLAND_DISPLAY"
+          return 0
         fi
       done
 
-      echo "Could not find a valid wayland socket"
-      echo "Displays could not be toggled"
+      echo "Failed to turn displays $action: no valid wayland socket found"
       return 1
+    }
+
+    reset_xhci_controllers() {
+      echo "Resetting USB controllers..."
+      # Find all USB controller PCI addresses
+      local controllers
+      controllers=$(lspci -Dnmm | grep -i '0c03' | cut -f1 -d' ')
+
+      if [ -z "$controllers" ]; then
+        echo "No USB controllers found"
+        return 0
+      fi
+
+      echo "Found USB controllers: $controllers" | xargs
+
+      for dev in $controllers; do
+        if [ -L "/sys/bus/pci/devices/$dev/driver" ]; then
+          echo "Unbinding $dev"
+          if ! echo -n "$dev" > /sys/bus/pci/drivers/xhci_hcd/unbind; then
+            echo "ERROR: Failed to unbind $dev"
+            return 1
+          fi
+        else
+          echo "Device already unbinded"
+        fi
+        echo "Rebinding $dev"
+        if ! echo -n "$dev" > /sys/bus/pci/drivers/xhci_hcd/bind; then
+          echo "ERROR: Failed to bind $dev"
+          return 1
+        fi
+      done
+      echo "USB controllers reset successfully"
+      sleep 1
+    }
+
+    wakeup() {
+      echo "Waking up system..."
+      ${lib.optionalString useGivc "reset_xhci_controllers"} # Only needed if waking up a VM
+      try_toggle_displays on
     }
 
     case "$1" in
@@ -90,20 +156,15 @@ writeShellApplication {
       ${
         if ghafConfig.profiles.graphics.allowSuspend then
           ''
-            # Lock sessions
-            echo "Locking session..."
-            loginctl lock-session
-
             echo "Turning off displays..."
-            try_toggle_displays false || true
+            try_toggle_displays off
 
-            # Send suspend command to host, ensure screen is on in case of failure
-            ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend \
-              || try_toggle_displays true || true
+            echo "Locking session..."
+            loginctl lock-sessions
 
-            # Switch on display on wakeup
-            echo "Wake up detected, turning on displays..."
-            try_toggle_displays true || true
+            # givc-cli seems to always return a non-zero exit code,
+            # so we must have a separate fail-safe to turn on displays
+            ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend || true
           ''
         else
           ''
@@ -118,14 +179,23 @@ writeShellApplication {
         wayland-logout
         loginctl kill-user "$USER" -s SIGTERM # Allow services to clean up
         ;;
+      wakeup)
+        # Actions to perform on wakeup
+        wakeup
+        ;;
+      turn-off-displays)
+        try_toggle_displays off "$2"
+        ;;
+      turn-on-displays)
+        try_toggle_displays on "$2"
+        ;;
       help|--help)
-          help_msg
-          exit 0
-          ;;
+        help_msg
+        ;;
       *)
-          help_msg
-          exit 1
-          ;;
+        help_msg
+        exit 1
+        ;;
     esac
   '';
 

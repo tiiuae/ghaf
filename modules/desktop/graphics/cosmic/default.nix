@@ -42,12 +42,11 @@ let
   swayidleConfig = ''
     timeout ${
       toString (builtins.floor (300 * 0.8))
-    } 'notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity."; brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    } '${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
     timeout ${toString 300} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
-    timeout ${toString (builtins.floor (300 * 1.5))} "wlopm --off \*" resume "wlopm --on \*"
-    timeout ${toString (builtins.floor (300 * 3))} "ghaf-powercontrol suspend"
-    after-resume "wlopm --on \*; brightnessctl -q -r || brightnessctl -q set 100%"
-    unlock "brightnessctl -q -r || brightnessctl -q set 100%"
+    ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''timeout ${
+      toString (builtins.floor (300 * 3))
+    } "ghaf-powercontrol suspend; ghaf-powercontrol wakeup"''}
   '';
 
   gtk-settings = ''
@@ -304,7 +303,6 @@ in
         path = with pkgs; [
           brightnessctl
           systemd
-          wlopm
           ghaf-powercontrol
           libnotify
         ];
@@ -344,6 +342,18 @@ in
         ];
       };
     };
+
+    # Suspend on VMs is currently disabled unconditionally due to known issues
+    # Ideally, these should be controlled by the allowSuspend option
+    # VM suspension known issues:
+    # - Suspending a VM leads to USB controllers crashing and having to be re-initialized
+    # - cosmic-comp may crash on resume
+    systemd.sleep.extraConfig = lib.mkIf config.ghaf.givc.enable ''
+      AllowSuspend=no
+      AllowHibernation=no
+      AllowHybridSleep=no
+      AllowSuspendThenHibernate=no
+    '';
 
     # Following are changes made to default COSMIC configuration done by services.desktopManager.cosmic
     hardware.bluetooth.enable = lib.mkForce false;
