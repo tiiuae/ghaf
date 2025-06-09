@@ -550,185 +550,190 @@ in
       }
     ];
 
-    microvm.vms."${vmName}" = let
+    microvm.vms."${vmName}" =
+      let
 
-      qemuOverlay = import ./gpuvm_res/qemu;
-      pkgs = import inputs.nixpkgs { system = "aarch64-linux"; overlays = [
-			  qemuOverlay 
-				inputs.self.overlays.default
-				inputs.self.overlays.cross-compilation
-				inputs.self.overlays.own-pkgs-overlay
-				inputs.jetpack-nixos.overlays.default
-      ];};
-    in {
-      autostart = true;
-      inherit pkgs;
-      config = gpuvmBaseConfiguration // {
-        hardware.nvidia = {
-          modesetting.enable = true;
-          open = false; # Important for Tegra
+        qemuOverlay = import ./gpuvm_res/qemu;
+        pkgs = import inputs.nixpkgs {
+          system = "aarch64-linux";
+          overlays = [
+            qemuOverlay
+            inputs.self.overlays.default
+            inputs.self.overlays.cross-compilation
+            inputs.self.overlays.own-pkgs-overlay
+            inputs.jetpack-nixos.overlays.default
+          ];
         };
+      in
+      {
+        autostart = true;
+        inherit pkgs;
+        config = gpuvmBaseConfiguration // {
+          hardware.nvidia = {
+            modesetting.enable = true;
+            open = false; # Important for Tegra
+          };
 
-        # Create admin home folder; temporary solution
-        users.users.ghaf.createHome = lib.mkForce true;
-        users.users.ghaf.home = lib.mkForce "/home/ghaf";
+          # Create admin home folder; temporary solution
+          users.users.ghaf.createHome = lib.mkForce true;
+          users.users.ghaf.home = lib.mkForce "/home/ghaf";
 
-        hardware.firmwareCompression = lib.mkForce "none";
-        hardware.firmware = with pkgs.nvidia-jetpack; [
-          l4t-firmware
-          l4t-xusb-firmware # usb firmware also present in linux-firmware package, but that package is huge and has much more than needed
-          cudaPackages.vpi2-firmware # Optional, but needed for pva_auth_allowlist firmware file used by VPI2
-        ];
-
-        #####################################################################
-        # Nvidia graphics for wayland are commeted becuase it is not working
-        # and when enable the GPU applications do not work
-        #####################################################################
-
-        # # Used by libEGL_nvidia.so.0
-        # environment.etc."egl/egl_external_platform.d".source =
-        #   "${pkgs.addDriverRunpath.driverLink}/share/egl/egl_external_platform.d/";
-
-        # # If we aren't using modesetting, we won't have a DRM device with the
-        # # "master-of-seat" tag, so "loginctl show-seat seat0" reports
-        # # "CanGraphical=false" and consequently lightdm doesn't start. We override
-        # # that here.
-        # services.xserver.displayManager.lightdm.extraConfig =
-        #   lib.optionalString (!config.hardware.nvidia.modesetting.enable)
-        #     ''
-        #       logind-check-graphical = false
-        #     '';
-
-        # # Force the driver, since otherwise the fbdev or modesetting X11 drivers
-        # # may be used, which don't work and can interfere with the correct
-        # # selection of GLX drivers.
-        # services.xserver.drivers = lib.mkForce (
-        #   lib.singleton {
-        #     name = "nvidia";
-        #     modules = [ pkgs.nvidia-jetpack.l4t-3d-core ];
-        #     display = true;
-        #     screenSection = ''
-        #       Option "AllowEmptyInitialConfiguration" "true"
-        #     '';
-        #   }
-        # );
-
-        # hardware.graphics.package = pkgs.nvidia-jetpack.l4t-3d-core;
-
-        # hardware.graphics.extraPackages =
-        #   with pkgs.nvidia-jetpack;
-        #   # l4t-core provides - among others - libnvrm_gpu.so and libnvrm_mem.so.
-        #   # The l4t-core/lib directory is directly set in the DT_RUNPATH of
-        #   # l4t-cuda's libcuda.so, thus the standard driver doesn't need them to be
-        #   # added in ${driverLink}.
-        #   #
-        #   # However, this isn't the case for cuda_compat's driver currently, which
-        #   # is why we're including this derivation in extraPackages.
-        #   #
-        #   # To avoid exposing a bunch of other unrelated libraries from l4t-core,
-        #   # we're wrapping l4t-core in a derivation that only exposes the two
-        #   # required libraries.
-        #   #
-        #   # Those libraries should ideally be directly accessible from the
-        #   # DT_RUNPATH of cuda_compat's libcuda.so in the same way, but this
-        #   # requires more integration between upstream Nixpkgs and jetpack-nixos.
-        #   # When that happens, please remove l4tCoreWrapper below.
-        #   let
-        #     l4tCoreWrapper = pkgs.stdenv.mkDerivation {
-        #       name = "l4t-core-wrapper";
-        #       phases = [ "installPhase" ];
-        #       installPhase = ''
-        #         runHook preInstall
-
-        #         mkdir -p $out/lib
-        #         ln -s ${l4t-core}/lib/libnvrm_gpu.so $out/lib/libnvrm_gpu.so
-        #         ln -s ${l4t-core}/lib/libnvrm_mem.so $out/lib/libnvrm_mem.so
-
-        #         runHook postInstall
-        #       '';
-        #     };
-        #   in
-        #   [
-        #     l4tCoreWrapper
-        #     l4t-cuda
-        #     l4t-nvsci # cuda may use nvsci
-        #     l4t-gbm
-        #     l4t-wayland
-        #   ];
-
-        imports = gpuvmBaseConfiguration.imports ++ cfg.extraModules;
-        boot = {
-          inherit (config.boot) kernelPackages;
-          extraModulePackages = [ nvidia-modules ];
+          hardware.firmwareCompression = lib.mkForce "none";
+          hardware.firmware = with pkgs.nvidia-jetpack; [
+            l4t-firmware
+            l4t-xusb-firmware # usb firmware also present in linux-firmware package, but that package is huge and has much more than needed
+            cudaPackages.vpi2-firmware # Optional, but needed for pva_auth_allowlist firmware file used by VPI2
+          ];
 
           #####################################################################
-          # Nvidia modules for wayland are commeted becuase it is not working
+          # Nvidia graphics for wayland are commeted becuase it is not working
           # and when enable the GPU applications do not work
           #####################################################################
 
-          # kernelModules = [
-          #   "tegra_drm"
-          #   "nvidia"
-          #   "nvidia-modeset"
-          #   "nvidia-drm"
-          # ];
+          # # Used by libEGL_nvidia.so.0
+          # environment.etc."egl/egl_external_platform.d".source =
+          #   "${pkgs.addDriverRunpath.driverLink}/share/egl/egl_external_platform.d/";
 
-          # extraModprobeConfig = ''
-          #   nvidia-modeset
-          #   nvidia-drm
-          #   options nvidia-drm modeset=1
-          # '';
+          # # If we aren't using modesetting, we won't have a DRM device with the
+          # # "master-of-seat" tag, so "loginctl show-seat seat0" reports
+          # # "CanGraphical=false" and consequently lightdm doesn't start. We override
+          # # that here.
+          # services.xserver.displayManager.lightdm.extraConfig =
+          #   lib.optionalString (!config.hardware.nvidia.modesetting.enable)
+          #     ''
+          #       logind-check-graphical = false
+          #     '';
 
-          kernelPatches = [
-            {
-              name = "Virtio FS to support microvm";
-              patch = null;
-              extraStructuredConfig = with lib.kernel; {
-                VIRTIO_FS = module;
-              };
-            }
-            {
-              name = "Bpmp virtualization guest kernel configuration";
-              patch = null;
-              extraStructuredConfig = with lib.kernel; {
-                TEGRA_BPMP_GUEST_PROXY = yes;
-              };
-            }
-            {
-              name = "Fixed chipid hardcoded for tegra-apbmisc";
-              patch = ./gpuvm_res/0001-tegra-fixed-chip-id.patch;
-            }
-          ];
+          # # Force the driver, since otherwise the fbdev or modesetting X11 drivers
+          # # may be used, which don't work and can interfere with the correct
+          # # selection of GLX drivers.
+          # services.xserver.drivers = lib.mkForce (
+          #   lib.singleton {
+          #     name = "nvidia";
+          #     modules = [ pkgs.nvidia-jetpack.l4t-3d-core ];
+          #     display = true;
+          #     screenSection = ''
+          #       Option "AllowEmptyInitialConfiguration" "true"
+          #     '';
+          #   }
+          # );
 
-          # Modules to support microvm storage system
-          initrd = {
-            # Override the available kernel modules
-            availableKernelModules = lib.mkForce [
-              "virtio_mmio"
-              "virtio_pci"
-              "virtio_blk"
-              "9pnet_virtio"
-              "9p"
-              "virtiofs"
-              "overlay"
-              "dm_mod"
-              "ext4"
+          # hardware.graphics.package = pkgs.nvidia-jetpack.l4t-3d-core;
+
+          # hardware.graphics.extraPackages =
+          #   with pkgs.nvidia-jetpack;
+          #   # l4t-core provides - among others - libnvrm_gpu.so and libnvrm_mem.so.
+          #   # The l4t-core/lib directory is directly set in the DT_RUNPATH of
+          #   # l4t-cuda's libcuda.so, thus the standard driver doesn't need them to be
+          #   # added in ${driverLink}.
+          #   #
+          #   # However, this isn't the case for cuda_compat's driver currently, which
+          #   # is why we're including this derivation in extraPackages.
+          #   #
+          #   # To avoid exposing a bunch of other unrelated libraries from l4t-core,
+          #   # we're wrapping l4t-core in a derivation that only exposes the two
+          #   # required libraries.
+          #   #
+          #   # Those libraries should ideally be directly accessible from the
+          #   # DT_RUNPATH of cuda_compat's libcuda.so in the same way, but this
+          #   # requires more integration between upstream Nixpkgs and jetpack-nixos.
+          #   # When that happens, please remove l4tCoreWrapper below.
+          #   let
+          #     l4tCoreWrapper = pkgs.stdenv.mkDerivation {
+          #       name = "l4t-core-wrapper";
+          #       phases = [ "installPhase" ];
+          #       installPhase = ''
+          #         runHook preInstall
+
+          #         mkdir -p $out/lib
+          #         ln -s ${l4t-core}/lib/libnvrm_gpu.so $out/lib/libnvrm_gpu.so
+          #         ln -s ${l4t-core}/lib/libnvrm_mem.so $out/lib/libnvrm_mem.so
+
+          #         runHook postInstall
+          #       '';
+          #     };
+          #   in
+          #   [
+          #     l4tCoreWrapper
+          #     l4t-cuda
+          #     l4t-nvsci # cuda may use nvsci
+          #     l4t-gbm
+          #     l4t-wayland
+          #   ];
+
+          imports = gpuvmBaseConfiguration.imports ++ cfg.extraModules;
+          boot = {
+            inherit (config.boot) kernelPackages;
+            extraModulePackages = [ nvidia-modules ];
+
+            #####################################################################
+            # Nvidia modules for wayland are commeted becuase it is not working
+            # and when enable the GPU applications do not work
+            #####################################################################
+
+            # kernelModules = [
+            #   "tegra_drm"
+            #   "nvidia"
+            #   "nvidia-modeset"
+            #   "nvidia-drm"
+            # ];
+
+            # extraModprobeConfig = ''
+            #   nvidia-modeset
+            #   nvidia-drm
+            #   options nvidia-drm modeset=1
+            # '';
+
+            kernelPatches = [
+              {
+                name = "Virtio FS to support microvm";
+                patch = null;
+                extraStructuredConfig = with lib.kernel; {
+                  VIRTIO_FS = module;
+                };
+              }
+              {
+                name = "Bpmp virtualization guest kernel configuration";
+                patch = null;
+                extraStructuredConfig = with lib.kernel; {
+                  TEGRA_BPMP_GUEST_PROXY = yes;
+                };
+              }
+              {
+                name = "Fixed chipid hardcoded for tegra-apbmisc";
+                patch = ./gpuvm_res/0001-tegra-fixed-chip-id.patch;
+              }
             ];
-            # Override the required kernel modules
-            kernelModules = lib.mkForce [
-              "virtio_mmio"
-              "virtio_pci"
-              "virtio_blk"
-              "9pnet_virtio"
-              "9p"
-              "virtiofs"
-              "overlay"
-              "dm_mod"
-              "ext4"
-            ];
+
+            # Modules to support microvm storage system
+            initrd = {
+              # Override the available kernel modules
+              availableKernelModules = lib.mkForce [
+                "virtio_mmio"
+                "virtio_pci"
+                "virtio_blk"
+                "9pnet_virtio"
+                "9p"
+                "virtiofs"
+                "overlay"
+                "dm_mod"
+                "ext4"
+              ];
+              # Override the required kernel modules
+              kernelModules = lib.mkForce [
+                "virtio_mmio"
+                "virtio_pci"
+                "virtio_blk"
+                "9pnet_virtio"
+                "9p"
+                "virtiofs"
+                "overlay"
+                "dm_mod"
+                "ext4"
+              ];
+            };
           };
         };
       };
-    };
   };
 }
