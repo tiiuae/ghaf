@@ -13,7 +13,7 @@ let
 in
 {
   options.ghaf.storage.encryption = {
-    enable = mkEnableOption "Enable encryption of the data partition";
+    enable = mkEnableOption "Encryption of the data partition";
   };
 
   config =

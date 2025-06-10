@@ -9,7 +9,7 @@ in
   imports = [ ./mvp-user-trial.nix ];
 
   options.ghaf.reference.profiles.mvp-user-trial-hardening = {
-    enable = lib.mkEnableOption "Enable the mvp configuration for security features";
+    enable = lib.mkEnableOption "the mvp configuration for security features";
   };
 
   config = lib.mkIf cfg.enable {
