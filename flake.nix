@@ -158,7 +158,7 @@
     };
 
     ci-test-automation = {
-      url = "github:tiiuae/ci-test-automation";
+      url = "github:tiiuae/ci-test-automation/e532cbf54685149d6a71e90ddd9b842b3db575e6";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
