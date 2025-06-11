@@ -62,7 +62,7 @@ in
           name = "Falcon AI";
           description = "Your local large language model, developed by TII";
           icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
-          command = "${pkgs.falcon-launcher}/bin/falcon-launcher";
+          command = "${falcon-launcher}/bin/falcon-launcher";
         }
       ]
       ++ lib.optionals config.ghaf.reference.programs.windows-launcher.enable (

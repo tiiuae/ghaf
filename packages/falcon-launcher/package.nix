@@ -113,7 +113,7 @@ writeShellApplication {
   meta = {
     description = "Script to setup and/or launch the Falcon LLM chat";
     platforms = [
-      "aarch64-linux"
+      #"aarch64-linux"
       "x86_64-linux"
     ];
   };
