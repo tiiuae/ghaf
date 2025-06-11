@@ -175,9 +175,7 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 ## 3. User Separation
 
-<Aside type="tip">
-  Not applicable for the service runs as root.
-</Aside>
+<Aside type="tip">Not applicable for the service runs as root.</Aside>
 
 ### 3.1. PrivateUsers
 
@@ -522,7 +520,8 @@ This option can be specified multiple times to merge capability sets:
 - _List of system calls_: Specifies the allowed system calls for processes within the service. If the list begins with "~", the effect is inverted, meaning only the listed system calls will result in termination.
 
 <Aside type="tip">
-  Predefined sets of system calls are available, starting with "@" followed by the name of the set.
+  Predefined sets of system calls are available, starting with "@" followed by
+  the name of the set.
 </Aside>
 
 | **Filter Set**      | **Description**                                                                                                                                                      |

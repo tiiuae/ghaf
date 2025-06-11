@@ -98,7 +98,7 @@
       # TODO: after https://github.com/astro/microvm.nix/pull/339 is merged
       # go back to
       # url = "github:astro/microvm.nix";
-      url = "github:jpruiz84/microvm.nix/fix_mkfs_arm64";
+      url = "github:tiiuae/microvm.nix/fix_mkfs_arm64";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
