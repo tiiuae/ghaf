@@ -54,8 +54,7 @@ in
   };
 
   config = mkIf cfg.enable {
-    # TODO: This was disabled related to jetson_gpu_vm, investigate!
-    # hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
+    hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
     ghaf.hardware.aarch64.systemd-boot-dtb.enable = true;
