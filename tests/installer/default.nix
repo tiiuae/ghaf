@@ -29,7 +29,7 @@ let
   };
 
   # FIXME: Only one attribute supported. What about ISO?
-  imagePath = testingConfig.config.system.build.diskoImages + "/disk1.raw.zst";
+  imagePath = testingConfig.config.system.build.ghafImage;
   targetPath = "/dev/vdb";
   installerInput = pkgs.lib.strings.escapeNixString "${targetPath}\ny\ny\n";
 in
