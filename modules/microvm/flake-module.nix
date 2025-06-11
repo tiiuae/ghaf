@@ -11,7 +11,6 @@
       (import ./sysvms/guivm.nix { inherit inputs; })
       (import ./sysvms/audiovm.nix { inherit inputs; })
       (import ./sysvms/idsvm/idsvm.nix { inherit inputs; })
-      ./sysvms/idsvm/mitmproxy
       ./modules.nix
     ];
 
