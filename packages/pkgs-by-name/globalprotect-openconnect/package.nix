@@ -6,7 +6,6 @@
   cmake,
   libsForQt5,
   openconnect,
-	stdenv,
 }:
 
 libsForQt5.mkDerivation rec {
@@ -48,8 +47,8 @@ libsForQt5.mkDerivation rec {
   };
 
   # TODO:
-	# > Error: detected mismatched Qt dependencies:
+  # > Error: detected mismatched Qt dependencies:
   # >     /nix/store/9m61affyj0zjpl8i0mpd8yyw70gw43fm-qtbase-5.15.16-dev
   # >     /nix/store/ihbsfncbkp72ap1y5dqj13aj112jm6va-qtbase-5.15.16-dev
-	# broken = stdenv.buildPlatform != stdenv.hostPlatform;
+  # broken = stdenv.buildPlatform != stdenv.hostPlatform;
 }
