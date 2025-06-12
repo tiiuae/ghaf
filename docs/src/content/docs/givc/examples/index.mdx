@@ -1,0 +1,46 @@
+---
+title: Getting Started
+description: Usage examples of the GIVC framework
+---
+
+### First Steps
+
+* **Clone the project** with [git](https://git-scm.com/docs):
+  ```bash
+  git clone https://github.com/tiiuae/ghaf-givc
+  ```
+
+* **Run the development shell** with [nix develop](https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-develop.html):
+  ```bash
+  nix develop
+  ```
+  This gives you access to the devshell that includes various tools and dependencies for development.
+
+* **Inspect the flake** with [nix flake show](https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-flake-show.html):
+  ```bash
+  nix flake show
+  ```
+  The output shows you what packages you can build.
+
+* **Build a package** with [nix build](https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-build), such as:
+  ```bash
+  nix build .#givc-agent
+  nix build .#givc-admin
+  nix build .#givc-cli
+  ```
+  > **Note:** This is only for testing purposes - packages alone will be of little to no use to you.
+
+* **Run all tests** with [nix flake check](https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-flake-check.html):
+  ```bash
+  nix flake check
+  ```
+
+* **Run individual tests** in the devshell:
+  ```bash
+  run-vm-test admin
+  ```
+
+* **Format code** automatically with [nix fmt](https://nix.dev/manual/nix/2.24/command-ref/new-cli/nix3-fmt):
+  ```bash
+  nix fmt
+  ```

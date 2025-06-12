@@ -25,29 +25,31 @@
       pkgsDirectory = ./pkgs-by-name;
 
       #fix these to be the correct packages placement
-      packages.doc = callPackage ../docs {
-        revision = lib.strings.fileContents ../.version;
-        options =
-          let
-            cfg = lib.nixosSystem {
-              # derived from targets/laptop/laptop-configuration-builder.nix + lenovo-x1-carbon-gen10
-              modules = [
-                self.nixosModules.reference-profiles
-                self.nixosModules.disko-debug-partition
-                self.nixosModules.hardware-lenovo-x1-carbon-gen11
-                self.nixosModules.profiles-workstation
-                {
-                  nixpkgs = {
-                    hostPlatform = "x86_64-linux";
-                    overlays = [
-                      inputs.ghafpkgs.overlays.default
-                    ];
-                  };
-                }
-              ];
-            };
-          in
-          cfg.options;
-      };
+      packages.doc =
+        let
+          cfg = lib.nixosSystem {
+            # derived from targets/laptop/laptop-configuration-builder.nix + lenovo-x1-carbon-gen10
+            modules = [
+              self.nixosModules.reference-profiles
+              self.nixosModules.disko-debug-partition
+              self.nixosModules.hardware-lenovo-x1-carbon-gen11
+              self.nixosModules.profiles-workstation
+              {
+                nixpkgs = {
+                  hostPlatform = "x86_64-linux";
+                  overlays = [
+                    inputs.ghafpkgs.overlays.default
+                    inputs.givc.overlays.default
+                  ];
+                };
+              }
+            ];
+          };
+        in
+        callPackage ../docs {
+          revision = lib.strings.fileContents ../.version;
+          inherit (cfg) options;
+          inherit (cfg.pkgs) givc-docs;
+        };
     };
 }

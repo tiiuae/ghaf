@@ -10,6 +10,7 @@
   vips,
   revision ? "",
   options ? { },
+  givc-docs,
   ...
 }:
 let
@@ -23,14 +24,26 @@ let
         # But they are stilled passed as options modules ???
         if lib.strings.hasPrefix "ghaf" x.name then x else x // { visible = false; };
     }).optionsCommonMark;
-  combinedSrc = runCommandLocal "ghaf-doc-src" { } ''
-    mkdir $out
-    cp -r ${./.}/* $out
-    chmod +w $out/src/content/docs/ghaf/dev/library/modules_options.mdx
 
-    # Refer to master branch files in github
-    sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/content/docs/ghaf/dev/library/modules_options.mdx
-  '';
+  combinedSrc =
+    runCommandLocal "ghaf-doc-src"
+      {
+        nativeBuildInputs = [
+          givc-docs
+        ];
+      }
+      ''
+        mkdir $out
+        cp -r ${./.}/* $out
+        chmod +w $out/src/content/docs/ghaf/dev/library/modules_options.mdx
+
+        # Refer to master branch files in github
+        sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/content/docs/ghaf/dev/library/modules_options.mdx
+
+        # Copy givc API documentation
+        chmod -R +w $out/src/content/docs/givc
+        cp -r ${givc-docs}/api/* $out/src/content/docs/givc/api
+      '';
 in
 buildNpmPackage (_finalAttrs: {
   pname = "ghaf-docs";
@@ -45,6 +58,7 @@ buildNpmPackage (_finalAttrs: {
   nativeBuildInputs = [
     pkg-config
   ];
+
   installPhase = ''
     runHook preInstall
     cp -pr --reflink=auto dist $out/

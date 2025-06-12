@@ -13,7 +13,7 @@ export default defineConfig({
   site: "https://ghaf.tii.ae",
   integrations: [
     starlight({
-      title: "Ghaf",
+      title: "Ghaf Framework",
       social: [
         {
           icon: "github",
@@ -23,7 +23,12 @@ export default defineConfig({
       ],
       customCss: ["./src/styles/custom.css"],
       plugins: [
-        starlightLinksValidator(),
+        starlightLinksValidator({
+          // exclude: [
+          //   '**/givc/api/**',
+          // ],
+          errorOnInvalidHashes: false,
+        }),
         starlightSidebarTopics(
           [
             {
@@ -186,9 +191,73 @@ export default defineConfig({
             },
             {
               id: "givc",
-              label: "Ghaf Inter-VM Comms",
-              link: "https://github.com/tiiuae/ghaf-givc",
-              icon: "puzzle",
+              label: "Ghaf Inter-VM Communication",
+              link: "/givc/overview/",
+              icon: "seti:pipeline",
+              items: [
+                {
+                  label: "Overview",
+                  items: ["givc/overview", "givc/overview/arch"],
+                },
+                {
+                  label: "Getting Started",
+                  items: ["givc/examples", "givc/examples/modules"],
+                },
+                {
+                  label: "API Reference",
+                  items: [
+                    "givc/api",
+                    {
+                      label: "NixOS Modules",
+                      items: [
+                        "givc/api/nixos/admin_options",
+                        "givc/api/nixos/appvm_options",
+                        "givc/api/nixos/dbus_options",
+                        "givc/api/nixos/host_options",
+                        "givc/api/nixos/sysvm_options",
+                        "givc/api/nixos/tls_options",
+                        "givc/api/nixos/update-server_options",
+                      ],
+                    },
+                    {
+                      label: "GRPC API",
+                      items: ["givc/api/grpc/api"],
+                    },
+                    {
+                      label: "Go API",
+                      collapsed: true,
+                      items: [
+                        "givc/api/go/givc_agent",
+                        {
+                          label: "Go-GRPC API",
+                          collapsed: true,
+                          items: [
+                            "givc/api/go/grpc_admin",
+                            "givc/api/go/grpc_systemd",
+                            "givc/api/go/grpc_stats",
+                            "givc/api/go/grpc_socket",
+                            "givc/api/go/grpc_locale",
+                          ],
+                        },
+                        {
+                          label: "Go Packages",
+                          collapsed: true,
+                          items: [
+                            "givc/api/go/pkgs_applications",
+                            "givc/api/go/pkgs_servicemanager",
+                            "givc/api/go/pkgs_grpc",
+                            "givc/api/go/pkgs_serviceclient",
+                            "givc/api/go/pkgs_statsmanager",
+                            "givc/api/go/pkgs_localelistener",
+                            "givc/api/go/pkgs_types",
+                            "givc/api/go/pkgs_utility",
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
           ],
           {
