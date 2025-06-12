@@ -74,6 +74,12 @@
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
       }
     ];
+    hardware-lenovo-x1-2-in-1-gen9.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
+      }
+    ];
     imx8.imports = [ ./imx8 ];
     polarfire.imports = [ ./polarfire ];
     jetpack.imports = [
