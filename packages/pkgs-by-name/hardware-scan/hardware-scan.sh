@@ -33,7 +33,7 @@ Options:
   -e | --ext           Dump hardware info for later review (lspci, lsusb, dmidecode, etc.) into hwinfo/. Overwrites existing files.
   -h | --help          This help message
 
-By default, the script runs [ -s -n -g -a -i -u -d -e ] and writes the configuration file.
+By default, the script runs [ -s -n -g -a -i -u -e ] and writes the configuration file.
 Running the script with options, you can pipe the output into a desired file (e.g., hardware-scan -p > pci_info.txt).
 EOF
 }
@@ -447,7 +447,7 @@ echo "> Running hardware detection tool..."
 # Default options
 verbose=true
 if [ $# -eq 0 ]; then
-  set -- "-s" "-n" "-g" "-a" "-i" "-u" "-d"
+  set -- "-s" "-n" "-g" "-a" "-i" "-u" "-e"
   verbose=false
 fi
 
