@@ -21,13 +21,15 @@ let
   configHost = config;
 
   # Currently only x86 with hw definition supported
-  inherit (pkgs.stdenv.hostPlatform) isx86;
+  inherit (pkgs.stdenv.hostPlatform) isx86 isAarch64;
   fullVirtualization =
     isx86
     && (hasAttrByPath [
       "hardware"
       "devices"
     ] config.ghaf);
+
+  partVirtualization = isAarch64;
 
   # Hardware devices passthrough modules
   deviceModules = optionalAttrs fullVirtualization {
@@ -169,66 +171,103 @@ in
 
   config = {
     # System VM configurations
-    ghaf.virtualization.microvm = optionalAttrs fullVirtualization {
-      # Netvm modules
-      netvm.extraModules = optionals cfg.netvm.enable [
-        deviceModules.netvmPCIPassthroughModule
-        kernelConfigs.netvm
-        firmwareModule
-        serviceModules.wifi
-        serviceModules.givc
-        serviceModules.logging
-        referenceServiceModule
-        managedUserAccounts
-        commonModule
-      ];
-      # Audiovm modules
-      audiovm.extraModules = optionals cfg.audiovm.enable [
-        deviceModules.audiovmPCIPassthroughModule
-        kernelConfigs.audiovm
-        firmwareModule
-        qemuModules.audiovm
-        serviceModules.audio
-        serviceModules.givc
-        serviceModules.bluetooth
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
-      # Guivm modules
-      guivm.extraModules = optionals cfg.guivm.enable [
-        deviceModules.guivmPCIPassthroughModule
-        deviceModules.guivmVirtioInputHostEvdevModule
-        kernelConfigs.guivm
-        firmwareModule
-        qemuModules.guivm
-        serviceModules.graphics
-        serviceModules.fprint
-        serviceModules.yubikey
-        serviceModules.givc
-        serviceModules.logging
-        referenceServiceModule
-        managedUserAccounts
-        commonModule
-      ];
-      # Adminvm modules
-      adminvm.extraModules = optionals cfg.adminvm.enable [
-        serviceModules.givc
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
-      # Appvm modules
-      appvm.extraModules = optionals cfg.appvm.enable [
-        serviceModules.givc
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
-      # Idsvm modules
-      idsvm.extraModules = optionals cfg.idsvm.enable [
-        commonModule
-      ];
-    };
+    ghaf.virtualization.microvm =
+      optionalAttrs fullVirtualization {
+        # Netvm modules
+        netvm.extraModules = optionals cfg.netvm.enable [
+          deviceModules.netvmPCIPassthroughModule
+          kernelConfigs.netvm
+          firmwareModule
+          serviceModules.wifi
+          serviceModules.givc
+          serviceModules.logging
+          referenceServiceModule
+          managedUserAccounts
+          commonModule
+        ];
+        # Audiovm modules
+        audiovm.extraModules = optionals cfg.audiovm.enable [
+          deviceModules.audiovmPCIPassthroughModule
+          kernelConfigs.audiovm
+          firmwareModule
+          qemuModules.audiovm
+          serviceModules.audio
+          serviceModules.givc
+          serviceModules.bluetooth
+          serviceModules.logging
+          managedUserAccounts
+          commonModule
+        ];
+        # Guivm modules
+        guivm.extraModules = optionals cfg.guivm.enable [
+          deviceModules.guivmPCIPassthroughModule
+          deviceModules.guivmVirtioInputHostEvdevModule
+          kernelConfigs.guivm
+          firmwareModule
+          qemuModules.guivm
+          serviceModules.graphics
+          serviceModules.fprint
+          serviceModules.yubikey
+          serviceModules.givc
+          serviceModules.logging
+          referenceServiceModule
+          managedUserAccounts
+          commonModule
+        ];
+        # Adminvm modules
+        adminvm.extraModules = optionals cfg.adminvm.enable [
+          serviceModules.givc
+          serviceModules.logging
+          managedUserAccounts
+          commonModule
+        ];
+        # Appvm modules
+        appvm.extraModules = optionals cfg.appvm.enable [
+          serviceModules.givc
+          serviceModules.logging
+          managedUserAccounts
+          commonModule
+        ];
+        # Idsvm modules
+        idsvm.extraModules = optionals cfg.idsvm.enable [
+          commonModule
+        ];
+      }
+      // optionalAttrs partVirtualization {
+        # Netvm modules
+        netvm.extraModules = optionals cfg.netvm.enable [
+          serviceModules.logging
+          # referenceServiceModule
+          # managedUserAccounts
+          commonModule
+        ];
+        # Audiovm modules
+        audiovm.extraModules = optionals cfg.audiovm.enable [
+          # qemuModules.audiovm
+          # serviceModules.audio
+          # serviceModules.givc
+          # serviceModules.bluetooth
+          serviceModules.logging
+          # managedUserAccounts
+          commonModule
+        ];
+        # Adminvm modules
+        adminvm.extraModules = optionals cfg.adminvm.enable [
+          # serviceModules.givc
+          serviceModules.logging
+          # managedUserAccounts
+          commonModule
+        ];
+        # Appvm modules
+        appvm.extraModules = optionals cfg.appvm.enable [
+          serviceModules.logging
+          # managedUserAccounts
+          commonModule
+        ];
+        # Idsvm modules
+        idsvm.extraModules = optionals cfg.idsvm.enable [
+          commonModule
+        ];
+      };
   };
 }

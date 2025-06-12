@@ -7,6 +7,8 @@
   ...
 }:
 let
+  buildVm = import ../common/build-sysvm.nix { inherit lib inputs config; };
+
   configHost = config;
   vmName = "admin-vm";
 
@@ -53,12 +55,6 @@ let
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"
               ];
-            };
-
-            # Networking
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              inherit vmName;
             };
 
             # Services
@@ -126,15 +122,13 @@ in
       '';
       default = [ ];
     };
-  };
-
-  config = lib.mkIf cfg.enable {
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      config = adminvmBaseConfiguration // {
-        imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
     };
   };
+
+  config = lib.mkIf cfg.enable (buildVm vmName cfg adminvmBaseConfiguration);
+
 }
