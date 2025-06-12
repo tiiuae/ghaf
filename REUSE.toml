@@ -37,6 +37,7 @@ path = [
   "docs/**/*.astro",
   "docs/package-lock.json",
   "docs/package.json",
+  "docs/public/CNAME",
 ]
 
 [[annotations]]
