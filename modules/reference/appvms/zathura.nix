@@ -10,6 +10,7 @@
   zathura = {
     ramMb = 512;
     cores = 1;
+    bootPriority = "low";
     borderColor = "#122263";
     applications = [
       {
