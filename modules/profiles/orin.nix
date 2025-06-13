@@ -1,6 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.profiles.orin;
 in
@@ -21,11 +26,17 @@ in
     ghaf = {
       profiles.graphics = {
         enable = true;
-        renderer = "gles2";
-        compositor = "labwc";
         idleManagement.enable = false;
         # Disable suspend by default, not working as intended
         allowSuspend = false;
+        # Crucial to for Orin devices to use the correct render device
+        # Also needs 'mesa' to be in hardware.graphics.extraPackages
+        renderDevice = "/dev/dri/renderD129";
+        # Explicitly enable auto-login for Orins
+        autoLogin = {
+          enable = true;
+          user = config.ghaf.users.admin.name;
+        };
       };
 
       reference.programs.windows-launcher.enable = true;
@@ -76,5 +87,9 @@ in
       # Create admin home folder; temporary solution
       users.admin.createHome = true;
     };
+
+    hardware.graphics.extraPackages = lib.mkAfter [
+      pkgs.mesa
+    ];
   };
 }

@@ -7,7 +7,15 @@
   ...
 }:
 let
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    ;
+
   cfg = config.ghaf.graphics.cosmic;
+  inherit (config.ghaf.profiles) graphics;
 
   inherit (import ../../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
 
@@ -20,12 +28,6 @@ let
 
   autostart = pkgs.writeShellApplication {
     name = "autostart";
-
-    runtimeInputs = [
-      pkgs.systemd
-      pkgs.dbus
-      pkgs.glib
-    ];
 
     text = ''
       mkdir -p "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gtk-4.0"
@@ -42,9 +44,9 @@ let
   swayidleConfig = ''
     timeout ${
       toString (builtins.floor (300 * 0.8))
-    } '${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    } '${lib.optionalString graphics.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
     timeout ${toString 300} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
-    ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''timeout ${
+    ${lib.optionalString graphics.allowSuspend ''timeout ${
       toString (builtins.floor (300 * 3))
     } "ghaf-powercontrol suspend; ghaf-powercontrol wakeup"''}
   '';
@@ -68,29 +70,29 @@ let
 in
 {
   options.ghaf.graphics.cosmic = {
-    enable = lib.mkEnableOption "cosmic";
+    enable = mkEnableOption "cosmic";
 
-    securityContext = lib.mkOption {
-      type = lib.types.submodule {
+    securityContext = mkOption {
+      type = types.submodule {
         options = {
-          borderWidth = lib.mkOption {
-            type = lib.types.ints.positive;
+          borderWidth = mkOption {
+            type = types.ints.positive;
             default = 6;
             example = 6;
             description = "Default border width in pixels";
           };
 
-          rules = lib.mkOption {
-            type = lib.types.listOf (
-              lib.types.submodule {
+          rules = mkOption {
+            type = types.listOf (
+              types.submodule {
                 options = {
-                  identifier = lib.mkOption {
-                    type = lib.types.str;
+                  identifier = mkOption {
+                    type = types.str;
                     example = "chrome-vm";
                     description = "The identifier attached to the security context";
                   };
-                  color = lib.mkOption {
-                    type = lib.types.str;
+                  color = mkOption {
+                    type = types.str;
                     example = "#006305";
                     description = "Window border color";
                   };
@@ -109,7 +111,7 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     services.desktopManager.cosmic.enable = true;
     services.displayManager.cosmic-greeter.enable = true;
 
@@ -127,6 +129,11 @@ in
           adwaita-icon-theme
           ghaf-wallpapers
           pamixer
+          drm_info
+          virtualglLib
+          toybox
+          libva-utils
+          glib
           (import ../launchers-pkg.nix { inherit pkgs config; })
           # Nix's evaluation order installs ghaf-cosmic-config after cosmic tools.
           # Installing it before the cosmic tools would result in its configuration being overridden
@@ -136,32 +143,44 @@ in
           ghaf-cosmic-config
         ]
         ++ (rmDesktopEntries [ ]);
-      sessionVariables = {
-        XDG_CONFIG_HOME = "$HOME/.config";
-        XDG_DATA_HOME = "$HOME/.local/share";
-        XDG_STATE_HOME = "$HOME/.local/state";
-        XDG_CACHE_HOME = "$HOME/.cache";
-        XDG_PICTURES_DIR = "$HOME/Pictures";
-        XDG_VIDEOS_DIR = "$HOME/Videos";
-        PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
-        XCURSOR_THEME = "Pop";
-        XCURSOR_SIZE = 24;
-        GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
-        # Enable zwlr_data_control_manager_v1 protocol for COSMIC Utilities - Clipboard Manager to work
-        COSMIC_DATA_CONTROL_ENABLED = 1;
-        RUST_LOG = if config.ghaf.profiles.debug.enable then "info" else "error";
-      };
-      etc."xdg/user-dirs.defaults".text = ''
-        #DOWNLOAD=Downloads
-        #DOCUMENTS=Documents
-        #MUSIC=Music
-        #PICTURES=Pictures
-        #VIDEOS=Videos
-        #PUBLICSHARE=Public
-        #TEMPLATES=Templates
-        #DESKTOP=Desktop
-      '';
-      etc."swayidle/config".text = swayidleConfig;
+      sessionVariables =
+        {
+          XDG_CONFIG_HOME = "$HOME/.config";
+          XDG_DATA_HOME = "$HOME/.local/share";
+          XDG_STATE_HOME = "$HOME/.local/state";
+          XDG_CACHE_HOME = "$HOME/.cache";
+          XDG_PICTURES_DIR = "$HOME/Pictures";
+          XDG_VIDEOS_DIR = "$HOME/Videos";
+          PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
+          XCURSOR_THEME = "Pop";
+          XCURSOR_SIZE = 24;
+          GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
+          # Enable zwlr_data_control_manager_v1 protocol for COSMIC Utilities - Clipboard Manager to work
+          COSMIC_DATA_CONTROL_ENABLED = 1;
+          # 'info' logs are too verbose, even on debug builds
+          # RUST_LOG = if config.ghaf.profiles.debug.enable then "info" else "error";
+          RUST_LOG = "error";
+        }
+        // mkIf (graphics.renderDevice != null) {
+          COSMIC_RENDER_DEVICE = graphics.renderDevice;
+        };
+
+      etc =
+        {
+          "xdg/user-dirs.defaults".text = ''
+            #DOWNLOAD=Downloads
+            #DOCUMENTS=Documents
+            #MUSIC=Music
+            PICTURES=Pictures
+            #VIDEOS=Videos
+            #PUBLICSHARE=Public
+            #TEMPLATES=Templates
+            #DESKTOP=Desktop
+          '';
+        }
+        // lib.optionalAttrs graphics.idleManagement.enable {
+          "swayidle/config".text = swayidleConfig;
+        };
     };
 
     # Needed for the greeter to query systemd-homed users correctly
@@ -238,6 +257,7 @@ in
       };
 
       audio-control = {
+        # TODO: Expose as an option to allow disabling for certain targets
         enable = true;
         description = "Audio Control application";
         serviceConfig = {
@@ -258,6 +278,7 @@ in
       };
 
       nm-applet = {
+        # TODO: Expose as an option to allow disabling for certain targets
         enable = true;
         description = "Network Manager Applet";
         serviceConfig = {
@@ -275,6 +296,7 @@ in
 
       # We use existing blueman services and create overrides for both
       blueman-applet = {
+        # TODO: Expose as an option to allow disabling for certain targets
         enable = true;
         serviceConfig = {
           Type = "simple";
@@ -290,6 +312,7 @@ in
       };
 
       blueman-manager = {
+        # TODO: Expose as an option to allow disabling for certain targets
         enable = true;
         serviceConfig.ExecStart = [
           ""
@@ -298,7 +321,7 @@ in
       };
 
       swayidle = {
-        enable = true;
+        inherit (graphics.idleManagement) enable;
         description = "Ghaf system idle handler";
         path = with pkgs; [
           brightnessctl
@@ -348,7 +371,7 @@ in
     # VM suspension known issues:
     # - Suspending a VM leads to USB controllers crashing and having to be re-initialized
     # - cosmic-comp may crash on resume
-    systemd.sleep.extraConfig = lib.mkIf config.ghaf.givc.enable ''
+    systemd.sleep.extraConfig = mkIf config.ghaf.givc.enable ''
       AllowSuspend=no
       AllowHibernation=no
       AllowHybridSleep=no

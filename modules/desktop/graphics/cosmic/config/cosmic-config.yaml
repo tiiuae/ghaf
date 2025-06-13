@@ -11,6 +11,7 @@ com.system76.CosmicAppList:
       "com.system76.CosmicSettings",
     ]
   filter_top_levels: None
+  enable_drag_source: true
 
 com.system76.CosmicFiles:
   favorites: |
