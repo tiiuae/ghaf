@@ -79,6 +79,22 @@ let
         };
       }
     ]))
+    (laptop-configuration "lenovo-x1-2-in-1-gen9" "debug" (withCommonModules [
+      self.nixosModules.hardware-lenovo-x1-2-in-1-gen9
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          profiles.graphics.compositor = "labwc";
+
+          virtualization.microvm.guivm.extraModules = [
+            {
+              microvm.mem = lib.mkForce 2047;
+            }
+          ];
+        };
+      }
+    ]))
     (laptop-configuration "lenovo-x1-extras" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
