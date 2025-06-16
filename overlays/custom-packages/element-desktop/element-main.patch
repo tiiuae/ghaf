@@ -1,8 +1,20 @@
+From 5b5e4c29bd3357960db71a5dab139e22c596c7f1 Mon Sep 17 00:00:00 2001
+From: Brian McGillion <bmg.avoin@gmail.com>
+Date: Mon, 16 Jun 2025 08:20:38 +0400
+Subject: [PATCH] tray-icon: Remove tray-icon
+
+Not supported on ghaf. Needs to be tested if still applicable.
+
+Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
+---
+ src/electron-main.ts | 71 +++++---------------------------------------
+ 1 file changed, 7 insertions(+), 64 deletions(-)
+
 diff --git a/src/electron-main.ts b/src/electron-main.ts
-index b5d13ac..ffffb76 100644
+index a00166c..63b3762 100644
 --- a/src/electron-main.ts
 +++ b/src/electron-main.ts
-@@ -458,11 +458,10 @@
+@@ -473,11 +473,10 @@ app.on("ready", async () => {
          // https://www.electronjs.org/docs/faq#the-font-looks-blurry-what-is-this-and-what-can-i-do
          backgroundColor: "#fff",
  
@@ -12,10 +24,10 @@ index b5d13ac..ffffb76 100644
          icon: global.trayConfig.icon_path,
 -        show: false,
 +        show: true,
-         autoHideMenuBar: global.store.get("autoHideMenuBar", true),
+         autoHideMenuBar: store.get("autoHideMenuBar"),
  
          x: mainWindowState.x,
-@@ -477,67 +476,35 @@
+@@ -492,91 +491,35 @@ app.on("ready", async () => {
              webgl: true,
          },
      });
@@ -27,13 +39,13 @@ index b5d13ac..ffffb76 100644
  
      // Handle spellchecker
      // For some reason spellCheckerEnabled isn't persisted, so we have to use the store here
-     global.mainWindow.webContents.session.setSpellCheckerEnabled(global.store.get("spellCheckerEnabled", true));
+     global.mainWindow.webContents.session.setSpellCheckerEnabled(store.get("spellCheckerEnabled", true));
  
 -    // Create trayIcon icon
--    if (global.store.get("minimizeToTray", true)) tray.create(global.trayConfig);
+-    if (store.get("minimizeToTray")) tray.create(global.trayConfig);
 -
 -    global.mainWindow.once("ready-to-show", () => {
-+    global.mainWindow.webContents.once('did-finish-load',function(){
++    global.mainWindow.webContents.once('did-finish-load',function() {
          if (!global.mainWindow) return;
          mainWindowState.manage(global.mainWindow);
  
@@ -47,7 +59,31 @@ index b5d13ac..ffffb76 100644
          }
      });
  
--    global.mainWindow.webContents.on("before-input-event", warnBeforeExit);
+-    global.mainWindow.webContents.on("before-input-event", (event: Event, input: Input): void => {
+-        const shouldWarnBeforeExit = store.get("warnBeforeExit", true);
+-        const exitShortcutPressed =
+-            input.type === "keyDown" && exitShortcuts.some((shortcutFn) => shortcutFn(input, process.platform));
+-
+-        if (shouldWarnBeforeExit && exitShortcutPressed && global.mainWindow) {
+-            const shouldCancelCloseRequest =
+-                dialog.showMessageBoxSync(global.mainWindow, {
+-                    type: "question",
+-                    buttons: [
+-                        _t("action|cancel"),
+-                        _t("action|close_brand", {
+-                            brand: global.vectorConfig.brand || "Element",
+-                        }),
+-                    ],
+-                    message: _t("confirm_quit"),
+-                    defaultId: 1,
+-                    cancelId: 0,
+-                }) === 0;
+-
+-            if (shouldCancelCloseRequest) {
+-                event.preventDefault();
+-            }
+-        }
+-    });
 +    global.mainWindow.loadURL("vector://vector/webapp/");
  
      global.mainWindow.on("closed", () => {
@@ -71,8 +107,8 @@ index b5d13ac..ffffb76 100644
 -
 -            return false;
 -        }
-+        // Close event handler
-+        // Default behaviour is minimize to tray, that feature is removed since there is no tray support on Ghaf
++       // Close event handler
++       // Default behaviour is minimize to tray, that feature is removed since there is no tray support on Ghaf
      });
  
 -    if (process.platform === "win32") {
@@ -88,4 +124,6 @@ index b5d13ac..ffffb76 100644
 -
      webContentsHandler(global.mainWindow.webContents);
  
-     global.appLocalization = new AppLocalization({
+     session.defaultSession.setDisplayMediaRequestHandler((_, callback) => {
+-- 
+2.49.0
