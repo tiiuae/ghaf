@@ -7,43 +7,58 @@
   ...
 }:
 let
+  persistConf = rec {
+    partConf = config.image.repart.partitions."50-persist".repartConfig;
+    device = "/dev/disk/by-partuuid/${partConf.UUID}";
+  };
   postBootCmds = pkgs.writeShellApplication {
     name = "postBootScript";
-    runtimeInputs = with pkgs; [
-      btrfs-progs
-      gnugrep
-      gawk
-      util-linux
-      gptfdisk
-      parted
-    ];
-    text = ''
-      set -xeuo pipefail
+    runtimeInputs =
+      with pkgs;
+      [
+        btrfs-progs
+        gnugrep
+        gawk
+        util-linux
+        gptfdisk
+        parted
+      ]
+      ++ lib.optionals config.ghaf.storage.encryption.enable [
+        cryptsetup
+      ];
+    text =
+      ''
+        set -xeuo pipefail
 
-      # Check which physical disk is used by btrfs
-      # TODO use a label in case there are more than one btrfs partitions/subvolumes
-      BTRFS_LOCATION=$(btrfs filesystem show | grep '/dev' | awk '{print $8}')
+        # Check which physical disk is used by btrfs
+        # TODO use a label in case there are more than one btrfs partitions/subvolumes
+        BTRFS_LOCATION=$(btrfs filesystem show | grep '/dev' | awk '{print $8}')
 
-      # Get the actual device path
-      P_DEVPATH=$(readlink -f "$BTRFS_LOCATION")
+        # Get the actual device path
+        P_DEVPATH=$(readlink -f "$BTRFS_LOCATION")
 
-      # Extract the partition number using regex
-      if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
-        PARTNUM=$(echo "$P_DEVPATH" | grep -o '[0-9]*$')
-        PARENT_DISK=/dev/$(lsblk -no pkname "$P_DEVPATH")
-      else
-        echo "No partition number found in device path: $P_DEVPATH"
-      fi
+        # Extract the partition number using regex
+        if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
+          PARTNUM=$(echo "$P_DEVPATH" | grep -o '[0-9]*$')
+          PARENT_DISK=/dev/$(lsblk -no pkname "$P_DEVPATH")
+        else
+          echo "No partition number found in device path: $P_DEVPATH"
+        fi
 
-      # Fix GPT first
-      sgdisk "$PARENT_DISK" -e
+        # Fix GPT first
+        sgdisk "$PARENT_DISK" -e
 
-      # Call partprobe to update kernel's partitions
-      partprobe
+        # Call partprobe to update kernel's partitions
+        partprobe
 
-      # Extend the partition to use unallocated space
-      parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
-    '';
+        # Extend the partition to use unallocated space
+        parted -s -a opt "$PARENT_DISK" "resizepart $PARTNUM 100%"
+      ''
+      + lib.optionalString config.ghaf.storage.encryption.enable ''
+        cryptsetup open ${persistConf.device} persist
+        cryptsetup resize persist
+        cryptsetup close persist
+      '';
   };
 
   enable =
