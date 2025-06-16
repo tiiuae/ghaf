@@ -22,8 +22,7 @@ in
 
       storage.encryption.enable = true;
 
-      # disable plymouth: not integrated yet with LUKS PIN prompt
-      graphics.boot.enable = false;
+      graphics.boot.enable = true;
     };
   };
 }
