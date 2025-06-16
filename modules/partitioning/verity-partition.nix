@@ -104,7 +104,10 @@ in
 
     swapDevices = [
       {
-        device = "/dev/disk/by-partlabel/swap";
+        device =
+          if config.ghaf.storage.encryption.enable then "/dev/mapper/swap" else "/dev/disk/by-partlabel/swap";
+        discardPolicy = "both";
+        options = [ "nofail" ];
       }
     ];
 

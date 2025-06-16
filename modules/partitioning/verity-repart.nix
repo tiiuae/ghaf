@@ -39,8 +39,10 @@ in
             Type = "swap";
             Format = "swap";
             Label = "swap";
+            UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
             SizeMinBytes = "10G";
             SizeMaxBytes = "10G";
+            Encrypt = if config.ghaf.storage.encryption.enable then "key-file" else "none";
           };
         };
 
