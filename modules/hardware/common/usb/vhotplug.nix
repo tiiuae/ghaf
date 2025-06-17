@@ -246,8 +246,8 @@ in
     systemd.services.vhotplug = {
       enable = true;
       description = "vhotplug";
-      wantedBy = [ "microvms.target" ];
-      after = [ "microvms.target" ];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "local-fs.target" ];
       serviceConfig = {
         Type = "simple";
         Restart = "always";

@@ -15,6 +15,8 @@ let
     mkIf
     mkMerge
     types
+    foldl'
+    attrNames
     ;
 
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
@@ -28,6 +30,7 @@ in
     inputs.self.nixosModules.mem-manager
     ./networking.nix
     ./shared-mem.nix
+    ./boot.nix
   ];
 
   options.ghaf.virtualization.microvm-host = {
@@ -61,6 +64,10 @@ in
 
       ghaf = {
         type = "host";
+        microvm-boot = {
+          inherit (config.ghaf.virtualization.microvm.guivm) enable;
+          debug = config.ghaf.profiles.debug.enable;
+        };
         systemd = {
           withName = "host-systemd";
           enable = true;
@@ -116,40 +123,55 @@ in
         ++ xdgRules;
 
       # TODO: remove hardcoded paths
-      systemd.services."microvm@audio-vm".serviceConfig =
-        lib.optionalAttrs config.ghaf.virtualization.microvm.audiovm.enable
-          {
-            # The + here is a systemd feature to make the script run as root.
-            ExecStopPost = lib.mkIf has_remove_pci_device [
-              "+${pkgs.writeShellScript "reload-audio" ''
-                # The script makes audio device internal state to reset
-                # This fixes issue of audio device getting into some unexpected
-                # state when the VM is being shutdown during audio mic recording
-                echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
-                sleep 0.1
-                echo "1" > /sys/bus/pci/rescan
-              ''}"
-            ];
+      systemd.services =
+        {
+          # Generate anonymous unique device identifier
+          generate-device-id = {
+            enable = true;
+            description = "Generate device unique id";
+            wantedBy = [ "local-fs.target" ];
+            after = [ "local-fs.target" ];
+            unitConfig.ConditionPathExists = "!/persist/common/device-id";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = "${pkgs.writeShellScript "generate-device-id" ''
+                # Generate a unique device id for the device
+                echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
+              ''}";
+              RemainAfterExit = true;
+              Restart = "on-failure";
+              RestartSec = "1";
+            };
           };
-
-      # Generate anonymous unique device identifier
-      systemd.services.generate-device-id = {
-        enable = true;
-        description = "Generate device unique id";
-        wantedBy = [ "local-fs.target" ];
-        after = [ "local-fs.target" ];
-        unitConfig.ConditionPathExists = "!/persist/common/device-id";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${pkgs.writeShellScript "generate-device-id" ''
-            # Generate a unique device id for the device
-            echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
-          ''}";
-          RemainAfterExit = true;
-          Restart = "on-failure";
-          RestartSec = "1";
-        };
-      };
+        }
+        // foldl' (
+          result: name:
+          result
+          // {
+            # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
+            # in ExecStop of the microvm@ service fails and causes the service to restart.
+            "microvm@${name}".serviceConfig =
+              {
+                Restart = "on-abnormal";
+              }
+              // lib.optionalAttrs
+                (config.ghaf.virtualization.microvm.audiovm.enable && (lib.hasInfix "audio-vm" name))
+                {
+                  # TODO generalize PCI handling for all VM shutdowns
+                  # The + here is a systemd feature to make the script run as root.
+                  ExecStopPost = lib.mkIf has_remove_pci_device [
+                    "+${pkgs.writeShellScript "reload-audio" ''
+                      # The script makes audio device internal state to reset
+                      # This fixes issue of audio device getting into some unexpected
+                      # state when the VM is being shutdown during audio mic recording
+                      echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
+                      sleep 0.1
+                      echo "1" > /sys/bus/pci/rescan
+                    ''}"
+                  ];
+                };
+          }
+        ) { } (attrNames config.microvm.vms);
     })
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.
