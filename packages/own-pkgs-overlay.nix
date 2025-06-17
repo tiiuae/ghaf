@@ -31,6 +31,7 @@
     vhotplug = final.python3Packages.callPackage ./python-packages/vhotplug/package.nix { };
     vinotify = final.python3Packages.callPackage ./python-packages/vinotify/package.nix { };
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
+    wait-for-unit = final.callPackage ./pkgs-by-name/wait-for-unit/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
   };
 }
