@@ -18,6 +18,7 @@
       @{ETC}=/etc
       @{NIX}=/nix
       @{RUN}=/run
+      @{HOME}=/home/appuser
 
       ${pkgs.google-chrome}/share/google/chrome/google-chrome {
         include <abstractions/base>
@@ -101,12 +102,13 @@
         owner @{PROC}/[0-9]*/environ                                    rix,
         owner @{PROC}/[0-9]*/clear_refs                                 rw,
         owner @{PROC}/[0-9]*/comm                                       rw,
-        owner @{PROC}/self/*                                            r,
+        owner @{PROC}/self/**                                           r,
         owner @{PROC}/self/exe                                          rix,
         owner @{PROC}/self/fd/*                                         rw,
               @{PROC}/sys/kernel/yama/ptrace_scope                      rw,
               @{PROC}/sys/fs/inotify/max_user_watches                   r,
               @{PROC}/ati/major                                         r,
+              @{PROC}/pressure/*                                        r,
 
               /dev/                                                     r,
               /dev/**                                                   rw,
@@ -126,6 +128,7 @@
               /run/mount/                                               ixr,
               /run/mount/**                                             ixr,
               /run/current-system/sw/bin/*                              lr,
+              /run/systemd/resolve/*                                    r,
 
               @{ETC}/static/                                            r,
               @{ETC}/static/**                                          r,
