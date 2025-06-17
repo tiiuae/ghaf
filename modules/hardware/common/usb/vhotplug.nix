@@ -188,10 +188,20 @@ in
       '';
     };
 
-    extraRules = mkOption {
+    prependRules = mkOption {
       description = ''
         List of extra udev rules to be added to the system. Uses the same format as vhotplug.rules,
-        and is appended to the default rules. This is useful for adding rules for additional VMs while
+        and is prepended to the default rules. This is helpful for setting rules where the order of
+        USB device detection matters for additional VMs, while still maintaining the default rules.
+      '';
+      type = types.listOf types.attrs;
+      default = [ ];
+    };
+
+    postpendRules = mkOption {
+      description = ''
+        List of extra udev rules to be added to the system. Uses the same format as vhotplug.rules,
+        and is postpened to the default rules. This is useful for adding rules for additional VMs while
         keeping the ghaf defaults.
       '';
       type = types.listOf types.attrs;
@@ -229,7 +239,9 @@ in
       KERNEL=="event*", GROUP="kvm"
     '';
 
-    environment.etc."vhotplug.conf".text = builtins.toJSON { vms = cfg.rules ++ cfg.extraRules; };
+    environment.etc."vhotplug.conf".text = builtins.toJSON {
+      vms = cfg.prependRules ++ cfg.rules ++ cfg.postpendRules;
+    };
 
     systemd.services.vhotplug = {
       enable = true;
