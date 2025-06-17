@@ -10,6 +10,7 @@
   vips,
   revision ? "",
   options ? { },
+  givc-docs,
   ...
 }:
 let
@@ -23,14 +24,32 @@ let
         # But they are stilled passed as options modules ???
         if lib.strings.hasPrefix "ghaf" x.name then x else x // { visible = false; };
     }).optionsCommonMark;
-  combinedSrc = runCommandLocal "ghaf-doc-src" { } ''
-    mkdir $out
-    cp -r ${./.}/* $out
-    chmod +w $out/src/content/docs/ghaf/dev/library/modules_options.mdx
 
-    # Refer to master branch files in github
-    sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/content/docs/ghaf/dev/library/modules_options.mdx
-  '';
+  combinedSrc =
+    runCommandLocal "ghaf-doc-src"
+      {
+        nativeBuildInputs = [
+          givc-docs
+        ];
+      }
+      ''
+        mkdir $out
+        cp -r ${./.}/* $out
+        chmod +w $out/src/content/docs/ghaf/dev/library/modules_options.mdx
+
+        # Refer to master branch files in github
+        sed 's/\(file:\/\/\)\?\/nix\/store\/[^/]*-source/https:\/\/github.com\/tiiuae\/ghaf\/blob\/main/g' ${optionsDocMd}  >> $out/src/content/docs/ghaf/dev/library/modules_options.mdx
+
+        # Copy givc API documentation and remove nix store paths
+        chmod -R +w $out/src/content/docs/givc
+        SRC_DIR="${givc-docs}/api/"
+        DEST_DIR="$out/src/content/docs/givc/api/"
+        find "$SRC_DIR" -type f | while read -r source_file; do
+          dest_file="''${DEST_DIR}''${source_file#$SRC_DIR}"
+          mkdir -p "$(dirname "$dest_file")"
+          sed "s#nix/store/[a-z0-9-]\+-source/##g" "$source_file" > "$dest_file"
+        done
+      '';
 in
 buildNpmPackage (_finalAttrs: {
   pname = "ghaf-docs";
@@ -45,6 +64,7 @@ buildNpmPackage (_finalAttrs: {
   nativeBuildInputs = [
     pkg-config
   ];
+
   installPhase = ''
     runHook preInstall
     cp -pr --reflink=auto dist $out/

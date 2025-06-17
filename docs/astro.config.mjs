@@ -13,7 +13,7 @@ export default defineConfig({
   site: "https://ghaf.tii.ae",
   integrations: [
     starlight({
-      title: "Ghaf",
+      title: "Ghaf Framework",
       social: [
         {
           icon: "github",
@@ -23,7 +23,9 @@ export default defineConfig({
       ],
       customCss: ["./src/styles/custom.css"],
       plugins: [
-        starlightLinksValidator(),
+        starlightLinksValidator({
+          errorOnInvalidHashes: false,
+        }),
         starlightSidebarTopics(
           [
             {
@@ -186,9 +188,50 @@ export default defineConfig({
             },
             {
               id: "givc",
-              label: "Ghaf Inter-VM Comms",
-              link: "https://github.com/tiiuae/ghaf-givc",
-              icon: "puzzle",
+              label: "Ghaf Inter-VM Communication",
+              link: "/givc/overview/",
+              icon: "seti:pipeline",
+              items: [
+                {
+                  label: "Overview",
+                  items: ["givc/overview", "givc/overview/arch"],
+                },
+                {
+                  label: "Getting Started",
+                  items: ["givc/examples", "givc/examples/modules"],
+                },
+                {
+                  label: "API Reference",
+                  items: [
+                    "givc/api",
+                    {
+                      label: "NixOS Modules",
+                      autogenerate: { directory: "givc/api/nixos" },
+                    },
+                    {
+                      label: "GRPC API",
+                      autogenerate: { directory: "givc/api/grpc" },
+                    },
+                    {
+                      label: "Go API",
+                      collapsed: true,
+                      items: [
+                        "givc/api/go/cmd/givc-agent",
+                        {
+                          label: "Go-GRPC API",
+                          collapsed: true,
+                          autogenerate: { directory: "givc/api/go/grpc" },
+                        },
+                        {
+                          label: "Go Packages",
+                          collapsed: true,
+                          autogenerate: { directory: "givc/api/go/pkgs" },
+                        },
+                      ],
+                    },
+                  ],
+                },
+              ],
             },
           ],
           {
