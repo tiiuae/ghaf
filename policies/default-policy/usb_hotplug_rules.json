@@ -1,0 +1,44 @@
+{
+  "hotplug_rules": {
+    "_denylist_": [
+      "List of blacklisted devices.",
+      "Format: vendor_id : [list of products].",
+      "       ~vendor_id : [list of products].",
+      "When starts with ~, all the products of the vendor will be blacklisted except the listed ones.",
+      "Vendor and product IDs must be 4 digit hex in 0x00ab format."
+    ],
+    "denylist": {
+      "0xbadb": ["0xdada"],
+      "~0xbabb": ["0xcaca"]
+    },
+
+    "_allowlist_": [
+      "List of devices and VMs which are allowed to access it.",
+      "Format: <vendor_id:product_id> : [list of allowed vms].",
+      "        <vendor_id:*> : [list of allowed vm].",
+      "* indicates all products of the vendor.",
+      "vendor and product IDs must be 4 digit hex in 0x00ab format."
+    ],
+    "allowlist": {
+      "0x0b95:0x1790": ["net-vm"]
+    },
+
+    "_classlist_": [
+      "Device with specific class, subclass, and protocol and it's mapping to VMs.",
+      "Format: <class:subclass:protocol> : [list of allowed vms].",
+      "* can be used for subclass and protocol.",
+      "* indicates all values of that category is accepted.",
+      "Must be 2 digit hex in 0x0a format."
+    ],
+    "classlist": {
+      "0x01:*:*": ["audio-vm"],
+      "0x03:*:0x01": ["gui-vm"],
+      "0x03:*:0x02": ["gui-vm"],
+      "0x08:0x06:*": ["gui-vm"],
+      "0x0b:*:*": ["gui-vm"],
+      "0x11:*:*": ["gui-vm"],
+      "0x02:06:*": ["net-vm"],
+      "0x0e:*:*": ["chrome-vm"]
+    }
+  }
+}

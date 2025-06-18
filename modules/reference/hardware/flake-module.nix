@@ -10,6 +10,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./alienware/alienware-m18.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./alienware/extra-config.nix)
         ];
@@ -22,18 +23,21 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-dell-latitude-7330.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-demo-tower-mk1.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./demo-tower/demo-tower.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./demo-tower/extra-config.nix)
@@ -44,6 +48,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./tower-5080/tower-5080.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./tower-5080/extra-config.nix)
@@ -54,30 +59,60 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-lenovo-x1-carbon-gen11.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
+        ghaf.hardware.passthrough.mode = "dynamic";
+        ghaf.hardware.passthrough.secure-hotplug.enable = true;
+        ghaf.hardware.passthrough.secure-hotplug.usb.hotplugRules = {
+          denylist = {
+            "0xbadb" = [ "0xdada" ];
+          };
+          allowlist = {
+            "0x0b95:0x1790" = [ "net-vm" ];
+            "0x04f2:0xb751" = [ "business-vm" ];
+            "0x5986:0x2145" = [ "business-vm" ];
+            "0x30c9:0x0052" = [ "business-vm" ];
+            "0x30c9:0x005f" = [ "business-vm" ];
+            "0x8087:0x0033" = [ "audio-vm" ]; # Bluetooth adapter
+            "0x06cb:0x00fc" = [ "gui-vm" ]; # Finger print sensor
+          };
+          classlist = {
+            "0x01:*:*" = [ "audio-vm" ];
+            "0x03:*:0x01" = [ "gui-vm" ];
+            "0x03:*:0x02" = [ "gui-vm" ];
+            "0x08:0x06:*" = [ "gui-vm" ];
+            "0x0b:*:*" = [ "gui-vm" ];
+            "0x11:*:*" = [ "gui-vm" ];
+            "0x02:0x06:*" = [ "net-vm" ];
+            "0x0e:*:*" = [ "chrome-vm" ];
+          };
+        };
       }
     ];
     hardware-lenovo-x1-carbon-gen12.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-lenovo-x1-carbon-gen13.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-lenovo-x1-2-in-1-gen9.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
+        ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     imx8.imports = [ ./imx8 ];

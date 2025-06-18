@@ -20,12 +20,11 @@ buildPythonApplication {
   ];
 
   doCheck = false;
-
   src = fetchFromGitHub {
-    owner = "tiiuae";
+    owner = "gngram";
     repo = "vhotplug";
-    rev = "6fa43f4e64ab130632a3f88eaf3d53108a0cc3b5";
-    hash = "sha256-B0VQ+sJhmU77UOf87SWu2rVrKJq8kweXYkBd0A21Ipo=";
+    rev = "be91564eeb44eec704ea5345f405fc60d26c3f07";
+    sha256 = "sha256-FpiDe2jPEpL7ii7QPnTZt7GfT64OmJSWZmOgqkI2vGo=";
   };
 
   meta = {
