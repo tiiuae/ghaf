@@ -204,7 +204,10 @@ let
                       "emulator,id=tpm0,chardev=chrtpm"
                       "-device"
                       "tpm-tis,tpmdev=tpm0"
-                    ];
+                    ]
+                    ++
+                      lib.optionals (lib.hasAttr "${vm.name}-vm" configHost.ghaf.hardware.passthrough.qemuExtraArgs)
+                        configHost.ghaf.hardware.passthrough.qemuExtraArgs."${vm.name}-vm";
 
                   machine =
                     {
@@ -215,6 +218,15 @@ let
                     .${configHost.nixpkgs.hostPlatform.system};
                 };
               };
+
+              services.udev =
+                lib.mkIf (lib.hasAttr "${vm.name}-vm" configHost.ghaf.hardware.passthrough.vmUdevExtraRules)
+                  {
+                    extraRules =
+                      lib.concatStringsSep "\n"
+                        configHost.ghaf.hardware.passthrough.vmUdevExtraRules."${vm.name}-vm";
+                  };
+
               fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = [ "ro" ];
             }
           )

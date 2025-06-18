@@ -126,21 +126,23 @@
   };
 
   # USB devices for passthrough
-  usb = {
-    internal = [
-      {
-        name = "cam0";
-        hostbus = "1";
-        hostport = "8";
-      }
-      {
-        name = "bt0";
-        hostbus = "1";
-        hostport = "14";
-      }
-    ];
-    external = [
-      # Add external USB devices here
-    ];
-  };
+  usb.deviceList = [
+    {
+      vms = [
+        "business-vm"
+        "chrome-vm"
+        "chromium-vm"
+      ];
+      name = "cam0";
+      hostbus = "1";
+      hostport = "8";
+    }
+    {
+      vms = [ "audio-vm" ];
+      name = "bt0";
+      hostbus = "1";
+      hostport = "14";
+    }
+  ];
+
 }
