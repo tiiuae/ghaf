@@ -159,6 +159,7 @@ let
     ])
     ++ (lib.optionals (!cfg.withBluetooth) [
       "bluetooth.target"
+      "bluetooth.service"
     ])
     ++ (lib.optionals (!cfg.withDebug) [
       ## Units kept with debug

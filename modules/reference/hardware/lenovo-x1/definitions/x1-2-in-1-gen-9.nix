@@ -17,7 +17,7 @@
       "acpi_backlight=vendor"
       "acpi_osi=linux"
       #"module_blacklist=i2c_i801,i915,iwlwifi,snd_hda_intel,snd_sof_pci_intel_mtl,spi_intel_pci,xe"
-      "module_blacklist=i915,xe,snd_pcm" # Prevent i915,xe,snd_pcm modules from being accidentally used by host
+      "module_blacklist=i915,xe,snd_pcm,bluetooth,btusb" # Prevent i915,xe,snd_pcm modules from being accidentally used by host
     ];
   };
 
