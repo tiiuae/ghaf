@@ -15,6 +15,7 @@
       "acpi_backlight=vendor"
       "acpi_osi=linux"
       #"module_blacklist=e1000e,i2c_i801,i915,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,spi_intel_pci"
+      "module_blacklist=bluetooth,btusb"
     ];
   };
 

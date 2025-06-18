@@ -1,15 +1,12 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  #  ProtectProc = lib.mkForce "noaccess";
   ProcSubset = "pid";
   ProtectHome = true;
   ProtectSystem = "full";
   PrivateTmp = true;
   PrivateMounts = true;
   UMask = 77;
-  # ProtectKernelTunables = lib.mkForce true;
-  #ProtectKernelModules = lib.mkForce true;
   ProtectKernelLogs = true;
   KeyringMode = "private";
   ProtectHostname = true;
@@ -47,14 +44,12 @@
     "CAP_NET_ADMIN"
     "CAP_NET_RAW"
     "CAP_SYS_RESOURCE"
-    "CAP_AUDIT_WRITE"
   ];
   CapabilityBoundingSet = [
     "CAP_NET_BIND_SERVICE"
     "CAP_NET_ADMIN"
     "CAP_NET_RAW"
     "CAP_SYS_RESOURCE"
-    "CAP_AUDIT_WRITE"
   ];
   SystemCallArchitectures = "native";
   SystemCallFilter = [
@@ -62,13 +57,13 @@
     "~@timer"
     "~@pkey"
     "~@debug"
-    "~@cpu_emulation"
+    "~@cpu-emulation"
     "~@mount"
     "~@ipc"
     "~@resources"
     "~@memlock"
     "~@keyring"
-    "~@raw_io"
+    "~@raw-io"
     "~@clock"
     "~@aio"
     "~@setuid"

@@ -14,7 +14,7 @@
       "iommu=pt"
       "acpi_backlight=vendor"
       "acpi_osi=linux"
-      "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl"
+      "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb"
     ];
   };
 
