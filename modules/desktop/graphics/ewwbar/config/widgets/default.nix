@@ -80,18 +80,18 @@ writeText "widgets.yuck" ''
                         )
                       )
                   )
-                  (box 
+                  (box
                     :visible {icon-onclick == "" || icon-onclick == "null"}
                     :height 24
                     :width 24
                     (image :class "icon" :visible { image != "" } :path image :image-height 24 :image-width 24)
-                    (image 
+                    (image
                       :class "icon"
                       :visible { image == "" }
-                      :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
+                      :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" }
                       :image-height 24
                       :image-width 24
-                      :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
+                      :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""}
                     )
                   )
                   (eventbox
@@ -177,25 +177,25 @@ writeText "widgets.yuck" ''
                         (image
                           :class "icon"
                           :visible { image == "" }
-                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
+                          :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" }
                           :image-height 24
                           :image-width 24
-                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
+                          :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""}
                         )
                       )
                   )
-                  (box 
+                  (box
                     :visible {icon-onclick == "" || icon-onclick == "null"}
                     :height 24
                     :width 24
                     (image :class "icon" :visible { image != "" } :path image :image-height 24 :image-width 24)
-                    (image 
+                    (image
                       :class "icon"
                       :visible { image == "" }
-                      :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" } 
+                      :icon {icon != "" ? icon : app_icon != "" ? app_icon : "icon-missing" }
                       :image-height 24
                       :image-width 24
-                      :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""} 
+                      :style {app_icon != "" ? "opacity: ''${level == 0 || level == min ? "0.5" : "1"}" : ""}
                     )
                   )
                   (eventbox
@@ -338,9 +338,9 @@ writeText "widgets.yuck" ''
               :style "margin: 20px 0;"
               :height { arraylength(audio_streams) <= 3 ? 80 * arraylength(audio_streams) : 240 }
               :visible { visible ?: "true" }
-              (box 
-                :orientation "v" 
-                :space-evenly true 
+              (box
+                :orientation "v"
+                :space-evenly true
                 :spacing 10
                 (for entry in {audio_streams}
                   (slider
@@ -434,22 +434,7 @@ writeText "widgets.yuck" ''
 
       ${lib.optionalString useGivc ''
         ;; Quick Settings Buttons ;;
-        (defwidget settings_buttons []
-            (box
-                :orientation "v"
-                :spacing 10
-                (box
-                    :orientation "h"
-                    (widget_button
-                        :icon "${pkgs.ghaf-artwork}/icons/bluetooth-1.svg"
-                        :header "Bluetooth"
-                        :onclick "''${EWW_CMD} close quick-settings & ${pkgs.bt-launcher}/bin/bt-launcher &")
-                    (box
-                        :hexpand true
-                        :vexpand true
-                        :class "spacer"))))
-
-          (defwidget battery_settings_buttons []
+        (defwidget battery_settings_buttons []
               (box :orientation "h"
                   :space-evenly true
                   :spacing 10
@@ -634,7 +619,7 @@ writeText "widgets.yuck" ''
               (button :class "taskbar_button"
                       :tooltip "Current desktop"
                       :onclick {workspaces-visible == "false" ? "''${EWW_CMD} update workspaces-visible=true" : "''${EWW_CMD} update workspaces-visible=false"}
-                      (image 
+                      (image
                         :class "icon"
                         :icon "indicator-workspaces-''${workspace}"
                       )
@@ -649,11 +634,11 @@ writeText "widgets.yuck" ''
                           ${
                             lib.concatStringsSep "\n" (
                               builtins.map (index: ''
-                                (button 
+                                (button
                                     :class "taskbar_button"
                                     :style "padding: 2px 7px;"
                                     :onclick "${pkgs.ghaf-workspace}/bin/ghaf-workspace switch ${toString index}; ''${EWW_CMD} update workspaces-visible=false"
-                                    (image 
+                                    (image
                                       :class "icon"
                                       :active {workspace == ${toString index}}
                                       :icon "indicator-workspaces-${toString index}"
@@ -693,9 +678,9 @@ writeText "widgets.yuck" ''
                     :onclick "${ewwScripts.eww-windows}/bin/eww-windows focus ''${ window.app_id } & ''${EWW_CMD} close window-manager &"
                     :onmiddleclick "${ewwScripts.eww-windows}/bin/eww-windows close ''${ window.app_id } &"
                     :tooltip { window.title }
-                    (image 
-                      :halign "start" 
-                      :icon-size "dialog" 
+                    (image
+                      :halign "start"
+                      :icon-size "dialog"
                       :icon { window.icon } )
                   )
                 )
@@ -705,7 +690,7 @@ writeText "widgets.yuck" ''
         )
       )
       (defwidget window-manager-trigger [screen]
-        (eventbox 
+        (eventbox
           :onhover {arraylength(windows) > 0 ? "''${EWW_CMD} open window-manager --screen \"''${screen}\" &" : ""}
         )
       )
@@ -715,9 +700,9 @@ writeText "widgets.yuck" ''
           (box
               :orientation "h"
               :space-evenly "false"
-              :spacing 10 
-              :halign "center" 
-              :valign "center" 
+              :spacing 10
+              :halign "center"
+              :valign "center"
               (datetime :screen screen)))
 
       ;; Right Widgets ;;
@@ -731,10 +716,10 @@ writeText "widgets.yuck" ''
 
       ;; End Widgets ;;
       (defwidget bar_right [screen]
-          (box :orientation "h" 
-              :space-evenly "false" 
-              :halign "end" 
-              :valign "center" 
+          (box :orientation "h"
+              :space-evenly "false"
+              :halign "end"
+              :valign "center"
               :spacing 10
               (systray :orientation "h" :spacing 10 :prepend-new true :class "tray")
               ${lib.optionalString useGivc "(control :screen screen)"}

@@ -4,6 +4,11 @@
   lib,
   pkgs,
   secctx,
+  panelApplets ? {
+    left = [ ];
+    center = [ ];
+    right = [ ];
+  },
   ...
 }:
 
@@ -35,6 +40,26 @@ let
       ],
     )
   '';
+
+  hasPanelApplets = panelApplets != null && panelApplets != { };
+
+  panelAppletsCenterConfig = lib.optionalString hasPanelApplets (
+    pkgs.writeText "plugins_center" ''
+      Some([
+          ${lib.concatMapStringsSep ",\n  " (a: "\"${a}\"") panelApplets.center}
+      ])
+    ''
+  );
+
+  panelAppletsWingsConfig = lib.optionalString hasPanelApplets (
+    pkgs.writeText "plugins_wings" ''
+      Some(([
+          ${lib.concatMapStringsSep ",\n  " (a: "\"${a}\"") panelApplets.left}
+      ], [
+          ${lib.concatMapStringsSep ",\n  " (a: "\"${a}\"") panelApplets.right}
+      ]))
+    ''
+  );
 in
 pkgs.stdenv.mkDerivation rec {
   pname = "ghaf-cosmic-config";
@@ -69,11 +94,15 @@ pkgs.stdenv.mkDerivation rec {
     cp -rf cosmic-unpacked/* $out/share/cosmic/
     rm -rf cosmic-unpacked
     cp ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
+  ''
+  + lib.optionalString (panelApplets.center != [ ]) ''
+    cp ${panelAppletsCenterConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center
+  ''
+  + lib.optionalString (panelApplets.left != [ ] || panelApplets.right != [ ]) ''
+    cp ${panelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
   '';
 
   postInstall = ''
-    substituteInPlace $out/share/cosmic/com.system76.CosmicBackground/v1/all \
-    --replace "None" "Path(\"${pkgs.ghaf-artwork}/ghaf-desert-sunset.jpg\")"
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "pamixer --unmute --decrease 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"' \
     --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "pamixer --unmute --increase 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"' \
