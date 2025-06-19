@@ -14,6 +14,13 @@ let
 
   cfg = config.ghaf.hardware.passthrough.secure-hotplug;
 
+  adminAddress = {
+    name = "admin-vm";
+    addr = config.ghaf.networking.hosts."admin-vm".ipv4;
+    port = "9001";
+    protocol = "tcp";
+  };
+
   usbHotplugRulesType = types.submodule {
     options = {
       denylist = mkOption {
@@ -63,6 +70,7 @@ in
   options.ghaf.hardware.passthrough.secure-hotplug = {
     enable = mkEnableOption "Enable passthrough daemon";
     usb = {
+      dynamicUpdateRules = mkEnableOption "Enable policy update through Open Policy Agent";
       hotplugRules = mkOption {
         type = usbHotplugRulesType;
         default = { };
@@ -126,9 +134,23 @@ in
             Type = "simple";
             Restart = "always";
             RestartSec = "1";
-            ExecStart = "${pkgs.vhotplug}/bin/vhotplug  -a -p /etc/hotplug.conf";
+            ExecStart =
+              let
+                hotplugCmd = "${pkgs.vhotplug}/bin/vhotplug  -a -p /etc/hotplug.conf";
+                cliArgs = builtins.replaceStrings [ "\n" ] [ " " ] ''
+                  ${lib.optionalString cfg.usb.dynamicUpdateRules ''
+                    --opa --policy-query "cmd:fetch hotplug_rules"
+                    --admin-name ${adminAddress.name}
+                    --admin-addr ${adminAddress.addr}
+                    --admin-port ${adminAddress.port}
+                  ''}
+                  ${lib.optionalString (cfg.usb.dynamicUpdateRules && !config.ghaf.givc.enableTls) "--notls"}
+                '';
+              in
+              "${hotplugCmd} ${cliArgs}";
           };
           startLimitIntervalSec = 0;
         };
+        environment.systemPackages = mkIf cfg.usb.dynamicUpdateRules [ pkgs.givc-cli ];
       };
 }

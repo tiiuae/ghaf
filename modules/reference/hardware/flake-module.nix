@@ -68,18 +68,14 @@
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
         ghaf.hardware.passthrough.mode = "dynamic";
         ghaf.hardware.passthrough.secure-hotplug.enable = true;
+        ghaf.hardware.passthrough.secure-hotplug.usb.dynamicUpdateRules = true;
         ghaf.hardware.passthrough.secure-hotplug.usb.hotplugRules = {
-          denylist = {
-            "0xbadb" = [ "0xdada" ];
-          };
           allowlist = {
             "0x0b95:0x1790" = [ "net-vm" ];
             "0x04f2:0xb751" = [ "business-vm" ];
             "0x5986:0x2145" = [ "business-vm" ];
             "0x30c9:0x0052" = [ "business-vm" ];
             "0x30c9:0x005f" = [ "business-vm" ];
-            "0x8087:0x0033" = [ "audio-vm" ]; # Bluetooth adapter
-            "0x06cb:0x00fc" = [ "gui-vm" ]; # Finger print sensor
           };
           classlist = {
             "0x01:*:*" = [ "audio-vm" ];

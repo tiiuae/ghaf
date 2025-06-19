@@ -16,7 +16,7 @@ in
         Options: "static", "dynamic", "user"
         "none": no passthrough
         "static": legacy mode, static passthrough via qemu
-        "dynamic": dynamic passthrough via hotplug in runtime (upcoming)
+        "dynamic": dynamic passthrough via hotplug in runtime
         "user": user defined passthrough [Not supported]
       '';
       type = types.str;

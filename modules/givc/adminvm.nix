@@ -3,7 +3,7 @@
 { config, lib, ... }:
 let
   cfg = config.ghaf.givc.adminvm;
-  inherit (lib) mkEnableOption mkIf;
+  inherit (lib) mkEnableOption mkIf mkDefault;
   inherit (config.ghaf.givc.adminConfig) name;
   systemHosts = lib.lists.subtractLists (config.ghaf.common.appHosts ++ [ name ]) (
     builtins.attrNames config.ghaf.networking.hosts
@@ -23,6 +23,10 @@ in
       inherit (config.ghaf.givc.adminConfig) addresses;
       services = map (host: "givc-${host}.service") systemHosts;
       tls.enable = config.ghaf.givc.enableTls;
+      opa = {
+        enable = mkDefault true;
+        policyPath = mkDefault ./../../policies/default-policy;
+      };
     };
   };
 }
