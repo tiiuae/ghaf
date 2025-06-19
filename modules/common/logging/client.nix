@@ -33,7 +33,11 @@ in
           targets = []
           rule {
             source_labels = ["__journal__hostname"]
-            target_label  = "nodename"
+            target_label  = "host"
+          }
+          rule {
+            source_labels = ["__journal__systemd_unit"]
+            target_label  = "service_name"
           }
         }
 
