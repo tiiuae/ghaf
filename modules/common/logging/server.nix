@@ -56,11 +56,16 @@ in
           // Alloy service can read file in this specific location
           filename = "${cfg.identifierFilePath}"
         }
+
         discovery.relabel "adminJournal" {
           targets = []
           rule {
             source_labels = ["__journal__hostname"]
-            target_label  = "nodename"
+            target_label  = "host"
+          }
+          rule {
+            source_labels = ["__journal__systemd_unit"]
+            target_label  = "service_name"
           }
         }
 
@@ -93,7 +98,7 @@ in
             max_segment_age = "240h"
             drain_timeout = "4s"
           }
-          external_labels = {systemdJournalLogs = local.file.macAddress.content }
+          external_labels = { machine = local.file.macAddress.content }
         }
 
         loki.source.api "listener" {
