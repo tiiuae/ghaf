@@ -33,6 +33,7 @@ precedence = "closest"
 path = [
   "docs/**/*.svg",
   "docs/**/*.png",
+  "docs/**/*.md",
   "docs/**/*.mdx",
   "docs/**/*.astro",
   "docs/package-lock.json",
