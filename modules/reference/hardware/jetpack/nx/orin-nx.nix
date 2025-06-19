@@ -55,5 +55,7 @@
         "option:dns-server,192.168.100.1"
       ];
     }
+    ../../../personalize
+    { ghaf.reference.personalize.keys.enable = true; }
   ];
 }
