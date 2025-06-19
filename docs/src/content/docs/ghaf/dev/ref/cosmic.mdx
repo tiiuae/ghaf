@@ -37,6 +37,17 @@ In the Ghaf Nix configuration, however, we have introduced a conversion mechanis
 
 If the user makes manual changes to the configuration while using Ghaf, those changes will take precedence over the system defaults.
 
+<Aside>
+  The `ghaf.graphics.cosmic.renderDevice` Nix option allows manual specification
+  of the rendering device used by COSMIC, by providing a device path (e.g.,
+  `/dev/dri/renderD129`). The specified path is assigned to the
+  `COSMIC_RENDER_DEVICE` environment variable during session startup. This is
+  particularly useful in systems with multiple GPUs or in virtualized
+  environments, where relying on the default device selection may lead to
+  compatibility issues. Setting this option ensures that COSMIC uses the
+  appropriate GPU for rendering.
+</Aside>
+
 ### 2. Ghaf COSMIC Nix Configuration
 
 The `cosmic.nix` module in Ghaf customizes COSMIC to better align with the system's requirements. Below are the key modifications and adjustments made:
