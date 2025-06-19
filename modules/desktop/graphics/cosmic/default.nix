@@ -7,23 +7,26 @@
   ...
 }:
 let
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    ;
+
   cfg = config.ghaf.graphics.cosmic;
+  graphicsProfileCfg = config.ghaf.profiles.graphics;
 
   ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit lib pkgs;
     secctx = cfg.securityContext;
+    inherit (cfg) panelApplets;
   };
 
   autostart = pkgs.writeShellApplication {
     name = "autostart";
-
-    runtimeInputs = [
-      pkgs.systemd
-      pkgs.dbus
-      pkgs.glib
-    ];
 
     text = ''
       gtk_dirs=(gtk-3.0 gtk-4.0)
@@ -43,15 +46,17 @@ let
   # Change papirus folder icons to grey
   papirus-icon-theme-grey = pkgs.papirus-icon-theme.override {
     color = "grey";
+    # The following fixes a cross-compilation issue
+    inherit (pkgs.buildPackages) papirus-folders;
   };
 
   swayidleConfig = ''
     timeout ${
       toString (builtins.floor (300 * 0.8))
-    } '${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''notify-send -r 999 -h byte:urgency:1 -t 5000 -a "System" "The session will lock soon due to inactivity";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
+
+    } '${lib.optionalString graphicsProfileCfg.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
     timeout ${toString 300} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
-    timeout ${toString (builtins.floor (300 * 1.5))} "wlopm --off \*" resume "wlopm --on \*"
-    ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''timeout ${
+    ${lib.optionalString graphicsProfileCfg.allowSuspend ''timeout ${
       toString (builtins.floor (300 * 3))
     } "ghaf-powercontrol suspend; ghaf-powercontrol wakeup"''}
   '';
@@ -75,29 +80,29 @@ let
 in
 {
   options.ghaf.graphics.cosmic = {
-    enable = lib.mkEnableOption "cosmic";
+    enable = mkEnableOption "cosmic";
 
-    securityContext = lib.mkOption {
-      type = lib.types.submodule {
+    securityContext = mkOption {
+      type = types.submodule {
         options = {
-          borderWidth = lib.mkOption {
-            type = lib.types.ints.positive;
+          borderWidth = mkOption {
+            type = types.ints.positive;
             default = 6;
             example = 6;
             description = "Default border width in pixels";
           };
 
-          rules = lib.mkOption {
-            type = lib.types.listOf (
-              lib.types.submodule {
+          rules = mkOption {
+            type = types.listOf (
+              types.submodule {
                 options = {
-                  identifier = lib.mkOption {
-                    type = lib.types.str;
+                  identifier = mkOption {
+                    type = types.str;
                     example = "chrome-vm";
                     description = "The identifier attached to the security context";
                   };
-                  color = lib.mkOption {
-                    type = lib.types.str;
+                  color = mkOption {
+                    type = types.str;
                     example = "#006305";
                     description = "Window border color";
                   };
@@ -114,9 +119,81 @@ in
       };
       description = "Security context settings";
     };
+
+    panelApplets = mkOption {
+      type = types.submodule {
+        options = {
+          left = lib.mkOption {
+            description = "List of applets to show on the left side of the panel.";
+            type = types.listOf types.str;
+            default = [
+              "com.system76.CosmicPanelAppButton"
+              "com.system76.CosmicPanelWorkspacesButton"
+            ];
+          };
+          center = lib.mkOption {
+            description = "List of applets to show in the center of the panel.";
+            type = types.listOf types.str;
+            default = [
+              "com.system76.CosmicAppletTime"
+              "com.system76.CosmicAppletNotifications"
+            ];
+          };
+          right = lib.mkOption {
+            description = "List of applets to show on the right side of the panel.";
+            type = types.listOf types.str;
+            default = [
+              "com.system76.CosmicAppletInputSources"
+              "com.system76.CosmicAppletStatusArea"
+              "com.system76.CosmicAppletTiling"
+              "com.system76.CosmicAppletAudio"
+              "com.system76.CosmicAppletBattery"
+              "com.system76.CosmicAppletPower"
+            ];
+          };
+        };
+      };
+      default = {
+        left = [
+          "com.system76.CosmicPanelAppButton"
+          "com.system76.CosmicPanelWorkspacesButton"
+        ];
+        center = [
+          "com.system76.CosmicAppletTime"
+          "com.system76.CosmicAppletNotifications"
+        ];
+        right = [
+          "com.system76.CosmicAppletInputSources"
+          "com.system76.CosmicAppletStatusArea"
+          "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletAudio"
+          "com.system76.CosmicAppletBattery"
+          "com.system76.CosmicAppletPower"
+        ];
+      };
+      description = "Cosmic panel applets configuration";
+    };
+
+    renderDevice = mkOption {
+      type = types.nullOr types.path;
+      default = null;
+      defaultText = "null";
+      example = "/dev/dri/renderD129";
+      description = ''
+        Path to the render device to be used by the COSMIC compositor.
+
+        If set, this will be assigned to the `COSMIC_RENDER_DEVICE` environment variable,
+        directing COSMIC to use the specified device (e.g., /dev/dri/renderD129).
+
+        This option can be useful in systems with multiple GPUs to explicitly select
+        which device the compositor should use.
+
+        If unset, COSMIC will attempt to automatically detect a suitable render device.
+      '';
+    };
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     services.desktopManager.cosmic.enable = true;
     services.displayManager.cosmic-greeter.enable = true;
 
@@ -145,23 +222,56 @@ in
         XDG_CACHE_HOME = "$HOME/.cache";
         XDG_PICTURES_DIR = "$HOME/Pictures";
         XDG_VIDEOS_DIR = "$HOME/Videos";
-        PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
         XCURSOR_THEME = "Pop";
         XCURSOR_SIZE = 24;
         GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
+        # Enable zwlr_data_control_manager_v1 protocol for COSMIC Utilities - Clipboard Manager to work
+        COSMIC_DATA_CONTROL_ENABLED = 1;
+        # 'info' logs are too verbose, even on debug builds
+        # RUST_LOG = if config.ghaf.profiles.debug.enable then "info" else "error";
         RUST_LOG = "error";
+      }
+      // lib.optionalAttrs (cfg.renderDevice != null) {
+        COSMIC_RENDER_DEVICE = cfg.renderDevice;
+      }
+      // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
+        PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
       };
-      etc."xdg/user-dirs.defaults".text = ''
-        #DOWNLOAD=Downloads
-        #DOCUMENTS=Documents
-        #MUSIC=Music
-        PICTURES=Pictures
-        #VIDEOS=Videos
-        #PUBLICSHARE=Public
-        #TEMPLATES=Templates
-        #DESKTOP=Desktop
-      '';
-      etc."swayidle/config".text = swayidleConfig;
+
+      etc = {
+        # Which XDG directories to create by default
+        # Uncomment the ones we want to create
+        "xdg/user-dirs.defaults".text = ''
+          #DOWNLOAD=Downloads
+          #DOCUMENTS=Documents
+          #MUSIC=Music
+          PICTURES=Pictures
+          #VIDEOS=Videos
+          #PUBLICSHARE=Public
+          #TEMPLATES=Templates
+          #DESKTOP=Desktop
+        '';
+      }
+      // lib.optionalAttrs graphicsProfileCfg.idleManagement.enable {
+        "swayidle/config".text = swayidleConfig;
+      }
+      // lib.optionalAttrs (!graphicsProfileCfg.proxyAudio) {
+        # This ensures pulse doesn't try to load any hardware modules,
+        # and runs 'empty' modules instead.
+        # ref https://github.com/pop-os/cosmic-osd/issues/70
+        "pulse/default.pa".text = ''
+          # Load a null sink so the daemon doesn't quit
+          load-module module-null-sink sink_name=dummy
+          # Optionally: Load a null source too
+          load-module module-null-source source_name=void
+
+          # Don't load any real hardware modules
+          # You could also add: .nofail to skip errors
+
+          # No auto-detection
+          .nofail
+        '';
+      };
     };
 
     systemd.user.services = {
@@ -174,8 +284,8 @@ in
       };
 
       audio-control = {
-        enable = true;
-        description = "Ghaf Audio Control application";
+        enable = graphicsProfileCfg.proxyAudio;
+        description = "Audio Control application";
         serviceConfig = {
           Type = "simple";
           Restart = "always";
@@ -194,13 +304,13 @@ in
       };
 
       nm-applet = {
-        enable = true;
+        inherit (graphicsProfileCfg.networkManager.applet) enable;
         description = "Network Manager Applet";
         serviceConfig = {
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock";
+          Environment = mkIf graphicsProfileCfg.networkManager.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock";
           ExecStart = ''
             ${lib.getExe' pkgs.networkmanagerapplet "nm-applet"} --indicator
           '';
@@ -211,30 +321,26 @@ in
 
       # We use existing blueman services and create overrides for both
       blueman-applet = {
-        enable = true;
+        inherit (graphicsProfileCfg.bluetooth.applet) enable;
         serviceConfig = {
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = [
-            ""
-            "${lib.getExe pkgs.bt-launcher} applet"
-          ];
+          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
         };
         partOf = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
       };
 
       blueman-manager = {
-        enable = true;
-        serviceConfig.ExecStart = [
-          ""
-          "${lib.getExe pkgs.bt-launcher}"
-        ];
+        inherit (graphicsProfileCfg.bluetooth.applet) enable;
+        serviceConfig = {
+          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
+        };
       };
 
       swayidle = {
-        enable = true;
+        inherit (graphicsProfileCfg.idleManagement) enable;
         description = "Ghaf system idle handler";
         path = with pkgs; [
           brightnessctl
@@ -265,7 +371,7 @@ in
     # VM suspension known issues:
     # - Suspending a VM leads to USB controllers crashing and having to be re-initialized
     # - cosmic-comp may crash on resume
-    systemd.sleep.extraConfig = lib.mkIf config.ghaf.givc.enable ''
+    systemd.sleep.extraConfig = mkIf (!graphicsProfileCfg.allowSuspend) ''
       AllowSuspend=no
       AllowHibernation=no
       AllowHybridSleep=no
@@ -273,16 +379,32 @@ in
     '';
 
     # Following are changes made to default COSMIC configuration done by services.desktopManager.cosmic
-    hardware.bluetooth.enable = lib.mkForce false;
-    # services.acpid.enable = lib.mkForce false;
+
+    # Network manager and bluetooth could be enabled if we're sure
+    # net-vm and audio-vm are not used e.g. on Orin devices
+    hardware.bluetooth.enable = graphicsProfileCfg.bluetooth.enable;
+    networking.networkmanager.enable = graphicsProfileCfg.networkManager.enable;
+
     services.gvfs.enable = lib.mkForce false;
     services.avahi.enable = lib.mkForce false;
     security.rtkit.enable = lib.mkForce false;
-    # services.geoclue2.enable = lib.mkForce false;
-    networking.networkmanager.enable = lib.mkForce false;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
-    # services.upower.enable = lib.mkForce false;
-    services.pipewire.enable = lib.mkForce false;
+    services.power-profiles-daemon.enable = lib.mkForce false;
+
+    # Normally we wouldn't want pipewire running in the graphics profile,
+    # but we add it here so cosmic-osd doesn't consume too much CPU
+    # ref https://github.com/pop-os/cosmic-osd/issues/70
+    services.pipewire = {
+      enable = !graphicsProfileCfg.proxyAudio;
+
+      # Disable audio backends
+      alsa.enable = false;
+      pulse.enable = !graphicsProfileCfg.proxyAudio;
+      jack.enable = false;
+
+      # Disable the session manager
+      wireplumber.enable = false;
+    };
     services.playerctld.enable = true;
   };
 }
