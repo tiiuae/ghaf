@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.partitioning.verity;
+  inherit (pkgs.stdenv.hostPlatform) efiArch;
 in
 {
 
@@ -19,16 +20,29 @@ in
       partitions = {
         "00-esp" = {
           contents = {
-            "/".source = pkgs.runCommand "esp-contents" { } ''
-              mkdir -p $out/EFI/BOOT
-              cp ${config.system.build.uki}/${config.system.boot.loader.ukiFile} $out/EFI/BOOT/BOOTX64.EFI
-            '';
+            "/EFI/BOOT/BOOT${lib.toUpper efiArch}.EFI".source =
+              "${pkgs.systemd}/lib/systemd/boot/efi/systemd-boot${efiArch}.efi";
+
+            "/EFI/Linux/${config.system.boot.loader.ukiFile}".source =
+              "${config.system.build.uki}/${config.system.boot.loader.ukiFile}";
           };
           repartConfig = {
             Type = "esp";
             Format = "vfat";
             SizeMinBytes = "64M";
             UUID = "null";
+          };
+        };
+
+        "01-swap" = {
+          repartConfig = {
+            Type = "swap";
+            Format = "swap";
+            Label = "swap";
+            UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
+            SizeMinBytes = "10G";
+            SizeMaxBytes = "10G";
+            Encrypt = if config.ghaf.storage.encryption.enable then "key-file" else "none";
           };
         };
 
@@ -110,6 +124,9 @@ in
               "/storagevm"
             ];
             UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
+            # When Encrypt is "key-file" and the key file isn't specified, the
+            # disk will be LUKS formatted with an empty passphrase
+            Encrypt = if config.ghaf.storage.encryption.enable then "key-file" else "none";
 
             # Factory reset option will format this partition, which stores all
             # the system & user state.
