@@ -72,13 +72,7 @@
       ]);
     extraModules = [
       {
-        # Disable camera for now, because, due to the bug, the camera is not accessable in BusinessVM
-        # microvm.qemu.extraArgs = optionals (
-        #   config.ghaf.hardware.usb.internal.enable
-        #   && (hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
-        # ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
         microvm.devices = [ ];
-
         imports = [
           ../services/wireguard-gui/wireguard-gui.nix
         ];

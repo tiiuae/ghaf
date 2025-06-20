@@ -153,14 +153,12 @@
   };
 
   # USB devices for passthrough
-  usb = {
-    internal = [ ];
-    external = [
-      {
-        name = "usbKBD";
-        vendorId = "045e";
-        productId = "0800";
-      }
-    ]; # Add external USB devices here
-  };
+  usb.deviceList = [
+    {
+      vms = [ "gui-vm" ];
+      name = "usbKBD";
+      vendorId = "045e";
+      productId = "0800";
+    }
+  ];
 }
