@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
 
 # Start OPA server in background once
 opa run --server --watch ../../default-policy &> /dev/null &

@@ -71,11 +71,11 @@
         ghaf.hardware.passthrough.secure-hotplug.usb.dynamicUpdateRules = true;
         ghaf.hardware.passthrough.secure-hotplug.usb.hotplugRules = {
           allowlist = {
-            "0x0b95:0x1790" = [ "net-vm" ];
-            "0x04f2:0xb751" = [ "business-vm" ];
-            "0x5986:0x2145" = [ "business-vm" ];
-            "0x30c9:0x0052" = [ "business-vm" ];
-            "0x30c9:0x005f" = [ "business-vm" ];
+            "0x0b95:0x1790" = [ "net-vm" ]; # ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter
+            "0x04f2:0xb751" = [ "business-vm" ]; # Lenovo integrated camera, Finland SKU
+            "0x5986:0x2145" = [ "business-vm" ]; # Lenovo integrated camera, UAE SKU
+            "0x30c9:0x0052" = [ "business-vm" ]; # Lenovo integrated camera, UAE SKU
+            "0x30c9:0x005f" = [ "business-vm" ]; # Lenovo integrated camera, Finland SKU
           };
           classlist = {
             "0x01:*:*" = [ "audio-vm" ];

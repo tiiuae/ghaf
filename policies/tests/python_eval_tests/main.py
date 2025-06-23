@@ -1,3 +1,6 @@
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
 import json
 
 enable_print = 0

@@ -118,11 +118,9 @@
 
   # USB devices for passthrough
   usb.deviceList = [
+    # Integrated Camera
     {
-      vms = [
-        "business-vm"
-        "chrome-vm"
-      ];
+      vms = [ "business-vm" ];
       name = "cam0";
       hostbus = "3";
       hostport = "9";

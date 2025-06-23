@@ -154,6 +154,7 @@
 
   # USB devices for passthrough
   usb.deviceList = [
+    # USB keyboard
     {
       vms = [ "gui-vm" ];
       name = "usbKBD";

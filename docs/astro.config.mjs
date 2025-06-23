@@ -79,6 +79,8 @@ export default defineConfig({
                         "ghaf/dev/ref/cosmic",
                         "ghaf/dev/ref/idsvm-development",
                         "ghaf/dev/ref/systemd-service-config",
+                        "ghaf/dev/ref/hotplug_policy_guide",
+                        "ghaf/dev/ref/ghaf_policy",
                       ],
                     },
                     {

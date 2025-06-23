@@ -158,6 +158,7 @@
 
   # USB devices for passthrough
   usb.deviceList = [
+    # Bluetooth controller
     {
       vms = [ "audio-vm" ];
       name = "bt0";

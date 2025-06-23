@@ -97,21 +97,23 @@
   };
 
   usb.deviceList = [
+    # Integrated camera
     {
       vms = [
         "business-vm"
-        "chrome-vm"
       ];
       name = "cam0";
       hostbus = "3";
       hostport = "8";
     }
+    # Fingerprint reader
     {
       vms = [ "gui-vm" ];
       name = "fpr0";
       hostbus = "3";
       hostport = "6";
     }
+    # Bluetooth controller
     {
       vms = [ "audio-vm" ];
       name = "bt0";

@@ -128,15 +128,15 @@
   # USB devices for passthrough
   usb.deviceList = [
     {
+      # Integrated camera
       vms = [
         "business-vm"
-        "chrome-vm"
-        "chromium-vm"
       ];
       name = "cam0";
       hostbus = "1";
       hostport = "8";
     }
+    # Bluetooth controller
     {
       vms = [ "audio-vm" ];
       name = "bt0";

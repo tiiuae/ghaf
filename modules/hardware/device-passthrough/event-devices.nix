@@ -1,4 +1,4 @@
-# Copyright 2025-2026 TII (SSRC) and the Ghaf contributors
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
 { config, lib, ... }:

@@ -1,8 +1,10 @@
-# Ghaf Policy Repository
+---
+title: Ghaf Policy Repository
+---
 
-This repository is the central location for storing [Open Policy Agent (OPA)](https://www.openpolicyagent.org/) policies used in the [Ghaf](https://github.com/tiiuae/ghaf) platform. These policies define security and runtime behavior for components managed by Ghaf.
+Ghaf policies are implemented using **Rego**, the policy language of [Open Policy Agent (OPA)](https://www.openpolicyagent.org/). These policies define the security and runtime behavior of components managed by the Ghaf platform.
 
-Currently, the repository includes policies for **USB hotplug control**, with more policy types to be added over time.
+Policies are maintained within the policy directory at the root of the Ghaf repository, which serves as the source of for all policy logic. Initially, the focus is on USB hotplug control, with additional policy types to be introduced progressively.
 
 ## 📁 Directory Structure
 
@@ -69,7 +71,7 @@ This policy defines rules for securely passing through USB devices to authorized
 *   Denying access to specific USB devices for specific vendor/product combinations
 *   Explicit rules to authorize specific USB devices (by vendor and product ID) to specific VM(s)
 
-Detailed documentation available [here.](./hotplug_policy_guide.md)
+Detailed documentation available [here.](/ghaf/dev/ref/hotplug_policy_guide)
 
 ### Security Philosophy
 
