@@ -11,5 +11,6 @@
     ./bluetooth.nix
     ./disks.nix
     ./github.nix
+    ./timezone.nix
   ];
 }

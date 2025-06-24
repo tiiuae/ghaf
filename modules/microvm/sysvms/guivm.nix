@@ -134,6 +134,8 @@ let
 
               acpid.enable = true;
 
+              timezone.enable = true;
+
               disks = {
                 enable = true;
                 fileManager = lib.mkIf config.ghaf.graphics.labwc.enable "${pkgs.pcmanfm}/bin/pcmanfm";
