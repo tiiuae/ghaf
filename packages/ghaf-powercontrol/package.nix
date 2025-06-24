@@ -8,6 +8,7 @@
   libnotify,
   toybox,
   jq,
+  bash,
   wayland-logout,
   givc-cli ? null,
   ghafConfig ? { },
@@ -28,6 +29,7 @@ writeShellApplication {
     libnotify
     toybox
     jq
+    bash
   ] ++ (lib.optional useGivc givc-cli);
 
   text = ''
@@ -109,43 +111,10 @@ writeShellApplication {
       return 1
     }
 
-    reset_xhci_controllers() {
-      echo "Resetting USB controllers..."
-      # Find all USB controller PCI addresses
-      local controllers
-      controllers=$(lspci -Dnmm | grep -i '0c03' | cut -f1 -d' ')
-
-      if [ -z "$controllers" ]; then
-        echo "No USB controllers found"
-        return 0
-      fi
-
-      echo "Found USB controllers: $controllers" | xargs
-
-      for dev in $controllers; do
-        if [ -L "/sys/bus/pci/devices/$dev/driver" ]; then
-          echo "Unbinding $dev"
-          if ! echo -n "$dev" > /sys/bus/pci/drivers/xhci_hcd/unbind; then
-            echo "ERROR: Failed to unbind $dev"
-            return 1
-          fi
-        else
-          echo "Device already unbinded"
-        fi
-        echo "Rebinding $dev"
-        if ! echo -n "$dev" > /sys/bus/pci/drivers/xhci_hcd/bind; then
-          echo "ERROR: Failed to bind $dev"
-          return 1
-        fi
-      done
-      echo "USB controllers reset successfully"
-      sleep 1
-    }
-
     wakeup() {
       echo "Waking up system..."
-      ${lib.optionalString useGivc "reset_xhci_controllers"} # Only needed if waking up a VM
-      try_toggle_displays on
+      export -f try_toggle_displays
+      timeout 1s bash -c 'try_toggle_displays on' || true
     }
 
     case "$1" in
@@ -157,10 +126,8 @@ writeShellApplication {
         if ghafConfig.profiles.graphics.allowSuspend then
           ''
             echo "Turning off displays..."
-            try_toggle_displays off
-
-            echo "Locking session..."
-            loginctl lock-sessions
+            export -f try_toggle_displays
+            timeout 1s bash -c 'try_toggle_displays off' || true
 
             # givc-cli seems to always return a non-zero exit code,
             # so we must have a separate fail-safe to turn on displays

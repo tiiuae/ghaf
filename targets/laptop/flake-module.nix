@@ -132,14 +132,13 @@ let
         };
       }
     ]))
-    (laptop-configuration "alienware-m18-R2" "debug" (withCommonModules [
+    (laptop-configuration "alienware-m18-r2" "debug" (withCommonModules [
       self.nixosModules.hardware-alienware-m18-r2
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
           profiles.graphics.idleManagement.enable = false;
-          profiles.graphics.allowSuspend = false;
         };
       }
     ]))
@@ -238,7 +237,7 @@ let
         };
       }
     ]))
-    (laptop-configuration "alienware-m18-R2" "release" (withCommonModules [
+    (laptop-configuration "alienware-m18-r2" "release" (withCommonModules [
       self.nixosModules.hardware-alienware-m18-r2
       {
         ghaf = {
