@@ -18,7 +18,6 @@
       @{ETC}=/etc
       @{NIX}=/nix
       @{RUN}=/run
-      @{HOME}=/home/appuser
 
       ${pkgs.google-chrome}/share/google/chrome/google-chrome {
         include <abstractions/base>
