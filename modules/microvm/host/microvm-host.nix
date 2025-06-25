@@ -21,6 +21,8 @@ let
 
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
+
+  activeMicrovms = attrNames config.microvm.vms;
 in
 {
   imports = [
@@ -94,8 +96,11 @@ in
       # Create host directories for microvm shares
       systemd.tmpfiles.rules =
         let
-          vmRootDirs = map (vm: "d /persist/storagevm/${vm} 0700 root root -") (
-            builtins.attrNames config.microvm.vms
+          vmRootDirs = lib.flatten (
+            map (vm: [
+              "d /persist/storagevm/${vm} 0700 root root -"
+              "d /persist/storagevm/${vm}/etc 0700 root root -"
+            ]) activeMicrovms
           );
           vmsWithXdg = lib.filter (
             vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
@@ -121,22 +126,31 @@ in
         ++ vmRootDirs
         ++ xdgRules;
 
-      # TODO: remove hardcoded paths
       systemd.services =
         {
           # Generate anonymous unique device identifier
           generate-device-id = {
             enable = true;
-            description = "Generate device unique id";
+            description = "Generate device and machine ids";
             wantedBy = [ "local-fs.target" ];
             after = [ "local-fs.target" ];
             unitConfig.ConditionPathExists = "!/persist/common/device-id";
             serviceConfig = {
               Type = "oneshot";
-              ExecStart = "${pkgs.writeShellScript "generate-device-id" ''
-                # Generate a unique device id for the device
-                echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
-              ''}";
+              ExecStart =
+                [
+                  # Generate a unique device id
+                  "${pkgs.writeShellScript "generate-device-id" ''
+                    echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
+                  ''}"
+                ]
+                ++ (map (
+                  vm:
+                  # Generate unique machine ids
+                  "${pkgs.writeShellScript "generate-machine-id" ''
+                    ${pkgs.util-linux}/bin/uuidgen | tr -d '-' > /persist/storagevm/${vm}/etc/machine-id
+                  ''}"
+                ) activeMicrovms);
               RemainAfterExit = true;
               Restart = "on-failure";
               RestartSec = "1";
@@ -170,7 +184,7 @@ in
                   ];
                 };
           }
-        ) { } (attrNames config.microvm.vms);
+        ) { } activeMicrovms;
     })
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.
@@ -199,8 +213,8 @@ in
         systemd.services.vinotify = {
           enable = true;
           description = "vinotify";
-          wantedBy = [ "microvms.target" ];
-          before = [ "microvms.target" ];
+          wantedBy = [ "multi-user.target" ];
+          before = [ "multi-user.target" ];
           serviceConfig = {
             Type = "simple";
             Restart = "always";

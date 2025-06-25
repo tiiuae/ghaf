@@ -29,7 +29,7 @@ in
         directories = [
           {
             directory = "/etc/wireguard/";
-            mode = "u=rw,g=,o=";
+            mode = "0600";
           }
         ];
       };

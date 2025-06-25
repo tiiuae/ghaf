@@ -24,6 +24,12 @@ in
       };
     };
 
+    ghaf = lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+      storagevm.directories = [
+        "/etc/NetworkManager/system-connections/"
+      ];
+    };
+
     environment = {
 
       etc."NetworkManager/system-connections/Wifi-1.nmconnection" = {
