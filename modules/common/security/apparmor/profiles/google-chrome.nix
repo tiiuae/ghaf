@@ -18,7 +18,6 @@
       @{ETC}=/etc
       @{NIX}=/nix
       @{RUN}=/run
-      @{HOME}=/home/appuser
 
       ${pkgs.google-chrome}/share/google/chrome/google-chrome {
         include <abstractions/base>
@@ -40,6 +39,7 @@
 
         ptrace (read, readby),
 
+        ${pkgs.dbus}/bin/dbus-send                                      ixr,
         ${pkgs.xdg-utils}/bin/*                                         ixr,
         ${pkgs.coreutils}/bin/*                                         ixr,
         ${pkgs.coreutils-full}/bin/*                                    ixr,
@@ -102,13 +102,17 @@
         owner @{PROC}/[0-9]*/environ                                    rix,
         owner @{PROC}/[0-9]*/clear_refs                                 rw,
         owner @{PROC}/[0-9]*/comm                                       rw,
+        owner @{PROC}/[0-9]*/statm                                      r,
+        owner @{PROC}/[0-9]*/smaps_rollup                               r,
         owner @{PROC}/self/**                                           r,
         owner @{PROC}/self/exe                                          rix,
-        owner @{PROC}/self/fd/*                                         rw,
+        owner @{PROC}/self/fd/*                                         rwkm,
               @{PROC}/sys/kernel/yama/ptrace_scope                      rw,
               @{PROC}/sys/fs/inotify/max_user_watches                   r,
               @{PROC}/ati/major                                         r,
               @{PROC}/pressure/*                                        r,
+              @{PROC}/[0-9]*/fd/*                                       rw,
+              @{PROC}/version                                           r,
 
               /dev/                                                     r,
               /dev/**                                                   rw,
@@ -153,8 +157,8 @@
         owner @{HOME}/.cache/**                                         wrk,
         owner @{HOME}/.config/google-chrome                             rwkm,
         owner @{HOME}/.config/google-chrome/**                          rwkm,
-        owner @{HOME}/.config/**                                        rw,
-        owner @{HOME}/.config                                           rw,
+        owner @{HOME}/.config/**                                        rwkm,
+        owner @{HOME}/.config/                                          rw,
 
         owner @{HOME}/.local/                                           rw,
         owner @{HOME}/.local/**                                         rw,
@@ -171,9 +175,9 @@
         owner @{HOME}/tmp/                                              rw,
 
 
-        @{ETC}/profiles                                                 r,
+        @{ETC}/profiles/                                                r,
         @{ETC}/profiles/**                                              r,
-        @{NIX}/var                                                      r,
+        @{NIX}/var/                                                     r,
         @{NIX}/var/**                                                   r,
         @{RUN}/givc/**                                                  rix,
 
