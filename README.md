@@ -17,6 +17,7 @@
 
 
 
+
 This repository contains the source files (code and documentation) of Ghaf Framework — an open-source project for enhancing security through compartmentalization on edge devices.
 
 For information on build instructions and supported hardware, see the [Reference Implementations](https://ghaf.tii.ae/ghaf/dev/ref/) section of Ghaf documentation.
