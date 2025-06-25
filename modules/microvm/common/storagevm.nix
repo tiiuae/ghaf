@@ -13,6 +13,7 @@ let
     mkIf
     mkMerge
     types
+    optionals
     ;
 in
 {
@@ -77,6 +78,16 @@ in
       '';
     };
 
+    preserveLogs = mkOption {
+      type = types.bool;
+      default = config.ghaf.profiles.debug.enable;
+      defaultText = "config.ghaf.profiles.debug.enable";
+      description = ''
+        Whether to preserve `journald` and `audit` logs of the VM. If enabled, it will keep logs
+        locally in persistant storage across reboots. This is useful for debugging purposes.
+      '';
+    };
+
   };
 
   options.virtualisation.fileSystems = mkOption { };
@@ -91,6 +102,7 @@ in
           "nosuid"
           "noexec"
         ];
+        noCheck = true;
       };
       virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
 
@@ -116,16 +128,51 @@ in
       preservation = {
         enable = true;
         preserveAt.${cfg.mountPath} = mkMerge [
+
+          # Standard directories and files
           {
             directories = [
               "/var/lib/nixos"
             ];
             files = [
-              "/etc/ssh/ssh_host_ed25519_key.pub"
-              "/etc/ssh/ssh_host_ed25519_key"
+              {
+                file = "/etc/machine-id";
+                inInitrd = true;
+              }
             ];
           }
+
+          # User-specific directories and files
           { inherit (cfg) directories users files; }
+
+          # Optional log preservation
+          (mkIf cfg.preserveLogs {
+            directories =
+              [
+                "/var/log/journal"
+              ]
+              ++ optionals config.security.auditd.enable [
+                "/var/log/audit"
+              ];
+          })
+
+          # Optional files for ssh
+          (mkIf config.services.sshd.enable {
+            files = [
+              {
+                file = "/etc/ssh/ssh_host_ed25519_key";
+                how = "symlink";
+                configureParent = true;
+              }
+              {
+                file = "/etc/ssh/ssh_host_ed25519_key.pub";
+                how = "symlink";
+                configureParent = true;
+              }
+            ];
+          })
+
+          # Optional directories for systemd home
           (mkIf config.ghaf.users.loginUser.enable {
             directories = [
               "/var/lib/systemd/home"
@@ -134,10 +181,8 @@ in
         ];
       };
 
-      # Workaround, fixes homed machine-id dependency
-      environment.etc = lib.optionalAttrs config.ghaf.users.loginUser.enable {
-        machine-id.text = "d8dee68f8d334c79ac8f8229921e0b25";
-      };
+      # Remove systemd machine-id commit service
+      systemd.suppressedSystemUnits = [ "systemd-machine-id-commit.service" ];
     })
     (lib.mkIf (config.ghaf.givc.enable && config.ghaf.givc.enableTls) {
       virtualisation.fileSystems.${cfg.mountPath} = {

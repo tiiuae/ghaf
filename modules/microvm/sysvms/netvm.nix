@@ -54,7 +54,6 @@ let
             storagevm = {
               enable = true;
               name = vmName;
-              directories = [ "/etc/NetworkManager/system-connections/" ];
             };
 
             # Networking
