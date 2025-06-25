@@ -79,6 +79,8 @@ in
 
   };
 
+  options.virtualisation.fileSystems = mkOption { };
+
   config = lib.mkMerge [
     (lib.mkIf cfg.enable {
       fileSystems.${cfg.mountPath} = {
@@ -111,24 +113,26 @@ in
         }
       ];
 
-      environment.persistence.${cfg.mountPath} = mkMerge [
-        {
-          hideMounts = true;
-          directories = [
-            "/var/lib/nixos"
-          ];
-          files = [
-            "/etc/ssh/ssh_host_ed25519_key.pub"
-            "/etc/ssh/ssh_host_ed25519_key"
-          ];
-        }
-        { inherit (cfg) directories users files; }
-        (mkIf config.ghaf.users.loginUser.enable {
-          directories = [
-            "/var/lib/systemd/home"
-          ];
-        })
-      ];
+      preservation = {
+        enable = true;
+        preserveAt.${cfg.mountPath} = mkMerge [
+          {
+            directories = [
+              "/var/lib/nixos"
+            ];
+            files = [
+              "/etc/ssh/ssh_host_ed25519_key.pub"
+              "/etc/ssh/ssh_host_ed25519_key"
+            ];
+          }
+          { inherit (cfg) directories users files; }
+          (mkIf config.ghaf.users.loginUser.enable {
+            directories = [
+              "/var/lib/systemd/home"
+            ];
+          })
+        ];
+      };
 
       # Workaround, fixes homed machine-id dependency
       environment.etc = lib.optionalAttrs config.ghaf.users.loginUser.enable {

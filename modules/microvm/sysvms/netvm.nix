@@ -10,7 +10,7 @@ let
   vmName = "net-vm";
   netvmBaseConfiguration = {
     imports = [
-      inputs.impermanence.nixosModules.impermanence
+      inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.profiles
