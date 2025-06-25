@@ -119,11 +119,8 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    #
-    # Security
-    #
-    impermanence = {
-      url = "github:nix-community/impermanence/32b1094d28d5fbedcc85a403bc08c8877b396255";
+    preservation = {
+      url = "github:nix-community/preservation";
     };
 
     givc = {

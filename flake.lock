@@ -329,22 +329,6 @@
         "type": "github"
       }
     },
-    "impermanence": {
-      "locked": {
-        "lastModified": 1728049659,
-        "narHash": "sha256-lGtad92Y/TnqpXRlZ1syiEq5czpvblKmcypeqGPiVF4=",
-        "owner": "nix-community",
-        "repo": "impermanence",
-        "rev": "32b1094d28d5fbedcc85a403bc08c8877b396255",
-        "type": "github"
-      },
-      "original": {
-        "owner": "nix-community",
-        "repo": "impermanence",
-        "rev": "32b1094d28d5fbedcc85a403bc08c8877b396255",
-        "type": "github"
-      }
-    },
     "jetpack-nixos": {
       "inputs": {
         "nixpkgs": [
@@ -473,6 +457,21 @@
         "type": "github"
       }
     },
+    "preservation": {
+      "locked": {
+        "lastModified": 1738541138,
+        "narHash": "sha256-isT+jR8P8UFh5PJDzGHYXqVEHEZa0D5WvT5kfMf14AM=",
+        "owner": "nix-community",
+        "repo": "preservation",
+        "rev": "2f16754f9f6b766c1429375ab7417dc81cc90a63",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-community",
+        "repo": "preservation",
+        "type": "github"
+      }
+    },
     "root": {
       "inputs": {
         "ci-test-automation": "ci-test-automation",
@@ -486,13 +485,13 @@
         "ghafpkgs": "ghafpkgs",
         "git-hooks-nix": "git-hooks-nix",
         "givc": "givc",
-        "impermanence": "impermanence",
         "jetpack-nixos": "jetpack-nixos",
         "microvm": "microvm",
         "nixos-generators": "nixos-generators",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
         "pkgs-by-name-for-flake-parts": "pkgs-by-name-for-flake-parts",
+        "preservation": "preservation",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix",
         "wireguard-gui": "wireguard-gui"

@@ -38,7 +38,7 @@ in
           directory = "/var/lib/bluetooth";
           user = "bluetooth";
           group = "bluetooth";
-          mode = "u=rwx,g=,o=";
+          mode = "0700";
         }
       ];
     };

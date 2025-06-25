@@ -15,7 +15,7 @@ let
     imports = [
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.givc
-      inputs.impermanence.nixosModules.impermanence
+      inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.vm-modules
 
       (

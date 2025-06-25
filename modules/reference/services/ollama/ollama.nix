@@ -38,7 +38,7 @@ in
       storagevm.directories = [
         {
           directory = "/var/lib/private/ollama";
-          mode = "u=rwx,g=,o=";
+          mode = "0700";
         }
       ];
     };

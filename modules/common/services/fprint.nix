@@ -31,7 +31,7 @@ in
             directory = "/var/lib/fprint";
             user = "root";
             group = "root";
-            mode = "u=rwx,g=,o=";
+            mode = "0700";
           }
         ];
       };
