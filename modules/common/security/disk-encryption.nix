@@ -96,9 +96,11 @@ in
             systemd-cryptenroll --recovery ${persistConf.device}
             echo '========== Setting up encrypted swap =========='
             systemd-cryptenroll --tpm2-device=auto ${swapConf.device}
-            echo '========== Removing default passphrase =========='
-            systemd-cryptenroll --wipe-slot=password ${persistConf.device}
-            systemd-cryptenroll --wipe-slot=password ${swapConf.device}
+            ${lib.optionalString (!config.ghaf.profiles.debug.enable) ''
+              echo '========== Removing default passphrase =========='
+              systemd-cryptenroll --wipe-slot=password ${persistConf.device}
+              systemd-cryptenroll --wipe-slot=password ${swapConf.device}
+            ''}
             read -r -s -p 'All done. Press Enter to continue'
           '';
         };
