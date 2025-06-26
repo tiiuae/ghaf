@@ -14,7 +14,7 @@ prev.qemu_kvm.overrideAttrs (
   // (final.lib.optionalAttrs (final.lib.versionAtLeast qemu_version "8.1") {
     patches = prev.patches ++ [
       ./acpi-devices-passthrough-qemu-8.1.patch
-      ./0001-ivshmem-flat-memory-support.patch
+      # ./0001-ivshmem-flat-memory-support.patch
       ./usb-host-enable-autoscan-for-bus-addr.patch
     ];
   })
