@@ -1,17 +1,17 @@
-From 13229d9e11eaf15eb6679be036364b9d0256f1c1 Mon Sep 17 00:00:00 2001
+From 3f62fe716090c8a99d2195deb838a14429e2bb71 Mon Sep 17 00:00:00 2001
 From: Jaroslaw Kurowski <jaroslaw.kurowski@tii.ae>
-Date: Wed, 10 Jul 2024 15:21:07 +0400
+Date: Tue, 8 Jul 2025 11:28:00 +0400
 Subject: ivshmem flat memory support
 
 ---
- contrib/ivshmem-server/ivshmem-server.c |  6 +-
+ contrib/ivshmem-server/ivshmem-server.c |  7 +--
  hw/i386/pc_q35.c                        |  2 +
- hw/misc/ivshmem.c                       | 74 ++++++++++++++++++++++---
+ hw/misc/ivshmem-pci.c                   | 61 ++++++++++++++++++++++++-
  include/hw/misc/ivshmem.h               |  1 +
- 4 files changed, 71 insertions(+), 12 deletions(-)
+ 4 files changed, 67 insertions(+), 4 deletions(-)
 
 diff --git a/contrib/ivshmem-server/ivshmem-server.c b/contrib/ivshmem-server/ivshmem-server.c
-index 2f3c732..906c5d0 100644
+index 2f3c732..e7c7774 100644
 --- a/contrib/ivshmem-server/ivshmem-server.c
 +++ b/contrib/ivshmem-server/ivshmem-server.c
 @@ -11,6 +11,7 @@
@@ -36,8 +36,16 @@ index 2f3c732..906c5d0 100644
          g_free(filename);
      }
  
+@@ -347,6 +347,7 @@ ivshmem_server_start(IvshmemServer *server)
+ 
+     server->sock_fd = sock_fd;
+     server->shm_fd = shm_fd;
++    server->cur_id = 1;
+ 
+     return 0;
+ 
 diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
-index c7bc8a2..d76939e 100644
+index fd96d03..69e1902 100644
 --- a/hw/i386/pc_q35.c
 +++ b/hw/i386/pc_q35.c
 @@ -28,6 +28,7 @@
@@ -48,27 +56,28 @@ index c7bc8a2..d76939e 100644
  #include "qemu/osdep.h"
  #include "qemu/units.h"
  #include "hw/acpi/acpi.h"
-@@ -361,6 +362,7 @@ static void pc_q35_machine_options(MachineClass *m)
+@@ -352,6 +353,7 @@ static void pc_q35_machine_options(MachineClass *m)
+     m->no_floppy = 1;
+     m->max_cpus = 4096;
+     m->no_parallel = !module_object_class_by_name(TYPE_ISA_PARALLEL);
++    machine_class_allow_dynamic_sysbus_dev(m, TYPE_IVSHMEM_FLT);
+     machine_class_allow_dynamic_sysbus_dev(m, TYPE_AMD_IOMMU_DEVICE);
      machine_class_allow_dynamic_sysbus_dev(m, TYPE_INTEL_IOMMU_DEVICE);
      machine_class_allow_dynamic_sysbus_dev(m, TYPE_RAMFB_DEVICE);
-     machine_class_allow_dynamic_sysbus_dev(m, TYPE_VMBUS_BRIDGE);
-+    machine_class_allow_dynamic_sysbus_dev(m, TYPE_IVSHMEM_FLAT);
-     compat_props_add(m->compat_props,
-                      pc_q35_compat_defaults, pc_q35_compat_defaults_len);
- }
-diff --git a/hw/misc/ivshmem.c b/hw/misc/ivshmem.c
-index de49d1b..b1761b3 100644
---- a/hw/misc/ivshmem.c
-+++ b/hw/misc/ivshmem.c
-@@ -36,6 +36,7 @@
+diff --git a/hw/misc/ivshmem-pci.c b/hw/misc/ivshmem-pci.c
+index 900d523..9068e8e 100644
+--- a/hw/misc/ivshmem-pci.c
++++ b/hw/misc/ivshmem-pci.c
+@@ -36,6 +36,8 @@
  #include "chardev/char-fe.h"
- #include "sysemu/hostmem.h"
+ #include "system/hostmem.h"
  #include "qapi/visitor.h"
 +#include "hw/sysbus.h"
++#include "system/system.h"
  
  #include "hw/misc/ivshmem.h"
  #include "qom/object.h"
-@@ -59,6 +60,7 @@
+@@ -59,6 +61,7 @@
  
  #define TYPE_IVSHMEM_COMMON "ivshmem-common"
  typedef struct IVShmemState IVShmemState;
@@ -76,17 +85,17 @@ index de49d1b..b1761b3 100644
  DECLARE_INSTANCE_CHECKER(IVShmemState, IVSHMEM_COMMON,
                           TYPE_IVSHMEM_COMMON)
  
-@@ -74,6 +76,9 @@ DECLARE_INSTANCE_CHECKER(IVShmemState, IVSHMEM_DOORBELL,
+@@ -74,6 +77,9 @@ DECLARE_INSTANCE_CHECKER(IVShmemState, IVSHMEM_DOORBELL,
  DECLARE_INSTANCE_CHECKER(IVShmemState, IVSHMEM,
                           TYPE_IVSHMEM)
  
-+#define TYPE_IVSHMEM_FLAT "ivshmem-flat"
-+DECLARE_INSTANCE_CHECKER(IvshmemFTState, IVSHMEM_FLAT, TYPE_IVSHMEM_FLAT)
++#define TYPE_IVSHMEM_FLT "ivshmem-flt"
++DECLARE_INSTANCE_CHECKER(IvshmemFTState, IVSHMEM_FLT, TYPE_IVSHMEM_FLT)
 +
  typedef struct Peer {
      int nb_eventfds;
      EventNotifier *eventfds;
-@@ -117,6 +122,15 @@ struct IVShmemState {
+@@ -117,6 +123,15 @@ struct IVShmemState {
      /* migration stuff */
      OnOffAuto master;
      Error *migration_blocker;
@@ -102,29 +111,39 @@ index de49d1b..b1761b3 100644
  };
  
  /* registers for the Inter-VM shared memory device */
-@@ -476,8 +490,11 @@ static void setup_interrupt(IVShmemState *s, int vector, Error **errp)
- 
- static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
+@@ -478,7 +493,9 @@ static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
  {
-+    Error *local_err = NULL;
      struct stat buf;
      size_t size;
+-
 +    void *ptr;
 +    SysBusDevice *sbd;
- 
++    
      if (s->ivshmem_bar2) {
          error_setg(errp, "server sent unexpected shared memory message");
-@@ -494,13 +511,26 @@ static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
+         close(fd);
+@@ -494,6 +511,30 @@ static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
  
      size = buf.st_size;
  
++    /* Let the memory driver know my VM name */
++    if (write(fd, qemu_name, strlen(qemu_name)+1) <= 0) {
++        error_setg_errno(errp, errno,
++            "can't write VM name to shared memory sent by server");
++        close(fd);
++        return;
++    }
 +    if (s->flataddr) {
 +
-+        ptr = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_HUGETLB|MAP_LOCKED,
++        ptr = mmap(0, size, PROT_READ|PROT_WRITE, MAP_SHARED|MAP_LOCKED,
 +                fd, 0);
-+        s->flat_dev = sysbus_create_simple(TYPE_IVSHMEM_FLAT, -1, 0);
++        if (ptr == NULL) {
++            error_setg(errp, "can't mmap shared memory region");
++            return;
++        }
++        s->flat_dev = sysbus_create_simple(TYPE_IVSHMEM_FLT, -1, 0);
 +
-+        memory_region_init_ram_ptr(&s->flat_mem, OBJECT(IVSHMEM_FLAT(s->flat_dev)),
++        memory_region_init_ram_ptr(&s->flat_mem, OBJECT(IVSHMEM_FLT(s->flat_dev)),
 +                                   "ivshmem.flat", size, ptr);
 +        sbd = SYS_BUS_DEVICE(s->flat_dev);
 +        sysbus_init_mmio(sbd, &s->flat_mem);
@@ -132,102 +151,38 @@ index de49d1b..b1761b3 100644
 +    }
 +
      /* mmap the region and map into the BAR2 */
--    if (!memory_region_init_ram_from_fd(&s->server_bar2, OBJECT(s),
--                                        "ivshmem.bar2", size, RAM_SHARED,
--                                        fd, 0, errp)) {
-+    memory_region_init_ram_from_fd(&s->server_bar2, OBJECT(s), "ivshmem.bar2",
-+                                   size, RAM_SHARED, fd, 0, &local_err);
-+    if (local_err) {
-+        error_propagate(errp, local_err);
-         return;
-     }
--
-     s->ivshmem_bar2 = &s->server_bar2;
- }
- 
-@@ -832,7 +862,6 @@ static void ivshmem_write_config(PCIDevice *pdev, uint32_t address,
- 
- static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
- {
--    ERRP_GUARD();
-     IVShmemState *s = IVSHMEM_COMMON(dev);
-     Error *err = NULL;
-     uint8_t *pci_conf;
-@@ -902,7 +931,8 @@ static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
-     if (!ivshmem_is_master(s)) {
-         error_setg(&s->migration_blocker,
-                    "Migration is disabled when using feature 'peer mode' in device 'ivshmem'");
--        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
-+        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
-+            error_free(s->migration_blocker);
-             return;
-         }
-     }
-@@ -920,7 +950,10 @@ static void ivshmem_exit(PCIDevice *dev)
-     IVShmemState *s = IVSHMEM_COMMON(dev);
-     int i;
- 
--    migrate_del_blocker(&s->migration_blocker);
-+    if (s->migration_blocker) {
-+        migrate_del_blocker(&s->migration_blocker);
-+        error_free(s->migration_blocker);
-+    }
- 
-     if (memory_region_is_mapped(s->ivshmem_bar2)) {
-         if (!s->hostmem) {
-@@ -1014,7 +1047,7 @@ static const VMStateDescription ivshmem_plain_vmsd = {
-     .minimum_version_id = 0,
-     .pre_load = ivshmem_pre_load,
-     .post_load = ivshmem_post_load,
--    .fields = (const VMStateField[]) {
-+    .fields = (VMStateField[]) {
-         VMSTATE_PCI_DEVICE(parent_obj, IVShmemState),
-         VMSTATE_UINT32(intrstatus, IVShmemState),
-         VMSTATE_UINT32(intrmask, IVShmemState),
-@@ -1068,7 +1101,7 @@ static const VMStateDescription ivshmem_doorbell_vmsd = {
-     .minimum_version_id = 0,
-     .pre_load = ivshmem_pre_load,
-     .post_load = ivshmem_post_load,
--    .fields = (const VMStateField[]) {
-+    .fields = (VMStateField[]) {
-         VMSTATE_PCI_DEVICE(parent_obj, IVShmemState),
-         VMSTATE_MSIX(parent_obj, IVShmemState),
-         VMSTATE_UINT32(intrstatus, IVShmemState),
-@@ -1083,6 +1116,7 @@ static Property ivshmem_doorbell_properties[] = {
+     if (!memory_region_init_ram_from_fd(&s->server_bar2, OBJECT(s),
+                                         "ivshmem.bar2", size, RAM_SHARED,
+@@ -1082,6 +1123,7 @@ static const Property ivshmem_doorbell_properties[] = {
      DEFINE_PROP_BIT("ioeventfd", IVShmemState, features, IVSHMEM_IOEVENTFD,
                      true),
      DEFINE_PROP_ON_OFF_AUTO("master", IVShmemState, master, ON_OFF_AUTO_OFF),
 +    DEFINE_PROP_UINT64("flataddr", IVShmemState, flataddr, 0),
-     DEFINE_PROP_END_OF_LIST(),
  };
  
-@@ -1115,6 +1149,20 @@ static void ivshmem_doorbell_class_init(ObjectClass *klass, void *data)
+ static void ivshmem_doorbell_init(Object *obj)
+@@ -1113,6 +1155,15 @@ static void ivshmem_doorbell_class_init(ObjectClass *klass, void *data)
      dc->vmsd = &ivshmem_doorbell_vmsd;
  }
  
-+static Property ivshmem_flat_props[] = {
-+    DEFINE_PROP_END_OF_LIST(),
-+};
-+
 +static void ivshmem_flat_class_init(ObjectClass *klass, void *data)
 +{
 +    DeviceClass *dc = DEVICE_CLASS(klass);
 +
 +    dc->hotpluggable = true;
 +    set_bit(DEVICE_CATEGORY_MISC, dc->categories);
-+    device_class_set_props(dc, ivshmem_flat_props);
 +    dc->user_creatable = false;
 +}
 +
  static const TypeInfo ivshmem_doorbell_info = {
      .name          = TYPE_IVSHMEM_DOORBELL,
      .parent        = TYPE_IVSHMEM_COMMON,
-@@ -1123,11 +1171,19 @@ static const TypeInfo ivshmem_doorbell_info = {
+@@ -1121,11 +1172,19 @@ static const TypeInfo ivshmem_doorbell_info = {
      .class_init    = ivshmem_doorbell_class_init,
  };
  
 +static const TypeInfo ivshmem_flat_info = {
-+    .name = TYPE_IVSHMEM_FLAT,
++    .name = TYPE_IVSHMEM_FLT,
 +    .parent = TYPE_SYS_BUS_DEVICE,
 +    .instance_size = sizeof(IvshmemFTState),
 +    .class_init = ivshmem_flat_class_init,
@@ -243,16 +198,15 @@ index de49d1b..b1761b3 100644
  
  type_init(ivshmem_register_types)
 diff --git a/include/hw/misc/ivshmem.h b/include/hw/misc/ivshmem.h
-index 433ef53..43aeab7 100644
+index 433ef53..8449ff8 100644
 --- a/include/hw/misc/ivshmem.h
 +++ b/include/hw/misc/ivshmem.h
 @@ -21,5 +21,6 @@
  #define IVSHMEM_H
  
  #define IVSHMEM_PROTOCOL_VERSION 0
-+#define TYPE_IVSHMEM_FLAT "ivshmem-flat"
++#define TYPE_IVSHMEM_FLT "ivshmem-flt"
  
  #endif /* IVSHMEM_H */
 -- 
-2.45.2
-
+2.50.0

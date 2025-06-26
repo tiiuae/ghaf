@@ -152,7 +152,7 @@ new file mode 100644
 index 000000000..279452e95
 --- /dev/null
 +++ b/hw/acpi/acad.c
-@@ -0,0 +1,318 @@
+@@ -0,0 +1,317 @@
 +/*
 + * QEMU emulated AC adapter device.
 + *
@@ -397,12 +397,11 @@ index 000000000..279452e95
 +                    sizeof(*acad_port));
 +}
 +
-+static Property acad_device_properties[] = {
++static const Property acad_device_properties[] = {
 +    DEFINE_PROP_UINT16(AC_ADAPTER_IOPORT_PROP, ACADState, ioport, 0x53c),
 +    DEFINE_PROP_UINT64(AC_ADAPTER_PROBE_STATE_INTERVAL, ACADState,
 +                       probe_state_interval, 2000),
 +    DEFINE_PROP_STRING(AC_ADAPTER_PATH_PROP, ACADState, acad_path),
-+    DEFINE_PROP_END_OF_LIST(),
 +};
 +
 +static const VMStateDescription acad_vmstate = {
@@ -476,7 +475,7 @@ new file mode 100644
 index 000000000..ad86ad66f
 --- /dev/null
 +++ b/hw/acpi/battery.c
-@@ -0,0 +1,529 @@
+@@ -0,0 +1,528 @@
 +/*
 + * QEMU emulated battery device.
 + *
@@ -910,12 +909,11 @@ index 000000000..ad86ad66f
 +                    sizeof(*battery_port));
 +}
 +
-+static Property battery_device_properties[] = {
++static const Property battery_device_properties[] = {
 +    DEFINE_PROP_UINT16(BATTERY_IOPORT_PROP, BatteryState, ioport, 0x530),
 +    DEFINE_PROP_UINT64(BATTERY_PROBE_STATE_INTERVAL, BatteryState,
 +                       probe_state_interval, 2000),
 +    DEFINE_PROP_STRING(BATTERY_PATH_PROP, BatteryState, bat_path),
-+    DEFINE_PROP_END_OF_LIST(),
 +};
 +
 +static const VMStateDescription battery_vmstate = {
@@ -1011,7 +1009,7 @@ new file mode 100644
 index 000000000..edca46ce6
 --- /dev/null
 +++ b/hw/acpi/button.c
-@@ -0,0 +1,327 @@
+@@ -0,0 +1,326 @@
 +/*
 + * QEMU emulated lid button device
 + *
@@ -1265,12 +1263,11 @@ index 000000000..edca46ce6
 +                    sizeof(*button_port));
 +}
 +
-+static Property button_device_properties[] = {
++static const Property button_device_properties[] = {
 +    DEFINE_PROP_UINT16(BUTTON_IOPORT_PROP, BUTTONState, ioport, 0x53d),
 +    DEFINE_PROP_UINT64(BUTTON_PROBE_STATE_INTERVAL, BUTTONState,
 +                       probe_state_interval, 2000),
 +    DEFINE_PROP_STRING(BUTTON_PATH_PROP, BUTTONState, button_path),
-+    DEFINE_PROP_END_OF_LIST(),
 +};
 +
 +static const VMStateDescription button_vmstate = {
