@@ -180,10 +180,12 @@ in
         ];
         after = [
           "nix-store.mount"
+          "persist.mount"
         ];
         wants = [
           "nix-store.mount"
           "dev-mapper-swap.device"
+          "persist.mount"
         ];
         serviceConfig = {
           Type = "oneshot";

@@ -80,10 +80,15 @@ in
         wants =
           [
             "nix-store.mount"
+            "persist.mount"
           ]
           ++ lib.optionals config.ghaf.storage.encryption.enable [
             "dev-mapper-persist.device"
           ];
+        after = [
+          "nix-store.mount"
+          "persist.mount"
+        ];
         wantedBy = [
           "sysinit.target"
         ];
