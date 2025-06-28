@@ -136,6 +136,8 @@ let
 
               timezone.enable = true;
 
+              locale.enable = true;
+
               disks = {
                 enable = true;
                 fileManager = lib.mkIf config.ghaf.graphics.labwc.enable "${pkgs.pcmanfm}/bin/pcmanfm";

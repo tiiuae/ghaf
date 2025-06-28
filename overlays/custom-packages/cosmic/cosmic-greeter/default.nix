@@ -3,10 +3,11 @@
 # Disable network manager in cosmic-greeter
 # Ref: https://github.com/pop-os/cosmic-greeter/blob/master/Cargo.toml
 { prev }:
-prev.cosmic-greeter.overrideAttrs (oldAttrs: {
-  cargoBuildFlags = (oldAttrs.cargoBuildFlags or [ ]) ++ [
-    "--no-default-features"
-    "--features"
-    "logind,upower"
+prev.cosmic-greeter.overrideAttrs (_oldAttrs: {
+  cargoBuildNoDefaultFeatures = true;
+  cargoBuildFeatures = [
+    "logind"
+    # "networkmanager"
+    "upower"
   ];
 })
