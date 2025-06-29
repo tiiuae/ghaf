@@ -49,6 +49,7 @@ let
               withHardenedConfigs = true;
             };
             givc.netvm.enable = true;
+            power-profile.vm = true;
 
             # Storage
             storagevm = {
