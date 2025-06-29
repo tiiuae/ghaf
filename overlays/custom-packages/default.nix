@@ -17,4 +17,5 @@
   cosmic-session = import ./cosmic/cosmic-session { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
+  xdg-desktop-portal-cosmic = import ./cosmic/xdg-desktop-portal-cosmic { inherit prev; };
 })
