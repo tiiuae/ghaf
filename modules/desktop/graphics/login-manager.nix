@@ -56,7 +56,7 @@ in
     };
 
     systemd.services.greetd.serviceConfig = {
-      RestartSec = "1";
+      RestartSec = "5";
     };
 
     users.users.greeter.extraGroups = [ "video" ];
