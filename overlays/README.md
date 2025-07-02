@@ -31,14 +31,12 @@ It makes things clear and robust.
 
 Some patches are carried as overlays and others are patches that are cherry-picked
 from staging and main into a tiiuae maintained version of nixpkgs 
-[tiiuae/nixpkgs/...](https://github.com/tiiuae/nixpkgs/tree/patched-unstable-proc-qemu)
+[tiiuae/nixpkgs/...](https://github.com/tiiuae/nixpkgs/)
 
 The status of the integration in nixpkgs can be tracked using the [Pull Request Tracker](https://nixpk.gs/pr-tracker.html)
 
 ## From Overlays
 
 [gtklock: Multiple errors on wrong password](https://github.com/jovanlanik/gtklock/pull/119)
-
-[libqmi: Failure to cross compile](https://github.com/NixOS/nixpkgs/issues/384946)
 
 ## carried in tiiuae/nixpkgs/...
