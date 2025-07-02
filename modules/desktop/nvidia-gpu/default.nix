@@ -22,6 +22,27 @@ let
     # TODO: is this still the case? seems that nixos defaults to 0
     WLR_NO_HARDWARE_CURSORS = lib.mkForce "1";
   };
+
+  nvidia-suspend = pkgs.writeShellApplication {
+    name = "nvidia-suspend";
+    text = ''
+      if [ ! -f /proc/driver/nvidia/suspend ]; then
+          exit 0
+      fi
+      case "$1" in
+          suspend)
+              echo "$1" > /proc/driver/nvidia/suspend
+              exit 0
+              ;;
+          resume)
+              echo "$1" > /proc/driver/nvidia/suspend
+              exit 0
+              ;;
+          *)
+            exit 1
+      esac
+    '';
+  };
 in
 {
   imports = [
@@ -109,5 +130,10 @@ in
 
     environment.sessionVariables = environmentVariables;
     ghaf.graphics.labwc.extraVariables = environmentVariables;
+
+    powerManagement = {
+      powerDownCommands = "${lib.getExe nvidia-suspend} suspend";
+      resumeCommands = "${lib.getExe nvidia-suspend} resume";
+    };
   };
 }

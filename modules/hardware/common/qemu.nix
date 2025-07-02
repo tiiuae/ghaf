@@ -49,7 +49,13 @@ in
     };
     ghaf.qemu.audiovm = optionalAttrs (config.ghaf.type == "host") {
       microvm.qemu.extraArgs =
-        optionals (hasAttr "bt0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.bt0
+        optionals (config.ghaf.hardware.definition.type == "laptop") [
+          "-device"
+          "battery"
+          "-device"
+          "acad"
+        ]
+        ++ optionals (hasAttr "bt0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.bt0
         ++ optionals (config.ghaf.hardware.definition.audio.acpiPath != null) [
           "-acpitable"
           "file=${config.ghaf.hardware.definition.audio.acpiPath}"

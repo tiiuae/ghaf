@@ -50,6 +50,7 @@ let
               withHardenedConfigs = true;
             };
             givc.audiovm.enable = true;
+            power-profile.vm = true;
 
             # Storage
             storagevm = {
