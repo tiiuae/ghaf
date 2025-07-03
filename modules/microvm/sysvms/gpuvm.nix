@@ -33,23 +33,8 @@ let
     buildInputs = with pkgs; [
       stdenv.cc.cc.lib
       nvidia-jetpack.l4t-cuda
-      nvidia-jetpack.cudaPackages.cuda_cudart
-      # nvidia-jetpack.cudaPackages.cuda_cuobjdump
-      # nvidia-jetpack.cudaPackages.cuda_cupti
-      # nvidia-jetpack.cudaPackages.cuda_cuxxfilt
-      # nvidia-jetpack.cudaPackages.cuda_documentation
-      nvidia-jetpack.cudaPackages.cuda_nvcc
-      # nvidia-jetpack.cudaPackages.cuda_nvdisasm
-      nvidia-jetpack.cudaPackages.cuda_nvml_dev
-      # nvidia-jetpack.cudaPackages.cuda_nvprune
-      nvidia-jetpack.cudaPackages.cuda_nvrtc
-      # nvidia-jetpack.cudaPackages.cuda_nvtx
-      # nvidia-jetpack.cudaPackages.cuda_sanitizer_api
-      # nvidia-jetpack.cudaPackages.cuda_profiler_api
-      nvidia-jetpack.cudaPackages.libcublas
-      nvidia-jetpack.cudaPackages.libcufft
-      nvidia-jetpack.cudaPackages.libcurand
-      # nvidia-jetpack.cudaPackages.libnpp
+      # Only include the essential CUDA libraries that ollama needs
+      # Using l4t packages directly to avoid cudaPackages version issues
     ];
 
     dontStrip = true;
@@ -556,9 +541,17 @@ in
         qemuOverlay = import ./gpuvm_res/qemu;
         pkgs = import inputs.nixpkgs {
           system = "aarch64-linux";
-          config.allowUnfree = true;
+          config = {
+            allowUnfree = true;
+            cudaSupport = true;
+            cudaCapabilities = [
+              "7.2"
+              "8.7"
+            ]; # Xavier and Orin
+          };
           overlays = [
             inputs.jetpack-nixos.overlays.default
+            inputs.self.overlays.cuda-jetpack
             qemuOverlay
             inputs.self.overlays.default
             inputs.self.overlays.own-pkgs-overlay
