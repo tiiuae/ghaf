@@ -34,22 +34,22 @@ let
       stdenv.cc.cc.lib
       nvidia-jetpack.l4t-cuda
       nvidia-jetpack.cudaPackages.cuda_cudart
-      nvidia-jetpack.cudaPackages.cuda_cuobjdump
-      nvidia-jetpack.cudaPackages.cuda_cupti
-      nvidia-jetpack.cudaPackages.cuda_cuxxfilt
-      nvidia-jetpack.cudaPackages.cuda_documentation
+      # nvidia-jetpack.cudaPackages.cuda_cuobjdump
+      # nvidia-jetpack.cudaPackages.cuda_cupti
+      # nvidia-jetpack.cudaPackages.cuda_cuxxfilt
+      # nvidia-jetpack.cudaPackages.cuda_documentation
       nvidia-jetpack.cudaPackages.cuda_nvcc
-      nvidia-jetpack.cudaPackages.cuda_nvdisasm
+      # nvidia-jetpack.cudaPackages.cuda_nvdisasm
       nvidia-jetpack.cudaPackages.cuda_nvml_dev
-      nvidia-jetpack.cudaPackages.cuda_nvprune
+      # nvidia-jetpack.cudaPackages.cuda_nvprune
       nvidia-jetpack.cudaPackages.cuda_nvrtc
-      nvidia-jetpack.cudaPackages.cuda_nvtx
-      nvidia-jetpack.cudaPackages.cuda_sanitizer_api
-      nvidia-jetpack.cudaPackages.cuda_profiler_api
+      # nvidia-jetpack.cudaPackages.cuda_nvtx
+      # nvidia-jetpack.cudaPackages.cuda_sanitizer_api
+      # nvidia-jetpack.cudaPackages.cuda_profiler_api
       nvidia-jetpack.cudaPackages.libcublas
       nvidia-jetpack.cudaPackages.libcufft
       nvidia-jetpack.cudaPackages.libcurand
-      nvidia-jetpack.cudaPackages.libnpp
+      # nvidia-jetpack.cudaPackages.libnpp
     ];
 
     dontStrip = true;
@@ -140,7 +140,7 @@ let
   gpuvmBaseConfiguration = {
     imports = [
       inputs.self.nixosModules.profiles
-      inputs.impermanence.nixosModules.impermanence
+      inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.givc
       inputs.self.nixosModules.vm-modules
       (
@@ -556,12 +556,12 @@ in
         qemuOverlay = import ./gpuvm_res/qemu;
         pkgs = import inputs.nixpkgs {
           system = "aarch64-linux";
+          config.allowUnfree = true;
           overlays = [
+            inputs.jetpack-nixos.overlays.default
             qemuOverlay
             inputs.self.overlays.default
-            inputs.self.overlays.cross-compilation
             inputs.self.overlays.own-pkgs-overlay
-            inputs.jetpack-nixos.overlays.default
           ];
         };
       in
@@ -582,7 +582,7 @@ in
           hardware.firmware = with pkgs.nvidia-jetpack; [
             l4t-firmware
             l4t-xusb-firmware # usb firmware also present in linux-firmware package, but that package is huge and has much more than needed
-            cudaPackages.vpi2-firmware # Optional, but needed for pva_auth_allowlist firmware file used by VPI2
+            # cudaPackages.vpi2-firmware # Optional, but needed for pva_auth_allowlist firmware file used by VPI2
           ];
 
           #####################################################################
