@@ -1,3 +1,9 @@
+---
+title: "NVIDIA Jetson: GPU Passthrough"
+sidebar:
+  label: GPU Passthrough
+---
+
 <!--
     Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
     SPDX-License-Identifier: CC-BY-SA-4.0
@@ -81,14 +87,14 @@ will virtualize this function.
 - In the "nvidia,bpmp-host-proxy" device tree node, define the clocks and resets
   that will be allowed to be used by the VMs.
 - The implementation is done in the patch:
-  [0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch)
+  `0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch`
 
 
 ## BPMP VMM/QEMU guest
 
 - Communicates the BPMP-host to the BPMP-guest through a IOMEM in the VMM/Qemu.
 - The implementation is done in the patch:
-  [0001-nvidia-bpmp-guest-driver-initial-commit.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0001-nvidia-bpmp-guest-driver-initial-commit.patch)
+  `0001-nvidia-bpmp-guest-driver-initial-commit.patch`
 
 
 ## BPMP guest proxy
@@ -101,7 +107,7 @@ will virtualize this function.
 - The *virtual-pa* contains the QEMU assigned VPA (Virtual Physical Address) for
   BPMP VMM guest.
 - The implementation is done in the patch:
-  [0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch)
+  `0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch`
 
 
 ## BPMP driver
@@ -113,7 +119,7 @@ The BPMP driver has small modifications intended to:
   guest VPA to the BPMP guest proxy module.
 
 - The implementation is done in the patch:
-  [0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch)
+  `0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch`
 
 ## Kernel configurations:
 
@@ -151,7 +157,7 @@ Linux kernel:
 
     For debugging purposes, you can enable permissions to all domains by
     applying this patch:
-    [0002-Bpmp-host-allows-all-domains.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/0002-Bpmp-host-allows-all-domains.patch)
+    `0002-Bpmp-host-allows-all-domains.patch`
 
 2. For the guest, you will need to add to the guest's device tree root the bpmp
    with the Qemu bpmp guest VPA:
@@ -201,7 +207,7 @@ following devices and memory regions:
 
 More information about these devices passthrough can be found in the host device
 tree overlay:
-[gpu_passthrough_overlay.dts](../../../modules/microvm/virtualization/microvm/gpuvm_res/gpu_passthrough_overlay.dts)
+`gpu_passthrough_overlay.dts`
 
 
 # Memory mapping:
@@ -246,7 +252,7 @@ QEMU command as follows:
 
 This patch enables in QEMU the 1:1 memory region mapping through the *mmio-base*
 parameter and increases the VFIO platform bus size from 32MB to 130GB:
-[0004-vfio-platform-Add-mmio-base-property-to-define-start.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0004-vfio-platform-Add-mmio-base-property-to-define-start.patch)
+`0004-vfio-platform-Add-mmio-base-property-to-define-start.patch`
 
 
 
@@ -275,7 +281,7 @@ uses it.
 This is the dedicated CMA region for GPU operations, such as uploading the
 firmware to the GPU microcontrollers. This region is hardcoded in the patch for
 the NVIDIA GPU driver, see
-[0001-gpu-add-support-for-passthrough.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0001-gpu-add-support-for-passthrough.patch),
+`0001-gpu-add-support-for-passthrough.patch`,
 line 54. One of the TODOs here is to modify the patch in order to read the
 allocation address and size from the device tree.
 
@@ -383,7 +389,7 @@ defined here for the Guest OS.
 
 Then you must add the memory regions and the passthrough devices. This is
 already done in the gpu-vm device tree:
-[tegra234-gpuvm.dts](../../../modules/microvm/virtualization/microvm/gpuvm_res/tegra234-gpuvm.dts)
+`tegra234-gpuvm.dts`
 
 This GPU VM device tree has a *ranges* property in the node
 *platform-bus@70000000*. The ranges property helps translate the address from
@@ -398,7 +404,7 @@ the QEMU console:
 
 The interrupts of each device are remapped by QEMU also. To know which interrupt
 was assigned to each device, you can apply this QEMU patch
-[0003-Print-irqs.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/host/bpmp-virt-host/overlays/qemu/patches/0003-Print-irqs.patch)
+`0003-Print-irqs.patch`
 
 # Prepare and launch scripts
 
@@ -478,10 +484,10 @@ passthrough:
 
 # Ghaf implementation
 
-The [gpuvm.nix](../../../modules/microvm/virtualization/microvm/gpuvm.nix) has
+The `gpuvm.nix` has
 all the configuration required to run a VM with NVIDIA GPU passthrough. You will
 need only to enable it on [nvidia
-flake-module](../../../targets/nvidia-jetson-orin/flake-module.nix)
+flake-module`
 
 ```c
               hardware.nvidia = {
@@ -559,9 +565,9 @@ Guest VM. Follow these steps in Ubuntu 22.04:
 
     Copy these patches to Linux_for_Tegra/source/
 
-    - [0001-gpu-add-support-for-passthrough.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0001-gpu-add-support-for-passthrough.patch)
-    - [0002-Add-support-for-gpu-display-passthrough.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0002-Add-support-for-gpu-display-passthrough.patch)
-    - [0003-Add-support-for-display-passthrough.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0003-Add-support-for-display-passthrough.patch)
+    - `0001-gpu-add-support-for-passthrough.patch`
+    - `0002-Add-support-for-gpu-display-passthrough.patch`
+    - `0003-Add-support-for-display-passthrough.patch`
 
     Apply these patches:
 
@@ -573,7 +579,7 @@ Guest VM. Follow these steps in Ubuntu 22.04:
 
     Copy this patch to Linux_for_Tegra/source/kernel/kernel-jammy-src
 
-    - [0001-tegra-fixed-chip-id.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0001-tegra-fixed-chip-id.patch)
+    - `0001-tegra-fixed-chip-id.patch`
 
     Apply this patch:
 
@@ -583,7 +589,7 @@ Guest VM. Follow these steps in Ubuntu 22.04:
 
     Copy this patch to Linux_for_Tegra/source/kernel/kernel-jammy-src
 
-    - [0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch](../../../modules/reference/hardware/jetpack/nvidia-jetson-orin/virtualization/common/bpmp-virt-common/patches/0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch)
+    - `0001-Add-bpmp-virt-kernel-modules-for-kernel-5.15.patch`
 
     Apply the patch:
 
@@ -630,9 +636,9 @@ Guest VM. Follow these steps in Ubuntu 22.04:
 # Run the Ubuntu image on Ghaf:
 
 1. Make sure that the gpu-vm is enabled in [nvidia
-   flake-module](../../../targets/nvidia-jetson-orin/flake-module.nix)
+   flake-module`
 
-2. Edit [gpuvm.nix](../../../modules/microvm/virtualization/microvm/gpuvm.nix)
+2. Edit `gpuvm.nix`
    and comment out the passthrough devices on the QEMU extraArgs:
 
     ```bash
@@ -781,12 +787,12 @@ You must see this error when implementing the display passthrough with wayland.
    virtualization functions are needed (similar to BPMP) for this. The devices
    that need to be virtualized are:
    - fuse@3810000: check hardcoded info in
-     [0001-gpu-add-support-for-passthrough.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0001-gpu-add-support-for-passthrough.patch),
+     `0001-gpu-add-support-for-passthrough.patch`,
      line 84
    - chip id: check hardcoded in patch:
-     [0001-tegra-fixed-chip-id.patch](../../../modules/microvm/virtualization/microvm/gpuvm_res/0001-tegra-fixed-chip-id.patch)
+     `0001-tegra-fixed-chip-id.patch`
    - memory-controller@2c00000: check hardcoded in patch:
-     [0002-Add-support-for-gpu-display-passthrough.patch](modules/microvm/virtualization/microvm/gpuvm_res/0002-Add-support-for-gpu-display-passthrough.patch)
+     `0002-Add-support-for-gpu-display-passthrough.patch`
      line 105
 
 
