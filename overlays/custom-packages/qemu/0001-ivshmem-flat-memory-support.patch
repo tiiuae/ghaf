@@ -1,17 +1,18 @@
-From 13229d9e11eaf15eb6679be036364b9d0256f1c1 Mon Sep 17 00:00:00 2001
+From 3cc27621f8797dcdc97c116a6413f6a27f661e78 Mon Sep 17 00:00:00 2001
 From: Jaroslaw Kurowski <jaroslaw.kurowski@tii.ae>
 Date: Wed, 10 Jul 2024 15:21:07 +0400
-Subject: ivshmem flat memory support
+Subject: [PATCH] ivshmem flat memory support
 
+Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
 ---
- contrib/ivshmem-server/ivshmem-server.c |  6 +-
+ contrib/ivshmem-server/ivshmem-server.c |  6 +--
  hw/i386/pc_q35.c                        |  2 +
- hw/misc/ivshmem.c                       | 74 ++++++++++++++++++++++---
+ hw/misc/ivshmem-pci.c                   | 72 ++++++++++++++++++++++---
  include/hw/misc/ivshmem.h               |  1 +
- 4 files changed, 71 insertions(+), 12 deletions(-)
+ 4 files changed, 70 insertions(+), 11 deletions(-)
 
 diff --git a/contrib/ivshmem-server/ivshmem-server.c b/contrib/ivshmem-server/ivshmem-server.c
-index 2f3c732..906c5d0 100644
+index 2f3c7320a6..906c5d0b51 100644
 --- a/contrib/ivshmem-server/ivshmem-server.c
 +++ b/contrib/ivshmem-server/ivshmem-server.c
 @@ -11,6 +11,7 @@
@@ -37,7 +38,7 @@ index 2f3c732..906c5d0 100644
      }
  
 diff --git a/hw/i386/pc_q35.c b/hw/i386/pc_q35.c
-index c7bc8a2..d76939e 100644
+index fd96d0345c..854cf087bc 100644
 --- a/hw/i386/pc_q35.c
 +++ b/hw/i386/pc_q35.c
 @@ -28,6 +28,7 @@
@@ -48,21 +49,21 @@ index c7bc8a2..d76939e 100644
  #include "qemu/osdep.h"
  #include "qemu/units.h"
  #include "hw/acpi/acpi.h"
-@@ -361,6 +362,7 @@ static void pc_q35_machine_options(MachineClass *m)
-     machine_class_allow_dynamic_sysbus_dev(m, TYPE_INTEL_IOMMU_DEVICE);
+@@ -357,6 +358,7 @@ static void pc_q35_machine_options(MachineClass *m)
      machine_class_allow_dynamic_sysbus_dev(m, TYPE_RAMFB_DEVICE);
      machine_class_allow_dynamic_sysbus_dev(m, TYPE_VMBUS_BRIDGE);
+     machine_class_allow_dynamic_sysbus_dev(m, TYPE_UEFI_VARS_X64);
 +    machine_class_allow_dynamic_sysbus_dev(m, TYPE_IVSHMEM_FLAT);
      compat_props_add(m->compat_props,
                       pc_q35_compat_defaults, pc_q35_compat_defaults_len);
  }
-diff --git a/hw/misc/ivshmem.c b/hw/misc/ivshmem.c
-index de49d1b..b1761b3 100644
---- a/hw/misc/ivshmem.c
-+++ b/hw/misc/ivshmem.c
+diff --git a/hw/misc/ivshmem-pci.c b/hw/misc/ivshmem-pci.c
+index 900d523334..bd5581b55b 100644
+--- a/hw/misc/ivshmem-pci.c
++++ b/hw/misc/ivshmem-pci.c
 @@ -36,6 +36,7 @@
  #include "chardev/char-fe.h"
- #include "sysemu/hostmem.h"
+ #include "system/hostmem.h"
  #include "qapi/visitor.h"
 +#include "hw/sysbus.h"
  
@@ -153,12 +154,10 @@ index de49d1b..b1761b3 100644
      IVShmemState *s = IVSHMEM_COMMON(dev);
      Error *err = NULL;
      uint8_t *pci_conf;
-@@ -902,7 +931,8 @@ static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
-     if (!ivshmem_is_master(s)) {
+@@ -903,6 +932,7 @@ static void ivshmem_common_realize(PCIDevice *dev, Error **errp)
          error_setg(&s->migration_blocker,
                     "Migration is disabled when using feature 'peer mode' in device 'ivshmem'");
--        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
-+        if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
+         if (migrate_add_blocker(&s->migration_blocker, errp) < 0) {
 +            error_free(s->migration_blocker);
              return;
          }
@@ -184,7 +183,7 @@ index de49d1b..b1761b3 100644
          VMSTATE_PCI_DEVICE(parent_obj, IVShmemState),
          VMSTATE_UINT32(intrstatus, IVShmemState),
          VMSTATE_UINT32(intrmask, IVShmemState),
-@@ -1068,7 +1101,7 @@ static const VMStateDescription ivshmem_doorbell_vmsd = {
+@@ -1067,7 +1100,7 @@ static const VMStateDescription ivshmem_doorbell_vmsd = {
      .minimum_version_id = 0,
      .pre_load = ivshmem_pre_load,
      .post_load = ivshmem_post_load,
@@ -193,18 +192,18 @@ index de49d1b..b1761b3 100644
          VMSTATE_PCI_DEVICE(parent_obj, IVShmemState),
          VMSTATE_MSIX(parent_obj, IVShmemState),
          VMSTATE_UINT32(intrstatus, IVShmemState),
-@@ -1083,6 +1116,7 @@ static Property ivshmem_doorbell_properties[] = {
+@@ -1082,6 +1115,7 @@ static const Property ivshmem_doorbell_properties[] = {
      DEFINE_PROP_BIT("ioeventfd", IVShmemState, features, IVSHMEM_IOEVENTFD,
                      true),
      DEFINE_PROP_ON_OFF_AUTO("master", IVShmemState, master, ON_OFF_AUTO_OFF),
 +    DEFINE_PROP_UINT64("flataddr", IVShmemState, flataddr, 0),
-     DEFINE_PROP_END_OF_LIST(),
  };
  
-@@ -1115,6 +1149,20 @@ static void ivshmem_doorbell_class_init(ObjectClass *klass, void *data)
+ static void ivshmem_doorbell_init(Object *obj)
+@@ -1113,6 +1147,20 @@ static void ivshmem_doorbell_class_init(ObjectClass *klass, void *data)
      dc->vmsd = &ivshmem_doorbell_vmsd;
  }
- 
+
 +static Property ivshmem_flat_props[] = {
 +    DEFINE_PROP_END_OF_LIST(),
 +};
@@ -222,7 +221,7 @@ index de49d1b..b1761b3 100644
  static const TypeInfo ivshmem_doorbell_info = {
      .name          = TYPE_IVSHMEM_DOORBELL,
      .parent        = TYPE_IVSHMEM_COMMON,
-@@ -1123,11 +1171,19 @@ static const TypeInfo ivshmem_doorbell_info = {
+@@ -1121,11 +1169,19 @@ static const TypeInfo ivshmem_doorbell_info = {
      .class_init    = ivshmem_doorbell_class_init,
  };
  
@@ -243,7 +242,7 @@ index de49d1b..b1761b3 100644
  
  type_init(ivshmem_register_types)
 diff --git a/include/hw/misc/ivshmem.h b/include/hw/misc/ivshmem.h
-index 433ef53..43aeab7 100644
+index 433ef53d79..43aeab73d4 100644
 --- a/include/hw/misc/ivshmem.h
 +++ b/include/hw/misc/ivshmem.h
 @@ -21,5 +21,6 @@
@@ -254,5 +253,4 @@ index 433ef53..43aeab7 100644
  
  #endif /* IVSHMEM_H */
 -- 
-2.45.2
-
+2.49.0

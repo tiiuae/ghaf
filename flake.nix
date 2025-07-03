@@ -22,9 +22,9 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    #nixpkgs.url = "github:tiiuae/nixpkgs/unstable-tmp-patches";
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-fix-ibus";
     #nixpkgs.url = "flake:mylocalnixpkgs";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     ghafpkgs = {
       url = "github:tiiuae/ghafpkgs";
