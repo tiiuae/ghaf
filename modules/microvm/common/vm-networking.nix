@@ -29,11 +29,6 @@ in
       description = "Name of the VM";
       type = types.nullOr types.str;
     };
-    interfaceName = mkOption {
-      description = "Name of the internal interface";
-      type = types.str;
-      default = "ethint0";
-    };
   };
 
   config = mkIf cfg.enable {
@@ -53,7 +48,7 @@ in
       useNetworkd = true;
       nat = {
         enable = true;
-        internalInterfaces = [ cfg.interfaceName ];
+        internalInterfaces = [ hosts.${cfg.vmName}.interfaceName ];
       };
     };
 
@@ -69,13 +64,15 @@ in
     systemd.network = {
       enable = true;
       # Set internal network's interface name
-      links."10-${cfg.interfaceName}" = {
+      links."10-${hosts.${cfg.vmName}.interfaceName}" = {
         matchConfig.PermanentMACAddress = hosts.${cfg.vmName}.mac;
-        linkConfig.Name = cfg.interfaceName;
+        linkConfig.Name = hosts.${cfg.vmName}.interfaceName;
       };
-      networks."10-${cfg.interfaceName}" = {
+      networks."10-${hosts.${cfg.vmName}.interfaceName}" = {
         matchConfig.MACAddress = hosts.${cfg.vmName}.mac;
-        addresses = [ { Address = "${hosts.${cfg.vmName}.ipv4}/24"; } ];
+        addresses = [
+          { Address = "${hosts.${cfg.vmName}.ipv4}/${toString hosts.${cfg.vmName}.ipv4SubnetPrefixLength}"; }
+        ];
         linkConfig.RequiredForOnline = "routable";
         linkConfig.ActivationPolicy = "always-up";
       } // lib.optionalAttrs ((!cfg.isGateway) || (cfg.vmName == "ids-vm")) { inherit gateway; };
