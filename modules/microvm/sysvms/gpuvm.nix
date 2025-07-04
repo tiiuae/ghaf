@@ -33,8 +33,8 @@ let
     buildInputs = with pkgs; [
       stdenv.cc.cc.lib
       nvidia-jetpack.l4t-cuda
-      # Only include the essential CUDA libraries that ollama needs
-      # Using l4t packages directly to avoid cudaPackages version issues
+      # The CUDA packages are available at runtime via LD_LIBRARY_PATH
+      # Including them in buildInputs causes version conflicts
     ];
 
     dontStrip = true;
@@ -64,7 +64,7 @@ let
 
       # Wrap the binary with LD_LIBRARY_PATH
       wrapProgram $out/bin/ollama \
-        --set LD_LIBRARY_PATH "${pkgs.nvidia-jetpack.l4t-cuda}/lib"
+        --set LD_LIBRARY_PATH "${pkgs.nvidia-jetpack.l4t-cuda}/lib:${pkgs.nvidia-jetpack.l4t-nvsci}/lib:${pkgs.nvidia-jetpack.l4t-core}/lib"
     '';
 
     meta = with lib; {
@@ -330,6 +330,8 @@ let
                 ollama-jetson
                 pkgs.nvidia-jetpack.l4t-tools
                 pkgs.nvidia-jetpack.l4t-cuda
+                pkgs.nvidia-jetpack.l4t-core
+                pkgs.nvidia-jetpack.l4t-3d-core
                 pkgs.nvidia-jetpack.l4t-firmware
                 pkgs.nvidia-jetpack.l4t-wayland
               ]
@@ -543,11 +545,10 @@ in
           system = "aarch64-linux";
           config = {
             allowUnfree = true;
+            cudaPackages = true;
             cudaSupport = true;
-            cudaCapabilities = [
-              "7.2"
-              "8.7"
-            ]; # Xavier and Orin
+            # Don't set cudaSupport here as it will try to use nixpkgs CUDA
+            # The jetpack-nixos overlay provides its own CUDA packages
           };
           overlays = [
             inputs.jetpack-nixos.overlays.default
