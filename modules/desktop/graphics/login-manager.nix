@@ -9,15 +9,27 @@
 let
   cfg = config.ghaf.graphics.login-manager;
 
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    ;
+
+  useCosmic = config.ghaf.profiles.graphics.compositor == "cosmic";
+
+  useLabwc = config.ghaf.profiles.graphics.compositor == "labwc";
+
+  greeterUser = if useCosmic then "cosmic-greeter" else "greeter";
+
   gtkgreetStyle = pkgs.callPackage ./styles/login-style.nix { };
 in
 {
   options.ghaf.graphics.login-manager = {
-    enable = lib.mkEnableOption "login manager using greetd";
+    enable = mkEnableOption "Ghaf login manager config using greetd";
   };
 
-  config = lib.mkIf cfg.enable {
-    services = {
+  config = mkIf cfg.enable {
+    # Ensure internal display is at full brightness for labwc
+    services = mkIf useLabwc {
       greetd = {
         enable = true;
         settings = {
@@ -26,9 +38,9 @@ in
               greeter-autostart = pkgs.writeShellApplication {
                 name = "greeter-autostart";
                 runtimeInputs = [
+                  pkgs.brightnessctl
                   pkgs.greetd.gtkgreet
                   pkgs.wayland-logout
-                  pkgs.brightnessctl
                 ];
                 text = ''
                   # By default set system brightness to 100% which can be configured later
@@ -39,7 +51,7 @@ in
               };
             in
             {
-              command = "${pkgs.labwc}/bin/labwc -C /etc/labwc -s ${greeter-autostart}/bin/greeter-autostart >/tmp/greeter.labwc.log 2>&1";
+              command = lib.mkForce "${lib.getExe pkgs.labwc} -C /etc/labwc -s ${lib.getExe greeter-autostart} >/tmp/greeter.labwc.log 2>&1";
             };
         };
       };
@@ -51,7 +63,7 @@ in
 
       #Allow video group to change brightness
       udev.extraRules = ''
-        ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chgrp video $sys$devpath/brightness", RUN+="${pkgs.coreutils}/bin/chmod a+w $sys$devpath/brightness"
+        ACTION=="add", SUBSYSTEM=="backlight", RUN+="${lib.getExe' pkgs.coreutils "chgrp"} video $sys$devpath/brightness", RUN+="${lib.getExe' pkgs.coreutils "chmod"} a+w $sys$devpath/brightness"
       '';
     };
 
@@ -59,6 +71,41 @@ in
       RestartSec = "5";
     };
 
-    users.users.greeter.extraGroups = [ "video" ];
+    users.users.${greeterUser}.extraGroups = [ "video" ];
+
+    # Needed for the greeter to query systemd-homed users correctly
+    systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = mkIf useCosmic "${
+      pkgs.lib.makeLibraryPath
+      [
+        pkgs.systemd
+      ]
+    }";
+
+    security.pam.services = {
+      cosmic-greeter.rules.auth = mkIf useCosmic {
+        systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+        fprintd.args = [ "maxtries=3" ];
+      };
+      gtklock.rules.auth = mkIf useLabwc {
+        systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+        fprintd.args = [ "maxtries=3" ];
+      };
+      greetd = {
+        fprintAuth = false; # User needs to enter password to decrypt home on login
+        rules = {
+          account.group_video = {
+            enable = true;
+            control = "requisite";
+            modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
+            order = 10000;
+            args = [
+              "user"
+              "ingroup"
+              "video"
+            ];
+          };
+        };
+      };
+    };
   };
 }
