@@ -28,9 +28,17 @@ let
     ];
 
     text = ''
-      mkdir -p "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gtk-4.0"
-      [ ! -f "$XDG_CONFIG_HOME/gtk-3.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
-      [ ! -f "$XDG_CONFIG_HOME/gtk-4.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
+      gtk_dirs=(gtk-3.0 gtk-4.0)
+      for dir in "''${gtk_dirs[@]}"; do
+        mkdir -p "$XDG_CONFIG_HOME/$dir"
+        settings="$XDG_CONFIG_HOME/$dir/settings.ini"
+        [ -f "$settings" ] || echo -ne "${gtk-settings}" > "$settings"
+      done
+
+      cosmic_conf="$XDG_CONFIG_HOME/cosmic/cosmic/com.system76.CosmicTk/v1"
+      mkdir -p "$cosmic_conf"
+      [ -f "$cosmic_conf/apply_theme_global" ] || echo -ne "true" > "$cosmic_conf/apply_theme_global"
+      [ -f "$cosmic_conf/icon_theme" ] || echo -ne "\"Papirus\"" > "$cosmic_conf/icon_theme"
     '';
   };
 
@@ -42,8 +50,9 @@ let
   swayidleConfig = ''
     timeout ${
       toString (builtins.floor (300 * 0.8))
-    } '${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    } '${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''notify-send -r 999 -h byte:urgency:1 -t 5000 -a "System" "The session will lock soon due to inactivity";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
     timeout ${toString 300} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
+    timeout ${toString (builtins.floor (300 * 1.5))} "wlopm --off \*" resume "wlopm --on \*"
     ${lib.optionalString config.ghaf.profiles.graphics.allowSuspend ''timeout ${
       toString (builtins.floor (300 * 3))
     } "ghaf-powercontrol suspend; ghaf-powercontrol wakeup"''}
@@ -113,9 +122,7 @@ in
     services.desktopManager.cosmic.enable = true;
     services.displayManager.cosmic-greeter.enable = true;
 
-    # Login is handled by cosmic-greeter
-    ghaf.graphics.login-manager.enable = false;
-
+    ghaf.graphics.login-manager.enable = true;
     # Override default power controls with ghaf-powercontrol
     ghaf.graphics.power-manager.enable = true;
 
@@ -147,15 +154,13 @@ in
         XCURSOR_THEME = "Pop";
         XCURSOR_SIZE = 24;
         GSETTINGS_SCHEMA_DIR = "${pkgs.gsettings-desktop-schemas}/share/gsettings-schemas/${pkgs.gsettings-desktop-schemas.name}/glib-2.0/schemas";
-        # Enable zwlr_data_control_manager_v1 protocol for COSMIC Utilities - Clipboard Manager to work
-        COSMIC_DATA_CONTROL_ENABLED = 1;
-        RUST_LOG = if config.ghaf.profiles.debug.enable then "info" else "error";
+        RUST_LOG = "error";
       };
       etc."xdg/user-dirs.defaults".text = ''
         #DOWNLOAD=Downloads
         #DOCUMENTS=Documents
         #MUSIC=Music
-        #PICTURES=Pictures
+        PICTURES=Pictures
         #VIDEOS=Videos
         #PUBLICSHARE=Public
         #TEMPLATES=Templates
@@ -163,70 +168,6 @@ in
       '';
       etc."swayidle/config".text = swayidleConfig;
     };
-
-    # Needed for the greeter to query systemd-homed users correctly
-    systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath [
-      pkgs.systemd
-    ]}";
-
-    security.pam.services = {
-      cosmic-greeter.rules.auth = {
-        systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint
-        fprintd.args = [ "maxtries=3" ];
-      };
-      greetd = {
-        fprintAuth = false; # User needs to enter password to decrypt home
-        rules = {
-          account.group_video = {
-            enable = true;
-            control = "requisite";
-            modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
-            order = 10000;
-            args = [
-              "user"
-              "ingroup"
-              "video"
-            ];
-          };
-        };
-      };
-    };
-
-    services = {
-      greetd = {
-        enable = true;
-        settings.default_session =
-          let
-            greeter-autostart = pkgs.writeShellApplication {
-              name = "greeter-autostart";
-              runtimeInputs = [
-                pkgs.cosmic-comp
-                pkgs.cosmic-greeter
-                pkgs.brightnessctl
-              ];
-              text = ''
-                brightnessctl set 100%
-                cosmic-comp cosmic-greeter
-              '';
-            };
-          in
-          {
-            command = lib.mkForce ''${lib.getExe' pkgs.coreutils "env"} XCURSOR_THEME="''${XCURSOR_THEME:-Pop}" systemd-cat -t cosmic-greeter ${lib.getExe greeter-autostart}'';
-          };
-      };
-
-      seatd = {
-        enable = true;
-        group = "video";
-      };
-
-      # Allow video group to change brightness
-      udev.extraRules = ''
-        ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chgrp video $sys$devpath/brightness", RUN+="${pkgs.coreutils}/bin/chmod a+w $sys$devpath/brightness"
-      '';
-    };
-
-    users.users.cosmic-greeter.extraGroups = [ "video" ];
 
     systemd.user.services = {
       autostart = {
@@ -239,7 +180,7 @@ in
 
       audio-control = {
         enable = true;
-        description = "Audio Control application";
+        description = "Ghaf Audio Control application";
         serviceConfig = {
           Type = "simple";
           Restart = "always";
@@ -305,13 +246,14 @@ in
           systemd
           ghaf-powercontrol
           libnotify
+          wlopm
         ];
         serviceConfig = {
           Type = "simple";
           ExecStart = "${lib.getExe pkgs.swayidle} -w -C /etc/swayidle/config";
         };
-        partOf = [ "ghaf-session.target" ];
-        wantedBy = [ "ghaf-session.target" ];
+        partOf = [ "cosmic-session.target" ];
+        wantedBy = [ "cosmic-session.target" ];
       };
     };
 
@@ -321,26 +263,6 @@ in
       bindsTo = [ "cosmic-session.target" ];
       after = [ "cosmic-session.target" ];
       wantedBy = [ "cosmic-session.target" ];
-    };
-
-    # cosmic-ghaf - our own cosmic dconf profile
-    programs.dconf = {
-      enable = true;
-      profiles.cosmic-ghaf = {
-        databases = [
-          {
-            lockAll = false;
-            settings = {
-              "org/gnome/desktop/interface" = {
-                color-scheme = "prefer-dark";
-                cursor-theme = "Pop";
-                icon-theme = "Papirus";
-                clock-format = "24h";
-              };
-            };
-          }
-        ];
-      };
     };
 
     # Suspend on VMs is currently disabled unconditionally due to known issues
