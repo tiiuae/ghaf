@@ -23,6 +23,7 @@
       som = "orin-agx";
       carrierBoard = "devkit";
       modesetting.enable = true;
+      kernel.version = "upstream-6-6";
       flashScriptOverrides = {
         flashArgs = [
           "-r"

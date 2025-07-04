@@ -60,6 +60,10 @@ in
           adminvm = {
             enable = false;
           };
+
+          gpuvm = {
+            enable = true;
+          };
         };
 
         #nvidia-podman.daemon.enable = true;

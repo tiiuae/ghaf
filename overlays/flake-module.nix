@@ -10,6 +10,7 @@
   flake.overlays = {
     cross-compilation = import ./cross-compilation;
     custom-packages = import ./custom-packages;
+    cuda-jetpack = import ./cuda-jetpack;
 
     # This is a composition of all the overlays that are used in the project
     # and is used to export a simple default interface.
@@ -17,6 +18,7 @@
       #internal overlays
       inputs.self.overlays.own-pkgs-overlay
       inputs.self.overlays.custom-packages
+      inputs.self.overlays.cuda-jetpack
       #external overlays that we use
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default

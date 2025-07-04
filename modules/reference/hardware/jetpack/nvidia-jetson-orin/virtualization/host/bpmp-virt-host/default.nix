@@ -24,17 +24,9 @@ in
 
   config = lib.mkIf cfg.enable {
     # TODO: another stray overlay that should be centralized.
-    nixpkgs.overlays = [ (import ./overlays/qemu) ];
+    # nixpkgs.overlays = [ (import ./overlays/qemu) ];
 
     boot.kernelPatches = [
-      {
-        name = "Bpmp virtualization host proxy device tree";
-        patch = ./patches/0001-bpmp-host-proxy-dts.patch;
-      }
-      {
-        name = "Bpmp virtualization host uarta device tree";
-        patch = ./patches/0002-bpmp-host-uarta-dts.patch;
-      }
       {
         name = "Bpmp virtualization host kernel configuration";
         patch = null;
@@ -42,6 +34,16 @@ in
           VFIO_PLATFORM = yes;
           TEGRA_BPMP_HOST_PROXY = yes;
         };
+      }
+    ];
+
+    # Enable hardware.deviceTree for handle host dtb overlays
+    hardware.deviceTree.enable = true;
+
+    hardware.deviceTree.overlays = [
+      {
+        name = "bpmp_host_overlay";
+        dtsFile = ./bpmp_host_overlay.dts;
       }
     ];
 

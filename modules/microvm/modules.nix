@@ -169,66 +169,76 @@ in
 
   config = {
     # System VM configurations
-    ghaf.virtualization.microvm = optionalAttrs fullVirtualization {
-      # Netvm modules
-      netvm.extraModules = optionals cfg.netvm.enable [
-        deviceModules.netvmPCIPassthroughModule
-        kernelConfigs.netvm
-        firmwareModule
-        serviceModules.wifi
-        serviceModules.givc
-        serviceModules.logging
-        referenceServiceModule
-        managedUserAccounts
-        commonModule
-      ];
-      # Audiovm modules
-      audiovm.extraModules = optionals cfg.audiovm.enable [
-        deviceModules.audiovmPCIPassthroughModule
-        kernelConfigs.audiovm
-        firmwareModule
-        qemuModules.audiovm
-        serviceModules.audio
-        serviceModules.givc
-        serviceModules.bluetooth
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
-      # Guivm modules
-      guivm.extraModules = optionals cfg.guivm.enable [
-        deviceModules.guivmPCIPassthroughModule
-        deviceModules.guivmVirtioInputHostEvdevModule
-        kernelConfigs.guivm
-        firmwareModule
-        qemuModules.guivm
-        serviceModules.graphics
-        serviceModules.fprint
-        serviceModules.yubikey
-        serviceModules.givc
-        serviceModules.logging
-        referenceServiceModule
-        managedUserAccounts
-        commonModule
-      ];
-      # Adminvm modules
-      adminvm.extraModules = optionals cfg.adminvm.enable [
-        serviceModules.givc
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
-      # Appvm modules
-      appvm.extraModules = optionals cfg.appvm.enable [
-        serviceModules.givc
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
-      # Idsvm modules
-      idsvm.extraModules = optionals cfg.idsvm.enable [
-        commonModule
-      ];
-    };
+    ghaf.virtualization.microvm =
+      optionalAttrs fullVirtualization {
+        # Netvm modules
+        netvm.extraModules = optionals cfg.netvm.enable [
+          deviceModules.netvmPCIPassthroughModule
+          kernelConfigs.netvm
+          firmwareModule
+          serviceModules.wifi
+          serviceModules.givc
+          serviceModules.logging
+          referenceServiceModule
+          managedUserAccounts
+          commonModule
+        ];
+        # Audiovm modules
+        audiovm.extraModules = optionals cfg.audiovm.enable [
+          deviceModules.audiovmPCIPassthroughModule
+          kernelConfigs.audiovm
+          firmwareModule
+          qemuModules.audiovm
+          serviceModules.audio
+          serviceModules.givc
+          serviceModules.bluetooth
+          serviceModules.logging
+          managedUserAccounts
+          commonModule
+        ];
+        # Guivm modules
+        guivm.extraModules = optionals cfg.guivm.enable [
+          deviceModules.guivmPCIPassthroughModule
+          deviceModules.guivmVirtioInputHostEvdevModule
+          kernelConfigs.guivm
+          firmwareModule
+          qemuModules.guivm
+          serviceModules.graphics
+          serviceModules.fprint
+          serviceModules.yubikey
+          serviceModules.givc
+          serviceModules.logging
+          referenceServiceModule
+          # TODO: WHat is this and why it had to be disabled?
+          # referenceProgramsModule
+          managedUserAccounts
+          commonModule
+        ];
+        # Adminvm modules
+        adminvm.extraModules = optionals cfg.adminvm.enable [
+          serviceModules.givc
+          serviceModules.logging
+          managedUserAccounts
+          commonModule
+        ];
+        # Appvm modules
+        appvm.extraModules = optionals cfg.appvm.enable [
+          serviceModules.givc
+          serviceModules.logging
+          managedUserAccounts
+          commonModule
+        ];
+        # Idsvm modules
+        idsvm.extraModules = optionals cfg.idsvm.enable [
+          commonModule
+        ];
+      }
+      // {
+        # Common modules
+        gpuvm.extraModules = optionals cfg.gpuvm.enable [
+          managedUserAccounts
+          commonModule
+        ];
+      };
   };
 }

@@ -28,7 +28,7 @@ let
     (nixos-generators + "/format-module.nix")
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
     jetpack-nixos.nixosModules.default
-    #self.nixosModules.microvm
+    #self.nixosModules.microvm  # Already imported via profiles-orin
     self.nixosModules.profiles
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-programs
