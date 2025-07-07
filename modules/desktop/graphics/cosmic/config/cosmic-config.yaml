@@ -2,6 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 com.system76.CosmicAppletTime:
   first_day_of_week: 0
+  military_time: false,
+  show_seconds: false,
+  show_date_in_top_panel: true,
+  show_weekday: false,
 
 com.system76.CosmicAppList:
   favorites: |
@@ -11,6 +15,7 @@ com.system76.CosmicAppList:
       "com.system76.CosmicSettings",
     ]
   filter_top_levels: None
+  enable_drag_source: true
 
 com.system76.CosmicFiles:
   favorites: |
