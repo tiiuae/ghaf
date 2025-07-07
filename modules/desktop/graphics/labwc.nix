@@ -173,32 +173,6 @@ in
       };
     };
 
-    # Create custom PAM rules
-    security.pam.services = {
-      gtklock = {
-        rules.auth = {
-          systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint
-          fprintd.args = [ "maxtries=3" ];
-        };
-      };
-      greetd = {
-        fprintAuth = false; # User needs to enter password to decrypt home
-        rules = {
-          account.group = {
-            enable = true;
-            control = "requisite";
-            modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
-            order = 10000;
-            args = [
-              "user"
-              "ingroup"
-              "video"
-            ];
-          };
-        };
-      };
-    };
-
     # Needed for power commands
     security.polkit.enable = true;
 

@@ -150,6 +150,8 @@ writeShellApplication {
 
     case "$1" in
       reboot|poweroff)
+        # Stop systemd-backlight services manually to save current brightness settings
+        systemctl stop systemd-backlight*
         ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} "$1"
         ;;
       suspend)
