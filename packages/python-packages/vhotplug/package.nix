@@ -7,10 +7,12 @@
   pyudev,
   psutil,
   inotify-simple,
+  setuptools,
 }:
 buildPythonApplication {
   pname = "vhotplug";
   version = "0.1";
+  pyproject = true;
 
   propagatedBuildInputs = [
     pyudev
@@ -27,6 +29,8 @@ buildPythonApplication {
     rev = "6fa43f4e64ab130632a3f88eaf3d53108a0cc3b5";
     hash = "sha256-B0VQ+sJhmU77UOf87SWu2rVrKJq8kweXYkBd0A21Ipo=";
   };
+
+  build-system = [ setuptools ];
 
   meta = {
     description = "Virtio Hotplug";
