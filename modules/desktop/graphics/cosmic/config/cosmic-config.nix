@@ -76,7 +76,9 @@ pkgs.stdenv.mkDerivation rec {
     --replace "None" "Path(\"${pkgs.ghaf-artwork}/ghaf-desert-sunset.jpg\")"
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "pamixer --unmute --decrease 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"' \
-    --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "pamixer --unmute --increase 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"'
+    --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "pamixer --unmute --increase 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"' \
+    --replace-fail 'BrightnessUp: ""' 'BrightnessUp: "${lib.getExe pkgs.brightnessctl} set +5% > /dev/null 2>&1"' \
+    --replace-fail 'BrightnessDown: ""' 'BrightnessDown: "${lib.getExe pkgs.brightnessctl} set 5%- > /dev/null 2>&1"'
   '';
 
   meta = with lib; {
