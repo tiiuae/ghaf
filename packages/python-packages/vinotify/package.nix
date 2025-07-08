@@ -3,10 +3,12 @@
 {
   buildPythonApplication,
   inotify-simple,
+  setuptools,
 }:
 buildPythonApplication {
   pname = "vinotify";
   version = "0.1";
+  pyproject = true;
 
   propagatedBuildInputs = [
     inotify-simple
@@ -15,4 +17,5 @@ buildPythonApplication {
   doCheck = false;
 
   src = ./vinotify;
+  build-system = [ setuptools ];
 }
