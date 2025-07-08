@@ -25,7 +25,6 @@ let
 in
 {
   imports = [
-    ./prime.nix
     ./vaapi.nix
   ];
 
@@ -104,6 +103,9 @@ in
           # The nvidia cuda initialization fails if this is not set in
           # the newer drivers.
           "NVreg_PreserveVideoMemoryAllocations=1"
+          # With this setting NVIDIA GPU driver will allow the GPU to go into its lowest power state when no applications are running
+          # More details in https://download.nvidia.com/XFree86/Linux-x86_64/435.17/README/dynamicpowermanagement.html
+          "NVreg_DynamicPowerManagement=0x02"
         ];
     };
 
