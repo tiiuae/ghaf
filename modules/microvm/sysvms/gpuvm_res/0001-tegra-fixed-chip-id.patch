@@ -1,0 +1,13 @@
+diff --git a/drivers/soc/tegra/fuse/tegra-apbmisc.c b/drivers/soc/tegra/fuse/tegra-apbmisc.c
+index da970f3dbf35..497504c5ad2d 100644
+--- a/drivers/soc/tegra/fuse/tegra-apbmisc.c
++++ b/drivers/soc/tegra/fuse/tegra-apbmisc.c
+@@ -28,7 +28,7 @@
+ static void __iomem *apbmisc_base;
+ static bool long_ram_code;
+ static u32 strapping;
+-static u32 chipid;
++static u32 chipid = 0x00012347;  // TODO: virtualize later for VM
+ 
+ u32 tegra_read_chipid(void)
+ {

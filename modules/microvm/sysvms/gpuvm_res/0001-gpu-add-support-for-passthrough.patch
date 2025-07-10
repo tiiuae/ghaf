@@ -1,0 +1,174 @@
+From 19f74ca596b1b9e8033c140b68d8934491c04d0e Mon Sep 17 00:00:00 2001
+From: Juan Pablo Ruiz <juanpablo.ruiz@unikie.com>
+Date: Sun, 19 Jan 2025 23:01:04 +0200
+Subject: [PATCH 1/3] gpu: add support for passthrough
+
+- Force nvgpu_dma_alloc_flags_sys to use CMA
+- Static nvgpu_tegra_fuse_read_opt_gpc_disable operation, because
+  fuse is not available in the VM
+- Declare DMA coherent in harcoded 0x80000000 address with size
+  0x08000000
+---
+ .../gpu/nvgpu/include/nvgpu/log_common.h      |  5 ++++
+ .../gpu/nvgpu/os/linux/driver_common.c        | 11 ++++++++
+ nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c       |  6 ++++-
+ nvgpu/drivers/gpu/nvgpu/os/linux/linux-dma.c  | 16 +++++++++++-
+ nvgpu/drivers/gpu/nvgpu/os/linux/nvgpu_mem.c  | 26 +++++++++++++++++--
+ 5 files changed, 60 insertions(+), 4 deletions(-)
+
+diff --git a/nvgpu/drivers/gpu/nvgpu/include/nvgpu/log_common.h b/nvgpu/drivers/gpu/nvgpu/include/nvgpu/log_common.h
+index fe3ad97..ea9234e 100644
+--- a/nvgpu/drivers/gpu/nvgpu/include/nvgpu/log_common.h
++++ b/nvgpu/drivers/gpu/nvgpu/include/nvgpu/log_common.h
+@@ -35,6 +35,11 @@ enum nvgpu_log_type {
+ /*
+  * Use this define to set a default mask.
+  */
++
++//#define NVGPU_DEFAULT_DBG_MASK		0xFFFFFEF3      // gpu_dbg_reg,gpu_dbg_pte,gpu_dbg_map_v off
++//#define NVGPU_DEFAULT_DBG_MASK		0xFFFFFEF3      // gpu_dbg_re off
++//#define NVGPU_DEFAULT_DBG_MASK		0xFFFFFFFB      // Remove register access nvgpu_writel:43
++//#define NVGPU_DEFAULT_DBG_MASK        0x00400080         // Only Memory mappings, DMA allocation prints
+ #define NVGPU_DEFAULT_DBG_MASK		U64(0)
+ 
+ #define	gpu_dbg_info		BIT(0)	/* Lightly verbose info. */
+diff --git a/nvgpu/drivers/gpu/nvgpu/os/linux/driver_common.c b/nvgpu/drivers/gpu/nvgpu/os/linux/driver_common.c
+index b0ae8c8..463f4f7 100644
+--- a/nvgpu/drivers/gpu/nvgpu/os/linux/driver_common.c
++++ b/nvgpu/drivers/gpu/nvgpu/os/linux/driver_common.c
+@@ -47,6 +47,8 @@
+ #include "scale.h"
+ #include "driver_common.h"
+ 
++#include <linux/nvmap_exports.h>
++
+ #define EMC3D_DEFAULT_RATIO 750
+ #define NVGPU_BLCG_ENABLEMENT BIT(1)
+ #define NVGPU_ELCG_ENABLEMENT BIT(3)
+@@ -450,6 +452,15 @@ int nvgpu_probe(struct gk20a *g,
+ 	struct device_node *np = dev->of_node;
+ 	bool disable_l3_alloc = false;
+ 
++	// TODO: address from DTB
++	nvgpu_info(g, "nvmap_dma_declare_coherent_memory(dev, 0x80000000, 0x80000000, 0x08000000, 0, 0, 0);");
++	err = nvmap_dma_declare_coherent_memory(dev, 0x80000000, 0x80000000, 0x08000000, 0, 0, 0);
++
++	if (err != 0) {
++		nvgpu_err(g, "nvmap_dma_declare_coherent_memory setup failed 2");
++		return err;
++	}
++
+ 	err = nvgpu_cic_rm_setup(g);
+ 	if (err != 0) {
+ 		nvgpu_err(g, "CIC-RM setup failed");
+diff --git a/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c b/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c
+index bf9e930..1a827dd 100644
+--- a/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c
++++ b/nvgpu/drivers/gpu/nvgpu/os/linux/fuse.c
+@@ -12,6 +12,7 @@
+  */
+ 
+ #include <nvgpu/fuse.h>
++#include <nvgpu/log.h>
+ 
+ #include <nvgpu/linux/soc_fuse.h>
+ #include <nvgpu/linux/nvmem.h>
+@@ -45,7 +46,10 @@ int nvgpu_tegra_fuse_read_gcplex_config_fuse(struct gk20a *g, u32 *val)
+ 
+ int nvgpu_tegra_fuse_read_opt_gpc_disable(struct gk20a *g, u32 *val)
+ {
+-	return tegra_fuse_readl(FUSE_OPT_GPC_DISABLE_0, val);
++	// TODO: virtualize fuse read operations
++	//return tegra_fuse_readl(FUSE_OPT_GPC_DISABLE_0, val);
++	nvgpu_info(g, "WARNING: %s hardcode returning 0", __func__);
++	return 0;
+ }
+ 
+ int nvgpu_tegra_fuse_read_opt_emc_disable(struct gk20a *g, u32 *val)
+diff --git a/nvgpu/drivers/gpu/nvgpu/os/linux/linux-dma.c b/nvgpu/drivers/gpu/nvgpu/os/linux/linux-dma.c
+index 28fb389..321d807 100644
+--- a/nvgpu/drivers/gpu/nvgpu/os/linux/linux-dma.c
++++ b/nvgpu/drivers/gpu/nvgpu/os/linux/linux-dma.c
+@@ -244,12 +244,14 @@ int nvgpu_dma_alloc_flags_sys(struct gk20a *g, unsigned long flags,
+ 		size_t size, struct nvgpu_mem *mem)
+ {
+ 	struct device *d = dev_from_gk20a(g);
+-	gfp_t gfps = GFP_KERNEL|__GFP_ZERO;
++	//gfp_t gfps = GFP_KERNEL|__GFP_ZERO;
++	gfp_t gfps = GFP_KERNEL|__GFP_ZERO | GFP_DMA;
+ 	dma_addr_t iova;
+ 	unsigned long dma_attrs = 0;
+ 	unsigned long vma_flags = 0;
+ 	void *alloc_ret;
+ 	int err;
++	flags = NVGPU_DMA_PHYSICALLY_ADDRESSED;
+ 
+ 	if (nvgpu_mem_is_valid(mem)) {
+ 		nvgpu_warn(g, "memory leak !!");
+@@ -318,6 +320,18 @@ int nvgpu_dma_alloc_flags_sys(struct gk20a *g, unsigned long flags,
+ 	mem->aligned_size = size;
+ 	mem->aperture = APERTURE_SYSMEM;
+ 	mem->priv.flags = flags;
++	
++	nvgpu_log_info(g, " ");
++	nvgpu_log_info(g, "mem->mem_flags:    0x%08lX", mem->mem_flags);
++	nvgpu_log_info(g, "mem->priv.flags:   0x%08lX", mem->priv.flags);
++	nvgpu_log_info(g, "mem->aperture      0x%08X", mem->aperture);
++	nvgpu_log_info(g, "mem->aligned_size: 0x%08lX", mem->aligned_size);
++	nvgpu_log_info(g, "mem->gpu_va:       0x%08llX", mem->gpu_va);
++	nvgpu_log_info(g, "alloc_ret:         0x%08llX", (u64)alloc_ret);
++	nvgpu_log_info(g, "mem->cpu_va:       0x%08llX", (u64)mem->cpu_va);
++	nvgpu_log_info(g, "mem->size:         0x%08lX, size: 0x%08lX", mem->size, size);
++	nvgpu_log_info(g, "PAGE_SIZE:         0x%08lX", PAGE_SIZE);
++	nvgpu_log_info(g, "iova:              0x%08llX", iova);
+ 
+ 	dma_dbg_alloc_done(g, mem->size, "sysmem");
+ 
+diff --git a/nvgpu/drivers/gpu/nvgpu/os/linux/nvgpu_mem.c b/nvgpu/drivers/gpu/nvgpu/os/linux/nvgpu_mem.c
+index 9081c1f..22ac583 100644
+--- a/nvgpu/drivers/gpu/nvgpu/os/linux/nvgpu_mem.c
++++ b/nvgpu/drivers/gpu/nvgpu/os/linux/nvgpu_mem.c
+@@ -42,17 +42,39 @@
+ #define DMA_ERROR_CODE DMA_MAPPING_ERROR
+ #endif
+ 
++/**
++ *     A CMA region is passed through from the host to the VM.
++ *     By default the CMA_PT (CMA passthrough) region in the host starts 
++ *     in 0x80000000 physical address (PA) and this is mapped in the 
++ *     CMA_VM at 0x4000000, then the offset is:
++ *        Offset = CMA_PT - CMA_VM
++ *        Offset = 0x80000000 - 0x40000000
++ *        Offset = 0x40000000
++ * 
++ */
++//#define CMA_OFFSET_TO_HOST_PA            ( 0x80000000 -  0x80000000)
++//#define CMA_VRAM_OFFSET_TO_HOST_PA       (0x100000000 - 0x100000000)
++#define CMA_VRAM_OFFSET_TO_HOST_PA       (0)
++#define CMA_OFFSET_TO_HOST_PA            (0)
++
+ static u64 __nvgpu_sgl_ipa(struct gk20a *g, void *sgl)
+ {
+-	return sg_phys((struct scatterlist *)sgl);
++	if(sg_phys((struct scatterlist *)sgl) < 0x100000000)
++		return sg_phys((struct scatterlist *)sgl) + CMA_OFFSET_TO_HOST_PA;
++	else
++		return sg_phys((struct scatterlist *)sgl) + CMA_VRAM_OFFSET_TO_HOST_PA;
+ }
+-
+ static u64 __nvgpu_sgl_phys(struct gk20a *g, void *sgl)
+ {
+ 	struct device *dev = dev_from_gk20a(g);
+ 	struct gk20a_platform *platform = gk20a_get_platform(dev);
+ 	u64 ipa = sg_phys((struct scatterlist *)sgl);
+ 
++	if(ipa < 0x100000000)
++		ipa += CMA_OFFSET_TO_HOST_PA;
++	else
++		ipa += CMA_VRAM_OFFSET_TO_HOST_PA;
++
+ 	if (platform->phys_addr)
+ 		return platform->phys_addr(g, ipa, NULL);
+ 
+-- 
+2.34.1

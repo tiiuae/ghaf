@@ -110,6 +110,12 @@
     jetpack-nixos = {
       #url = "flake:mylocaljetpack";
       #url = "github:anduril/jetpack-nixos/d1c82127de40e85c9c50295f157e1be59a9ad2a6";
+      # In this branch these commits have been reverted to fix the problem
+      # of the kernel patches not being applied correctly:
+      # 33dd57c Select kernel version based on Jetson BSP version
+      # 8e3bbfa rebase onto the upstream jetpack
+      # TODO: after this problem is fixed in the upstream, go back to final-stretch branch
+      # url = "github:tiiuae/jetpack-nixos/final-stretch"
       url = "github:tiiuae/jetpack-nixos/final-stretch";
       inputs.nixpkgs.follows = "nixpkgs";
     };
