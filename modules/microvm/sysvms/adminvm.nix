@@ -7,6 +7,7 @@
   ...
 }:
 let
+
   configHost = config;
   vmName = "admin-vm";
 
@@ -54,13 +55,11 @@ let
                 "/etc/timezone.conf"
               ];
             };
-
             # Networking
             virtualization.microvm.vm-networking = {
               enable = true;
               inherit vmName;
             };
-
             # Services
             logging = {
               server = {
@@ -126,12 +125,20 @@ in
       '';
       default = [ ];
     };
+    extraNetworking = lib.mkOption {
+      type = lib.types.networking;
+      description = "Extra Networking option";
+      default = { };
+    };
   };
 
   config = lib.mkIf cfg.enable {
+    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+
     microvm.vms."${vmName}" = {
       autostart = true;
       inherit (inputs) nixpkgs;
+      specialArgs = { inherit lib; };
       config = adminvmBaseConfiguration // {
         imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
       };

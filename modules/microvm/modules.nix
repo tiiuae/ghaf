@@ -169,62 +169,77 @@ in
 
   config = {
     # System VM configurations
-    ghaf.virtualization.microvm = optionalAttrs fullVirtualization {
+    ghaf.virtualization.microvm = {
       # Netvm modules
-      netvm.extraModules = optionals cfg.netvm.enable [
-        deviceModules.netvmPCIPassthroughModule
-        kernelConfigs.netvm
-        firmwareModule
-        serviceModules.wifi
-        serviceModules.givc
-        serviceModules.logging
-        referenceServiceModule
-        managedUserAccounts
-        commonModule
-      ];
+      netvm.extraModules =
+        optionals cfg.netvm.enable [
+          serviceModules.logging
+          commonModule
+        ]
+        ++ optionals (cfg.netvm.enable && fullVirtualization) [
+          deviceModules.netvmPCIPassthroughModule
+          kernelConfigs.netvm
+          firmwareModule
+          serviceModules.wifi
+          serviceModules.givc
+          referenceServiceModule
+          managedUserAccounts
+        ];
       # Audiovm modules
-      audiovm.extraModules = optionals cfg.audiovm.enable [
-        deviceModules.audiovmPCIPassthroughModule
-        kernelConfigs.audiovm
-        firmwareModule
-        qemuModules.audiovm
-        serviceModules.audio
-        serviceModules.givc
-        serviceModules.bluetooth
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
+      audiovm.extraModules =
+        optionals cfg.audiovm.enable [
+          serviceModules.logging
+          commonModule
+        ]
+        ++ optionals (cfg.audiovm.enable && fullVirtualization) [
+          deviceModules.audiovmPCIPassthroughModule
+          kernelConfigs.audiovm
+          firmwareModule
+          qemuModules.audiovm
+          serviceModules.audio
+          serviceModules.givc
+          serviceModules.bluetooth
+          managedUserAccounts
+        ];
       # Guivm modules
-      guivm.extraModules = optionals cfg.guivm.enable [
-        deviceModules.guivmPCIPassthroughModule
-        deviceModules.guivmVirtioInputHostEvdevModule
-        kernelConfigs.guivm
-        firmwareModule
-        qemuModules.guivm
-        serviceModules.graphics
-        serviceModules.fprint
-        serviceModules.yubikey
-        serviceModules.givc
-        serviceModules.logging
-        referenceServiceModule
-        managedUserAccounts
-        commonModule
-      ];
+      guivm.extraModules =
+        optionals cfg.guivm.enable [
+          serviceModules.logging
+          commonModule
+        ]
+        ++ optionals (cfg.guivm.enable && fullVirtualization) [
+          deviceModules.guivmPCIPassthroughModule
+          deviceModules.guivmVirtioInputHostEvdevModule
+          kernelConfigs.guivm
+          firmwareModule
+          qemuModules.guivm
+          serviceModules.graphics
+          serviceModules.fprint
+          serviceModules.yubikey
+          serviceModules.givc
+          referenceServiceModule
+          managedUserAccounts
+        ];
       # Adminvm modules
-      adminvm.extraModules = optionals cfg.adminvm.enable [
-        serviceModules.givc
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
+      adminvm.extraModules =
+        optionals cfg.adminvm.enable [
+          serviceModules.logging
+          commonModule
+        ]
+        ++ optionals (cfg.adminvm.enable && fullVirtualization) [
+          serviceModules.givc
+          managedUserAccounts
+        ];
       # Appvm modules
-      appvm.extraModules = optionals cfg.appvm.enable [
-        serviceModules.givc
-        serviceModules.logging
-        managedUserAccounts
-        commonModule
-      ];
+      appvm.extraModules =
+        optionals cfg.appvm.enable [
+          serviceModules.logging
+          commonModule
+        ]
+        ++ optionals (cfg.appvm.enable && fullVirtualization) [
+          serviceModules.givc
+          managedUserAccounts
+        ];
       # Idsvm modules
       idsvm.extraModules = optionals cfg.idsvm.enable [
         commonModule
