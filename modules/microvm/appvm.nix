@@ -27,7 +27,9 @@ let
       # A list of applications for the GIVC service
       givcApplications = map (app: {
         name = app.givcName;
-        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.command}";
+        command = "${config.ghaf.givc.appPrefix}/run-waypipe${
+          if app.supportXWayland then " -X" else ""
+        } ${config.ghaf.givc.appPrefix}/${app.command}";
         args = app.givcArgs;
       }) vm.applications;
       # Packages and extra modules from all applications defined in the appvm
@@ -271,6 +273,11 @@ in
                         type = types.str;
                         description = "The command to run the application";
                         default = null;
+                      };
+                      supportXWayland = mkOption {
+                        description = "Whether or not to support XWayland through a sub-compositor.";
+                        type = types.bool;
+                        default = false;
                       };
                       extraModules = mkOption {
                         description = "Additional modules required for the application";
