@@ -39,7 +39,7 @@ in
         systemd-boot.enable = true;
       };
 
-      kernelPackages = pkgs.linuxPackages;
+      kernelPackages = pkgs.linuxPackages_latest;
     };
   };
 }

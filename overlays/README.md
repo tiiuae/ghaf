@@ -31,7 +31,7 @@ It makes things clear and robust.
 
 Some patches are carried as overlays and others are patches that are cherry-picked
 from staging and main into a tiiuae maintained version of nixpkgs 
-[tiiuae/nixpkgs/...](https://github.com/tiiuae/nixpkgs/tree/patched-unstable-proc-qemu)
+[tiiuae/nixpkgs/...](https://github.com/tiiuae/nixpkgs/)
 
 The status of the integration in nixpkgs can be tracked using the [Pull Request Tracker](https://nixpk.gs/pr-tracker.html)
 
@@ -39,6 +39,12 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 [gtklock: Multiple errors on wrong password](https://github.com/jovanlanik/gtklock/pull/119)
 
-[libqmi: Failure to cross compile](https://github.com/NixOS/nixpkgs/issues/384946)
-
 ## carried in tiiuae/nixpkgs/...
+
+The following are in staging at the moment, so carry for some time until they reach unstable.
+
+Fix ibus and sdl3 cross compile
+[ibusMinimal: fix cross compilation](https://github.com/NixOS/nixpkgs/pull/418644)
+[sdl3: fix cross compilation](https://github.com/NixOS/nixpkgs/pull/418646)
+Remove qt dependency from qemu
+[zint: split library and GUI](https://github.com/NixOS/nixpkgs/pull/407308)

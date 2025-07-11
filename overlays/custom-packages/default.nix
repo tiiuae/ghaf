@@ -5,7 +5,7 @@
 # packages.
 #
 (final: prev: {
-  element-desktop = import ./element-desktop { inherit prev; };
+  #element-desktop = import ./element-desktop { inherit prev; };
   gtklock = import ./gtklock { inherit prev; };
   labwc = import ./labwc { inherit prev; };
   qemu_kvm = import ./qemu { inherit final prev; };

@@ -331,7 +331,7 @@ in
           if config.ghaf.guest.kernel.hardening.graphics.enable then
             pkgs.linuxPackagesFor guest_graphics_hardened_kernel
           else
-            pkgs.linuxPackages;
+            pkgs.linuxPackages_latest;
 
         # We need this patch to avoid reserving Intel graphics stolen memory for vm
         # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103

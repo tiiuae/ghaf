@@ -3,14 +3,19 @@
 {
   buildPythonApplication,
   websockets,
+  setuptools,
 }:
 buildPythonApplication {
   pname = "gpswebsock";
   version = "1.0";
+  pyproject = true;
 
   propagatedBuildInputs = [ websockets ];
 
   src = ./.;
+
+  build-system = [ setuptools ];
+
   meta = {
     description = "Point-to-point messaging server for Matrix";
     platforms = [
