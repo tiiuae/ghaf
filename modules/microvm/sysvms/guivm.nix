@@ -81,7 +81,6 @@ let
               withDebug = config.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
             };
-
             givc.guivm.enable = true;
 
             # Storage
@@ -124,14 +123,23 @@ let
 
             # Services
             services = {
+              power-manager = {
+                vm = {
+                  enable = true;
+                  pciSuspendServices = [
+                    "systemd-backlight*.service --all"
+                    "display-manager.service"
+                  ];
+                };
+                gui.enable = true;
+              };
+
               github = {
                 enable = true;
                 token = "xxxxxxxxxxxxxxxxxxxx"; # Will be updated when the user login
                 owner = "tiiuae";
                 repo = "ghaf-bugreports";
               };
-
-              acpid.enable = true;
 
               timezone.enable = true;
 
@@ -143,17 +151,7 @@ let
             xdgitems.enable = true;
           };
 
-          # Handle clamshell mode and lid switch events for laptops
           services = {
-            logind = {
-              lidSwitch = if config.ghaf.givc.enable then "ignore" else "suspend";
-              killUserProcesses = true;
-              extraConfig = ''
-                IdleAction=lock
-                UserStopDelaySec=0
-              '';
-            };
-
             # We dont enable services.blueman because it adds blueman desktop entry
             dbus.packages = [ pkgs.blueman ];
           };
