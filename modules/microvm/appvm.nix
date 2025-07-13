@@ -410,6 +410,7 @@ in
             StandardOutput = "journal";
             StandardError = "journal";
             ExecStart = "${swtpmScript}/bin/${name}-swtpm";
+            LogLevelMax = "notice";
           };
         };
 
