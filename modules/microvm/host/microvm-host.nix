@@ -21,7 +21,6 @@ let
 
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
-
   activeMicrovms = attrNames config.microvm.vms;
 in
 {
@@ -87,11 +86,13 @@ in
           withHardenedConfigs = true;
         };
         givc.host.enable = true;
+        services.power-manager = {
+          host.enable = true;
+          gui.enable = config.ghaf.profiles.graphics.enable;
+        };
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
       };
-
-      services.logind.lidSwitch = "ignore";
 
       # Create host directories for microvm shares
       systemd.tmpfiles.rules =
@@ -170,7 +171,7 @@ in
               // lib.optionalAttrs
                 (config.ghaf.virtualization.microvm.audiovm.enable && (lib.hasInfix "audio-vm" name))
                 {
-                  # TODO generalize PCI handling for all VM shutdowns
+                  # TODO evaluate if this is still needed
                   # The + here is a systemd feature to make the script run as root.
                   ExecStopPost = lib.mkIf has_remove_pci_device [
                     "+${pkgs.writeShellScript "reload-audio" ''
