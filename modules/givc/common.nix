@@ -85,6 +85,7 @@ in
     cliArgs = mkOption {
       description = "Arguments for the givc-cli to contact the admin service.";
       type = types.str;
+      default = "";
     };
   };
 

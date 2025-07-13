@@ -11,6 +11,7 @@ let
   inherit (lib)
     mkEnableOption
     mkIf
+    optionals
     ;
   guivmName = "gui-vm";
   inherit (config.ghaf.networking) hosts;
@@ -31,6 +32,14 @@ in
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
+      services = [
+        "poweroff.target"
+        "reboot.target"
+      ]
+      ++ optionals config.ghaf.services.power-manager.vm.enable [
+        "suspend.target"
+        "systemd-suspend.service"
+      ];
       hwidService = true;
       tls.enable = config.ghaf.givc.enableTls;
       admin = lib.head config.ghaf.givc.adminConfig.addresses;

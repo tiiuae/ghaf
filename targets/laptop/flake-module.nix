@@ -31,6 +31,7 @@ let
       {
         imports = [
           self.nixosModules.common
+          self.nixosModules.givc
           self.nixosModules.development
           self.nixosModules.reference-personalize
         ];

@@ -69,7 +69,7 @@ let
     timeout ${toString 300} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
     ${lib.optionalString graphicsProfileCfg.allowSuspend ''timeout ${
       toString (builtins.floor (300 * 3))
-    } "ghaf-powercontrol suspend; ghaf-powercontrol wakeup"''}
+    } "systemctl suspend"''}
   '';
 
   gtk-settings = ''
@@ -217,8 +217,6 @@ in
     services.displayManager.cosmic-greeter.enable = true;
 
     ghaf.graphics.login-manager.enable = true;
-    # Override default power controls with ghaf-powercontrol
-    ghaf.graphics.power-manager.enable = true;
 
     ghaf.graphics.screen-recorder.enable = cfg.screen-recorder.enable;
 
@@ -386,18 +384,6 @@ in
       after = [ "cosmic-session.target" ];
       wantedBy = [ "cosmic-session.target" ];
     };
-
-    # Suspend on VMs is currently disabled unconditionally due to known issues
-    # Ideally, these should be controlled by the allowSuspend option
-    # VM suspension known issues:
-    # - Suspending a VM leads to USB controllers crashing and having to be re-initialized
-    # - cosmic-comp may crash on resume
-    systemd.sleep.extraConfig = mkIf (!graphicsProfileCfg.allowSuspend) ''
-      AllowSuspend=no
-      AllowHibernation=no
-      AllowHybridSleep=no
-      AllowSuspendThenHibernate=no
-    '';
 
     # Following are changes made to default COSMIC configuration done by services.desktopManager.cosmic
 

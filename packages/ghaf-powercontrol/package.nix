@@ -39,8 +39,8 @@ writeShellApplication {
     Control Ghaf power states, display power, and user sessions.
 
     Commands:
-      reboot                  Reboot the system using 'givc-cli' if enabled, otherwise 'systemctl'.
-      poweroff                Power off the system using 'givc-cli' if enabled, otherwise 'systemctl'.
+      reboot                  Reboot the system
+      poweroff                Power off the system
       suspend                 Suspend the system after locking the session and turning off displays.
       wakeup                  Trigger wakeup procedures, such as restoring displays or USB controllers (used after suspend).
       logout                  Log out the current user using 'wayland-logout' and terminate user processes.
@@ -69,12 +69,12 @@ writeShellApplication {
       local uid
 
       # Determine the UID of the user session to operate on
-      uid=$(loginctl list-sessions --json=short | jq -e '.[] | select(.class == "greeter") | .uid')
+      uid=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid')
       if [ -n "$uid" ]; then
-        echo "Using greeter session UID: $uid"
+        echo "Using session UID: $uid"
       else
-        uid=${toString ghafConfig.users.loginUser.uid}
-        echo "Using login user session UID: $uid"
+        echo "Error: Could not determine user session UID"
+        return 1
       fi
 
       if [ "$action" != "on" ] && [ "$action" != "off" ]; then
@@ -110,64 +110,20 @@ writeShellApplication {
       return 1
     }
 
-    reset_xhci_controllers() {
-      echo "Resetting USB controllers..."
-      # Find all USB controller PCI addresses
-      local controllers
-      controllers=$(lspci -Dnmm | grep -i '0c03' | cut -f1 -d' ')
-
-      if [ -z "$controllers" ]; then
-        echo "No USB controllers found"
-        return 0
-      fi
-
-      echo "Found USB controllers: $controllers" | xargs
-
-      for dev in $controllers; do
-        if [ -L "/sys/bus/pci/devices/$dev/driver" ]; then
-          echo "Unbinding $dev"
-          if ! echo -n "$dev" > /sys/bus/pci/drivers/xhci_hcd/unbind; then
-            echo "ERROR: Failed to unbind $dev"
-            return 1
-          fi
-        else
-          echo "Device already unbinded"
-        fi
-        echo "Rebinding $dev"
-        if ! echo -n "$dev" > /sys/bus/pci/drivers/xhci_hcd/bind; then
-          echo "ERROR: Failed to bind $dev"
-          return 1
-        fi
-      done
-      echo "USB controllers reset successfully"
-      sleep 1
-    }
-
     wakeup() {
       echo "Waking up system..."
-      ${lib.optionalString useGivc "reset_xhci_controllers"} # Only needed if waking up a VM
       try_toggle_displays on
     }
 
     case "$1" in
       reboot|poweroff)
-        # Stop systemd-backlight services manually to save current brightness settings
-        systemctl stop systemd-backlight*
-        ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} "$1"
+        systemctl "$1"
         ;;
       suspend)
       ${
         if ghafConfig.profiles.graphics.allowSuspend then
           ''
-            echo "Turning off displays..."
-            try_toggle_displays off
-
-            echo "Locking session..."
-            loginctl lock-sessions
-
-            # givc-cli seems to always return a non-zero exit code,
-            # so we must have a separate fail-safe to turn on displays
-            ${if useGivc then "givc-cli ${ghafConfig.givc.cliArgs}" else "systemctl"} suspend || true
+            systemctl suspend
           ''
         else
           ''

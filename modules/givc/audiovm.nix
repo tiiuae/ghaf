@@ -10,6 +10,7 @@ let
   inherit (lib)
     mkEnableOption
     mkIf
+    optionals
     ;
   guivmName = "gui-vm";
   inherit (config.ghaf.networking) hosts;
@@ -32,6 +33,14 @@ in
       };
       tls.enable = config.ghaf.givc.enableTls;
       admin = lib.head config.ghaf.givc.adminConfig.addresses;
+      services = [
+        "poweroff.target"
+        "reboot.target"
+      ]
+      ++ optionals config.ghaf.services.power-manager.vm.enable [
+        "suspend.target"
+        "systemd-suspend.service"
+      ];
       socketProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
         {
           transport = {
