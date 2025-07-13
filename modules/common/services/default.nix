@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./acpid.nix
     ./audio.nix
     ./bluetooth.nix
     ./brightness.nix
@@ -11,6 +10,7 @@
     ./fprint.nix
     ./github.nix
     ./timezone.nix
+    ./power.nix
     ./wifi.nix
     ./xpadneo.nix
     ./yubikey.nix

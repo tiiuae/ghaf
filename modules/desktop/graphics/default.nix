@@ -9,7 +9,6 @@
     ./ewwbar.nix
     ./fonts.nix
     ./login-manager.nix
-    ./power-manager.nix
     ./boot.nix
   ];
 }

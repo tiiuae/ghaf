@@ -21,7 +21,6 @@ let
 
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
-
   activeMicrovms = attrNames config.microvm.vms;
 in
 {
@@ -90,12 +89,14 @@ in
           withHardenedConfigs = true;
         };
         givc.host.enable = true;
+        services.power-manager = {
+          host.enable = true;
+          gui.enable = config.ghaf.profiles.graphics.enable;
+        };
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
         common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
       };
-
-      services.logind.lidSwitch = "ignore";
 
       # Create host directories for microvm shares
       systemd.tmpfiles.rules =

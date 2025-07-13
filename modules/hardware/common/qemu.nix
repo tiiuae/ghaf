@@ -44,6 +44,12 @@ in
     ghaf.qemu.audiovm = optionalAttrs (config.ghaf.type == "host") {
       microvm.qemu.extraArgs =
         optionals (hasAttr "audio-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.audio-vm
+        ++ optionals (config.ghaf.hardware.definition.type == "laptop") [
+          "-device"
+          "battery"
+          "-device"
+          "acad"
+        ]
         ++ optionals (config.ghaf.hardware.definition.audio.acpiPath != null) [
           "-acpitable"
           "file=${config.ghaf.hardware.definition.audio.acpiPath}"

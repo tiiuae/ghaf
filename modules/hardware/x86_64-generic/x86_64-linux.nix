@@ -26,6 +26,7 @@ in
       # Enable normal Linux console on the display, and QR code kernel panic
       kernelParams = [
         "console=tty0"
+        "console=ttyUSB0,115200"
         "drm.panic_screen=qr_code"
       ];
 
