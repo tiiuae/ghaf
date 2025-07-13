@@ -15,6 +15,7 @@ prev.qemu_kvm.overrideAttrs (
     patches = prev.patches ++ [
       ./acpi-devices-passthrough-qemu-8.1.patch
       ./0001-ivshmem-flat-memory-support.patch
+      ./0002-fix-igd-duplicate-bdsm-in-fw_cfg.patch
       ./usb-host-enable-autoscan-for-bus-addr.patch
     ];
   })

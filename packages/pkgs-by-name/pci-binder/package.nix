@@ -2,21 +2,26 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   writeShellApplication,
-  grpcurl,
+  coreutils,
+  gawk,
+  gnugrep,
   jq,
+  pciutils,
+  systemd,
 }:
 writeShellApplication {
-  name = "wait-for-unit";
-
+  name = "pci-binder";
   runtimeInputs = [
-    grpcurl
+    coreutils
+    gawk
+    gnugrep
     jq
+    pciutils
+    systemd
   ];
-
-  text = builtins.readFile ./wait-for-unit.sh;
-
+  text = builtins.readFile ./pci-binder.sh;
   meta = {
-    description = "Script to query a systemd unit status across VMs.";
+    description = "Script to unbind/rebind guest PCI device drivers";
     platforms = [
       "aarch64-linux"
       "x86_64-linux"

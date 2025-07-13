@@ -32,10 +32,10 @@ let
   # Hardware devices passthrough modules
   deviceModules = optionalAttrs fullVirtualization {
     inherit (configHost.ghaf.hardware.devices)
-      netvmPCIPassthroughModule
-      audiovmPCIPassthroughModule
-      guivmPCIPassthroughModule
-      guivmVirtioInputHostEvdevModule
+      nics
+      audio
+      gpus
+      evdev
       ;
   };
 
@@ -116,6 +116,13 @@ let
         inherit (configHost.ghaf.security.audit) enable;
       };
     };
+
+    # Power management module
+    power = {
+      config.ghaf.services.power-manager = {
+        inherit (configHost.ghaf.services.power-manager) enable;
+      };
+    };
   };
 
   # User account settings
@@ -184,12 +191,13 @@ in
           commonModule
         ]
         ++ optionals (cfg.netvm.enable && fullVirtualization) [
-          deviceModules.netvmPCIPassthroughModule
+          deviceModules.nics
           kernelConfigs.netvm
           firmwareModule
           serviceModules.wifi
           serviceModules.givc
           serviceModules.audit
+          serviceModules.power
           referenceServiceModule
           managedUserAccounts
         ];
@@ -200,7 +208,7 @@ in
           commonModule
         ]
         ++ optionals (cfg.audiovm.enable && fullVirtualization) [
-          deviceModules.audiovmPCIPassthroughModule
+          deviceModules.audio
           kernelConfigs.audiovm
           firmwareModule
           qemuModules.audiovm
@@ -208,6 +216,7 @@ in
           serviceModules.audit
           serviceModules.givc
           serviceModules.bluetooth
+          serviceModules.power
           managedUserAccounts
         ];
       # Guivm modules
@@ -217,8 +226,8 @@ in
           commonModule
         ]
         ++ optionals (cfg.guivm.enable && fullVirtualization) [
-          deviceModules.guivmPCIPassthroughModule
-          deviceModules.guivmVirtioInputHostEvdevModule
+          deviceModules.gpus
+          deviceModules.evdev
           kernelConfigs.guivm
           firmwareModule
           qemuModules.guivm
@@ -227,6 +236,7 @@ in
           serviceModules.yubikey
           serviceModules.givc
           serviceModules.audit
+          serviceModules.power
           referenceServiceModule
           managedUserAccounts
         ];
