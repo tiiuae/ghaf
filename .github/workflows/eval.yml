@@ -46,7 +46,7 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Install nix
-        uses: cachix/install-nix-action@cebd211ec2008b83bda8fb0b21c3c072f004fe04 # v31
+        uses: cachix/install-nix-action@c134e4c9e34bac6cab09cf239815f9339aaaf84e # v31
       - name: Evaluate (jobid=${{ matrix.jobid }})
         run: |
           echo "JOB_TOTAL: ${JOB_TOTAL}"
