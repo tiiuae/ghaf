@@ -35,7 +35,6 @@ let
             systemd = {
               enable = true;
               withName = "adminvm-systemd";
-              withAudit = configHost.ghaf.profiles.debug.enable;
               withNss = true;
               withResolved = true;
               withPolkit = true;

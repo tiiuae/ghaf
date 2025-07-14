@@ -58,5 +58,8 @@ in
         };
       };
     };
+    ghaf.security.audit.extraRules = [
+      "-w /etc/givc/ -p wa -k givc-${hostName}"
+    ];
   };
 }

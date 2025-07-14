@@ -79,7 +79,6 @@ let
                 systemd = {
                   enable = true;
                   withName = "appvm-systemd";
-                  withAudit = configHost.ghaf.profiles.debug.enable;
                   withLocaled = true;
                   withNss = true;
                   withResolved = true;

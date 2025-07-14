@@ -109,6 +109,13 @@ let
         };
       };
     };
+
+    # Audit module
+    audit = {
+      config.ghaf.security.audit = {
+        inherit (configHost.ghaf.security.audit) enable;
+      };
+    };
   };
 
   # User account settings
@@ -178,6 +185,7 @@ in
         serviceModules.wifi
         serviceModules.givc
         serviceModules.logging
+        serviceModules.audit
         referenceServiceModule
         managedUserAccounts
         commonModule
@@ -192,6 +200,7 @@ in
         serviceModules.givc
         serviceModules.bluetooth
         serviceModules.logging
+        serviceModules.audit
         managedUserAccounts
         commonModule
       ];
@@ -207,6 +216,7 @@ in
         serviceModules.yubikey
         serviceModules.givc
         serviceModules.logging
+        serviceModules.audit
         referenceServiceModule
         managedUserAccounts
         commonModule
@@ -215,6 +225,7 @@ in
       adminvm.extraModules = optionals cfg.adminvm.enable [
         serviceModules.givc
         serviceModules.logging
+        serviceModules.audit
         managedUserAccounts
         commonModule
       ];
@@ -222,6 +233,7 @@ in
       appvm.extraModules = optionals cfg.appvm.enable [
         serviceModules.givc
         serviceModules.logging
+        serviceModules.audit
         managedUserAccounts
         commonModule
       ];
