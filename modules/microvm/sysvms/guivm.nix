@@ -73,7 +73,6 @@ let
             systemd = {
               enable = true;
               withName = "guivm-systemd";
-              withAudit = config.ghaf.profiles.debug.enable;
               withHomed = true;
               withLocaled = true;
               withNss = true;

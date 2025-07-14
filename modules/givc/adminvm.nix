@@ -24,5 +24,8 @@ in
       services = map (host: "givc-${host}.service") systemHosts;
       tls.enable = config.ghaf.givc.enableTls;
     };
+    ghaf.security.audit.extraRules = [
+      "-w /etc/givc/ -p wa -k givc-${name}"
+    ];
   };
 }

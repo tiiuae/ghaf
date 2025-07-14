@@ -23,6 +23,9 @@ in
     ghaf =
       {
         systemd.withPolkit = true;
+        security.audit.extraRules = [
+          "-w /var/lib/fprint/ -p wa -k fprint"
+        ];
       }
       // lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
         # Persistent storage

@@ -42,7 +42,6 @@ in
         pkgs.traceroute
         pkgs.dig
         pkgs.evtest
-
         # for finding and navigation
         pkgs.fd
         (pkgs.ripgrep.override { withPCRE2 = true; })

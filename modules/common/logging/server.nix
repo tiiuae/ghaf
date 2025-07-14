@@ -126,5 +126,9 @@ in
       allowedTCPPorts = [ config.ghaf.logging.listener.port ];
       allowedUDPPorts = [ ];
     };
+
+    ghaf.security.audit.extraRules = [
+      "-w /etc/alloy/logs-aggregator.alloy -p rwxa -k alloy_client_config"
+    ];
   };
 }

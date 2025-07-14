@@ -41,7 +41,6 @@ let
             systemd = {
               enable = true;
               withName = "netvm-systemd";
-              withAudit = config.ghaf.profiles.debug.enable;
               withPolkit = true;
               withResolved = true;
               withTimesyncd = true;
