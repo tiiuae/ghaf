@@ -27,16 +27,25 @@ in
         "chrome-vm"
       ];
 
-      virtualization.microvm.appvm = {
-        enable = true;
-        vms = {
-          chrome.enable = true;
-          gala.enable = true;
-          zathura.enable = true;
-          comms.enable = true;
-          business.enable = true;
+      virtualization.microvm.appvm =
+        let
+          vms = {
+            chrome.enable = true;
+            gala.enable = true;
+            zathura.enable = true;
+            comms.enable = true;
+            business.enable = true;
+          };
+          vmNames = builtins.map (name: "${name}-vm") (
+            builtins.attrNames (lib.filterAttrs (_: v: v.enable or false) vms)
+          );
+        in
+        {
+          enable = true;
+          inherit vms;
+          shm-gui-enabled-vms = vmNames;
+          shm-audio-enabled-vms = vmNames;
         };
-      };
 
       reference = {
         appvms.enable = true;
