@@ -35,6 +35,7 @@ in
         # For lsusb:
         pkgs.usbutils
         # Useful in NetVM
+        pkgs.nettools
         pkgs.ethtool
         # Basic monitors
         pkgs.iftop
