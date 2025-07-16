@@ -109,11 +109,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1752113600,
-        "narHash": "sha256-7LYDxKxZgBQ8LZUuolAQ8UkIB+jb4A2UmiR+kzY9CLI=",
+        "lastModified": 1752541678,
+        "narHash": "sha256-dyhGzkld6jPqnT/UfGV2oqe7tYn7hppAqFvF3GZTyXY=",
         "owner": "nix-community",
         "repo": "disko",
-        "rev": "79264292b7e3482e5702932949de9cbb69fedf6d",
+        "rev": "2bf3421f7fed5c84d9392b62dcb9d76ef09796a7",
         "type": "github"
       },
       "original": {
@@ -316,11 +316,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1751638252,
-        "narHash": "sha256-2ObCX6gXipEAd0XNfUXbWE2Org5t1MSWLS8NJly7imQ=",
+        "lastModified": 1752647074,
+        "narHash": "sha256-W6T40W73zGnV5jU5JC5I7CoNhEaxmhlsnf+gZWq0Mj0=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "c98fe9625f91167035f7a028ee1aa63b1b9e9fc7",
+        "rev": "81847c3b3650885f5f76c7be2bc83be4e2a5a6f3",
         "type": "github"
       },
       "original": {
@@ -361,11 +361,11 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1752095991,
-        "narHash": "sha256-+paXzPg6SN3O+YKtQKiU+kQE1EkfsrI1XEYTxI4DSFk=",
+        "lastModified": 1752278584,
+        "narHash": "sha256-QaT8PpCR1IaUMa12ou2MlvNCzYVWgTQfVWJGXyFvY5c=",
         "owner": "astro",
         "repo": "microvm.nix",
-        "rev": "f30b1412b73df264dc9cac154d340645add350ff",
+        "rev": "f30ae9b9e740116d044935c9c0c68bd1c2ce8432",
         "type": "github"
       },
       "original": {
@@ -427,16 +427,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1752131570,
-        "narHash": "sha256-10Sb8gqh4o/ErebJxkzalqrSNt9JdUGpbBL8a9HhHF4=",
+        "lastModified": 1752654569,
+        "narHash": "sha256-VBIH0TTgk2sJi7R8kxGZPK2Z6r2nK+T4JlWgs406hMc=",
         "owner": "tiiuae",
         "repo": "nixpkgs",
-        "rev": "dc33a271c9ba0ab23d92624747fa48844a8a7f7f",
+        "rev": "ab364b788af97f866c3e0ff4ed31e9a6af010560",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "nixos-unstable-fix-ibus",
+        "ref": "nixos-unstable-tinysparql",
         "repo": "nixpkgs",
         "type": "github"
       }
@@ -585,11 +585,11 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1752123282,
-        "narHash": "sha256-40lraTZp8E4ta5ftW3PMshtMzxpE2pO1sbDuB4XGou0=",
+        "lastModified": 1752635184,
+        "narHash": "sha256-ScwQunWku/40uypIEYpU34JfQOIxWO0ycFrRUJjj/Hk=",
         "owner": "tiiuae",
         "repo": "wireguard-gui",
-        "rev": "65745fca17205fea93d4a64e949a1e40e491a6d2",
+        "rev": "71753a84f8ba724b453be5aa0d01c736e3c5ed99",
         "type": "github"
       },
       "original": {
