@@ -5,6 +5,7 @@
     ./acpid.nix
     ./audio.nix
     ./bluetooth.nix
+    ./brightness.nix
     ./disks.nix
     ./firmware.nix
     ./fprint.nix
