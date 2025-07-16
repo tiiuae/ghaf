@@ -14,9 +14,7 @@
     kernelConfig.kernelParams = [
       "intel_iommu=on,sm_on"
       "iommu=pt"
-      "acpi_backlight=vendor"
-      "acpi_osi=linux"
-      "module_blacklist=iwlwifi,nouveau,nvidia,nvidiafb,xe,snd_pcm,nvidia_wmi_ec_backlight"
+      "module_blacklist=iwlwifi,nouveau,nvidia,nvidiafb,xe,snd_pcm"
     ];
   };
 
@@ -82,6 +80,12 @@
         productId = "22bb";
       }
     ];
+    kernelConfig = {
+      kernelParams = [
+        "acpi_osi=linux"
+        "acpi_backlight=none" # Disable intel_backlight interface
+      ];
+    };
   };
 
   # Audio device for passthrough to audiovm

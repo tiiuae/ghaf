@@ -300,5 +300,48 @@ in
           };
         };
     })
+    (mkIf cfg.enable {
+      systemd.services."nvidia-brightness-control" =
+        let
+          backlightDevice = "nvidia_wmi_ec_backlight";
+          controlBrightnessScript = pkgs.writeShellApplication {
+            name = "nvidia-brightness-control";
+            runtimeInputs = with pkgs; [
+              coreutils
+              brightnessctl
+              socat
+            ];
+            text = ''
+                SOCKET_PATH="${config.ghaf.services.brightness.socketPath}"
+
+                echo "Connecting to $SOCKET_PATH..."
+                # Retry until socket exists
+                while [ ! -S "$SOCKET_PATH" ]; do
+                  echo "Waiting for QEMU socket to appear..."
+                  sleep 1
+                done
+
+                # Connect and process messages
+                socat -u UNIX-CONNECT:$SOCKET_PATH - | while read -r value; do
+                if [[ "$value" =~ ^(\+5|5-)$ ]]; then
+                  brightnessctl -d ${backlightDevice} set "$value"%
+                fi
+              done
+            '';
+          };
+        in
+        {
+          enable = true;
+          description = "Control display brightness using Nvidia driver";
+          wantedBy = [ "multi-user.target" ];
+          unitConfig.ConditionPathExists = "/sys/class/backlight/${backlightDevice}";
+          serviceConfig = {
+            Type = "simple";
+            ExecStart = "${controlBrightnessScript}/bin/nvidia-brightness-control";
+            Restart = "always";
+            RestartSec = "1";
+          };
+        };
+    })
   ];
 }
