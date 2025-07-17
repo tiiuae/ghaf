@@ -47,6 +47,9 @@ in
           autologinUser = lib.mkForce null;
         };
       };
+
+      # Enable audit
+      security.audit.enable = lib.mkForce true;
     };
   };
 }

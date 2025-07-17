@@ -42,5 +42,8 @@ in
       tls.enable = config.ghaf.givc.enableTls;
       admin = lib.head config.ghaf.givc.adminConfig.addresses;
     };
+    ghaf.security.audit.extraRules = [
+      "-w /etc/givc/ -p wa -k givc-${hostName}"
+    ];
   };
 }

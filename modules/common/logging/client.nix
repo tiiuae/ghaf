@@ -62,5 +62,9 @@ in
     # still keep on retrying to send logs batch, so we need to
     # stop it forcefully.
     systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
+
+    ghaf.security.audit.extraRules = [
+      "-w /etc/alloy/client.alloy -p rwxa -k alloy_client_config"
+    ];
   };
 }

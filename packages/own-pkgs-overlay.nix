@@ -3,6 +3,7 @@
 #
 {
   flake.overlays.own-pkgs-overlay = final: _prev: {
+    audit-rules = final.callPackage ./pkgs-by-name/audit-rules/package.nix { };
     bt-launcher = final.callPackage ./pkgs-by-name/bt-launcher/package.nix { };
     dendrite-pinecone = final.callPackage ./pkgs-by-name/dendrite-pinecone/package.nix { };
     element-gps = final.python3Packages.callPackage ./python-packages/element-gps/package.nix { };

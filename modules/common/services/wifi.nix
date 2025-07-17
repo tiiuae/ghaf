@@ -24,11 +24,17 @@ in
       };
     };
 
-    ghaf = lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
-      storagevm.directories = [
-        "/etc/NetworkManager/system-connections/"
-      ];
-    };
+    ghaf =
+      lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+        storagevm.directories = [
+          "/etc/NetworkManager/system-connections/"
+        ];
+      }
+      // {
+        security.audit.extraRules = [
+          "-w /etc/NetworkManager/ -p wa -k networkmanager"
+        ];
+      };
 
     environment = {
 

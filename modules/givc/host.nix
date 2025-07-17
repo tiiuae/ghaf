@@ -51,5 +51,9 @@ in
       generatorHostName = hostName;
       storagePath = "/persist/storagevm/givc";
     };
+
+    ghaf.security.audit.extraRules = [
+      "-w /etc/givc/ -p wa -k givc-${hostName}"
+    ];
   };
 }

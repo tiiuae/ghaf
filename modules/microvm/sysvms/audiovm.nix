@@ -40,7 +40,6 @@ let
             systemd = {
               enable = true;
               withName = "audiovm-systemd";
-              withAudit = configHost.ghaf.profiles.debug.enable;
               withAudio = true;
               withBluetooth = true;
               withNss = true;

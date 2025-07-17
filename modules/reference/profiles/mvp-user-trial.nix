@@ -80,6 +80,9 @@ in
         server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
         listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
       };
+
+      # Enable audit
+      security.audit.enable = false;
     };
   };
 }

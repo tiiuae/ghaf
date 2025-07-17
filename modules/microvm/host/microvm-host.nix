@@ -72,7 +72,6 @@ in
         systemd = {
           withName = "host-systemd";
           enable = true;
-          withAudit = config.ghaf.profiles.debug.enable;
           withPolkit = true;
           withTpm2Tss = pkgs.stdenv.hostPlatform.isx86;
           withRepart = true;
