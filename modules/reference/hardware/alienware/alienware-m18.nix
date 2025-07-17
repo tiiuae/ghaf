@@ -16,7 +16,7 @@
       "iommu=pt"
       "acpi_backlight=vendor"
       "acpi_osi=linux"
-      "module_blacklist=iwlwifi,nouveau,nvidia,nvidiafb,xe,snd_pcm,nvidia_wmi_ec_backlight"
+      "module_blacklist=iwlwifi,nouveau,nvidia,nvidiafb,xe,snd_pcm,nvidia_wmi_ec_backlight,bluetooth,btusb"
     ];
   };
 

@@ -1,0 +1,32 @@
+diff --git a/hw/vfio/igd.c b/hw/vfio/igd.c
+index e7a9d1ffc1..aa055732c6 100644
+--- a/hw/vfio/igd.c
++++ b/hw/vfio/igd.c
+@@ -640,6 +640,27 @@ static bool vfio_pci_igd_config_quirk(VFIOPCIDevice *vdev, Error **errp)
+         }
+     }
+
++    /*
++     * Check presence of 'etc/igd-bdsm-size' in fw_cfg to prevent failure
++     * during igd hotplug if the device was attached before.
++     */
++    DeviceState *dev = DEVICE(vdev);
++    if (dev->hotplugged) {
++        FWCfgState *fw_cfg = fw_cfg_find();
++        if (!fw_cfg) {
++            error_setg(&err, "Unable to find fw_cfg");
++            goto error;
++        }
++        if (fw_cfg->files != NULL) {
++            for (int i = 0; i < fw_cfg->files->count; i++) {
++                if (strcmp(fw_cfg->files->f[i].name, "etc/igd-bdsm-size") == 0) {
++                    /* BDSM size already exists, no need to add it again */
++                    return true;
++                }
++            }
++        }
++    }
++
+     /*
+      * Request reserved memory for stolen memory via fw_cfg.  VM firmware
+      * must allocate a 1MB aligned reserved memory region below 4GB with
