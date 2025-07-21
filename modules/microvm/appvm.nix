@@ -32,7 +32,6 @@ let
       # Packages and extra modules from all applications defined in the appvm
       appPackages = builtins.concatLists (map (app: app.packages) vm.applications);
       appExtraModules = builtins.concatLists (map (app: app.extraModules) vm.applications);
-      sshKeysHelper = pkgs.callPackage ./common/ssh-keys-helper.nix { config = configHost; };
 
       appvmConfiguration = {
         imports = [
@@ -128,17 +127,6 @@ let
 
               };
 
-              # SSH is very picky about the file permissions and ownership and will
-              # accept neither direct path inside /nix/store or symlink that points
-              # there. Therefore we copy the file to /etc/ssh/get-auth-keys (by
-              # setting mode), instead of symlinking it.
-
-              environment.etc.${configHost.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} =
-                sshKeysHelper.getAuthKeysSource;
-              services.openssh = configHost.ghaf.security.sshKeys.sshAuthorizedKeysCommand // {
-                authorizedKeysCommandUser = config.ghaf.users.appUser.name;
-              };
-
               system.stateVersion = lib.trivial.release;
 
               nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
@@ -171,12 +159,6 @@ let
                 vcpu = vm.cores;
                 hypervisor = "qemu";
                 shares = [
-                  {
-                    tag = "waypipe-ssh-public-key";
-                    source = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                    mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                    proto = "virtiofs";
-                  }
                   {
                     tag = "ro-store";
                     source = "/nix/store";
@@ -224,8 +206,6 @@ let
                       lib.concatStringsSep "\n"
                         configHost.ghaf.hardware.passthrough.vmUdevExtraRules."${vm.name}-vm";
                   };
-
-              fileSystems."${configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir}".options = [ "ro" ];
             }
           )
         ];
