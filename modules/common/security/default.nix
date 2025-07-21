@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./sshkeys.nix
     ./apparmor
     ./audit
     ./pwquality.nix

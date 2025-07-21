@@ -124,7 +124,6 @@ in
         [
           "d /persist/common 0755 root root -"
           "d /persist/storagevm/homes 0700 microvm kvm -"
-          "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
         ++ lib.optionals config.ghaf.givc.enable [
           "d /persist/storagevm/givc 0700 microvm kvm -"
