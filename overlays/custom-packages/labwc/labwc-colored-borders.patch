@@ -284,8 +284,8 @@ index 51468e02..153b6d01 100644
 +
 +	memcpy(theme->window[THEME_ACTIVE].border_color, color, sizeof(float)*4);
 +	memcpy(theme->window[THEME_INACTIVE].border_color, color, sizeof(float)*4);
-+	memcpy(theme->window[THEME_ACTIVE].title_bg_color, color, sizeof(float)*4);
-+	memcpy(theme->window[THEME_INACTIVE].title_bg_color, color, sizeof(float)*4);
++	memcpy(theme->window[THEME_ACTIVE].title_bg.color, color, sizeof(float)*4);
++	memcpy(theme->window[THEME_INACTIVE].title_bg.color, color, sizeof(float)*4);
 +
 +	memcpy(theme->osd_bg_color, color, sizeof(float)*4);
 +	memcpy(theme->osd_border_color, color, sizeof(float)*4);
