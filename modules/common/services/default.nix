@@ -12,5 +12,6 @@
     ./disks.nix
     ./github.nix
     ./timezone.nix
+    ./brightness.nix
   ];
 }
