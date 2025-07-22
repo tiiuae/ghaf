@@ -20,6 +20,7 @@
       final.callPackage ./pkgs-by-name/globalprotect-openconnect/package.nix
         { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
+    jsign = final.callPackage ./pkgs-by-name/jsign/package.nix { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     kernel-hardening-checker =
       final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
@@ -28,6 +29,7 @@
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     qemuqmp = final.python3Packages.callPackage ./python-packages/qemuqmp/package.nix { };
+    sign-disk-image = final.callPackage ./pkgs-by-name/sign-disk-image/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     vhotplug = final.python3Packages.callPackage ./python-packages/vhotplug/package.nix { };
     vinotify = final.python3Packages.callPackage ./python-packages/vinotify/package.nix { };
