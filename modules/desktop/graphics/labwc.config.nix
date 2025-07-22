@@ -23,38 +23,37 @@ let
       pkgs.glib
     ];
 
-    text =
-      ''
-        # Import environment variables to ensure it is available to user
-        # services
-        systemctl --user import-environment WAYLAND_DISPLAY
-        dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
-        sleep 0.3 # make sure variables are set
-        systemctl --user reset-failed
-        systemctl --user stop ghaf-session.target
-        systemctl --user start ghaf-session.target
+    text = ''
+      # Import environment variables to ensure it is available to user
+      # services
+      systemctl --user import-environment WAYLAND_DISPLAY
+      dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
+      sleep 0.3 # make sure variables are set
+      systemctl --user reset-failed
+      systemctl --user stop ghaf-session.target
+      systemctl --user start ghaf-session.target
 
-        # Get the current workspace
-        current_workspace=$(${ghaf-workspace}/bin/ghaf-workspace cur 2>/dev/null)
+      # Get the current workspace
+      current_workspace=$(${ghaf-workspace}/bin/ghaf-workspace cur 2>/dev/null)
 
-        # Check if the current workspace is a valid number
-        if ! [ "$current_workspace" -ge 1 ] 2>/dev/null; then
-            echo "Invalid workspace detected. Switching to workspace 1..."
-            ${ghaf-workspace}/bin/ghaf-workspace switch 1
-        else
-            ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
-        fi
-        ${ghaf-workspace}/bin/ghaf-workspace max ${toString cfg.maxDesktops}
+      # Check if the current workspace is a valid number
+      if ! [ "$current_workspace" -ge 1 ] 2>/dev/null; then
+          echo "Invalid workspace detected. Switching to workspace 1..."
+          ${ghaf-workspace}/bin/ghaf-workspace switch 1
+      else
+          ${ghaf-workspace}/bin/ghaf-workspace switch "$current_workspace"
+      fi
+      ${ghaf-workspace}/bin/ghaf-workspace max ${toString cfg.maxDesktops}
 
-        # Write the GTK settings to the settings.ini file in the GTK config directory
-        # Note:
-        # - On Wayland, GTK+ is known for not picking themes from settings.ini.
-        # - We define GTK+ theme on Wayland using gsettings (e.g., `gsettings set org.gnome.desktop.interface ...`).
-        mkdir -p "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gtk-4.0"
-        [ ! -f "$XDG_CONFIG_HOME/gtk-3.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
-        [ ! -f "$XDG_CONFIG_HOME/gtk-4.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
-      ''
-      + cfg.extraAutostart;
+      # Write the GTK settings to the settings.ini file in the GTK config directory
+      # Note:
+      # - On Wayland, GTK+ is known for not picking themes from settings.ini.
+      # - We define GTK+ theme on Wayland using gsettings (e.g., `gsettings set org.gnome.desktop.interface ...`).
+      mkdir -p "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gtk-4.0"
+      [ ! -f "$XDG_CONFIG_HOME/gtk-3.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-3.0/settings.ini"
+      [ ! -f "$XDG_CONFIG_HOME/gtk-4.0/settings.ini" ] && echo -ne "${gtk-settings}" > "$XDG_CONFIG_HOME/gtk-4.0/settings.ini"
+    ''
+    + cfg.extraAutostart;
   };
   rcXml = ''
     <?xml version="1.0"?>

@@ -107,11 +107,9 @@
             let
               # Remove rounded corners from the text editor window
               gnomeTextEditor = pkgs.gnome-text-editor.overrideAttrs (oldAttrs: {
-                postPatch =
-                  (oldAttrs.postPatch or "")
-                  + ''
-                    echo -e '\nwindow { border-radius: 0px; }' >> src/style.css
-                  '';
+                postPatch = (oldAttrs.postPatch or "") + ''
+                  echo -e '\nwindow { border-radius: 0px; }' >> src/style.css
+                '';
               });
             in
             [

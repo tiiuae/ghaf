@@ -45,7 +45,8 @@ let
               overlays = [ self.overlays.default ];
             };
           }
-        ] ++ extraModules;
+        ]
+        ++ extraModules;
       };
     in
     {

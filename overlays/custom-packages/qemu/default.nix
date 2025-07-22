@@ -19,10 +19,8 @@ prev.qemu_kvm.overrideAttrs (
     ];
   })
   // {
-    postInstall =
-      (prev.postInstall or "")
-      + ''
-        cp contrib/ivshmem-server/ivshmem-server $out/bin
-      '';
+    postInstall = (prev.postInstall or "") + ''
+      cp contrib/ivshmem-server/ivshmem-server $out/bin
+    '';
   }
 )

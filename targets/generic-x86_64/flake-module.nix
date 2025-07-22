@@ -131,7 +131,8 @@ let
               "vfio-pci.ids=8086:a0f0"
             ];
           }
-        ] ++ extraModules;
+        ]
+        ++ extraModules;
       };
     in
     {

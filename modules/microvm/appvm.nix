@@ -110,14 +110,13 @@ let
                 };
 
                 # Services
-                waypipe =
-                  {
-                    enable = true;
-                    inherit vm;
-                  }
-                  // optionalAttrs configHost.ghaf.shm.enable {
-                    inherit (configHost.ghaf.shm) serverSocketPath;
-                  };
+                waypipe = {
+                  enable = true;
+                  inherit vm;
+                }
+                // optionalAttrs configHost.ghaf.shm.enable {
+                  inherit (configHost.ghaf.shm) serverSocketPath;
+                };
 
                 ghaf-audio = {
                   inherit (vm.ghafAudio) enable;
@@ -143,14 +142,13 @@ let
               nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
               nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-              environment.systemPackages =
-                [
-                  pkgs.opensc
-                  pkgs.givc-cli
-                ]
-                ++ vm.packages
-                ++ appPackages
-                ++ optionals vm.vtpm.enable [ pkgs.tpm2-tools ];
+              environment.systemPackages = [
+                pkgs.opensc
+                pkgs.givc-cli
+              ]
+              ++ vm.packages
+              ++ appPackages
+              ++ optionals vm.vtpm.enable [ pkgs.tpm2-tools ];
 
               security.tpm2 = optionalAttrs vm.vtpm.enable {
                 enable = true;
@@ -187,23 +185,22 @@ let
                 writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
                 qemu = {
-                  extraArgs =
-                    [
-                      "-M"
-                      "accel=kvm:tcg,mem-merge=on,sata=off"
-                      "-device"
-                      "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
-                      "-device"
-                      "qemu-xhci"
-                    ]
-                    ++ lib.optionals vm.vtpm.enable [
-                      "-chardev"
-                      "socket,id=chrtpm,path=/var/lib/swtpm/${vm.name}-sock"
-                      "-tpmdev"
-                      "emulator,id=tpm0,chardev=chrtpm"
-                      "-device"
-                      "tpm-tis,tpmdev=tpm0"
-                    ];
+                  extraArgs = [
+                    "-M"
+                    "accel=kvm:tcg,mem-merge=on,sata=off"
+                    "-device"
+                    "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
+                    "-device"
+                    "qemu-xhci"
+                  ]
+                  ++ lib.optionals vm.vtpm.enable [
+                    "-chardev"
+                    "socket,id=chrtpm,path=/var/lib/swtpm/${vm.name}-sock"
+                    "-tpmdev"
+                    "emulator,id=tpm0,chardev=chrtpm"
+                    "-device"
+                    "tpm-tis,tpmdev=tpm0"
+                  ];
 
                   machine =
                     {

@@ -48,7 +48,8 @@ let
             };
           }
           (import ./optee.nix { })
-        ] ++ extraModules;
+        ]
+        ++ extraModules;
       };
     in
     {

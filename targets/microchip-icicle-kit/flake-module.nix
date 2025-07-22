@@ -56,7 +56,8 @@ let
             ];
             hardware.enableAllHardware = lib.mkForce false;
           }
-        ] ++ extraModules;
+        ]
+        ++ extraModules;
       };
     in
     {

@@ -75,118 +75,117 @@ let
 
   # Definition of suppressed system units in systemd configuration. This removes the units and has priority.
   # Required to avoid build failures compared to only disabling units for some options. Note that errors will be silently ignored.
-  suppressedSystemUnits =
-    [
-      ## Default disabled units
-      "remote-cryptsetup.service"
-      "remote-cryptsetup.target"
-      "remote-fs-pre.service"
-      "remote-fs-pre.target"
-      "remote-fs.service"
-      "remote-fs.target"
-      "rpcbind.service"
-      "rpcbind.target"
-      "systemd-update-done.service"
-      "system-update.target"
-      "system-update-pre.target"
-      "system-update-cleanup.service"
-    ]
-    ++ (lib.optionals (!cfg.withMachines) [
-      "container-getty.service"
-      "container-getty@.service"
-      "container@.service"
-      "systemd-nspawn@.service"
-    ])
-    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withSerial)) [
-      "getty.service"
-      "getty@.service"
-      "getty.target"
-      "getty-pre.target"
-      "serial-getty.service"
-      "serial-getty@.service"
-      "serial-getty.target"
-      "serial-getty@.target"
-    ])
-    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withJournal)) [
-      "systemd-journald-audit.socket"
-      "systemd-journal-catalog-update.service"
-      "systemd-journal-flush.service"
-      "systemd-journald.service"
-      "systemd-journald@.service"
-      "systemd-journal-gatewayd.socket"
-      "systemd-journald-audit.socket"
-      "systemd-journald-dev-log.socket"
-      "systemd-journald-varlink@.socket"
-      "systemd-journald.socket"
-      "systemd-journald@.socket"
-      "systemd-update-utmp.service"
-    ])
-    ++ (lib.optionals (!cfg.withAudit) [
-      "audit.service"
-      "auditd.service"
-      "systemd-journald-audit.socket"
-    ])
-    ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withMachines)) [ "systemd-coredump.socket" ])
-    ++ (lib.optionals (!cfg.withLogind) [
-      "systemd-logind.service"
-      "dbus-org.freedesktop.login1.service"
-    ])
-    ++ (lib.optionals (!cfg.withNss) [
-      "nscd.service"
-      "nss.service"
-      "nss.target"
-      "nss-lookup.target"
-      "nss-user-lookup.target"
-      "nss-lookup.target.requires"
-      "nss-user-lookup.target.requires"
-    ])
-    ++ (lib.optionals (!cfg.withTimesyncd) [ "systemd-timesyncd.service" ])
-    ++ (lib.optionals (!cfg.withResolved) [ "systemd-resolved.service" ])
-    ++ (lib.optionals (!cfg.withNetworkd) [
-      "network.target"
-      "network-pre.target"
-      "network-online.target"
-      "network-interfaces.target"
-      "network-setup.service"
-      "network-local-commands.service"
-      "systemd-timesyncd.service"
-      "systemd-networkd-wait-online.service"
-      "systemd-networkd.service"
-      "systemd-networkd.socket"
-    ])
-    ++ (lib.optionals (!cfg.withAudio) [
-      "sound.target"
-    ])
-    ++ (lib.optionals (!cfg.withBluetooth) [
-      "bluetooth.target"
-      "bluetooth.service"
-    ])
-    ++ (lib.optionals (!cfg.withDebug) [
-      ## Units kept with debug
-      "kbrequest.target"
-      "rescue.service"
-      "rescue.target"
-      "emergency.service"
-      "emergency.target"
-      "systemd-vconsole-setup.service"
-      "reload-systemd-vconsole-setup.service"
-      "console-getty.service"
-      "sys-kernel-debug.mount"
-      "sys-fs-fuse-connections.mount"
-      "systemd-pstore.service"
-      "mount-pstore.service"
-      "systemd-ask-password-console.path"
-      "systemd-ask-password-console.service"
-      "systemd-ask-password-wall.path"
-      "systemd-ask-password-wall.service"
-      "systemd-kexec.service"
-      "kexec.service"
-      "kexec.target"
-      "kexec-tools.service"
-      "kexec-tools.target"
-      "prepare-kexec.service"
-      "prepare-kexec.target"
-    ]);
+  suppressedSystemUnits = [
+    ## Default disabled units
+    "remote-cryptsetup.service"
+    "remote-cryptsetup.target"
+    "remote-fs-pre.service"
+    "remote-fs-pre.target"
+    "remote-fs.service"
+    "remote-fs.target"
+    "rpcbind.service"
+    "rpcbind.target"
+    "systemd-update-done.service"
+    "system-update.target"
+    "system-update-pre.target"
+    "system-update-cleanup.service"
+  ]
+  ++ (lib.optionals (!cfg.withMachines) [
+    "container-getty.service"
+    "container-getty@.service"
+    "container@.service"
+    "systemd-nspawn@.service"
+  ])
+  ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withSerial)) [
+    "getty.service"
+    "getty@.service"
+    "getty.target"
+    "getty-pre.target"
+    "serial-getty.service"
+    "serial-getty@.service"
+    "serial-getty.target"
+    "serial-getty@.target"
+  ])
+  ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withJournal)) [
+    "systemd-journald-audit.socket"
+    "systemd-journal-catalog-update.service"
+    "systemd-journal-flush.service"
+    "systemd-journald.service"
+    "systemd-journald@.service"
+    "systemd-journal-gatewayd.socket"
+    "systemd-journald-audit.socket"
+    "systemd-journald-dev-log.socket"
+    "systemd-journald-varlink@.socket"
+    "systemd-journald.socket"
+    "systemd-journald@.socket"
+    "systemd-update-utmp.service"
+  ])
+  ++ (lib.optionals (!cfg.withAudit) [
+    "audit.service"
+    "auditd.service"
+    "systemd-journald-audit.socket"
+  ])
+  ++ (lib.optionals ((!cfg.withDebug) && (!cfg.withMachines)) [ "systemd-coredump.socket" ])
+  ++ (lib.optionals (!cfg.withLogind) [
+    "systemd-logind.service"
+    "dbus-org.freedesktop.login1.service"
+  ])
+  ++ (lib.optionals (!cfg.withNss) [
+    "nscd.service"
+    "nss.service"
+    "nss.target"
+    "nss-lookup.target"
+    "nss-user-lookup.target"
+    "nss-lookup.target.requires"
+    "nss-user-lookup.target.requires"
+  ])
+  ++ (lib.optionals (!cfg.withTimesyncd) [ "systemd-timesyncd.service" ])
+  ++ (lib.optionals (!cfg.withResolved) [ "systemd-resolved.service" ])
+  ++ (lib.optionals (!cfg.withNetworkd) [
+    "network.target"
+    "network-pre.target"
+    "network-online.target"
+    "network-interfaces.target"
+    "network-setup.service"
+    "network-local-commands.service"
+    "systemd-timesyncd.service"
+    "systemd-networkd-wait-online.service"
+    "systemd-networkd.service"
+    "systemd-networkd.socket"
+  ])
+  ++ (lib.optionals (!cfg.withAudio) [
+    "sound.target"
+  ])
+  ++ (lib.optionals (!cfg.withBluetooth) [
+    "bluetooth.target"
+    "bluetooth.service"
+  ])
+  ++ (lib.optionals (!cfg.withDebug) [
+    ## Units kept with debug
+    "kbrequest.target"
+    "rescue.service"
+    "rescue.target"
+    "emergency.service"
+    "emergency.target"
+    "systemd-vconsole-setup.service"
+    "reload-systemd-vconsole-setup.service"
+    "console-getty.service"
+    "sys-kernel-debug.mount"
+    "sys-fs-fuse-connections.mount"
+    "systemd-pstore.service"
+    "mount-pstore.service"
+    "systemd-ask-password-console.path"
+    "systemd-ask-password-console.service"
+    "systemd-ask-password-wall.path"
+    "systemd-ask-password-wall.service"
+    "systemd-kexec.service"
+    "kexec.service"
+    "kexec.target"
+    "kexec-tools.service"
+    "kexec-tools.target"
+    "prepare-kexec.service"
+    "prepare-kexec.target"
+  ]);
 in
 {
   options.ghaf.systemd = {

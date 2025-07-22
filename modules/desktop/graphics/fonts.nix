@@ -11,18 +11,17 @@ let
 in
 {
   config = lib.mkIf (labwc.enable || cosmic.enable) {
-    fonts.packages =
-      [
-        pkgs.inter
-      ]
-      ++ (
-        if labwc.enable then
-          [
-            pkgs.nerd-fonts.fira-code
-            pkgs.hack-font
-          ]
-        else
-          [ ]
-      );
+    fonts.packages = [
+      pkgs.inter
+    ]
+    ++ (
+      if labwc.enable then
+        [
+          pkgs.nerd-fonts.fira-code
+          pkgs.hack-font
+        ]
+      else
+        [ ]
+    );
   };
 }

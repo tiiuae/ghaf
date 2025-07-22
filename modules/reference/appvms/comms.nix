@@ -15,7 +15,8 @@ in
     packages = [
       pkgs.google-chrome
       pkgs.gpsd
-    ] ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
+    ]
+    ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
     ramMb = 4096;
     cores = 4;
     borderColor = "#337aff";

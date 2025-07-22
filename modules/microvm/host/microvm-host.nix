@@ -125,65 +125,63 @@ in
         ++ vmRootDirs
         ++ xdgRules;
 
-      systemd.services =
-        {
-          # Generate anonymous unique device identifier
-          generate-device-id = {
-            enable = true;
-            description = "Generate device and machine ids";
-            wantedBy = [ "local-fs.target" ];
-            after = [ "local-fs.target" ];
-            unitConfig.ConditionPathExists = "!/persist/common/device-id";
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStart =
-                [
-                  # Generate a unique device id
-                  "${pkgs.writeShellScript "generate-device-id" ''
-                    echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
-                  ''}"
-                ]
-                ++ (map (
-                  vm:
-                  # Generate unique machine ids
-                  "${pkgs.writeShellScript "generate-machine-id" ''
-                    ${pkgs.util-linux}/bin/uuidgen | tr -d '-' > /persist/storagevm/${vm}/etc/machine-id
-                  ''}"
-                ) activeMicrovms);
-              RemainAfterExit = true;
-              Restart = "on-failure";
-              RestartSec = "1";
-            };
+      systemd.services = {
+        # Generate anonymous unique device identifier
+        generate-device-id = {
+          enable = true;
+          description = "Generate device and machine ids";
+          wantedBy = [ "local-fs.target" ];
+          after = [ "local-fs.target" ];
+          unitConfig.ConditionPathExists = "!/persist/common/device-id";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = [
+              # Generate a unique device id
+              "${pkgs.writeShellScript "generate-device-id" ''
+                echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
+              ''}"
+            ]
+            ++ (map (
+              vm:
+              # Generate unique machine ids
+              "${pkgs.writeShellScript "generate-machine-id" ''
+                ${pkgs.util-linux}/bin/uuidgen | tr -d '-' > /persist/storagevm/${vm}/etc/machine-id
+              ''}"
+            ) activeMicrovms);
+            RemainAfterExit = true;
+            Restart = "on-failure";
+            RestartSec = "1";
           };
-        }
-        // foldl' (
-          result: name:
-          result
-          // {
-            # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
-            # in ExecStop of the microvm@ service fails and causes the service to restart.
-            "microvm@${name}".serviceConfig =
-              {
-                Restart = "on-abnormal";
-              }
-              // lib.optionalAttrs
-                (config.ghaf.virtualization.microvm.audiovm.enable && (lib.hasInfix "audio-vm" name))
-                {
-                  # TODO generalize PCI handling for all VM shutdowns
-                  # The + here is a systemd feature to make the script run as root.
-                  ExecStopPost = lib.mkIf has_remove_pci_device [
-                    "+${pkgs.writeShellScript "reload-audio" ''
-                      # The script makes audio device internal state to reset
-                      # This fixes issue of audio device getting into some unexpected
-                      # state when the VM is being shutdown during audio mic recording
-                      echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
-                      sleep 0.1
-                      echo "1" > /sys/bus/pci/rescan
-                    ''}"
-                  ];
-                };
+        };
+      }
+      // foldl' (
+        result: name:
+        result
+        // {
+          # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
+          # in ExecStop of the microvm@ service fails and causes the service to restart.
+          "microvm@${name}".serviceConfig = {
+            Restart = "on-abnormal";
           }
-        ) { } activeMicrovms;
+          //
+            lib.optionalAttrs
+              (config.ghaf.virtualization.microvm.audiovm.enable && (lib.hasInfix "audio-vm" name))
+              {
+                # TODO generalize PCI handling for all VM shutdowns
+                # The + here is a systemd feature to make the script run as root.
+                ExecStopPost = lib.mkIf has_remove_pci_device [
+                  "+${pkgs.writeShellScript "reload-audio" ''
+                    # The script makes audio device internal state to reset
+                    # This fixes issue of audio device getting into some unexpected
+                    # state when the VM is being shutdown during audio mic recording
+                    echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
+                    sleep 0.1
+                    echo "1" > /sys/bus/pci/rescan
+                  ''}"
+                ];
+              };
+        }
+      ) { } activeMicrovms;
     })
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.
