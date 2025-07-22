@@ -145,23 +145,22 @@ in
     ghaf.graphics.login-manager.enable = true;
 
     environment = {
-      systemPackages =
-        [
-          pkgs.labwc
-          pkgs.ghaf-theme
-          pkgs.papirus-icon-theme
-          pkgs.adwaita-icon-theme
+      systemPackages = [
+        pkgs.labwc
+        pkgs.ghaf-theme
+        pkgs.papirus-icon-theme
+        pkgs.adwaita-icon-theme
 
-          (import ./launchers-pkg.nix { inherit pkgs config; })
-        ]
-        # Grim screenshot tool is used for labwc debug-builds
-        # satty and slurp add some functionality to bring it
-        # a more modern selection tool
-        ++ lib.optionals config.ghaf.profiles.debug.enable [
-          pkgs.grim
-          pkgs.satty
-          pkgs.slurp
-        ];
+        (import ./launchers-pkg.nix { inherit pkgs config; })
+      ]
+      # Grim screenshot tool is used for labwc debug-builds
+      # satty and slurp add some functionality to bring it
+      # a more modern selection tool
+      ++ lib.optionals config.ghaf.profiles.debug.enable [
+        pkgs.grim
+        pkgs.satty
+        pkgs.slurp
+      ];
       sessionVariables = {
         XDG_CONFIG_HOME = "$HOME/.config";
         XDG_DATA_HOME = "$HOME/.local/share";

@@ -90,17 +90,16 @@ in
           inherit (cfg) uid;
           inherit (cfg) createHome;
           home = if cfg.createHome then "/home/${cfg.name}" else "/var/empty";
-          extraGroups =
-            [
-              "wheel"
-            ]
-            ++ cfg.extraGroups
-            ++ optionals cfg.createHome [
-              "audio"
-              "video"
-            ]
-            ++ optionals config.security.tpm2.enable [ "tss" ]
-            ++ optionals config.virtualisation.docker.enable [ "docker" ];
+          extraGroups = [
+            "wheel"
+          ]
+          ++ cfg.extraGroups
+          ++ optionals cfg.createHome [
+            "audio"
+            "video"
+          ]
+          ++ optionals config.security.tpm2.enable [ "tss" ]
+          ++ optionals config.virtualisation.docker.enable [ "docker" ];
         };
       };
       groups = {

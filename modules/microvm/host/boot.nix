@@ -148,27 +148,26 @@ in
     (mkIf cfg.enable {
 
       # Systemd boot targets
-      systemd.targets =
-        {
-          # Override microvm.nix's default target (default is VMs with autostart)
-          microvms = {
-            wants = mkForce (map (name: "microvm@${name}.service") (attrNames config.microvm.vms));
-          };
-        }
-        // optionalAttrs cfg.uiEnabled {
-          system-ui = {
-            description = "System UI target";
-            wantedBy = [ "microvms.target" ];
-            requires = [ "wait-for-ui.service" ];
-            after = [ "wait-for-ui.service" ];
-          };
-          system-login = {
-            description = "System Login target";
-            wantedBy = [ "microvms.target" ];
-            requires = [ "wait-for-login.service" ];
-            after = [ "wait-for-login.service" ];
-          };
+      systemd.targets = {
+        # Override microvm.nix's default target (default is VMs with autostart)
+        microvms = {
+          wants = mkForce (map (name: "microvm@${name}.service") (attrNames config.microvm.vms));
         };
+      }
+      // optionalAttrs cfg.uiEnabled {
+        system-ui = {
+          description = "System UI target";
+          wantedBy = [ "microvms.target" ];
+          requires = [ "wait-for-ui.service" ];
+          after = [ "wait-for-ui.service" ];
+        };
+        system-login = {
+          description = "System Login target";
+          wantedBy = [ "microvms.target" ];
+          requires = [ "wait-for-login.service" ];
+          after = [ "wait-for-login.service" ];
+        };
+      };
 
       # Slice groups for system- and app VMs
       systemd.slices = mkSliceGroups;

@@ -53,7 +53,8 @@ let
 
           environment.systemPackages = [
             pkgs.snort # TODO: put into separate module
-          ] ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.tcpdump);
+          ]
+          ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.tcpdump);
 
           microvm = {
             optimize.enable = true;

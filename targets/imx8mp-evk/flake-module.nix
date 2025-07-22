@@ -68,7 +68,8 @@ let
             hardware.deviceTree.name = lib.mkForce "freescale/imx8mp-evk.dtb";
             hardware.enableAllHardware = lib.mkForce false;
           }
-        ] ++ extraModules;
+        ]
+        ++ extraModules;
       };
     in
     {

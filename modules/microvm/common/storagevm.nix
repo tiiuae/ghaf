@@ -147,13 +147,12 @@ in
 
           # Optional log preservation
           (mkIf cfg.preserveLogs {
-            directories =
-              [
-                "/var/log/journal"
-              ]
-              ++ optionals config.security.auditd.enable [
-                "/var/log/audit"
-              ];
+            directories = [
+              "/var/log/journal"
+            ]
+            ++ optionals config.security.auditd.enable [
+              "/var/log/audit"
+            ];
           })
 
           # Optional files for ssh

@@ -72,7 +72,8 @@ let
               pkgs.pulseaudio
               pkgs.pamixer
               pkgs.pipewire
-            ] ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
+            ]
+            ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
           };
 
           time.timeZone = config.time.timeZone;

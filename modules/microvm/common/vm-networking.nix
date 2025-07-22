@@ -78,7 +78,8 @@ in
         addresses = [ { Address = "${hosts.${cfg.vmName}.ipv4}/24"; } ];
         linkConfig.RequiredForOnline = "routable";
         linkConfig.ActivationPolicy = "always-up";
-      } // lib.optionalAttrs ((!cfg.isGateway) || (cfg.vmName == "ids-vm")) { inherit gateway; };
+      }
+      // lib.optionalAttrs ((!cfg.isGateway) || (cfg.vmName == "ids-vm")) { inherit gateway; };
     };
 
     # systemd-resolved does not support local names resolution

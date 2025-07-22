@@ -20,22 +20,21 @@
           devshell = {
             name = "Ghaf devshell";
             meta.description = "Ghaf development environment";
-            packages =
-              [
-                pkgs.jq
-                pkgs.nodejs
-                pkgs.nix-eval-jobs
-                pkgs.nix-fast-build
-                pkgs.nix-output-monitor
-                pkgs.nix-tree
-                pkgs.nixVersions.latest
-                pkgs.reuse
-                config.treefmt.build.wrapper
-                self'.legacyPackages.ghaf-build-helper
-              ]
-              ++ config.pre-commit.settings.enabledPackages
-              ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
-              ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
+            packages = [
+              pkgs.jq
+              pkgs.nodejs
+              pkgs.nix-eval-jobs
+              pkgs.nix-fast-build
+              pkgs.nix-output-monitor
+              pkgs.nix-tree
+              pkgs.nixVersions.latest
+              pkgs.reuse
+              config.treefmt.build.wrapper
+              self'.legacyPackages.ghaf-build-helper
+            ]
+            ++ config.pre-commit.settings.enabledPackages
+            ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
+            ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
 
             startup.hook.text = config.pre-commit.installationScript;
           };

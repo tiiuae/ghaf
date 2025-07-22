@@ -28,7 +28,8 @@ writeShellApplication {
     libnotify
     toybox
     jq
-  ] ++ (lib.optional useGivc givc-cli);
+  ]
+  ++ (lib.optional useGivc givc-cli);
 
   text = ''
     help_msg() {

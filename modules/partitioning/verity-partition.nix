@@ -58,7 +58,8 @@ in
       kernelParams = [
         "roothash=${roothashPlaceholder}"
         "systemd.verity_root_options=panic-on-corruption"
-      ] ++ lib.optional debugEnable "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1";
+      ]
+      ++ lib.optional debugEnable "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1";
 
       # No bootloaders needed yet
       loader = {

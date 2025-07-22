@@ -27,7 +27,8 @@
         #module-test-hardened-pkvm-kernel =
         #  pkgs.callPackage ../modules/hardware/x86_64-generic/kernel/host/pkvm/test
         #    { inherit pkgs; };
-      } // (lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages);
+      }
+      // (lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages);
 
       pre-commit = {
         settings = {

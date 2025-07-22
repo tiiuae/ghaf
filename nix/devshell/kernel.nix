@@ -23,7 +23,8 @@
             pkgs.ncurses
             pkgs.pkg-config
             pkgs.kernel-hardening-checker
-          ] ++ extraPackages;
+          ]
+          ++ extraPackages;
 
           inputsFrom = [ linux ];
 

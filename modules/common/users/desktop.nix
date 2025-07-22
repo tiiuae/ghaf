@@ -173,128 +173,127 @@ in
                   pkgs.brightnessctl
                   pkgs.fido2-manage
                 ];
-                text =
-                  ''
-                    set +e
-                    trap ''' INT
-                    brightnessctl set 100%
+                text = ''
+                  set +e
+                  trap ''' INT
+                  brightnessctl set 100%
 
-                    SETUP_COMPLETE=false
-                    until $SETUP_COMPLETE; do
-                      clear
-                      FIDO_SUPPORT=""
+                  SETUP_COMPLETE=false
+                  until $SETUP_COMPLETE; do
+                    clear
+                    FIDO_SUPPORT=""
 
-                      echo -e "\e[1;32;1mWelcome to Ghaf \e[0m"
-                      echo ""
-                      echo "Start by creating your user account."
-                      echo ""
-                  ''
-                  # FIDO2 device support is currently optional. Adjust this if mandatory support is required
-                  + optionalString cfg.loginUser.fidoAuth ''
-                    # Make sure FIDO2 device is connected before proceeding
-                    FIDO2_DEV=$(fido2-token2 -L)
-                    if [ -n "$FIDO2_DEV" ]; then
-                      FIDO_SUPPORT="auto"
-                    fi
-                  ''
-                  + ''
-                    # Read new user name
-                    ACCEPTABLE_USER=false
-                    until $ACCEPTABLE_USER; do
-                      read -e -r -p "Enter your user name: " USERNAME
-                      USERNAME=''${USERNAME// /_}
-                      USERNAME=''${USERNAME//[^a-zA-Z0-9_-]/}
-                      USERNAME=''$(echo -n "$USERNAME" | tr '[:upper:]' '[:lower:]')
-                      if grep -q "$USERNAME:" /etc/passwd; then
-                        echo "User $USERNAME already exists. Please choose another user name."
-                      else
-                        ACCEPTABLE_USER=true
-                      fi
-                    done
-
+                    echo -e "\e[1;32;1mWelcome to Ghaf \e[0m"
                     echo ""
-                    read -e -r -p "Enter your full name: " REALNAME
-                    REALNAME=''${REALNAME//[^a-zA-Z ]/}
-                    [[ -n "$REALNAME" ]] || REALNAME="$USERNAME";
-
+                    echo "Start by creating your user account."
                     echo ""
-                    echo "Setting up your user account and creating encrypted home folder after you enter your password."
-                    echo "This may take a while..."
-                    echo ""
-
-                    # Add login user and home
-                    if ! homectl create "$USERNAME" \
-                    --real-name="$REALNAME" \
-                    --skel=/etc/skel \
-                    --storage=luks \
-                    --luks-pbkdf-type=argon2id \
-                    --fs-type=btrfs \
-                    --enforce-password-policy=true \
-                    --fido2-device="$FIDO_SUPPORT" \
-                    --drop-caches=true \
-                    --nosuid=true \
-                    --noexec=true \
-                    --nodev=true \
-                    --disk-size=${toString cfg.loginUser.homeSize}M \
-                    --shell=/run/current-system/sw/bin/bash \
-                    --uid=${toString cfg.loginUser.uid} \
-                    --member-of=users${
-                      optionalString (
-                        cfg.loginUser.extraGroups != [ ]
-                      ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
-                    }; then
-                      echo "An error occurred while creating the user account. Please try again." >&2
-                  ''
-                  + optionalString cfg.loginUser.fidoAuth ''
-                    echo "(HINT: You may have inserted a FIDO2/Yubikey after boot.)" >&2
-                    echo "(      - If you want to use a FIDO2 device, please restart the machine with the device inserted.)" >&2
-                    echo "(      - If you DONT want to use a FIDO2 device, please remove it and continue.)" >&2
-                  ''
-                  + ''
-                      while true; do
-                        read -r -p 'Press [Enter] to restart user setup...'
-                        break
-                      done
-                      continue
-                    fi
-
-                    echo ""
-                    echo "User '$USERNAME' created successfully with the following details:"
-                    echo "  User Name:    $USERNAME"
-                    echo "  Display Name: $REALNAME"
-                  ''
-                  + optionalString cfg.loginUser.fidoAuth ''
-                    if [ -n "$FIDO_SUPPORT" ]; then
-                      echo "  FIDO2 Device: Supported"
+                ''
+                # FIDO2 device support is currently optional. Adjust this if mandatory support is required
+                + optionalString cfg.loginUser.fidoAuth ''
+                  # Make sure FIDO2 device is connected before proceeding
+                  FIDO2_DEV=$(fido2-token2 -L)
+                  if [ -n "$FIDO2_DEV" ]; then
+                    FIDO_SUPPORT="auto"
+                  fi
+                ''
+                + ''
+                  # Read new user name
+                  ACCEPTABLE_USER=false
+                  until $ACCEPTABLE_USER; do
+                    read -e -r -p "Enter your user name: " USERNAME
+                    USERNAME=''${USERNAME// /_}
+                    USERNAME=''${USERNAME//[^a-zA-Z0-9_-]/}
+                    USERNAME=''$(echo -n "$USERNAME" | tr '[:upper:]' '[:lower:]')
+                    if grep -q "$USERNAME:" /etc/passwd; then
+                      echo "User $USERNAME already exists. Please choose another user name."
                     else
-                      echo "  FIDO2 Device: Not configured"
+                      ACCEPTABLE_USER=true
                     fi
-                  ''
-                  + ''
-                    echo ""
+                  done
 
-                    # Discard any previous inputs (e.g., from tapping the Yubikey)
-                    # shellcheck disable=SC2162
-                    while read -e -t 1; do : ; done
+                  echo ""
+                  read -e -r -p "Enter your full name: " REALNAME
+                  REALNAME=''${REALNAME//[^a-zA-Z ]/}
+                  [[ -n "$REALNAME" ]] || REALNAME="$USERNAME";
 
-                    # User to confirm the setup
-                    read -r -p 'Do you want to continue with this configuration? [Y/n] ' response
-                    case "$response" in
-                    [nN][oO] | [nN])
-                      homectl remove "$USERNAME"
-                      rm -r /var/lib/systemd/home/*
-                      ;;
-                    *)
-                      echo "Setup completed. Starting user session..."
-                      SETUP_COMPLETE=true
-                      ;;
-                    esac
+                  echo ""
+                  echo "Setting up your user account and creating encrypted home folder after you enter your password."
+                  echo "This may take a while..."
+                  echo ""
 
-                    done # until $SETUP_COMPLETE
+                  # Add login user and home
+                  if ! homectl create "$USERNAME" \
+                  --real-name="$REALNAME" \
+                  --skel=/etc/skel \
+                  --storage=luks \
+                  --luks-pbkdf-type=argon2id \
+                  --fs-type=btrfs \
+                  --enforce-password-policy=true \
+                  --fido2-device="$FIDO_SUPPORT" \
+                  --drop-caches=true \
+                  --nosuid=true \
+                  --noexec=true \
+                  --nodev=true \
+                  --disk-size=${toString cfg.loginUser.homeSize}M \
+                  --shell=/run/current-system/sw/bin/bash \
+                  --uid=${toString cfg.loginUser.uid} \
+                  --member-of=users${
+                    optionalString (
+                      cfg.loginUser.extraGroups != [ ]
+                    ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
+                  }; then
+                    echo "An error occurred while creating the user account. Please try again." >&2
+                ''
+                + optionalString cfg.loginUser.fidoAuth ''
+                  echo "(HINT: You may have inserted a FIDO2/Yubikey after boot.)" >&2
+                  echo "(      - If you want to use a FIDO2 device, please restart the machine with the device inserted.)" >&2
+                  echo "(      - If you DONT want to use a FIDO2 device, please remove it and continue.)" >&2
+                ''
+                + ''
+                    while true; do
+                      read -r -p 'Press [Enter] to restart user setup...'
+                      break
+                    done
+                    continue
+                  fi
 
-                     # Lock user creation script
-                    install -m 000 /dev/null /var/lib/nixos/user.lock
-                  '';
+                  echo ""
+                  echo "User '$USERNAME' created successfully with the following details:"
+                  echo "  User Name:    $USERNAME"
+                  echo "  Display Name: $REALNAME"
+                ''
+                + optionalString cfg.loginUser.fidoAuth ''
+                  if [ -n "$FIDO_SUPPORT" ]; then
+                    echo "  FIDO2 Device: Supported"
+                  else
+                    echo "  FIDO2 Device: Not configured"
+                  fi
+                ''
+                + ''
+                  echo ""
+
+                  # Discard any previous inputs (e.g., from tapping the Yubikey)
+                  # shellcheck disable=SC2162
+                  while read -e -t 1; do : ; done
+
+                  # User to confirm the setup
+                  read -r -p 'Do you want to continue with this configuration? [Y/n] ' response
+                  case "$response" in
+                  [nN][oO] | [nN])
+                    homectl remove "$USERNAME"
+                    rm -r /var/lib/systemd/home/*
+                    ;;
+                  *)
+                    echo "Setup completed. Starting user session..."
+                    SETUP_COMPLETE=true
+                    ;;
+                  esac
+
+                  done # until $SETUP_COMPLETE
+
+                   # Lock user creation script
+                  install -m 000 /dev/null /var/lib/nixos/user.lock
+                '';
               };
             in
             {
