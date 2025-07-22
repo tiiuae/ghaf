@@ -1,0 +1,48 @@
+From 526495910b7c9a03078379fec788ee5f5f2e5968 Mon Sep 17 00:00:00 2001
+From: Manuel Bluhm <manuel@ssrc.tii.ae>
+Date: Fri, 18 Jul 2025 14:07:41 +0400
+Subject: [PATCH] fix(igd): duplicate bdsm in fw_cfg
+
+Return early from vfio_pci_igd_config_quirk in case of
+hotplug when 'etc/igd-bdsm-size' is already present.
+
+Signed-off-by: Manuel Bluhm <manuel@ssrc.tii.ae>
+---
+ hw/vfio/igd.c | 21 +++++++++++++++++++++
+ 1 file changed, 21 insertions(+)
+
+diff --git a/hw/vfio/igd.c b/hw/vfio/igd.c
+index e7a9d1ffc1..aa055732c6 100644
+--- a/hw/vfio/igd.c
++++ b/hw/vfio/igd.c
+@@ -640,6 +640,27 @@ static bool vfio_pci_igd_config_quirk(VFIOPCIDevice *vdev, Error **errp)
+         }
+     }
+ 
++    /*
++     * Check presence of 'etc/igd-bdsm-size' in fw_cfg to prevent failure
++     * during igd hotplug if the device was attached before.
++     */
++    DeviceState *dev = DEVICE(vdev);
++    if (dev->hotplugged) {
++        FWCfgState *fw_cfg = fw_cfg_find();
++        if (!fw_cfg) {
++            error_setg(&err, "Unable to find fw_cfg");
++            goto error;
++        }
++        if (fw_cfg->files != NULL) {
++            for (int i = 0; i < fw_cfg->files->count; i++) {
++                if (strcmp(fw_cfg->files->f[i].name, "etc/igd-bdsm-size") == 0) {
++                    /* BDSM size already exists, no need to add it again */
++                    return true;
++                }
++            }
++        }
++    }
++
+     /*
+      * Request reserved memory for stolen memory via fw_cfg.  VM firmware
+      * must allocate a 1MB aligned reserved memory region below 4GB with
+-- 
+2.49.0
+

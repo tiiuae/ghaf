@@ -32,10 +32,10 @@ let
   # Hardware devices passthrough modules
   deviceModules = optionalAttrs fullVirtualization {
     inherit (configHost.ghaf.hardware.devices)
-      netvmPCIPassthroughModule
-      audiovmPCIPassthroughModule
-      guivmPCIPassthroughModule
-      guivmVirtioInputHostEvdevModule
+      nics
+      audio
+      gpus
+      evdev
       ;
   };
 
@@ -116,6 +116,13 @@ let
         inherit (configHost.ghaf.security.audit) enable;
       };
     };
+
+    # Power management module
+    power = {
+      config.ghaf.services.power-manager = {
+        inherit (configHost.ghaf.services.power-manager) enable;
+      };
+    };
   };
 
   # User account settings
@@ -179,20 +186,21 @@ in
     ghaf.virtualization.microvm = optionalAttrs fullVirtualization {
       # Netvm modules
       netvm.extraModules = optionals cfg.netvm.enable [
-        deviceModules.netvmPCIPassthroughModule
+        deviceModules.nics
         kernelConfigs.netvm
         firmwareModule
         serviceModules.wifi
         serviceModules.givc
         serviceModules.logging
         serviceModules.audit
+        serviceModules.power
         referenceServiceModule
         managedUserAccounts
         commonModule
       ];
       # Audiovm modules
       audiovm.extraModules = optionals cfg.audiovm.enable [
-        deviceModules.audiovmPCIPassthroughModule
+        deviceModules.audio
         kernelConfigs.audiovm
         firmwareModule
         qemuModules.audiovm
@@ -201,13 +209,14 @@ in
         serviceModules.bluetooth
         serviceModules.logging
         serviceModules.audit
+        serviceModules.power
         managedUserAccounts
         commonModule
       ];
       # Guivm modules
       guivm.extraModules = optionals cfg.guivm.enable [
-        deviceModules.guivmPCIPassthroughModule
-        deviceModules.guivmVirtioInputHostEvdevModule
+        deviceModules.gpus
+        deviceModules.evdev
         kernelConfigs.guivm
         firmwareModule
         qemuModules.guivm
@@ -217,6 +226,7 @@ in
         serviceModules.givc
         serviceModules.logging
         serviceModules.audit
+        serviceModules.power
         referenceServiceModule
         managedUserAccounts
         commonModule
