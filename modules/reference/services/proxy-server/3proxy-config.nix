@@ -127,10 +127,10 @@ in
     #Firewall Settings
     networking = {
       firewall.enable = true;
-      firewall.extraCommands = ''
+      firewall.extraCommands = lib.mkAfter ''
          # Allow incoming connections to 3proxy on port ${toString cfg.bindPort} from the client's IP
-        iptables -I INPUT -p tcp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
-        iptables -I INPUT -p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
+        iptables -A ghaf-fw-in-filter -p tcp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
+        iptables -A ghaf-fw-in-filter -p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
       '';
     };
 

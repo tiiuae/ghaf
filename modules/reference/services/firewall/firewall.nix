@@ -33,17 +33,12 @@ in
               map (ip: ''
                 iptables -I OUTPUT -p tcp -d ${ip} --dport 80 -j ACCEPT
                 iptables -I OUTPUT -p tcp -d ${ip} --dport 443 -j ACCEPT
-                iptables -I INPUT -p tcp -s ${ip} --sport 80 -j ACCEPT
-                iptables -I INPUT -p tcp -s ${ip} --sport 443 -j ACCEPT
+                iptables -A ghaf-fw-in-filter -p tcp -s ${ip} --sport 80 -j ACCEPT
+                iptables -A ghaf-fw-in-filter -p tcp -s ${ip} --sport 443 -j ACCEPT
               '') cfg.allowedIPs
             );
           in
-          ''
-            # Default policy
-            iptables -P INPUT DROP
-
-            iptables -A INPUT -i lo -j ACCEPT
-            iptables -A OUTPUT -o lo -j ACCEPT
+          lib.mkAfter ''
 
             # Block any other unwanted traffic (optional)
             iptables -N logreject
@@ -51,7 +46,7 @@ in
             iptables -A logreject -j REJECT
 
             # allow everything for local VPN traffic
-            iptables -A INPUT -i tun0 -j ACCEPT
+            iptables -A ghaf-fw-in-filter -i tun0 -j ACCEPT
             iptables -A FORWARD -i tun0 -j ACCEPT
             iptables -A FORWARD -o tun0 -j ACCEPT
             iptables -A OUTPUT -o tun0 -j ACCEPT

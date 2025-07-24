@@ -78,17 +78,6 @@ let
             firewall = {
               allowedTCPPorts = [ 53 ];
               allowedUDPPorts = [ 53 ];
-              extraCommands = lib.mkAfter ''
-
-                # Set the default policies
-                iptables -P INPUT DROP
-                iptables -P FORWARD ACCEPT
-                iptables -P OUTPUT ACCEPT
-
-                # Allow loopback traffic
-                iptables -I INPUT -i lo -j ACCEPT
-                iptables -I OUTPUT -o lo -j ACCEPT
-              '';
             };
           };
 
