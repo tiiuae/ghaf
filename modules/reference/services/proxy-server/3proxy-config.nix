@@ -125,14 +125,11 @@ in
 
     environment.systemPackages = [ url-fetcher ];
     #Firewall Settings
-    networking = {
-      firewall.enable = true;
-      firewall.extraCommands = ''
-         # Allow incoming connections to 3proxy on port ${toString cfg.bindPort} from the client's IP
-        iptables -I INPUT -p tcp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
-        iptables -I INPUT -p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT
-      '';
-    };
+    ghaf.firewall.extra.input.filter = [
+      # Allow incoming connections to 3proxy on port ${toString cfg.bindPort} from the client's IP
+      "-p tcp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT"
+      "-p udp -s 192.168.100.0/24 --dport ${toString cfg.bindPort} -j ACCEPT"
+    ];
 
     # Apply the allowListConfig generated from the list
     systemd = {

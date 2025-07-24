@@ -9,6 +9,7 @@ let
   cfg = config.ghaf.virtualization.microvm.vm-networking;
   inherit (lib)
     mkEnableOption
+    mkDefault
     mkOption
     mkIf
     types
@@ -43,14 +44,16 @@ in
     networking = {
       hostName = cfg.vmName;
       enableIPv6 = false;
-      firewall.allowedTCPPorts = [ 22 ];
-      firewall.allowedUDPPorts = [ 67 ];
       useNetworkd = true;
       nat = {
-        enable = true;
+        enable = cfg.isGateway;
         internalInterfaces = [ hosts.${cfg.vmName}.interfaceName ];
       };
+      firewall.enable = mkDefault false;
     };
+
+    # ip forwarding functionality is needed for iptables
+    boot.kernel.sysctl."net.ipv4.ip_forward" = cfg.isGateway;
 
     microvm.interfaces = [
       {

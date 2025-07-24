@@ -74,23 +74,14 @@ let
             hostPlatform.system = config.nixpkgs.hostPlatform.system;
           };
 
-          networking = {
-            firewall = {
-              allowedTCPPorts = [ 53 ];
-              allowedUDPPorts = [ 53 ];
-              extraCommands = lib.mkAfter ''
-
-                # Set the default policies
-                iptables -P INPUT DROP
-                iptables -P FORWARD ACCEPT
-                iptables -P OUTPUT ACCEPT
-
-                # Allow loopback traffic
-                iptables -I INPUT -i lo -j ACCEPT
-                iptables -I OUTPUT -o lo -j ACCEPT
-              '';
+          ghaf.firewall =
+            let
+              dnsPort = 53;
+            in
+            {
+              allowedTCPPorts = [ dnsPort ];
+              allowedUDPPorts = [ dnsPort ];
             };
-          };
 
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb

@@ -39,7 +39,7 @@ in
       }
     ];
 
-    networking.firewall.allowedTCPPorts = lib.mkIf cfg.spice [ cfg.spice-port ];
+    ghaf.firewall.allowedTCPPorts = lib.mkIf cfg.spice [ cfg.spice-port ];
     environment.systemPackages = [ windows-launcher ];
   };
 }
