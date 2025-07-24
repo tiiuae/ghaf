@@ -36,12 +36,12 @@
               reference.programs.google-chrome.enable = true;
               xdgitems.enable = true;
               security.apparmor.enable = true;
+              firewall = {
+                allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
+                allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+              };
             };
 
-            networking = {
-              firewall.allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
-              firewall.allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
-            };
           }
         ];
       }
@@ -61,9 +61,9 @@
           command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
           extraModules = [
             {
-              networking = {
-                firewall.allowedTCPPorts = mitmWebUIport;
-              };
+
+              ghaf.firewall.allowedTCPPorts = mitmWebUIport;
+
             }
           ];
         }

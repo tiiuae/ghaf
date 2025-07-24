@@ -11,3 +11,4 @@ linux-*/
 gcroot/
 .pre-commit-config.yaml
 .aider*
+.nixos-test-history

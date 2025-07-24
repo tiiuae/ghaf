@@ -13,6 +13,7 @@ let
     mkIf
     types
     hasAttr
+    mkDefault
     ;
   inherit (config.ghaf.networking) hosts;
 
@@ -20,6 +21,9 @@ let
   netVmAddress = hosts."net-vm".ipv4;
   idsVmAddress = hosts."ids-vm".ipv4;
   gateway = if isIdsvmEnabled && (cfg.vmName != "ids-vm") then [ idsVmAddress ] else [ netVmAddress ];
+  isNetVm = "net-vm" == config.system.name;
+  isIdsVm = "ids-vm" == config.system.name;
+
 in
 {
   options.ghaf.virtualization.microvm.vm-networking = {
@@ -43,13 +47,12 @@ in
     networking = {
       hostName = cfg.vmName;
       enableIPv6 = false;
-      firewall.allowedTCPPorts = [ 22 ];
-      firewall.allowedUDPPorts = [ 67 ];
       useNetworkd = true;
       nat = {
-        enable = true;
+        enable = isNetVm || isIdsVm;
         internalInterfaces = [ hosts.${cfg.vmName}.interfaceName ];
       };
+      firewall.enable = mkDefault false;
     };
 
     microvm.interfaces = [
