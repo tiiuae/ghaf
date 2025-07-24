@@ -46,9 +46,6 @@ in
       }
     ];
 
-    # ip forwarding functionality is needed for iptables
-    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
-
     # https://github.com/troglobit/smcroute?tab=readme-ov-file#linux-requirements
     boot.kernelPatches = [
       {

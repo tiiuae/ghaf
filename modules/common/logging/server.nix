@@ -122,7 +122,7 @@ in
     # https://github.com/grafana/loki/issues/6533
     systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
 
-    networking.firewall = {
+    ghaf.firewall = {
       allowedTCPPorts = [ config.ghaf.logging.listener.port ];
       allowedUDPPorts = [ ];
     };

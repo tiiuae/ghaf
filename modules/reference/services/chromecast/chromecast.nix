@@ -94,25 +94,29 @@ in
         mroute from ${cfg.internalNic} group ${ssdpMcastIp} to ${cfg.externalNic}
       '';
     };
-    networking = {
-      firewall.enable = true;
-      firewall.extraCommands = "
 
-    # Forward incoming TCP traffic on ports 8008 and 8009 to the internal NIC
-    iptables -I FORWARD -i ${cfg.externalNic} -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort1} -j ACCEPT
-    iptables -I FORWARD -i ${cfg.externalNic} -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort2} -j ACCEPT
+    ghaf.firewall.extra = {
 
-    # Enable NAT for outgoing 8008 and 8009 Chromecast traffic
-    iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --dport ${toString tcpChromeCastPort1} -j MASQUERADE
-    iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --dport ${toString tcpChromeCastPort2} -j MASQUERADE
+      prerouting.mangle = [
+        # TTL adjustments to avoid multicast loops
+        "-i ${cfg.externalNic} -d ${ssdpMcastIp} -j TTL --ttl-set 1"
+        "-i ${cfg.internalNic} -d ${ssdpMcastIp} -j TTL --ttl-inc 1"
+      ];
+      forward.filter = [
+        # Forward incoming TCP traffic on ports 8008 and 8009 to the internal NIC
+        "-i ${cfg.externalNic} -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort1} -j ACCEPT"
+        "-i ${cfg.externalNic} -o ${cfg.internalNic} -p tcp --sport ${toString tcpChromeCastPort2} -j ACCEPT"
+      ];
 
-    # TTL adjustments to avoid multicast loops
-    iptables -t mangle -I PREROUTING -i ${cfg.externalNic} -d ${ssdpMcastIp} -j TTL --ttl-set 1
-    iptables -t mangle -I PREROUTING -i ${cfg.internalNic} -d ${ssdpMcastIp} -j TTL --ttl-inc 1
-    # Enable NAT for outgoing udp multicast traffic
-    iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p udp -d ${ssdpMcastIp} --dport ${toString ssdpMcastPort} -j MASQUERADE
-";
+      postrouting.nat = [
+        # Enable NAT for outgoing 8008 and 8009 Chromecast traffic
+        "-o ${cfg.externalNic} -p tcp --dport ${toString tcpChromeCastPort1} -j MASQUERADE"
+        "-o ${cfg.externalNic} -p tcp --dport ${toString tcpChromeCastPort2} -j MASQUERADE"
+        # Enable NAT for outgoing udp multicast traffic
+        "-o ${cfg.externalNic} -p udp -d ${ssdpMcastIp} --dport ${toString ssdpMcastPort} -j MASQUERADE"
+      ];
 
     };
+
   };
 }

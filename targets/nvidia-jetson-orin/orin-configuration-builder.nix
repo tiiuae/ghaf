@@ -26,6 +26,7 @@ let
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
               };
+              firewall.kernel-modules.enable = true;
             };
 
             nixpkgs = {

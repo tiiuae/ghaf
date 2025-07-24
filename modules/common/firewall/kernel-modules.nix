@@ -27,7 +27,6 @@ in
 
           NETFILTER_XT_MATCH_CONNTRACK = module;
           NETFILTER_XT_MATCH_PKTTYPE = module;
-
           NETFILTER_XT_TARGET_CHECKSUM = module;
           NETFILTER_XT_TARGET_CLASSIFY = module;
           NETFILTER_XT_TARGET_CONNMARK = module;
@@ -42,6 +41,9 @@ in
           NETFILTER_XT_TARGET_TEE = module;
           NETFILTER_XT_TARGET_TPROXY = module;
           NETFILTER_XT_TARGET_TRACE = module;
+          NETFILTER_XT_MATCH_LIMIT = module;
+          NETFILTER_XT_MATCH_HASHLIMIT = module;
+          NETFILTER_XT_MATCH_MULTIPORT = module;
 
           NF_CONNTRACK = module;
           NF_CONNTRACK_AMANDA = module;
@@ -98,6 +100,8 @@ in
           NF_TPROXY_IPV4 = module;
           NF_TPROXY_IPV6 = module;
 
+          NFT_LIMIT = module;
+          NFT_CONNLIMIT = module;
           NFT_COMPAT = module;
           NFT_COUNTER = module;
           NFT_LOG = module;

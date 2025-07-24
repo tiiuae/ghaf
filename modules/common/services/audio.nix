@@ -166,7 +166,7 @@ in
       };
 
     # Open TCP port for the pipewire pulseaudio socket
-    networking.firewall.allowedTCPPorts = [
+    ghaf.firewall.allowedTCPPorts = [
       cfg.pulseaudioTcpPort
       cfg.pulseaudioTcpControlPort
     ];
