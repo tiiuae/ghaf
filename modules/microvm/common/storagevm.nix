@@ -149,6 +149,7 @@ in
           (mkIf cfg.preserveLogs {
             directories = [
               "/var/log/journal"
+              "/var/lib/private/alloy"
             ]
             ++ optionals config.security.auditd.enable [
               "/var/log/audit"
