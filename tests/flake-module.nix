@@ -13,6 +13,8 @@
         in
         {
           installer = pkgs.callPackage ./installer { inherit self; };
+          firewall = pkgs.callPackage ./firewall { inherit self; };
+
         };
     };
 }

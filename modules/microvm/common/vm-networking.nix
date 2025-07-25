@@ -56,6 +56,8 @@ in
       };
 
       firewall = {
+        #logRefusedPackets =true; -> for test framework
+        logRefusedConnections = true;
         rejectPackets = true;
         checkReversePath = "loose";
         logReversePathDrops = true;
@@ -68,30 +70,28 @@ in
           pkgs.gawk
         ];
         extraCommands = lib.mkBefore ''
-            # Set the default policies
-            iptables -P INPUT DROP
-            iptables -P FORWARD DROP
-            iptables -P OUTPUT ACCEPT
+          # Set the default policies
+          iptables -P INPUT DROP
+          iptables -P FORWARD DROP
+          iptables -P OUTPUT ACCEPT
 
-            # delete ctstate RELATED,ESTABLISHED and lo rules 
-            iptables -D nixos-fw -i lo -j nixos-fw-accept
-            iptables -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
+          # delete ctstate RELATED,ESTABLISHED and lo rules 
+          iptables -D nixos-fw -i lo -j nixos-fw-accept
+          iptables -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
 
-            
-            iptables -N ghaf-fw-in-filter
-            iptables -I INPUT -j ghaf-fw-in-filter
+          #Create custom chain for INPUT filter table
+          iptables -t filter -N ghaf-fw-in-filter
+          iptables -t filter -I INPUT -j ghaf-fw-in-filter
 
-            
-            iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
-            iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -m limit --limit 1/minute --limit-burst 5 -j ACCEPT
-            iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -j DROP
-            iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-            
-            iptables -I OUTPUT -o lo -j ACCEPT  
-
-          ### PREROUTING rules ###
+          #Create custom chain for PREROUTING mangle table
           iptables -t mangle -N ghaf-fw-pre-mangle
           iptables -t mangle -I PREROUTING -j ghaf-fw-pre-mangle
+
+          # Create custom chain for FORWARD filter table
+          iptables -t filter -N ghaf-fw-fwd-filter
+          iptables -t filter -I FORWARD -j ghaf-fw-fwd-filter
+
+          ### PREROUTING rules ###
 
           # Drop invalid packets
           iptables -t mangle -A ghaf-fw-pre-mangle -m conntrack --ctstate INVALID -j DROP
@@ -111,10 +111,20 @@ in
           iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j DROP  
 
           ### INPUT rules ###
+          iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
+          iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -m limit --limit 1/minute --limit-burst 5 -j ACCEPT
+          iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -j DROP
+          iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+          # nixos-fw-accept should be flushed to inject our rules
           iptables -F nixos-fw-accept 2> /dev/null || true
           iptables -A nixos-fw-accept -p tcp --syn -m conntrack --ctstate NEW -j ACCEPT
           iptables -A nixos-fw-accept -p udp -m conntrack --ctstate NEW  -j ACCEPT
           iptables -A nixos-fw-accept -j nixos-fw-log-refuse
+
+          ### OUTPUT rules ###
+          iptables -I OUTPUT -o lo -j ACCEPT  
+
 
         '';
       };
