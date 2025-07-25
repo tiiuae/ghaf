@@ -83,15 +83,16 @@ in
         mitmwebUIport
       ];
       nat.extraCommands =
-        # Redirect http(s) traffic to mitmproxy.
-        ''
-          iptables -t nat -A PREROUTING -i ethint0 -p tcp --dport 80 -j REDIRECT --to-port ${toString mitmproxyport}
-          iptables -t nat -A PREROUTING -i ethint0 -p tcp --dport 443 -j REDIRECT --to-port ${toString mitmproxyport}
-           ${lib.optionalString cfg.webUIEnabled ''
-             iptables -t nat -A PREROUTING -p tcp --dport ${toString mitmwebUIport} -j DNAT --to-destination 127.0.0.1:${toString mitmwebUIport}
-             iptables -t nat -A POSTROUTING -m addrtype --src-type LOCAL --dst-type UNICAST -j MASQUERADE
-           ''}
-        '';
+        lib.mkAfter
+          # Redirect http(s) traffic to mitmproxy.
+          ''
+            iptables -t nat -A PREROUTING -i ethint0 -p tcp --dport 80 -j REDIRECT --to-port ${toString mitmproxyport}
+            iptables -t nat -A PREROUTING -i ethint0 -p tcp --dport 443 -j REDIRECT --to-port ${toString mitmproxyport}
+             ${lib.optionalString cfg.webUIEnabled ''
+               iptables -t nat -A PREROUTING -p tcp --dport ${toString mitmwebUIport} -j DNAT --to-destination 127.0.0.1:${toString mitmwebUIport}
+               iptables -t nat -A POSTROUTING -m addrtype --src-type LOCAL --dst-type UNICAST -j MASQUERADE
+             ''}
+          '';
 
     };
     environment.systemPackages = [ pkgs.mitmproxy ];

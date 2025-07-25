@@ -112,7 +112,7 @@ in
     };
     networking = {
       firewall.enable = true;
-      firewall.extraCommands = "
+      firewall.extraCommands = lib.mkAfter ''
 
         # TODO: Move all these TcpPort and things like that, to the options of
         #       this module, away from from package itself.
@@ -130,11 +130,11 @@ in
         iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p udp -d ${cfg.McastUdpIp} --dport ${cfg.McastUdpPort} -j MASQUERADE
 
         # https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
-        iptables -t mangle -I PREROUTING -i ${cfg.externalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-set 1
+        iptables -t mangle -A ghaf-fw-pre-mangle -i ${cfg.externalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-set 1
         # ttl value must be set to 1 for avoiding multicast looping
-        iptables -t mangle -I PREROUTING -i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1
+        iptables -t mangle -A ghaf-fw-pre-mangle -i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1
 
-      ";
+      '';
     };
   };
 }
