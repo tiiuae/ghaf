@@ -198,7 +198,6 @@ let
                 pkgs.sticky-notes
               ])
               ++ [
-                pkgs.bt-launcher
                 pkgs.pamixer
                 pkgs.eww
                 pkgs.wlr-randr

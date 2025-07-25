@@ -704,10 +704,7 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = [
-            ""
-            "${pkgs.bt-launcher}/bin/bt-launcher applet"
-          ];
+          Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
         };
         wantedBy = [ "ewwbar.service" ];
         after = [ "ewwbar.service" ];
@@ -715,10 +712,10 @@ in
       };
 
       blueman-manager = {
-        serviceConfig.ExecStart = [
-          ""
-          "${pkgs.bt-launcher}/bin/bt-launcher"
-        ];
+        enable = true;
+        serviceConfig = {
+          Environment = "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
+        };
       };
 
       swayidle = lib.mkIf cfg.autolock.enable {
