@@ -19,5 +19,14 @@
       ./profiles/mvp-user-trial.nix
       ./profiles/mvp-user-trial-extras.nix
     ];
+    reference-profiles-orin.imports = [
+      inputs.self.nixosModules.reference-appvms
+      inputs.self.nixosModules.reference-programs
+      inputs.self.nixosModules.reference-services
+      inputs.self.nixosModules.reference-personalize
+      inputs.self.nixosModules.reference-desktop
+      ./profiles/mvp-orinuser-trial.nix
+      ./profiles/mvp-orinuser-trial-extras.nix
+    ];
   };
 }

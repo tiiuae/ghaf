@@ -25,8 +25,6 @@ let
                 # variant type, turn on debug or release
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
-
-                orin.enable = true;
               };
             };
 
