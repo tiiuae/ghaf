@@ -105,5 +105,11 @@
       inputs.self.nixosModules.jetpack
       ./jetpack/nx/orin-nx.nix
     ];
+    hardware-intel-generic.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./intel-generic/intel-generic.nix;
+      }
+    ];
   };
 }

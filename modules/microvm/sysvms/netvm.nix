@@ -9,6 +9,7 @@
 }:
 let
   vmName = "net-vm";
+  microvmConfig = config.microvm.vms."${vmName}".config.config.microvm;
   netvmBaseConfiguration = {
     imports = [
       inputs.preservation.nixosModules.preservation
@@ -96,7 +97,7 @@ let
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
-            hypervisor = "qemu";
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
             shares = [
               {
                 tag = "ro-store";
@@ -120,6 +121,9 @@ let
                 "qemu-xhci"
               ];
             };
+
+            # Autodetect devices for passthrough and add them to the VM runner
+            extraArgsScript = lib.mkIf config.ghaf.microvm.vhwdetect.enable "${pkgs.vhwdetect}/bin/vhwdetect --vmm ${microvmConfig.hypervisor} --devices network";
           };
         }
       )
@@ -157,6 +161,26 @@ in
         imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
+
+    ghaf.microvm.vhotplug.rules = [
+      {
+        name = vmName;
+        type = microvmConfig.hypervisor;
+        socket = "/var/lib/microvms/${vmName}/${microvmConfig.socket}";
+        usbPassthrough = [
+          {
+            interfaceClass = 2;
+            interfaceSubclass = 6;
+            description = "Communications - Ethernet Networking";
+          }
+          {
+            vendorId = "0b95";
+            productId = "1790";
+            description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
+          }
+        ];
+      }
+    ];
   };
 
 }

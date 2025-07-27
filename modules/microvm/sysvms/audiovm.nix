@@ -9,7 +9,7 @@
 let
   configHost = config;
   vmName = "audio-vm";
-
+  microvmConfig = config.microvm.vms."${vmName}".config.config.microvm;
   audiovmBaseConfiguration = {
     imports = [
       inputs.preservation.nixosModules.preservation
@@ -97,7 +97,7 @@ let
             optimize.enable = false;
             vcpu = 2;
             mem = 384;
-            hypervisor = "qemu";
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
             shares = [
               {
                 tag = "ro-store";
@@ -120,6 +120,9 @@ let
                 "qemu-xhci"
               ];
             };
+
+            # Autodetect devices for passthrough and add them to the VM runner
+            extraArgsScript = lib.mkIf config.ghaf.microvm.vhwdetect.enable "${pkgs.vhwdetect}/bin/vhwdetect --vmm ${microvmConfig.hypervisor} --devices audio";
           };
         }
       )
@@ -157,6 +160,31 @@ in
         imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
+
+    ghaf.microvm.vhotplug.rules = [
+      {
+        name = vmName;
+        type = microvmConfig.hypervisor;
+        socket = "/var/lib/microvms/${vmName}/${microvmConfig.socket}";
+        usbPassthrough = [
+          {
+            interfaceClass = 1;
+            description = "Audio";
+            ignore = [
+              {
+                interfaceClass = 14;
+                description = "Video (USB Webcams)";
+              }
+            ];
+          }
+          {
+            vendorId = "8087";
+            productId = "0033";
+            description = "Intel AX211 Bluetooth";
+          }
+        ];
+      }
+    ];
   };
 
 }

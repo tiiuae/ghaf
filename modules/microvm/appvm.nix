@@ -167,7 +167,7 @@ let
                 balloon = vm.balloonRatio > 0;
                 deflateOnOOM = false;
                 vcpu = vm.cores;
-                hypervisor = "qemu";
+                hypervisor = configHost.ghaf.virtualization.microvm.vmm;
                 shares = [
                   {
                     tag = "waypipe-ssh-public-key";
@@ -183,13 +183,12 @@ let
                   }
                 ];
                 writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+                vsock.cid = config.ghaf.networking.hosts."${vm.name}-vm".cid;
 
                 qemu = {
                   extraArgs = [
                     "-M"
                     "accel=kvm:tcg,mem-merge=on,sata=off"
-                    "-device"
-                    "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
                     "-device"
                     "qemu-xhci"
                   ]
@@ -371,6 +370,12 @@ in
               ];
               default = "medium";
             };
+            usbPassthrough = mkOption {
+              description = ''
+                List of USB passthrough rules for this AppVM
+              '';
+              default = [ ];
+            };
           };
         }
       );
@@ -469,6 +474,20 @@ in
         name = "${name}-vm";
         value = vm.extraNetworking or { };
       }) vms;
+
+      ghaf.microvm.vhotplug.rules = lib.mapAttrsToList (
+        name: vm:
+        let
+          vmName = "${name}-vm";
+          microvmConfig = config.microvm.vms."${vmName}".config.config.microvm;
+        in
+        {
+          name = vmName;
+          type = microvmConfig.hypervisor;
+          socket = "/var/lib/microvms/${vmName}/${microvmConfig.socket}";
+          inherit (vm) usbPassthrough;
+        }
+      ) vms;
 
     };
 }

@@ -95,7 +95,8 @@
     };
 
     microvm = {
-      url = "github:astro/microvm.nix";
+      #url = "github:astro/microvm.nix";
+      url = "github:astro/microvm.nix/51320d384775ac5f39c2a605c201c467b2f9d9b5";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

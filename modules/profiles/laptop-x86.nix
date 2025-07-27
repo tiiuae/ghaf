@@ -30,9 +30,6 @@ in
       hardware = {
         x86_64.common.enable = true;
         tpm2.enable = true;
-        usb = {
-          vhotplug.enable = true;
-        };
       };
 
       # Virtualization options

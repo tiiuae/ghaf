@@ -12,3 +12,6 @@ gcroot/
 .pre-commit-config.yaml
 .aider*
 .nixos-test-history
+.vscode
+packages/python-packages/**/venv/
+packages/python-packages/**/__pycache__/
