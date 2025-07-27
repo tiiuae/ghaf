@@ -33,7 +33,6 @@ in
         usb = {
           internal.enable = true;
           external.enable = true;
-          vhotplug.enable = true;
         };
       };
 

@@ -163,6 +163,45 @@ let
         };
       }
     ]))
+    (laptop-configuration "reference-intel-crosvm" "debug" (withCommonModules [
+      self.nixosModules.hardware-intel-generic
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          virtualization.microvm.vmm = "crosvm";
+          microvm.vhwdetect.enable = true;
+          microvm.vhotplug.enableEvdevPassthrough = false;
+          virtualization.microvm.guivm.extraModules = [
+            (
+              { pkgs, ... }:
+              {
+                # The GPU doesn't work in the GUIVM with the latest kernel (6.15) when using crosvm
+                boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
+              }
+            )
+          ];
+          # These services are disabled because they depend on hardware definitions (network interface name):
+          reference.services.dendrite = lib.mkForce false;
+          reference.services.google-chromecast = lib.mkForce false;
+        };
+      }
+    ]))
+
+    (laptop-configuration "reference-intel-qemu" "debug" (withCommonModules [
+      self.nixosModules.hardware-intel-generic
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          microvm.vhwdetect.enable = true;
+          microvm.vhotplug.enableEvdevPassthrough = false;
+          # These services are disabled because they depend on hardware definitions (network interface name):
+          reference.services.dendrite = lib.mkForce false;
+          reference.services.google-chromecast = lib.mkForce false;
+        };
+      }
+    ]))
 
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" (withCommonModules [

@@ -26,8 +26,8 @@ buildPythonApplication {
   src = fetchFromGitHub {
     owner = "tiiuae";
     repo = "vhotplug";
-    rev = "6fa43f4e64ab130632a3f88eaf3d53108a0cc3b5";
-    hash = "sha256-B0VQ+sJhmU77UOf87SWu2rVrKJq8kweXYkBd0A21Ipo=";
+    rev = "79825074d7d35ea38ace369a17077cc55745ec7b";
+    hash = "sha256-G8Xc3PtA8pezSIlwRtO9dy/qjwn73Q0HsqE4FSN7UmI=";
   };
 
   build-system = [ setuptools ];
