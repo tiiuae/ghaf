@@ -5,7 +5,6 @@
     ./usb/internal.nix
     ./usb/external.nix
     ./usb/external-devices.nix
-    ./usb/vhotplug.nix
     ./devices.nix
     ./input.nix
     ./kernel.nix

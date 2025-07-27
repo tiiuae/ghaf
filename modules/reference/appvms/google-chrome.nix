@@ -71,19 +71,48 @@
     ]);
     extraModules = [
       {
-        # Disable camera for now, because, due to the bug, the camera is not accessable in BusinessVM
-        # microvm.qemu.extraArgs = optionals (
-        #   config.ghaf.hardware.usb.internal.enable
-        #   && (hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
-        # ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
-        microvm.devices = [ ];
-
         imports = [
           ../services/wireguard-gui/wireguard-gui.nix
         ];
         # Enable WireGuard GUI
         ghaf.reference.services.wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
 
+      }
+    ];
+    usbPassthrough = [
+      {
+        interfaceClass = 14;
+        description = "Video (USB Webcams)";
+        ignore = [
+          {
+            # Ignore Lenovo X1 camera since it is attached to the business-vm
+            # Finland SKU
+            vendorId = "04f2";
+            productId = "b751";
+            description = "Lenovo X1 Integrated Camera";
+          }
+          {
+            # Ignore Lenovo X1 camera since it is attached to the business-vm
+            # Uae 1st SKU
+            vendorId = "5986";
+            productId = "2145";
+            description = "Lenovo X1 Integrated Camera";
+          }
+          {
+            # Ignore Lenovo X1 camera since it is attached to the business-vm
+            # UAE #2 SKU
+            vendorId = "30c9";
+            productId = "0052";
+            description = "Lenovo X1 Integrated Camera";
+          }
+          {
+            # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
+            # Finland SKU
+            vendorId = "30c9";
+            productId = "005f";
+            description = "Lenovo X1 Integrated Camera";
+          }
+        ];
       }
     ];
   };

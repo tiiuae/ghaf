@@ -16,4 +16,5 @@
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
+  crosvm = import ./crosvm { inherit prev; };
 })

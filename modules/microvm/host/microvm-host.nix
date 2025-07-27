@@ -32,6 +32,8 @@ in
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
+    ./vhotplug.nix
+    ./vhwdetect.nix
   ];
 
   options.ghaf.virtualization.microvm-host = {
@@ -93,6 +95,7 @@ in
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
         common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
+        microvm.vhotplug.enable = true;
       };
 
       services.logind.lidSwitch = "ignore";

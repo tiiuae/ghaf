@@ -1,0 +1,40 @@
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+From 2298d65c5afa2dc725ef620d52dc5683a7e04cf9 Mon Sep 17 00:00:00 2001
+From: Yuri Nesterov <yuriy.nesterov@unikie.com>
+Date: Mon, 21 Jul 2025 19:29:43 +0300
+Subject: [PATCH] devices: input: Return empty string if EVIOCGUNIQ returns
+ ENOENT
+
+Many input devices (especially non-USB) do not expose a unique ID and
+return either an empty string or ENOENT ("No such file or directory")
+when EVIOCGUNIQ is called. An empty string works fine with crosvm
+but ENOENT prevents the VM from starting.
+
+This patch treats ENOENT as non-fatal and returns an empty string
+instead of an error.
+---
+ devices/src/virtio/input/evdev.rs | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
+
+diff --git a/devices/src/virtio/input/evdev.rs b/devices/src/virtio/input/evdev.rs
+index ae0786ccd..08245472a 100644
+--- a/devices/src/virtio/input/evdev.rs
++++ b/devices/src/virtio/input/evdev.rs
+@@ -165,7 +165,12 @@ pub fn serial_name<T: AsRawDescriptor>(descriptor: &T) -> Result<String> {
+         unsafe { ioctl_with_mut_ref(descriptor, EVIOCGUNIQ, &mut uniq) }
+     };
+     if len < 0 {
+-        return Err(InputError::EvdevSerialError(errno()));
++        if errno().errno() == libc::ENOENT {
++            // Most input devices don't have it and return "No such file or directory"
++            return Ok(String::new());
++        } else {
++            return Err(InputError::EvdevSerialError(errno()));
++        }
+     }
+     string_from_bytes_with_nul(&uniq.buffer, len as usize)
+ }
+-- 
+2.43.0
+

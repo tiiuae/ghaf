@@ -42,10 +42,12 @@ in
         ++ optionals (hasAttr "yubikey" config.ghaf.hardware.usb.external.qemuExtraArgs) config.ghaf.hardware.usb.external.qemuExtraArgs.yubikey
         ++ optionals (hasAttr "usbKBD" config.ghaf.hardware.usb.external.qemuExtraArgs) config.ghaf.hardware.usb.external.qemuExtraArgs.usbKBD
         ++ optionals (hasAttr "fpr0" config.ghaf.hardware.usb.internal.qemuExtraArgs) config.ghaf.hardware.usb.internal.qemuExtraArgs.fpr0
-        ++ optionals config.ghaf.hardware.usb.vhotplug.enableEvdevPassthrough builtins.concatMap (n: [
-          "-device"
-          "pcie-root-port,bus=pcie.0,id=${config.ghaf.hardware.usb.vhotplug.pcieBusPrefix}${toString n},chassis=${toString n}"
-        ]) (lib.range 1 config.ghaf.hardware.usb.vhotplug.pciePortCount);
+        ++ optionals config.ghaf.microvm.vhotplug.enableEvdevPassthrough (
+          builtins.concatMap (n: [
+            "-device"
+            "pcie-root-port,bus=pcie.0,id=${config.ghaf.microvm.vhotplug.pcieBusPrefix}${toString n},chassis=${toString n}"
+          ]) (lib.range 1 config.ghaf.microvm.vhotplug.pciePortCount)
+        );
     };
     ghaf.qemu.audiovm = optionalAttrs (config.ghaf.type == "host") {
       microvm.qemu.extraArgs =
