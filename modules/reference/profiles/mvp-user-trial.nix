@@ -83,6 +83,9 @@ in
 
       # Enable audit
       security.audit.enable = false;
+
+      # Enable power management
+      services.power-manager.enable = true;
     };
   };
 }
