@@ -105,23 +105,24 @@
     kernelConfig.kernelParams = [ "snd_intel_dspcfg.dsp_driver=0" ];
   };
 
-  usb = {
-    internal = [
-      {
-        name = "cam0";
-        hostbus = "3";
-        hostport = "9";
-      }
-      {
-        name = "fpr0";
-        hostbus = "3";
-        hostport = "7";
-      }
-      {
-        name = "bt0";
-        hostbus = "3";
-        hostport = "10";
-      }
-    ];
-  };
+  usb.devices = [
+    # Integrated camera
+    {
+      name = "cam0";
+      hostbus = "3";
+      hostport = "9";
+    }
+    # Fingerprint reader
+    {
+      name = "fpr0";
+      hostbus = "3";
+      hostport = "7";
+    }
+    # Bluetooth controller
+    {
+      name = "bt0";
+      hostbus = "3";
+      hostport = "10";
+    }
+  ];
 }

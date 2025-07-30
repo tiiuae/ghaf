@@ -8,7 +8,7 @@
   ...
 }:
 let
-  inherit (lib) hasAttr optionals mkForce;
+  inherit (lib) optionals mkForce;
 in
 {
   comms = {
@@ -66,12 +66,6 @@ in
           development.usb-serial.enable = mkForce false;
         };
 
-        # Attach GPS receiver to this VM
-        microvm.qemu.extraArgs = optionals (
-          config.ghaf.hardware.usb.external.enable
-          && (hasAttr "gps0" config.ghaf.hardware.usb.external.qemuExtraArgs)
-        ) config.ghaf.hardware.usb.external.qemuExtraArgs.gps0;
-
         # GPSD collects data from GPS and makes it available on TCP port 2947
         services.gpsd = {
           enable = true;
@@ -92,23 +86,6 @@ in
             "/var/run/gpsd.sock"
           ];
         };
-        services.udev.extraRules =
-          let
-            gps = lib.filter (d: d.name == "gps0") config.ghaf.hardware.definition.usb.external;
-          in
-          if gps != [ ] then
-            let
-              VID = (builtins.head gps).vendorId;
-              PID = (builtins.head gps).productId;
-            in
-            # When USB gps device is inserted run gpsdctl to add the device to gpsd, so it starts monitoring it
-            # (Note that this will be run way before gpsd service is running, if device is already connected when booting.
-            # This does not seem to have any negative effects though)
-            ''
-              ACTION=="add", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="${VID}", ENV{ID_MODEL_ID}=="${PID}", ENV{DEVNAME}=="/dev/ttyUSB*", RUN+="${pkgs.gpsd}/bin/gpsdctl add '%E{DEVNAME}'"
-            ''
-          else
-            '''';
       }
     ];
   };

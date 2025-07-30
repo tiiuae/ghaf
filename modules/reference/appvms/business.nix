@@ -137,14 +137,7 @@
 
       {
         # Attach integrated camera to this vm
-        microvm = {
-          qemu.extraArgs = lib.optionals (
-            config.ghaf.hardware.usb.internal.enable
-            && (lib.hasAttr "cam0" config.ghaf.hardware.usb.internal.qemuExtraArgs)
-          ) config.ghaf.hardware.usb.internal.qemuExtraArgs.cam0;
-          devices = [ ];
-        };
-
+        microvm.devices = [ ];
         imports = [
           ../services/pac/pac.nix
           ../services/firewall/firewall.nix
