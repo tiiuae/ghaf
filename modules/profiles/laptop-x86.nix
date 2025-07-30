@@ -31,8 +31,6 @@ in
         x86_64.common.enable = true;
         tpm2.enable = true;
         usb = {
-          internal.enable = true;
-          external.enable = true;
           vhotplug.enable = true;
         };
       };

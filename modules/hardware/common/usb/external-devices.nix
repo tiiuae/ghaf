@@ -1,15 +1,19 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-_: {
+{ pkgs, ... }:
+{
   config = {
-    ghaf.hardware.definition.usb.external = [
+    ghaf.hardware.definition.usb.devices = [
       # Common list of external usb devices which are included
       # by default in hardware-x86_64-workstation, which we
       # can assign to any vm later depending on requirements.
-      {
+      rec {
         name = "gps0";
         vendorId = "067b";
         productId = "23a3";
+        vmUdevExtraRule = ''
+          ACTION=="add", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="${vendorId}", ENV{ID_MODEL_ID}=="${productId}", ENV{DEVNAME}=="/dev/ttyUSB*", RUN+="${pkgs.gpsd}/bin/gpsdctl add '%E{DEVNAME}'"
+        '';
       }
       {
         name = "yubikey0";
