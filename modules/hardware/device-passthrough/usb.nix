@@ -45,7 +45,12 @@ let
           USB Product ID (optional). If this is set, the vendorId must also be set.
         '';
       };
-      #TODO: hostbus and hostport are not reliable way to identify the attached device, it may change.
+
+      # TODO: The use of hostbus and hostport is not a reliable way to identify the attached device,
+      # as these values may change depending on the system's USB topology or reboots. Consider using
+      # vendorId and productId for more stable identification. If this is not feasible, document the
+      # scenarios where hostbus and hostport are acceptable and plan for a more robust solution.
+
       hostbus = mkOption {
         type = types.nullOr types.str;
         default = null;

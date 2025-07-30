@@ -39,7 +39,6 @@ in
     };
   };
 
-  #config = mkIf (config.ghaf.hardware.passthrough.mode == "static") {
   config = mkIf (config.ghaf.hardware.passthrough.mode != "none") {
     ghaf.hardware.passthrough = {
       qemuExtraArgs = qemuExtraArgsEvt;

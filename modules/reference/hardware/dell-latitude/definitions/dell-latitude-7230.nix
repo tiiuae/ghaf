@@ -128,21 +128,19 @@
   };
 
   # USB devices for passthrough
-  usb = {
-    internal = [
-      {
-        name = "gps0";
-        hostbus = "3";
-        hostport = "7";
-      }
-      {
-        name = "bt0";
-        hostbus = "3";
-        hostport = "10";
-      }
-    ];
-    external = [
-      # Add external USB devices here
-    ];
-  };
+  usb.devices = [
+    # GPS
+    {
+      name = "gps0";
+      hostbus = "3";
+      hostport = "7";
+    }
+    # Bluetooth controller
+    {
+      name = "bt0";
+      hostbus = "3";
+      hostport = "10";
+    }
+  ];
+
 }

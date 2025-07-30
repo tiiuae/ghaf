@@ -20,6 +20,7 @@ in
           autologinUser = lib.mkForce null;
         };
       };
+
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "business-vm"
@@ -38,9 +39,25 @@ in
         };
       };
 
+      hardware.passthrough.VMs = {
+        gui-vm.permittedDevices = [
+          "crazyradio0"
+          "crazyradio1"
+          "crazyfile0"
+          "fpr0"
+          "usbKBD"
+          "xbox0"
+          "xbox1"
+          "xbox2"
+          "yubikey0"
+        ];
+        comms-vm.permittedDevices = [ "gps0" ];
+        audio-vm.permittedDevices = [ "bt0" ];
+        business-vm.permittedDevices = [ "cam0" ];
+      };
+
       reference = {
         appvms.enable = true;
-
         services = {
           enable = true;
           dendrite = true;
