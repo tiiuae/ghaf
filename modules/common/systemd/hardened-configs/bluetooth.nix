@@ -29,6 +29,7 @@
   DeviceAllow = [
     "/dev/rfkill"
     "/dev/uinput"
+    "/dev/uhid"
   ];
   RestrictNamespaces = [
     "~user"

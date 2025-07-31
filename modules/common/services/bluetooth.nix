@@ -8,12 +8,24 @@
 }:
 let
   cfg = config.ghaf.services.bluetooth;
-  inherit (lib) mkIf mkEnableOption;
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    ;
   bluetoothUser = "bluetooth";
 in
 {
   options.ghaf.services.bluetooth = {
     enable = mkEnableOption "Bluetooth configurations";
+
+    user = mkOption {
+      type = types.str;
+      default = bluetoothUser;
+      description = "Name of the bluetooth user";
+    };
+
   };
   config = mkIf cfg.enable {
 
