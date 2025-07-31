@@ -16,9 +16,14 @@ in
     # remove "151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
     # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
     # them to allow acl list in modules/reference/appvms/3proxy-config.nix file.
+    # Allow IP address "151.253.140.138" jira.tii.ae
+
     allowedIPs = lib.mkOption {
       type = lib.types.listOf lib.types.str;
-      default = [ "151.253.154.18" ];
+      default = [
+        "151.253.154.18"
+        "151.253.140.138"
+      ];
       description = "List of IP addresses allowed through the firewall";
     };
   };
