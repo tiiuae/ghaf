@@ -30,11 +30,12 @@ in
       virtualization.microvm.appvm = {
         enable = true;
         vms = {
-          chrome.enable = true;
-          gala.enable = true;
-          zathura.enable = true;
-          comms.enable = true;
           business.enable = true;
+          chrome.enable = true;
+          comms.enable = true;
+          flatpak.enable = true;
+          gala.enable = false;
+          zathura.enable = true;
         };
       };
 
