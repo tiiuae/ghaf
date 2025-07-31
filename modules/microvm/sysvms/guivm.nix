@@ -340,15 +340,6 @@ in
           else
             pkgs.linuxPackages;
 
-        # We need this patch to avoid reserving Intel graphics stolen memory for vm
-        # https://gitlab.freedesktop.org/drm/i915/kernel/-/issues/12103
-        boot.kernelPatches = [
-          {
-            name = "gpu-passthrough-fix";
-            patch = ./0001-x86-gpu-Don-t-reserve-stolen-memory-for-GPU-passthro.patch;
-          }
-        ];
-
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
