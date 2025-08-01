@@ -3,14 +3,15 @@
 {
   imports = [
     ./acpid.nix
-    ./fprint.nix
     ./audio.nix
-    ./wifi.nix
-    ./firmware.nix
-    ./yubikey.nix
     ./bluetooth.nix
     ./disks.nix
+    ./firmware.nix
+    ./fprint.nix
     ./github.nix
     ./timezone.nix
+    ./wifi.nix
+    ./xpadneo.nix
+    ./yubikey.nix
   ];
 }
