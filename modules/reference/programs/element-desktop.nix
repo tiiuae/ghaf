@@ -54,9 +54,9 @@ in
       };
     };
 
-    networking = pkgs.lib.mkIf isDendritePineconeEnabled {
-      firewall.allowedTCPPorts = [ pkgs.dendrite-pinecone.TcpPortInt ];
-      firewall.allowedUDPPorts = [ pkgs.dendrite-pinecone.McastUdpPortInt ];
+    ghaf.firewall = pkgs.lib.mkIf isDendritePineconeEnabled {
+      allowedTCPPorts = [ pkgs.dendrite-pinecone.TcpPortInt ];
+      allowedUDPPorts = [ pkgs.dendrite-pinecone.McastUdpPortInt ];
     };
 
   };

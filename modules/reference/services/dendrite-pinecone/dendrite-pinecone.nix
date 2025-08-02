@@ -110,31 +110,34 @@ in
         mroute from ${cfg.internalNic} group ${cfg.McastUdpIp} to ${cfg.externalNic}
       '';
     };
-    networking = {
-      firewall.enable = true;
-      firewall.extraCommands = "
 
-        # TODO: Move all these TcpPort and things like that, to the options of
-        #       this module, away from from package itself.
+    ghaf.firewall.extra = {
+      # TODO: Move all these TcpPort and things like that, to the options of
+      #       this module, away from from package itself.
+      prerouting = {
+        nat = [
+          # Forward incoming TCP traffic on port ${cfg.TcpPort} to internal network(comms-vm)
+          "-i ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${cfg.TcpPort}"
+        ];
+        mangle = [
+          # https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
+          "-i ${cfg.externalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-set 1"
+          # ttl value must be set to 1 for avoiding multicast looping
+          "-i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1"
+        ];
+      };
 
-        # Forward incoming TCP traffic on port ${cfg.TcpPort} to internal network(comms-vm)
-        iptables -t nat -I PREROUTING -i ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j DNAT --to-destination  ${cfg.serverIpAddr}:${cfg.TcpPort}
+      postrouting = {
+        nat = [
+          # Enable NAT for outgoing traffic
+          "-o ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j MASQUERADE"
+          # Enable NAT for outgoing traffic
+          "-o ${cfg.externalNic} -p tcp --sport ${cfg.TcpPort} -j MASQUERADE"
+          # Enable NAT for outgoing udp multicast traffic
+          "-o ${cfg.externalNic} -p udp -d ${cfg.McastUdpIp} --dport ${cfg.McastUdpPort} -j MASQUERADE"
+        ];
+      };
 
-        # Enable NAT for outgoing traffic
-        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --dport ${cfg.TcpPort} -j MASQUERADE
-
-        # Enable NAT for outgoing traffic
-        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p tcp --sport ${cfg.TcpPort} -j MASQUERADE
-
-        # Enable NAT for outgoing udp multicast traffic
-        iptables -t nat -I POSTROUTING -o ${cfg.externalNic} -p udp -d ${cfg.McastUdpIp} --dport ${cfg.McastUdpPort} -j MASQUERADE
-
-        # https://github.com/troglobit/smcroute?tab=readme-ov-file#usage
-        iptables -t mangle -I PREROUTING -i ${cfg.externalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-set 1
-        # ttl value must be set to 1 for avoiding multicast looping
-        iptables -t mangle -I PREROUTING -i ${cfg.internalNic} -d ${cfg.McastUdpIp} -j TTL --ttl-inc 1
-
-      ";
     };
   };
 }
