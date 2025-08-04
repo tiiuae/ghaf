@@ -111,7 +111,7 @@ let
 
                 # Services
                 waypipe = {
-                  enable = true;
+                  inherit (vm.waypipe) enable;
                   inherit vm;
                 }
                 // optionalAttrs configHost.ghaf.shm.enable {
@@ -355,6 +355,11 @@ in
               useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
             vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
+            waypipe.enable = mkOption {
+              description = "Enable waypipe for this VM";
+              type = types.bool;
+              default = true;
+            };
             bootPriority = mkOption {
               description = ''
                 Boot priority of the AppVM.

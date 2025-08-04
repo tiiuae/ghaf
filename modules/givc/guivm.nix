@@ -48,6 +48,8 @@ in
           };
           socket = "/tmp/dbusproxy_net.sock";
         }
+      ]
+      ++ lib.optionals config.ghaf.givc.audiovm.enable [
         {
           transport = {
             name = audiovmName;

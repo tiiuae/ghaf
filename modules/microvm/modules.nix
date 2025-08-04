@@ -185,23 +185,25 @@ in
       netvm.extraModules =
         optionals cfg.netvm.enable [
           serviceModules.logging
+          serviceModules.givc
           commonModule
+          managedUserAccounts
         ]
         ++ optionals (cfg.netvm.enable && fullVirtualization) [
           deviceModules.netvmPCIPassthroughModule
           kernelConfigs.netvm
           firmwareModule
           serviceModules.wifi
-          serviceModules.givc
           serviceModules.audit
           referenceServiceModule
-          managedUserAccounts
         ];
       # Audiovm modules
       audiovm.extraModules =
         optionals cfg.audiovm.enable [
           serviceModules.logging
+          serviceModules.givc
           commonModule
+          managedUserAccounts
         ]
         ++ optionals (cfg.audiovm.enable && fullVirtualization) [
           deviceModules.audiovmPCIPassthroughModule
@@ -210,16 +212,16 @@ in
           qemuModules.audiovm
           serviceModules.audio
           serviceModules.audit
-          serviceModules.givc
           serviceModules.bluetooth
           serviceModules.xpadneo
-          managedUserAccounts
         ];
       # Guivm modules
       guivm.extraModules =
         optionals cfg.guivm.enable [
           serviceModules.logging
+          serviceModules.givc
           commonModule
+          managedUserAccounts
         ]
         ++ optionals (cfg.guivm.enable && fullVirtualization) [
           deviceModules.guivmPCIPassthroughModule
@@ -230,35 +232,31 @@ in
           serviceModules.graphics
           serviceModules.fprint
           serviceModules.yubikey
-          serviceModules.givc
           serviceModules.audit
           referenceServiceModule
-          managedUserAccounts
         ];
 
       # Adminvm modules
       adminvm.extraModules =
         optionals cfg.adminvm.enable [
           serviceModules.logging
+          serviceModules.givc
           commonModule
+          managedUserAccounts
         ]
         ++ optionals (cfg.adminvm.enable && fullVirtualization) [
-          serviceModules.givc
-          managedUserAccounts
           serviceModules.audit
-
         ];
       # Appvm modules
       appvm.extraModules =
         optionals cfg.appvm.enable [
           serviceModules.logging
+          serviceModules.givc
           commonModule
+          managedUserAccounts
         ]
         ++ optionals (cfg.appvm.enable && fullVirtualization) [
-          serviceModules.givc
-          managedUserAccounts
           serviceModules.audit
-
         ];
       # Idsvm modules
       idsvm.extraModules = optionals cfg.idsvm.enable [
