@@ -70,6 +70,9 @@ in
       sysbench-fileio-test-script
       nvpmodel-check
       rm-linux-bootmgrs
+
+      # v4l for camera testing
+      pkgs.v4l-utils
     ]
     ++ rmDesktopEntries [ pkgs.htop ]
     #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
@@ -91,7 +94,6 @@ in
     ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
       pkgs.vlc
       pkgs.ffmpeg_7-full
-      pkgs.v4l-utils
       pkgs.kitty.terminfo
       pkgs.ghostty.terminfo
     ]);
