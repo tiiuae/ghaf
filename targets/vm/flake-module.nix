@@ -8,18 +8,17 @@
 }:
 let
   inherit (inputs) nixos-generators;
-  name = "vm";
   system = "x86_64-linux";
   vm =
-    variant:
+    format: variant: withGraphics:
     let
       hostConfiguration = lib.nixosSystem {
         inherit system;
         modules = [
-          nixos-generators.nixosModules.vm
+          (builtins.getAttr format nixos-generators.nixosModules)
           self.nixosModules.microvm
           self.nixosModules.profiles
-          self.nixosModules.reference-host-demo-apps
+          self.nixosModules.reference-appvms
           self.nixosModules.hardware-x86_64-generic
 
           {
@@ -32,9 +31,28 @@ let
                   networkSupport = true;
                 };
 
+                microvm.guivm.enable = withGraphics;
                 # TODO: NetVM enabled, but it does not include anything specific
                 #       for this Virtual Machine target
                 microvm.netvm.enable = true;
+                microvm.adminvm.enable = true;
+                microvm.appvm = {
+                  enable = true;
+                  vms = {
+                    zathura = {
+                      enable = true;
+                      waypipe.enable = withGraphics; # disable waypipe when guivm is not used
+                    };
+                    gala = {
+                      enable = true;
+                      waypipe.enable = withGraphics;
+                    };
+                  };
+                };
+              };
+
+              reference = {
+                appvms.enable = true;
               };
 
               host.networking.enable = true;
@@ -42,14 +60,11 @@ let
               # Enable all the default UI applications
               profiles = {
                 graphics = {
-                  enable = true;
-                  renderer = "pixman";
+                  enable = withGraphics;
                 };
                 release.enable = variant == "release";
-                debug.enable = variant == "debug";
+                debug.enable = lib.hasPrefix "debug" variant;
               };
-
-              reference.host-demo-apps.demo-apps.enableDemoApplications = true;
             };
 
             nixpkgs = {
@@ -68,18 +83,35 @@ let
 
               overlays = [ self.overlays.default ];
             };
+
+            virtualisation = lib.optionalAttrs (format == "vm") {
+              graphics = withGraphics;
+              useNixStoreImage = true;
+              writableStore = true;
+              cores = 4;
+              memorySize = 8 * 1024;
+              forwardPorts = [
+                {
+                  from = "host";
+                  host.port = 8022;
+                  guest.port = 22;
+                }
+              ];
+            };
           }
         ];
       };
     in
     {
       inherit hostConfiguration;
-      name = "${name}-${variant}";
+      name = "${format}-${variant}";
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
   targets = [
-    (vm "debug")
-    (vm "release")
+    (vm "vm" "debug" true)
+    (vm "vm" "debug-nogui" false)
+    (vm "vm" "release" true)
+    (vm "vmware" "debug" true)
   ];
 in
 {
