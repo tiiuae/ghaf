@@ -55,6 +55,11 @@ let
                 appvms.enable = true;
               };
 
+              givc = {
+                enable = withGraphics;
+                debug = true;
+              };
+
               host.networking.enable = true;
 
               # Enable all the default UI applications
