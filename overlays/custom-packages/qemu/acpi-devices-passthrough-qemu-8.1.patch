@@ -415,7 +415,7 @@ index 000000000..279452e95
 +    }
 +};
 +
-+static void acad_class_init(ObjectClass *class, void *data)
++static void acad_class_init(ObjectClass *class, const void *data)
 +{
 +    DeviceClass *dc = DEVICE_CLASS(class);
 +
@@ -927,7 +927,7 @@ index 000000000..ad86ad66f
 +    }
 +};
 +
-+static void battery_class_init(ObjectClass *class, void *data)
++static void battery_class_init(ObjectClass *class, const void *data)
 +{
 +    DeviceClass *dc = DEVICE_CLASS(class);
 +
@@ -1281,7 +1281,7 @@ index 000000000..edca46ce6
 +    }
 +};
 +
-+static void button_class_init(ObjectClass *class, void *data)
++static void button_class_init(ObjectClass *class, const void *data)
 +{
 +    DeviceClass *dc = DEVICE_CLASS(class);
 +

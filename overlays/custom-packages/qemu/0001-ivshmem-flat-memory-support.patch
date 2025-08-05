@@ -119,9 +119,9 @@ index 900d523..9068e8e 100644
 +    void *ptr;
 +    SysBusDevice *sbd;
 +    
-     if (s->ivshmem_bar2) {
-         error_setg(errp, "server sent unexpected shared memory message");
-         close(fd);
+     if (fd < 0) {
+        error_setg(errp, "server didn't provide fd with shared memory message");
+        return;
 @@ -494,6 +511,30 @@ static void process_msg_shmem(IVShmemState *s, int fd, Error **errp)
  
      size = buf.st_size;
@@ -165,7 +165,7 @@ index 900d523..9068e8e 100644
      dc->vmsd = &ivshmem_doorbell_vmsd;
  }
  
-+static void ivshmem_flat_class_init(ObjectClass *klass, void *data)
++static void ivshmem_flat_class_init(ObjectClass *klass, const void *data)
 +{
 +    DeviceClass *dc = DEVICE_CLASS(klass);
 +
