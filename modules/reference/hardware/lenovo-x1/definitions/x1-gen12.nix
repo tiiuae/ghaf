@@ -47,7 +47,6 @@
         path = "0000:00:02.0";
         vendorId = "8086";
         productId = "7d45";
-        qemu.deviceExtraArgs = "x-igd-opregion=on";
       }
       {
         # Communication controller [0780]: Intel Corporation Device [8086:7e70] (rev 20)
