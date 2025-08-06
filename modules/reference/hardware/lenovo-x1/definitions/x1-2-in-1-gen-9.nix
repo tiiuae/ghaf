@@ -54,8 +54,6 @@
         path = "0000:00:02.0";
         vendorId = "8086";
         productId = "7d45";
-        # opregion is required for type-c display to work
-        qemu.deviceExtraArgs = "x-igd-opregion=on";
       }
     ];
     kernelConfig = {
