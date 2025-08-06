@@ -39,12 +39,10 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 [gtklock: Multiple errors on wrong password](https://github.com/jovanlanik/gtklock/pull/119)
 
+[v4l-utils cross compile](https://github.com/NixOS/nixpkgs/pull/429900)
+
 ## carried in tiiuae/nixpkgs/...
 
 The following are in staging at the moment, so carry for some time until they reach unstable.
 
-Fix ibus and sdl3 cross compile
-[ibusMinimal: fix cross compilation](https://github.com/NixOS/nixpkgs/pull/418644)
-[sdl3: fix cross compilation](https://github.com/NixOS/nixpkgs/pull/418646)
-Remove qt dependency from qemu
-[zint: split library and GUI](https://github.com/NixOS/nixpkgs/pull/407308)
+[qemu 10.1.0-rc1](https://github.com/tiiuae/nixpkgs/tree/fix-qemu)
