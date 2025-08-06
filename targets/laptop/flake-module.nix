@@ -108,8 +108,7 @@ let
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
         ghaf = {
-          # TODO profiles.kernel-hardening.enable = true;
-          reference.profiles.mvp-user-trial-extras.enable = true;
+          reference.profiles.mvp-user-trial-hardening.enable = true;
           partitioning.verity.enable = true;
         };
       }
@@ -214,8 +213,7 @@ let
       self.nixosModules.hardware-lenovo-x1-carbon-gen11
       {
         ghaf = {
-          # TODO profiles.kernel-hardening.enable = true;
-          reference.profiles.mvp-user-trial-extras.enable = true;
+          reference.profiles.mvp-user-trial-hardening.enable = true;
           partitioning.verity.enable = true;
         };
       }
