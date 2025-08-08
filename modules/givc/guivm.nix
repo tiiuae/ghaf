@@ -38,28 +38,29 @@ in
       admin = lib.head config.ghaf.givc.adminConfig.addresses;
       tls.enable = config.ghaf.givc.enableTls;
       enableUserTlsAccess = true;
-      socketProxy = [
-        {
-          transport = {
-            name = netvmName;
-            addr = hosts.${netvmName}.ipv4;
-            port = "9010";
-            protocol = "tcp";
-          };
-          socket = "/tmp/dbusproxy_net.sock";
-        }
-      ]
-      ++ lib.optionals config.ghaf.givc.audiovm.enable [
-        {
-          transport = {
-            name = audiovmName;
-            addr = hosts.${audiovmName}.ipv4;
-            port = "9011";
-            protocol = "tcp";
-          };
-          socket = "/tmp/dbusproxy_snd.sock";
-        }
-      ];
+      socketProxy =
+        lib.optionals (builtins.elem netvmName config.ghaf.common.vms) [
+          {
+            transport = {
+              name = netvmName;
+              addr = hosts.${netvmName}.ipv4;
+              port = "9010";
+              protocol = "tcp";
+            };
+            socket = "/tmp/dbusproxy_net.sock";
+          }
+        ]
+        ++ lib.optionals (builtins.elem audiovmName config.ghaf.common.vms) [
+          {
+            transport = {
+              name = audiovmName;
+              addr = hosts.${audiovmName}.ipv4;
+              port = "9011";
+              protocol = "tcp";
+            };
+            socket = "/tmp/dbusproxy_snd.sock";
+          }
+        ];
     };
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"
