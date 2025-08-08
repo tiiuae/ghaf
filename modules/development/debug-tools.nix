@@ -70,10 +70,9 @@ in
       sysbench-fileio-test-script
       nvpmodel-check
       rm-linux-bootmgrs
-
-      # v4l for camera testing
-      pkgs.v4l-utils
     ]
+    # v4l for camera testing
+    ++ rmDesktopEntries [ pkgs.v4l-utils ]
     ++ rmDesktopEntries [ pkgs.htop ]
     #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
     ++ lib.optional (
