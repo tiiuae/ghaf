@@ -34,7 +34,7 @@ in
       hwidService = true;
       tls.enable = config.ghaf.givc.enableTls;
       admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      socketProxy = [
+      socketProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
         {
           transport = {
             name = guivmName;
