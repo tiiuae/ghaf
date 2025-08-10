@@ -24,21 +24,68 @@ let
   waypipeBorder = strings.optionalString (
     cfg.waypipeBorder && cfg.vm.borderColor != null
   ) "--border \"${cfg.vm.borderColor}\"";
-  runWaypipe =
-    let
-      script =
-        if cfg.serverSocketPath != null then
-          ''
-            #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe -s ${cfg.serverSocketPath} server "$@"
-          ''
+
+  xwaylandLabwcRc = pkgs.writeText "xwayland-labwc-rc" ''
+    <?xml version="1.0"?>
+    <labwc_config>
+      <theme>
+        <!-- don’t keep the thin safety rim -->
+        <keepBorder>no</keepBorder>      <!-- default is yes -->
+        <!-- make the border width literally zero -->
+        <border><width>0</width></border>
+      </theme>
+      <core>
+        <decoration>client</decoration>
+      </core>
+      <windowRules>
+        <!-- Make app applications full screen without borders -->
+        <windowRule identifier="*" type="normal">
+          <!--<serverDecoration>no</serverDecoration>-->
+          <action name="ToggleFullscreen"/>
+        </windowRule>
+
+        <!-- Ensure dialogs and menus are always visible -->
+        <windowRule type="dialog">
+          <action name="ToggleAlwaysOnTop"/>
+          <action name="Raise"/>
+        </windowRule>
+        <windowRule type="popup_menu"><action name="ToggleAlwaysOnTop"/></windowRule>
+        <windowRule type="dropdown_menu"><action name="ToggleAlwaysOnTop"/></windowRule>
+        <windowRule type="tooltip"><action name="ToggleAlwaysOnTop"/></windowRule>
+      </windowRules>
+    </labwc_config>
+  '';
+
+  runWaypipe = pkgs.writeShellApplication {
+    name = "run-waypipe";
+    runtimeInputs = with pkgs; [
+      waypipe
+      labwc
+      xwayland
+    ];
+    text =
+      let
+        socket =
+          if cfg.serverSocketPath != null then
+            "--socket ${cfg.serverSocketPath}"
+          else
+            "--vsock -s ${toString waypipePort}";
+      in
+      ''
+        if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
+          echo "usage: run-waypipe [-X] <application> [args...]"
+          echo "  -X: support running with XWayland (through a sub-compositor)"
+          exit 0;
+        fi
+
+        if [ "$1" = "-X" ]; then
+          waypipe ${socket} server "labwc" -c ${xwaylandLabwcRc}/xwayland-labwc-rc -S "''${@:2}"
         else
-          ''
-            #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString waypipePort} server "$@"
-          '';
-    in
-    pkgs.writeScriptBin "run-waypipe" script;
+          waypipe ${socket} server "$@"
+        fi
+
+      '';
+  };
 
 in
 {
