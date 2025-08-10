@@ -1,0 +1,4 @@
+sudo ./ivshmem-server -vF -n 10 -m /dev/hugepages -l 16M &
+sleep 3
+sudo chmod a+rwx /tmp/ivsh*
+sudo ./ivshmem-client -v 

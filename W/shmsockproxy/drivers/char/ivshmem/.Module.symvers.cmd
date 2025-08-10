@@ -1,0 +1,1 @@
+savedcmd_/home/vadikas/W/shmsockproxy/drivers/char/ivshmem/Module.symvers :=  scripts/mod/modpost -M -m       -o /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/Module.symvers -n -T /home/vadikas/W/shmsockproxy/drivers/char/ivshmem/modules.order -i Module.symvers -e 

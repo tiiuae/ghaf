@@ -1,0 +1,5 @@
+sudo ./ivshmem-server -vF -n 10 -M shM  -l 16M&
+sleep 3
+sudo chmod a+rwx /tmp/ivsh*
+sudo chmod a+rwx /dev/shm/*
+sudo ./ivshmem-client -v 
