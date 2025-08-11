@@ -176,6 +176,10 @@ in
                 text = ''
                   set +e
                   trap ''' INT
+
+                  # Consider 'systemctl stop' as normal exit
+                  trap 'exit 0' TERM
+
                   brightnessctl set 100%
 
                   SETUP_COMPLETE=false
