@@ -6,5 +6,6 @@
     ./apparmor
     ./audit
     ./pwquality.nix
+    ./ssh-tarpit
   ];
 }

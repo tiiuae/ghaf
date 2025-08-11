@@ -42,7 +42,6 @@ let
                 debug.tools.enable = variant == "debug";
                 ssh.daemon.enable = true;
               };
-              firewall.kernel-modules.enable = true;
               reference.personalize.keys.enable = variant == "debug";
             };
             nixpkgs = {
