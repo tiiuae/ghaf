@@ -35,6 +35,8 @@
 
   RestrictAddressFamilies = [
     "AF_NETLINK"
+    # It is required for ipset.
+    "AF_INET"
   ];
 
   CapabilityBoundingSet = [

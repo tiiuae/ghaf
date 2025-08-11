@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.virtualization.microvm.idsvm.mitmproxy;
   mitmproxyport = 8080;
   mitmwebUIport = 8081;
+  inherit (config.ghaf.networking) hosts;
+
 in
 {
   options.ghaf.virtualization.microvm.idsvm.mitmproxy = {
@@ -88,7 +90,9 @@ in
 
         prerouting.nat = [
           # Redirect http(s) traffic to mitmproxy.
-          "-i ethint0 -p tcp -m multiport --dports 80,443 -j REDIRECT --to-port ${toString mitmproxyport}"
+          "-i ${
+            toString hosts."ids-vm".interfaceName
+          } -p tcp -m multiport --dports 80,443 -j REDIRECT --to-port ${toString mitmproxyport}"
         ]
         ++ lib.optional cfg.webUIEnabled "-p tcp --dport ${toString mitmwebUIport} -j DNAT --to-destination 127.0.0.1:${toString mitmwebUIport}";
 

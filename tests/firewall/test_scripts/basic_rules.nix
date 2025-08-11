@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 { nodes, pkgs, ... }:
 ''
-  import re
 
   def count_entries_with_exact_flags(log_data, expected_flags, expected_count, expected_proto="TCP"):
     """

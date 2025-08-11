@@ -38,13 +38,14 @@ in
       hostName = "ghaf-host";
       firewall.enable = mkDefault false;
     };
-    # ip forwarding functionality is needed for iptables
-    boot.kernel.sysctl."net.ipv4.ip_forward" = 1;
-
-    # https://github.com/NixOS/nixpkgs/issues/111852
-    ghaf.firewall.extra.forward.filter = lib.mkIf config.virtualisation.docker.enable [
-      "-i ${cfg.bridgeNicName} -o ${cfg.bridgeNicName} -j ACCEPT"
-    ];
+    # --------------------------------------------------
+    # To enable filtering of VM nw packets through the firewall again:
+    # 1. sudo modprobe br_netfilter
+    # 2. sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
+    # 3. Bridge packets will pass through iptables rules.
+    # --------------------------------------------------
+    # To disable the filtering of VM network packets through the firewall.
+    boot.blacklistedKernelModules = [ "br_netfilter" ];
 
     # TODO Remove host networking
     systemd.network = {
