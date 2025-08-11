@@ -1,6 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.profiles.orin;
 in
@@ -19,6 +24,36 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      profiles.graphics = {
+        enable = true;
+        idleManagement.enable = false;
+        # Disable suspend by default, not working as intended
+        allowSuspend = false;
+        # Explicitly enable auto-login for Orins
+        autoLogin = {
+          enable = true;
+          user = config.ghaf.users.admin.name;
+        };
+        # We might be able to enable bluetooth and networkManager
+        # together with applets without dbusProxy on Orins
+        bluetooth.applet.enable = false;
+        networkManager.applet.enable = false;
+        proxyAudio = false;
+      };
+
+      graphics.cosmic = {
+        # Crucial to for Orin devices to use the correct render device
+        # Also needs 'mesa' to be in hardware.graphics.extraPackages
+        renderDevice = "/dev/dri/renderD129";
+        # Keep only essential applets for Orin devices
+        panelApplets.right = [
+          "com.system76.CosmicAppletInputSources"
+          "com.system76.CosmicAppletStatusArea"
+          "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletPower"
+        ];
+      };
+
       reference.programs.windows-launcher.enable = true;
       reference.host-demo-apps.demo-apps.enableDemoApplications = true;
 
@@ -88,5 +123,9 @@ in
       # Create admin home folder; temporary solution
       users.admin.createHome = true;
     };
+
+    hardware.graphics.extraPackages = lib.mkAfter [
+      pkgs.mesa
+    ];
   };
 }
