@@ -121,6 +121,32 @@
 <a name="locale.Empty">
 </a><div class="sl-heading-wrapper level-h4"><a name="locale.Empty"><h4 id="empty">Empty</h4></a><a class="sl-anchor-link" href="#empty"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Empty”</span></a></div>
 <p>Empty message</p>
+<a name="locale.LocaleAssignment">
+</a><div class="sl-heading-wrapper level-h4"><a name="locale.LocaleAssignment"><h4 id="localeassignment">LocaleAssignment</h4></a><a class="sl-anchor-link" href="#localeassignment"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “LocaleAssignment”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>key</td><td><a href="#locale.LocaleMacroKey">LocaleMacroKey</a></td><td></td><td>e.g., <code dir="auto">LC_TIME</code>, <code dir="auto">LC_NUMERIC</code></td></tr><tr><td>value</td><td><a href="#string">string</a></td><td></td><td>e.g., <code dir="auto">en_US.UTF-8</code></td></tr></tbody></table>
 <a name="locale.LocaleMessage">
 </a><div class="sl-heading-wrapper level-h4"><a name="locale.LocaleMessage"><h4 id="localemessage">LocaleMessage</h4></a><a class="sl-anchor-link" href="#localemessage"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “LocaleMessage”</span></a></div>
 
@@ -140,7 +166,7 @@
 
 
 
-<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Locale</td><td><a href="#string">string</a></td><td></td><td>String with locale value. Format: <a href="https://www.gnu.org/software/libc/manual/html_node/Locale-Names.html">X/Open Portability Guide / GNU libc</a>.</td></tr></tbody></table>
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>assignments</td><td><a href="#locale.LocaleAssignment">LocaleAssignment</a></td><td>repeated</td><td>List of locale assignments</td></tr></tbody></table>
 <a name="locale.TimezoneMessage">
 </a><div class="sl-heading-wrapper level-h4"><a name="locale.TimezoneMessage"><h4 id="timezonemessage">TimezoneMessage</h4></a><a class="sl-anchor-link" href="#timezonemessage"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “TimezoneMessage”</span></a></div>
 
@@ -162,6 +188,90 @@
 
 <table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Timezone</td><td><a href="#string">string</a></td><td></td><td>String with timezone value. Format: <a href="https://en.wikipedia.org/wiki/Tz_database">tz database</a> name, usually Area/City or Etc/GMT+3.</td></tr></tbody></table>
  <!-- end messages -->
+<a name="locale.LocaleMacroKey">
+</a><div class="sl-heading-wrapper level-h4"><a name="locale.LocaleMacroKey"><h4 id="localemacrokey">LocaleMacroKey</h4></a><a class="sl-anchor-link" href="#localemacrokey"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “LocaleMacroKey”</span></a></div>
+<p>Locale macros as defined in <a href="https://man7.org/linux/man-pages/man7/locale.7.html">locale(7)</a></p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Name</th><th>Number</th><th>Description</th></tr></thead><tbody><tr><td>LANG</td><td>0</td><td></td></tr><tr><td>LC_ADDRESS</td><td>1</td><td></td></tr><tr><td>LC_COLLATE</td><td>2</td><td></td></tr><tr><td>LC_CTYPE</td><td>3</td><td></td></tr><tr><td>LC_IDENTIFICATION</td><td>4</td><td></td></tr><tr><td>LC_MONETARY</td><td>5</td><td></td></tr><tr><td>LC_MESSAGES</td><td>6</td><td></td></tr><tr><td>LC_MEASUREMENT</td><td>7</td><td></td></tr><tr><td>LC_NAME</td><td>8</td><td></td></tr><tr><td>LC_NUMERIC</td><td>9</td><td></td></tr><tr><td>LC_PAPER</td><td>10</td><td></td></tr><tr><td>LC_TELEPHONE</td><td>11</td><td></td></tr><tr><td>LC_TIME</td><td>12</td><td></td></tr><tr><td>LC_ALL</td><td>13</td><td></td></tr></tbody></table>
  <!-- end enums -->
  <!-- end HasExtensions -->
 <div class="sl-heading-wrapper level-h3"><h3 id="scalar-value-types">Scalar Value Types</h3><a class="sl-anchor-link" href="#scalar-value-types"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Scalar Value Types”</span></a></div>
