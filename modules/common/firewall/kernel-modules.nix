@@ -16,6 +16,7 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+
     boot.kernelPatches = [
       {
         name = "firewall-modules-enable";
@@ -24,7 +25,7 @@ in
           NETFILTER_NETLINK_LOG = module;
 
           NETFILTER_XTABLES = yes;
-
+          NETFILTER_XT_TARGET_NOTRACK = module;
           NETFILTER_XT_MATCH_CONNTRACK = module;
           NETFILTER_XT_MATCH_PKTTYPE = module;
           NETFILTER_XT_TARGET_CHECKSUM = module;
@@ -44,6 +45,16 @@ in
           NETFILTER_XT_MATCH_LIMIT = module;
           NETFILTER_XT_MATCH_HASHLIMIT = module;
           NETFILTER_XT_MATCH_MULTIPORT = module;
+          NETFILTER_XT_MATCH_COMMENT = module;
+          NETFILTER_XT_SET = module;
+          NETFILTER_XT_MATCH_SOCKET = module;
+          NETFILTER_XT_MATCH_MARK = module;
+          NETFILTER_XT_MATCH_STATE = module;
+          NETFILTER_XT_MATCH_CONNMARK = module;
+
+          IP_SET = module;
+          IP_SET_HASH_IP = module;
+          IP_SET_HASH_IPMARK = module;
 
           NF_CONNTRACK = module;
           NF_CONNTRACK_AMANDA = module;
@@ -71,9 +82,7 @@ in
           NF_DEFRAG_IPV6 = module;
           NF_DUP_IPV4 = module;
           NF_DUP_IPV6 = module;
-          NF_LOG = module;
           NF_LOG_ARP = module;
-          NF_LOG_COMMON = module;
           NF_LOG_IPV4 = module;
           NF_LOG_IPV6 = module;
           NF_NAT = module;
@@ -103,7 +112,6 @@ in
           NFT_LIMIT = module;
           NFT_CONNLIMIT = module;
           NFT_COMPAT = module;
-          NFT_COUNTER = module;
           NFT_LOG = module;
           NFT_MASQ = module;
           NFT_NAT = module;
@@ -127,23 +135,6 @@ in
           IP_NF_TARGET_REDIRECT = module;
           IP_NF_TARGET_REJECT = module;
 
-          IP6_NF_FILTER = module;
-          IP6_NF_IPTABLES = module;
-          IP6_NF_MANGLE = module;
-          IP6_NF_MATCH_AH = module;
-          IP6_NF_MATCH_EUI64 = module;
-          IP6_NF_MATCH_FRAG = module;
-          IP6_NF_MATCH_HL = module;
-          IP6_NF_MATCH_IPV6HEADER = module;
-          IP6_NF_MATCH_MH = module;
-          IP6_NF_MATCH_OPTS = module;
-          IP6_NF_MATCH_RPFILTER = module;
-          IP6_NF_MATCH_RT = module;
-          IP6_NF_MATCH_SRH = module;
-          IP6_NF_NAT = module;
-          IP6_NF_RAW = module;
-          IP6_NF_TARGET_MASQUERADE = module;
-          IP6_NF_TARGET_REJECT = module;
         };
       }
     ];
