@@ -51,5 +51,7 @@
       # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX does
       # not.
     }
+    ../../../personalize
+    { ghaf.reference.personalize.keys.enable = true; }
   ];
 }

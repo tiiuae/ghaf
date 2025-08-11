@@ -390,6 +390,8 @@ in
     security.rtkit.enable = lib.mkForce false;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
+    # Fails to build in cross-compilation for Orins
+    services.orca.enable = lib.mkForce false;
 
     # Normally we wouldn't want pipewire running in the graphics profile,
     # but we add it here so cosmic-osd doesn't consume too much CPU

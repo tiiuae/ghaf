@@ -1,6 +1,10 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial;
 in
@@ -11,15 +15,6 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
-      # Enable below option for session lock feature
-      graphics = {
-        #might be too optimistic to hide the boot logs
-        #just yet :)
-        # boot.enable = lib.mkForce true;
-        labwc = {
-          autologinUser = lib.mkForce config.ghaf.users.admin.name;
-        };
-      };
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "net-vm"
@@ -54,15 +49,6 @@ in
             ../personalize
             { ghaf.reference.personalize.keys.enable = true; }
           ];
-        };
-        graphics = {
-          enable = true;
-          # These are default values for orin
-          renderer = "gles2";
-          compositor = "labwc";
-          idleManagement.enable = false;
-          # Disable suspend by default, not working as intended
-          allowSuspend = false;
         };
       };
 

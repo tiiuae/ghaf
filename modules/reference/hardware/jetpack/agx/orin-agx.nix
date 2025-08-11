@@ -65,5 +65,7 @@
       };
 
     }
+    ../../../personalize
+    { ghaf.reference.personalize.keys.enable = true; }
   ];
 }
