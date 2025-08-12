@@ -21,6 +21,7 @@
             name = "Ghaf devshell";
             meta.description = "Ghaf development environment";
             packages = [
+              pkgs.cachix
               pkgs.jq
               pkgs.nodejs
               pkgs.nix-eval-jobs
