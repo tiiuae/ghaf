@@ -145,3 +145,8 @@ SPDX-FileCopyrightText = "Copyright (C) 2007 Free Software Foundation, Inc."
 path = [
   "overlays/custom-packages/gtklock/*.patch"
 ]
+
+[[annotations]]
+SPDX-License-Identifier = "MIT"
+SPDX-FileCopyrightText = "igt-gpu-tools contributors"
+path = "overlays/custom-packages/intel-gpu-tools/feat-dynamically-detect-iGPU-PCI-address-at-runtime.patch"
