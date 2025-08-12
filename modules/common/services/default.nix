@@ -13,5 +13,6 @@
     ./wifi.nix
     ./xpadneo.nix
     ./yubikey.nix
+    ./locale.nix
   ];
 }

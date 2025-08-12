@@ -6,7 +6,12 @@
 #
 # ghaf.common: Interface to share ghaf configs from host to VMs
 #
-{ config, lib, ... }:
+{
+  config,
+  pkgs,
+  lib,
+  ...
+}:
 let
   inherit (builtins) attrNames;
   inherit (lib)
@@ -144,17 +149,16 @@ in
     documentation.nixos.enable = false;
     ##### Remove to here
 
-    i18n.supportedLocales = [
-      "C.UTF-8/UTF-8"
-      "en_US.UTF-8/UTF-8"
-      "ar_AE.UTF-8/UTF-8"
+    environment.systemPackages = [
+      pkgs.isocodes
     ];
-    environment.extraInit = ''
-      if [ -f /etc/locale.conf ]; then
-          . /etc/locale.conf
-          export LANG LC_CTYPE LC_NUMERIC LC_TIME LC_COLLATE LC_MONETARY LC_MESSAGES LC_PAPER LC_NAME LC_ADDRESS LC_TELEPHONE LC_MEASUREMENT LC_IDENTIFICATION LC_ALL
-      fi
-    '';
 
+    environment.pathsToLink = [
+      "/share/iso-codes"
+    ];
+
+    i18n.defaultLocale = "en_US.UTF-8";
+
+    i18n.extraLocales = "all";
   };
 }
