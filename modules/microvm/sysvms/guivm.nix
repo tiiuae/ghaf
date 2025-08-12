@@ -337,7 +337,7 @@ in
           if config.ghaf.guest.kernel.hardening.graphics.enable then
             pkgs.linuxPackagesFor guest_graphics_hardened_kernel
           else
-            pkgs.linuxPackages;
+            pkgs.linuxPackages_latest;
 
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
