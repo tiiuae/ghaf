@@ -426,16 +426,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1754385658,
-        "narHash": "sha256-cKbpmalwH8sQ+EnuxbrTZAFt7pZYwblIkzGJVysi8hw=",
+        "lastModified": 1754986541,
+        "narHash": "sha256-biE/YehEwtqXXR3ylX8hAoL26i45BSxplZTLKCFS9DM=",
         "owner": "tiiuae",
         "repo": "nixpkgs",
-        "rev": "7d6ef37eff31ba209f5e8a3ab8f1a9f5393e4f0a",
+        "rev": "8df85cd8c1cb8dbeeed085db9dac36e6a7d7f49c",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "fix-qemu",
+        "ref": "qemu-10.1.0-rc2",
         "repo": "nixpkgs",
         "type": "github"
       }
