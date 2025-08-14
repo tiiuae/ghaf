@@ -3,7 +3,6 @@
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX reference boards
 {
-  pkgs,
   lib,
   config,
   ...
@@ -114,7 +113,6 @@ in
     };
     hardware.deviceTree = {
       enable = lib.mkDefault true;
-      dtbSource = "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/";
       # Add the include paths to build the dtb overlays
       dtboBuildExtraIncludePaths = [
         "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
