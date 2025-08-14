@@ -53,12 +53,14 @@ let
           ];
 
           ghaf = {
+            security.pwquality.enable = true;
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               graphics.enable = true;
             };
             users.loginUser = {
+              createRecoveryKey = true;
               enable = true;
               fidoAuth = true;
             };

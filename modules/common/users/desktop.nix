@@ -45,17 +45,7 @@ let
         default = 800000;
       };
       fidoAuth = mkEnableOption "FIDO authentication for the login user.";
-      createRecoveryKey = mkOption {
-        description = ''
-          Create recovery key for the login user.
-          Options: "yes" or "no". Defaults to "no".
-        '';
-        type = types.enum [
-          "yes"
-          "no"
-        ];
-        default = "no";
-      };
+      createRecoveryKey = mkEnableOption "Recovery key for the login user";
     };
   };
 
@@ -250,9 +240,10 @@ in
                   --real-name="$REALNAME" \
                   --skel=/etc/skel \
                   --storage=luks \
-                  --recovery-key=${cfg.loginUser.createRecoveryKey} \
+                  --recovery-key=${lib.boolToString cfg.loginUser.createRecoveryKey} \
                   --luks-pbkdf-type=argon2id \
                   --fs-type=btrfs \
+                  --enforce-password-policy=true \
                   --fido2-device="$FIDO_SUPPORT" \
                   --drop-caches=true \
                   --nosuid=true \
