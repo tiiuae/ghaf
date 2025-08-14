@@ -45,6 +45,17 @@ let
         default = 800000;
       };
       fidoAuth = mkEnableOption "FIDO authentication for the login user.";
+      createRecoveryKey = mkOption {
+        description = ''
+          Create recovery key for the login user.
+          Options: "yes" or "no". Defaults to "no".
+        '';
+        type = types.enum [
+          "yes"
+          "no"
+        ];
+        default = "no";
+      };
     };
   };
 
@@ -208,7 +219,9 @@ in
                     USERNAME=''${USERNAME// /_}
                     USERNAME=''${USERNAME//[^a-zA-Z0-9_-]/}
                     USERNAME=''$(echo -n "$USERNAME" | tr '[:upper:]' '[:lower:]')
-                    if grep -q "$USERNAME:" /etc/passwd; then
+                    if [ -z "$USERNAME" ]; then
+                      echo "User name cannot be empty. Please try again."
+                    elif grep -q "^$USERNAME:" /etc/passwd; then
                       echo "User $USERNAME already exists. Please choose another user name."
                     else
                       ACCEPTABLE_USER=true
@@ -216,9 +229,16 @@ in
                   done
 
                   echo ""
-                  read -e -r -p "Enter your full name: " REALNAME
-                  REALNAME=''${REALNAME//[^a-zA-Z ]/}
-                  [[ -n "$REALNAME" ]] || REALNAME="$USERNAME";
+                  ACCEPTABLE_REALNAME=false
+                  until $ACCEPTABLE_REALNAME; do
+                    read -e -r -p "Enter your full name: " REALNAME
+                    REALNAME=''${REALNAME//[^a-zA-Z ]/}
+                    if [ -z "$REALNAME" ]; then
+                      echo "Real name cannot be empty. Please try again."
+                    else
+                      ACCEPTABLE_REALNAME=true
+                    fi
+                  done
 
                   echo ""
                   echo "Setting up your user account and creating encrypted home folder after you enter your password."
@@ -230,9 +250,9 @@ in
                   --real-name="$REALNAME" \
                   --skel=/etc/skel \
                   --storage=luks \
+                  --recovery-key=${cfg.loginUser.createRecoveryKey} \
                   --luks-pbkdf-type=argon2id \
                   --fs-type=btrfs \
-                  --enforce-password-policy=true \
                   --fido2-device="$FIDO_SUPPORT" \
                   --drop-caches=true \
                   --nosuid=true \
