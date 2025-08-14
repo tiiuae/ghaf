@@ -335,16 +335,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1756193919,
-        "narHash": "sha256-w18hTzI6zIQjxMh5Rhvhvkguh/bx4Ncx8Uz7DO5XWk8=",
+        "lastModified": 1759175645,
+        "narHash": "sha256-HBRmHQ4lQNGdsyuif4OnCHa9Hf5xDmP3JexqRAWUbf0=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "0abcdd7d6840df9c6917939180002b7295f1c415",
+        "rev": "edc243579e0da34ba6fcaf74b7b956382a655235",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "final-stretch-extraConf-gcc13",
+        "ref": "another-fix-kernel",
         "repo": "jetpack-nixos",
         "type": "github"
       }

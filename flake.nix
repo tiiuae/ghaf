@@ -119,7 +119,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/final-stretch-extraConf-gcc13";
+      url = "github:tiiuae/jetpack-nixos/another-fix-kernel";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

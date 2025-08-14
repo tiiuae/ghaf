@@ -35,7 +35,7 @@
       carrierBoard = "xavierNXdevkit";
       modesetting.enable = true;
       firmware.uefi = {
-        logo = ../../../../../../docs/src/img/1600px-Ghaf_logo.svg;
+        #       logo = ../../../../../../docs/src/img/1600px-Ghaf_logo.svg;
         edk2NvidiaPatches = [
           # This effectively disables EFI FB Simple Framebuffer, which does
           # not work properly but causes kernel panic during the boot if the
