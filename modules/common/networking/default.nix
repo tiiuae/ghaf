@@ -3,5 +3,6 @@
 {
   imports = [
     ./hosts.nix
+    ./arp.nix
   ];
 }
