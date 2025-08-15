@@ -5,5 +5,6 @@
     ./sshkeys.nix
     ./apparmor
     ./audit
+    ./ssh-tarpit
   ];
 }

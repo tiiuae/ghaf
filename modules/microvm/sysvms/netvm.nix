@@ -82,6 +82,10 @@ let
               allowedTCPPorts = [ dnsPort ];
               allowedUDPPorts = [ dnsPort ];
             };
+          ghaf.security.ssh-tarpit = {
+            enable = lib.mkForce config.ghaf.development.ssh.daemon.enable;
+            listenAddress = config.ghaf.networking.hosts.${vmName}.ipv4;
+          };
 
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb

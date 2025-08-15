@@ -154,8 +154,8 @@
           {
             input.filter = [
               # allow everything for local VPN traffic
-              "-i tun0 -j ACCEPT"
-              "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ACCEPT"
+              "-i tun0 -j ghaf-fw-conncheck-accept"
+              "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ghaf-fw-conncheck-accept"
             ];
 
             output.filter = [

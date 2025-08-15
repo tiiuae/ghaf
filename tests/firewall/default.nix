@@ -2,18 +2,13 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   pkgs,
-  self,
   lib,
   ...
 }:
 let
   basicRulesTest = import ./test_scripts/basic_rules.nix;
-  testConfig = "lenovo-x1-carbon-gen11-debug";
-  cfg = self.nixosConfigurations.${testConfig};
-
-  netvm-fw-cfg = cfg.config.microvm.vms.net-vm.config.config.networking.firewall;
-
-  internalvm-fw-cfg = cfg.config.networking.firewall;
+  banRulesTest = import ./test_scripts/ban_rules.nix;
+  fw-service-cfg = import ../../modules/common/systemd/hardened-configs/firewall.nix;
   addrs = {
     netvm-external = "192.168.1.2";
     externalvm = "192.168.1.20";
@@ -44,47 +39,67 @@ pkgs.nixosTest {
   nodes = {
     internalVM =
       _:
-      pkgs.lib.mkMerge [
-        {
-          inherit users security;
-          virtualisation.vlans = [ 100 ];
 
-          networking = {
-            useDHCP = false;
-            firewall = internalvm-fw-cfg;
-            interfaces = {
-              eth1.ipv4.addresses = lib.mkOverride 0 [
-                {
-                  address = addrs.internalvm;
-                  prefixLength = 24;
-                }
-              ];
-            };
-            defaultGateway = addrs.netvm-internal;
-            nftables.enable = false;
-            enableIPv6 = false;
+      {
+        imports = [
+          ../../modules/common/firewall
+        ];
+        inherit users security;
+        virtualisation.vlans = [ 100 ];
 
+        systemd.services.firewall.serviceConfig = fw-service-cfg;
+
+        ghaf.firewall.enable = true;
+        networking = {
+          useDHCP = false;
+          interfaces = {
+            eth1.ipv4.addresses = lib.mkOverride 0 [
+              {
+                address = addrs.internalvm;
+                prefixLength = 24;
+              }
+            ];
           };
+          defaultGateway = addrs.netvm-internal;
+          nftables.enable = false;
+          enableIPv6 = false;
 
-          environment.systemPackages = [
-            pkgs.toybox
-            pkgs.tshark
-            pkgs.tcpdump
-          ];
-        }
-      ];
+        };
+
+        environment.systemPackages = [
+          pkgs.toybox
+          pkgs.tshark
+          pkgs.tcpdump
+        ];
+      };
 
     netVM = _: {
 
       inherit users security;
+      imports = [
+        ../../modules/common/firewall
+      ];
       virtualisation.vlans = [
         1 # 192.168.1.x
         100 # 192.168.100.x
       ];
 
+      systemd.services.firewall.serviceConfig = fw-service-cfg;
+
+      ghaf.firewall = {
+        enable = true;
+        allowedTCPPorts = [ 22 ];
+        tcpBlacklistRules = [
+          {
+            port = 22;
+            trackingSize = 200;
+            burstNum = 10;
+            maxPacketFreq = "5/second";
+          }
+        ];
+      };
       networking = {
         nat.enable = true;
-        firewall = netvm-fw-cfg;
         nftables.enable = false;
         nat.externalInterface = "eth1";
         interfaces = {
@@ -175,6 +190,8 @@ pkgs.nixosTest {
   testScript =
     { nodes, ... }:
     ''
+      import re
+
       externalVM.start(allow_reboot=True)
       netVM.start(allow_reboot=True)
       internalVM.start(allow_reboot=True)
@@ -182,6 +199,6 @@ pkgs.nixosTest {
       netVM.wait_for_unit("default.target")
       internalVM.wait_for_unit("default.target")
       ${basicRulesTest { inherit nodes pkgs lib; }}
-
+      ${banRulesTest { inherit nodes pkgs lib; }}
     '';
 }
