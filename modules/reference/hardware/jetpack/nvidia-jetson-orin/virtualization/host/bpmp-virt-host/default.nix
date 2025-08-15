@@ -38,7 +38,7 @@ in
       {
         name = "Bpmp virtualization host kernel configuration";
         patch = null;
-        extraStructuredConfig = with lib.kernel; {
+        structuredExtraConfig = with lib.kernel; {
           VFIO_PLATFORM = yes;
           TEGRA_BPMP_HOST_PROXY = yes;
         };

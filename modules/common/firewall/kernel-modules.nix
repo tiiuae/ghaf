@@ -20,7 +20,7 @@ in
       {
         name = "firewall-modules-enable";
         patch = null;
-        extraStructuredConfig = with lib.kernel; {
+        structuredExtraConfig = with lib.kernel; {
           NETFILTER_NETLINK_LOG = module;
 
           NETFILTER_XTABLES = yes;
