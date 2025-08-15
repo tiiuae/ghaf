@@ -12,6 +12,8 @@ let
   inherit (lib)
     mkIf
     mkEnableOption
+    mkOption
+    types
     ;
 
   useCosmic = config.ghaf.profiles.graphics.compositor == "cosmic";
@@ -25,6 +27,26 @@ in
 {
   options.ghaf.graphics.login-manager = {
     enable = mkEnableOption "Ghaf login manager config using greetd";
+    failLock = {
+      enable = mkEnableOption ''
+        Account locking after repeated failed login attempts.
+        When activated, the system will temporarily lock accounts that
+        exceed the maximum allowed authentication failures.
+      '';
+      maxTries = mkOption {
+        description = ''
+          Defines the number of authentication failures required before locking the account.
+          Key details:
+            1 authentication failure = 5 consecutive failed login attempts
+            The system aggregates 5 incorrect password attempts into one recorded authentication failure.
+            When maxTries = 2, locking occurs after:
+            2 authentication failures × 5 attempts each = 10 total failed login attempts
+          The counter resets after successful authentication
+        '';
+        type = types.int;
+        default = 2;
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -86,10 +108,15 @@ in
     }";
 
     security.pam.services = {
-      cosmic-greeter.rules.auth = mkIf useCosmic {
-        systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
-        fprintd.args = [ "maxtries=3" ];
+      cosmic-greeter = {
+        rules = {
+          auth = mkIf useCosmic {
+            systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+            fprintd.args = [ "maxtries=3" ];
+          };
+        };
       };
+
       gtklock.rules.auth = mkIf useLabwc {
         systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
         fprintd.args = [ "maxtries=3" ];
@@ -101,12 +128,52 @@ in
             enable = true;
             control = "requisite";
             modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
-            order = 10000;
+            order = 10700;
             args = [
               "user"
               "ingroup"
               "video"
             ];
+          };
+          auth = {
+            systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+            fprintd.args = [ "maxtries=3" ];
+
+            # This should precede other auth rules e.g. pam_sss.so (pam module for SSSD)
+            faillock_preauth = mkIf cfg.failLock.enable {
+              enable = true;
+              control = "required";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+              order = 11300;
+              args = [
+                "preauth"
+                "audit"
+                "unlock_time=900"
+                "deny=${builtins.toString cfg.failLock.maxTries}"
+              ];
+            };
+
+            # This should follow auth rules but should come before pam_deny.so
+            faillock_authfail = mkIf cfg.failLock.enable {
+              enable = true;
+              control = "[default=die]";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+              order = 12300;
+              args = [
+                "authfail"
+                "audit"
+                "unlock_time=900"
+                "deny=${builtins.toString cfg.failLock.maxTries}"
+              ];
+            };
+          };
+          account = {
+            faillock = mkIf cfg.failLock.enable {
+              enable = true;
+              control = "required";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
+              order = 10600;
+            };
           };
         };
       };
