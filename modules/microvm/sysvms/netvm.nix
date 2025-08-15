@@ -4,6 +4,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -63,6 +64,15 @@ let
             };
 
             # Services
+            services = {
+              power-manager.vm = {
+                enable = pkgs.stdenv.hostPlatform.isx86;
+                pciSuspendServices = [
+                  "NetworkManager.service"
+                  "wpa_supplicant.service"
+                ];
+              };
+            };
             logging.client.enable = config.ghaf.logging.enable;
           };
 

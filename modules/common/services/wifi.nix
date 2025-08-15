@@ -20,6 +20,7 @@ in
       wireless.enable = mkForce false;
       networkmanager = {
         enable = true;
+        wifi.powersave = true;
         unmanaged = [ "ethint0" ];
       };
     };

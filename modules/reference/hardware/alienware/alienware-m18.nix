@@ -14,7 +14,7 @@
     kernelConfig.kernelParams = [
       "intel_iommu=on,sm_on"
       "iommu=pt"
-      "module_blacklist=iwlwifi,nouveau,nvidia,nvidiafb,xe,snd_pcm"
+      "module_blacklist=iwlwifi,nouveau,nvidia,nvidiafb,xe,snd_pcm,bluetooth,btusb"
     ];
   };
 

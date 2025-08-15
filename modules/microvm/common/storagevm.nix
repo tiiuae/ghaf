@@ -36,9 +36,6 @@ in
     };
 
     directories = mkOption {
-      # FIXME: Probably will lead to disgraceful error messages, as we
-      # put typechecking on nix impermanence option. But other,
-      # proper, ways are much harder.
       type = types.listOf types.anything;
       default = [ ];
       example = [
@@ -80,8 +77,7 @@ in
 
     preserveLogs = mkOption {
       type = types.bool;
-      default = config.ghaf.profiles.debug.enable;
-      defaultText = "config.ghaf.profiles.debug.enable";
+      default = true;
       description = ''
         Whether to preserve `journald` and `audit` logs of the VM. If enabled, it will keep logs
         locally in persistant storage across reboots. This is useful for debugging purposes.
