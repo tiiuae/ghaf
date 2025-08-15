@@ -23,6 +23,17 @@ let
     inherit lib pkgs;
     secctx = cfg.securityContext;
     inherit (cfg) panelApplets;
+    extraShortcuts = lib.optionals cfg.screen-recorder.enable [
+      {
+        modifiers = [
+          "Ctrl"
+          "Shift"
+          "Alt"
+        ];
+        key = "r";
+        command = "ghaf-screen-record";
+      }
+    ];
   };
 
   autostart = pkgs.writeShellApplication {
@@ -191,6 +202,14 @@ in
         If unset, COSMIC will attempt to automatically detect a suitable render device.
       '';
     };
+
+    screen-recorder = {
+      enable = lib.mkOption {
+        type = lib.types.bool;
+        default = true;
+        description = "Whether to enable screen recording capabilities using gpu-screen-recorder.";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -200,6 +219,8 @@ in
     ghaf.graphics.login-manager.enable = true;
     # Override default power controls with ghaf-powercontrol
     ghaf.graphics.power-manager.enable = true;
+
+    ghaf.graphics.screen-recorder.enable = cfg.screen-recorder.enable;
 
     environment = {
       systemPackages = with pkgs; [
@@ -246,7 +267,7 @@ in
           #DOCUMENTS=Documents
           #MUSIC=Music
           PICTURES=Pictures
-          #VIDEOS=Videos
+          VIDEOS=Videos
           #PUBLICSHARE=Public
           #TEMPLATES=Templates
           #DESKTOP=Desktop
@@ -387,7 +408,6 @@ in
 
     services.gvfs.enable = lib.mkForce false;
     services.avahi.enable = lib.mkForce false;
-    security.rtkit.enable = lib.mkForce false;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
@@ -397,15 +417,12 @@ in
     # but we add it here so cosmic-osd doesn't consume too much CPU
     # ref https://github.com/pop-os/cosmic-osd/issues/70
     services.pipewire = {
-      enable = !graphicsProfileCfg.proxyAudio;
+      enable = true;
 
       # Disable audio backends
       alsa.enable = false;
       pulse.enable = !graphicsProfileCfg.proxyAudio;
       jack.enable = false;
-
-      # Disable the session manager
-      wireplumber.enable = false;
     };
     services.playerctld.enable = true;
   };

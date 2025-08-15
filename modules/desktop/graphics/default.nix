@@ -11,5 +11,6 @@
     ./login-manager.nix
     ./power-manager.nix
     ./boot.nix
+    ./screen-recorder.nix
   ];
 }

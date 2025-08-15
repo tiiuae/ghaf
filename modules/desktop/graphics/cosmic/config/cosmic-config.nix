@@ -9,6 +9,7 @@
     center = [ ];
     right = [ ];
   },
+  extraShortcuts ? [ ],
   ...
 }:
 
@@ -60,6 +61,16 @@ let
       ]))
     ''
   );
+
+  extraShortcutsConfig = lib.optionalString (extraShortcuts != [ ]) (
+    pkgs.writeText "extra_shortcuts" ''
+      ${lib.concatMapStringsSep ",\n" (s: ''
+        (modifiers: [${
+          lib.concatMapStringsSep ", " (m: m) s.modifiers
+        }], key: "${s.key}"): Spawn("${s.command}")
+      '') extraShortcuts}
+    ''
+  );
 in
 pkgs.stdenv.mkDerivation rec {
   pname = "ghaf-cosmic-config";
@@ -108,6 +119,12 @@ pkgs.stdenv.mkDerivation rec {
     --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "pamixer --unmute --increase 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"' \
     --replace-fail 'BrightnessUp: ""' 'BrightnessUp: "${lib.getExe pkgs.brightnessctl} set +5% > /dev/null 2>&1"' \
     --replace-fail 'BrightnessDown: ""' 'BrightnessDown: "${lib.getExe pkgs.brightnessctl} set 5%- > /dev/null 2>&1"'
+  ''
+  + lib.optionalString (extraShortcuts != [ ]) ''
+    if [ -f "$out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/defaults" ]; then
+      substituteInPlace "$out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/defaults" \
+        --replace "}" "$(cat ${extraShortcutsConfig}) }"
+    fi
   '';
 
   meta = with lib; {
