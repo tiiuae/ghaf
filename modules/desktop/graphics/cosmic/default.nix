@@ -198,6 +198,7 @@ in
     services.displayManager.cosmic-greeter.enable = true;
 
     ghaf.graphics.login-manager.enable = true;
+    ghaf.graphics.login-manager.failLock.enable = true;
     # Override default power controls with ghaf-powercontrol
     ghaf.graphics.power-manager.enable = true;
 
