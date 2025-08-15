@@ -48,6 +48,7 @@ let
         inherit (cfg) withNss;
         withOomd = true;
         withPam = true;
+        withPasswordQuality = !cfg.withDebug;
         inherit (cfg) withPolkit;
         inherit (cfg) withResolved;
         inherit (cfg) withRepart;
