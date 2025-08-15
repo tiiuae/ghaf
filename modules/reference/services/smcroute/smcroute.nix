@@ -51,7 +51,7 @@ in
       {
         name = "multicast-routing-config";
         patch = null;
-        extraStructuredConfig = with lib.kernel; {
+        structuredExtraConfig = with lib.kernel; {
           IP_MULTICAST = yes;
           IP_MROUTE = yes;
           IP_PIMSM_V1 = yes;

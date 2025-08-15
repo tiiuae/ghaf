@@ -315,11 +315,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1754999279,
-        "narHash": "sha256-HHiOBdNuhSeHRpYJ4NvXqqjlo55nSkbCPq/PVKVFIj4=",
+        "lastModified": 1755234550,
+        "narHash": "sha256-iZfvg0m5HxQtBLjiLvmR3uJSpPRcXF1wEUY2oTCEp+4=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "4a9f52bfffa93c5174449cc04a9259f49967caae",
+        "rev": "904f5541627161c5daed46ca8826e5b6bef22e02",
         "type": "github"
       },
       "original": {
@@ -335,16 +335,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1752672393,
-        "narHash": "sha256-Q1fQv2UUTI4q8omXVii02PK8xq1/KkoAxiNINJD6a3U=",
+        "lastModified": 1755247615,
+        "narHash": "sha256-muvU4K086zdpoO8rFjfF19leXc0m/grVwwtHCjtgEqg=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "44f56073863eb1ccda467ac47ef9251b985cb378",
+        "rev": "8e29915e1f57198e55291f74dc682d88dc64595f",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "final-stretch",
+        "ref": "final-stretch-extraConf",
         "repo": "jetpack-nixos",
         "type": "github"
       }
@@ -426,16 +426,16 @@
     },
     "nixpkgs": {
       "locked": {
-        "lastModified": 1755230654,
-        "narHash": "sha256-jioyIGEEPjVwG6AFJjolSalYzZeI7p5ACMA2Wu4MOKw=",
+        "lastModified": 1755241926,
+        "narHash": "sha256-lpd/jP1uH9sa8/EokedzQ3XWrKni9HAylBJ2I8S+Nu8=",
         "owner": "tiiuae",
         "repo": "nixpkgs",
-        "rev": "52397a0d2b95a4577a0c6c8bac36efaf1dd35753",
+        "rev": "61cedad9167dd023c1490ea929d53b6788e0dd63",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "fix-qemu",
+        "ref": "fix-qemu-rebase",
         "repo": "nixpkgs",
         "type": "github"
       }

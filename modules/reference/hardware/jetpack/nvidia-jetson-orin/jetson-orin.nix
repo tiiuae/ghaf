@@ -71,7 +71,7 @@ in
         {
           name = "vsock-config";
           patch = null;
-          extraStructuredConfig = with lib.kernel; {
+          structuredExtraConfig = with lib.kernel; {
             VHOST = yes;
             VHOST_MENU = yes;
             VHOST_IOTLB = yes;

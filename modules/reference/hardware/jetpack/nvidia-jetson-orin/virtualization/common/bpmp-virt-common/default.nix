@@ -22,7 +22,7 @@ in
       {
         name = "Added Configurations to Support Vda";
         patch = null;
-        extraStructuredConfig = with lib.kernel; {
+        structuredExtraConfig = with lib.kernel; {
           PCI_STUB = lib.mkDefault yes;
           VFIO = lib.mkDefault yes;
           VIRTIO_PCI = lib.mkDefault yes;
