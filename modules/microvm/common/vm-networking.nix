@@ -14,6 +14,8 @@ let
     mkIf
     types
     hasAttr
+    concatStringsSep
+    mapAttrsToList
     ;
   inherit (config.ghaf.networking) hosts;
 
@@ -24,8 +26,8 @@ let
 in
 {
   options.ghaf.virtualization.microvm.vm-networking = {
-    enable = mkEnableOption "Enable vm networking configuration";
-    isGateway = mkEnableOption "Enable gateway configuration";
+    enable = mkEnableOption "vm networking configuration";
+    isGateway = mkEnableOption "gateway configuration";
     vmName = mkOption {
       description = "Name of the VM";
       type = types.nullOr types.str;
@@ -78,6 +80,13 @@ in
         ];
         linkConfig.RequiredForOnline = "routable";
         linkConfig.ActivationPolicy = "always-up";
+        extraConfig = concatStringsSep "\n" (
+          mapAttrsToList (_: entry: ''
+            [Neighbor]
+            Address=${entry.ipv4}
+            LinkLayerAddress=${entry.mac}
+          '') hosts
+        );
       }
       // lib.optionalAttrs ((!cfg.isGateway) || (cfg.vmName == "ids-vm")) { inherit gateway; };
     };
