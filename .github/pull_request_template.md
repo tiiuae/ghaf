@@ -46,6 +46,7 @@ Completing this checklist shows that you value and respect their time and effort
 - [ ] Orin NX `aarch64`
 - [ ] Lenovo X1 `x86_64`
 - [ ] Dell Latitude `x86_64`
+- [ ] System 76 `x86_64`
 
 ### Installation Method
 - [ ] Requires full re-installation
