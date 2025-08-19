@@ -45,6 +45,8 @@ jobs:
             target: nvidia-jetson-orin-nx-debug-from-x86_64
           - arch: x86_64-linux
             target: doc
+          - arch: x86_64-linux
+            target: system76-darp11-b-debug
           - arch: aarch64-linux
             target: nvidia-jetson-orin-nx-debug
           - arch: aarch64-linux
