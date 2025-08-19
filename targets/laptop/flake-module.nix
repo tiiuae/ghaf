@@ -164,6 +164,16 @@ let
         };
       }
     ]))
+    (laptop-configuration "system76-darp11-b" "debug" (withCommonModules [
+      self.nixosModules.hardware-system76-darp11-b
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          profiles.graphics.idleManagement.enable = false;
+        };
+      }
+    ]))
 
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" (withCommonModules [
@@ -241,6 +251,15 @@ let
     ]))
     (laptop-configuration "alienware-m18-R2" "release" (withCommonModules [
       self.nixosModules.hardware-alienware-m18-r2
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+        };
+      }
+    ]))
+    (laptop-configuration "system76-darp11-b" "release" (withCommonModules [
+      self.nixosModules.hardware-system76-darp11-b
       {
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
