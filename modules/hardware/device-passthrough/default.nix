@@ -6,5 +6,6 @@
     ./usb.nix
     ./event-devices.nix
     ./passthrough.nix
+    ./hotplug.nix
   ];
 }
