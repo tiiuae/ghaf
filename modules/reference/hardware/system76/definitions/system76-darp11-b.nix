@@ -22,10 +22,12 @@
   input = {
     misc = {
       name = [
-        # "AT Translated Set 2 keyboard" "Power Button" "HDA Intel PCH Headphone" "HDA Intel PCH HDMI/DP,pcm=3" "HDA Intel PCH HDMI/DP,pcm=7" "HDA Intel PCH HDMI/DP,pcm=8" "HDA Intel PCH HDMI/DP,pcm=9" "Sleep Button" "Intel HID events" "Lid Switch" "System76 ACPI Hotkeys" "Video Bus"
+        # "AT Translated Set 2 keyboard" "Power Button" "HDA Intel PCH Headphone" "HDA Intel PCH HDMI/DP,pcm=3" "HDA Intel PCH HDMI/DP,pcm=7" "HDA Intel PCH HDMI/DP,pcm=8" "HDA Intel PCH HDMI/DP,pcm=9" "Sleep Button" "Lid Switch" "System76 ACPI Hotkeys" "Video Bus"
+        "Intel HID events"
       ];
       evdev = [
-        # /dev/input/by-path/platform-i8042-serio-0-event-kbd /dev/input/by-path/platform-INT33D5:00-event
+        # /dev/input/by-path/platform-i8042-serio-0-event-kbd
+        "/dev/input/by-path/platform-INT33D5:00-event"
       ];
     };
   };
