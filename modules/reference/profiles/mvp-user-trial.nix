@@ -40,7 +40,7 @@ in
       };
 
       hardware.passthrough = {
-        mode = "static";
+        mode = "dynamic";
         secure-hotplug.enable = true;
         secure-hotplug.usb.hotplugRules = {
           allowlist = {
