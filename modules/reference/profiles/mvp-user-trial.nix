@@ -39,21 +39,42 @@ in
         };
       };
 
-      hardware.passthrough.VMs = {
-        gui-vm.permittedDevices = [
-          "crazyradio0"
-          "crazyradio1"
-          "crazyfile0"
-          "fpr0"
-          "usbKBD"
-          "xbox0"
-          "xbox1"
-          "xbox2"
-          "yubikey0"
-        ];
-        comms-vm.permittedDevices = [ "gps0" ];
-        audio-vm.permittedDevices = [ "bt0" ];
-        business-vm.permittedDevices = [ "cam0" ];
+      hardware.passthrough = {
+        mode = "static";
+        secure-hotplug.enable = true;
+        secure-hotplug.usb.hotplugRules = {
+          allowlist = {
+            # ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter
+            "0x0b95:0x1790" = [ "net-vm" ];
+          };
+          classlist = {
+            "0x01:*:*" = [ "audio-vm" ];
+            "0x03:*:0x01" = [ "gui-vm" ];
+            "0x03:*:0x02" = [ "gui-vm" ];
+            "0x08:0x06:*" = [ "gui-vm" ];
+            "0x0b:*:*" = [ "gui-vm" ];
+            "0x11:*:*" = [ "gui-vm" ];
+            "0x02:0x06:*" = [ "net-vm" ];
+            "0x0e:*:*" = [ "chrome-vm" ];
+          };
+        };
+
+        VMs = {
+          gui-vm.permittedDevices = [
+            "crazyradio0"
+            "crazyradio1"
+            "crazyfile0"
+            "fpr0"
+            "usbKBD"
+            "xbox0"
+            "xbox1"
+            "xbox2"
+            "yubikey0"
+          ];
+          comms-vm.permittedDevices = [ "gps0" ];
+          audio-vm.permittedDevices = [ "bt0" ];
+          business-vm.permittedDevices = [ "cam0" ];
+        };
       };
 
       reference = {

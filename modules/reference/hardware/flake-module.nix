@@ -10,6 +10,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./alienware/alienware-m18.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./alienware/extra-config.nix)
         ];
@@ -22,18 +23,21 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-dell-latitude-7330.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-demo-tower-mk1.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./demo-tower/demo-tower.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./demo-tower/extra-config.nix)
@@ -44,6 +48,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./tower-5080/tower-5080.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./tower-5080/extra-config.nix)
@@ -54,6 +59,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-lenovo-x1-carbon-gen11.imports = [
@@ -66,18 +72,21 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-lenovo-x1-carbon-gen13.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     hardware-lenovo-x1-2-in-1-gen9.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
+        #ghaf.hardware.usb.vhotplug.enable = true;
       }
     ];
     imx8.imports = [ ./imx8 ];

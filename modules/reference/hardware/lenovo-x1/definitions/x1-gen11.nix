@@ -95,23 +95,46 @@
   };
 
   usb.devices = [
-    # Integrated camera
+    # Lenovo integrated camera, Finland SKU
     {
       name = "cam0";
-      hostbus = "3";
-      hostport = "8";
+      vendorId = "04f2";
+      productId = "b751";
     }
+
+    # Lenovo integrated camera, UAE SKU
+    {
+      name = "cam0";
+      vendorId = "5986";
+      productId = "2145";
+    }
+
+    # Lenovo integrated camera, UAE SKU
+    {
+      name = "cam0";
+      vendorId = "30c9";
+      productId = "0052";
+    }
+
+    # Lenovo integrated camera, Finland SKU
+    {
+      name = "cam0";
+      vendorId = "30c9";
+      productId = "005f";
+    }
+
     # Fingerprint reader
     {
       name = "fpr0";
-      hostbus = "3";
-      hostport = "6";
+      vendorId = "06cb";
+      productId = "00fc";
     }
+
     # Bluetooth controller
     {
       name = "bt0";
-      hostbus = "3";
-      hostport = "10";
+      vendorId = "8087";
+      productId = "0033";
     }
   ];
 }
