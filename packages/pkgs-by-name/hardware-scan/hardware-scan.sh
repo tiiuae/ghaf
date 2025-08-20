@@ -348,7 +348,7 @@ ext_output() {
 write_file() {
   echo "> Writing hardware configuration file..."
   cat <<EOF >"$CONFIG_FILE"
-# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
 # System name
@@ -430,11 +430,9 @@ audio = {
 };
 
 # USB devices for passthrough
-usb = {
-    internal = [${usb_devices[@]}];
-    external = [
-        # Add external USB devices here
-    ];
+usb.devices = [
+    ${usb_devices[@]}
+];
 };
 }
 EOF
