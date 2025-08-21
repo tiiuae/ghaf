@@ -22,12 +22,11 @@ buildPythonApplication {
   ];
 
   doCheck = false;
-
   src = fetchFromGitHub {
-    owner = "tiiuae";
+    owner = "gngram";
     repo = "vhotplug";
-    rev = "6fa43f4e64ab130632a3f88eaf3d53108a0cc3b5";
-    hash = "sha256-B0VQ+sJhmU77UOf87SWu2rVrKJq8kweXYkBd0A21Ipo=";
+    rev = "0c9fd704a364d8006929337ff8287663da2cf86f";
+    sha256 = "sha256-lendPk0LLOuXNV8YfR0Qnxzraua76Ebdao/lm3r68ME=";
   };
 
   build-system = [ setuptools ];
