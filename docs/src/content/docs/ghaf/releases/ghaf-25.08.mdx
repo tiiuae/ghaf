@@ -1,0 +1,135 @@
+---
+title: Release ghaf-25.08
+sidebar:
+  order: 9979
+  badge:
+    text: Latest
+    variant: success
+    
+---
+
+This is a monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX and Lenovo X1 Carbon Gen11 platforms. 
+
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-25.08
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Dell Latitude 7230, 7330
+- Alienware M18
+- NXP i.MX 8M Plus
+
+## What's Changed
+
+* version: bump version to August by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1255
+* build(deps): bump astral-sh/setup-uv from 6.3.0 to 6.3.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1260
+* Switch to preservation by @mbssrc in https://github.com/tiiuae/ghaf/pull/1261
+* build(deps): bump github/codeql-action from 3.29.0 to 3.29.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1265
+* feat(devshell): added options to force local/remote builds by @kajusnau in https://github.com/tiiuae/ghaf/pull/1263
+* docs: add ghaf-25.06 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1262
+* build(deps): bump github/codeql-action from 3.29.1 to 3.29.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1266
+* build(deps): bump step-security/harden-runner from 2.12.1 to 2.12.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1267
+* fix(greetd): Increase restart interval by @mbssrc in https://github.com/tiiuae/ghaf/pull/1268
+* Remove overriding of HOME system variable in AppArmor profile by @gngram in https://github.com/tiiuae/ghaf/pull/1257
+* refactor: refactor cosmic login config, simplify overlays by @kajusnau in https://github.com/tiiuae/ghaf/pull/1270
+* bugfix: adjust backlight brightness before login by @kajusnau in https://github.com/tiiuae/ghaf/pull/1271
+* build(deps): bump cachix/install-nix-action from 31.4.1 to 31.5.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1272
+* hybrid-gpu: Add config to support hybrid setup by @vunnyso in https://github.com/tiiuae/ghaf/pull/1202
+* bump: fix cosmic cross compile by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1259
+* build(deps): bump cachix/install-nix-action from 31.5.0 to 31.5.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1274
+* fix: explicitly require nettools by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1275
+* build(deps): bump step-security/harden-runner from 2.12.2 to 2.13.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1277
+* build(deps): bump astral-sh/setup-uv from 6.3.1 to 6.4.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1278
+* build(deps): bump github/codeql-action from 3.29.2 to 3.29.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1280
+* Improve audit by @mbssrc in https://github.com/tiiuae/ghaf/pull/1273
+* bump: latest after long staging by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1276
+* build(deps): bump astral-sh/setup-uv from 6.4.1 to 6.4.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1284
+* build(deps): bump github/codeql-action from 3.29.3 to 3.29.4 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1283
+* Configurable network settings by @emrahbillur in https://github.com/tiiuae/ghaf/pull/1236
+* bump: remove carried patch by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1287
+* build(deps): bump cachix/install-nix-action from 31.5.1 to 31.5.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1288
+* kernel: revert back to the 6.12 LTS by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1289
+* build(deps): bump github/codeql-action from 3.29.4 to 3.29.5 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1292
+* bump: wireguard, control panel and givc by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1290
+* Allow jira.tii.ae access from buisiness-vm by @gngram in https://github.com/tiiuae/ghaf/pull/1294
+* gui-vm: Drop the stolen memory workaround kernel patch by @vunnyso in https://github.com/tiiuae/ghaf/pull/1296
+* Refactor and Simplify USB Passthrough Mapping for VMs by @gngram in https://github.com/tiiuae/ghaf/pull/1295
+* Bump control panel by @slakkala in https://github.com/tiiuae/ghaf/pull/1297
+* feat(xpadneo): Add module to enable wireless Xbox controller support by @vunnyso in https://github.com/tiiuae/ghaf/pull/1298
+* qemu: bump to latest rc of qemu by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1301
+* Basic firewall rules & testing by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1285
+* Fixing logs duplication on remote by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1303
+* docs: Document the overlays that we are carrying by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1305
+* v4l-utils: cross-compilation overlay by @avnik in https://github.com/tiiuae/ghaf/pull/1299
+* keys: Add Gayathri by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1306
+* Changes to the VM target by @hros-tii in https://github.com/tiiuae/ghaf/pull/1302
+* display: Drop x-igd-opregion device arg by @vunnyso in https://github.com/tiiuae/ghaf/pull/1304
+* build(deps): bump github/codeql-action from 3.29.5 to 3.29.6 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1307
+* bump: latest updates by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1300
+* Fix for SSRCSP-6902 (blueman-applet failure) by @gngram in https://github.com/tiiuae/ghaf/pull/1308
+* v4l-utils: remove desktop icons again by @avnik in https://github.com/tiiuae/ghaf/pull/1309
+* build(deps): bump github/codeql-action from 3.29.6 to 3.29.8 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1310
+* feat: enable COSMIC on Orins, improve desktop config by @kajusnau in https://github.com/tiiuae/ghaf/pull/1244
+* Setup normal exit for setup-ghaf-user service by @gngram in https://github.com/tiiuae/ghaf/pull/1311
+* build(deps): bump actions/checkout from 4.2.2 to 5.0.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1313
+* gui-vm: kernel use latest by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1315
+* bump: qemu-10.1.0-rc2 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1314
+* overlays: intel-gpu-tools: Dynamic iGPU detection by @vunnyso in https://github.com/tiiuae/ghaf/pull/1316
+* build(deps): bump github/codeql-action from 3.29.8 to 3.29.9 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1317
+* feat(cosmic): propagate locale changes by @kajusnau in https://github.com/tiiuae/ghaf/pull/1264
+* Alienware: Control display brightness by @vunnyso in https://github.com/tiiuae/ghaf/pull/1279
+* build(deps): bump astral-sh/setup-uv from 6.4.3 to 6.5.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1318
+* qemu: bump to rc3 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1321
+* Bump mid august by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1322
+* feat(desktop): add gpu screen recording with kb shortcut by @kajusnau in https://github.com/tiiuae/ghaf/pull/1323
+* Power management by @mbssrc in https://github.com/tiiuae/ghaf/pull/1254
+* build(deps): bump github/codeql-action from 3.29.9 to 3.29.10 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1325
+* build(deps): bump actions/dependency-review-action from 4.7.1 to 4.7.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1326
+
+## New Contributors
+* @hros-tii made their first contribution in https://github.com/tiiuae/ghaf/pull/1302
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-25.06...ghaf-25.08
+
+## Bug fixes
+
+Fixed bugs that were presentin the ghaf-25.06 release:
+
+    * Lenovo X1: Suspend -power state is not working
+    * Lenovo X1: Some apps may not open at first boot after installation
+    * Duplicated settings between Ghaf Control Panel and Cosmic Settings
+    * Yubikey for unlocking does not workaround
+
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| Element app is not supported in this version of Ghaf                                                      | In Progress  | Issue is being worked on                                                                       |
+| **Lenovo X1**                                                                                             |             |                                                                            |
+| Bug report does not send reports | On hold |  |
+| Saved screenshots are lost | In Progress | Issue is under investigation |
+| Using audio through USB device may cause instability | In Progress | Workaround: Use either internal speaker or headphones with 3.5mm jack|
+| Downloading large file (10G) crashes the browser                                                          | In progress | Issue is under investigation                                               |
+| GALA app is not supported in this version of Ghaf                                                         | On hold     | Gala will be disabled until further notice                                               
+| Unlock with fingerprint doesn't work                            | In Progress                                                       | Issue is under investigation
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| The keyboard defaults to the English layout on boot | In progress |  Workaround: use Alt+Shift to switch between English-Arabic-Finnish layout. 
+| Firefox has been disabled                                                                                 | In Progress | Firefox will be re-enabled once upstream fixes are available.              |
+| If suspended, device doesn't wake-up                                            | In Progress | Issue is under investigation                       |
+| Locking the device from power menu doesn't work | In Progress | Issue is under investigation |
+
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/ghaf-25.08/
+
+Download the required image and use the following instructions: [Build and Run](/ghaf/dev/ref/build_and_run).
+
