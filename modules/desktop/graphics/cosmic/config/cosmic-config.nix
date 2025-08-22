@@ -113,6 +113,9 @@ pkgs.stdenv.mkDerivation rec {
     cp ${panelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
   '';
 
+  # TODO: remove audio-volume-change playback when upstream hardcoded path is fixed
+  # Also add pipewire (pa-play) to system packages
+  # ref https://github.com/pop-os/cosmic-osd/blob/master/src/components/app.rs#L747
   postInstall = ''
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "pamixer --unmute --decrease 5 && ${pkgs.pulseaudio}/bin/paplay ${pkgs.sound-theme-freedesktop}/share/sounds/freedesktop/stereo/audio-volume-change.oga"' \

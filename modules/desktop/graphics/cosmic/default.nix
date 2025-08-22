@@ -54,6 +54,46 @@ let
     '';
   };
 
+  cosmic-cpu-watchdog = pkgs.writeShellApplication {
+    name = "cosmic-cpu-watchdog";
+
+    runtimeInputs = [
+      pkgs.procps
+      pkgs.gawk
+    ];
+
+    text = ''
+      PROCESSES=("cosmic-applet-audio" "cosmic-osd")
+      KILLABLES=("cosmic-panel" "cosmic-osd")
+
+      THRESHOLD=80
+      TIMEOUT=300
+      INTERVAL=10
+      ELAPSED=0
+
+      while (( ELAPSED < TIMEOUT )); do
+          for PROC in "''${PROCESSES[@]}"; do
+              PID=$(pgrep -n -f "$PROC" 2>/dev/null) || continue
+              CPU=$(ps -o %cpu= -p "$PID" 2>/dev/null | awk '{print int($1)}')
+              [[ -z "$CPU" ]] && continue
+
+              if (( CPU > THRESHOLD )); then
+                  echo "High CPU detected, killing processes..."
+                  for KILL_PROC in "''${KILLABLES[@]}"; do
+                      pkill -xf "$KILL_PROC" && echo "Killed $KILL_PROC"
+                  done
+                  exit 0
+              fi
+          done
+
+          sleep "$INTERVAL"
+          ELAPSED=$((ELAPSED + INTERVAL))
+      done
+
+      echo "No processes exceeded threshold, exiting"
+    '';
+  };
+
   # Change papirus folder icons to grey
   papirus-icon-theme-grey = pkgs.papirus-icon-theme.override {
     color = "grey";
@@ -375,6 +415,22 @@ in
         partOf = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
       };
+
+      # Kill cosmic-osd and cosmic-applet-audio if they exceed CPU usage threshold
+      # TODO: remove when upstream fixes the issue
+      # ref https://github.com/pop-os/cosmic-osd/issues/70
+      cosmic-cpu-watchdog = {
+        enable = true;
+        description = "Ghaf COSMIC CPU usage watchdog";
+
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${lib.getExe cosmic-cpu-watchdog}";
+        };
+
+        after = [ "cosmic-session.target" ];
+        wantedBy = [ "cosmic-session.target" ];
+      };
     };
 
     systemd.user.targets.ghaf-session = {
@@ -397,11 +453,8 @@ in
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
-    services.orca.enable = lib.mkForce false;
+    services.orca.enable = pkgs.stdenv.hostPlatform.isx86_64;
 
-    # Normally we wouldn't want pipewire running in the graphics profile,
-    # but we add it here so cosmic-osd doesn't consume too much CPU
-    # ref https://github.com/pop-os/cosmic-osd/issues/70
     services.pipewire = {
       enable = true;
 
