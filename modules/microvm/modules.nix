@@ -89,8 +89,7 @@ let
     bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
 
     # Xpadneo module
-    # TODO: Enable xpadneo modules once we can support the transfer of Input Events across VMs.
-    xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = false; };
+    xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = true; };
 
     # Wifi module
     wifi = optionalAttrs cfg.netvm.wifi { config.ghaf.services.wifi.enable = true; };
