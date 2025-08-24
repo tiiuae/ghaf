@@ -54,6 +54,14 @@ in
           description = "Extra host entries that override or extend the generated ones.";
           default = { };
         };
+        enableStaticArp = mkOption {
+          type = types.bool;
+          default = true;
+          description = ''
+            Enable static ARP entries for all hosts, and prevent any ARP traffic being sent or received
+            on the internal network. This is useful to prevent ARP spoofing attacks between VMs.
+          '';
+        };
       };
       hardware = {
         nics = mkOption {

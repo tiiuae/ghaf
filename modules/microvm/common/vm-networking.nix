@@ -8,14 +8,18 @@
 let
   cfg = config.ghaf.virtualization.microvm.vm-networking;
   inherit (lib)
+    concatStringsSep
+    hasAttr
+    mapAttrsToList
     mkEnableOption
     mkDefault
-    mkOption
     mkIf
+    mkOption
+    optionalAttrs
     types
-    hasAttr
     ;
   inherit (config.ghaf.networking) hosts;
+  inherit (config.ghaf.common.extraNetworking) enableStaticArp;
 
   isIdsvmEnabled = hasAttr "ids-vm" hosts;
   netVmAddress = hosts."net-vm".ipv4;
@@ -24,8 +28,8 @@ let
 in
 {
   options.ghaf.virtualization.microvm.vm-networking = {
-    enable = mkEnableOption "Enable vm networking configuration";
-    isGateway = mkEnableOption "Enable gateway configuration";
+    enable = mkEnableOption "vm networking configuration";
+    isGateway = mkEnableOption "gateway configuration";
     vmName = mkOption {
       description = "Name of the VM";
       type = types.nullOr types.str;
@@ -52,8 +56,27 @@ in
       firewall.enable = mkDefault false;
     };
 
-    # ip forwarding functionality is needed for iptables
-    boot.kernel.sysctl."net.ipv4.ip_forward" = cfg.isGateway;
+    boot.kernel.sysctl = {
+      # ip forwarding functionality is needed for iptables
+      "net.ipv4.ip_forward" = cfg.isGateway;
+      # reply only if the target IP address is local address configured on the incoming interface
+      "net.ipv4.conf.all.arp_ignore" = 1;
+    }
+    // optionalAttrs enableStaticArp {
+      # only reply on same interface
+      "net.ipv4.conf.${hosts.${cfg.vmName}.interfaceName}.arp_filter" = 1;
+      # do not create new entries in the ARP table
+      "net.ipv4.conf.${hosts.${cfg.vmName}.interfaceName}.arp_accept" = 0;
+      # uses the best local IP on the outgoing interface
+      "net.ipv4.conf.${hosts.${cfg.vmName}.interfaceName}.arp_announce" = 2;
+      # no reply to ARP requests
+      "net.ipv4.conf.${hosts.${cfg.vmName}.interfaceName}.arp_ignore" = 8;
+    };
+
+    ghaf.firewall = {
+      allowedTCPPorts = [ 22 ]; # TODO move this to an ssh module when it is created
+      allowedUDPPorts = [ 67 ];
+    };
 
     microvm.interfaces = [
       {
@@ -66,7 +89,6 @@ in
 
     systemd.network = {
       enable = true;
-      # Set internal network's interface name
       links."10-${hosts.${cfg.vmName}.interfaceName}" = {
         matchConfig.PermanentMACAddress = hosts.${cfg.vmName}.mac;
         linkConfig.Name = hosts.${cfg.vmName}.interfaceName;
@@ -76,17 +98,19 @@ in
         addresses = [
           { Address = "${hosts.${cfg.vmName}.ipv4}/${toString hosts.${cfg.vmName}.ipv4SubnetPrefixLength}"; }
         ];
-        linkConfig.RequiredForOnline = "routable";
-        linkConfig.ActivationPolicy = "always-up";
+        linkConfig = {
+          RequiredForOnline = "routable";
+          ActivationPolicy = "always-up";
+        };
+        extraConfig = concatStringsSep "\n" (
+          mapAttrsToList (_: entry: ''
+            [Neighbor]
+            Address=${entry.ipv4}
+            LinkLayerAddress=${entry.mac}
+          '') hosts
+        );
       }
       // lib.optionalAttrs ((!cfg.isGateway) || (cfg.vmName == "ids-vm")) { inherit gateway; };
     };
-
-    # systemd-resolved does not support local names resolution
-    # without configuring a local domain. With the local domain,
-    # one would need also to disable DNSSEC for the clients.
-    # Disabling DNSSEC for other VM then NetVM is
-    # completely safe since they use NetVM as DNS proxy.
-    services.resolved.dnssec = "false";
   };
 }

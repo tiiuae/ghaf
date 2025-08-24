@@ -9,71 +9,156 @@
 let
   cfg = config.ghaf.host.networking;
   inherit (lib)
+    concatStringsSep
+    hasAttr
+    literalExpression
+    mapAttrsToList
     mkEnableOption
     mkDefault
     mkIf
-    optionals
+    mkMerge
     mkOption
+    optionalAttrs
+    optionals
+    types
     ;
   sshKeysHelper = pkgs.callPackage ../common/ssh-keys-helper.nix { inherit config; };
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
+  inherit (config.ghaf.common.extraNetworking) enableStaticArp;
+  hasNetvm = hasAttr "net-vm" config.microvm.vms;
 in
 {
   options.ghaf.host.networking = {
     enable = mkEnableOption "Host networking";
+    enableExternalNetworking = mkOption {
+      description = ''
+        Enable external host networking support. This option currently enables the host nat,
+        and disables the default configuration of deactivating any additional interfaces. Note
+        that even with this configuration, the host networking can be enabled manually if needed.
+        By default, this option is enabled if no net-vm is defined, or the debug profile is enabled.
+      '';
+      type = types.bool;
+      default = (!hasNetvm) || config.ghaf.profiles.debug.enable;
+      defaultText = literalExpression ''
+        (!(hasAttr "net-vm" config.microvm.vms)) || config.ghaf.profiles.debug.enable
+      '';
+    };
     bridgeNicName = mkOption {
       description = "Name of the internal interface";
-      type = lib.types.str;
+      type = types.str;
       default = "virbr0";
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkMerge [
 
-    networking = {
-      enableIPv6 = false;
-      useNetworkd = true;
-      interfaces."${cfg.bridgeNicName}".useDHCP = false;
-      hostName = "ghaf-host";
-      firewall.enable = mkDefault false;
-    };
-    # --------------------------------------------------
-    # To enable filtering of VM nw packets through the firewall again:
-    # 1. sudo modprobe br_netfilter
-    # 2. sudo sysctl -w net.bridge.bridge-nf-call-iptables=1
-    # 3. Bridge packets will pass through iptables rules.
-    # --------------------------------------------------
-    # To disable the filtering of VM network packets through the firewall.
-    boot.blacklistedKernelModules = [ "br_netfilter" ];
+    # Common networking configuration that sets up a network bridge for VMs
+    {
+      # To disable the filtering of VM network packets through the firewall.
+      boot.blacklistedKernelModules = [ "br_netfilter" ];
 
-    # TODO Remove host networking
-    systemd.network = {
-      netdevs."10-${cfg.bridgeNicName}".netdevConfig = {
-        Kind = "bridge";
-        Name = "${cfg.bridgeNicName}";
-        #      MACAddress = "02:00:00:02:02:02";
+      # Enable ARP filtering with ebtables
+      ghaf.firewall.filter-arp = enableStaticArp;
+
+      boot.kernel.sysctl = {
+        # ip forwarding functionality is needed for iptables
+        "net.ipv4.ip_forward" = 1;
+        # reply only if the target IP address is local address configured on the incoming interface
+        "net.ipv4.conf.all.arp_ignore" = 1;
       };
-      networks."10-${cfg.bridgeNicName}" = {
-        matchConfig.Name = "${cfg.bridgeNicName}";
-        networkConfig.DHCPServer = false;
-        addresses = [
-          { Address = "${hosts.${hostName}.ipv4}/${toString hosts.${hostName}.ipv4SubnetPrefixLength}"; }
-        ];
-        gateway = optionals (builtins.hasAttr "net-vm" config.microvm.vms) [ "${hosts."net-vm".ipv4}" ];
-      };
-      # Connect VM tun/tap device to the bridge
-      # TODO configure this based on IF the netvm is enabled
-      networks."11-netvm" = {
-        matchConfig.Name = "tap-*";
-        networkConfig.Bridge = "${cfg.bridgeNicName}";
-      };
-    };
 
-    environment.etc = {
-      ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
-    };
+      # Setup host VM network bridge
+      systemd.network = {
+        netdevs."10-${cfg.bridgeNicName}".netdevConfig = {
+          Kind = "bridge";
+          Name = "${cfg.bridgeNicName}";
+          MACAddress = hosts.${hostName}.mac;
+        };
+        networks."10-${cfg.bridgeNicName}" = {
+          matchConfig.Name = "${cfg.bridgeNicName}";
+          networkConfig = {
+            LinkLocalAddressing = "no";
+          };
+          linkConfig = {
+            RequiredForOnline = "routable";
+            ActivationPolicy = "always-up";
+            ARP = !enableStaticArp;
+          };
+        };
+        # Connect VM tun/tap device to the bridge
+        networks."11-vm-network" = {
+          matchConfig.Name = "tap-*";
+          networkConfig.Bridge = "${cfg.bridgeNicName}";
+        };
+        # Disable addititional, non-defined external interfaces
+        networks."99-disable-external" = optionalAttrs (!cfg.enableExternalNetworking) {
+          matchConfig.Name = [
+            "en*"
+            "eth*"
+            "wl*"
+            "ww*"
+          ];
+          linkConfig.ActivationPolicy = "down";
+        };
+      };
+    }
 
-    services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
-  };
+    # Host networking configuration
+    (mkIf cfg.enable {
+
+      networking = {
+        hostName = "ghaf-host";
+        enableIPv6 = false;
+        useNetworkd = true;
+        nat = {
+          enable = cfg.enableExternalNetworking;
+          internalInterfaces = [ cfg.bridgeNicName ];
+        };
+        firewall.enable = mkDefault false;
+      };
+
+      ghaf.firewall = {
+        allowedTCPPorts = [ 22 ]; # TODO move this to an ssh module when it is created
+        allowedUDPPorts = optionals (!hasNetvm) [ 67 ];
+      };
+
+      boot.kernel.sysctl = optionalAttrs enableStaticArp {
+        # only reply on same interface
+        "net.ipv4.conf.${cfg.bridgeNicName}.arp_filter" = 1;
+        # do not create new entries in the ARP table
+        "net.ipv4.conf.${cfg.bridgeNicName}.arp_accept" = 0;
+        # uses the best local IP on the outgoing interface
+        "net.ipv4.conf.${cfg.bridgeNicName}.arp_announce" = 2;
+        # no reply to ARP requests
+        "net.ipv4.conf.${cfg.bridgeNicName}.arp_ignore" = 8;
+      };
+
+      systemd.network = {
+        networks."10-${cfg.bridgeNicName}" = {
+          matchConfig.Name = "${cfg.bridgeNicName}";
+          addresses = [
+            { Address = "${hosts.${hostName}.ipv4}/${toString hosts.${hostName}.ipv4SubnetPrefixLength}"; }
+          ];
+          gateway = optionals hasNetvm [ "${hosts."net-vm".ipv4}" ];
+          networkConfig = {
+            DHCP = hasNetvm && !enableStaticArp;
+            DHCPServer = !hasNetvm && !enableStaticArp;
+          };
+          extraConfig = concatStringsSep "\n" (
+            mapAttrsToList (_: entry: ''
+              [Neighbor]
+              Address=${entry.ipv4}
+              LinkLayerAddress=${entry.mac}
+            '') hosts
+          );
+        };
+      };
+
+      environment.etc = {
+        ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
+      };
+      services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
+    })
+  ];
 }
