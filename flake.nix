@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/fix-qemu-rebase";
+    nixpkgs.url = "github:tiiuae/nixpkgs/qemu-bump-rc4";
     #nixpkgs.url = "flake:mylocalnixpkgs";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -95,7 +95,8 @@
     };
 
     microvm = {
-      url = "github:astro/microvm.nix";
+      #TODO: bug in the darwin enable that removed qemu_kvm
+      url = "github:microvm-nix/microvm.nix/beb47425bd866f606129c631c98b6288f7596e78";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -103,8 +104,8 @@
     };
 
     nixos-hardware = {
-      #url = "flake:mylocalnixoshw";
-      url = "github:NixOS/nixos-hardware";
+      #TODO: wait for https://github.com/NixOS/nixos-hardware/pull/1599 to merge
+      url = "github:NixOS/nixos-hardware/32775080b943ea9ef0f3d3797306026a83ca6e81";
     };
 
     jetpack-nixos = {
@@ -160,6 +161,11 @@
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
       };
+    };
+
+    srvos = {
+      url = "github:nix-community/srvos";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
