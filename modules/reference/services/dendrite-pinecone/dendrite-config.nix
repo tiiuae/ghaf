@@ -7,6 +7,7 @@
 }:
 let
   inherit (lib) optionalAttrs hasAttrByPath;
+  inherit (config.ghaf.networking) hosts;
   isHost = hasAttrByPath [
     "hardware"
     "devices"
@@ -16,7 +17,7 @@ in
   config.ghaf.reference.services.dendrite-pinecone = optionalAttrs isHost {
     enable = lib.mkDefault false;
     externalNic = (lib.head config.ghaf.hardware.definition.network.pciDevices).name;
-    internalNic = "ethint0";
+    internalNic = hosts.${config.networking.hostName}.interfaceName;
     serverIpAddr = config.ghaf.networking.hosts."comms-vm".ipv4;
   };
 }

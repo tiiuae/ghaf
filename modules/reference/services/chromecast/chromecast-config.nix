@@ -3,6 +3,7 @@
 { config, lib, ... }:
 let
   inherit (lib) optionalAttrs hasAttrByPath;
+  inherit (config.ghaf.networking) hosts;
   isHost = hasAttrByPath [
     "hardware"
     "devices"
@@ -12,6 +13,6 @@ in
   config.ghaf.reference.services.chromecast = optionalAttrs isHost {
     enable = lib.mkDefault false;
     externalNic = (lib.head config.ghaf.hardware.definition.network.pciDevices).name;
-    internalNic = "ethint0";
+    internalNic = hosts.${config.networking.hostName}.interfaceName;
   };
 }
