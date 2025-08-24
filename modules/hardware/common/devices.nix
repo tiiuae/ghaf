@@ -56,7 +56,7 @@ let
   evdevDevices = config.ghaf.hardware.definition.input.misc.evdev;
 
   # Offsets for the PCI root ports
-  nicPortOffset = config.ghaf.hardware.usb.vhotplug.pciePortCount;
+  nicPortOffset = config.ghaf.microvm.vhotplug.pciePortCount;
   gpuPortOffset = nicPortOffset + (length nicPciDevices);
   sndPortOffset = gpuPortOffset + (length gpuPciDevices);
 

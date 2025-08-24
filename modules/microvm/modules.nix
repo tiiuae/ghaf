@@ -192,6 +192,14 @@ in
         brightness module configuration.
       '';
     };
+    vmm = mkOption {
+      description = "Type of virtual machine manager (VMM). One of 'qemu' or 'crosvm'.";
+      default = "qemu";
+      type = types.enum [
+        "qemu"
+        "crosvm"
+      ];
+    };
   };
 
   config = {
