@@ -16,6 +16,7 @@ let
     concatMapStringsSep
     optionalString
     mkBefore
+    mkEnableOption
     ;
 
   sshTcpPort = 22;
@@ -171,12 +172,13 @@ in
       };
       default = { };
       description = "Extra firewall rules";
-
     };
-
+    filter-arp = mkEnableOption "static ARP and MAC/IP rules";
   };
 
   config = mkIf cfg.enable {
+
+    environment.etc.ethertypes.source = "${pkgs.iptables}/etc/ethertypes";
 
     networking.firewall = {
       enable = mkForce true;
@@ -198,7 +200,7 @@ in
         iptables  -P FORWARD DROP
         iptables  -P OUTPUT ACCEPT
 
-        # delete ctstate RELATED,ESTABLISHED and lo rules 
+        # delete ctstate RELATED,ESTABLISHED and lo rules
         iptables  -D nixos-fw -i lo -j nixos-fw-accept
         iptables  -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
 
@@ -248,7 +250,7 @@ in
 
         # Drop invalid packets
         iptables -t mangle -A ghaf-fw-pre-mangle -m conntrack --ctstate INVALID -j ghaf-fw-mangle-drop
-        # Block packets with bogus TCP flags  
+        # Block packets with bogus TCP flags
         iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j ghaf-fw-mangle-drop
         iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN FIN,SYN -j ghaf-fw-mangle-drop
         iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags SYN,RST SYN,RST -j ghaf-fw-mangle-drop
@@ -280,11 +282,11 @@ in
 
 
         ### OUTPUT rules ###
-        iptables -I OUTPUT -o lo -j ACCEPT  
+        iptables -I OUTPUT -o lo -j ACCEPT
 
         ### POSTROUTING rules ###
 
-        ### Inject the other rules ### 
+        ### Inject the other rules ###
         ${optionalString (cfg.extra.prerouting.mangle != [ ]) (
           addIptablesRules "mangle" "ghaf-fw-pre-mangle" cfg.extra.prerouting.mangle
         )}
@@ -304,6 +306,11 @@ in
           addIptablesRules "nat" "ghaf-fw-post-nat" cfg.extra.postrouting.nat
         )}
 
+        ${optionalString (cfg.filter-arp && (lib.hasAttr "host" config.ghaf)) ''
+          # Drop all ARP traffic on internal bridge interface
+          ebtables -A INPUT -p arp -j DROP -i ${config.ghaf.host.networking.bridgeNicName}
+          ebtables -A FORWARD -p arp -j DROP -i ${config.ghaf.host.networking.bridgeNicName}
+        ''}
       '';
     }
     // cfg.extraOptions;

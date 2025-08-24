@@ -9,6 +9,7 @@
 let
   cfg = config.ghaf.services.wifi;
   inherit (lib) mkIf mkForce mkEnableOption;
+  inherit (config.ghaf.networking) hosts;
 in
 {
   options.ghaf.services.wifi = {
@@ -21,7 +22,7 @@ in
       networkmanager = {
         enable = true;
         wifi.powersave = true;
-        unmanaged = [ "ethint0" ];
+        unmanaged = [ hosts.${config.networking.hostName}.interfaceName ];
       };
     };
 
