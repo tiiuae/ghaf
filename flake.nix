@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/fix-qemu-rebase";
+    nixpkgs.url = "github:tiiuae/nixpkgs/qemu-bump-rc4";
     #nixpkgs.url = "flake:mylocalnixpkgs";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
