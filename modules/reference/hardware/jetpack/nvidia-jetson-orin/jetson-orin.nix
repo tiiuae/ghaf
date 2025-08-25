@@ -115,6 +115,7 @@ in
     hardware.deviceTree = {
       enable = lib.mkDefault true;
       dtbSource = "${pkgs.nvidia-jetpack.bspSrc}/kernel/dtb/";
+      #dtbSource = pkgs.nvidia-jetpack.kernelPackages.devicetree;
       # Add the include paths to build the dtb overlays
       dtboBuildExtraIncludePaths = [
         "${lib.getDev config.hardware.deviceTree.kernelPackage}/lib/modules/${config.hardware.deviceTree.kernelPackage.modDirVersion}/source/nvidia/soc/t23x/kernel-include"
