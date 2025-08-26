@@ -161,6 +161,11 @@
         flake-utils.follows = "flake-utils";
       };
     };
+
+    srvos = {
+      url = "github:nix-community/srvos";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
