@@ -14,12 +14,13 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf.virtualization.microvm.appvm.vms = lib.foldl (a: b: a // b) { } [
-      (import ./chromium.nix { inherit pkgs lib config; })
-      (import ./google-chrome.nix { inherit pkgs lib config; })
-      (import ./gala.nix { inherit pkgs lib config; })
-      (import ./zathura.nix { inherit pkgs lib config; })
-      (import ./comms.nix { inherit pkgs lib config; })
       (import ./business.nix { inherit pkgs lib config; })
+      (import ./chromium.nix { inherit pkgs lib config; })
+      (import ./comms.nix { inherit pkgs lib config; })
+      (import ./flatpak.nix { inherit pkgs lib config; })
+      (import ./gala.nix { inherit pkgs lib config; })
+      (import ./google-chrome.nix { inherit pkgs lib config; })
+      (import ./zathura.nix { inherit pkgs lib config; })
     ];
   };
 }
