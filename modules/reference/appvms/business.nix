@@ -179,5 +179,8 @@
         };
       }
     ];
+
+    # Integrated cameras attached to this VM
+    usbPassthrough = config.ghaf.microvm.vhotplug.integratedCameras;
   };
 }

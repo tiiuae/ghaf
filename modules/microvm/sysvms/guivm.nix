@@ -12,6 +12,7 @@ let
   vmName = "gui-vm";
   #TODO do not import from a path like this
   inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  microvmConfig = config.microvm.vms."${vmName}".config.config.microvm;
   guivmBaseConfiguration = {
     imports = [
       inputs.self.nixosModules.profiles
@@ -220,7 +221,7 @@ let
             optimize.enable = false;
             vcpu = 2;
             mem = 12288;
-            hypervisor = "qemu";
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
             shares = [
               {
                 tag = "waypipe-ssh-public-key";
@@ -242,13 +243,12 @@ let
               }
             ];
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+            vsock.cid = config.ghaf.networking.hosts.${vmName}.cid;
 
             qemu = {
               extraArgs = [
                 "-device"
                 "qemu-xhci"
-                "-device"
-                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
               ];
 
               machine =
@@ -259,6 +259,13 @@ let
                 }
                 .${config.nixpkgs.hostPlatform.system};
             };
+            crosvm.extraArgs = [
+              "--battery"
+              "goldfish"
+            ];
+
+            # Autodetect devices for passthrough and add them to the VM runner
+            extraArgsScript = lib.mkIf config.ghaf.microvm.vhwdetect.enable "${pkgs.vhwdetect}/bin/vhwdetect --vmm ${microvmConfig.hypervisor} --devices input display";
           };
         }
       )
@@ -271,7 +278,6 @@ let
   buildKernel = import ../../../packages/kernel { inherit config pkgs lib; };
   config_baseline = ../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
   guest_graphics_hardened_kernel = buildKernel { inherit config_baseline; };
-
 in
 {
   options.ghaf.virtualization.microvm.guivm = {
@@ -338,6 +344,56 @@ in
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
+
+    ghaf.microvm.vhotplug.rules = [
+      {
+        name = vmName;
+        type = microvmConfig.hypervisor;
+        socket = "/var/lib/microvms/${vmName}/${microvmConfig.socket}";
+
+        usbPassthrough = [
+          {
+            interfaceClass = 3;
+            interfaceProtocol = 1;
+            description = "HID Keyboard";
+          }
+          {
+            interfaceClass = 3;
+            interfaceProtocol = 2;
+            description = "HID Mouse";
+          }
+          {
+            interfaceClass = 11;
+            description = "Chip/SmartCard (e.g. YubiKey)";
+          }
+          {
+            interfaceClass = 224;
+            interfaceSubclass = 1;
+            interfaceProtocol = 1;
+            description = "Bluetooth";
+            disable = true;
+          }
+          {
+            interfaceClass = 8;
+            interfaceSubclass = 6;
+            description = "Mass Storage - SCSI (USB drives)";
+          }
+          {
+            interfaceClass = 17;
+            description = "USB-C alternate modes supported by device";
+          }
+          {
+            vendorId = "06cb";
+            productId = "00fc";
+            description = "Synaptics Prometheus Fingerprint Reader";
+          }
+        ];
+        evdevPassthrough = {
+          enable = config.ghaf.microvm.vhotplug.enableEvdevPassthrough;
+          inherit (config.ghaf.microvm.vhotplug) pcieBusPrefix;
+        };
+      }
+    ];
   };
 
 }

@@ -3,7 +3,6 @@
 {
   imports = [
     ./usb/external-devices.nix
-    ./usb/vhotplug.nix
     ./devices.nix
     ./input.nix
     ./kernel.nix

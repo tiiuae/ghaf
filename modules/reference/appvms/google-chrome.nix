@@ -80,5 +80,13 @@
 
       }
     ];
+    usbPassthrough = [
+      {
+        interfaceClass = 14;
+        description = "Video (USB Webcams)";
+        # Ignore integrated cameras since they are attached to the business-vm
+        ignore = config.ghaf.microvm.vhotplug.integratedCameras;
+      }
+    ];
   };
 }
