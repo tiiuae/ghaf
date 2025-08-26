@@ -12,7 +12,7 @@ _:
   let
     # TODO: Refactor this later, if this gets proper implementation on the
     #    jetpack-nixos
-    stdenv = pkgs.gcc9Stdenv;
+    stdenv = pkgs.gcc13Stdenv;
     inherit (pkgs.nvidia-jetpack) l4tVersion opteeClient taDevKit;
 
     opteeSource = pkgs.applyPatches {
