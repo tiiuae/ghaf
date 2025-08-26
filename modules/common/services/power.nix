@@ -492,20 +492,18 @@ in
       };
 
       # Logind configuration for desktop
-      services.logind = {
-        lidSwitch = if cfg.allowSuspend then "suspend" else "ignore";
-        killUserProcesses = true;
-        extraConfig = ''
-          IdleAction=lock
-          UserStopDelaySec=0
-          HoldoffTimeoutSec=20
-        '';
+      services.logind.settings.Login = {
+        HandleLidSwitch = if cfg.allowSuspend then "suspend" else "ignore";
+        KillUserProcesses = true;
+        IdleAction = "lock";
+        UserStopDelaySec = 0;
+        HoldoffTimeoutSec = 20;
       };
     })
 
     # Host power management
     (mkIf cfg.host.enable {
-      services.logind.lidSwitch = mkDefault "ignore";
+      services.logind.settings.Login.HandleLidSwitch = mkDefault "ignore";
 
       systemd.sleep.extraConfig = ''
         AllowHibernation=no
