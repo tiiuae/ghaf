@@ -93,9 +93,12 @@ in
           enable = true; # Enable graphical boot on host
           waitForService = lib.optionalString config.ghaf.virtualization.microvm.guivm.enable "system-ui.target";
         };
-        services.power-manager = {
-          host.enable = true;
-          gui.enable = config.ghaf.profiles.graphics.enable;
+        services = {
+          power-manager = {
+            host.enable = true;
+            gui.enable = config.ghaf.profiles.graphics.enable;
+          };
+          kill-switch.enable = true;
         };
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
