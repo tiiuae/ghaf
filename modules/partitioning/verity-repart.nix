@@ -8,6 +8,7 @@
 }:
 let
   cfg = config.ghaf.partitioning.verity;
+  inherit (pkgs.stdenv.hostPlatform) efiArch;
 in
 {
 
@@ -19,10 +20,11 @@ in
       partitions = {
         "00-esp" = {
           contents = {
-            "/".source = pkgs.runCommand "esp-contents" { } ''
-              mkdir -p $out/EFI/BOOT
-              cp ${config.system.build.uki}/${config.system.boot.loader.ukiFile} $out/EFI/BOOT/BOOTX64.EFI
-            '';
+            "/EFI/BOOT/BOOT${lib.toUpper efiArch}.EFI".source = 
+              "${pkgs.systemd}/lib/systemd/boot/efi/systemd-boot${efiArch}.efi";
+
+            "/EFI/Linux/${config.system.boot.loader.ukiFile}".source = 
+              "${config.system.build.uki}/${config.system.boot.loader.ukiFile}";
           };
           repartConfig = {
             Type = "esp";
