@@ -11,24 +11,70 @@ let
     if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc";
 in
 [
-  # NixOS specific rules
-  # TODO Define appropriate rules
+  ## === Common :: Nix/NixOS-specific ===
   "-a always,exit -F arch=b64 -S execve -F exe=${pkgs.nix}/bin/nix-daemon -k nix-daemon-exec"
+  "-a always,exit -F arch=b64 -S execve -S execveat -F exe=${pkgs.nix}/bin/nix -F auid>=1000 -F auid!=unset -k nix-tools"
+  "-w ${pkgs.nix}/bin/nix -p x -k nix-exec"
+  "-w ${pkgs.nix}/bin/nix-store -p x -k nix-store"
+  "-w ${pkgs.nix}/bin/nix-shell -p x -k nix-exec"
+  "-w ${pkgs.nix}/bin/nix-collect-garbage -p x -k nix-gc"
+  "-w ${pkgs.nix}/bin/nix-build -p x -k nix-build"
+  # nixos-rebuild is a separate package
+  "-w ${pkgs.nixos-rebuild}/bin/nixos-rebuild -p x -k nix-syschange"
+  # System-wide config
+  "-w /etc/nix -p wa -k nix_conf"
+  "-w /etc/nixos -p wa -k nixos_conf"
+  "-w /etc/systemd/system/nix-daemon.service.d -p wa -k nix_daemon_unit"
+  "-w /etc/systemd/system/nix-daemon.service -p wa -k nix_daemon_unit"
+  "-w /etc/systemd/system/nix-daemon.socket -p war -k nix_daemon_unit"
+  "-w /etc/systemd/system/sockets.target.wants/nix-daemon.socket -p wa -k nix_daemon_unit"
 
-  # Additional rules borrowed from https://stigviewer.com/stigs/anduril_nixos
+  ## === Common :: STIG-derived ===
+  # Rules borrowed from https://stigviewer.com/stigs/anduril_nixos
+  # V-268091
   "-a always,exit -F arch=b64 -S execve -C uid!=euid -F euid=0 -k execpriv"
+  "-a always,exit -F arch=b64 -S execve -C gid!=egid -F egid=0 -k execpriv "
+  # V-268094
   "-a always,exit -F arch=b64 -S mount -F auid>=1000 -F auid!=-1 -k privileged-mount"
+  # V-268164
   "-a always,exit -F path=/run/current-system/sw/bin/usermod -F perm=x -F auid>=1000 -F auid!=-1 -k privileged-usermod"
+  # V-268165
   "-a always,exit -S all -F path=/run/current-system/sw/bin/chage -F perm=x -F auid>=1000 -F auid!=-1 -k privileged-chage"
   "-a always,exit -S all -F path=/run/current-system/sw/bin/chcon -F perm=x -F auid>=1000 -F auid!=-1 -k perm_mod"
+  # V-268167
+  "-w /etc/sudoers -p wa -k identity"
+  "-w /etc/passwd -p wa -k identity"
+  "-w /etc/shadow -p wa -k identity"
+  "-w /etc/group -p wa -k identity"
+  # V-268166
+  "-w /var/log/lastlog -p wa -k logins"
+  # V-268163
+  "-a always,exit -F arch=b64 -S setxattr,fsetxattr,lsetxattr,removexattr,fremovexattr,lremovexattr -F auid>=1000 -F auid!=-1 -k perm_mod"
+  "-a always,exit -F arch=b64 -S setxattr,fsetxattr,lsetxattr,removexattr,fremovexattr,lremovexattr -F auid=0 -k perm_mod"
+  # V-268099
+  "-a always,exit -F arch=b64 -S chown,fchown,lchown,fchownat -F auid>=1000 -F auid!=unset -F key=perm_mod"
+  # V-268098
+  "-a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access"
+  "-a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access"
+  # V-268096
+  "-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -F auid>=1000 -F auid!=unset -k module_chng"
+  # V-268095
+  "-a always,exit -F arch=b64 -S rename,unlink,rmdir,renameat,unlinkat -F auid>=1000 -F auid!=unset -k delete"
+  # V-268100
+  "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=unset -F key=perm_mod"
 
-  # 11-loginuid.rules
+  ## === Common :: OSPP-derived ===
+  # 11-loginuid.rules && V-268119
   "--loginuid-immutable"
+
+  ## === Common :: Other ===
+  "-a always,exit -F arch=b64 -F path=/etc/machine-id -F perm=wa -F key=identity"
+  "-w /etc/ssh -p rwxa -k ssh_config_access"
 
   # 32-power-abuse.rules
   ## The purpose of this rule is to detect when an admin may be abusing power
   ## by looking in user's home dir.
-  "-a always,exit -F dir=/home -F uid=0 -F auid>=1000 -F auid!=unset -C auid!=obj_uid -F key=power-abuse"
+  # "-a always,exit -F dir=/home -F uid=0 -F auid>=1000 -F auid!=unset -C auid!=obj_uid -F key=power-abuse"
 
   # 42-injection.rules
   ## These rules watch for code injection by the ptrace facility.
@@ -49,21 +95,18 @@ in
   # These rules watch for invocation of things known to install software
   # TODO Handle this in a more generic way
 
+  # 99-finalize.rules
+  # COMMENT: Handled by nixos module
+]
+++ lib.optionals config.ghaf.security.audit.enableVerboseCommon [
   # 70-einval.rules
   ## These are rules are to locate poorly written programs.
   ## Its never planned to waste time on a syscall with incorrect parameters
   ## This is more of a debugging step than something people should run with
   ## in production.
-  # TODO This spams the logs significantly, but also may hint at some misconfigurations.
-  # "-a never,exit -F arch=b64 -S rt_sigreturn"
-  # "-a always,exit -S all -F exit=-EINVAL -F key=einval-retcode"
-
-  # 99-finalize.rules
-  # COMMENT: Handled by nixos module
-
-  # Other
-  "-a always,exit -F arch=b64 -F path=/etc/machine-id -F perm=wa -F key=identity"
-  "-w /etc/ssh -p rwxa -k ssh_config_access"
+  # This spams the logs significantly, but also may hint at some misconfigurations.
+  "-a never,exit -F arch=b64 -S rt_sigreturn"
+  "-a always,exit -S all -F exit=-EINVAL -F key=einval-retcode"
 ]
 ++ lib.optionals config.ghaf.security.audit.enableStig [
   ## STIG RULES ##
@@ -86,6 +129,7 @@ in
   # "-a always,exit -F arch=b64 -S clock_adjtime -F key=time-change"
   "-a always,exit -F arch=b64 -F path=/etc/localtime -F perm=wa -F key=time-change"
   ## Things that affect identity
+  # Handled in common rules - V-268167
   "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/group -F perm=wa -F key=identity"
   "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/passwd -F perm=wa -F key=identity"
   "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/shadow -F perm=wa -F key=identity"
@@ -128,17 +172,18 @@ in
   ##
   ## The session initiation is audited by pam without any rules needed.
   ## Might also want to watch this file if needing extra information
-  "-a always,exit -F arch=b64 -F path=/var/run/utmp -F perm=wa -F key=session"
+  # "-a always,exit -F arch=b64 -F path=/var/run/utmp -F perm=wa -F key=session"
   # "-a always,exit -F arch=b64 -F path=/var/log/btmp -F perm=wa -F key=session"
   "-a always,exit -F arch=b64 -F path=/var/log/wtmp -F perm=wa -F key=session"
 
   ##- Discretionary access control permission modification (unsuccessful
   ## and successful use of chown/chmod)
-  "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=unset -F key=perm_mod"
-  "-a always,exit -F arch=b64 -S chown,fchown,lchown,fchownat -F auid>=1000 -F auid!=unset -F key=perm_mod"
-  "-a always,exit -F arch=b64 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=unset -F key=perm_mod"
+  # Handled in common rules - (V-268163, V-268099, V-268100)
+  # "-a always,exit -F arch=b64 -S chown,fchown,lchown,fchownat -F auid>=1000 -F auid!=unset -F key=perm_mod"
+  # "-a always,exit -F arch=b64 -S setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=unset -F key=perm_mod"
 
   ##- Unauthorized access attempts to files (unsuccessful)
+  # Handled partially in common rules - V-268098
   "-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,openat2,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access"
   "-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,openat2,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access"
 
@@ -151,6 +196,7 @@ in
 
   ##- System startup and shutdown (unsuccessful and successful)
   ##- Files and programs deleted by the user (successful and unsuccessful)
+  # Handled partially in common rules - V-268095
   "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=unset -F key=delete"
 
   ##- All system administration actions
@@ -160,11 +206,12 @@ in
   ## If that is not found, use sudo which should be patched to record its
   ## commands to the audit system. Do not allow unrestricted root shells or
   ## sudo cannot record the action.
+  # Handled in common rules - V-268167
   # "-a always,exit -F arch=b64 -F path=/etc/sudoers -F perm=wa -F key=actions"
   # "-a always,exit -F arch=b64 -F dir=/etc/sudoers.d/ -F perm=wa -F key=actions"
 
   ## Special case for systemd-run. It is not audit aware, specifically watch it
-  "-a always,exit -F arch=b64 -F path=${pkgs.systemd}/bin/systemd-run -F perm=x -F auid!=unset -F key=maybe-escalation"
+  # "-a always,exit -F arch=b64 -F path=${pkgs.systemd}/bin/systemd-run -F perm=x -F auid!=unset -F key=maybe-escalation"
 
   ## Special case for pkexec. It is not audit aware, specifically watch it
   # "-a always,exit -F arch=b64 -F path=/usr/bin/pkexec -F perm=x -F key=maybe-escalation"
@@ -197,7 +244,7 @@ in
   # handled by nixos module
 
   ## 11-loginuid.rules
-  # handled in common rules
+  # Handled in common rules - V-268119
 
   ## 30-ospp-v42-1-create-failed.rules
   ## Unsuccessful file creation (open with O_CREAT)
@@ -231,10 +278,6 @@ in
   ## Unsuccessful file access (any other opens) This has to go last.
   "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
   "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
-  ## 30-ospp-v42-3-access-success.rules
-  ## Successful file access (any other opens) This has to go last.
-  ## These next two are likely to result in a whole lot of events
-  "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-access"
 
   ## 30-ospp-v42-4-delete-failed.rules
   ## Unsuccessful file delete
@@ -316,7 +359,7 @@ in
   "-a always,exit -F arch=b64 -F dir=/var/log/audit/ -F perm=r -F auid>=1000 -F auid!=unset -F key=access-audit-trail"
 
   ## Attempts to Alter Process and Session Initiation Information
-  "-a always,exit -F arch=b64 -F path=/var/run/utmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
+  # "-a always,exit -F arch=b64 -F path=/var/run/utmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
   # "-a always,exit -F arch=b64 -F path=/var/log/btmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
   "-a always,exit -F arch=b64 -F path=/var/log/wtmp -F perm=wa -F auid>=1000 -F auid!=unset -F key=session"
 
@@ -331,4 +374,10 @@ in
   ## FPT_SRP_EXT.1 Software Restriction Policies. This event is intended to
   ## state results from that policy. This would be handled entirely by
   ## that daemon.
+]
+++ lib.optionals config.ghaf.security.audit.enableVerboseOspp [
+  ## 30-ospp-v42-3-access-success.rules
+  ## Successful file access (any other opens) This has to go last.
+  ## This are likely to result in a whole lot of events
+  "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-access"
 ]

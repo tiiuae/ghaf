@@ -12,6 +12,7 @@
     cores = 1;
     bootPriority = "low";
     borderColor = "#122263";
+
     applications = [
       {
         name = "PDF Viewer";
@@ -27,12 +28,20 @@
         ];
       }
     ];
+
     extraModules = [
       {
         # This vm should be stateless so nothing stored between boots
         ghaf.storagevm.enable = lib.mkForce false;
+
         # Handle PDF and image open requests
         ghaf.xdghandlers.enable = true;
+
+        # Let systemd use default ordering for audit-rules instead of early-boot
+        systemd.services.audit-rules = {
+          unitConfig.DefaultDependencies = lib.mkForce true;
+          before = lib.mkForce [ ];
+        };
       }
     ];
   };
