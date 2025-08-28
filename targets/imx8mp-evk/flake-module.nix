@@ -58,6 +58,7 @@ let
                 #vulnerability but it is still used by many people
                 permittedInsecurePackages = [
                   "jitsi-meet-1.0.8043"
+                  "qtwebengine-5.15.19"
                 ];
               };
 
