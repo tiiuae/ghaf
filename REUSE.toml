@@ -40,6 +40,7 @@ path = [
   "docs/package-lock.json",
   "docs/package.json",
   "docs/public/CNAME",
+  "packages/python-packages/usb-passthrough-manager/usb_passthrough_manager/assets/icon/usb.png",
 ]
 
 [[annotations]]

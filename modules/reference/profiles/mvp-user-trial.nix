@@ -34,6 +34,7 @@ in
           business.enable = true;
         };
       };
+      services.usb_passthrough_manager.enable = true;
 
       hardware.passthrough.VMs = {
         gui-vm.permittedDevices = [

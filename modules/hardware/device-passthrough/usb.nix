@@ -1,10 +1,16 @@
 # Copyright 2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (lib)
     mkOption
+    mkEnableOption
     types
     mkIf
     mkMerge
@@ -141,36 +147,48 @@ let
 
 in
 {
-  options.ghaf.hardware.passthrough.usb = {
-    devices = mkOption {
-      description = ''
-        List of USB device(s) to passthrough.
+  options.ghaf = {
+    hardware.passthrough.usb = {
+      manager = {
+        enable = mkEnableOption "USB passthrough manager.";
+      };
 
-        Each device definition requires a name, and either vendorId and productId, or hostbus and hostport.
-        The latter is useful for addressing devices that may have different vendor and product IDs in the
-        same hardware generation.
+      devices = mkOption {
+        description = ''
+          List of USB device(s) to passthrough.
 
-        Note that internal devices must follow the naming convention to be correctly identified
-        and subsequently used. Current special names are:
-          - 'cam0' for the internal cam0 device
-          - 'fpr0' for the internal fingerprint reader device
-      '';
-      type = types.listOf usbDevSubmodule;
-      default = [ ];
-      example = literalExpression ''
-        [
-          {
-            name = "cam0";
-            vendorId = "0123";
-            productId = "0123";
-          }
-          {
-            name = "fpr0";
-            hostbus = "3";
-            hostport = "3";
-          }
-        ]
-      '';
+          Each device definition requires a name, and either vendorId and productId, or hostbus and hostport.
+          The latter is useful for addressing devices that may have different vendor and product IDs in the
+          same hardware generation.
+
+          Note that internal devices must follow the naming convention to be correctly identified
+          and subsequently used. Current special names are:
+            - 'cam0' for the internal cam0 device
+            - 'fpr0' for the internal fingerprint reader device
+        '';
+        type = types.listOf usbDevSubmodule;
+        default = [ ];
+        example = literalExpression ''
+          [
+            {
+              name = "cam0";
+              vendorId = "0123";
+              productId = "0123";
+            }
+            {
+              name = "fpr0";
+              hostbus = "3";
+              hostport = "3";
+            }
+          ]
+        '';
+      };
+    };
+    services.usb_passthrough_manager = {
+      enable = mkEnableOption "USB passthrough manager.";
+    };
+    services.usb_hotplug_notification = {
+      enable = mkEnableOption "notify user on USB hotplug detection.";
     };
   };
   config = mkMerge [
@@ -192,6 +210,26 @@ in
     )
     {
       ghaf.hardware.passthrough.vmUdevExtraRules = vmUdevExtraRulesUSB;
+      environment.systemPackages = [
+        pkgs.usb-passthrough-manager
+      ];
     }
+    (mkIf config.ghaf.services.usb_passthrough_manager.enable {
+
+      systemd.services.usb-passthrough-manager = {
+        enable = true;
+        description = "usb_passthrough_manager";
+        wantedBy = [ "multi-user.target" ];
+        after = [ "local-fs.target" ];
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${pkgs.usb-passthrough-manager}/bin/upm_host_service --emulate 1 --loglevel debug";
+        };
+        startLimitIntervalSec = 0;
+      };
+    })
+
   ];
 }
