@@ -1,6 +1,16 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 _: [
+  # NixOS specific rules
+  # Nix profiles & system generations (symlink flips = important)
+  "-w /nix/var/nix/profiles -p wa -k nix_profiles"
+  # Nix DB & state (writes signal store mutation); keep scope tight to avoid volume
+  "-w /nix/var/nix/db -p wa -k nix_db"
+  # GC (pinning/unpinning)
+  "-w /nix/var/nix/gc.lock -p wa -k nix_gc_lock"
+  # The current system symlink and profile links (generation switches)
+  "-w /run/current-system -p wa -k nix_system"
+  "-w /nix/var/nix/profiles/system -p wa -k nix_system"
 
   # 40-local.rules
   ## Put your own watches after this point

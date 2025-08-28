@@ -37,6 +37,11 @@ in
       default = importAuditRules "common";
       description = "Common audit rules for host and guests";
     };
+    enableVerboseCommon = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Include verbose Common audit rules";
+    };
     enableStig = mkOption {
       type = types.bool;
       default = false;
@@ -46,6 +51,11 @@ in
       type = types.bool;
       default = false;
       description = "Enable OSPP rules";
+    };
+    enableVerboseOspp = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Include verbose OSPP rules";
     };
     host = {
       enable = mkOption {
@@ -88,6 +98,7 @@ in
 
     ghaf.systemd.withAudit = true;
     security.auditd.enable = true;
+    ghaf.security.audit.enableOspp = mkIf cfg.enableVerboseOspp true;
 
     security.audit = {
       enable = true;
