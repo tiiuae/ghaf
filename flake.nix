@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/fix-qemu-rebase";
+    nixpkgs.url = "github:tiiuae/nixpkgs/qemu-bump-rc4";
     #nixpkgs.url = "flake:mylocalnixpkgs";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -110,7 +110,7 @@
     jetpack-nixos = {
       #url = "flake:mylocaljetpack";
       #url = "github:anduril/jetpack-nixos/d1c82127de40e85c9c50295f157e1be59a9ad2a6";
-      url = "github:tiiuae/jetpack-nixos/final-stretch-extraConf";
+      url = "github:tiiuae/jetpack-nixos/final-stretch-extraConf-gcc13";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -160,6 +160,11 @@
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
       };
+    };
+
+    srvos = {
+      url = "github:nix-community/srvos";
+      inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
