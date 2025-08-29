@@ -134,7 +134,6 @@ in
           IP_NF_TARGET_NETMAP = module;
           IP_NF_TARGET_REDIRECT = module;
           IP_NF_TARGET_REJECT = module;
-
         };
       }
     ];

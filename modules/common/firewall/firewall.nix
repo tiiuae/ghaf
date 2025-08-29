@@ -8,16 +8,17 @@
 }:
 let
   inherit (lib)
-    mkOption
-    types
-    mkForce
-    mkIf
-    strings
     concatMapStringsSep
     concatStringsSep
     mkBefore
-    optionals
     mkEnableOption
+    mkForce
+    mkIf
+    mkOption
+    optionals
+    optionalString
+    strings
+    types
     ;
   blackListName = "BLACKLIST";
   blacklistMarkNum = "8";
@@ -257,15 +258,17 @@ in
       };
       default = { };
       description = "Extra firewall rules";
-
     };
-
+    filter-arp = mkEnableOption "static ARP and MAC/IP rules";
   };
 
   config = mkIf cfg.enable {
 
     # Include required kernel modules for firewall
     ghaf.firewall.kernel-modules.enable = true;
+
+    # Include ethertypes file
+    environment.etc.ethertypes.source = "${pkgs.iptables}/etc/ethertypes";
 
     networking.firewall = {
       enable = mkForce true;
@@ -296,7 +299,7 @@ in
         iptables  -P FORWARD DROP
         iptables  -P OUTPUT ACCEPT
 
-        # delete ctstate RELATED,ESTABLISHED and lo rules 
+        # delete ctstate RELATED,ESTABLISHED and lo rules
         iptables  -D nixos-fw -i lo -j nixos-fw-accept
         iptables  -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
 
@@ -354,7 +357,7 @@ in
         # Creating ban chain
         iptables -t filter -N ghaf-fw-ban 2> /dev/null || true
 
-        # ghaf-fw-blacklist-add rules 
+        # ghaf-fw-blacklist-add rules
         iptables -t filter -A ghaf-fw-blacklist-add -m limit --limit 10/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
 
         iptables -t filter -A ghaf-fw-blacklist-add -j SET --add-set ${blackListName} src --exist
@@ -364,7 +367,7 @@ in
 
         # ghaf-fw-ban rules
         iptables -t filter -A ghaf-fw-ban -m hashlimit --hashlimit 2/min --hashlimit-burst 1 --hashlimit-mode srcip \
-        --hashlimit-name log_ban_per_ip -j LOG --log-prefix "Packet [ban]: " --log-level 4      
+        --hashlimit-name log_ban_per_ip -j LOG --log-prefix "Packet [ban]: " --log-level 4
 
         # Everything else is dropped.
         iptables -t filter -A ghaf-fw-ban -j DROP
@@ -380,7 +383,7 @@ in
 
         # Drop invalid packets
         iptables -t mangle -A ghaf-fw-pre-mangle -m conntrack --ctstate INVALID -j ghaf-fw-mangle-drop
-        # Block packets with bogus TCP flags  
+        # Block packets with bogus TCP flags
         iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j ghaf-fw-mangle-drop
         iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN FIN,SYN -j ghaf-fw-mangle-drop
         iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags SYN,RST SYN,RST -j ghaf-fw-mangle-drop
@@ -422,11 +425,11 @@ in
 
 
         ### OUTPUT rules ###
-        iptables -I OUTPUT -o lo -j ACCEPT  
+        iptables -I OUTPUT -o lo -j ACCEPT
 
         ### POSTROUTING rules ###
 
-        ### Inject the other rules ### 
+        ### Inject the other rules ###
         ${addIptablesRules {
           table = "mangle";
           chain = "ghaf-fw-pre-mangle";
@@ -462,6 +465,11 @@ in
           rules = cfg.extra.postrouting.nat;
         }}
 
+        ${optionalString (cfg.filter-arp && (lib.hasAttr "host" config.ghaf)) ''
+          # Drop ARP traffic on all tap-* interfaces
+          ebtables -A INPUT -p arp -j DROP -i tap-+
+          ebtables -A FORWARD -p arp -j DROP -i tap-+
+        ''}
       '';
     }
     // cfg.extraOptions;
