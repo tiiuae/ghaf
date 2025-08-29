@@ -22,6 +22,7 @@ let
   has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
   activeMicrovms = attrNames config.microvm.vms;
+  ghaf-killswitch = pkgs.ghaf-killswitch.override { inherit config; };
 in
 {
   imports = [
@@ -97,6 +98,9 @@ in
         logging.client.enable = config.ghaf.logging.enable;
         common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
       };
+
+      # TODO: Currently enabled for x86_64, we will evaluate the need for aarch64 support in the future
+      environment.systemPackages = mkIf pkgs.stdenv.hostPlatform.isx86_64 [ ghaf-killswitch ];
 
       # Create host directories for microvm shares
       systemd.tmpfiles.rules =
