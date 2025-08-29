@@ -22,6 +22,12 @@ in
       type = lib.types.bool;
       default = false;
     };
+
+    sysupdate = lib.mkOption {
+      description = "Enable systemd sysupdate";
+      type = lib.types.bool;
+      default = false;
+    };
   };
 
   imports = [
@@ -97,6 +103,15 @@ in
     # System is now immutable
     system.switch.enable = false;
 
+    swapDevices = [
+      {
+        device =
+          if config.ghaf.storage.encryption.enable then "/dev/mapper/swap" else "/dev/disk/by-partlabel/swap";
+        discardPolicy = "both";
+        options = [ "nofail" ];
+      }
+    ];
+
     fileSystems =
       let
         tmpfsConfig = {
@@ -117,7 +132,11 @@ in
             partConf = config.image.repart.partitions."50-persist".repartConfig;
           in
           {
-            device = "/dev/disk/by-partuuid/${partConf.UUID}";
+            device =
+              if config.ghaf.storage.encryption.enable then
+                "/dev/mapper/persist"
+              else
+                "/dev/disk/by-partuuid/${partConf.UUID}";
             fsType = partConf.Format;
           };
       }

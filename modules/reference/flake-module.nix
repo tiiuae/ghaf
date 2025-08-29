@@ -18,6 +18,7 @@
       inputs.self.nixosModules.reference-desktop
       ./profiles/mvp-user-trial.nix
       ./profiles/mvp-user-trial-extras.nix
+      ./profiles/mvp-user-trial-hardening.nix
     ];
     reference-profiles-orin.imports = [
       inputs.self.nixosModules.reference-appvms
