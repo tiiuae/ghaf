@@ -20,7 +20,6 @@
       final.callPackage ./pkgs-by-name/globalprotect-openconnect/package.nix
         { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
-    hotplug = final.python3Packages.callPackage ./python-packages/hotplug/package.nix { };
     kernel-hardening-checker =
       final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
         { };
@@ -29,8 +28,6 @@
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
-    vhotplug = final.python3Packages.callPackage ./python-packages/vhotplug/package.nix { };
-    vinotify = final.python3Packages.callPackage ./python-packages/vinotify/package.nix { };
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
     wait-for-unit = final.callPackage ./pkgs-by-name/wait-for-unit/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
