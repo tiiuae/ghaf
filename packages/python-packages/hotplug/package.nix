@@ -7,10 +7,10 @@
   setuptools,
 }:
 buildPythonApplication {
-  pname = "pci-hotplug";
+  pname = "hotplug";
   version = "0.1";
 
-  src = ./pci-hotplug;
+  src = ./hotplug;
 
   propagatedBuildInputs = [
     qemuqmp
@@ -22,7 +22,7 @@ buildPythonApplication {
   build-system = [ setuptools ];
 
   meta = {
-    description = "Qemu PCI hotplug helper";
+    description = "Qemu hotplug helper for PCI and USB devices";
     platforms = [
       "x86_64-linux"
       "aarch64-linux"

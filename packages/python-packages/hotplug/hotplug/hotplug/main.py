@@ -5,19 +5,21 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 from dataclasses import asdict, dataclass
+from typing import TypeVar
 
 from qemu.qmp import QMPClient, QMPError
 from systemd.journal import JournalHandler
 
 # Set up a logger with a systemd identifier
-logger = logging.getLogger("pci-hotplug")
+logger = logging.getLogger("hotplug")
 
 
 class SystemdIdentifierFilter(logging.Filter):
     def filter(self, record):
-        record.SYSLOG_IDENTIFIER = "pci-hotplug"
+        record.SYSLOG_IDENTIFIER = "hotplug"
         return True
 
 
@@ -30,14 +32,42 @@ class PciDevice:
     bus_id: str
 
 
-def _get_state_file_path(data_path: str) -> str:
+@dataclass
+class UsbDevice:
+    """A dataclass to represent a device that has been detached."""
+
+    bus_port_id: str
+    qdev_id: str
+
+
+T = TypeVar("T")  # generic type variable
+
+
+def _get_pci_state_file_path(data_path: str) -> str:
     """Constructs the full path for the state file."""
     return os.path.join(data_path, "pci_devices_state.json")
 
 
-def _delete_state_file(data_path: str):
+def _get_usb_state_file_path(data_path: str) -> str:
+    """Constructs the full path for the state file."""
+    return os.path.join(data_path, "usb_devices_state.json")
+
+
+# mapping from class to state file path getter
+_STATE_FILE_MAP = {
+    "PciDevice": _get_pci_state_file_path,
+    "UsbDevice": _get_usb_state_file_path,
+}
+
+
+def _delete_state_file[T](data_path: str, cls: type[T]):
     """Deletes the state file if it exists."""
-    state_file = _get_state_file_path(data_path)
+    state_file_func = _STATE_FILE_MAP.get(cls.__name__)
+    if not state_file_func:
+        raise ValueError(f"Unsupported device class: {cls.__name__}")
+
+    state_file = state_file_func(data_path)
+
     if os.path.exists(state_file):
         try:
             os.remove(state_file)
@@ -46,29 +76,40 @@ def _delete_state_file(data_path: str):
             logger.error(f"Failed to delete state file {state_file}: {e}")
 
 
-def _read_state(data_path: str) -> list[PciDevice]:
-    """Reads the state file and returns its content as a list of PciDevice objects."""
-    state_file = _get_state_file_path(data_path)
+def _read_state[T](data_path: str, cls: type[T]) -> list[T]:
+    """Reads the state file and returns its content as a list of device objects (PciDevice, UsbDevice)."""
+    state_file_func = _STATE_FILE_MAP.get(cls.__name__)
+    if not state_file_func:
+        raise ValueError(f"Unsupported device class: {cls.__name__}")
+
+    state_file = state_file_func(data_path)
     if not os.path.exists(state_file):
         return []
+
     try:
         with open(state_file) as f:
             data = json.load(f)
-            return [PciDevice(**item) for item in data]
+            return [cls(**item) for item in data]
     except (OSError, json.JSONDecodeError, TypeError) as e:
         logger.error(f"Could not read or parse state file {state_file}: {e}")
         return []
 
 
-def _write_state(data_path: str, devices: list[PciDevice]):
-    """Writes the given list of PciDevice objects to the state file."""
-    state_file = _get_state_file_path(data_path)
+def _write_state(data_path: str, devices: list[T], cls: type[T]):
+    """Writes the given list of device objects (PciDevice, UsbDevice) to the state file."""
+    state_file_func = _STATE_FILE_MAP.get(cls.__name__)
+    if not state_file_func:
+        raise ValueError(f"Unsupported device class: {cls.__name__}")
+
+    state_file = state_file_func(data_path)
     try:
         os.makedirs(os.path.dirname(state_file), exist_ok=True)
         data_to_write = [asdict(device) for device in devices]
         with open(state_file, "w") as f:
             json.dump(data_to_write, f, indent=2)
-        logger.debug(f"Wrote state for {len(devices)} device(s) to {state_file}")
+        logger.debug(
+            f"Wrote state for {len(devices)} {cls.__name__}(s) to {state_file}"
+        )
     except OSError as e:
         logger.error(f"Could not write to state file {state_file}: {e}")
         sys.exit(1)
@@ -134,10 +175,12 @@ def _find_host_pci_address(vendor_id: int, product_id: int) -> str | None:
     return None
 
 
-async def handle_detach(qmp: QMPClient, vendor_product_ids: list[str], data_path: str):
+async def handle_detach_pci(
+    qmp: QMPClient, vendor_product_ids: list[str], data_path: str
+):
     """Finds devices by their vendor/product IDs, detaches them, and records their info."""
     logger.debug(f"Attempting to detach {len(vendor_product_ids)} device(s)...")
-    _delete_state_file(data_path)
+    _delete_state_file(data_path, PciDevice)
 
     successfully_detached: list[PciDevice] = []
     pci_info = await qmp.execute("query-pci")
@@ -174,7 +217,7 @@ async def handle_detach(qmp: QMPClient, vendor_product_ids: list[str], data_path
             logger.error(f"Failed to detach device '{qdev_id}': {e}")
 
     if successfully_detached:
-        _write_state(data_path, successfully_detached)
+        _write_state(data_path, successfully_detached, PciDevice)
         logger.info(
             f"Successfully detached and saved state for {len(successfully_detached)} device(s)."
         )
@@ -182,12 +225,12 @@ async def handle_detach(qmp: QMPClient, vendor_product_ids: list[str], data_path
         logger.warning("No devices were detached.")
 
 
-async def handle_attach(qmp: QMPClient, data_path: str):
+async def handle_attach_pci(qmp: QMPClient, data_path: str):
     """Attaches all devices listed in the state file."""
-    devices_to_attach = _read_state(data_path)
+    devices_to_attach = _read_state(data_path, PciDevice)
     if not devices_to_attach:
         logger.info("No detached devices found in state. Nothing to do.")
-        _delete_state_file(data_path)
+        _delete_state_file(data_path, PciDevice)
         return
 
     logger.info(
@@ -237,7 +280,93 @@ async def handle_attach(qmp: QMPClient, data_path: str):
         logger.info("All devices attached successfully.")
 
     # Cleanup
-    _delete_state_file(data_path)
+    _delete_state_file(data_path, PciDevice)
+
+
+async def handle_detach_usb(qmp: QMPClient, bus_port_qid: list[str], data_path: str):
+    """Finds device by their vendor/product/Qemu IDs, detaches them, and records their info."""
+    logger.debug(f"Attempting to detach {len(bus_port_qid)} device(s)...")
+    _delete_state_file(data_path, UsbDevice)
+
+    successfully_detached: list[UsbDevice] = []
+
+    for bpq_id in bus_port_qid:
+        try:
+            hostbus, hostport, qdev_id = bpq_id.split(":")
+        except ValueError:
+            logger.error(f"Invalid format for bus:port ID '{bpq_id}'. Skipping.")
+            continue
+
+        usb_info = await qmp.execute("x-query-usb")
+        ids = re.findall(r"ID:\s*(\S+)", usb_info["human-readable-text"])
+
+        if qdev_id not in ids:
+            logger.debug(f"Device '{bpq_id}' not found attached to the VM. Skipping.")
+            continue
+
+        logger.debug(f"Detaching device '{hostbus}:{hostport}' (QEMU ID: '{qdev_id}')")
+        try:
+            await qmp.execute("device_del", {"id": qdev_id})
+            successfully_detached.append(UsbDevice(hostbus + ":" + hostport, qdev_id))
+        except QMPError as e:
+            logger.error(f"Failed to detach device '{qdev_id}': {e}")
+
+        if successfully_detached:
+            _write_state(data_path, successfully_detached, UsbDevice)
+            logger.info(
+                f"Successfully detached and saved state for {len(successfully_detached)} device(s)."
+            )
+        else:
+            logger.warning("No devices were detached.")
+
+
+async def handle_attach_usb(qmp: QMPClient, data_path: str):
+    """Attaches all devices listed in the state file."""
+    devices_to_attach = _read_state(data_path, UsbDevice)
+    if not devices_to_attach:
+        logger.info("No detached devices found in state. Nothing to do.")
+        _delete_state_file(data_path, UsbDevice)
+        return
+
+    logger.info(
+        f"Attempting to attach {len(devices_to_attach)} device(s) from state..."
+    )
+    devices_not_attached = devices_to_attach.copy()
+
+    for device in devices_to_attach:
+        try:
+            hostbus_str, hostport_str = device.bus_port_id.split(":")
+            hostbus_id = int(hostbus_str, 16)
+            qdev_id = device.qdev_id
+        except ValueError:
+            logger.error(
+                f"Invalid bus:port ID '{device.bus_port_id}' in state. Skipping."
+            )
+            continue
+
+    attach_args = {
+        "driver": "usb-host",
+        "hostbus": hostbus_id,
+        "hostport": hostport_str,
+        "id": qdev_id,
+    }
+    logger.debug(f"Attaching device with args: {attach_args}")
+    try:
+        await qmp.execute("device_add", attach_args)
+        logger.debug(f"Successfully sent attach command for device '{device}'.")
+        devices_not_attached.remove(device)
+    except QMPError as e:
+        logger.error(f"Failed to attach device '{device}': {e}")
+
+    if devices_not_attached:
+        logger.warning(
+            f"{len(devices_not_attached)} device(s) could not be re-attached."
+        )
+    else:
+        logger.info("All devices attached successfully.")
+
+    # Cleanup
+    _delete_state_file(data_path, UsbDevice)
 
 
 async def main_async(args: argparse.Namespace):
@@ -251,15 +380,19 @@ async def main_async(args: argparse.Namespace):
             logger.error(f"Failed to create state directory {args.data_path}: {e}")
             sys.exit(1)
 
-    qmp = QMPClient("pci-hotplug")
+    qmp = QMPClient("hotplug")
     try:
         logger.debug(f"Connecting to QEMU monitor at {args.socket_path}")
         await qmp.connect(args.socket_path)
 
-        if args.detach:
-            await handle_detach(qmp, args.detach, args.data_path)
-        elif args.attach:
-            await handle_attach(qmp, args.data_path)
+        if args.detach_pci:
+            await handle_detach_pci(qmp, args.detach_pci, args.data_path)
+        elif args.attach_pci:
+            await handle_attach_pci(qmp, args.data_path)
+        elif args.detach_usb:
+            await handle_detach_usb(qmp, args.detach_usb, args.data_path)
+        elif args.attach_usb:
+            await handle_attach_usb(qmp, args.data_path)
 
     except FileNotFoundError:
         logger.error(
@@ -296,13 +429,24 @@ def main():
     )
     action_group = parser.add_mutually_exclusive_group(required=True)
     action_group.add_argument(
-        "--detach",
+        "--detach-pci",
         metavar="VENDOR:PRODUCT",
         nargs="+",
         help="Detach one or more devices by vendor:product ID (e.g., '8086:a1c1').",
     )
     action_group.add_argument(
-        "--attach",
+        "--attach-pci",
+        action="store_true",
+        help="Attach all devices recorded in the state file.",
+    )
+    action_group.add_argument(
+        "--detach-usb",
+        metavar="VENDOR:PRODUCT",
+        nargs="+",
+        help="Detach one or more devices by vendor:product ID (e.g., '04f2:b729').",
+    )
+    action_group.add_argument(
+        "--attach-usb",
         action="store_true",
         help="Attach all devices recorded in the state file.",
     )

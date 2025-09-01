@@ -84,7 +84,7 @@ let
       pkgs.systemd
       pkgs.coreutils
       pkgs.grpcurl
-      pkgs.pci-hotplug
+      pkgs.hotplug
       pkgs.wait-for-unit
     ];
     text = ''
@@ -153,11 +153,11 @@ let
               '') pciDevices}
 
               echo "Suspending PCI devices for $vm_name..."
-              pci-hotplug --detach "''${pci_devices[@]}" --data-path "$state_path" --socket-path "$socket_path"
+              hotplug --detach-pci "''${pci_devices[@]}" --data-path "$state_path" --socket-path "$socket_path"
               ;;
             resume)
               echo "Resuming PCI devices for $vm_name..."
-              if ! pci-hotplug --attach --data-path "$state_path" --socket-path "$socket_path"; then
+              if ! hotplug --attach-pci --data-path "$state_path" --socket-path "$socket_path"; then
                 echo "Failed to attach PCI devices for $vm_name. Please check the logs."
                 # Recovery from failed attach; restart the VM
                 echo "Fallback: restarting $vm_name..."
