@@ -19,5 +19,12 @@ in
     # processes and the UID/groups that should be enabled by default
     # if not already covered by systemd
     # ghaf.users.admin.enable = true;
+    ghaf = {
+      # TODO we should move the nix-setup out of the development namespace
+      development = {
+        nix-setup.enable = true;
+      };
+
+    };
   };
 }
