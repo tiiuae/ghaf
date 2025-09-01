@@ -75,14 +75,14 @@ let
         "-device"
         "qemu-xhci"
         "-device"
-        "usb-host,vendorid=0x${dev.vendorId},productid=0x${dev.productId}"
+        "usb-host,vendorid=0x${dev.vendorId},productid=0x${dev.productId},id=${dev.name}"
       ]
     else if ((dev.hostbus != null) && (dev.hostport != null)) then
       [
         "-device"
         "qemu-xhci"
         "-device"
-        "usb-host,hostbus=${dev.hostbus},hostport=${dev.hostport}"
+        "usb-host,hostbus=${dev.hostbus},hostport=${dev.hostport},id=${dev.name}"
       ]
     else
       builtins.throw ''
