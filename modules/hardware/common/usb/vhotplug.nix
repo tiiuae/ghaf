@@ -119,6 +119,13 @@ let
                   productId = "005f";
                   description = "Lenovo X1 Integrated Camera";
                 }
+                {
+                  # Ignore System76 darp11-b camera since it is attached to the business-vm
+                  # Finland SKU
+                  vendorId = "04f2";
+                  productId = "b729";
+                  description = "System76 darp11-b Integrated Camera";
+                }
               ];
             }
           ];
