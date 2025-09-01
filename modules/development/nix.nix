@@ -44,6 +44,7 @@ in
     };
 
     # Set the path and registry so that e.g. nix-shell and repl work
+    # TODO this should likely be config.nixpkgs, which has the final overlays
     nixPath = lib.mkIf (cfg.enable && cfg.nixpkgs != null) [ "nixpkgs=${cfg.nixpkgs}" ];
 
     registry = lib.mkIf (cfg.enable && cfg.nixpkgs != null) {
