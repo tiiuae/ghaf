@@ -11,6 +11,7 @@
     flash-script = final.callPackage ./pkgs-by-name/flash-script/package.nix { };
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
+    ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
     ghaf-screenshot = final.callPackage ./pkgs-by-name/ghaf-screenshot/package.nix { };
@@ -19,7 +20,7 @@
       final.callPackage ./pkgs-by-name/globalprotect-openconnect/package.nix
         { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
-    ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
+    hotplug = final.python3Packages.callPackage ./python-packages/hotplug/package.nix { };
     kernel-hardening-checker =
       final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
         { };
@@ -27,7 +28,6 @@
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
-    pci-hotplug = final.python3Packages.callPackage ./python-packages/pci-hotplug/package.nix { };
     qemuqmp = final.python3Packages.callPackage ./python-packages/qemuqmp/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     vhotplug = final.python3Packages.callPackage ./python-packages/vhotplug/package.nix { };
