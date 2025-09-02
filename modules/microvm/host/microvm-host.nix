@@ -89,6 +89,10 @@ in
           withHardenedConfigs = true;
         };
         givc.host.enable = true;
+        graphics.boot = {
+          enable = true; # Enable graphical boot on host
+          waitForService = lib.optionalString config.ghaf.virtualization.microvm.guivm.enable "system-ui.target";
+        };
         services.power-manager = {
           host.enable = true;
           gui.enable = config.ghaf.profiles.graphics.enable;

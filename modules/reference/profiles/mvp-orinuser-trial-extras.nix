@@ -40,12 +40,9 @@ in
         };
       };
 
-      # Enable below option for session lock feature
       graphics = {
-        boot.enable = lib.mkForce true;
-        labwc = {
-          autologinUser = lib.mkForce null;
-        };
+        # Plymouth doesn't work as it should on Orins
+        boot.enable = lib.mkForce false;
       };
 
       # Enable audit

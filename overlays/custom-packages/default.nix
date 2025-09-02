@@ -16,6 +16,7 @@
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
+  cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
   xdg-desktop-portal-cosmic = import ./cosmic/xdg-desktop-portal-cosmic { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
 })
