@@ -52,6 +52,11 @@ in
         };
       };
 
+      graphics = {
+        # Plymouth doesn't work as it should on Orins
+        boot.enable = lib.mkForce false;
+      };
+
       # Commented out sections below are used for
       #  network overriding tests. Just enable
       #  these lines to change vm and host ip addresses
