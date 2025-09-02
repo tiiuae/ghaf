@@ -28,7 +28,6 @@
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
-    qemuqmp = final.python3Packages.callPackage ./python-packages/qemuqmp/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     vhotplug = final.python3Packages.callPackage ./python-packages/vhotplug/package.nix { };
     vinotify = final.python3Packages.callPackage ./python-packages/vinotify/package.nix { };
