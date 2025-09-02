@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   buildPythonApplication,
-  qemuqmp,
+  qemu-qmp,
   systemd,
   setuptools,
 }:
@@ -13,7 +13,7 @@ buildPythonApplication {
   src = ./hotplug;
 
   propagatedBuildInputs = [
-    qemuqmp
+    qemu-qmp
     systemd
   ];
   doCheck = false;

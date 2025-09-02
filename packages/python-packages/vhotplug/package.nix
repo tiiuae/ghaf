@@ -3,7 +3,7 @@
 {
   buildPythonApplication,
   fetchFromGitHub,
-  qemuqmp,
+  qemu-qmp,
   pyudev,
   psutil,
   inotify-simple,
@@ -18,7 +18,7 @@ buildPythonApplication {
     pyudev
     psutil
     inotify-simple
-    qemuqmp
+    qemu-qmp
   ];
 
   doCheck = false;
