@@ -175,6 +175,51 @@ let
       }
     ]))
 
+    # Experimental target with crosvm and device auto-detection
+    (laptop-configuration "reference-intel-crosvm" "debug" (withCommonModules [
+      self.nixosModules.hardware-intel-generic
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          virtualization.microvm.vmm = "crosvm";
+          hardware.devices.hotplug = false;
+          # This target auto-detects hardware (evdev and pci devices)
+          microvm.vhwdetect.enable = true;
+          microvm.vhotplug.enableEvdevPassthrough = false;
+          # These services are disabled because they depend on hardware definitions (network interface name):
+          reference.services.dendrite = lib.mkForce false;
+          reference.services.google-chromecast = lib.mkForce false;
+          # The GPU doesn't work in the GUIVM with the latest kernel (6.16) when using crosvm
+          virtualization.microvm.guivm.extraModules = [
+            (
+              { pkgs, ... }:
+              {
+                boot.kernelPackages = lib.mkForce pkgs.linuxPackages_6_12;
+              }
+            )
+          ];
+        };
+      }
+    ]))
+    # Experimental target with QEMU and device auto-detection
+    (laptop-configuration "reference-intel-qemu" "debug" (withCommonModules [
+      self.nixosModules.hardware-intel-generic
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          hardware.devices.hotplug = false;
+          # This target auto-detects hardware (evdev and pci devices)
+          microvm.vhwdetect.enable = true;
+          microvm.vhotplug.enableEvdevPassthrough = false;
+          # These services are disabled because they depend on hardware definitions (network interface name):
+          reference.services.dendrite = lib.mkForce false;
+          reference.services.google-chromecast = lib.mkForce false;
+        };
+      }
+    ]))
+
     # Laptop Release configurations
     (laptop-configuration "lenovo-x1-carbon-gen10" "release" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen10

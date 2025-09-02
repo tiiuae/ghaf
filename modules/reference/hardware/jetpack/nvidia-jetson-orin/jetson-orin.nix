@@ -18,10 +18,6 @@ let
     ;
 in
 {
-  imports = [
-    #TODO: fix me
-    ../../../../hardware/common/usb/vhotplug.nix
-  ];
   options.ghaf.hardware.nvidia.orin = {
     # Enable the Orin boards
     enable = mkEnableOption "Orin hardware";
@@ -85,16 +81,17 @@ in
       ];
     };
 
-    ghaf.hardware.usb.vhotplug = {
+    ghaf.microvm.vhotplug = {
       enable = true;
       rules = [
         {
           name = "NetVM";
-          qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
+          type = "qemu";
+          socket = "/var/lib/microvms/net-vm/net-vm.sock";
           usbPassthrough = [
             {
-              class = 2;
-              subclass = 6;
+              interfaceClass = 2;
+              interfaceSubclass = 6;
               description = "Communications - Ethernet Networking";
             }
             {
