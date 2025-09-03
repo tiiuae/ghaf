@@ -27,13 +27,14 @@ in
         description = "General Messaging Application";
         packages = [ pkgs.element-desktop ];
         icon = "element-desktop";
-        command = "element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        command = "element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland";
         extraModules = [
           {
             imports = [
               ../programs/element-desktop.nix
             ];
             ghaf.reference.programs.element-desktop.enable = true;
+            ghaf.xdghandlers.elementDesktop = true;
           }
         ];
       }
