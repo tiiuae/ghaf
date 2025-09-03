@@ -3,6 +3,6 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-(final: prev: {
-  v4l-utils = import ./v4l-utils { inherit final prev; };
+(_final: _prev: {
+  #   v4l-utils = import ./v4l-utils { inherit final prev; };
 })
