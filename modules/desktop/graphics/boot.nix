@@ -8,6 +8,7 @@
 }:
 let
   inherit (lib)
+    mkDefault
     mkIf
     mkOption
     optionals
@@ -106,7 +107,7 @@ in
       ]
       # Disables loading the UEFI logo from firmware to /sys/firmware/acpi/bgrt
       ++ optionals cfg.firmwareLogo.enable [ "bgrt_disable=1" ];
-      consoleLogLevel = 0;
+      consoleLogLevel = mkDefault 0;
       initrd.verbose = false;
     };
     systemd.services.plymouth-quit = {
