@@ -27,7 +27,7 @@ in
         description = "General Messaging Application";
         packages = [ pkgs.element-desktop ];
         icon = "element-desktop";
-        command = "element-desktop --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        command = "element-desktop --enable-logging --password-store=\"basic\" --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland";
         extraModules = [
           {
             imports = [
