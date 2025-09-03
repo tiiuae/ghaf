@@ -68,8 +68,12 @@
               imports = [ ../programs/google-chrome.nix ];
               ghaf = {
                 reference.programs.google-chrome.enable = true;
-                xdgitems.enable = true;
                 security.apparmor.enable = true;
+                xdgitems = {
+                  enable = true;
+                  elementDesktop = true;
+                };
+                xdghandlers.url = true;
                 firewall = {
                   allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
                   allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
@@ -92,7 +96,7 @@
             description = "MitmWebUI";
             packages = [ pkgs.google-chrome ];
             icon = "nmap";
-            command = "${lib.getExe chromeWrapper} --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
+            command = "${lib.getExe chromeWrapper} ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
             extraModules = [
               {
 
