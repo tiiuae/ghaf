@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/qemu-bump-rc4";
+    nixpkgs.url = "github:tiiuae/nixpkgs/qemu-bump-10-1";
     #nixpkgs.url = "flake:mylocalnixpkgs";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
@@ -104,8 +104,7 @@
     };
 
     nixos-hardware = {
-      #TODO: wait for https://github.com/NixOS/nixos-hardware/pull/1599 to merge
-      url = "github:NixOS/nixos-hardware/32775080b943ea9ef0f3d3797306026a83ca6e81";
+      url = "github:NixOS/nixos-hardware";
     };
 
     jetpack-nixos = {
