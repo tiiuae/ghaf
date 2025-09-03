@@ -44,7 +44,7 @@ let
                       waypipe.enable = withGraphics; # disable waypipe when guivm is not used
                     };
                     gala = {
-                      enable = true;
+                      enable = false;
                       waypipe.enable = withGraphics;
                     };
                   };
