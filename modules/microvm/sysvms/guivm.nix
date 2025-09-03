@@ -200,6 +200,8 @@ let
                 pkgs.wlr-randr
               ]
               ++ [ pkgs.ctrl-panel ]
+              # For GIVC debugging/testing
+              ++ lib.optional config.ghaf.profiles.debug.enable pkgs.givc-cli
               # Packages for checking hardware acceleration
               ++ lib.optionals config.ghaf.profiles.debug.enable [
                 pkgs.glxinfo
