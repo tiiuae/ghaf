@@ -28,7 +28,7 @@ in
         enable = true;
         vms = {
           chrome.enable = true;
-          gala.enable = true;
+          gala.enable = false;
           zathura.enable = true;
           comms.enable = true;
           business.enable = true;
