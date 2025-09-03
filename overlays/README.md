@@ -39,10 +39,8 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 
 [gtklock: Multiple errors on wrong password](https://github.com/jovanlanik/gtklock/pull/119)
 
-[v4l-utils cross compile](https://github.com/NixOS/nixpkgs/pull/429900)
-
 ## carried in tiiuae/nixpkgs/...
 
 The following are in staging at the moment, so carry for some time until they reach unstable.
 
-[qemu 10.1.0-rc1](https://github.com/tiiuae/nixpkgs/tree/fix-qemu)
+[qemu 10.1.0](https://github.com/tiiuae/nixpkgs/tree/qemu-bump-10-1)
