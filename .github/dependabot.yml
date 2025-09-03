@@ -9,3 +9,8 @@ updates:
     directory: /packages/pkgs-by-name/vinotify/vinotify
     schedule:
       interval: daily
+
+  - package-ecosystem: npm
+    directory: /docs
+    schedule:
+      interval: daily
