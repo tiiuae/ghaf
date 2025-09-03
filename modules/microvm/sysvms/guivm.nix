@@ -215,6 +215,8 @@ let
                 pkgs.wlr-randr
               ]
               ++ [ pkgs.ctrl-panel ]
+              # For GIVC debugging/testing
+              ++ lib.optional config.ghaf.profiles.debug.enable pkgs.givc-cli
               # Packages for checking hardware acceleration
               ++ lib.optionals config.ghaf.profiles.debug.enable [
                 pkgs.glxinfo
@@ -222,6 +224,18 @@ let
                 pkgs.glib
               ]
               ++ [ pkgs.vhotplug ];
+            sessionVariables = lib.optionalAttrs config.ghaf.profiles.debug.enable (
+              {
+                GIVC_NAME = "admin-vm";
+                GIVC_ADDR = config.ghaf.networking.hosts."admin-vm".ipv4;
+                GIVC_PORT = "9001";
+              }
+              // lib.optionalAttrs config.ghaf.givc.enableTls {
+                GIVC_CA_CERT = "/run/givc/ca-cert.pem";
+                GIVC_CERT = "/run/givc/cert.pem";
+                GIVC_KEY = "/run/givc/key.pem";
+              }
+            );
           };
 
           time.timeZone = config.time.timeZone;
