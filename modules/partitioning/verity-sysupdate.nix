@@ -74,9 +74,12 @@ in
       };
     };
 
-    systemd.additionalUpstreamSystemUnits = [
-      "systemd-bless-boot.service"
-      "boot-complete.target"
-    ];
+    #  https://github.com/NixOS/nixpkgs/pull/436893
+    #  https://github.com/NixOS/nixpkgs/pull/437869
+    #  TODO: remove the below these changes
+    # systemd.additionalUpstreamSystemUnits = [
+    #   "systemd-bless-boot.service"
+    #   "boot-complete.target"
+    # ];
   };
 }
