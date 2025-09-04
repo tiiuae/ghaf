@@ -61,7 +61,7 @@
 1. **ALWAYS verify build completed successfully** before proceeding
 2. **Test VM boot and basic functionality** - check desktop loads, applications start
 3. **Test hardware functionality** if building for specific device
-4. **Run format check**: `nix fmt -- --fail-on-change`
+4. **Run treefmt format check**: `nix fmt -- --fail-on-change`
 5. **Run license check**: `nix develop --command reuse lint`
 
 ### Documentation Validation
@@ -73,11 +73,22 @@
 
 ## Development Workflow
 
-### Code Quality Checks
-- **ALWAYS run before committing**: `nix fmt -- --fail-on-change`
+### Code Formatting and Quality Checks
+
+**CRITICAL: All commits must be properly formatted using treefmt before making a PR**
+
+- **ALWAYS format code before committing**: `nix fmt` or `nix fmt -- --fail-on-change`
 - **ALWAYS run license check**: `nix develop --command reuse lint`
 - Check flake validity: `nix flake show --all-systems`
 - **These checks must pass** or CI will fail
+
+The project uses treefmt for consistent code formatting across multiple languages:
+- Nix files: nixfmt-rfc-style (RFC 166 standard)
+- Python files: ruff formatter and linter  
+- Shell scripts: shellcheck linting
+- JavaScript/TypeScript: prettier formatting
+
+Use `nix fmt -- --fail-on-change` to check if formatting is needed without making changes.
 
 ### File Structure and Conventions
 - Nix modules: `modules/` (common, hardware, desktop, etc.)
@@ -169,7 +180,7 @@
 
 Before submitting any changes:
 - [ ] Build succeeds with appropriate timeout (60+ minutes for major targets)
-- [ ] `nix fmt -- --fail-on-change` passes
+- [ ] Code properly formatted with treefmt: `nix fmt -- --fail-on-change` passes
 - [ ] `nix develop --command reuse lint` passes  
 - [ ] VM boots and basic functionality works (if applicable)
 - [ ] Documentation updated (if adding features)
