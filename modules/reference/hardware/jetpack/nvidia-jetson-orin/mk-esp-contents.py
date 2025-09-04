@@ -136,13 +136,17 @@ def write_loader_entry(
 def read_bootspec_file(toplevel: str) -> BootSpec:
     bootfile = os.path.join(toplevel, "boot.json")
     ensure_file(bootfile)
-    with open(bootfile) as boot_json:
-        content = json.load(boot_json)
-        bootspec: BootSpec | None = content.get("org.nixos.bootspec.v1")
-        if bootspec is None:
-            eprint(f"""Can't find "org.nixos.bootspec.v1" in {bootfile}""")
-            sys.exit(1)
-        return bootspec
+    try:
+        with open(bootfile) as boot_json:
+            content = json.load(boot_json)
+            bootspec: BootSpec | None = content.get("org.nixos.bootspec.v1")
+            if bootspec is None:
+                eprint("Can't find bootspec v1 configuration in boot.json")
+                sys.exit(1)
+            return bootspec
+    except (json.JSONDecodeError, IOError) as e:
+        eprint(f"Error reading boot configuration: {type(e).__name__}")
+        sys.exit(1)
 
 
 def create_esp_contents(
@@ -175,15 +179,28 @@ def create_esp_contents(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Generate contents of ESP partition")
     parser.add_argument(
-        "--toplevel", help="NixOS toplevel directory, contains boot.json"
+        "--toplevel", required=True, help="NixOS toplevel directory, contains boot.json"
     )
-    parser.add_argument("--output", help="Output directory")
+    parser.add_argument("--output", required=True, help="Output directory")
     parser.add_argument("--device-tree", default=None, help="Device tree file")
     parser.add_argument("--random-seed", default=None, help="Random seed file")
     parser.add_argument(
         "--machine-id", default=None, help="Machine id to add to loader's entry"
     )
     args = parser.parse_args()
+    
+    # Input validation
+    if not os.path.isdir(args.toplevel):
+        eprint("Error: toplevel directory does not exist")
+        sys.exit(1)
+    
+    # Validate paths don't contain path traversal attempts
+    for path_arg in [args.toplevel, args.output, args.device_tree, args.random_seed]:
+        if path_arg and (".." in path_arg or path_arg.startswith("/")):
+            if not os.path.abspath(path_arg).startswith(os.getcwd()):
+                eprint("Error: invalid path provided")
+                sys.exit(1)
+    
     create_esp_contents(
         args.toplevel, args.output, args.machine_id, args.random_seed, args.device_tree
     )

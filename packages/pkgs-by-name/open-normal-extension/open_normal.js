@@ -30,14 +30,34 @@ chrome.action.onClicked.addListener((tab) => {
 });
 
 function sendNativeMessage(linkUrl) {
+  // Input validation: ensure URL is properly formatted and not malicious
+  if (!linkUrl || typeof linkUrl !== 'string') {
+    console.error("Invalid URL provided");
+    return;
+  }
+  
+  // Basic URL validation - allow http, https, and file protocols
+  const urlPattern = /^(https?|file):\/\/.+/i;
+  if (!urlPattern.test(linkUrl)) {
+    console.error("URL must use http, https, or file protocol");
+    return;
+  }
+  
+  // Prevent javascript: and data: URLs that could be used for XSS
+  const dangerousProtocols = /^(javascript|data|vbscript):/i;
+  if (dangerousProtocols.test(linkUrl)) {
+    console.error("Dangerous URL protocol detected");
+    return;
+  }
+  
   chrome.runtime.sendNativeMessage(
     "fi.ssrc.open_normal",
     { URL: linkUrl },
     (response) => {
       if (chrome.runtime.lastError) {
-        console.error(chrome.runtime.lastError);
+        console.error("Native messaging error:", chrome.runtime.lastError.message);
       } else {
-        console.log("open_normal:", response);
+        console.log("open_normal response:", response);
       }
     },
   );
