@@ -205,7 +205,19 @@
 
 
 
-<table><thead><tr><th>Method Name</th><th>Request Type</th><th>Response Type</th><th>Description</th></tr></thead><tbody><tr><td>RegisterService</td><td><a href="#admin.RegistryRequest">RegistryRequest</a></td><td><a href="#admin.RegistryRequest">RegistryResponse</a></td><td>Register a remote agent or service</td></tr><tr><td>StartApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">StartResponse</a></td><td>Start a remote application</td></tr><tr><td>StartVM</td><td><a href="#admin.StartVMRequest">StartVMRequest</a></td><td><a href="#admin.StartVMRequest">StartResponse</a></td><td>Start a VM</td></tr><tr><td>StartService</td><td><a href="#admin.StartServiceRequest">StartServiceRequest</a></td><td><a href="#admin.StartServiceRequest">StartResponse</a></td><td>Start a remote service</td></tr><tr><td>PauseApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">ApplicationResponse</a></td><td>Pause (freeze) a remote application</td></tr><tr><td>ResumeApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">ApplicationResponse</a></td><td>Resume (un-freeze) a remote application</td></tr><tr><td>StopApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">ApplicationResponse</a></td><td>Stop a remote application</td></tr><tr><td>SetLocale</td><td><a href="#admin.LocaleRequest">LocaleRequest</a></td><td><a href="#admin.LocaleRequest">Empty</a></td><td>Set locale (broadcasted across system)</td></tr><tr><td>SetTimezone</td><td><a href="#admin.TimezoneRequest">TimezoneRequest</a></td><td><a href="#admin.TimezoneRequest">Empty</a></td><td>Set timezone (broadcasted across system)</td></tr><tr><td>Poweroff</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System poweroff command</td></tr><tr><td>Reboot</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System reboot command</td></tr><tr><td>Suspend</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System suspend command</td></tr><tr><td>Wakeup</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System wakeup command</td></tr><tr><td>GetUnitStatus</td><td><a href="#admin.UnitStatusRequest">UnitStatusRequest</a></td><td><a href="#admin.UnitStatusRequest">.systemd.UnitStatus</a></td><td>Get systemd unit status</td></tr><tr><td>GetStats</td><td><a href="#admin.StatsRequest">StatsRequest</a></td><td><a href="#admin.StatsRequest">.stats.StatsResponse</a></td><td>Get stats information</td></tr><tr><td>QueryList</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">QueryListResponse</a></td><td>Get list of monitored units</td></tr><tr><td>Watch</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">WatchItem</a></td><td>Get stream of monitored units</td></tr></tbody></table>
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Method Name</th><th>Request Type</th><th>Response Type</th><th>Description</th></tr></thead><tbody><tr><td>RegisterService</td><td><a href="#admin.RegistryRequest">RegistryRequest</a></td><td><a href="#admin.RegistryRequest">RegistryResponse</a></td><td>Register a remote agent or service</td></tr><tr><td>StartApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">StartResponse</a></td><td>Start a remote application</td></tr><tr><td>StartVM</td><td><a href="#admin.StartVMRequest">StartVMRequest</a></td><td><a href="#admin.StartVMRequest">StartResponse</a></td><td>Start a VM</td></tr><tr><td>StartService</td><td><a href="#admin.StartServiceRequest">StartServiceRequest</a></td><td><a href="#admin.StartServiceRequest">StartResponse</a></td><td>Start a remote service</td></tr><tr><td>PauseApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">ApplicationResponse</a></td><td>Pause (freeze) a remote application</td></tr><tr><td>ResumeApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">ApplicationResponse</a></td><td>Resume (un-freeze) a remote application</td></tr><tr><td>StopApplication</td><td><a href="#admin.ApplicationRequest">ApplicationRequest</a></td><td><a href="#admin.ApplicationRequest">ApplicationResponse</a></td><td>Stop a remote application</td></tr><tr><td>SetLocale</td><td><a href="#admin.LocaleRequest">LocaleRequest</a></td><td><a href="#admin.LocaleRequest">Empty</a></td><td>Set locale (broadcasted across system)</td></tr><tr><td>SetTimezone</td><td><a href="#admin.TimezoneRequest">TimezoneRequest</a></td><td><a href="#admin.TimezoneRequest">Empty</a></td><td>Set timezone (broadcasted across system)</td></tr><tr><td>Poweroff</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System poweroff command</td></tr><tr><td>Reboot</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System reboot command</td></tr><tr><td>Suspend</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System suspend command</td></tr><tr><td>Wakeup</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">Empty</a></td><td>System wakeup command</td></tr><tr><td>GetUnitStatus</td><td><a href="#admin.UnitStatusRequest">UnitStatusRequest</a></td><td><a href="#admin.UnitStatusRequest">.systemd.UnitStatus</a></td><td>Get systemd unit status</td></tr><tr><td>GetStats</td><td><a href="#admin.StatsRequest">StatsRequest</a></td><td><a href="#admin.StatsRequest">.stats.StatsResponse</a></td><td>Get stats information</td></tr><tr><td>QueryList</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">QueryListResponse</a></td><td>Get list of monitored units</td></tr><tr><td>Watch</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">WatchItem</a></td><td>Get stream of monitored units</td></tr><tr><td>ListGenerations</td><td><a href="#admin.Empty">Empty</a></td><td><a href="#admin.Empty">ListGenerationsResponse</a></td><td>OTA</td></tr><tr><td>SetGeneration</td><td><a href="#admin.SetGenerationRequest">SetGenerationRequest</a></td><td><a href="#admin.SetGenerationRequest">SetGenerationResponse</a></td><td></td></tr></tbody></table>
  <!-- end services -->
 <div class="sl-heading-wrapper level-h3"><h3 id="messages">Messages</h3><a class="sl-anchor-link" href="#messages"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Messages”</span></a></div>
 <a name="admin.ApplicationRequest">
@@ -266,9 +278,129 @@
 
 
 <table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>CmdStatus</td><td><a href="#string">string</a></td><td></td><td>Status of the RPC command</td></tr><tr><td>AppStatus</td><td><a href="#string">string</a></td><td></td><td>Status of the application</td></tr></tbody></table>
+<a name="admin.Cachix">
+</a><div class="sl-heading-wrapper level-h4"><a name="admin.Cachix"><h4 id="cachix">Cachix</h4></a><a class="sl-anchor-link" href="#cachix"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Cachix”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Pin</td><td><a href="#string">string</a></td><td></td><td></td></tr><tr><td>CachixHost</td><td><a href="#string">string</a></td><td>optional</td><td>API url for cachix</td></tr><tr><td>Cache</td><td><a href="#string">string</a></td><td></td><td></td></tr><tr><td>Token</td><td><a href="#string">string</a></td><td>optional</td><td></td></tr></tbody></table>
 <a name="admin.Empty">
 </a><div class="sl-heading-wrapper level-h4"><a name="admin.Empty"><h4 id="empty">Empty</h4></a><a class="sl-anchor-link" href="#empty"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Empty”</span></a></div>
 <p>Empty message</p>
+<a name="admin.Generation">
+</a><div class="sl-heading-wrapper level-h4"><a name="admin.Generation"><h4 id="generation">Generation</h4></a><a class="sl-anchor-link" href="#generation"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “Generation”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Generation</td><td><a href="#int32">int32</a></td><td></td><td></td></tr><tr><td>Date</td><td><a href="#string">string</a></td><td></td><td></td></tr><tr><td>NixosVersion</td><td><a href="#string">string</a></td><td></td><td></td></tr><tr><td>KernelVersion</td><td><a href="#string">string</a></td><td></td><td></td></tr><tr><td>ConfigurationRevision</td><td><a href="#string">string</a></td><td></td><td></td></tr><tr><td>Specialisations</td><td><a href="#string">string</a></td><td>repeated</td><td></td></tr><tr><td>Current</td><td><a href="#bool">bool</a></td><td></td><td></td></tr><tr><td>StorePath</td><td><a href="#string">string</a></td><td></td><td></td></tr></tbody></table>
+<a name="admin.ListGenerationsResponse">
+</a><div class="sl-heading-wrapper level-h4"><a name="admin.ListGenerationsResponse"><h4 id="listgenerationsresponse">ListGenerationsResponse</h4></a><a class="sl-anchor-link" href="#listgenerationsresponse"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “ListGenerationsResponse”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>List</td><td><a href="#admin.Generation">Generation</a></td><td>repeated</td><td></td></tr></tbody></table>
 <a name="admin.LocaleRequest">
 </a><div class="sl-heading-wrapper level-h4"><a name="admin.LocaleRequest"><h4 id="localerequest">LocaleRequest</h4></a><a class="sl-anchor-link" href="#localerequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “LocaleRequest”</span></a></div>
 
@@ -435,6 +567,58 @@
 
 
 <table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Error</td><td><a href="#string">string</a></td><td>optional</td><td>Error message</td></tr></tbody></table>
+<a name="admin.SetGenerationRequest">
+</a><div class="sl-heading-wrapper level-h4"><a name="admin.SetGenerationRequest"><h4 id="setgenerationrequest">SetGenerationRequest</h4></a><a class="sl-anchor-link" href="#setgenerationrequest"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “SetGenerationRequest”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Cachix</td><td><a href="#admin.Cachix">Cachix</a></td><td></td><td></td></tr></tbody></table>
+<a name="admin.SetGenerationResponse">
+</a><div class="sl-heading-wrapper level-h4"><a name="admin.SetGenerationResponse"><h4 id="setgenerationresponse">SetGenerationResponse</h4></a><a class="sl-anchor-link" href="#setgenerationresponse"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “SetGenerationResponse”</span></a></div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<table><thead><tr><th>Field</th><th>Type</th><th>Label</th><th>Description</th></tr></thead><tbody><tr><td>Finished</td><td><a href="#bool">bool</a></td><td></td><td></td></tr><tr><td>Output</td><td><a href="#string">string</a></td><td>optional</td><td></td></tr><tr><td>Error</td><td><a href="#string">string</a></td><td>optional</td><td></td></tr></tbody></table>
 <a name="admin.StartResponse">
 </a><div class="sl-heading-wrapper level-h4"><a name="admin.StartResponse"><h4 id="startresponse">StartResponse</h4></a><a class="sl-anchor-link" href="#startresponse"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “StartResponse”</span></a></div>
 
