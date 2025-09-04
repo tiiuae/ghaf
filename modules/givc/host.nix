@@ -36,6 +36,7 @@ in
         "poweroff.target"
         "suspend.target"
       ];
+      adminVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.adminHosts;
       systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
       appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
       tls.enable = config.ghaf.givc.enableTls;
