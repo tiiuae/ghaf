@@ -28,7 +28,7 @@ while getopts "d:i:" opt; do
 done
 
 # Input validation for device parameter
-if [[ ! "$DEVICE" =~ ^/dev/[a-zA-Z0-9_-]+[0-9]*$ ]]; then
+if [[ ! "$DEVICE" =~ ^/dev/(sd[a-z][0-9]*|nvme[0-9]+n[0-9]+p[0-9]+|mmcblk[0-9]+p[0-9]+|vd[a-z][0-9]*|loop[0-9]+)$ ]]; then
     echo "Invalid device path format: ${DEVICE}"
     exit 1
 fi
