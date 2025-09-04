@@ -8,18 +8,22 @@ SPDX-License-Identifier: CC-BY-SA-4.0
 ## How to Test the Implementation
 
 ### 1. Automated Testing
+
 Run the included test suite:
+
 ```bash
 ./scripts/test-update-npm-deps-hash.sh
 ```
 
 This validates:
+
 - Hash extraction from Nix error messages
 - File manipulation operations
 - Workflow YAML syntax
 - Script permissions and structure
 
 ### 2. Manual Testing (with Nix)
+
 If you have Nix installed, you can test the actual update process:
 
 ```bash
@@ -40,6 +44,7 @@ rm docs/default.nix.backup
 ```
 
 ### 3. Integration Testing with Dependabot
+
 To test the full workflow integration:
 
 1. Create a test branch
@@ -49,14 +54,18 @@ To test the full workflow integration:
 5. The workflow should trigger and automatically update the npmDepsHash
 
 ### 4. Workflow Trigger Validation
+
 The workflow will only run when:
+
 - Event type is `pull_request` with types `opened` or `synchronize`
 - Files changed include `docs/package.json` or `docs/package-lock.json`
 - PR author is `dependabot[bot]`
 - PR is from the same repository (not a fork)
 
 ### Expected Behavior
+
 When dependabot updates npm dependencies:
+
 1. A new PR is created with updated package.json/package-lock.json
 2. The workflow detects the PR and triggers
 3. The script runs a Nix build which fails due to hash mismatch
@@ -66,12 +75,14 @@ When dependabot updates npm dependencies:
 7. Changes are committed and pushed to the same PR
 
 ### Troubleshooting
+
 - Check GitHub Actions logs for detailed output
 - Ensure Nix is properly installed in the CI environment
 - Verify permissions are correctly set for the workflow
 - Check that the npmDepsHash pattern in default.nix matches the regex
 
 ### Security Considerations
+
 - The workflow only runs on dependabot PRs from the same repository
 - No external code execution - only Nix builds and hash extraction
 - Uses standard GitHub Actions security practices

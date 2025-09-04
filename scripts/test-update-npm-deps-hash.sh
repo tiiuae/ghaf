@@ -12,7 +12,8 @@ echo "Testing update-npm-deps-hash.sh functionality..."
 extract_hash_from_error() {
     local error_output="$1"
     # Look for the "got:" line and extract the hash from it
-    local got_hash=$(echo "$error_output" | grep -A1 "got:" | grep -oE 'sha256-[A-Za-z0-9+/]+=*' | head -1)
+    local got_hash
+    got_hash=$(echo "$error_output" | grep -A1 "got:" | grep -oE 'sha256-[A-Za-z0-9+/]+=*' | head -1)
     
     if [[ -n "$got_hash" ]]; then
         echo "$got_hash"
@@ -20,7 +21,8 @@ extract_hash_from_error() {
     fi
     
     # Alternative: look for "actual:" or similar patterns
-    local actual_hash=$(echo "$error_output" | grep -i "actual:" | grep -oE 'sha256-[A-Za-z0-9+/]+=*' | head -1)
+    local actual_hash
+    actual_hash=$(echo "$error_output" | grep -i "actual:" | grep -oE 'sha256-[A-Za-z0-9+/]+=*' | head -1)
     
     if [[ -n "$actual_hash" ]]; then
         echo "$actual_hash"
@@ -28,7 +30,8 @@ extract_hash_from_error() {
     fi
     
     # Fallback: look for any hash that appears after "expected" or "got"
-    local fallback_hash=$(echo "$error_output" | grep -oE 'sha256-[A-Za-z0-9+/]+=*' | tail -1)
+    local fallback_hash
+    fallback_hash=$(echo "$error_output" | grep -oE 'sha256-[A-Za-z0-9+/]+=*' | tail -1)
     
     if [[ -n "$fallback_hash" ]]; then
         echo "$fallback_hash"

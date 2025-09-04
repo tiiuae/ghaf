@@ -33,6 +33,7 @@ Run the test script to validate functionality:
 ```
 
 This tests:
+
 - Hash extraction from various Nix error message formats
 - File structure validation
 - Sed replacement functionality

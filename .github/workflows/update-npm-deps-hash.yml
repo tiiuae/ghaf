@@ -8,8 +8,8 @@ on:
   pull_request:
     types: [opened, synchronize]
     paths:
-      - 'docs/package.json'
-      - 'docs/package-lock.json'
+      - "docs/package.json"
+      - "docs/package-lock.json"
 
 permissions:
   contents: write
@@ -41,8 +41,6 @@ jobs:
 
       - name: Validate environment
         run: |
-          echo "PR author: ${{ github.event.pull_request.user.login }}"
-          echo "Head repo: ${{ github.event.pull_request.head.repo.full_name }}"
           echo "Base repo: ${{ github.repository }}"
           echo "Files changed in this PR:"
           git diff --name-only HEAD~1 HEAD || echo "Could not determine changed files"
