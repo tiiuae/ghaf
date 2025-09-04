@@ -29,6 +29,7 @@
               pkgs.nix-tree
               pkgs.nixVersions.latest
               pkgs.reuse
+              pkgs.prefetch-npm-deps
               config.treefmt.build.wrapper
               self'.legacyPackages.ghaf-build-helper
             ]
