@@ -20,7 +20,7 @@ let
     "net-vm"
     "ghaf-host"
   ]
-  ++ lib.lists.remove "net-vm" config.ghaf.common.systemHosts;
+  ++ lib.lists.remove "net-vm" (config.ghaf.common.systemHosts ++ config.ghaf.common.adminHosts);
 
   # Address bases
   macBaseAddress = "02:AD:00:00:00:";
