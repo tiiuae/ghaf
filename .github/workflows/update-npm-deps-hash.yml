@@ -1,0 +1,66 @@
+# SPDX-FileCopyrightText: 2025 TII (SSRC) and the Ghaf contributors
+#
+# SPDX-License-Identifier: Apache-2.0
+
+name: Update npmDepsHash
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    paths:
+      - 'docs/package.json'
+      - 'docs/package-lock.json'
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-npm-deps-hash:
+    # Only run on dependabot PRs
+    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit
+
+      - name: Checkout
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+
+      - name: Install nix
+        uses: cachix/install-nix-action@56a7bb7b56d9a92d4fd1bc05758de7eea4a370a8 # v31
+
+      - name: Update npmDepsHash
+        run: |
+          echo "Current working directory: $(pwd)"
+          echo "Files in docs directory:"
+          ls -la docs/
+          echo "Current npmDepsHash in docs/default.nix:"
+          grep "npmDepsHash" docs/default.nix
+          echo "Running update script..."
+          chmod +x scripts/update-npm-deps-hash.sh
+          ./scripts/update-npm-deps-hash.sh
+
+      - name: Check for changes
+        id: changes
+        run: |
+          if git diff --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit and push changes
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add docs/default.nix
+          git commit -m "Update npmDepsHash after npm dependency changes"
+          git push
