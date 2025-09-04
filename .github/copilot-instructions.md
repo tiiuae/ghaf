@@ -31,6 +31,11 @@
 | i.MX 8MP-EVK | `nix build .#packages.aarch64-linux.imx8mp-evk-release` | aarch64 | 90-180 min | 240+ min |
 | Microchip Icicle | `nix build .#packages.riscv64-linux.microchip-icicle-kit-debug` | riscv64 | 120-240 min | 300+ min |
 
+### Installer Images
+- Build Lenovo X1 installer: `nix build .#lenovo-x1-carbon-gen11-debug-installer` -- takes 90-120 minutes. NEVER CANCEL. Set timeout to 180+ minutes.
+- **Installer usage**: Boot from installer media, run `sudo ghaf-install.sh`
+- **Requirement**: Minimum 4GB storage device for installer
+
 ### Flashing and Installation
 - Flash script location: `./packages/pkgs-by-name/flash-script/flash.sh`
 - Flash to USB/SD: `sudo ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<DEVICE> -i result/<IMAGE_NAME>`
@@ -38,6 +43,12 @@
 - **ALWAYS verify device path** before flashing to avoid data loss
 
 ## Validation and Testing
+
+### Hardware Testing Scenarios
+- **NVIDIA Jetson**: Connect via USB-C and Micro-USB for serial console, flash in recovery mode
+- **i.MX 8MP**: Test SD card boot and USB media functionality  
+- **Microchip Icicle**: Verify HSS version 0.99.35-v2023.02 in eNVM before testing
+- **x86 hardware**: Test USB boot and basic hardware recognition
 
 ### VM Testing (Primary Validation Method)
 - Run VM: `nix run .#packages.x86_64-linux.vm-debug`
@@ -106,6 +117,12 @@
 - Shell environment: `shell.nix` (development dependencies)  
 - Library functions: `lib.nix` (shared utilities)
 - Licensing: `REUSE.toml` (license configuration)
+
+### Performance and Audio Testing
+- Performance benchmarks: `modules/development/scripts/sysbench_test.nix`
+- File I/O testing: `modules/development/scripts/sysbench_fileio_test.nix`
+- Icicle kit performance: `modules/development/scripts/perf_test_icicle_kit.nix`
+- Audio testing: `modules/development/audio_test/` (includes test files)
 
 ### Development Tools
 - Debug tools: `modules/development/debug-tools.nix`
