@@ -68,15 +68,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1756215545,
-        "narHash": "sha256-OPec2xwzqNM5WFgC7wOdw01zjjJxqsVlgn7X6GJnpN8=",
-        "owner": "tiiuae",
+        "lastModified": 1756818289,
+        "narHash": "sha256-RLrQ4yC4RRR7dpRZ9m/wGQJ8OQNaFRGRXmmPjHJUkB8=",
+        "owner": "slakkala",
         "repo": "ghaf-ctrl-panel",
-        "rev": "8959ca6b0023f95ffac0a7a345fb45115a3934f3",
+        "rev": "0eb7dc720d55ae6086dcbb5e1f809d64a907d692",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "slakkala",
+        "ref": "dev/admin-vm-protect",
         "repo": "ghaf-ctrl-panel",
         "type": "github"
       }
@@ -315,15 +316,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1756720430,
-        "narHash": "sha256-NQMdz5kOOU/tDJDujGQO26TGUNykKiwC0i2jn34k//M=",
-        "owner": "tiiuae",
+        "lastModified": 1756888604,
+        "narHash": "sha256-lxTQBRHn12xGzb0unP+v8sXHV2rA2EnLJiQmx57AUCc=",
+        "owner": "slakkala",
         "repo": "ghaf-givc",
-        "rev": "7a22955564248da50a213a7e386c2ef1e6f06c67",
+        "rev": "1b93bc52a0891d56a2649aa0607ea9f600de5da9",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "slakkala",
+        "ref": "dev/admin-vm-type",
         "repo": "ghaf-givc",
         "type": "github"
       }
