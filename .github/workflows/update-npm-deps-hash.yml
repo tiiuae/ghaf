@@ -71,5 +71,5 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git add docs/default.nix
-          git commit -m "Update npmDepsHash after npm dependency changes"
+          git commit -s -m "Update npmDepsHash after npm dependency changes"
           git push
