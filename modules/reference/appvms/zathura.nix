@@ -35,8 +35,10 @@
         ghaf.storagevm.enable = lib.mkForce false;
 
         # Handle PDF and image open requests
-        ghaf.xdghandlers.enable = true;
-
+        ghaf.xdghandlers = {
+          pdf = true;
+          image = true;
+        };
         # Let systemd use default ordering for audit-rules instead of early-boot
         systemd.services.audit-rules = {
           unitConfig.DefaultDependencies = lib.mkForce true;

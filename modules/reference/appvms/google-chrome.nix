@@ -35,6 +35,7 @@
             ghaf = {
               reference.programs.google-chrome.enable = true;
               xdgitems.enable = true;
+              xdghandlers.url = true;
               security.apparmor.enable = true;
               firewall = {
                 allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
