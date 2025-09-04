@@ -7,6 +7,12 @@ set -euo pipefail
 
 echo "Starting npmDepsHash update process..."
 
+# Validate we're running in the right context
+if [[ "${GITHUB_ACTIONS:-}" == "true" ]] && [[ "${GITHUB_EVENT_NAME:-}" == "pull_request" ]]; then
+    echo "Running in GitHub Actions PR context"
+    # Additional validation could be added here
+fi
+
 DOCS_DIR="docs"
 DEFAULT_NIX="$DOCS_DIR/default.nix"
 

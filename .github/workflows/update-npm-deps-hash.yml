@@ -17,8 +17,10 @@ permissions:
 
 jobs:
   update-npm-deps-hash:
-    # Only run on dependabot PRs
-    if: github.event.pull_request.user.login == 'dependabot[bot]'
+    # Only run on dependabot PRs from the same repository
+    if: >
+      github.event.pull_request.user.login == 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -32,9 +34,18 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
 
       - name: Install nix
         uses: cachix/install-nix-action@56a7bb7b56d9a92d4fd1bc05758de7eea4a370a8 # v31
+
+      - name: Validate environment
+        run: |
+          echo "PR author: ${{ github.event.pull_request.user.login }}"
+          echo "Head repo: ${{ github.event.pull_request.head.repo.full_name }}"
+          echo "Base repo: ${{ github.repository }}"
+          echo "Files changed in this PR:"
+          git diff --name-only HEAD~1 HEAD || echo "Could not determine changed files"
 
       - name: Update npmDepsHash
         run: |
