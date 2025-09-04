@@ -9,10 +9,6 @@ on:
       - main
     paths:
       - "docs/**"
-  workflow_run:
-    workflows: ["Update npmDepsHash"]
-    types:
-      - completed
 permissions:
   contents: read
 
@@ -20,7 +16,6 @@ jobs:
   deploy:
     name: build doc and deploy to gh pages
     runs-on: ubuntu-latest
-    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
     steps:
@@ -31,7 +26,6 @@ jobs:
 
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ github.event_name == 'workflow_run' && github.ref || github.event.workflow_run.head_sha || github.ref }}
           persist-credentials: false
       - uses: cachix/install-nix-action@56a7bb7b56d9a92d4fd1bc05758de7eea4a370a8 # v31
       - name: build

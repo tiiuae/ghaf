@@ -10,10 +10,6 @@ on:
   pull_request_target:
     branches:
       - main
-  workflow_run:
-    workflows: ["Update npmDepsHash"]
-    types:
-      - completed
 
 permissions:
   contents: read
@@ -25,7 +21,7 @@ jobs:
     uses: ./.github/workflows/authorize.yml
     # Skip running in forked repositories, since the workflow run would fail
     # due to missing repository secret(s):
-    if: ${{ github.repository == 'tiiuae/ghaf' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success') }}
+    if: ${{ github.repository == 'tiiuae/ghaf' }}
     with:
       github-org: tiiuae
     secrets:
@@ -33,7 +29,7 @@ jobs:
   build_matrix:
     name: "build"
     needs: [authorize]
-    if: needs.authorize.outputs.result == 'authorized' || github.event_name == 'workflow_run'
+    if: needs.authorize.outputs.result == 'authorized'
     runs-on: ubuntu-latest
     timeout-minutes: 360
     strategy:
@@ -76,11 +72,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
-          ref: ${{ github.event.pull_request.head.sha || (github.event_name == 'workflow_run' && github.ref) || github.event.workflow_run.head_sha || github.ref }}
+          ref: ${{ github.event.pull_request.head.sha || github.ref }}
           fetch-depth: 0
           persist-credentials: false
       - name: Rebase
-        if: ${{ github.base_ref != '' && github.event_name != 'workflow_run' }}
+        if: ${{ github.base_ref != '' }}
         run: |
           BASE="origin/${BASE_REF}"
           COMMITS="$(git rev-list "$BASE".. --count)"
