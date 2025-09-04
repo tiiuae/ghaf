@@ -70,6 +70,12 @@
           command = "${browserCommand} --app=https://teams.microsoft.com";
         }
         {
+          name = "Gala";
+          description = "Secure Android-in-the-Cloud";
+          icon = "distributor-logo-android";
+          command = "${browserCommand} --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
+        }
+        {
           name = "VPN";
           description = "GlobalProtect VPN Client";
           packages = [
