@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2025 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # NPM Dependencies Hash Automation
 
 This directory contains the automation for updating `npmDepsHash` in `/docs/default.nix` when dependabot updates npm dependencies.

@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2025 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+-->
+
 # Testing the npmDepsHash Automation
 
 ## How to Test the Implementation
