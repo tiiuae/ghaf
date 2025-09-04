@@ -32,6 +32,7 @@
               pkgs.prefetch-npm-deps
               config.treefmt.build.wrapper
               self'.legacyPackages.ghaf-build-helper
+              self'.legacyPackages.update-docs-depends
             ]
             ++ config.pre-commit.settings.enabledPackages
             ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
@@ -56,6 +57,12 @@
               help = "Ghaf nixos-rebuild command";
               name = "ghaf-rebuild";
               command = "ghaf-build-helper $@";
+              category = "builder";
+            }
+            {
+              help = "Update the npm dependencies in the docs";
+              name = "update-docs-depends";
+              command = "update-docs-deps";
               category = "builder";
             }
           ];
