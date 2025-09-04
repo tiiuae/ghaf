@@ -194,11 +194,13 @@ def main() -> None:
         eprint("Error: toplevel directory does not exist")
         sys.exit(1)
     
-    # Validate paths don't contain path traversal attempts
+    # Validate paths don't contain suspicious path traversal patterns
+    # Allow absolute paths (needed for Nix store paths) but reject relative traversal
     for path_arg in [args.toplevel, args.output, args.device_tree, args.random_seed]:
-        if path_arg and (".." in path_arg or path_arg.startswith("/")):
-            if not os.path.abspath(path_arg).startswith(os.getcwd()):
-                eprint("Error: invalid path provided")
+        if path_arg:
+            # Check for path traversal patterns that could escape intended directories
+            if "../" in path_arg or "/.." in path_arg or path_arg == ".." or path_arg.endswith("/.."):
+                eprint("Error: path traversal detected in path")
                 sys.exit(1)
     
     create_esp_contents(

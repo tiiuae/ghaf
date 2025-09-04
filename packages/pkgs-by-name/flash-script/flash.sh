@@ -28,7 +28,7 @@ while getopts "d:i:" opt; do
 done
 
 # Input validation for device parameter
-if [[ ! "$DEVICE" =~ ^/dev/[a-zA-Z0-9_/-]+$ ]]; then
+if [[ ! "$DEVICE" =~ ^/dev/[a-zA-Z0-9_-]+[0-9]*$ ]]; then
     echo "Invalid device path format: ${DEVICE}"
     exit 1
 fi
@@ -40,7 +40,7 @@ if [ ! -b "$DEVICE" ]; then
 fi
 
 # Input validation for filename parameter  
-if [[ "$FILENAME" =~ \.\./|\.\. ]]; then
+if [[ "$FILENAME" =~ \.\./ || "$FILENAME" =~ /\.\. || "$FILENAME" == ".." ]]; then
     echo "Invalid filename contains path traversal: ${FILENAME}"
     exit 1
 fi
