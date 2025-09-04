@@ -12,6 +12,7 @@ SPDX-FileCopyrightText = "2022-2024 TII (SSRC) and the Ghaf contributors"
 precedence = "closest"
 path = [
   ".github/dependabot.yml",
+  ".github/copilot-instructions.md",
   ".github/workflows/codeql.yml",
   ".github/workflows/dependency-review.yml",
   ".pre-commit-config.yaml",
