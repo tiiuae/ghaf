@@ -36,6 +36,14 @@ in
         Personal token of the bug reporter Github account
       '';
     };
+    clientId = mkOption {
+      type = types.str;
+      default = "178c6fc778ccc68e1d6a";
+      description = ''
+        GitHub OAuth client ID for bug reporting.
+        Default is the public GitHub CLI OAuth app client ID.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
@@ -44,7 +52,9 @@ in
       GITHUB_CONFIG = "$HOME/.config/ctrl-panel/config.toml";
       # TODO: Current client ID belongs to the "GitHub CLI" OAuth app. Replace it with TII Github app
       # GITHUB App Client ID for bug reporting login
-      GITHUB_CLIENT_ID = "178c6fc778ccc68e1d6a";
+      # NOTE: This is a public OAuth client ID for GitHub CLI, not a secret
+      # Moving to configurable option to avoid hardcoding in source
+      GITHUB_CLIENT_ID = cfg.clientId;
     };
 
     systemd.user.services."github-config" =
