@@ -6,7 +6,6 @@ name: Update npmDepsHash
 
 on:
   pull_request:
-    types: [opened, synchronize]
     paths:
       - "docs/package.json"
       - "docs/package-lock.json"
@@ -56,20 +55,12 @@ jobs:
           chmod +x scripts/update-npm-deps-hash.sh
           ./scripts/update-npm-deps-hash.sh
 
-      - name: Check for changes
-        id: changes
-        run: |
-          if git diff --quiet; then
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            echo "changed=true" >> $GITHUB_OUTPUT
-          fi
-
       - name: Commit and push changes
-        if: steps.changes.outputs.changed == 'true'
         run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git add docs/default.nix
-          git commit -s -m "Update npmDepsHash after npm dependency changes"
-          git push
+          if [[ -n $(git diff) ]]; then
+            git config --global user.email "<49699333+dependabot[bot]@users.noreply.github.com>"
+            git config --global user.name "dependabot[bot]"
+            git add docs/default.nix
+            git commit -s -m "Update npmDepsHash after npm dependency changes"
+            git push
+          fi

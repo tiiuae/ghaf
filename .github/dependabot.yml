@@ -5,11 +5,6 @@ updates:
     schedule:
       interval: daily
 
-  - package-ecosystem: pip
-    directory: /packages/pkgs-by-name/vinotify/vinotify
-    schedule:
-      interval: daily
-
   - package-ecosystem: npm
     directory: /docs
     schedule:
