@@ -24,9 +24,15 @@ in
         download.prompt_for_download = true;
       };
 
-      # Don't use pdf.js, open externally.
-      extraOpts."AlwaysOpenPdfExternally" = true;
-
+      extraOpts = {
+        # Don't use pdf.js, open externally.
+        "AlwaysOpenPdfExternally" = true;
+        "ExtensionInstallForcelist" =
+          if cfg.openInNormalExtension then
+            [ "${pkgs.open-normal-extension.id};http://localhost:8080/update.xml" ]
+          else
+            [ ];
+      };
     };
 
     environment.etc = lib.mkIf (cfg.openInNormalExtension && config.ghaf.givc.enable) {

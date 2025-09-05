@@ -34,6 +34,11 @@
             imports = [ ../programs/chromium.nix ];
             ghaf.reference.programs.chromium.enable = true;
             ghaf.xdgitems.enable = true;
+
+            ghaf.firewall = {
+              allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
+              allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+            };
           }
         ];
       }

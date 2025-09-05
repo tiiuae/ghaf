@@ -11,7 +11,6 @@
   "background": {
     "service_worker": "open_normal.js"
   },
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwDuuaHrpJGYZyXylG9Ag+mA4MbZPUZWhteMR9VpsHmblziD+Q02QA1z67H7FbnmsAIjY/yI+m0Q7lC4iFyksLyvJKlM8pMtBhMQxOwr9x+f+bUak2BmmQO4MFX/O2+k5viGF7kTzfp2KNBzpzUYMr9BrTuxyZ76z7abPohobYAA6spDHZW5DXOsBoXZ4+zg7G5R8Rg/MV+U9mobmyPsa9RGgpLX4KB8ysgJu4wpPGOyXdxf+Pp7h7NhP2Hk9PBl05DHEHTzoJMz0bGxGmAYBxjS95PfI4hC0Dr0YfUmIwY6IOTIvpY4qnqGHr6Qc4aeAwZDncFKj0xVx5nHsNze9WwIDAQAB",
   "action": {
     "default_title": "Open page in normal browser"
   }
