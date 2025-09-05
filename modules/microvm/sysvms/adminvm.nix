@@ -32,7 +32,7 @@ let
             };
 
             # System
-            type = "system-vm";
+            type = "admin-vm";
             systemd = {
               enable = true;
               withName = "adminvm-systemd";

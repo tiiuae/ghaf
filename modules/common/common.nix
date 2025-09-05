@@ -38,6 +38,11 @@ in
         default = [ ];
         description = "List of VMs currently enabled.";
       };
+      adminHosts = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "List of admin hosts currently enabled.";
+      };
       systemHosts = mkOption {
         type = types.listOf types.str;
         default = [ ];
@@ -82,9 +87,10 @@ in
       };
     };
     type = mkOption {
-      description = "Type of the ghaf component. One of 'host', 'system-vm', or 'app-vm'.";
+      description = "Type of the ghaf component. One of 'host', 'admin-vm', 'system-vm', or 'app-vm'.";
       type = types.enum [
         "host"
+        "admin-vm"
         "system-vm"
         "app-vm"
       ];
@@ -129,6 +135,11 @@ in
         {
           common = {
             vms = attrNames config.microvm.vms;
+            adminHosts = lib.lists.remove "" (
+              lib.attrsets.mapAttrsToList (
+                n: v: lib.optionalString (v.config.config.ghaf.type == "admin-vm") n
+              ) config.microvm.vms
+            );
             systemHosts = lib.lists.remove "" (
               lib.attrsets.mapAttrsToList (
                 n: v: lib.optionalString (v.config.config.ghaf.type == "system-vm") n
