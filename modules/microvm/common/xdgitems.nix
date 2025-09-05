@@ -85,12 +85,22 @@ let
   xdgUrlItem = pkgs.makeDesktopItem {
     name = "ghaf-url-xdg";
     desktopName = "Ghaf URL Opener";
-    icon = "web-browser";
     exec = "${xdgOpen}/bin/xdg-open-ghaf url %u";
     mimeTypes = [
       "text/html"
       "x-scheme-handler/http"
       "x-scheme-handler/https"
+    ];
+    noDisplay = true;
+  };
+
+  # XDG item for element-desktop
+  xdgElementDesktopItem = pkgs.makeDesktopItem {
+    name = "ghaf-element-xdg";
+    desktopName = "Ghaf Element Desktop";
+    exec = "${xdgOpen}/bin/xdg-open-ghaf element %u";
+    mimeTypes = [
+      "x-scheme-handler/io.element.desktop"
     ];
     noDisplay = true;
   };
@@ -110,8 +120,14 @@ let
       resourceType=$1
       resource=$2
 
+      open_element_desktop() {
+        echo "Opening Element desktop in comms-vm: $resource"
+        ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
+          start app --vm comms-vm "xdg-element-desktop" -- "$resource"
+      }
+
       open_url() {
-        echo "Opening URL in Chrome VM: $resource"
+        echo "Opening URL in chrome-vm: $resource"
         ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
           start app --vm chrome-vm "xdg-url" -- "$resource"
       }
@@ -149,7 +165,9 @@ let
 
       if [[ "$resourceType" == "url" ]]; then
         open_url
-      else
+      elif [[ "$resourceType" == "element" ]]; then
+        open_element_desktop
+      else 
         open_file "$resourceType" "$resource"
       fi
     '';
@@ -178,6 +196,8 @@ in
       readOnly = true;
       visible = false;
     };
+
+    elementDesktop = lib.mkEnableOption "XDG Element Desktop Item";
   };
 
   config = lib.mkIf (cfg.enable && config.ghaf.givc.enable) {
@@ -195,7 +215,8 @@ in
       xdgImageItem
       xdgOpen
       xdgUrlItem
-    ];
+    ]
+    ++ lib.optionals cfg.elementDesktop [ xdgElementDesktopItem ];
 
     # Set up XDG items for each supported MIME type
     xdg.mime.defaultApplications =
@@ -205,6 +226,11 @@ in
         "text/html" = "ghaf-url-xdg.desktop";
         "x-scheme-handler/http" = "ghaf-url-xdg.desktop";
         "x-scheme-handler/https" = "ghaf-url-xdg.desktop";
+      }
+      // lib.optionalAttrs cfg.elementDesktop {
+        "x-scheme-handler/io.element.desktop" = "ghaf-element-xdg.desktop";
+        # Optional: Element also sometimes uses the plain 'element' scheme
+        "x-scheme-handler/element" = "ghaf-element-xdg.desktop";
       };
 
     # Set up MicroVM shares for each MIME type and mount them to /run/xdg

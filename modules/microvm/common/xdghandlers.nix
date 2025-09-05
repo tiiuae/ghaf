@@ -54,12 +54,31 @@ let
     '';
   };
 
+  # A script for opening url launched by GIVC from AppVMs
+  xdgOpenElement = pkgs.writeShellApplication {
+    name = "xdgopenelement";
+    runtimeInputs = [
+      pkgs.coreutils
+    ];
+    text = ''
+      #!${pkgs.runtimeShell}
+      url="$1"
+      if [[ -z "$url" ]]; then
+        echo "No element URL provided - xdg handlers"
+        exit 1
+      fi
+      echo "XDG open element: $url"
+      ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+    '';
+  };
+
 in
 {
   options.ghaf.xdghandlers = {
     pdf = lib.mkEnableOption "XDG PDF Handler";
     image = lib.mkEnableOption "XDG Image Handler";
     url = lib.mkEnableOption "XDG Url Handler";
+    elementDesktop = lib.mkEnableOption "XDG Element desktop Handler";
   };
 
   config = lib.mkIf config.ghaf.givc.enable {
@@ -84,6 +103,11 @@ in
       ++ (lib.optional cfg.url {
         name = "xdg-url";
         command = "${xdgOpenUrl}/bin/xdgopenurl";
+        args = [ "url" ];
+      })
+      ++ (lib.optional cfg.elementDesktop {
+        name = "xdg-element-desktop";
+        command = "${xdgOpenElement}/bin/xdgopenelement";
         args = [ "url" ];
       });
 

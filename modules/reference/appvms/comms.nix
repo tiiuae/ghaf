@@ -34,6 +34,7 @@ in
               ../programs/element-desktop.nix
             ];
             ghaf.reference.programs.element-desktop.enable = true;
+            ghaf.xdghandlers.elementDesktop = true;
           }
         ];
       }
