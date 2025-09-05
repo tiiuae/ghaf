@@ -9,6 +9,7 @@
     ./firmware.nix
     ./fprint.nix
     ./github.nix
+    ./hwinfo
     ./killswitch.nix
     ./timezone.nix
     ./power.nix
