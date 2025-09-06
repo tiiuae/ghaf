@@ -5,7 +5,7 @@
 {
   "name": "fi.ssrc.open_normal",
   "description": "Open link in normal browser",
-  "path": "${out}/open_normal.sh",
+  "path": "PATH_HERE",
   "type": "stdio",
-  "allowed_origins": ["chrome-extension://ehlgfonodkljjbpedhnphehcflbohngk/"]
+  "allowed_origins": ["chrome-extension://EXTENSION_ID/"]
 }
