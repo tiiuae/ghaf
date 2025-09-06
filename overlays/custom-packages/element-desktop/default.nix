@@ -4,6 +4,10 @@
 # This overlay customizes element-desktop
 #
 { prev }:
-prev.element-desktop.overrideAttrs (_prevAttrs: {
-  patches = [ ./element-main.patch ];
+prev.element-desktop.overrideAttrs (old: {
+  # https://github.com/NixOS/nixpkgs/pull/160462
+  installPhase = old.installPhase + ''
+    wrapProgram $out/bin/element-desktop \
+      --suffix PATH : ${prev.lib.makeBinPath [ prev.pkgs.xdg-utils ]}
+  '';
 })

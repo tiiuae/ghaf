@@ -66,7 +66,7 @@ let
     name = "ghaf-pdf-xdg";
     desktopName = "Ghaf PDF Viewer";
     icon = "document-viewer";
-    exec = "${xdgOpenFile}/bin/xdgopenfile pdf %f";
+    exec = "${xdgOpen}/bin/xdg-open-ghaf pdf %f";
     mimeTypes = [ "application/pdf" ];
     noDisplay = true;
   };
@@ -76,8 +76,32 @@ let
     name = "ghaf-image-xdg";
     desktopName = "Ghaf Image Viewer";
     icon = "multimedia-photo-viewer";
-    exec = "${xdgOpenFile}/bin/xdgopenfile image %f";
+    exec = "${xdgOpen}/bin/xdg-open-ghaf image %f";
     mimeTypes = supportedImageMimeTypes;
+    noDisplay = true;
+  };
+
+  # XDG item for URL
+  xdgUrlItem = pkgs.makeDesktopItem {
+    name = "ghaf-url-xdg";
+    desktopName = "Ghaf URL Opener";
+    exec = "${xdgOpen}/bin/xdg-open-ghaf url %u";
+    mimeTypes = [
+      "text/html"
+      "x-scheme-handler/http"
+      "x-scheme-handler/https"
+    ];
+    noDisplay = true;
+  };
+
+  # XDG item for element-desktop
+  xdgElementDesktopItem = pkgs.makeDesktopItem {
+    name = "ghaf-element-xdg";
+    desktopName = "Ghaf Element Desktop";
+    exec = "${xdgOpen}/bin/xdg-open-ghaf element %u";
+    mimeTypes = [
+      "x-scheme-handler/io.element.desktop"
+    ];
     noDisplay = true;
   };
 
@@ -85,28 +109,67 @@ let
   # to the shared location (e.g., /run/xdg/pdf/chrome-vm) and
   # start the application in the VM responsible for that file type
   # (currently only zathura-vm) using GIVC
-  xdgOpenFile = pkgs.writeShellApplication {
-    name = "xdgopenfile";
+  xdgOpen = pkgs.writeShellApplication {
+    name = "xdg-open-ghaf";
+
     runtimeInputs = [
       pkgs.coreutils
     ];
+
     text = ''
-      type=$1
-      file=$2
-      filename=$(basename "$file")
-      filepath=$(realpath "$file")
-      if [[ -z "$filepath" ]]; then
-        echo "File path is empty in the XDG open script"
-        exit 1
+      resourceType=$1
+      resource=$2
+
+      open_element_desktop() {
+        echo "Opening Element desktop in comms-vm: $resource"
+        ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
+          start app --vm comms-vm "xdg-element-desktop" -- "$resource"
+      }
+
+      open_url() {
+        echo "Opening URL in chrome-vm: $resource"
+        ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
+          start app --vm chrome-vm "xdg-url" -- "$resource"
+      }
+
+      open_file() {
+        local type=$1
+        local file=$2
+
+        local fileName
+        fileName=$(basename "$file")
+        local filePath
+        filePath=$(realpath "$file" || true)
+
+        if [[ -z "$filePath" || ! -f "$filePath" ]]; then
+          echo "Error: file does not exist: $file"
+          exit 1
+        fi
+
+        case "$type" in
+          pdf|image)
+            echo "Opening $filePath as $type"
+            mkdir -p "/run/xdg/$type"
+            cp -f "$filePath" "/run/xdg/$type/$fileName"
+
+            local dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$fileName"
+            ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
+              start app --vm zathura-vm "xdg-$type" -- "$dst"
+            ;;
+          *)
+            echo "Error: unsupported file type '$type'"
+            exit 1
+            ;;
+        esac
+      }
+
+      if [[ "$resourceType" == "url" ]]; then
+        open_url
+      elif [[ "$resourceType" == "element" ]]; then
+        open_element_desktop
+      else 
+        open_file "$resourceType" "$resource"
       fi
-      if [[ "$type" != "pdf" && "$type" != "image" ]]; then
-        echo "Unknown file type in the XDF open script"
-        exit 1
-      fi
-      echo "Opening $filepath with type $type"
-      cp -f "$filepath" "/run/xdg/$type/$filename"
-      dst="/run/xdg/$type/${config.ghaf.storagevm.name}/$filename"
-      ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm zathura-vm "xdg-$type" -- "$dst"
     '';
   };
 in
@@ -133,11 +196,13 @@ in
       readOnly = true;
       visible = false;
     };
+
+    elementDesktop = lib.mkEnableOption "XDG Element Desktop Item";
   };
 
   config = lib.mkIf (cfg.enable && config.ghaf.givc.enable) {
 
-    ghaf.xdgitems.handlerPath = xdgOpenFile.outPath;
+    ghaf.xdgitems.handlerPath = xdgOpen.outPath;
 
     ghaf.xdgitems.xdgHostPaths = [
       "${xdgHostRoot}/pdf/${vmName}"
@@ -148,14 +213,24 @@ in
       pkgs.xdg-utils
       xdgPdfItem
       xdgImageItem
-      xdgOpenFile
-    ];
+      xdgOpen
+      xdgUrlItem
+    ]
+    ++ lib.optionals cfg.elementDesktop [ xdgElementDesktopItem ];
 
     # Set up XDG items for each supported MIME type
     xdg.mime.defaultApplications =
       setDefaultAppForTypes supportedImageMimeTypes "ghaf-image-xdg.desktop"
       // {
         "application/pdf" = "ghaf-pdf-xdg.desktop";
+        "text/html" = "ghaf-url-xdg.desktop";
+        "x-scheme-handler/http" = "ghaf-url-xdg.desktop";
+        "x-scheme-handler/https" = "ghaf-url-xdg.desktop";
+      }
+      // lib.optionalAttrs cfg.elementDesktop {
+        "x-scheme-handler/io.element.desktop" = "ghaf-element-xdg.desktop";
+        # Optional: Element also sometimes uses the plain 'element' scheme
+        "x-scheme-handler/element" = "ghaf-element-xdg.desktop";
       };
 
     # Set up MicroVM shares for each MIME type and mount them to /run/xdg
