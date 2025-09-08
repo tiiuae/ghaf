@@ -30,11 +30,11 @@ let
         withCompression = true;
         withCoredump = cfg.withDebug || cfg.withMachines;
         withCryptsetup = cfg.withCryptsetup || cfg.withHomed;
-        withOpenSSL = cfg.withFido2 || cfg.withHomed;
         inherit (cfg) withEfi;
         inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
         inherit (cfg) withHomed;
+        inherit (cfg) withOpenSSL;
         inherit (cfg) withHostnamed;
         withImportd = cfg.withMachines;
         withKexectools = cfg.withDebug;
@@ -263,6 +263,12 @@ in
       description = "Enable systemd bootloader functionality.";
       type = types.bool;
       default = pkgs.stdenv.hostPlatform.isEfi;
+    };
+
+    withOpenSSL = mkOption {
+      description = "Enable systemd OpenSSL functionality.";
+      type = types.bool;
+      default = cfg.withFido2 || cfg.withHomed;
     };
 
     withUkify = mkOption {

@@ -1,0 +1,24 @@
+diff --git a/backends/tpm/tpm_util.c b/backends/tpm/tpm_util.c
+index f2d1739e33..d3d1ef24e7 100644
+--- a/backends/tpm/tpm_util.c
++++ b/backends/tpm/tpm_util.c
+@@ -105,7 +105,7 @@ bool tpm_util_is_selftest(const uint8_t *in, uint32_t in_len)
+ }
+ 
+ /*
+- * Send request to a TPM device. We expect a response within one second.
++ * Send request to a TPM device. We expect a response within 10 seconds.
+  */
+ static int tpm_util_request(int fd,
+                             const void *request,
+@@ -124,8 +124,8 @@ static int tpm_util_request(int fd,
+         return -EFAULT;
+     }
+ 
+-    /* wait for a second */
+-    n = RETRY_ON_EINTR(g_poll(fds, 1, 1000));
++    /* wait for 10 seconds */
++    n = RETRY_ON_EINTR(g_poll(fds, 1, 10000));
+     if (n != 1) {
+         return -errno;
+     }

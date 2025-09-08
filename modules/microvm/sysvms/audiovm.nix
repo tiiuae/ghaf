@@ -55,11 +55,16 @@ let
             storagevm = {
               enable = true;
               name = vmName;
+              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
             };
             # Networking
             virtualization.microvm.vm-networking = {
               enable = true;
               inherit vmName;
+            };
+            virtualization.microvm.tpm.passthrough = {
+              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              rootNVIndex = "0x81702000";
             };
             # Services
             services = {

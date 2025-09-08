@@ -14,7 +14,11 @@
     cores = 4;
     borderColor = "#630505";
     ghafAudio.enable = true;
-    vtpm.enable = true;
+    vtpm = {
+      enable = true;
+      runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
+      basePort = 9150;
+    };
     applications =
       let
         chromeWrapper = pkgs.writeShellApplication {

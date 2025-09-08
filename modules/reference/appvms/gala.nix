@@ -3,6 +3,7 @@
 #
 {
   pkgs,
+  config,
   ...
 }:
 {
@@ -11,6 +12,11 @@
     cores = 2;
     bootPriority = "low";
     borderColor = "#027d7b";
+    vtpm = {
+      enable = true;
+      runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
+      basePort = 9140;
+    };
     applications = [
       {
         name = "GALA";

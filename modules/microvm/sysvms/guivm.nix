@@ -8,8 +8,9 @@
   ...
 }:
 let
-
+  configHost = config;
   vmName = "gui-vm";
+
   #TODO do not import from a path like this
   inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
   guivmBaseConfiguration = {
@@ -95,12 +96,18 @@ let
                 enable = true;
                 isGuiVm = true;
               };
+              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
             };
 
             # Networking
             virtualization.microvm.vm-networking = {
               enable = true;
               inherit vmName;
+            };
+
+            virtualization.microvm.tpm.passthrough = {
+              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              rootNVIndex = "0x81703000";
             };
 
             # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
