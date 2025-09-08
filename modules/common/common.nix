@@ -38,9 +38,9 @@ in
         default = [ ];
         description = "List of VMs currently enabled.";
       };
-      adminHosts = mkOption {
-        type = types.listOf types.str;
-        default = [ ];
+      adminHost = mkOption {
+        type = types.nullOr types.str;
+        default = null;
         description = "List of admin hosts currently enabled.";
       };
       systemHosts = mkOption {
@@ -135,11 +135,16 @@ in
         {
           common = {
             vms = attrNames config.microvm.vms;
-            adminHosts = lib.lists.remove "" (
-              lib.attrsets.mapAttrsToList (
-                n: v: lib.optionalString (v.config.config.ghaf.type == "admin-vm") n
-              ) config.microvm.vms
-            );
+            adminHost =
+              let
+                adminHosts = lib.lists.remove "" (
+                  lib.attrsets.mapAttrsToList (
+                    n: v: lib.optionalString (v.config.config.ghaf.type == "admin-vm") n
+                  ) config.microvm.vms
+                );
+              in
+              assert builtins.length adminHosts <= 1;
+              lib.lists.head (adminHosts ++ [ null ]);
             systemHosts = lib.lists.remove "" (
               lib.attrsets.mapAttrsToList (
                 n: v: lib.optionalString (v.config.config.ghaf.type == "system-vm") n
