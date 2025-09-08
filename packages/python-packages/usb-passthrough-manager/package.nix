@@ -5,9 +5,9 @@
   buildPythonApplication,
   wheel,
   setuptools,
-  qt5,
-  pyqt5,
-  libsForQt5,
+  qt6,
+  pyqt6,
+#qt6Packages,
 }:
 buildPythonApplication {
   pname = "usb_passthrough_manager";
@@ -18,17 +18,22 @@ buildPythonApplication {
   nativeBuildInputs = [
     setuptools
     wheel
-    libsForQt5.wrapQtAppsHook
+    qt6.wrapQtAppsHook
   ];
 
   propagatedBuildInputs = [
-    pyqt5
-    qt5.qtbase
-    qt5.qtwayland
+    pyqt6
+    qt6.qtbase
+    qt6.qtwayland
   ];
 
   buildInputs = [
-    qt5.qtbase
-    qt5.qtwayland
+    qt6.qtbase
+    qt6.qtwayland
   ];
+
+  postFixup = ''
+    wrapQtApp $out/bin/upm_app --prefix QT_PLUGIN_PATH : ${qt6.qtbase}/lib/qt-6/plugins:{qt6.qtwayland}/lib/qt-6/plugins
+    wrapQtApp $out/bin/upm_service --prefix QT_PLUGIN_PATH : ${qt6.qtbase}/lib/qt-6/plugins:{qt6.qtwayland}/lib/qt-6/plugins
+  '';
 }

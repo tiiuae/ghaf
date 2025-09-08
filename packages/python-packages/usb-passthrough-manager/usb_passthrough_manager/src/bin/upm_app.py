@@ -5,8 +5,8 @@ import argparse
 import logging
 import sys
 
-from PyQt5.QtWidgets import QApplication
-from upm.guest.app_qt5 import App
+from PyQt6.QtWidgets import QApplication
+from upm.guest.app_qt6 import App
 from upm.logger import setup_logger
 
 logger = logging.getLogger("upm")
@@ -32,7 +32,7 @@ def main():
 
     w = App(data_dir=args.dir)
     w.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 if __name__ == "__main__":

@@ -6,8 +6,8 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QComboBox,
     QFrame,
     QHBoxLayout,
@@ -136,13 +136,13 @@ class App(QWidget):
         selected: str | None,
     ):
         container = QFrame()
-        container.setFrameShape(QFrame.NoFrame)
+        container.setFrameShape(QFrame.Shape.NoFrame)
         v = QVBoxLayout(container)
         v.setSpacing(6)
 
         lbl = QLabel()
-        lbl.setTextFormat(Qt.RichText)
-        lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        lbl.setTextFormat(Qt.TextFormat.RichText)
+        lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         lbl.setText(device_title_html(device_id, vendor, product))
         v.addWidget(lbl)
 

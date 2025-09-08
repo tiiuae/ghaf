@@ -74,8 +74,8 @@ class HostService:
                 self.device_registry[device_id] = {
                     "vendor": vendor,
                     "product": product,
-                    "permitted_vms": permitted_vms,
-                    "current_vm": current_vm,
+                    "permitted-vms": permitted_vms,
+                    "current-vm": current_vm,
                 }
             else:
                 logger.error(
@@ -135,9 +135,9 @@ class HostService:
                 )
                 return False
             else:
-                if new_vm in self.device_registry[device_id]["permitted_vms"]:
-                    if new_vm != self.device_registry[device_id]["current_vm"]:
-                        self.device_registry[device_id]["current_vm"] = new_vm
+                if new_vm in self.device_registry[device_id]["permitted-vms"]:
+                    if new_vm != self.device_registry[device_id]["current-vm"]:
+                        self.device_registry[device_id]["current-vm"] = new_vm
                     else:
                         logger.info(f"Device {device_id} already on VM {new_vm}")
                         return True
@@ -162,17 +162,24 @@ class HostService:
                 "type": "connected_devices",
                 "devices": self.device_registry,
             }
+            print(device_schema)
             if not self.gui_vm.send(device_schema):
                 logger.error("System error! Service restart required.")
         elif msgtype == "passthrough_request":
             device_id = msg.get("device_id")
             target_vm = msg.get("current-vm")
-            if self.passthrough_handler(self.metadata, device_id, target_vm):
-                if not self.notify_device_passthrough(device_id, target_vm):
-                    logger.error("Notify error! Service restart required.")
+            if device_id in self.device_registry:
+                if self.passthrough_handler(self.metadata, device_id, target_vm):
+                    if not self.notify_device_passthrough(device_id, target_vm):
+                        logger.error("Notify error! Service restart required.")
+                    else:
+                        logger.info(
+                            f"Device {device_id} passed through to VM {target_vm} ---------------------------------------"
+                        )
+                        self.device_registry[device_id]["current-vm"] = target_vm
                 else:
-                    logger.info(f"Device {device_id} passed through to VM {target_vm}")
+                    logger.error("Passthrough error! Service restart required")
             else:
-                logger.error("Passthrough error! Service restart required")
+                logger.error(f"Device {device_id} not found in registry")
         else:
             logger.error(f"Unknown msg: {msg}")

@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from upm.channel.vsock import VsockServer
-from upm.guest.popup_qt5 import show_new_device_popup_async
+from upm.guest.popup_qt6 import show_new_device_popup_async
 from upm.logger import log_entry_exit
 
 logger = logging.getLogger("upm")
@@ -99,6 +99,7 @@ class DeviceRegister:
 
     @log_entry_exit
     def atomic_write_registry(self, data: dict[str, Any]) -> None:
+        tmp_name = None
         try:
             # Atomic write: write to tmp then replace
             with tempfile.NamedTemporaryFile(

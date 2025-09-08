@@ -5,7 +5,7 @@
 
 # USB Passthrough Manager
 
-Host ↔ guest VM with real user, usb passthrough management over vsock with a PyQt5 UI
+Host ↔ guest VM with real user, usb passthrough management over vsock with a PyQt6 UI
 develop without vsock by using a JSON file as the “transport”.
 
 ## Install (editable)
