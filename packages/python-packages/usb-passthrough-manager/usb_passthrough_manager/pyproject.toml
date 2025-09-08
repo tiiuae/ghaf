@@ -8,16 +8,17 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "usb_passthrough_manager"
 version = "0.1.0"
-description = "Host ↔ guest VM with real user, usb passthrough management over vsock with a PyQt5 UI"
+description = "Host ↔ guest VM with real user, usb passthrough management over vsock with a PyQt6 UI"
 authors = [{ name = "Ganga Ram" }]
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.11"
+license = "Apache-2.0"
 dependencies = [
-  "PyQt5>=5.15.0",
+  "PyQt6>=6.9.0",
 ]
 
 [project.optional-dependencies]
-usb_passthrough_manager = ["PyQt5>=5.15.0"]
+usb_passthrough_manager = ["PyQt6>=6.9.0"]
 
 [project.scripts]
 upm_app = "bin.upm_app:main"

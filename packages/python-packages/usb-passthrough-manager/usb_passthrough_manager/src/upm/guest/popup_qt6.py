@@ -6,8 +6,8 @@ import sys
 import threading
 from typing import Any
 
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
     QFrame,
@@ -38,7 +38,7 @@ def popup_thread_func(
         passthrough_handler, device_id, vendor, product, permitted_vms, current_vm
     )
     popup.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
 
 
 def show_new_device_popup_async(
@@ -147,13 +147,13 @@ class NewDevicePopup(QWidget):
         selected: str | None,
     ):
         container = QFrame()
-        container.setFrameShape(QFrame.NoFrame)
+        container.setFrameShape(QFrame.Shape.NoFrame)
         v = QVBoxLayout(container)
         v.setSpacing(6)
 
         lbl = QLabel()
-        lbl.setTextFormat(Qt.RichText)
-        lbl.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        lbl.setTextFormat(Qt.TextFormat.RichText)
+        lbl.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         lbl.setText(f"<b>{self.vendor} ({self.product}) [{self.device_id}]:</b>")
         v.addWidget(lbl)
 

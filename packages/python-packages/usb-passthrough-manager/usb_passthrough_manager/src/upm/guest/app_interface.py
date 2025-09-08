@@ -35,12 +35,14 @@ def fifo_reader_thread(fifo: Path, svc: DeviceRegister, stop: threading.Event) -
                     logger.error("Failed to send passthrough request")
                 else:
                     logger.info(
-                        f"Passthroughrequest sent successfuly to host: {device_id} -> {new_vm}"
+                        f"Passthrough request sent successfully to host: {device_id} -> {new_vm}"
                     )
 
 
 @log_entry_exit
-def handle_app_request(service_dir: str, svc: DeviceRegister) -> threading.Thread:
+def handle_app_request(
+    service_dir: str, svc: DeviceRegister
+) -> tuple[threading.Thread, threading.Event]:
     fifo = _create_fifo(service_dir)
     stop_event = threading.Event()
     th = threading.Thread(target=fifo_reader_thread, args=(fifo, svc, stop_event))
