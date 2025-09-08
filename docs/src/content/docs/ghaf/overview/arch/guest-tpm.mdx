@@ -1,0 +1,40 @@
+---
+title: Virtualized TPM for guests
+---
+
+## TPM device access for guests
+
+A TPM device is provided to virtual machines as a building block for securely storing secrets and performing cryptographic operations.
+A device compatible with the TPM 2.0 specification also benefits from existing integration with open-source components such 
+as bootloaders, Linux kernel, userspace tools, etc. The challenge resides in exposing a functional TPM interface to guests 
+while minimizing the reliance on the host and preventing host-based attacks.
+
+Broadly, two methods are available to expose a TPM to a virtual machine: passthrough of a hardware device or emulation in software.
+Both methods have their own complexities, benefits and drawbacks. The hardware passthrough is the simplest to implement as it can usually be done
+with a few additions to the VMM configuration. However if used as the default for all VMs, it can introduce issues due to concurrent access to the
+hardware device and can even lead to denial-of-service scenarios. The emulation method benefits from better isolation between guests and more control over the
+communication channel, at the expense of increased complexity.
+After some initial analysis, a variant of the emulation method was chosen as the default way to provide TPM capabilities, but with the added constraint that the state of the emulated TPM must be stored in a dedicated VM and never exposed to the host.
+
+From an architectural standpoint, TPM access to guests is implemented in the following way:
+
+- a VM is dedicated to hosting instances of [swtpm](https://github.com/stefanberger/swtpm)
+- swtpm state is stored on a secure guest filesystem backed by a hardware TPM. The host cannot read the swtpm state file (except by inspecting guest memory).
+- swtpm control and data channels are exposed to other VMs through an IPC channel
+- QEMU sends and receives TPM commands to the swtpm daemon over IPC
+
+The high-level design is shown in the following diagram:
+
+![vTPM VM design](@assets/ghaf/vtpm-vm.png)
+
+### Implementation
+
+The implementation of the emulated TPM in Ghaf deviates from the aforementioned design in a few ways:
+
+- The **admin VM** takes the role of hosting the swtpm instances. This reduces the footprint of running an additional VM.
+- A new component is introduced: [swtpm-proxy-shim](https://github.com/abrandao-census/swtpm-proxy-shim). It is a daemon that runs on the host and allows QEMU to use a remote swtpm as a backend, which QEMU does not support by default.
+- A subset of VMs, specifically system VMs, are set to use the hardware passthrough instead of the remote software TPM. It is important for some VMs to not be delayed during boot to have peripherals brought up as soon as possible. This is the case for example for net VM and GUI VM, to have network and graphics hardware available early. If these VMs were using the emulated TPM they would have to wait until the vTPM VM (in this case the admin VM) is fully booted before they themselves can start, which would significantly increase the time the user has to wait for peripherals to be ready.
+
+After introducing these changes, the current implementation of the feature is illustrated on the diagram below:
+
+![Ghaf implementation](@assets/ghaf/guest-tpm-hybrid.png)
