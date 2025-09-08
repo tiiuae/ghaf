@@ -23,6 +23,7 @@
       ./common/shared-directory.nix
       ./common/storagevm.nix
       ./common/vm-networking.nix
+      ./common/vm-tpm.nix
       ./common/waypipe.nix
       ./common/xdghandlers.nix
       ./common/xdgitems.nix

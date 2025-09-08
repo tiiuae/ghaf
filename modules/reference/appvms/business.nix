@@ -3,8 +3,8 @@
 #
 {
   pkgs,
-  config,
   lib,
+  config,
   ...
 }:
 let
@@ -21,7 +21,11 @@ in
     cores = 4;
     borderColor = "#218838";
     ghafAudio.enable = true;
-    vtpm.enable = true;
+    vtpm = {
+      enable = true;
+      runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
+      basePort = 9110;
+    };
     applications =
       let
         inherit (config.microvm.vms."business-vm".config.config.ghaf.reference.services.pac) proxyPacUrl;

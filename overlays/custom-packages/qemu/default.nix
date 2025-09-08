@@ -12,6 +12,7 @@ prev.qemu_kvm.overrideAttrs (
       ++ [
         # own patches
         ./0001-ivshmem-flat-memory-support.patch
+        ./0002-Increase-timeout-in-tpm_util_request.patch
         ./usb-host-enable-autoscan-for-bus-addr.patch
       ]
       ++ final.lib.optionals final.hostPlatform.isx86_64 [

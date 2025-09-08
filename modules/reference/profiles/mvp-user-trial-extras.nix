@@ -40,6 +40,8 @@ in
         };
       };
 
+      virtualization.storagevm-encryption.enable = true;
+
       graphics = {
         labwc = {
           autologinUser = lib.mkForce null;

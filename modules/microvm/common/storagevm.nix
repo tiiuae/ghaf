@@ -3,6 +3,8 @@
 {
   lib,
   config,
+  pkgs,
+  utils,
   ...
 }:
 let
@@ -84,12 +86,53 @@ in
       '';
     };
 
+    encryption = {
+      enable = mkEnableOption "Encryption of the VM storage area on the host filesystem";
+
+      initialDiskSize = mkOption {
+        type = types.int;
+        default = 10 * 1024;
+        description = ''
+          Initial size of the persistent disk image in megabytes. The actual space used on the host grows along with
+          guest disk usage, so in terms of host storage this option defines the maximum allocated size.
+        '';
+      };
+
+      pcrs = mkOption {
+        type = types.str;
+        description = "List of PCR registers to measure for the guestStorage partition";
+        default = "15";
+      };
+
+      keepDefaultPassword = mkOption {
+        type = types.bool;
+        description = ''
+          Whether to keep the default password (empty string) that unlocks the VM storage partition.
+          Useful for debugging or to recover guest data from the host.
+        '';
+        default = false;
+      };
+
+      serial = mkOption {
+        type = types.str;
+        default = "vmdata";
+        internal = true;
+      };
+
+      luksDevice = mkOption {
+        type = types.str;
+        default = "vmdata";
+        internal = true;
+      };
+    };
   };
 
   options.virtualisation.fileSystems = mkOption { };
 
   config = lib.mkMerge [
-    (lib.mkIf cfg.enable {
+    (lib.mkIf (cfg.enable && !cfg.encryption.enable) {
+      ## Config without encryption
+
       fileSystems.${cfg.mountPath} = {
         neededForBoot = true;
         options = [
@@ -111,6 +154,121 @@ in
           mountPoint = cfg.mountPath;
         }
       ];
+    })
+    (lib.mkIf (cfg.enable && cfg.encryption.enable) (
+      ## Config with encryption
+
+      let
+        hostImage = "/persist/storagevm_enc/${cfg.name}.img";
+        drivePath = "/dev/disk/by-id/virtio-${cfg.encryption.serial}";
+      in
+      {
+        assertions = [
+          {
+            # Revisit when user password is involved in decryption; TPM can be optional
+            assertion =
+              config.ghaf.virtualization.microvm.tpm.passthrough.enable
+              || config.ghaf.virtualization.microvm.tpm.emulated.enable;
+            message = "VM must have access to a TPM to enable storage encryption";
+          }
+        ];
+
+        microvm.volumes = [
+          {
+            image = hostImage;
+            inherit (cfg.encryption) serial;
+            autoCreate = false;
+            mountPoint = null;
+          }
+        ];
+
+        boot.initrd.luks.devices = {
+          ${cfg.encryption.luksDevice} = {
+            device = drivePath;
+            crypttabExtraOpts = [ "tpm2-device=auto" ];
+            tryEmptyPassphrase = true;
+          };
+        };
+
+        ghaf.systemd = {
+          withCryptsetup = true;
+          withTpm2Tss = true;
+          withBootloader = true;
+          withOpenSSL = true;
+        };
+
+        fileSystems.${cfg.mountPath} = {
+          device = "/dev/mapper/${cfg.encryption.luksDevice}";
+          fsType = "ext4";
+          neededForBoot = true;
+          options = [
+            "rw"
+            "nodev"
+            "nosuid"
+            "noexec"
+          ]
+          ++ lib.optionals config.ghaf.profiles.debug.enable [
+            "nofail"
+          ];
+        };
+
+        environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [
+          pkgs.util-linux
+          pkgs.cryptsetup
+        ];
+
+        systemd.services.storagevm-enroll =
+          let
+            drivePath = "/dev/disk/by-id/virtio-${cfg.encryption.serial}";
+            inherit (config.ghaf.virtualization.microvm) tpm;
+
+            enrollStorageScript = pkgs.writeShellApplication {
+              name = "storagevm-enroll-script";
+              runtimeInputs = with pkgs; [
+                util-linux
+                tpm2-tools
+                cryptsetup
+              ];
+              text = ''
+                set -x
+                if cryptsetup luksDump ${drivePath} | grep 'systemd-tpm2'; then
+                  echo 'TPM already enrolled'
+                  exit 0
+                fi
+                ${lib.optionalString tpm.passthrough.enable ''
+                  tpm2_createprimary -C owner -c storage.ctx
+                  tpm2_evictcontrol -C owner -c storage.ctx ${tpm.passthrough.rootNVIndex}
+                ''}
+                # temporary file to pass an empty passphrase to cryptenroll
+                echo -n > temp_keyfile
+                chmod 600 temp_keyfile
+                systemd-cryptenroll --unlock-key-file=temp_keyfile \
+                  --tpm2-device=/dev/tpm0 --tpm2-pcrs="${cfg.encryption.pcrs}" \
+                  ${lib.optionalString tpm.passthrough.enable "--tpm2-seal-key-handle=${tpm.passthrough.rootNVIndex}"} "${drivePath}"
+                rm temp_keyfile
+                ${lib.optionalString (!cfg.encryption.keepDefaultPassword) ''
+                  echo 'Wiping password slot'
+                  systemd-cryptenroll --wipe-slot=password "${drivePath}"
+                ''}
+              '';
+            };
+          in
+          {
+            description = "Enroll the LUKS storagevm image to TPM";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = lib.getExe enrollStorageScript;
+              WorkingDirectory = "/tmp";
+            };
+            requires = [
+              "${utils.escapeSystemdPath drivePath}.device"
+            ];
+            wantedBy = [ "multi-user.target" ];
+          };
+      }
+    ))
+    (lib.mkIf cfg.enable {
+      ## Common config
 
       microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
         {

@@ -69,6 +69,9 @@ in
       sysbench-fileio-test-script
       nvpmodel-check
       rm-linux-bootmgrs
+
+      # To inspect LUKS partitions metadata
+      pkgs.cryptsetup
     ]
     # v4l for camera testing
     ++ rmDesktopEntries [ pkgs.v4l-utils ]

@@ -29,6 +29,7 @@ in
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
+    (import ./vtpm-proxy.nix { inherit inputs; })
   ];
 
   options.ghaf.virtualization.microvm-host = {
@@ -118,11 +119,19 @@ in
           ) (builtins.attrValues config.microvm.vms);
           xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
           xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
+          vmsHaveEncryptedStorage = builtins.any (
+            vm:
+            lib.hasAttr "storagevm" vm.config.config.ghaf && vm.config.config.ghaf.storagevm.encryption.enable
+          ) (builtins.attrValues config.microvm.vms);
         in
         [
           "d /persist/common 0755 root root -"
           "d /persist/storagevm/homes 0700 microvm kvm -"
           "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
+          "f /tmp/cancel 0770 microvm kvm -"
+        ]
+        ++ lib.optionals vmsHaveEncryptedStorage [
+          "d /persist/storagevm_enc 0755 microvm kvm -"
         ]
         ++ lib.optionals config.ghaf.givc.enable [
           "d /persist/storagevm/givc 0700 microvm kvm -"
@@ -137,46 +146,108 @@ in
         ++ vmRootDirs
         ++ xdgRules;
 
-      systemd.services = {
-        # Generate anonymous unique device identifier
-        generate-device-id = {
-          enable = true;
-          description = "Generate device and machine ids";
-          wantedBy = [ "local-fs.target" ];
-          after = [ "local-fs.target" ];
-          unitConfig.ConditionPathExists = "!/persist/common/device-id";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = [
-              # Generate a unique device id
-              "${pkgs.writeShellScript "generate-device-id" ''
-                echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
-              ''}"
-            ]
-            ++ (map (
-              vm:
-              # Generate unique machine ids
-              "${pkgs.writeShellScript "generate-machine-id" ''
-                ${pkgs.util-linux}/bin/uuidgen | tr -d '-' > /persist/storagevm/${vm}/etc/machine-id
-              ''}"
-            ) activeMicrovms);
-            RemainAfterExit = true;
-            Restart = "on-failure";
-            RestartSec = "1";
-          };
-        };
-      }
-      // foldl' (
-        result: name:
-        result
-        // {
-          # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
-          # in ExecStop of the microvm@ service fails and causes the service to restart.
-          "microvm@${name}".serviceConfig = {
-            Restart = "on-abnormal";
+      systemd.services =
+        let
+          patchedMicrovmServices = foldl' (
+            result: name:
+            result
+            // {
+              # Prevent microvm restart if shutdown internally. If set to 'on-failure', 'microvm-shutdown'
+              # in ExecStop of the microvm@ service fails and causes the service to restart.
+              "microvm@${name}".serviceConfig = {
+                Restart = "on-abnormal";
+              };
+            }
+          ) { } activeMicrovms;
+
+          vmsWithEncryptedStorage = lib.filterAttrs (
+            _name: vm:
+            lib.hasAttr "storagevm" vm.config.config.ghaf && vm.config.config.ghaf.storagevm.encryption.enable
+          ) config.microvm.vms;
+
+          vmstorageSetupServices = foldl' (
+            result: name:
+            result
+            // {
+              "format-microvm-storage-${name}" =
+                let
+                  microvmConfig = config.microvm.vms.${name};
+                  cfg = microvmConfig.config.config.ghaf.storagevm;
+
+                  hostImage = "/persist/storagevm_enc/${cfg.name}.img";
+
+                  formatStorageScript = pkgs.writeShellApplication {
+                    name = "format-microvm-storage-${name}-script";
+                    runtimeInputs = with pkgs; [
+                      util-linux
+                      qemu-utils
+                      cryptsetup
+                      e2fsprogs
+                    ];
+                    text = ''
+                      set -x
+                      qemu-img create ${hostImage} ${toString cfg.encryption.initialDiskSize}M
+                      # Reduce KDF memory and time cost because VMs have limited resources
+                      # This keyslot will be wiped later once TPM is enrolled
+                      cryptsetup luksFormat -q \
+                        --disable-keyring \
+                        --luks2-keyslots-size 1M \
+                        --pbkdf-force-iterations 4 \
+                        --pbkdf-memory 50000 \
+                        "${hostImage}" <<< ""
+                      cryptsetup open -q --disable-keyring "${hostImage}" "${name}-data" <<< ""
+                      mkfs.ext4 -D "/dev/mapper/${name}-data"
+                      cryptsetup close "${name}-data"
+                      chown microvm:kvm ${hostImage}
+                      chmod 0700 ${hostImage}
+                    '';
+                  };
+                in
+                {
+                  description = "Format MicroVM storage image '${name}'";
+                  before = [
+                    "microvm@${name}.service"
+                  ];
+                  partOf = [ "microvm@${name}.service" ];
+                  wantedBy = [ "microvms.target" ];
+                  unitConfig.ConditionPathExists = "!${hostImage}";
+                  serviceConfig.Type = "oneshot";
+                  serviceConfig.ExecStart = lib.getExe formatStorageScript;
+                };
+            }
+          ) { } (builtins.attrNames vmsWithEncryptedStorage);
+        in
+        {
+          # Generate anonymous unique device identifier
+          generate-device-id = {
+            enable = true;
+            description = "Generate device and machine ids";
+            wantedBy = [ "local-fs.target" ];
+            after = [ "local-fs.target" ];
+            unitConfig.ConditionPathExists = "!/persist/common/device-id";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = [
+                # Generate a unique device id
+                "${pkgs.writeShellScript "generate-device-id" ''
+                  echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
+                ''}"
+              ]
+              ++ (map (
+                vm:
+                # Generate unique machine ids
+                "${pkgs.writeShellScript "generate-machine-id" ''
+                  ${pkgs.util-linux}/bin/uuidgen | tr -d '-' > /persist/storagevm/${vm}/etc/machine-id
+                ''}"
+              ) activeMicrovms);
+              RemainAfterExit = true;
+              Restart = "on-failure";
+              RestartSec = "1";
+            };
           };
         }
-      ) { } activeMicrovms;
+        // patchedMicrovmServices
+        // vmstorageSetupServices;
     })
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.
@@ -332,6 +403,11 @@ in
             RestartSec = "1";
           };
         };
+    })
+    (mkIf (cfg.enable && config.security.tpm2.enable && config.security.tpm2.tssGroup != null) {
+      users.users.microvm.extraGroups = [
+        config.security.tpm2.tssGroup
+      ];
     })
   ];
 }
