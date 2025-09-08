@@ -12,7 +12,6 @@
 { pkgs, self }:
 let
   testConfig = "lenovo-x1-carbon-gen11-debug";
-  system = "x86_64-linux";
   expectedHostname = "ghaf-host";
 
   cfg = self.nixosConfigurations.${testConfig};

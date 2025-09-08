@@ -15,7 +15,6 @@ let
     mkIf
     optionals
     mkOption
-    optionalAttrs
     ;
 
   # Package configuration

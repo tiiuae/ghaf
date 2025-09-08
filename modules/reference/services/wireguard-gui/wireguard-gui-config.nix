@@ -7,7 +7,6 @@
 }:
 let
   cfg = config.ghaf.reference.services.wireguard-gui-config;
-  inherit (config.ghaf.reference) services;
   inherit (lib)
     mkOption
     mkIf

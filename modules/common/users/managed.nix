@@ -12,7 +12,6 @@ let
     types
     mkOption
     optionals
-    optionalAttrs
     ;
   inherit (lib.attrsets) nameValuePair;
   inherit (builtins) listToAttrs;
