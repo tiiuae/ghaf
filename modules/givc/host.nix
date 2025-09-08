@@ -9,12 +9,14 @@ let
   cfg = config.ghaf.givc.host;
   inherit (builtins) map;
   inherit (lib)
+    head
     mkEnableOption
     mkIf
-    head
+    optionalString
     ;
   inherit (config.networking) hostName;
   inherit (config.ghaf.networking) hosts;
+  inherit (config.ghaf.common) adminHost;
 in
 {
   options.ghaf.givc.host = {
@@ -36,7 +38,7 @@ in
         "poweroff.target"
         "suspend.target"
       ];
-      adminVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.adminHosts;
+      adminVm = optionalString (adminHost != null) "microvm@${adminHost}.service";
       systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
       appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
       tls.enable = config.ghaf.givc.enableTls;
