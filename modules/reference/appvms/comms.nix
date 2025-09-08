@@ -8,7 +8,7 @@
   ...
 }:
 let
-  inherit (lib) optionals mkForce;
+  inherit (lib) mkForce;
 in
 {
   comms = {

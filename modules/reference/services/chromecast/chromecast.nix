@@ -7,7 +7,6 @@
 }:
 let
   cfg = config.ghaf.reference.services.chromecast;
-  inherit (config.ghaf.reference) services;
   inherit (lib)
     mkEnableOption
     mkOption

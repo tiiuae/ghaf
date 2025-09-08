@@ -11,8 +11,6 @@
 }:
 let
   inherit (inputs) nixos-generators jetpack-nixos;
-  name = "nvidia-jetson-orin";
-  system = "aarch64-linux";
 
   orin-configuration = import ./orin-configuration-builder.nix {
     inherit
