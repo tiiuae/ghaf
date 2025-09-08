@@ -63,6 +63,11 @@ let
               inherit vmName;
             };
 
+            virtualization.microvm.tpm-passthrough = {
+              enable = true;
+              rootNVIndex = "0x81100400";
+            };
+
             # Services
             services = {
               power-manager.vm = {

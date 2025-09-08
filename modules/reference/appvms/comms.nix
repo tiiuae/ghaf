@@ -21,6 +21,10 @@ in
     cores = 4;
     borderColor = "#337aff";
     ghafAudio.enable = true;
+    vtpm = {
+      enable = true;
+      basePort = 9103;
+    };
     applications = [
       {
         name = "Element";

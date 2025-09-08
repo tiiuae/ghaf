@@ -16,6 +16,7 @@ prev.qemu_kvm.overrideAttrs (
       ./acpi-devices-passthrough-qemu-8.1.patch
       ./0001-ivshmem-flat-memory-support.patch
       ./usb-host-enable-autoscan-for-bus-addr.patch
+      ./0002-Increase-timeout-in-tpm_util_request.patch
     ];
   })
   // {

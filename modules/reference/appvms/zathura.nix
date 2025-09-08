@@ -12,7 +12,10 @@
     cores = 1;
     bootPriority = "low";
     borderColor = "#122263";
-
+    vtpm = {
+      enable = true;
+      basePort = 9106;
+    };
     applications = [
       {
         name = "PDF Viewer";

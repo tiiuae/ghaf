@@ -22,7 +22,9 @@
       ./common/ghaf-audio.nix
       ./common/shared-directory.nix
       ./common/storagevm.nix
+      ./common/tpm-passthrough.nix
       ./common/vm-networking.nix
+      ./common/vtpm.nix
       ./common/waypipe.nix
       ./common/xdghandlers.nix
       ./common/xdgitems.nix
