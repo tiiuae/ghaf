@@ -102,6 +102,11 @@ let
               inherit vmName;
             };
 
+            virtualization.microvm.tpm-passthrough = {
+              enable = true;
+              rootNVIndex = "0x81100300";
+            };
+
             # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
             graphics = {
               launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;

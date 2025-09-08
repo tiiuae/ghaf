@@ -14,7 +14,10 @@
     cores = 4;
     borderColor = "#B83232";
     ghafAudio.enable = true;
-    vtpm.enable = true;
+    vtpm = {
+      enable = true;
+      basePort = 9102;
+    };
     applications = [
       {
         # The SPKI fingerprint is calculated like this:

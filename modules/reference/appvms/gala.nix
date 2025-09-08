@@ -11,6 +11,10 @@
     cores = 2;
     bootPriority = "low";
     borderColor = "#027d7b";
+    vtpm = {
+      enable = true;
+      basePort = 9104;
+    };
     applications = [
       {
         name = "GALA";

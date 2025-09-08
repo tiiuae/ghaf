@@ -14,7 +14,6 @@ let
   inherit (lib)
     mkOption
     types
-    optionals
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
@@ -108,6 +107,10 @@ let
                   inherit vmName;
                 };
 
+                virtualization.microvm.vtpm = {
+                  inherit (vm.vtpm) enable basePort;
+                };
+
                 # Services
                 waypipe = {
                   inherit (vm.waypipe) enable;
@@ -146,13 +149,7 @@ let
                 pkgs.givc-cli
               ]
               ++ vm.packages
-              ++ appPackages
-              ++ optionals vm.vtpm.enable [ pkgs.tpm2-tools ];
-
-              security.tpm2 = optionalAttrs vm.vtpm.enable {
-                enable = true;
-                abrmd.enable = true;
-              };
+              ++ appPackages;
 
               security.pki.certificateFiles =
                 lib.mkIf configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
@@ -191,14 +188,6 @@ let
                     "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
                     "-device"
                     "qemu-xhci"
-                  ]
-                  ++ lib.optionals vm.vtpm.enable [
-                    "-chardev"
-                    "socket,id=chrtpm,path=/var/lib/swtpm/${vm.name}-sock"
-                    "-tpmdev"
-                    "emulator,id=tpm0,chardev=chrtpm"
-                    "-device"
-                    "tpm-tis,tpmdev=tpm0"
                   ]
                   ++
                     lib.optionals (lib.hasAttr "${vm.name}-vm" configHost.ghaf.hardware.passthrough.qemuExtraArgs)
@@ -353,7 +342,17 @@ in
               enable = lib.mkEnableOption "Ghaf application audio support";
               useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
-            vtpm.enable = lib.mkEnableOption "vTPM support in the virtual machine";
+            vtpm = {
+              enable = lib.mkEnableOption "vTPM support in the virtual machine";
+              basePort = lib.mkOption {
+                description = ''
+                  vsock port where the remote swtpm will listen on.
+                  Control channel is on <basePort> and data channel on
+                  <basePort+1>.
+                '';
+                type = types.int;
+              };
+            };
             waypipe.enable = mkOption {
               description = "Enable waypipe for this VM";
               type = types.bool;
@@ -388,49 +387,9 @@ in
   config =
     let
       vms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
-
-      makeSwtpmService =
-        name: vm:
-        let
-
-          swtpmScript = pkgs.writeShellApplication {
-            name = "${name}-swtpm";
-            runtimeInputs = with pkgs; [
-              coreutils
-              swtpm
-            ];
-            text = ''
-              mkdir -p /var/lib/swtpm/${name}-state
-              swtpm socket --tpmstate dir=/var/lib/swtpm/${name}-state \
-                --ctrl type=unixio,path=/var/lib/swtpm/${name}-sock \
-                --tpm2 \
-                --log level=20
-            '';
-          };
-        in
-        lib.mkIf vm.vtpm.enable {
-          enable = true;
-          description = "swtpm service for ${name}";
-          path = [ swtpmScript ];
-          wantedBy = [ "local-fs.target" ];
-          after = [ "local-fs.target" ];
-          serviceConfig = {
-            Type = "simple";
-            Slice = "system-appvms-${name}.slice";
-            User = "microvm";
-            Restart = "always";
-            StateDirectory = "swtpm";
-            StandardOutput = "journal";
-            StandardError = "journal";
-            ExecStart = "${swtpmScript}/bin/${name}-swtpm";
-            LogLevelMax = "notice";
-          };
-        };
-
       vmsWithWaypipe = lib.filterAttrs (
         name: _vm: config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.enable
       ) vms;
-
     in
     lib.mkIf cfg.enable {
       # Define microvms for each AppVM configuration
@@ -444,15 +403,12 @@ in
       # Apply host service dependencies, add swtpm
       systemd.services =
         let
-          serviceDependencies = lib.mapAttrsToList (name: vm: {
-            "${name}-vm-swtpm" = makeSwtpmService name vm;
-          }) vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
           proxyServices = map (name: {
             "vsockproxy-${name}-vm" = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.proxyService;
           }) (builtins.attrNames vmsWithWaypipe);
         in
-        lib.foldr lib.recursiveUpdate { } (serviceDependencies ++ proxyServices);
+        lib.foldr lib.recursiveUpdate { } proxyServices;
 
       # GUIVM needs to have a dedicated waypipe instance for each AppVM
       ghaf.virtualization.microvm.guivm.extraModules = [
