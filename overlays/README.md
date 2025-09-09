@@ -38,6 +38,7 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 ## From Overlays
 
 [gtklock: Multiple errors on wrong password](https://github.com/jovanlanik/gtklock/pull/119)
+[qemu: Battery, lid, power](https://github.com/blochl/qemu/pull/3)
 
 ## carried in tiiuae/nixpkgs/...
 
