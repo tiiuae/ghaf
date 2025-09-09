@@ -62,6 +62,12 @@ in
         Chromecast udp ports
       '';
     };
+    chromeVmName = mkOption {
+      type = types.str;
+      example = "chrome-vm";
+      description = "The name of the chromium/chrome VM to setup chromecast for.";
+      default = "chrome-vm";
+    };
   };
 
   config = mkIf cfg.enable {
@@ -80,7 +86,10 @@ in
       enable = true;
       inherit (cfg) externalNic;
       inherit (cfg) internalNic;
-      chromecast = true;
+      chromecast = {
+        enable = true;
+        inherit (cfg) chromeVmName;
+      };
     };
 
     services.smcroute = {

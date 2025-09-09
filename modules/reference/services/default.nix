@@ -4,6 +4,8 @@
 let
   inherit (lib)
     mkEnableOption
+    mkOption
+    types
     mkIf
     mkForce
     ;
@@ -47,7 +49,25 @@ in
     enable = mkEnableOption "Ghaf reference services";
     dendrite = mkEnableOption "dendrite-pinecone service";
     proxy-business = mkEnableOption "Enable the proxy server service";
-    google-chromecast = mkEnableOption "Chromecast service";
+    google-chromecast = mkOption {
+      description = "Google Chromecast service configuration";
+      type = types.submodule {
+        options = {
+          enable = mkEnableOption "Chromecast service";
+
+          chromeVmName = mkOption {
+            type = types.str;
+            example = "chrome-vm";
+            description = "The name of the chromium/chrome VM to setup chromecast for.";
+            default = "chrome-vm";
+          };
+        };
+      };
+      default = {
+        enable = false;
+        chromeVmName = "chrome-vm";
+      };
+    };
     alpaca-ollama = mkEnableOption "Alpaca/ollama service";
     wireguard-gui = mkEnableOption "Wireguard GUI service";
   };
@@ -55,12 +75,21 @@ in
     ghaf.reference.services = {
       dendrite-pinecone.enable = mkForce (cfg.dendrite && isNetVM);
       proxy-server.enable = mkForce (cfg.proxy-business && isNetVM);
-      chromecast.enable = mkForce (cfg.google-chromecast && isNetVM);
+      chromecast = mkIf (cfg.google-chromecast.enable && isNetVM) {
+        enable = mkForce true;
+        chromeVmName = mkForce cfg.google-chromecast.chromeVmName;
+      };
       ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
       wireguard-gui-config = {
         vms = mkIf (wireguardGuiEnabledVms != [ ]) (mkForce wireguardGuiEnabledVms);
         enable = mkForce (cfg.wireguard-gui && isGuiVM);
       };
     };
+    assertions = [
+      {
+        assertion = cfg.chromecast.chromeVmName != null;
+        message = "Either chrome or chromium VM must be enabled (chromeVmName cannot be null) for chromecast feature.";
+      }
+    ];
   };
 }
