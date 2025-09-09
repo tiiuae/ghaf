@@ -38,7 +38,7 @@ class GpsProcessState:
 
 async def read_continuous_gps(data):
     process = await asyncio.create_subprocess_exec(
-        "./run/current-system/sw/bin/gpspipe",
+        "/run/current-system/sw/bin/gpspipe",
         "-w",
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
