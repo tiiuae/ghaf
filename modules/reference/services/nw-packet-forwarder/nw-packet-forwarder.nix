@@ -7,27 +7,33 @@
   ...
 }:
 let
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    mkIf
+    ;
   cfg = config.services.nw-packet-forwarder;
 
-  chromevmIpAddr = config.ghaf.networking.hosts."chrome-vm".ipv4;
-  chromevmMac = config.ghaf.networking.hosts."chrome-vm".mac;
+  chromevmIpAddr = config.ghaf.networking.hosts.${cfg.chromecast.chromeVmName}.ipv4;
+  chromevmMac = config.ghaf.networking.hosts.${cfg.chromecast.chromeVmName}.mac;
   netVmInternalIp = config.ghaf.networking.hosts."net-vm".ipv4;
 
   nwPcktFwdUser = "nwpcktfwd-admin";
 in
 {
   options.services.nw-packet-forwarder = {
-    enable = lib.mkEnableOption "nw-packet-forwarder";
-    confFile = lib.mkOption {
-      type = lib.types.path;
+    enable = mkEnableOption "nw-packet-forwarder";
+    confFile = mkOption {
+      type = types.path;
       example = "/var/lib/nw-packet-forwarder/nw-packet-forwarder.conf";
       description = ''
         Ignore all other nw-packet-forwarder options and load configuration from this file.
       '';
     };
 
-    externalNic = lib.mkOption {
-      type = lib.types.str;
+    externalNic = mkOption {
+      type = types.str;
       default = "";
       example = "";
       description = ''
@@ -35,8 +41,8 @@ in
       '';
     };
 
-    internalNic = lib.mkOption {
-      type = lib.types.str;
+    internalNic = mkOption {
+      type = types.str;
       default = "";
       example = "";
       description = ''
@@ -44,24 +50,31 @@ in
       '';
     };
 
-    internalIp = lib.mkOption {
-      type = lib.types.str;
+    internalIp = mkOption {
+      type = types.str;
       default = netVmInternalIp;
       example = "";
       description = ''
         Internal IP
       '';
     };
-    chromecast = lib.mkOption {
-      type = lib.types.bool;
-      default = false;
-      description = ''
-        Enable chromecast feature
-      '';
-    };
+    chromecast = mkOption {
+      description = "nw-packet-forwarder chromecast configuration";
+      type = types.submodule {
+        options = {
+          enable = mkEnableOption "Enable chromecast feature";
 
+          chromeVmName = mkOption {
+            type = types.str;
+            example = "chrome-vm";
+            description = "The name of the chromium/chrome VM to setup chromecast for.";
+            default = "chrome-vm";
+          };
+        };
+      };
+    };
   };
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     assertions = [
       {
         assertion = cfg.externalNic != "";
@@ -120,7 +133,7 @@ in
 
       serviceConfig = {
         Type = "simple";
-        ExecStart = "${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd --external-iface ${cfg.externalNic} --internal-iface ${cfg.internalNic} --internal-ip ${cfg.internalIp} --chromecast=${toString cfg.chromecast} --chromevm-mac ${chromevmMac} --chromevm-ip ${chromevmIpAddr}/24";
+        ExecStart = "${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd --external-iface ${cfg.externalNic} --internal-iface ${cfg.internalNic} --internal-ip ${cfg.internalIp} --chromecast=${toString cfg.chromecast.enable} --chromevm-mac ${chromevmMac} --chromevm-ip ${chromevmIpAddr}/24";
         User = "${nwPcktFwdUser}";
         # Restart the service if it fails
         Restart = "on-failure";

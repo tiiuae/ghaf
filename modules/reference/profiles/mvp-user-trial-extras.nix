@@ -40,9 +40,7 @@ in
         };
       };
 
-      # Enable below option for session lock feature
       graphics = {
-        boot.enable = lib.mkForce true;
         labwc = {
           autologinUser = lib.mkForce null;
         };
