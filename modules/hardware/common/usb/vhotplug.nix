@@ -1,4 +1,4 @@
-# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
@@ -13,15 +13,14 @@ let
     mkOption
     types
     mkIf
-    literalExpression
     optionals
     ;
 
   defaultRules = [
     {
-      name = "GUIVM";
-      qmpSocket = "/var/lib/microvms/gui-vm/gui-vm.sock";
-      usbPassthrough = [
+      description = "Devices for GUIVM";
+      targetVm = "GUIVM";
+      allow = [
         {
           class = 3;
           protocol = 1;
@@ -53,15 +52,11 @@ let
           description = "USB-C alternate modes supported by device";
         }
       ];
-      evdevPassthrough = {
-        enable = cfg.enableEvdevPassthrough;
-        inherit (cfg) pcieBusPrefix;
-      };
     }
     {
-      name = "NetVM";
-      qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
-      usbPassthrough = [
+      description = "Network Devices for NetVM";
+      targetVm = "NetVM";
+      allow = [
         {
           class = 2;
           subclass = 6;
@@ -82,65 +77,99 @@ let
         && config.ghaf.virtualization.microvm.appvm.vms.chrome.enable
       )
       [
-        # ChromeVM may use video devices which take precedence over audio devices / AudioVM
         {
-          name = "ChromeVM";
-          qmpSocket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
-          usbPassthrough = [
+          description = "Webcams for ChromeVM";
+          targetVm = "ChromeVM";
+          allow = [
             {
               class = 14;
               description = "Video (USB Webcams)";
-              ignore = [
-                {
-                  # Ignore Lenovo X1 camera since it is attached to the business-vm
-                  # Finland SKU
-                  vendorId = "04f2";
-                  productId = "b751";
-                  description = "Lenovo X1 Integrated Camera";
-                }
-                {
-                  # Ignore Lenovo X1 camera since it is attached to the business-vm
-                  # Uae 1st SKU
-                  vendorId = "5986";
-                  productId = "2145";
-                  description = "Lenovo X1 Integrated Camera";
-                }
-                {
-                  # Ignore Lenovo X1 camera since it is attached to the business-vm
-                  # UAE #2 SKU
-                  vendorId = "30c9";
-                  productId = "0052";
-                  description = "Lenovo X1 Integrated Camera";
-                }
-                {
-                  # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
-                  # Finland SKU
-                  vendorId = "30c9";
-                  productId = "005f";
-                  description = "Lenovo X1 Integrated Camera";
-                }
-                {
-                  # Ignore System76 darp11-b camera since it is attached to the business-vm
-                  # Finland SKU
-                  vendorId = "04f2";
-                  productId = "b729";
-                  description = "System76 darp11-b Integrated Camera";
-                }
-              ];
             }
+          ];
+          deny = [
+            {
+              # Ignore Lenovo X1 camera since it is attached to the business-vm
+              # Finland SKU
+              vendorId = "04f2";
+              productId = "b751";
+              description = "Lenovo X1 Integrated Camera";
+            }
+            {
+              # Ignore Lenovo X1 camera since it is attached to the business-vm
+              # Uae 1st SKU
+              vendorId = "5986";
+              productId = "2145";
+              description = "Lenovo X1 Integrated Camera";
+            }
+            {
+              # Ignore Lenovo X1 camera since it is attached to the business-vm
+              # UAE #2 SKU
+              vendorId = "30c9";
+              productId = "0052";
+              description = "Lenovo X1 Integrated Camera";
+            }
+            {
+              # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
+              # Finland SKU
+              vendorId = "30c9";
+              productId = "005f";
+              description = "Lenovo X1 Integrated Camera";
+            }
+            {
+              # Ignore System76 darp11-b camera since it is attached to the business-vm
+              # Finland SKU
+              vendorId = "04f2";
+              productId = "b729";
+              description = "System76 darp11-b Integrated Camera";
+            }
+
           ];
         }
       ]
   ++ optionals config.ghaf.virtualization.microvm.audiovm.enable [
     {
-      name = "AudioVM";
-      qmpSocket = "/var/lib/microvms/audio-vm/audio-vm.sock";
-      usbPassthrough = [
+      description = "Audio Devices for AudioVM";
+      targetVm = "AudioVM";
+      allow = [
         {
           class = 1;
           description = "Audio";
         }
       ];
+      deny = [
+        {
+          class = 14;
+          description = "Video (USB Webcams)";
+        }
+      ];
+    }
+  ];
+
+  defaultVms = [
+    {
+      name = "GUIVM";
+      type = "qemu";
+      socket = "/var/lib/microvms/gui-vm/gui-vm.sock";
+    }
+    {
+      name = "NetVM";
+      type = "qemu";
+      socket = "/var/lib/microvms/net-vm/net-vm.sock";
+    }
+    {
+      name = "ChromeVM";
+      type = "qemu";
+      socket = "/var/lib/microvms/chrome-vm/chrome-vm.sock";
+    }
+    {
+      name = "BusinessVM";
+      type = "qemu";
+      socket = "/var/lib/microvms/business-vm/business-vm.sock";
+    }
+    {
+      name = "AudioVM";
+      type = "qemu";
+      socket = "/var/lib/microvms/audio-vm/audio-vm.sock";
     }
   ];
 in
@@ -152,45 +181,15 @@ in
       type = types.listOf types.attrs;
       default = defaultRules;
       description = ''
-        List of virtual machines with USB hot plugging rules.
+        List of USB hot plugging rules.
       '';
-      example = literalExpression ''
-        [
-         {
-            name = "GUIVM";
-            qmpSocket = "/var/lib/microvms/gui-vm/gui-vm.sock";
-            usbPassthrough = [
-              {
-                class = 3;
-                protocol = 1;
-                description = "HID Keyboard";
-                ignore = [
-                  {
-                    vendorId = "046d";
-                    productId = "c52b";
-                    description = "Logitech, Inc. Unifying Receiver";
-                  }
-                ];
-              }
-              {
-                vendorId = "067b";
-                productId = "23a3";
-                description = "Prolific Technology, Inc. USB-Serial Controller";
-                disable = true;
-              }
-            ];
-          }
-          {
-            name = "NetVM";
-            qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
-            usbPassthrough = [
-              {
-                productName = ".*ethernet.*";
-                description = "Ethernet devices";
-              }
-            ];
-          }
-        ];
+    };
+
+    vms = mkOption {
+      type = types.listOf types.attrs;
+      default = defaultVms;
+      description = ''
+        List of virtual machines.
       '';
     };
 
@@ -237,6 +236,24 @@ in
         The number of PCIe ports used for hot-plugging virtio-input-host-pci devices.
       '';
     };
+
+    api = {
+      enable = mkOption {
+        description = ''
+          Enable external API.
+        '';
+        type = types.bool;
+        default = true;
+      };
+
+      port = lib.mkOption {
+        type = lib.types.int;
+        default = 2000;
+        description = ''
+          API port number.
+        '';
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -246,7 +263,23 @@ in
     '';
 
     environment.etc."vhotplug.conf".text = builtins.toJSON {
-      vms = cfg.prependRules ++ cfg.rules ++ cfg.postpendRules;
+      usbPassthrough = cfg.prependRules ++ cfg.rules ++ cfg.postpendRules;
+
+      evdevPassthrough = {
+        enable = cfg.enableEvdevPassthrough;
+        inherit (cfg) pcieBusPrefix;
+        targetVm = "GUIVM";
+      };
+
+      inherit (cfg) vms;
+
+      general = {
+        api = {
+          inherit (cfg.api) enable;
+          inherit (cfg.api) port;
+          transport = "vsock";
+        };
+      };
     };
 
     systemd.services.vhotplug = {
