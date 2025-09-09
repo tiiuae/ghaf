@@ -89,12 +89,12 @@ in
       enable = true;
       rules = [
         {
-          name = "NetVM";
-          qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
-          usbPassthrough = [
+          description = "Devices for NetVM";
+          targetVm = "net-vm";
+          allow = [
             {
-              class = 2;
-              subclass = 6;
+              interfaceClass = 2;
+              interfaceSubclass = 6;
               description = "Communications - Ethernet Networking";
             }
             {
