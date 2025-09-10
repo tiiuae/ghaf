@@ -125,6 +125,7 @@ let
                   port = lib.mkForce "9002";
                 };
                 services = [ ];
+                eventProxy = lib.mkForce [ ];
               };
 
               # Reorder some GIVC services to ensure proper startup order in host
