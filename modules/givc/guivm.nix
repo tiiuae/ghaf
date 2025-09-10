@@ -13,6 +13,7 @@ let
     ;
   netvmName = "net-vm";
   audiovmName = "audio-vm";
+  guivmName = "gui-vm";
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
 in
@@ -61,6 +62,17 @@ in
             socket = "/tmp/dbusproxy_snd.sock";
           }
         ];
+      eventProxy = [
+        {
+          transport = {
+            name = guivmName;
+            addr = hosts.${guivmName}.ipv4;
+            port = "9012";
+            protocol = "tcp";
+          };
+          producer = false;
+        }
+      ];
     };
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"

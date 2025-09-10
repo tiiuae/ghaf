@@ -52,6 +52,18 @@ in
           socket = "/tmp/dbusproxy_snd.sock";
         }
       ];
+      eventProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+        {
+          transport = {
+            name = guivmName;
+            addr = hosts.${guivmName}.ipv4;
+            port = "9012";
+            protocol = "tcp";
+          };
+          producer = true;
+          device = "mouse";
+        }
+      ];
     };
     givc.dbusproxy = {
       enable = true;
