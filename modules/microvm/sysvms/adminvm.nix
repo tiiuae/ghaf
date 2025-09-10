@@ -92,16 +92,6 @@ let
                 mountPoint = "/etc/common";
                 proto = "virtiofs";
               }
-            ]
-            ++ lib.optionals config.ghaf.logging.enable [
-              {
-                # Creating a persistent log-store which is mapped on ghaf-host
-                # This is only to preserve logs state across adminvm reboots
-                tag = "log-store";
-                source = "/persist/storagevm/admin-vm/var/lib/private/alloy";
-                mountPoint = "/var/lib/private/alloy";
-                proto = "virtiofs";
-              }
             ];
 
             writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";

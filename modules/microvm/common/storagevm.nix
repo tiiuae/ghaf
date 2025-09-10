@@ -145,6 +145,8 @@ in
           (mkIf cfg.preserveLogs {
             directories = [
               "/var/log/journal"
+            ]
+            ++ optionals (!config.ghaf.logging.server.enable) [
               "/var/lib/private/alloy"
             ]
             ++ optionals config.security.auditd.enable [
