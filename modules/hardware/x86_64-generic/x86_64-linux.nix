@@ -34,6 +34,7 @@ in
       initrd.availableKernelModules = [
         "nvme"
         "uas"
+        "fake_battery"
       ];
       loader = {
         efi.canTouchEfiVariables = true;
@@ -41,6 +42,10 @@ in
       };
 
       kernelPackages = pkgs.linuxPackages;
+
+      extraModulePackages = [
+        (config.boot.kernelPackages.callPackage ../../../packages/kernel/modules/fake-battery { })
+      ];
     };
   };
 }

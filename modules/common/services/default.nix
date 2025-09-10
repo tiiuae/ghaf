@@ -5,6 +5,7 @@
     ./audio.nix
     ./bluetooth.nix
     ./brightness.nix
+    ./createFakeBattery.nix
     ./disks.nix
     ./firmware.nix
     ./fprint.nix
