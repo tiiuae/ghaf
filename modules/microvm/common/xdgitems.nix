@@ -39,7 +39,8 @@ let
     "image/x-sony-arw"
     "image/x-sony-srf"
     "image/x-sony-sr2"
-    "image/x-panasonic-raw/x-portable-pixmap"
+    "image/x-panasonic-raw"
+    "image/x-portable-pixmap"
     "image/heic"
     "image/x-qoi"
   ];
