@@ -21,90 +21,181 @@ let
           self.nixosModules.reference-appvms
           self.nixosModules.hardware-x86_64-generic
 
-          {
-            ghaf = {
-              hardware.x86_64.common.enable = true;
+          (
+            { config, pkgs, ... }:
+            {
+              ghaf = {
+                hardware.x86_64.common.enable = true;
+                microvm-boot.enable = lib.mkForce false;
 
-              virtualization = {
-                microvm-host = {
-                  enable = true;
-                  networkSupport = true;
-                };
+                virtualization = {
+                  microvm-host = {
+                    enable = true;
+                    networkSupport = true;
+                  };
 
-                microvm.guivm.enable = withGraphics;
-                # TODO: NetVM enabled, but it does not include anything specific
-                #       for this Virtual Machine target
-                microvm.netvm.enable = true;
-                microvm.adminvm.enable = true;
-                microvm.appvm = {
-                  enable = true;
-                  vms = {
-                    zathura = {
-                      enable = true;
-                      waypipe.enable = withGraphics; # disable waypipe when guivm is not used
-                    };
-                    gala = {
-                      enable = false;
-                      waypipe.enable = withGraphics;
+                  # TODO: Systemvms enabled but there is no passthroughs
+                  microvm.netvm.enable = true;
+                  microvm.audiovm.enable = true;
+                  microvm.adminvm.enable = true;
+
+                  # TODO: Currently we run the desktop on the host in this target.
+                  # GUI VM usage would require some display forwarding or remote display connection
+                  # microvm.guivm.enable = withGraphics;
+
+                  microvm.appvm = {
+                    enable = true;
+                    vms = {
+                      zathura = {
+                        enable = true;
+                        waypipe.enable = false; # disable waypipe when guivm is not used
+                      };
+                      gala = {
+                        enable = false;
+                        waypipe.enable = withGraphics;
+                      };
                     };
                   };
                 };
-              };
 
-              reference = {
-                appvms.enable = true;
-              };
-
-              givc = {
-                enable = withGraphics;
-                debug = true;
-              };
-
-              host.networking.enable = true;
-
-              # Enable all the default UI applications
-              profiles = {
-                graphics = {
-                  enable = withGraphics;
+                reference = {
+                  appvms.enable = true;
                 };
-                release.enable = variant == "release";
-                debug.enable = lib.hasPrefix "debug" variant;
+
+                # Add some launchers
+                # TODO: The application interface needs to move to a common module to be reused here
+                graphics.launchers = lib.optionals withGraphics [
+                  {
+                    name = "Calculator";
+                    description = "Solve Math Problems";
+                    icon = "${pkgs.gnome-calculator}/share/icons/hicolor/scalable/apps/org.gnome.Calculator.svg";
+                    path = "${pkgs.gnome-calculator}/bin/gnome-calculator";
+                  }
+                  {
+                    name = "Bluetooth Settings";
+                    description = "Manage Bluetooth Devices & Settings";
+                    icon = "bluetooth-48";
+                    path = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
+                      DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock \
+                      PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} \
+                      ${pkgs.blueman}/bin/blueman-manager
+                    ''}/bin/bluetooth-settings";
+                  }
+                ];
+
+                # Add simple login user for testing purposes
+                users.managed = [
+                  {
+                    name = "user";
+                    vms = [ "ghaf-host" ];
+                    initialPassword = "ghaf";
+                    uid = 1000;
+                    extraGroups = [
+                      "audio"
+                      "video"
+                      "wheel"
+                    ];
+                  }
+                ];
+
+                givc = {
+                  enable = withGraphics;
+                  debug = true;
+                  # We enable the gui-vm module as the desktop runs on the host
+                  guivm.enable = withGraphics;
+                };
+
+                host.networking.enable = true;
+
+                # Enable all the default UI applications
+                profiles = {
+                  graphics = {
+                    enable = withGraphics;
+                  };
+                  release.enable = variant == "release";
+                  debug.enable = lib.hasPrefix "debug" variant;
+                };
               };
-            };
 
-            nixpkgs = {
-              hostPlatform.system = "x86_64-linux";
+              # Enable GUI component on host
+              givc.sysvm = lib.optionalAttrs withGraphics {
+                transport = {
+                  name = lib.mkForce "ghaf-host-gui";
+                  addr = config.ghaf.networking.hosts.ghaf-host.ipv4;
+                  port = lib.mkForce "9002";
+                };
+                services = [ ];
+              };
 
-              # Increase the support for different devices by allowing the use
-              # of proprietary drivers from the respective vendors
-              config = {
-                allowUnfree = true;
-                #jitsi was deemed insecure because of an obsecure potential security
-                #vulnerability but it is still used by many people
-                permittedInsecurePackages = [
-                  "jitsi-meet-1.0.8043"
-                  "qtwebengine-5.15.19"
+              # Reorder some GIVC services to ensure proper startup order in host
+              systemd.services = lib.optionalAttrs withGraphics {
+                givc-key-setup.after = [ "local-fs.target" ];
+                givc-user-key-setup.after = [ "givc-key-setup.service" ];
+              };
+
+              # Reconfigure net-vm and audio-vm socket proxies to connect with host
+              microvm.vms = lib.optionalAttrs withGraphics {
+                net-vm.config.config.givc.sysvm = {
+                  hwidService = lib.mkForce false;
+                  socketProxy = lib.mkForce [
+                    {
+                      transport = {
+                        name = config.networking.hostName;
+                        addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
+                        port = "9010";
+                        protocol = "tcp";
+                      };
+                      socket = "/tmp/dbusproxy_net.sock";
+                    }
+                  ];
+                };
+                audio-vm.config.config.givc.sysvm.socketProxy = lib.mkForce [
+                  {
+                    transport = {
+                      name = config.networking.hostName;
+                      addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
+                      port = "9011";
+                      protocol = "tcp";
+                    };
+                    socket = "/tmp/dbusproxy_snd.sock";
+                  }
                 ];
               };
 
-              overlays = [ self.overlays.default ];
-            };
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
 
-            virtualisation = lib.optionalAttrs (format == "vm") {
-              graphics = withGraphics;
-              useNixStoreImage = true;
-              writableStore = true;
-              cores = 4;
-              memorySize = 8 * 1024;
-              forwardPorts = [
-                {
-                  from = "host";
-                  host.port = 8022;
-                  guest.port = 22;
-                }
-              ];
-            };
-          }
+                # Increase the support for different devices by allowing the use
+                # of proprietary drivers from the respective vendors
+                config = {
+                  allowUnfree = true;
+                  #jitsi was deemed insecure because of an obsecure potential security
+                  #vulnerability but it is still used by many people
+                  permittedInsecurePackages = [
+                    "jitsi-meet-1.0.8043"
+                    "qtwebengine-5.15.19"
+                  ];
+                };
+
+                overlays = [ self.overlays.default ];
+              };
+
+              virtualisation = lib.optionalAttrs (format == "vm") {
+                graphics = withGraphics;
+                useNixStoreImage = true;
+                writableStore = true;
+                cores = 4;
+                memorySize = 8 * 1024;
+                forwardPorts = [
+                  {
+                    from = "host";
+                    host.port = 8022;
+                    guest.port = 22;
+                  }
+                ];
+              };
+            }
+          )
         ];
       };
     in
