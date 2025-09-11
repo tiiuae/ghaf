@@ -24,7 +24,7 @@
         description = "Isolated General Browsing";
         packages = [ pkgs.chromium ];
         icon = "chromium";
-        command = "chromium --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
+        command = "chromium --disable-gpu --disable-software-rasterizer --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
         givcArgs = [
           "url"
           "flag"
