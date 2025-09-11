@@ -65,7 +65,6 @@ in
       # Tools for joysticks and serial peripherals
       pkgs.linuxConsoleTools
 
-      #(config.boot.kernelPackages.perf.override {python3 = pkgs.python311;})
       sysbench-test-script
       sysbench-fileio-test-script
       nvpmodel-check
@@ -75,9 +74,7 @@ in
     ++ rmDesktopEntries [ pkgs.v4l-utils ]
     ++ rmDesktopEntries [ pkgs.htop ]
     #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
-    ++ lib.optional (
-      config.nixpkgs.hostPlatform.system != "aarch64-linux"
-    ) config.boot.kernelPackages.perf
+    ++ lib.optional (config.nixpkgs.hostPlatform.system != "aarch64-linux") pkgs.perf
     # LuaJIT (which is sysbench dependency) not available on RISC-V
     # ydotool and grim are tools for automated GUI-testing, useless on riscv
     ++ lib.optionals (config.nixpkgs.hostPlatform.system != "riscv64-linux") [
