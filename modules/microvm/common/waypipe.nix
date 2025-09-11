@@ -15,11 +15,13 @@ let
     mkIf
     types
     strings
+    getExe
     ;
 
   inherit (config.ghaf.networking.hosts."${cfg.vm.name}-vm") cid;
   guivmCID = config.ghaf.networking.hosts.gui-vm.cid;
 
+  waypipeBaseCmd = "${getExe pkgs.waypipe} --compress none --no-gpu";
   waypipePort = cfg.waypipeBasePort + cid;
   waypipeBorder = strings.optionalString (
     cfg.waypipeBorder && cfg.vm.borderColor != null
@@ -30,12 +32,12 @@ let
         if cfg.serverSocketPath != null then
           ''
             #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe -s ${cfg.serverSocketPath} server "$@"
+            ${waypipeBaseCmd} -s ${cfg.serverSocketPath} server "$@"
           ''
         else
           ''
             #!${pkgs.runtimeShell} -e
-            ${pkgs.waypipe}/bin/waypipe --vsock -s ${toString waypipePort} server "$@"
+            ${waypipeBaseCmd} --vsock -s ${toString waypipePort} server "$@"
           '';
     in
     pkgs.writeScriptBin "run-waypipe" script;
@@ -118,7 +120,7 @@ in
                   "--vsock -s ${toString waypipePort} client";
             in
             ''
-              ${pkgs.waypipe}/bin/waypipe ${titlePrefix} ${secctx} ${waypipeBorder} ${socketPath}
+              ${waypipeBaseCmd} ${titlePrefix} ${secctx} ${waypipeBorder} ${socketPath}
             '';
         };
         startLimitIntervalSec = 0;
@@ -134,7 +136,7 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          ExecStart = "${pkgs.vsockproxy}/bin/vsockproxy ${toString waypipePort} ${toString guivmCID} ${toString waypipePort} ${toString cid}";
+          ExecStart = "${getExe pkgs.vsockproxy} ${toString waypipePort} ${toString guivmCID} ${toString waypipePort} ${toString cid}";
         };
         startLimitIntervalSec = 0;
         wantedBy = [ "multi-user.target" ];
