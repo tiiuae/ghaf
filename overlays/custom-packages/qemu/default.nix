@@ -3,20 +3,25 @@
 { final, prev }:
 let
   qemu_version = prev.qemu_kvm.version;
-  qemu_major = final.lib.versions.major qemu_version;
-  qemu_minor = final.lib.versions.minor qemu_version;
 in
 prev.qemu_kvm.overrideAttrs (
   _final: prev:
-  (final.lib.optionalAttrs (qemu_major == "8" && qemu_minor == "0") {
-    patches = prev.patches ++ [ ./acpi-devices-passthrough-qemu-8.0.patch ];
-  })
-  // (final.lib.optionalAttrs (final.lib.versionAtLeast qemu_version "8.1") {
-    patches = prev.patches ++ [
-      ./acpi-devices-passthrough-qemu-8.1.patch
-      ./0001-ivshmem-flat-memory-support.patch
-      ./usb-host-enable-autoscan-for-bus-addr.patch
-    ];
+  (final.lib.optionalAttrs (final.lib.versionAtLeast qemu_version "10.1") {
+    patches =
+      prev.patches
+      ++ [
+        # own patches
+        ./0001-ivshmem-flat-memory-support.patch
+        ./usb-host-enable-autoscan-for-bus-addr.patch
+      ]
+      ++ final.lib.optionals final.hostPlatform.isx86_64 [
+        # https://github.com/blochl/qemu/pull/3
+        # TODO: remove when merged upstream
+        ./0001-hw-acpi-Support-extended-GPE-handling-for-additional.patch
+        ./0002-hw-acpi-Introduce-the-QEMU-Battery.patch
+        ./0003-hw-acpi-Introduce-the-QEMU-AC-adapter.patch
+        ./0004-hw-acpi-Introduce-the-QEMU-lid-button.patch
+      ];
   })
   // {
     postInstall = (prev.postInstall or "") + ''

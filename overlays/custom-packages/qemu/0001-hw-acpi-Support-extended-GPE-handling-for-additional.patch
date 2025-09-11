@@ -1,0 +1,77 @@
+From 8536e81b3eaf5d32cd9dddc5680618223a95049d Mon Sep 17 00:00:00 2001
+From: Leonid Bloch <lb.workbox@gmail.com>
+Date: Thu, 7 Nov 2019 19:10:54 +0200
+Subject: [PATCH 1/4] hw/acpi: Support extended GPE handling for additional
+ ACPI devices
+
+This patch extends the GPE (General Purpose Event) handling to support
+the maximum number of interrupts available based on the machine's GPE
+register length, rather than being limited to the first 8 bits.
+
+This change is needed to support additional ACPI devices that will be
+introduced in subsequent patches (Battery, AC adapter, and button devices).
+These new devices require GPE event bits beyond the first 8, which were
+previously not being properly handled by the event sending and SCI
+(System Control Interrupt) update mechanisms.
+
+The actual number of available GPE interrupts varies by machine type:
+- PIIX4: GPE_LEN = 4 (32 bits total across status and enable registers)
+- ICH9: ICH9_PMIO_GPE0_LEN = 16 (128 bits total)
+
+The patch modifies:
+- acpi_send_gpe_event(): Now properly propagates status bits across all
+  available GPE registers based on the machine's gpe.len value
+- acpi_update_sci(): Checks all GPE registers for pending interrupts,
+  not just the first byte
+
+Note: A future enhancement could refactor the GPE handling to use the
+bitmap API from bitops.h instead of the current manual bit manipulation,
+which would provide a cleaner interface for these operations.
+
+Signed-off-by: Leonid Bloch <lb.workbox@gmail.com>
+Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
+---
+ hw/acpi/core.c | 17 +++++++++++++++--
+ 1 file changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/hw/acpi/core.c b/hw/acpi/core.c
+index 58f8964e13..3240ec185e 100644
+--- a/hw/acpi/core.c
++++ b/hw/acpi/core.c
+@@ -729,19 +729,32 @@ uint32_t acpi_gpe_ioport_readb(ACPIREGS *ar, uint32_t addr)
+ void acpi_send_gpe_event(ACPIREGS *ar, qemu_irq irq,
+                          AcpiEventStatusBits status)
+ {
+-    ar->gpe.sts[0] |= status;
++    int i;
++    AcpiEventStatusBits st = status;
++
++    for (i = 0; i < ar->gpe.len / 2; i++) {
++        ar->gpe.sts[i] |= st;
++        st >>= TYPE_WIDTH(ar->gpe.sts[0]);
++    }
++
+     acpi_update_sci(ar, irq);
+ }
+ 
+ void acpi_update_sci(ACPIREGS *regs, qemu_irq irq)
+ {
+     int sci_level, pm1a_sts;
++    bool gpe_sci = false;
++    int i;
+ 
+     pm1a_sts = acpi_pm1_evt_get_sts(regs);
+ 
++    for (i = 0; i < regs->gpe.len / 2; i++) {
++        gpe_sci = gpe_sci || !!(regs->gpe.sts[i] & regs->gpe.en[i]);
++    }
++
+     sci_level = ((pm1a_sts &
+                   regs->pm1.evt.en & ACPI_BITMASK_PM1_COMMON_ENABLED) != 0) ||
+-                ((regs->gpe.sts[0] & regs->gpe.en[0]) != 0);
++                gpe_sci;
+ 
+     qemu_set_irq(irq, sci_level);
+ 
+-- 
+2.50.1

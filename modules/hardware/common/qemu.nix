@@ -1,7 +1,11 @@
 # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  ...
+}:
 let
   inherit (builtins) hasAttr;
   inherit (lib)
@@ -29,15 +33,15 @@ in
     ghaf.qemu.guivm = optionalAttrs (config.ghaf.type == "host") {
       microvm.qemu.extraArgs =
         optionals (config.ghaf.hardware.definition.type == "laptop") [
-          # Button
+          # Lid Button
           "-device"
-          "button"
-          # Battery
+          "button,use-qmp=false,enable-procfs=true,probe_interval=2000"
+          # Battery is 20 seconds too long enough for polling
           "-device"
-          "battery"
+          "battery,use-qmp=false,enable-sysfs=true,probe_interval=20000"
           # AC adapter
           "-device"
-          "acad"
+          "acad,use-qmp=false,enable-sysfs=true,probe_interval=5000"
         ]
         ++ optionals (hasAttr "gui-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.gui-vm;
     };
@@ -46,9 +50,9 @@ in
         optionals (hasAttr "audio-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.audio-vm
         ++ optionals (config.ghaf.hardware.definition.type == "laptop") [
           "-device"
-          "battery"
+          "battery,use-qmp=false,enable-sysfs=true,probe_interval=20000"
           "-device"
-          "acad"
+          "acad,use-qmp=false,enable-sysfs=true,probe_interval=5000"
         ]
         ++ optionals (config.ghaf.hardware.definition.audio.acpiPath != null) [
           "-acpitable"
