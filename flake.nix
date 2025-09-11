@@ -125,8 +125,7 @@
 
     # For building and managing VMs
     microvm = {
-      #TODO: bug in the darwin enable that removed qemu_kvm
-      url = "github:microvm-nix/microvm.nix/beb47425bd866f606129c631c98b6288f7596e78";
+      url = "github:microvm-nix/microvm.nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
