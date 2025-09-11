@@ -360,17 +360,16 @@
         "spectrum": "spectrum"
       },
       "locked": {
-        "lastModified": 1755802472,
-        "narHash": "sha256-GPrRlKMrvNkW4NGQl0DtXHvT+tQUha0ImnwduFlTGzc=",
+        "lastModified": 1757518086,
+        "narHash": "sha256-qUJFqN9KGhh2nh4ksaFGfGNIuL7p+8PstjtODLbWuSk=",
         "owner": "microvm-nix",
         "repo": "microvm.nix",
-        "rev": "beb47425bd866f606129c631c98b6288f7596e78",
+        "rev": "f6e7494efa2b17deb2a69a45932d34dc205bd3bb",
         "type": "github"
       },
       "original": {
         "owner": "microvm-nix",
         "repo": "microvm.nix",
-        "rev": "beb47425bd866f606129c631c98b6288f7596e78",
         "type": "github"
       }
     },
