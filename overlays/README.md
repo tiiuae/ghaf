@@ -42,5 +42,3 @@ The status of the integration in nixpkgs can be tracked using the [Pull Request 
 ## carried in tiiuae/nixpkgs/...
 
 The following are in staging at the moment, so carry for some time until they reach unstable.
-
-[qemu 10.1.0](https://github.com/tiiuae/nixpkgs/tree/qemu-bump-10-1)

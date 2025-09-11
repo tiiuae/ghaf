@@ -22,8 +22,8 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/qemu-10-1-bump";
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #nixpkgs.url = "github:tiiuae/nixpkgs/qemu-10-1-bump";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # A framework for testing ghaf configurations
     ci-test-automation = {
@@ -82,7 +82,7 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      url = "github:tiiuae/ghafpkgs/7127f73cd9962d4ad28c024c57ee23fa487926df";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
