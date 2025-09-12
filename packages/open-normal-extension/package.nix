@@ -1,6 +1,7 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  ghaf-artwork,
   lib,
   stdenvNoCC,
   makeWrapper,
@@ -47,7 +48,9 @@ let
 in
 stdenvNoCC.mkDerivation {
   name = "open-normal-extension";
-
+  # The version number should be updated any time the extension is changed
+  # This version number will be propagated to manifest.json and update.xml
+  version = "1.0.1";
   src = ./open-normal-extension;
   key = keyPem;
   updateXml = ./update.xml;
@@ -75,6 +78,7 @@ stdenvNoCC.mkDerivation {
     cp "$out/open_normal.sh" "$workdir/open_normal.sh"
     cp -r "$src"/*.json "$workdir"
     cp -r "$src"/*.js "$workdir"
+    cp "${ghaf-artwork}/ghaf-logo-512px.png" "$workdir"
 
     chmod a+x "$workdir/open_normal.sh"
 
@@ -89,6 +93,10 @@ stdenvNoCC.mkDerivation {
       "$workdir/fi.ssrc.open_normal.json" \
       "$workdir/manifest.json" \
       "$out/share/update.xml"
+
+    # Set version to automatically update the extension
+    substituteInPlace "$workdir/manifest.json" "$out/share/update.xml" \
+      --replace-fail "VERSION_HERE" "$version"
 
     # Pack extension
     chromium \

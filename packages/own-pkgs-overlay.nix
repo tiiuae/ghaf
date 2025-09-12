@@ -25,7 +25,7 @@
         { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
-    open-normal-extension = final.callPackage ./pkgs-by-name/open-normal-extension/package.nix { };
+    open-normal-extension = final.callPackage ./open-normal-extension/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     update-docs-depends = final.callPackage ./pkgs-by-name/update-docs-depends/package.nix { };

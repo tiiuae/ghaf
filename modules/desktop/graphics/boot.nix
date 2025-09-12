@@ -80,7 +80,7 @@ in
 
       image = mkOption {
         type = types.path;
-        default = "${pkgs.ghaf-artwork}/ghaf-logo.png";
+        default = "${pkgs.ghaf-artwork}/ghaf-logo-512px.png";
         description = ''
           Image to use at the bottom of the splash screen.
           Default is the Ghaf logo.
