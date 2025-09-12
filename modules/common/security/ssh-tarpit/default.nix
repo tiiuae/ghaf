@@ -10,22 +10,28 @@ let
   inherit (lib)
     mkIf
     mkEnableOption
-    optionals
+    mkForce
+    mkOption
+    types
     ;
   tarpitListenPort = 2222;
-  tarpitFwMarkNum = "70";
   sshPort = lib.head config.services.openssh.ports;
 in
 {
   options.ghaf.security.ssh-tarpit = {
     enable = mkEnableOption "Enable ssh tarpit";
-    listenAddress = lib.mkOption {
-      type = lib.types.str;
+    listenAddress = mkOption {
+      type = types.str;
       default = "0.0.0.0";
       example = "[::]";
       description = ''
         Interface address to bind the ssh-tarpit daemon to SSH connections.
       '';
+    };
+    fwMarkNum = mkOption {
+      type = types.str;
+      default = "70";
+      description = "Firewall mark number to apply to banned IPs when using iptables-ipset-mark.";
     };
   };
 
@@ -35,13 +41,17 @@ in
         assertion = !(lib.elem tarpitListenPort config.services.openssh.ports);
         message = "Ssh listening ports and ssh-tarpit listening port must be different";
       }
+      {
+        assertion = config.ghaf.security.fail2ban.enable;
+        message = "Fail2ban must be enabled to activate ssh-tarpit module";
+      }
     ];
     services.endlessh-go = {
       enable = true;
       port = tarpitListenPort;
       openFirewall = false;
       inherit (cfg) listenAddress;
-      extraOptions = [ "-interval_ms 3000" ] ++ optionals config.ghaf.profiles.debug.enable [ "-v 1" ];
+      extraOptions = [ "-interval_ms 3000 -v 1" ];
     };
     systemd.services.endlessh-go.serviceConfig = {
       Restart = lib.mkForce "on-failure";
@@ -49,27 +59,25 @@ in
       StartLimitBurst = 10;
       StartLimitIntervalSec = 60;
     };
+
+    ghaf.security.fail2ban.sshd-jail-fwmark = {
+      enable = mkForce true;
+      fwMarkNum = mkForce "${cfg.fwMarkNum}";
+    };
+
     ghaf.firewall = {
       enable = lib.mkForce true;
-      tcpBlacklistRules = [
-        {
-          port = sshPort;
-          trackingSize = 50;
-          burstNum = 5;
-          maxPacketFreq = "20/minute";
-          fwMarkNum = tarpitFwMarkNum;
-        }
-      ];
       extra = {
         prerouting = {
           nat = [
-            # DNAT: incoming from banned IPs (mark ${tarpitFwMarkNum}) port 22 → honeypot:2222
-            "-m mark --mark ${tarpitFwMarkNum} -p tcp --dport ${toString sshPort} -j DNAT --to-destination ${cfg.listenAddress}:${toString tarpitListenPort}"
+            # DNAT: incoming from banned IPs (mark ${cfg.fwMarkNum}) port 22 → honeypot:2222
+            "-m mark --mark ${cfg.fwMarkNum} -p tcp --dport ${toString sshPort} -j DNAT --to-destination ${cfg.listenAddress}:${toString tarpitListenPort}"
           ];
         };
         input = {
           filter = [
-            "-p tcp -d ${cfg.listenAddress} --dport ${toString tarpitListenPort}  -m connlimit --connlimit-upto 20 --connlimit-mask 0  -j ghaf-fw-conncheck-accept"
+            "-p tcp -d ${cfg.listenAddress} --dport ${toString tarpitListenPort}  -m connlimit --connlimit-upto 20 --connlimit-mask 0 -j ghaf-fw-conncheck-accept"
+            "-m mark --mark ${cfg.fwMarkNum} -j DROP"
           ];
         };
         postrouting = {

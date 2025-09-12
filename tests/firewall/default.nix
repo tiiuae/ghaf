@@ -78,14 +78,29 @@ pkgs.nixosTest {
       inherit users security;
       imports = [
         ../../modules/common/firewall
+        ../../modules/common/security/fail2ban.nix
+        ../../modules/common/security/ssh-tarpit
       ];
       virtualisation.vlans = [
         1 # 192.168.1.x
         100 # 192.168.100.x
       ];
-
+      services.openssh.enable = true;
       systemd.services.firewall.serviceConfig = fw-service-cfg;
+      ghaf.security.fail2ban = {
+        enable = true;
+        sshd-jail-fwmark = {
+          enable = true;
+          fwMarkNum = "70";
+        };
 
+      };
+      ghaf.security = {
+        ssh-tarpit = {
+          enable = true;
+          listenAddress = addrs.netvm-internal;
+        };
+      };
       ghaf.firewall = {
         enable = true;
         allowedTCPPorts = [ 22 ];

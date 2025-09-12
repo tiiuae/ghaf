@@ -6,6 +6,7 @@
     ./apparmor
     ./audit
     ./pwquality.nix
+    ./fail2ban.nix
     ./ssh-tarpit
   ];
 }

@@ -65,6 +65,9 @@ let
                 inherit (configHost.ghaf.logging) enable;
               };
             };
+
+            security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
+
           };
 
           system.stateVersion = lib.trivial.release;

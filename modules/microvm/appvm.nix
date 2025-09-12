@@ -123,6 +123,9 @@ let
                   name = "${vm.name}";
                 };
                 logging.client.enable = configHost.ghaf.logging.enable;
+
+                security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
+
               };
 
               # SSH is very picky about the file permissions and ownership and will

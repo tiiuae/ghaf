@@ -152,6 +152,9 @@ let
               };
             };
             xdgitems.enable = true;
+
+            security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
+
           };
 
           services = {

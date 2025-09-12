@@ -10,5 +10,13 @@ in
     enable = mkEnableOption "ssh daemon";
   };
 
-  config = mkIf cfg.enable { services.openssh.enable = true; };
+  config = mkIf cfg.enable {
+
+    services.openssh.enable = true;
+
+    ghaf.firewall.attack-mitigation = {
+      enable = true;
+      rateLimitSSH = true;
+    };
+  };
 }
