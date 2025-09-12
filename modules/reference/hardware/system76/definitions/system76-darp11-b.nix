@@ -62,9 +62,8 @@
     ];
     kernelConfig = {
       stage1.kernelModules = [
-        "xe"
+        "i915"
       ];
-      stage2.kernelModules = [ ];
       kernelParams = [
         "earlykms"
       ];
