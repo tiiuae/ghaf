@@ -104,6 +104,10 @@ let
 
             # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
             graphics = {
+              boot = {
+                enable = true; # Enable graphical boot on gui-vm
+                renderer = "gpu"; # Use GPU for graphical boot in gui-vm
+              };
               launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
               labwc = {
                 autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;

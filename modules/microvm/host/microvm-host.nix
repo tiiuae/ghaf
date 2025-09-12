@@ -91,7 +91,7 @@ in
         givc.host.enable = true;
         graphics.boot = {
           enable = true; # Enable graphical boot on host
-          waitForService = lib.optionalString config.ghaf.virtualization.microvm.guivm.enable "system-ui.target";
+          renderer = "simpledrm"; # Force simpledrm framebuffer for graphical boot on host
         };
         services = {
           power-manager = {

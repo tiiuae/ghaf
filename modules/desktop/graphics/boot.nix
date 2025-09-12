@@ -11,6 +11,7 @@ let
     mkDefault
     mkIf
     mkOption
+    mkForce
     optionals
     types
     ;
@@ -30,6 +31,17 @@ let
       fi
     ''
   );
+
+  # ShowDelay and DeviceTimeout are not exposed in nixpkgs plymouth module
+  # so we have to override the config file ourselves
+  # ref: https://github.com/NixOS/nixpkgs/blob/nixos-unstable/nixos/modules/system/boot/plymouth.nix
+  configFile = pkgs.writeText "plymouthd.conf" ''
+    [Daemon]
+    ShowDelay=${toString cfg.splashDelay}
+    DeviceTimeout=${toString cfg.deviceTimeout}
+    Theme=${cfg.theme}
+    ${config.boot.plymouth.extraConfig}
+  '';
 in
 {
   options.ghaf.graphics.boot = {
@@ -46,6 +58,25 @@ in
       default = null;
       description = ''
         If set, plymouth will wait for the specified systemd service to be started before quitting.
+      '';
+    };
+
+    theme = mkOption {
+      type = types.enum [
+        "bgrt"
+        "details"
+        "fade-in"
+        "glow"
+        "script"
+        "solar"
+        "spinfinity"
+        "spinner"
+        "text"
+        "tribar"
+      ];
+      default = "bgrt";
+      description = ''
+        Plymouth theme to use. The "bgrt" theme is recommended for UEFI systems.
       '';
     };
 
@@ -87,13 +118,52 @@ in
         '';
       };
     };
+
+    renderer = mkOption {
+      type = types.enum [
+        "gpu"
+        "simpledrm"
+      ];
+      default = "simpledrm";
+      description = ''
+        Renderer for the graphical boot splash.
+
+        - simpledrm: Use a simple framebuffer. Recommended if the GPU is not ready at early boot.
+        - gpu: Use the system GPU if drivers are available in the initrd.
+      '';
+    };
+
+    splashDelay = mkOption {
+      type = types.nullOr types.int;
+      default = 0;
+      description = ''
+        Delay in seconds before showing the splash screen.
+      '';
+    };
+
+    deviceTimeout = mkOption {
+      type = types.nullOr types.int;
+      default = 8;
+      description = ''
+        Timeout in seconds to wait for the graphics device to become ready.
+      '';
+    };
+
+    debug = mkOption {
+      type = types.bool;
+      default = false;
+      description = ''
+        Whether to enable plymouth debug logs.
+        Plymouth debug logs are stored in /var/log/plymouth-debug.log.
+      '';
+    };
   };
 
   config = mkIf cfg.enable {
     boot = {
       plymouth = {
         enable = true;
-        theme = "bgrt";
+        inherit (cfg) theme;
         logo = if cfg.logo.enable then cfg.logo.image else "/dev/null";
 
         # This is a bit hacky, as we're overriding the default spinner theme
@@ -105,13 +175,25 @@ in
         "quiet"
         "udev.log_priority=3"
       ]
+      ++ optionals cfg.debug [ "plymouth.debug" ]
       # Disables loading the UEFI logo from firmware to /sys/firmware/acpi/bgrt
-      ++ optionals cfg.firmwareLogo.enable [ "bgrt_disable=1" ];
+      ++ optionals cfg.firmwareLogo.enable [ "bgrt_disable=1" ]
+      ++ (
+        if cfg.renderer == "simpledrm" then
+          [ "plymouth.use-simpledrm" ]
+        else
+          [
+            "plymouth.use-simpledrm=0"
+            "plymouth.ignore-serial-consoles"
+          ]
+      );
       consoleLogLevel = mkDefault 0;
       initrd.verbose = false;
     };
     systemd.services.plymouth-quit = {
       after = mkIf (cfg.waitForService != null && cfg.waitForService != "") [ cfg.waitForService ];
     };
+    environment.etc."plymouth/plymouthd.conf".source = mkForce configFile;
+    boot.initrd.systemd.contents."/etc/plymouth/plymouthd.conf".source = mkForce configFile;
   };
 }
