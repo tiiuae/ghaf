@@ -1,17 +1,21 @@
 // SPDX-FileCopyrightText: 2022-2024 TII (SSRC) and the Ghaf contributors
 // SPDX-License-Identifier: Apache-2.0
-// Note that comments are explicitly allowed in browser extension manifest.json
-// Note that the "key" here is a public key, and as the extension is unpacked,
-// the key only makes sure that the extension ID stays unchanged
 {
   "manifest_version": 3,
   "name": "Open in normal browser",
-  "version": "1.0",
+  "version": "VERSION_HERE",
   "permissions": ["nativeMessaging", "contextMenus", "activeTab"],
+  "icons": {
+    "16": "ghaf-logo-512px.png",
+    "32": "ghaf-logo-512px.png",
+    "48": "ghaf-logo-512px.png",
+    "128": "ghaf-logo-512px.png"
+  },
   "background": {
     "service_worker": "open_normal.js"
   },
   "action": {
     "default_title": "Open page in normal browser"
-  }
+  },
+  "update_url": "http://localhost:8080/update.xml"
 }

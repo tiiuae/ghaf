@@ -46,8 +46,7 @@ in
           ];
 
           text = ''
-            DEBUG=${toString withDebug}
-            if [ "$DEBUG" = "true" ]; then
+            if ${lib.boolToString withDebug}; then
                 debug() { echo "[DEBUG] $*"; }
             else
                 debug() { :; }  # no-op
@@ -90,22 +89,38 @@ in
               echo '{}' > "$PREFS"
             fi
 
-            # Force system title bar and borderds, and set profile name if not "Default"
-            if [ "$PROFILE_NAME" = "Default" ]; then
-              JQ_FILTER='
-                .browser |= . // {}
-                | .browser.custom_chrome_frame = false
-              '
-            else
-              JQ_FILTER="
-                .browser |= . // {}
-                | .browser.custom_chrome_frame = false
+            BASE_FILTER='
+              .browser |= . // {}
+              | .browser.custom_chrome_frame = false
+            '
+
+            # Add profile name only if not "Default"
+            if [ "$PROFILE_NAME" != "Default" ]; then
+              JQ_FILTER="$BASE_FILTER
                 | .profile |= . // {}
-                | .profile.name = \"$PROFILE_NAME\"
-              "
+                | .profile.name = \"$PROFILE_NAME\""
+            else
+              JQ_FILTER="$BASE_FILTER"
             fi
+
+            # TODO: Remove this block after October 2025
+            # It's only needed to migrate users who installed the extension prior to v1.0.1
+            if ${lib.boolToString enableOpenNormalExtension}; then
+              EXTENSIONS_FILTER='
+                | .extensions |= . // {}
+                | .extensions.pinned_extensions |= (. + ["${pkgs.open-normal-extension.id}"] | unique)
+                | .extensions.settings |= . // {}
+                | .extensions.settings["${pkgs.open-normal-extension.id}"] |= . // {}
+                | .extensions.settings["${pkgs.open-normal-extension.id}"].manifest |= . // {}
+                | .extensions.settings["${pkgs.open-normal-extension.id}"].manifest.update_url |= . // "http://localhost:8080/update.xml"
+              '
+              JQ_FILTER="$JQ_FILTER $EXTENSIONS_FILTER"
+            fi
+            # TODO: Remove this block after October 2025
+
+
             debug "jq filter being applied:"
-            echo "$JQ_FILTER"
+            debug "$JQ_FILTER"
 
             jq "$JQ_FILTER" "$PREFS" > "$PREFS.tmp" && mv "$PREFS.tmp" "$PREFS"
             debug "Preferences updated successfully."
