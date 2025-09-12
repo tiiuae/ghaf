@@ -11,7 +11,7 @@ let
   cfg = config.ghaf.partitioning.verity;
 in
 {
-  config = lib.mkIf cfg.enable {
+  config = lib.mkIf cfg.sysupdate {
     # TODO: This is a placeholder for future implementation.
     systemd.sysupdate = {
       enable = true;
