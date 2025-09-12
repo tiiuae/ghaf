@@ -26,6 +26,10 @@ in
         AlwaysOpenPdfExternally = true;
         DefaultBrowserSettingEnabled = true;
         MetricsReportingEnabled = false;
+
+        ExtensionInstallForcelist = lib.optionals cfg.openInNormalExtension [
+          "${pkgs.open-normal-extension.id};http://localhost:8080/update.xml"
+        ];
       };
       example = lib.literalExpression ''
         {

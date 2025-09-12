@@ -7,9 +7,17 @@
   lib,
   ...
 }:
+let
+  inherit (lib)
+    optionals
+    getExe
+    mkIf
+    ;
+  enableOpenNormalExtension = true;
+in
 {
   business = {
-    packages = lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
+    packages = optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
     ramMb = 6144;
     cores = 4;
     borderColor = "#218838";
@@ -18,30 +26,132 @@
     applications =
       let
         inherit (config.microvm.vms."business-vm".config.config.ghaf.reference.services.pac) proxyPacUrl;
-        browserCommand = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs} --load-extension=${pkgs.open-normal-extension} --proxy-pac-url=${proxyPacUrl}";
+
+        withDebug = config.ghaf.profiles.debug.enable;
+
+        # Select the browser package based on main browser VM configuration
+        chromePackage =
+          if config.ghaf.virtualization.microvm.appvm.vms.chrome.enable then
+            pkgs.google-chrome
+          else if config.ghaf.virtualization.microvm.appvm.vms.chromium.enable then
+            pkgs.chromium
+          else
+            null;
+
+        trustedBrowserWrapper = pkgs.writeShellApplication {
+          name = "trusted-browser-wrapper";
+          runtimeInputs = [
+            pkgs.jq
+            chromePackage
+          ];
+
+          text = ''
+            DEBUG=${toString withDebug}
+            if [ "$DEBUG" = "true" ]; then
+                debug() { echo "[DEBUG] $*"; }
+            else
+                debug() { :; }  # no-op
+            fi
+
+            # Determine which browser binary we are using
+            CHROME_BIN="${getExe chromePackage}"
+            CHROME_NAME=$(basename "$CHROME_BIN")
+            debug "Chrome binary: $CHROME_BIN"
+            debug "Chrome name: $CHROME_NAME"
+
+            if [[ "$CHROME_NAME" == *"chrome"* ]]; then
+              CONFIG_BASE="$HOME/.config/google-chrome"
+            elif [[ "$CHROME_NAME" == *"chromium"* ]]; then
+              CONFIG_BASE="$HOME/.config/chromium"
+            else
+              CONFIG_BASE="$HOME/.config/$CHROME_NAME"
+            fi
+            debug "Config base directory: $CONFIG_BASE"
+
+            PROFILE_NAME="Default"
+
+            # Look for --profile-directory= in args
+            for arg in "$@"; do
+              case "$arg" in
+                --profile-directory=*)
+                  PROFILE_NAME="''${arg#--profile-directory=}"
+                  ;;
+              esac
+            done
+            debug "Using profile name: $PROFILE_NAME"
+
+            PREFS="$CONFIG_BASE/$PROFILE_NAME/Preferences"
+            debug "Preferences file path: $PREFS"
+            mkdir -p "$(dirname "$PREFS")"
+
+            # Create a minimal Preferences file if it doesn't exist
+            if [ ! -f "$PREFS" ]; then
+              debug "Preferences file does not exist. Creating minimal Preferences file."
+              echo '{}' > "$PREFS"
+            fi
+
+            # Force system title bar and borderds, and set profile name if not "Default"
+            if [ "$PROFILE_NAME" = "Default" ]; then
+              JQ_FILTER='
+                .browser |= . // {}
+                | .browser.custom_chrome_frame = false
+              '
+            else
+              JQ_FILTER="
+                .browser |= . // {}
+                | .browser.custom_chrome_frame = false
+                | .profile |= . // {}
+                | .profile.name = \"$PROFILE_NAME\"
+              "
+            fi
+            debug "jq filter being applied:"
+            echo "$JQ_FILTER"
+
+            jq "$JQ_FILTER" "$PREFS" > "$PREFS.tmp" && mv "$PREFS.tmp" "$PREFS"
+            debug "Preferences updated successfully."
+
+            # Launch the browser
+            debug "Launching Chrome..."
+            "$CHROME_BIN" --enable-features=UseOzonePlatform \
+              --ozone-platform=wayland \
+              ${config.ghaf.givc.idsExtraArgs} \
+              --proxy-pac-url=${proxyPacUrl} "$@"
+          '';
+        };
       in
       [
         {
           name = "Trusted Browser";
           description = "Isolated Trusted Browsing";
-          packages = [ pkgs.google-chrome ];
+          packages = [ trustedBrowserWrapper ];
           icon = "thorium-browser";
-          command = browserCommand;
+          command = "trusted-browser-wrapper --profile-directory=TrustedBrowserProfile";
           givcArgs = [
             "url"
           ];
           extraModules = [
             {
+              assertions = [
+                {
+                  assertion = chromePackage != null;
+                  message = "Neither google-chrome nor chromium VM is enabled, business-vm will not have a browser.";
+                }
+              ];
+
               imports = [
-                #../programs/chromium.nix
+                ../programs/chromium.nix
                 ../programs/google-chrome.nix
               ];
 
               ghaf = {
                 reference = {
                   programs.google-chrome = {
-                    enable = true;
-                    openInNormalExtension = true;
+                    enable = chromePackage == pkgs.google-chrome;
+                    openInNormalExtension = enableOpenNormalExtension;
+                  };
+                  programs.chromium = {
+                    enable = chromePackage == pkgs.chromium;
+                    openInNormalExtension = enableOpenNormalExtension;
                   };
                 };
 
@@ -55,19 +165,25 @@
           name = "Microsoft Outlook";
           description = "Microsoft Email Client";
           icon = "ms-outlook";
-          command = "${browserCommand} --app=https://outlook.office.com/mail/";
+          command = "trusted-browser-wrapper --app=https://outlook.office.com/mail/ --profile-directory=OutlookProfile";
         }
         {
           name = "Microsoft 365";
           description = "Microsoft 365 Software Suite";
           icon = "microsoft-365";
-          command = "${browserCommand} --app=https://microsoft365.com";
+          command = "trusted-browser-wrapper --app=https://microsoft365.com --profile-directory=M365Profile";
         }
         {
           name = "Teams";
           description = "Microsoft Teams Collaboration Application";
           icon = "teams-for-linux";
-          command = "${browserCommand} --app=https://teams.microsoft.com";
+          command = "trusted-browser-wrapper --app=https://teams.microsoft.com --profile-directory=TeamsProfile";
+        }
+        {
+          name = "Gala";
+          description = "Secure Android-in-the-Cloud";
+          icon = "distributor-logo-android";
+          command = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login --profile-directory=GalaProfile";
         }
         {
           name = "VPN";
@@ -99,7 +215,7 @@
           command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
         }
       ]
-      ++ lib.optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
+      ++ optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
         {
           name = "Text Editor";
           description = "Simple Text Editor";
@@ -134,7 +250,6 @@
         }
       ];
     extraModules = [
-
       {
         # Attach integrated camera to this vm
         microvm.devices = [ ];
@@ -176,6 +291,28 @@
           # Enable WireGuard GUI
           wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
 
+        };
+
+        # '--load-extension' flag is available only in non-Chrome branded Chromium
+        # as of v137, with the only possible workaround removed in v139
+        # refs:
+        # https://groups.google.com/a/chromium.org/g/chromium-extensions/c/1-g8EFx2BBY/m/S0ET5wPjCAAJ
+        # https://groups.google.com/a/chromium.org/g/chromium-extensions/c/FxMU1TvxWWg/m/daZVTYNlBQAJ
+        #
+        # Therefore we load the extension via 'ExtensionInstallForcelist' policy
+        # A mock extension update server is needed for this to work
+        # ref: https://chromeenterprise.google/policies/#ExtensionInstallForcelist
+        systemd.services.chrome-extension-server = mkIf enableOpenNormalExtension {
+          enable = true;
+          description = "Local Chrome extension update server";
+          after = [ "network.target" ];
+          wantedBy = [ "multi-user.target" ];
+
+          serviceConfig = {
+            ExecStart = "${getExe pkgs.python3} -m http.server 8080 --directory ${pkgs.open-normal-extension}/share";
+            WorkingDirectory = "${pkgs.open-normal-extension}/share";
+            Restart = "always";
+          };
         };
       }
     ];

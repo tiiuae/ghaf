@@ -58,7 +58,11 @@ in
           enable = true;
           dendrite = true;
           proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
-          google-chromecast = true;
+          google-chromecast = {
+            enable = true;
+            # Should match the name of the chrome VM above
+            chromeVmName = "chrome-vm";
+          };
           alpaca-ollama = true;
           wireguard-gui = true;
         };

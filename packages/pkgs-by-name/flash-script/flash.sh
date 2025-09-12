@@ -27,13 +27,25 @@ while getopts "d:i:" opt; do
     esac
 done
 
-# Check if disk and imagefile exist
-if [ ! -e "$DEVICE" ]; then
+# Input validation for device parameter
+if [[ ! "$DEVICE" =~ ^/dev/(sd[a-z][0-9]*|nvme[0-9]+n[0-9]+p[0-9]+|mmcblk[0-9]+p[0-9]+|vd[a-z][0-9]*|loop[0-9]+)$ ]]; then
+    echo "Invalid device path format: ${DEVICE}"
+    exit 1
+fi
+
+# Check if disk exists and is a block device
+if [ ! -b "$DEVICE" ]; then
     echo "No such block device: ${DEVICE}"
     exit 1
 fi
 
-if [ ! -e "$FILENAME" ]; then
+# Input validation for filename parameter  
+if [[ "$FILENAME" =~ \.\./ || "$FILENAME" =~ /\.\. || "$FILENAME" == ".." ]]; then
+    echo "Invalid filename contains path traversal: ${FILENAME}"
+    exit 1
+fi
+
+if [ ! -f "$FILENAME" ]; then
     echo "No such file: ${FILENAME}"
     exit 1
 fi

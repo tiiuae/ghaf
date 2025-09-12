@@ -8,7 +8,6 @@
 let
   cfg = config.ghaf.reference.services.dendrite-pinecone;
   #TODO: this seems to be unused check later
-  inherit (config.ghaf.reference) services;
   inherit (lib)
     mkEnableOption
     mkOption

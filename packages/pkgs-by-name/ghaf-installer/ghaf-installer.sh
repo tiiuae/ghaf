@@ -61,13 +61,27 @@ hwinfo --disk --short
 while true; do
   read -r -p "Device name [e.g. /dev/nvme0n1]: " DEVICE_NAME
 
-  if [ ! -d "/sys/block/$(basename "$DEVICE_NAME")" ]; then
-    echo "Device not found!"
+  # Input validation: ensure device name starts with /dev/ and contains no path traversal
+  if [[ ! "$DEVICE_NAME" =~ ^/dev/[a-zA-Z0-9._-]+$ ]]; then
+    echo "Invalid device name format. Device must be in /dev/ and contain only alphanumeric characters, dots, underscores, and dashes."
+    continue
+  fi
+
+  # Additional security check: ensure the device exists as a block device
+  if [ ! -b "$DEVICE_NAME" ]; then
+    echo "Device is not a valid block device!"
+    continue
+  fi
+
+  # Safely get basename to prevent directory traversal
+  device_basename=$(basename "$DEVICE_NAME")
+  if [ ! -d "/sys/block/$device_basename" ]; then
+    echo "Device not found in sysfs!"
     continue
   fi
 
   # Check if removable
-  if [ "$(cat "/sys/block/$(basename "$DEVICE_NAME")/removable")" != "0" ]; then
+  if [ "$(cat "/sys/block/$device_basename/removable")" != "0" ]; then
     read -r -p "Device provided is removable, do you want to continue? [y/N] " response
     case "$response" in
     [yY][eE][sS] | [yY])

@@ -8,7 +8,7 @@
   ...
 }:
 let
-  inherit (lib) optionals mkForce;
+  inherit (lib) mkForce;
 in
 {
   comms = {
@@ -41,13 +41,13 @@ in
         name = "Slack";
         description = "Teams Collaboration & Messaging Application";
         icon = "slack";
-        command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
+        command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client --profile-directory=SlackProfile ${config.ghaf.givc.idsExtraArgs}";
       }
       {
         name = "Zoom";
         description = "Zoom Videoconferencing Application";
         icon = "Zoom";
-        command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
+        command = "google-chrome-stable --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home --profile-directory=ZoomProfile ${config.ghaf.givc.idsExtraArgs}";
       }
     ];
     extraModules = [

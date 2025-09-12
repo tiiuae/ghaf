@@ -18,7 +18,6 @@ let
     optionalAttrs
     ;
   inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
-  inherit (configHost.ghaf.networking) hosts;
 
   makeVm =
     { vm }:

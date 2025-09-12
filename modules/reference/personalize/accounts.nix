@@ -1,7 +1,6 @@
 # Copyright 2024 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, ... }:
-{
+_: {
   # Account management file for ghaf, allows to declaratively manage user accounts.
   # Main use-case is to centrally administer passwords across builds.
   # The admin account defaults to true even without this setting as not all
