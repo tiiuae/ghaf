@@ -89,9 +89,9 @@ in
       enable = true;
       rules = [
         {
-          name = "NetVM";
-          qmpSocket = "/var/lib/microvms/net-vm/net-vm.sock";
-          usbPassthrough = [
+          description = "Devices for NetVM";
+          targetVm = "NetVM";
+          allow = [
             {
               class = 2;
               subclass = 6;
@@ -103,6 +103,13 @@ in
               description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
             }
           ];
+        }
+      ];
+      vms = [
+        {
+          name = "NetVM";
+          type = "qemu";
+          socket = "/var/lib/microvms/net-vm/net-vm.sock";
         }
       ];
     };
