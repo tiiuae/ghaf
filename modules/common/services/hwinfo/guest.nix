@@ -24,45 +24,56 @@ in
 
     environment.systemPackages = [
       # Hardware info reader using fw_cfg
-      (pkgs.writeScriptBin "ghaf-read-hwinfo" ''
-        #!${pkgs.runtimeShell}
-        set -euo pipefail
+      (pkgs.writeShellApplication {
+        name = "ghaf-read-hwinfo";
+        runtimeInputs = with pkgs; [
+          jq
+          coreutils
+          kmod
+          findutils
+        ];
+        text = ''
+          set -euo pipefail
 
-        # Check possible fw_cfg paths
-        FW_CFG_PATHS=(
-          "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/raw"
-          "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/data"
-        )
+          # Check possible fw_cfg paths
+          FW_CFG_PATHS=(
+            "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/raw"
+            "/sys/firmware/qemu_fw_cfg/by_name/opt/com.ghaf.hwinfo/data"
+          )
 
-        for path in "''${FW_CFG_PATHS[@]}"; do
-          if [ -f "$path" ]; then
-            echo "Hardware Information:"
-            cat "$path" | ${pkgs.jq}/bin/jq . || cat "$path"
-            exit 0
+          for path in "''${FW_CFG_PATHS[@]}"; do
+            if [ -f "$path" ]; then
+              echo "Hardware Information:"
+              jq . < "$path" || cat "$path"
+              exit 0
+            fi
+          done
+
+          # Not found - provide helpful error
+          echo "Hardware information not available" >&2
+
+          if ! lsmod | grep -q qemu_fw_cfg; then
+            echo "Note: fw_cfg kernel module not loaded. Try: sudo modprobe qemu_fw_cfg" >&2
+          elif [ ! -d "/sys/firmware/qemu_fw_cfg" ]; then
+            echo "Note: fw_cfg sysfs interface not available" >&2
+          else
+            echo "Note: Hardware info file not found in fw_cfg" >&2
+            echo "Available fw_cfg entries:" >&2
+            find /sys/firmware/qemu_fw_cfg/by_name/ -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | head -10 >&2
           fi
-        done
 
-        # Not found - provide helpful error
-        echo "Hardware information not available" >&2
-
-        if ! lsmod | grep -q qemu_fw_cfg; then
-          echo "Note: fw_cfg kernel module not loaded. Try: sudo modprobe qemu_fw_cfg" >&2
-        elif [ ! -d "/sys/firmware/qemu_fw_cfg" ]; then
-          echo "Note: fw_cfg sysfs interface not available" >&2
-        else
-          echo "Note: Hardware info file not found in fw_cfg" >&2
-          echo "Available fw_cfg entries:" >&2
-          ls /sys/firmware/qemu_fw_cfg/by_name/ 2>/dev/null | head -10 >&2
-        fi
-
-        exit 1
-      '')
+          exit 1
+        '';
+      })
 
       # Convenience aliases
-      (pkgs.writeScriptBin "read-hwinfo" ''
-        #!${pkgs.runtimeShell}
-        exec ghaf-read-hwinfo "$@"
-      '')
+      (pkgs.writeShellApplication {
+        name = "read-hwinfo";
+        runtimeInputs = [ ];
+        text = ''
+          exec ghaf-read-hwinfo "$@"
+        '';
+      })
     ];
 
     # Create systemd service to log hardware info at boot (optional)
@@ -77,10 +88,16 @@ in
         StandardOutput = "journal";
       };
 
-      script = ''
-        echo "Attempting to read hardware information..."
-        ghaf-read-hwinfo || echo "Failed to read hardware information"
-      '';
+      script = lib.getExe (
+        pkgs.writeShellApplication {
+          name = "hwinfo-log-script";
+          runtimeInputs = [ ];
+          text = ''
+            echo "Attempting to read hardware information..."
+            ghaf-read-hwinfo || echo "Failed to read hardware information"
+          '';
+        }
+      );
     };
   };
 }
