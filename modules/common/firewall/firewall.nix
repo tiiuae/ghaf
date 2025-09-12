@@ -119,8 +119,11 @@ let
       --hashlimit-htable-max ${toString rule.trackingSize} \
       -j ghaf-fw-blacklist-add
 
-    iptables -t raw -A PREROUTING -m set --match-set ${blackListName} \
-       src -j MARK --set-mark ${rule.fwMarkNum}
+     ${optionalString (rule.fwMarkNum != blacklistMarkNum) ''
+       iptables -t raw -A PREROUTING \
+         -m set --match-set ${blackListName} src \
+         -j MARK --set-mark ${rule.fwMarkNum}
+     ''}
   '';
 
 in
@@ -401,8 +404,15 @@ in
         ### INPUT rules ###
         iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
         iptables -A ghaf-fw-in-filter -m mark --mark ${blacklistMarkNum} -j ghaf-fw-ban
-        iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -m limit --limit 1/minute --limit-burst 5 -j ACCEPT
+
+        # Icmp requests
+        iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -m hashlimit \
+        --hashlimit 1/min --hashlimit-burst 5 --hashlimit-mode srcip --hashlimit-name ICMP_PER_IP \
+        -j ACCEPT
+
+        # Drop remaining
         iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -j ghaf-fw-filter-drop
+
         iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
         # nixos-fw-accept should be flushed to inject our rules

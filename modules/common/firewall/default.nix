@@ -7,5 +7,6 @@
   imports = [
     ./kernel-modules.nix
     ./firewall.nix
+    ./attack-mitigation.nix
   ];
 }
