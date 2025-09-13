@@ -89,7 +89,8 @@ in
 
     preserveLogs = mkOption {
       type = types.bool;
-      default = true;
+      default = config.ghaf.logging.enable;
+      defaultText = "config.ghaf.logging.enable";
       description = ''
         Whether to preserve `journald` and `audit` logs of the VM. If enabled, it will keep logs
         locally in persistant storage across reboots. This is useful for debugging purposes.
