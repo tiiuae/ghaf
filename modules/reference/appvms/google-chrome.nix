@@ -14,7 +14,10 @@
     cores = 4;
     borderColor = "#630505";
     ghafAudio.enable = true;
-    vtpm.enable = true;
+    vtpm = {
+      enable = true;
+      basePort = 9105;
+    };
     applications =
       let
         chromeWrapper = pkgs.writeShellApplication {

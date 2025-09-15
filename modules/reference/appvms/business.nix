@@ -22,7 +22,10 @@ in
     cores = 4;
     borderColor = "#218838";
     ghafAudio.enable = true;
-    vtpm.enable = true;
+    vtpm = {
+      enable = true;
+      basePort = 9101;
+    };
     applications =
       let
         inherit (config.microvm.vms."business-vm".config.config.ghaf.reference.services.pac) proxyPacUrl;

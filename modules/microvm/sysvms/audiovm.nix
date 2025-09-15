@@ -60,6 +60,10 @@ let
               enable = true;
               inherit vmName;
             };
+            virtualization.microvm.tpm-passthrough = {
+              enable = true;
+              rootNVIndex = "0x81100200";
+            };
             # Services
             services = {
               audio.enable = true;

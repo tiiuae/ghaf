@@ -26,6 +26,7 @@ let
             {
               ghaf = {
                 hardware.x86_64.common.enable = true;
+                hardware.tpm2.enable = true;
                 microvm-boot.enable = lib.mkForce false;
 
                 virtualization = {
@@ -194,9 +195,53 @@ let
                     guest.port = 22;
                   }
                 ];
+                tpm.enable = true;
               };
             }
           )
+          {
+            ghaf.virtualization.microvm = {
+              netvm = {
+                extraModules = [
+                  {
+                    ghaf.storagevm.encryption.enable = true;
+                  }
+                ];
+              };
+
+              adminvm = {
+                extraModules = [
+                  {
+                    ghaf.storagevm.encryption.enable = true;
+                  }
+                ];
+              };
+
+              guivm = {
+                extraModules = [
+                  {
+                    ghaf.storagevm.encryption.enable = true;
+                  }
+                ];
+              };
+
+              audiovm = {
+                extraModules = [
+                  {
+                    ghaf.storagevm.encryption.enable = true;
+                  }
+                ];
+              };
+
+              appvm = {
+                extraModules = [
+                  {
+                    ghaf.storagevm.encryption.enable = true;
+                  }
+                ];
+              };
+            };
+          }
         ];
       };
     in
