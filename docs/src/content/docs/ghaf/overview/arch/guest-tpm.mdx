@@ -31,7 +31,7 @@ The high-level design is shown in the following diagram:
 
 The implementation of the emulated TPM in Ghaf deviates from the aforementioned design in a few ways:
 
-- The [admin VM](/ghaf/modules/microvm/sysvms/adminvm.nix) takes the role of hosting the swtpm instances. This reduces the footprint of running an additional VM.
+- The **admin VM** takes the role of hosting the swtpm instances. This reduces the footprint of running an additional VM.
 - A new component is introduced: [swtpm-proxy-shim](https://github.com/abrandao-census/swtpm-proxy-shim). It is a daemon that runs on the host and allows QEMU to use a remote swtpm as a backend, which QEMU does not support by default.
 - A subset of VMs, specifically system VMs, are set to use the hardware passthrough instead of the remote software TPM. It is important for some VMs to not be delayed during boot to have peripherals brought up as soon as possible. This is the case for example for net VM and GUI VM, to have network and graphics hardware available early. If these VMs were using the emulated TPM they would have to wait until the vTPM VM (in this case the admin VM) is fully booted before they themselves can start, which would significantly increase the time the user has to wait for peripherals to be ready.
 

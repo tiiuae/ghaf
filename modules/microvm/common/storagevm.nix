@@ -226,7 +226,10 @@ in
                 echo -n > temp_keyfile
                 chmod 600 temp_keyfile
                 systemd-cryptenroll --unlock-key-file=temp_keyfile \
-                  --tpm2-device=auto --tpm2-pcrs=15 --tpm2-seal-key-handle=${nvHandle} "${drivePath}"
+                  --tpm2-device=auto --tpm2-pcrs=15 --tpm2-seal-key-handle=${nvHandle} \
+                  "${drivePath}"
+                ## on non-debug builds the default passphrase should be deleted after TPM is enrolled
+                #  --wipe-slot=password \
                 rm temp_keyfile
               '';
             };

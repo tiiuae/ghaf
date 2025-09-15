@@ -36,7 +36,6 @@ in
         "-device"
         "tpm-tis,tpmdev=tpmrm0"
       ];
-      machine = "q35";
     };
 
     environment.systemPackages = [

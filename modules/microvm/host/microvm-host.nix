@@ -421,16 +421,19 @@ in
           };
         };
     })
-    (mkIf (cfg.enable && config.ghaf.hardware.tpm2.enable) {
-      users.users.microvm.extraGroups =
-        lib.mkIf (config.security.tpm2.enable && config.security.tpm2.tssGroup != null)
-          [
-            config.security.tpm2.tssGroup
-          ];
+    (mkIf
+      (cfg.enable && (builtins.hasAttr "tpm2" config.ghaf.hardware) && config.ghaf.hardware.tpm2.enable)
+      {
+        users.users.microvm.extraGroups =
+          lib.mkIf (config.security.tpm2.enable && config.security.tpm2.tssGroup != null)
+            [
+              config.security.tpm2.tssGroup
+            ];
 
-      systemd.tmpfiles.rules = [
-        "f /tmp/cancel 0770 microvm kvm -"
-      ];
-    })
+        systemd.tmpfiles.rules = [
+          "f /tmp/cancel 0770 microvm kvm -"
+        ];
+      }
+    )
   ];
 }
