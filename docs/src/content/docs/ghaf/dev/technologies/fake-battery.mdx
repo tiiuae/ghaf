@@ -1,0 +1,68 @@
+---
+title: Fake battery loading and testing
+---
+
+For some test cases having a fake battery will allow to test how the system responds under certain conditions. For this reason a fake battery is provided for the x86_64-linux targets. It is automatically loaded on the laptop profile when it is determined that there is no battery available on the device.
+
+```sh
+ssh ghaf@ghaf-host
+systemctl status create-fake-battery.service
+```
+
+This will show if the fake battery service has been launched and what is the current status of it.
+
+```sh
+ssh ghaf@ghaf-host
+sudo modprobe fake_battery
+```
+
+This will allow the battery to be manually loaded.
+
+```sh
+cd /sys/class/power_supply/
+ls
+```
+
+If the battery is loaded there will be a `fake-battery` directory present in that location.
+
+
+```sh
+[ghaf@ghaf-host:/sys/class/power_supply/fake-battery]$ ls -al
+total 0
+drwxr-xr-x 5 root root    0 Sep 15 12:27 .
+drwxr-xr-x 3 root root    0 Sep 15 12:27 ..
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 capacity
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 charge_full
+-r--r--r-- 1 root root 4096 Sep 15 12:27 charge_full_design
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 charge_now
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 current_now
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 health
+drwxr-xr-x 3 root root    0 Sep 15 12:27 hwmon6
+-r--r--r-- 1 root root 4096 Sep 15 12:27 manufacturer
+-r--r--r-- 1 root root 4096 Sep 15 12:27 model_name
+drwxr-xr-x 2 root root    0 Sep 15 12:27 power
+-r--r--r-- 1 root root 4096 Sep 15 12:27 present
+-r--r--r-- 1 root root 4096 Sep 15 12:27 serial_number
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 status
+lrwxrwxrwx 1 root root    0 Sep 15 12:27 subsystem -> ../../../../class/power_supply
+-r--r--r-- 1 root root 4096 Sep 15 12:27 technology
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 temp
+-r--r--r-- 1 root root 4096 Sep 15 12:27 type
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 uevent
+-rw-r--r-- 1 root root 4096 Sep 15 12:27 voltage_now
+drwxr-xr-x 2 root root    0 Sep 15 12:27 wakeup68
+```
+
+This lists all of the properties for the fake battery device which can be read and written to. It is of course only possible to write to properties that have `rw` permissions.
+
+```sh
+[ghaf@ghaf-host:/sys/class/power_supply/fake-battery]$ cat temp
+300
+
+[ghaf@ghaf-host:/sys/class/power_supply/fake-battery]$ echo 100 | sudo tee temp
+[sudo] password for ghaf:
+100
+
+[ghaf@ghaf-host:/sys/class/power_supply/fake-battery]$ cat temp
+100
+```

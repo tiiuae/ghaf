@@ -135,6 +135,7 @@ export default defineConfig({
                         "ghaf/dev/technologies/nvidia_virtualization_bpmp",
                         "ghaf/dev/technologies/hypervisor_options",
                         "ghaf/dev/technologies/hardware_acceleration",
+                        "ghaf/dev/technologies/fake-battery",
                       ],
                     },
                   ],
