@@ -222,7 +222,7 @@ let
 
           microvm = {
             optimize.enable = false;
-            vcpu = 2;
+            vcpu = 6;
             mem = 12288;
             hypervisor = "qemu";
             shares = [

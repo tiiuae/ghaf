@@ -130,7 +130,6 @@ in
             "$CHROME_BIN" --enable-features=UseOzonePlatform \
               --ozone-platform=wayland \
               --disable-gpu \
-              --disable-software-rasterizer \
               ${config.ghaf.givc.idsExtraArgs} \
               --proxy-pac-url=${proxyPacUrl} "$@"
           '';
