@@ -170,8 +170,23 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = false;
+          profiles.graphics.idleManagement.enable = true;
+          profiles.graphics.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+
+          virtualization.microvm.guivm.extraModules = [
+            {
+              # We explicitly enable only those we need
+              hardware.system76 = {
+                power-daemon.enable = true;
+                kernel-modules.enable = true;
+                # Firmware daemon requires EFI mount point, not available in guivm
+                firmware-daemon.enable = false;
+              };
+            }
+          ];
         };
+        # Add system76 and system76-io kernel modules to host
+        hardware.system76.kernel-modules.enable = true;
       }
     ]))
 
