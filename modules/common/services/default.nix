@@ -12,6 +12,7 @@
     ./github.nix
     ./hwinfo
     ./killswitch.nix
+    ./sssd.nix
     ./timezone.nix
     ./power.nix
     ./wifi.nix

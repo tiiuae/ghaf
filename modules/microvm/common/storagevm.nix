@@ -113,14 +113,16 @@ in
         }
       ];
 
-      microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
-        {
-          image = "/persist/storagevm/homes/${cfg.name}-home.img";
-          size = builtins.floor (config.ghaf.users.loginUser.homeSize * 1.15);
-          fsType = "btrfs";
-          mountPoint = "/home";
-        }
-      ];
+      microvm.volumes =
+        lib.optionals (config.ghaf.users.homedUser.enable || config.ghaf.users.adUsers.enable)
+          [
+            {
+              image = "/persist/storagevm/homes/${cfg.name}-home.img";
+              size = builtins.floor (config.ghaf.users.homedUser.homeSize * 1.15);
+              fsType = "btrfs";
+              mountPoint = "/home";
+            }
+          ];
 
       preservation = {
         enable = true;
@@ -168,13 +170,6 @@ in
                 how = "symlink";
                 configureParent = true;
               }
-            ];
-          })
-
-          # Optional directories for systemd home
-          (mkIf config.ghaf.users.loginUser.enable {
-            directories = [
-              "/var/lib/systemd/home"
             ];
           })
         ];

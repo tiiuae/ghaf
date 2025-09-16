@@ -53,17 +53,23 @@ let
           ];
 
           ghaf = {
-            security.pwquality.enable = true;
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               graphics.enable = true;
             };
-            users.loginUser = {
-              createRecoveryKey = true;
-              enable = true;
-              fidoAuth = true;
+
+            users = {
+              homedUser = {
+                enable = config.ghaf.users.profile == "homed-user";
+                fidoAuth = true;
+                createRecoveryKey = true;
+              };
+              adUsers = {
+                enable = config.ghaf.users.profile == "ad-users";
+              };
             };
+
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
@@ -153,8 +159,10 @@ let
             };
             xdgitems.enable = true;
 
-            security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
-
+            security = {
+              fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
+              pwquality.enable = true;
+            };
           };
 
           services = {

@@ -102,22 +102,15 @@ in
     # Needed for the greeter to query systemd-homed users correctly
     systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = mkIf useCosmic "${
       pkgs.lib.makeLibraryPath
-      [
-        pkgs.systemd
-      ]
+      ([ pkgs.systemd ] ++ lib.optionals config.ghaf.services.sssd.enable [ pkgs.sssd ])
     }";
 
     security.pam.services = {
-      cosmic-greeter = {
-        rules = {
-          auth = mkIf useCosmic {
-            systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
-            fprintd.args = [ "maxtries=3" ];
-          };
-        };
+      cosmic-greeter.rules.auth = mkIf (useCosmic && config.ghaf.users.homedUser.enable) {
+        systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+        fprintd.args = [ "maxtries=3" ];
       };
-
-      gtklock.rules.auth = mkIf useLabwc {
+      gtklock.rules.auth = mkIf (useLabwc && config.ghaf.users.homedUser.enable) {
         systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
         fprintd.args = [ "maxtries=3" ];
       };
