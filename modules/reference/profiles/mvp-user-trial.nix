@@ -11,6 +11,9 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      users.profile = "homed-user";
+
+      # Enable below option for session lock feature
       graphics = {
         labwc = {
           autologinUser = lib.mkForce null;

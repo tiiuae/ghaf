@@ -6,11 +6,26 @@
   ...
 }:
 let
-  inherit (lib) mkDefault hasAttr;
+  inherit (lib)
+    hasAttr
+    mkDefault
+    mkOption
+    types
+    ;
   hasStorageVm = (hasAttr "storagevm" config.ghaf) && config.ghaf.storagevm.enable;
 in
 {
-  # Common ghaf user settings
+  options.ghaf.users = {
+    profile = mkOption {
+      description = "Platform user profile.";
+      type = types.enum [
+        "homed-user"
+        "ad-users"
+      ];
+      default = "homed-user";
+    };
+  };
+
   config = {
 
     # Disable mutable users

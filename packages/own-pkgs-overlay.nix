@@ -22,6 +22,7 @@
     kernel-hardening-checker =
       final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
         { };
+    ldap-query = final.python3Packages.callPackage ./python-packages/ldap-query/package.nix { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     open-normal-extension = final.callPackage ./open-normal-extension/package.nix { };

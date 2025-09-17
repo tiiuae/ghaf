@@ -53,17 +53,23 @@ let
           ];
 
           ghaf = {
-            security.pwquality.enable = true;
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               graphics.enable = true;
             };
-            users.loginUser = {
-              createRecoveryKey = true;
-              enable = true;
-              fidoAuth = true;
+
+            users = {
+              homedUser = {
+                enable = config.ghaf.users.profile == "homed-user";
+                fidoAuth = true;
+                createRecoveryKey = true;
+              };
+              adUsers = {
+                enable = config.ghaf.users.profile == "ad-users";
+              };
             };
+
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
@@ -152,6 +158,7 @@ let
               };
             };
             xdgitems.enable = true;
+            security.pwquality.enable = true;
           };
 
           services = {
@@ -159,36 +166,7 @@ let
             dbus.packages = [ pkgs.blueman ];
           };
 
-          systemd = {
-            packages = [ pkgs.blueman ];
-
-            services."waypipe-ssh-keygen" =
-              let
-                uid = "${toString config.ghaf.users.loginUser.uid}";
-                pubDir = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
-                  set -xeuo pipefail
-                  mkdir -p /run/waypipe-ssh
-                  echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
-                  chown ${uid}:users /run/waypipe-ssh/*
-                  cp /run/waypipe-ssh/id_ed25519.pub ${pubDir}/id_ed25519.pub
-                  chown -R ${uid}:users ${pubDir}
-                '';
-              in
-              {
-                enable = true;
-                description = "Generate SSH keys for Waypipe";
-                path = [ keygenScript ];
-                wantedBy = [ "multi-user.target" ];
-                serviceConfig = {
-                  Type = "oneshot";
-                  RemainAfterExit = true;
-                  StandardOutput = "journal";
-                  StandardError = "journal";
-                  ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
-                };
-              };
-          };
+          systemd.packages = [ pkgs.blueman ];
 
           environment = {
             systemPackages =
@@ -226,12 +204,6 @@ let
             mem = 12288;
             hypervisor = "qemu";
             shares = [
-              {
-                tag = "waypipe-ssh-public-key";
-                source = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                mountPoint = config.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
-                proto = "virtiofs";
-              }
               {
                 tag = "ro-store";
                 source = "/nix/store";
