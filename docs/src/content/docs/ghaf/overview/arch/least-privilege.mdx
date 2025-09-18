@@ -1,0 +1,51 @@
+---
+title: Principle of Least Privilege — Enforced Across All Users
+description: How Ghaf systematically enforces least privilege for users, services, and VMs to reduce attack surface and limit blast radius.
+---
+
+Ghaf enforces the principle of least privilege (PoLP) end‑to‑end: every user, service, and VM is granted only the minimum permissions necessary to perform its function. This is achieved through hardened systemd sandboxes, mandatory access control, minimal users and groups, compartmentalization with MicroVMs, and declarative build‑time profiles that disable powerful capabilities unless explicitly enabled.
+
+Where PoLP is enforced in code and configuration
+
+- Per‑service sandboxes with minimal privileges
+  - Hardened unit templates (modules/common/systemd/hardened-configs/*) apply:
+    - NoNewPrivileges=yes to block gaining privileges via setuid or file capabilities.
+    - CapabilityBoundingSet and AmbientCapabilities to remove unneeded kernel capabilities.
+    - PrivateDevices, PrivateTmp, ProtectSystem=strict, ProtectHome, ProtectProc, ProcSubset, RestrictNamespaces to isolate filesystem, devices, and namespaces.
+    - SystemCallFilter allow‑lists and MemoryDenyWriteExecute=yes to limit syscall surface and prevent W^X violations.
+  - Evidence in repository configuration: systemd hardened configs are explicitly enabled in system VMs such as NetVM:
+    - modules/microvm/sysvms/netvm.nix sets ghaf.systemd.withHardenedConfigs = true, ensuring the restrictive templates are used.
+
+- Minimal users and groups
+  - Services run as dedicated non‑root users (often with DynamicUser= in hardened templates; see hardened‑configs). Users are placed only in the groups they need.
+  - Example from NetVM config (modules/microvm/sysvms/netvm.nix):
+    - ghaf.users.proxyUser.enable = true with extraGroups = [ "networkmanager" ]. This user can operate NetworkManager, but is not given broader group memberships (no sudo, no disk, no systemd‑journal), reflecting PoLP.
+
+- Privileged features are opt‑in via profiles
+  - Debug/administrative access is gated by explicit profiles rather than being available by default:
+    - modules/microvm/sysvms/netvm.nix derives several toggles from ghaf.profiles.debug.enable (for example ghaf.systemd.withDebug, development.ssh.daemon, development.debug.tools). In production profiles, these remain disabled, preventing unnecessary privileges and open endpoints.
+
+- Kernel and host hardening to remove ambient privilege
+  - The kernel‑hardening profile (modules/common/profiles/kernel-hardening.nix) enables exploit mitigations and tightens interfaces for both host and guests. Feature toggles (for example usb.enable, virtualization.enable, networking.enable, inputdevices.enable, hypervisor.enable, graphics.enable) are driven declaratively, so only the capabilities needed by a role are switched on, minimizing ambient privileges that could be abused.
+
+- Strong compartmentalization by function
+  - MicroVMs act as least‑privileged principals: high‑risk or network‑facing roles (NetVM, AdminVM, AppVMs) are isolated into separate VMs with only the devices and interfaces they require. Ghaf’s NetVM definition (modules/microvm/sysvms/netvm.nix) marks it as isGateway = true and limits other responsibilities accordingly, reducing cross‑role privileges.
+  - GIVC provides narrow, audited inter‑VM interfaces so VMs cannot assume broad rights over one another.
+
+- Network plane separation to avoid privilege leaking across paths
+  - As documented in VM network separation (ghaf/overview/arch/vm-network-separation), production and debugging adapters are kept on different planes. Production users and services cannot reach debug/admin endpoints, preserving PoLP at the network layer.
+
+- Default‑deny security posture
+  - System‑wide firewalling (modules/common/firewall/*) and AppArmor confinement (modules/common/security/apparmor) apply least privilege beyond Unix users: processes can only access the files, sockets, and ports they are meant to use.
+
+Why this matters
+
+- Reduced attack surface: Removing unused capabilities, devices, syscalls, and network paths prevents many exploits from working at all.
+- Limited blast radius: If a component is compromised, per‑service users, strict sandboxes, and VM boundaries keep privileges and data exposure contained.
+- Predictable, auditable state: Nix‑based declarative profiles ensure least‑privilege choices are consistent across builds and easy to review in code.
+
+Related reading
+
+- Hardening overview: ghaf/overview/arch/hardening
+- Protecting critical services: ghaf/overview/arch/critical-services-privilege-escalation
+- VM network separation: ghaf/overview/arch/vm-network-separation

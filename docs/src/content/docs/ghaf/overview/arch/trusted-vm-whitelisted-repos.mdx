@@ -1,0 +1,49 @@
+---
+title: Trusted VM Application Updates — Whitelisted Repositories
+description: Why Ghaf restricts Trusted VM application updates to an allowlist of repositories and how this is reflected in code and configuration.
+---
+
+Rationale
+
+Trusted VMs in Ghaf perform security‑critical roles. Allowing them to update from arbitrary sources would introduce unacceptable supply‑chain risk and undermine reproducibility. By restricting updates to a curated, whitelisted set of repositories and signed image artifacts, Ghaf ensures provenance, integrity, and auditability of all software that lands in these VMs.
+
+Why whitelist repositories
+
+- Minimize supply‑chain risk:
+  - Only sources that meet Ghaf’s security and provenance standards are permitted. This blocks dependency confusion, poisoned mirrors, and unauthorized third‑party feeds.
+- Reproducibility and auditability:
+  - Updates are pinned, deterministic, and reviewable. What runs in a Trusted VM can be traced back to a known commit and release artifact.
+- Separation of duties:
+  - Operators and workloads in Trusted VMs cannot add new sources. Changes to the allowlist occur via code review and explicit profiles.
+
+How this is enforced in Ghaf
+
+- Pinned, declarative inputs (Nix flakes)
+  - Repository inputs are pinned in flake.lock at the root of the project. This lock file fixes exact revisions of all upstream sources, making builds deterministic across environments and preventing accidental drift to unreviewed upstream changes.
+
+- Signed, image‑based system updates for Trusted VMs
+  - Rather than pulling ad‑hoc packages from a package manager inside the VM, Trusted VMs update via system images published by the project.
+  - Evidence in code: modules/partitioning/verity-sysupdate.nix configures systemd.sysupdate with Source.Type = "url-file" pointed at:
+    - url = "https://github.com/tiiuae/ghaf/releases/latest/download"
+    - MatchPattern for boot entries and root/verity partitions like `"${id}_@v_@u.root"` and `"${id}_@v_@u.verity"`
+  - This narrows the update plane to a single, curated distribution channel (GitHub Releases of the Ghaf project), effectively an allowlist for Trusted VM updates.
+
+- Runtime gating of developer tooling and sources
+  - Developer features that could introduce or modify sources are disabled by default and only enabled under an explicit debug profile.
+  - Evidence in code: modules/microvm/sysvms/netvm.nix ties developer toggles to ghaf.profiles.debug.enable (for example, development.nix-setup.enable, development.debug.tools.enable). In production, these remain off, preventing repository configuration changes from within a Trusted VM.
+
+- Complementary hardening and controls
+  - Systemd sandboxing and AppArmor confinement limit the ability of processes to fetch or install from arbitrary networks.
+  - Kernel/host hardening reduces attack surface that could be abused to bypass the allowlist (see modules/common/profiles/kernel-hardening.nix).
+
+Effects
+
+- Only curated repositories and signed artifacts are accepted for Trusted VM updates.
+- Builds remain reproducible; provenance can be audited via flake.lock and release tags.
+- Operational users and workloads cannot expand trust without going through code review and profile changes.
+
+Related reading
+
+- Separation of Duties — ghaf/overview/arch/separation-of-duties
+- Principle of Least Privilege — ghaf/overview/arch/least-privilege
+- Supply Chain Security — ghaf/scs/scs

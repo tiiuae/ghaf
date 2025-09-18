@@ -1,0 +1,53 @@
+---
+title: VM Network Separation — Normal vs. Debug Adapters
+description: Why Ghaf assigns separate network interfaces for production traffic and debugging, and how this is enforced in code and configuration.
+---
+
+Rationale
+
+Separating network adapters for normal use and for debugging is a core hardening measure in Ghaf. Normal (production) traffic must remain isolated from any debug or admin paths to prevent accidental exposure of sensitive services, reduce attack surface, and maintain clear trust boundaries across MicroVMs and the host.
+
+Why separate adapters
+
+- Least privilege and minimal attack surface:
+  - Production applications and system services never need access to debug endpoints such as SSH on privileged domains, gdbserver, firmware consoles, or diagnostics proxies. Removing the debug NIC from their execution environment eliminates entire classes of escalation and lateral movement paths.
+- Clear network trust boundaries:
+  - Ghaf uses compartmentalization with SysVMs and AppVMs. A dedicated production NIC connects AppVMs only to the NetVM and external networks through tightly controlled, auditable paths. A separate debug NIC connects only to a restricted AdminVM or maintenance network segment.
+- Safe operations and forensics:
+  - Debug traffic can involve powerful tooling and bulk data transfer (for example, trace dumps, kernel logs). Keeping it off the production plane prevents performance interference and information leaks.
+- Defense in depth:
+  - Even with TLS and service authentication in place, physical/logical path separation ensures that a compromise on the production plane cannot trivially reach out‑of‑band administrative endpoints.
+
+How it is implemented in Ghaf
+
+- MicroVM networking design
+  - The MicroVM networking layer provides per‑VM interface attachment and isolation. AppVMs attach a production NIC bridged via NetVM. Debug NICs, when enabled, are attached to an admin bridge that is not routed to the external network.
+  - The NetVM configuration (see modules/microvm/sysvms/netvm.nix) acts as the production gateway, while debugging and maintenance are handled on a separate plane (AdminVM) to avoid mixing trust levels.
+- Policy and firewalling
+  - System‑wide firewall rules (modules/common/firewall/*) apply default‑deny filtering and per‑interface policies. Debug interfaces are either blocked entirely by default or permitted only for a narrow set of maintenance protocols from authorized management hosts.
+  - Service sandboxes (modules/common/systemd/hardened-configs/*) and AppArmor confinement (modules/common/security/apparmor) ensure that even if a process sees multiple interfaces, it cannot arbitrarily bind or pivot across them.
+- Build‑time and profile control
+  - The debug NIC is opt‑in and controlled by profiles (for example, modules/profiles/debug.nix). Production profiles leave the debug NIC out of AppVMs entirely.
+  - Host and kernel hardening (modules/common/profiles/kernel-hardening.nix and related profiles) further reduce exploitable network features and visibility on both planes.
+  - An emergency network killswitch (modules/common/services/killswitch.nix) can disable interfaces quickly if needed.
+- Operational practices
+  - Services binding rules and TLS:
+    - Production services bind only on the production NIC and use TLS for inter‑VM or external communications.
+    - Debug tooling binds only on the debug NIC and is reachable exclusively from the AdminVM or a designated maintenance segment.
+
+Threats mitigated
+
+- Leakage of debug endpoints (for example, SSH, serial consoles, gdbserver) to the production network.
+- Lateral movement from a compromised AppVM into administrative domains.
+- Downgrade or spoofing attacks that abuse mixed‑purpose links.
+- Performance or availability impact on production traffic due to heavy debug data flows.
+
+Relationship to other hardening measures
+
+- Works in concert with systemd sandboxing, AppArmor, and strict firewalling to enforce least privilege at multiple layers.
+- Complements auditing (modules/common/security/audit/*) by keeping sensitive debug activity confined to a separate, better‑controlled plane.
+- Preserves the clarity of Ghaf’s trust boundaries: production plane via NetVM, debug plane via AdminVM.
+
+Summary
+
+By providing distinct network adapters and paths for production and debugging, Ghaf reduces the risk of privilege escalation, prevents accidental exposure of powerful debug tooling, and maintains robust, auditable isolation between operational and administrative domains.
