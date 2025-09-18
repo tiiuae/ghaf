@@ -1,0 +1,44 @@
+---
+title: System Logs — Encryption in Transit and at Rest
+description: Why Ghaf encrypts logs on the wire and on disk to protect confidentiality, integrity, and availability across trust boundaries.
+---
+
+Why encrypt logs
+
+- Logs are sensitive by design. They routinely contain process IDs, usernames, device identifiers, configuration snapshots, kernel error messages, and occasionally secrets from misconfigured software. Exposing these provides reconnaissance value and can aid privilege escalation.
+- Ghaf separates functionality across MicroVMs and hardened domains. Log streams frequently cross trust boundaries (for example, from an AppVM to a SysVM or host). Anything that crosses a boundary must assume a hostile transport.
+- Logs are part of the forensic record. Ensuring they cannot be read or altered by an adversary is essential for reliable incident response and compliance.
+
+Encryption in transit
+
+- Implemented with TLS/SSL-protected channels (for example, HTTPS endpoints, syslog over TLS, gRPC with mTLS, or SSH tunnels) between hosts and MicroVMs.
+- Protects confidentiality when logs traverse networks, virtual busses, or shared host paths between VMs.
+- Prevents tampering and spoofing by authenticating endpoints and enabling integrity checks, so attackers cannot inject or modify events in flight.
+- Aligns with Ghaf’s compartmentalization model (modules/microvm/*) and least-privilege service design: even if an intermediate domain is compromised, encrypted channels limit what can be observed or altered.
+
+Encryption at rest
+
+- Implemented with whole‑disk encryption (for example, LUKS/dm‑crypt) on host and VM images; logs under /var/log are written to encrypted volumes by default. For exported archives, store them on encrypted partitions or object storage with server‑side encryption.
+- Defends against offline access: if a device, VM image, or storage medium is stolen or inspected, encrypted log files remain unreadable without keys.
+- Limits blast radius of host or service compromises by requiring access to both storage and keys.
+- Preserves evidentiary integrity: cryptographic protections and immutability controls make post‑incident analysis trustworthy.
+- Complements kernel/host hardening profiles (see modules/common/profiles/kernel-hardening.nix) and auditing (modules/common/security/audit/*), which increase the value and sensitivity of what is logged.
+
+Threats mitigated
+
+- Eavesdropping on inter‑VM communications or host paths used to collect/forward logs.
+- On‑path modification or injection of events to hide activity or create false trails.
+- Data harvesting from powered‑off devices, snapshots, or backups.
+- Abuse of excess privileges by non‑logging components that can access raw transport or storage.
+
+Operational benefits
+
+- Compliance alignment with common security baselines that require protecting security telemetry at rest and in transit.
+- Higher signal quality for detection and faster, more confident incident response.
+- Consistent behavior across environments thanks to declarative, reproducible configuration (Nix‑based builds) and hardened systemd/AppArmor service sandboxes.
+
+Related reading
+
+- Troubleshooting system logs: ghaf/dev/troubleshooting/systemd/system-log
+- Hardening overview: ghaf/overview/arch/hardening
+- Protecting critical services: ghaf/overview/arch/critical-services-privilege-escalation

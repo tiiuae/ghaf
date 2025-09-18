@@ -1,0 +1,40 @@
+---
+title: Protecting Critical System Services from Privilege Escalation
+description: How Ghaf hardens critical system services to prevent local and lateral privilege escalation.
+---
+
+Ghaf protects critical system services against privilege escalation with layered controls spanning the kernel, service sandboxing, mandatory access control, compartmentalization, and supply-chain integrity.
+
+Key protections
+
+- System service hardening (systemd)
+  - Hardened unit templates under modules/common/systemd/hardened-configs/* apply strict sandboxing:
+    - NoNewPrivileges=yes prevents gaining new privileges via setuid binaries or file capabilities.
+    - CapabilityBoundingSet and AmbientCapabilities drop all but the minimal capabilities.
+    - PrivateDevices, PrivateTmp, ProtectSystem=strict, ProtectHome, ProtectProc, ProcSubset, and RestrictNamespaces reduce the attack surface from devices, temporary directories, and namespaces.
+    - SystemCallFilter allow-lists (where applicable) and MemoryDenyWriteExecute=yes constrain execution and block W^X violations.
+  - Services run as dedicated users (often with DynamicUser=) to avoid shared state and to enforce least privilege.
+
+- Mandatory access control (AppArmor)
+  - AppArmor profiles (modules/common/security/apparmor) confine processes to expected files, sockets, and capabilities. Even if compromised, a service cannot freely access the system.
+
+- Kernel and host hardening
+  - The kernel-hardening profile (modules/common/profiles/kernel-hardening.nix) enables exploit mitigations for both host and guests. On the host, hardening toggles such as usb.enable, virtualization.enable, networking.enable, inputdevices.enable, and hypervisor.enable reduce exposed attack surface for escalation paths.
+
+- Strong compartmentalization
+  - High-risk and network-facing components execute in isolated MicroVMs (modules/microvm/*, modules/microvm/sysvms/*). VM boundaries and minimal, audited inter-VM interfaces (GIVC) limit lateral movement and escalation across domains.
+
+- Auditing and detection
+  - Linux audit rules (modules/common/security/audit/…) capture sensitive operations and policy violations, improving detection and incident response for attempted escalations.
+
+- Supply chain integrity
+  - Declarative, reproducible builds (Nix), SBOMs, and SLSA-aligned practices (docs under ghaf/scs) make privileged code paths auditable and reduce the risk of backdoors or unintended privilege.
+
+Why this matters
+
+- Least privilege by default: Services start with only the rights they need and cannot acquire new ones at runtime.
+- Reduced blast radius: Filesystem, syscall, and kernel barriers block common escalation primitives even if code execution occurs.
+- Clear trust boundaries: VM isolation plus narrow IPC surfaces prevent lateral privilege gains across components.
+- Verifiable state: Declarative configuration keeps hardening consistent across builds and easy to review.
+
+Together, these measures make privilege escalation against critical services significantly harder and limit the impact even if a defect is present.

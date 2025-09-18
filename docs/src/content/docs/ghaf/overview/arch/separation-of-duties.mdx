@@ -1,0 +1,62 @@
+---
+title: Separation of Duties — Critical Roles and System Operations
+description: Why and how Ghaf enforces separation of duties across administrative, operational, and application roles using profiles, VM boundaries, users/groups, and hardening.
+---
+
+Rationale
+
+Ghaf enforces separation of duties (SoD) to prevent any single user, service, or component from accumulating enough privilege to both initiate and hide unsafe changes. By splitting responsibilities across narrowly-scoped roles, isolating components into MicroVMs, and gating administrative capabilities behind explicit profiles, Ghaf reduces the chance of abuse, mistakes, and lateral movement.
+
+How SoD is implemented in Ghaf
+
+- Role isolation by MicroVM design
+  - Functional roles are separated into dedicated system VMs (SysVMs) and application VMs (AppVMs). For example, NetVM is the production network gateway, while administrative and maintenance tasks are performed in a distinct AdminVM plane. This ensures operational network traffic and administrative/debug actions do not mix trust boundaries.
+  - Evidence in code: modules/microvm/sysvms/netvm.nix marks the VM as type = "system-vm" and isGateway = true under virtualization.microvm.vm-networking, scoping NetVM to its gateway role.
+
+- Separation through profiles and build-time gating
+  - Administrative/debug capabilities are opt-in and controlled through profiles rather than present by default. In production, debug knobs remain off.
+  - Evidence in code: in modules/microvm/sysvms/netvm.nix, multiple toggles derive from ghaf.profiles.debug.enable:
+    - ghaf.systemd.withDebug, development.ssh.daemon.enable, development.debug.tools.enable, development.nix-setup.enable are all wired to the debug profile. This prevents routine operators or workloads from gaining access to debug interfaces unless an authorized maintainer explicitly enables the profile.
+
+- Network plane separation (operations vs. debugging)
+  - Production adapters are distinct from debug/maintenance adapters, so production users and services cannot reach administrative endpoints.
+  - See VM Network Separation for details; NetVM acts as the production gateway, while the admin plane terminates in AdminVM. Combined with firewall default-deny policies, this enforces SoD at the network layer.
+
+- Users and groups with task-scoped privileges
+  - Services run under dedicated users with minimal group memberships aligned to their duties, avoiding broad administrative access.
+  - Evidence in code: modules/microvm/sysvms/netvm.nix enables a proxy user bound only to the NetworkManager group:
+    - ghaf.users.proxyUser.enable = true with extraGroups = [ "networkmanager" ]
+    - This allows controlled interaction with networking without granting unrelated administrative rights (no sudo, no disk, no journal groups), cleanly separating operational responsibilities.
+
+- Systemd hardening and per-service sandboxes
+  - Even within a VM, services do not share duties or privileges. Hardened systemd configs apply least privilege and resource isolation so a compromised service cannot assume another’s responsibilities.
+  - Evidence in code: modules/microvm/sysvms/netvm.nix sets ghaf.systemd.withHardenedConfigs = true, ensuring sandboxes with NoNewPrivileges, capability drops, filesystem protections, and namespace restrictions are applied.
+
+- Kernel and host hardening to remove ambient privilege
+  - Exploit mitigations and interface constraints reduce accidental privilege bleed between roles.
+  - Evidence in code: modules/common/profiles/kernel-hardening.nix enables host and guest hardening; capabilities like usb.enable, virtualization.enable, networking.enable, inputdevices.enable, hypervisor.enable, and graphics.enable are declared explicitly. This makes powerful features role-driven and auditable.
+
+- Auditing and logging across boundaries
+  - Sensitive operations are audited so that administrative actions and policy changes are attributable and reviewable. This deters misuse and supports incident response.
+  - Logs are protected in transit and at rest, maintaining integrity and confidentiality across roles.
+
+Threats mitigated
+
+- Single-actor abuse where one identity can both make and conceal changes.
+- Lateral movement from production roles into administrative domains.
+- Accidental exposure of debug or maintenance interfaces to production users or networks.
+- Privilege creep from shared users or overly-broad group memberships.
+
+Why this matters
+
+- Clear accountability: Each role is narrowly defined and changes are attributable.
+- Reduced blast radius: VM boundaries, profiles, and sandboxing confine the impact of faults or compromises.
+- Operational safety: Debugging and maintenance occur on a separate, controlled plane and are not reachable from production paths.
+- Verifiable posture: Declarative Nix configuration, hardening profiles, and audited toggles make SoD choices visible in code review and reproducible across builds.
+
+Related reading
+
+- Principle of Least Privilege — ghaf/overview/arch/least-privilege
+- VM Network Separation — ghaf/overview/arch/vm-network-separation
+- Protecting Critical Services — ghaf/overview/arch/critical-services-privilege-escalation
+- System Logs Encryption — ghaf/overview/arch/system-logs-encryption
