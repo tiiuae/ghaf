@@ -112,8 +112,6 @@ in
               echo 'TPM already enrolled'
               exit 0
             fi
-            echo '-- clearing TPM --'
-            tpm2_clear
             echo '========== Enrolling TPM/Yubikey for persist partition =========='
             PASSWORD="" systemd-cryptenroll ${enrollOpts} ${partitions.persist.device}
             echo '-- adding recovery key --'
