@@ -31,6 +31,12 @@ in
         usb-serial.enable = true;
       };
 
+      # Enable logging with categorization and debug tools in debug profile
+      logging = {
+        enable = true;
+        categorization.enable = true;
+        debug.enable = true;
+      };
     };
   };
 }

@@ -146,7 +146,7 @@ in
             directories = [
               "/var/log/journal"
             ]
-            ++ optionals (!config.ghaf.logging.server.enable) [
+            ++ optionals (config.ghaf.type != "admin-vm") [
               "/var/lib/private/alloy"
             ]
             ++ optionals config.security.auditd.enable [

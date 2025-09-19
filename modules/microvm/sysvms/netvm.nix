@@ -73,7 +73,8 @@ let
                 ];
               };
             };
-            logging.client.enable = config.ghaf.logging.enable;
+
+            logging.client = true;
 
             security = {
               fail2ban.enable = config.ghaf.development.ssh.daemon.enable;

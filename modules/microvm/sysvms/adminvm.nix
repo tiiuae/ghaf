@@ -60,23 +60,8 @@ let
               inherit vmName;
             };
             # Services
-            logging = {
-              server = {
-                inherit (configHost.ghaf.logging) enable;
-                tls = {
-                  remoteCAFile = null;
-                  certFile = "/etc/givc/cert.pem";
-                  keyFile = "/etc/givc/key.pem";
-                  serverName = "loki.ghaflogs.vedenemo.dev";
-                  minVersion = "TLS12";
-
-                  terminator = {
-                    backendPort = 3101;
-                    verifyClients = true;
-                  };
-                };
-              };
-            };
+            # Enable logging server on admin-vm
+            logging.server = true;
 
             security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
 
