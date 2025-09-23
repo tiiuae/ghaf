@@ -15,11 +15,10 @@ let
     concatStrings
     ;
   cfg = config.ghaf.services.yubikey;
-  u2f_file = pkgs.writeText "u2f_mapping" config.ghaf.services.yubikey.u2fKeys;
 in
 {
   options.ghaf.services.yubikey = {
-    enable = mkEnableOption "Enable yubikey support which provide 2FA";
+    enable = mkEnableOption "the yubikey support which provide 2FA";
 
     u2fKeys = mkOption {
       type = types.str;
@@ -45,7 +44,6 @@ in
 
     security.pam.u2f = {
       settings = {
-        authfile = "${u2f_file}";
         cue = true;
       };
       control = "sufficient";
