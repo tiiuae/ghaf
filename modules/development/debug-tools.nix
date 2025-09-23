@@ -91,7 +91,7 @@ in
       pkgs.vlc
       pkgs.ffmpeg_7-full
       pkgs.kitty.terminfo
-      pkgs.ghostty.terminfo
+      #pkgs.ghostty.terminfo
     ]);
 
     programs = {
