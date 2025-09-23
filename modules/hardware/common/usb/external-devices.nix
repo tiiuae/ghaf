@@ -15,11 +15,6 @@
           ACTION=="add", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="${vendorId}", ENV{ID_MODEL_ID}=="${productId}", ENV{DEVNAME}=="/dev/ttyUSB*", RUN+="${pkgs.gpsd}/bin/gpsdctl add '%E{DEVNAME}'"
         '';
       }
-      {
-        name = "yubikey0";
-        vendorId = "1050";
-        productId = "0407";
-      }
       # Logitech Gamepad F310
       {
         name = "xbox0";
