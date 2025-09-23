@@ -63,6 +63,13 @@ let
             logging = {
               server = {
                 inherit (configHost.ghaf.logging) enable;
+                tls = {
+                  caFile = null;
+                  certFile = "/etc/givc/cert.pem";
+                  keyFile = "/etc/givc/key.pem";
+                  serverName = "loki.ghaflogs.vedenemo.dev";
+                  minVersion = "TLS12";
+                };
               };
             };
 
