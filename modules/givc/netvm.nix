@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -61,14 +62,17 @@ in
         user = config.ghaf.users.proxyUser.name;
         socket = "/tmp/dbusproxy_net.sock";
         policy = {
-          own = [
-            "org.freedesktop.NetworkManager.*"
+          talk = [
+            "org.freedesktop.NetworkManager"
           ];
         };
       };
     };
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"
+    ];
+    environment.systemPackages = [
+      pkgs.xdg-dbus-proxy
     ];
   };
 }
