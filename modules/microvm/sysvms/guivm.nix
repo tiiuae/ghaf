@@ -202,9 +202,7 @@ let
                 Restart = "always";
                 RestartSec = "1";
 
-                ExecStart = "${pkgs.usb-passthrough-manager}/bin/upm_server --loglevel debug --cid ${
-                  toString config.ghaf.networking.hosts.${vmName}.cid
-                }";
+                ExecStart = "${pkgs.usb-passthrough-manager}/bin/upm_server --loglevel debug --cid 2";
               };
               startLimitIntervalSec = 0;
             };

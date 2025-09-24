@@ -247,25 +247,28 @@ in
         '';
       };
     };
-    upmclient = {
-      enable = mkEnableOption "USB passthrough manager client";
-      server_cid = lib.mkOption {
-        type = lib.types.int;
-        default = 1;
-        description = ''
-          CID of API server runing on a guest vm.
-        '';
-      };
-
-      server_port = lib.mkOption {
+    server = {
+      enable = mkEnableOption "Enable vhot plug server";
+      port = lib.mkOption {
         type = lib.types.int;
         default = 7000;
         description = ''
-          Port number for USB passthrough manager server.
+          Port number for vhotplug server.
         '';
       };
+      handlers = {
+        upm = {
+          enable = mkEnableOption "Enable USB passthrough client handler";
+          guest_cid = lib.mkOption {
+            type = lib.types.int;
+            default = 1;
+            description = ''
+              guest cid runing a upm client.
+            '';
+          };
+        };
+      };
     };
-
   };
 
   config = mkIf cfg.enable {
@@ -291,11 +294,19 @@ in
           inherit (cfg.api) port;
           transport = "vsock";
         };
-        upmclient = {
-          inherit (cfg.upmclient) enable;
-          inherit (cfg.upmclient) server_cid;
-          inherit (cfg.upmclient) server_port;
-        };
+        inherit (cfg) server;
+        /*
+                  server = {
+                    inherit (cfg.server) enable;
+                    inherit (cfg.server) port;
+                    handlers = {
+                      upm = {
+                        inherit (cfg.server.handlers.upm) enable;
+                        inherit (cfg.server.handlers.upm) guest_cid;
+          	    };
+          	  };
+          	};
+        */
       };
     };
 
