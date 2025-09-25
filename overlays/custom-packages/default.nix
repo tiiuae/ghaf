@@ -1,4 +1,4 @@
-# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 # This overlay patches packages in nixpkgs, and adds in some of the ghaf's
@@ -10,6 +10,7 @@
   labwc = import ./labwc { inherit prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
+  tpm2-tools = import ./tpm2-tools { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
   libfm = import ./libfm { inherit prev; };
   cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
