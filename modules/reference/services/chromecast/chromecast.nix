@@ -62,7 +62,7 @@ in
         Chromecast udp ports
       '';
     };
-    chromeVmName = mkOption {
+    vmName = mkOption {
       type = types.str;
       example = "chrome-vm";
       description = "The name of the chromium/chrome VM to setup chromecast for.";
@@ -88,7 +88,7 @@ in
       inherit (cfg) internalNic;
       chromecast = {
         enable = true;
-        inherit (cfg) chromeVmName;
+        inherit (cfg) vmName;
       };
     };
 

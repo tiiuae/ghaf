@@ -55,7 +55,7 @@ in
         options = {
           enable = mkEnableOption "Chromecast service";
 
-          chromeVmName = mkOption {
+          vmName = mkOption {
             type = types.str;
             example = "chrome-vm";
             description = "The name of the chromium/chrome VM to setup chromecast for.";
@@ -65,7 +65,7 @@ in
       };
       default = {
         enable = false;
-        chromeVmName = "chrome-vm";
+        vmName = "chrome-vm";
       };
     };
     alpaca-ollama = mkEnableOption "Alpaca/ollama service";
@@ -77,7 +77,7 @@ in
       proxy-server.enable = mkForce (cfg.proxy-business && isNetVM);
       chromecast = mkIf (cfg.google-chromecast.enable && isNetVM) {
         enable = mkForce true;
-        chromeVmName = mkForce cfg.google-chromecast.chromeVmName;
+        vmName = mkForce cfg.google-chromecast.vmName;
       };
       ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
       wireguard-gui-config = {
@@ -87,8 +87,8 @@ in
     };
     assertions = [
       {
-        assertion = cfg.chromecast.chromeVmName != null;
-        message = "Either chrome or chromium VM must be enabled (chromeVmName cannot be null) for chromecast feature.";
+        assertion = cfg.chromecast.vmName != null;
+        message = "Either chrome or chromium VM must be enabled (vmName cannot be null) for chromecast feature.";
       }
     ];
   };

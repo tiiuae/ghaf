@@ -41,7 +41,7 @@
     "user-runtime-dir@".serviceConfig = import ./user-runtime-dir.nix;
     vsockproxy.serviceConfig = import ./vsockproxy.nix;
     wpa_supplicant.serviceConfig = import ./wpa_supplicant.nix;
-
+    nw-packet-forwarder.serviceConfig = import ./nw-packet-forwarder.nix;
     # TODO: These were previously in release need more testing to turn on
     # NetworkManager.serviceConfig = import ./NetworkManager.nix;
     # audit.serviceConfig = import ./audit.nix;
