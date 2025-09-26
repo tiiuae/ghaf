@@ -16,6 +16,7 @@ let
     filterAttrs
     flatten
     getExe
+    getExe'
     literalExpression
     listToAttrs
     mkDefault
@@ -28,6 +29,7 @@ let
     optionals
     optionalString
     replaceString
+    hasSuffix
     types
     ;
 
@@ -229,25 +231,51 @@ let
     '';
   };
 
-  guest-shutdown-interceptor = pkgs.writeShellApplication {
-    name = "guest-shutdown-interceptor";
+  gui-shutdown-interceptor = pkgs.writeShellApplication {
+    # This listener monitors systemd's shutdown/reboot signals and delays the process
+    # While the process is delayed, we use guest-power-actions to handle the shutdown/reboot operation instead
+    name = "gui-shutdown-interceptor";
     runtimeInputs = [
+      pkgs.dbus
       pkgs.systemd
-      pkgs.coreutils
     ];
-    text = ''
-      # Determine the action to take based on systemd jobs
-      if systemctl list-jobs | grep -q 'reboot.target.*start'; then
-        echo "Reboot action: Relaying reboot to the host"
-        ${getExe guest-power-actions} reboot
-      elif systemctl list-jobs | grep -q 'poweroff.target.*start'; then
-        echo "Poweroff action: Relaying poweroff to the host"
-        ${getExe guest-power-actions} poweroff
-      else
-        # Ignore any other case
-        exit 0
-      fi
-    '';
+    text =
+      let
+        normalizeUnit = u: if hasSuffix ".service" u || hasSuffix ".target" u then u else "${u}*";
+        startCmds = concatStringsSep "\n" (
+          map (unit: ''
+            echo "Starting ${unit}..."
+            ${getExe' pkgs.systemd "systemctl"} start ${normalizeUnit unit} || true
+          '') cfg.gui.shutdown.startUnits
+        );
+        stopCmds = concatStringsSep "\n" (
+          map (unit: ''
+            echo "Stopping ${unit}..."
+            ${getExe' pkgs.systemd "systemctl"} stop ${normalizeUnit unit} || true
+          '') cfg.gui.shutdown.stopUnits
+        );
+      in
+      ''
+        systemd-inhibit --what=shutdown --who="gui-shutdown-interceptor" \
+          --why="Handling ghaf shutdown/reboot" --mode=delay \
+            dbus-monitor --system "type='signal',interface='org.freedesktop.login1.Manager',member='PrepareForShutdownWithMetadata'" | \
+              while read -r line; do
+                if echo "$line" | grep -q "boolean true"; then
+                  echo "Found prepare for shutdown signal. Checking type..."
+                  while read -r subline; do
+                      if echo "$subline" | grep -q "reboot"; then
+                          ${startCmds}
+                          ${stopCmds}
+                          ${getExe guest-power-actions} reboot
+                      elif echo "$subline" | grep -q "poweroff"; then
+                          ${startCmds}
+                          ${stopCmds}
+                          ${getExe guest-power-actions} poweroff
+                      fi
+                  done
+                fi
+              done
+      '';
   };
 
 in
@@ -359,6 +387,35 @@ in
         If running in a VM and GIVC is enabled, it replaces the default systemd actions for suspend, poweroff, and
         reboot with givc commands.
       '';
+
+      shutdown = mkOption {
+        description = ''
+          Options for customizing GUI system behavior during shutdown interception.
+        '';
+        type = types.submodule {
+          options = {
+            stopUnits = mkOption {
+              type = types.listOf types.str;
+              default = [ ];
+              description = ''
+                Systemd units to stop on the GUI before the host shutdown or reboot proceeds.
+
+                Each listed unit will be stopped via `systemctl stop <unit>` in the shutdown interceptor.
+              '';
+            };
+
+            startUnits = mkOption {
+              type = types.listOf types.str;
+              default = [ ];
+              description = ''
+                Systemd units to start on the GUI before the host shutdown or reboot proceeds.
+
+                Each listed unit will be started via `systemctl start <unit>` in the shutdown interceptor.
+              '';
+            };
+          };
+        };
+      };
     };
     host = {
       enable = mkEnableOption ''
@@ -456,49 +513,55 @@ in
 
       # Shutdown displays early before suspend
       powerManagement = {
+        # This is misleading, as it is executed only on suspend, not shutdown
         powerDownCommands = lib.mkBefore ''
-          ${lib.getExe ghaf-powercontrol} turn-off-displays '*'
+          ${getExe ghaf-powercontrol} turn-off-displays '*'
         '';
       };
 
       # Override systemd actions for suspend, poweroff, and reboot
       systemd.services = optionalAttrs (cfg.vm.enable && useGivc) {
-
         # Replace systemd-sleep with GIVC suspend
-        systemd-suspend.serviceConfig.ExecStart = [
-          ""
-          "${givc-cli} suspend"
-        ];
+        systemd-suspend = {
+          serviceConfig.ExecStart = [
+            ""
+            "${givc-cli} suspend"
+          ];
+        };
 
         # Intercept reboot or poweroff actions and relay it to the host
         gui-shutdown-interceptor = {
           description = "Ghaf GUI shutdown interceptor";
-          wantedBy = [
-            "reboot.target"
-            "poweroff.target"
-          ];
-          before = [
-            "reboot.target"
-            "poweroff.target"
-            "shutdown.target"
-          ];
-          unitConfig.DefaultDependencies = false;
           serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${getExe guest-shutdown-interceptor}";
+            Type = "simple";
+            Restart = "always";
+            RestartSec = "5";
+            ExecStart = "${getExe gui-shutdown-interceptor}";
           };
+          partOf = [ "graphical.target" ];
+          wantedBy = [ "graphical.target" ];
         };
-
       };
 
       # Logind configuration for desktop
-      services.logind.settings.Login = {
-        HandleLidSwitch = if cfg.allowSuspend then "suspend" else "ignore";
-        KillUserProcesses = true;
-        IdleAction = "lock";
-        UserStopDelaySec = 0;
-        HoldoffTimeoutSec = 20;
-      };
+      services.logind.settings.Login =
+        let
+          lidEvent = if cfg.allowSuspend then "suspend" else "lock";
+        in
+        mkDefault {
+          HandleLidSwitch = lidEvent;
+          HandleLidSwitchDocked = lidEvent;
+          HandleLidSwitchExternalPower = lidEvent;
+          HandleSuspendKey = "ignore";
+          HandleHibernateKey = "ignore";
+          HandlePowerKey = "ignore";
+          HandlePowerKeyLongPress = "ignore";
+          KillUserProcesses = true;
+          IdleAction = "lock";
+          IdleActionSec = "10min";
+          UserStopDelaySec = 0;
+          HoldoffTimeoutSec = 20;
+        };
     })
 
     # Host power management

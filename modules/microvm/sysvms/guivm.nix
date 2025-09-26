@@ -132,7 +132,16 @@ let
             services = {
               power-manager = {
                 vm.enable = true;
-                gui.enable = true;
+                gui = {
+                  enable = true;
+                  shutdown.stopUnits = [
+                    "systemd-backlight@"
+                    "display-manager.service"
+                  ];
+                  shutdown.startUnits = lib.optionals config.ghaf.graphics.boot.enable [
+                    "plymouth-poweroff.service"
+                  ];
+                };
               };
 
               github = {
