@@ -21,15 +21,14 @@ in
     ghaf.development.cuda.enable = lib.mkForce true;
 
     # Enabling CDI NVIDIA devices in podman or docker (nvidia docker container)
-    # For Orin devices this setting does not work as jetpack-nixos still does not support them.
-    # jetpack-nixos uses enableNvidia = true; even though it is deprecated
-    # For x86_64 the case is different it was introduced to be
-    # virtualisation.containers.cdi.dynamic.nvidia.enable = true;
-    # but deprecated and changed to hardware.nvidia-container-toolkit.enable
     # We enable below setting if architecture ix x86_64 and if the video driver is nvidia set it true
+    # or if architecture is aarch64 and nvidia-jetpack is enabled
     hardware.nvidia-container-toolkit.enable = lib.mkIf (
-      config.nixpkgs.hostPlatform.isx86_64
-      && (builtins.elem "nvidia" config.services.xserver.videoDrivers)
+      (
+        config.nixpkgs.hostPlatform.isx86_64
+        && (builtins.elem "nvidia" config.services.xserver.videoDrivers)
+      )
+      || (config.nixpkgs.hostPlatform.isAarch64 && config.hardware.nvidia-jetpack.enable)
     ) true;
 
     # Temporary fix for nvidia service restart remove with new nixpkgs reference.
@@ -46,10 +45,6 @@ in
       # package = pkgs.docker_26;
 
       enable = true;
-      # The enableNvidia option is still used in jetpack-nixos while it is obsolete in nixpkgs
-      # but it is still only option for nvidia-orin devices. Added extra fix for CDI to
-      # make it run with docker.
-      enableNvidia = config.nixpkgs.hostPlatform.isAarch64 && config.hardware.nvidia-jetpack.enable;
       daemon.settings.features.cdi = true;
       rootless = {
         enable = true;

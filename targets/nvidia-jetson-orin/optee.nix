@@ -13,7 +13,7 @@ _:
     # TODO: Refactor this later, if this gets proper implementation on the
     #    jetpack-nixos
     stdenv = pkgs.gcc13Stdenv;
-    inherit (pkgs.nvidia-jetpack) l4tVersion opteeClient taDevKit;
+    inherit (pkgs.nvidia-jetpack) l4tMajorMinorPatchVersion opteeClient taDevKit;
 
     opteeSource = pkgs.applyPatches {
       src = pkgs.fetchgit {
@@ -22,21 +22,19 @@ _:
         # extra zero. If-else is a sanity check so the sources are
         # in sync!
         rev =
-          if l4tVersion == "35.6.0" then
-            "jetson_35.6"
-          else if l4tVersion == "36.4.3" then
-            "jetson_36.4.3"
+          if l4tMajorMinorPatchVersion == "36.4.4" then
+            "jetson_36.4.4"
           else
             throw "Mismatching OP-TEE sources";
 
-        sha256 = "sha256-YIkONwvQ3PYF12PcGlX+C4/wlo4n12rrQI3PLnK408k=";
+        sha256 = "sha256-wUKp3dqndSforVHrGTObUPwGflUgPio/2MRTAzXbKqA=";
       };
       patches = [ ./0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch ];
     };
 
     opteeXtest = stdenv.mkDerivation {
       pname = "optee_xtest";
-      version = l4tVersion;
+      version = l4tMajorMinorPatchVersion;
       src = opteeSource;
       nativeBuildInputs = [
         (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ]))
@@ -68,7 +66,7 @@ _:
 
     pcks11Ta = stdenv.mkDerivation {
       pname = "pkcs11";
-      version = l4tVersion;
+      version = l4tMajorMinorPatchVersion;
       src = opteeSource;
       nativeBuildInputs = [
         (pkgs.buildPackages.python3.withPackages (p: [ p.cryptography ]))
