@@ -14,11 +14,20 @@ let
     mkEnableOption
     mkOption
     types
+    mkMerge
+    optionalAttrs
+    hasAttr
     ;
 in
 {
   options.ghaf.services.audio = {
     enable = mkEnableOption "Enable audio service for audio VM";
+    debug = mkOption {
+      type = types.bool;
+      default = config.ghaf.profiles.debug.enable;
+      defaultText = "config.ghaf.profiles.debug.enable";
+      description = "Enable debug logs for pipewire and wireplumber";
+    };
     pulseaudioTcpPort = mkOption {
       type = types.int;
       default = 4713;
@@ -87,88 +96,37 @@ in
       };
     };
 
-    # Start pipewire on system boot
-    systemd.services.pipewire.wantedBy = [ "multi-user.target" ];
-
-    systemd.services."initialize-audio-profile" =
+    systemd.services =
       let
-        initialize-audio-profile = pkgs.writeShellApplication {
-          name = "initialize-audio-profile";
-          runtimeInputs = [
-            pkgs.pulseaudio
-            pkgs.jq
-          ];
-          text = ''
-            function setProfile() {
-              if [[ -n "$1" ]] && [[ -n "$2" ]]; then
-                echo "Setting audio device profile: ($1 - $2)"
-                pactl set-card-profile "$1" "$2"
-              fi
-            }
-
-            function findAudioProfiles() {
-              local audio_device_name active_profile profile_list
-              if [[ -n "$1" ]]; then
-                audio_device_name=$(jq --raw-output --argjson index "$1" '.[$index].name' <<< "$pactl_data")
-                active_profile=$(jq --raw-output --argjson index "$1" '.[$index].active_profile ' <<< "$pactl_data")
-                if [[ -n "$audio_device_name" ]]; then
-                  echo "Found the default audio device: $audio_device_name"
-                  profile_list=$(jq --raw-output --argjson index "$1" '.[$index].profiles | keys[]' <<< "$pactl_data")
-                  echo "With profiles: $profile_list"
-                  while IFS= read -r profile; do
-                    setProfile "$audio_device_name" "$profile"
-                  done <<< "$profile_list"
-
-                  echo "Reset the original active profile."
-                  if [[ -n "$active_profile" ]]; then
-                    setProfile "$audio_device_name" "$active_profile"
-                  fi
-                fi
-              fi
-            }
-
-            pactl_data=$(pactl --format=json list cards)
-            if [[ -z "$pactl_data" ]]; then
-              pulse_address="''${PULSE_SERVER:-localhost}"
-              echo "Error connecting to Pulseaudio service at: \"$pulse_address\""
-              exit 1
-            fi
-
-            default_device_id=$(pactl --format=json info short | jq '.default_sink_name | split(".") | .[1:-1] | join(".")')
-            echo "Default audio device name: $default_device_id";
-
-            audio_device_count=$(jq '. | length' <<< "$pactl_data")
-            echo "Audio device count: $audio_device_count"
-
-            for ((index = 0; index < audio_device_count; index++)); do
-              device_id=$(jq --argjson index $index '.[$index].name | split(".") | .[1:] | join(".")' <<< "$pactl_data")
-              echo "Found audio device with id: $device_id"
-              if [[ "$device_id" == "$default_device_id" ]]; then
-                findAudioProfiles "$index"
-              fi
-            done
-          '';
-        };
+        debugLevel = if cfg.debug then "3" else "1";
       in
       {
-        enable = false;
-        description = "Initialize default audio device profiles";
-        wantedBy = [ "multi-user.target" ];
-        after = [ "pipewire.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          Environment = "PULSE_SERVER=tcp:localhost:${toString cfg.pulseaudioTcpControlPort}";
-          ExecStart = "${initialize-audio-profile}/bin/initialize-audio-profile";
-          Restart = "on-failure";
-          RestartSec = "1";
+        pipewire = {
+          wantedBy = [ "multi-user.target" ];
+          environment.PIPEWIRE_DEBUG = debugLevel;
         };
+        wireplumber.environment.WIREPLUMBER_DEBUG = debugLevel;
       };
 
-    # Open TCP port for the pipewire pulseaudio socket
-    ghaf.firewall.allowedTCPPorts = [
-      cfg.pulseaudioTcpPort
-      cfg.pulseaudioTcpControlPort
+    ghaf = mkMerge [
+      {
+        # Open TCP port for the pipewire pulseaudio socket
+        firewall.allowedTCPPorts = with cfg; [
+          pulseaudioTcpPort
+          pulseaudioTcpControlPort
+        ];
+      }
+      # Enable persistent storage for pipewire state to restore settings on boot
+      (optionalAttrs (hasAttr "storagevm" config.ghaf) {
+        storagevm.directories = [
+          {
+            directory = "/var/lib/pipewire";
+            user = "pipewire";
+            group = "pipewire";
+            mode = "0700";
+          }
+        ];
+      })
     ];
   };
 }
