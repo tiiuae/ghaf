@@ -6,34 +6,76 @@
   ...
 }:
 let
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    optionalString
+    optionals
+    ;
+  inherit (lib.strings) hasPrefix;
   cfg = config.ghaf.logging.server;
 in
 {
   options.ghaf.logging.server = {
-    enable = lib.mkEnableOption "Enable logs aggregator server";
-    endpoint = lib.mkOption {
+    enable = mkEnableOption "Enable logs aggregator server";
+    endpoint = mkOption {
       description = ''
         Assign endpoint url value to the alloy.service running in
         admin-vm. This endpoint URL will include protocol, upstream
         address along with port value.
       '';
-      type = lib.types.nullOr lib.types.str;
+      type = types.nullOr types.str;
       default = null;
     };
-    identifierFilePath = lib.mkOption {
+    identifierFilePath = mkOption {
       description = ''
         This configuration option used to specify the identifier file path.
         The identifier file will be text file which have unique identification
         value per machine so that when logs will be uploaded to cloud
         we can identify its origin.
       '';
-      type = lib.types.nullOr lib.types.path;
+      type = types.nullOr types.path;
       example = "/etc/common/device-id";
       default = "/etc/common/device-id";
     };
+
+    tls = {
+      caFile = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Optional CA bundle for server verification (e.g., /etc/givc/ca-cert.pem). If null, use system CAs.";
+      };
+      certFile = mkOption {
+        type = types.nullOr types.str;
+        default = "/etc/givc/cert.pem";
+        description = "Client certificate (PEM) used for mTLS.";
+      };
+      keyFile = mkOption {
+        type = types.nullOr types.str;
+        default = "/etc/givc/key.pem";
+        description = "Client private key (PEM) used for mTLS.";
+      };
+      serverName = mkOption {
+        type = types.nullOr types.str;
+        default = null;
+        description = "Expected TLS server_name (SNI), e.g., loki.example.com (optional).";
+      };
+      minVersion = mkOption {
+        type = types.nullOr (
+          types.enum [
+            "TLS12"
+            "TLS13"
+          ]
+        );
+        default = "TLS12";
+        description = "Minimum TLS version for the outbound connection.";
+      };
+    };
   };
 
-  config = lib.mkIf config.ghaf.logging.server.enable {
+  config = mkIf config.ghaf.logging.server.enable {
 
     assertions = [
       {
@@ -43,6 +85,14 @@ in
       {
         assertion = cfg.identifierFilePath != null;
         message = "Please provide the identifierFilePath for logs aggregator server, or disable the module.";
+      }
+      {
+        assertion = (cfg.tls.certFile != null) && (cfg.tls.keyFile != null);
+        message = "Please set ghaf.logging.server.tls.certFile and tls.keyFile.";
+      }
+      {
+        assertion = hasPrefix "https://" (cfg.endpoint or "");
+        message = "Endpoint must start with https://";
       }
     ];
 
@@ -56,6 +106,19 @@ in
           // Alloy service can read file in this specific location
           filename = "${cfg.identifierFilePath}"
         }
+
+        // TLS materials arrive via systemd credentials
+        local.file "tls_cert" { 
+          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert" 
+        }
+        local.file "tls_key"  { 
+          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_key" 
+        }
+        ${optionalString (cfg.tls.caFile != null) ''
+          local.file "tls_ca"   { 
+            filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca" 
+          }
+        ''}
 
         discovery.relabel "adminJournal" {
           targets = []
@@ -90,6 +153,13 @@ in
               username = "ghaf"
               password_file = "/etc/loki/pass"
             }
+            tls_config {
+              ${optionalString (cfg.tls.caFile != null) ''ca_pem = local.file.tls_ca.content''}
+              cert_pem    = local.file.tls_cert.content
+              key_pem     = local.file.tls_key.content
+              min_version = "${cfg.tls.minVersion}"
+              ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
+            }
           }
           // Write Ahead Log records incoming data and stores it on the local file
           // system in order to guarantee persistence of acknowledged data.
@@ -117,10 +187,22 @@ in
     };
 
     services.alloy.enable = true;
-    # If there is no internet connection , shutdown/reboot will take around 100sec
-    # So, to fix that problem we need to add stop timeout
-    # https://github.com/grafana/loki/issues/6533
-    systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
+
+    systemd.services.alloy.serviceConfig = {
+      # If there is no internet connection , shutdown/reboot will take around 100sec
+      # So, to fix that problem we need to add stop timeout
+      # https://github.com/grafana/loki/issues/6533
+      TimeoutStopSec = 4;
+
+      # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
+      LoadCredential = [
+        "loki_cert:${cfg.tls.certFile}"
+        "loki_key:${cfg.tls.keyFile}"
+      ]
+      ++ optionals (cfg.tls.caFile != null) [
+        "loki_ca:${cfg.tls.caFile}"
+      ];
+    };
 
     ghaf.firewall = {
       allowedTCPPorts = [ config.ghaf.logging.listener.port ];
