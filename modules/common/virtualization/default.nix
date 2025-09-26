@@ -4,5 +4,6 @@
   imports = [
     ./nvidia-docker.nix
     ./nvidia-podman.nix
+    ./storagevm-encryption.nix
   ];
 }

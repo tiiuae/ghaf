@@ -1,4 +1,4 @@
-# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2024-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 # TODO: Please add by strict alphabetical order
@@ -37,7 +37,6 @@
     systemd-udevd.serviceConfig = import ./systemd-udevd.nix;
     systemd-udev-trigger.serviceConfig = import ./systemd-udev-trigger.nix;
     systemd-user-sessions.serviceConfig = import ./systemd-user-sessions.nix;
-    tpm2-abrmd.serviceConfig = import ./tpm2-abrmd.nix;
     "user-runtime-dir@".serviceConfig = import ./user-runtime-dir.nix;
     vsockproxy.serviceConfig = import ./vsockproxy.nix;
     wpa_supplicant.serviceConfig = import ./wpa_supplicant.nix;
