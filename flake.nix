@@ -82,7 +82,7 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      url = "github:tiiuae/ghafpkgs";
+      url = "github:tiiuae/ghafpkgs/3da322388b16249eaacc45701eb044846beaeed5";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

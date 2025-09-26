@@ -191,6 +191,22 @@ let
                   ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
                 };
               };
+
+            user.services.notify-usb-hotplug = {
+              enable = true;
+              description = "usb_hotplug_notification";
+              wantedBy = [ "ghaf-session.target" ];
+              partOf = [ "ghaf-session.target" ];
+              serviceConfig = {
+                Type = "simple";
+                Restart = "always";
+                RestartSec = "1";
+
+                ExecStart = "${pkgs.usb-passthrough-manager}/bin/upm_server --loglevel debug --cid 2";
+              };
+              startLimitIntervalSec = 0;
+            };
+
           };
 
           environment = {
@@ -205,6 +221,7 @@ let
                 pkgs.pamixer
                 pkgs.eww
                 pkgs.wlr-randr
+                pkgs.usb-passthrough-manager
               ]
               ++ [ pkgs.ctrl-panel ]
               # Packages for checking hardware acceleration

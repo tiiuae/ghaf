@@ -78,6 +78,21 @@ let
       )
       [
         {
+          description = "Devices for Multiple VMs";
+          allowedVms = [
+            "chrome-vm"
+            "business-vm"
+          ];
+          allow = [
+            {
+              vendorId = "0c45";
+              productId = "6366";
+              description = "Arduino USB Camera";
+            }
+          ];
+        }
+
+        {
           description = "Webcams for ChromeVM";
           targetVm = "chrome-vm";
           allow = [
@@ -221,7 +236,7 @@ in
           Enable external API.
         '';
         type = types.bool;
-        default = true;
+        default = false;
       };
 
       port = lib.mkOption {
@@ -230,6 +245,28 @@ in
         description = ''
           API port number.
         '';
+      };
+    };
+    server = {
+      enable = mkEnableOption "Enable vhot plug server";
+      port = lib.mkOption {
+        type = lib.types.int;
+        default = 7000;
+        description = ''
+          Port number for vhotplug server.
+        '';
+      };
+      handlers = {
+        upm = {
+          enable = mkEnableOption "Enable USB passthrough client handler";
+          guest_cid = lib.mkOption {
+            type = lib.types.int;
+            default = 1;
+            description = ''
+              guest cid runing a upm client.
+            '';
+          };
+        };
       };
     };
   };
@@ -257,6 +294,19 @@ in
           inherit (cfg.api) port;
           transport = "vsock";
         };
+        inherit (cfg) server;
+        /*
+                  server = {
+                    inherit (cfg.server) enable;
+                    inherit (cfg.server) port;
+                    handlers = {
+                      upm = {
+                        inherit (cfg.server.handlers.upm) enable;
+                        inherit (cfg.server.handlers.upm) guest_cid;
+          	    };
+          	  };
+          	};
+        */
       };
     };
 
