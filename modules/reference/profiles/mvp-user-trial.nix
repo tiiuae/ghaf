@@ -61,7 +61,7 @@ in
           google-chromecast = {
             enable = true;
             # Should match the name of the chrome VM above
-            chromeVmName = "chrome-vm";
+            vmName = "chrome-vm";
           };
           alpaca-ollama = true;
           wireguard-gui = true;
