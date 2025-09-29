@@ -1,0 +1,101 @@
+---
+title: Ghaf Kill Switch
+description: CLI tool to list, block and unblock microphone, network and camera devices in Ghaf.
+---
+
+## Overview
+
+`ghaf-killswitch` is a command-line utility in Ghaf that enables runtime toggling of certain hardware devices.
+It supports listing known devices, disabling (blocking) them, and re-enabling (unblocking) them.
+This capability is useful for privacy control, resource isolation or dynamic hardware management within the Ghaf host/VM architecture.
+
+It currently supports three device types:
+
+| Keyword | Description |
+|--------|-------------|
+| `mic`  | Internal Audio & microphone PCI devices (used by the `audio-vm`) |
+| `net`  | WLAN / network PCI device (used by the `net-vm`) |
+| `cam`  | Internal camera device (used by the `business-vm`) |
+
+> Note: Some hardware platforms may already include a physical camera kill switch (e.g. via Fn-key) which overrides software control.
+
+---
+
+
+## Usage & Commands
+
+Run `ghaf-killswitch` with `sudo` to control devices. General usage:
+
+```sh
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch <command> [device]
+```
+
+Where `<command>` is:
+
+* `list` — show all supported devices for kill switch functionality
+* `block <device>` — disable / remove the specified device
+* `unblock <device>` — enable / add the specified device
+* `help` — show usage instructions
+
+### Examples
+
+#### List devices
+
+```bash
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch list
+```
+
+#### Disable internal microphone
+
+```bash
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch block mic
+```
+
+Check inside the `gui-vm` to confirm:
+
+```bash
+[ghaf@gui-vm:~]$ nix-shell -p pulseaudio --run "pactl list sources short"
+```
+
+#### Disable Wi-Fi
+
+```bash
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch block net
+```
+
+Check inside `net-vm` or GUI to confirm:
+
+```bash
+[ghaf@net-vm:~]$ nmcli device status
+```
+
+#### Disable internal camera
+
+```bash
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch block cam
+```
+
+Check inside `business-vm` to confirm:
+
+```bash
+[ghaf@business-vm:~]$ lsusb
+```
+
+#### Re-enable all devices
+
+```bash
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch unblock mic
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch unblock net
+[ghaf@ghaf-host:~]$ sudo ghaf-killswitch unblock cam
+```
+
+## Limitations & Known Issues
+- No persistence across reboots — manual re-application is required after boot.
+- GUI anomalies — audio UI elements may misbehave when mic is disabled.
+- Disabling the microphone will stop only internal audio playback and audio recording functionality.
+- Support for blocking external USB devices like camera, microphone is currently unavailable.
+
+
+## Security & Permissions
+- `ghaf-killswitch` requires root (or elevated) privileges to execute hardware changes.
+- Access should be limited to trusted users / automation.
