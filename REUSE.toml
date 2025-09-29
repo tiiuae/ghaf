@@ -137,7 +137,8 @@ path = [
 SPDX-License-Identifier = "BSD-2-Clause"
 SPDX-FileCopyrightText = "Copyright (c) 2017-2020, Linaro Limited"
 path = [
-  "targets/nvidia-jetson-orin/0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch"
+  "targets/nvidia-jetson-orin/0001-ta-pkcs11-Build-time-option-for-controlling-pin-lock.patch",
+  "targets/nvidia-jetson-orin/0001-Remove-nvidia-display-config.patch"
 ]
 
 [[annotations]]

@@ -20,6 +20,20 @@ let
         modules = [
           self.nixosModules.profiles-orin
           {
+            hardware.nvidia-jetpack.firmware.uefi.edk2NvidiaPatches = [
+              # Jetpack-nixos (at least with HEAD d7631edca76885047fe1df32b00d4224e6a0ad71)
+              # enters into boot loop if display is connected to NX/AGX device. NX/AGX with
+              # Ghaf boots further, but device crashes when Graphical UI is launched.
+              #
+              # EDK2-Nvidia has had fixes/workarounds for display related issues. It seems
+              # like display handoff does not work properly and therefore for a workaround
+              # solution UEFI display is disabled from UEFI config.
+              #
+              # NOTE: Display stays blank until kernel starts to print. No Nvidia logo,
+              # no UEFI menu and no Ghaf splash screen!!
+              ./0001-Remove-nvidia-display-config.patch
+            ];
+
             ghaf = {
               profiles = {
                 # variant type, turn on debug or release
