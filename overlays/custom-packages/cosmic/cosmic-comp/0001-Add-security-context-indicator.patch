@@ -1,10 +1,9 @@
-# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
-# SPDX-License-Identifier: Apache-2.0
-From 9e3e8c6aa483900605ece44b12df8fc9d42d2aff Mon Sep 17 00:00:00 2001
+From 40f51180141e855f20034686374bea2e7d86cbf6 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
 Date: Fri, 2 May 2025 20:43:32 +0300
 Subject: [PATCH] Add security context indicator
 
+Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
 ---
  cosmic-comp-config/src/lib.rs         | 24 ++++++++++
  src/backend/render/mod.rs             | 31 +++++++++++++
@@ -14,10 +13,10 @@ Subject: [PATCH] Add security context indicator
  5 files changed, 181 insertions(+), 16 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
-index 0463807..beb7e0c 100644
+index 7dc29cc..55a2b68 100644
 --- a/cosmic-comp-config/src/lib.rs
 +++ b/cosmic-comp-config/src/lib.rs
-@@ -53,6 +53,7 @@ pub struct CosmicCompConfig {
+@@ -81,6 +81,7 @@ pub struct CosmicCompConfig {
      /// The threshold before windows snap themselves to output edges
      pub edge_snap_threshold: u32,
      pub accessibility_zoom: ZoomConfig,
@@ -25,7 +24,7 @@ index 0463807..beb7e0c 100644
  }
  
  impl Default for CosmicCompConfig {
-@@ -87,6 +88,7 @@ impl Default for CosmicCompConfig {
+@@ -116,6 +117,7 @@ impl Default for CosmicCompConfig {
              xwayland_eavesdropping: XwaylandEavesdropping::default(),
              edge_snap_threshold: 0,
              accessibility_zoom: ZoomConfig::default(),
@@ -33,7 +32,7 @@ index 0463807..beb7e0c 100644
          }
      }
  }
-@@ -186,3 +188,25 @@ pub enum XwaylandDescaling {
+@@ -215,3 +217,25 @@ pub enum XwaylandDescaling {
      #[default]
      Fractional,
  }
@@ -60,10 +59,10 @@ index 0463807..beb7e0c 100644
 +    }
 +}
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
-index 348525e..ac629b1 100644
+index f4f5578..70c8dac 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
-@@ -127,6 +127,13 @@ pub enum Usage {
+@@ -128,6 +128,13 @@ pub enum Usage {
      FocusIndicator,
      PotentialGroupIndicator,
      SnappingIndicator,
@@ -77,7 +76,7 @@ index 348525e..ac629b1 100644
  }
  
  #[derive(Clone)]
-@@ -212,6 +219,30 @@ impl IndicatorShader {
+@@ -213,6 +220,30 @@ impl IndicatorShader {
          )
      }
  
@@ -109,7 +108,7 @@ index 348525e..ac629b1 100644
          renderer: &R,
          key: impl Into<Key>,
 diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
-index 5b3c797..69fd1fa 100644
+index 9ade2ff..99e910a 100644
 --- a/src/shell/grabs/moving.rs
 +++ b/src/shell/grabs/moving.rs
 @@ -2,7 +2,7 @@
@@ -215,7 +214,7 @@ index 5b3c797..69fd1fa 100644
                  ))
                  .into(),
              )
-@@ -210,6 +247,7 @@ impl MoveGrabState {
+@@ -211,6 +248,7 @@ impl MoveGrabState {
              })
              .chain(p_elements)
              .chain(focus_element)
@@ -224,7 +223,7 @@ index 5b3c797..69fd1fa 100644
                  CosmicMappedRenderElement::Stack(stack) => {
                      CosmicMappedRenderElement::GrabbedStack(
 diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
-index 7bf628d..6356705 100644
+index aa1252c..e3a9926 100644
 --- a/src/shell/layout/floating/mod.rs
 +++ b/src/shell/layout/floating/mod.rs
 @@ -24,7 +24,7 @@ use smithay::{
@@ -236,7 +235,7 @@ index 7bf628d..6356705 100644
      shell::{
          element::{
              resize_indicator::ResizeIndicator,
-@@ -1544,6 +1544,24 @@ impl FloatingLayout {
+@@ -1564,6 +1564,24 @@ impl FloatingLayout {
                      .collect();
              }
  
@@ -261,7 +260,7 @@ index 7bf628d..6356705 100644
              if focused == Some(elem) && !elem.is_maximized(false) {
                  if let Some((mode, resize)) = resize_indicator.as_mut() {
                      let mut resize_geometry = geometry.clone();
-@@ -1571,10 +1589,18 @@ impl FloatingLayout {
+@@ -1591,10 +1609,18 @@ impl FloatingLayout {
                  let active_window_hint = crate::theme::active_window_hint(theme);
  
                  if indicator_thickness > 0 {
@@ -282,7 +281,7 @@ index 7bf628d..6356705 100644
                          indicator_thickness,
                          alpha,
                          [
-@@ -1582,6 +1608,7 @@ impl FloatingLayout {
+@@ -1602,6 +1628,7 @@ impl FloatingLayout {
                              active_window_hint.green,
                              active_window_hint.blue,
                          ],
@@ -291,21 +290,19 @@ index 7bf628d..6356705 100644
                      window_elements.insert(0, element.into());
                  }
 diff --git a/src/wayland/handlers/xdg_shell/mod.rs b/src/wayland/handlers/xdg_shell/mod.rs
-index 056e48f..a879487 100644
+index 667c4c3..faca411 100644
 --- a/src/wayland/handlers/xdg_shell/mod.rs
 +++ b/src/wayland/handlers/xdg_shell/mod.rs
-@@ -5,8 +5,10 @@ use crate::{
-         element::CosmicWindow, grabs::ReleaseMode, CosmicMapped, CosmicSurface, ManagedLayer,
-         PendingWindow,
-     },
-+    state::ClientState,
+@@ -3,6 +3,8 @@
+ use crate::{
+     shell::{focus::target::KeyboardFocusTarget, grabs::ReleaseMode, CosmicSurface, PendingWindow},
      utils::prelude::*,
-     wayland::protocols::toplevel_info::{toplevel_enter_output, toplevel_enter_workspace},
++    state::ClientState,
 +    backend::render::SecurityContextIndicatorSettings,
  };
+ use smithay::desktop::layer_map_for_output;
  use smithay::{
-     delegate_xdg_shell,
-@@ -19,6 +21,7 @@ use smithay::{
+@@ -16,6 +18,7 @@ use smithay::{
      reexports::{
          wayland_protocols::xdg::shell::server::xdg_toplevel,
          wayland_server::protocol::{wl_output::WlOutput, wl_seat::WlSeat},
@@ -313,9 +310,9 @@ index 056e48f..a879487 100644
      },
      utils::{Logical, Point, Serial},
      wayland::{
-@@ -47,7 +50,49 @@ impl XdgShellHandler for State {
+@@ -44,7 +47,49 @@ impl XdgShellHandler for State {
      fn new_toplevel(&mut self, surface: ToplevelSurface) {
-         let mut shell = self.common.shell.write().unwrap();
+         let mut shell = self.common.shell.write();
          let seat = shell.seats.last_active().clone();
 +
          let window = CosmicSurface::from(surface);
@@ -364,4 +361,4 @@ index 056e48f..a879487 100644
              surface: window,
              seat,
 -- 
-2.43.0
+2.51.0
