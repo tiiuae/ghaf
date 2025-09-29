@@ -14,9 +14,6 @@ in
 
     services.openssh.enable = true;
 
-    ghaf.firewall.attack-mitigation = {
-      enable = true;
-      rateLimitSSH = true;
-    };
+    ghaf.firewall.attack-mitigation.ssh.enable = true;
   };
 }
