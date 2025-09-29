@@ -19,6 +19,9 @@ let
     optionalString
     strings
     types
+    mkMerge
+    hasAttr
+    mkDefault
     ;
   blackListName = "BLACKLIST";
   blacklistMarkNum = "8";
@@ -273,216 +276,212 @@ in
     # Include ethertypes file
     environment.etc.ethertypes.source = "${pkgs.iptables}/etc/ethertypes";
 
-    networking.firewall = {
-      enable = mkForce true;
-      logRefusedConnections = true;
-      rejectPackets = true;
-      checkReversePath = "loose";
-      logReversePathDrops = true;
-      allowPing = false; # ping rule is added manually with extraCommands
-      inherit (cfg) allowedTCPPorts;
-      inherit (cfg) allowedUDPPorts;
-      extraPackages = [
-        pkgs.ipset
-      ];
-      extraCommands = mkBefore ''
+    networking.firewall = mkMerge [
+      {
+        enable = mkForce true;
+        logRefusedConnections = true;
+        rejectPackets = mkDefault true;
+        checkReversePath = mkDefault "loose";
+        logReversePathDrops = mkDefault true;
+        allowPing = mkDefault false;
+        inherit (cfg) allowedTCPPorts;
+        inherit (cfg) allowedUDPPorts;
+        extraPackages = [
+          pkgs.ipset
+        ];
+        extraCommands = mkBefore ''
 
-        # Create BLACKLIST
-        ipset create ${blackListName} hash:ip timeout 3600 maxelem ${toString cfg.blacklistSize} -exist
+          # Create BLACKLIST
+          ipset create ${blackListName} hash:ip timeout 3600 maxelem ${toString cfg.blacklistSize} -exist
 
-        # Create IDS_BLACKLIST (snort, suricata,...)
-        ${concatStringsSep "\n" (
-          optionals cfg.IdsEnabled [
-            "ipset create IDS_BLACKLIST hash:ip timeout 3600 maxelem 65536 -exist"
-          ]
-        )}
+          # Create IDS_BLACKLIST (snort, suricata,...)
+          ${concatStringsSep "\n" (
+            optionals cfg.IdsEnabled [
+              "ipset create IDS_BLACKLIST hash:ip timeout 3600 maxelem 65536 -exist"
+            ]
+          )}
 
-        # Set the default policies
-        iptables  -P INPUT DROP
-        iptables  -P FORWARD DROP
-        iptables  -P OUTPUT ACCEPT
+          # Set the default policies
+          iptables  -P INPUT DROP
+          iptables  -P FORWARD DROP
+          iptables  -P OUTPUT ACCEPT
 
-        # delete ctstate RELATED,ESTABLISHED and lo rules
-        iptables  -D nixos-fw -i lo -j nixos-fw-accept
-        iptables  -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
+          # delete ctstate RELATED,ESTABLISHED and lo rules
+          iptables  -D nixos-fw -i lo -j nixos-fw-accept
+          iptables  -D nixos-fw -m conntrack --ctstate ESTABLISHED,RELATED -j nixos-fw-accept
 
-        # Remove existing chain hooks and chains before recreating them
-        ${removeIptablesChain "PREROUTING" "mangle" "ghaf-fw-pre-mangle"}
-        ${removeIptablesChain "PREROUTING" "nat" "ghaf-fw-pre-nat"}
-        ${removeIptablesChain "INPUT" "filter" "ghaf-fw-in-filter"}
-        ${removeIptablesChain "FORWARD" "filter" "ghaf-fw-fwd-filter"}
-        ${removeIptablesChain "OUTPUT" "filter" "ghaf-fw-out-filter"}
-        ${removeIptablesChain "POSTROUTING" "nat" "ghaf-fw-post-nat"}
-        ${removeIptablesChain null "filter" "ghaf-fw-filter-drop"}
-        ${removeIptablesChain null "mangle" "ghaf-fw-mangle-drop"}
-        ${removeIptablesChain null "filter" "ghaf-fw-conncheck-accept"}
-        ${removeIptablesChain null "filter" "ghaf-fw-blacklist-add"}
-        ${removeIptablesChain null "filter" "ghaf-fw-ban"}
+          # Remove existing chain hooks and chains before recreating them
+          ${removeIptablesChain "PREROUTING" "mangle" "ghaf-fw-pre-mangle"}
+          ${removeIptablesChain "PREROUTING" "nat" "ghaf-fw-pre-nat"}
+          ${removeIptablesChain "INPUT" "filter" "ghaf-fw-in-filter"}
+          ${removeIptablesChain "FORWARD" "filter" "ghaf-fw-fwd-filter"}
+          ${removeIptablesChain "OUTPUT" "filter" "ghaf-fw-out-filter"}
+          ${removeIptablesChain "POSTROUTING" "nat" "ghaf-fw-post-nat"}
+          ${removeIptablesChain null "filter" "ghaf-fw-filter-drop"}
+          ${removeIptablesChain null "mangle" "ghaf-fw-mangle-drop"}
+          ${removeIptablesChain null "filter" "ghaf-fw-conncheck-accept"}
+          ${removeIptablesChain null "filter" "ghaf-fw-blacklist-add"}
+          ${removeIptablesChain null "filter" "ghaf-fw-ban"}
 
-        #Create custom chain for PREROUTING
-        iptables -t mangle -N ghaf-fw-pre-mangle 2> /dev/null || true
-        iptables -t mangle -I PREROUTING -j ghaf-fw-pre-mangle 2> /dev/null || true
-        iptables -t nat -N ghaf-fw-pre-nat 2> /dev/null || true
-        iptables -t nat -I PREROUTING -j ghaf-fw-pre-nat 2> /dev/null || true
+          #Create custom chain for PREROUTING
+          iptables -t mangle -N ghaf-fw-pre-mangle 2> /dev/null || true
+          iptables -t mangle -I PREROUTING -j ghaf-fw-pre-mangle 2> /dev/null || true
+          iptables -t nat -N ghaf-fw-pre-nat 2> /dev/null || true
+          iptables -t nat -I PREROUTING -j ghaf-fw-pre-nat 2> /dev/null || true
 
-        #Create custom chain for INPUT
-        iptables -t filter -N ghaf-fw-in-filter  2> /dev/null || true
-        iptables -t filter -I INPUT -j ghaf-fw-in-filter  2> /dev/null || true
+          #Create custom chain for INPUT
+          iptables -t filter -N ghaf-fw-in-filter  2> /dev/null || true
+          iptables -t filter -I INPUT -j ghaf-fw-in-filter  2> /dev/null || true
 
-        # Create custom chain for FORWARD
-        iptables -N ghaf-fw-fwd-filter 2> /dev/null || true
-        iptables -I FORWARD -j ghaf-fw-fwd-filter 2> /dev/null || true
-
-
-        # Create custom chain for OUTPUT
-        iptables -t filter -N ghaf-fw-out-filter 2> /dev/null || true
-        iptables -t filter -I OUTPUT -j ghaf-fw-out-filter 2> /dev/null || true
-
-        # Create custom chain for POSTROUTING
-        iptables -t nat -N ghaf-fw-post-nat 2> /dev/null || true
-        iptables -t nat -I POSTROUTING -j ghaf-fw-post-nat 2> /dev/null || true
-
-        # Create custom chain to add debug features for mangle tables
-        iptables -t mangle -N ghaf-fw-mangle-drop 2> /dev/null || true
-        iptables -t mangle -A ghaf-fw-mangle-drop -j DROP
-
-        # Create custom chain to add debug features for filter tables
-        iptables -t filter -N ghaf-fw-filter-drop 2> /dev/null || true
-        iptables -t filter -A ghaf-fw-filter-drop -j DROP
-
-        # Creating custom chain to check connections for filter table
-        iptables -t filter -N ghaf-fw-conncheck-accept 2> /dev/null || true
+          # Create custom chain for FORWARD
+          iptables -N ghaf-fw-fwd-filter 2> /dev/null || true
+          iptables -I FORWARD -j ghaf-fw-fwd-filter 2> /dev/null || true
 
 
-        # Creating ban list add chain
-        iptables -t filter -N ghaf-fw-blacklist-add 2> /dev/null || true
+          # Create custom chain for OUTPUT
+          iptables -t filter -N ghaf-fw-out-filter 2> /dev/null || true
+          iptables -t filter -I OUTPUT -j ghaf-fw-out-filter 2> /dev/null || true
 
-        # Creating ban chain
-        iptables -t filter -N ghaf-fw-ban 2> /dev/null || true
+          # Create custom chain for POSTROUTING
+          iptables -t nat -N ghaf-fw-post-nat 2> /dev/null || true
+          iptables -t nat -I POSTROUTING -j ghaf-fw-post-nat 2> /dev/null || true
 
-        # ghaf-fw-blacklist-add rules
-        iptables -t filter -A ghaf-fw-blacklist-add -m limit --limit 10/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
+          # Create custom chain to add debug features for mangle tables
+          iptables -t mangle -N ghaf-fw-mangle-drop 2> /dev/null || true
+          iptables -t mangle -A ghaf-fw-mangle-drop -j DROP
 
-        iptables -t filter -A ghaf-fw-blacklist-add -j SET --add-set ${blackListName} src --exist
+          # Create custom chain to add debug features for filter tables
+          iptables -t filter -N ghaf-fw-filter-drop 2> /dev/null || true
+          iptables -t filter -A ghaf-fw-filter-drop -j DROP
 
-        # protection if ${blackListName} is full
-        iptables -t filter -A ghaf-fw-blacklist-add -j DROP
-
-        # ghaf-fw-ban rules
-        iptables -t filter -A ghaf-fw-ban -m hashlimit --hashlimit 2/min --hashlimit-burst 1 --hashlimit-mode srcip \
-        --hashlimit-name log_ban_per_ip -j LOG --log-prefix "Packet [ban]: " --log-level 4
-
-        # Everything else is dropped.
-        iptables -t filter -A ghaf-fw-ban -j DROP
-
-        ### PREROUTING rules ###
-        # marking blacklisted ip packets
-        iptables -t raw -A PREROUTING -m set --match-set ${blackListName} src -j MARK --set-mark ${blacklistMarkNum}
-        ${addIptablesRules {
-          table = "raw";
-          chain = "PREROUTING";
-          rules = cfg.extra.prerouting.raw;
-        }}
-
-        # Drop invalid packets
-        iptables -t mangle -A ghaf-fw-pre-mangle -m conntrack --ctstate INVALID -j ghaf-fw-mangle-drop
-        # Block packets with bogus TCP flags
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN FIN,SYN -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags SYN,RST SYN,RST -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,RST FIN,RST -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,ACK FIN -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,URG URG -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,FIN FIN -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,PSH PSH -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL ALL -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL NONE -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL FIN,PSH,URG -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j ghaf-fw-mangle-drop
-        iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j ghaf-fw-mangle-drop
-
-        ### INPUT rules ###
-        iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
-        iptables -A ghaf-fw-in-filter -m mark --mark ${blacklistMarkNum} -j ghaf-fw-ban
-
-        # Icmp requests
-        iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -m hashlimit \
-        --hashlimit 1/min --hashlimit-burst 5 --hashlimit-mode srcip --hashlimit-name ICMP_PER_IP \
-        -j ACCEPT
-
-        # Drop remaining
-        iptables -A ghaf-fw-in-filter -p icmp --icmp-type echo-request -j ghaf-fw-filter-drop
-
-        iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-
-        # nixos-fw-accept should be flushed to inject our rules
-        iptables -w -F nixos-fw-accept 2> /dev/null || true
-
-        iptables -w -A nixos-fw-accept -p tcp --syn -m conntrack --ctstate NEW -j ghaf-fw-conncheck-accept
-        iptables -w -A nixos-fw-accept -p udp -m conntrack --ctstate NEW  -j ghaf-fw-conncheck-accept
-        iptables -w -A nixos-fw-accept -j nixos-fw-log-refuse
-        ${concatMapStringsSep "\n" (
-          rule: appendBlacklistRule "tcp" rule "ghaf-fw-conncheck-accept"
-        ) cfg.tcpBlacklistRules}
-        ${concatMapStringsSep "\n" (
-          rule: appendBlacklistRule "udp" rule "ghaf-fw-conncheck-accept"
-        ) cfg.udpBlacklistRules}
-
-        # accept the other packets
-        iptables -t filter -A ghaf-fw-conncheck-accept -j ACCEPT
-        ### FORWARD rules ###
-        iptables -t filter -A ghaf-fw-fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+          # Creating custom chain to check connections for filter table
+          iptables -t filter -N ghaf-fw-conncheck-accept 2> /dev/null || true
 
 
-        ### OUTPUT rules ###
-        iptables -I OUTPUT -o lo -j ACCEPT
+          # Creating ban list add chain
+          iptables -t filter -N ghaf-fw-blacklist-add 2> /dev/null || true
 
-        ### POSTROUTING rules ###
+          # Creating ban chain
+          iptables -t filter -N ghaf-fw-ban 2> /dev/null || true
 
-        ### Inject the other rules ###
-        ${addIptablesRules {
-          table = "mangle";
-          chain = "ghaf-fw-pre-mangle";
-          rules = cfg.extra.prerouting.mangle;
-        }}
-        ${addIptablesRules {
-          table = "nat";
-          chain = "ghaf-fw-pre-nat";
-          rules = cfg.extra.prerouting.nat;
-        }}
-        ${addIptablesRules {
-          table = "filter";
-          chain = "ghaf-fw-in-filter";
-          rules = cfg.extra.input.filter;
-          extraForbidden = [ "ACCEPT" ];
-          expected = [
-            "ghaf-fw-conncheck-accept"
-          ];
-        }}
-        ${addIptablesRules {
-          table = "filter";
-          chain = "ghaf-fw-fwd-filter";
-          rules = cfg.extra.forward.filter;
-        }}
-        ${addIptablesRules {
-          table = "filter";
-          chain = "ghaf-fw-out-filter";
-          rules = cfg.extra.output.filter;
-        }}
-        ${addIptablesRules {
-          table = "nat";
-          chain = "ghaf-fw-post-nat";
-          rules = cfg.extra.postrouting.nat;
-        }}
+          # ghaf-fw-blacklist-add rules
+          iptables -t filter -A ghaf-fw-blacklist-add -m limit --limit 10/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
 
-        ${optionalString (cfg.filter-arp && (lib.hasAttr "host" config.ghaf)) ''
-          # Drop ARP traffic on all tap-* interfaces
-          ebtables -A INPUT -p arp -j DROP -i tap-+
-          ebtables -A FORWARD -p arp -j DROP -i tap-+
-        ''}
-      '';
-    }
-    // cfg.extraOptions;
+          iptables -t filter -A ghaf-fw-blacklist-add -j SET --add-set ${blackListName} src --exist
+
+          # protection if ${blackListName} is full
+          iptables -t filter -A ghaf-fw-blacklist-add -j DROP
+
+          # ghaf-fw-ban rules
+          iptables -t filter -A ghaf-fw-ban -m hashlimit --hashlimit 2/min --hashlimit-burst 1 --hashlimit-mode srcip \
+          --hashlimit-name log_ban_per_ip -j LOG --log-prefix "Packet [ban]: " --log-level 4
+
+          # Everything else is dropped.
+          iptables -t filter -A ghaf-fw-ban -j DROP
+
+          ### PREROUTING rules ###
+          # marking blacklisted ip packets
+          iptables -t raw -A PREROUTING -m set --match-set ${blackListName} src -j MARK --set-mark ${blacklistMarkNum}
+          ${addIptablesRules {
+            table = "raw";
+            chain = "PREROUTING";
+            rules = cfg.extra.prerouting.raw;
+          }}
+
+          # Drop invalid packets
+          iptables -t mangle -A ghaf-fw-pre-mangle -m conntrack --ctstate INVALID -j ghaf-fw-mangle-drop
+          # Block packets with bogus TCP flags
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN,RST,PSH,ACK,URG NONE -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,SYN FIN,SYN -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags SYN,RST SYN,RST -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,RST FIN,RST -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags FIN,ACK FIN -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,URG URG -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,FIN FIN -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ACK,PSH PSH -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL ALL -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL NONE -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL FIN,PSH,URG -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,FIN,PSH,URG -j ghaf-fw-mangle-drop
+          iptables -t mangle -A ghaf-fw-pre-mangle -p tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG -j ghaf-fw-mangle-drop
+
+          ### INPUT rules ###
+          iptables -A ghaf-fw-in-filter -i lo -j ACCEPT
+          iptables -A ghaf-fw-in-filter -m mark --mark ${blacklistMarkNum} -j ghaf-fw-ban
+
+          iptables -A ghaf-fw-in-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+          # nixos-fw-accept should be flushed to inject our rules
+          iptables -w -F nixos-fw-accept 2> /dev/null || true
+
+          iptables -w -A nixos-fw-accept -p tcp --syn -m conntrack --ctstate NEW -j ghaf-fw-conncheck-accept
+          iptables -w -A nixos-fw-accept -p udp -m conntrack --ctstate NEW  -j ghaf-fw-conncheck-accept
+          ${optionalString config.networking.firewall.allowPing ''
+            iptables -w -A nixos-fw-accept -p icmp -m conntrack --ctstate NEW -j ACCEPT
+          ''}
+          iptables -w -A nixos-fw-accept -j nixos-fw-log-refuse
+          ${concatMapStringsSep "\n" (
+            rule: appendBlacklistRule "tcp" rule "ghaf-fw-conncheck-accept"
+          ) cfg.tcpBlacklistRules}
+          ${concatMapStringsSep "\n" (
+            rule: appendBlacklistRule "udp" rule "ghaf-fw-conncheck-accept"
+          ) cfg.udpBlacklistRules}
+
+          # accept the other packets
+          iptables -t filter -A ghaf-fw-conncheck-accept -j ACCEPT
+          ### FORWARD rules ###
+          iptables -t filter -A ghaf-fw-fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+
+          ### OUTPUT rules ###
+
+          ### POSTROUTING rules ###
+
+          ### Inject the other rules ###
+          ${addIptablesRules {
+            table = "mangle";
+            chain = "ghaf-fw-pre-mangle";
+            rules = cfg.extra.prerouting.mangle;
+          }}
+          ${addIptablesRules {
+            table = "nat";
+            chain = "ghaf-fw-pre-nat";
+            rules = cfg.extra.prerouting.nat;
+          }}
+          ${addIptablesRules {
+            table = "filter";
+            chain = "ghaf-fw-in-filter";
+            rules = cfg.extra.input.filter;
+            extraForbidden = [ "ACCEPT" ];
+            expected = [
+              "ghaf-fw-conncheck-accept"
+            ];
+          }}
+          ${addIptablesRules {
+            table = "filter";
+            chain = "ghaf-fw-fwd-filter";
+            rules = cfg.extra.forward.filter;
+          }}
+          ${addIptablesRules {
+            table = "filter";
+            chain = "ghaf-fw-out-filter";
+            rules = cfg.extra.output.filter;
+          }}
+          ${addIptablesRules {
+            table = "nat";
+            chain = "ghaf-fw-post-nat";
+            rules = cfg.extra.postrouting.nat;
+          }}
+
+          ${optionalString (cfg.filter-arp && (hasAttr "host" config.ghaf)) ''
+            # Drop ARP traffic on all tap-* interfaces
+            ebtables -A INPUT -p arp -j DROP -i tap-+
+            ebtables -A FORWARD -p arp -j DROP -i tap-+
+          ''}
+        '';
+      }
+      cfg.extraOptions
+    ];
 
   };
 }
