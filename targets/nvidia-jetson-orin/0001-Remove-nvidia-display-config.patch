@@ -1,0 +1,25 @@
+From 3bb85b9029cf3b761abaec94264ca792c1269cf5 Mon Sep 17 00:00:00 2001
+From: Tanel Dettenborn <tanel.dettenborn@tii.ae>
+Date: Sun, 28 Sep 2025 18:31:56 +0300
+Subject: [PATCH] Remove nvidia display config
+
+Signed-off-by: Tanel Dettenborn <tanel.dettenborn@tii.ae>
+---
+ Platform/NVIDIA/Jetson/Jetson.defconfig | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/Platform/NVIDIA/Jetson/Jetson.defconfig b/Platform/NVIDIA/Jetson/Jetson.defconfig
+index 57ba90cc..e858e8eb 100644
+--- a/Platform/NVIDIA/Jetson/Jetson.defconfig
++++ b/Platform/NVIDIA/Jetson/Jetson.defconfig
+@@ -17,7 +17,7 @@ CONFIG_NETWORKING_DEVICE_NVIDIA=y
+ CONFIG_NETWORKING_DEVICE_ASIX=y
+ CONFIG_NETWORKING_DEVICE_REALTEK=y
+ CONFIG_FS_EXT4=y
+-CONFIG_NVIDIA_DISPLAY=y
++# CONFIG_NVIDIA_DISPLAY=y
+ CONFIG_IPMI_BMC=y
+ CONFIG_L4T=y
+ CONFIG_FIRMWARE_MANAGEMENT_DIRECT=y
+-- 
+2.50.1
