@@ -95,7 +95,20 @@ in
         "app-vm"
       ];
     };
+    gracefulShutdown = mkOption {
+      type = types.bool;
+      default = config.ghaf.givc.enable;
+      defaultText = "config.ghaf.givc.enable";
+      description = ''
+        If true, the microvm ExecStop logic for this VM will be overridden
+        with the host-managed graceful shutdown, which starts the guest's
+        poweroff.target and waits for the VM process to exit.
 
+        This option only has effect if the power manager module is enabled
+        on the host:
+        `ghaf.services.power-manager.host.enable = true;`
+      '';
+    };
   };
   config = {
 

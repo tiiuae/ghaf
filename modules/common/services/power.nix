@@ -362,8 +362,12 @@ in
     };
     host = {
       enable = mkEnableOption ''
-        host power management profile. This profile manages the hosts pre- and post-suspend actions to coordinate guest
-        suspend actions and devices
+        Host power management profile. This profile manages the host's pre- and post-suspend actions
+        to coordinate guest suspend actions and devices.
+
+        Additionally, if a system VM has `ghaf.gracefulShutdown = true`, enabling this host profile
+        allows the host to override the VM's default microvm ExecStop logic, starting
+        the guest's `poweroff.target` and waiting for the VM process to exit.
       '';
     };
   };
@@ -456,14 +460,14 @@ in
 
       # Shutdown displays early before suspend
       powerManagement = {
+        # This is misleading, as it is executed only on suspend, not shutdown
         powerDownCommands = lib.mkBefore ''
-          ${lib.getExe ghaf-powercontrol} turn-off-displays '*'
+          ${getExe ghaf-powercontrol} turn-off-displays '*'
         '';
       };
 
       # Override systemd actions for suspend, poweroff, and reboot
       systemd.services = optionalAttrs (cfg.vm.enable && useGivc) {
-
         # Replace systemd-sleep with GIVC suspend
         systemd-suspend.serviceConfig.ExecStart = [
           ""
@@ -474,12 +478,9 @@ in
         gui-shutdown-interceptor = {
           description = "Ghaf GUI shutdown interceptor";
           wantedBy = [
-            "reboot.target"
-            "poweroff.target"
+            "shutdown.target"
           ];
           before = [
-            "reboot.target"
-            "poweroff.target"
             "shutdown.target"
           ];
           unitConfig.DefaultDependencies = false;
@@ -488,17 +489,27 @@ in
             ExecStart = "${getExe guest-shutdown-interceptor}";
           };
         };
-
       };
 
       # Logind configuration for desktop
-      services.logind.settings.Login = {
-        HandleLidSwitch = if cfg.allowSuspend then "suspend" else "ignore";
-        KillUserProcesses = true;
-        IdleAction = "lock";
-        UserStopDelaySec = 0;
-        HoldoffTimeoutSec = 20;
-      };
+      services.logind.settings.Login =
+        let
+          lidEvent = if cfg.allowSuspend then "suspend" else "lock";
+        in
+        mkDefault {
+          HandleLidSwitch = lidEvent;
+          HandleLidSwitchDocked = lidEvent;
+          HandleLidSwitchExternalPower = lidEvent;
+          HandleSuspendKey = "ignore";
+          HandleHibernateKey = "ignore";
+          HandlePowerKey = "ignore";
+          HandlePowerKeyLongPress = "ignore";
+          KillUserProcesses = true;
+          IdleAction = "lock";
+          IdleActionSec = "10min";
+          UserStopDelaySec = 0;
+          HoldoffTimeoutSec = 20;
+        };
     })
 
     # Host power management
@@ -536,40 +547,99 @@ in
         };
       };
 
-      systemd.services = optionalAttrs cfg.allowSuspend (
-        listToAttrs (
-          flatten (
-            map
-              (suspendAction: [
-                (nameValuePair "pre-sleep-${suspendAction}@" {
-                  description = "pre-sleep ${suspendAction} action for '%i'";
-                  partOf = [ "pre-sleep-actions.target" ];
-                  before = [ "sleep.target" ];
-                  after = optionals (suspendAction == "pci-suspend") [ "pre-sleep-fake-suspend@%i.service" ];
-                  serviceConfig = {
-                    Type = "oneshot";
-                    ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} suspend";
-                  };
-                })
-                (nameValuePair "post-resume-${suspendAction}@" {
-                  description = "post-resume ${suspendAction} action for '%i'";
-                  partOf = [ "post-resume-actions.target" ];
-                  after = [ "suspend.target" ];
-                  before = optionals (suspendAction == "pci-suspend") [ "post-resume-fake-suspend@%i.service" ];
-                  serviceConfig = {
-                    Type = "oneshot";
-                    ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} resume";
-                  };
-                })
-              ])
-              [
-                "poweroff"
-                "fake-suspend"
-                "pci-suspend"
-              ]
+      systemd.services = mkMerge [
+        # suspend/resume action units
+        (optionalAttrs cfg.allowSuspend (
+          listToAttrs (
+            flatten (
+              map
+                (suspendAction: [
+                  (nameValuePair "pre-sleep-${suspendAction}@" {
+                    description = "pre-sleep ${suspendAction} action for '%i'";
+                    partOf = [ "pre-sleep-actions.target" ];
+                    before = [ "sleep.target" ];
+                    after = optionals (suspendAction == "pci-suspend") [ "pre-sleep-fake-suspend@%i.service" ];
+                    serviceConfig = {
+                      Type = "oneshot";
+                      ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} suspend";
+                    };
+                  })
+                  (nameValuePair "post-resume-${suspendAction}@" {
+                    description = "post-resume ${suspendAction} action for '%i'";
+                    partOf = [ "post-resume-actions.target" ];
+                    after = [ "suspend.target" ];
+                    before = optionals (suspendAction == "pci-suspend") [ "post-resume-fake-suspend@%i.service" ];
+                    serviceConfig = {
+                      Type = "oneshot";
+                      ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} resume";
+                    };
+                  })
+                ])
+                [
+                  "poweroff"
+                  "fake-suspend"
+                  "pci-suspend"
+                ]
+            )
           )
-        )
-      );
+        ))
+        # Override microvm’s default shutdown behavior
+        #
+        # By default, microvm attempts to shut down the VM by sending a Ctrl+Alt+Del
+        # sequence and waiting for a socket disconnect:
+        #   https://github.com/microvm-nix/microvm.nix/blob/main/lib/runners/qemu.nix
+        #
+        # In our setup, this does not work because microvm uses socat to wait for input
+        # from stdio, which is /dev/null under systemd. As a result, the command returns
+        # immediately, systemd sees the process as still active, and kills it with SIGTERM.
+        #
+        # For system VMs, we replace ExecStop with custom logic:
+        #   1. Request a graceful shutdown by starting 'poweroff.target' inside the guest.
+        #   2. Wait until the associated QEMU process ($MAINPID) exits.
+        #
+        # We also shorten TimeoutStopSec from the microvm default (150s) to 30s,
+        # since system VMs are expected to power off quickly.
+        (mkIf useGivc (
+          listToAttrs (
+            map
+              (
+                vmName:
+                nameValuePair "microvm@${vmName}" {
+                  serviceConfig = {
+                    TimeoutStopSec = "30";
+                    ExecStop =
+                      let
+                        sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
+                          echo "Starting poweroff target for system VM '${vmName}'"
+                          vm=''${${vmName}/-vm/}
+                          ${givc-cli} start service --vm '${vmName}' poweroff.target &
+
+                          echo "Waiting for system VM '${vmName}' with QEMU PID=$MAINPID to stop"
+                          while kill -0 $MAINPID 2>/dev/null; do
+                            sleep 1
+                          done
+                          echo "System VM '${vmName}' with QEMU PID=$MAINPID stopped"
+                        '';
+                      in
+                      [
+                        # Clear previous microvm ExecStop logic
+                        ""
+                        # '+' allows the sysvm-stop script to be executed with full privileges
+                        "+${sysvm-stop}"
+                      ];
+                  };
+                }
+              )
+              (
+                attrNames (
+                  filterAttrs (
+                    _: vm: vm.config.config.ghaf.type == "system-vm" && vm.config.config.ghaf.gracefulShutdown
+                  ) config.microvm.vms
+                )
+              )
+          )
+        ))
+      ];
 
       # Power management services
       # TODO Evaluate these services
