@@ -115,7 +115,7 @@ in
               acc:
               (
                 acc.uid != null
-                && acc.uid != config.ghaf.users.loginUser.uid
+                && acc.uid != config.ghaf.users.homedUser.uid
                 && acc.uid != config.ghaf.users.admin.uid
               )
             ) accounts);

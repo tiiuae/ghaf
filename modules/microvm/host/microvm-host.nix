@@ -119,12 +119,11 @@ in
             vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
           ) (builtins.attrValues config.microvm.vms);
           xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
-          xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
+          xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.homedUser.uid} users -") xdgDirs;
         in
         [
           "d /persist/common 0755 root root -"
           "d /persist/storagevm/homes 0700 microvm kvm -"
-          "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
         ++ lib.optionals config.ghaf.givc.enable [
           "d /persist/storagevm/givc 0700 microvm kvm -"
@@ -203,12 +202,12 @@ in
         let
           vmDirs = map (
             n:
-            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
+            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.homedUser.uid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
+          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.homedUser.uid} users"
         ]
         ++ vmDirs;
     })
