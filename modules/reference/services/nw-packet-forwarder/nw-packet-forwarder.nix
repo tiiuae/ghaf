@@ -19,6 +19,16 @@ let
   chromecastVmIpAddr = config.ghaf.networking.hosts.${cfg.chromecast.vmName}.ipv4;
   chromecastVmMac = config.ghaf.networking.hosts.${cfg.chromecast.vmName}.mac;
   netVmInternalIp = config.ghaf.networking.hosts."net-vm".ipv4;
+  chromecastFlags = optionalString cfg.chromecast.enable ''
+    --ccastvm-mac ${chromecastVmMac} \
+    --ccastvm-ip ${chromecastVmIpAddr}/24
+  '';
+  nw-pckt-fwd-launcher = pkgs.writeShellScriptBin "nw-pckt-fwd" ''
+    ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
+    --external-iface ${cfg.externalNic} \
+    --internal-iface ${cfg.internalNic} \
+    --internal-ip ${cfg.internalIp} ${chromecastFlags}  
+  '';
 in
 {
   options.services.nw-packet-forwarder = {
@@ -108,25 +118,12 @@ in
         "sys-subsystem-net-devices-${cfg.externalNic}.device"
         "sys-subsystem-net-devices-${cfg.internalNic}.device"
       ];
-      serviceConfig =
-        let
-          nw-pckt-fwd-launcher = pkgs.writeShellScriptBin "nw-pckt-fwd" ''
-            ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
-            --external-iface ${cfg.externalNic} \
-            --internal-iface ${cfg.internalNic} \
-            --internal-ip ${cfg.internalIp} ${optionalString cfg.chromecast.enable ''
-              \
-              --ccastvm-mac ${chromecastVmMac} \
-              --ccastvm-ip ${chromecastVmIpAddr}/24
-            ''}           
-          '';
-        in
-        {
-          Type = "simple";
-          ExecStart = "${nw-pckt-fwd-launcher}/bin/nw-pckt-fwd";
-          Restart = "always";
-          RestartSec = "15s";
-        };
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = "${nw-pckt-fwd-launcher}/bin/nw-pckt-fwd";
+        Restart = "always";
+        RestartSec = "15s";
+      };
     };
 
   };
