@@ -22,8 +22,8 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    #nixpkgs.url = "github:tiiuae/nixpkgs/qemu-10-1-bump";
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:tiiuae/nixpkgs/bump-carry-breakers";
+    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # A framework for testing ghaf configurations
     ci-test-automation = {
