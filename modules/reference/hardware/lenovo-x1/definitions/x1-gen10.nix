@@ -56,9 +56,6 @@
   #   00:1f.x in the Lenovo X1 Carbon 10 gen
   #   must be defined for passthrough to AudioVM
   audio = {
-    # Force a PCI device reset to the device to get pci device to the default state at shutdown
-    removePciDevice = "0000:00:1f.3";
-
     pciDevices = [
       {
         # ISA bridge: Intel Corporation Alder Lake PCH eSPI Controller(rev 01)

@@ -90,8 +90,6 @@
 
   # Audio device for passthrough to audiovm
   audio = {
-    removePciDevice = "0000:00:1f.3";
-
     pciDevices = [
       {
         # ISA bridge: Intel Corporation Device 7a0c (rev 11)

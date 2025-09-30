@@ -72,9 +72,6 @@
 
   # Audio device for passthrough to audiovm
   audio = {
-    # Force a PCI device reset to the audio device
-    # This is to get the pci hardware device to the default state at shutdown
-    removePciDevice = "0000:00:1f.3";
     acpiPath = null;
 
     pciDevices = [

@@ -267,16 +267,6 @@ in
       };
 
       audio = {
-        removePciDevice = mkOption {
-          description = "PCI Device path to remove at VM reboot";
-          type = types.nullOr types.str;
-          default = null;
-        };
-        rescanPciDevice = mkOption {
-          description = "PCI Device path to rescan at VM reboot";
-          type = types.nullOr types.str;
-          default = null;
-        };
         acpiPath = mkOption {
           description = "Path to ACPI file to add to a VM";
           type = types.nullOr types.path;

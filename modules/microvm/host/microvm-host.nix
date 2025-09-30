@@ -18,8 +18,6 @@ let
     foldl'
     attrNames
     ;
-
-  has_remove_pci_device = config.ghaf.hardware.definition.audio.removePciDevice != null;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
   activeMicrovms = attrNames config.microvm.vms;
 in
@@ -176,24 +174,7 @@ in
           # in ExecStop of the microvm@ service fails and causes the service to restart.
           "microvm@${name}".serviceConfig = {
             Restart = "on-abnormal";
-          }
-          //
-            lib.optionalAttrs
-              (config.ghaf.virtualization.microvm.audiovm.enable && (lib.hasInfix "audio-vm" name))
-              {
-                # TODO generalize PCI handling for all VM shutdowns
-                # The + here is a systemd feature to make the script run as root.
-                ExecStopPost = lib.mkIf has_remove_pci_device [
-                  "+${pkgs.writeShellScript "reload-audio" ''
-                    # The script makes audio device internal state to reset
-                    # This fixes issue of audio device getting into some unexpected
-                    # state when the VM is being shutdown during audio mic recording
-                    echo "1" > /sys/bus/pci/devices/${config.ghaf.hardware.definition.audio.removePciDevice}/remove
-                    sleep 0.1
-                    echo "1" > /sys/bus/pci/rescan
-                  ''}"
-                ];
-              };
+          };
         }
       ) { } activeMicrovms;
     })
