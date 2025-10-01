@@ -21,17 +21,21 @@ lib.mkIf cfg.enable {
     let
       mkSwtpmProxyService = name: cport: {
         description = "swtpm proxy for ${name}";
+
+        # admin-vm is hard-coded to host the vTPM daemons
         script = ''
           ${swtpm-proxy-shim}/bin/swtpm-proxy --type vsock \
             --control-port ${toString cport} \
             --control-retry-count 30 \
             /var/lib/microvms/${name}-vm/vtpm.sock \
-            ${toString config.ghaf.networking.hosts.admin-vm.cid} # admin-vm is hardcoded to host the vtpm daemons
+            ${toString config.ghaf.networking.hosts.admin-vm.cid}
         '';
+
         serviceConfig = {
           Type = "exec";
           Restart = "always";
           User = "microvm";
+          Slice = "system-appvms-${name}.slice";
         };
         wantedBy = [ "microvms.target" ];
         before = [ "microvm@${name}-vm.service" ];
