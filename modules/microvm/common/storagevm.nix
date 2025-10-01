@@ -263,6 +263,8 @@ in
               Type = "oneshot";
               ExecStart = lib.getExe enrollStorageScript;
               WorkingDirectory = "/tmp";
+              ProtectSystem = "strict";
+              PrivateTmp = true;
             };
             requires = [
               "${utils.escapeSystemdPath drivePath}.device"
