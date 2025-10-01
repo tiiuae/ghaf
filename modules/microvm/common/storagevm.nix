@@ -93,8 +93,9 @@ in
         type = types.int;
         default = 10 * 1024;
         description = ''
-          Initial size of the persistent disk image in megabytes. The actual space used on the host grows along with
-          guest disk usage, so in terms of host storage this option defines the maximum allocated size.
+          Size of the persistent disk image in megabytes.
+          This is the size of the storage device as seen by the guest (when running `lsblk` for example).
+          The image on the host filesystem is a sparse file and only occupies the space actually used by the VM.
         '';
       };
 
