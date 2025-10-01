@@ -100,8 +100,12 @@ in
 
       pcrs = mkOption {
         type = types.str;
-        description = "List of PCR registers to measure for the guestStorage partition";
+        description = ''
+          List of PCR registers to measure for the guestStorage partition.
+          For supported syntax see the --tpm2-pcrs flag description in {manpage}`systemd-cryptenroll(1)`.
+        '';
         default = "15";
+        example = "7+11+14";
       };
 
       keepDefaultPassword = mkOption {
