@@ -30,7 +30,7 @@ in
     #TODO: tmp disable firefox as 133 is not working in cross-compilation
     firefox = mkProgramOption "Firefox browser" false; # config.ghaf.graphics.enableDemoApplications;
     gala = mkProgramOption "Gala App" false;
-    element-desktop = mkProgramOption "Element desktop" config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
+    element-desktop = mkProgramOption "Element desktop" false; # config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
     zathura = mkProgramOption "zathura" config.ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications;
   };
 
