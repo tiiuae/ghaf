@@ -16,10 +16,15 @@ hardware device and can even lead to denial-of-service scenarios. The emulation 
 communication channel, at the expense of increased complexity.
 After some initial analysis, a variant of the emulation method was chosen as the default way to provide TPM capabilities, but with the added constraint that the state of the emulated TPM must be stored in a dedicated VM and never exposed to the host.
 
+This design prevents straightforward attacks that aim to retrieve the guest TPM state from the host filesystem. Access to the swtpm state file on the host OS is only controlled by file permissions (and MAC frameworks to an extent) which lack granularity, are subject to misconfigurations, and can be circumvented by privileged processes.
+
+However, running the daemon in a virtual machine does not protect against more complex attack vectors that directly target guest memory and/or device drivers. 
+The introduction of protected virtualization (pKVM) is necessary to completely close the attack surface from the host OS.
+
 From an architectural standpoint, TPM access to guests is implemented in the following way:
 
 - a VM is dedicated to hosting instances of [swtpm](https://github.com/stefanberger/swtpm)
-- swtpm state is stored on a secure guest filesystem backed by a hardware TPM. The host cannot read the swtpm state file (except by inspecting guest memory).
+- swtpm state is stored on a secure guest filesystem backed by a hardware TPM
 - swtpm control and data channels are exposed to other VMs through an IPC channel
 - QEMU sends and receives TPM commands to the swtpm daemon over IPC
 
@@ -29,7 +34,7 @@ The high-level design is shown in the following diagram:
 
 ### Implementation
 
-The implementation of the emulated TPM in Ghaf deviates from the aforementioned design in a few ways:
+The implementation of the emulated TPM in Ghaf deviates from the aforementioned design in a few areas:
 
 - The **admin VM** takes the role of hosting the swtpm instances. This reduces the footprint of running an additional VM.
 - A new component is introduced: [swtpm-proxy-shim](https://github.com/abrandao-census/swtpm-proxy-shim). It is a daemon that runs on the host and allows QEMU to use a remote swtpm as a backend, which QEMU does not support by default.
@@ -38,3 +43,7 @@ The implementation of the emulated TPM in Ghaf deviates from the aforementioned 
 After introducing these changes, the current implementation of the feature is illustrated on the diagram below:
 
 ![Ghaf implementation](@assets/ghaf/guest-tpm-hybrid.png)
+
+### Remarks
+
+Applications that access the TPM should ideally use TPM 2.0 authenticated sessions. They enable encryption of TPM command payloads, which ensures inspecting or tampering of key material in-transit is not possible. This can be enforced in future updates.
