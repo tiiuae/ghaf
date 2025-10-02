@@ -20,7 +20,7 @@
     # "page-users"
     "page-legacy-applications"
     # "page-bluetooth"
-    # "page-networking"
+    "page-networking"
     "page-window-management"
     "page-workspaces"
     "single-instance"
