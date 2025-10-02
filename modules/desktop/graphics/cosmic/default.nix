@@ -370,7 +370,6 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          Environment = mkIf graphicsProfileCfg.networkManager.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock";
           ExecStart = ''
             ${lib.getExe' pkgs.networkmanagerapplet "nm-applet"} --indicator
           '';
