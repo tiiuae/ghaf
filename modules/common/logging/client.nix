@@ -6,28 +6,68 @@
   ...
 }:
 let
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    optionalString
+    ;
   cfg = config.ghaf.logging.client;
   inherit (config.ghaf.logging) listener;
 in
 {
   options.ghaf.logging.client = {
-    enable = lib.mkEnableOption "Enable the alloy client service";
-    endpoint = lib.mkOption {
+    enable = mkEnableOption "Alloy client service";
+    endpoint = mkOption {
       description = ''
         Assign endpoint url value to the alloy.service running in
         different log producers. This endpoint URL will include
         protocol, upstream, address along with port value.
       '';
-      type = lib.types.str;
-      default = "http://${listener.address}:${toString listener.port}/loki/api/v1/push";
+      type = types.str;
+      default = "https://${listener.address}:${toString listener.port}/loki/api/v1/push";
+    };
+
+    tls = {
+      caFile = mkOption {
+        type = types.nullOr types.path;
+        default = "/etc/givc/ca-cert.pem";
+        description = "CA bundle used to verify the admin-vm TLS terminator certificate.";
+      };
+      certFile = mkOption {
+        type = types.nullOr types.path;
+        default = "/etc/givc/cert.pem";
+        description = "Client certificate (PEM) used for mTLS to the admin-vm.";
+      };
+      keyFile = mkOption {
+        type = types.nullOr types.path;
+        default = "/etc/givc/key.pem";
+        description = "Client private key (PEM) used for mTLS to the admin-vm.";
+      };
+      minVersion = mkOption {
+        type = types.nullOr (
+          types.enum [
+            "TLS12"
+            "TLS13"
+          ]
+        );
+        default = "TLS12";
+        description = "Minimum TLS version for the outbound connection.";
+      };
     };
   };
-  config = lib.mkIf cfg.enable {
+
+  config = mkIf cfg.enable {
 
     assertions = [
       {
         assertion = listener.address != "";
         message = "Please provide a listener address, or disable the module.";
+      }
+      {
+        assertion = (cfg.tls.certFile != null) && (cfg.tls.keyFile != null);
+        message = "Please set ghaf.logging.client.tls.certFile and tls.keyFile for mTLS.";
       }
     ];
 
@@ -54,6 +94,14 @@ in
         loki.write "adminvm" {
           endpoint {
             url = "${cfg.endpoint}"
+            tls_config {
+              ${optionalString (
+                cfg.tls.caFile != null
+              ) ''ca_file = sys.env("CREDENTIALS_DIRECTORY") + "/client_ca"''}
+              cert_file   = sys.env("CREDENTIALS_DIRECTORY") + "/client_cert"
+              key_file    = sys.env("CREDENTIALS_DIRECTORY") + "/client_key"
+              min_version = "${cfg.tls.minVersion}"
+            }
           }
         }
       '';
@@ -62,6 +110,16 @@ in
     };
 
     services.alloy.enable = true;
+
+    # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
+    systemd.services.alloy.serviceConfig.LoadCredential = [
+      "client_cert:${cfg.tls.certFile}"
+      "client_key:${cfg.tls.keyFile}"
+    ]
+    ++ lib.optionals (cfg.tls.caFile != null) [
+      "client_ca:${cfg.tls.caFile}"
+    ];
+
     # Once alloy.service in admin-vm stopped this service will
     # still keep on retrying to send logs batch, so we need to
     # stop it forcefully.

@@ -19,7 +19,7 @@ let
 in
 {
   options.ghaf.logging.server = {
-    enable = mkEnableOption "Enable logs aggregator server";
+    enable = mkEnableOption "Logs aggregator server";
     endpoint = mkOption {
       description = ''
         Assign endpoint url value to the alloy.service running in
@@ -43,17 +43,22 @@ in
 
     tls = {
       caFile = mkOption {
-        type = types.nullOr types.str;
-        default = null;
+        type = types.nullOr types.path;
+        default = "/etc/givc/ca-cert.pem";
         description = "Optional CA bundle for server verification (e.g., /etc/givc/ca-cert.pem). If null, use system CAs.";
       };
+      remoteCAFile = mkOption {
+        type = types.nullOr types.path;
+        default = null;
+        description = "Optional CA bundle used ONLY for server→REMOTE (Grafana Loki) TLS verification.";
+      };
       certFile = mkOption {
-        type = types.nullOr types.str;
+        type = types.nullOr types.path;
         default = "/etc/givc/cert.pem";
         description = "Client certificate (PEM) used for mTLS.";
       };
       keyFile = mkOption {
-        type = types.nullOr types.str;
+        type = types.nullOr types.path;
         default = "/etc/givc/key.pem";
         description = "Client private key (PEM) used for mTLS.";
       };
@@ -71,6 +76,19 @@ in
         );
         default = "TLS12";
         description = "Minimum TLS version for the outbound connection.";
+      };
+
+      terminator = {
+        backendPort = mkOption {
+          type = types.port;
+          default = 3101;
+          description = "HTTP backend port for Alloy when TLS terminator is enabled.";
+        };
+        verifyClients = mkOption {
+          type = types.bool;
+          default = true;
+          description = "Require client certificates (mTLS).";
+        };
       };
     };
   };
@@ -94,6 +112,10 @@ in
         assertion = hasPrefix "https://" (cfg.endpoint or "");
         message = "Endpoint must start with https://";
       }
+      {
+        assertion = cfg.tls.terminator.backendPort != config.ghaf.logging.listener.port;
+        message = "backendPort must differ from public listener.port.";
+      }
     ];
 
     environment.etc."loki/pass" = {
@@ -111,11 +133,16 @@ in
         local.file "tls_cert" { 
           filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert" 
         }
-        local.file "tls_key"  { 
+        local.file "tls_key" { 
           filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_key" 
         }
+        ${optionalString (cfg.tls.remoteCAFile != null) ''
+          local.file "remote_ca" {
+            filename = sys.env("CREDENTIALS_DIRECTORY") + "/remote_ca"
+          }
+        ''}
         ${optionalString (cfg.tls.caFile != null) ''
-          local.file "tls_ca"   { 
+          local.file "tls_ca" { 
             filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca" 
           }
         ''}
@@ -154,7 +181,7 @@ in
               password_file = "/etc/loki/pass"
             }
             tls_config {
-              ${optionalString (cfg.tls.caFile != null) ''ca_pem = local.file.tls_ca.content''}
+              ${optionalString (cfg.tls.remoteCAFile != null) ''ca_pem = local.file.remote_ca.content''}
               cert_pem    = local.file.tls_cert.content
               key_pem     = local.file.tls_key.content
               min_version = "${cfg.tls.minVersion}"
@@ -174,7 +201,7 @@ in
         loki.source.api "listener" {
           http {
             listen_address = "${config.ghaf.logging.listener.address}"
-            listen_port = ${toString config.ghaf.logging.listener.port}
+            listen_port    = ${toString cfg.tls.terminator.backendPort}
           }
 
           forward_to = [
@@ -199,9 +226,29 @@ in
         "loki_cert:${cfg.tls.certFile}"
         "loki_key:${cfg.tls.keyFile}"
       ]
+      ++ optionals (cfg.tls.remoteCAFile != null) [
+        "remote_ca:${cfg.tls.remoteCAFile}"
+      ]
       ++ optionals (cfg.tls.caFile != null) [
         "loki_ca:${cfg.tls.caFile}"
       ];
+    };
+
+    # TLS terminator on the public socket. Alloy stays on backendPort (HTTP).
+    services.stunnel = {
+      enable = true;
+
+      servers."ghaf-logs" = {
+        accept = config.ghaf.logging.listener.port;
+        connect = "${config.ghaf.logging.listener.address}:${toString cfg.tls.terminator.backendPort}";
+        cert = cfg.tls.certFile;
+        key = cfg.tls.keyFile;
+        verify = if cfg.tls.terminator.verifyClients then 2 else 0;
+        sslVersionMin = "TLSv1.2";
+      }
+      // lib.optionalAttrs (cfg.tls.caFile != null) {
+        CAfile = cfg.tls.caFile;
+      };
     };
 
     ghaf.firewall = {
