@@ -12,6 +12,7 @@
       ./definition.nix
       ./x86_64-generic
       ./device-passthrough
+      ./common/usb/vhotplug.nix
     ];
     hardware-aarch64-generic.imports = [
       ./aarch64/systemd-boot-dtb.nix

@@ -29,6 +29,7 @@ let
     optionalString
     replaceString
     types
+    getExe'
     ;
 
   useGivc = config.ghaf.givc.enable;
@@ -370,6 +371,14 @@ in
         the guest's `poweroff.target` and waiting for the VM process to exit.
       '';
     };
+    usbSuspend = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Whether to enable USB device suspend and resume.
+        When enabled, all USB devices are detached from VMs on suspend and re-attached on resume.
+      '';
+    };
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -582,6 +591,29 @@ in
                 ]
             )
           )
+          // optionalAttrs cfg.usbSuspend {
+            pre-sleep-usb = {
+              description = "USB suspend actions before sleep";
+              partOf = [ "pre-sleep-actions.target" ];
+              wantedBy = [ "pre-sleep-actions.target" ];
+              before = [ "sleep.target" ];
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb suspend";
+              };
+            };
+
+            post-resume-usb = {
+              description = "USB resume actions after wakeup";
+              partOf = [ "post-resume-actions.target" ];
+              wantedBy = [ "post-resume-actions.target" ];
+              after = [ "suspend.target" ];
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb resume";
+              };
+            };
+          }
         ))
         # Override microvm’s default shutdown behavior
         #

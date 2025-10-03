@@ -212,7 +212,8 @@ let
                 pkgs.glxinfo
                 pkgs.libva-utils
                 pkgs.glib
-              ];
+              ]
+              ++ [ pkgs.vhotplug ];
           };
 
           time.timeZone = config.time.timeZone;

@@ -139,6 +139,17 @@ let
     in
     lib.strings.concatMapStringsSep "\n" generateRule config.ghaf.hardware.definition.usb.devices;
 
+  vhotplugRules = builtins.map (vm: {
+    targetVm = vm;
+    description = "Static devices for ${vm}";
+    allow = builtins.map (dev: {
+      description = dev.name;
+      bus = if dev.hostbus != null then lib.toIntBase10 dev.hostbus else null;
+      port = if dev.hostport != null then lib.toIntBase10 dev.hostport else null;
+      inherit (dev) vendorId;
+      inherit (dev) productId;
+    }) permittedDevicesByVm."${vm}";
+  }) vmNames;
 in
 {
   options.ghaf.hardware.passthrough.usb = {
@@ -190,6 +201,9 @@ in
         };
       }
     )
+    (mkIf (config.ghaf.hardware.passthrough.mode == "dynamic") {
+      ghaf.hardware.usb.vhotplug.postpendRules = vhotplugRules;
+    })
     {
       ghaf.hardware.passthrough.vmUdevExtraRules = vmUdevExtraRulesUSB;
     }
