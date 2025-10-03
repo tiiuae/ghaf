@@ -265,6 +265,7 @@ in
               ExecStart = lib.getExe enrollStorageScript;
               WorkingDirectory = "/tmp";
               ProtectSystem = "strict";
+              ReadWritePaths = "/run";
               PrivateTmp = true;
             };
             requires = [
