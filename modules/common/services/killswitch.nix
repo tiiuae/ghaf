@@ -13,13 +13,11 @@ let
     types
     flatten
     concatMapStringsSep
-    length
     ;
   cfg = config.ghaf.services.kill-switch;
 
   netvmName = "net-vm";
   audiovmName = "audio-vm";
-  businessvmName = "business-vm";
   inherit (config.microvm) stateDir;
   supportedDevices = [
     "mic"
@@ -38,16 +36,9 @@ let
       flatten (map (device: "${device.vendorId}:${device.productId}") config.ghaf.common.hardware.nics)
     else
       [ ];
-  usbDevices = config.ghaf.hardware.definition.usb.devices;
-  camUsbDevices =
-    if (length usbDevices > 0) then
-      flatten (
-        map (device: "${device.hostbus}:${device.hostport}:${device.name}") (
-          builtins.filter (device: builtins.substring 0 3 device.name == "cam") usbDevices
-        )
-      )
-    else
-      [ ];
+  camUsbDevices = builtins.filter (
+    d: lib.hasPrefix "cam" d.name
+  ) config.ghaf.hardware.definition.usb.devices;
 
   ghaf-killswitch = pkgs.writeShellApplication {
     name = "ghaf-killswitch";
@@ -118,29 +109,33 @@ let
             devices+=("${pciDevice}")
           '') netPciDevices}
         ;;
-        cam)
-          vm_name="${businessvmName}"
-          ${concatMapStringsSep "\n" (usbDevice: ''
-            devices+=("${usbDevice}")
-          '') camUsbDevices}
-        ;;
         esac
       }
 
       block_devices() {
-        echo "Blocking $device device ..."
-
         if [[ "$device" == "net" || "$device" == "mic" ]]; then
+          echo "Blocking $device device ..."
           hotplug --detach-pci "''${devices[@]}" --data-path "$state_path" --socket-path "$socket_path"
         else
-          hotplug --detach-usb "''${devices[@]}" --data-path "$state_path" --socket-path "$socket_path"
+          ${lib.concatStringsSep "\n" (
+            map (d: ''
+              echo "Blocking device ${d.name} ..."
+              vhotplugcli usb detach \
+                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
+                ${if d.productId == null then "" else "--pid ${d.productId}"} \
+                ${if d.hostbus == null then "" else "--bus ${d.hostbus}"} \
+                ${if d.hostport == null then "" else "--port ${d.hostport}"}
+            '') camUsbDevices
+          )}
+          ${lib.optionalString (camUsbDevices == [ ]) ''
+            echo "No USB devices to block"
+          ''}
         fi
       }
 
       unblock_devices() {
-        echo "Unblocking $device device ..."
-
         if [[ "$device" == "net" || "$device" == "mic" ]]; then
+          echo "Unblocking $device device ..."
           if ! hotplug --attach-pci --data-path "$state_path" --socket-path "$socket_path"; then
             echo "Failed to attach PCI devices. Check systemctl status microvm@$vm_name.service"
             # Recovery from failed attach; restart the VM
@@ -148,7 +143,19 @@ let
             systemctl restart microvm@"$vm_name".service
           fi
         else
-          hotplug --attach-usb --data-path "$state_path" --socket-path "$socket_path"
+          ${lib.concatStringsSep "\n" (
+            map (d: ''
+              echo "Unblocking device ${d.name} ..."
+              vhotplugcli usb attach \
+                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
+                ${if d.productId == null then "" else "--pid ${d.productId}"} \
+                ${if d.hostbus == null then "" else "--bus ${d.hostbus}"} \
+                ${if d.hostport == null then "" else "--port ${d.hostport}"}
+            '') camUsbDevices
+          )}
+          ${lib.optionalString (camUsbDevices == [ ]) ''
+            echo "No USB devices to unblock"
+          ''}
         fi
       }
 
