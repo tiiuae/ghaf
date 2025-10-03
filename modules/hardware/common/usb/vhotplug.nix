@@ -78,8 +78,11 @@ let
       )
       [
         {
-          description = "Webcams for ChromeVM";
-          targetVm = "chrome-vm";
+          description = "External Webcams for ChromeVM and BusinessVM";
+          allowedVms = [
+            "chrome-vm"
+            "business-vm"
+          ];
           allow = [
             {
               interfaceClass = 14;
@@ -231,6 +234,42 @@ in
           API port number.
         '';
       };
+
+      transports = lib.mkOption {
+        type = lib.types.listOf (
+          lib.types.enum [
+            "tcp"
+            "unix"
+            "vsock"
+          ]
+        );
+        default = [
+          "vsock"
+          "unix"
+        ];
+        description = ''
+          List of supported transports for the API.
+        '';
+        example = [
+          "tcp"
+          "unix"
+          "vsock"
+        ];
+      };
+
+      allowedCids = lib.mkOption {
+        type = lib.types.listOf lib.types.int;
+        default =
+          if config.ghaf.networking.hosts ? gui-vm then [ config.ghaf.networking.hosts.gui-vm.cid ] else [ ];
+        description = ''
+          List of VSOCK CIDs allowed to connect.
+        '';
+        example = [
+          3
+          4
+          5
+        ];
+      };
     };
   };
 
@@ -255,7 +294,8 @@ in
         api = {
           inherit (cfg.api) enable;
           inherit (cfg.api) port;
-          transport = "vsock";
+          inherit (cfg.api) transports;
+          inherit (cfg.api) allowedCids;
         };
       };
     };
@@ -273,5 +313,7 @@ in
       };
       startLimitIntervalSec = 0;
     };
+
+    environment.systemPackages = [ pkgs.vhotplug ];
   };
 }
