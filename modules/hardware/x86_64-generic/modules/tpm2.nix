@@ -1,4 +1,4 @@
-# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# Copyright 2024-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
@@ -18,7 +18,7 @@ in
     security.tpm2 = {
       enable = true;
       pkcs11.enable = true;
-      abrmd.enable = true;
+      abrmd.enable = false;
     };
 
     environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [

@@ -53,6 +53,7 @@ export default defineConfig({
                         "ghaf/overview/arch/trusted-vm-whitelisted-repos",
                         "ghaf/overview/arch/secureboot",
                         "ghaf/overview/arch/stack",
+                        "ghaf/overview/arch/guest-tpm",
                       ],
                     },
                     {
