@@ -191,11 +191,27 @@ let
                   ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
                 };
               };
+            user.services.notify-usb-hotplug = {
+              enable = true;
+              description = "usb_hotplug_notification";
+              wantedBy = [ "ghaf-session.target" ];
+              partOf = [ "ghaf-session.target" ];
+              serviceConfig = {
+                Type = "simple";
+                Restart = "always";
+                RestartSec = "1";
+
+                ExecStart = "${pkgs.usb-passthrough-manager}/bin/usb_device_notification --loglevel debug";
+              };
+              startLimitIntervalSec = 0;
+            };
+
           };
 
           environment = {
             systemPackages =
               (rmDesktopEntries [
+                pkgs.usb-passthrough-manager
                 pkgs.waypipe
                 pkgs.networkmanagerapplet
                 pkgs.gnome-calculator
