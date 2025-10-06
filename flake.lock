@@ -234,17 +234,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1759508310,
-        "narHash": "sha256-iMba0UMg5oCqZHKUpQHn7ihUlHEoVYQQiSHKaviMx68=",
+        "lastModified": 1759734518,
+        "narHash": "sha256-2+vSzowbj5ZcfJobz6FWBanDCzp/Z+r5f29SHEsLrks=",
         "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "3b95e4d4d2415cf21a794341449386070251dabf",
+        "rev": "6bb6854f26432eb592a85036546ff4af3765332b",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
         "repo": "ghafpkgs",
-        "rev": "3b95e4d4d2415cf21a794341449386070251dabf",
+        "rev": "6bb6854f26432eb592a85036546ff4af3765332b",
         "type": "github"
       }
     },
