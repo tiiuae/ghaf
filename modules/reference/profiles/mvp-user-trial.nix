@@ -101,7 +101,7 @@ in
       };
 
       # Disk encryption
-      storage.encryption.enable = true;
+      storage.encryption.enable = false;
 
       # Enable audit
       security.audit.enable = false;
