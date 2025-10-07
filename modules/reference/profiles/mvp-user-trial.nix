@@ -35,21 +35,23 @@ in
         };
       };
 
-      hardware.passthrough.VMs = {
-        gui-vm.permittedDevices = [
-          "crazyradio0"
-          "crazyradio1"
-          "crazyfile0"
-          "fpr0"
-          "usbKBD"
-          "xbox0"
-          "xbox1"
-          "xbox2"
-          "yubikey0"
-        ];
-        comms-vm.permittedDevices = [ "gps0" ];
-        audio-vm.permittedDevices = [ "bt0" ];
-        business-vm.permittedDevices = [ "cam0" ];
+      hardware.passthrough = {
+        mode = "dynamic";
+        VMs = {
+          gui-vm.permittedDevices = [
+            "crazyradio0"
+            "crazyradio1"
+            "crazyfile0"
+            "fpr0"
+            "usbKBD"
+            "xbox0"
+            "xbox1"
+            "xbox2"
+          ];
+          comms-vm.permittedDevices = [ "gps0" ];
+          audio-vm.permittedDevices = [ "bt0" ];
+          business-vm.permittedDevices = [ "cam0" ];
+        };
       };
 
       reference = {

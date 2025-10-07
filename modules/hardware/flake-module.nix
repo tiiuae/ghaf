@@ -11,7 +11,6 @@
     hardware-x86_64-generic.imports = [
       ./definition.nix
       ./x86_64-generic
-      ./device-passthrough
     ];
     hardware-aarch64-generic.imports = [
       ./aarch64/systemd-boot-dtb.nix
