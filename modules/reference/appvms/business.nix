@@ -141,7 +141,7 @@ in
           description = "Isolated Trusted Browsing";
           packages = [ trustedBrowserWrapper ];
           icon = "thorium-browser";
-          command = "trusted-browser-wrapper --profile-directory=TrustedBrowserProfile";
+          command = "trusted-browser-wrapper";
           givcArgs = [
             "url"
           ];
@@ -181,25 +181,25 @@ in
           name = "Microsoft Outlook";
           description = "Microsoft Email Client";
           icon = "ms-outlook";
-          command = "trusted-browser-wrapper --app=https://outlook.office.com/mail/ --profile-directory=OutlookProfile";
+          command = "trusted-browser-wrapper --app=https://outlook.office.com/mail/";
         }
         {
           name = "Microsoft 365";
           description = "Microsoft 365 Software Suite";
           icon = "microsoft-365";
-          command = "trusted-browser-wrapper --app=https://microsoft365.com --profile-directory=M365Profile";
+          command = "trusted-browser-wrapper --app=https://microsoft365.com";
         }
         {
           name = "Teams";
           description = "Microsoft Teams Collaboration Application";
           icon = "teams-for-linux";
-          command = "trusted-browser-wrapper --app=https://teams.microsoft.com --profile-directory=TeamsProfile";
+          command = "trusted-browser-wrapper --app=https://teams.microsoft.com";
         }
         {
           name = "Gala";
           description = "Secure Android-in-the-Cloud";
           icon = "distributor-logo-android";
-          command = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login --profile-directory=GalaProfile";
+          command = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
         }
         {
           name = "VPN";
