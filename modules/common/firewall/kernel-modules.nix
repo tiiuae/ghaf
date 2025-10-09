@@ -25,7 +25,6 @@ in
           NETFILTER_NETLINK_LOG = module;
 
           NETFILTER_XTABLES = yes;
-          NETFILTER_XT_TARGET_NOTRACK = module;
           NETFILTER_XT_MATCH_CONNTRACK = module;
           NETFILTER_XT_MATCH_PKTTYPE = module;
           NETFILTER_XT_TARGET_CHECKSUM = module;
@@ -41,7 +40,6 @@ in
           NETFILTER_XT_TARGET_TCPMSS = module;
           NETFILTER_XT_TARGET_TEE = module;
           NETFILTER_XT_TARGET_TPROXY = module;
-          NETFILTER_XT_TARGET_TRACE = module;
           NETFILTER_XT_MATCH_LIMIT = module;
           NETFILTER_XT_MATCH_HASHLIMIT = module;
           NETFILTER_XT_MATCH_MULTIPORT = module;
@@ -74,7 +72,6 @@ in
           NF_CONNTRACK_TIMESTAMP = yes;
           NF_CONNTRACK_ZONES = yes;
           NF_CT_NETLINK = module;
-          NF_CT_PROTO_DCCP = yes;
           NF_CT_PROTO_GRE = yes;
           NF_CT_PROTO_SCTP = yes;
           NF_CT_PROTO_UDPLITE = yes;
@@ -109,6 +106,8 @@ in
           NF_TPROXY_IPV4 = module;
           NF_TPROXY_IPV6 = module;
 
+          NFT_REDIR = module;
+          NFT_CT = module;
           NFT_LIMIT = module;
           NFT_CONNLIMIT = module;
           NFT_COMPAT = module;
@@ -116,24 +115,6 @@ in
           NFT_MASQ = module;
           NFT_NAT = module;
           NFT_REJECT = module;
-
-          IP_NF_ARPFILTER = module;
-          IP_NF_ARPTABLES = module;
-          IP_NF_ARP_MANGLE = module;
-          IP_NF_FILTER = module;
-          IP_NF_IPTABLES = module;
-          IP_NF_MANGLE = module;
-          IP_NF_MATCH_AH = module;
-          IP_NF_MATCH_ECN = module;
-          IP_NF_MATCH_RPFILTER = module;
-          IP_NF_MATCH_TTL = module;
-          IP_NF_NAT = module;
-          IP_NF_RAW = module;
-          IP_NF_SECURITY = module;
-          IP_NF_TARGET_MASQUERADE = module;
-          IP_NF_TARGET_NETMAP = module;
-          IP_NF_TARGET_REDIRECT = module;
-          IP_NF_TARGET_REJECT = module;
         };
       }
     ];
