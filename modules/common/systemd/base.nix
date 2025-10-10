@@ -60,6 +60,7 @@ let
         withUserDb = cfg.withHomed;
         withUtmp = cfg.withJournal || cfg.withAudit;
         inherit (cfg) withSysupdate;
+        inherit (cfg) withHwdb;
       }
       // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
         withVmspawn = cfg.withMachines;
@@ -346,6 +347,12 @@ in
       description = "Enable systemd debug functionality.";
       type = types.bool;
       default = false;
+    };
+
+    withHwdb = mkOption {
+      description = "Enable systemd hwdb functionality.";
+      type = types.bool;
+      default = true;
     };
 
     logLevel = mkOption {
