@@ -53,12 +53,22 @@ let
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"
               ];
+              directories = lib.mkIf configHost.ghaf.virtualization.storagevm-encryption.enable [
+                "/var/lib/swtpm"
+              ];
+              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
             };
             # Networking
             virtualization.microvm.vm-networking = {
               enable = true;
               inherit vmName;
             };
+
+            virtualization.microvm.tpm.passthrough = {
+              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              rootNVIndex = "0x81701000";
+            };
+
             # Services
             logging = {
               server = {
@@ -94,6 +104,12 @@ let
             #TODO: Add back support cloud-hypervisor
             #the system fails to switch root to the stage2 with cloud-hypervisor
             hypervisor = "qemu";
+            qemu = {
+              extraArgs = [
+                "-device"
+                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
+              ];
+            };
             shares = [
               {
                 tag = "ro-store";

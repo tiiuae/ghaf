@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  lib,
   pkgs,
+  lib,
+  config,
   ...
 }:
 {
@@ -12,7 +13,11 @@
     cores = 1;
     bootPriority = "low";
     borderColor = "#122263";
-
+    vtpm = {
+      enable = true;
+      runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
+      basePort = 9160;
+    };
     applications = [
       {
         name = "PDF Viewer";

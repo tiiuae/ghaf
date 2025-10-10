@@ -8,7 +8,9 @@
   ...
 }:
 let
+  configHost = config;
   vmName = "net-vm";
+
   netvmBaseConfiguration = {
     imports = [
       inputs.preservation.nixosModules.preservation
@@ -54,6 +56,7 @@ let
             storagevm = {
               enable = true;
               name = vmName;
+              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
             };
 
             # Networking
@@ -61,6 +64,12 @@ let
               enable = true;
               isGateway = true;
               inherit vmName;
+            };
+
+            virtualization.microvm.tpm.passthrough = {
+              # At the moment the TPM is only used for storage encryption, so the features are coupled.
+              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              rootNVIndex = "0x81704000";
             };
 
             # Services

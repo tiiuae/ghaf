@@ -2,8 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  lib,
   pkgs,
+  lib,
   config,
   ...
 }:
@@ -21,6 +21,11 @@ in
     cores = 4;
     borderColor = "#337aff";
     ghafAudio.enable = true;
+    vtpm = {
+      enable = true;
+      runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
+      basePort = 9130;
+    };
     applications = [
       {
         name = "Element";
