@@ -56,6 +56,11 @@ in
             content = {
               type = "gpt";
               partitions = {
+                # FIXME: would we really need this old compatibility stuff?
+                # The ef02 partition type, identified by the GUID partition table (GPT) tool gdisk, is a BIOS Boot Partition.
+                # It's a small, ~1-2MB partition without a filesystem that holds parts of the GRUB bootloader when booting a non-UEFI system from a GPT-partitioned disk. 
+                # This partition is necessary for GRUB to function in BIOS mode on a GPT disk, 
+                # providing a place to store its core files that wouldn't fit in the post-MBR reserved space. 
                 esp = {
                   name = "ESP";
                   size = "500M";
