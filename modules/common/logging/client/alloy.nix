@@ -69,7 +69,7 @@ let
     in
     pkgs.runCommand "alloy-client-config-check"
       {
-        nativeBuildInputs = [ pkgs.grafana-alloy ];
+        nativeBuildInputs = [ pkgs.buildPackages.grafana-alloy ];
       }
       ''
         alloy validate ${testConfigFile}
