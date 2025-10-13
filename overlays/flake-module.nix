@@ -17,6 +17,7 @@
       #internal overlays
       inputs.self.overlays.own-pkgs-overlay
       inputs.self.overlays.custom-packages
+      inputs.self.overlays.cross-compilation
       #external overlays that we use
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default
