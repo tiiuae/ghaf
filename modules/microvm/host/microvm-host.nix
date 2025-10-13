@@ -100,7 +100,7 @@ in
           create-fake-battery.enable = true;
         };
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
-        logging.client = config.ghaf.networking.hosts ? admin-vm;
+        logging.client = config.ghaf.logging.enable && (config.ghaf.networking.hosts ? admin-vm);
         common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
       };
 

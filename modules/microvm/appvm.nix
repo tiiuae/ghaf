@@ -123,7 +123,7 @@ let
                   name = "${vm.name}";
                 };
 
-                logging.client = true;
+                logging.client = configHost.ghaf.logging.enable && (configHost.ghaf.networking.hosts ? admin-vm);
 
                 security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
 

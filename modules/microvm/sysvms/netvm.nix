@@ -74,7 +74,7 @@ let
               };
             };
 
-            logging.client = true;
+            logging.client = config.ghaf.logging.enable && (config.ghaf.networking.hosts ? admin-vm);
 
             security = {
               fail2ban.enable = config.ghaf.development.ssh.daemon.enable;

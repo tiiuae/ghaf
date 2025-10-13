@@ -125,7 +125,7 @@ let
               };
             };
 
-            logging.client = true;
+            logging.client = config.ghaf.logging.enable && (config.ghaf.networking.hosts ? admin-vm);
 
             # Services
             services = {

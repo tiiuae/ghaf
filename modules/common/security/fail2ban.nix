@@ -48,7 +48,7 @@ in
       enable = true;
       extraPackages = [ pkgs.ipset ];
       bantime = "30m";
-      maxretry = if config.ghaf.profiles.debug.enable then 10 else 3;
+      maxretry = if config.ghaf.profiles.debug.enable or false then 10 else 3;
       bantime-increment.enable = true;
       bantime-increment.factor = "2";
       jails = {
