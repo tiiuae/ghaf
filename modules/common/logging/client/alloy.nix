@@ -40,10 +40,10 @@ let
         url = "https://${cfg.listener.address}:${toString cfg.listener.port}/loki/api/v1/push"
 
         tls_config {
-          ${optionalString (cfg.tls.caFile != null) ''ca_pem = local.file.tls_ca.content,''}
-          cert_pem    = local.file.tls_cert.content,
-          key_pem     = local.file.tls_key.content,
-          min_version = "${cfg.tls.minVersion}",
+          ${optionalString (cfg.tls.caFile != null) ''ca_pem = local.file.tls_ca.content''}
+          cert_pem    = local.file.tls_cert.content
+          key_pem     = local.file.tls_key.content
+          min_version = "${cfg.tls.minVersion}"
         }
       }
 
@@ -56,7 +56,7 @@ let
 
       // Only add hostname label
       external_labels = {
-        hostname = env("HOSTNAME")
+        hostname = env("HOSTNAME"),
       }
     }
   '';

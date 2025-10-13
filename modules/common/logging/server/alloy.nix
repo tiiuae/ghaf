@@ -105,8 +105,15 @@ let
       path          = "/var/log/journal"
       relabel_rules = discovery.relabel.admin_journal.rules
       forward_to    = [
-        ${optionalString cfg.local.enable "loki.write.local.receiver,"}
-        ${optionalString cfg.remote.enable "loki.write.external.receiver,"}
+        ${
+          let
+            items = filter (x: x != "") [
+              (optionalString cfg.local.enable "loki.write.local.receiver")
+              (optionalString cfg.remote.enable "loki.write.external.receiver")
+            ];
+          in
+          concatStringsSep ",\n        " items + (optionalString (items != [ ]) ",")
+        }
       ]
     }
 
@@ -115,8 +122,15 @@ let
     // ============================================
     loki.process "incoming" {
       forward_to = [
-        ${optionalString cfg.local.enable "loki.write.local.receiver,"}
-        ${optionalString cfg.remote.enable "loki.write.external.receiver,"}
+        ${
+          let
+            items = filter (x: x != "") [
+              (optionalString cfg.local.enable "loki.write.local.receiver")
+              (optionalString cfg.remote.enable "loki.write.external.receiver")
+            ];
+          in
+          concatStringsSep ",\n        " items + (optionalString (items != [ ]) ",")
+        }
       ]
 
       // Extract labels
@@ -187,7 +201,7 @@ let
         }
 
         external_labels = {
-          machine = local.file.machine_id.content
+          machine = local.file.machine_id.content,
         }
       }
     ''}
@@ -203,11 +217,11 @@ let
           }
 
           tls_config {
-            ${optionalString (cfg.tls.remoteCAFile != null) ''ca_pem = local.file.remote_ca.content,''}
-            cert_pem    = local.file.tls_cert.content,
-            key_pem     = local.file.tls_key.content,
-            min_version = "${cfg.tls.minVersion}",
-            ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}",''}
+            ${optionalString (cfg.tls.remoteCAFile != null) ''ca_pem = local.file.remote_ca.content''}
+            cert_pem    = local.file.tls_cert.content
+            key_pem     = local.file.tls_key.content
+            min_version = "${cfg.tls.minVersion}"
+            ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
           }
         }
 
@@ -218,7 +232,7 @@ let
         }
 
         external_labels = {
-          machine = local.file.machine_id.content
+          machine = local.file.machine_id.content,
         }
       }
     ''}
