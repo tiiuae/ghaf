@@ -203,11 +203,21 @@ let
       # 8. Service Permissions
       section "Service Permissions"
 
-      # Check if alloy is in systemd-journal group
-      if groups alloy 2>/dev/null | grep -q systemd-journal; then
-        pass "Alloy user is in systemd-journal group"
+      # Check if alloy service has systemd-journal in SupplementaryGroups
+      if systemctl show alloy.service -p SupplementaryGroups | grep -q systemd-journal; then
+        pass "Alloy service has systemd-journal supplementary group"
       else
-        fail "Alloy user missing systemd-journal group membership"
+        fail "Alloy service missing systemd-journal supplementary group configuration"
+      fi
+
+      # Verify the running process actually has journal group access
+      ALLOY_PID=$(pgrep -x alloy)
+      if [ -n "$ALLOY_PID" ]; then
+        if grep -q "$(getent group systemd-journal | cut -d: -f3)" /proc/"$ALLOY_PID"/status 2>/dev/null; then
+          pass "Running Alloy process has systemd-journal group access"
+        else
+          warn "Could not verify runtime group membership (process may need restart)"
+        fi
       fi
 
       # 9. Recent Errors
