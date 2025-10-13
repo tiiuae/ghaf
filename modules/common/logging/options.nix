@@ -210,20 +210,26 @@
     # Assertions
     assertions = [
       {
-        assertion = config.ghaf.logging.listener.address != "";
-        message = "ghaf.logging.listener.address must be set";
+        assertion =
+          (config.ghaf.logging.client || config.ghaf.logging.server)
+          -> config.ghaf.logging.listener.address != "";
+        message = "ghaf.logging.listener.address must be set when client or server is enabled";
       }
       {
         assertion = config.ghaf.logging.remote.enable -> config.ghaf.logging.remote.endpoint != null;
         message = "remote.endpoint required when remote.enable is true";
       }
       {
-        assertion = config.ghaf.logging.listener.port != config.ghaf.logging.listener.backendPort;
+        assertion =
+          (config.ghaf.logging.client || config.ghaf.logging.server)
+          -> config.ghaf.logging.listener.port != config.ghaf.logging.listener.backendPort;
         message = "listener.port and backendPort must differ";
       }
       {
-        assertion = (config.ghaf.logging.tls.certFile != null) && (config.ghaf.logging.tls.keyFile != null);
-        message = "TLS certFile and keyFile must be set";
+        assertion =
+          (config.ghaf.logging.client || config.ghaf.logging.server)
+          -> (config.ghaf.logging.tls.certFile != null) && (config.ghaf.logging.tls.keyFile != null);
+        message = "TLS certFile and keyFile must be set when client or server is enabled";
       }
     ];
 
