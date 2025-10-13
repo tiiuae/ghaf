@@ -1291,7 +1291,7 @@ index 000000000000..7896f6d4f4b2
 --- /dev/null
 +++ b/arch/x86/coco/pkvm/Makefile
 @@ -0,0 +1,3 @@
-+# SPDX-License-Identifier: GPL-2.0
++# SPDX-License-Identifier: GPL-2.0-only
 +
 +obj-y += pkvm.o pkvmcall.o
 diff --git a/arch/x86/coco/pkvm/pkvm.c b/arch/x86/coco/pkvm/pkvm.c
@@ -1300,7 +1300,7 @@ index 000000000000..3590bed967db
 --- /dev/null
 +++ b/arch/x86/coco/pkvm/pkvm.c
 @@ -0,0 +1,113 @@
-+// SPDX-License-Identifier: GPL-2.0
++// SPDX-License-Identifier: GPL-2.0-only
 +
 +#undef pr_fmt
 +#define pr_fmt(fmt)     "pkvm: " fmt
@@ -1419,7 +1419,7 @@ index 000000000000..b7cbe432f065
 --- /dev/null
 +++ b/arch/x86/coco/pkvm/pkvmcall.S
 @@ -0,0 +1,42 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0-only */
 +#include <asm/asm-offsets.h>
 +#include <asm/asm.h>
 +#include <asm/frame.h>
@@ -1870,7 +1870,7 @@ index 000000000000..73ec34f2c4df
 +++ b/arch/x86/include/asm/kvm_pkvm.h
 @@ -0,0 +1,250 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -2126,7 +2126,7 @@ index 000000000000..a404dd549a1b
 +++ b/arch/x86/include/asm/pkvm.h
 @@ -0,0 +1,151 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _ASM_X86_PKVM_H
@@ -2282,7 +2282,7 @@ index 000000000000..5ae6a53177eb
 --- /dev/null
 +++ b/arch/x86/include/asm/pkvm_image.h
 @@ -0,0 +1,48 @@
-+/* SPDX-License-Identifier: GPL-2.0
++/* SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -2337,7 +2337,7 @@ index 000000000000..94d8d6910299
 +++ b/arch/x86/include/asm/pkvm_image_vars.h
 @@ -0,0 +1,23 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __ASM_x86_PKVM_IMAGE_VARS_H
@@ -2366,7 +2366,7 @@ index 000000000000..e524116fe15d
 +++ b/arch/x86/include/asm/pkvm_spinlock.h
 @@ -0,0 +1,62 @@
 +/*
-+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
++ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
 + * Copyright (C) 2018-2022 Intel Corporation
 + *
 + * pkvm runs in a self-contained environment
@@ -2477,7 +2477,7 @@ index 000000000000..ec75523624d7
 --- /dev/null
 +++ b/arch/x86/include/asm/virt_exception.h
 @@ -0,0 +1,41 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0-only */
 +#ifndef _ASM_X86_VIRT_EXCEPTION_H
 +#define _ASM_X86_VIRT_EXCEPTION_H
 +
@@ -2594,7 +2594,7 @@ index 000000000000..e68ae5f3e263
 --- /dev/null
 +++ b/arch/x86/kernel/cpu/pkvm.c
 @@ -0,0 +1,33 @@
-+// SPDX-License-Identifier: GPL-2.0
++// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * PKVM detection support.
 + */
@@ -3067,7 +3067,7 @@ index 000000000000..6ca49fffb4dd
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/Makefile
 @@ -0,0 +1,29 @@
-+# SPDX-License-Identifier: GPL-2.0
++# SPDX-License-Identifier: GPL-2.0-only
 +
 +KVM_PKVM ?= ../../../../../virt/kvm/pkvm
 +ccflags-y += -I $(srctree)/arch/x86/kvm
@@ -3102,7 +3102,7 @@ index 000000000000..682e34a7901f
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/Makefile
 @@ -0,0 +1,79 @@
-+# SPDX-License-Identifier: GPL-2.0
++# SPDX-License-Identifier: GPL-2.0-only
 +
 +KVM_PKVM = virt/kvm/pkvm
 +
@@ -3188,7 +3188,7 @@ index 000000000000..019c5f2755fe
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/bug.h
 @@ -0,0 +1,23 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_BUG_H
@@ -3217,7 +3217,7 @@ index 000000000000..cd3d60034890
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/cpu.h
 @@ -0,0 +1,53 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_CPU_H_
@@ -3276,7 +3276,7 @@ index 000000000000..29d9804cf580
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/debug.h
 @@ -0,0 +1,20 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -3302,7 +3302,7 @@ index 000000000000..766ff87e989d
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/early_alloc.c
 @@ -0,0 +1,76 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -3384,7 +3384,7 @@ index 000000000000..59bede62cd03
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/early_alloc.h
 @@ -0,0 +1,15 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_EARLY_ALLOC_H
@@ -3405,7 +3405,7 @@ index 000000000000..4d89c8972115
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/ept.c
 @@ -0,0 +1,1066 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -4477,7 +4477,7 @@ index 000000000000..a0b5e701fa31
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/ept.h
 @@ -0,0 +1,70 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_EPT_H
@@ -4553,7 +4553,7 @@ index 000000000000..87252724a501
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/idt.S
 @@ -0,0 +1,67 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/linkage.h>
@@ -4626,7 +4626,7 @@ index 000000000000..035dc092917e
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/init_finalise.c
 @@ -0,0 +1,371 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -5002,7 +5002,7 @@ index 000000000000..bf62bbdc1697
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/io.h
 @@ -0,0 +1,82 @@
-+/* SPDX-License-Identifier: GPL-2.0
++/* SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2023 Intel Corporation
 + */
 +#ifndef _PKVM_IO_H_
@@ -5090,7 +5090,7 @@ index 000000000000..d48d804aaf12
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/io_emulate.c
 @@ -0,0 +1,374 @@
-+// SPDX-License-Identifier: GPL-2.0
++// SPDX-License-Identifier: GPL-2.0-only
 +/* Copyright(c) 2023 Intel Corporation. */
 +#include <pkvm.h>
 +#include "ept.h"
@@ -5470,7 +5470,7 @@ index 000000000000..d9303bd8bf20
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/io_emulate.h
 @@ -0,0 +1,67 @@
-+/* SPDX-License-Identifier: GPL-2.0
++/* SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2023 Intel Corporation
 + */
 +#ifndef _PKVM_IO_EMULATE_H_
@@ -5544,7 +5544,7 @@ index 000000000000..6556ee9f4884
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/iommu.c
 @@ -0,0 +1,2372 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/intel-iommu.h>
@@ -7922,7 +7922,7 @@ index 000000000000..dd7fc31373e0
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/iommu.h
 @@ -0,0 +1,16 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_IOMMU_H_
@@ -7944,7 +7944,7 @@ index 000000000000..9dfadadc2b74
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/iommu_debug.c
 @@ -0,0 +1,199 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/types.h>
@@ -8149,7 +8149,7 @@ index 000000000000..35b78fe21d48
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/iommu_internal.h
 @@ -0,0 +1,347 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_IOMMU_INTERNAL_H
@@ -8502,7 +8502,7 @@ index 000000000000..1da2fca89e5d
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/iommu_spgt.c
 @@ -0,0 +1,106 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright(c) 2022 Intel Corporation.
 + * Copyright(c) 2023 Semihalf.
 + */
@@ -8614,7 +8614,7 @@ index 000000000000..9fb4667318b3
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/iommu_spgt.h
 @@ -0,0 +1,19 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright(c) 2022 Intel Corporation.
 + * Copyright(c) 2023 Semihalf.
 + */
@@ -8639,7 +8639,7 @@ index 000000000000..0580edb21313
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/irq.c
 @@ -0,0 +1,60 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -8705,7 +8705,7 @@ index 000000000000..19bd45f2d394
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/lapic.c
 @@ -0,0 +1,222 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include "pkvm.h"
@@ -8933,7 +8933,7 @@ index 000000000000..d4513afe5c80
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/lapic.h
 @@ -0,0 +1,12 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_LAPIC_H_
@@ -8951,7 +8951,7 @@ index 000000000000..67f295a4668b
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/lib/list_debug.c
 @@ -0,0 +1,16 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + */
 +
 +#include <linux/list.h>
@@ -9004,7 +9004,7 @@ index 000000000000..8c30d2f5f925
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/lib/memset_64.S
 @@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0-only */
 +/* Copyright 2002 Andi Kleen, SuSE Labs */
 +
 +#include <linux/linkage.h>
@@ -9035,7 +9035,7 @@ index 000000000000..7758ec40fe7c
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/lib/retpoline.S
 @@ -0,0 +1,115 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + */
 +
 +#include <linux/linkage.h>
@@ -9156,7 +9156,7 @@ index 000000000000..5e6ee262fbe8
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.c
 @@ -0,0 +1,1013 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/bitfield.h>
@@ -10175,7 +10175,7 @@ index 000000000000..f71c55c46d3a
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/mem_protect.h
 @@ -0,0 +1,205 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_MEM_PROTECT_H__
@@ -10386,7 +10386,7 @@ index 000000000000..94e458cf8d1d
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/memory.c
 @@ -0,0 +1,363 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -10755,7 +10755,7 @@ index 000000000000..ba6608ec6800
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/memory.h
 @@ -0,0 +1,51 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_MEMORY_H_
@@ -10812,7 +10812,7 @@ index 000000000000..5cf5c784e501
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/mmu.c
 @@ -0,0 +1,258 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -11076,7 +11076,7 @@ index 000000000000..ea2df00e1a5b
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/mmu.h
 @@ -0,0 +1,28 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_MMU_H_
@@ -11110,7 +11110,7 @@ index 000000000000..ab4b4e40baf2
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/nested.c
 @@ -0,0 +1,1485 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -12601,7 +12601,7 @@ index 000000000000..c539026862c2
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/nested.h
 @@ -0,0 +1,32 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_NESTED_H
@@ -12638,7 +12638,7 @@ index 000000000000..222f009e669c
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pci.c
 @@ -0,0 +1,350 @@
-+// SPDX-License-Identifier: GPL-2.0
++// SPDX-License-Identifier: GPL-2.0-only
 +/* Copyright(c) 2023 Intel Corporation. */
 +#include <asm/pci_x86.h>
 +#include <pkvm.h>
@@ -12994,7 +12994,7 @@ index 000000000000..22d57eff24df
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pci.h
 @@ -0,0 +1,24 @@
-+/* SPDX-License-Identifier: GPL-2.0
++/* SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2023 Intel Corporation
 + */
 +#ifndef _PKVM_PCI_H_
@@ -13025,7 +13025,7 @@ index 000000000000..463b053d7894
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pgtable.c
 @@ -0,0 +1,801 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -13832,7 +13832,7 @@ index 000000000000..85a2f74c5fe4
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pgtable.h
 @@ -0,0 +1,155 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_PGTABLE_H_
@@ -13993,7 +13993,7 @@ index 000000000000..3bf26c75ae98
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pkvm.c
 @@ -0,0 +1,470 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -14468,7 +14468,7 @@ index 000000000000..af81ce58c72f
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pkvm.lds.S
 @@ -0,0 +1,10 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0-only */
 +
 +#include <asm/pkvm_image.h>
 +
@@ -14485,7 +14485,7 @@ index 000000000000..5948f1b39953
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/pkvm_hyp.h
 @@ -0,0 +1,187 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef __PKVM_HYP_H
@@ -14874,7 +14874,7 @@ index 000000000000..409fd0af75e9
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/ptdev.c
 @@ -0,0 +1,213 @@
-+// SPDX-License-Identifier: GPL-2.0
++// SPDX-License-Identifier: GPL-2.0-only
 +/* Copyright(c) 2022 Intel Corporation. */
 +
 +#include <linux/hashtable.h>
@@ -15093,7 +15093,7 @@ index 000000000000..bfefcf7346c1
 --- /dev/null
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/ptdev.h
 @@ -0,0 +1,53 @@
-+/* SPDX-License-Identifier: GPL-2.0 */
++/* SPDX-License-Identifier: GPL-2.0-only */
 +/* Copyright(c) 2022 Intel Corporation. */
 +
 +#ifndef _PKVM_PTDEV_H_
@@ -15153,7 +15153,7 @@ index 000000000000..c4ef27e4d1c1
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/trace.c
 @@ -0,0 +1,117 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/kvm_host.h>
@@ -15276,7 +15276,7 @@ index 000000000000..970d2e770844
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/trace.h
 @@ -0,0 +1,15 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _HYP_TRACE_H_
@@ -15297,7 +15297,7 @@ index 000000000000..77324f75424b
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmexit.c
 @@ -0,0 +1,360 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -15663,7 +15663,7 @@ index 000000000000..95a27c2ac112
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmexit.h
 @@ -0,0 +1,11 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -15680,7 +15680,7 @@ index 000000000000..10a035aee7ec
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmsr.c
 @@ -0,0 +1,120 @@
 +/*
-+ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0
++ * SPDX-License-Identifier: BSD-3-Clause OR GPL-2.0-only
 + * Copyright (C) 2018-2022 Intel Corporation
 + */
 +
@@ -15806,7 +15806,7 @@ index 000000000000..2a8f947fb17a
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmsr.h
 @@ -0,0 +1,11 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_VMSR_H_
@@ -15823,7 +15823,7 @@ index 000000000000..4ad38578d0e7
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmx.c
 @@ -0,0 +1,79 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + */
 +
 +#include <pkvm.h>
@@ -15908,7 +15908,7 @@ index 000000000000..40da630f3c95
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmx.h
 @@ -0,0 +1,63 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -15977,7 +15977,7 @@ index 000000000000..ad6ae1257a7a
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmx_asm.S
 @@ -0,0 +1,186 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/linkage.h>
@@ -16169,7 +16169,7 @@ index 000000000000..b99067af3a6b
 +++ b/arch/x86/kvm/vmx/pkvm/hyp/vmx_ops.h
 @@ -0,0 +1,173 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_VMX_OPS_H_
@@ -16348,7 +16348,7 @@ index 000000000000..4f5c6695f509
 +++ b/arch/x86/kvm/vmx/pkvm/include/capabilities.h
 @@ -0,0 +1,95 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -16449,7 +16449,7 @@ index 000000000000..9ba0678fc492
 +++ b/arch/x86/kvm/vmx/pkvm/include/pkvm.h
 @@ -0,0 +1,155 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -16610,7 +16610,7 @@ index 000000000000..a924e36eb869
 +++ b/arch/x86/kvm/vmx/pkvm/include/pkvm_trace.h
 @@ -0,0 +1,29 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#ifndef _PKVM_TRACE_H_
@@ -16645,7 +16645,7 @@ index 000000000000..746129da4438
 +++ b/arch/x86/kvm/vmx/pkvm/pkvm_constants.c
 @@ -0,0 +1,26 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -16704,7 +16704,7 @@ index 000000000000..c6cd7f3656b0
 +++ b/arch/x86/kvm/vmx/pkvm/pkvm_debugfs.c
 @@ -0,0 +1,204 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +#include <linux/debugfs.h>
@@ -16914,7 +16914,7 @@ index 000000000000..b46c9e07fb1e
 +++ b/arch/x86/kvm/vmx/pkvm/pkvm_host.c
 @@ -0,0 +1,1300 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + */
 +
@@ -21379,7 +21379,7 @@ index 000000000000..03894f4ca24c
 --- /dev/null
 +++ b/virt/kvm/pkvm/pkvm.c
 @@ -0,0 +1,85 @@
-+// SPDX-License-Identifier: GPL-2.0
++// SPDX-License-Identifier: GPL-2.0-only
 +/*
 + * Copyright (C) 2020 - Google LLC
 + * Author: Quentin Perret <qperret@google.com>
@@ -21471,7 +21471,7 @@ index 000000000000..d234ed1188e2
 +++ b/virt/kvm/pkvm/pkvm_spinlock.h
 @@ -0,0 +1,47 @@
 +/*
-+ * SPDX-License-Identifier: GPL-2.0
++ * SPDX-License-Identifier: GPL-2.0-only
 + * Copyright (C) 2022 Intel Corporation
 + *
 + * pkvm runs in a self-contained environment
