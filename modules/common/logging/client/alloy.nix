@@ -1,8 +1,14 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.logging;
+
   text = with lib; ''
     // ============================================
     // CLIENT CONFIGURATION
@@ -34,10 +40,10 @@ let
         url = "https://${cfg.listener.address}:${toString cfg.listener.port}/loki/api/v1/push"
 
         tls_config {
-          ${optionalString (cfg.tls.caFile != null) ''ca_pem = local.file.tls_ca.content''}
-          cert_pem    = local.file.tls_cert.content
-          key_pem     = local.file.tls_key.content
-          min_version = "${cfg.tls.minVersion}"
+          ${optionalString (cfg.tls.caFile != null) ''ca_pem = local.file.tls_ca.content,''}
+          cert_pem    = local.file.tls_cert.content,
+          key_pem     = local.file.tls_key.content,
+          min_version = "${cfg.tls.minVersion}",
         }
       }
 
@@ -54,9 +60,25 @@ let
       }
     }
   '';
+
+  # Validation check at evaluation time
+  configFile = pkgs.writeText "alloy-client-config.alloy" text;
+
+  configCheck =
+    pkgs.runCommand "alloy-client-config-check"
+      {
+        nativeBuildInputs = [ pkgs.grafana-alloy ];
+      }
+      ''
+        alloy fmt ${configFile}
+        touch $out
+      '';
 in
 {
   config = lib.mkIf cfg.client {
+    # Ensure config is validated at build time
+    system.checks = [ configCheck ];
+
     environment.etc."alloy/config.alloy" = {
       inherit text;
       mode = "0644";

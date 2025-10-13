@@ -1,6 +1,11 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   cfg = config.ghaf.logging;
 
@@ -198,11 +203,11 @@ let
           }
 
           tls_config {
-            ${optionalString (cfg.tls.remoteCAFile != null) ''ca_pem = local.file.remote_ca.content''}
-            cert_pem    = local.file.tls_cert.content
-            key_pem     = local.file.tls_key.content
-            min_version = "${cfg.tls.minVersion}"
-            ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
+            ${optionalString (cfg.tls.remoteCAFile != null) ''ca_pem = local.file.remote_ca.content,''}
+            cert_pem    = local.file.tls_cert.content,
+            key_pem     = local.file.tls_key.content,
+            min_version = "${cfg.tls.minVersion}",
+            ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}",''}
           }
         }
 
@@ -218,9 +223,25 @@ let
       }
     ''}
   '';
+
+  # Validation check at evaluation time
+  configFile = pkgs.writeText "alloy-server-config.alloy" text;
+
+  configCheck =
+    pkgs.runCommand "alloy-server-config-check"
+      {
+        nativeBuildInputs = [ pkgs.grafana-alloy ];
+      }
+      ''
+        alloy fmt ${configFile}
+        touch $out
+      '';
 in
 {
   config = lib.mkIf cfg.server {
+    # Ensure config is validated at build time
+    system.checks = [ configCheck ];
+
     environment.etc."alloy/config.alloy" = {
       inherit text;
       mode = "0644";
