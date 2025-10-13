@@ -9,7 +9,8 @@
 let
   cfg = config.ghaf.logging;
 
-  text = with lib; ''
+  # Alloy configuration for client
+  alloyConfig = with lib; ''
     // ============================================
     // CLIENT CONFIGURATION
     // Sends logs to admin-vm for aggregation
@@ -61,26 +62,27 @@ let
     }
   '';
 
-  # Validation check at evaluation time
-  configFile = pkgs.writeText "alloy-client-config.alloy" text;
-
-  configCheck =
+  # Check to validate Alloy configuration at build time
+  alloyConfigCheck =
+    let
+      testConfigFile = pkgs.writeText "test-alloy-client-config.alloy" alloyConfig;
+    in
     pkgs.runCommand "alloy-client-config-check"
       {
         nativeBuildInputs = [ pkgs.grafana-alloy ];
       }
       ''
-        alloy fmt ${configFile}
+        alloy validate ${testConfigFile}
         touch $out
       '';
 in
 {
   config = lib.mkIf cfg.client {
     # Ensure config is validated at build time
-    system.checks = [ configCheck ];
+    system.checks = [ alloyConfigCheck ];
 
     environment.etc."alloy/config.alloy" = {
-      inherit text;
+      text = alloyConfig;
       mode = "0644";
     };
 
