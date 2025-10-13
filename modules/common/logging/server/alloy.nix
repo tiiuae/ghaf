@@ -159,14 +159,14 @@ let
         }
 
         stage.match {
-          selector = "{service_name=~\"^(${concatStringsSep "|" cfg.categorization.securityServices})\\.service$\"}"
+          selector = "{service_name=~\"^(${concatStringsSep "|" cfg.categorization.securityServices})[.]service$\"}"
           stage.static_labels {
             values = { log_category = "security" }
           }
         }
 
         stage.match {
-          selector = "{service_name=~\"^sshd@.+\\.service$\"}"
+          selector = "{service_name=~\"^sshd@.+[.]service$\"}"
           stage.static_labels {
             values = { log_category = "security" }
           }
