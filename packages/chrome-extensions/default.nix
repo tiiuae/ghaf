@@ -1,0 +1,85 @@
+# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{
+  stdenvNoCC,
+  fetchurl,
+  unzip,
+  jq,
+  google-chrome,
+  lib,
+}:
+
+let
+  mkExtension =
+    {
+      name,
+      id,
+      hash,
+    }:
+    stdenvNoCC.mkDerivation rec {
+      pname = name;
+      version = "latest";
+
+      src = fetchurl {
+        url = ''
+          https://clients2.google.com/service/update2/crx?response=redirect
+          &prodversion=${google-chrome.version}
+          &acceptformat=crx3
+          &x=id%3D${id}%26installsource%3Dondemand%26uc
+        '';
+        name = "${id}.crx";
+        inherit hash;
+      };
+
+      nativeBuildInputs = [
+        unzip
+        jq
+      ];
+      dontUnpack = true;
+
+      installPhase = ''
+        install -Dm644 $src $out/${id}.crx
+
+        echo "Extracting version from manifest.json"
+        set +e
+        VERSION=$(unzip -qqp $src manifest.json 2>/dev/null | jq -r .version)
+        ec=$?
+        set -e
+
+        if [ $ec -gt 1 ] || [ -z "$VERSION" ]; then
+          echo "Failed to extract version from ${id}.crx" >&2
+          exit 1
+        fi
+
+        echo "Detected version: $VERSION"
+
+        echo "Generating update.xml template"
+        cat > $out/${id}.xml.template <<EOF
+        <?xml version="1.0" encoding="UTF-8"?>
+        <gupdate xmlns="http://www.google.com/update2/response" protocol="2.0">
+          <app appid="${id}">
+            <updatecheck codebase="@UPDATE_BASE_URL@${id}.crx" version="$VERSION"/>
+          </app>
+        </gupdate>
+        EOF
+      '';
+
+      passthru = {
+        inherit id;
+      };
+
+      meta = with lib; {
+        description = "Chrome extension ${id}";
+        platforms = platforms.all;
+      };
+    };
+in
+{
+  session-buddy = mkExtension {
+    name = "session-buddy";
+    id = "edacconmaakjimmfgnblocblbcdcpbko";
+    hash = "sha256-kyD3bBvh3ygg5T9hnITt5C+kW5iwHjSH+3oKUH4pxX4=";
+  };
+
+  # Add more extensions here as needed
+}
