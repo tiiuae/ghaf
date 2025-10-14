@@ -20,6 +20,7 @@ in
   imports = [
     #TODO: fix me
     ../../../../hardware/common/usb/vhotplug.nix
+    ../../../../hardware/common/usb/quirks.nix
   ];
   options.ghaf.hardware.nvidia.orin = {
     # Enable the Orin boards
@@ -84,6 +85,7 @@ in
       ];
     };
 
+    ghaf.hardware.usb.quirks.enable = true;
     ghaf.hardware.usb.vhotplug = {
       enable = true;
       rules = [
