@@ -28,5 +28,6 @@
     vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
     wait-for-unit = final.callPackage ./pkgs-by-name/wait-for-unit/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
+    chrome-extensions = final.callPackage ./chrome-extensions { };
   };
 }
