@@ -11,9 +11,6 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Just ensure containers are enabled by boot.
-    boot.enableContainers = lib.mkForce true;
-
     # Enable Opengl renamed to hardware.graphics.enable
     hardware.graphics.enable = lib.mkForce true;
 
