@@ -32,6 +32,7 @@ in
         tpm2.enable = true;
         usb = {
           vhotplug.enable = true;
+          quirks.enable = true;
         };
       };
 
