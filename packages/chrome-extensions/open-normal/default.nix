@@ -47,11 +47,11 @@ let
   '';
 in
 stdenvNoCC.mkDerivation {
-  name = "open-normal-extension";
+  name = "open-normal";
   # The version number should be updated any time the extension is changed
   # This version number will be propagated to manifest.json and update.xml
   version = "1.0.1";
-  src = ./open-normal-extension;
+  src = ./src;
   key = keyPem;
   updateXml = ./update.xml;
 

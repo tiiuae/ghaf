@@ -52,7 +52,7 @@
         ${pkgs.google-chrome}/share/google/chrome/*                     ixr,
         ${pkgs.chromium}-sandbox/bin/*                                  ixr,
         ${pkgs.givc-cli}/bin/givc-cli                                   ixr,
-        ${pkgs.open-normal-extension}/*                                 ixr,
+        ${pkgs.chrome-extensions.open-normal}/*                         ixr,
         ${config.ghaf.xdgitems.handlerPath}/bin/*                       ixr,
         /run/xdg/pdf/*                                                  rw,
         /run/xdg/image/*                                                rw,

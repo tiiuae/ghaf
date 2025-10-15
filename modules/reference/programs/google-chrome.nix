@@ -61,8 +61,8 @@ let
           '') localExtensions
         )}
         ${optionalString cfg.openInNormalExtension ''
-          install -m644 ${pkgs.open-normal-extension}/share/open-normal-extension.crx $out/${pkgs.open-normal-extension.id}.crx
-          install -m644 ${pkgs.open-normal-extension}/share/update.xml $out/${pkgs.open-normal-extension.id}.xml
+          install -m644 ${pkgs.chrome-extensions.open-normal}/share/open-normal-extension.crx $out/${pkgs.chrome-extensions.open-normal.id}.crx
+          install -m644 ${pkgs.chrome-extensions.open-normal}/share/update.xml $out/${pkgs.chrome-extensions.open-normal.id}.xml
         ''}
       '';
 
@@ -94,7 +94,7 @@ in
         ExtensionInstallForcelist =
           forcelistEntries
           ++ (lib.optionals (cfg.openInNormalExtension && cfg.localExtensionServer.enable) [
-            "${pkgs.open-normal-extension.id};http://localhost:${toString cfg.localExtensionServer.port}/${pkgs.open-normal-extension.id}.xml"
+            "${pkgs.chrome-extensions.open-normal.id};http://localhost:${toString cfg.localExtensionServer.port}/${pkgs.chrome-extensions.open-normal.id}.xml"
           ]);
       };
       example = literalExpression ''
@@ -210,7 +210,7 @@ in
       }
       (mkIf (cfg.openInNormalExtension && config.ghaf.givc.enable) {
         "opt/chrome/native-messaging-hosts/fi.ssrc.open_normal.json" = {
-          source = "${pkgs.open-normal-extension}/fi.ssrc.open_normal.json";
+          source = "${pkgs.chrome-extensions.open-normal}/fi.ssrc.open_normal.json";
         };
 
         "open-normal-extension.cfg" = {

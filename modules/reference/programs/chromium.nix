@@ -29,7 +29,7 @@ in
         "AlwaysOpenPdfExternally" = true;
         "ExtensionInstallForcelist" =
           if cfg.openInNormalExtension then
-            [ "${pkgs.open-normal-extension.id};http://localhost:8080/update.xml" ]
+            [ "${pkgs.chrome-extensions.open-normal.id};http://localhost:8080/update.xml" ]
           else
             [ ];
       };
@@ -37,7 +37,7 @@ in
 
     environment.etc = lib.mkIf (cfg.openInNormalExtension && config.ghaf.givc.enable) {
       "chromium/native-messaging-hosts/fi.ssrc.open_normal.json" = {
-        source = "${pkgs.open-normal-extension}/fi.ssrc.open_normal.json";
+        source = "${pkgs.chrome-extensions.open-normal}/fi.ssrc.open_normal.json";
       };
 
       "open-normal-extension.cfg" = {

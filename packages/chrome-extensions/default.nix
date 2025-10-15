@@ -1,6 +1,7 @@
 # Copyright 2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  callPackage,
   stdenvNoCC,
   fetchurl,
   unzip,
@@ -10,6 +11,8 @@
 }:
 
 let
+  # Helper function for packaging Chrome extensions from the Web Store.
+  # It fetches the CRX, extracts its version, and generates an update.xml template.
   mkExtension =
     {
       name,
@@ -75,11 +78,17 @@ let
     };
 in
 {
+  # Unlike Web Store extensions, this one is built from our own source.
+  # We add it here for convenience, so it can be accessed under the same namespace.
+  open-normal = callPackage ./open-normal { };
+
+  # Example: Session Buddy session and tab manager.
+  # Hash must be updated manually when the extension is updated upstream.
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
     hash = "sha256-kyD3bBvh3ygg5T9hnITt5C+kW5iwHjSH+3oKUH4pxX4=";
   };
 
-  # Add more extensions here as needed
+  # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; }
 }
