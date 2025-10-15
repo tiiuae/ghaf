@@ -11,7 +11,6 @@ let
   inherit (lib)
     optionals
     getExe
-    mkIf
     ;
   enableOpenNormalExtension = true;
 in
@@ -102,23 +101,15 @@ in
             else
               JQ_FILTER="$BASE_FILTER"
             fi
-
-            # TODO: Remove this block after October 2025
-            # It's only needed to migrate users who installed the extension prior to v1.0.1
-            if ${lib.boolToString enableOpenNormalExtension}; then
-              EXTENSIONS_FILTER='
-                | .extensions |= . // {}
-                | .extensions.pinned_extensions |= (. + ["${pkgs.open-normal-extension.id}"] | unique)
-                | .extensions.settings |= . // {}
-                | .extensions.settings["${pkgs.open-normal-extension.id}"] |= . // {}
-                | .extensions.settings["${pkgs.open-normal-extension.id}"].manifest |= . // {}
-                | .extensions.settings["${pkgs.open-normal-extension.id}"].manifest.update_url |= . // "http://localhost:8080/update.xml"
-              '
-              JQ_FILTER="$JQ_FILTER $EXTENSIONS_FILTER"
-            fi
-            # TODO: Remove this block after October 2025
-
-
+          ''
+          + lib.optionalString enableOpenNormalExtension ''
+            EXTENSIONS_FILTER='
+              | .extensions |= . // {}
+              | .extensions.pinned_extensions |= (. + ["${pkgs.chrome-extensions.open-normal.id}"] | unique)
+            '
+            JQ_FILTER="$JQ_FILTER $EXTENSIONS_FILTER"
+          ''
+          + ''
             debug "jq filter being applied:"
             debug "$JQ_FILTER"
 
@@ -130,6 +121,8 @@ in
             "$CHROME_BIN" --enable-features=UseOzonePlatform \
               --ozone-platform=wayland \
               --disable-gpu \
+              --hide-crash-restore-bubble \
+              --no-first-run \
               ${config.ghaf.givc.idsExtraArgs} \
               --proxy-pac-url=${proxyPacUrl} "$@"
           '';
@@ -164,6 +157,10 @@ in
                   programs.google-chrome = {
                     enable = chromePackage == pkgs.google-chrome;
                     openInNormalExtension = enableOpenNormalExtension;
+
+                    extensions = [
+                      pkgs.chrome-extensions.session-buddy
+                    ];
                   };
                   programs.chromium = {
                     enable = chromePackage == pkgs.chromium;
@@ -307,28 +304,6 @@ in
           # Enable WireGuard GUI
           wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
 
-        };
-
-        # '--load-extension' flag is available only in non-Chrome branded Chromium
-        # as of v137, with the only possible workaround removed in v139
-        # refs:
-        # https://groups.google.com/a/chromium.org/g/chromium-extensions/c/1-g8EFx2BBY/m/S0ET5wPjCAAJ
-        # https://groups.google.com/a/chromium.org/g/chromium-extensions/c/FxMU1TvxWWg/m/daZVTYNlBQAJ
-        #
-        # Therefore we load the extension via 'ExtensionInstallForcelist' policy
-        # A mock extension update server is needed for this to work
-        # ref: https://chromeenterprise.google/policies/#ExtensionInstallForcelist
-        systemd.services.chrome-extension-server = mkIf enableOpenNormalExtension {
-          enable = true;
-          description = "Local Chrome extension update server";
-          after = [ "network.target" ];
-          wantedBy = [ "multi-user.target" ];
-
-          serviceConfig = {
-            ExecStart = "${getExe pkgs.python3} -m http.server 8080 --directory ${pkgs.open-normal-extension}/share";
-            WorkingDirectory = "${pkgs.open-normal-extension}/share";
-            Restart = "always";
-          };
         };
       }
     ];
