@@ -362,6 +362,23 @@ in
       "app-nm\\x2dapplet@autostart" = {
         enable = false;
       };
+      usb-applet = {
+        enable = true;
+        description = "USB passthrough Applet";
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = "2";
+          Path = [
+            "${pkgs.ghaf-usb-applet}/bin"
+          ];
+          ExecStart = ''
+            ${lib.getExe' pkgs.ghaf-usb-applet "usb_applet"} --loglevel debug
+          '';
+        };
+        partOf = [ "cosmic-session.target" ];
+        wantedBy = [ "cosmic-session.target" ];
+      };
 
       nm-applet = {
         inherit (graphicsProfileCfg.networkManager.applet) enable;
