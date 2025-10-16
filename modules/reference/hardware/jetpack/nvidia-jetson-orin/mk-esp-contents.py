@@ -1,6 +1,6 @@
 #! @python3@/bin/python3 -B
 
-# SPDX-FileCopyrightText: 2022-2023 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 #
 # SPDX-License-Identifier: Apache-2.0
 
