@@ -492,7 +492,6 @@
         "pkgs-by-name-for-flake-parts": "pkgs-by-name-for-flake-parts",
         "preservation": "preservation",
         "srvos": "srvos",
-        "swtpm-proxy-shim": "swtpm-proxy-shim",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix",
         "wireguard-gui": "wireguard-gui"
@@ -552,26 +551,6 @@
       "original": {
         "owner": "nix-community",
         "repo": "srvos",
-        "type": "github"
-      }
-    },
-    "swtpm-proxy-shim": {
-      "inputs": {
-        "nixpkgs": [
-          "nixpkgs"
-        ]
-      },
-      "locked": {
-        "lastModified": 1753714486,
-        "narHash": "sha256-BtLGA4qFXPQUGp9cO5n6kpMoQA+6o6rYm+Hh4e8hsJ4=",
-        "owner": "hros-tii",
-        "repo": "swtpm-proxy-shim",
-        "rev": "0828c0367dfb118d806df96723995b5bd86465f1",
-        "type": "github"
-      },
-      "original": {
-        "owner": "hros-tii",
-        "repo": "swtpm-proxy-shim",
         "type": "github"
       }
     },

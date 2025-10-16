@@ -175,13 +175,6 @@
         crane.follows = "givc/crane";
       };
     };
-
-    swtpm-proxy-shim = {
-      url = "github:hros-tii/swtpm-proxy-shim";
-      inputs = {
-        nixpkgs.follows = "nixpkgs";
-      };
-    };
   };
 
   outputs =

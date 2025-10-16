@@ -30,7 +30,7 @@ in
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
-    (import ./vtpm-proxy.nix { inherit inputs; })
+    ./vtpm-proxy.nix
   ];
 
   options.ghaf.virtualization.microvm-host = {

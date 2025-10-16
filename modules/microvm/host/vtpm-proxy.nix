@@ -1,6 +1,5 @@
 # Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
 {
   config,
   lib,
@@ -12,8 +11,6 @@ let
 
   vms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
   vmsWithVtpm = lib.filterAttrs (_name: vm: vm.vtpm.enable && vm.vtpm.runInVM) vms;
-
-  swtpm-proxy-shim = inputs.swtpm-proxy-shim.packages.${pkgs.stdenv.hostPlatform.system};
 in
 lib.mkIf cfg.enable {
   # Spawn a swtpm-proxy on the host for each VM with vtpm enabled
@@ -24,7 +21,7 @@ lib.mkIf cfg.enable {
 
         # admin-vm is hard-coded to host the vTPM daemons
         script = ''
-          ${swtpm-proxy-shim}/bin/swtpm-proxy --type vsock \
+          ${pkgs.swtpm-proxy-shim}/bin/swtpm-proxy --type vsock \
             --control-port ${toString cport} \
             --control-retry-count 30 \
             /var/lib/microvms/${name}-vm/vtpm.sock \
