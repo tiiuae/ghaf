@@ -14,3 +14,4 @@ gcroot/
 .nixos-test-history
 uv-x86_64-unknown-linux-gnu/
 __pycache__/
+data-alloy/

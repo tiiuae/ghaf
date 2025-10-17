@@ -128,7 +128,8 @@ let
                   inherit (vm.ghafAudio) useTunneling;
                   name = "${vm.name}";
                 };
-                logging.client.enable = configHost.ghaf.logging.enable;
+
+                logging.client = configHost.ghaf.logging.enable && (configHost.ghaf.networking.hosts ? admin-vm);
 
                 security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
 
