@@ -1,6 +1,6 @@
 #! /usr/bin/env bash
 # shellcheck shell=bash
-# Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
 # Notes:
@@ -348,7 +348,7 @@ ext_output() {
 write_file() {
   echo "> Writing hardware configuration file..."
   cat <<EOF >"$CONFIG_FILE"
-# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
 # System name

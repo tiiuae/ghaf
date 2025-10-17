@@ -1,5 +1,5 @@
 # Copyright 2020 Jonas Chevalier
-# Copyright 2024 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 # Shamelessly derived from https://github.com/numtide/nixpkgs-unfree/blob/main/ci.sh

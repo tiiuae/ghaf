@@ -1,4 +1,4 @@
-# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 # Add DBUS proxy socket for audio, network, and Bluetooth applets
 # Ref: https://github.com/pop-os/cosmic-applets

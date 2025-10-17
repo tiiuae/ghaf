@@ -158,7 +158,7 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 ### License Requirements
 - **ALWAYS add license headers** to new files:
   ```nix
-  # Copyright 2022-2024 TII (SSRC) and the Ghaf contributors
+  # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
   # SPDX-License-Identifier: Apache-2.0
   ```
 - Run `reuse lint` before committing

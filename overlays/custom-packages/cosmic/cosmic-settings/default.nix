@@ -1,4 +1,4 @@
-# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 # Disable certain settings pages in cosmic-settings
 # Ref: https://github.com/pop-os/cosmic-settings/blob/master/cosmic-settings/Cargo.toml
