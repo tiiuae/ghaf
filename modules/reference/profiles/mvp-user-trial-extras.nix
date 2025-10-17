@@ -48,6 +48,26 @@ in
 
       # Enable audit
       security.audit.enable = lib.mkForce true;
+
+      # host = {
+      #   kernel.hardening = {
+      #     enable = false;
+      #     virtualization.enable = false;
+      #     networking.enable = false;
+      #     usb.enable = false;
+      #     inputdevices.enable = false;
+      #     debug.enable = false;
+      #     # host kernel hypervisor (KVM) hardening
+      #     hypervisor.enable = false;
+      #   };
+      # };
+      # # guest kernel hardening
+      # guest = {
+      #   kernel.hardening = {
+      #     enable = false;
+      #     graphics.enable = false;
+      #   };
+      # };
     };
   };
 }
