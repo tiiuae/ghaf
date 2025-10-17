@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -36,15 +35,14 @@ in
         "uas"
         "fake_battery"
       ];
+
       loader = {
         efi.canTouchEfiVariables = true;
         systemd-boot.enable = true;
       };
 
-      kernelPackages = pkgs.linuxPackages;
-
       extraModulePackages = [
-        (config.boot.kernelPackages.callPackage ../../../packages/kernel/modules/fake-battery { })
+        (config.boot.kernelPackages.callPackage ./kernel/modules/fake-battery { })
       ];
     };
   };

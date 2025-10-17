@@ -14,6 +14,12 @@
       ./device-passthrough
       ./common/usb/vhotplug.nix
     ];
+    hardware-x86_64-host-kernel.imports = [
+      ./x86_64-generic/kernel/host
+    ];
+    hardware-x86_64-guest-kernel.imports = [
+      ./x86_64-generic/kernel/guest
+    ];
     hardware-aarch64-generic.imports = [
       ./aarch64/systemd-boot-dtb.nix
     ];
