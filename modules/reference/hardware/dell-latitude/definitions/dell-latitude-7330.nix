@@ -23,10 +23,12 @@
   input = {
     misc = {
       name = [
-        # "Lid Switch" "Video Bus" "HDA Intel PCH Headphone Mic" "HDA Intel PCH HDMI/DP,pcm=3" "HDA Intel PCH HDMI/DP,pcm=7" "HDA Intel PCH HDMI/DP,pcm=8" "HDA Intel PCH HDMI/DP,pcm=9" "Power Button" "Sleep Button" "Intel HID events" "Intel HID 5 button array" "Dell WMI hotkeys"
+        # "Lid Switch" "Video Bus" "HDA Intel PCH Headphone Mic" "HDA Intel PCH HDMI/DP,pcm=3" "HDA Intel PCH HDMI/DP,pcm=7" "HDA Intel PCH HDMI/DP,pcm=8" "HDA Intel PCH HDMI/DP,pcm=9" "Power Button" "Sleep Button" "Intel HID events" "Intel HID 5 button array"
+        "Dell WMI hotkeys"
       ];
       evdev = [
-        # /dev/input/by-path/platform-INTC1051:00-event /dev/input/by-path/platform-PNP0C14:02-event
+        "/dev/input/by-path/platform-PNP0C14:02-event" # Dell WMI hotkeys
+        # "/dev/input/by-path/platform-INTC1051:00-event" # Intel HID events
       ];
     };
   };
