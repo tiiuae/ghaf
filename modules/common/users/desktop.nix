@@ -33,6 +33,7 @@ let
         default = [
           "audio"
           "video"
+          "journal-notifier"
         ];
       };
       homeSize = mkOption {
