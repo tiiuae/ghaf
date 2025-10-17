@@ -25,6 +25,7 @@ in
   imports = [
     inputs.microvm.nixosModules.host
     inputs.self.nixosModules.givc
+    inputs.self.nixosModules.hardware-x86_64-host-kernel
     inputs.self.nixosModules.mem-manager
     ./networking.nix
     ./shared-mem.nix

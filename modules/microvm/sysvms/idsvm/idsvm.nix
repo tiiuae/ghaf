@@ -15,6 +15,7 @@ let
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.givc
+      inputs.self.nixosModules.hardware-x86_64-guest-kernel
       inputs.self.nixosModules.profiles
       (
         { lib, ... }:

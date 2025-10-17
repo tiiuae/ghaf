@@ -16,6 +16,7 @@ let
     imports = [
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.givc
+      inputs.self.nixosModules.hardware-x86_64-guest-kernel
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.vm-modules
 
@@ -272,14 +273,8 @@ let
       )
     ];
   };
+
   cfg = config.ghaf.virtualization.microvm.guivm;
-
-  #TODO: fix the kernel includes and builders to be more modular and centrailized
-  # Importing kernel builder function and building guest_graphics_hardened_kernel
-  buildKernel = import ../../../packages/kernel { inherit config pkgs lib; };
-  config_baseline = ../../hardware/x86_64-generic/kernel/configs/ghaf_host_hardened_baseline-x86;
-  guest_graphics_hardened_kernel = buildKernel { inherit config_baseline; };
-
 in
 {
   options.ghaf.virtualization.microvm.guivm = {
@@ -337,12 +332,6 @@ in
       specialArgs = { inherit lib; };
 
       config = guivmBaseConfiguration // {
-        boot.kernelPackages =
-          if config.ghaf.guest.kernel.hardening.graphics.enable then
-            pkgs.linuxPackagesFor guest_graphics_hardened_kernel
-          else
-            pkgs.linuxPackages_latest;
-
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
       };
     };
