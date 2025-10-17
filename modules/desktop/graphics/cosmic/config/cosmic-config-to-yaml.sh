@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copyright 2022-2025 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
 # This script generates a YAML file from the Cosmic config file tree in the specified directory
