@@ -52,6 +52,14 @@ let
         };
       }
     ]))
+    (orin-configuration "nvidia-jetson-orin" "agx-industrial" "debug" (withCommonModules [
+      self.nixosModules.hardware-nvidia-jetson-orin-agx-industrial
+      {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
+      }
+    ]))
     (orin-configuration "nvidia-jetson-orin" "nx" "debug" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-nx
       {
@@ -72,6 +80,14 @@ let
     ]))
     (orin-configuration "nvidia-jetson-orin" "agx64" "release" (withCommonModules [
       self.nixosModules.hardware-nvidia-jetson-orin-agx64
+      {
+        ghaf = {
+          reference.profiles.mvp-orinuser-trial.enable = true;
+        };
+      }
+    ]))
+    (orin-configuration "nvidia-jetson-orin" "agx-industrial" "release" (withCommonModules [
+      self.nixosModules.hardware-nvidia-jetson-orin-agx-industrial
       {
         ghaf = {
           reference.profiles.mvp-orinuser-trial.enable = true;
