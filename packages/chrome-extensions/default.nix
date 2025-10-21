@@ -87,7 +87,7 @@ in
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
-    hash = "sha256-kyD3bBvh3ygg5T9hnITt5C+kW5iwHjSH+3oKUH4pxX4=";
+    hash = "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
   };
 
   # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; }
