@@ -18,10 +18,11 @@ let
       name,
       id,
       hash,
+      version,
     }:
     stdenvNoCC.mkDerivation rec {
       pname = name;
-      version = "latest";
+      inherit version;
 
       src = fetchurl {
         url = ''
@@ -45,7 +46,8 @@ let
 
         echo "Extracting version from manifest.json"
         set +e
-        VERSION=$(unzip -qqp $src manifest.json 2>/dev/null | jq -r .version)
+        VERSION=${version}
+        #VERSION=$(unzip -qqp $src manifest.json 2>/dev/null | jq -r .version)
         ec=$?
         set -e
 
@@ -87,7 +89,8 @@ in
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
-    hash = "sha256-kyD3bBvh3ygg5T9hnITt5C+kW5iwHjSH+3oKUH4pxX4=";
+    hash = "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
+    version = "4.0.5";
   };
 
   # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; }
