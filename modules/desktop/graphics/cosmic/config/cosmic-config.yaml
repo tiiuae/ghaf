@@ -173,6 +173,7 @@ com.system76.CosmicSettings.Shortcuts:
         (modifiers: [Super, Alt], key: "Escape"): Terminate,
         (modifiers: [Super, Shift], key: "Escape"): System(LogOut),
         (modifiers: [Super, Ctrl], key: "Escape"): Debug,
+        (modifiers: [Super], key: "Escape"): System(LockScreen),
         (modifiers: [Super], key: "l"): System(LockScreen),
         (modifiers: [Alt], key: "F4"): Close,
 
