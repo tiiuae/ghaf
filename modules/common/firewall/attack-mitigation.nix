@@ -67,8 +67,8 @@ in
       default = {
         enable = true;
         rule = {
-          burstNum = 5;
-          maxPacketFreq = "1/min";
+          burstNum = 10;
+          maxPacketFreq = "60/min";
         };
       };
       description = "Ping flood mitigation settings";
