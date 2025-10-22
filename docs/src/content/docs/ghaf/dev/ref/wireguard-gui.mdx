@@ -1,0 +1,79 @@
+---
+title: Wireguard GUI
+---
+[WireGuard](https://www.wireguard.com/) is a modern, simple, and fast VPN protocol designed to be easy to configure and highly secure.
+
+[WireGuard GUI](https://github.com/tiiuae/wireguard-gui) is a graphical interface designed to make it easier for users to configure and manage their WireGuard VPN connections — without needing to edit configuration files manually.
+
+## 🚀 Quick Start
+
+1. **Launch the Ghaf Control Panel**
+
+![Control panel](@assets/ghaf/control_panel_app.png)
+
+2. **Click the `WireGuard GUI` button**
+
+![Wireguard control panel](@assets/ghaf/wireguard_open_control_panel.png)
+
+import { Aside } from "@astrojs/starlight/components";
+
+<Aside>
+ wireguard-gui service should be enabled to appear ```Wireguard GUI``` button. 
+ It can be enabled to add vm nix config like following:
+```nix
+ghaf.reference.services.wireguard-gui.enable =true;
+```
+</Aside>
+
+![Wireguard GUI template](@assets/ghaf/wireguard_gui_template_cfg.png)
+
+3. **Click the ```Generate Configs``` to generate template configuration files**
+4. **Enter your configuration details for required sections**
+5. **Click the ```Generate``` button**
+
+![Wireguard GUI configuration](@assets/ghaf/wireguard_gui_config.png)
+
+6. **Enter your peer configuration details such as ```AllowedIPs```, ```Endpoint```, and ```PublicKey```** 
+7. **Click ```Save``` — a confirmation dialog will appear once the configuration is saved successfully**
+8. **Use the toggle switch to turn the WireGuard tunnel interface on or off**
+
+<Aside> 
+For more information, see the config file documentation: 
+- [wireguard config file](https://wiresock.net/documentation/wireguard/config.html)
+</Aside>
+
+
+## ⚙️ Configuration Scenarios
+
+![Network topology diagram](@assets/ghaf/wireguard-test.drawio.png)
+<Aside> 
+The following examples represent only the local WireGuard GUI configuration. Peer-side configurations are not included.
+</Aside>
+
+### 1. Split-tunnel VPN as client
+Use this configuration if you want only specific traffic to pass through the VPN tunnel, while other traffic goes through your normal network connection.
+![Wireguard split tunnelling configuration](@assets/ghaf/wireguard_split_tunnelling_cfg.png)
+
+You can try to ping: ```ping 10.10.10.0```
+
+### 2. Full-tunnel VPN as client
+Use this mode if you want all network traffic to be routed through the VPN tunnel for maximum privacy and encryption.
+![Wireguard full tunnelling configuration](@assets/ghaf/wireguard_full_tunelling.png)
+
+You can run ```curl ifconfig.me``` command and response should be vpn server's public IP. For our case it should be ```1.2.3.4```
+
+### 3. VPN as server
+Configure WireGuard as a server to accept connections from multiple clients.
+
+![Wireguard as server configuration](@assets/ghaf/wireguard_server_cfg.png)
+
+You can try to ping: ```ping 10.10.10.0```
+
+<Aside> 
+- You can use an IP calculator to help generate correct `AllowedIPs` values: [WireGuard AllowedIPs Calculator](https://www.procustodibus.com/blog/2021/03/wireguard-allowedips-calculator/) 
+- [wg-quick](https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8)
+</Aside>
+
+## 🔍 Troubleshooting
+
+If the **WireGuard GUI** is not visible or not working as expected, you can check system logs for more details.
