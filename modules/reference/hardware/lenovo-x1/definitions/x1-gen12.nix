@@ -8,6 +8,7 @@
   # List of system SKUs covered by this configuration
   skus = [
     "LENOVO_MT_21KC_BU_Think_FM_ThinkPad X1 Carbon Gen 12 21KC006CMX"
+    "LENOVO_MT_21KD_BU_Think_FM_ThinkPad X1 Carbon Gen 12 21KDS87D00"
     # TODO Add more SKUs
   ];
 
@@ -47,13 +48,6 @@
         path = "0000:00:02.0";
         vendorId = "8086";
         productId = "7d45";
-      }
-      {
-        # Communication controller [0780]: Intel Corporation Device [8086:7e70] (rev 20)
-        # mei_me (DDC/HDCP/EDID)
-        path = "0000:00:16.0";
-        vendorId = "8086";
-        productId = "7e70";
       }
     ];
     kernelConfig = {
