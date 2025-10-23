@@ -34,6 +34,9 @@ jobs:
                   ref: ${{ github.event.pull_request.head.ref }}
                   repository: ${{ github.event.pull_request.head.repo.full_name }}
                   fetch-depth: 0
+                  # https://docs.zizmor.sh/audits/#artipacked
+                  # needed as we have git operations below in commit and push
+                  persist-credentials: true
 
             - name: Install nix
               uses: cachix/install-nix-action@fd24c48048070c1be9acd18c9d369a83f0fe94d7 # v31.8.1
