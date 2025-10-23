@@ -2,7 +2,9 @@
 title: SLSA Framework
 ---
 
-Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention, integrity improvement, and securing packages and infrastructure of a project. For more information about the SLSA framework, see the offical website https://slsa.dev.
+Supply chain Levels for Software Artifacts (SLSA) is a security framework for tampering prevention,
+integrity improvement, and securing packages and infrastructure of a project.
+For more information about the SLSA framework, see the official website https://slsa.dev.
 
 ## SLSA Terminology
 
@@ -14,20 +16,87 @@ Supply chain Levels for Software Artifacts (SLSA) is a security framework for ta
 
 ## Levels of Assurance
 
-One of the requirements for the solution is to reach SLSA version 1.0 Level 3 and even go beyond that. This requires a lot of process changes as well as technical work.
+One of the requirements for the solution is to reach SLSA version 1.0 Level 3 and even go beyond that. 
+This requires a lot of process changes as well as technical work.
 
-The SLSA version 1.0 model consists of 3 levels, offering an incremental level of anti-tampering protection. There are new versions of SLSA model coming because it is constantly evolving, see https://slsa.dev/current-activities.
+The SLSA version 1.0 model consists of 3 levels, offering an incremental level of anti-tampering protection.
+There are new versions of SLSA model coming because it is constantly evolving,
+see https://slsa.dev/current-activities.
 
 **Level 0** means no SLSA compliance and no guarantees are given.
 
-**Level 1** Package has provenance showing how it was built. Can be used to prevent mistakes but is trivial to bypass or forge.
+**Level 1** Package has provenance showing how it was built. Can be used to prevent mistakes but is trivial 
+to bypass or forge.
 
-**Level 2** Forging the provenance or evading verification requires an explicit “attack”, though this may be easy to perform. Deters unsophisticated adversaries or those who face legal or financial risk.
+**Level 2** Forging the provenance or evading verification requires an explicit “attack”, though this may 
+be easy to perform. Deters unsophisticated adversaries or those who face legal or financial risk.
 
 In practice, this means that builds run on a hosted platform that generates and signs the provenance.
 
-**Level 3** Forging the provenance or evading verification requires exploiting a vulnerability that is beyond the capabilities of most adversaries.
+**Level 3** Forging the provenance or evading verification requires exploiting a vulnerability that is beyond
+the capabilities of most adversaries.
 
 In practice, this means that builds run on a hardened build platform that offers strong tamper protection.
 
-SLSA level is not transitive, thus level of the artifact is not dependent on the level of dependencies, which are expected to have their own SLSA levels. This makes it possible to build a Level 3 artifact from Level 0 dependencies.
+SLSA level is not transitive, thus level of the artifact is not dependent on the level of dependencies,
+which are expected to have their own SLSA levels. This makes it possible to build a Level 3 artifact
+from Level 0 dependencies.
+
+
+## Current Ghaf SLSA Status
+
+### Executive summary
+
+Ghaf operates a mixed posture: daily automated builds produce provenance and are SLSA Level 1,
+while release builds run in ephemeral, hardened environments and meet SLSA Level 3.
+Artifacts and provenance are signed (Azure Key Vault) and published with verification instructions.
+Near-term work targets HSM signing for daily builds and Nix-only ephemeral environments.
+
+### SLSA levels & scope
+
+**Daily builds** SLSA Level 1. Provenance files are generated for all builds.
+
+**Release builds** SLSA Level 3. Hosted build platform generates and signs provenance files
+for every target hardware build. Secrets are stored in Azure Key Vault. Ephemeral build
+environments are created from scratch for each release with Terraform and Nix.
+
+### Provenance & verification
+
+Provenance files are generated in Jenkins pipeline with [sbomnix](https://github.com/tiiuae/sbomnix). 
+In release builds, provenance files and target binaries are signed with an Azure Key Vault
+signing microservice. [sbomnix](https://github.com/tiiuae/sbomnix) is capable of listing
+all dependencies in the provenance file.
+
+We are making release builds for several target platforms. Release build artifacts
+(binaries, test results etc.) for each platform are stored in one tarball.
+Provenance files are always included in the tarball as well. Release tarballs are
+available for public download in [Ghaf archive](https://archive.vedenemo.dev/).
+Ghaf archive contains signature verification instructions for download verification.
+
+The test automation system first downloads the provenance file and verifies its signature.
+If signature verification fails, the test is aborted.
+
+Once the signature is successfully verified, the SLSA policy checker evaluates the build
+metadata against the [policy definition](https://github.com/tiiuae/ghaf-infra/blob/main/slsa/provenance-trust-policy.json).
+It checks aspects such as the source code repository, the build location, and whether the build is
+sufficiently recent. If the SLSA policy check fails, the test is aborted.
+
+The binary image is downloaded and tested only if both the signature verification and the
+SLSA policy check pass successfully.
+
+### CI/CD & build hardening
+
+We use Terraform for spinning up new ephemeral release build environments in Azure for every release.
+The environment contains four virtual machines (Jenkins controller, x86 and aarch_64 remote
+builders, binary cache), see [terraform-init.sh](https://github.com/tiiuae/ghaf-infra/blob/main/terraform/terraform-init.sh)
+for details. After the release build is done the whole environment is destroyed.
+
+### Roadmap
+
+**SLSA Level 2 daily builds** We are integrating an HSM device to sign pre-merge,
+mainline, and nightly builds.
+
+**Ephemeral environment with Nix** Terraform is a great tool for cloud infrastructure.
+However, we are experimenting with ephemeral build environments using Nix/NixOS only.
+This could enable us to spin up an ephemeral SLSA Level 3 build environment also in an
+on-premises bare-metal environment.
