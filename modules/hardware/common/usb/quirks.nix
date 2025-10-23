@@ -15,7 +15,6 @@ let
   # https://docs.redhat.com/en/documentation/red_hat_enterprise_linux/7/html/7.7_release_notes/kernel_parameters_changes
   quirks = [
     "2357:0601:k" # TP-Link’s USB 3.0 Ethernet adapters (AX88179 chipset)
-    "0bda:8153:k" # Realtek Semiconductor Corp. RTL8153 Gigabit Ethernet Adapter
   ];
 
 in
