@@ -207,6 +207,24 @@
         "type": "github"
       }
     },
+    "flake-utils_2": {
+      "inputs": {
+        "systems": "systems_2"
+      },
+      "locked": {
+        "lastModified": 1731533236,
+        "narHash": "sha256-l0KFg5HjrsfsO/JpG+r7fRrqm12kzFHyUHqHCVpMMbI=",
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "rev": "11707dc2f618dd54ca8739b309ec4fc024de578b",
+        "type": "github"
+      },
+      "original": {
+        "owner": "numtide",
+        "repo": "flake-utils",
+        "type": "github"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -539,7 +557,8 @@
         "srvos": "srvos",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix",
-        "wireguard-gui": "wireguard-gui"
+        "wireguard-gui": "wireguard-gui",
+        "xwayland-satellite": "xwayland-satellite"
       }
     },
     "rust-overlay": {
@@ -555,6 +574,27 @@
         "owner": "oxalica",
         "repo": "rust-overlay",
         "rev": "59c45eb69d9222a4362673141e00ff77842cd219",
+        "type": "github"
+      },
+      "original": {
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "type": "github"
+      }
+    },
+    "rust-overlay_2": {
+      "inputs": {
+        "nixpkgs": [
+          "xwayland-satellite",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1739240901,
+        "narHash": "sha256-YDtl/9w71m5WcZvbEroYoWrjECDhzJZLZ8E68S3BYok=",
+        "owner": "oxalica",
+        "repo": "rust-overlay",
+        "rev": "03473e2af8a4b490f4d2cdb2e4d3b75f82c8197c",
         "type": "github"
       },
       "original": {
@@ -600,6 +640,21 @@
       }
     },
     "systems": {
+      "locked": {
+        "lastModified": 1681028828,
+        "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
+        "owner": "nix-systems",
+        "repo": "default",
+        "rev": "da67096a3b9bf56a91d16901293e51ba5b49a27e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nix-systems",
+        "repo": "default",
+        "type": "github"
+      }
+    },
+    "systems_2": {
       "locked": {
         "lastModified": 1681028828,
         "narHash": "sha256-Vy1rq5AaRuLzOxct8nz4T6wlgyUR7zLU309k9mBC768=",
@@ -660,6 +715,28 @@
       "original": {
         "owner": "tiiuae",
         "repo": "wireguard-gui",
+        "type": "github"
+      }
+    },
+    "xwayland-satellite": {
+      "inputs": {
+        "flake-utils": "flake-utils_2",
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "rust-overlay": "rust-overlay_2"
+      },
+      "locked": {
+        "lastModified": 1762747449,
+        "narHash": "sha256-Z1TKiux8K09a93w4PFDFsj8HFugXNy3iCC3Z8MpR5Rk=",
+        "owner": "Supreeeme",
+        "repo": "xwayland-satellite",
+        "rev": "6338574bc5c036487486acde264f38f39ea15fad",
+        "type": "github"
+      },
+      "original": {
+        "owner": "Supreeeme",
+        "repo": "xwayland-satellite",
         "type": "github"
       }
     }

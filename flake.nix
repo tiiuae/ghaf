@@ -185,6 +185,12 @@
         crane.follows = "givc/crane";
       };
     };
+
+    # Grants rootless Xwayland integration to wayland compositor
+    xwayland-satellite = {
+      url = "github:Supreeeme/xwayland-satellite";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =
