@@ -93,6 +93,8 @@ let
                   name = vmName;
                   users.${config.ghaf.users.appUser.name}.directories = [
                     ".config/"
+                    ".cache"
+                    ".local"
                     "Downloads"
                     "Music"
                     "Pictures"

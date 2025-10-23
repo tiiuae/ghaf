@@ -52,7 +52,17 @@ in
     };
 
     users = mkOption {
-      type = types.anything;
+      type = types.attrsOf (
+        types.submodule (_: {
+          options = {
+            directories = mkOption {
+              type = types.listOf types.str;
+              default = [ ];
+              description = "Directories to bind mount for this user.";
+            };
+          };
+        })
+      );
       default = { };
       example = {
         "user".directories = [
@@ -93,6 +103,21 @@ in
         Maximum size of the storage area in megabytes.
         This is the size of the storage device as seen by the guest (when running `lsblk` for example).
         The image on the host filesystem is a sparse file and only occupies the space actually used by the VM.
+      '';
+    };
+
+    mountOptions = mkOption {
+      type = types.listOf types.anything;
+      default = [
+        "rw"
+        "nodev"
+        "nosuid"
+        "noexec"
+      ];
+      description = ''
+        Specify a list of mount options that should be used.
+        They define access permissions, performance behavior and security restrictions.
+        Common options determine whether the filesystem is read-only or writable, if users can execute binaries,
       '';
     };
 
@@ -150,12 +175,7 @@ in
 
       fileSystems.${cfg.mountPath} = {
         neededForBoot = true;
-        options = [
-          "rw"
-          "nodev"
-          "nosuid"
-          "noexec"
-        ];
+        options = cfg.mountOptions;
         noCheck = true;
       };
       virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
@@ -215,15 +235,11 @@ in
           device = "/dev/mapper/${cfg.encryption.luksDevice}";
           fsType = "ext4";
           neededForBoot = true;
-          options = [
-            "rw"
-            "nodev"
-            "nosuid"
-            "noexec"
-          ]
-          ++ lib.optionals config.ghaf.profiles.debug.enable [
-            "nofail"
-          ];
+          options =
+            cfg.mountOptions
+            ++ lib.optionals config.ghaf.profiles.debug.enable [
+              "nofail"
+            ];
         };
 
         environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [
