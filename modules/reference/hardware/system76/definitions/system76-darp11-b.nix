@@ -38,7 +38,7 @@
       {
         # Network controller: Intel Corporation Wi-Fi 7(802.11be) AX1775*/AX1790*/BE20*/BE401/BE1750* 2x2 (rev 1a)
         name = "wlp0s5f0";
-        path = "0000:2e:00.0";
+        path = ""; # PCI ID will be retrieved dynamically see https://github.com/tiiuae/ghaf/pull/1220/files
         vendorId = "8086";
         productId = "272b";
         # Detected kernel driver: iwlwifi
