@@ -1,4 +1,4 @@
-# Copyright 2025 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
 {
@@ -14,15 +14,14 @@
     borderColor = "#027d7b";
     applications = [
       {
-        name = "APPStore";
+        name = "App Store";
         description = "Appstore to install Flatpak applications";
         packages = [
-          pkgs.gnome-software
-          pkgs.flatpak
+          pkgs.cosmic-store
         ];
 
         icon = "${pkgs.papirus-icon-theme}/share/icons/Papirus/64x64/apps/rocs.svg";
-        command = "gnome-software";
+        command = "cosmic-store";
       }
     ];
     extraModules = [
@@ -32,7 +31,7 @@
         xdg.portal = {
           enable = true;
           extraPortals = [
-            pkgs.xdg-desktop-portal-gtk
+            pkgs.xdg-desktop-portal-cosmic
           ];
           config = {
             common = {
@@ -43,7 +42,13 @@
           };
         };
         systemd.services.flatpak-repo = {
+          description = "Add Flathub remote for Flatpak";
           wantedBy = [ "multi-user.target" ];
+          after = [ "network-online.target" ];
+          requires = [ "network-online.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+          };
           path = [ pkgs.flatpak ];
           script = ''
             flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
