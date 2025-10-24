@@ -120,6 +120,7 @@ in
         };
       in
       {
+        # FIXME: could we make / a tmpfs, and mount erofs as /nix/store?
         "/" = {
           fsType = "erofs";
           # for systemd-remount-fs
