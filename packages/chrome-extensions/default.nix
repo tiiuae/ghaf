@@ -25,13 +25,19 @@ let
       inherit version;
 
       src = fetchurl {
-        url = ''
-          https://clients2.google.com/service/update2/crx?response=redirect
-          &prodversion=${google-chrome.version}
-          &acceptformat=crx3
-          &x=id%3D${id}%26installsource%3Dondemand%26uc
+        url =
+          "https://clients2.google.com/service/update2/crx?response=redirect"
+          + "&prodversion=${google-chrome.version}"
+          + "&acceptformat=crx3"
+          + "&x=id%3D${id}%26installsource%3Dondemand%26uc";
+        postFetch = ''
+          if [ ! -f $out ] || [ ! -s $out ]; then
+            echo "Extension (${id}) download failed - file is empty. Ensure destination URL is correct." >&2
+            exit 1
+          fi
         '';
-        name = "${id}.crx";
+        curlOptsList = [ "-L" ];
+        name = "${id}";
         inherit hash;
       };
 
@@ -39,15 +45,17 @@ let
         unzip
         jq
       ];
+
       dontUnpack = true;
+
+      phases = [ "installPhase" ];
 
       installPhase = ''
         install -Dm644 $src $out/${id}.crx
 
         echo "Extracting version from manifest.json"
         set +e
-        VERSION=${version}
-        #VERSION=$(unzip -qqp $src manifest.json 2>/dev/null | jq -r .version)
+        VERSION=$(unzip -qqp $src manifest.json 2>/dev/null | jq -r .version)
         ec=$?
         set -e
 
@@ -86,12 +94,13 @@ in
 
   # Example: Session Buddy session and tab manager.
   # Hash must be updated manually when the extension is updated upstream.
+  # Version is optional and doesn't affect the build, but is useful for reference.
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
-    hash = "sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=";
+    hash = "sha256-kyD3bBvh3ygg5T9hnITt5C+kW5iwHjSH+3oKUH4pxX4=";
     version = "4.0.5";
   };
 
-  # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; }
+  # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; version = "...";  }
 }
