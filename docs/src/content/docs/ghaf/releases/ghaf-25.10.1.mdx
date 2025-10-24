@@ -1,0 +1,101 @@
+---
+title: Release ghaf-25.10.1
+sidebar:
+  order: 9975
+  badge:
+    text: Latest
+    variant: success
+    
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-25.10.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro 
+- NXP i.MX 8M Plus
+
+
+## What's Changed
+
+* build(deps): bump astral-sh/setup-uv from 6.7.0 to 6.8.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1446
+* version: bump for the next target release by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1451
+* Docs: bump to the latest by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1450
+* docs: add 25.09.3 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1454
+* Add a CLI tool to manage USB devices, fix USB suspend/resume and make killswitch persistent by @nesteroff in https://github.com/tiiuae/ghaf/pull/1445
+* chrome: revert dedicated profiles for apps and browser by @kajusnau in https://github.com/tiiuae/ghaf/pull/1452
+* Add audit rule to log sudo/privilege escalations by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1453
+* Enable hwdb in systemd by @nesteroff in https://github.com/tiiuae/ghaf/pull/1456
+* build(deps): bump astro from 5.14.1 to 5.14.4 in /docs in the npm_and_yarn group across 1 directory by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1457
+* Bump: control panel by @vunnyso in https://github.com/tiiuae/ghaf/pull/1458
+* build(deps): bump cachix/install-nix-action from 31.7.0 to 31.8.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1459
+* build(deps): bump actions/dependency-review-action from 4.8.0 to 4.8.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1460
+* build(deps): bump github/codeql-action from 3.30.6 to 4.30.8 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1461
+* build(deps): bump astral-sh/setup-uv from 6.8.0 to 7.1.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1462
+* bump: mid september bump by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1431
+* Refactor trusted browser and add build-time chrome extension support by @kajusnau in https://github.com/tiiuae/ghaf/pull/1455
+* fix: adding usb quirks for some of eth-to-usb adapters by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1464
+* kernel: refactor our kernel generation code by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1465
+* docs: bump the base package versions by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1468
+* microvm: storageVM encryption support for all VMs by @hros-tii in https://github.com/tiiuae/ghaf/pull/1408
+* Update copyright lines by @ktusawrk in https://github.com/tiiuae/ghaf/pull/1470
+* dell-7330: enable hotkeys in guivm by @kajusnau in https://github.com/tiiuae/ghaf/pull/1469
+* build(deps): bump github/codeql-action from 4.30.8 to 4.30.9 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1476
+* build(deps): bump astral-sh/setup-uv from 7.1.0 to 7.1.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1475
+* build(deps): bump cachix/install-nix-action from 31.8.0 to 31.8.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1474
+* build(deps): bump starlight-links-validator from 0.18.1 to 0.19.0 in /docs by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1477
+* build(deps): bump astro from 5.14.5 to 5.14.7 in /docs by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1478
+* Bump mid oct by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1471
+* docs: bump by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1480
+* bump: update all the dependencies by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1481
+* version: bump by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1482
+* session-buddy: Update the hash to version 4.0.5 by @vunnyso in https://github.com/tiiuae/ghaf/pull/1484
+* rtl8126: fix the kernel version to match kernel by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1486
+* Add givc-cli to GUI VM by @avnik in https://github.com/tiiuae/ghaf/pull/1473
+* Revert "version: bump" by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1487
+
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-25.09.3...ghaf-25.10.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* Using audio through USB device may cause instability
+* Audio control not working after suspend
+* Can't share Trusted Browser window in Teams
+* Network connectivity issues when switching between Wifi and ethernet
+
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| (System76 only) Suspension has been disabled | In Progress |  |
+| Downloading large file (10G) crashes the browser                                                          | In progress | Issue is under investigation                                               |
+| Unlock with fingerprint doesn't work                            | In Progress                                                       | Issue is under investigation
+| Selecting full screen for video freezes laptop | In Progress | Workaround: Disable 'Variable Refresh Rate' from display settings and reboot |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| Element has been removed from Orins |  |  |
+| If suspended, device doesn't wake-up                                            | In Progress | Issue is under investigation                       |
+| Locking the device from power menu doesn't work | In Progress | Issue is under investigation |
+| Unlocking from lock screen does not work | In Progress | Issue is under investigation |
+| If display is connected only after boot, login screen is not launched | In Progress | Workaround: Boot with display connected or launch login screen manually by ctrl+C |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/ghaf-25.10.1/
+
+Download the required image and use the following instructions: [Build and Run](/ghaf/dev/ref/build_and_run).
