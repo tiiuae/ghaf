@@ -8,7 +8,7 @@ SPDX-PackageDownloadLocation = "https://github.com/tiiuae/ghaf"
 
 [[annotations]]
 SPDX-License-Identifier = "Apache-2.0"
-SPDX-FileCopyrightText = "2022-2024 TII (SSRC) and the Ghaf contributors"
+SPDX-FileCopyrightText = "2022-2026 TII (SSRC) and the Ghaf contributors"
 precedence = "closest"
 path = [
   ".github/dependabot.yml",
@@ -26,7 +26,8 @@ path = [
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
   "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*",
   "modules/reference/hardware/jetpack/0001-ARM-SMMU-drivers-return-always-true-for-IOMMU_CAP_CA.patch",
-  "overlays/custom-packages/cosmic/cosmic-comp/0001-Add-security-context-indicator.patch"
+  "overlays/custom-packages/cosmic/cosmic-comp/0001-Add-security-context-indicator.patch",
+  "overlays/custom-packages/cosmic/cosmic-comp/0001-Disable-VRR-by-default.patch"
 ]
 
 [[annotations]]
