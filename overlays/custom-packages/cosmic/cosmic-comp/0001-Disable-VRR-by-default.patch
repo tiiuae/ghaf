@@ -1,0 +1,51 @@
+From 35f62915772eb77f982bb85b1f72bc78e2fac515 Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajusn@gmail.com>
+Date: Thu, 23 Oct 2025 16:53:16 +0300
+Subject: [PATCH] Disable VRR by default
+
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
+---
+ cosmic-comp-config/src/output/comp.rs | 4 ++--
+ src/backend/kms/device.rs             | 5 +----
+ 2 files changed, 3 insertions(+), 6 deletions(-)
+
+diff --git a/cosmic-comp-config/src/output/comp.rs b/cosmic-comp-config/src/output/comp.rs
+index 1810b9d..fbbba74 100644
+--- a/cosmic-comp-config/src/output/comp.rs
++++ b/cosmic-comp-config/src/output/comp.rs
+@@ -29,7 +29,7 @@ pub enum AdaptiveSync {
+ }
+
+ fn default_sync() -> AdaptiveSync {
+-    AdaptiveSync::Enabled
++    AdaptiveSync::Disabled
+ }
+
+ #[derive(Debug, Clone, Deserialize, Serialize)]
+@@ -57,7 +57,7 @@ impl Default for OutputConfig {
+     fn default() -> OutputConfig {
+         OutputConfig {
+             mode: ((0, 0), None),
+-            vrr: AdaptiveSync::Enabled,
++            vrr: AdaptiveSync::Disabled,
+             scale: 1.0,
+             transform: TransformDef::Normal,
+             position: (0, 0),
+diff --git a/src/backend/kms/device.rs b/src/backend/kms/device.rs
+index ad07a9c..1a87a41 100644
+--- a/src/backend/kms/device.rs
++++ b/src/backend/kms/device.rs
+@@ -1045,10 +1045,7 @@ fn populate_modes(
+             max_bpc,
+             scale,
+             transform: CompTransformDef::from(transform).0,
+-            // Try opportunistic VRR by default,
+-            // if not supported this will be turned off on `resume`,
+-            // when we have the `Surface` to actually check for support.
+-            vrr: AdaptiveSync::Enabled,
++            vrr: AdaptiveSync::Disabled,
+             ..std::mem::take(&mut *output_config)
+         };
+     }
+--
+2.51.0
