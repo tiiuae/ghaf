@@ -24,6 +24,7 @@ let
     name = "disko-default-password";
     text = "";
   };
+  inherit (config.ghaf.partitions) definition;
 in
 {
   options.ghaf.partitioning.disko = {
@@ -58,9 +59,9 @@ in
               partitions = {
                 # FIXME: would we really need this old compatibility stuff?
                 # The ef02 partition type, identified by the GUID partition table (GPT) tool gdisk, is a BIOS Boot Partition.
-                # It's a small, ~1-2MB partition without a filesystem that holds parts of the GRUB bootloader when booting a non-UEFI system from a GPT-partitioned disk. 
-                # This partition is necessary for GRUB to function in BIOS mode on a GPT disk, 
-                # providing a place to store its core files that wouldn't fit in the post-MBR reserved space. 
+                # It's a small, ~1-2MB partition without a filesystem that holds parts of the GRUB bootloader when booting a non-UEFI system from a GPT-partitioned disk.
+                # This partition is necessary for GRUB to function in BIOS mode on a GPT disk,
+                # providing a place to store its core files that wouldn't fit in the post-MBR reserved space.
                 boot = {
                   name = "boot";
                   size = "1M";
@@ -69,12 +70,12 @@ in
                 };
                 esp = {
                   name = "ESP";
-                  size = "500M";
+                  inherit (definition.esp) size;
                   type = "EF00";
                   content = {
                     type = "filesystem";
-                    format = "vfat";
-                    mountpoint = "/boot";
+                    format = definition.esp.fileSystem;
+                    mountpoint = definition.esp.mountPoint;
                     mountOptions = [
                       "umask=0077"
                       "nofail"
@@ -85,7 +86,7 @@ in
                 swap =
                   if config.ghaf.storage.encryption.enable then
                     {
-                      size = "12G";
+                      inherit (definition.swap) size;
                       content = {
                         type = "luks";
                         name = "swap";
@@ -103,7 +104,7 @@ in
                     }
                   else
                     {
-                      size = "12G";
+                      inherit (definition.swap) size;
                       type = "8200";
                       content = {
                         type = "swap";
@@ -113,11 +114,11 @@ in
                       priority = 3;
                     };
                 root = {
-                  size = "40G";
+                  inherit (definition.root) size;
                   content = {
                     type = "filesystem";
-                    format = "ext4";
-                    mountpoint = "/";
+                    format = definition.root.fileSystem;
+                    mountpoint = definition.root.mountPoint;
                     mountOptions = [
                       "noatime"
                       "nodiratime"
@@ -125,10 +126,11 @@ in
                   };
                   priority = 4;
                 };
+                # FIXME: delegate /persist creation to systemd-repart on post-boot
                 persist =
                   if config.ghaf.storage.encryption.enable then
                     {
-                      size = "2G";
+                      inherit (definition.persist) size;
                       content = {
                         type = "luks";
                         name = "persist";
@@ -139,8 +141,8 @@ in
                         };
                         content = {
                           type = "filesystem";
-                          format = "btrfs";
-                          mountpoint = "/persist";
+                          format = definition.persist.fileSystem;
+                          mountpoint = definition.persist.mountPoint;
                           mountOptions = [
                             "noatime"
                             "nodiratime"
@@ -150,11 +152,11 @@ in
                     }
                   else
                     {
-                      size = "100%";
+                      inherit (definition.persist) size;
                       content = {
                         type = "filesystem";
-                        format = "btrfs";
-                        mountpoint = "/persist";
+                        format = definition.persist.fileSystem;
+                        mountpoint = definition.persist.mountPoint;
                         mountOptions = [
                           "noatime"
                           "nodiratime"

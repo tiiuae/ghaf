@@ -7,7 +7,9 @@
   ...
 }:
 let
+  # FIXME: naming -- ghaf.partitioning vs ghaf.partitions
   cfg = config.ghaf.partitioning.verity;
+  inherit (config.ghaf.partitions) definition;
   inherit (pkgs.stdenv.hostPlatform) efiArch;
 in
 {
@@ -28,8 +30,9 @@ in
           };
           repartConfig = {
             Type = "esp";
-            Format = "vfat";
-            SizeMinBytes = "64M";
+            Format = definition.esp.fileSystem;
+            SizeMinBytes = definition.esp.size;
+            # FIXME: why null? ESP have standard UUID value
             UUID = "null";
           };
         };
@@ -42,11 +45,14 @@ in
             Verity = "hash";
             VerityMatchKey = "root";
             Minimize = "best";
+            SplitName = "root-verity"; # SplitName from https://github.com/blitz/sysupdate-playground/blob/master/modules/partitions.nix
           };
         };
 
         # Nix store.
         "11-root-a" = {
+          # FIXME: This require HUGE amount of space in /var/nix/builds
+          # FIXME: Make erofs as separate artifact
           storePaths = [ config.system.build.toplevel ];
           repartConfig = {
             Type = "root";
@@ -55,6 +61,7 @@ in
             Minimize = "best";
             Verity = "data";
             VerityMatchKey = "root";
+            SplitName = "root"; # SplitName from https://github.com/blitz/sysupdate-playground/blob/master/modules/partitions.nix
             # Create directories needed for nixos activation, as these cannot be
             # created on a read-only filesystem.
             MakeDirectories = builtins.toString [
@@ -89,6 +96,7 @@ in
             SizeMaxBytes = "64M";
             Label = "_empty";
             ReadOnly = 1;
+            SplitName = "-";
           };
         };
         "21-root-b" = {
@@ -98,6 +106,7 @@ in
             SizeMaxBytes = "512M";
             Label = "_emptyb";
             ReadOnly = 1;
+            SplitName = "-";
           };
         };
 
@@ -119,13 +128,13 @@ in
                 SizeMinBytes = "64M";
                 SizeMaxBytes = "64M";
                 # Free space to expand on device
-                PaddingMinBytes = "8G";
-                PaddingMaxBytes = "8G";
+                PaddingMinBytes = definition.swap.size;
+                PaddingMaxBytes = definition.swap.size;
               }
             else
               {
-                SizeMinBytes = "8G";
-                SizeMaxBytes = "8G";
+                SizeMinBytes = definition.swap.size;
+                SizeMaxBytes = definition.swap.size;
               }
           );
         };
@@ -136,7 +145,7 @@ in
             Type = "linux-generic";
             Label = "persist";
             Format = "btrfs";
-            SizeMinBytes = "500M";
+            SizeMinBytes = definition.persist.size;
             MakeDirectories = builtins.toString [
               "/storagevm"
             ];
