@@ -71,6 +71,43 @@ let
       '') extraShortcuts}
     ''
   );
+
+  ghaf-volume = pkgs.writeShellApplication {
+    name = "ghaf-volume";
+
+    runtimeInputs = [ pkgs.pamixer ];
+
+    text = ''
+      AMP_FILE="$HOME/.config/cosmic/com.system76.CosmicAudio/v1/amplification_sink"
+      # Enable amplification by default, following COSMIC upstream behavior
+      AMP_ENABLED="true"
+      LIMIT=150
+
+      if [ -f "$AMP_FILE" ] && [ -s "$AMP_FILE" ]; then
+        VALUE=$(tr -d '[:space:]' < "$AMP_FILE")
+        if [[ "$VALUE" == "true" || "$VALUE" == "false" ]]; then
+          AMP_ENABLED="$VALUE"
+        fi
+      fi
+
+      change_volume() {
+        local dir=$1
+        local allow_boost=""
+        [[ "$AMP_ENABLED" == "true" ]] && allow_boost="--allow-boost"
+
+        if [[ "$dir" == "up" ]]; then
+          pamixer --unmute --increase 5 --set-limit $LIMIT $allow_boost
+        elif [[ "$dir" == "down" ]]; then
+          pamixer --unmute --decrease 5 --set-limit $LIMIT $allow_boost
+        else
+          echo "Usage: ghaf-volume {up|down}"
+          exit 1
+        fi
+      }
+
+      change_volume "$1"
+    '';
+  };
 in
 pkgs.stdenv.mkDerivation rec {
   pname = "ghaf-cosmic-config";
@@ -113,13 +150,10 @@ pkgs.stdenv.mkDerivation rec {
     cp ${panelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
   '';
 
-  # TODO: remove audio-volume-change playback when upstream hardcoded path is fixed
-  # Also add pipewire (pa-play) to system packages
-  # ref https://github.com/pop-os/cosmic-osd/blob/master/src/components/app.rs#L747
   postInstall = ''
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
-    --replace-fail 'VolumeLower: ""' 'VolumeLower: "pamixer --unmute --decrease 5"' \
-    --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "pamixer --unmute --increase 5"' \
+    --replace-fail 'VolumeLower: ""' 'VolumeLower: "${lib.getExe ghaf-volume} down"' \
+    --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "${lib.getExe ghaf-volume} up"' \
     --replace-fail 'BrightnessUp: ""' 'BrightnessUp: "${lib.getExe pkgs.brightnessctl} set +5% > /dev/null 2>&1"' \
     --replace-fail 'BrightnessDown: ""' 'BrightnessDown: "${lib.getExe pkgs.brightnessctl} set 5%- > /dev/null 2>&1"'
   ''
