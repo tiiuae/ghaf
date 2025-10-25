@@ -20,7 +20,6 @@
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     update-docs-depends = final.callPackage ./pkgs-by-name/update-docs-depends/package.nix { };
-    vsockproxy = final.callPackage ./pkgs-by-name/vsockproxy/package.nix { };
     wait-for-unit = final.callPackage ./pkgs-by-name/wait-for-unit/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
     chrome-extensions = final.callPackage ./chrome-extensions { };
