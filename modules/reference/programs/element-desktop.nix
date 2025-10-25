@@ -34,7 +34,7 @@ in
 
         serviceConfig = {
           Type = "simple";
-          ExecStart = "${pkgs.element-gps}/bin/main.py";
+          ExecStart = "${pkgs.gps-websock}/bin/gpswebsock";
           Restart = "on-failure";
           RestartSec = "2";
         };
