@@ -207,6 +207,26 @@
         "type": "github"
       }
     },
+    "fleet-nixos": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1760360572,
+        "narHash": "sha256-nizaK+0TaPvdo67lbGOr8srbqkiwL4o7a8wguLhJqgc=",
+        "owner": "tiiuae",
+        "repo": "fleet-nixos",
+        "rev": "63f8cbf3c344fde80d220181922a4be6bf979757",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "fleet-nixos",
+        "type": "github"
+      }
+    },
     "ghafpkgs": {
       "inputs": {
         "crane": [
@@ -481,6 +501,7 @@
         "flake-parts": "flake-parts",
         "flake-root": "flake-root",
         "flake-utils": "flake-utils",
+        "fleet-nixos": "fleet-nixos",
         "ghafpkgs": "ghafpkgs",
         "git-hooks-nix": "git-hooks-nix",
         "givc": "givc",
