@@ -15,9 +15,6 @@
     ghaf-screenshot = final.callPackage ./pkgs-by-name/ghaf-screenshot/package.nix { };
     ghaf-workspace = final.callPackage ./pkgs-by-name/ghaf-workspace/package.nix { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
-    kernel-hardening-checker =
-      final.python3Packages.callPackage ./python-packages/kernel-hardening-checker/package.nix
-        { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
