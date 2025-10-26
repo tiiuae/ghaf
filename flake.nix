@@ -204,6 +204,7 @@
 
         imports = [
           ./overlays/flake-module.nix
+          ./lib/builders/flake-module.nix
           ./modules/flake-module.nix
           ./nix/flake-module.nix
           ./packages/flake-module.nix

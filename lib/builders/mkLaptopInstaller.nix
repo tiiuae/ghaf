@@ -1,22 +1,27 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-
-# Laptop Installer
+# Laptop Installer Builder Library
+#
+# This module provides a reusable function for building laptop installer ISOs
+# that can be consumed by both Ghaf internally and downstream projects.
+#
+# Usage in downstream projects:
+#   let mkLaptopInstaller = inputs.ghaf.lib.builders.mkLaptopInstaller inputs.ghaf;
+#   in mkLaptopInstaller "my-laptop-installer" "/path/to/image" [...]
 {
-  lib,
   self,
-  ...
+  lib ? self.lib,
+  system ? "x86_64-linux",
 }:
 let
-  system = "x86_64-linux";
   mkLaptopInstaller =
     name: imagePath: extraModules:
     let
       hostConfiguration = lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit (self) lib;
+          inherit lib;
         };
         modules = [
           (
@@ -38,8 +43,8 @@ let
               networking.hostName = "ghaf-installer";
 
               environment.systemPackages = [
-                self.packages.x86_64-linux.ghaf-installer
-                self.packages.x86_64-linux.hardware-scan
+                self.packages.${system}.ghaf-installer
+                self.packages.${system}.hardware-scan
               ];
 
               services.getty = {
