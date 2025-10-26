@@ -17,6 +17,9 @@ let
     let
       hostConfiguration = lib.nixosSystem {
         inherit system;
+        specialArgs = {
+          inherit (self) lib;
+        };
         modules = [
           nixos-hardware.nixosModules.microchip-icicle-kit
           self.nixosModules.microvm

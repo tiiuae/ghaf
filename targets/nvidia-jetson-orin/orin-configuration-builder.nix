@@ -16,7 +16,9 @@ let
     let
       hostConfiguration = lib.nixosSystem {
         inherit system;
-        specialArgs = inputs;
+        specialArgs = inputs // {
+          inherit (self) lib;
+        };
         modules = [
           self.nixosModules.profiles-orin
           {

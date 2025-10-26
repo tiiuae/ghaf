@@ -36,6 +36,9 @@ let
       ];
       hostConfiguration = lib.nixosSystem {
         inherit system;
+        specialArgs = {
+          inherit (self) lib;
+        };
         modules = [
           nixos-generators.nixosModules.raw-efi
           self.nixosModules.microvm
