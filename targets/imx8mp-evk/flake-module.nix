@@ -18,7 +18,7 @@ let
       hostConfiguration = lib.nixosSystem {
         inherit system;
         specialArgs = {
-          inherit lib;
+          inherit (self) lib;
         };
         modules = [
           nixos-hardware.nixosModules.nxp-imx8mp-evk

@@ -4,103 +4,97 @@
 # SPDX-License-Identifier: MIT
 # FlattenTree and rakeLeaves originate from
 # https://github.com/divnix/digga
-{ inputs, ... }:
-let
-  inherit (inputs) nixpkgs;
-in
-nixpkgs.lib.extend (
-  lib: prev: {
-    /*
-         *
-         Filters Nix packages based on the target system platform.
-         Returns a filtered attribute set of Nix packages compatible with the target system.
+_: lib: prev: {
+  /*
+       *
+       Filters Nix packages based on the target system platform.
+       Returns a filtered attribute set of Nix packages compatible with the target system.
 
-      # Example
+    # Example
 
-      ```
-      lib.platformPkgs "x86_64-linux" {
-         hello-compatible = pkgs.hello.overrideAttrs (old: { meta.platforms = ["x86_64-linux"]; });
-         hello-inccompatible = pkgs.hello.overrideAttrs (old: { meta.platforms = ["aarch-linux"]; });
-      }
-      => { hello-compatible = «derivation /nix/store/g2mxdrkwr1hck4y5479dww7m56d1x81v-hello-2.12.1.drv»; }
-      ```
+    ```
+    lib.platformPkgs "x86_64-linux" {
+       hello-compatible = pkgs.hello.overrideAttrs (old: { meta.platforms = ["x86_64-linux"]; });
+       hello-inccompatible = pkgs.hello.overrideAttrs (old: { meta.platforms = ["aarch-linux"]; });
+    }
+    => { hello-compatible = «derivation /nix/store/g2mxdrkwr1hck4y5479dww7m56d1x81v-hello-2.12.1.drv»; }
+    ```
 
-      # Type
+    # Type
 
-      ```
-      filterAttrs :: String -> AttrSet -> AttrSet
-      ```
+    ```
+    filterAttrs :: String -> AttrSet -> AttrSet
+    ```
 
-      # Arguments
+    # Arguments
 
-      - [system] Target system platform (e.g., "x86_64-linux").
-      - [pkgsSet] a set of Nix packages.
-    */
-    # TODO should this be replaced with flake-parts pkgs-by-name
-    platformPkgs =
-      system:
-      lib.filterAttrs (
-        _: value:
-        let
-          platforms =
-            lib.attrByPath
-              [
-                "meta"
-                "platforms"
-              ]
-              [ ]
-              value;
-        in
-        lib.elem system platforms
-      );
+    - [system] Target system platform (e.g., "x86_64-linux").
+    - [pkgsSet] a set of Nix packages.
+  */
+  # TODO should this be replaced with flake-parts pkgs-by-name
+  platformPkgs =
+    system:
+    lib.filterAttrs (
+      _: value:
+      let
+        platforms =
+          lib.attrByPath
+            [
+              "meta"
+              "platforms"
+            ]
+            [ ]
+            value;
+      in
+      lib.elem system platforms
+    );
 
-    types = prev.types // {
-      networking = lib.types.submodule {
-        options = {
-          name = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            description = "Host name as string.";
-            default = null;
-          };
-          mac = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            description = "MAC address as string.";
-            default = null;
-          };
-          ipv4 = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            description = "IPv4 address as string.";
-            default = null;
-          };
-          ipv6 = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            description = "IPv6 address as string.";
-            default = null;
-          };
-          ipv4SubnetPrefixLength = lib.mkOption {
-            type = lib.types.nullOr lib.types.int;
-            default = null;
-            description = "The IPv4 subnet prefix length (e.g. 24 for 255.255.255.0)";
-            example = 24;
-          };
-          interfaceName = lib.mkOption {
-            type = lib.types.nullOr lib.types.str;
-            default = null;
-            description = "Name of the network interface.";
-          };
-          cid = lib.mkOption {
-            type = lib.types.nullOr lib.types.int;
-            default = null;
-            description = ''
-              Vsock CID (Context IDentifier) as integer:
-              - VMADDR_CID_HYPERVISOR (0) is reserved for services built into the hypervisor
-              - VMADDR_CID_LOCAL (1) is the well-known address for local communication (loopback)
-              - VMADDR_CID_HOST (2) is the well-known address of the host
-            '';
-          };
+  types = prev.types // {
+    networking = lib.types.submodule {
+      options = {
+        name = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "Host name as string.";
+          default = null;
+        };
+        mac = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "MAC address as string.";
+          default = null;
+        };
+        ipv4 = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "IPv4 address as string.";
+          default = null;
+        };
+        ipv6 = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "IPv6 address as string.";
+          default = null;
+        };
+        ipv4SubnetPrefixLength = lib.mkOption {
+          type = lib.types.nullOr lib.types.int;
+          default = null;
+          description = "The IPv4 subnet prefix length (e.g. 24 for 255.255.255.0)";
+          example = 24;
+        };
+        interfaceName = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Name of the network interface.";
+        };
+        cid = lib.mkOption {
+          type = lib.types.nullOr lib.types.int;
+          default = null;
+          description = ''
+            Vsock CID (Context IDentifier) as integer:
+            - VMADDR_CID_HYPERVISOR (0) is reserved for services built into the hypervisor
+            - VMADDR_CID_LOCAL (1) is the well-known address for local communication (loopback)
+            - VMADDR_CID_HOST (2) is the well-known address of the host
+          '';
         };
       };
-
     };
-  }
-)
+
+  };
+}

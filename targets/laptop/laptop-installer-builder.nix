@@ -15,6 +15,9 @@ let
     let
       hostConfiguration = lib.nixosSystem {
         inherit system;
+        specialArgs = {
+          inherit (self) lib;
+        };
         modules = [
           (
             { pkgs, modulesPath, ... }:
@@ -54,6 +57,18 @@ let
               # mdadm: Neither MAILADDR nor PROGRAM has been set. This will cause the `mdmon` service to crash."
               # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
               boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
+
+              # Configure nixpkgs with Ghaf overlays for extended lib support
+              nixpkgs = {
+                config = {
+                  allowUnfree = true;
+                  permittedInsecurePackages = [
+                    "jitsi-meet-1.0.8043"
+                    "qtwebengine-5.15.19"
+                  ];
+                };
+                overlays = [ self.overlays.default ];
+              };
             }
           )
         ]

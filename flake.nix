@@ -180,12 +180,17 @@
   outputs =
     inputs@{ flake-parts, ... }:
     let
-      lib = import ./lib.nix { inherit inputs; };
+      # Create the extended lib
+      ghafLib = import ./lib.nix { inherit inputs; };
+      extendedLib = inputs.nixpkgs.lib.extend ghafLib;
     in
     flake-parts.lib.mkFlake
       {
         inherit inputs;
-        specialArgs = { inherit lib; };
+        # Pass the extended lib via specialArgs for immediate access
+        specialArgs = {
+          lib = extendedLib;
+        };
       }
       {
         # Toggle this to allow debugging in the repl
@@ -208,6 +213,7 @@
           ./tests/flake-module.nix
         ];
 
-        flake.lib = lib;
+        # Export the extended lib for explicit use
+        flake.lib = extendedLib;
       };
 }

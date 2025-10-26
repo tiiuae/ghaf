@@ -14,6 +14,9 @@ let
     let
       hostConfiguration = lib.nixosSystem {
         inherit system;
+        specialArgs = {
+          inherit (self) lib;
+        };
         modules = [
           (builtins.getAttr format nixos-generators.nixosModules)
           self.nixosModules.microvm
