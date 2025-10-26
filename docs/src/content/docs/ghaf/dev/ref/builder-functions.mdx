@@ -1,0 +1,185 @@
+---
+title: Builder Functions
+description: Reusable builder functions for laptop configurations and installers
+---
+
+# Builder Functions
+
+Ghaf provides reusable builder functions that can be consumed by both Ghaf internally and downstream projects. This eliminates code duplication and ensures consistency across projects.
+
+## Solution
+
+Ghaf now exports builder functions via `flake.builders` that can be imported and used by any downstream project.
+
+## Available Builders
+
+### mkLaptopConfiguration
+
+Creates a laptop configuration with Ghaf modules and profiles.
+
+```nix
+# Function signature
+mkLaptopConfiguration :: {
+  self: flake,
+  inputs: attrSet,
+  lib: lib,
+  system?: string = "x86_64-linux"
+} -> (machineType: string -> variant: string -> extraModules: [module] -> {
+  hostConfiguration: nixosSystem,
+  variant: string,
+  name: string,
+  package: derivation
+})
+```
+
+### mkLaptopInstaller
+
+Creates a laptop installer ISO image.
+
+```nix
+# Function signature
+mkLaptopInstaller :: {
+  self: flake,
+  lib: lib,
+  system?: string = "x86_64-linux"
+} -> (name: string -> imagePath: string -> extraModules: [module] -> {
+  hostConfiguration: nixosSystem,
+  name: string,
+  package: derivation
+})
+```
+
+## Usage in Downstream Projects
+
+### Basic Example
+
+```nix
+{
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, ... }:
+  let
+    # Import the builder function
+    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+      self = ghaf;
+      inputs = { inherit ghaf; };
+      lib = ghaf.lib;
+    };
+
+    # Create your laptop configuration
+    myLaptop = mkLaptopConfiguration "my-laptop" "debug" [
+      ./hardware-configuration.nix
+      {
+        ghaf.profiles.graphics.enable = true;
+      }
+    ];
+
+  in {
+    nixosConfigurations.${myLaptop.name} = myLaptop.hostConfiguration;
+    packages.x86_64-linux.${myLaptop.name} = myLaptop.package;
+  };
+}
+```
+
+### With Installer
+
+```nix
+{
+  outputs = { self, ghaf, ... }:
+  let
+    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+      self = ghaf;
+      inputs = { inherit ghaf; };
+      lib = ghaf.lib;
+    };
+
+    mkLaptopInstaller = ghaf.builders.mkLaptopInstaller {
+      self = ghaf;
+      lib = ghaf.lib;
+    };
+
+    laptop = mkLaptopConfiguration "my-laptop" "debug" [
+      ./hardware-configuration.nix
+    ];
+
+    installer = mkLaptopInstaller "my-laptop" laptop.package [
+      {
+        networking.wireless.networks."MyWiFi".psk = "password";
+      }
+    ];
+
+  in {
+    packages.x86_64-linux = {
+      ${laptop.name} = laptop.package;
+      ${installer.name} = installer.package;
+    };
+  };
+}
+```
+
+## Implementation Details
+
+The builders are located in `lib/builders/` and are exported via `flake.builders`. They are also available as `self.builders` within the flake, allowing direct usage in flake-modules without intermediate files.
+
+### Internal Usage (Ghaf modules)
+
+Internal flake-modules call builders with parameters to get the builder functions:
+
+```nix
+# targets/laptop/flake-module.nix
+{
+  lib,
+  self,
+  inputs,
+  ...
+}:
+let
+  system = "x86_64-linux";
+
+  # Call builders with parameters to get the builder functions
+  laptop-configuration = self.builders.mkLaptopConfiguration {
+    inherit self inputs;
+    inherit (self) lib;
+  };
+
+  laptop-installer = self.builders.mkLaptopInstaller {
+    inherit self;
+    inherit (self) lib;
+  };
+
+  # Then use the builder functions with machine-specific parameters
+  target-configs = [
+    (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      { ghaf.reference.profiles.mvp-user-trial.enable = true; }
+    ])
+  ];
+in {
+  # Export configurations...
+}
+```
+
+### External Usage (Downstream projects)
+
+External projects access builders via the flake output:
+
+```nix
+{
+  inputs.ghaf.url = "github:tiiuae/ghaf";
+
+  outputs = { ghaf, ... }: let
+    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+      self = ghaf;
+      inputs = { inherit ghaf; };
+      lib = ghaf.lib;
+    };
+  in {
+    # Use the builder...
+  };
+}
+```
+
+This approach eliminates relative import paths (`../../lib/builders/`) while maintaining clean separation between internal and external usage patterns.

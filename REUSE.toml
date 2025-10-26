@@ -20,6 +20,7 @@ path = [
   ".version",
   "assets/**/*.png",
   "assets/**/*.svg",
+  "lib/builders/README.md",
   "modules/development/audio_test/test_file1.mp3",
   "modules/hardware/x86_64-generic/kernel/host/configs/ghaf_host_hardened_baseline-x86",
   "modules/hardware/x86_64-generic/kernel/guest/configs/ghaf_guest_hardened_baseline-x86",

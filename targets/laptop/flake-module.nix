@@ -11,8 +11,14 @@
 let
   system = "x86_64-linux";
 
-  laptop-configuration = import ./laptop-configuration-builder.nix { inherit lib self inputs; };
-  laptop-installer = import ./laptop-installer-builder.nix { inherit lib self inputs; };
+  laptop-configuration = self.builders.mkLaptopConfiguration {
+    inherit self inputs;
+    inherit (self) lib;
+  };
+  laptop-installer = self.builders.mkLaptopInstaller {
+    inherit self;
+    inherit (self) lib;
+  };
 
   # setup some commonality between the configurations
   commonModules = [

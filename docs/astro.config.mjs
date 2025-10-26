@@ -84,6 +84,7 @@ export default defineConfig({
                         "ghaf/dev/ref/creating_appvm",
                         "ghaf/dev/ref/hw-config",
                         "ghaf/dev/ref/profiles-config",
+                        "ghaf/dev/ref/builder-functions",
                         "ghaf/dev/ref/labwc",
                         "ghaf/dev/ref/cosmic",
                         "ghaf/dev/ref/idsvm-development",
