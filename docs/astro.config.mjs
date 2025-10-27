@@ -43,6 +43,7 @@ export default defineConfig({
                       label: "Architecture",
                       items: [
                         "ghaf/overview/arch",
+                        "ghaf/overview/arch/system-architecture",
                         "ghaf/overview/arch/variants",
                         "ghaf/overview/arch/hardening",
                         "ghaf/overview/arch/critical-services-privilege-escalation",
