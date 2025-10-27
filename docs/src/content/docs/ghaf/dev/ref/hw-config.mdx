@@ -4,17 +4,160 @@ title: Hardware Configuration
 
 All configuration files for reference target devices are in [modules/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/hardware).
 
-The ghaf-24.06 release supports the following target hardware:
+The ghaf-25.10.x releases support the following target hardware configurations:
 
-- NVIDIA Jetson AGX Orin
-- NVIDIA Jetson Orin NX
-- Generic x86 (PC)
-- Polarfire Icicle Kit
-- Lenovo ThinkPad X1 Carbon Gen 11
-- Lenovo ThinkPad X1 Carbon Gen 10
-- NXP i.MX 8M Plus
+## x86_64 Platforms
 
-To add a new hardware configuration file, do the following:
+### Generic x86_64
+- **Target**: `generic-x86_64-debug` / `generic-x86_64-release`
+- **Description**: Generic x86_64 systems with standard PC hardware
+- **Use Case**: Desktop PCs, workstations, generic laptops
+- **Architecture**: x86_64
+
+### Lenovo ThinkPad X1 Series
+
+#### Lenovo ThinkPad X1 Carbon Gen 10
+- **Targets**: `lenovo-x1-carbon-gen10-debug` / `lenovo-x1-carbon-gen10-release`
+- **Installers**: `lenovo-x1-carbon-gen10-debug-installer` / `lenovo-x1-carbon-gen10-release-installer`
+- **Architecture**: x86_64
+
+#### Lenovo ThinkPad X1 Carbon Gen 11
+- **Targets**: `lenovo-x1-carbon-gen11-debug` / `lenovo-x1-carbon-gen11-release`
+- **Installers**: `lenovo-x1-carbon-gen11-debug-installer` / `lenovo-x1-carbon-gen11-release-installer`
+- **Architecture**: x86_64
+- **Status**: Primary x86_64 reference platform
+
+#### Lenovo ThinkPad X1 Carbon Gen 12
+- **Targets**: `lenovo-x1-carbon-gen12-debug` / `lenovo-x1-carbon-gen12-release`
+- **Installers**: `lenovo-x1-carbon-gen12-debug-installer` / `lenovo-x1-carbon-gen12-release-installer`
+- **Architecture**: x86_64
+
+#### Lenovo ThinkPad X1 Carbon Gen 13
+- **Targets**: `lenovo-x1-carbon-gen13-debug` / `lenovo-x1-carbon-gen13-release`
+- **Installers**: `lenovo-x1-carbon-gen13-debug-installer` / `lenovo-x1-carbon-gen13-release-installer`
+- **Architecture**: x86_64
+
+#### Lenovo ThinkPad X1 2-in-1 Gen 9
+- **Target**: `lenovo-x1-2-in-1-gen9-debug`
+- **Installer**: `lenovo-x1-2-in-1-gen9-debug-installer`
+- **Architecture**: x86_64
+
+#### Lenovo X1 Extras Configuration
+- **Targets**: `lenovo-x1-extras-debug` / `lenovo-x1-extras-release`
+- **Installers**: `lenovo-x1-extras-debug-installer` / `lenovo-x1-extras-release-installer`
+- **Description**: Extended configuration with additional features
+- **Architecture**: x86_64
+
+#### Lenovo X1 Hardening Configuration
+- **Targets**: `lenovo-x1-gen11-hardening-debug` / `lenovo-x1-gen11-hardening-release`
+- **Installers**: `lenovo-x1-gen11-hardening-debug-installer` / `lenovo-x1-gen11-hardening-release-installer`
+- **Description**: Security-hardened configuration for Gen 11
+- **Architecture**: x86_64
+
+### Dell Platforms
+
+#### Dell Latitude 7230
+- **Targets**: `dell-latitude-7230-debug` / `dell-latitude-7230-release`
+- **Installers**: `dell-latitude-7230-debug-installer` / `dell-latitude-7230-release-installer`
+- **Architecture**: x86_64
+
+#### Dell Latitude 7330
+- **Targets**: `dell-latitude-7330-debug` / `dell-latitude-7330-release`
+- **Installers**: `dell-latitude-7330-debug-installer` / `dell-latitude-7330-release-installer`
+- **Architecture**: x86_64
+
+#### Alienware m18 R2
+- **Targets**: `alienware-m18-R2-debug` / `alienware-m18-R2-release`
+- **Installers**: `alienware-m18-R2-debug-installer` / `alienware-m18-R2-release-installer`
+- **Architecture**: x86_64
+
+### System76 Platforms
+
+#### System76 Darter Pro 11B
+- **Targets**: `system76-darp11-b-debug` / `system76-darp11-b-release`
+- **Installers**: `system76-darp11-b-debug-installer` / `system76-darp11-b-release-installer`
+- **Architecture**: x86_64
+
+### Desktop/Workstation Platforms
+
+#### Demo Tower MK1
+- **Target**: `demo-tower-mk1-debug`
+- **Installer**: `demo-tower-mk1-debug-installer`
+- **Architecture**: x86_64
+
+#### Tower 5080
+- **Target**: `tower-5080-debug`
+- **Installer**: `tower-5080-debug-installer`
+- **Architecture**: x86_64
+
+### Virtualization Platforms
+
+#### VM Debug
+- **Targets**: `vm-debug` / `vm-debug-nogui` / `vm-release`
+- **Description**: Virtual machine configurations for testing and development
+- **Architecture**: x86_64
+
+#### VMware
+- **Target**: `vmware-debug`
+- **Description**: VMware-optimized configuration
+- **Architecture**: x86_64
+
+## AArch64 (ARM64) Platforms
+
+### NVIDIA Jetson Platform (Primary AArch64)
+
+#### NVIDIA Jetson AGX Orin (32GB)
+- **Native Targets**: `nvidia-jetson-orin-agx-debug` / `nvidia-jetson-orin-agx-release`
+- **Cross-compiled**: `nvidia-jetson-orin-agx-debug-from-x86_64` / `nvidia-jetson-orin-agx-release-from-x86_64`
+- **No Demo Apps**: `nvidia-jetson-orin-agx-debug-nodemoapps` / `nvidia-jetson-orin-agx-release-nodemoapps`
+- **Cross + No Demo**: `nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64` / `nvidia-jetson-orin-agx-release-nodemoapps-from-x86_64`
+- **Architecture**: AArch64
+- **Status**: Primary AArch64 reference platform
+
+#### NVIDIA Jetson AGX Orin (64GB)
+- **Native Targets**: `nvidia-jetson-orin-agx64-debug` / `nvidia-jetson-orin-agx64-release`
+- **Cross-compiled**: `nvidia-jetson-orin-agx64-debug-from-x86_64` / `nvidia-jetson-orin-agx64-release-from-x86_64`
+- **No Demo Apps**: `nvidia-jetson-orin-agx64-debug-nodemoapps` / `nvidia-jetson-orin-agx64-release-nodemoapps`
+- **Cross + No Demo**: `nvidia-jetson-orin-agx64-debug-nodemoapps-from-x86_64` / `nvidia-jetson-orin-agx64-release-nodemoapps-from-x86_64`
+- **Architecture**: AArch64
+
+#### NVIDIA Jetson Orin NX
+- **Native Targets**: `nvidia-jetson-orin-nx-debug` / `nvidia-jetson-orin-nx-release`
+- **Cross-compiled**: `nvidia-jetson-orin-nx-debug-from-x86_64` / `nvidia-jetson-orin-nx-release-from-x86_64`
+- **No Demo Apps**: `nvidia-jetson-orin-nx-debug-nodemoapps` / `nvidia-jetson-orin-nx-release-nodemoapps`
+- **Cross + No Demo**: `nvidia-jetson-orin-nx-debug-nodemoapps-from-x86_64` / `nvidia-jetson-orin-nx-release-nodemoapps-from-x86_64`
+- **Architecture**: AArch64
+
+### NXP Platform
+
+#### NXP i.MX 8M Plus EVK
+- **Native Targets**: `nxp-imx8mp-evk-debug` / `nxp-imx8mp-evk-release`
+- **Cross-compiled**: `nxp-imx8mp-evk-debug-from-x86_64` / `nxp-imx8mp-evk-release-from-x86_64`
+- **Architecture**: AArch64
+- **Use Case**: Industrial and embedded applications
+
+## Utility Configurations
+
+### Hardware Scanning
+- **Target**: `laptop-hw-scan`
+- **Description**: Hardware compatibility scanning utility
+- **Architecture**: x86_64
+
+## Build Recommendations
+
+### Primary Targets for Development
+- **x86_64**: `lenovo-x1-carbon-gen11-debug` (most tested x86_64 platform)
+- **AArch64**: `nvidia-jetson-orin-agx-debug-from-x86_64` (primary ARM64 platform)
+
+### Cross-Compilation
+All AArch64 targets have corresponding `-from-x86_64` variants for cross-compilation from x86_64 development machines.
+
+### Installer Images
+Most x86_64 targets include installer variants (`-installer` suffix) for easy deployment to physical hardware.
+
+## Adding New Hardware Configuration
+
+To add a new hardware configuration file:
 
 1. Create a separate folder for the device in [modules/hardware](https://github.com/tiiuae/ghaf/tree/main/modules/hardware).
 2. Create the new configuration file with hardware-dependent parameters like host information, input and output device parameters, and others.
