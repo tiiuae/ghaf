@@ -10,11 +10,11 @@
 writeText "windows.yuck" ''
   ;; Bar Window ;;
       (defwindow bar [screen ?width]
-          :geometry (geometry  
-                      :x "0px" 
-                      :y "0px" 
+          :geometry (geometry
+                      :x "0px"
+                      :y "0px"
                       :height "28px"
-                      :width {width ?: "100%"} 
+                      :width {width ?: "100%"}
                       :anchor "top center")
           :focusable "none"
           :hexpand "false"
@@ -30,10 +30,10 @@ writeText "windows.yuck" ''
                                 :anchor "bottom center")
             :stacking "overlay"
             (window-manager))
-    
+
       ;; Window manager trigger zone ;;
       (defwindow window-manager-trigger [screen]
-          :geometry (geometry :width "500px" 
+          :geometry (geometry :width "500px"
                               :height "2px"
                               :anchor "bottom center")
           :stacking "overlay"

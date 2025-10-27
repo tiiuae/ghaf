@@ -10,7 +10,7 @@
 
 <div align="center">
 
-[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-darkgreen.svg)](./LICENSES/LICENSE.Apache-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-orange.svg)](./LICENSES/LICENSE.CC-BY-SA-4.0) [![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-yellow)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tiiuae/ghaf/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tiiuae/ghaf) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8290/badge)](https://www.bestpractices.dev/projects/8290) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](./CODE_OF_CONDUCT.md) 
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-darkgreen.svg)](./LICENSES/LICENSE.Apache-2.0) [![License: CC-BY-SA 4.0](https://img.shields.io/badge/License-CC--BY--SA--4.0-orange.svg)](./LICENSES/LICENSE.CC-BY-SA-4.0) [![Style Guide](https://img.shields.io/badge/docs-Style%20Guide-yellow)](https://github.com/tiiuae/ghaf/blob/main/docs/style_guide.md) [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/tiiuae/ghaf/badge)](https://securityscorecards.dev/viewer/?uri=github.com/tiiuae/ghaf) [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8290/badge)](https://www.bestpractices.dev/projects/8290) [![Contributor Covenant](https://img.shields.io/badge/Contributor%20Covenant-2.1-4baaaa.svg)](./CODE_OF_CONDUCT.md)
 
 </div>
 
@@ -26,7 +26,7 @@ The Ghaf Framework documentation site is located under <https://ghaf.tii.ae>. It
 To build Ghaf documentation, use:
 
     nix build .#doc
-    
+
 See the documentation overview under [README-docs.md](./docs/README-docs.md).
 
 

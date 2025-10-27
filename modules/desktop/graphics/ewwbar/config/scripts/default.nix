@@ -97,7 +97,7 @@ let
 
         # Start eww daemon
         ${ewwCmd} kill
-        ${ewwCmd} daemon --force-wayland 
+        ${ewwCmd} daemon --force-wayland
         update-vars
 
         open-bars "$wlr_randr_output"
@@ -482,7 +482,7 @@ let
           ;;
         set_sink_input_volume)
           pactl set-sink-input-mute "$2" 0
-          pactl set-sink-input-volume "$2" "$3"% 
+          pactl set-sink-input-volume "$2" "$3"%
           ;;
         set_vm_volume)
           dbus-send --session --dest=org.ghaf.Audio --type=method_call /org/ghaf/Audio org.ghaf.Audio.SetDeviceVolume int32:"$2" int32:4 int32:"$3"
@@ -620,9 +620,9 @@ let
       CLOSE_CMD="wlrctl window close"
 
       get_window_list() {
-          eval "$WINDOW_LIST_CMD" 2>/dev/null | jq -c --unbuffered 'try ([.[] | { 
-              app_id: .app_id, 
-              title: .title, 
+          eval "$WINDOW_LIST_CMD" 2>/dev/null | jq -c --unbuffered 'try ([.[] | {
+              app_id: .app_id,
+              title: .title,
               state: .state,
               icon: (
                 (if .app_id then .app_id | ascii_downcase else "" end) as $id |

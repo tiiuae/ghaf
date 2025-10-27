@@ -5,8 +5,8 @@ title: Virtualized TPM for guests
 ## TPM device access for guests
 
 A TPM device is provided to virtual machines as a building block for securely storing secrets and performing cryptographic operations.
-A device compatible with the TPM 2.0 specification also benefits from existing integration with open-source components such 
-as bootloaders, Linux kernel, userspace tools, etc. The challenge resides in exposing a functional TPM interface to guests 
+A device compatible with the TPM 2.0 specification also benefits from existing integration with open-source components such
+as bootloaders, Linux kernel, userspace tools, etc. The challenge resides in exposing a functional TPM interface to guests
 while minimizing the reliance on the host and preventing host-based attacks.
 
 Broadly, two methods are available to expose a TPM to a virtual machine: passthrough of a hardware device or emulation in software.
@@ -18,7 +18,7 @@ After some initial analysis, a variant of the emulation method was chosen as the
 
 This design prevents straightforward attacks that aim to retrieve the guest TPM state from the host filesystem. Access to the swtpm state file on the host OS is only controlled by file permissions (and MAC frameworks to an extent) which lack granularity, are subject to misconfigurations, and can be circumvented by privileged processes.
 
-However, running the daemon in a virtual machine does not protect against more complex attack vectors that directly target guest memory and/or device drivers. 
+However, running the daemon in a virtual machine does not protect against more complex attack vectors that directly target guest memory and/or device drivers.
 The introduction of protected virtualization (pKVM) is necessary to completely close the attack surface from the host OS.
 
 From an architectural standpoint, TPM access to guests is implemented in the following way:

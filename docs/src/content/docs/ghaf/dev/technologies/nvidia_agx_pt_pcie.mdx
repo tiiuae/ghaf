@@ -85,7 +85,7 @@ To pass through individual PCI devices one by one, set the devices in their indi
 
 To set up the device for VFIO, unload the device driver and then replac it with the `vfio-pci` driver.
 
-The example below can be used for a device in the PCI bus `0001`.  
+The example below can be used for a device in the PCI bus `0001`.
 The device `0001:01:00.0` in the first bus is the Jetson AGX Orin board with the M.2 Wi-Fi card. The full size PCI bus id is `0005`. It is possible that a single PCI card contains multiple devices. In that case, all the devices need to be passed through together as they are in the same VFIO group. Usually the graphics card also contains some sound output device as a separate device.
 
 ```

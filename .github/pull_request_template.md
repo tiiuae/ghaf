@@ -51,7 +51,7 @@ Completing this checklist shows that you value and respect their time and effort
 ### Installation Method
 - [ ] Requires full re-installation
 - [ ] Can be updated with `nixos-rebuild ... switch`
-- [ ] Other: 
+- [ ] Other:
 
 ### Test Steps To Verify:
 <!--

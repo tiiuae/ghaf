@@ -27,7 +27,7 @@ let
     ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
     --external-iface ${cfg.externalNic} \
     --internal-iface ${cfg.internalNic} \
-    --internal-ip ${cfg.internalIp} ${chromecastFlags}  
+    --internal-ip ${cfg.internalIp} ${chromecastFlags}
   '';
 in
 {

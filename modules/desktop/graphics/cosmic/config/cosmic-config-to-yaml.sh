@@ -19,13 +19,13 @@ for dir in "$BASE_DIR"/*/; do
     # Get the top-level directory name
     dir_name=$(basename "$dir")
     echo "$dir_name:" >> "$OUTPUT_FILE"
-    
+
     # Iterate over files in the v1 subdirectory
     for file in "$dir"v1/*; do
         if [[ -f "$file" ]]; then
             key=$(basename "$file")
             value=$(cat "$file")
-            
+
             # Format the value correctly
             if [[ "$value" == *$'\n'* ]]; then
                 echo "  $key: |" >> "$OUTPUT_FILE"

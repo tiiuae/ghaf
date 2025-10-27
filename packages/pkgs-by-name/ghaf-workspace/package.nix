@@ -109,7 +109,7 @@ writeShellApplication {
             echo "$2" > "$MAX_WORKSPACES_FILE"
             echo "Maximum number of workspaces set to $2"
             ;;
-            
+
         next)
             if [[ $current_workspace -lt $max_workspaces ]]; then
                 ((current_workspace++))
@@ -120,7 +120,7 @@ writeShellApplication {
             wtype -M win -k "$current_workspace" -m win
             echo "Switched to workspace $current_workspace"
             ;;
-            
+
         prev)
             if [[ $current_workspace -gt 1 ]]; then
                 ((current_workspace--))
@@ -131,7 +131,7 @@ writeShellApplication {
             wtype -M win -k "$current_workspace" -m win
             echo "Switched to workspace $current_workspace"
             ;;
-            
+
         switch)
             if [ "$#" -eq 1 ]; then
                 echo "No workspace id provided"
@@ -148,11 +148,11 @@ writeShellApplication {
             fi
             update_workspace "$2"
             ;;
-            
+
         path)
             echo "$WORKSPACE_FILE"
             ;;
-            
+
         cur)
             echo "$current_workspace"
             ;;
@@ -160,7 +160,7 @@ writeShellApplication {
         subscribe)
             subscribe
             ;;
-            
+
         *)
             usage
             ;;

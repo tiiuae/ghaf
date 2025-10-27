@@ -130,11 +130,11 @@ in
         }
 
         // TLS materials arrive via systemd credentials
-        local.file "tls_cert" { 
-          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert" 
+        local.file "tls_cert" {
+          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert"
         }
-        local.file "tls_key" { 
-          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_key" 
+        local.file "tls_key" {
+          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_key"
         }
         ${optionalString (cfg.tls.remoteCAFile != null) ''
           local.file "remote_ca" {
@@ -142,8 +142,8 @@ in
           }
         ''}
         ${optionalString (cfg.tls.caFile != null) ''
-          local.file "tls_ca" { 
-            filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca" 
+          local.file "tls_ca" {
+            filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca"
           }
         ''}
 

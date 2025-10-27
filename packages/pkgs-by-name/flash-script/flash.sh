@@ -39,7 +39,7 @@ if [ ! -b "$DEVICE" ]; then
     exit 1
 fi
 
-# Input validation for filename parameter  
+# Input validation for filename parameter
 if [[ "$FILENAME" =~ \.\./ || "$FILENAME" =~ /\.\. || "$FILENAME" == ".." ]]; then
     echo "Invalid filename contains path traversal: ${FILENAME}"
     exit 1
