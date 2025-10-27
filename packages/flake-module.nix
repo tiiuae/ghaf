@@ -24,23 +24,37 @@
       # exposed to downstream projects
       pkgsDirectory = ./pkgs-by-name;
 
-      #fix these to be the correct packages placement
+      # Generate comprehensive documentation with enhanced module coverage
       packages.doc =
         let
           cfg = lib.nixosSystem {
-            # derived from targets/laptop/laptop-configuration-builder.nix + lenovo-x1-carbon-gen10
+            # Enhanced from lenovo-x1-carbon-gen11-debug with broader module coverage
             modules = [
+              # Original proven working base
               self.nixosModules.reference-profiles
               self.nixosModules.disko-debug-partition
               self.nixosModules.hardware-lenovo-x1-carbon-gen11
               self.nixosModules.profiles-workstation
+
+              # Additional modules for comprehensive options coverage
+              self.nixosModules.reference-appvms
+              self.nixosModules.development
+
               {
                 nixpkgs = {
                   hostPlatform = "x86_64-linux";
+                  config.allowUnfree = true;
                   overlays = [
                     inputs.ghafpkgs.overlays.default
                     inputs.givc.overlays.default
+                    self.overlays.default
                   ];
+                };
+
+                # Enable profiles for broader options documentation
+                ghaf = {
+                  profiles.debug.enable = true;
+                  reference.profiles.mvp-user-trial.enable = true;
                 };
               }
             ];
