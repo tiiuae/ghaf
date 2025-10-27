@@ -4,6 +4,20 @@
 
 **CRITICAL: Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
 
+## Code Quality Standards
+
+### **ALWAYS Strip Trailing Whitespace**
+- **Automatically remove trailing whitespace** from any files you create or modify
+- **Use sed command**: `sed -i 's/[[:space:]]*$//' filename` to clean files
+- **Verify cleanup**: Ensure no trailing whitespace remains before staging changes
+- **Project-wide consistency**: Maintain clean, professional code formatting standards
+
+### **File Formatting Requirements**
+- **All commits must be properly formatted** using treefmt before making a PR
+- **Run formatting**: `nix fmt` or `nix fmt -- --fail-on-change`
+- **License headers**: Always add proper SPDX license headers to new files
+- **No trailing whitespace**: Clean, professional code standards
+
 ## Working Effectively
 
 ### Prerequisites and Setup
