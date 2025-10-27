@@ -1,0 +1,244 @@
+---
+title: Ghaf Architecture Overview
+description: Comprehensive architectural documentation for the Ghaf security framework
+---
+
+# Ghaf Architecture Overview
+
+Ghaf implements a comprehensive security framework for edge devices through compartmentalization, virtualization, and zero-trust principles. This document provides detailed architectural insights into the system design and implementation.
+
+## System Architecture Layers
+
+### Layer 1: Hardware Abstraction
+**Purpose**: Provide unified interface across diverse hardware platforms
+**Components**:
+- Hardware detection and configuration
+- Driver management and isolation
+- Platform-specific optimizations
+- Secure boot and attestation
+
+**Supported Platforms**:
+- **x86_64**: Intel/AMD processors with VT-x/AMD-V
+- **AArch64**: ARM Cortex-A processors with virtualization extensions
+- **RISC-V**: PolarFire and compatible RISC-V processors
+
+### Layer 2: Hypervisor and Virtualization
+**Purpose**: Secure isolation and resource management
+**Technology**: NixOS + MicroVM framework
+**Features**:
+- Type-1 hypervisor capabilities through NixOS
+- MicroVM for lightweight guest execution
+- Hardware-assisted virtualization
+- GPU passthrough and sharing
+
+### Layer 3: Guest Operating Systems
+**Purpose**: Isolated execution environments
+**Guest Types**:
+- **Application VMs**: Browser, office, development tools
+- **Service VMs**: Network services, system utilities
+- **Windows VMs**: Legacy application compatibility
+- **Specialty VMs**: Hardware-specific or security-focused
+
+### Layer 4: Inter-VM Communication
+**Purpose**: Secure, controlled communication between isolated environments
+**Technology**: GIVC (Guest Inter-VM Communication)
+**Features**:
+- Authenticated message passing
+- Resource sharing protocols
+- File transfer with security scanning
+- Display and input redirection
+
+### Layer 5: Host Services
+**Purpose**: System-wide services and management
+**Services**:
+- VM lifecycle management
+- Network configuration and isolation
+- Storage management and encryption
+- System monitoring and logging
+
+## Security Architecture
+
+### Zero Trust Principles
+1. **Never Trust, Always Verify**: All components must authenticate
+2. **Least Privilege Access**: Minimal permissions for each component
+3. **Assume Breach**: Design for containment and recovery
+4. **Continuous Monitoring**: Real-time security state assessment
+
+### Isolation Boundaries
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    Host System                      │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  │
+│  │ Browser VM  │  │ Office VM   │  │ Dev VM      │  │
+│  │ (Untrusted) │  │ (Trusted)   │  │ (Trusted)   │  │
+│  └─────────────┘  └─────────────┘  └─────────────┘  │
+│         │                 │                 │       │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │           GIVC Communication Layer           │  │
+│  └─────────────────────────────────────────────────┘  │
+│  ┌─────────────────────────────────────────────────┐  │
+│  │            Host Security Services            │  │
+│  └─────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────┘
+```
+
+### Trust Levels
+- **Untrusted**: Internet-facing applications (browser, email)
+- **Trusted**: Business applications (office, development)
+- **System**: Core system services and management
+- **Hardware**: TPM, secure elements, hardware attestation
+
+## Network Architecture
+
+### Network Segmentation
+Each VM operates in isolated network segments with controlled routing:
+
+```
+Internet ← NAT Gateway ← Firewall ← Network Bridge ← VM Network
+                           │
+                           ├── Browser VM (DMZ)
+                           ├── Office VM (Work)
+                           ├── Dev VM (Development)
+                           └── Management (System)
+```
+
+### Network Policies
+- **Default Deny**: All traffic blocked by default
+- **Explicit Allow**: Each connection requires explicit policy
+- **Traffic Inspection**: Deep packet inspection at boundaries
+- **VPN Integration**: Site-to-site and client VPN support
+
+## Storage Architecture
+
+### Encrypted Storage Stack
+```
+Application Data
+      │
+   VM Filesystem (ext4/btrfs)
+      │
+   dm-crypt Encryption
+      │
+   LVM Volume Management
+      │
+   Physical Storage (NVMe/eMMC)
+```
+
+### Storage Isolation
+- **Per-VM Storage**: Isolated filesystem containers
+- **Shared Storage**: Controlled shared volumes with access controls
+- **Encrypted Swap**: Memory encryption for sensitive data
+- **Secure Deletion**: Cryptographic erasure capabilities
+
+## Development Architecture
+
+### Build System
+**Technology**: Nix flakes with flake-parts organization
+**Benefits**:
+- Reproducible builds across environments
+- Hermetic build isolation
+- Cross-platform compilation support
+- Dependency management and caching
+
+### Module System
+Ghaf uses a hierarchical module system:
+
+```
+ghaf.nix (root)
+├── common/ (base system)
+├── profiles/ (system profiles)
+├── hardware/ (platform support)
+├── reference/ (examples)
+├── development/ (dev tools)
+└── virtualization/ (VM management)
+```
+
+### Configuration Management
+- **Declarative Configuration**: All system state in Nix expressions
+- **Version Control Integration**: Configuration versioning and rollback
+- **Staged Deployment**: Gradual rollout with automated testing
+- **A/B Updates**: Atomic system updates with fallback
+
+## Performance Architecture
+
+### Resource Management
+- **CPU Isolation**: Dedicated cores for critical VMs
+- **Memory Management**: NUMA-aware allocation
+- **I/O Prioritization**: QoS for storage and network
+- **GPU Scheduling**: Time-slice GPU sharing between VMs
+
+### Optimization Strategies
+- **Paravirtualization**: Optimized guest drivers
+- **Memory Ballooning**: Dynamic memory allocation
+- **Copy-on-Write**: Efficient storage utilization
+- **Kernel Bypass**: DPDK and SPDK for high-performance I/O
+
+## Scalability Architecture
+
+### Horizontal Scaling
+- **Container Integration**: Kubernetes and OCI compatibility
+- **Cluster Management**: Multi-node deployment support
+- **Load Balancing**: Traffic distribution across instances
+- **Auto-scaling**: Dynamic resource allocation
+
+### Vertical Scaling
+- **Resource Elasticity**: Dynamic CPU/memory allocation
+- **Storage Expansion**: Hot-pluggable storage devices
+- **Network Scaling**: Multi-gigabit network support
+- **GPU Scaling**: Multi-GPU support and sharing
+
+## Integration Architecture
+
+### API Framework
+**Technology**: RESTful APIs with gRPC for high-performance
+**Authentication**: mTLS with certificate-based identity
+**Authorization**: RBAC with fine-grained permissions
+
+### External Integrations
+- **Identity Providers**: LDAP, Active Directory, SAML, OIDC
+- **Monitoring Systems**: Prometheus, Grafana, ELK stack
+- **Backup Solutions**: Restic, Borg, cloud storage
+- **Management Platforms**: Ansible, Terraform, Kubernetes
+
+## Deployment Architecture
+
+### Image Generation
+Multiple deployment formats from single configuration:
+- **ISO Images**: Bootable installation media
+- **VM Images**: QEMU, VMware, VirtualBox
+- **Container Images**: OCI-compatible containers
+- **Flash Images**: Raw images for embedded devices
+
+### Update Mechanisms
+- **Atomic Updates**: All-or-nothing system updates
+- **Rollback Capability**: Instant rollback to previous state
+- **Staged Rollout**: Gradual deployment with health checks
+- **Emergency Recovery**: Secure boot fallback mechanisms
+
+## Monitoring and Observability
+
+### Metrics Collection
+- **System Metrics**: CPU, memory, storage, network utilization
+- **Security Metrics**: Failed authentications, policy violations
+- **Performance Metrics**: VM startup times, I/O latency
+- **Business Metrics**: Application usage, user activities
+
+### Logging Architecture
+```
+Application Logs → VM Syslog → Host Aggregator → Central Logging
+Security Events → Audit Daemon → SIEM Integration → Alert Manager
+Performance Data → Metrics Collector → Time Series DB → Dashboard
+```
+
+### Alerting Framework
+- **Real-time Alerts**: Security incidents, system failures
+- **Predictive Alerts**: Resource exhaustion, performance degradation
+- **Compliance Alerts**: Policy violations, audit failures
+- **Recovery Alerts**: Automated remediation status
+
+## Next Steps
+
+- See [Modules Reference](/ghaf/dev/ref/modules) for detailed module documentation
+- Check [Packages Reference](/ghaf/dev/ref/packages) for component details
+- Review [Dependencies](/ghaf/dev/ref/dependencies) for external integrations
+- Explore [Build and Run](/ghaf/dev/ref/build_and_run) for getting started

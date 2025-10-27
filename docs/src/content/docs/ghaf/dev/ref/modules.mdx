@@ -1,0 +1,319 @@
+---
+title: Ghaf Modules Reference
+description: Complete reference for all Ghaf NixOS modules and their configuration options
+---
+
+# Ghaf Modules Reference
+
+Ghaf provides 46 specialized NixOS modules that implement the secure edge computing framework. This reference documents all modules, their purpose, configuration options, and usage patterns.
+
+## Module Categories
+
+### Core System Modules
+
+#### common
+**Location**: `modules/common/`
+**Purpose**: Base system configuration shared across all Ghaf systems
+**Key Options**:
+- `ghaf.hardware.definition`: Hardware platform configuration
+- `ghaf.systemd.withTpm2Tss`: TPM 2.0 support
+- `ghaf.boot.systemdBootSecureboot`: Secure boot configuration
+
+#### profiles
+**Location**: `modules/profiles/`
+**Purpose**: High-level system profiles for different use cases
+**Profiles Available**:
+- `debug`: Development and debugging features enabled
+- `release`: Production-ready secure configuration
+- `graphics`: GPU acceleration and graphics stack
+
+#### development
+**Location**: `modules/development/`
+**Purpose**: Development tools and debugging capabilities
+**Sub-modules**:
+- `debug-tools`: GDB, strace, profiling tools
+- `ssh`: SSH daemon and client configuration
+- `cuda`: NVIDIA CUDA development environment
+
+### Hardware Support Modules
+
+#### hardware-x86_64-generic
+**Location**: `modules/hardware/x86_64-generic.nix`
+**Purpose**: Generic x86_64 hardware support and drivers
+**Features**:
+- Common x86_64 drivers and firmware
+- Power management optimization
+- Standard peripheral support
+
+#### hardware-lenovo-x1-carbon-gen11
+**Location**: `modules/hardware/lenovo-x1-carbon-gen11.nix`
+**Purpose**: Specific support for Lenovo X1 Carbon Gen 11 laptops
+**Features**:
+- Fingerprint reader support
+- Thermal management
+- Display and docking station optimization
+
+#### hardware-nvidia-jetson-orin-agx
+**Location**: `modules/hardware/nvidia-jetson-orin-agx.nix`
+**Purpose**: NVIDIA Jetson AGX Orin support
+**Features**:
+- Jetpack integration
+- GPU acceleration
+- CSI camera support
+
+#### hardware-aarch64-generic
+**Location**: `modules/hardware/aarch64-generic.nix`
+**Purpose**: Generic AArch64 ARM64 hardware support
+**Features**:
+- ARM64 bootloader support
+- Device tree configuration
+- ARM-specific optimizations
+
+### Reference Implementation Modules
+
+#### reference-profiles
+**Location**: `modules/reference/profiles/`
+**Purpose**: Pre-configured system profiles for different scenarios
+**Profiles**:
+- `mvp-user-trial`: Minimum viable product demonstration
+- `laptop-x1`: Optimized for Lenovo X1 series
+- `developer-preview`: Development environment setup
+
+#### reference-appvms
+**Location**: `modules/reference/appvms/`
+**Purpose**: Application virtual machine configurations
+**Applications**:
+- Browser VM with network isolation
+- Office productivity suite VM
+- Development environment VM
+- Windows compatibility VM
+
+#### reference-host-demo-apps
+**Location**: `modules/reference/host-demo-apps/`
+**Purpose**: Demonstration applications for Ghaf capabilities
+**Applications**:
+- Secure file manager
+- Network monitoring tools
+- System information displays
+
+### Virtualization and Graphics
+
+#### microvm
+**Location**: `modules/virtualization/microvm/`
+**Purpose**: MicroVM orchestration and management
+**Configuration**:
+- VM resource allocation
+- Network bridge configuration
+- Storage and filesystem management
+- Inter-VM communication
+
+#### graphics
+**Location**: `modules/graphics/`
+**Purpose**: Graphics stack and GPU management
+**Features**:
+- Wayland compositor configuration
+- GPU passthrough for VMs
+- Multi-monitor support
+
+#### nvidia-gpu
+**Location**: `modules/hardware/nvidia-gpu.nix`
+**Purpose**: NVIDIA GPU support and configuration
+**Features**:
+- Driver installation and management
+- CUDA runtime support
+- GPU sharing between VMs
+
+#### intel-gpu
+**Location**: `modules/hardware/intel-gpu.nix`
+**Purpose**: Intel integrated graphics support
+**Features**:
+- VA-API hardware acceleration
+- Display port configuration
+- Power management
+
+### Security and Isolation
+
+#### givc
+**Location**: `modules/givc/`
+**Purpose**: Guest-to-guest inter-VM communication
+**Security Features**:
+- Authenticated message passing
+- VM identity verification
+- Resource access control
+
+#### profiles-workstation
+**Location**: `modules/profiles/workstation.nix`
+**Purpose**: Secure workstation configuration profile
+**Security Features**:
+- Mandatory access controls
+- Network segmentation
+- Application sandboxing
+
+#### disko-debug-partition
+**Location**: `modules/disko/debug-partition.nix`
+**Purpose**: Disk partitioning for debug configurations
+**Features**:
+- Encrypted storage partitions
+- Separate debug data volumes
+- Secure partition layouts
+
+### Platform-Specific Modules
+
+#### profiles-orin
+**Location**: `modules/profiles/orin.nix`
+**Purpose**: NVIDIA Jetson Orin family optimization
+**Features**:
+- ARM64 performance tuning
+- Jetpack integration
+- Industrial I/O support
+
+#### jetpack
+**Location**: `modules/jetpack/`
+**Purpose**: NVIDIA Jetpack SDK integration
+**Components**:
+- CUDA runtime and drivers
+- DeepStream SDK
+- TensorRT optimization
+
+#### imx8
+**Location**: `modules/hardware/imx8.nix`
+**Purpose**: NXP i.MX 8 series processor support
+**Features**:
+- ARM TrustZone configuration
+- Multimedia acceleration
+- Industrial communication protocols
+
+#### polarfire
+**Location**: `modules/hardware/polarfire.nix`
+**Purpose**: Microchip PolarFire FPGA support
+**Features**:
+- RISC-V hart configuration
+- HSS (Hart Software Services) integration
+- FPGA programming interface
+
+## Configuration Patterns
+
+### Basic Module Usage
+
+```nix
+{
+  imports = [
+    inputs.ghaf.nixosModules.common
+    inputs.ghaf.nixosModules.profiles-workstation
+  ];
+
+  ghaf = {
+    profiles.debug.enable = true;
+    hardware.x86_64.common.enable = true;
+  };
+}
+```
+
+### Advanced Configuration
+
+```nix
+{
+  imports = [
+    inputs.ghaf.nixosModules.reference-profiles
+    inputs.ghaf.nixosModules.reference-appvms
+    inputs.ghaf.nixosModules.microvm
+  ];
+
+  ghaf = {
+    reference.profiles.mvp-user-trial.enable = true;
+
+    virtualization.microvm = {
+      enable = true;
+      vms = {
+        browser = {
+          enable = true;
+          memory = 2048;
+          networking.enable = true;
+        };
+      };
+    };
+  };
+}
+```
+
+### Hardware-Specific Configuration
+
+```nix
+{
+  imports = [
+    inputs.ghaf.nixosModules.hardware-nvidia-jetson-orin-agx
+    inputs.ghaf.nixosModules.profiles-orin
+    inputs.ghaf.nixosModules.jetpack
+  ];
+
+  ghaf = {
+    hardware.nvidia = {
+      enable = true;
+      jetpack.enable = true;
+    };
+    profiles.orin.enable = true;
+  };
+}
+```
+
+## Module Development Guidelines
+
+### Creating New Modules
+
+1. **Choose appropriate category**: Place in `modules/category/`
+2. **Define clear interface**: Use NixOS module system options
+3. **Add comprehensive documentation**: Include examples and use cases
+4. **Consider security implications**: Follow Ghaf security principles
+5. **Test thoroughly**: Include module-specific tests
+
+### Module Structure
+
+```nix
+{ config, lib, pkgs, ... }:
+
+with lib;
+
+{
+  options.ghaf.moduleName = {
+    enable = mkEnableOption "module description";
+
+    setting = mkOption {
+      type = types.str;
+      default = "default-value";
+      description = "Setting description with examples";
+    };
+  };
+
+  config = mkIf config.ghaf.moduleName.enable {
+    # Implementation
+  };
+}
+```
+
+## Module Dependencies
+
+### Common Dependencies
+Most modules depend on:
+- `common`: Base system configuration
+- `profiles`: System profile selection
+- Hardware-specific modules for target platform
+
+### Dependency Graph
+```
+common
+├── profiles
+│   ├── debug
+│   ├── release
+│   └── graphics
+├── hardware-*
+└── reference-*
+    ├── appvms
+    ├── profiles
+    └── host-demo-apps
+```
+
+## Next Steps
+
+- See [Packages Reference](/ghaf/dev/ref/packages) for package documentation
+- Check [Library Extensions](/ghaf/dev/ref/library) for lib extensions
+- Review [Architecture Overview](/ghaf/overview/arch) for system design

@@ -1,0 +1,259 @@
+---
+title: External Dependencies
+description: Complete reference for all external dependencies, repositories, and integrations
+---
+
+# External Dependencies Reference
+
+Ghaf relies on a carefully curated set of external dependencies and repositories to provide comprehensive functionality while maintaining security and reliability. This reference documents all external dependencies, their purpose, and integration points.
+
+## Primary Dependencies
+
+### Core Nix Ecosystem
+
+#### nixpkgs
+**Source**: `github:tiiuae/nixpkgs/britty-gst-python`
+**Purpose**: Core package repository with Ghaf-specific patches
+**Customizations**:
+- GStreamer Python bindings fixes
+- Security patches for edge computing
+- Hardware driver updates
+
+**Integration**: Base for all package definitions and system configuration
+
+#### flake-parts
+**Source**: `github:hercules-ci/flake-parts`
+**Purpose**: Modular flake architecture framework
+**Usage**: Organizes Ghaf's modular structure with clean separation of concerns
+
+#### nixos-generators
+**Source**: `github:nix-community/nixos-generators`
+**Purpose**: Multiple output format generation (ISO, VM images, etc.)
+**Usage**: Creates bootable images and VM formats for different platforms
+
+### Hardware and Platform Support
+
+#### nixos-hardware
+**Source**: `github:NixOS/nixos-hardware`
+**Purpose**: Hardware-specific configurations and optimizations
+**Hardware Supported**:
+- Lenovo laptop series
+- ASUS hardware configurations
+- Generic x86_64 optimizations
+
+#### jetpack-nixos
+**Source**: `github:anduril/jetpack-nixos`
+**Purpose**: NVIDIA Jetpack SDK integration for Jetson platforms
+**Features**:
+- CUDA runtime and drivers
+- TensorRT inference engine
+- DeepStream multimedia processing
+- L4T (Linux for Tegra) kernel
+
+#### microvm.nix
+**Source**: `github:astro/microvm.nix`
+**Purpose**: Lightweight virtualization framework
+**Capabilities**:
+- Fast VM startup and shutdown
+- Minimal resource overhead
+- Declarative VM configuration
+- Integration with host networking
+
+### Development and Testing
+
+#### ci-test-automation
+**Source**: `github:tiiuae/ci-test-automation`
+**Purpose**: Automated testing framework for Ghaf configurations
+**Test Types**:
+- Hardware compatibility testing
+- Security validation
+- Performance benchmarking
+- Integration testing
+
+#### treefmt-nix
+**Source**: `github:numtide/treefmt-nix`
+**Purpose**: Code formatting and linting across multiple languages
+**Supported Languages**:
+- Nix (nixfmt-rfc-style)
+- Python (ruff)
+- Shell scripts (shellcheck)
+- JavaScript/TypeScript (prettier)
+
+### Security and Communication
+
+#### ghafpkgs
+**Source**: `github:tiiuae/ghafpkgs`
+**Purpose**: Ghaf-specific package collection and overlays
+**Contents**:
+- Security-focused applications
+- Custom system utilities
+- Hardware-specific tools
+
+#### givc
+**Source**: `github:tiiuae/givc`
+**Purpose**: Guest Inter-VM Communication framework
+**Features**:
+- Secure message passing between VMs
+- Authentication and authorization
+- Resource sharing protocols
+
+#### ctrl-panel
+**Source**: `github:tiiuae/ctrl-panel`
+**Purpose**: System control and monitoring interface
+**Capabilities**:
+- VM lifecycle management
+- System monitoring and metrics
+- User interface for system control
+
+#### wireguard-gui
+**Source**: `github:tiiuae/wireguard-gui`
+**Purpose**: Graphical interface for WireGuard VPN management
+**Features**:
+- VPN tunnel configuration
+- Connection status monitoring
+- Network isolation management
+
+### Specialized Tools
+
+#### spectrum-config
+**Source**: `github:tiiuae/spectrum-config`
+**Purpose**: Radio spectrum management and configuration
+**Use Cases**:
+- Software-defined radio integration
+- Wireless communication optimization
+- Spectrum analysis tools
+
+#### pkgs-by-name-for-flake-parts
+**Source**: `github:drupol/pkgs-by-name-for-flake-parts`
+**Purpose**: Automatic package discovery and organization
+**Benefits**:
+- Streamlined package management
+- Automatic package exposure
+- Consistent naming conventions
+
+## Development Dependencies
+
+### Build System
+
+#### systems
+**Source**: `github:nix-systems/default`
+**Purpose**: Standard system definitions for cross-platform builds
+**Platforms**: x86_64-linux, aarch64-linux, riscv64-linux
+
+#### nixpkgs-lib
+**Source**: `github:NixOS/nixpkgs/lib`
+**Purpose**: Nix library functions for advanced flake operations
+**Usage**: Utility functions for complex configuration management
+
+### Documentation
+
+#### astro-starlight
+**Purpose**: Documentation site generator
+**Features**:
+- Multi-language support
+- Search functionality
+- Mobile-responsive design
+- Automatic navigation generation
+
+## Dependency Management Strategy
+
+### Version Pinning
+All dependencies are pinned to specific commits to ensure:
+- **Reproducibility**: Identical builds across environments
+- **Security**: Controlled updates with security review
+- **Stability**: Tested combinations of dependencies
+
+### Update Process
+1. **Security monitoring**: Regular CVE scanning of dependencies
+2. **Compatibility testing**: Automated testing with new versions
+3. **Staged rollout**: Gradual deployment across test environments
+4. **Documentation updates**: Maintain current dependency documentation
+
+### Dependency Tree
+```
+ghaf
+├── nixpkgs (core)
+│   ├── flake-parts
+│   └── nixos-generators
+├── hardware-support
+│   ├── nixos-hardware
+│   ├── jetpack-nixos
+│   └── microvm.nix
+├── ghaf-ecosystem
+│   ├── ghafpkgs
+│   ├── givc
+│   ├── ctrl-panel
+│   └── wireguard-gui
+├── development
+│   ├── ci-test-automation
+│   └── treefmt-nix
+└── specialized
+    ├── spectrum-config
+    └── pkgs-by-name-for-flake-parts
+```
+
+## Licensing and Compliance
+
+### License Compatibility
+All dependencies are compatible with Apache-2.0 license:
+- **MIT**: Compatible, permissive
+- **BSD**: Compatible, permissive
+- **Apache-2.0**: Direct compatibility
+- **GPL exceptions**: Carefully evaluated for compatibility
+
+### Supply Chain Security
+- **SBOM generation**: Software Bill of Materials tracking
+- **Vulnerability scanning**: Automated security scanning
+- **Provenance tracking**: Source code and build provenance
+- **Signature verification**: Cryptographic signature validation
+
+## Troubleshooting Common Dependency Issues
+
+### Build Failures
+```bash
+# Clear Nix cache
+nix store gc
+nix flake update
+
+# Rebuild with clean cache
+nix build .#target --rebuild
+```
+
+### Network Issues
+```bash
+# Use alternative substituters
+nix build --option substituters "https://cache.nixos.org"
+
+# Increase timeouts
+nix build --option connect-timeout 300
+```
+
+### Version Conflicts
+```bash
+# Check flake inputs
+nix flake show --json | jq '.inputs'
+
+# Update specific input
+nix flake lock --update-input nixpkgs
+```
+
+## Contributing to Dependencies
+
+### Upstream Contributions
+Ghaf maintains active relationships with upstream projects:
+- **nixpkgs**: Regular contribution of hardware support and security fixes
+- **microvm.nix**: Performance optimizations and feature enhancements
+- **jetpack-nixos**: Hardware compatibility improvements
+
+### Fork Management
+For forked dependencies:
+1. **Minimal changes**: Keep forks as close to upstream as possible
+2. **Clear documentation**: Document all changes and reasoning
+3. **Upstream integration**: Work toward upstreaming changes
+4. **Regular rebasing**: Keep forks current with upstream
+
+## Next Steps
+
+- See [Packages Reference](/ghaf/dev/ref/packages) for Ghaf-specific packages
+- Check [Modules Reference](/ghaf/dev/ref/modules) for system modules
+- Review [Architecture Overview](/ghaf/overview/arch) for system integration
