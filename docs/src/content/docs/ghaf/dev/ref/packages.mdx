@@ -1,0 +1,192 @@
+---
+title: Ghaf Packages Reference
+description: Complete reference for all Ghaf-specific packages and their usage
+---
+
+# Ghaf Packages Reference
+
+Ghaf provides a comprehensive set of custom packages designed for secure edge computing environments. This reference documents all Ghaf-specific packages, their purpose, and usage.
+
+## Package Categories
+
+### Security and System Tools
+
+#### audit-rules
+**Location**: `packages/pkgs-by-name/audit-rules/`
+**Purpose**: Custom audit rules for security monitoring and compliance
+**Usage**: Automatically included in security-hardened configurations
+**Configuration**: See [Security Configuration](/ghaf/dev/ref/security-config)
+
+#### flash-script
+**Location**: `packages/pkgs-by-name/flash-script/`
+**Purpose**: Universal flashing script for creating bootable media
+**Usage**: `./packages/pkgs-by-name/flash-script/flash.sh -d /dev/device -i image.img`
+**Supported formats**: `.img`, `.iso`, `.zst`
+
+#### ghaf-installer
+**Location**: `packages/pkgs-by-name/ghaf-installer/`
+**Purpose**: Interactive installer for Ghaf systems
+**Usage**: Run `sudo ghaf-installer` from installer media
+**Features**: Hardware detection, disk partitioning, system installation
+
+#### hardware-scan
+**Location**: `packages/pkgs-by-name/hardware-scan/`
+**Purpose**: Hardware compatibility scanning and reporting
+**Usage**: `nix run .#hardware-scan` to generate hardware reports
+**Output**: Hardware compatibility reports and configuration suggestions
+
+### Communication and Collaboration
+
+#### dendrite-pinecone
+**Location**: `packages/pkgs-by-name/dendrite-pinecone/`
+**Purpose**: Matrix homeserver with P2P networking support
+**Usage**: Secure communication infrastructure for distributed teams
+**Integration**: Configured via `ghaf.services.matrix.enable = true`
+
+#### element-web
+**Location**: `packages/pkgs-by-name/element-web/`
+**Purpose**: Web-based Matrix client optimized for Ghaf
+**Usage**: Accessed via browser at `https://element.local`
+**Features**: End-to-end encryption, file sharing, voice/video calls
+
+### Desktop Environment
+
+#### gala
+**Location**: `packages/pkgs-by-name/gala/`
+**Purpose**: Secure window manager based on Pantheon's Gala
+**Usage**: Automatically configured in desktop profiles
+**Features**: Multi-monitor support, workspace management, security isolation
+
+#### ghaf-screenshot
+**Location**: `packages/pkgs-by-name/ghaf-screenshot/`
+**Purpose**: Security-aware screenshot utility
+**Usage**: `ghaf-screenshot [options] [filename]`
+**Security**: Respects VM isolation boundaries and privacy settings
+
+#### ghaf-workspace
+**Location**: `packages/pkgs-by-name/ghaf-workspace/`
+**Purpose**: Workspace management for compartmentalized desktop
+**Usage**: Manage multiple isolated work environments
+**Integration**: Works with application VMs and secure boundaries
+
+### Development and Build Tools
+
+#### ghaf-build-helper
+**Location**: `packages/pkgs-by-name/ghaf-build-helper/`
+**Purpose**: Build system utilities and helpers for Ghaf development
+**Usage**: `nix run .#ghaf-build-helper -- [command]`
+**Commands**: `check-deps`, `validate-config`, `generate-docs`
+
+#### make-checks
+**Location**: `packages/pkgs-by-name/make-checks/`
+**Purpose**: Comprehensive test suite for Ghaf configurations
+**Usage**: `nix build .#make-checks` to run all tests
+**Coverage**: Module tests, integration tests, security validations
+
+### Utilities and Applications
+
+#### ghaf-open
+**Location**: `packages/pkgs-by-name/ghaf-open/`
+**Purpose**: Secure file and URL opener with VM awareness
+**Usage**: `ghaf-open [file|url]`
+**Security**: Routes content to appropriate isolated VMs
+
+#### laptop-hw-scan
+**Location**: `packages/pkgs-by-name/laptop-hw-scan/`
+**Purpose**: Laptop-specific hardware scanning and optimization
+**Usage**: `nix run .#laptop-hw-scan` for laptop hardware analysis
+**Features**: Battery management, thermal monitoring, power optimization
+
+#### update-docs-depends
+**Location**: `packages/pkgs-by-name/update-docs-depends/`
+**Purpose**: Documentation dependency management and updates
+**Usage**: Internal tool for maintaining documentation build dependencies
+**Automation**: Used in CI/CD for documentation builds
+
+#### wait-for-unit
+**Location**: `packages/pkgs-by-name/wait-for-unit/`
+**Purpose**: Systemd unit dependency management utility
+**Usage**: `wait-for-unit [unit-name]` in scripts and services
+**Integration**: Used internally for service orchestration
+
+#### windows-launcher
+**Location**: `packages/pkgs-by-name/windows-launcher/`
+**Purpose**: Secure launcher for Windows VMs and applications
+**Usage**: Launch Windows applications in isolated VMs
+**Security**: GPU passthrough, network isolation, file system boundaries
+
+### Low-Level System Components
+
+#### memsocket
+**Location**: `packages/pkgs-by-name/memsocket/`
+**Purpose**: Memory-based socket communication for inter-VM messaging
+**Usage**: Internal communication substrate for secure VM interactions
+**Performance**: Zero-copy message passing between trusted components
+
+#### pci-binder
+**Location**: `packages/pkgs-by-name/pci-binder/`
+**Purpose**: PCI device binding and isolation management
+**Usage**: Internal tool for hardware device isolation
+**Security**: Ensures proper device assignment to VMs
+
+#### rtl8126
+**Location**: `packages/pkgs-by-name/rtl8126/`
+**Purpose**: Network driver for RTL8126 ethernet controllers
+**Usage**: Automatically loaded for compatible hardware
+**Support**: High-performance networking for edge devices
+
+## Package Development Guidelines
+
+### Adding New Packages
+
+1. **Create package directory**: `packages/pkgs-by-name/package-name/`
+2. **Add package.nix**: Define package build and metadata
+3. **Include description**: Add comprehensive meta.description
+4. **Add documentation**: Document usage and integration
+5. **Write tests**: Include package-specific tests
+
+### Package Structure
+
+```nix
+{
+  lib,
+  stdenv,
+  # dependencies...
+}:
+
+stdenv.mkDerivation rec {
+  pname = "package-name";
+  version = "1.0.0";
+
+  src = ./src;
+
+  meta = with lib; {
+    description = "Brief description of package purpose";
+    longDescription = ''
+      Detailed description including:
+      - Primary use case
+      - Key features
+      - Integration points
+      - Security considerations
+    '';
+    homepage = "https://ghaf.tii.ae/ghaf/dev/ref/packages";
+    license = licenses.asl20;
+    maintainers = with maintainers; [ /* maintainer list */ ];
+    platforms = platforms.linux;
+  };
+}
+```
+
+### Integration with Ghaf
+
+All packages should be designed to work within Ghaf's security model:
+- **VM Awareness**: Understand compartmentalization boundaries
+- **Security First**: Implement proper privilege separation
+- **Cross-Platform**: Support x86_64 and AArch64 architectures
+- **Documentation**: Include comprehensive usage documentation
+
+## Next Steps
+
+- See [Module Reference](/ghaf/dev/ref/modules) for NixOS module documentation
+- Check [Architecture Overview](/ghaf/overview/arch) for system design
+- Review [Development Guide](/ghaf/dev/ref/development) for contribution guidelines
