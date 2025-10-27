@@ -46,7 +46,7 @@
 
 ### Hardware Testing Scenarios
 - **NVIDIA Jetson**: Connect via USB-C and Micro-USB for serial console, flash in recovery mode
-- **i.MX 8MP**: Test SD card boot and USB media functionality  
+- **i.MX 8MP**: Test SD card boot and USB media functionality
 - **Microchip Icicle**: Verify HSS version 0.99.35-v2023.02 in eNVM before testing
 - **x86 hardware**: Test USB boot and basic hardware recognition
 
@@ -84,7 +84,7 @@
 
 The project uses treefmt for consistent code formatting across multiple languages:
 - Nix files: nixfmt-rfc-style (RFC 166 standard)
-- Python files: ruff formatter and linter  
+- Python files: ruff formatter and linter
 - Shell scripts: shellcheck linting
 - JavaScript/TypeScript: prettier formatting
 
@@ -125,7 +125,7 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 
 ### Key Configuration Files
 - Main flake: `flake.nix` (build definitions)
-- Shell environment: `shell.nix` (development dependencies)  
+- Shell environment: `shell.nix` (development dependencies)
 - Library functions: `lib.nix` (shared utilities)
 - Licensing: `REUSE.toml` (license configuration)
 
@@ -150,7 +150,7 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 ### Cross-Compilation Notes
 - **Current limitation**: Cross-compilation support is under development
 - **AArch64 builds**: Require remote builder setup
-- **RISC-V builds**: Require remote builder setup  
+- **RISC-V builds**: Require remote builder setup
 - **Build times**: Cross-platform builds take 2-4x longer than native
 
 ## Security and Compliance
@@ -181,7 +181,7 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 Before submitting any changes:
 - [ ] Build succeeds with appropriate timeout (60+ minutes for major targets)
 - [ ] Code properly formatted with treefmt: `nix fmt -- --fail-on-change` passes
-- [ ] `nix develop --command reuse lint` passes  
+- [ ] `nix develop --command reuse lint` passes
 - [ ] VM boots and basic functionality works (if applicable)
 - [ ] Documentation updated (if adding features)
 - [ ] Security implications considered

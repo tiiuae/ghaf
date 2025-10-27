@@ -26,7 +26,7 @@ We like commits as they keep the project going. If you have ideas you want to ex
 * Do not assume that readers know everything you currently know.
 * Avoid jargon and acronyms, if you can.
 * Do not reference future development or features that do not yet exist.
-  
+
 
 ## Contributing Code
 
@@ -41,7 +41,7 @@ Make sure the [license](https://github.com/tiiuae/ghaf#licensing) information is
     # Copyright [year project started]-[current year], [project founder] and the [project name] contributors
     # SPDX-License-Identifier: Apache-2.0
 
-<!-- 
+<!--
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 -->
@@ -62,9 +62,9 @@ The seven rules of a great Git commit message:
 1. Separate subject from body with a blank line.
 2. Limit the subject line to 50 characters.
 3. Capitalize the subject line. If you start subject with a filename, capitalize after colon: “approve.sh: Fix whitespaces”.
-4. Do not end the subject line with a period. For example:  
+4. Do not end the subject line with a period. For example:
 5. Use the imperative (commanding) mood in the subject line.
-    * ”Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”. 
+    * ”Fix a bug causing reboots on nuc” rather than “Fixed a bug causing reboots on nuc”.
     * ”Update weston to version 10.5.1” rather than ”New weston version 10.5.1”.
 6. Wrap the body at 72 characters.
 7. Use the body to explain **what** and **why** vs. how.
@@ -127,7 +127,7 @@ When a merge to main occurs it will automatically build and deploy to <https://g
 
 For information on recommended practices, see [Documentation Style Guide](./docs/style_guide.md).
 
---- 
+---
 
 ## Communication
 

@@ -68,7 +68,7 @@ This is the primary reference device for Ghaf on x86_64 architecture.
    ```sh
    ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-lenovo-x1-carbon-gen11-debug.img
    ```
-   
+
    ⚠️ **Warning**: Replace `<YOUR_USB_DRIVE>` with your actual USB device (e.g., `/dev/sdb`). This will erase all data on the USB drive.
 
 3. **Boot from USB**: Insert the USB drive and boot your Lenovo X1 Carbon Gen 11 from the USB device.
@@ -81,7 +81,7 @@ This is the primary reference device for Ghaf on AArch64 architecture.
    ```sh
    # For 32GB AGX version:
    nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
-   
+
    # For 64GB AGX version:
    nix build .#nvidia-jetson-orin-agx64-debug-from-x86_64-flash-script
    ```

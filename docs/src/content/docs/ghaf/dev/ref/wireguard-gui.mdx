@@ -18,7 +18,7 @@ title: Wireguard GUI
 import { Aside } from "@astrojs/starlight/components";
 
 <Aside>
- wireguard-gui service should be enabled to appear ```Wireguard GUI``` button. 
+ wireguard-gui service should be enabled to appear ```Wireguard GUI``` button.
  It can be enabled to add vm nix config like following:
 ```nix
 ghaf.reference.services.wireguard-gui.enable =true;
@@ -33,12 +33,12 @@ ghaf.reference.services.wireguard-gui.enable =true;
 
 ![Wireguard GUI configuration](@assets/ghaf/wireguard_gui_config.png)
 
-6. **Enter your peer configuration details such as ```AllowedIPs```, ```Endpoint```, and ```PublicKey```** 
+6. **Enter your peer configuration details such as ```AllowedIPs```, ```Endpoint```, and ```PublicKey```**
 7. **Click ```Save``` — a confirmation dialog will appear once the configuration is saved successfully**
 8. **Use the toggle switch to turn the WireGuard tunnel interface on or off**
 
-<Aside> 
-For more information, see the config file documentation: 
+<Aside>
+For more information, see the config file documentation:
 - [wireguard config file](https://wiresock.net/documentation/wireguard/config.html)
 </Aside>
 
@@ -46,7 +46,7 @@ For more information, see the config file documentation:
 ## ⚙️ Configuration Scenarios
 
 ![Network topology diagram](@assets/ghaf/wireguard-test.drawio.png)
-<Aside> 
+<Aside>
 The following examples represent only the local WireGuard GUI configuration. Peer-side configurations are not included.
 </Aside>
 
@@ -69,8 +69,8 @@ Configure WireGuard as a server to accept connections from multiple clients.
 
 You can try to ping: ```ping 10.10.10.0```
 
-<Aside> 
-- You can use an IP calculator to help generate correct `AllowedIPs` values: [WireGuard AllowedIPs Calculator](https://www.procustodibus.com/blog/2021/03/wireguard-allowedips-calculator/) 
+<Aside>
+- You can use an IP calculator to help generate correct `AllowedIPs` values: [WireGuard AllowedIPs Calculator](https://www.procustodibus.com/blog/2021/03/wireguard-allowedips-calculator/)
 - [wg-quick](https://git.zx2c4.com/wireguard-tools/about/src/man/wg-quick.8)
 </Aside>
 

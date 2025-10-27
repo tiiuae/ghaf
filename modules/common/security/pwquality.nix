@@ -82,7 +82,7 @@ in
       ucredit = ${creditVal config.ghaf.security.pwquality.minUppercase}
       lcredit = ${creditVal config.ghaf.security.pwquality.minLowercase}
       ocredit = ${creditVal config.ghaf.security.pwquality.minSpecialChar}
-      remember = ${builtins.toString config.ghaf.security.pwquality.rememberOld} 
+      remember = ${builtins.toString config.ghaf.security.pwquality.rememberOld}
     '';
   };
 }

@@ -19,8 +19,8 @@ import { Aside } from "@astrojs/starlight/components";
 
 [PrivateNetwork](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateNetwork=) is useful for preventing the service from accessing the network.
 
-**Type**: _Boolean._  
-**Default**: `false`  
+**Type**: _Boolean._
+**Default**: `false`
 **Options**:
 
 - `true` : Creates a new network namespace for the service. Only the loopback device "lo" is available in this namespace, other network devices are not accessible.
@@ -30,8 +30,8 @@ import { Aside } from "@astrojs/starlight/components";
 
 [IPAccounting](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#IPAccounting=) helps in detecting unusual or unexpected network activity by a service.
 
-**Type**: _Boolean._  
-**Default**: `false`  
+**Type**: _Boolean._
+**Default**: `false`
 **Options**:
 
 - `true`: Enables accounting for all IPv4 and IPv6 sockets created by the service: keeps track of the data sent and received by each socket in the service.
@@ -43,23 +43,23 @@ import { Aside } from "@astrojs/starlight/components";
 
 Enables packet filtering on all IPv4 and IPv6 sockets created by the service. Useful for restricting/preventing a service from communicating only with certain IP addresses or networks.
 
-**Type**: _Space separated list of ip addresses and/or a symbolic name._  
-**Default**: All IP addresses are allowed and no IP addresses are explicitly denied.  
+**Type**: _Space separated list of ip addresses and/or a symbolic name._
+**Default**: All IP addresses are allowed and no IP addresses are explicitly denied.
 **Options**:
 
 - _List of addresses_: Specify list of addresses allowed/denied. For example, `['192.168.1.8' '192.168.1.0/24']`. Any IP not explicitly allowed will be denied.
-- _Symbolic Names_: Following symbolic names can also be used.  
-   `any` : Any host (i.e., '0.0.0.0/0 ::/0').  
-   `localhost`: All addresses on the local loopback (i.e., '127.0.0.0/8 ::1/128').  
-   `link-local`: All link-local IP addresses(i.e., '169.254.0.0/16 fe80::/64').  
+- _Symbolic Names_: Following symbolic names can also be used.
+   `any` : Any host (i.e., '0.0.0.0/0 ::/0').
+   `localhost`: All addresses on the local loopback (i.e., '127.0.0.0/8 ::1/128').
+   `link-local`: All link-local IP addresses(i.e., '169.254.0.0/16 fe80::/64').
    `multicast`: All IP multicasting addresses (i.e., 224.0.0.0/4 ff00::/8).
 
 ### 1.4. RestrictNetworkInterfaces
 
 [RestrictNetworkInterfaces](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#RestrictNetworkInterfaces=) is used to control which network interfaces a service has access to. This helps isolate services from the network or restrict them to specific network interfaces, enhancing security and reducing potential risk.
 
-**Type**: _Space-separated list of network interface names._  
-**Default**: The service can access to all available network interfaces unless other network restrictions are in place.  
+**Type**: _Space-separated list of network interface names._
+**Default**: The service can access to all available network interfaces unless other network restrictions are in place.
 **Options**:
 
 - Specify individual network interface names to restrict the service to using only those interfaces.
@@ -69,8 +69,8 @@ Enables packet filtering on all IPv4 and IPv6 sockets created by the service. Us
 
 [RestrictAddressFamilies](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#RestrictAddressFamilies=) is used to control which address families a service can use. This setting restricts the service's ability to open sockets using specific address families, such as `'AF_INET'` for IPv4, `'AF_INET6'` for IPv6, or others. It is a security feature that helps limit the service's network capabilities and reduces its exposure to network-related vulnerabilities.
 
-**Type**: List of address family names.  
-**Default**: If not configured, the service is allowed to use all available address families.  
+**Type**: List of address family names.
+**Default**: If not configured, the service is allowed to use all available address families.
 **Options**:
 
 - **`none`**: Apply no restriction.
@@ -85,8 +85,8 @@ Enables packet filtering on all IPv4 and IPv6 sockets created by the service. Us
 
 [ProtectHome](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectHome=) is used to restrict a service's access to home directories. This security feature can be used either completely to block access to `/home`, `/root`, and `/run/user` or make them appear empty to the service, thereby protecting user data from unauthorized access by system services.
 
-**Type**: _Boolean or String._  
-**Default**: `false` i.e. the service has full access to home directories unless restricted by some other mean.  
+**Type**: _Boolean or String._
+**Default**: `false` i.e. the service has full access to home directories unless restricted by some other mean.
 **Options**:
 
 - **`true`**: The service is completely denied access to home directories.
@@ -98,8 +98,8 @@ Enables packet filtering on all IPv4 and IPv6 sockets created by the service. Us
 
 [ProtectSystem](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectSystem=) controls access to the system's root directory (`/`) and other essential system directories. This setting enhances security by restricting a service's ability to modify or access critical system files and directories.
 
-**Type**: _Boolean or String._  
-**Default**: `full` (Equivalent to `true`). The service is restricted from modifying or accessing critical system directories.  
+**Type**: _Boolean or String._
+**Default**: `full` (Equivalent to `true`). The service is restricted from modifying or accessing critical system directories.
 **Options**:
 
 - **`true`**: Mounts the directories `/usr/`, `/boot`, and `/efi` read-only for processes.
@@ -113,8 +113,8 @@ Using `true` or `full` is recommended for services that do not require access to
 
 [ProtectProc](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectProc=) controls access to the `/proc` filesystem for a service. This setting enhances security by restricting a service's ability to view or manipulate processes and kernel information in the `/proc` directory.
 
-**Type**: _Boolean or String._  
-**Default**: `default`. No restriction is imposed from viewing or manipulating processes and kernel information in `/proc`.  
+**Type**: _Boolean or String._
+**Default**: `default`. No restriction is imposed from viewing or manipulating processes and kernel information in `/proc`.
 **Options**:
 
 - **`noaccess`**: Restricts access to most process metadata of other users in `/proc`.
@@ -131,17 +131,17 @@ Using `true` or `full` is recommended for services that do not require access to
 - **InaccessiblePaths=**: Makes listed paths and everything below them in the file system hierarchy inaccessible to processes within the namespace.
 - **NoExecPaths=**: Prevents execution of files from listed paths, overriding usual file access controls. Nest `ExecPaths=` within `NoExecPaths=` to selectively allow execution within directories otherwise marked non-executable.
 
-**Type**: _Space-separated list of paths._  
-**Default**: No restriction to file system access until unless restricted by some other mechanism.  
-**Options**:  
+**Type**: _Space-separated list of paths._
+**Default**: No restriction to file system access until unless restricted by some other mechanism.
+**Options**:
 **Space separated list of paths** : Space-separated list of paths relative to the host's root directory. Symlinks are resolved relative to the root directory specified by `RootDirectory=` or `RootImage=`.
 
 ### 2.5. PrivateTmp
 
 [PrivateTmp](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateTmp=) uses a private, isolated `/tmp` directory for the service, enhancing security by preventing access to other processes' temporary files and ensuring data isolation.
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service shares the system `/tmp` directory with other processes.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service shares the system `/tmp` directory with other processes.
 **Options**:
 
 - **`true`**: Enables private `/tmp` for the service, isolating its temporary files from other processes.
@@ -153,8 +153,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [PrivateMounts](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateMounts=) controls whether the service should have its mount namespace, isolating its mounts from the rest of the system. This setup ensures that any file system mount points created or removed by the unit's processes remain private to them and are not visible to the host.
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service shares the same mount namespace as other processes.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service shares the same mount namespace as other processes.
 **Options**:
 
 - **`true`**: Enables private mount namespace for the service, isolating its mounts from the rest of the system.
@@ -164,8 +164,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [ProcSubset](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProcSubset=) restricts the set of `/proc` entries visible to the service, enhancing security by limiting access to specific process information in the `/proc` filesystem.
 
-**Type**: _String._  
-**Default**: `all`. If not specified, the service has access to all `/proc` entries.  
+**Type**: _String._
+**Default**: `all`. If not specified, the service has access to all `/proc` entries.
 **Options**:
 
 - **`all`**: Allows the service access to all `/proc` entries.
@@ -183,8 +183,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [PrivateUsers=](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateUsers=) controls whether the service should run with a private set of UIDs and GIDs, isolating the user and group databases used by the unit from the rest of the system, and creating a secure sandbox environment. The isolation reduces the privilege escalation potential of services.
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service runs with the same user and group IDs as other processes.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service runs with the same user and group IDs as other processes.
 **Options**:
 
 - **`true`**: Enables private user and group IDs for the service by creating a new user namespace, isolating them from the rest of the system.
@@ -194,8 +194,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [DynamicUser](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#DynamicUser=) enables systemd to dynamically allocate a unique user and group ID (UID/GID) for the service at runtime, enhancing security and resource isolation. These user and group entries are managed transiently during runtime and are not added to `/etc/passwd` or `/etc/group`.
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service uses a static user and group ID defined in the service unit file or defaults to `root`.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service uses a static user and group ID defined in the service unit file or defaults to `root`.
 **Options**:
 
 - **`true`**: A UNIX user and group pair are dynamically allocated when the unit is started and released as soon as it is stopped.
@@ -209,8 +209,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [PrivateDevices](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#PrivateDevices=) controls whether the service should have access to device nodes in `/dev`.
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service has access to device nodes in `/dev`.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service has access to device nodes in `/dev`.
 **Options**:
 
 - **`true`**: Restricts the service's access to device nodes in `/dev` by creating a new `/dev/` mount for the executed processes and includes only pseudo devices such as `/dev/null`, `/dev/zero`, or `/dev/random`. Physical devices are not added to this mount. This setup is useful for disabling physical device access by the service.
@@ -220,8 +220,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [DeviceAllow](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#DeviceAllow=) specifies individual device access rules for the service, allowing fine-grained control over device permissions.
 
-**Type**: _Space-separated list of device access rules._  
-**Default**: None. If not specified, the service does not have specific device access rules defined.  
+**Type**: _Space-separated list of device access rules._
+**Default**: None. If not specified, the service does not have specific device access rules defined.
 **Options**:
 
 - Specify device access rules in the format: `<device path> <permission>` where `<permission>` can be `r` (read), `w` (write), or `m` (mknod, allowing creation of devices).
@@ -234,8 +234,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [ProtectKernelTunables](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectKernelTunables=) controls whether the service is allowed to modify tunable kernel variables in `/proc/sys`, enhancing security by restricting access to critical kernel parameters.
 
-**Type**: _Boolean._  
-**Default**: `true`. If not specified, the service is restricted from modifying kernel variables.  
+**Type**: _Boolean._
+**Default**: `true`. If not specified, the service is restricted from modifying kernel variables.
 **Options**:
 
 - **`true`**: Restricts the service from modifying the kernel variables accessible through paths like `/proc/sys/`, `/sys/`, `/proc/sysrq-trigger`, `/proc/latency_stats`, `/proc/acpi`, `/proc/timer_stats`, `/proc/fs`, and `/proc/irq`. These paths are made read-only to all processes of the unit.
@@ -245,8 +245,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [ProtectKernelModules](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectKernelModules=) controls whether the service is allowed to load or unload kernel modules, enhancing security by restricting module management capabilities.
 
-**Type**: _Boolean._  
-**Default**: `true`. If not specified, the service is restricted from loading or unloading kernel modules.  
+**Type**: _Boolean._
+**Default**: `true`. If not specified, the service is restricted from loading or unloading kernel modules.
 **Options**:
 
 - **`true`**: Restricts the service from loading or unloading kernel modules. It removes `CAP_SYS_MODULE` from the capability bounding set for the unit and installs a system call filter to block module system calls. `/usr/lib/modules` is also made inaccessible.
@@ -256,8 +256,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [ProtectKernelLogs](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectKernelLogs=) controls whether the service is allowed to access kernel log messages, enhancing security by restricting access to kernel logs.
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service is allowed to access kernel logs.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service is allowed to access kernel logs.
 **Options**:
 
 - **`trues`**: Restricts the service from accessing kernel logs from `/proc/kmsg` and `/dev/kmsg`. Enabling this option removes `CAP_SYSLOG` from the capability bounding set for the unit and installs a system call filter to block the syslog(2) system call.
@@ -271,8 +271,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [Delegate](https://www.freedesktop.org/software/systemd/man/systemd.resource-control.html#Delegate=) controls whether systemd should delegate further control of resource management to the service's own resource management settings.
 
-**Type**: _Boolean._  
-**Default**: `true`. If not specified, systemd delegates control to the service's resource management settings.  
+**Type**: _Boolean._
+**Default**: `true`. If not specified, systemd delegates control to the service's resource management settings.
 **Options**:
 
 - **`true`**: Enables delegation and activates all supported controllers for the unit, allowing its processes to manage them.
@@ -282,8 +282,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [KeyringMode](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#KeyringMode=) specifies the handling mode for session keyrings by the service, controlling how it manages encryption keys and credentials.
 
-**Type**: _String._  
-**Default**: `private`. If not specified, the service manages its session keyrings privately.  
+**Type**: _String._
+**Default**: `private`. If not specified, the service manages its session keyrings privately.
 **Options**:
 
 - **`private`**: The service manages its session keyrings privately.
@@ -294,8 +294,8 @@ Additionally, when enabled, all temporary files created by a service in these di
 
 [NoNewPrivileges](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#NoNewPrivileges=) controls whether the service and its children processes are allowed to gain new privileges (capabilities).
 
-**Type**: _Boolean._  
-**Default**: `false`. If not specified, the service and its children's processes can gain new privileges.  
+**Type**: _Boolean._
+**Default**: `false`. If not specified, the service and its children's processes can gain new privileges.
 **Options**:
 
 - **`true`**: Prevents the service and its children processes from gaining new privileges.
@@ -310,16 +310,16 @@ Additionally, when enabled, all temporary files created by a service in these di
 [UMask](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#UMask=)
 sets the file mode creation mask (umask) for the service, controlling the default permissions applied to newly created files and directories.
 
-**Type**: _Octal numeric value._  
-**Default**: If not specified, inherits the default umask of the systemd service manager(0022).  
+**Type**: _Octal numeric value._
+**Default**: If not specified, inherits the default umask of the systemd service manager(0022).
 **Example**: `UMask=027`.
 
 ### 6.5. ProtectHostname
 
 [ProtectHostname](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectHostname=) controls whether the service can modify its own hostname.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Sets up a new UTS namespace for the executed processes. It prevents changes to the hostname or domainname.
@@ -329,8 +329,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [ProtectClock](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectClock=) controls whether the service is allowed to manipulate the system clock.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Prevents the service from manipulating the system clock. It removes `CAP_SYS_TIME` and `CAP_WAKE_ALARM` from the capability bounding set for this unit. Also creates a system call filter to block calls that can manipulate the system clock.
@@ -340,8 +340,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [ProtectControlGroups](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#ProtectControlGroups=) controls whether the service is allowed to modify control groups (cgroups) settings.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Prevents the service from modifying cgroups settings. Makes the Linux Control Groups (cgroups(7)) hierarchies accessible through `/sys/fs/cgroup/` read-only to all processes of the unit.
@@ -352,7 +352,7 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 [RestrictNamespaces](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#RestrictNamespaces=) controls the namespace isolation settings for the service, restricting or allowing namespace access.
 
 **Type**: _Boolean_ or _space-separated list of namespace type identifiers_.
-**Default**: `false`.  
+**Default**: `false`.
 **Options**:
 
 - `false`: No restrictions on namespace creation and switching are imposed.
@@ -363,8 +363,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [LockPersonality](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#LockPersonality=) applies restriction on the service's ability to change its execution personality.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Prevents the service from changing its execution personality. If the service runs in user mode or in system mode without the `CAP_SYS_ADMIN` capability (e.g., setting `User=`), enabling this option implies `NoNewPrivileges=yes`.
@@ -374,8 +374,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [MemoryDenyWriteExecute](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#MemoryDenyWriteExecute=) controls whether the service is allowed to execute code from writable memory pages.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Prohibits attempts to create memory mappings that are writable and executable simultaneously, change existing memory mappings to become executable, or map shared memory segments as executable. This restriction is implemented by adding an appropriate system call filter.
@@ -385,8 +385,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [RestrictRealtime](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#RestrictRealtime=) controls whether the service is allowed to utilize real-time scheduling policies.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Prevents the service from utilizing real-time scheduling policies. Refuses any attempts to enable realtime scheduling in processes of the unit. This restriction prevents access to realtime task scheduling policies such as `SCHED_FIFO`, `SCHED_RR`, or `SCHED_DEADLINE`.
@@ -396,8 +396,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [RestrictSUIDSGID](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#RestrictSUIDSGID=) controls whether the service is allowed to execute processes with SUID and SGID privileges.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Prevents the service from executing processes with SUID and SGID privileges. Denies any attempts to set the set-user-ID (SUID) or set-group-ID (SGID) bits on files or directories. These bits are used to elevate privileges and allow users to acquire the identity of other users.
@@ -407,8 +407,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [RemoveIPC](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#RemoveIPC=) controls whether to remove inter-process communication (IPC) resources associated with the service upon its termination.
 
-**Type**: _Boolean._  
-**Default**: `false`.  
+**Type**: _Boolean._
+**Default**: `false`.
 **Options**:
 
 - **`true`**: Removes IPC resources (**System V** and **POSIX IPC** objects) associated with the service upon its termination. This includes IPC objects such as message queues, semaphore sets, and shared memory segments.
@@ -418,8 +418,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [SystemCallArchitectures](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#SystemCallArchitectures=) specifies the allowed system call architectures for the service to include in system call filter.
 
-**Type**: _Space-separated list of architecture identifiers._  
-**Default**: Empty list. No filtering is applied.  
+**Type**: _Space-separated list of architecture identifiers._
+**Default**: Empty list. No filtering is applied.
 **Options**:
 
 - _List of architectures_: Processes of this unit will only be allowed to call native system calls and system calls specific to the architectures specified in the list. e.g. `native`, `x86`, `x86-64` or `arm64` etc.
@@ -428,8 +428,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [NotifyAccess](https://www.freedesktop.org/software/systemd/man/latest/systemd.service.html#NotifyAccess=) specifies how the service can send service readiness notification signals.
 
-**Type**: _Access specifier string._  
-**Default**: `none`.  
+**Type**: _Access specifier string._
+**Default**: `none`.
 **Options**:
 
 - `none` (default): No daemon status updates are accepted from the service processes; all status update messages are ignored.
@@ -445,8 +445,8 @@ sets the file mode creation mask (umask) for the service, controlling the defaul
 
 [AmbientCapabilities](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#AmbientCapabilities=) specifies which capabilities to include in the ambient capability set for the service, which are inherited by all processes within the service.
 
-**Type**: _Space-separated list of capabilities._  
-**Default**: Processes inherit ambient capabilities from their parent process or the systemd service manager unless explicitly set.  
+**Type**: _Space-separated list of capabilities._
+**Default**: Processes inherit ambient capabilities from their parent process or the systemd service manager unless explicitly set.
 **Options**:
 
 - _List of capabilities_: Specifies the capabilities that are set as ambient for all processes within the service.
@@ -461,8 +461,8 @@ This option can be specified multiple times to merge capability sets:
 
 [CapabilityBoundingSet](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#CapabilityBoundingSet=) specifies the bounding set of capabilities for the service, limiting the capabilities available to processes within the service.
 
-**Type**: _Space-separated list of capabilities._  
-**Default**: If not explicitly specified, the bounding set of capabilities is determined by systemd defaults or the system configuration.  
+**Type**: _Space-separated list of capabilities._
+**Default**: If not explicitly specified, the bounding set of capabilities is determined by systemd defaults or the system configuration.
 **Options**:
 
 - _List of capabilities_: Specifies the capabilities that are allowed for processes within the service. If capabilities are prefixed with "~", all capabilities except those listed are included (inverted effect).
@@ -515,8 +515,8 @@ This option can be specified multiple times to merge capability sets:
 
 [SystemCallFilter](https://www.freedesktop.org/software/systemd/man/systemd.exec.html#SystemCallFilter=) specifies a system call filter for the service, restricting the types of system calls that processes within the service can make.
 
-**Type**: _Space-separated list of system calls._  
-**Default**: If not explicitly specified, there are no restrictions imposed by systemd on system calls.  
+**Type**: _Space-separated list of system calls._
+**Default**: If not explicitly specified, there are no restrictions imposed by systemd on system calls.
 **Options**:
 
 - _List of system calls_: Specifies the allowed system calls for processes within the service. If the list begins with "~", the effect is inverted, meaning only the listed system calls will result in termination.

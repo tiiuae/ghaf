@@ -97,7 +97,7 @@
       scale {
           padding: 0px;
       }
-      
+
       trough {
           border-radius: $radius;
           border: 0;

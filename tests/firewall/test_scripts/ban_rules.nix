@@ -51,6 +51,6 @@ in
 
   print("Blacklisted IPs:", blacklisted_ips)
   for ip in source_ips:
-    assert ip in blacklisted_ips, f"{ip} not found in BLACKLIST ipset!" 
+    assert ip in blacklisted_ips, f"{ip} not found in BLACKLIST ipset!"
 
 ''
