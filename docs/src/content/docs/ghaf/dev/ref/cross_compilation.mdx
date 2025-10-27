@@ -4,50 +4,227 @@ title: Cross Compilation
 
 import { Aside } from "@astrojs/starlight/components";
 
-<Aside type="caution">
-  Cross-compilation is currently under development and cannot be used properly
-  on all the supported device configurations.
+<Aside type="note">
+  Cross-compilation support has significantly improved! All targets with `-from-x86_64` suffix are cross-compiled from x86_64 to their target architecture and are fully supported.
 </Aside>
 
-Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is `x_86`, this will generally require that the code is cross-compiled for target ISA e.g. `AArch64` or `RISC-V`.
+Ghaf is targeted at a range of devices and form factors that support different instruction set architectures (ISA). Many small form-factor edge devices are not powerful enough to compile the needed applications or OSs that run on them. As the most common ISA used in desktops and servers is `x86_64`, this requires cross-compilation for target ISAs such as `AArch64`.
 
-NixOS and Nixpkgs have good support for cross-compilation, however, there are still some that can not be compiled in this way.
+NixOS and Nixpkgs have excellent support for cross-compilation, and Ghaf leverages this extensively for ARM64 targets.
 
-## Cross-Compilation for Microchip Icicle Kit (RISCV64)
+## Cross-Compilation Targets
 
-An SD image for the Microchip Icicle Kit can be cross-compiled from an x86 machine. To generate the release or debug an SD image run the following command:
+All Ghaf targets with the `-from-x86_64` suffix are cross-compiled from x86_64 host systems to their target architecture. These are the recommended targets for building AArch64 systems from x86_64 development machines.
 
+### NVIDIA Jetson Platform (Primary AArch64 Targets)
+
+The NVIDIA Jetson family represents Ghaf's primary AArch64 platform with full cross-compilation support:
+
+#### Jetson AGX Orin (32GB)
 ```sh
-nix build .#packages.riscv64-linux.microchip-icicle-kit-<release/debug>
+# Debug variants
+nix build .#nvidia-jetson-orin-agx-debug-from-x86_64
+nix build .#nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
+
+# Release variants
+nix build .#nvidia-jetson-orin-agx-release-from-x86_64
+nix build .#nvidia-jetson-orin-agx-release-nodemoapps-from-x86_64
+
+# Flash script generation
+nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
 ```
 
-## Future Cross-Compilation Support
+#### Jetson AGX Orin (64GB)
+```sh
+# Debug variants
+nix build .#nvidia-jetson-orin-agx64-debug-from-x86_64
+nix build .#nvidia-jetson-orin-agx64-debug-nodemoapps-from-x86_64
 
-This will involve working with upstream package maintainers to ensure that the packages are cross-compilation aware. This will be addressed on a package-by-package basis.
+# Release variants
+nix build .#nvidia-jetson-orin-agx64-release-from-x86_64
+nix build .#nvidia-jetson-orin-agx64-release-nodemoapps-from-x86_64
+```
 
-## binfmt Emulated Build
+#### Jetson Orin NX
+```sh
+# Debug variants
+nix build .#nvidia-jetson-orin-nx-debug-from-x86_64
+nix build .#nvidia-jetson-orin-nx-debug-nodemoapps-from-x86_64
 
-[binfmt](https://en.wikipedia.org/wiki/Binfmt_misc) allows running different ISA on a development machine. This is achieved by running the target binary in an emulator such as `QEMU` or in a VM. So while not cross-compiled it can enable development for some embedded device configurations.
+# Release variants
+nix build .#nvidia-jetson-orin-nx-release-from-x86_64
+nix build .#nvidia-jetson-orin-nx-release-nodemoapps-from-x86_64
+```
 
-To enable `binfmt`, we recommend to set the following in your host systems `configuration.nix`:
+### NXP i.MX Platform (Secondary AArch64 Target)
+
+```sh
+# Debug variant
+nix build .#nxp-imx8mp-evk-debug-from-x86_64
+
+# Release variant
+nix build .#nxp-imx8mp-evk-release-from-x86_64
+```
+
+## Cross-Compilation Benefits
+
+### Performance
+- **Faster builds**: Leverage powerful x86_64 development machines
+- **Consistent environment**: Use familiar development tools and IDEs
+- **CI/CD integration**: Build ARM64 targets in standard x86_64 CI infrastructure
+
+### Development Workflow
+- **No hardware dependency**: Build ARM64 targets without ARM64 hardware
+- **Remote building**: Use remote builders for consistent cross-compilation
+- **Reproducible builds**: Identical output regardless of build host
+
+## Setting Up Cross-Compilation
+
+### Prerequisites
+
+For cross-compilation to work properly, ensure your development environment has:
+
+1. **Sufficient resources**: Cross-compilation can be resource-intensive
+   - Minimum 16GB RAM recommended
+   - Fast NVMe storage preferred
+   - Multiple CPU cores for parallel builds
+
+2. **Network access**: Download dependencies and use binary caches
+   ```sh
+   # Configure Ghaf binary cache for faster builds
+   nix build --option substituters "https://ghaf-dev.cachix.org https://cache.nixos.org"
+   ```
+
+### Remote Builder Setup (Optional)
+
+For consistent cross-compilation across teams, consider setting up remote builders:
+
+```nix
+# In /etc/nixos/configuration.nix or ~/.config/nix/nix.conf
+builders = @/etc/nix/machines
+builders-use-substitutes = true
+```
+
+See [Remote Build Setup](/ghaf/dev/ref/remote_build_setup) for detailed configuration.
+
+## Native vs Cross-Compiled Builds
+
+### Target Naming Convention
+
+- **Native builds**: `nvidia-jetson-orin-agx-debug` (built on/for same architecture)
+- **Cross-compiled builds**: `nvidia-jetson-orin-agx-debug-from-x86_64` (built on x86_64 for AArch64)
+
+### When to Use Each
+
+**Use cross-compilation (`-from-x86_64`) when:**
+- Building on x86_64 development machines (most common)
+- Setting up CI/CD pipelines
+- Need faster build times
+- Don't have native AArch64 hardware for building
+
+**Use native builds when:**
+- Building directly on target hardware
+- Debugging hardware-specific issues
+- Final validation on actual hardware
+
+## Troubleshooting Cross-Compilation
+
+### Common Issues
+
+**Build failures with missing dependencies:**
+```sh
+# Clear Nix store and retry
+nix store gc
+nix build .#target --rebuild
+```
+
+**Slow builds:**
+```sh
+# Use binary cache and parallel builds
+nix build .#target \
+  --option substituters "https://ghaf-dev.cachix.org https://cache.nixos.org" \
+  --option max-jobs 8
+```
+
+**Memory issues:**
+```sh
+# Limit parallel jobs to reduce memory usage
+nix build .#target --option max-jobs 2
+```
+
+### Build Time Expectations
+
+Cross-compilation build times for AArch64 targets:
+- **NVIDIA Jetson targets**: 90-180 minutes (first build)
+- **NXP i.MX targets**: 60-120 minutes (first build)
+- **Subsequent builds**: 5-30 minutes (with binary cache)
+
+## Next Steps
+
+- See [Build and Run Guide](/ghaf/dev/ref/build_and_run) for complete build instructions
+- Check [Remote Build Setup](/ghaf/dev/ref/remote_build_setup) for distributed builds
+- Review [NVIDIA Jetson Hardware Guide](/ghaf/dev/ref/hw-config) for hardware-specific details
+
+## binfmt Emulated Build (Alternative Method)
+
+For targets that do not have full cross-compilation support or when debugging architecture-specific issues, [binfmt](https://en.wikipedia.org/wiki/Binfmt_misc) provides an alternative approach by allowing execution of different ISA binaries on your development machine through emulation.
+
+### How binfmt Works
+
+binfmt enables running target architecture binaries in an emulator such as `QEMU`. While not true cross-compilation, this allows building for different architectures when cross-compilation is not available or when you need to debug architecture-specific behavior.
+
+### Setting Up binfmt
+
+To enable `binfmt`, add the following to your host system's `configuration.nix`:
 
 ```nix
 boot.binfmt.emulatedSystems = [
-  "riscv64-linux"
   "aarch64-linux"
 ];
 ```
 
-In addition, it is recommended to enable KVM support with either
+For optimal performance, also enable KVM support:
 
+**For AMD processors:**
 ```nix
 boot.kernelModules = [ "kvm-amd" ];
 ```
 
-or
-
+**For Intel processors:**
 ```nix
 boot.kernelModules = [ "kvm-intel" ];
 ```
 
-depending on whether your development host is running AMD or Intel processor.
+### When to Use binfmt
+
+**Use binfmt emulation when:**
+- Cross-compilation targets are not available (`-from-x86_64` variants don't exist)
+- Debugging architecture-specific issues
+- Testing compatibility with target architecture
+- Working with packages that don't support cross-compilation
+
+**Performance considerations:**
+- **Slower than cross-compilation**: Emulation overhead can be significant
+- **Higher resource usage**: QEMU emulation requires more CPU and memory
+- **Build times**: Expect 2-4x longer build times compared to native or cross-compilation
+
+### Example Usage
+
+With binfmt configured, you can build native AArch64 targets on x86_64:
+
+```sh
+# Build native AArch64 targets (emulated on x86_64)
+nix build .#nvidia-jetson-orin-agx-debug
+nix build .#nxp-imx8mp-evk-debug
+
+# This works through binfmt emulation when built on x86_64
+```
+
+### binfmt vs Cross-Compilation
+
+| Method | Performance | Compatibility | Use Case |
+|--------|-------------|---------------|----------|
+| **Cross-compilation** | Fast | High | Primary method for supported targets |
+| **binfmt emulation** | Slower | Universal | Fallback for unsupported targets |
+
+**Recommendation**: Always prefer cross-compilation (`-from-x86_64` targets) when available, and use binfmt emulation only for targets without cross-compilation support.
