@@ -8,23 +8,27 @@ The canonical URL for the upstream Ghaf git repository is https://github.com/tii
 
 import { Aside } from "@astrojs/starlight/components";
 
-<Aside type="caution">
-  [Cross-compilation](/ghaf/dev/ref/cross_compilation) support is currently
-  under development and not available for the building process.
+<Aside type="tip">
+  **Cross-compilation support**: Ghaf fully supports cross-compilation for AArch64 targets! All ARM64 targets have corresponding `-from-x86_64` variants that can be built on x86_64 development machines. See [Cross-compilation Guide](/ghaf/dev/ref/cross_compilation) for details.
 </Aside>
 
 <Aside type="note">
-  **Build Time Warning**: All Ghaf builds take 45+ minutes, with some requiring 2-3 hours. Plan accordingly and ensure you have a stable internet connection and sufficient disk space (minimum 20GB free).
+  **Build Time Information**:
+  - **With binary cache** (default): 5-30 minutes for most targets
+  - **First build from source**: 45-180 minutes depending on target
+  - **Recommended**: Use Ghaf binary cache for fastest builds
+
+  Configure binary cache: `nix build --option substituters "https://ghaf-dev.cachix.org https://cache.nixos.org"`
 </Aside>
 
 ## Prerequisites
 
 ### System Requirements
 - **Operating System**: Linux (NixOS recommended, but Ubuntu/Debian/Fedora also work)
-- **Architecture**: x86_64 (for building all targets)
+- **Architecture**: x86_64 (for building all targets including cross-compilation to AArch64)
 - **Disk Space**: Minimum 20GB free space
 - **Memory**: 8GB RAM minimum, 16GB recommended
-- **Network**: Stable internet connection for downloading dependencies
+- **Network**: Stable internet connection for downloading dependencies and binary cache
 
 ### Required Software Installation
 
@@ -45,8 +49,12 @@ import { Aside } from "@astrojs/starlight/components";
    echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
    ```
 
-4. **For ARM/AArch64 targets**: Set up a remote builder for cross-compilation:
-   See: https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html
+4. **Configure Binary Cache** for faster builds:
+   ```sh
+   # Add to ~/.config/nix/nix.conf
+   echo "substituters = https://ghaf-dev.cachix.org https://cache.nixos.org" >> ~/.config/nix/nix.conf
+   echo "trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=" >> ~/.config/nix/nix.conf
+   ```
 
 5. **Verify your setup** by viewing available targets:
    ```sh
@@ -59,7 +67,7 @@ import { Aside } from "@astrojs/starlight/components";
 
 This is the primary reference device for Ghaf on x86_64 architecture.
 
-1. **Build the image** (takes 60-120 minutes):
+1. **Build the image** (5-15 minutes with binary cache, 60-120 minutes from source):
    ```sh
    nix build .#lenovo-x1-carbon-gen11-debug
    ```
@@ -73,16 +81,16 @@ This is the primary reference device for Ghaf on x86_64 architecture.
 
 3. **Boot from USB**: Insert the USB drive and boot your Lenovo X1 Carbon Gen 11 from the USB device.
 
-### NVIDIA Jetson AGX Orin (Primary ARM64 target)
+### NVIDIA Jetson AGX Orin (Primary AArch64 target)
 
-This is the primary reference device for Ghaf on AArch64 architecture.
+This is the primary reference device for Ghaf on AArch64 architecture, built using cross-compilation.
 
-1. **Build flash script** (takes 90-180 minutes):
+1. **Build flash script** (10-30 minutes with binary cache, 90-180 minutes from source):
    ```sh
-   # For 32GB AGX version:
+   # For 32GB AGX version (cross-compiled):
    nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
 
-   # For 64GB AGX version:
+   # For 64GB AGX version (cross-compiled):
    nix build .#nvidia-jetson-orin-agx64-debug-from-x86_64-flash-script
    ```
 
@@ -105,12 +113,40 @@ This is the primary reference device for Ghaf on AArch64 architecture.
 
 Before building for physical hardware, you can test Ghaf in a virtual machine:
 
-1. **Run VM directly** (takes 45-90 minutes to build):
+1. **Run VM directly** (5-15 minutes with binary cache, 45-90 minutes from source):
    ```sh
    nix run .#packages.x86_64-linux.vm-debug
    ```
 
 This creates a `ghaf-host.qcow2` overlay disk image in your current directory. For a clean shutdown, use the QEMU menu: Machine → Power Down.
+
+## Build Time Optimization
+
+### Using Binary Cache (Recommended)
+Ghaf provides pre-built binaries through a binary cache, dramatically reducing build times:
+
+```sh
+# Build with binary cache (default configuration)
+nix build .#lenovo-x1-carbon-gen11-debug
+
+# Explicitly specify binary cache
+nix build .#lenovo-x1-carbon-gen11-debug \
+  --option substituters "https://ghaf-dev.cachix.org https://cache.nixos.org"
+```
+
+### Expected Build Times
+
+| Target Type | With Binary Cache | From Source |
+|-------------|-------------------|-------------|
+| **x86_64 targets** | 5-15 minutes | 60-120 minutes |
+| **AArch64 cross-compiled** | 10-30 minutes | 90-180 minutes |
+| **VM targets** | 3-10 minutes | 45-90 minutes |
+| **Installer images** | 8-20 minutes | 90-150 minutes |
+
+### Cross-Compilation Benefits
+- **No ARM64 hardware needed**: Build AArch64 targets on x86_64 development machines
+- **Faster than emulation**: True cross-compilation is faster than QEMU emulation
+- **CI/CD friendly**: Standard x86_64 infrastructure can build ARM64 targets
 
 ---
 
