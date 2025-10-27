@@ -57,6 +57,11 @@ in
       default = false;
       description = "Include verbose OSPP rules";
     };
+    enableVerboseRebuild = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Include verbose nixos-rebuild rule";
+    };
     host = {
       enable = mkOption {
         type = types.bool;
