@@ -13,20 +13,7 @@
     }:
     {
       checks = {
-        reuse = pkgs.runCommandLocal "reuse-lint" { buildInputs = [ pkgs.reuse ]; } ''
-          cd ${../.}
-          reuse lint
-          touch $out
-        '';
-        #module-test-hardened-generic-host-kernel =
-        #  pkgs.callPackage ../modules/hardware/x86_64-generic/kernel/host/test
-        #    { inherit pkgs; };
-        #module-test-hardened-lenovo-x1-guest-guivm-kernel =
-        #  pkgs.callPackage ../modules/hardware/lenovo-x1/kernel/guest/test
-        #    { inherit pkgs; };
-        #module-test-hardened-pkvm-kernel =
-        #  pkgs.callPackage ../modules/hardware/x86_64-generic/kernel/host/pkvm/test
-        #    { inherit pkgs; };
+        pre-commit-check = config.pre-commit.devShell;
       }
       // (lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages);
 
@@ -44,6 +31,10 @@
               stages = [ "pre-push" ];
             };
             end-of-file-fixer = {
+              enable = true;
+              stages = [ "pre-push" ];
+            };
+            trim-trailing-whitespace = {
               enable = true;
               stages = [ "pre-push" ];
             };
