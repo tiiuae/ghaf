@@ -2,7 +2,7 @@
 title: Build and Run
 ---
 
-This tutorial assumes that you already have basic [git](https://git-scm.com/) experience.
+This tutorial assumes that you already have basic [git](https://git-scm.com/) experience and are working on a Linux system.
 
 The canonical URL for the upstream Ghaf git repository is https://github.com/tiiuae/ghaf. To try Ghaf, you can build it from the source.
 
@@ -13,51 +13,124 @@ import { Aside } from "@astrojs/starlight/components";
   under development and not available for the building process.
 </Aside>
 
+<Aside type="note">
+  **Build Time Warning**: All Ghaf builds take 45+ minutes, with some requiring 2-3 hours. Plan accordingly and ensure you have a stable internet connection and sufficient disk space (minimum 20GB free).
+</Aside>
+
 ## Prerequisites
 
-First, follow the basic device-independent steps:
+### System Requirements
+- **Operating System**: Linux (NixOS recommended, but Ubuntu/Debian/Fedora also work)
+- **Architecture**: x86_64 (for building all targets)
+- **Disk Space**: Minimum 20GB free space
+- **Memory**: 8GB RAM minimum, 16GB recommended
+- **Network**: Stable internet connection for downloading dependencies
 
-- Clone the git repository https://github.com/tiiuae/ghaf.
-- Ghaf uses a Nix flake approach to build the framework targets, make sure to:
-  - Install Nix or full NixOS if needed: https://nixos.org/download.html.
-  - Enable flakes: https://nixos.wiki/wiki/Flakes#Enable_flakes.
-    To see all Ghaf-supported outputs, type `nix flake show`.
-  - Set up an AArch64 remote builder: https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html.
+### Required Software Installation
 
-Then you can use one of the following instructions for the supported targets:
-
-| Device                  | Architecture | Instruction                                                                                   |
-| ----------------------- | ------------ | --------------------------------------------------------------------------------------------- |
-| Virtual Machine         | x86_64       | [Running Ghaf Image for x86 VM (ghaf-host)](#running-ghaf-image-for-x86-vm-ghaf-host)         |
-| Generic x86 Сomputer    | x86_64       | [Running Ghaf Image for x86 Computer](#running-ghaf-image-for-x86-computer)                   |
-| Lenovo X1 Carbon Gen 11 | x86_64       | [Running Ghaf Image for Lenovo X1](#running-ghaf-image-for-lenovo-x1)                         |
-| NVIDIA Jetson AGX Orin  | AArch64      | [Ghaf Image for NVIDIA Jetson Orin AGX](#ghaf-image-for-nvidia-jetson-orin-agx)               |
-| NXP i.MX 8MP-EVK        | AArch64      | [Building Ghaf Image for NXP i.MX 8MP-EVK](#building-ghaf-image-for-nxp-imx-8mp-evk)          |
-| MICROCHIP icicle-kit    | RISCV64      | [Building Ghaf Image for Microchip Icicle Kit](#building-ghaf-image-for-microchip-icicle-kit) |
-
----
-
-## Running Ghaf Image for x86 VM (ghaf-host)
-
-Before you begin, check device-independent [prerequisites](#prerequisites).
-
-From the `ghaf` source directory, run the `nix run .#packages.x86_64-linux.vm-debug` command.
-
-This creates `ghaf-host.qcow2` copy-on-write overlay disk image in your current directory. If you do unclean shutdown for the QEMU VM, you might get weird errors the next time you boot. Simply removing `ghaf-host.qcow2` should be enough. To cleanly shut down the VM, from the menu bar of the QEMU Window, click Machine and then Power Down.
-
----
-
-## Running Ghaf Image for x86 Computer
-
-Before you begin, check device-independent [prerequisites](#prerequisites).
-
-Do the following:
-
-1. To build the target image, run the command:
+1. **Clone the Ghaf repository**:
    ```sh
-   nix build github:tiiuae/ghaf#generic-x86_64-debug
+   git clone https://github.com/tiiuae/ghaf.git
+   cd ghaf
    ```
-2. After the build is completed, prepare a USB boot media with the target image you built using the `flash.sh` script:
+
+2. **Install Nix Package Manager** (if not already installed):
+   ```sh
+   curl -L https://nixos.org/nix/install | sh
+   ```
+
+3. **Enable Nix Flakes** by adding to your nix configuration:
+   ```sh
+   mkdir -p ~/.config/nix
+   echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+   ```
+
+4. **For ARM/AArch64 targets**: Set up a remote builder for cross-compilation:
+   See: https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html
+
+5. **Verify your setup** by viewing available targets:
+   ```sh
+   nix flake show
+   ```
+
+## Quick Start: Primary Build Targets
+
+### Lenovo X1 Carbon Gen 11 (Recommended for x86_64)
+
+This is the primary reference device for Ghaf on x86_64 architecture.
+
+1. **Build the image** (takes 60-120 minutes):
+   ```sh
+   nix build .#lenovo-x1-carbon-gen11-debug
+   ```
+
+2. **Prepare USB boot media**:
+   ```sh
+   ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-lenovo-x1-carbon-gen11-debug.img
+   ```
+   
+   ⚠️ **Warning**: Replace `<YOUR_USB_DRIVE>` with your actual USB device (e.g., `/dev/sdb`). This will erase all data on the USB drive.
+
+3. **Boot from USB**: Insert the USB drive and boot your Lenovo X1 Carbon Gen 11 from the USB device.
+
+### NVIDIA Jetson AGX Orin (Primary ARM64 target)
+
+This is the primary reference device for Ghaf on AArch64 architecture.
+
+1. **Build flash script** (takes 90-180 minutes):
+   ```sh
+   # For 32GB AGX version:
+   nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
+   
+   # For 64GB AGX version:
+   nix build .#nvidia-jetson-orin-agx64-debug-from-x86_64-flash-script
+   ```
+
+2. **Set up hardware connections**:
+   - Connect power supply via USB-C
+   - Connect host computer to Jetson via USB-C (for flashing)
+   - Connect Micro-USB cable for serial console access
+
+3. **Put device in recovery mode**: See [NVIDIA's Force Recovery Mode guide](https://developer.nvidia.com/embedded/learn/jetson-agx-orin-devkit-user-guide/howto.html#force-recovery-mode)
+
+4. **Flash the device**:
+   ```sh
+   cd result
+   sudo ./flash.sh
+   ```
+
+## Alternative Build Targets
+
+## Virtual Machine (For Testing)
+
+Before building for physical hardware, you can test Ghaf in a virtual machine:
+
+1. **Run VM directly** (takes 45-90 minutes to build):
+   ```sh
+   nix run .#packages.x86_64-linux.vm-debug
+   ```
+
+This creates a `ghaf-host.qcow2` overlay disk image in your current directory. For a clean shutdown, use the QEMU menu: Machine → Power Down.
+
+---
+
+## Running Ghaf Image for Generic x86 Computer
+
+For general x86_64 hardware (not Lenovo-specific):
+
+1. **Build the image**:
+   ```sh
+   nix build .#generic-x86_64-debug
+   ```
+
+2. **Flash to USB**:
+   ```sh
+   ./packages/pkgs-by-name/flash-script/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/ghaf-generic-x86_64-debug.img
+   ```
+
+3. **Boot from USB**.
+
+---
    ```sh
    ./packages/flash/flash.sh -d /dev/<YOUR_USB_DRIVE> -i result/<IMAGE_NAME>
    ```
