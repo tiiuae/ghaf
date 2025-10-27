@@ -24,14 +24,31 @@ import {
 } from "@astrojs/starlight/components";
 
 <Card title="Get Started">
-  <Code lang="sh" code="nix flake init -t github:tiiuae/ghaf#target-boilerplate" />
+  <Code lang="sh" code={`# Clone the Ghaf repository
+git clone https://github.com/tiiuae/ghaf.git
+cd ghaf
+
+# Build a primary target (choose one):
+# For x86_64 laptops/desktops:
+nix build .#lenovo-x1-carbon-gen11-debug
+
+# For NVIDIA Jetson ARM64 devices:
+nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script`} />
+  <LinkButton
+    href="/ghaf/dev/ref/build_and_run/"
+    variant="secondary"
+    icon="rocket"
+    iconPlacement="start"
+  >
+    Build and Run Guide
+  </LinkButton>
   <LinkButton
     href="/ghaf/overview/"
-    variant="secondary"
+    variant="minimal"
     icon="open-book"
     iconPlacement="start"
   >
-    Developer Reference
+    Learn About Ghaf
   </LinkButton>
 </Card>
 
