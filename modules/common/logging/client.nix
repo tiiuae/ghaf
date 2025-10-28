@@ -71,6 +71,14 @@ in
       }
     ];
 
+    # Local journal retention
+    services.journald.extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
+      MaxRetentionSec=${toString (config.ghaf.logging.journalRetention.maxRetentionDays * 86400)}
+      SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
+      SystemMaxFileSize=100M
+      Storage=persistent
+    '';
+
     environment.etc."alloy/client.alloy" = {
       text = ''
         discovery.relabel "journal" {

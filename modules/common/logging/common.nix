@@ -37,5 +37,34 @@ in
       type = types.port;
       default = 9999;
     };
+
+    journalRetention = {
+      enable = mkOption {
+        description = ''
+          Enable local journal retention configuration.
+          This configures systemd-journald to retain logs locally for a specified period.
+        '';
+        type = types.bool;
+        default = true;
+      };
+
+      maxRetentionDays = mkOption {
+        description = ''
+          Maximum number of days to retain journal logs locally.
+          After this period, old logs will be deleted automatically.
+        '';
+        type = types.int;
+        default = 30;
+      };
+
+      maxDiskUsage = mkOption {
+        description = ''
+          Maximum disk space that journal logs can occupy.
+          Accepts sizes like "500M", "1G", etc.
+        '';
+        type = types.str;
+        default = "500M";
+      };
+    };
   };
 }
