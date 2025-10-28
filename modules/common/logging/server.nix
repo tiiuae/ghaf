@@ -118,6 +118,14 @@ in
       }
     ];
 
+    # Local journal retention for admin-vm's own logs
+    services.journald.extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
+      MaxRetentionSec=${toString (config.ghaf.logging.journalRetention.maxRetentionDays * 86400)}
+      SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
+      SystemMaxFileSize=100M
+      Storage=persistent
+    '';
+
     environment.etc."loki/pass" = {
       text = "ghaf";
     };
