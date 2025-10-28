@@ -1,31 +1,36 @@
-From 01aec4230eec5f1ce97ab6edbb81a478ce4462f0 Mon Sep 17 00:00:00 2001
+From d4bb0274f52e2d013c20bd42efa2ec45ae7fcb34 Mon Sep 17 00:00:00 2001
 From: Santtu Lakkala <santtu.lakkala@unikie.com>
-Date: Fri, 19 Jul 2024 14:46:29 +0300
+Date: Tue, 28 Oct 2025 07:37:22 +0400
 Subject: [PATCH] localed: use LOCALE_ARCHIVE
 
+Allow specifying locale archive location via LOCALE_ARCHIVE environment variable.
+This is useful for NixOS and other immutable distributions.
+
 Signed-off-by: Santtu Lakkala <santtu.lakkala@unikie.com>
+Patch applied from Ghaf
+Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
 ---
- src/basic/locale-util.c | 6 +++++-
+ src/basic/locale-util.c          | 6 +++++-
  units/systemd-localed.service.in | 1 +
  2 files changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/src/basic/locale-util.c b/src/basic/locale-util.c
-index 23565273dd..cb61387d1c 100644
+index 455b54bc61..ff0294226a 100644
 --- a/src/basic/locale-util.c
 +++ b/src/basic/locale-util.c
-@@ -101,7 +101,11 @@ static int add_locales_from_archive(Set *locales) {
-         struct stat st;
-         int r;
- 
--        fd = open("/usr/lib/locale/locale-archive", O_RDONLY|O_NOCTTY|O_CLOEXEC);
+@@ -92,7 +92,11 @@ static int add_locales_from_archive(Set *locales) {
+
+         assert(locales);
+
+-        _cleanup_close_ int fd = open("/usr/lib/locale/locale-archive", O_RDONLY|O_NOCTTY|O_CLOEXEC);
 +        const char *archive = secure_getenv("LOCALE_ARCHIVE");
 +        if (!archive)
 +                archive = "/usr/lib/locale/locale-archive";
 +
-+        fd = open(archive, O_RDONLY|O_NOCTTY|O_CLOEXEC);
++        _cleanup_close_ int fd = open(archive, O_RDONLY|O_NOCTTY|O_CLOEXEC);
          if (fd < 0)
                  return errno == ENOENT ? 0 : -errno;
- 
+
 diff --git a/units/systemd-localed.service.in b/units/systemd-localed.service.in
 index 4de89aa8dd..1e72b18edc 100644
 --- a/units/systemd-localed.service.in
@@ -36,5 +41,5 @@ index 4de89aa8dd..1e72b18edc 100644
  SystemCallFilter=@system-service
 +Environment=LOCALE_ARCHIVE=/run/current-system/sw/lib/locale/locale-archive
  {{SERVICE_WATCHDOG}}
--- 
-2.42.0
+--
+2.51.0
