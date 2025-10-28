@@ -23,9 +23,9 @@
 
   ProtectHome = true;
   ProtectSystem = "strict";
-  ProtectProc = "invisible";
+  # ProtectProc = "invisible"; #inherit from nixos modules security systemd modules
   # ReadWritePaths=[ "/etc"];
-  PrivateTmp = true;
+  # PrivateTmp = "disconnected"; #inherit from nixos modules security systemd modules
 
   # Not applicable for the service runs as root
   # PrivateMounts=true;
