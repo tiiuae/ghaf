@@ -1,7 +1,11 @@
-From e8bc7416f0f3e7a606be9afe78c06d69ebdfb857 Mon Sep 17 00:00:00 2001
+From 4bcd381a136e6e2605fa88a8a3a8bb05aa746895 Mon Sep 17 00:00:00 2001
 From: Brian McGillion <bmg.avoin@gmail.com>
-Date: Thu, 23 Jan 2025 13:08:15 +0400
+Date: Tue, 28 Oct 2025 07:37:03 +0400
 Subject: [PATCH] Increase the dtb size
+
+Double the DTB buffer size to provide space for modifications during boot.
+This is needed for systems that require larger device tree blobs or
+significant runtime modifications.
 
 Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
 ---
@@ -17,23 +21,23 @@ index 85fc07c49f..f2e3ca79ed 100644
  #include "proto/dt-fixup.h"
  #include "util.h"
 +#include <endian.h>
- 
+
  #define FDT_V1_SIZE (7*4)
- 
+
 @@ -88,7 +89,8 @@ EFI_STATUS devicetree_install(struct devicetree_state *state, EFI_FILE *root_dir
                  /* 32MB device tree blob doesn't seem right */
                  return EFI_INVALID_PARAMETER;
- 
+
 -        len = info->FileSize;
 +        /* Double the length to be allocated so there's space for modifications */
 +        len = info->FileSize * 4;
- 
+
          err = devicetree_allocate(state, len);
          if (err != EFI_SUCCESS)
 @@ -102,6 +104,10 @@ EFI_STATUS devicetree_install(struct devicetree_state *state, EFI_FILE *root_dir
          if (err != EFI_SUCCESS)
                  return err;
- 
+
 +        /* Double the size inside the device tree structure */
 +        uint32_t *totalsize = (uint32_t *)(((char *)PHYSICAL_ADDRESS_TO_POINTER(state->addr) + 4));
 +        (*totalsize) = htobe32(be32toh(*totalsize) * 4);
@@ -41,5 +45,5 @@ index 85fc07c49f..f2e3ca79ed 100644
          return BS->InstallConfigurationTable(
                          MAKE_GUID_PTR(EFI_DTB_TABLE), PHYSICAL_ADDRESS_TO_POINTER(state->addr));
  }
--- 
-2.47.1
+--
+2.51.0
