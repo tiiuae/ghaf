@@ -1,4 +1,4 @@
-From 40f51180141e855f20034686374bea2e7d86cbf6 Mon Sep 17 00:00:00 2001
+From 690b3c4ac97b986ee3069a1175c741d276e6d6a6 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
 Date: Fri, 2 May 2025 20:43:32 +0300
 Subject: [PATCH] Add security context indicator
@@ -6,11 +6,11 @@ Subject: [PATCH] Add security context indicator
 Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
 ---
  cosmic-comp-config/src/lib.rs         | 24 ++++++++++
- src/backend/render/mod.rs             | 31 +++++++++++++
- src/shell/grabs/moving.rs             | 64 +++++++++++++++++++++------
- src/shell/layout/floating/mod.rs      | 33 ++++++++++++--
- src/wayland/handlers/xdg_shell/mod.rs | 45 +++++++++++++++++++
- 5 files changed, 181 insertions(+), 16 deletions(-)
+ src/backend/render/mod.rs             | 31 ++++++++++++
+ src/shell/grabs/moving.rs             | 69 ++++++++++++++++++++-------
+ src/shell/layout/floating/mod.rs      | 36 ++++++++++++--
+ src/wayland/handlers/xdg_shell/mod.rs | 45 +++++++++++++++++
+ 5 files changed, 183 insertions(+), 22 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
 index 7dc29cc..55a2b68 100644
@@ -22,7 +22,7 @@ index 7dc29cc..55a2b68 100644
      pub accessibility_zoom: ZoomConfig,
 +    pub security_context: SecurityContextConfig,
  }
- 
+
  impl Default for CosmicCompConfig {
 @@ -116,6 +117,7 @@ impl Default for CosmicCompConfig {
              xwayland_eavesdropping: XwaylandEavesdropping::default(),
@@ -59,7 +59,7 @@ index 7dc29cc..55a2b68 100644
 +    }
 +}
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
-index f4f5578..70c8dac 100644
+index 02b011b..a53857b 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
 @@ -128,6 +128,13 @@ pub enum Usage {
@@ -74,12 +74,12 @@ index f4f5578..70c8dac 100644
 +    pub border_color: [f32; 3],
 +    pub border_size: u8,
  }
- 
+
  #[derive(Clone)]
-@@ -213,6 +220,30 @@ impl IndicatorShader {
+@@ -214,6 +221,30 @@ impl IndicatorShader {
          )
      }
- 
+
 +    pub fn focus_element_with_radius<R: AsGlowRenderer>(
 +        renderer: &R,
 +        key: impl Into<Key>,
@@ -98,7 +98,7 @@ index f4f5578..70c8dac 100644
 +            key,
 +            element_geo,
 +            thickness,
-+            radius,
++            [radius, radius, radius, radius],
 +            alpha,
 +            active_window_hint,
 +        )
@@ -108,11 +108,11 @@ index f4f5578..70c8dac 100644
          renderer: &R,
          key: impl Into<Key>,
 diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
-index 9ade2ff..99e910a 100644
+index 4a135e5..1f3e48c 100644
 --- a/src/shell/grabs/moving.rs
 +++ b/src/shell/grabs/moving.rs
 @@ -2,7 +2,7 @@
- 
+
  use crate::{
      backend::render::{
 -        cursor::CursorState, element::AsGlowRenderer, BackdropShader, IndicatorShader, Key, Usage,
@@ -126,7 +126,7 @@ index 9ade2ff..99e910a 100644
  };
 -
  use super::{GrabStartData, ReleaseMode};
- 
+
  pub type SeatMoveGrabState = Mutex<Option<MoveGrabState>>;
 @@ -75,6 +74,7 @@ impl MoveGrabState {
          CosmicMappedRenderElement<R>: RenderElement<R>,
@@ -136,10 +136,10 @@ index 9ade2ff..99e910a 100644
          let scale = if self.previous == ManagedLayer::Tiling {
              0.6 + ((1.0
                  - (Instant::now().duration_since(self.start).as_millis() as f64
-@@ -108,22 +108,58 @@ impl MoveGrabState {
+@@ -108,34 +108,68 @@ impl MoveGrabState {
              + self.window_offset
              - scaling_offset;
- 
+
 +        let mut secctx_element = None;
 +        let mut secctx_border_size = 0;
 +        if self.window.is_window() {
@@ -161,6 +161,7 @@ index 9ade2ff..99e910a 100644
 +                        )
 +                        .as_local(),
 +                        secctx_settings.border_size,
++                        [secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size],
 +                        alpha,
 +                        secctx_settings.border_color,
 +                    ))
@@ -170,6 +171,10 @@ index 9ade2ff..99e910a 100644
 +        }
 +
          let active_window_hint = crate::theme::active_window_hint(theme);
+-        let radius = self
+-            .element()
+-            .corner_radius(window_geo.size, self.indicator_thickness);
+
          let focus_element = if self.indicator_thickness > 0 {
 +            let mut indicator_geometry = Rectangle::new(
 +                render_location,
@@ -204,9 +209,10 @@ index 9ade2ff..99e910a 100644
 -                    .as_local(),
 +                    indicator_geometry,
                      self.indicator_thickness,
+-                    radius,
                      alpha,
                      [
-@@ -131,6 +167,7 @@ impl MoveGrabState {
+                         active_window_hint.red,
                          active_window_hint.green,
                          active_window_hint.blue,
                      ],
@@ -214,7 +220,7 @@ index 9ade2ff..99e910a 100644
                  ))
                  .into(),
              )
-@@ -211,6 +248,7 @@ impl MoveGrabState {
+@@ -221,6 +255,7 @@ impl MoveGrabState {
              })
              .chain(p_elements)
              .chain(focus_element)
@@ -223,22 +229,22 @@ index 9ade2ff..99e910a 100644
                  CosmicMappedRenderElement::Stack(stack) => {
                      CosmicMappedRenderElement::GrabbedStack(
 diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
-index aa1252c..e3a9926 100644
+index 2586f63..035e53d 100644
 --- a/src/shell/layout/floating/mod.rs
 +++ b/src/shell/layout/floating/mod.rs
 @@ -24,7 +24,7 @@ use smithay::{
  };
- 
+
  use crate::{
 -    backend::render::{element::AsGlowRenderer, IndicatorShader, Key, Usage},
 +    backend::render::{element::AsGlowRenderer, IndicatorShader, Key, Usage, SecurityContextIndicatorSettings},
      shell::{
          element::{
              resize_indicator::ResizeIndicator,
-@@ -1564,6 +1564,24 @@ impl FloatingLayout {
+@@ -1564,6 +1564,25 @@ impl FloatingLayout {
                      .collect();
              }
- 
+
 +            // Security context indicator
 +            let mut secctx_border_size = 0;
 +            if elem.is_window() {
@@ -250,6 +256,7 @@ index aa1252c..e3a9926 100644
 +                        Key::Window(Usage::SecurityContextIndicator, elem.key()),
 +                        geometry,
 +                        secctx_settings.border_size,
++                        [secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size],
 +                        alpha,
 +                        secctx_settings.border_color,
 +                    );
@@ -260,9 +267,11 @@ index aa1252c..e3a9926 100644
              if focused == Some(elem) && !elem.is_maximized(false) {
                  if let Some((mode, resize)) = resize_indicator.as_mut() {
                      let mut resize_geometry = geometry.clone();
-@@ -1591,10 +1609,18 @@ impl FloatingLayout {
+@@ -1589,20 +1608,27 @@ impl FloatingLayout {
+                 }
+
                  let active_window_hint = crate::theme::active_window_hint(theme);
- 
+-                let radius = elem.corner_radius(geometry.size.as_logical(), indicator_thickness);
                  if indicator_thickness > 0 {
 -                    let element = IndicatorShader::focus_element(
 +                    let mut indicator_geometry = geometry.clone();
@@ -279,9 +288,10 @@ index aa1252c..e3a9926 100644
 -                        geometry,
 +                        indicator_geometry,
                          indicator_thickness,
+-                        radius,
                          alpha,
                          [
-@@ -1602,6 +1628,7 @@ impl FloatingLayout {
+                             active_window_hint.red,
                              active_window_hint.green,
                              active_window_hint.blue,
                          ],
@@ -360,5 +370,5 @@ index 667c4c3..faca411 100644
          shell.pending_windows.push(PendingWindow {
              surface: window,
              seat,
--- 
+--
 2.51.0
