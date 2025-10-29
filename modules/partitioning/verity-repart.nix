@@ -11,6 +11,9 @@ let
   cfg = config.ghaf.partitioning.verity;
   inherit (config.ghaf.partitions) definition;
   inherit (pkgs.stdenv.hostPlatform) efiArch;
+  repartConfig = lib.mapAttrs (_name: value: {
+    repartConfig = value;
+  }) config.systemd.repart.partitions;
 in
 {
 
@@ -19,7 +22,8 @@ in
       name = "ghaf";
       version = "0.0.1";
 
-      partitions = {
+      partitions = repartConfig // {
+        # Overwrite esp and root
         "00-esp" = {
           contents = {
             "/EFI/BOOT/BOOT${lib.toUpper efiArch}.EFI".source =
@@ -28,6 +32,7 @@ in
             "/EFI/Linux/${config.system.boot.loader.ukiFile}".source =
               "${config.system.build.uki}/${config.system.boot.loader.ukiFile}";
           };
+          # FIXME: move to repart-common
           repartConfig = {
             Type = "esp";
             Format = definition.esp.fileSystem;
@@ -54,14 +59,7 @@ in
           # FIXME: This require HUGE amount of space in /var/nix/builds
           # FIXME: Make erofs as separate artifact
           storePaths = [ config.system.build.toplevel ];
-          repartConfig = {
-            Type = "root";
-            Label = "root-a";
-            Format = "erofs";
-            Minimize = "best";
-            Verity = "data";
-            VerityMatchKey = "root";
-            SplitName = "root"; # SplitName from https://github.com/blitz/sysupdate-playground/blob/master/modules/partitions.nix
+          repartConfig = config.systemd.repart."11-root-a" // {
             # Create directories needed for nixos activation, as these cannot be
             # created on a read-only filesystem.
             MakeDirectories = builtins.toString [
@@ -88,76 +86,29 @@ in
           };
         };
 
-        # 'B' blank partitions.
-        "20-root-verity-b" = {
-          repartConfig = {
-            Type = "linux-generic";
-            SizeMinBytes = "64M";
-            SizeMaxBytes = "64M";
-            Label = "_empty";
-            ReadOnly = 1;
-            SplitName = "-";
-          };
-        };
-        "21-root-b" = {
-          repartConfig = {
-            Type = "linux-generic";
-            SizeMinBytes = "512M";
-            SizeMaxBytes = "512M";
-            Label = "_emptyb";
-            ReadOnly = 1;
-            SplitName = "-";
-          };
-        };
-
         "40-swap" = {
-          repartConfig = {
-            Type = "swap";
-            Format = "swap";
-            Label = "swap";
-            UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
-          }
-          // (
-            if config.ghaf.storage.encryption.enable then
-              {
-                Encrypt = "key-file";
-                # Since the partition is pre-encrypted, it doesn't compress well
-                # (compressed size ~= initial size) and takes up a large portion
-                # of the image file.
-                # Make the initial swap small and expand it later on the device
-                SizeMinBytes = "64M";
-                SizeMaxBytes = "64M";
-                # Free space to expand on device
-                PaddingMinBytes = definition.swap.size;
-                PaddingMaxBytes = definition.swap.size;
-              }
-            else
-              {
-                SizeMinBytes = definition.swap.size;
-                SizeMaxBytes = definition.swap.size;
-              }
-          );
-        };
-
-        # Persistence partition.
-        "50-persist" = {
-          repartConfig = {
-            Type = "linux-generic";
-            Label = "persist";
-            Format = "btrfs";
-            SizeMinBytes = definition.persist.size;
-            MakeDirectories = builtins.toString [
-              "/storagevm"
-            ];
-            UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
-            # When Encrypt is "key-file" and the key file isn't specified, the
-            # disk will be LUKS formatted with an empty passphrase
-            Encrypt = lib.mkIf config.ghaf.storage.encryption.enable "key-file";
-
-            # Factory reset option will format this partition, which stores all
-            # the system & user state.
-            FactoryReset = "yes";
-          };
+          repartConfig =
+            config.systemd.repart."40-swap"
+            // (
+              if config.ghaf.storage.encryption.enable then
+                {
+                  Encrypt = "key-file";
+                  # Since the partition is pre-encrypted, it doesn't compress well
+                  # (compressed size ~= initial size) and takes up a large portion
+                  # of the image file.
+                  # Make the initial swap small and expand it later on the device
+                  SizeMinBytes = "64M";
+                  SizeMaxBytes = "64M";
+                  # Free space to expand on device
+                  PaddingMinBytes = definition.swap.size;
+                  PaddingMaxBytes = definition.swap.size;
+                }
+              else
+                {
+                  SizeMinBytes = definition.swap.size;
+                  SizeMaxBytes = definition.swap.size;
+                }
+            );
         };
       };
     };
