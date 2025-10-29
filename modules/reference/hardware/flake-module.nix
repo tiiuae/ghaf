@@ -101,6 +101,10 @@
       inputs.self.nixosModules.jetpack
       ./jetpack/agx/orin-agx64.nix
     ];
+    hardware-nvidia-jetson-orin-agx-industrial.imports = [
+      inputs.self.nixosModules.jetpack
+      ./jetpack/agx/orin-agx-industrial.nix
+    ];
     hardware-nvidia-jetson-orin-nx.imports = [
       inputs.self.nixosModules.jetpack
       ./jetpack/nx/orin-nx.nix
