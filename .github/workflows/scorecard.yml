@@ -47,20 +47,16 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-          # (Optional) "write" PAT token. Uncomment the `repo_token` line below if:
-          # - you want to enable the Branch-Protection check on a *public* repository, or
-          # - you are installing Scorecard on a *private* repository
-          # To create the PAT, follow the steps in https://github.com/ossf/scorecard-action#authentication-with-pat.
-          # repo_token: ${{ secrets.SCORECARD_TOKEN }}
-
-          # Public repositories:
-          #   - Publish results to OpenSSF REST API for easy access by consumers
-          #   - Allows the repository to include the Scorecard badge.
-          #   - See https://github.com/ossf/scorecard-action#publishing-results.
-          # For private repositories:
-          #   - `publish_results` will always be set to `false`, regardless
-          #     of the value entered here.
           publish_results: true
+      - name: Filter SARIF to skip false positives
+        shell: bash
+        # DangerousWorkflowID: we authorize PRs before triggering dangerous actions, see authorize.yml
+        env:
+          SCORECARD_SKIPPED_RULE_IDS: "DangerousWorkflowID"
+        run: |
+          SCORECARD_SKIPPED_RULE_IDS_JSON=$(echo "$SCORECARD_SKIPPED_RULE_IDS" | jq -cR 'split(",")')
+          jq '.runs[].results |= map(select(.ruleId as $id | '"$SCORECARD_SKIPPED_RULE_IDS_JSON"' | all($id != .)))' \
+          results.sarif > results_filtered.sarif
       # Upload the results as artifacts (optional). Commenting out will disable uploads of run results in SARIF
       # format to the repository Actions tab.
       - name: "Upload artifact"
@@ -69,8 +65,8 @@ jobs:
           name: SARIF file
           path: results.sarif
           retention-days: 5
-      # Upload the results to GitHub's code scanning dashboard.
+      # Upload the (filtered) results to GitHub's code scanning dashboard.
       - name: "Upload to code-scanning"
         uses: github/codeql-action/upload-sarif@16140ae1a102900babc80a33c44059580f687047 # v2.15.5
         with:
-          sarif_file: results.sarif
+          sarif_file: results_filtered.sarif
