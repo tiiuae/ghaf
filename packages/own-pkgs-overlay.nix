@@ -2,8 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
+  # keep-sorted start skip_lines=1
   flake.overlays.own-pkgs-overlay = final: _prev: {
     audit-rules = final.callPackage ./pkgs-by-name/audit-rules/package.nix { };
+    chrome-extensions = final.callPackage ./chrome-extensions { };
     dendrite-pinecone = final.callPackage ./pkgs-by-name/dendrite-pinecone/package.nix { };
     falcon-launcher = final.callPackage ./falcon-launcher/package.nix { };
     flash-script = final.callPackage ./pkgs-by-name/flash-script/package.nix { };
@@ -22,6 +24,6 @@
     update-docs-depends = final.callPackage ./pkgs-by-name/update-docs-depends/package.nix { };
     wait-for-unit = final.callPackage ./pkgs-by-name/wait-for-unit/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
-    chrome-extensions = final.callPackage ./chrome-extensions { };
   };
+  # keep-sorted end
 }

@@ -35,6 +35,7 @@
           #toml-sort.enable = true; # TOML formatter
           prettier.enable = true; # JavaScript formatter
 
+          keep-sorted.enable = true;
         };
 
         settings = {

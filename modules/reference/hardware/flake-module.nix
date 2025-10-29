@@ -5,6 +5,7 @@
 #
 { inputs, lib, ... }:
 {
+  # keep-sorted start skip_lines=1 block=yes newline_separated=yes by_regex=\s*nixosModules\.(.*)$ prefix_order=hardware-x86_64-workstation,jetpack
   flake.nixosModules = {
     hardware-alienware-m18-r2.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
@@ -18,18 +19,21 @@
         ];
       }
     ];
+
     hardware-dell-latitude-7230.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix;
       }
     ];
+
     hardware-dell-latitude-7330.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
       }
     ];
+
     hardware-demo-tower-mk1.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
@@ -40,6 +44,49 @@
         ];
       }
     ];
+
+    hardware-lenovo-x1-2-in-1-gen9.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen10.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen11.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen12.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen13.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
+      }
+    ];
+
+    hardware-system76-darp11-b.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./system76/definitions/system76-darp11-b.nix;
+      }
+    ];
+
     hardware-tower-5080.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
@@ -50,60 +97,32 @@
         ];
       }
     ];
-    hardware-lenovo-x1-carbon-gen10.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
-      }
+
+    hardware-nvidia-jetson-orin-agx.imports = [
+      inputs.self.nixosModules.jetpack
+      ./jetpack/agx/orin-agx.nix
     ];
-    hardware-lenovo-x1-carbon-gen11.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
-      }
+
+    hardware-nvidia-jetson-orin-agx64.imports = [
+      inputs.self.nixosModules.jetpack
+      ./jetpack/agx/orin-agx64.nix
     ];
-    hardware-lenovo-x1-carbon-gen12.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
-      }
+
+    hardware-nvidia-jetson-orin-nx.imports = [
+      inputs.self.nixosModules.jetpack
+      ./jetpack/nx/orin-nx.nix
     ];
-    hardware-lenovo-x1-carbon-gen13.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
-      }
-    ];
-    hardware-lenovo-x1-2-in-1-gen9.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
-      }
-    ];
-    hardware-system76-darp11-b.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./system76/definitions/system76-darp11-b.nix;
-      }
-    ];
-    imx8.imports = [ ./imx8 ];
-    polarfire.imports = [ ./polarfire ];
+
     jetpack.imports = [
       ./jetpack
       ./jetpack/nvidia-jetson-orin/optee.nix
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
-    hardware-nvidia-jetson-orin-agx.imports = [
-      inputs.self.nixosModules.jetpack
-      ./jetpack/agx/orin-agx.nix
-    ];
-    hardware-nvidia-jetson-orin-agx64.imports = [
-      inputs.self.nixosModules.jetpack
-      ./jetpack/agx/orin-agx64.nix
-    ];
-    hardware-nvidia-jetson-orin-nx.imports = [
-      inputs.self.nixosModules.jetpack
-      ./jetpack/nx/orin-nx.nix
-    ];
+
+    imx8.imports = [ ./imx8 ];
+
+    polarfire.imports = [ ./polarfire ];
+
   };
+  # keep-sorted end
 }
