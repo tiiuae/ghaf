@@ -73,6 +73,9 @@ let
               nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
 
+            # Enable dynamic hostname export for VMs
+            identity.vmHostNameExport.enable = true;
+
             # System
             type = "system-vm";
             systemd = {

@@ -88,6 +88,7 @@ export default defineConfig({
                         "ghaf/dev/ref/cosmic",
                         "ghaf/dev/ref/idsvm-development",
                         "ghaf/dev/ref/systemd-service-config",
+                        "ghaf/dev/ref/dynamic-hostname",
                         "ghaf/dev/ref/kill_switch",
                       ],
                     },

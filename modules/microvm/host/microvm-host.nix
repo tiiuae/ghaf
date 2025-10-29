@@ -219,33 +219,7 @@ in
           ) { } (builtins.attrNames vmsWithEncryptedStorage);
         in
         {
-          # Generate anonymous unique device identifier
-          generate-device-id = {
-            enable = true;
-            description = "Generate device and machine ids";
-            wantedBy = [ "local-fs.target" ];
-            after = [ "local-fs.target" ];
-            unitConfig.ConditionPathExists = "!/persist/common/device-id";
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStart = [
-                # Generate a unique device id
-                "${pkgs.writeShellScript "generate-device-id" ''
-                  echo -n "$(od -txC -An -N6 /dev/urandom | tr ' ' - | cut -c 2-)" > /persist/common/device-id
-                ''}"
-              ]
-              ++ (map (
-                vm:
-                # Generate unique machine ids
-                "${pkgs.writeShellScript "generate-machine-id" ''
-                  ${pkgs.util-linux}/bin/uuidgen | tr -d '-' > /persist/storagevm/${vm}/etc/machine-id
-                ''}"
-              ) activeMicrovms);
-              RemainAfterExit = true;
-              Restart = "on-failure";
-              RestartSec = "1";
-            };
-          };
+          # Device-id and machine-id generation moved to ghaf.identity.dynamicHostName module
         }
         // patchedMicrovmServices
         // vmstorageSetupServices;
