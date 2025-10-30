@@ -47,7 +47,6 @@ jobs:
         with:
           results_file: results.sarif
           results_format: sarif
-          publish_results: true
       - name: Filter SARIF to skip false positives
         shell: bash
         # DangerousWorkflowID: we authorize PRs before triggering dangerous actions, see authorize.yml
