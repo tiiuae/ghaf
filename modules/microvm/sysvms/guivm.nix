@@ -219,7 +219,7 @@ let
               ++ lib.optional config.ghaf.profiles.debug.enable pkgs.givc-cli
               # Packages for checking hardware acceleration
               ++ lib.optionals config.ghaf.profiles.debug.enable [
-                pkgs.glxinfo
+                pkgs.mesa-demos
                 pkgs.libva-utils
                 pkgs.glib
               ]

@@ -24,7 +24,7 @@ in
           pkgs.vulkan-tools
           pkgs.glmark2
           pkgs.clinfo
-          pkgs.nvtopPackages.full
+          #pkgs.nvtopPackages.full
         ]);
   };
 }

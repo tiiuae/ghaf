@@ -32,7 +32,7 @@ let
   targetPath = "/dev/vdb";
   installerInput = pkgs.lib.strings.escapeNixString "${targetPath}\ny\ny\n";
 in
-pkgs.nixosTest {
+pkgs.testers.nixosTest {
   name = "installer-test";
   nodes.machine = {
     virtualisation.emptyDiskImages = [ (1024 * 256) ];
