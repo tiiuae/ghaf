@@ -20,7 +20,7 @@ let
       hash,
       version,
     }:
-    stdenvNoCC.mkDerivation rec {
+    stdenvNoCC.mkDerivation {
       pname = name;
       inherit version;
 
