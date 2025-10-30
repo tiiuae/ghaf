@@ -98,8 +98,8 @@ in
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
-    hash = "sha256-kyD3bBvh3ygg5T9hnITt5C+kW5iwHjSH+3oKUH4pxX4=";
-    version = "4.0.5";
+    hash = "sha256-iwvPxZe0PfBhgtdVJYj4+4VA+8k/3Pvj20yCoFs07S0=";
+    version = "4.1.0";
   };
 
   # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; version = "...";  }
