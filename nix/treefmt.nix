@@ -16,7 +16,8 @@
           # Nix
           # nix standard formatter according to rfc 166 (https://github.com/NixOS/rfcs/pull/166)
           nixfmt.enable = true;
-          nixfmt.package = pkgs.nixfmt-rfc-style;
+          nixfmt.package = pkgs.nixfmt;
+          nixf-diagnose.enable = true;
 
           deadnix.enable = true; # removes dead nix code https://github.com/astro/deadnix
           statix.enable = true; # prevents use of nix anti-patterns https://github.com/nerdypepper/statix
@@ -44,6 +45,16 @@
               command = "${pkgs.statix}/bin/statix";
               options = [ "check" ];
               includes = [ "." ];
+            };
+
+            nixf-diagnose = {
+              # Ensure nixfmt cleans up after nixf-diagnose.
+              priority = -1;
+              options = [
+                "--auto-fix"
+                # Rule names can currently be looked up here:
+                # https://github.com/nix-community/nixd/blob/main/libnixf/src/Basic/diagnostic.py
+              ];
             };
           };
 
