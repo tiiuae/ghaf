@@ -109,7 +109,7 @@ let
     '';
   };
 in
-pkgs.stdenv.mkDerivation rec {
+pkgs.stdenv.mkDerivation {
   pname = "ghaf-cosmic-config";
   version = "0.1";
 
@@ -164,7 +164,7 @@ pkgs.stdenv.mkDerivation rec {
     fi
   '';
 
-  meta = with lib; {
+  meta = {
     description = "Installs default Ghaf COSMIC configuration";
     platforms = [
       "aarch64-linux"

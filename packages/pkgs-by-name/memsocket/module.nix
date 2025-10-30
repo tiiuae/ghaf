@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   stdenv,
-  lib,
   kernel,
   fetchFromGitHub,
   vmCount,
@@ -32,7 +31,7 @@ stdenv.mkDerivation {
     "CFLAGS_kvm_ivshmem.o=\"-DCONFIG_KVM_IVSHMEM_VM_COUNT=${builtins.toString vmCount}\""
   ];
 
-  meta = with lib; {
+  meta = {
     description = "Shared memory Linux kernel module";
     platforms = [
       "x86_64-linux"
