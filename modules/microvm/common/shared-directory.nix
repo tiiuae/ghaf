@@ -50,5 +50,10 @@ in
         file:///Shares Shares
       '';
     };
+
+    # Scan cross-boundary files with ClamAV
+    ghaf.security.clamav = lib.optionalAttrs cfg.isGuiVm {
+      watchDirectories = [ userDir ];
+    };
   };
 }

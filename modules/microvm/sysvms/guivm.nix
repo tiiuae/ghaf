@@ -55,7 +55,6 @@ let
           ];
 
           ghaf = {
-            security.pwquality.enable = true;
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
@@ -161,8 +160,12 @@ let
             };
             xdgitems.enable = true;
 
-            security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
-
+            # Security
+            security = {
+              fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
+              clamav.enable = true;
+              pwquality.enable = true;
+            };
           };
 
           services = {
