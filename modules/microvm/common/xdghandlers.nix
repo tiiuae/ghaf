@@ -41,20 +41,26 @@ let
       pkgs.coreutils
     ];
     text = ''
-        url="$1"
-        if [[ -z "$url" ]]; then
-          echo "No URL provided - xdg handlers"
-          exit 1
-        fi
-        echo "XDG open url: $url"
-      ${
-        if config.networking.hostName == "chrome-vm" then
-          ''${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chrome-wrapper "$url"''
-        else if config.networking.hostName == "chromium-vm" then
-          ''${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"''
-        else
-          ''echo "Host is not either chrome-vm nor chromium-vm, refusing to open URL"; exit 1''
-      }
+      export PATH=/run/current-system/sw/bin:$PATH
+      url="$1"
+      if [[ -z "$url" ]]; then
+        echo "No URL provided - xdg handlers"
+        exit 1
+      fi
+      echo "XDG open url: $url"
+
+      if command -v google-chrome-stable >/dev/null 2>&1; then
+        echo "Google Chrome detected, opening URL locally."
+        ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable \
+          --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+      elif command -v chromium >/dev/null 2>&1; then
+        echo "Chromium detected, opening URL locally."
+        ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium \
+          --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+      else
+        echo "No supported browser found on the system"
+        exit 1
+      fi
     '';
   };
 
@@ -86,9 +92,7 @@ in
 
   config = lib.mkIf config.ghaf.givc.enable {
     environment.systemPackages =
-      (lib.optional cfg.pdf pkgs.zathura)
-      ++ (lib.optional cfg.image pkgs.oculante)
-      ++ (lib.optional cfg.url pkgs.google-chrome);
+      (lib.optional cfg.pdf pkgs.zathura) ++ (lib.optional cfg.image pkgs.oculante);
 
     ghaf.givc.appvm.applications =
       (lib.optional cfg.pdf {
