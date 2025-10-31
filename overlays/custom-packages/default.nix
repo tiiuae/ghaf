@@ -6,9 +6,11 @@
 #
 # keep-sorted start skip_lines=1
 (final: prev: {
+
   cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
+  cosmic-initial-setup = import ./cosmic/cosmic-initial-setup { inherit prev; };
   cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };

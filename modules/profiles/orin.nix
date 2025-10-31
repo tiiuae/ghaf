@@ -52,7 +52,7 @@ in
           "com.system76.CosmicAppletTiling"
           "com.system76.CosmicAppletPower"
         ];
-        screen-recorder.enable = false;
+        screenRecorder.enable = false;
       };
 
       reference.programs.windows-launcher.enable = true;

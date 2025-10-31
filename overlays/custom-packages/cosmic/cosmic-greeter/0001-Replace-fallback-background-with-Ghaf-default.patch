@@ -1,0 +1,40 @@
+From 09127c7768276e1a3092e8ffef705b74c0c512eb Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Date: Fri, 31 Oct 2025 11:28:08 +0200
+Subject: [PATCH] Replace fallback background with Ghaf default
+
+Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+---
+ src/common.rs | 10 +++++++---
+ 1 file changed, 7 insertions(+), 3 deletions(-)
+
+diff --git a/src/common.rs b/src/common.rs
+index 724d7ed..49e9895 100644
+--- a/src/common.rs
++++ b/src/common.rs
+@@ -93,6 +93,12 @@ impl<M: From<Message> + Send + 'static> Common<M> {
+             }
+         };
+
++        let fallback_background = std::fs::read("/run/current-system/sw/share/backgrounds/ghaf/1-jake-weirick-kE8n4ODu6fs-unsplash.jpg")
++            .map(widget::image::Handle::from_bytes)
++            .unwrap_or_else(|_| {
++                widget::image::Handle::from_bytes(include_bytes!("../res/background.jpg").to_vec())
++            });
++
+         let app = Self {
+             active_layouts: Vec::new(),
+             active_surface_id_opt: None,
+@@ -100,9 +106,7 @@ impl<M: From<Message> + Send + 'static> Common<M> {
+             comp_config_handler,
+             core,
+             error_opt: None,
+-            fallback_background: widget::image::Handle::from_bytes(
+-                include_bytes!("../res/background.jpg").as_slice(),
+-            ),
++            fallback_background,
+             layouts_opt,
+             network_icon_opt: None,
+             on_output_event: None,
+--
+2.51.0
