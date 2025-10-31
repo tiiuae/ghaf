@@ -111,7 +111,7 @@ let
 in
 pkgs.stdenv.mkDerivation {
   pname = "ghaf-cosmic-config";
-  version = "0.1";
+  version = "0.2";
 
   phases = [
     "unpackPhase"
@@ -121,7 +121,10 @@ pkgs.stdenv.mkDerivation {
 
   src = ./.;
 
-  nativeBuildInputs = [ pkgs.yq-go ];
+  nativeBuildInputs = [
+    pkgs.yq-go
+    pkgs.imagemagick
+  ];
 
   unpackPhase = ''
     mkdir -p cosmic-unpacked
@@ -138,16 +141,27 @@ pkgs.stdenv.mkDerivation {
   '';
 
   installPhase = ''
-    mkdir -p $out/share/cosmic
-    cp -rf cosmic-unpacked/* $out/share/cosmic/
+    # Install configuration files
+    mkdir -p $out/share
+    cp -r cosmic-unpacked $out/share/cosmic
     rm -rf cosmic-unpacked
-    cp ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
+
+    # Install themes
+    mkdir -p $out/share/cosmic-themes
+    for theme in $src/ghaf-themes/*.ron; do
+      install -m0644 "$theme" $out/share/cosmic-themes/
+    done
+    install -m0644 ${pkgs.ghaf-artwork}/1600px-Ghaf_logo.png $out/share/cosmic-themes/ghaf-dark.png
+    magick $out/share/cosmic-themes/ghaf-dark.png -resize 30% $out/share/cosmic-themes/ghaf-dark.png
+    ln -s $out/share/cosmic-themes/ghaf-dark.png $out/share/cosmic-themes/ghaf-light.png
+
+    install -Dm0644 ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
   ''
-  + lib.optionalString (panelApplets.center != [ ]) ''
-    cp ${panelAppletsCenterConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center
+  + ''
+    install -Dm0644 ${panelAppletsCenterConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center
   ''
-  + lib.optionalString (panelApplets.left != [ ] || panelApplets.right != [ ]) ''
-    cp ${panelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
+  + ''
+    install -Dm0644 ${panelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
   '';
 
   postInstall = ''
