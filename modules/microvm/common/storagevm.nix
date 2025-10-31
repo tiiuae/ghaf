@@ -268,6 +268,7 @@ in
               ProtectSystem = "strict";
               ReadWritePaths = "/run";
               PrivateTmp = true;
+              Restart = "on-failure";
             };
             requires = [
               "${utils.escapeSystemdPath drivePath}.device"
