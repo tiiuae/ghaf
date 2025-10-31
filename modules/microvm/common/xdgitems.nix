@@ -132,7 +132,9 @@ let
     text =
       let
         urlVmName =
-          if hasAttr "chrome-vm" hosts then
+          if config.ghaf.xdghandlers.url then
+            "${config.networking.hostName}"
+          else if hasAttr "chrome-vm" hosts then
             "chrome-vm"
           else if hasAttr "chromium-vm" hosts then
             "chromium-vm"
@@ -142,8 +144,9 @@ let
         openExternalUrl = optionalString (urlVmName != "") ''
           open_url() {
             echo "Opening URL in ${urlVmName}: $resource"
+
             ${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} \
-              start app --vm ${urlVmName} "xdg-url" -- "$resource"
+              start app --vm "${urlVmName}" "xdg-url" -- "$resource"
           }
 
           if [[ "$resourceType" == "url" ]]; then

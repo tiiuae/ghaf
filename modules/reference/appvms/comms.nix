@@ -40,6 +40,7 @@ in
             ];
             ghaf.reference.programs.element-desktop.enable = true;
             ghaf.xdghandlers.elementDesktop = true;
+            ghaf.xdgitems.elementDesktop = true;
           }
         ];
       }
@@ -65,6 +66,8 @@ in
 
         ghaf = {
           reference.programs.google-chrome.enable = true;
+          # Open external URLs locally in comms-vm’s browser instead of forwarding to a dedicated URL-handling VM
+          xdghandlers.url = true;
           xdgitems.enable = true;
           # Disable serial debug console on comms-vm as it makes the serial device owned by
           # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus

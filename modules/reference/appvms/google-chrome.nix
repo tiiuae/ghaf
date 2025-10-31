@@ -76,7 +76,6 @@
                 security.apparmor.enable = true;
                 xdgitems = {
                   enable = true;
-                  elementDesktop = true;
                 };
                 xdghandlers.url = true;
                 firewall = {

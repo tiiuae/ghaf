@@ -41,7 +41,6 @@
               reference.programs.chromium.enable = true;
               xdgitems = {
                 enable = true;
-                elementDesktop = true;
               };
               xdghandlers.url = true;
 

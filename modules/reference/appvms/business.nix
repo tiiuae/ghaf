@@ -173,6 +173,8 @@ in
                 };
 
                 xdgitems.enable = true;
+                # Open external URLs locally in business-vm’s browser instead of forwarding to a dedicated URL-handling VM
+                xdghandlers.url = true;
                 security.apparmor.enable = true;
               };
             }
