@@ -80,6 +80,12 @@
       inputs.systems.follows = "systems";
     };
 
+    # Fleet management for NixOS
+    fleet-nixos = {
+      url = "github:tiiuae/fleet-nixos";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
       url = "github:tiiuae/ghafpkgs";

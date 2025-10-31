@@ -40,6 +40,10 @@ let
               };
             };
 
+            # Enable dynamic hostname export and setter for NetVM
+            identity.vmHostNameExport.enable = true;
+            identity.vmHostNameSetter.enable = true;
+
             # System
             type = "system-vm";
             systemd = {
@@ -120,6 +124,12 @@ let
                 tag = "ro-store";
                 source = "/nix/store";
                 mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
+              {
+                tag = "ghaf-common";
+                source = "/persist/common";
+                mountPoint = "/etc/common";
                 proto = "virtiofs";
               }
             ];

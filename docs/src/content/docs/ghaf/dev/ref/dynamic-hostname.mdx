@@ -1,0 +1,198 @@
+---
+title: Dynamic Hostname Generation
+---
+
+This module provides runtime-generated, human-readable hostnames based on permanent hardware properties like MAC address or computer serial number.
+
+## Overview
+
+The dynamic hostname system consists of three modules:
+
+1. **`dynamic-hostname.nix`** - Generates and exports the hostname on the host system
+2. **`vm-hostname-export.nix`** - Makes the hostname available to VMs via environment variables
+3. **`vm-hostname-setter.nix`** - Sets the actual VM hostname from the shared hostname file
+
+## Features
+
+- **Hardware-based**: Deterministic hostname generation from stable hardware properties (DMI serial/UUID, MAC address, or machine-id as fallback)
+- **Human-readable**: Format like `ghaf-1234567890` where digits are derived from hardware
+- **Propagated**: Automatically shared with guest VMs through `/persist/common` virtiofs mount
+- **Non-invasive**: Keeps static `networking.hostName` unchanged on host for network topology
+- **Network-ready**: NetVM uses the dynamic hostname for DHCP and external network services
+
+## Usage
+
+### On Host
+
+Enable the dynamic hostname module in your host configuration:
+
+```nix
+{
+  ghaf.identity.dynamicHostName = {
+    enable = true;
+    prefix = "ghaf";      # Optional: default is "ghaf"
+    digits = 10;          # Optional: default is 10
+  };
+}
+```
+
+This will:
+- Generate a hostname like `ghaf-1234567890` at boot
+- Export it to `/run/ghaf-hostname` and `/var/lib/ghaf/identity/hostname`
+- Share it via `/persist/common/ghaf/hostname` for VMs
+- Make `$GHAF_HOSTNAME` environment variable available in shells
+- Host keeps static hostname "ghaf-host" for internal networking
+
+### In VMs
+
+**For VMs that need the hostname as an environment variable only (e.g., GUIVM):**
+
+```nix
+{
+  ghaf.identity.vmHostNameExport = {
+    enable = true;
+  };
+}
+```
+
+This makes the `$GHAF_HOSTNAME` environment variable available in the VM, reading from `/etc/common/ghaf/hostname`.
+
+**For VMs that need to set their actual hostname (e.g., NetVM for DHCP/network services):**
+
+```nix
+{
+  ghaf.identity.vmHostNameExport = {
+    enable = true;
+  };
+  ghaf.identity.vmHostNameSetter = {
+    enable = true;
+  };
+}
+```
+
+This sets the VM's actual hostname from the shared file, which is useful for network services like DHCP client identification. It also configures NetworkManager (if enabled) to not override the hostname.
+
+## Hardware Property Priority
+
+The module tries to derive the hostname from hardware in this order:
+
+1. DMI product serial (`/sys/class/dmi/id/product_serial`)
+2. DMI product UUID (`/sys/class/dmi/id/product_uuid`)
+3. First non-loopback MAC address
+4. Machine ID (`/etc/machine-id`) as last resort
+
+## Implementation Details
+
+- Uses CRC32 checksum modulo 10^N (default N=10) for deterministic digit generation
+- Runs as a systemd oneshot service early in boot on the host
+- Static `networking.hostName` remains as "ghaf-host" on the host for internal network topology
+- Host does not change its own hostname - only generates and shares the identity
+- NetVM sets its actual hostname from the shared file for external network services
+- VMs receive the hostname via existing `/persist/common` → `/etc/common` virtiofs share
+- Environment variables are set via `environment.extraInit` for reliable shell initialization
+- NetworkManager is configured with `hostname-mode = "none"` to prevent overriding the dynamic hostname
+- The hostname setter service runs before NetworkManager to ensure proper DHCP client identification
+
+## Files Generated
+
+### On Host
+
+- `/run/ghaf-hostname` - Symlink to current hostname
+- `/var/lib/ghaf/identity/hostname` - Generated hostname
+- `/var/lib/ghaf/identity/id` - Numeric ID portion
+- `/persist/common/ghaf/hostname` - Shared with VMs
+- `/persist/common/ghaf/id` - Shared numeric ID
+
+### In VMs
+
+- `/etc/common/ghaf/hostname` - Mounted from host via virtiofs
+- `/etc/common/ghaf/id` - Mounted from host via virtiofs
+- `$GHAF_HOSTNAME` - Environment variable
+- NetworkManager configuration (if `vmHostNameSetter` is enabled) - Prevents hostname override
+
+## Example
+
+On a laptop with serial number `ABC123XYZ`:
+
+```bash
+# On ghaf-host
+$ cat /run/ghaf-hostname
+ghaf-1234567890
+
+$ hostname
+ghaf-host
+
+$ echo $GHAF_HOSTNAME
+ghaf-1234567890
+
+# On NetVM
+$ cat /etc/common/ghaf/hostname
+ghaf-1234567890
+
+$ hostname
+ghaf-1234567890
+
+$ echo $GHAF_HOSTNAME
+ghaf-1234567890
+
+# In GUIVM
+$ cat /etc/common/ghaf/hostname
+ghaf-1234567890
+
+$ hostname
+gui-vm
+
+$ echo $GHAF_HOSTNAME
+ghaf-1234567890
+```
+
+## Collision Probability
+
+With 10 digits (default), there are 10 billion possible hostnames, which provides excellent uniqueness even for very large fleets. If you need fewer digits for brevity, you can reduce the `digits` option:
+
+```nix
+ghaf.identity.dynamicHostName.digits = 6;  # 1 million possibilities
+```
+
+## Notes
+
+- The static `networking.hostName = "ghaf-host"` is intentionally unchanged on the host to preserve internal network topology and host mappings
+- The host does not change its own hostname - it only generates the identity
+- NetVM sets its hostname to the generated value for use in DHCP client identification and external network services
+- Other VMs (like GUIVM) keep their static hostnames but have access to the hardware-based identity via environment variables
+- The shared directory `/persist/common` must exist on the host (automatically created by the module)
+
+## Use Cases
+
+- **DHCP Client Identification**: NetVM uses the unique hostname when requesting DHCP leases, allowing network administrators to identify specific devices
+- **Network Service Identification**: External services see a consistent, hardware-based hostname that persists across reboots
+- **Logging and Monitoring**: All VMs can include the hardware-based identity in logs via `$GHAF_HOSTNAME`
+- **User Visibility**: Users can identify their specific hardware instance across host and VMs
+- **Network Troubleshooting**: Consistent hostname helps with debugging network issues and tracking device behavior
+
+## Technical Details
+
+### NetworkManager Integration
+
+When `vm-hostname-setter` is enabled on a VM with NetworkManager, the module:
+
+1. Sets `networking.networkmanager.settings.main.hostname-mode = "none"` to prevent NetworkManager from managing the hostname
+2. Ensures the `set-dynamic-hostname` service runs before `NetworkManager.service`
+3. Allows NetworkManager to use the hardware-based hostname for DHCP requests without modifying it
+
+This ensures that the dynamic hostname is preserved even when NetworkManager obtains a DHCP lease or connects to different networks.
+
+### Virtiofs Share
+
+The `/persist/common` directory on the host is mounted as `/etc/common` in VMs using virtiofs. This share must be configured in the VM's `microvm.shares` configuration:
+
+```nix
+{
+  tag = "ghaf-common";
+  source = "/persist/common";
+  mountPoint = "/etc/common";
+  proto = "virtiofs";
+}
+```
+
+NetVM and GUIVM have this share configured automatically.

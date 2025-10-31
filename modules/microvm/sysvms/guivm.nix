@@ -20,6 +20,7 @@ let
       inputs.self.nixosModules.hardware-x86_64-guest-kernel
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.vm-modules
+      inputs.fleet-nixos.nixosModules.fleet-nixos
 
       (
         { lib, pkgs, ... }:
@@ -72,6 +73,9 @@ let
               debug.tools.gui.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
+
+            # Enable dynamic hostname export for VMs
+            identity.vmHostNameExport.enable = true;
 
             # System
             type = "system-vm";
@@ -163,6 +167,17 @@ let
 
             security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
 
+          };
+
+          # Fleet management configuration
+          services.orbit = {
+            enable = false;
+            fleetUrl = "https://fleet.example.com";
+            enrollSecretPath = "/var/lib/nixos/fleet-enroll-secret";
+            fleetCertificate = "/var/lib/nixos/fleet.pem";
+            debug = false;
+            hostIdentifier = "uuid";
+            enableScripts = true;
           };
 
           services = {
