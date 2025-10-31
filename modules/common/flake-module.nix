@@ -17,6 +17,7 @@
       ./services
       ./networking
       ./logging
+      ./identity
     ];
   };
 }

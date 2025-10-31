@@ -107,6 +107,9 @@ in
     # Host networking configuration
     (mkIf cfg.enable {
 
+      # Enable dynamic hostname generation on host
+      ghaf.identity.dynamicHostName.enable = true;
+
       networking = {
         hostName = "ghaf-host";
         enableIPv6 = false;
