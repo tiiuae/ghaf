@@ -14,7 +14,7 @@ in
     #Enabling CUDA on any supported system requires below settings.
     nixpkgs.config.allowUnfree = lib.mkForce true;
     nixpkgs.config.allowBroken = lib.mkForce false;
-    nixpkgs.config.cudaSupport = lib.mkForce true;
+    nixpkgs.config.cudaSupport = lib.mkForce false; # true;
 
     # Enable Opengl
     # Opengl enable is renamed to hardware.graphics.enable
