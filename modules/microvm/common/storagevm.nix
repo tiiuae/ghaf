@@ -241,6 +241,7 @@ in
                   exit 0
                 fi
                 ${lib.optionalString tpm.passthrough.enable ''
+                  tpm2_evictcontrol -C owner -c ${tpm.passthrough.rootNVIndex} || true
                   tpm2_createprimary -C owner -c storage.ctx
                   tpm2_evictcontrol -C owner -c storage.ctx ${tpm.passthrough.rootNVIndex}
                 ''}
