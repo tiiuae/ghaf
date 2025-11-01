@@ -244,7 +244,7 @@ in
                   --storage=luks \
                   --recovery-key=${lib.boolToString cfg.loginUser.createRecoveryKey} \
                   --luks-pbkdf-type=argon2id \
-                  --fs-type=btrfs \
+                  --fs-type=ext4 \
                   --enforce-password-policy=true \
                   --fido2-device="$FIDO_SUPPORT" \
                   --drop-caches=true \
