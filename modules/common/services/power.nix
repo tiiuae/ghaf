@@ -37,8 +37,11 @@ let
   # is used to determine suspend actions for PCI devices at runtime
   pciDevices = flatten (
     map (device: "${device.vendorId}:${device.productId}") (
-      config.ghaf.common.hardware.nics ++ config.ghaf.common.hardware.audio
+      lib.filter (d: d.vendorId != null && d.productId != null) (
+        config.ghaf.common.hardware.nics ++ config.ghaf.common.hardware.audio
+      )
     )
+
   );
 
   # List of VMs that are running a fake suspend
@@ -82,7 +85,7 @@ let
       pkgs.systemd
       pkgs.coreutils
       pkgs.grpcurl
-      pkgs.hotplug
+      pkgs.vhotplug
       pkgs.wait-for-unit
     ];
     text = ''
@@ -141,21 +144,15 @@ let
           ;;
 
         pci-suspend)
-          socket_path="${config.microvm.stateDir}/$vm_name/$vm_name.sock"
-          state_path="${config.microvm.stateDir}/$vm_name/pci-state"
           case "$action" in
             suspend)
-              declare -a pci_devices
-              ${concatMapStringsSep "\n" (pciDevice: ''
-                pci_devices+=("${pciDevice}")
-              '') pciDevices}
-
               echo "Suspending PCI devices for $vm_name..."
-              hotplug --detach-pci "''${pci_devices[@]}" --data-path "$state_path" --socket-path "$socket_path"
+              vhotplugcli pci suspend --vm "$vm_name"
+
               ;;
             resume)
               echo "Resuming PCI devices for $vm_name..."
-              if ! hotplug --attach-pci --data-path "$state_path" --socket-path "$socket_path"; then
+              if ! vhotplugcli pci resume --vm "$vm_name"; then
                 echo "Failed to attach PCI devices for $vm_name. Please check the logs."
                 # Recovery from failed attach; restart the VM
                 echo "Fallback: restarting $vm_name..."

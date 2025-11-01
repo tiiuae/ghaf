@@ -587,6 +587,7 @@
         "srvos": "srvos",
         "systems": "systems",
         "treefmt-nix": "treefmt-nix",
+        "vhotplug": "vhotplug",
         "wireguard-gui": "wireguard-gui",
         "xwayland-satellite": "xwayland-satellite"
       }
@@ -716,6 +717,32 @@
       "original": {
         "owner": "numtide",
         "repo": "treefmt-nix",
+        "type": "github"
+      }
+    },
+    "vhotplug": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "treefmt-nix": [
+          "treefmt-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1763471020,
+        "narHash": "sha256-4/iCumQh0RAB432AqBScLI9nOxV9Tj0CNDFJV6AOZYM=",
+        "owner": "tiiuae",
+        "repo": "vhotplug",
+        "rev": "06102d6a4a1af42978113cf7ec29eb9f787ea345",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "repo": "vhotplug",
         "type": "github"
       }
     },
