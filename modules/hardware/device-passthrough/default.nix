@@ -4,7 +4,7 @@
 {
   imports = [
     ./usb.nix
-    ./event-devices.nix
+    ./pci-ports.nix
     ./passthrough.nix
   ];
 }

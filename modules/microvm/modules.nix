@@ -53,6 +53,7 @@ let
   qemuModules = {
     inherit (configHost.ghaf.qemu) guivm;
     inherit (configHost.ghaf.qemu) audiovm;
+    inherit (configHost.ghaf.qemu) netvm;
   };
 
   # Common namespace to pass parameters at built-time from host to VMs
@@ -209,6 +210,7 @@ in
           deviceModules.nics
           kernelConfigs.netvm
           firmwareModule
+          qemuModules.netvm
           serviceModules.wifi
           serviceModules.audit
           serviceModules.power

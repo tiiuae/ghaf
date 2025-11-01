@@ -17,137 +17,208 @@ let
     getExe
     ;
 
-  defaultRules = [
-    {
-      description = "Devices for GUIVM";
-      targetVm = "gui-vm";
-      allow = [
-        {
-          interfaceClass = 3;
-          interfaceProtocol = 1;
-          description = "HID Keyboard";
-        }
-        {
-          interfaceClass = 3;
-          interfaceProtocol = 2;
-          description = "HID Mouse";
-        }
-        {
-          interfaceClass = 11;
-          description = "Chip/SmartCard (e.g. YubiKey)";
-        }
-        {
-          interfaceClass = 224;
-          interfaceSubclass = 1;
-          interfaceProtocol = 1;
-          description = "Bluetooth";
-          disable = true;
-        }
-        {
-          interfaceClass = 8;
-          interfaceSubclass = 6;
-          description = "Mass Storage - SCSI (USB drives)";
-        }
-        {
-          interfaceClass = 17;
-          description = "USB-C alternate modes supported by device";
-        }
-      ];
-    }
-    {
-      description = "Network Devices for NetVM";
-      targetVm = "net-vm";
-      allow = [
-        {
-          interfaceClass = 2;
-          interfaceSubclass = 6;
-          description = "Communications - Ethernet Networking";
-        }
-        {
-          vendorId = "0b95";
-          productId = "1790";
-          description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
-        }
-      ];
-    }
-  ]
-  ++
-    optionals
-      (
-        config.ghaf.virtualization.microvm.appvm.enable
-        && config.ghaf.virtualization.microvm.appvm.vms.chrome.enable
-      )
-      [
-        {
-          description = "External Webcams for ChromeVM and BusinessVM";
-          allowedVms = [
-            "chrome-vm"
-            "business-vm"
-          ];
-          allow = [
-            {
-              interfaceClass = 14;
-              description = "Video (USB Webcams)";
-            }
-          ];
-          deny = [
-            {
-              # Ignore Lenovo X1 camera since it is attached to the business-vm
-              # Finland SKU
-              vendorId = "04f2";
-              productId = "b751";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore Lenovo X1 camera since it is attached to the business-vm
-              # Uae 1st SKU
-              vendorId = "5986";
-              productId = "2145";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore Lenovo X1 camera since it is attached to the business-vm
-              # UAE #2 SKU
-              vendorId = "30c9";
-              productId = "0052";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore Lenovo X1 gen 12 camera since it is attached to the business-vm
-              # Finland SKU
-              vendorId = "30c9";
-              productId = "005f";
-              description = "Lenovo X1 Integrated Camera";
-            }
-            {
-              # Ignore System76 darp11-b camera since it is attached to the business-vm
-              # Finland SKU
-              vendorId = "04f2";
-              productId = "b729";
-              description = "System76 darp11-b Integrated Camera";
-            }
+  defaultUsbRules =
+    optionals config.ghaf.virtualization.microvm.guivm.enable [
+      {
+        description = "Devices for GUIVM";
+        targetVm = "gui-vm";
+        allow = [
+          {
+            interfaceClass = 3;
+            interfaceProtocol = 1;
+            description = "HID Keyboard";
+          }
+          {
+            interfaceClass = 3;
+            interfaceProtocol = 2;
+            description = "HID Mouse";
+          }
+          {
+            interfaceClass = 11;
+            description = "Chip/SmartCard (e.g. YubiKey)";
+          }
+          {
+            interfaceClass = 224;
+            interfaceSubclass = 1;
+            interfaceProtocol = 1;
+            description = "Bluetooth";
+            disable = true;
+          }
+          {
+            interfaceClass = 8;
+            interfaceSubclass = 6;
+            description = "Mass Storage - SCSI (USB drives)";
+          }
+          {
+            interfaceClass = 17;
+            description = "USB-C alternate modes supported by device";
+          }
+        ];
+      }
+    ]
+    ++ optionals config.ghaf.virtualization.microvm.netvm.enable [
+      {
+        description = "Network Devices for NetVM";
+        targetVm = "net-vm";
+        allow = [
+          {
+            interfaceClass = 2;
+            interfaceSubclass = 6;
+            description = "Communications - Ethernet Networking";
+          }
+          {
+            vendorId = "0b95";
+            productId = "1790";
+            description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
+          }
+        ];
+      }
+    ]
+    ++
+      optionals
+        (
+          config.ghaf.virtualization.microvm.appvm.enable
+          && config.ghaf.virtualization.microvm.appvm.vms.chrome.enable
+        )
+        [
+          {
+            description = "External Webcams for ChromeVM and BusinessVM";
+            allowedVms = [
+              "chrome-vm"
+              "business-vm"
+            ];
+            allow = [
+              {
+                interfaceClass = 14;
+                description = "Video (USB Webcams)";
+              }
+            ];
+            # Ignore internal webcams since they are attached to the business-vm
+            deny = config.ghaf.hardware.usb.internal.webcams;
+          }
+        ]
+    ++
+      optionals
+        (
+          config.ghaf.virtualization.microvm.appvm.enable
+          && config.ghaf.virtualization.microvm.appvm.vms.business.enable
+        )
+        [
+          {
+            description = "Internal Webcams for BusinessVM";
+            targetVm = "business-vm";
+            allow = config.ghaf.hardware.usb.internal.webcams;
+          }
+        ]
+    ++ optionals config.ghaf.virtualization.microvm.audiovm.enable [
+      {
+        description = "Audio Devices for AudioVM";
+        targetVm = "audio-vm";
+        allow = [
+          {
+            interfaceClass = 1;
+            description = "Audio";
+          }
+        ];
+        deny = [
+          {
+            interfaceClass = 14;
+            description = "Video (USB Webcams)";
+          }
+        ];
+      }
+    ];
 
-          ];
-        }
-      ]
-  ++ optionals config.ghaf.virtualization.microvm.audiovm.enable [
-    {
-      description = "Audio Devices for AudioVM";
-      targetVm = "audio-vm";
-      allow = [
-        {
-          interfaceClass = 1;
-          description = "Audio";
-        }
-      ];
-      deny = [
-        {
-          interfaceClass = 14;
-          description = "Video (USB Webcams)";
-        }
-      ];
-    }
-  ];
+  defaultPciRules =
+    optionals config.ghaf.virtualization.microvm.guivm.enable [
+      {
+        description = "Static GPU Devices for GUIVM";
+        targetVm = "gui-vm";
+        skipOnSuspend = true;
+        allow =
+          if builtins.hasAttr "definition" config.ghaf.hardware then
+            map (d: {
+              address = d.path;
+              deviceId = d.productId;
+              inherit (d) vendorId;
+            }) config.ghaf.hardware.definition.gpu.pciDevices
+          else
+            [ ];
+      }
+    ]
+    ++ optionals config.ghaf.virtualization.microvm.netvm.enable [
+      {
+        description = "Static Network Devices for NetVM";
+        targetVm = "net-vm";
+        allow =
+          if builtins.hasAttr "definition" config.ghaf.hardware then
+            map (d: {
+              address = d.path;
+              deviceId = d.productId;
+              inherit (d) vendorId;
+            }) config.ghaf.hardware.definition.network.pciDevices
+          else
+            [ ];
+      }
+    ]
+    ++ optionals config.ghaf.virtualization.microvm.audiovm.enable [
+      {
+        description = "Static Audio Devices for AudioVM";
+        targetVm = "audio-vm";
+        allow =
+          if builtins.hasAttr "definition" config.ghaf.hardware then
+            map (d: {
+              address = d.path;
+              deviceId = d.productId;
+              inherit (d) vendorId;
+            }) config.ghaf.hardware.definition.audio.pciDevices
+          else
+            [ ];
+      }
+    ];
+
+  dynamicPciRules =
+    optionals config.ghaf.virtualization.microvm.guivm.enable [
+      {
+        description = "Dynamic GPU Devices for GUIVM";
+        targetVm = "gui-vm";
+        skipOnSuspend = true;
+        pciIommuAddAll = true;
+        allow = [
+          {
+            deviceClass = 3;
+            description = "Display Devices";
+          }
+        ];
+      }
+    ]
+    ++ optionals config.ghaf.virtualization.microvm.netvm.enable [
+      {
+        description = "Dynamic Network Devices for NetVM";
+        targetVm = "net-vm";
+        pciIommuSkipIfShared = true;
+        allow = [
+          {
+            deviceClass = 2;
+            description = "Network Devices";
+          }
+        ];
+      }
+    ]
+    ++ optionals config.ghaf.virtualization.microvm.audiovm.enable [
+      {
+        description = "Dynamic Audio Devices for AudioVM";
+        targetVm = "audio-vm";
+        pciIommuAddAll = true;
+        allow = [
+          {
+            deviceClass = 4;
+            deviceSubclass = 3;
+            description = "Audio Devices";
+          }
+        ];
+      }
+    ];
 
   defaultVms = lib.attrsets.mapAttrsToList (vmName: vmParams: {
     name = vmName;
@@ -161,9 +232,17 @@ in
 
     rules = mkOption {
       type = types.listOf types.attrs;
-      default = defaultRules;
+      default = defaultUsbRules;
       description = ''
         List of USB hot plugging rules.
+      '';
+    };
+
+    pciRules = mkOption {
+      type = types.listOf types.attrs;
+      default = defaultPciRules;
+      description = ''
+        List of PCI hot plugging rules.
       '';
     };
 
@@ -203,20 +282,12 @@ in
       default = true;
     };
 
-    pcieBusPrefix = mkOption {
-      type = types.nullOr types.str;
-      default = "rp";
+    autoDetectPci = mkOption {
       description = ''
-        PCIe bus prefix used for the pcie-root-port QEMU device when evdev passthrough is enabled.
+        Auto-detect PCI devices.
       '';
-    };
-
-    pciePortCount = lib.mkOption {
-      type = lib.types.int;
-      default = 5;
-      description = ''
-        The number of PCIe ports used for hot-plugging virtio-input-host-pci devices.
-      '';
+      type = types.bool;
+      default = false;
     };
 
     api = {
@@ -278,14 +349,16 @@ in
     services.udev.extraRules = ''
       SUBSYSTEM=="usb", GROUP="kvm"
       KERNEL=="event*", GROUP="kvm"
+      SUBSYSTEM=="vfio",GROUP="kvm"
     '';
 
     environment.etc."vhotplug.conf".text = builtins.toJSON {
       usbPassthrough = cfg.prependRules ++ cfg.rules ++ cfg.postpendRules;
 
+      pciPassthrough = defaultPciRules ++ optionals cfg.autoDetectPci dynamicPciRules;
+
       evdevPassthrough = {
         disable = !cfg.enableEvdevPassthrough;
-        inherit (cfg) pcieBusPrefix;
         targetVm = "gui-vm";
       };
 
