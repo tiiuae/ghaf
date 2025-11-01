@@ -283,8 +283,8 @@ in
       microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
         {
           image = "/persist/storagevm/homes/${cfg.name}-home.img";
-          size = builtins.floor (config.ghaf.users.loginUser.homeSize * 1.15);
-          fsType = "btrfs";
+          size = config.ghaf.users.loginUser.homeSize;
+          fsType = "ext4";
           mountPoint = "/home";
         }
       ];
