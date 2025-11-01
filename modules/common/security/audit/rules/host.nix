@@ -1,7 +1,12 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-_: [
-  # NixOS specific rules
+{
+  config,
+  lib,
+  ...
+}:
+[
+  ## === Host :: Nix/NixOS-specific ===
   # Nix profiles & system generations (symlink flips = important)
   "-w /nix/var/nix/profiles -p wa -k nix_profiles"
   # Nix DB & state (writes signal store mutation); keep scope tight to avoid volume
@@ -25,4 +30,10 @@ _: [
   #filecap /sbin 2>/dev/null | sed '1d' | awk '{ printf "-a always,exit -F path=%s -F arch=b64 -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged\n", $2 }' >> priv.rules
   #filecap /usr/bin 2>/dev/null | sed '1d' | awk '{ printf "-a always,exit -F arch=b64 -F path=%s -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged\n", $2 }' >> priv.rules
   #filecap /usr/sbin 2>/dev/null | sed '1d' | awk '{ printf "-a always,exit -F arch=b64 -F path=%s -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged\n", $2 }' >> priv.rules
+]
+++ lib.optionals config.ghaf.security.audit.enableVerboseRebuild [
+
+  ## === Host :: nixos-rebuild ===
+  # Nix store modifications
+  "-a always,exit -F arch=b64 -S open,openat,creat,truncate,rename,renameat,link,unlink,unlinkat,symlink -F dir=/nix/store -F perm=wa -k nixos_rebuild_store"
 ]
