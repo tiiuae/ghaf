@@ -11,31 +11,22 @@ let
     mkOption
     mkIf
     types
-    flatten
-    concatMapStringsSep
     ;
   cfg = config.ghaf.services.kill-switch;
 
-  netvmName = "net-vm";
-  audiovmName = "audio-vm";
-  inherit (config.microvm) stateDir;
   supportedDevices = [
     "mic"
     "net"
     "cam"
   ];
 
-  # Flatten the list of devices
   audioPciDevices =
     if config.ghaf.virtualization.microvm.audiovm.enable then
-      flatten (map (device: "${device.vendorId}:${device.productId}") config.ghaf.common.hardware.audio)
+      config.ghaf.common.hardware.audio
     else
       [ ];
   netPciDevices =
-    if config.ghaf.virtualization.microvm.netvm.enable then
-      flatten (map (device: "${device.vendorId}:${device.productId}") config.ghaf.common.hardware.nics)
-    else
-      [ ];
+    if config.ghaf.virtualization.microvm.netvm.enable then config.ghaf.common.hardware.nics else [ ];
   camUsbDevices = builtins.filter (
     d: lib.hasPrefix "cam" d.name
   ) config.ghaf.hardware.definition.usb.devices;
@@ -44,7 +35,6 @@ let
     name = "ghaf-killswitch";
     runtimeInputs = with pkgs; [
       coreutils
-      hotplug
       vhotplug
     ];
 
@@ -95,28 +85,25 @@ let
           fi
       fi
 
-      find_vm_devices() {
-
-        case "$device" in
-        mic)
-          vm_name="${audiovmName}"
-          ${concatMapStringsSep "\n" (pciDevice: ''
-            devices+=("${pciDevice}")
-          '') audioPciDevices}
-        ;;
-        net)
-          vm_name="${netvmName}"
-          ${concatMapStringsSep "\n" (pciDevice: ''
-            devices+=("${pciDevice}")
-          '') netPciDevices}
-        ;;
-        esac
-      }
-
       block_devices() {
-        if [[ "$device" == "net" || "$device" == "mic" ]]; then
-          echo "Blocking $device device ..."
-          hotplug --detach-pci "''${devices[@]}" --data-path "$state_path" --socket-path "$socket_path"
+        if [[ "$device" == "net" ]]; then
+          echo "Blocking net device ..."
+          ${lib.concatStringsSep "\n" (
+            map (d: ''
+              vhotplugcli pci detach \
+                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
+                ${if d.productId == null then "" else "--did ${d.productId}"}
+            '') netPciDevices
+          )}
+        elif [[ "$device" == "mic" ]]; then
+          echo "Blocking mic device ..."
+          ${lib.concatStringsSep "\n" (
+            map (d: ''
+              vhotplugcli pci detach \
+                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
+                ${if d.productId == null then "" else "--did ${d.productId}"}
+            '') audioPciDevices
+          )}
         else
           ${lib.concatStringsSep "\n" (
             map (d: ''
@@ -135,14 +122,24 @@ let
       }
 
       unblock_devices() {
-        if [[ "$device" == "net" || "$device" == "mic" ]]; then
-          echo "Unblocking $device device ..."
-          if ! hotplug --attach-pci --data-path "$state_path" --socket-path "$socket_path"; then
-            echo "Failed to attach PCI devices. Check systemctl status microvm@$vm_name.service"
-            # Recovery from failed attach; restart the VM
-            echo "Fallback: restarting $vm_name..."
-            systemctl restart microvm@"$vm_name".service
-          fi
+        if [[ "$device" == "net" ]]; then
+          echo "Unblocking net device ..."
+          ${lib.concatStringsSep "\n" (
+            map (d: ''
+              vhotplugcli pci attach \
+                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
+                ${if d.productId == null then "" else "--did ${d.productId}"}
+            '') netPciDevices
+          )}
+        elif [[ "$device" == "mic" ]]; then
+        echo "Unblocking mic device ..."
+          ${lib.concatStringsSep "\n" (
+            map (d: ''
+              vhotplugcli pci attach \
+                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
+                ${if d.productId == null then "" else "--did ${d.productId}"}
+            '') audioPciDevices
+          )}
         else
           ${lib.concatStringsSep "\n" (
             map (d: ''
@@ -168,15 +165,6 @@ let
           echo "$device is not supported"
           exit 1
         fi
-
-        # Find VM name and the devices
-        vm_name=""
-        declare -a devices
-        find_vm_devices
-
-        # Set socket and state path
-        socket_path="${stateDir}/$vm_name/$vm_name.sock"
-        state_path="${stateDir}/$vm_name/state"
       fi
 
       case "$cmd" in

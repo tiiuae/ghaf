@@ -180,6 +180,16 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
+    # Hot-plugging USB devices into virtual machines
+    vhotplug = {
+      url = "github:tiiuae/vhotplug";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
+      };
+    };
+
     # A UI for the one true VPN: Wireguard
     wireguard-gui = {
       url = "github:tiiuae/wireguard-gui";

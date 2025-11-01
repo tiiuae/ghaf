@@ -26,6 +26,11 @@ in
       default = { };
       description = "Extra qemu arguments for AudioVM";
     };
+    netvm = mkOption {
+      type = types.attrs;
+      default = { };
+      description = "Extra qemu arguments for NetVM";
+    };
   };
 
   config = {
@@ -57,6 +62,9 @@ in
           "-acpitable"
           "file=${config.ghaf.hardware.definition.audio.acpiPath}"
         ];
+    };
+    ghaf.qemu.netvm = optionalAttrs (config.ghaf.type == "host") {
+      microvm.qemu.extraArgs = optionals (builtins.hasAttr "net-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.net-vm;
     };
   };
 }
