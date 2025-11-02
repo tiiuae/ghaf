@@ -9,13 +9,14 @@
 let
   cfg = config.ghaf.users;
   inherit (lib)
+    getExe
+    mkEnableOption
     mkIf
-    types
     mkMerge
     mkOption
-    mkEnableOption
-    optionalString
     optionalAttrs
+    optionalString
+    types
     ;
 
   loginUserAccount = types.submodule {
@@ -61,6 +62,17 @@ let
         default = [ ];
       };
     };
+  };
+
+  checkUserExists = pkgs.writeShellApplication {
+    name = "check-user-exists";
+    text = ''
+      if ls /var/lib/systemd/home/*.identity > /dev/null 2>&1; then
+        exit 1
+      else
+        exit 0
+      fi
+    '';
   };
 
 in
@@ -307,9 +319,6 @@ in
                   esac
 
                   done # until $SETUP_COMPLETE
-
-                   # Lock user creation script
-                  install -m 000 /dev/null /var/lib/nixos/user.lock
                 '';
               };
             in
@@ -319,7 +328,6 @@ in
               requiredBy = [ "multi-user.target" ];
               before = [ "greetd.service" ];
               path = [ userSetupScript ];
-              unitConfig.ConditionPathExists = "!/var/lib/nixos/user.lock";
               serviceConfig = {
                 Type = "oneshot";
                 StandardInput = "tty";
@@ -329,6 +337,7 @@ in
                 TTYReset = true;
                 TTYVHangup = true;
                 ExecStart = "${userSetupScript}/bin/setup-ghaf-user";
+                ExecCondition = "${getExe checkUserExists}";
                 Restart = "on-failure";
               };
             };
@@ -369,11 +378,7 @@ in
                     ) ",${lib.concatStringsSep "," cfg.loginUser.extraGroups}"
                   }
 
-                  # Lock user creation script
-                  install -m 000 /dev/null /var/lib/nixos/user.lock
                   echo "User $USERNAME created."
-
-                  # Stop interactive user setup service
                   systemctl stop setup-ghaf-user
                 '';
               };
@@ -382,10 +387,10 @@ in
               description = "Automated boot user setup script";
               enable = true;
               path = [ automatedUserSetupScript ];
-              unitConfig.ConditionPathExists = "!/var/lib/nixos/user.lock";
               serviceConfig = {
                 Type = "oneshot";
                 ExecStart = "${automatedUserSetupScript}/bin/setup-test-user";
+                ExecCondition = "${getExe checkUserExists}";
               };
             };
         };
