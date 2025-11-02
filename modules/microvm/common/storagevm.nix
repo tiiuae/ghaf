@@ -86,12 +86,22 @@ in
       '';
     };
 
+    maximumSize = mkOption {
+      type = types.int;
+      default = 10 * 1024;
+      description = ''
+        Maximum size of the storage area in megabytes.
+        This is the size of the storage device as seen by the guest (when running `lsblk` for example).
+        The image on the host filesystem is a sparse file and only occupies the space actually used by the VM.
+      '';
+    };
+
     encryption = {
       enable = mkEnableOption "Encryption of the VM storage area on the host filesystem";
 
       initialDiskSize = mkOption {
         type = types.int;
-        default = 10 * 1024;
+        default = cfg.maximumSize;
         description = ''
           Size of the persistent disk image in megabytes.
           This is the size of the storage device as seen by the guest (when running `lsblk` for example).
@@ -150,12 +160,11 @@ in
       };
       virtualisation.fileSystems.${cfg.mountPath}.device = "/dev/vda";
 
-      microvm.shares = [
+      microvm.volumes = [
         {
-          tag = "hostshare";
-          proto = "virtiofs";
-          securityModel = "passthrough";
-          source = "/persist/storagevm/${cfg.name}";
+          image = "/persist/storagevm/${cfg.name}.img";
+          size = cfg.maximumSize;
+          autoCreate = true;
           mountPoint = cfg.mountPath;
         }
       ];
