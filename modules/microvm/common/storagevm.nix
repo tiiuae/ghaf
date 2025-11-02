@@ -302,6 +302,7 @@ in
               {
                 file = "/etc/machine-id";
                 inInitrd = true;
+                configureParent = true;
               }
             ];
           }
@@ -347,7 +348,14 @@ in
         ];
       };
 
-      # Remove systemd machine-id commit service
+      # Ensure machine-id is setup in initrd before parsing /etc
+      boot.initrd.systemd.services."systemd-tmpfiles-setup" = {
+        unitConfig.RequiresMountsFor = "/sysroot${cfg.mountPath}/etc/machine-id";
+        after = [ "sysroot.mount" ];
+        before = [ "initrd-parse-etc.service" ];
+      };
+
+      # Remove systemd-machine-id-commit service
       systemd.suppressedSystemUnits = [ "systemd-machine-id-commit.service" ];
     })
     (lib.mkIf (config.ghaf.givc.enable && config.ghaf.givc.enableTls) {
