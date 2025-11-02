@@ -162,6 +162,9 @@ in
         services = {
           systemd-homed.serviceConfig.Restart = "on-failure";
 
+          # Disable systemds' default firstboot user setup
+          systemd-firstboot.enable = false;
+
           # First boot login user setup service
           setup-ghaf-user =
             let
