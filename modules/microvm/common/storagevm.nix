@@ -162,7 +162,7 @@ in
 
       microvm.volumes = [
         {
-          image = "/persist/storagevm/${cfg.name}.img";
+          image = "/persist/storagevm/img/${cfg.name}.img";
           size = cfg.maximumSize;
           autoCreate = true;
           mountPoint = cfg.mountPath;
@@ -173,7 +173,7 @@ in
       ## Config with encryption
 
       let
-        hostImage = "/persist/storagevm_enc/${cfg.name}.img";
+        hostImage = "/persist/storagevm/img/${cfg.name}.img";
         drivePath = "/dev/disk/by-id/virtio-${cfg.encryption.serial}";
       in
       {
