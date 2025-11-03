@@ -65,6 +65,9 @@ in
       # Tools for joysticks and serial peripherals
       pkgs.linuxConsoleTools
 
+      # systend hardening tools
+      pkgs.shh
+
       sysbench-test-script
       sysbench-fileio-test-script
       nvpmodel-check
