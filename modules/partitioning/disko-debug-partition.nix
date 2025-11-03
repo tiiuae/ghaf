@@ -20,10 +20,6 @@
 }:
 let
   cfg = config.ghaf.partitioning.disko;
-  defaultPassword = pkgs.writeTextFile {
-    name = "disko-default-password";
-    text = "";
-  };
   inherit (config.ghaf.partitions) definition;
 in
 {
@@ -64,8 +60,8 @@ in
                 # providing a place to store its core files that wouldn't fit in the post-MBR reserved space.
                 esp = {
                   name = "ESP";
-                  inherit (definition.esp) size;
-                  type = "EF00";
+                  inherit (definition.esp) size label;
+                  type = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B"; # UUID PartType of ESP
                   content = {
                     type = "filesystem";
                     format = definition.esp.fileSystem;
@@ -77,38 +73,9 @@ in
                   };
                   priority = 2;
                 };
-                swap =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      inherit (definition.swap) size;
-                      content = {
-                        type = "luks";
-                        name = "swap";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "swap";
-                          resumeDevice = true; # resume from hiberation from this device
-                        };
-                      };
-                      priority = 3;
-                    }
-                  else
-                    {
-                      inherit (definition.swap) size;
-                      type = "8200";
-                      content = {
-                        type = "swap";
-                        resumeDevice = true; # resume from hiberation from this device
-                        randomEncryption = true;
-                      };
-                      priority = 3;
-                    };
                 root = {
-                  inherit (definition.root) size;
+                  inherit (definition.root) size label;
+                  type = "4f68bce3-e8cd-4db1-96e7-fbcaf984b709"; # x86-64 root partType UUID from https://uapi-group.org/specifications/specs/discoverable_partitions_specification/
                   content = {
                     type = "filesystem";
                     format = definition.root.fileSystem;
@@ -120,43 +87,6 @@ in
                   };
                   priority = 4;
                 };
-                # FIXME: delegate /persist creation to systemd-repart on post-boot
-                persist =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      inherit (definition.persist) size;
-                      content = {
-                        type = "luks";
-                        name = "persist";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "filesystem";
-                          format = definition.persist.fileSystem;
-                          mountpoint = definition.persist.mountPoint;
-                          mountOptions = [
-                            "noatime"
-                            "nodiratime"
-                          ];
-                        };
-                      };
-                    }
-                  else
-                    {
-                      inherit (definition.persist) size;
-                      content = {
-                        type = "filesystem";
-                        format = definition.persist.fileSystem;
-                        mountpoint = definition.persist.mountPoint;
-                        mountOptions = [
-                          "noatime"
-                          "nodiratime"
-                        ];
-                      };
-                    };
               };
             };
           };
