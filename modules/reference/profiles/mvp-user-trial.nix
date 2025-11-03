@@ -58,7 +58,7 @@ in
         appvms.enable = true;
         services = {
           enable = true;
-          dendrite = true;
+          dendrite = false;
           proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
           google-chromecast = {
             enable = true;
