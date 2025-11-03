@@ -37,7 +37,7 @@
     systemd-udevd.serviceConfig = import ./systemd-udevd.nix;
     systemd-udev-trigger.serviceConfig = import ./systemd-udev-trigger.nix;
     systemd-user-sessions.serviceConfig = import ./systemd-user-sessions.nix;
-    #"user-runtime-dir@".serviceConfig = import ./user-runtime-dir.nix;
+    "user-runtime-dir@".serviceConfig = import ./user-runtime-dir.nix;
     vsockproxy.serviceConfig = import ./vsockproxy.nix;
     wpa_supplicant.serviceConfig = import ./wpa_supplicant.nix;
     nw-packet-forwarder.serviceConfig = import ./nw-packet-forwarder.nix;
