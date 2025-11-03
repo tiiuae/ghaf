@@ -73,7 +73,7 @@ in
     # To debug postBootCommands, one may run
     # journalctl -u initrd-nixos-activation.service
     # inside the running Ghaf host.
-    boot.postBootCommands = "${postBootCmds}/bin/postBootScript";
+    #boot.postBootCommands = "${postBootCmds}/bin/postBootScript";
 
     systemd.services.extendbtrfs =
       let

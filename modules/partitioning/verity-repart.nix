@@ -44,13 +44,8 @@ in
 
         # Verity tree for the Nix store.
         "10-root-verity-a" = {
-          repartConfig = {
-            Type = "root-verity";
-            Label = "root-verity-a";
-            Verity = "hash";
-            VerityMatchKey = "root";
+          repartConfig = config.systemd.repart."10-root-verity-a" // {
             Minimize = "best";
-            SplitName = "root-verity"; # SplitName from https://github.com/blitz/sysupdate-playground/blob/master/modules/partitions.nix
           };
         };
 
