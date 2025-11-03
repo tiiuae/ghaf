@@ -136,13 +136,9 @@
   ################
 
   SystemCallFilter = [
-    # "~@clock"
     "~@cpu-emulation"
     "~@debug"
-    # "~@module"
-    # "~@mount"
     "~@obsolete"
-    "~@privileged"
     "~@raw-io"
     "~@reboot"
     "~@resources"
