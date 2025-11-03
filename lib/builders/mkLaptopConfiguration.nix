@@ -20,7 +20,6 @@ let
     machineType: variant: extraModules:
     let
       hostConfiguration = lib.nixosSystem {
-        inherit system;
         specialArgs = inputs // {
           inherit lib;
         };

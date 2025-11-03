@@ -36,7 +36,7 @@
             ]
             ++ config.pre-commit.settings.enabledPackages
             ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
-            ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
+            ++ lib.optional (pkgs.stdenv.hostPlatform.system != "riscv64-linux") pkgs.cachix;
 
             startup.hook.text = config.pre-commit.installationScript;
           };
