@@ -1,19 +1,19 @@
-From 690b3c4ac97b986ee3069a1175c741d276e6d6a6 Mon Sep 17 00:00:00 2001
+From 8736ddbc9db1d4ab3229ff8b21422cb37edf1db6 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
 Date: Fri, 2 May 2025 20:43:32 +0300
 Subject: [PATCH] Add security context indicator
 
 Signed-off-by: Brian McGillion <bmg.avoin@gmail.com>
 ---
- cosmic-comp-config/src/lib.rs         | 24 ++++++++++
- src/backend/render/mod.rs             | 31 ++++++++++++
- src/shell/grabs/moving.rs             | 69 ++++++++++++++++++++-------
- src/shell/layout/floating/mod.rs      | 36 ++++++++++++--
- src/wayland/handlers/xdg_shell/mod.rs | 45 +++++++++++++++++
- 5 files changed, 183 insertions(+), 22 deletions(-)
+ cosmic-comp-config/src/lib.rs         | 24 +++++++++
+ src/backend/render/mod.rs             | 31 +++++++++++
+ src/shell/grabs/moving.rs             | 76 ++++++++++++++++++++-------
+ src/shell/layout/floating/mod.rs      | 36 +++++++++++--
+ src/wayland/handlers/xdg_shell/mod.rs | 45 ++++++++++++++++
+ 5 files changed, 187 insertions(+), 25 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
-index 7dc29cc..55a2b68 100644
+index aa85dd2f..13c12017 100644
 --- a/cosmic-comp-config/src/lib.rs
 +++ b/cosmic-comp-config/src/lib.rs
 @@ -81,6 +81,7 @@ pub struct CosmicCompConfig {
@@ -59,7 +59,7 @@ index 7dc29cc..55a2b68 100644
 +    }
 +}
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
-index 02b011b..a53857b 100644
+index 9b9faa99..deadb9db 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
 @@ -128,6 +128,13 @@ pub enum Usage {
@@ -108,20 +108,20 @@ index 02b011b..a53857b 100644
          renderer: &R,
          key: impl Into<Key>,
 diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
-index 4a135e5..1f3e48c 100644
+index 28939ffd..1d3ea43f 100644
 --- a/src/shell/grabs/moving.rs
 +++ b/src/shell/grabs/moving.rs
 @@ -2,7 +2,7 @@
 
  use crate::{
      backend::render::{
--        cursor::CursorState, element::AsGlowRenderer, BackdropShader, IndicatorShader, Key, Usage,
-+        cursor::CursorState, element::AsGlowRenderer, BackdropShader, IndicatorShader, Key, Usage, SecurityContextIndicatorSettings,
+-        BackdropShader, IndicatorShader, Key, Usage, cursor::CursorState, element::AsGlowRenderer,
++        BackdropShader, IndicatorShader, Key, Usage, cursor::CursorState, element::AsGlowRenderer, SecurityContextIndicatorSettings,
      },
      shell::{
-         element::{
+         CosmicMapped, CosmicSurface, Direction, ManagedLayer,
 @@ -47,7 +47,6 @@ use std::{
-     sync::{atomic::Ordering, Mutex},
+     sync::{Mutex, atomic::Ordering},
      time::Instant,
  };
 -
@@ -136,7 +136,7 @@ index 4a135e5..1f3e48c 100644
          let scale = if self.previous == ManagedLayer::Tiling {
              0.6 + ((1.0
                  - (Instant::now().duration_since(self.start).as_millis() as f64
-@@ -108,34 +108,68 @@ impl MoveGrabState {
+@@ -108,36 +108,71 @@ impl MoveGrabState {
              + self.window_offset
              - scaling_offset;
 
@@ -176,6 +176,8 @@ index 4a135e5..1f3e48c 100644
 -            .corner_radius(window_geo.size, self.indicator_thickness);
 
          let focus_element = if self.indicator_thickness > 0 {
+-            Some(CosmicMappedRenderElement::from(
+-                IndicatorShader::focus_element(
 +            let mut indicator_geometry = Rectangle::new(
 +                render_location,
 +                self.window
@@ -192,8 +194,7 @@ index 4a135e5..1f3e48c 100644
 +                indicator_geometry.size += (size * 2, size * 2).into();
 +                radius = secctx_border_size as u8 * 2;
 +            }
-             Some(
--                CosmicMappedRenderElement::from(IndicatorShader::focus_element(
++            Some(
 +                CosmicMappedRenderElement::from(IndicatorShader::focus_element_with_radius(
                      renderer,
                      Key::Window(Usage::MoveGrabIndicator, self.window.key()),
@@ -216,11 +217,16 @@ index 4a135e5..1f3e48c 100644
                          active_window_hint.green,
                          active_window_hint.blue,
                      ],
+-                ),
+-            ))
 +                    radius,
-                 ))
-                 .into(),
-             )
-@@ -221,6 +255,7 @@ impl MoveGrabState {
++                ))
++                .into(),
++            )
+         } else {
+             None
+         };
+@@ -218,6 +253,7 @@ impl MoveGrabState {
              })
              .chain(p_elements)
              .chain(focus_element)
@@ -229,19 +235,19 @@ index 4a135e5..1f3e48c 100644
                  CosmicMappedRenderElement::Stack(stack) => {
                      CosmicMappedRenderElement::GrabbedStack(
 diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
-index 2586f63..035e53d 100644
+index ae29e604..6c7c37cf 100644
 --- a/src/shell/layout/floating/mod.rs
 +++ b/src/shell/layout/floating/mod.rs
 @@ -24,7 +24,7 @@ use smithay::{
  };
 
  use crate::{
--    backend::render::{element::AsGlowRenderer, IndicatorShader, Key, Usage},
-+    backend::render::{element::AsGlowRenderer, IndicatorShader, Key, Usage, SecurityContextIndicatorSettings},
+-    backend::render::{IndicatorShader, Key, Usage, element::AsGlowRenderer},
++    backend::render::{IndicatorShader, Key, Usage, element::AsGlowRenderer, SecurityContextIndicatorSettings},
      shell::{
+         CosmicSurface, Direction, ManagedLayer, MoveResult, ResizeMode,
          element::{
-             resize_indicator::ResizeIndicator,
-@@ -1564,6 +1564,25 @@ impl FloatingLayout {
+@@ -1558,6 +1558,25 @@ impl FloatingLayout {
                      .collect();
              }
 
@@ -266,8 +272,8 @@ index 2586f63..035e53d 100644
 +
              if focused == Some(elem) && !elem.is_maximized(false) {
                  if let Some((mode, resize)) = resize_indicator.as_mut() {
-                     let mut resize_geometry = geometry.clone();
-@@ -1589,20 +1608,27 @@ impl FloatingLayout {
+                     let mut resize_geometry = geometry;
+@@ -1583,20 +1602,27 @@ impl FloatingLayout {
                  }
 
                  let active_window_hint = crate::theme::active_window_hint(theme);
@@ -300,12 +306,12 @@ index 2586f63..035e53d 100644
                      window_elements.insert(0, element.into());
                  }
 diff --git a/src/wayland/handlers/xdg_shell/mod.rs b/src/wayland/handlers/xdg_shell/mod.rs
-index 667c4c3..faca411 100644
+index 56efd92e..955ef4ad 100644
 --- a/src/wayland/handlers/xdg_shell/mod.rs
 +++ b/src/wayland/handlers/xdg_shell/mod.rs
 @@ -3,6 +3,8 @@
  use crate::{
-     shell::{focus::target::KeyboardFocusTarget, grabs::ReleaseMode, CosmicSurface, PendingWindow},
+     shell::{CosmicSurface, PendingWindow, focus::target::KeyboardFocusTarget, grabs::ReleaseMode},
      utils::prelude::*,
 +    state::ClientState,
 +    backend::render::SecurityContextIndicatorSettings,
