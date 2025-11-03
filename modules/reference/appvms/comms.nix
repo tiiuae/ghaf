@@ -73,6 +73,7 @@ in
           # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
           # can't access the device if this is enabled.
           development.usb-serial.enable = mkForce false;
+          storagevm.maximumSize = 100 * 1024; # 100 GB space for comms-vm
         };
 
         # GPSD collects data from GPS and makes it available on TCP port 2947

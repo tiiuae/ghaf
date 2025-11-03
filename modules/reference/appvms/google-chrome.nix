@@ -82,6 +82,7 @@
                   allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
                   allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
                 };
+                storagevm.maximumSize = 100 * 1024; # 100 GB space for google-chrome-vm
               };
 
             }

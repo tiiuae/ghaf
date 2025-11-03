@@ -172,6 +172,8 @@ in
                   };
                 };
 
+                storagevm.maximumSize = 100 * 1024; # 100 GB space for business-vm
+
                 xdgitems.enable = true;
                 # Open external URLs locally in business-vm’s browser instead of forwarding to a dedicated URL-handling VM
                 xdghandlers.url = true;
