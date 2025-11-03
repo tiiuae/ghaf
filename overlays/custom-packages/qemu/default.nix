@@ -15,7 +15,7 @@ prev.qemu_kvm.overrideAttrs (
         ./0002-Increase-timeout-in-tpm_util_request.patch
         ./usb-host-enable-autoscan-for-bus-addr.patch
       ]
-      ++ final.lib.optionals final.hostPlatform.isx86_64 [
+      ++ final.lib.optionals final.stdenv.hostPlatform.isx86_64 [
         # https://github.com/blochl/qemu/pull/3
         # TODO: remove when merged upstream
         ./0001-hw-acpi-Support-extended-GPE-handling-for-additional.patch

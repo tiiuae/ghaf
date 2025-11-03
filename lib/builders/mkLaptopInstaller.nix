@@ -19,7 +19,6 @@ let
     name: imagePath: extraModules:
     let
       hostConfiguration = lib.nixosSystem {
-        inherit system;
         specialArgs = {
           inherit lib;
         };
@@ -43,8 +42,8 @@ let
               networking.hostName = "ghaf-installer";
 
               environment.systemPackages = [
-                self.packages.${system}.ghaf-installer
-                self.packages.${system}.hardware-scan
+                self.packages.x86_64-linux.ghaf-installer
+                self.packages.x86_64-linux.hardware-scan
               ];
 
               services.getty = {
@@ -65,6 +64,7 @@ let
 
               # Configure nixpkgs with Ghaf overlays for extended lib support
               nixpkgs = {
+                hostPlatform.system = system;
                 config = {
                   allowUnfree = true;
                   permittedInsecurePackages = [

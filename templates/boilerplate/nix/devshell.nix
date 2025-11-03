@@ -27,7 +27,7 @@
               nix-fast-build
               ;
           }
-          ++ lib.optional (pkgs.hostPlatform.system != "riscv64-linux") pkgs.cachix;
+          ++ lib.optional (pkgs.stdenv.hostPlatform.system != "riscv64-linux") pkgs.cachix;
       };
     };
 }
