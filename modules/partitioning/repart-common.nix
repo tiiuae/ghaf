@@ -2,94 +2,110 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
-  lib,
   ...
 }:
 let
   inherit (config.ghaf.partitions) definition;
 in
 {
+  boot.initrd.systemd.enable = true;
   boot.initrd.systemd.repart = {
     enable = true;
     device = null; # Operate on current root device, from which system booted
   };
+  # FIXME: make conditional if we have any btrfs enabled in definitions
+  boot.initrd.supportedFilesystems.btrfs = true; # systemd-repart need btrfs-progs in initrd
 
   systemd.repart = {
     enable = true;
     partitions = {
+      "10-root-a" = {
+        Type = "root";
+        Label = definition.root.label;
+        Verity = "data";
+        VerityMatchKey = "${definition.root.label}";
+        SplitName = "root";
+        #SizeMinBytes = definition.root.size;
+        SizeMaxBytes = definition.root.size;
+      };
       # Verity tree for the Nix store.
       # (create verity partition, even if we booted from disko populated image)
       "10-root-verity-a" = {
         Type = "root-verity";
         Label = "root-verity-a";
         Verity = "hash";
-        VerityMatchKey = "root";
-        Minimize = "best";
+        VerityMatchKey = "${definition.root.label}";
+        SizeMinBytes = "8G";
+        SizeMaxBytes = "8G";
       };
 
       # 'B' blank partitions.
       "20-root-verity-b" = {
         Type = "linux-generic";
-        SizeMinBytes = "64M";
-        SizeMaxBytes = "64M";
-        Label = "_empty";
+        Label = "_empty_verity";
         ReadOnly = 1;
+        SizeMinBytes = "8G";
+        SizeMaxBytes = "8G";
       };
 
       "21-root-b" = {
         Type = "linux-generic";
-        SizeMinBytes = "512M";
-        SizeMaxBytes = "512M";
-        Label = "_emptyb";
+        SizeMaxBytes = definition.root.size;
+        Label = "_empty";
         ReadOnly = 1;
       };
-
       "40-swap" = {
         Type = "swap";
         Format = "swap";
-        Label = "swap";
+        Label = definition.swap.label;
         UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
-      }
-      // (
-        if config.ghaf.storage.encryption.enable then
-          {
-            Encrypt = "key-file";
-            # Since the partition is pre-encrypted, it doesn't compress well
-            # (compressed size ~= initial size) and takes up a large portion
-            # of the image file.
-            # Make the initial swap small and expand it later on the device
-            SizeMinBytes = "64M";
-            SizeMaxBytes = "64M";
-            # Free space to expand on device
-            PaddingMinBytes = definition.swap.size;
-            PaddingMaxBytes = definition.swap.size;
-          }
-        else
-          {
-            SizeMinBytes = definition.swap.size;
-            SizeMaxBytes = definition.swap.size;
-          }
-      );
+        SizeMinBytes = definition.swap.size;
+        SizeMaxBytes = definition.swap.size;
+      };
       # Persistence partition.
       "50-persist" = {
-        repartConfig = {
-          Type = "linux-generic";
-          Label = "persist";
-          Format = "btrfs";
-          SizeMinBytes = definition.persist.size;
-          MakeDirectories = builtins.toString [
-            "/storagevm"
-          ];
-          UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
-          # When Encrypt is "key-file" and the key file isn't specified, the
-          # disk will be LUKS formatted with an empty passphrase
-          Encrypt = lib.mkIf config.ghaf.storage.encryption.enable "key-file";
+        Type = "linux-generic";
+        Label = definition.persist.label;
+        Format = "btrfs";
+        SizeMinBytes = definition.persist.size;
+        MakeDirectories = builtins.toString [
+          "/storagevm"
+        ];
+        UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
+        # When Encrypt is "key-file" and the key file isn't specified, the
+        # disk will be LUKS formatted with an empty passphrase
+        Encrypt = if config.ghaf.storage.encryption.enable then "key-file" else "off";
 
-          # Factory reset option will format this partition, which stores all
-          # the system & user state.
-          FactoryReset = "yes";
-        };
+        # Factory reset option will format this partition, which stores all
+        # the system & user state.
+        FactoryReset = "yes";
       };
     };
   };
+
+  fileSystems = {
+    "/persist" = {
+      device =
+        if config.ghaf.storage.encryption.enable then
+          "/dev/mapper/persist"
+        else
+          "/dev/disk/by-partlabel/${definition.persist.label}";
+      fsType = definition.persist.fileSystem;
+      options = [
+        "noatime"
+        "nodiratime"
+      ]; # FIXME: move options to definitions
+    };
+  };
+
+  swapDevices = [
+    {
+      device =
+        if config.ghaf.storage.encryption.enable then
+          "/dev/mapper/swap"
+        else
+          "/dev/disk/by-partlabel/${definition.swap.label}";
+      options = [ "nofail" ]; # Don't fail to boot, if swap missed. FIXME: at least unless we fully debug new partitioning
+    }
+  ];
 }

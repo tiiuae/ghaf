@@ -9,6 +9,10 @@ let
         type = types.str; # FIXME: validation
         description = "Partition minimal size";
       };
+      label = mkOption {
+        type = types.str;
+        description = "Partition label (or base name for label for a/b root)";
+      };
       mountPoint = mkOption {
         type = types.str; # FIXME: validation
         description = "Partition's filesystem mount point";
@@ -76,18 +80,22 @@ in
       size = "512M";
       mountPoint = "/boot";
       fileSystem = "vfat";
+      label = "esp";
     };
     swap = {
       size = "12G";
+      label = "swap";
     };
     # FIXME: Need build time assertion, that resulting image fits
     root = {
       size = "64G";
       mountPoint = "/";
       fileSystem = config.ghaf.partitions.rootFilesystemType;
+      label = "root";
     };
     persist = {
       size = "1G";
+      label = "persist";
       mountPoint = "/persist";
       fileSystem = "btrfs";
     };

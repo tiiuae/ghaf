@@ -103,6 +103,7 @@ in
     # System is now immutable
     system.switch.enable = false;
 
+    # FIXME: merge with definition in repart-common.nix
     swapDevices = [
       {
         device =
@@ -128,6 +129,7 @@ in
           device = "/dev/mapper/root";
         };
 
+        # FIXME: merge with definition in repart-common.nix
         "/persist" =
           let
             partConf = config.image.repart.partitions."50-persist".repartConfig;
