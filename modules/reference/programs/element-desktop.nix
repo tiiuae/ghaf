@@ -8,8 +8,13 @@
 }:
 let
   cfg = config.ghaf.reference.programs.element-desktop;
+  inherit (lib)
+    hasAttr
+    mkIf
+    mkEnableOption
+    ;
   isDendritePineconeEnabled =
-    if (lib.hasAttr "services" config.ghaf.reference) then
+    if (hasAttr "services" config.ghaf.reference) then
       config.ghaf.reference.services.dendrite
     else
       false;
@@ -17,15 +22,16 @@ let
 in
 {
   options.ghaf.reference.programs.element-desktop = {
-    enable = lib.mkEnableOption "element-desktop program settings";
+    enable = mkEnableOption "element-desktop program settings";
+    gpsSupport = mkEnableOption "gps support for location sharing";
   };
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
 
     systemd.services = {
 
       # The element-gps listens for WebSocket connections on localhost port 8000 from element-desktop
       # When a new connection is received, it executes the gpspipe program to get GPS data from GPSD and forwards it over the WebSocket
-      element-gps = {
+      element-gps = mkIf cfg.gpsSupport {
         description = "Element-gps is a GPS location provider for Element websocket interface.";
         enable = true;
         # Make sure this service is started after gpsd is running
@@ -41,7 +47,7 @@ in
         wantedBy = [ "multi-user.target" ];
       };
 
-      "dendrite-pinecone" = pkgs.lib.mkIf isDendritePineconeEnabled {
+      "dendrite-pinecone" = mkIf isDendritePineconeEnabled {
         description = "Dendrite is a second-generation Matrix homeserver with Pinecone which is a next-generation P2P overlay network";
         enable = true;
         serviceConfig = {
@@ -54,7 +60,7 @@ in
       };
     };
 
-    ghaf.firewall = pkgs.lib.mkIf isDendritePineconeEnabled {
+    ghaf.firewall = mkIf isDendritePineconeEnabled {
       allowedTCPPorts = [ pkgs.dendrite-pinecone.TcpPortInt ];
       allowedUDPPorts = [ pkgs.dendrite-pinecone.McastUdpPortInt ];
     };
