@@ -44,6 +44,8 @@
               };
               xdghandlers.url = true;
 
+              storagevm.maximumSize = 100 * 1024; # 100 GB space for chrome-vm
+
               firewall = {
                 allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
                 allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;

@@ -37,12 +37,12 @@ let
       };
       homeSize = mkOption {
         description = ''
-          Size of the home directory for the login user in MB (integer).
+          Size of the home directory for the login user in MiB (integer).
           The integer size is inherited from the microvm volume size parameter.
-          Defaults to 800 GB (800000 MB).
+          Defaults to 400 GiB.
         '';
         type = types.int;
-        default = 800000;
+        default = 400 * 1024;
       };
       fidoAuth = mkEnableOption "FIDO authentication for the login user.";
       createRecoveryKey = mkEnableOption "Recovery key for the login user";
