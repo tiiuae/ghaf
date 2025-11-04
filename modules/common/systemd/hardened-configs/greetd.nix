@@ -4,7 +4,7 @@
 {
   IPAccounting = true;
   IPAddressDeny = "any";
-  ProtectSystem = "full";
+  ProtectSystem = true;
   ProtectProc = "noaccess";
   PrivateMounts = true;
   ProcSubset = "all";
@@ -37,6 +37,7 @@
   CapabilityBoundingSet = [
     "CAP_IPC_LOCK"
     "CAP_SYS_TTY_CONFIG"
+    "CAP_SYS_ADMIN"
     "CAP_SETGID"
     "CAP_CHOWN"
     "CAP_SETUID"
@@ -54,11 +55,11 @@
     "@basic-io"
     "@ipc"
     "@signal"
+    "@mount"
     "~@clock"
     "~@cpu-emulation"
     "~@debug"
     "~@module"
-    "~@mount"
     "~@obsolete"
     "~@raw-io"
     "~@reboot"
