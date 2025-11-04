@@ -38,6 +38,7 @@
     "CAP_MKNOD"
     "CAP_DAC_OVERRIDE"
     "CAP_SYS_ADMIN"
+    "CAP_CHOWN"
   ];
 
   SystemCallFilter = [
