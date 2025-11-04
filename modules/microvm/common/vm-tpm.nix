@@ -81,7 +81,7 @@ in
           "-tpmdev"
           "passthrough,id=tpmrm0,path=/dev/tpmrm0,cancel-path=/tmp/cancel"
           "-device"
-          "tpm-tis,tpmdev=tpmrm0"
+          "tpm-crb,tpmdev=tpmrm0"
         ];
 
         # Workaround a bug when machine type is `microvm`
@@ -98,7 +98,7 @@ in
         "-tpmdev"
         "emulator,id=tpm0,chardev=chrtpm"
         "-device"
-        "tpm-tis,tpmdev=tpm0"
+        "tpm-crb,tpmdev=tpm0"
       ];
     })
   ];

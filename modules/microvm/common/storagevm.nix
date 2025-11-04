@@ -235,26 +235,56 @@ in
                 cryptsetup
               ];
               text = ''
-                set -x
-                if cryptsetup luksDump ${drivePath} | grep 'systemd-tpm2'; then
-                  echo 'TPM already enrolled'
-                  exit 0
-                fi
+                  set -o errexit
+                  set -o nounset
+                  set -o pipefail
+
+                  set -x
+
+                  # If the LUKS header already has a TPM enrollment marker, exit
+                  if cryptsetup luksDump ${drivePath} | grep -q 'systemd-tpm2'; then
+                    echo 'TPM already enrolled'
+                    exit 0
+                  fi
+
                 ${lib.optionalString tpm.passthrough.enable ''
-                  tpm2_createprimary -C owner -c storage.ctx
-                  tpm2_evictcontrol -C owner -c storage.ctx ${tpm.passthrough.rootNVIndex}
+                  # Helper: check if persistent handle exists
+                  persistent_handle_exists() {
+                    tpm2_getcap handles-persistent | grep -qi "${tpm.passthrough.rootNVIndex}"
+                  }
+
+                  # Create primary key and make persistent only if handle not already present
+                  if persistent_handle_exists; then
+                    echo "Persistent handle ${tpm.passthrough.rootNVIndex} already present — skipping evictcontrol."
+                  else
+                    echo "Persistent handle not present"
+                    tpm2_createprimary -C owner -c storage.ctx
+                    tpm2_evictcontrol -C owner -c storage.ctx "${tpm.passthrough.rootNVIndex}"
+                  fi
                 ''}
-                # temporary file to pass an empty passphrase to cryptenroll
-                echo -n > temp_keyfile
-                chmod 600 temp_keyfile
-                systemd-cryptenroll --unlock-key-file=temp_keyfile \
-                  --tpm2-device=/dev/tpm0 --tpm2-pcrs="${cfg.encryption.pcrs}" \
+
+                # Create a secure temporary file for an empty passphrase for systemd-cryptenroll
+                TMP_KEYFILE="$(mktemp --tmpdir tpm-XXXXXX.key)"
+                chmod 600 "$TMP_KEYFILE"
+
+                # Ensure temporary file gets removed on exit
+                cleanup() {
+                  rm -f "$TMP_KEYFILE"
+                }
+                trap cleanup EXIT
+
+                # Use an empty keyfile to enroll the LUKS device with TPM2
+                systemd-cryptenroll --unlock-key-file="$TMP_KEYFILE" \
+                  --tpm2-device=/dev/tpm0 --tpm2-pcrs="15" \
                   ${lib.optionalString tpm.passthrough.enable "--tpm2-seal-key-handle=${tpm.passthrough.rootNVIndex}"} "${drivePath}"
-                rm temp_keyfile
+
+                # Remove tmp file via trap; now wipe the default password slot (if intended)
                 ${lib.optionalString (!cfg.encryption.keepDefaultPassword) ''
                   echo 'Wiping password slot'
                   systemd-cryptenroll --wipe-slot=password "${drivePath}"
                 ''}
+
+                echo "TPM enrollment completed."
               '';
             };
           in
