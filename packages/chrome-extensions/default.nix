@@ -2,16 +2,17 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   callPackage,
-  stdenvNoCC,
   fetchurl,
-  unzip,
-  jq,
   google-chrome,
+  jq,
   lib,
+  stdenvNoCC,
+  tinyxxd,
+  unzip,
 }:
 
 let
-  # Helper function for packaging Chrome extensions from the Web Store.
+  # Helper function for packaging Chrome extensions.
   # It fetches the CRX, extracts its version, and generates an update.xml template.
   mkExtension =
     {
@@ -19,25 +20,35 @@ let
       id,
       hash,
       version,
+      fixedVersion ? true,
     }:
     stdenvNoCC.mkDerivation {
+      inherit name version;
       pname = name;
-      inherit version;
-
       src = fetchurl {
+        name = "${name}-${version}.crx";
         url =
-          "https://clients2.google.com/service/update2/crx?response=redirect"
-          + "&prodversion=${google-chrome.version}"
-          + "&acceptformat=crx3"
-          + "&x=id%3D${id}%26installsource%3Dondemand%26uc";
+          if fixedVersion then
+            "https://f6.crx4chrome.com/crx.php?i=${id}&v=${version}"
+          else
+            "https://clients2.google.com/service/update2/crx?response=redirect"
+            + "&os=linux"
+            + "&prodchannel=stable"
+            + "&prodversion=${google-chrome.version}"
+            + "&acceptformat=crx3"
+            + "&x=id%3D${id}%26installsource%3Dondemand%26uc";
         postFetch = ''
-          if [ ! -f $out ] || [ ! -s $out ]; then
+          if [ ! -f "$out" ] || [ ! -s "$out" ]; then
             echo "Extension (${id}) download failed - file is empty. Ensure destination URL is correct." >&2
             exit 1
           fi
+          # Check CRX header
+          if ! ${lib.getExe tinyxxd} -l 16 "$out" | grep -qiE '(Cr24|CrX3)'; then
+            echo "Extension (${id}) download failed - invalid CRX file (missing Cr24/CrX3 header)." >&2
+            exit 1
+          fi
         '';
-        curlOptsList = [ "-L" ];
-        name = "${id}";
+        curlOptsList = [ "-L" ] ++ lib.optional fixedVersion [ "-A 'Mozilla/5.0'" ];
         inherit hash;
       };
 
@@ -92,15 +103,16 @@ in
   # We add it here for convenience, so it can be accessed under the same namespace.
   open-normal = callPackage ./open-normal { };
 
+  # Add extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; version = "..."; fixedVersion = true/false; }
+  # fixedVersion is set to true by default in order to use crx4chrome.com to fetch pinned extension versions
+  # Set fixedVersion = false; to fetch directly from the Chrome Web Store, but note that versions may change without notice.
+  # Downgrading should never be done unless a full reinstall of Ghaf is acceptable
+
   # Example: Session Buddy session and tab manager.
-  # Hash must be updated manually when the extension is updated upstream.
-  # Version is optional and doesn't affect the build, but is useful for reference.
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
     hash = "sha256-iwvPxZe0PfBhgtdVJYj4+4VA+8k/3Pvj20yCoFs07S0=";
     version = "4.1.0";
   };
-
-  # Add more extensions below using mkExtension { name = "..."; id = "..."; hash = "..."; version = "...";  }
 }
