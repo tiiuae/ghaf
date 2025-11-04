@@ -133,6 +133,17 @@ Ghaf provides 46 specialized NixOS modules that implement the secure edge comput
 
 ### Security and Isolation
 
+#### host-memory-wipe
+**Location**: `modules/host/memory-wipe.nix`
+**Purpose**: Secure memory initialization and clearing via kernel configuration
+**Features**:
+- Build-time kernel configuration patches (`INIT_ON_ALLOC_DEFAULT_ON`, `INIT_ON_FREE_DEFAULT_ON`, `PAGE_POISONING`)
+- Enabled by default on all x86_64 platforms
+- Runtime memory protection against information disclosure
+- No boot parameters needed - compiled into kernel
+
+See [Memory Wipe on Boot and Free](/ghaf/dev/ref/memory-wipe) for detailed documentation.
+
 #### givc
 **Location**: `modules/givc/`
 **Purpose**: Guest-to-guest inter-VM communication
