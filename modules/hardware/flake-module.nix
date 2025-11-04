@@ -7,12 +7,14 @@
       ./x86_64-generic
       ./common
       ./device-passthrough
+      ./common/kernel.nix
     ];
     hardware-x86_64-generic.imports = [
       ./definition.nix
       ./x86_64-generic
       ./device-passthrough
       ./common/usb/vhotplug.nix
+      ./common/kernel.nix
     ];
     hardware-x86_64-host-kernel.imports = [
       ./x86_64-generic/kernel/host

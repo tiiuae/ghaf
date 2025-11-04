@@ -41,59 +41,85 @@ in
     };
   };
 
-  config = {
-    # Host kernel configuration
-    boot = optionalAttrs fullVirtualization {
-      initrd = {
-        inherit (config.ghaf.hardware.definition.host.kernelConfig.stage1) kernelModules;
+  options.ghaf.host.kernel.memory-wipe = {
+    enable = lib.mkEnableOption "Memory wipe on boot and free using kernel configuration (host only)";
+  };
+
+  config = lib.mkMerge [
+    # Memory wipe kernel patches (applies to host only)
+    {
+      boot.kernelPatches = lib.optionals config.ghaf.host.kernel.memory-wipe.enable [
+        {
+          name = "memory-wipe-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            # Enable page poisoning for additional security
+            PAGE_POISONING = yes;
+
+            # Enable init-on-alloc and init-on-free support
+            INIT_ON_ALLOC_DEFAULT_ON = option yes;
+            INIT_ON_FREE_DEFAULT_ON = option yes;
+          };
+        }
+      ];
+    }
+
+    # Host kernel configuration (only for full virtualization)
+    {
+      boot = optionalAttrs fullVirtualization {
+        initrd = {
+          inherit (config.ghaf.hardware.definition.host.kernelConfig.stage1) kernelModules;
+        };
+        inherit (config.ghaf.hardware.definition.host.kernelConfig.stage2) kernelModules;
+        kernelParams =
+          let
+            # PCI device passthroughs for vfio
+            filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
+            mapPciIdsToString = map (d: "${d.vendorId}:${d.productId}");
+            vfioPciIds = mapPciIdsToString (
+              filterDevices (
+                config.ghaf.hardware.definition.network.pciDevices
+                ++ config.ghaf.hardware.definition.gpu.pciDevices
+                ++ config.ghaf.hardware.definition.audio.pciDevices
+              )
+            );
+          in
+          config.ghaf.hardware.definition.host.kernelConfig.kernelParams
+          ++ [ "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}" ];
       };
-      inherit (config.ghaf.hardware.definition.host.kernelConfig.stage2) kernelModules;
-      kernelParams =
-        let
-          # PCI device passthroughs for vfio
-          filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
-          mapPciIdsToString = map (d: "${d.vendorId}:${d.productId}");
-          vfioPciIds = mapPciIdsToString (
-            filterDevices (
-              config.ghaf.hardware.definition.network.pciDevices
-              ++ config.ghaf.hardware.definition.gpu.pciDevices
-              ++ config.ghaf.hardware.definition.audio.pciDevices
-            )
-          );
-        in
-        config.ghaf.hardware.definition.host.kernelConfig.kernelParams
-        ++ [ "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}" ];
-    };
+    }
 
     # Guest kernel configurations
-    ghaf.kernel = optionalAttrs fullVirtualization {
-      guivm = {
-        boot = {
-          initrd = {
-            inherit (config.ghaf.hardware.definition.gpu.kernelConfig.stage1) kernelModules;
+    {
+      ghaf.kernel = optionalAttrs fullVirtualization {
+        guivm = {
+          boot = {
+            initrd = {
+              inherit (config.ghaf.hardware.definition.gpu.kernelConfig.stage1) kernelModules;
+            };
+            inherit (config.ghaf.hardware.definition.gpu.kernelConfig.stage2) kernelModules;
+            inherit (config.ghaf.hardware.definition.gpu.kernelConfig) kernelParams;
           };
-          inherit (config.ghaf.hardware.definition.gpu.kernelConfig.stage2) kernelModules;
-          inherit (config.ghaf.hardware.definition.gpu.kernelConfig) kernelParams;
+        };
+        audiovm = {
+          boot = {
+            initrd = {
+              inherit (config.ghaf.hardware.definition.audio.kernelConfig.stage1) kernelModules;
+            };
+            inherit (config.ghaf.hardware.definition.audio.kernelConfig.stage2) kernelModules;
+            inherit (config.ghaf.hardware.definition.audio.kernelConfig) kernelParams;
+          };
+        };
+        netvm = {
+          boot = {
+            initrd = {
+              inherit (config.ghaf.hardware.definition.network.kernelConfig.stage1) kernelModules;
+            };
+            inherit (config.ghaf.hardware.definition.network.kernelConfig.stage2) kernelModules;
+            inherit (config.ghaf.hardware.definition.network.kernelConfig) kernelParams;
+          };
         };
       };
-      audiovm = {
-        boot = {
-          initrd = {
-            inherit (config.ghaf.hardware.definition.audio.kernelConfig.stage1) kernelModules;
-          };
-          inherit (config.ghaf.hardware.definition.audio.kernelConfig.stage2) kernelModules;
-          inherit (config.ghaf.hardware.definition.audio.kernelConfig) kernelParams;
-        };
-      };
-      netvm = {
-        boot = {
-          initrd = {
-            inherit (config.ghaf.hardware.definition.network.kernelConfig.stage1) kernelModules;
-          };
-          inherit (config.ghaf.hardware.definition.network.kernelConfig.stage2) kernelModules;
-          inherit (config.ghaf.hardware.definition.network.kernelConfig) kernelParams;
-        };
-      };
-    };
-  };
+    }
+  ];
 }

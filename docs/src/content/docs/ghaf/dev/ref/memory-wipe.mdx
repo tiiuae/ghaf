@@ -1,0 +1,70 @@
+---
+title: Memory Wipe on Boot and Free
+description: Secure memory initialization and clearing using kernel configuration
+---
+
+This module implements secure memory wiping by configuring the Linux kernel at build time to initialize memory on allocation and free operations.
+
+## How it works
+
+The module configures the kernel by applying kernel configuration patches:
+
+- **`PAGE_POISONING`** - Enables page poisoning to overwrite freed pages
+- **`INIT_ON_ALLOC_DEFAULT_ON`** - Automatically zeroes memory when allocated from the page allocator
+- **`INIT_ON_FREE_DEFAULT_ON`** - Automatically zeroes memory when freed back to the page allocator
+
+These settings are compiled into the kernel, ensuring:
+- Memory is wiped when freed, preventing data leakage between processes
+- Memory is zeroed on allocation, preventing information disclosure from previous allocations
+- The system maintains security throughout its runtime
+
+## Default Behavior
+
+This feature is **enabled by default** for the host kernel on all x86_64 platforms through the `hardware-x86_64-generic` module. Guest VMs do not have this feature enabled by default.
+
+To disable it on x86_64 host platforms:
+
+```nix
+{
+  ghaf.host.kernel.memory-wipe.enable = false;
+}
+```
+
+To enable it on other host platforms:
+
+```nix
+{
+  ghaf.host.kernel.memory-wipe.enable = true;
+}
+```
+
+## Implementation Details
+
+The module uses `boot.kernelPatches` to apply kernel configuration options at build time. This approach:
+- Integrates with the existing kernel build process
+- Works with any kernel package (doesn't force a specific kernel version)
+- Ensures security settings are part of the compiled kernel
+
+## Security Benefits
+
+- **Information Disclosure Prevention**: Prevents processes from reading sensitive data left in memory by previous processes
+- **Runtime Protection**: Active during the entire system operation
+- **Defense in Depth**: Multiple layers of memory clearing (page poisoning + init on free/alloc)
+- **Build-time Configuration**: Security settings are compiled into the kernel and cannot be disabled at runtime
+
+## Performance Impact
+
+Memory initialization on free and allocation operations adds a small performance overhead (typically 1-5%). This is a security vs. performance trade-off that prioritizes data protection. The overhead is generally acceptable for security-focused systems.
+
+## Technical Requirements
+
+- Linux kernel 5.3+ (for `init_on_free` and `init_on_alloc` support)
+- Kernel configuration support for `PAGE_POISONING`, `INIT_ON_ALLOC_DEFAULT_ON`, and `INIT_ON_FREE_DEFAULT_ON`
+- NixOS kernel build infrastructure
+
+## Module Location
+
+- **Module**: `modules/hardware/common/kernel.nix`
+- **Option**: `ghaf.host.kernel.memory-wipe.enable`
+- **Scope**: Host kernel only (guest VMs are not affected)
+- **Default enablement**: `modules/hardware/x86_64-generic/x86_64-linux.nix` (for x86_64 host platforms)
