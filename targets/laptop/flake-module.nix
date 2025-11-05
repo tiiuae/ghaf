@@ -193,7 +193,7 @@ let
           ];
         };
         # Add system76 and system76-io kernel modules to host
-        hardware.system76.kernel-modules.enable = true;
+        hardware.system76.enableAll = true;
       }
     ]))
 
