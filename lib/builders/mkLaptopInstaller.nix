@@ -42,8 +42,8 @@ let
               networking.hostName = "ghaf-installer";
 
               environment.systemPackages = [
-                self.packages.x86_64-linux.ghaf-installer
-                self.packages.x86_64-linux.hardware-scan
+                self.packages.${system}.ghaf-installer
+                self.packages.${system}.hardware-scan
               ];
 
               services.getty = {

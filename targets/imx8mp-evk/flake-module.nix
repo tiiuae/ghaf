@@ -11,12 +11,10 @@
 let
   inherit (inputs) nixos-hardware;
   name = "nxp-imx8mp-evk";
-  system = "aarch64-linux";
   nxp-imx8mp-evk =
     variant: extraModules:
     let
       hostConfiguration = lib.nixosSystem {
-        inherit system;
         specialArgs = {
           inherit (self) lib;
         };
@@ -50,6 +48,7 @@ let
             };
 
             nixpkgs = {
+              buildPlatform.system = "x86_64-linux";
               # Increase the support for different devices by allowing the use
               # of proprietary drivers from the respective vendors
               config = {
