@@ -17,6 +17,6 @@ in
 
   config = mkIf cfg.withHardenedConfigs {
     # Apply hardened systemd service configurations
-    systemd = import ./hardened-configs;
+    #    systemd = import ./hardened-configs;
   };
 }
