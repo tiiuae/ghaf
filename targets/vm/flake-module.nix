@@ -13,7 +13,6 @@ let
     format: variant: withGraphics:
     let
       hostConfiguration = lib.nixosSystem {
-        inherit system;
         specialArgs = {
           inherit (self) lib;
         };
@@ -168,7 +167,7 @@ let
               };
 
               nixpkgs = {
-                hostPlatform.system = "x86_64-linux";
+                hostPlatform.system = system;
 
                 # Increase the support for different devices by allowing the use
                 # of proprietary drivers from the respective vendors

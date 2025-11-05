@@ -15,7 +15,6 @@ let
     name: som: variant: extraModules:
     let
       hostConfiguration = lib.nixosSystem {
-        inherit system;
         specialArgs = inputs // {
           inherit (self) lib;
         };
@@ -45,7 +44,7 @@ let
             };
 
             nixpkgs = {
-              hostPlatform.system = "aarch64-linux";
+              hostPlatform.system = system;
 
               # Increase the support for different devices by allowing the use
               # of proprietary drivers from the respective vendors

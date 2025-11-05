@@ -12,11 +12,11 @@ let
   system = "x86_64-linux";
 
   laptop-configuration = self.builders.mkLaptopConfiguration {
-    inherit self inputs;
+    inherit self inputs system;
     inherit (self) lib;
   };
   laptop-installer = self.builders.mkLaptopInstaller {
-    inherit self;
+    inherit self system;
     inherit (self) lib;
   };
 

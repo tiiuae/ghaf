@@ -11,12 +11,10 @@
 let
   inherit (inputs) nixos-hardware;
   name = "microchip-icicle-kit";
-  system = "riscv64-linux";
   microchip-icicle-kit =
     variant: extraModules:
     let
       hostConfiguration = lib.nixosSystem {
-        inherit system;
         specialArgs = {
           inherit (self) lib;
         };
