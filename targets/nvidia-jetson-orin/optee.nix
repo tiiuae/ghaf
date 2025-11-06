@@ -19,8 +19,8 @@ _:
       config.ghaf.hardware.nvidia.orin.optee.pkcs11.enable;
     hardware.nvidia-jetpack.firmware.optee.extraMakeFlags =
       (lib.optionals config.ghaf.hardware.nvidia.orin.optee.pkcs11.enable [
-        "CFG_PKCS11_TA_TOKEN_COUNT=${builtins.toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.tokenCount}"
-        "CFG_PKCS11_TA_HEAP_SIZE=${builtins.toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.heapSize}"
+        "CFG_PKCS11_TA_TOKEN_COUNT=${toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.tokenCount}"
+        "CFG_PKCS11_TA_HEAP_SIZE=${toString config.ghaf.hardware.nvidia.orin.optee.pkcs11.heapSize}"
         "CFG_PKCS11_TA_AUTH_TEE_IDENTITY=${
           if config.ghaf.hardware.nvidia.orin.optee.pkcs11.authTeeIdentity then "y" else "n"
         }"

@@ -85,7 +85,7 @@ let
         "usb-host,hostbus=${dev.hostbus},hostport=${dev.hostport},id=${dev.name}"
       ]
     else
-      builtins.throw ''
+      throw ''
         The internal USB device (name: ${dev.name or "unknown"}) is configured incorrectly.
         Please provide either vendorId and productId or hostbus and hostport.
       '';
@@ -104,7 +104,7 @@ let
 
   # Group devices by the VM name
   permittedDevicesByVm = builtins.listToAttrs (
-    builtins.map (vm: {
+    map (vm: {
       name = vm;
       value = builtins.filter (
         dev: builtins.elem dev.name config.ghaf.hardware.passthrough.VMs.${vm}.permittedDevices
@@ -133,16 +133,16 @@ let
         else if ((dev.hostbus != null) && (dev.hostport != null)) then
           ''KERNEL=="${dev.hostbus}-${dev.hostport}", SUBSYSTEM=="usb", ATTR{busnum}=="${dev.hostbus}", GROUP="kvm"''
         else
-          builtins.throw ''
+          throw ''
             The internal USB device is configured incorrectly.
                   Please provide name, and either vendorId and productId or hostbus and hostport.'';
     in
     lib.strings.concatMapStringsSep "\n" generateRule config.ghaf.hardware.definition.usb.devices;
 
-  vhotplugRules = builtins.map (vm: {
+  vhotplugRules = map (vm: {
     targetVm = vm;
     description = "Static devices for ${vm}";
-    allow = builtins.map (dev: {
+    allow = map (dev: {
       description = dev.name;
       bus = if dev.hostbus != null then lib.toIntBase10 dev.hostbus else null;
       port = if dev.hostport != null then lib.toIntBase10 dev.hostport else null;

@@ -28,7 +28,7 @@ stdenv.mkDerivation {
   makeFlags = [
     "KDIR=${kernel.dev}/lib/modules/${kernel.modDirVersion}/build"
     "MODULEDIR=$(out)/lib/modules/${kernel.modDirVersion}/kernel/drivers/char"
-    "CFLAGS_kvm_ivshmem.o=\"-DCONFIG_KVM_IVSHMEM_VM_COUNT=${builtins.toString vmCount}\""
+    "CFLAGS_kvm_ivshmem.o=\"-DCONFIG_KVM_IVSHMEM_VM_COUNT=${toString vmCount}\""
   ];
 
   meta = {

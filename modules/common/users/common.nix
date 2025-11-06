@@ -6,8 +6,8 @@
   ...
 }:
 let
-  inherit (lib) mkDefault hasAttr;
-  hasStorageVm = (hasAttr "storagevm" config.ghaf) && config.ghaf.storagevm.enable;
+  inherit (lib) mkDefault;
+  hasStorageVm = (lib.hasAttr "storagevm" config.ghaf) && config.ghaf.storagevm.enable;
 in
 {
   # Common ghaf user settings

@@ -21,7 +21,7 @@ stdenv.mkDerivation {
     coreutils
   ];
 
-  src = builtins.fetchGit {
+  src = fetchGit {
     url = "https://github.com/linux-audit/audit-userspace";
     rev = "e0ee54633d663a7b0ccadca15f2a5d74997e6cbc";
     narHash = "sha256-MWlHaGue7Ca8ks34KNg74n4Rfj8ivqAhLOJHeyE2Q04=";

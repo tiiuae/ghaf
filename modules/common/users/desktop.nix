@@ -16,7 +16,6 @@ let
     mkEnableOption
     optionalString
     optionalAttrs
-    concatStringsSep
     ;
 
   loginUserAccount = types.submodule {
@@ -255,7 +254,7 @@ in
                   --member-of=users${
                     optionalString (
                       cfg.loginUser.extraGroups != [ ]
-                    ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
+                    ) ",${lib.concatStringsSep "," cfg.loginUser.extraGroups}"
                   }; then
                     echo "An error occurred while creating the user account. Please try again." >&2
                 ''
@@ -364,7 +363,7 @@ in
                   --member-of=users${
                     optionalString (
                       cfg.loginUser.extraGroups != [ ]
-                    ) ",${concatStringsSep "," cfg.loginUser.extraGroups}"
+                    ) ",${lib.concatStringsSep "," cfg.loginUser.extraGroups}"
                   }
 
                   # Lock user creation script

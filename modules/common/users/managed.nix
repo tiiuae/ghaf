@@ -14,7 +14,6 @@ let
     optionals
     ;
   inherit (lib.attrsets) nameValuePair;
-  inherit (builtins) listToAttrs;
 
   userAccount = types.submodule {
     options = {
@@ -124,7 +123,7 @@ in
       ];
 
       users = {
-        users = listToAttrs (
+        users = builtins.listToAttrs (
           map (
             acc:
             nameValuePair acc.name {
@@ -144,7 +143,7 @@ in
             }
           ) accounts
         );
-        groups = listToAttrs (
+        groups = builtins.listToAttrs (
           map (
             acc:
             optionals (acc.gid == null) (

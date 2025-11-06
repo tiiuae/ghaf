@@ -11,17 +11,11 @@
 }:
 let
   inherit (lib) mkOption types optionalAttrs;
-  inherit (builtins)
-    concatStringsSep
-    filter
-    map
-    hasAttr
-    ;
 
   # Only x86 targets with hw definition supported at the moment
   # TODO: this should at the very least be isx86_64
   inherit (pkgs.stdenv.hostPlatform) isx86;
-  fullVirtualization = isx86 && (hasAttr "hardware" config.ghaf);
+  fullVirtualization = isx86 && (builtins.hasAttr "hardware" config.ghaf);
 in
 {
   options.ghaf.kernel = {
@@ -57,7 +51,7 @@ in
       kernelParams =
         let
           # PCI device passthroughs for vfio
-          filterDevices = filter (d: d.vendorId != null && d.productId != null);
+          filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
           mapPciIdsToString = map (d: "${d.vendorId}:${d.productId}");
           vfioPciIds = mapPciIdsToString (
             filterDevices (
@@ -68,7 +62,7 @@ in
           );
         in
         config.ghaf.hardware.definition.host.kernelConfig.kernelParams
-        ++ [ "vfio-pci.ids=${concatStringsSep "," vfioPciIds}" ];
+        ++ [ "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}" ];
     };
 
     # Guest kernel configurations

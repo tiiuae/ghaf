@@ -10,7 +10,6 @@ let
   inherit (lib)
     concatMapStringsSep
     flatten
-    length
     imap1
     getExe
     mkOption
@@ -57,8 +56,8 @@ let
 
   # Offsets for the PCI root ports
   nicPortOffset = config.ghaf.hardware.usb.vhotplug.pciePortCount;
-  gpuPortOffset = nicPortOffset + (length nicPciDevices);
-  sndPortOffset = gpuPortOffset + (length gpuPciDevices);
+  gpuPortOffset = nicPortOffset + (lib.length nicPciDevices);
+  sndPortOffset = gpuPortOffset + (lib.length gpuPciDevices);
 
 in
 {

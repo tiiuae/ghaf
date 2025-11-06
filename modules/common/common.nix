@@ -13,7 +13,6 @@
   ...
 }:
 let
-  inherit (builtins) attrNames;
   inherit (lib)
     mkOption
     types
@@ -147,7 +146,7 @@ in
         ] config)
         {
           common = {
-            vms = attrNames config.microvm.vms;
+            vms = builtins.attrNames config.microvm.vms;
             adminHost =
               let
                 adminHosts = lib.lists.remove "" (

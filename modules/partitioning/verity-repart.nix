@@ -57,7 +57,7 @@ in
             VerityMatchKey = "root";
             # Create directories needed for nixos activation, as these cannot be
             # created on a read-only filesystem.
-            MakeDirectories = builtins.toString [
+            MakeDirectories = toString [
               "/bin"
               "/boot"
               "/dev"
@@ -137,7 +137,7 @@ in
             Label = "persist";
             Format = "btrfs";
             SizeMinBytes = "500M";
-            MakeDirectories = builtins.toString [
+            MakeDirectories = toString [
               "/storagevm"
             ];
             UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
