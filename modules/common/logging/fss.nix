@@ -403,8 +403,8 @@ in
       };
     };
 
-    # Audit rules to monitor FSS key and journal access
-    ghaf.security.audit.extraRules = [
+    # Audit rules to monitor FSS key and journal access (only if audit is enabled)
+    ghaf.security.audit.extraRules = mkIf (config.ghaf.security.audit.enable or false) [
       # Monitor FSS key directory for any write or attribute changes
       "-w ${cfg.keyPath} -p wa -k journal_fss_keys"
       # Monitor sealed journal logs for tampering attempts
