@@ -15,7 +15,6 @@ let
     mkOption
     types
     getExe
-    optionalString
     optionalAttrs
     ;
   cfg = config.ghaf.logging.fss;
@@ -264,7 +263,8 @@ in
       timerConfig = {
         OnCalendar = cfg.verifySchedule;
         Persistent = true;
-      } // optionalAttrs cfg.verifyOnBoot {
+      }
+      // optionalAttrs cfg.verifyOnBoot {
         OnBootSec = "2min";
       };
     };
