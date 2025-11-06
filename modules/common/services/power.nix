@@ -10,14 +10,11 @@
 let
   cfg = config.ghaf.services.power-manager;
   inherit (lib)
-    attrNames
-    concatStringsSep
     concatMapStringsSep
     filterAttrs
     flatten
     getExe
     literalExpression
-    listToAttrs
     mkDefault
     mkEnableOption
     mkIf
@@ -45,7 +42,7 @@ let
   );
 
   # List of VMs that are running a fake suspend
-  fakeSuspendVms = attrNames (
+  fakeSuspendVms = lib.attrNames (
     filterAttrs (
       _n: v:
       (
@@ -56,7 +53,7 @@ let
   );
 
   # List of VMs that are running a PCI suspend
-  pciSuspendVms = attrNames (
+  pciSuspendVms = lib.attrNames (
     filterAttrs (
       _n: v:
       (
@@ -67,7 +64,7 @@ let
   );
 
   # List of VMs that are powered off on suspend
-  powerOffVms = attrNames (
+  powerOffVms = lib.attrNames (
     filterAttrs (
       _n: v:
       (
@@ -219,7 +216,7 @@ let
           # Script to unbind PCI devices for suspend
           # For convenience, we pass IDs of all passthrough PCI devices,
           # each guest will automatically determine the correct PCI devices
-          pci-binder unbind ${concatStringsSep " " pciDevices}
+          pci-binder unbind ${lib.concatStringsSep " " pciDevices}
           ;;
         *)
           echo "Usage: $0 (suspend|reboot|poweroff)"
@@ -559,7 +556,7 @@ in
       systemd.services = mkMerge [
         # suspend/resume action units
         (optionalAttrs cfg.allowSuspend (
-          listToAttrs (
+          lib.listToAttrs (
             flatten (
               map
                 (suspendAction: [
@@ -632,7 +629,7 @@ in
         # We also shorten TimeoutStopSec from the microvm default (150s) to 30s,
         # since system VMs are expected to power off quickly.
         (mkIf useGivc (
-          listToAttrs (
+          lib.listToAttrs (
             map
               (
                 vmName:
@@ -663,7 +660,7 @@ in
                 }
               )
               (
-                attrNames (
+                lib.attrNames (
                   filterAttrs (
                     _: vm: vm.config.config.ghaf.type == "system-vm" && vm.config.config.ghaf.gracefulShutdown
                   ) config.microvm.vms

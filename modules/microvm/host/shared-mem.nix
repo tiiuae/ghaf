@@ -12,7 +12,6 @@
 let
   cfg = config.ghaf.shm;
   inherit (lib)
-    foldl'
     lists
     mkMerge
     mkIf
@@ -45,11 +44,7 @@ in
         values are 2 MB and 1 GB
       '';
       apply =
-        value:
-        if value != "2M" && value != "1G" then
-          builtins.throw "Invalid huge memory area page size"
-        else
-          value;
+        value: if value != "2M" && value != "1G" then throw "Invalid huge memory area page size" else value;
     };
     hostSocketPath = mkOption {
       type = types.path;
@@ -92,7 +87,7 @@ in
     };
     serverSocketPath = mkOption {
       type = types.path;
-      default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-server.sock";
+      default = "/run/user/${toString config.ghaf.users.loginUser.uid}/memsocket-server.sock";
       description = ''
         Specifies the path of the listening socket, which is used by Waypipe
         or other server applications as the output socket in server mode for
@@ -101,7 +96,7 @@ in
     };
     clientSocketPath = mkOption {
       type = types.path;
-      default = "/run/user/${builtins.toString config.ghaf.users.loginUser.uid}/memsocket-client.sock";
+      default = "/run/user/${toString config.ghaf.users.loginUser.uid}/memsocket-client.sock";
       description = ''
         Specifies the location of the output socket, which will connected to
         in order to receive data from AppVMs. This socket must be created by
@@ -237,7 +232,7 @@ in
                           description = "memsocket";
                           serviceConfig = {
                             Type = "simple";
-                            ExecStart = "${memsocket}/bin/memsocket -s ${cfg.serverSocketPath} ${builtins.toString vmIndex}";
+                            ExecStart = "${memsocket}/bin/memsocket -s ${cfg.serverSocketPath} ${toString vmIndex}";
                             Restart = "always";
                             RestartSec = "1";
                           };
@@ -248,7 +243,7 @@ in
               };
             };
           in
-          foldl' lib.attrsets.recursiveUpdate { } (map makeAssignment cfg.vms_enabled);
+          lib.foldl' lib.attrsets.recursiveUpdate { } (map makeAssignment cfg.vms_enabled);
       }
       {
         microvm.vms.gui-vm.config.config.boot.kernelParams = [

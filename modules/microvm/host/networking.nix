@@ -9,8 +9,6 @@
 let
   cfg = config.ghaf.host.networking;
   inherit (lib)
-    concatStringsSep
-    hasAttr
     literalExpression
     mapAttrsToList
     mkEnableOption
@@ -26,7 +24,7 @@ let
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
-  hasNetvm = hasAttr "net-vm" config.microvm.vms;
+  hasNetvm = lib.hasAttr "net-vm" config.microvm.vms;
 in
 {
   options.ghaf.host.networking = {
@@ -145,7 +143,7 @@ in
             DHCP = hasNetvm && !enableStaticArp;
             DHCPServer = !hasNetvm && !enableStaticArp;
           };
-          extraConfig = concatStringsSep "\n" (
+          extraConfig = lib.concatStringsSep "\n" (
             mapAttrsToList (_: entry: ''
               [Neighbor]
               Address=${entry.ipv4}

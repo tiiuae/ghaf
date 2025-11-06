@@ -15,11 +15,9 @@ let
     mkIf
     mkMerge
     types
-    foldl'
-    attrNames
     ;
   has_acpi_path = config.ghaf.hardware.definition.audio.acpiPath != null;
-  activeMicrovms = attrNames config.microvm.vms;
+  activeMicrovms = lib.attrNames config.microvm.vms;
 in
 {
   imports = [
@@ -119,7 +117,9 @@ in
             vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
           ) (builtins.attrValues config.microvm.vms);
           xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
-          xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
+          xdgRules = map (
+            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.loginUser.uid} users -"
+          ) xdgDirs;
           vmsHaveEncryptedStorage = builtins.any (
             vm:
             lib.hasAttr "storagevm" vm.config.config.ghaf && vm.config.config.ghaf.storagevm.encryption.enable
@@ -149,7 +149,7 @@ in
 
       systemd.services =
         let
-          patchedMicrovmServices = foldl' (
+          patchedMicrovmServices = lib.foldl' (
             result: name:
             result
             // {
@@ -166,7 +166,7 @@ in
             lib.hasAttr "storagevm" vm.config.config.ghaf && vm.config.config.ghaf.storagevm.encryption.enable
           ) config.microvm.vms;
 
-          vmstorageSetupServices = foldl' (
+          vmstorageSetupServices = lib.foldl' (
             result: name:
             result
             // {

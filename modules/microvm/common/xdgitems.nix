@@ -12,8 +12,6 @@ let
   inherit (cfg) xdgHostRoot;
   inherit (config.ghaf.networking) hosts;
   inherit (lib)
-    hasAttr
-    listToAttrs
     optionalString
     mkEnableOption
     mkOption
@@ -66,7 +64,7 @@ let
   #   }
   setDefaultAppForTypes =
     mimeTypes: defaultApplication:
-    listToAttrs (
+    lib.listToAttrs (
       map (mimeType: {
         name = mimeType;
         value = defaultApplication;
@@ -134,9 +132,9 @@ let
         urlVmName =
           if config.ghaf.xdghandlers.url then
             "${config.networking.hostName}"
-          else if hasAttr "chrome-vm" hosts then
+          else if lib.hasAttr "chrome-vm" hosts then
             "chrome-vm"
-          else if hasAttr "chromium-vm" hosts then
+          else if lib.hasAttr "chromium-vm" hosts then
             "chromium-vm"
           else
             "";

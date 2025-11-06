@@ -9,7 +9,6 @@
 let
   inherit (lib)
     concatMapStringsSep
-    concatStringsSep
     mkBefore
     mkEnableOption
     mkForce
@@ -20,7 +19,6 @@ let
     strings
     types
     mkMerge
-    hasAttr
     mkDefault
     ;
   blackListName = "BLACKLIST";
@@ -90,8 +88,8 @@ let
         if isSafe rule then
           "iptables -t ${table} -A ${chain} ${rule}"
         else
-          throw "Unsafe iptables rule fragment: '${rule}' — must not contain:  ${concatStringsSep ", " disallowed},
-           Expected: ${concatStringsSep ", " expected}";
+          throw "Unsafe iptables rule fragment: '${rule}' — must not contain:  ${lib.concatStringsSep ", " disallowed},
+           Expected: ${lib.concatStringsSep ", " expected}";
     in
     if rules == [ ] then "" else concatMapStringsSep "\n" validate rules;
 
@@ -295,7 +293,7 @@ in
           ipset create ${blackListName} hash:ip timeout 3600 maxelem ${toString cfg.blacklistSize} -exist
 
           # Create IDS_BLACKLIST (snort, suricata,...)
-          ${concatStringsSep "\n" (
+          ${lib.concatStringsSep "\n" (
             optionals cfg.IdsEnabled [
               "ipset create IDS_BLACKLIST hash:ip timeout 3600 maxelem 65536 -exist"
             ]
@@ -473,7 +471,7 @@ in
             rules = cfg.extra.postrouting.nat;
           }}
 
-          ${optionalString (cfg.filter-arp && (hasAttr "host" config.ghaf)) ''
+          ${optionalString (cfg.filter-arp && (lib.hasAttr "host" config.ghaf)) ''
             # Drop ARP traffic on all tap-* interfaces
             ebtables -A INPUT -p arp -j DROP -i tap-+
             ebtables -A FORWARD -p arp -j DROP -i tap-+

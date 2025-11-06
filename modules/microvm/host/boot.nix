@@ -15,9 +15,7 @@ let
     mkForce
     mkOption
     types
-    attrNames
     filterAttrs
-    foldl'
     removeSuffix
     optionals
     optionalAttrs
@@ -26,9 +24,9 @@ let
   inherit (config.ghaf.virtualization.microvm) appvm;
 
   # Filter system and enabled app VMs
-  appVms = attrNames (filterAttrs (_: vm: vm.enable) appvm.vms);
+  appVms = lib.attrNames (filterAttrs (_: vm: vm.enable) appvm.vms);
   sysVms = map (name: removeSuffix "-vm" name) (
-    attrNames (filterAttrs (_: vm: vm.config.config.ghaf.type == "system-vm") config.microvm.vms)
+    lib.attrNames (filterAttrs (_: vm: vm.config.config.ghaf.type == "system-vm") config.microvm.vms)
   );
 
   # Boot priority mapping for app VMs
@@ -49,7 +47,7 @@ let
   # Functions to configure systemd service dependencies
   mkServiceDependencies =
     group: service-prefix:
-    foldl' (
+    lib.foldl' (
       result: name:
       result
       // {
@@ -81,7 +79,7 @@ let
           };
         };
       }
-      // (foldl' (result: name: result // { "system-${group}-${name}" = { }; }) { } (
+      // (lib.foldl' (result: name: result // { "system-${group}-${name}" = { }; }) { } (
         if group == "sysvms" then sysVms else appVms
       ))
     );
@@ -151,7 +149,7 @@ in
       systemd.targets = {
         # Override microvm.nix's default target (default is VMs with autostart)
         microvms = {
-          wants = mkForce (map (name: "microvm@${name}.service") (attrNames config.microvm.vms));
+          wants = mkForce (map (name: "microvm@${name}.service") (lib.attrNames config.microvm.vms));
         };
       }
       // optionalAttrs cfg.uiEnabled {

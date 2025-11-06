@@ -9,12 +9,11 @@
 let
   cfg = config.ghaf.reference.programs.element-desktop;
   inherit (lib)
-    hasAttr
     mkIf
     mkEnableOption
     ;
   isDendritePineconeEnabled =
-    if (hasAttr "services" config.ghaf.reference) then
+    if (lib.hasAttr "services" config.ghaf.reference) then
       config.ghaf.reference.services.dendrite
     else
       false;

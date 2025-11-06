@@ -16,7 +16,6 @@ let
     types
     mkMerge
     optionalAttrs
-    hasAttr
     ;
 in
 {
@@ -117,7 +116,7 @@ in
         ];
       }
       # Enable persistent storage for pipewire state to restore settings on boot
-      (optionalAttrs (hasAttr "storagevm" config.ghaf) {
+      (optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
         storagevm.directories = [
           {
             directory = "/var/lib/pipewire";

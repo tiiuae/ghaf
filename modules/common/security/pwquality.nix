@@ -16,11 +16,11 @@ let
   creditVal =
     val:
     if val < 0 then
-      throw "pwquality value must not be negative: ${builtins.toString val}"
+      throw "pwquality value must not be negative: ${toString val}"
     else if val == 0 then
       "0"
     else
-      "-" + builtins.toString val;
+      "-" + toString val;
 in
 {
   options.ghaf.security.pwquality = {
@@ -77,12 +77,12 @@ in
   };
   config = mkIf cfg.enable {
     environment.etc."security/pwquality.conf".text = ''
-      minlen = ${builtins.toString config.ghaf.security.pwquality.minLength}
+      minlen = ${toString config.ghaf.security.pwquality.minLength}
       dcredit = ${creditVal config.ghaf.security.pwquality.minDigit}
       ucredit = ${creditVal config.ghaf.security.pwquality.minUppercase}
       lcredit = ${creditVal config.ghaf.security.pwquality.minLowercase}
       ocredit = ${creditVal config.ghaf.security.pwquality.minSpecialChar}
-      remember = ${builtins.toString config.ghaf.security.pwquality.rememberOld}
+      remember = ${toString config.ghaf.security.pwquality.rememberOld}
     '';
   };
 }

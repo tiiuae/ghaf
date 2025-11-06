@@ -141,9 +141,9 @@ in
           };
       }
       // builtins.listToAttrs (
-        builtins.map
-          (path: {
-            name = path;
+        map
+          (pathDir: {
+            name = pathDir;
             value = tmpfsConfig;
           })
           [

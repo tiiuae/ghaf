@@ -149,7 +149,7 @@ in
                 "preauth"
                 "audit"
                 "unlock_time=900"
-                "deny=${builtins.toString cfg.failLock.maxTries}"
+                "deny=${toString cfg.failLock.maxTries}"
               ];
             };
 
@@ -163,7 +163,7 @@ in
                 "authfail"
                 "audit"
                 "unlock_time=900"
-                "deny=${builtins.toString cfg.failLock.maxTries}"
+                "deny=${toString cfg.failLock.maxTries}"
               ];
             };
           };

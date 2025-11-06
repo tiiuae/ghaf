@@ -9,9 +9,7 @@ let
     recursiveUpdate
     optionalString
     types
-    length
     trivial
-    listToAttrs
     nameValuePair
     ;
 
@@ -36,7 +34,7 @@ let
       mac = "${macBaseAddress}${optionalString (idx < 16) "0"}${trivial.toHexString idx}";
       ipv4 = "${ipv4BaseAddress}${toString idx}";
       ipv6 = "${ipv6BaseAddress}${toString idx}";
-      cid = if name == "net-vm" then (length hostList) + 1 else idx;
+      cid = if name == "net-vm" then (lib.length hostList) + 1 else idx;
       ipv4SubnetPrefixLength = 24;
       interfaceName = "ethint0";
     }) hostList
@@ -57,12 +55,12 @@ let
     ) config.ghaf.common.appHosts;
 
   # Evaluate generated hosts as attrset
-  generatedHostAttrs = listToAttrs (map (host: nameValuePair host.name host) generatedHosts);
+  generatedHostAttrs = lib.listToAttrs (map (host: nameValuePair host.name host) generatedHosts);
   # Extract names of all extra hosts
   extraHostNames = lib.attrNames config.ghaf.common.extraNetworking.hosts;
 
   # Merge logic per host
-  mergedExtraHosts = listToAttrs (
+  mergedExtraHosts = lib.listToAttrs (
     map (
       name:
       let

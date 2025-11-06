@@ -633,7 +633,7 @@ writeText "widgets.yuck" ''
                           :space-evenly "true"
                           ${
                             lib.concatStringsSep "\n" (
-                              builtins.map (index: ''
+                              map (index: ''
                                 (button
                                     :class "taskbar_button"
                                     :style "padding: 2px 7px;"

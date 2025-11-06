@@ -96,7 +96,7 @@ let
     <keyboard>
       <default />
       ${lib.concatStringsSep "\n" (
-        builtins.map (index: ''
+        map (index: ''
           <keybind key="W-${toString index}">
             <action name="GoToDesktop" to="${toString index}" />
             <action name="Execute" command="bash -c 'echo 1 > ~/.config/eww/workspace; ${ghaf-workspace}/bin/ghaf-workspace update ${toString index}'" />

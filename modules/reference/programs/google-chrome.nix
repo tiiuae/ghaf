@@ -10,12 +10,10 @@ let
   inherit (lib)
     mkOption
     mkEnableOption
-    filter
     types
     mkIf
     mkMerge
     literalExpression
-    any
     getExe
     optionalString
     ;
@@ -44,7 +42,7 @@ let
       throw "Invalid Chrome extension '${toString ext}'. Must be either a string (extension ID) or a package in 'packages/chrome-extensions/default.nix'."
   ) cfg.extensions;
 
-  localExtensions = filter (ext: ext.source == "local") normalizedExtensions;
+  localExtensions = lib.filter (ext: ext.source == "local") normalizedExtensions;
 
   localExtensionDir =
     if localExtensions == [ ] then
@@ -155,9 +153,9 @@ in
     localExtensionServer = {
       enable = mkOption {
         type = types.bool;
-        default = any (ext: ext.source == "local") normalizedExtensions;
+        default = lib.any (ext: ext.source == "local") normalizedExtensions;
         defaultText = literalExpression ''
-          any (ext: ext.source == "local") config.ghaf.reference.programs.google-chrome.extensions
+          lib.any (ext: ext.source == "local") config.ghaf.reference.programs.google-chrome.extensions
         '';
         description = "Enable local extension update HTTP server";
       };
@@ -184,7 +182,7 @@ in
     assertions = [
       {
         assertion =
-          (any (ext: ext.source == "local") normalizedExtensions) -> cfg.localExtensionServer.enable;
+          (lib.any (ext: ext.source == "local") normalizedExtensions) -> cfg.localExtensionServer.enable;
         message = "Local extensions are configured but localExtensionServer is disabled";
       }
       {

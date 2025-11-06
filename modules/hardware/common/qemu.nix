@@ -7,7 +7,6 @@
   ...
 }:
 let
-  inherit (builtins) hasAttr;
   inherit (lib)
     mkOption
     types
@@ -43,11 +42,11 @@ in
           "-device"
           "acad,use-qmp=false,enable-sysfs=true,probe_interval=5000"
         ]
-        ++ optionals (hasAttr "gui-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.gui-vm;
+        ++ optionals (builtins.hasAttr "gui-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.gui-vm;
     };
     ghaf.qemu.audiovm = optionalAttrs (config.ghaf.type == "host") {
       microvm.qemu.extraArgs =
-        optionals (hasAttr "audio-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.audio-vm
+        optionals (builtins.hasAttr "audio-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.audio-vm
         ++ optionals (config.ghaf.hardware.definition.type == "laptop") [
           "-device"
           "battery,use-qmp=false,enable-sysfs=true,probe_interval=20000"

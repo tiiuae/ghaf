@@ -8,8 +8,6 @@
 let
   cfg = config.ghaf.virtualization.microvm.vm-networking;
   inherit (lib)
-    concatStringsSep
-    hasAttr
     mapAttrsToList
     mkEnableOption
     mkDefault
@@ -21,7 +19,7 @@ let
   inherit (config.ghaf.networking) hosts;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
 
-  isIdsvmEnabled = hasAttr "ids-vm" hosts;
+  isIdsvmEnabled = lib.hasAttr "ids-vm" hosts;
   netVmAddress = hosts."net-vm".ipv4;
   idsVmAddress = hosts."ids-vm".ipv4;
   gateway = if isIdsvmEnabled && (cfg.vmName != "ids-vm") then [ idsVmAddress ] else [ netVmAddress ];
@@ -102,7 +100,7 @@ in
           RequiredForOnline = "routable";
           ActivationPolicy = "always-up";
         };
-        extraConfig = concatStringsSep "\n" (
+        extraConfig = lib.concatStringsSep "\n" (
           mapAttrsToList (_: entry: ''
             [Neighbor]
             Address=${entry.ipv4}
