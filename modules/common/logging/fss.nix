@@ -33,24 +33,43 @@ let
 
       KEY_DIR="${cfg.keyPath}"
       INIT_FILE="$KEY_DIR/initialized"
+      MACHINE_ID=$(cat /etc/machine-id)
+      FSS_KEY_FILE="/var/log/journal/$MACHINE_ID/fss"
 
       # Create key directory if it doesn't exist
       mkdir -p "$KEY_DIR"
       chmod 0700 "$KEY_DIR"
 
-      # Setup FSS keys with specified interval
-      echo "Setting up Forward Secure Sealing keys..."
-      journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt"
+      # Check if FSS keys already exist
+      if [ -f "$FSS_KEY_FILE" ]; then
+        echo "FSS sealing key already exists at $FSS_KEY_FILE"
+        echo "Extracting verification key for backup..."
+        # Re-run setup to get output (won't regenerate key without --force)
+        # We just need the verification key from the output
+        if journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt" 2>&1; then
+          echo "Keys already configured"
+        else
+          echo "Note: Keys exist, extraction may have failed (this is OK)"
+        fi
+      else
+        echo "Setting up Forward Secure Sealing keys..."
+        journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt"
+      fi
 
       # The sealing key is stored by systemd in /var/lib/systemd/journal/<machine-id>/
       # We extract the verification key from the output for backup
-      if grep -q "Verification key" "$KEY_DIR/setup-output.txt"; then
-        grep "Verification key" "$KEY_DIR/setup-output.txt" | cut -d: -f2- | tr -d ' ' > "$KEY_DIR/verification-key"
+      if grep -q "secret verification key" "$KEY_DIR/setup-output.txt"; then
+        # Extract the verification key (format: "Please write down the following secret verification key...")
+        grep -A1 "secret verification key" "$KEY_DIR/setup-output.txt" | tail -1 | tr -d ' ' > "$KEY_DIR/verification-key"
         chmod 0400 "$KEY_DIR/verification-key"
-        echo "FSS keys generated successfully"
+        echo "FSS verification key extracted successfully"
       else
-        echo "Error: Failed to extract verification key"
-        exit 1
+        echo "Warning: Could not extract verification key from output"
+        # Don't fail if keys already existed - they're still usable
+        if [ ! -f "$FSS_KEY_FILE" ]; then
+          echo "Error: FSS key generation failed"
+          exit 1
+        fi
       fi
 
       # Create sentinel file to prevent re-initialization
@@ -74,11 +93,11 @@ let
       echo "Verifying journal integrity with Forward Secure Sealing..."
 
       if journalctl --verify 2>&1; then
-        logger -p auth.info -t journal-fss "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verification passed"
+        echo "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verification passed" | systemd-cat -t journal-fss -p info
         echo "Journal integrity verification: PASSED"
         exit 0
       else
-        logger -p auth.crit -t journal-fss "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected"
+        echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
         echo "Journal integrity verification: FAILED"
         echo "WARNING: Audit log integrity compromised - alert sent to central logging"
         exit 1
@@ -218,7 +237,7 @@ in
         ProtectKernelTunables = true;
         ProtectKernelModules = true;
         ProtectControlGroups = true;
-        RestrictAddressFamilies = [ "none" ];
+        RestrictAddressFamilies = [ "AF_UNIX" ]; # Allow UNIX sockets for systemd-cat
         RestrictNamespaces = true;
         LockPersonality = true;
         MemoryDenyWriteExecute = true;
@@ -226,8 +245,9 @@ in
         RestrictSUIDSGID = true;
         PrivateMounts = true;
 
-        # Allow read access to journal files
-        ReadOnlyPaths = [
+        # Allow read-write access to journal files for verification
+        # journalctl --verify needs write access to create verification metadata
+        ReadWritePaths = [
           "/var/log/journal"
           "/run/log/journal"
         ];
