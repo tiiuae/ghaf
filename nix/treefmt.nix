@@ -91,6 +91,7 @@
             "*.db"
             "*.mp3"
             "*.txt"
+            "*.patch" # Exclude patch files - they should not be reformatted
             ".version"
             ".nojekyll"
             "*.git*"

@@ -7,15 +7,22 @@
     {
       config,
       pkgs,
-      self',
-      lib,
       ...
     }:
     {
-      checks = {
-        pre-commit-check = config.pre-commit.devShell;
-      }
-      // (lib.mapAttrs' (n: lib.nameValuePair "package-${n}") self'.packages);
+      # Checks are automatically provided by git-hooks-nix.flakeModule:
+      # - checks.${system}.pre-commit: runs all pre-commit hooks (treefmt, reuse, etc.)
+      #
+      # Developer workflow:
+      # - nix/devshell.nix uses config.pre-commit.installationScript to install
+      #   git hooks into .git/hooks/ when entering the dev environment
+      # - The hooks run automatically on `git commit` for staged files only
+      #
+      # CI workflow:
+      # - checks.${system}.pre-commit runs all hooks on all tracked files
+      # - Used by .github/workflows/check.yml to enforce code standards
+
+      checks = { };
 
       pre-commit = {
         settings = {
@@ -36,11 +43,21 @@
               enable = true;
               # Run on pre-commit to only check staged files
               stages = [ "pre-commit" ];
+              # Exclude files that should not be modified
+              excludes = [
+                ".*\\.patch$"
+                ".*\\.dts$"
+              ];
             };
             trim-trailing-whitespace = {
               enable = true;
               # Run on pre-commit to only check staged files
               stages = [ "pre-commit" ];
+              # Excludes files that should not be modified
+              excludes = [
+                ".*\\.patch$"
+                ".*\\.dts$"
+              ];
             };
           };
         };
