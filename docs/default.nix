@@ -71,6 +71,6 @@ buildNpmPackage (_finalAttrs: {
     runHook postInstall
   '';
 
-  npmDepsHash = "sha256-t7EN7MxkNeYXlL/p+5fLeoz0fHHh5mYigq7wHZJ5JeA=";
+  npmDepsHash = "sha256-hG5sbFsp89vjdmJAZdazqzv1eUMxcmTsyWDcTRb3gWU=";
 
 })
