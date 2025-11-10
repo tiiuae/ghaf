@@ -180,6 +180,25 @@ in
                   # Consider 'systemctl stop' as normal exit
                   trap 'exit 0' TERM
 
+                  # Clean up any partial state from previous interrupted runs
+                  # This ensures atomic behavior - either user is fully created or we start fresh
+                  if [ ! -f /var/lib/nixos/user.lock ]; then
+                    echo "Cleaning up any partial user creation state..."
+                    # Remove any partial homed user records
+                    if [ -d /var/lib/systemd/home ]; then
+                      for user_file in /var/lib/systemd/home/*.home; do
+                        [ -e "$user_file" ] || continue
+                        if [ -f "$user_file" ]; then
+                          username=$(basename "$user_file" .home)
+                          echo "Removing incomplete user: $username"
+                          homectl remove "$username" 2>/dev/null || true
+                        fi
+                      done
+                      # Clean up any remaining files
+                      rm -rf /var/lib/systemd/home/* 2>/dev/null || true
+                    fi
+                  fi
+
                   brightnessctl set 100%
 
                   SETUP_COMPLETE=false
@@ -309,6 +328,29 @@ in
                   install -m 000 /dev/null /var/lib/nixos/user.lock
                 '';
               };
+
+              cleanupScript = pkgs.writeShellApplication {
+                name = "cleanup-ghaf-user";
+                runtimeInputs = [
+                  pkgs.coreutils
+                  pkgs.systemd
+                ];
+                text = ''
+                  # Clean up partial state if lock file doesn't exist (interrupted setup)
+                  if [ ! -f /var/lib/nixos/user.lock ] && [ -d /var/lib/systemd/home ]; then
+                    echo "Cleaning up interrupted user setup..."
+                    for user_file in /var/lib/systemd/home/*.home; do
+                      [ -e "$user_file" ] || continue
+                      if [ -f "$user_file" ]; then
+                        username=$(basename "$user_file" .home)
+                        echo "Removing incomplete user: $username"
+                        homectl remove "$username" 2>/dev/null || true
+                      fi
+                    done
+                    rm -rf /var/lib/systemd/home/* 2>/dev/null || true
+                  fi
+                '';
+              };
             in
             {
               description = "First boot user setup";
@@ -326,6 +368,7 @@ in
                 TTYReset = true;
                 TTYVHangup = true;
                 ExecStart = "${userSetupScript}/bin/setup-ghaf-user";
+                ExecStopPost = "${cleanupScript}/bin/cleanup-ghaf-user";
                 Restart = "on-failure";
               };
             };
