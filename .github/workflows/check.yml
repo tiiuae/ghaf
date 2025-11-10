@@ -28,10 +28,12 @@ jobs:
                   persist-credentials: false
             - name: Install nix
               uses: cachix/install-nix-action@456688f15bc354bef6d396e4a35f4f89d40bf2b7 # v31.8.2
-            - name: Check .nix formatting
-              run: nix fmt -- --fail-on-change
-            - name: Check reuse lint
-              run: nix develop --command reuse lint
+            - name: Run pre-commit checks
+              run: |
+                  # Run all pre-commit hooks defined in nix/checks.nix
+                  # This includes: treefmt (with nixf-diagnose, deadnix, statix, etc.),
+                  # reuse, end-of-file-fixer, and trim-trailing-whitespace
+                  nix build .#checks.x86_64-linux.pre-commit-check --print-build-logs
             - name: Check nix flake show runs successfully
               run: nix flake show --all-systems
             - name: Check templates

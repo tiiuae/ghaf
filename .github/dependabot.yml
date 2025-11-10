@@ -4,8 +4,6 @@ updates:
       directory: /
       schedule:
           interval: weekly
-      cooldown:
-          default-days: 4
 
     - package-ecosystem: npm
       directory: /docs

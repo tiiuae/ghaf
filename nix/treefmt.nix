@@ -25,6 +25,7 @@
           nixf-diagnose.enable = true;
 
           deadnix.enable = true; # removes dead nix code https://github.com/astro/deadnix
+
           statix.enable = true; # prevents use of nix anti-patterns https://github.com/nerdypepper/statix
 
           # Python
