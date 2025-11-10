@@ -3,7 +3,7 @@
 {
   lib,
   stdenv,
-  fetchurl,
+  pkgs,
   gtk3,
   atk,
   glib,
@@ -95,12 +95,12 @@ stdenv.mkDerivation (finalAttrs: {
   # TODO: use pname and version when the url is fixed
   src =
     if stdenv.isAarch64 then
-      fetchurl {
+      pkgs.fetchurl {
         url = "https://vedenemo.dev/files/gala/dev.scpp.saca.gala-0.1.30.1-arm64.zip";
         sha256 = "1c1ka8nlxr3ws1faixp1hxxg5i622pqr9mwrxqpqnq6d8hhqva80";
       }
     else
-      fetchurl {
+      pkgs.fetchurl {
         url = "https://vedenemo.dev/files/gala/dev.scpp.saca.gala-0.1.30.1-amd64.zip";
         sha256 = "1dhsgqqfmvlxlvlw36vzwmmmf3113nn8is3c2didwqgx845zgkd4";
       };

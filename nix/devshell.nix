@@ -42,12 +42,6 @@
           };
           commands = [
             {
-              help = "Format";
-              name = "format-repo";
-              command = "treefmt";
-              category = "checker";
-            }
-            {
               help = "Check license";
               name = "check-license";
               command = "reuse lint";

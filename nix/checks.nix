@@ -23,20 +23,24 @@
             treefmt = {
               enable = true;
               package = config.treefmt.build.wrapper;
-              stages = [ "pre-push" ];
+              # Run on pre-commit to only check staged files
+              stages = [ "pre-commit" ];
             };
             reuse = {
               enable = true;
               package = pkgs.reuse;
-              stages = [ "pre-push" ];
+              # Run on pre-commit to only check staged files
+              stages = [ "pre-commit" ];
             };
             end-of-file-fixer = {
               enable = true;
-              stages = [ "pre-push" ];
+              # Run on pre-commit to only check staged files
+              stages = [ "pre-commit" ];
             };
             trim-trailing-whitespace = {
               enable = true;
-              stages = [ "pre-push" ];
+              # Run on pre-commit to only check staged files
+              stages = [ "pre-commit" ];
             };
           };
         };

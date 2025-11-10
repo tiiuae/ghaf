@@ -132,6 +132,16 @@
       };
     };
 
+    # lsp and cmdline tools for the cli
+    nixd = {
+      url = "github:nix-community/nixd";
+      inputs = {
+        flake-parts.follows = "flake-parts";
+        flake-root.follows = "flake-root";
+        treefmt-nix.follows = "treefmt-nix";
+      };
+    };
+
     # Building various image types for NixOS
     nixos-generators = {
       url = "github:nix-community/nixos-generators";
