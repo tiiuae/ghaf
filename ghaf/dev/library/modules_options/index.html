@@ -1,4 +1,4 @@
-<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-bguv2lll"> <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Modules Options | Ghaf Framework</title><link rel="canonical" href="https://ghaf.tii.ae/ghaf/dev/library/modules_options/"/><link rel="sitemap" href="/sitemap-index.xml"/><link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v5.15.3"/><meta name="generator" content="Starlight v0.36.1"/><meta property="og:title" content="Modules Options"/><meta property="og:type" content="article"/><meta property="og:url" content="https://ghaf.tii.ae/ghaf/dev/library/modules_options/"/><meta property="og:locale" content="en"/><meta property="og:description"/><meta property="og:site_name" content="Ghaf Framework"/><meta name="twitter:card" content="summary_large_image"/><script>
+<!DOCTYPE html><html lang="en" dir="ltr" data-theme="dark" data-has-toc data-has-sidebar class="astro-bguv2lll"> <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width, initial-scale=1"/><title>Modules Options | Ghaf Framework</title><link rel="canonical" href="https://ghaf.tii.ae/ghaf/dev/library/modules_options/"/><link rel="sitemap" href="/sitemap-index.xml"/><link rel="shortcut icon" href="/favicon.svg" type="image/svg+xml"/><meta name="generator" content="Astro v5.15.4"/><meta name="generator" content="Starlight v0.36.2"/><meta property="og:title" content="Modules Options"/><meta property="og:type" content="article"/><meta property="og:url" content="https://ghaf.tii.ae/ghaf/dev/library/modules_options/"/><meta property="og:locale" content="en"/><meta property="og:description"/><meta property="og:site_name" content="Ghaf Framework"/><meta name="twitter:card" content="summary_large_image"/><script>
 	window.StarlightThemeProvider = (() => {
 		const storedTheme =
 			typeof localStorage !== 'undefined' && localStorage.getItem('starlight-theme');
@@ -3693,7 +3693,7 @@ attribute set</p>
 <p><em>Type:</em>
 boolean</p>
 <p><em>Default:</em></p>
-<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">any (ext: ext.source == "local") config.ghaf.reference.programs.google-chrome.extensions</span></div></div></code></pre><div class="copy"><button title="Copy to clipboard" data-copied="Copied!" data-code="any (ext: ext.source == &#x22;local&#x22;) config.ghaf.reference.programs.google-chrome.extensions"><div></div></button></div></figure></div>
+<div class="expressive-code"><figure class="frame not-content"><figcaption class="header"></figcaption><pre data-language="plaintext"><code><div class="ec-line"><div class="code"><span style="--0:#d6deeb;--1:#403f53">lib.any (ext: ext.source == "local") config.ghaf.reference.programs.google-chrome.extensions</span></div></div></code></pre><div class="copy"><button title="Copy to clipboard" data-copied="Copied!" data-code="lib.any (ext: ext.source == &#x22;local&#x22;) config.ghaf.reference.programs.google-chrome.extensions"><div></div></button></div></figure></div>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix">https://github.com/tiiuae/ghaf/blob/main/modules/reference/programs/google-chrome.nix</a></li>
@@ -5581,13 +5581,13 @@ boolean</p>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/users/desktop.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/users/desktop.nix</a></li>
 </ul>
 <div class="sl-heading-wrapper level-h2"><h2 id="ghafusersloginuserhomesize">ghaf.users.loginUser.homeSize</h2><a class="sl-anchor-link" href="#ghafusersloginuserhomesize"><span aria-hidden="true" class="sl-anchor-icon"><svg width="16" height="16" viewBox="0 0 24 24"><path fill="currentcolor" d="m12.11 15.39-3.88 3.88a2.52 2.52 0 0 1-3.5 0 2.47 2.47 0 0 1 0-3.5l3.88-3.88a1 1 0 0 0-1.42-1.42l-3.88 3.89a4.48 4.48 0 0 0 6.33 6.33l3.89-3.88a1 1 0 1 0-1.42-1.42Zm8.58-12.08a4.49 4.49 0 0 0-6.33 0l-3.89 3.88a1 1 0 0 0 1.42 1.42l3.88-3.88a2.52 2.52 0 0 1 3.5 0 2.47 2.47 0 0 1 0 3.5l-3.88 3.88a1 1 0 1 0 1.42 1.42l3.88-3.89a4.49 4.49 0 0 0 0-6.33ZM8.83 15.17a1 1 0 0 0 1.1.22 1 1 0 0 0 .32-.22l4.92-4.92a1 1 0 0 0-1.42-1.42l-4.92 4.92a1 1 0 0 0 0 1.42Z"></path></svg></span><span class="sr-only">Section titled “ghaf.users.loginUser.homeSize”</span></a></div>
-<p>Size of the home directory for the login user in MB (integer).
+<p>Size of the home directory for the login user in MiB (integer).
 The integer size is inherited from the microvm volume size parameter.
-Defaults to 800 GB (800000 MB).</p>
+Defaults to 400 GiB.</p>
 <p><em>Type:</em>
 signed integer</p>
 <p><em>Default:</em>
-<code dir="auto">800000</code></p>
+<code dir="auto">409600</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/users/desktop.nix">https://github.com/tiiuae/ghaf/blob/main/modules/common/users/desktop.nix</a></li>
@@ -5772,7 +5772,7 @@ string</p>
 <p><em>Type:</em>
 string <em>(read only)</em></p>
 <p><em>Default:</em>
-<code dir="auto">"25.10.2"</code></p>
+<code dir="auto">"25.11.1"</code></p>
 <p><em>Declared by:</em></p>
 <ul>
 <li><a href="https://github.com/tiiuae/ghaf/blob/main/modules/common/version">https://github.com/tiiuae/ghaf/blob/main/modules/common/version</a></li>
