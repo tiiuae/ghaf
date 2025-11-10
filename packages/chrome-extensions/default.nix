@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   callPackage,
-  fetchurl,
+  pkgs,
   google-chrome,
   jq,
   lib,
@@ -25,7 +25,7 @@ let
     stdenvNoCC.mkDerivation {
       inherit name version;
       pname = name;
-      src = fetchurl {
+      src = pkgs.fetchurl {
         name = "${name}-${version}.crx";
         url =
           if fixedVersion then

@@ -7,7 +7,12 @@
     inputs.treefmt-nix.flakeModule
   ];
   perSystem =
-    { config, pkgs, ... }:
+    {
+      config,
+      pkgs,
+      inputs',
+      ...
+    }:
     {
       treefmt = {
         inherit (config.flake-root) projectRootFile;
@@ -41,17 +46,13 @@
 
         settings = {
           formatter = {
-            "statix-check" = {
-              command = "${pkgs.statix}/bin/statix";
-              options = [ "check" ];
-              includes = [ "." ];
-            };
-
             nixf-diagnose = {
               # Ensure nixfmt cleans up after nixf-diagnose.
               priority = -1;
               options = [
-                "--auto-fix"
+                #"--auto-fix"
+                "--nixf-tidy-path"
+                "${pkgs.lib.getExe' inputs'.nixd.packages.nixf "nixf-tidy"}"
                 # Rule names can currently be looked up here:
                 # https://github.com/nix-community/nixd/blob/main/libnixf/src/Basic/diagnostic.py
               ];
