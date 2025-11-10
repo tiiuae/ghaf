@@ -79,5 +79,14 @@ jobs:
       - name: Set output
         id: set-output
         run: |
+          # Valid github environment(s) should set the ENV_DEFINED variable
+          # to prevent accidentally running actions in an unset environment:
+          if [ -z "$ENV_DEFINED" ]; then
+            echo "Running in unexpected environment"
+            echo "result=failed" >>"$GITHUB_OUTPUT"
+            exit 1
+          fi
           echo "Auth OK"
           echo "result=authorized" >>"$GITHUB_OUTPUT"
+        env:
+          ENV_DEFINED: ${{ vars.ENV_DEFINED }}
