@@ -117,7 +117,9 @@ in
             vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
           ) (builtins.attrValues config.microvm.vms);
           xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
-          xdgRules = map (path: "D ${path} 0700 ${toString config.ghaf.users.loginUser.uid} users -") xdgDirs;
+          xdgRules = map (
+            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.loginUser.uid} users -"
+          ) xdgDirs;
         in
         [
           "d /persist/common 0755 root root -"
