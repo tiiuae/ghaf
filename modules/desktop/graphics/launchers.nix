@@ -30,7 +30,7 @@ in
               type = types.nullOr types.str;
               default = null;
             };
-            path = mkOption {
+            execPath = mkOption {
               description = "Path to the executable to be launched";
               type = types.path;
             };

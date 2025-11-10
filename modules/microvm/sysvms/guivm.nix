@@ -36,7 +36,7 @@ let
             inherit (app) description;
             #inherit (app) givcName;
             vm = app.vmName;
-            path = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
+            execPath = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
             inherit (app) icon;
           }) virtualApps;
 
@@ -44,7 +44,7 @@ let
           guivmLaunchers = map (app: {
             inherit (app) name;
             inherit (app) description;
-            path = app.command;
+            execPath = app.command;
             inherit (app) icon;
           }) cfg.applications;
         in

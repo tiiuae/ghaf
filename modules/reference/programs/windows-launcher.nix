@@ -34,7 +34,7 @@ in
       {
         name = "Windows";
         description = "Virtualized Windows System";
-        path = "${windows-launcher}/bin/windows-launcher-ui";
+        execPath = "${windows-launcher}/bin/windows-launcher-ui";
         icon = "distributor-logo-windows";
       }
     ];

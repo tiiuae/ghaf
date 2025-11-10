@@ -23,7 +23,7 @@ let
       desktopName = launcherElem.name;
       inherit icon;
       comment = "${prefix}${launcherElem.description}";
-      exec = launcherElem.path;
+      exec = launcherElem.execPath;
     }).overrideAttrs
       (prevAttrs: {
         checkPhase = prevAttrs.checkPhase + extraCheckPhase;

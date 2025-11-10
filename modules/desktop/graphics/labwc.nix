@@ -196,7 +196,7 @@ in
         name = "Terminal";
         description = "System Terminal";
         icon = "foot";
-        path = "${pkgs.foot}/bin/foot";
+        execPath = "${pkgs.foot}/bin/foot";
       }
     ];
   };
