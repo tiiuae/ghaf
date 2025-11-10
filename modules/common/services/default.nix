@@ -14,6 +14,7 @@
     ./killswitch.nix
     ./timezone.nix
     ./power.nix
+    ./storewatcher.nix
     ./wifi.nix
     ./xpadneo.nix
     ./yubikey.nix
