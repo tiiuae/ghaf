@@ -51,6 +51,9 @@ let
             };
             givc.audiovm.enable = true;
 
+            # Enable dynamic hostname export for VMs
+            identity.vmHostNameExport.enable = true;
+
             # Storage
             storagevm = {
               enable = true;
@@ -112,6 +115,12 @@ let
                 tag = "ro-store";
                 source = "/nix/store";
                 mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
+              {
+                tag = "ghaf-common";
+                source = "/persist/common";
+                mountPoint = "/etc/common";
                 proto = "virtiofs";
               }
             ];

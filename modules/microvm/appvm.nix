@@ -132,6 +132,9 @@ let
 
                 security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
 
+                # Enable dynamic hostname export for AppVMs
+                identity.vmHostNameExport.enable = true;
+
               };
 
               # SSH is very picky about the file permissions and ownership and will
@@ -181,6 +184,12 @@ let
                     tag = "ro-store";
                     source = "/nix/store";
                     mountPoint = "/nix/.ro-store";
+                    proto = "virtiofs";
+                  }
+                  {
+                    tag = "ghaf-common";
+                    source = "/persist/common";
+                    mountPoint = "/etc/common";
                     proto = "virtiofs";
                   }
                 ];
