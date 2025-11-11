@@ -65,12 +65,15 @@ buildNpmPackage (_finalAttrs: {
     pkg-config
   ];
 
+  # Tell sharp to use system libvips instead of building from source
+  SHARP_IGNORE_GLOBAL_LIBVIPS = "1";
+
   installPhase = ''
     runHook preInstall
     cp -pr --reflink=auto dist $out/
     runHook postInstall
   '';
 
-  npmDepsHash = "sha256-hG5sbFsp89vjdmJAZdazqzv1eUMxcmTsyWDcTRb3gWU=";
+  npmDepsHash = "sha256-i01ejnrjAPvqZBdodEbAdcfi4FFjSP/VmuSc2aJdevI=";
 
 })
