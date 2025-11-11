@@ -46,6 +46,9 @@ let
             };
             givc.adminvm.enable = true;
 
+            # Enable dynamic hostname export for VMs
+            identity.vmHostNameExport.enable = true;
+
             # Storage
             storagevm = {
               enable = true;
