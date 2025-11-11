@@ -34,33 +34,40 @@ let
     '';
   };
 
-  # A script for opening url launched by GIVC from AppVMs
   xdgOpenUrl = pkgs.writeShellApplication {
     name = "xdgopenurl";
-    runtimeInputs = [
-      pkgs.coreutils
-    ];
+    runtimeInputs = [ pkgs.coreutils ];
     text = ''
-      export PATH=/run/current-system/sw/bin:$PATH
       url="$1"
+
       if [[ -z "$url" ]]; then
         echo "No URL provided - xdg handlers"
         exit 1
       fi
+
       echo "XDG open url: $url"
 
-      if command -v google-chrome-stable >/dev/null 2>&1; then
-        echo "Google Chrome detected, opening URL locally."
-        ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/google-chrome-stable \
+      # Function to check if a binary exists in the givc app prefix
+      search_bin() {
+        [ -x "${config.ghaf.givc.appPrefix}/$1" ]
+      }
+
+      start_browser() {
+       ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
           --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
-      elif command -v chromium >/dev/null 2>&1; then
+      }
+
+      # Try to detect available browsers
+      if search_bin google-chrome-stable; then
+        echo "Google Chrome detected, opening URL locally."
+        start_browser google-chrome-stable
+      elif search_bin chromium; then
         echo "Chromium detected, opening URL locally."
-        ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/chromium \
-          --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+        start_browser chromium
       else
         echo "No supported browser found on the system"
-        exit 1
       fi
+
     '';
   };
 

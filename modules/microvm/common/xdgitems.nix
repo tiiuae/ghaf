@@ -236,6 +236,13 @@ in
 
     ghaf.xdgitems.handlerPath = xdgOpen.outPath;
 
+    systemd.tmpfiles.rules = mkIf config.ghaf.users.appUser.enable [
+      # Create parent directory if missing
+      "d /home/${config.ghaf.users.appUser.name}/.config 0751 ${config.ghaf.users.appUser.name} users -"
+      # Create or update symlink
+      "L+ /home/${config.ghaf.users.appUser.name}/.config/mimeapps.list - - - - /etc/xdg/mimeapps.list"
+    ];
+
     ghaf.xdgitems.xdgHostPaths = [
       "${xdgHostRoot}/pdf/${vmName}"
       "${xdgHostRoot}/image/${vmName}"
