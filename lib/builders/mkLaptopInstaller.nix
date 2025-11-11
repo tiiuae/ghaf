@@ -62,6 +62,12 @@ let
               # https://github.com/NixOS/nixpkgs/blob/master/nixos/modules/profiles/installation-device.nix#L112
               boot.swraid.mdadmConf = "PROGRAM ${pkgs.coreutils}/bin/true";
 
+              boot = {
+                kernelPackages = pkgs.linuxPackages_latest;
+                # Disable ZFS support - not compatible with latest. only supported on LTS.
+                supportedFilesystems.zfs = lib.mkForce false;
+              };
+
               # Configure nixpkgs with Ghaf overlays for extended lib support
               nixpkgs = {
                 hostPlatform.system = system;
