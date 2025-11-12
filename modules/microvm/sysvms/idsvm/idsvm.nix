@@ -50,16 +50,17 @@ let
           nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
           nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
 
-          microvm.hypervisor = "qemu";
-
           environment.systemPackages = [
             pkgs.snort # TODO: put into separate module
           ]
           ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.tcpdump);
 
           microvm = {
+            hypervisor = "qemu";
             optimize.enable = true;
-            shares = [
+
+            # Shared store (when not using storeOnDisk)
+            shares = lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -67,7 +68,18 @@ let
                 proto = "virtiofs";
               }
             ];
-            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+
+            writableStoreOverlay = lib.mkIf (
+              !configHost.ghaf.virtualization.microvm.storeOnDisk
+            ) "/nix/.rw-store";
+          }
+          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+            storeOnDisk = true;
+            storeDiskType = "erofs";
+            storeDiskErofsFlags = [
+              "-zlz4hc"
+              "-Eztailpacking"
+            ];
           };
         }
       )

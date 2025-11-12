@@ -115,22 +115,36 @@ let
                 "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
               ];
             };
+
             shares = [
-              {
-                tag = "ro-store";
-                source = "/nix/store";
-                mountPoint = "/nix/.ro-store";
-                proto = "virtiofs";
-              }
               {
                 tag = "ghaf-common";
                 source = "/persist/common";
                 mountPoint = "/etc/common";
                 proto = "virtiofs";
               }
+            ]
+            # Shared store (when not using storeOnDisk)
+            ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+              {
+                tag = "ro-store";
+                source = "/nix/store";
+                mountPoint = "/nix/.ro-store";
+                proto = "virtiofs";
+              }
             ];
 
-            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+            writableStoreOverlay = lib.mkIf (
+              !configHost.ghaf.virtualization.microvm.storeOnDisk
+            ) "/nix/.rw-store";
+          }
+          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+            storeOnDisk = true;
+            storeDiskType = "erofs";
+            storeDiskErofsFlags = [
+              "-zlz4hc"
+              "-Eztailpacking"
+            ];
           };
         }
       )

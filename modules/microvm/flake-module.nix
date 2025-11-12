@@ -11,6 +11,7 @@
       (import ./sysvms/guivm.nix { inherit inputs; })
       (import ./sysvms/audiovm.nix { inherit inputs; })
       (import ./sysvms/idsvm/idsvm.nix { inherit inputs; })
+      ./common/microvm-store-mode.nix
       ./modules.nix
     ];
 
@@ -20,6 +21,7 @@
 
     vm-modules.imports = [
       ./common/ghaf-audio.nix
+      ./common/microvm-store-mode.nix
       ./common/shared-directory.nix
       ./common/storagevm.nix
       ./common/vm-networking.nix
