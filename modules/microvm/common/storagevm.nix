@@ -314,6 +314,12 @@ in
         }
       ];
 
+      # It's an important mount, but if it fails,
+      # we still want to be able to login as root instead of emergency mode.
+      fileSystems."/home" = {
+        options = lib.mkIf config.ghaf.users.loginUser.enable [ "nofail" ];
+      };
+
       preservation = {
         enable = true;
         preserveAt.${cfg.mountPath} = mkMerge [
