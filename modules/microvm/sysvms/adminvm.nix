@@ -111,13 +111,22 @@ let
                 "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
               ];
             };
+            # Force using a disk image for the guest /nix/store
+            storeOnDisk = true;
+            systemSymlink = false;
+            storeDiskType = "erofs";
+            storeDiskErofsFlags = [
+              "-zlz4hc"
+              "-Eztailpacking"
+            ];
+
             shares = [
-              {
-                tag = "ro-store";
-                source = "/nix/store";
-                mountPoint = "/nix/.ro-store";
-                proto = "virtiofs";
-              }
+              # {
+              #   tag = "ro-store";
+              #   source = "/nix/store";
+              #   mountPoint = "/nix/.ro-store";
+              #   proto = "virtiofs";
+              # }
               {
                 tag = "ghaf-common";
                 source = "/persist/common";
@@ -126,7 +135,7 @@ let
               }
             ];
 
-            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+            #writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
           };
         }
       )

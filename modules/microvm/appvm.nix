@@ -174,6 +174,16 @@ let
                 deflateOnOOM = false;
                 vcpu = vm.cores;
                 hypervisor = "qemu";
+
+                # Force using a disk image for the guest /nix/store
+                storeOnDisk = true;
+                systemSymlink = false;
+                storeDiskType = "erofs";
+                storeDiskErofsFlags = [
+                  "-zlz4hc"
+                  "-Eztailpacking"
+                ];
+
                 shares = [
                   {
                     tag = "waypipe-ssh-public-key";
@@ -181,14 +191,14 @@ let
                     mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                     proto = "virtiofs";
                   }
-                  {
-                    tag = "ro-store";
-                    source = "/nix/store";
-                    mountPoint = "/nix/.ro-store";
-                    proto = "virtiofs";
-                  }
+                  # {
+                  #   tag = "ro-store";
+                  #   source = "/nix/store";
+                  #   mountPoint = "/nix/.ro-store";
+                  #   proto = "virtiofs";
+                  # }
                 ];
-                writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+                #writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
 
                 qemu = {
                   extraArgs = [
