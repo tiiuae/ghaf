@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
+  pkgs,
   config,
   lib,
   ...
@@ -97,6 +98,44 @@ let
     };
   };
 
+  mkTunedScript =
+    {
+      start ? "",
+      stop ? "",
+    }:
+    pkgs.writeShellScriptBin "tuned-script" ''
+      . ${pkgs.tuned}/lib/tuned/functions
+
+      start() {
+          ${start}
+          return 0
+      }
+
+      stop() {
+          ${stop}
+          return 0
+      }
+
+      process "$@"
+    '';
+
+  # Scripts to run on gui-vm when the corresponding profile is activated or deactivated
+  guiProfileScripts = {
+    gui-powersave = mkTunedScript {
+      start = ''
+        b=$(${lib.getExe pkgs.brightnessctl} get)
+        m=$(${lib.getExe pkgs.brightnessctl} max)
+        ((b*100/m>30)) && ${lib.getExe pkgs.brightnessctl} set 30%
+      '';
+    };
+    gui-balanced = mkTunedScript {
+      start = ''
+        b=$(${lib.getExe pkgs.brightnessctl} get)
+        m=$(${lib.getExe pkgs.brightnessctl} max)
+        ((b*100/m>50)) && ${lib.getExe pkgs.brightnessctl} set 50%
+      '';
+    };
+  };
 in
 {
   options.ghaf.services.performance = {
@@ -155,6 +194,22 @@ in
           "schedtool"
         ];
       };
+      systemd = {
+        services = {
+          tuned = {
+            serviceConfig.ExecStart = [
+              ""
+              ''${lib.getExe pkgs.tuned} -P -l -D''
+            ];
+          };
+          tuned-ppd = {
+            serviceConfig.ExecStart = [
+              ""
+              ''${lib.getExe' pkgs.tuned "tuned-ppd"} -l -D''
+            ];
+          };
+        };
+      };
     }
     # GUI scheduler optimizations
     (mkIf cfg.gui.enable {
@@ -169,19 +224,61 @@ in
       services.tuned = {
         enable = true;
         ppdSupport = true;
+        settings.profile_dirs = "/etc/tuned/profiles,${
+          lib.concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
+        }";
         ppdSettings = {
           main.default = "balanced";
           battery = {
-            power-saver = "laptop-battery-powersave";
-            balanced = "balanced-battery";
-            performance = "throughput-performance";
+            power-saver = "gui-powersave-battery";
+            balanced = "gui-balanced-battery";
+            performance = "gui-performance-battery";
           };
           profiles = {
-            power-saver = "laptop-ac-powersave";
-            balanced = "balanced";
-            performance = "virtual-guest";
+            power-saver = "gui-powersave";
+            balanced = "gui-balanced";
+            performance = "gui-performance";
           };
         };
+        profiles = {
+          gui-powersave = {
+            main = {
+              summary = "Tuned profile for GUI VM in powersave mode";
+              include = "virtual-guest";
+            };
+            script.script = "${lib.getExe guiProfileScripts.gui-powersave}";
+          };
+          gui-balanced = {
+            main = {
+              summary = "Tuned profile for GUI VM in balanced mode";
+              include = "virtual-guest";
+            };
+            script.script = "${lib.getExe guiProfileScripts.gui-balanced}";
+          };
+          gui-performance = {
+            main = {
+              summary = "Tuned profile for GUI VM in performance mode";
+              include = "virtual-guest";
+            };
+          };
+        }
+        // lib.listToAttrs (
+          map
+            (name: {
+              name = "gui-${name}-battery";
+              value = {
+                main = {
+                  summary = "Tuned battery profile for GUI VM in ${name} mode";
+                  include = "virtual-guest";
+                };
+              };
+            })
+            [
+              "powersave"
+              "balanced"
+              "performance"
+            ]
+        );
       };
       assertions = [
         {
