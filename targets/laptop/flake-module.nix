@@ -184,7 +184,7 @@ let
             {
               # We explicitly enable only those we need
               hardware.system76 = {
-                power-daemon.enable = true;
+                power-daemon.enable = false;
                 kernel-modules.enable = true;
                 # Firmware daemon requires EFI mount point, not available in guivm
                 firmware-daemon.enable = false;

@@ -143,6 +143,10 @@ let
                 gui.enable = true;
               };
 
+              performance = {
+                gui.enable = true;
+              };
+
               github = {
                 enable = true;
                 token = "xxxxxxxxxxxxxxxxxxxx"; # Will be updated when the user login
