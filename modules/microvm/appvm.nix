@@ -91,16 +91,18 @@ let
                 storagevm = {
                   enable = true;
                   name = vmName;
-                  users.${config.ghaf.users.appUser.name}.directories = [
-                    ".config/"
-                    ".cache"
-                    ".local"
-                    "Downloads"
-                    "Music"
-                    "Pictures"
-                    "Documents"
-                    "Videos"
-                  ];
+                  directories =
+                    lib.optionals (!lib.hasAttr "${config.ghaf.users.appUser.name}" config.ghaf.storagevm.users)
+                      [
+                        # By default, persist appusers entire home directory unless overwritten by defining
+                        # either storagevm.users.<user>.directories and/or .files explicitly in an appvm.
+                        {
+                          directory = "/home/${config.ghaf.users.appUser.name}";
+                          user = "${config.ghaf.users.appUser.name}";
+                          group = "${config.ghaf.users.appUser.name}";
+                          mode = "0700";
+                        }
+                      ];
                   shared-folders.enable = sharedVmDirectory.enable && builtins.elem vmName sharedVmDirectory.vms;
                   encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
                 };

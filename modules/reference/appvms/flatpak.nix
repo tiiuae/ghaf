@@ -106,9 +106,6 @@ in
             "nosuid"
             "exec" # For Bubblewrap sandbox to execute the file
           ];
-          users.${config.ghaf.users.appUser.name}.directories = [
-            ".var" # For app data
-          ];
         };
 
         programs.dconf.enable = true;
