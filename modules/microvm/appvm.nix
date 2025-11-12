@@ -177,6 +177,7 @@ let
                 deflateOnOOM = false;
                 vcpu = vm.cores;
                 hypervisor = "qemu";
+
                 shares = [
                   {
                     tag = "waypipe-ssh-public-key";
@@ -184,20 +185,27 @@ let
                     mountPoint = configHost.ghaf.security.sshKeys.waypipeSshPublicKeyDir;
                     proto = "virtiofs";
                   }
-                  {
-                    tag = "ro-store";
-                    source = "/nix/store";
-                    mountPoint = "/nix/.ro-store";
-                    proto = "virtiofs";
-                  }
+
                   {
                     tag = "ghaf-common";
                     source = "/persist/common";
                     mountPoint = "/etc/common";
                     proto = "virtiofs";
                   }
+                ]
+                # Shared store (when not using storeOnDisk)
+                ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+                  {
+                    tag = "ro-store";
+                    source = "/nix/store";
+                    mountPoint = "/nix/.ro-store";
+                    proto = "virtiofs";
+                  }
                 ];
-                writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+
+                writableStoreOverlay = lib.mkIf (
+                  !configHost.ghaf.virtualization.microvm.storeOnDisk
+                ) "/nix/.rw-store";
 
                 qemu = {
                   extraArgs = [
@@ -220,6 +228,14 @@ let
                     }
                     .${configHost.nixpkgs.hostPlatform.system};
                 };
+              }
+              // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+                storeOnDisk = true;
+                storeDiskType = "erofs";
+                storeDiskErofsFlags = [
+                  "-zlz4hc"
+                  "-Eztailpacking"
+                ];
               };
 
               services.udev =
