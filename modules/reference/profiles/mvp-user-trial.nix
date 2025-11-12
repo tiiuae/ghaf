@@ -22,6 +22,7 @@ in
         "business-vm"
         "comms-vm"
         "chrome-vm"
+        "flatpak-vm"
       ];
 
       virtualization.microvm.appvm = {
