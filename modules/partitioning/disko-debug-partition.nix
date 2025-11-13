@@ -64,12 +64,6 @@ in
             content = {
               type = "gpt";
               partitions = {
-                boot = {
-                  name = "boot";
-                  size = "1M";
-                  type = "EF02";
-                  priority = 1; # Needs to be first partition
-                };
                 esp = {
                   name = "ESP";
                   size = "500M";
