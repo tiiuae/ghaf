@@ -12,7 +12,7 @@
   PrivateMounts = true;
   ProcSubset = "pid";
   PrivateUsers = true;
-  DynamicUser = true;
+  DynamicUser = false;
   PrivateDevices = true;
   ProtectKernelTunables = true;
   ProtectKernelModules = true;
