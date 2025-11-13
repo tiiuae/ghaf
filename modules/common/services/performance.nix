@@ -165,6 +165,38 @@ let
           ${givc-cli} start service --vm "ghaf-host" host-performance.service &
         '';
     };
+    gui-powersave-battery = mkTunedScript {
+      start = ''
+        b=$(${lib.getExe pkgs.brightnessctl} get)
+        m=$(${lib.getExe pkgs.brightnessctl} max)
+        ((b*100/m>25)) && ${lib.getExe pkgs.brightnessctl} set 25%
+      ''
+      + lib.optionalString useGivc ''
+        ${givc-cli} start service --vm "ghaf-host" host-powersave-battery.service &
+      '';
+    };
+
+    gui-balanced-battery = mkTunedScript {
+      start = ''
+        b=$(${lib.getExe pkgs.brightnessctl} get)
+        m=$(${lib.getExe pkgs.brightnessctl} max)
+        ((b*100/m>50)) && ${lib.getExe pkgs.brightnessctl} set 50%
+      ''
+      + lib.optionalString useGivc ''
+        ${givc-cli} start service --vm "ghaf-host" host-balanced-battery.service &
+      '';
+    };
+    gui-performance-battery = mkTunedScript {
+      start = ''
+
+        b=$(${lib.getExe pkgs.brightnessctl} get)
+        m=$(${lib.getExe pkgs.brightnessctl} max)
+        ((b*100/m>70)) && ${lib.getExe pkgs.brightnessctl} set 70%
+      ''
+      + lib.optionalString useGivc ''
+        ${givc-cli} start service --vm "ghaf-host" host-performance-battery.service &
+      '';
+    };
   };
 in
 {
@@ -191,24 +223,20 @@ in
     };
 
     gui = {
-      enable = mkEnableOption "Enable Ghaf-specific scheduler and power optimizations for gui-vm.";
+      enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for gui-vm.";
       tuned = {
-        enable =
-          mkEnableOption "Enable tuned service on the gui-vm for Ghaf-specific performance profiles."
-          // {
-            default = true;
-          };
+        enable = mkEnableOption "TuneD service on the gui-vm for Ghaf-specific performance profiles." // {
+          default = true;
+        };
       };
     };
 
     host = {
-      enable = mkEnableOption "Enable Ghaf-specific scheduler and power optimizations for the host.";
+      enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for the host.";
       tuned = {
-        enable =
-          mkEnableOption "Enable tuned service on the host for Ghaf-specific performance profiles."
-          // {
-            default = true;
-          };
+        enable = mkEnableOption "TuneD service on the host for Ghaf-specific performance profiles." // {
+          default = true;
+        };
       };
     };
   };
@@ -275,7 +303,7 @@ in
           lib.concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
         }";
         ppdSettings = {
-          main.default = "balanced";
+          main.default = "performance";
           battery = {
             power-saver = "gui-powersave-battery";
             balanced = "gui-balanced-battery";
@@ -291,7 +319,10 @@ in
           gui-powersave = {
             main = {
               summary = "Tuned profile for GUI VM in powersave mode";
-              include = "virtual-guest";
+              include = "powersave";
+            };
+            acpi = {
+              platform_profile = "balanced";
             };
             script.script = "${lib.getExe guiProfileScripts.gui-powersave}";
           };
@@ -300,12 +331,18 @@ in
               summary = "Tuned profile for GUI VM in balanced mode";
               include = "virtual-guest";
             };
+            acpi = {
+              platform_profile = "balanced";
+            };
             script.script = "${lib.getExe guiProfileScripts.gui-balanced}";
           };
           gui-performance = {
             main = {
               summary = "Tuned profile for GUI VM in performance mode";
               include = "virtual-guest";
+            };
+            acpi = {
+              platform_profile = "balanced";
             };
             script.script = "${lib.getExe guiProfileScripts.gui-performance}";
           };
@@ -314,18 +351,22 @@ in
         // lib.listToAttrs (
           map
             (name: {
-              name = "gui-${name}-battery";
+              name = "${name}";
               value = {
                 main = {
                   summary = "Tuned battery profile for GUI VM in ${name} mode";
                   include = "virtual-guest";
                 };
+                acpi = {
+                  platform_profile = "balanced";
+                };
+                script.script = "${lib.getExe guiProfileScripts.${name}}";
               };
             })
             [
-              "powersave"
-              "balanced"
-              "performance"
+              "gui-powersave-battery"
+              "gui-balanced-battery"
+              "gui-performance-battery"
             ]
         );
       };
@@ -366,11 +407,17 @@ in
                 summary = "Tuned profile for host in powersave mode";
                 include = "powersave";
               };
+              acpi = {
+                platform_profile = "balanced";
+              };
             };
             host-balanced = {
               main = {
                 summary = "Tuned profile for host in balanced mode";
                 include = "virtual-host";
+              };
+              acpi = {
+                platform_profile = "balanced";
               };
             };
             host-performance = {
@@ -378,24 +425,30 @@ in
                 summary = "Tuned profile for host in performance mode";
                 include = "virtual-host";
               };
+              acpi = {
+                platform_profile = "balanced";
+              };
             };
           }
           # For now battery profiles are the same as their non-battery counterparts
           // lib.listToAttrs (
             map
               (name: {
-                name = "host-${name}-battery";
+                name = "${name}";
                 value = {
                   main = {
                     summary = "Tuned battery profile for host in ${name} mode";
                     include = "virtual-host";
                   };
+                  acpi = {
+                    platform_profile = "balanced";
+                  };
                 };
               })
               [
-                "powersave"
-                "balanced"
-                "performance"
+                "host-powersave-battery"
+                "host-balanced-battery"
+                "host-performance-battery"
               ]
           );
         };
