@@ -115,16 +115,26 @@ let
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
             hypervisor = "qemu";
-            shares = [
-              {
-                tag = "ro-store";
-                source = "/nix/store";
-                mountPoint = "/nix/.ro-store";
-                proto = "virtiofs";
-              }
+
+            # Force using a disk image for the guest /nix/store
+            storeOnDisk = true;
+            systemSymlink = false;
+            storeDiskType = "erofs";
+            storeDiskErofsFlags = [
+              "-zlz4hc"
+              "-Eztailpacking"
             ];
 
-            writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
+            shares = [
+              # {
+              #   tag = "ro-store";
+              #   source = "/nix/store";
+              #   mountPoint = "/nix/.ro-store";
+              #   proto = "virtiofs";
+              # }
+            ];
+
+            #writableStoreOverlay = lib.mkIf config.ghaf.development.debug.tools.enable "/nix/.rw-store";
             qemu = {
               machine =
                 {
