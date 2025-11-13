@@ -9,18 +9,24 @@
 let
   cfg = config.ghaf.services.performance;
   inherit (lib)
+    concatMapStringsSep
+    getExe
+    getExe'
     literalExpression
     mkEnableOption
     mkIf
     mkMerge
     mkOption
+    nameValuePair
+    optionalString
+    replaceString
     types
     ;
 
   useGivc = config.ghaf.givc.enable;
 
-  givc-cli = "${lib.getExe' pkgs.givc-cli "givc-cli"} ${
-    lib.replaceString "/run" "/etc" config.ghaf.givc.cliArgs
+  givc-cli = "${getExe' pkgs.givc-cli "givc-cli"} ${
+    replaceString "/run" "/etc" config.ghaf.givc.cliArgs
   }";
 
   hostProfiles = [
@@ -32,7 +38,7 @@ let
     "host-performance-battery"
   ];
 
-  guiVmAssignments = {
+  guiVmSchedulerAssignments = {
     desktop-environment = {
       nice = -9;
       ioClass = "realtime";
@@ -78,7 +84,7 @@ let
     };
   };
 
-  hostAssignments = {
+  hostSchedulerAssignments = {
     system-vms = {
       nice = -15;
       ioClass = "realtime";
@@ -134,68 +140,63 @@ let
       process "$@"
     '';
 
+  mkBrightnessScript =
+    {
+      level,
+    }:
+    with pkgs;
+    ''
+      b=$(${getExe brightnessctl} get)
+      m=$(${getExe brightnessctl} max)
+      ((b*100/m>${toString level})) && ${getExe brightnessctl} set ${toString level}%
+    '';
+
   # Scripts to run on gui-vm when the corresponding profile is activated or deactivated
   # For a general structure of the scripts, see:
   # https://github.com/redhat-performance/tuned/blob/master/profiles/powersave/script.sh
   guiProfileScripts = {
     gui-powersave = mkTunedScript {
-      start = ''
-        b=$(${lib.getExe pkgs.brightnessctl} get)
-        m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>40)) && ${lib.getExe pkgs.brightnessctl} set 40%
-      ''
-      + lib.optionalString useGivc ''
-        ${givc-cli} start service --vm "ghaf-host" host-powersave.service &
-      '';
+      start =
+        (mkBrightnessScript { level = 40; })
+        + optionalString useGivc ''
+          ${givc-cli} start service --vm "ghaf-host" host-powersave.service &
+        '';
     };
     gui-balanced = mkTunedScript {
-      start = ''
-        b=$(${lib.getExe pkgs.brightnessctl} get)
-        m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>70)) && ${lib.getExe pkgs.brightnessctl} set 70%
-      ''
-      + lib.optionalString useGivc ''
-        ${givc-cli} start service --vm "ghaf-host" host-balanced.service &
-      '';
+      start =
+        (mkBrightnessScript { level = 70; })
+        + optionalString useGivc ''
+          ${givc-cli} start service --vm "ghaf-host" host-balanced.service &
+        '';
     };
     gui-performance = mkTunedScript {
       start =
         ''''
-        + lib.optionalString useGivc ''
+        + optionalString useGivc ''
           ${givc-cli} start service --vm "ghaf-host" host-performance.service &
         '';
     };
     gui-powersave-battery = mkTunedScript {
-      start = ''
-        b=$(${lib.getExe pkgs.brightnessctl} get)
-        m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>25)) && ${lib.getExe pkgs.brightnessctl} set 25%
-      ''
-      + lib.optionalString useGivc ''
-        ${givc-cli} start service --vm "ghaf-host" host-powersave-battery.service &
-      '';
+      start =
+        (mkBrightnessScript { level = 25; })
+        + optionalString useGivc ''
+          ${givc-cli} start service --vm "ghaf-host" host-powersave-battery.service &
+        '';
     };
 
     gui-balanced-battery = mkTunedScript {
-      start = ''
-        b=$(${lib.getExe pkgs.brightnessctl} get)
-        m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>50)) && ${lib.getExe pkgs.brightnessctl} set 50%
-      ''
-      + lib.optionalString useGivc ''
-        ${givc-cli} start service --vm "ghaf-host" host-balanced-battery.service &
-      '';
+      start =
+        (mkBrightnessScript { level = 50; })
+        + optionalString useGivc ''
+          ${givc-cli} start service --vm "ghaf-host" host-balanced-battery.service &
+        '';
     };
     gui-performance-battery = mkTunedScript {
-      start = ''
-
-        b=$(${lib.getExe pkgs.brightnessctl} get)
-        m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>70)) && ${lib.getExe pkgs.brightnessctl} set 70%
-      ''
-      + lib.optionalString useGivc ''
-        ${givc-cli} start service --vm "ghaf-host" host-performance-battery.service &
-      '';
+      start =
+        (mkBrightnessScript { level = 70; })
+        + optionalString useGivc ''
+          ${givc-cli} start service --vm "ghaf-host" host-performance-battery.service &
+        '';
     };
   };
 in
@@ -209,13 +210,13 @@ in
       '';
       example = literalExpression ''
         # In host
-        config.ghaf.services.scheduler = {
+        config.ghaf.services.performance = {
           enable = true;
           host.enable = true;
         };
 
         # In GUI VM
-        config.ghaf.services.scheduler = {
+        config.ghaf.services.performance = {
           enable = true;
           gui.enable = true;
         };
@@ -269,20 +270,18 @@ in
           "schedtool"
         ];
       };
-      systemd = {
-        services = {
-          tuned = {
-            serviceConfig.ExecStart = [
-              ""
-              ''${lib.getExe pkgs.tuned} -P -l -D''
-            ];
-          };
-          tuned-ppd = {
-            serviceConfig.ExecStart = [
-              ""
-              ''${lib.getExe' pkgs.tuned "tuned-ppd"} -l -D''
-            ];
-          };
+      systemd.services = mkIf config.ghaf.profiles.debug.enable {
+        tuned = {
+          serviceConfig.ExecStart = [
+            ""
+            ''${getExe pkgs.tuned} -P -l -D''
+          ];
+        };
+        tuned-ppd = {
+          serviceConfig.ExecStart = [
+            ""
+            ''${getExe' pkgs.tuned "tuned-ppd"} -l -D''
+          ];
         };
       };
     }
@@ -294,13 +293,13 @@ in
             pipewireBoost.enable = true;
           };
         };
-        assignments = guiVmAssignments;
+        assignments = guiVmSchedulerAssignments;
       };
       services.tuned = {
         enable = true;
         ppdSupport = true;
         settings.profile_dirs = "/etc/tuned/profiles,${
-          lib.concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
+          concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
         }";
         ppdSettings = {
           main.default = "performance";
@@ -321,30 +320,21 @@ in
               summary = "Tuned profile for GUI VM in powersave mode";
               include = "powersave";
             };
-            acpi = {
-              platform_profile = "balanced";
-            };
-            script.script = "${lib.getExe guiProfileScripts.gui-powersave}";
+            script.script = "${getExe guiProfileScripts.gui-powersave}";
           };
           gui-balanced = {
             main = {
               summary = "Tuned profile for GUI VM in balanced mode";
               include = "virtual-guest";
             };
-            acpi = {
-              platform_profile = "balanced";
-            };
-            script.script = "${lib.getExe guiProfileScripts.gui-balanced}";
+            script.script = "${getExe guiProfileScripts.gui-balanced}";
           };
           gui-performance = {
             main = {
               summary = "Tuned profile for GUI VM in performance mode";
               include = "virtual-guest";
             };
-            acpi = {
-              platform_profile = "balanced";
-            };
-            script.script = "${lib.getExe guiProfileScripts.gui-performance}";
+            script.script = "${getExe guiProfileScripts.gui-performance}";
           };
         }
         # For now battery profiles are the same as their non-battery counterparts
@@ -357,10 +347,7 @@ in
                   summary = "Tuned battery profile for GUI VM in ${name} mode";
                   include = "virtual-guest";
                 };
-                acpi = {
-                  platform_profile = "balanced";
-                };
-                script.script = "${lib.getExe guiProfileScripts.${name}}";
+                script.script = "${getExe guiProfileScripts.${name}}";
               };
             })
             [
@@ -382,7 +369,7 @@ in
               foregroundBoost.enable = false;
             };
           };
-          assignments = hostAssignments;
+          assignments = hostSchedulerAssignments;
         };
         services.tuned = {
           enable = true;
@@ -407,27 +394,21 @@ in
                 summary = "Tuned profile for host in powersave mode";
                 include = "powersave";
               };
-              acpi = {
-                platform_profile = "balanced";
-              };
+              acpi.platform_profile = "balanced";
             };
             host-balanced = {
               main = {
                 summary = "Tuned profile for host in balanced mode";
                 include = "virtual-host";
               };
-              acpi = {
-                platform_profile = "balanced";
-              };
+              acpi.platform_profile = "balanced";
             };
             host-performance = {
               main = {
                 summary = "Tuned profile for host in performance mode";
                 include = "virtual-host";
               };
-              acpi = {
-                platform_profile = "balanced";
-              };
+              acpi.platform_profile = "balanced";
             };
           }
           # For now battery profiles are the same as their non-battery counterparts
@@ -440,9 +421,7 @@ in
                     summary = "Tuned battery profile for host in ${name} mode";
                     include = "virtual-host";
                   };
-                  acpi = {
-                    platform_profile = "balanced";
-                  };
+                  acpi.platform_profile = "balanced";
                 };
               })
               [
@@ -461,11 +440,13 @@ in
               description = "Enable ${profile} Ghaf PPD profile on host";
               serviceConfig = {
                 Type = "oneshot";
-                ExecStart = "-${lib.getExe' pkgs.tuned "tuned-adm"} profile ${profile}";
+                ExecStart = ''
+                  -${getExe' pkgs.tuned "tuned-adm"} profile ${profile}
+                '';
               };
             };
           in
-          lib.listToAttrs (map (profile: lib.nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
+          lib.listToAttrs (map (profile: nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
       }
     ))
   ]);
