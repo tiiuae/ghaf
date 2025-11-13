@@ -35,6 +35,12 @@ in
         "reboot.target"
         "poweroff.target"
         "suspend.target"
+        "host-powersave.service"
+        "host-balanced.service"
+        "host-performance.service"
+        "host-powersaver-battery.service"
+        "host-balanced-battery.service"
+        "host-performance-battery.service"
       ];
       adminVm = optionalString (adminHost != null) "microvm@${adminHost}.service";
       systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;

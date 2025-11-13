@@ -17,6 +17,21 @@ let
     types
     ;
 
+  useGivc = config.ghaf.givc.enable;
+
+  givc-cli = "${lib.getExe' pkgs.givc-cli "givc-cli"} ${
+    lib.replaceString "/run" "/etc" config.ghaf.givc.cliArgs
+  }";
+
+  hostProfiles = [
+    "host-powersave"
+    "host-balanced"
+    "host-performance"
+    "host-powersaver-battery"
+    "host-balanced-battery"
+    "host-performance-battery"
+  ];
+
   guiVmAssignments = {
     desktop-environment = {
       nice = -9;
@@ -120,20 +135,35 @@ let
     '';
 
   # Scripts to run on gui-vm when the corresponding profile is activated or deactivated
+  # For a general structure of the scripts, see:
+  # https://github.com/redhat-performance/tuned/blob/master/profiles/powersave/script.sh
   guiProfileScripts = {
     gui-powersave = mkTunedScript {
       start = ''
         b=$(${lib.getExe pkgs.brightnessctl} get)
         m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>30)) && ${lib.getExe pkgs.brightnessctl} set 30%
+        ((b*100/m>40)) && ${lib.getExe pkgs.brightnessctl} set 40%
+      ''
+      + lib.optionalString useGivc ''
+        ${givc-cli} start service --vm "ghaf-host" host-powersave.service &
       '';
     };
     gui-balanced = mkTunedScript {
       start = ''
         b=$(${lib.getExe pkgs.brightnessctl} get)
         m=$(${lib.getExe pkgs.brightnessctl} max)
-        ((b*100/m>50)) && ${lib.getExe pkgs.brightnessctl} set 50%
+        ((b*100/m>70)) && ${lib.getExe pkgs.brightnessctl} set 70%
+      ''
+      + lib.optionalString useGivc ''
+        ${givc-cli} start service --vm "ghaf-host" host-balanced.service &
       '';
+    };
+    gui-performance = mkTunedScript {
+      start =
+        ''''
+        + lib.optionalString useGivc ''
+          ${givc-cli} start service --vm "ghaf-host" host-performance.service &
+        '';
     };
   };
 in
@@ -161,19 +191,36 @@ in
     };
 
     gui = {
-      enable = mkEnableOption ''
-        Enable Ghaf-specific scheduler optimizations for gui-vm.
-      '';
+      enable = mkEnableOption "Enable Ghaf-specific scheduler and power optimizations for gui-vm.";
+      tuned = {
+        enable =
+          mkEnableOption "Enable tuned service on the gui-vm for Ghaf-specific performance profiles."
+          // {
+            default = true;
+          };
+      };
     };
+
     host = {
-      enable = mkEnableOption ''
-        Enable Ghaf-specific scheduler optimizations for the host.
-      '';
+      enable = mkEnableOption "Enable Ghaf-specific scheduler and power optimizations for the host.";
+      tuned = {
+        enable =
+          mkEnableOption "Enable tuned service on the host for Ghaf-specific performance profiles."
+          // {
+            default = true;
+          };
+      };
     };
   };
 
   config = mkIf cfg.enable (mkMerge [
     {
+      assertions = [
+        {
+          assertion = !config.hardware.system76.power-daemon.enable;
+          message = "`config.ghaf.performance` conflicts with `config.hardware.system76.power-daemon.enable`.";
+        }
+      ];
       services.system76-scheduler = {
         enable = lib.mkForce true;
         useStockConfig = lib.mkForce false;
@@ -211,7 +258,7 @@ in
         };
       };
     }
-    # GUI scheduler optimizations
+
     (mkIf cfg.gui.enable {
       services.system76-scheduler = {
         settings = {
@@ -260,8 +307,10 @@ in
               summary = "Tuned profile for GUI VM in performance mode";
               include = "virtual-guest";
             };
+            script.script = "${lib.getExe guiProfileScripts.gui-performance}";
           };
         }
+        # For now battery profiles are the same as their non-battery counterparts
         // lib.listToAttrs (
           map
             (name: {
@@ -280,29 +329,91 @@ in
             ]
         );
       };
-      assertions = [
-        {
-          assertion = !config.hardware.system76.power-daemon.enable;
-          message = "`config.ghaf.performance.gui.tuned` conflicts with `config.hardware.system76.power-daemon.enable`.";
-        }
-      ];
     })
 
-    # Host scheduler optimizations
-    (mkIf cfg.host.enable {
-      services.system76-scheduler = {
-        settings = {
-          cfsProfiles.enable = false;
-          processScheduler = {
-            pipewireBoost.enable = false;
-            foregroundBoost.enable = false;
+    (mkIf cfg.host.enable (
+      {
+        services.system76-scheduler = {
+          settings = {
+            cfsProfiles.enable = false;
+            processScheduler = {
+              pipewireBoost.enable = false;
+              foregroundBoost.enable = false;
+            };
           };
+          assignments = hostAssignments;
         };
-        assignments = hostAssignments;
-      };
-      services.tuned = {
-        enable = true;
-      };
-    })
+        services.tuned = {
+          enable = true;
+
+          ppdSettings = {
+            main.default = "performance";
+            battery = {
+              power-saver = "host-powersave-battery";
+              balanced = "host-balanced-battery";
+              performance = "host-performance-battery";
+            };
+            profiles = {
+              power-saver = "host-powersave";
+              balanced = "host-balanced";
+              performance = "host-performance";
+            };
+          };
+
+          profiles = {
+            host-powersave = {
+              main = {
+                summary = "Tuned profile for host in powersave mode";
+                include = "powersave";
+              };
+            };
+            host-balanced = {
+              main = {
+                summary = "Tuned profile for host in balanced mode";
+                include = "virtual-host";
+              };
+            };
+            host-performance = {
+              main = {
+                summary = "Tuned profile for host in performance mode";
+                include = "virtual-host";
+              };
+            };
+          }
+          # For now battery profiles are the same as their non-battery counterparts
+          // lib.listToAttrs (
+            map
+              (name: {
+                name = "host-${name}-battery";
+                value = {
+                  main = {
+                    summary = "Tuned battery profile for host in ${name} mode";
+                    include = "virtual-host";
+                  };
+                };
+              })
+              [
+                "powersave"
+                "balanced"
+                "performance"
+              ]
+          );
+        };
+      }
+      # Service units to set Ghaf PPD profiles on the host when requested from GUI VM
+      // {
+        systemd.services =
+          let
+            mkPpdService = profile: {
+              description = "Enable ${profile} Ghaf PPD profile on host";
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = "-${lib.getExe' pkgs.tuned "tuned-adm"} profile ${profile}";
+              };
+            };
+          in
+          lib.listToAttrs (map (profile: lib.nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
+      }
+    ))
   ]);
 }

@@ -254,7 +254,6 @@ in
           adwaita-icon-theme
           ghaf-wallpapers
           pamixer
-          powerstat
           (import ../launchers-pkg.nix { inherit pkgs config; })
         ]
         ++ [ (lib.hiPrio ghaf-cosmic-config) ];
