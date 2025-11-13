@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/cosmic-beta5";
+    nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-rust-fix";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # A framework for testing ghaf configurations
@@ -84,6 +84,7 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
+      #url = "github:tiiuae/ghafpkgs?ref=pull/142/head";
       url = "github:tiiuae/ghafpkgs";
       inputs = {
         nixpkgs.follows = "nixpkgs";
@@ -112,6 +113,7 @@
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
         flake-root.follows = "flake-root";
+        ghafpkgs.follows = "ghafpkgs";
         treefmt-nix.follows = "treefmt-nix";
         devshell.follows = "devshell";
         pre-commit-hooks-nix.follows = "git-hooks-nix";
