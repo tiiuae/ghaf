@@ -18,6 +18,7 @@
       ./networking
       ./logging
       ./identity
+      ../host/memory-wipe.nix
     ];
   };
 }

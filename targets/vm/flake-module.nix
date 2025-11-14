@@ -18,6 +18,7 @@ let
         };
         modules = [
           (builtins.getAttr format nixos-generators.nixosModules)
+          self.nixosModules.common
           self.nixosModules.microvm
           self.nixosModules.profiles
           self.nixosModules.reference-appvms
@@ -108,7 +109,10 @@ let
                   guivm.enable = withGraphics;
                 };
 
-                host.networking.enable = true;
+                host = {
+                  networking.enable = true;
+                  memory-wipe.enable = true;
+                };
 
                 # Enable all the default UI applications
                 profiles = {
