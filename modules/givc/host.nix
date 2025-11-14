@@ -38,7 +38,7 @@ in
         "host-powersave.service"
         "host-balanced.service"
         "host-performance.service"
-        "host-powersaver-battery.service"
+        "host-powersave-battery.service"
         "host-balanced-battery.service"
         "host-performance-battery.service"
       ];
