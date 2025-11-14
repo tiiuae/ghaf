@@ -48,13 +48,15 @@ in
         default = true;
       };
 
-      maxRetentionDays = mkOption {
+      maxRetention = mkOption {
         description = ''
-          Maximum number of days to retain journal logs locally.
+          Period of time to retain journal logs locally.
           After this period, old logs will be deleted automatically.
+          This setting takes time values which may be suffixed with the units:
+          'year', 'month', 'week', 'day', 'h' or ' m' to override the default time unit of seconds.
         '';
-        type = types.int;
-        default = 30;
+        type = types.str;
+        default = "30day";
       };
 
       maxDiskUsage = mkOption {
@@ -64,6 +66,16 @@ in
         '';
         type = types.str;
         default = "500M";
+      };
+
+      MaxFileSec = mkOption {
+        description = ''
+          The maximum time to store entries in a single journal file before rotating to the next one.
+          This setting takes time values which may be suffixed with the units:
+          'year', 'month', 'week', 'day', 'h' or ' m' to override the default time unit of seconds.
+        '';
+        type = types.str;
+        default = "1day";
       };
     };
   };
