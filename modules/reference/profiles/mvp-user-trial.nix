@@ -111,6 +111,9 @@ in
       # Enable power management
       services.power-manager.enable = true;
 
+      # Enable performance optimizations
+      services.performance.enable = true;
+
       # Enable kill switch
       services.kill-switch.enable = true;
     };

@@ -129,6 +129,13 @@ let
         inherit (configHost.ghaf.services.power-manager) enable;
       };
     };
+
+    # Performance module
+    performance = {
+      config.ghaf.services.performance = {
+        inherit (configHost.ghaf.services.performance) enable;
+      };
+    };
   };
 
   # User account settings
@@ -254,6 +261,7 @@ in
           serviceModules.audit
           serviceModules.brightness
           serviceModules.power
+          serviceModules.performance
           referenceServiceModule
         ];
 
