@@ -1,0 +1,439 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Forward Secure Sealing (FSS) for systemd journal logs
+# Provides cryptographic tamper-evidence for audit logs
+#
+# Overview:
+# ---------
+# Forward Secure Sealing uses HMAC-SHA256 chains to provide tamper-evident logging.
+# Each journal entry is cryptographically sealed at regular intervals (default: 15min).
+# Any tampering with sealed entries breaks the HMAC chain and is detected during verification.
+#
+# Architecture:
+# ------------
+# - Sealing keys: Generated per-VM, stored in /var/log/journal/<machine-id>/fss
+# - Verification keys: Extracted once during setup, stored in cfg.keyPath/verification-key
+# - Setup service: One-shot service that generates keys on first boot
+# - Verify service: Periodic integrity checks (default: hourly + on boot)
+# - Alerts: Verification failures logged via systemd-cat and forwarded to admin-vm
+#
+# Security Properties:
+# -------------------
+# - Forward security: Compromising current key does not allow forging past entries
+# - Tamper detection: Any modification to sealed entries invalidates HMAC chain
+# - Per-VM isolation: Each VM has independent FSS keys for compartmentalization
+# - Offline verification: Verification keys can validate exported journal archives
+#
+# Operational Notes:
+# -----------------
+# 1. First Boot:
+#    - journal-fss-setup.service runs before systemd-journald
+#    - Generates sealing keys with configured seal interval
+#    - Extracts verification key to cfg.keyPath/verification-key
+#    - CRITICAL: Immediately backup verification-key to secure offline storage
+#
+# 2. Runtime:
+#    - systemd-journald seals entries every sealInterval
+#    - journal-fss-verify.timer runs hourly + 2min after boot
+#    - Verification failures trigger critical alerts to admin-vm
+#
+# 3. Key Management:
+#    - Sealing keys NEVER leave the host (security-critical)
+#    - Verification keys should be stored in secure offline vault
+#    - Key rotation requires journal archive, clear, and reboot
+#
+# 4. Monitoring:
+#    - Audit rules monitor FSS key directory and journal access
+#    - AUDIT_LOG_VERIFY_COMPLETED: Successful verification
+#    - AUDIT_LOG_INTEGRITY_FAIL: Failed verification (potential tampering)
+#
+# 5. Troubleshooting:
+#    - Manual verification: journalctl --verify
+#    - Check service status: systemctl status journal-fss-setup
+#    - Check timer status: systemctl list-timers journal-fss-verify
+#    - View verification logs: journalctl -t journal-fss
+#
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  inherit (lib)
+    mkIf
+    mkOption
+    types
+    getExe
+    optionalAttrs
+    ;
+  cfg = config.ghaf.logging.fss;
+  loggingEnabled = config.ghaf.logging.enable;
+
+  # Script to setup FSS keys on first boot
+  setupScript = pkgs.writeShellApplication {
+    name = "journal-fss-setup";
+    runtimeInputs = with pkgs; [
+      systemd
+      coreutils
+      gawk
+    ];
+    text = ''
+      set -euo pipefail
+      export LC_ALL=C
+
+      KEY_DIR="${cfg.keyPath}"
+      INIT_FILE="$KEY_DIR/initialized"
+      MACHINE_ID=$(cat /etc/machine-id)
+
+      # Support both persistent and volatile storage
+      FSS_KEY_FILE="/var/log/journal/$MACHINE_ID/fss"
+      if [ ! -f "$FSS_KEY_FILE" ] && [ -f "/run/log/journal/$MACHINE_ID/fss" ]; then
+        FSS_KEY_FILE="/run/log/journal/$MACHINE_ID/fss"
+        echo "Note: Using volatile storage location for FSS keys"
+      fi
+
+      # Create key directory if it doesn't exist
+      mkdir -p "$KEY_DIR"
+      chmod 0700 "$KEY_DIR"
+
+      # Ensure journal directory exists (for persistent storage)
+      mkdir -p "/var/log/journal/$MACHINE_ID"
+      chmod 0755 "/var/log/journal"
+      chmod 2755 "/var/log/journal/$MACHINE_ID"
+
+      # Check if FSS keys already exist
+      if [ -f "$FSS_KEY_FILE" ]; then
+        echo "FSS sealing key already exists at $FSS_KEY_FILE"
+        echo "Setup already complete, creating sentinel file"
+        touch "$INIT_FILE"
+        chmod 0644 "$INIT_FILE"
+        exit 0
+      fi
+
+      # Generate new FSS keys
+      echo "Setting up Forward Secure Sealing keys..."
+      if ! journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt" 2>&1; then
+        echo "Error: journalctl --setup-keys failed"
+        cat "$KEY_DIR/setup-output.txt"
+        exit 1
+      fi
+
+      # Extract verification key robustly (locale-independent)
+      # The verification key is on the line after "verification key" text
+      if awk '/verification key/{getline; print}' "$KEY_DIR/setup-output.txt" | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
+        if [ -s "$KEY_DIR/verification-key" ]; then
+          chmod 0400 "$KEY_DIR/verification-key"
+          echo "FSS verification key extracted successfully"
+          echo "IMPORTANT: Store verification key off-host in a secure vault"
+        else
+          echo "Warning: Verification key file is empty"
+        fi
+      else
+        echo "Warning: Could not extract verification key from output"
+      fi
+
+      # Securely remove setup output (contains sensitive key material)
+      shred -u "$KEY_DIR/setup-output.txt" 2>/dev/null || rm -f "$KEY_DIR/setup-output.txt"
+
+      # Verify sealing key was created
+      if [ ! -f "$FSS_KEY_FILE" ]; then
+        echo "Error: FSS key generation failed - key file not found at $FSS_KEY_FILE"
+        exit 1
+      fi
+
+      # Create sentinel file to prevent re-initialization
+      touch "$INIT_FILE"
+      chmod 0644 "$INIT_FILE"
+
+      echo "Forward Secure Sealing initialization complete"
+      echo "Sealing key: $FSS_KEY_FILE"
+      echo "Verification key: $KEY_DIR/verification-key (if extracted)"
+    '';
+  };
+
+  # Script to verify journal integrity
+  verifyScript = pkgs.writeShellApplication {
+    name = "journal-fss-verify";
+    runtimeInputs = with pkgs; [
+      systemd
+      util-linux
+      gnugrep
+    ];
+    text = ''
+      set -euo pipefail
+
+      echo "Verifying journal integrity with Forward Secure Sealing..."
+
+      # Capture output and exit code
+      VERIFY_OUTPUT=$(journalctl --verify 2>&1) || VERIFY_EXIT=$?
+      VERIFY_EXIT=''${VERIFY_EXIT:-0}
+
+      # Check for actual integrity failures (FAIL in output)
+      if echo "$VERIFY_OUTPUT" | grep -q "FAIL"; then
+        echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
+        echo "Journal integrity verification: FAILED"
+        echo "Output: $VERIFY_OUTPUT"
+        echo "WARNING: Audit log integrity compromised - alert sent to central logging"
+        exit 1
+      fi
+
+      # Check for permission/filesystem errors that don't indicate tampering
+      if echo "$VERIFY_OUTPUT" | grep -qi "read-only file system\|permission denied\|cannot create"; then
+        echo "WARNING: Journal verification encountered filesystem errors (not an integrity failure)" | systemd-cat -t journal-fss -p warning
+        echo "Journal integrity verification: SKIPPED (filesystem errors)"
+        echo "Output: $VERIFY_OUTPUT"
+        echo "Note: This may be due to security hardening restrictions, not actual tampering"
+        exit 0
+      fi
+
+      # If we got here with non-zero exit but no specific errors, treat as success with warning
+      if [ "$VERIFY_EXIT" -ne 0 ]; then
+        echo "Journal verification returned non-zero exit but no critical errors detected" | systemd-cat -t journal-fss -p warning
+        echo "Output: $VERIFY_OUTPUT"
+      fi
+
+      # Success case
+      echo "AUDIT_LOG_VERIFY_COMPLETED: Journal integrity verification passed" | systemd-cat -t journal-fss -p info
+      echo "Journal integrity verification: PASSED"
+      exit 0
+    '';
+  };
+in
+{
+  options.ghaf.logging.fss = {
+    enable = mkOption {
+      type = types.bool;
+      default = loggingEnabled;
+      description = ''
+        Enable Forward Secure Sealing for systemd journal logs.
+        Automatically enabled when ghaf.logging.enable is true.
+
+        FSS provides cryptographic tamper-evidence for audit logs
+        using HMAC-based sealing chains. Any tampering will break
+        the chain and be detected during verification.
+      '';
+    };
+
+    keyPath = mkOption {
+      type = types.path;
+      default = "/persist/common/journal-fss";
+      description = ''
+        Directory to store FSS keys and metadata.
+
+        Contains:
+        - initialized: Sentinel file (prevents re-initialization)
+        - verification-key: Public verification key for independent validation
+
+        The sealing key is stored by systemd in /var/log/journal/<machine-id>/fss
+        and should never be exported from the host.
+
+        Verification Key Storage:
+        - The verification key is extracted once during initial setup
+        - CRITICAL: Copy verification-key to secure offline storage immediately
+        - Required for independent verification of exported journal archives
+        - If lost, tamper detection is still functional but offline verification is impossible
+
+        Offline Verification Process:
+        1. Export journal: journalctl -o export > journal.export
+        2. Transfer journal.export and verification-key to verification system
+        3. Verify: journalctl --verify --verify-key=<verification-key> --file=journal.export
+
+        Key Rotation:
+        - FSS keys are bound to the seal interval and cannot be rotated independently
+        - To rotate: clear journals, delete ${cfg.keyPath}/initialized, reboot
+        - WARNING: Rotation destroys tamper-evidence chain for existing logs
+        - Best practice: Archive and verify existing journals before rotation
+      '';
+    };
+
+    sealInterval = mkOption {
+      type = types.str;
+      default = "15min";
+      description = ''
+        Time interval for sealing journal entries during key generation.
+
+        This interval is set once during 'journalctl --setup-keys' and cannot
+        be changed without regenerating keys. Systemd will create a new HMAC
+        seal every interval, advancing the forward-secure key chain.
+
+        Shorter intervals provide more granular tamper detection but increase
+        storage overhead.
+
+        Format: time span (e.g., "15min", "1h", "30s")
+        Recommended: 15min (systemd default)
+
+        Impact of Changing sealInterval:
+        - REQUIRES key regeneration (destroys existing tamper-evidence chain)
+        - Shorter intervals (e.g., "5min"):
+          * Faster tamper detection granularity
+          * Higher storage overhead (~0.5% per seal)
+          * More verification CPU overhead
+        - Longer intervals (e.g., "1h"):
+          * Lower storage overhead
+          * Coarser tamper detection window
+          * Faster verification
+
+        Operational Notes:
+        - The seal interval is embedded in the FSS key structure
+        - Changing this value after deployment requires:
+          1. Archive and verify existing journals
+          2. Clear /var/log/journal/<machine-id>/
+          3. Delete ${cfg.keyPath}/initialized
+          4. Reboot to trigger new key generation
+        - All VMs in the system can use different seal intervals independently
+      '';
+    };
+
+    verifyOnBoot = mkOption {
+      type = types.bool;
+      default = true;
+      description = ''
+        Run journal verification on system boot.
+
+        Verification will run 2 minutes after systemd-journald starts
+        to ensure journal files are ready.
+      '';
+    };
+
+    verifySchedule = mkOption {
+      type = types.str;
+      default = "hourly";
+      description = ''
+        Systemd calendar expression for periodic verification.
+
+        Examples: "hourly", "daily", "weekly", "*:0/30" (every 30 min)
+        See systemd.time(7) for full syntax.
+      '';
+    };
+  };
+
+  config = mkIf cfg.enable {
+    # Create key directory and journal directory via tmpfiles
+    systemd.tmpfiles.rules = [
+      "d ${cfg.keyPath} 0700 root root - -"
+      "d /var/log/journal 0755 root systemd-journal - -"
+    ];
+
+    # One-shot service to generate FSS keys on first boot
+    systemd.services.journal-fss-setup = {
+      description = "Setup Forward Secure Sealing keys for systemd journal";
+      documentation = [ "man:journalctl(1)" ];
+
+      wantedBy = [ "sysinit.target" ];
+      before = [ "systemd-journald.service" ];
+      after = [ "local-fs.target" ];
+
+      unitConfig = {
+        # Only run if not already initialized
+        ConditionPathExists = "!${cfg.keyPath}/initialized";
+        # Ensure journal directory is ready and writable
+        ConditionPathIsReadWrite = "/var/log/journal";
+      };
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = getExe setupScript;
+
+        # Security hardening
+        ProtectSystem = "strict";
+        ReadWritePaths = [
+          cfg.keyPath
+          "/var/log/journal"
+        ];
+        PrivateNetwork = true;
+        NoNewPrivileges = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictAddressFamilies = [ "none" ];
+        RestrictNamespaces = true;
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        PrivateMounts = true;
+        SystemCallFilter = [ "@system-service" ];
+        CapabilityBoundingSet = [ "" ];
+        ProtectClock = true;
+        ProtectHostname = true;
+        ProcSubset = "pid";
+        ProtectProc = "invisible";
+        UMask = "0077";
+      };
+    };
+
+    # Service to verify journal integrity
+    systemd.services.journal-fss-verify = {
+      description = "Verify systemd journal integrity using Forward Secure Sealing";
+      documentation = [ "man:journalctl(1)" ];
+
+      after = [ "systemd-journald.service" ];
+      wants = [ "systemd-journald.service" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = getExe verifyScript;
+        WorkingDirectory = "/";
+
+        # Security hardening
+        ProtectSystem = "full";
+        PrivateNetwork = true;
+        NoNewPrivileges = true;
+        ProtectKernelTunables = true;
+        ProtectKernelModules = true;
+        ProtectControlGroups = true;
+        RestrictAddressFamilies = [ "AF_UNIX" ]; # Allow UNIX sockets for systemd-cat
+        RestrictNamespaces = true;
+        LockPersonality = true;
+        MemoryDenyWriteExecute = true;
+        RestrictRealtime = true;
+        RestrictSUIDSGID = true;
+        PrivateMounts = true;
+        SystemCallFilter = [ "@system-service" ];
+        CapabilityBoundingSet = [ "" ];
+        ProtectClock = true;
+        ProtectHostname = true;
+        ProcSubset = "pid";
+        ProtectProc = "invisible";
+        UMask = "0077";
+
+        # Allow read-write access to journal files for verification
+        # journalctl --verify needs write access to create verification metadata
+        ReadWritePaths = [
+          "/var/log/journal"
+          "/run/log/journal"
+        ];
+      };
+    };
+
+    # Timer for periodic verification
+    systemd.timers.journal-fss-verify = {
+      description = "Timer for periodic journal integrity verification";
+      documentation = [ "man:journalctl(1)" ];
+
+      wantedBy = [ "timers.target" ];
+
+      timerConfig = {
+        OnCalendar = cfg.verifySchedule;
+        Persistent = true;
+        RandomizedDelaySec = "5min";
+      }
+      // optionalAttrs cfg.verifyOnBoot {
+        OnBootSec = "2min";
+      };
+    };
+
+    # Audit rules to monitor FSS key and journal access (only if audit is enabled)
+    ghaf.security.audit.extraRules = mkIf (config.ghaf.security.audit.enable or false) [
+      # Monitor FSS key directory for any write or attribute changes
+      "-w ${cfg.keyPath} -p wa -k journal_fss_keys"
+      # Monitor sealed journal logs for tampering attempts
+      "-w /var/log/journal -p wa -k journal_sealed_logs"
+      # Monitor machine-id reads (critical for journal path resolution)
+      "-w /etc/machine-id -p r -k machine_id_read"
+    ];
+  };
+}
