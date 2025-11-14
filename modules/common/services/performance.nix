@@ -112,10 +112,11 @@ let
 
   mkTunedScript =
     {
+      name ? "tuned-script",
       start ? "",
       stop ? "",
     }:
-    pkgs.writeShellScriptBin "tuned-script" ''
+    pkgs.writeShellScriptBin name ''
       . ${pkgs.tuned}/lib/tuned/functions
 
       start() {
@@ -143,6 +144,7 @@ let
   # https://github.com/redhat-performance/tuned/blob/master/profiles/powersave/script.sh
   guiProfileScripts = {
     gui-powersave = mkTunedScript {
+      name = "gui-powersave";
       start =
         (mkBrightnessScript 40)
         + optionalString useGivc ''
@@ -150,6 +152,7 @@ let
         '';
     };
     gui-balanced = mkTunedScript {
+      name = "gui-balanced";
       start =
         (mkBrightnessScript 70)
         + optionalString useGivc ''
@@ -157,6 +160,7 @@ let
         '';
     };
     gui-performance = mkTunedScript {
+      name = "gui-performance";
       start =
         ''''
         + optionalString useGivc ''
@@ -164,6 +168,7 @@ let
         '';
     };
     gui-powersave-battery = mkTunedScript {
+      name = "gui-powersave-battery";
       start =
         (mkBrightnessScript 25)
         + optionalString useGivc ''
@@ -172,6 +177,7 @@ let
     };
 
     gui-balanced-battery = mkTunedScript {
+      name = "gui-balanced-battery";
       start =
         (mkBrightnessScript 50)
         + optionalString useGivc ''
@@ -179,6 +185,7 @@ let
         '';
     };
     gui-performance-battery = mkTunedScript {
+      name = "gui-performance-battery";
       start =
         (mkBrightnessScript 70)
         + optionalString useGivc ''
@@ -187,14 +194,7 @@ let
     };
   };
 
-  hostProfileScripts = {
-    host-powersave = mkTunedScript { };
-    host-balanced = mkTunedScript { };
-    host-performance = mkTunedScript { };
-    host-powersave-battery = mkTunedScript { };
-    host-balanced-battery = mkTunedScript { };
-    host-performance-battery = mkTunedScript { };
-  };
+  hostProfileScripts = { };
 
   # Customized TuneD profiles based on TuneD's built-in profiles and system76-power
   tunedProfiles = {
@@ -311,7 +311,7 @@ in
       description = ''
         Whether to enable hardware-agnostic Ghaf performance and scheduler optimizations.
 
-        For more information, see {manpage}`tuned-main.conf(5)`, {manpage}`tuned-profiles.7`,
+        For more information, see `tuned-main.conf(5)`, `tuned-profiles.7`,
         and system76-scheduler documentation.
       '';
       example = literalExpression ''
@@ -365,7 +365,7 @@ in
             if hwType == "desktop" then "performance" else "balanced";
           description = ''
             Default TuneD profile to use on the host.
-            This will be ignored if config.ghaf.services.gui.tuned is enabled and Ghaf's GIVC service is enabled.
+            This will be ignored if config.ghaf.services.gui.tuned.defaultProfile is not default.
           '';
         };
       };
@@ -501,24 +501,12 @@ in
           };
 
           profiles = {
-            host-powersave = tunedProfiles.powersave // {
-              script.script = "${getExe hostProfileScripts.host-powersave}";
-            };
-            host-balanced = tunedProfiles.balanced // {
-              script.script = "${getExe hostProfileScripts.host-balanced}";
-            };
-            host-performance = tunedProfiles.performance // {
-              script.script = "${getExe hostProfileScripts.host-performance}";
-            };
-            host-powersave-battery = tunedProfiles.powersave // {
-              script.script = "${getExe hostProfileScripts.host-powersave-battery}";
-            };
-            host-balanced-battery = tunedProfiles.balanced // {
-              script.script = "${getExe hostProfileScripts.host-balanced-battery}";
-            };
-            host-performance-battery = tunedProfiles.performance // {
-              script.script = "${getExe hostProfileScripts.host-performance-battery}";
-            };
+            host-powersave = tunedProfiles.powersave;
+            host-balanced = tunedProfiles.balanced;
+            host-performance = tunedProfiles.performance;
+            host-powersave-battery = tunedProfiles.powersave;
+            host-balanced-battery = tunedProfiles.balanced;
+            host-performance-battery = tunedProfiles.performance;
           };
         };
       }
