@@ -61,8 +61,8 @@ in
         user = config.ghaf.users.proxyUser.name;
         socket = "/tmp/dbusproxy_net.sock";
         policy = {
-          own = [
-            "org.freedesktop.NetworkManager.*"
+          talk = [
+            "org.freedesktop.NetworkManager"
           ];
         };
       };

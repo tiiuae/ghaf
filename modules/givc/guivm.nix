@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -74,6 +75,32 @@ in
         }
       ];
     };
+    systemd.services.dbus-proxy-networkmanager = {
+      description = "DBus proxy for Network Manager ${guivmName}";
+      serviceConfig = {
+        Type = "simple";
+        Restart = "always";
+        RestartSec = "1s";
+        Environment = [
+          "DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock"
+          "NM_SECRET_AGENT_XML=${pkgs.networkmanager}/share/dbus-1/interfaces/org.freedesktop.NetworkManager.SecretAgent.xml"
+        ];
+        ExecStart = [
+          ''
+            ${lib.getExe pkgs.dbus-proxy} \
+              --source-bus-name org.freedesktop.NetworkManager \
+              --source-object-path /org/freedesktop/NetworkManager \
+              --proxy-bus-name org.freedesktop.NetworkManager \
+              --source-bus-type session \
+              --target-bus-type system \
+              --nm-mode
+          ''
+        ];
+      };
+      startLimitIntervalSec = 0;
+      wantedBy = [ "multi-user.target" ];
+    };
+    services.dbus.packages = [ pkgs.networkmanager ];
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"
       "-w /run/givc/ -p wa -k givc-${hostName}"
