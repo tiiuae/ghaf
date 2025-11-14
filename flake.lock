@@ -488,16 +488,16 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1762764288,
-        "narHash": "sha256-0tHcFmtAhhMjQbJubQeJdKdWrU6gkYw5WQNz64CeDDE=",
+        "lastModified": 1763032763,
+        "narHash": "sha256-QBLQrhIfp20ZiBwWXeJk5zDQPOvBNhpV+xTYLVKrx20=",
         "owner": "tiiuae",
         "repo": "nixpkgs",
-        "rev": "150b905ba8fc9b3b950844cd470e13d259aa66d7",
+        "rev": "a502d1e58a16e45fa6ba666e9d80dbb7f6b77bf0",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "cosmic-beta5",
+        "ref": "cosmic-beta6-ghaf",
         "repo": "nixpkgs",
         "type": "github"
       }
