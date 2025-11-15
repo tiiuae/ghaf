@@ -3,6 +3,7 @@
 {
   imports = [
     ./usb/external-devices.nix
+    ./usb/internal-devices.nix
     ./usb/vhotplug.nix
     ./usb/quirks.nix
     ./devices.nix
