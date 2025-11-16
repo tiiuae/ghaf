@@ -32,17 +32,13 @@
   RemoveIPC = true;
   SystemCallArchitectures = "native";
   NotifyAccess = "main";
-  #RestrictAddressFamilies = "none";
-
-  RestrictAddressFamilies = [
-    "AF_INET"
-    "AF_INET6"
-    "AF_UNIX"
-  ];
+  RestrictAddressFamilies = [ "AF_UNIX" ];
 
   CapabilityBoundingSet = [
+    "CAP_CHOWN"
     "CAP_DAC_READ_SEARCH"
     "CAP_DAC_WRITE"
+    "CAP_FOWNER"
   ];
 
   SystemCallFilter = [
