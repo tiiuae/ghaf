@@ -16,6 +16,8 @@
     ghaf-session.serviceConfig = import ./ghaf-session.nix;
     greetd.serviceConfig = import ./greetd.nix;
     install-microvm-netvm.serviceConfig = import ./install-microvm-netvm.nix;
+    journal-fss-setup.serviceConfig = import ./journal-fss-setup.nix;
+    journal-fss-verify.serviceConfig = import ./journal-fss-verify.nix;
     kmod-static-nodes.serviceConfig = import ./kmod-static-nodes.nix;
     logrotate.serviceConfig = import ./logrotate.nix;
     logrotate-checkconf.serviceConfig = import ./logrotate-checkconf.nix;
