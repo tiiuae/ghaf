@@ -326,6 +326,8 @@ in
       after = [ "local-fs.target" ];
 
       unitConfig = {
+        # Prevent implicit After=basic.target which creates ordering cycle
+        DefaultDependencies = false;
         # Only run if not already initialized
         ConditionPathExists = "!${cfg.keyPath}/initialized";
         # Ensure journal directory is ready and writable
