@@ -80,7 +80,6 @@ let
       gawk
     ];
     text = ''
-      set -euo pipefail
       export LC_ALL=C
 
       KEY_DIR="${cfg.keyPath}"
@@ -164,8 +163,6 @@ let
       gnugrep
     ];
     text = ''
-      set -euo pipefail
-
       echo "Verifying journal integrity with Forward Secure Sealing..."
 
       # Check if verification key exists and use it
