@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 {
-  PrivateNetwork = true;
   IPAccounting = true;
   IPAddressDeny = "any";
   ProtectHome = true;
