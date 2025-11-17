@@ -100,8 +100,9 @@ let
 
       # Ensure journal directory exists (for persistent storage)
       mkdir -p "/var/log/journal/$MACHINE_ID"
-      chmod 0755 "/var/log/journal"
-      chmod 2755 "/var/log/journal/$MACHINE_ID"
+      # Set permissions if possible (may fail in restricted environments like MicroVMs)
+      chmod 0755 "/var/log/journal" 2>/dev/null || true
+      chmod 2755 "/var/log/journal/$MACHINE_ID" 2>/dev/null || true
 
       # Check if FSS keys already exist
       if [ -f "$FSS_KEY_FILE" ]; then
@@ -121,8 +122,9 @@ let
       fi
 
       # Extract verification key robustly (locale-independent)
-      # The verification key is on the line after "verification key" text
-      if awk '/verification key/{getline; print}' "$KEY_DIR/setup-output.txt" | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
+      # The verification key is after the "/" on the last line of output
+      # Format: sealing-key-id/verification-key
+      if tail -1 "$KEY_DIR/setup-output.txt" | cut -d'/' -f2 | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
         if [ -s "$KEY_DIR/verification-key" ]; then
           chmod 0400 "$KEY_DIR/verification-key"
           echo "FSS verification key extracted successfully"
@@ -166,8 +168,17 @@ let
 
       echo "Verifying journal integrity with Forward Secure Sealing..."
 
+      # Check if verification key exists and use it
+      VERIFY_KEY_FILE="${cfg.keyPath}/verification-key"
+      VERIFY_CMD="journalctl --verify"
+      if [ -f "$VERIFY_KEY_FILE" ] && [ -s "$VERIFY_KEY_FILE" ]; then
+        VERIFY_KEY=$(cat "$VERIFY_KEY_FILE")
+        VERIFY_CMD="journalctl --verify --verify-key=$VERIFY_KEY"
+        echo "Using verification key from $VERIFY_KEY_FILE"
+      fi
+
       # Capture output and exit code
-      VERIFY_OUTPUT=$(journalctl --verify 2>&1) || VERIFY_EXIT=$?
+      VERIFY_OUTPUT=$($VERIFY_CMD 2>&1) || VERIFY_EXIT=$?
       VERIFY_EXIT=''${VERIFY_EXIT:-0}
 
       # Check for actual integrity failures (FAIL in output)
@@ -338,12 +349,6 @@ in
         Type = "oneshot";
         RemainAfterExit = true;
         ExecStart = getExe setupScript;
-
-        # File system access required for FSS key generation
-        ReadWritePaths = [
-          cfg.keyPath
-          "/var/log/journal"
-        ];
       };
     };
 
@@ -362,9 +367,11 @@ in
 
         # File system access required for journal verification
         # journalctl --verify needs write access to create verification metadata
+        # Also needs read access to verification key for sealed journal validation
         ReadWritePaths = [
           "/var/log/journal"
           "/run/log/journal"
+          cfg.keyPath
         ];
       };
     };
