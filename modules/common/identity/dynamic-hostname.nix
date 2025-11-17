@@ -115,7 +115,7 @@ let
 
       # Generate device-id from our hardware-derived ID (for backward compatibility)
       # Use the same ID but format as hex string with dashes like: 00-01-23-45-67
-      printf "%010x" "$id" | fold -w2 | paste -sd'-' | tr -d '\n' > "$shareDir/../device-id"
+      printf "%010x" "$((10#$id))" | fold -w2 | paste -sd'-' | tr -d '\n' > "$shareDir/../device-id"
 
       # Generate unique machine-ids for all VMs based on hardware ID
       # Each VM gets a deterministic ID derived from hardware + VM name
