@@ -45,6 +45,14 @@
       }
     ];
 
+    hardware-intel-laptop.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix;
+        ghaf.hardware.usb.vhotplug.autoDetectPci = true;
+      }
+    ];
+
     hardware-lenovo-t14-amd-gen5.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
