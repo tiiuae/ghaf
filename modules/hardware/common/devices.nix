@@ -46,7 +46,9 @@ let
       d.path;
 
   # Shorthand substitutions
-  nicPciDevices = config.ghaf.hardware.definition.network.pciDevices;
+  nicPciDevices = lib.filter (
+    d: d.path != "" || (d.vendorId != null && d.productId != null)
+  ) config.ghaf.hardware.definition.network.pciDevices;
   gpuPciDevices = config.ghaf.hardware.definition.gpu.pciDevices;
   sndPciDevices = config.ghaf.hardware.definition.audio.pciDevices;
   evdevDevices = config.ghaf.hardware.definition.input.misc.evdev;
