@@ -86,6 +86,10 @@ let
                   "wpa_supplicant.service"
                 ];
               };
+
+              performance = {
+                net.enable = true;
+              };
             };
             logging.client.enable = config.ghaf.logging.enable;
 

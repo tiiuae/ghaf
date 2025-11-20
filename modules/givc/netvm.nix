@@ -38,6 +38,14 @@ in
       ++ optionals config.ghaf.services.power-manager.vm.enable [
         "suspend.target"
         "systemd-suspend.service"
+      ]
+      ++ optionals config.ghaf.services.performance.net.tuned.enable [
+        "net-powersave.service"
+        "net-balanced.service"
+        "net-performance.service"
+        "net-powersave-battery.service"
+        "net-balanced-battery.service"
+        "net-performance-battery.service"
       ];
       hwidService = true;
       tls.enable = config.ghaf.givc.enableTls;

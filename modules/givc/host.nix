@@ -11,6 +11,7 @@ let
     mkEnableOption
     mkIf
     optionalString
+    optionals
     ;
   inherit (config.networking) hostName;
   inherit (config.ghaf.networking) hosts;
@@ -35,6 +36,14 @@ in
         "reboot.target"
         "poweroff.target"
         "suspend.target"
+      ]
+      ++ optionals config.ghaf.services.performance.host.tuned.enable [
+        "host-powersave.service"
+        "host-balanced.service"
+        "host-performance.service"
+        "host-powersave-battery.service"
+        "host-balanced-battery.service"
+        "host-performance-battery.service"
       ];
       adminVm = optionalString (adminHost != null) "microvm@${adminHost}.service";
       systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;

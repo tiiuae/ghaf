@@ -12,12 +12,13 @@
     ./github.nix
     ./hwinfo
     ./killswitch.nix
-    ./timezone.nix
+    ./locale.nix
+    ./performance
     ./power.nix
     ./storewatcher.nix
+    ./timezone.nix
     ./wifi.nix
     ./xpadneo.nix
     ./yubikey.nix
-    ./locale.nix
   ];
 }

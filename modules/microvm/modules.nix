@@ -129,6 +129,13 @@ let
         inherit (configHost.ghaf.services.power-manager) enable;
       };
     };
+
+    # Performance module
+    performance = {
+      config.ghaf.services.performance = {
+        inherit (configHost.ghaf.services.performance) enable;
+      };
+    };
   };
 
   # User account settings
@@ -212,6 +219,7 @@ in
           serviceModules.wifi
           serviceModules.audit
           serviceModules.power
+          serviceModules.performance
           referenceServiceModule
         ];
       # Audiovm modules
@@ -232,6 +240,7 @@ in
           serviceModules.bluetooth
           serviceModules.xpadneo
           serviceModules.power
+          serviceModules.performance
           managedUserAccounts
         ];
       # Guivm modules
@@ -254,6 +263,7 @@ in
           serviceModules.audit
           serviceModules.brightness
           serviceModules.power
+          serviceModules.performance
           referenceServiceModule
         ];
 
