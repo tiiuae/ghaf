@@ -80,6 +80,9 @@ let
                   "bluetooth.service"
                 ];
               };
+              performance.vm = {
+                enable = true;
+              };
             };
             logging.client.enable = configHost.ghaf.logging.enable;
 

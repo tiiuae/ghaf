@@ -102,6 +102,10 @@ in
             host.enable = true;
             gui.enable = config.ghaf.profiles.graphics.enable;
           };
+          performance = {
+            host.enable = true;
+            gui.enable = config.ghaf.profiles.graphics.enable;
+          };
           kill-switch.enable = true;
           create-fake-battery.enable = true;
         };
