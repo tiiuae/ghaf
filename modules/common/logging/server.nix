@@ -166,6 +166,10 @@ in
             source_labels = ["__journal__systemd_unit"]
             target_label  = "service_name"
           }
+          rule {
+            source_labels = ["__journal__transport"]
+            target_label  = "transport"
+          }
         }
 
         loki.process "system" {
