@@ -1,11 +1,18 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 { config, lib, ... }:
-
-with lib;
-
 let
   cfg = config.ghaf.firewall.attack-mitigation;
+
+  inherit (lib)
+    mkOption
+    mkEnableOption
+    mkAfter
+    mkForce
+    mkIf
+    types
+    ;
+
   floodType = types.submodule {
     options = {
       burstNum = mkOption {
@@ -88,7 +95,7 @@ in
     # ssh syn flood protection
     ghaf.firewall.tcpBlacklistRules = mkIf cfg.ssh.enable [
       {
-        port = head config.services.openssh.ports;
+        port = builtins.head config.services.openssh.ports;
         trackingSize = 100;
         inherit (cfg.ssh.rule) burstNum;
         inherit (cfg.ssh.rule) maxPacketFreq;

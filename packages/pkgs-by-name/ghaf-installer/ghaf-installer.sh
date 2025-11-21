@@ -62,7 +62,7 @@ while true; do
   read -r -p "Device name [e.g. /dev/nvme0n1]: " DEVICE_NAME
 
   # Input validation: ensure device name starts with /dev/ and contains no path traversal
-  if [[ ! "$DEVICE_NAME" =~ ^/dev/[a-zA-Z0-9._-]+$ ]]; then
+  if [[ ! $DEVICE_NAME =~ ^/dev/[a-zA-Z0-9._-]+$ ]]; then
     echo "Invalid device name format. Device must be in /dev/ and contain only alphanumeric characters, dots, underscores, and dashes."
     continue
   fi

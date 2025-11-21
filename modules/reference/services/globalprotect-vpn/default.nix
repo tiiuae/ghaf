@@ -7,10 +7,16 @@
   ...
 }:
 
-with lib;
-
 let
   cfg = config.ghaf.reference.services.globalprotect;
+
+  inherit (lib)
+    literalExpression
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    ;
 
   execStart =
     if cfg.csdWrapper == null then

@@ -92,9 +92,9 @@ let
         inherit id;
       };
 
-      meta = with lib; {
+      meta = {
         description = "Chrome extension ${id}";
-        platforms = platforms.all;
+        platforms = lib.platforms.all;
       };
     };
 in

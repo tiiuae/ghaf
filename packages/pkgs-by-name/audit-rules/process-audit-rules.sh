@@ -47,12 +47,14 @@ find "$INPUT_DIR" -maxdepth 1 -type f -name "*.rules" -print0 | while IFS= read 
       s/$/"/
     }
     s/^[[:space:]]*//; s/[[:space:]]*$//
-  ' "$current_input_file" | grep -v '^[[:space:]]*$' > "$TMP_PROCESSED_CONTENT"
+  ' "$current_input_file" | grep -v '^[[:space:]]*$' >"$TMP_PROCESSED_CONTENT"
 
   # Write the processed content to the output file
-  (echo "["
-  sed 's/^/  /' "$TMP_PROCESSED_CONTENT"
-  echo "]") > "$output_filename"
+  (
+    echo "["
+    sed 's/^/  /' "$TMP_PROCESSED_CONTENT"
+    echo "]"
+  ) >"$output_filename"
 
   # Cleanup
   rm "$TMP_PROCESSED_CONTENT"
