@@ -83,6 +83,11 @@ in
           default = [ { } ];
           description = "List of Audio PCI devices currently enabled for passthrough.";
         };
+        usb = mkOption {
+          type = types.listOf types.attrs;
+          default = [ { } ];
+          description = "List of USB devices enabled for passthrough.";
+        };
       };
     };
     type = mkOption {
@@ -171,6 +176,7 @@ in
               nics = config.ghaf.hardware.definition.network.pciDevices;
               gpus = config.ghaf.hardware.definition.gpu.pciDevices;
               audio = config.ghaf.hardware.definition.audio.pciDevices;
+              usb = config.ghaf.hardware.definition.usb.devices;
             };
           };
         };

@@ -21,15 +21,14 @@ let
   ];
 
   audioPciDevices =
-    if config.ghaf.virtualization.microvm.audiovm.enable then
-      config.ghaf.common.hardware.audio
+    if config.ghaf.common.hardware ? "audio" then config.ghaf.common.hardware.audio else [ ];
+  netPciDevices =
+    if config.ghaf.common.hardware ? "nics" then config.ghaf.common.hardware.nics else [ ];
+  camUsbDevices =
+    if config.ghaf.common.hardware ? "usb" then
+      lib.filter (d: lib.hasPrefix "cam" d.name) config.ghaf.common.hardware.usb
     else
       [ ];
-  netPciDevices =
-    if config.ghaf.virtualization.microvm.netvm.enable then config.ghaf.common.hardware.nics else [ ];
-  camUsbDevices = builtins.filter (
-    d: lib.hasPrefix "cam" d.name
-  ) config.ghaf.hardware.definition.usb.devices;
 
   ghaf-killswitch = pkgs.writeShellApplication {
     name = "ghaf-killswitch";
@@ -58,11 +57,6 @@ let
 
       EOF
       }
-
-      if [ "$EUID" -ne 0 ]; then
-        echo "Please run as root"
-        exit 1
-      fi
 
       if [ $# -eq 0 ]; then
           help_msg
@@ -207,6 +201,7 @@ in
 
     environment.systemPackages = [
       ghaf-killswitch
+      pkgs.ghaf-kill-switch-app
     ];
   };
 }
