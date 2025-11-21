@@ -198,6 +198,7 @@ in
           "com.system76.CosmicAppletInputSources"
           "com.system76.CosmicAppletStatusArea"
           "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletNetwork"
           "com.system76.CosmicAppletAudio"
           "com.system76.CosmicAppletBattery"
           "com.system76.CosmicAppletPower"
@@ -333,6 +334,7 @@ in
         partOf = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
       };
+
       usb-passthrough-applet = {
         description = "USB Passthrough Applet";
         serviceConfig = {
@@ -344,21 +346,6 @@ in
           ];
           ExecStart = ''
             ${lib.getExe' pkgs.ghaf-usb-applet "usb_applet"}
-          '';
-        };
-        partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
-
-      nm-applet = {
-        inherit (graphicsProfileCfg.networkManager.applet) enable;
-        description = "Network Manager Applet";
-        serviceConfig = {
-          Type = "simple";
-          Restart = "always";
-          RestartSec = "1";
-          ExecStart = ''
-            ${getExe' pkgs.networkmanagerapplet "nm-applet"} --indicator
           '';
         };
         partOf = [ "cosmic-session.target" ];
