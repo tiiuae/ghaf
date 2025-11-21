@@ -283,20 +283,18 @@ See [Memory Wipe on Boot and Free](/ghaf/dev/ref/memory-wipe) for detailed docum
 ```nix
 { config, lib, pkgs, ... }:
 
-with lib;
-
 {
   options.ghaf.moduleName = {
-    enable = mkEnableOption "module description";
+    enable = lib.mkEnableOption "module description";
 
-    setting = mkOption {
-      type = types.str;
+    setting = lib.mkOption {
+      type = lib.types.str;
       default = "default-value";
       description = "Setting description with examples";
     };
   };
 
-  config = mkIf config.ghaf.moduleName.enable {
+  config = lib.mkIf config.ghaf.moduleName.enable {
     # Implementation
   };
 }

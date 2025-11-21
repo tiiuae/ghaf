@@ -35,6 +35,8 @@
 
           # Bash
           shellcheck.enable = true; # lints shell scripts https://github.com/koalaman/shellcheck
+          shfmt.enable = true; # bash formatter https://github.com/mvdan/sh
+          actionlint.enable = true; # github actions linter
 
           # TODO: treefmt claims it changes the files
           # though the files are not in the diff

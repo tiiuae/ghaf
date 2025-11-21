@@ -8,13 +8,21 @@
 }:
 let
   cfg = config.ghaf.ghaf-audio;
+
+  inherit (lib)
+    mkIf
+    mkEnableOption
+    mkOption
+    types
+    ;
+
   audiovmHost = "audio-vm";
   audiovmPort = config.ghaf.services.audio.pulseaudioTcpPort;
   address = "tcp:${audiovmHost}:${toString audiovmPort}";
   reconnectMs = 1000;
 in
 {
-  options.ghaf.ghaf-audio = with lib; {
+  options.ghaf.ghaf-audio = {
     enable = mkEnableOption "Ghaf audio support for application virtual machine.";
 
     name = mkOption {
@@ -27,14 +35,14 @@ in
     useTunneling = mkEnableOption "Enable local pulseaudio with tunneling";
   };
 
-  config = lib.mkIf cfg.enable {
+  config = mkIf cfg.enable {
     security.rtkit.enable = cfg.useTunneling;
-    ghaf.users.appUser.extraGroups = lib.mkIf cfg.useTunneling [
+    ghaf.users.appUser.extraGroups = mkIf cfg.useTunneling [
       "audio"
       "video"
     ];
 
-    hardware.pulseaudio = lib.mkIf cfg.useTunneling {
+    hardware.pulseaudio = mkIf cfg.useTunneling {
       enable = true;
       extraConfig = ''
         load-module module-tunnel-sink sink_name=${cfg.name}.speaker server=${address} reconnect_interval_ms=${toString reconnectMs}
@@ -42,7 +50,7 @@ in
       '';
     };
 
-    environment = lib.mkIf (!cfg.useTunneling) {
+    environment = mkIf (!cfg.useTunneling) {
       systemPackages = [ pkgs.pulseaudio ];
       sessionVariables = {
         PULSE_SERVER = "${address}";

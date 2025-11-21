@@ -160,7 +160,7 @@ stdenv.mkDerivation rec {
 
   src = ./src;
 
-  meta = with lib; {
+  meta = {
     description = "Brief description of package purpose";
     longDescription = ''
       Detailed description including:
@@ -170,9 +170,9 @@ stdenv.mkDerivation rec {
       - Security considerations
     '';
     homepage = "https://ghaf.tii.ae/ghaf/dev/ref/packages";
-    license = licenses.asl20;
-    maintainers = with maintainers; [ /* maintainer list */ ];
-    platforms = platforms.linux;
+    license = lib.licenses.asl20;
+    maintainers = with lib.maintainers; [ /* maintainer list */ ];
+    platforms = lib.platforms.linux;
   };
 }
 ```

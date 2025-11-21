@@ -40,7 +40,7 @@
     name: srcPath: size:
     let
       out =
-        pkgs.runCommand "${name}-${size}" { nativeBuildInputs = with pkgs; [ buildPackages.imagemagick ]; }
+        pkgs.runCommand "${name}-${size}" { nativeBuildInputs = [ pkgs.buildPackages.imagemagick ]; }
           ''
             mkdir -p $out
             convert \
@@ -91,7 +91,7 @@
       sizes = builtins.split "x" size;
       width = builtins.head sizes;
       height = builtins.elemAt sizes 2;
-      out = pkgs.runCommand "${name}-${size}" { nativeBuildInputs = with pkgs; [ librsvg ]; } ''
+      out = pkgs.runCommand "${name}-${size}" { nativeBuildInputs = [ pkgs.librsvg ]; } ''
         mkdir -p $out
           rsvg-convert ${srcPath} -o $out/${name}.png \
             --width=${width} --height=${height} --keep-aspect-ratio

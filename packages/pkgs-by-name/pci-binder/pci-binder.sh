@@ -3,34 +3,34 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # INIT
-declare -A PCI_DATA # PCI data; associative array with key = PCI bus ID, value = driver name
+declare -A PCI_DATA          # PCI data; associative array with key = PCI bus ID, value = driver name
 declare -a PCI_INPUT_DEVICES # Array to hold input PCI device identifiers
-declare ACTION_FLAG # Action flag to determine whether to bind or unbind
+declare ACTION_FLAG          # Action flag to determine whether to bind or unbind
 declare STATE_DIR=""
 
 # Helpers for clearer logging
 TAG="pci-binder"
 log_error_exit() {
-  systemd-cat -p err -t "$TAG" <<< "$1"
+  systemd-cat -p err -t "$TAG" <<<"$1"
   usage
   exit 1
 }
 log_warning() {
-  systemd-cat -p warning -t "$TAG" <<<  "$1"
+  systemd-cat -p warning -t "$TAG" <<<"$1"
 }
 log_notice() {
-  systemd-cat -p notice -t "$TAG" <<< "$1"
+  systemd-cat -p notice -t "$TAG" <<<"$1"
 }
 log_info() {
-  systemd-cat -p info -t "$TAG" <<< "$1"
+  systemd-cat -p info -t "$TAG" <<<"$1"
 }
 log_debug() {
-  systemd-cat -p debug -t "$TAG" <<< "$1"
+  systemd-cat -p debug -t "$TAG" <<<"$1"
 }
 
 usage() {
-  if [[ "$-" == *i* ]]; then
-cat <<EOF
+  if [[ $- == *i* ]]; then
+    cat <<EOF
 Usage: $(basename "$0") [(-s|--state-dir) <state_directory>] (unbind [<pci_device> ...] | bind)
 
 Options:
@@ -68,11 +68,11 @@ write_pci_data() {
   for key in "${!PCI_DATA[@]}"; do
     args+=(--arg "$key" "${PCI_DATA[$key]}")
   done
-  jq -n '$ARGS.named' --args "${args[@]}" > "$STATE_DIR/pci-devices"
+  jq -n '$ARGS.named' --args "${args[@]}" >"$STATE_DIR/pci-devices"
 }
 
 # Function to restore the PCI_DATA from a JSON file
-read_pci_data(){
+read_pci_data() {
   if [ -z "$STATE_DIR" ]; then
     log_error_exit "No state directory set, cannot read PCI data."
   fi
@@ -84,7 +84,7 @@ read_pci_data(){
   done < <(jq -r 'to_entries[] | [.key, .value] | @tsv' "$STATE_DIR/pci-devices")
 }
 
-parse_input(){
+parse_input() {
 
   # Check that we are running in a guest with root privileges
   local guest
@@ -92,7 +92,7 @@ parse_input(){
   if [[ $guest == "none" ]]; then
     log_error_exit "This script should only be run in a guest, not the host. Detected guest type: $guest"
   fi
-  if [[ "$EUID" -ne 0 ]]; then
+  if [[ $EUID -ne 0 ]]; then
     log_error_exit "Please run with root privileges."
   fi
 
@@ -103,33 +103,33 @@ parse_input(){
 
   # Validate and/or create the state directory (optional input 1)
   case "$1" in
-    -s | --state-dir)
-      STATE_DIR="$2"
-      if [[ ! -d "$STATE_DIR" ]]; then
-        log_info "Creating state directory '$STATE_DIR' ..."
-        if ! mkdir -p "$STATE_DIR"; then
-          log_error_exit "Failed to create state directory '$STATE_DIR'."
-        fi
+  -s | --state-dir)
+    STATE_DIR="$2"
+    if [[ ! -d $STATE_DIR ]]; then
+      log_info "Creating state directory '$STATE_DIR' ..."
+      if ! mkdir -p "$STATE_DIR"; then
+        log_error_exit "Failed to create state directory '$STATE_DIR'."
       fi
-      shift 2
-      ;;
-    *)
-      log_info "Running without state directory, automatic rebind anticipated..."
-      ;;
+    fi
+    shift 2
+    ;;
+  *)
+    log_info "Running without state directory, automatic rebind anticipated..."
+    ;;
   esac
 
   # Validate the action flag (input 1/2)
   ACTION_FLAG="$1"
-  if [[ "$ACTION_FLAG" != "bind" && "$ACTION_FLAG" != "unbind" ]]; then
+  if [[ $ACTION_FLAG != "bind" && $ACTION_FLAG != "unbind" ]]; then
     log_error_exit "The action argument must be 'bind' or 'unbind'. Received: '$ACTION_FLAG'"
   fi
-  if [[ "$ACTION_FLAG" == "bind" && -z "$STATE_DIR" ]]; then
+  if [[ $ACTION_FLAG == "bind" && -z $STATE_DIR ]]; then
     log_error_exit "The action 'bind' requires a state directory input."
   fi
   shift 1
 
   # Validate the array of device identifiers
-  if [[ "$ACTION_FLAG" == "unbind" ]]; then
+  if [[ $ACTION_FLAG == "unbind" ]]; then
 
     if [[ $# -eq 0 ]]; then
       log_error_exit "No device identifiers found."
@@ -137,9 +137,9 @@ parse_input(){
 
     # Check all remaining parameters (the hex pair pci identifiers)
     local pattern="^[0-9a-fA-F]{4}:[0-9a-fA-F]{4}$"
-    read -r -a input_args <<< "$@"
+    read -r -a input_args <<<"$@"
     for arg in "${input_args[@]}"; do
-      if [[ "$arg" =~ $pattern ]]; then
+      if [[ $arg =~ $pattern ]]; then
         PCI_INPUT_DEVICES+=("$arg")
       else
         log_error_exit "PCI identifier ('$arg') does not match the required '{vendor_id}:{product_id}' format."
@@ -153,7 +153,7 @@ parse_input(){
 }
 
 # Function to determine suitable devices and populate the PCI_DATA array
-init_pci_unbind(){
+init_pci_unbind() {
 
   # Add all PCI devices that are passed through to this guest
   declare -a pci_device_paths
@@ -169,7 +169,6 @@ init_pci_unbind(){
     log_error_exit "No PCI devices found to unbind."
   fi
   log_info "Detected PCI device paths: ${pci_device_paths[*]}"
-
 
   # Initialize the PCI_DATA associative array
   for device_path in "${pci_device_paths[@]}"; do
@@ -198,7 +197,6 @@ init_pci_unbind(){
   done
 }
 
-
 # Function to unbind PCI drivers
 unbind_pci_drivers() {
 
@@ -214,7 +212,7 @@ unbind_pci_drivers() {
     local driver
     driver="${PCI_DATA["$pci_id"]}"
     log_notice "Unbinding driver '$driver' from device '$pci_id'..."
-    echo "$pci_id" > "/sys/bus/pci/drivers/$driver/unbind"
+    echo "$pci_id" >"/sys/bus/pci/drivers/$driver/unbind"
   done
 
   log_info "PCI devices unbound successfully."
@@ -245,7 +243,7 @@ bind_pci_drivers() {
     local driver
     driver="${PCI_DATA["$pci_id"]}"
     log_notice "Rebinding driver '$driver' to device '$pci_id'..."
-    echo "$pci_id" > "/sys/bus/pci/drivers/$driver/bind"
+    echo "$pci_id" >"/sys/bus/pci/drivers/$driver/bind"
   done
 
   # Remove the state file after rebinding
@@ -253,19 +251,19 @@ bind_pci_drivers() {
   log_info "PCI device drivers bound successfully."
 }
 
-main(){
+main() {
   parse_input "$@"
   case "$ACTION_FLAG" in
-    unbind)
-      unbind_pci_drivers
-      ;;
-    bind)
-      bind_pci_drivers
-      ;;
-    *)
-      echo "You managed to somehow reach unreachable code!"
-      usage
-      ;;
+  unbind)
+    unbind_pci_drivers
+    ;;
+  bind)
+    bind_pci_drivers
+    ;;
+  *)
+    echo "You managed to somehow reach unreachable code!"
+    usage
+    ;;
   esac
   exit 0
 }
