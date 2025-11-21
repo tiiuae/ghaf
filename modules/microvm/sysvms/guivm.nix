@@ -208,7 +208,6 @@ let
             systemPackages =
               (rmDesktopEntries [
                 pkgs.waypipe
-                pkgs.networkmanagerapplet
                 pkgs.gnome-calculator
                 pkgs.sticky-notes
               ])
