@@ -103,16 +103,5 @@ in
         keybindings = true;
       };
     };
-
-    systemd.services = {
-      efiboot-clean = {
-        description = "Prune outdated EFI bootrecords";
-        wantedBy = [ "multi-user.target" ];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${lib.getExe pkgs.efiboot-clean} --apply";
-        };
-      };
-    };
   };
 }
