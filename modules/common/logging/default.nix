@@ -5,5 +5,6 @@
     ./common.nix
     ./client.nix
     ./server.nix
+    ./fss.nix
   ];
 }
