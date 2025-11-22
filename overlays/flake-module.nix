@@ -21,6 +21,7 @@
       inputs.ghafpkgs.overlays.default
       inputs.ctrl-panel.overlays.default
       inputs.givc.overlays.default
+      inputs.gp-gui.overlays.default
       inputs.wireguard-gui.overlays.default
       inputs.vhotplug.overlays.default
     ];

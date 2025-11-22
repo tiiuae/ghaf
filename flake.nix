@@ -118,6 +118,19 @@
       };
     };
 
+    # GPU passthrough GUI
+    gp-gui = {
+      url = "github:brianmcgillion/gp-gui";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        treefmt-nix.follows = "treefmt-nix";
+        flake-root.follows = "flake-root";
+        git-hooks-nix.follows = "git-hooks-nix";
+        devshell.follows = "devshell";
+      };
+    };
+
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";

@@ -4,6 +4,7 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -14,7 +15,14 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf.virtualization.microvm.appvm.vms = lib.foldl (a: b: a // b) { } [
-      (import ./business.nix { inherit pkgs lib config; })
+      (import ./business.nix {
+        inherit
+          pkgs
+          lib
+          config
+          inputs
+          ;
+      })
       (import ./chromium.nix { inherit pkgs lib config; })
       (import ./comms.nix { inherit pkgs lib config; })
       (import ./flatpak.nix { inherit pkgs lib config; })
