@@ -29,6 +29,9 @@
         let
           cfg = lib.nixosSystem {
             # Enhanced from lenovo-x1-carbon-gen11-debug with broader module coverage
+            specialArgs = {
+              inherit inputs;
+            };
             modules = [
               # Original proven working base
               self.nixosModules.reference-profiles

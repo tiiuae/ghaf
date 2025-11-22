@@ -5,6 +5,7 @@
   pkgs,
   lib,
   config,
+  inputs,
   ...
 }:
 let
@@ -209,22 +210,13 @@ in
         {
           name = "VPN";
           description = "GlobalProtect VPN Client";
-          packages = [
-            pkgs.globalprotect-openconnect
-            pkgs.openconnect
-          ];
+          packages = [ pkgs.gp-gui ];
           icon = "yast-vpn";
-          command = "gpclient -platform wayland";
+          command = "gp-gui";
           extraModules = [
             {
-              imports = [
-                ../services/globalprotect-vpn/default.nix
-              ];
-
-              ghaf.reference.services.globalprotect = {
-                enable = true;
-                csdWrapper = "${pkgs.openconnect}/libexec/openconnect/hipreport.sh";
-              };
+              imports = [ inputs.gp-gui.nixosModules.default ];
+              programs.gp-gui.enable = true;
             }
           ];
         }
