@@ -4,69 +4,10 @@
 { config, lib, ... }:
 let
   inherit (lib)
-    mkOption
-    types
     mkIf
     mkMerge
-    literalExpression
     ;
 
-  # USB device submodule, defined either by product ID and vendor ID, or by bus and port number
-  usbDevSubmodule = types.submodule {
-    options = {
-      name = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = ''
-          USB device name. NOT optional for external devices, in which case it must not contain spaces
-          or extravagant characters.
-        '';
-      };
-
-      vmUdevExtraRule = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = ''
-          Extra udev rule for the VM to control access of the USB device.
-        '';
-      };
-
-      vendorId = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = ''
-          USB Vendor ID (optional). If this is set, the productId must also be set.
-        '';
-      };
-      productId = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = ''
-          USB Product ID (optional). If this is set, the vendorId must also be set.
-        '';
-      };
-
-      # TODO: The use of hostbus and hostport is not a reliable way to identify the attached device,
-      # as these values may change depending on the system's USB topology or reboots. Consider using
-      # vendorId and productId for more stable identification. If this is not feasible, document the
-      # scenarios where hostbus and hostport are acceptable and plan for a more robust solution.
-
-      hostbus = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = ''
-          USB device bus number (optional). If this is set, the hostport must also be set.
-        '';
-      };
-      hostport = mkOption {
-        type = types.nullOr types.str;
-        default = null;
-        description = ''
-          USB device device number (optional). If this is set, the hostbus must also be set.
-        '';
-      };
-    };
-  };
   # Qemu arguments for single device
   qemuArgsForSingleDevice =
     dev:
@@ -139,7 +80,7 @@ let
     in
     lib.strings.concatMapStringsSep "\n" generateRule config.ghaf.hardware.definition.usb.devices;
 
-  vhotplugRules = map (vm: {
+  vhotplugUsbRules = map (vm: {
     targetVm = vm;
     description = "Static devices for ${vm}";
     allow = map (dev: {
@@ -152,39 +93,7 @@ let
   }) vmNames;
 in
 {
-  options.ghaf.hardware.passthrough.usb = {
-    devices = mkOption {
-      description = ''
-        List of USB device(s) to passthrough.
-
-        Each device definition requires a name, and either vendorId and productId, or hostbus and hostport.
-        The latter is useful for addressing devices that may have different vendor and product IDs in the
-        same hardware generation.
-
-        Note that internal devices must follow the naming convention to be correctly identified
-        and subsequently used. Current special names are:
-          - 'cam0' for the internal cam0 device
-          - 'fpr0' for the internal fingerprint reader device
-      '';
-      type = types.listOf usbDevSubmodule;
-      default = [ ];
-      example = literalExpression ''
-        [
-          {
-            name = "cam0";
-            vendorId = "0123";
-            productId = "0123";
-          }
-          {
-            name = "fpr0";
-            hostbus = "3";
-            hostport = "3";
-          }
-        ]
-      '';
-    };
-  };
-  config = mkMerge [
+  config = mkIf (builtins.hasAttr "definition" config.ghaf.hardware) (mkMerge [
     (mkIf
       (
         config.ghaf.hardware.passthrough.mode == "static"
@@ -202,10 +111,10 @@ in
       }
     )
     (mkIf (config.ghaf.hardware.passthrough.mode == "dynamic") {
-      ghaf.hardware.usb.vhotplug.postpendRules = vhotplugRules;
+      ghaf.hardware.passthrough.vhotplug.postpendUsbRules = vhotplugUsbRules;
     })
     {
       ghaf.hardware.passthrough.vmUdevExtraRules = vmUdevExtraRulesUSB;
     }
-  ];
+  ]);
 }

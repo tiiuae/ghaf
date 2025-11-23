@@ -191,6 +191,12 @@ in
           type = kernelConfig;
           default = { };
         };
+
+        extraVfioPciIds = mkOption {
+          description = "Extra ids for the vfio-pci.ids kerenel parameter";
+          type = types.listOf types.str;
+          default = [ ];
+        };
       };
 
       input = {

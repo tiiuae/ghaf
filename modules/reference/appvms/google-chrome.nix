@@ -123,5 +123,22 @@
 
       }
     ];
+    usbPassthrough = [
+      {
+        description = "External Webcams for ChromeVM and BusinessVM";
+        allowedVms = [
+          "chrome-vm"
+          "business-vm"
+        ];
+        allow = [
+          {
+            interfaceClass = 14;
+            description = "Video (USB Webcams)";
+          }
+        ];
+        # Ignore internal webcams since they are attached to business-vm
+        deny = config.ghaf.reference.passthrough.usb.internalWebcams;
+      }
+    ];
   };
 }

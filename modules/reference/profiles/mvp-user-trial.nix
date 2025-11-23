@@ -48,6 +48,15 @@ in
           audio-vm.permittedDevices = [ "bt0" ];
           business-vm.permittedDevices = [ "cam0" ];
         };
+        usb = {
+          guivmRules = [
+            {
+              description = "Fingerprint Readers for GUIVM";
+              targetVm = "gui-vm";
+              allow = config.ghaf.reference.passthrough.usb.fingerprintReaders;
+            }
+          ];
+        };
       };
 
       reference = {

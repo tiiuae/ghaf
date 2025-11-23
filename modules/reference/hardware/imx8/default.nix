@@ -3,4 +3,8 @@
 #
 # Support for NXP i.MX 8M Plus
 #
-{ imports = [ ./imx8mp-sdimage.nix ]; }
+{
+  imports = [
+    ./imx8mp-sdimage.nix
+  ];
+}
