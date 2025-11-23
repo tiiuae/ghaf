@@ -11,30 +11,26 @@ let
     ;
 in
 {
-  options.ghaf.hardware.usb.internal = {
-    webcams = mkOption {
+  options.ghaf.reference.passthrough.usb = {
+    internalWebcams = mkOption {
       type = with types; listOf (attrsOf str);
       default = [ ];
-      example = [
-        {
-          vendorId = "04f2";
-          productId = "b751";
-          description = "Lenovo X1 Integrated Camera";
-        }
-        {
-          vendorId = "04f2";
-          productId = "b729";
-          description = "System76 darp11-b Integrated Camera";
-        }
-      ];
       description = ''
-        List of internal USB webcams with Vendor ID, Product ID and description.
+        List of internal USB webcams.
+      '';
+    };
+
+    fingerprintReaders = mkOption {
+      type = with types; listOf (attrsOf str);
+      default = [ ];
+      description = ''
+        List of fingerprint readers.
       '';
     };
   };
 
-  config = {
-    ghaf.hardware.usb.internal.webcams = [
+  config.ghaf.reference.passthrough.usb = {
+    internalWebcams = [
       {
         vendorId = "04f2";
         productId = "b751";
@@ -59,6 +55,14 @@ in
         vendorId = "04f2";
         productId = "b729";
         description = "System76 darp11-b Integrated Camera";
+      }
+    ];
+
+    fingerprintReaders = [
+      {
+        vendorId = "06cb";
+        productId = "00fc";
+        description = "Synaptics, Inc. Prometheus Fingerprint Reader";
       }
     ];
   };

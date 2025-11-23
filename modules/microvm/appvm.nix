@@ -401,6 +401,12 @@ in
               ];
               default = "medium";
             };
+            usbPassthrough = mkOption {
+              description = ''
+                List of USB passthrough rules for this AppVM
+              '';
+              default = [ ];
+            };
           };
         }
       );
@@ -496,6 +502,11 @@ in
         name = "${name}-vm";
         value = vm.extraNetworking or { };
       }) vms;
+
+      # Add USB passthrough rules from AppVMs
+      ghaf.hardware.passthrough.vhotplug.usbRules = lib.concatMap (vm: vm.usbPassthrough) (
+        lib.attrValues vms
+      );
 
     };
 }

@@ -281,5 +281,13 @@ in
         };
       }
     ];
+
+    usbPassthrough = [
+      {
+        description = "Internal Webcams for BusinessVM";
+        targetVm = "business-vm";
+        allow = config.ghaf.reference.passthrough.usb.internalWebcams;
+      }
+    ];
   };
 }

@@ -17,11 +17,6 @@ let
     ;
 in
 {
-  imports = [
-    #TODO: fix me
-    ../../../../hardware/common/usb/vhotplug.nix
-    ../../../../hardware/common/usb/quirks.nix
-  ];
   options.ghaf.hardware.nvidia.orin = {
     # Enable the Orin boards
     enable = mkEnableOption "Orin hardware";
@@ -85,28 +80,8 @@ in
       ];
     };
 
-    ghaf.hardware.usb.quirks.enable = true;
-    ghaf.hardware.usb.vhotplug = {
-      enable = true;
-      rules = [
-        {
-          description = "Devices for NetVM";
-          targetVm = "net-vm";
-          allow = [
-            {
-              interfaceClass = 2;
-              interfaceSubclass = 6;
-              description = "Communications - Ethernet Networking";
-            }
-            {
-              vendorId = "0b95";
-              productId = "1790";
-              description = "ASIX Elec. Corp. AX88179 UE306 Ethernet Adapter";
-            }
-          ];
-        }
-      ];
-    };
+    ghaf.hardware.passthrough.vhotplug.enable = true;
+    ghaf.hardware.passthrough.usbQuirks.enable = true;
 
     services.nvpmodel = {
       enable = lib.mkDefault true;

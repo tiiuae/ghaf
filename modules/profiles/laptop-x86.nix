@@ -30,9 +30,10 @@ in
       hardware = {
         x86_64.common.enable = true;
         tpm2.enable = true;
-        usb = {
+        passthrough = {
           vhotplug.enable = true;
-          quirks.enable = true;
+          usbQuirks.enable = true;
+
         };
       };
 

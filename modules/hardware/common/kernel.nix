@@ -76,13 +76,15 @@ in
             # PCI device passthroughs for vfio
             filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
             mapPciIdsToString = map (d: "${d.vendorId}:${d.productId}");
-            vfioPciIds = mapPciIdsToString (
-              filterDevices (
-                config.ghaf.hardware.definition.network.pciDevices
-                ++ config.ghaf.hardware.definition.gpu.pciDevices
-                ++ config.ghaf.hardware.definition.audio.pciDevices
+            vfioPciIds =
+              mapPciIdsToString (
+                filterDevices (
+                  config.ghaf.hardware.definition.network.pciDevices
+                  ++ config.ghaf.hardware.definition.gpu.pciDevices
+                  ++ config.ghaf.hardware.definition.audio.pciDevices
+                )
               )
-            );
+              ++ config.ghaf.hardware.definition.host.extraVfioPciIds;
           in
           config.ghaf.hardware.definition.host.kernelConfig.kernelParams
           ++ [ "vfio-pci.ids=${builtins.concatStringsSep "," vfioPciIds}" ];

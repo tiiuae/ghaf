@@ -6,7 +6,7 @@
   ...
 }:
 let
-  cfg = config.ghaf.hardware.usb.quirks;
+  cfg = config.ghaf.hardware.passthrough.usbQuirks;
   inherit (lib)
     mkEnableOption
     mkIf
@@ -20,7 +20,7 @@ let
 
 in
 {
-  options.ghaf.hardware.usb.quirks = {
+  options.ghaf.hardware.passthrough.usbQuirks = {
     enable = mkEnableOption "quirks for USB devices";
   };
 

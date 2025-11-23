@@ -6,14 +6,13 @@
       ./definition.nix
       ./x86_64-generic
       ./common
-      ./device-passthrough
+      ./passthrough
       ./common/kernel.nix
     ];
     hardware-x86_64-generic.imports = [
       ./definition.nix
       ./x86_64-generic
-      ./device-passthrough
-      ./common/usb/vhotplug.nix
+      ./passthrough
       ./common/kernel.nix
     ];
     hardware-x86_64-host-kernel.imports = [
@@ -24,6 +23,7 @@
     ];
     hardware-aarch64-generic.imports = [
       ./aarch64/systemd-boot-dtb.nix
+      ./passthrough
     ];
   };
 }

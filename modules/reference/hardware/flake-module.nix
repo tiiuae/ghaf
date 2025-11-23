@@ -49,7 +49,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix;
-        ghaf.hardware.usb.vhotplug.autoDetectPci = true;
+        ghaf.hardware.passthrough.pci.autoDetectPci = true;
       }
     ];
 
@@ -136,13 +136,16 @@
       ./jetpack/nx/orin-nx.nix
     ];
 
+    imx8.imports = [
+      ./imx8
+      inputs.self.nixosModules.hardware-aarch64-generic
+    ];
+
     jetpack.imports = [
       ./jetpack
       ./jetpack/nvidia-jetson-orin/optee.nix
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
-
-    imx8.imports = [ ./imx8 ];
 
     polarfire.imports = [ ./polarfire ];
 
