@@ -17,11 +17,6 @@ let
 
   cfg = config.ghaf.identity.dynamicHostName;
 
-  # Get list of active microvms for machine-id generation
-  activeMicrovms = lib.attrNames (
-    lib.filterAttrs (_: vm: vm.enable or false) (config.microvm.vms or { })
-  );
-
   computeScript = pkgs.writeShellApplication {
     name = "ghaf-compute-hostname";
     runtimeInputs = [
@@ -41,33 +36,68 @@ let
       mkdir -p "$outDir" "$shareDir"
 
       read_hardware_id() {
-        # Try DMI serial/UUID
+        ids=""
+
+        # Collect DMI serial/UUID
         for p in /sys/class/dmi/id/product_serial /sys/class/dmi/id/product_uuid; do
           if [ -r "$p" ]; then
             v=$(tr -cd '[:alnum:]' <"$p")
             if [ -n "$v" ]; then
-              echo "$v"; return 0
+              ids="''${ids}''${v}"
             fi
           fi
         done
 
-        # Try disk UUID
-        for disk in /dev/disk/by-uuid/*; do
+        # Collect disk hardware IDs (serial-based, not filesystem UUIDs)
+        for disk in /dev/disk/by-id/*; do
           if [ -L "$disk" ]; then
-            basename "$disk"
-            return 0
+            # Skip partition entries, USB devices, and DM devices
+            diskid=$(basename "$disk")
+            if [[ ! "$diskid" =~ -part[0-9]+$ ]] && \
+               [[ ! "$diskid" =~ ^usb- ]] && \
+               [[ ! "$diskid" =~ ^dm- ]]; then
+              ids="''${ids}''${diskid}"
+            fi
           fi
         done 2>/dev/null
 
-        # Try MAC address
-        for ifc in /sys/class/net/*; do
-          [ "$(basename "$ifc")" = "lo" ] && continue
-          [ -r "$ifc/address" ] && cat "$ifc/address"
-        done | grep -vi '^00:00:00:00:00:00$' | sort | head -n1 && return 0
+        # Get MACs from physical network interfaces only
+        for iface in /sys/class/net/*; do
+          ifname=$(basename "$iface")
 
-        # Fallback to machine-id
-        if [ -r /etc/machine-id ]; then
-          cat /etc/machine-id
+          # Skip loopback
+          if [[ "$ifname" == "lo" ]]; then
+            continue
+          fi
+
+          # Must have device backing
+          if [[ -L "$iface/device" ]]; then
+            device_path=$(readlink -f "$iface/device")
+
+            # Exclude USB gadget mode (device mode, not host mode)
+            if [[ "$device_path" =~ /gadget ]]; then
+              continue
+            fi
+
+            # Include if on physical bus (check path for bus type)
+            if [[ "$device_path" =~ /(pci|platform|amba|sdio|mmc)/ ]] || \
+               [[ "$device_path" =~ /usb/ && ! "$device_path" =~ /gadget ]]; then
+
+              mac=$(cat "$iface/address" 2>/dev/null)
+              if [[ -n "$mac" && "$mac" != "00:00:00:00:00:00" ]]; then
+                ids="''${ids}''${mac}"
+              fi
+            fi
+          fi
+        done
+
+        # Fallback to machine-id only if no other IDs were collected
+        if [ -z "$ids" ] && [ -r /etc/machine-id ]; then
+          ids="$(cat /etc/machine-id)"
+        fi
+
+        if [ -n "$ids" ]; then
+          echo "$ids"
           return 0
         fi
 
@@ -116,15 +146,6 @@ let
       # Generate device-id from our hardware-derived ID (for backward compatibility)
       # Use the same ID but format as hex string with dashes like: 00-01-23-45-67
       printf "%010x" "$((10#$id))" | fold -w2 | paste -sd'-' | tr -d '\n' > "$shareDir/../device-id"
-
-      # Generate unique machine-ids for all VMs based on hardware ID
-      # Each VM gets a deterministic ID derived from hardware + VM name
-      ${lib.concatMapStringsSep "\n" (vm: ''
-        mkdir -p /persist/storagevm/${vm}/etc
-        vm_key="$key-${vm}"
-        vm_hash=$(echo -n "$vm_key" | sha256sum | cut -d' ' -f1)
-        echo -n "$vm_hash" > /persist/storagevm/${vm}/etc/machine-id
-      '') activeMicrovms}
     '';
   };
 in
@@ -141,7 +162,7 @@ in
       default = "hardware";
       description = ''
         Source for generating the hardware ID:
-        - hardware: Best-effort hardware detection (DMI, disk UUID, MAC, machine-id)
+        - hardware: Best-effort hardware detection (DMI, disk hardware ID, MAC, machine-id)
         - static: Use user-provided static value
         - random: Generate random value on first boot (persisted)
       '';
