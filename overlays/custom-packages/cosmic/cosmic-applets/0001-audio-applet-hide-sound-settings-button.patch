@@ -1,0 +1,28 @@
+From dd3426ef7515c557b48718a4c1d77427ac4a13b3 Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajusn@gmail.com>
+Date: Mon, 24 Nov 2025 12:47:17 +0200
+Subject: [PATCH] audio-applet: hide sound settings button
+
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
+---
+ cosmic-applet-audio/src/lib.rs | 4 +---
+ 1 file changed, 1 insertion(+), 3 deletions(-)
+
+diff --git a/cosmic-applet-audio/src/lib.rs b/cosmic-applet-audio/src/lib.rs
+index ab9374b..94b3562 100644
+--- a/cosmic-applet-audio/src/lib.rs
++++ b/cosmic-applet-audio/src/lib.rs
+@@ -955,9 +955,7 @@ impl cosmic::Application for Audio {
+                 )
+                 .text_size(14)
+                 .width(Length::Fill)
+-            ),
+-            padded_control(divider::horizontal::default()).padding([space_xxs, space_s]),
+-            menu_button(text::body(fl!("sound-settings"))).on_press(Message::OpenSettings)
++            )
+         ]
+         .align_x(Alignment::Start)
+         .padding([8, 0]);
+-- 
+2.51.2
+

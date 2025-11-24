@@ -30,7 +30,8 @@ path = [
   "overlays/custom-packages/cosmic/cosmic-comp/0001-Add-security-context-indicator.patch",
   "overlays/custom-packages/cosmic/cosmic-comp/0001-Disable-VRR-by-default.patch",
   "overlays/custom-packages/cosmic/cosmic-initial-setup/0001-Preselect-Ghaf-themes.patch",
-  "overlays/custom-packages/cosmic/cosmic-greeter/0001-Replace-fallback-background-with-Ghaf-default.patch"
+  "overlays/custom-packages/cosmic/cosmic-greeter/0001-Replace-fallback-background-with-Ghaf-default.patch",
+  "overlays/custom-packages/cosmic/cosmic-applets/*.patch"
 ]
 
 [[annotations]]
