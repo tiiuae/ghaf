@@ -30,7 +30,7 @@ in
       };
       # Verity tree for the Nix store.
       # (create verity partition, even if we booted from disko populated image)
-      "10-root-verity-a" = {
+      "11-root-verity-a" = {
         Type = "root-verity";
         Label = "root-verity-a";
         Verity = "hash";
