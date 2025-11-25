@@ -3,6 +3,7 @@
 #
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
-(_final: _prev: {
+(_final: prev: {
+  gjs = import ./gjs.nix { inherit prev; };
   #   v4l-utils = import ./v4l-utils { inherit final prev; };
 })
