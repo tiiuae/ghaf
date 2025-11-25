@@ -106,7 +106,6 @@ in
             host.enable = true;
             gui.enable = config.ghaf.profiles.graphics.enable;
           };
-          kill-switch.enable = true;
           create-fake-battery.enable = true;
         };
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;

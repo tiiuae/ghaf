@@ -135,6 +135,7 @@ let
                 vm.enable = true;
                 gui.enable = true;
               };
+              kill-switch.enable = true;
 
               performance = {
                 gui.enable = true;
