@@ -43,18 +43,18 @@ in
         };
 
         # Verity tree for the Nix store.
-        "10-root-verity-a" = {
-          repartConfig = config.systemd.repart."10-root-verity-a" // {
+        "11-root-verity-a" = {
+          repartConfig = config.systemd.repart.partitions."11-root-verity-a" // {
             Minimize = "best";
           };
         };
 
         # Nix store.
-        "11-root-a" = {
+        "10-root-a" = {
           # FIXME: This require HUGE amount of space in /var/nix/builds
           # FIXME: Make erofs as separate artifact
           storePaths = [ config.system.build.toplevel ];
-          repartConfig = config.systemd.repart."11-root-a" // {
+          repartConfig = config.systemd.repart.partitions."10-root-a" // {
             # Create directories needed for nixos activation, as these cannot be
             # created on a read-only filesystem.
             MakeDirectories = toString [
@@ -79,31 +79,6 @@ in
               "/var"
             ];
           };
-        };
-
-        "40-swap" = {
-          repartConfig =
-            config.systemd.repart."40-swap"
-            // (
-              if config.ghaf.storage.encryption.enable then
-                {
-                  Encrypt = "key-file";
-                  # Since the partition is pre-encrypted, it doesn't compress well
-                  # (compressed size ~= initial size) and takes up a large portion
-                  # of the image file.
-                  # Make the initial swap small and expand it later on the device
-                  SizeMinBytes = "64M";
-                  SizeMaxBytes = "64M";
-                  # Free space to expand on device
-                  PaddingMinBytes = definition.swap.size;
-                  PaddingMaxBytes = definition.swap.size;
-                }
-              else
-                {
-                  SizeMinBytes = definition.swap.size;
-                  SizeMaxBytes = definition.swap.size;
-                }
-            );
         };
       };
     };
