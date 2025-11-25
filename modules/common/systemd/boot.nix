@@ -26,10 +26,12 @@ let
       inherit (cfgBase) withCryptsetup;
       inherit (cfgBase) withEfi;
       inherit (cfgBase) withFido2;
+      inherit (cfgBase) withLocaled;
       inherit (cfgBase) withRepart;
       inherit (cfgBase) withTpm2Tss;
       inherit (cfgBase) withUkify;
       inherit (cfgBase) withOpenSSL;
+      withVConsole = true;
     }
     // lib.optionalAttrs (lib.strings.versionAtLeast pkgs.systemdMinimal.version "255.0") {
       withQrencode = true; # Required for systemd-bsod, which is currently hardcoded in nixos
@@ -54,6 +56,7 @@ let
       "rescue.service"
       "rescue.target"
       "rpcbind.target"
+      "systemd-vconsole-setup.service"
     ]);
 in
 {

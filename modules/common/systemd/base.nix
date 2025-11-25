@@ -57,6 +57,7 @@ let
         inherit (cfg) withTimesyncd;
         inherit (cfg) withTpm2Tss;
         inherit (cfg) withUkify;
+        withVConsole = true;
         withUserDb = cfg.withHomed;
         withUtmp = cfg.withJournal || cfg.withAudit;
         inherit (cfg) withSysupdate;
@@ -334,7 +335,7 @@ in
     withLocaled = mkOption {
       description = "Enable systemd locale daemon.";
       type = types.bool;
-      default = false;
+      default = true;
     };
 
     withAudio = mkOption {

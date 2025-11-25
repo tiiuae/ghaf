@@ -49,6 +49,7 @@ let
             systemd = {
               enable = true;
               withName = "netvm-systemd";
+              withLocaled = true;
               withPolkit = true;
               withResolved = true;
               withTimesyncd = true;

@@ -37,6 +37,7 @@ let
             systemd = {
               enable = true;
               withName = "adminvm-systemd";
+              withLocaled = true;
               withNss = true;
               withResolved = true;
               withPolkit = true;
