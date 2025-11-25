@@ -75,8 +75,25 @@ let
   # of the <device type="sdmmc_user" ...> </device> XML-tag), from the
   # NVIDIA-supplied flash_t234_qspi_sdmmc.xml, with the partitions specified in
   # the above partitionsEmmc variable.
+  # Orin AGX Industrial has a slightly different flash XML template, so we
+  # need to handle that separately.
+  # it uses flash_t234_qspi_sdmmc_industrial.xml as a base and the sdmmc section
+  # starts and ends at different lines.
   partitionTemplateReplaceRange =
-    if !cfg.flashScriptOverrides.onlyQSPI then
+    if (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") then
+      if (!cfg.flashScriptOverrides.onlyQSPI) then
+        {
+          firstLineCount = 631;
+          lastLineCount = 2;
+        }
+      else
+        {
+          # If we don't flash anything to eMMC, then we don't need to have the
+          # <device type="sdmmc_user" ...> </device> XML-tag at all.
+          firstLineCount = 630;
+          lastLineCount = 1;
+        }
+    else if !cfg.flashScriptOverrides.onlyQSPI then
       {
         firstLineCount = 618;
         lastLineCount = 2;
@@ -89,8 +106,12 @@ let
         lastLineCount = 1;
       };
   partitionTemplate = pkgs.runCommand "flash.xml" { } (
-    ''
+    lib.optionalString (config.hardware.nvidia-jetpack.som != "orin-agx-industrial") ''
       head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >"$out"
+
+    ''
+    + lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") ''
+      head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml >"$out"
 
     ''
     + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
@@ -99,9 +120,13 @@ let
       cat ${partitionsEmmc} >>"$out"
 
     ''
-    + ''
+    + lib.optionalString (config.hardware.nvidia-jetpack.som != "orin-agx-industrial") ''
 
       tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
+    ''
+    + lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") ''
+
+      tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml >>"$out"
     ''
   );
 in
