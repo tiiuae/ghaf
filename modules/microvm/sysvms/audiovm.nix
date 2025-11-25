@@ -41,6 +41,7 @@ let
             systemd = {
               enable = true;
               withName = "audiovm-systemd";
+              withLocaled = true;
               withAudio = true;
               withBluetooth = true;
               withNss = true;
