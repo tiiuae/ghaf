@@ -49,7 +49,9 @@ in
         disk = {
           disk1 = {
             type = "disk";
-            imageSize = "60G";
+            # Our root is 64G (defined in ./definitions.nix)
+            # FIXME: make this value derived from root+esp sizes
+            imageSize = "65G";
             content = {
               type = "gpt";
               partitions = {
