@@ -26,6 +26,73 @@ let
       cosmic-store
     '';
   };
+  urlScript = pkgs.writeShellApplication {
+    name = "xdgflatpakurl";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      url="$1"
+
+      if [[ -z "$url" ]]; then
+        echo "No URL provided - xdg handlers"
+        exit 1
+      fi
+
+      echo "XDG open url: $url"
+
+      # Function to check if a binary exists in the givc app prefix
+      search_bin() {
+        [ -x "${config.ghaf.givc.appPrefix}/$1" ]
+      }
+
+      start_browser() {
+        ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
+          --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+      }
+
+      start_flakpak_browser() {
+        local browsers="com.google.Chrome org.chromium.Chromium"
+        local browser=""
+
+        for app in $browsers; do
+            if ${pkgs.flatpak}/bin/flatpak info --system "$app" 1>>/dev/null; then
+                browser="$app"
+                break
+            fi
+        done
+        if [[ -z "$browser" ]]; then
+            return 1
+        fi
+
+        ${config.ghaf.givc.appPrefix}/run-waypipe \
+            ${pkgs.flatpak}/bin/flatpak run "$browser" \
+                --disable-gpu \
+                --enable-features=UseOzonePlatform \
+                --ozone-platform=wayland \
+                "$url"
+        return 0
+      }
+
+      # Attempt to open URL in a Flatpak browser
+      if ! start_flakpak_browser; then
+
+        echo "No supported Flatpak browser found, trying local browsers..."
+        # Try to detect locally installed available browsers
+        if search_bin google-chrome-stable; then
+          echo "Google Chrome detected, opening URL locally."
+          start_browser google-chrome-stable
+        elif search_bin chromium; then
+          echo "Chromium detected, opening URL locally."
+          start_browser chromium
+        else
+          echo "No supported browser found on the system"
+          ${pkgs.zenity}/bin/zenity --error --text="No compatible browser found.\n\nPlease install:\n- Chrome\n- Chromium" --title="Browser Error"
+          return 1
+        fi
+      fi
+
+    '';
+  };
+
 in
 {
   flatpak = {
@@ -56,6 +123,9 @@ in
         services.flatpak.enable = true;
         security.rtkit.enable = lib.mkForce true;
         services.packagekit.enable = true;
+        ghaf.xdgitems.enable = true;
+        ghaf.xdghandlers.url = true;
+        ghaf.xdghandlers.urlScript = "${urlScript}/bin/xdgflatpakurl";
 
         security.polkit = {
           enable = true;
@@ -71,6 +141,7 @@ in
         };
 
         xdg.portal = {
+          xdgOpenUsePortal = true;
           enable = true;
           extraPortals = [
             pkgs.xdg-desktop-portal-cosmic
