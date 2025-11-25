@@ -15,7 +15,7 @@
         config = {
           allowUnfree = true;
           permittedInsecurePackages = [
-            "jitsi-meet-1.0.8043"
+            "jitsi-meet-1.0.8792"
             "qtwebengine-5.15.19"
           ];
         };
