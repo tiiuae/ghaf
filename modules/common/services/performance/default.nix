@@ -8,6 +8,13 @@
 }:
 let
   cfg = config.ghaf.services.performance;
+
+  tunedNoDesktop = pkgs.tuned.overrideAttrs (old: {
+    postInstall = (old.postInstall or "") + ''
+      rm -f "$out/share/applications/"*.desktop
+    '';
+  });
+
   inherit (lib)
     getExe
     getExe'
@@ -138,7 +145,7 @@ in
     ];
     services.system76-scheduler = {
       useStockConfig = false;
-    };
+    services.tuned.package = tunedNoDesktop;
     systemd.services = mkIf config.ghaf.profiles.debug.enable {
       tuned = {
         serviceConfig.ExecStart = [
