@@ -136,6 +136,8 @@ let
       Commands:
         block             [device]
         unblock           [device]
+        block             [device | --all]
+        unblock           [device | --all]
         list              List the devices supported
         status            Show block/unblock status of devices
         help, --help      Show this help message and exit.
@@ -143,6 +145,8 @@ let
         $(basename "$0") block mic
         $(basename "$0") unblock mic
         $(basename "$0") block net
+        $(basename "$0") block --all
+        $(basename "$0") unblock --all
         $(basename "$0") status
 
       EOF
@@ -305,6 +309,7 @@ let
         # Disable the warning that appears when no USB devices
         # shellcheck disable=SC2034
         usb_out="$(vhotplugcli usb list --disconnected)"
+
         # Check for camera status
         cam_blocked="false"
         ${mkUsbStatusCheck {
@@ -334,7 +339,7 @@ let
 
       if [ -n "''${2:-}" ]; then
         # Check if the user-provided device has kill switch support.
-        if ! [[ "''${supportedDevices[*]}" =~  (^|[[:space:]])$device($|[[:space:]])  ]]; then
+        if [[ "$device" != "--all" ]] && ! [[ "''${supportedDevices[*]}" =~  (^|[[:space:]])$device($|[[:space:]])  ]]; then
           echo "$device is not supported"
           exit 1
         fi
@@ -348,10 +353,24 @@ let
           done
           ;;
         block)
-          block_devices
+          if [[ "$device" == "--all" ]]; then
+            for d in "''${supportedDevices[@]}"; do
+              device=$d
+              block_devices
+            done
+          else
+            block_devices
+          fi
           ;;
         unblock)
-          unblock_devices
+          if [[ "$device" == "--all" ]]; then
+            for d in "''${supportedDevices[@]}"; do
+              device=$d
+              unblock_devices
+            done
+          else
+            unblock_devices
+          fi
           ;;
         status)
           show_status
