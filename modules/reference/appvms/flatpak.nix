@@ -26,6 +26,99 @@ let
       cosmic-store
     '';
   };
+  # XDG item for URL
+  xdgUrlFlatpakItem = pkgs.makeDesktopItem {
+    name = "ghaf-url-xdg-flatpak";
+    desktopName = "Ghaf URL Opener";
+    exec = "${urlScript}/bin/xdgflatpakurl %u";
+    mimeTypes = [
+      "text/html"
+      "x-scheme-handler/http"
+      "x-scheme-handler/https"
+    ];
+    noDisplay = true;
+  };
+  urlScript = pkgs.writeShellApplication {
+    name = "xdgflatpakurl";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      url="$1"
+
+      if [[ -z "$url" ]]; then
+        echo "xdgflatpakurl: No URL provided"
+        exit 1
+      fi
+
+      echo "XDG open url: $url"
+
+      # Function to check if a binary exists in the givc app prefix
+      search_bin() {
+        [ -x "${config.ghaf.givc.appPrefix}/$1" ]
+      }
+
+      start_browser() {
+        ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
+          --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+      }
+
+      start_flatpak_browser() {
+        local browsers="com.google.Chrome org.chromium.Chromium org.mozilla.firefox com.brave.Browser com.opera.Opera"
+        local browser=""
+
+        for app in $browsers; do
+            if ${lib.getExe pkgs.flatpak} info --system "$app" 1>/dev/null 2>&1; then
+                browser="$app"
+                break
+            fi
+        done
+        if [[ -z "$browser" ]]; then
+            return 1
+        fi
+        if [ "$browser" = "org.mozilla.firefox" ]; then
+          options="--new-window"
+        else
+          options="--disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland"
+        fi
+
+        XDG_SESSION_TYPE="wayland" WAYLAND_DISPLAY="wayland-1" DISPLAY=":0" ${config.ghaf.givc.appPrefix}/run-waypipe \
+              ${lib.getExe pkgs.flatpak} run "$browser" \
+                "$options" "$url"
+        return 0
+      }
+
+      # Attempt to open URL in an App Store browser
+      if ! start_flatpak_browser; then
+
+        echo "No supported App Store browser found, trying local browsers..."
+        # Try to detect locally installed available browsers
+        if search_bin google-chrome-stable; then
+          echo "Google Chrome detected, opening URL locally."
+          start_browser google-chrome-stable
+        elif search_bin chromium; then
+          echo "Chromium detected, opening URL locally."
+          start_browser chromium
+        else
+          echo "No supported browser found on the system"
+          # Assignment in order to avoid build warning
+          if ${lib.getExe pkgs.yad} --title="No App Store Browser Found" \
+              --image=dialog-warning \
+              --width=500 \
+              --text="<b>No browser installed through App Store was found in this VM.</b>\n\nFor optimal security and functionality, please install a browser:\n  • Firefox\n  • Chrome\n  • Brave\n  • Chromium\n\nInstall from the App Store and try again.\n\n<i>Alternatively, continue with the standard browser (may malfunction).</i>" \
+              --button="Exit:0" \
+              --button="Continue:1" \
+              --button-layout=spread \
+              --center;
+          then # user chose to exit
+            exit 1
+          else # user chose to continue
+            ${config.ghaf.givc.appPrefix}/xdg-open-ghaf url "$url"
+          fi
+        fi
+      fi
+
+    '';
+  };
+
 in
 {
   flatpak = {
@@ -42,7 +135,7 @@ in
     applications = [
       {
         name = "App Store";
-        description = "Appstore to install Flatpak applications";
+        description = "App Store to install Flatpak applications";
         packages = [
           pkgs.cosmic-store
           runAppCenter
@@ -56,6 +149,11 @@ in
         services.flatpak.enable = true;
         security.rtkit.enable = lib.mkForce true;
         services.packagekit.enable = true;
+        ghaf.xdgitems.enable = true;
+
+        environment.systemPackages = [
+          xdgUrlFlatpakItem
+        ];
 
         security.polkit = {
           enable = true;
@@ -70,17 +168,28 @@ in
           '';
         };
 
-        xdg.portal = {
-          enable = true;
-          extraPortals = [
-            pkgs.xdg-desktop-portal-cosmic
-            pkgs.xdg-desktop-portal-gtk
-          ];
-          config = {
-            common = {
-              default = [
-                "gtk"
-              ];
+        xdg = {
+          portal = {
+            xdgOpenUsePortal = true;
+            enable = true;
+            extraPortals = [
+              pkgs.xdg-desktop-portal-cosmic
+              pkgs.xdg-desktop-portal-gtk
+            ];
+            config = {
+              common = {
+                default = [
+                  "gtk"
+                ];
+              };
+            };
+          };
+          mime = {
+            enable = true;
+            defaultApplications = {
+              "text/html" = lib.mkForce "ghaf-url-xdg-flatpak.desktop";
+              "x-scheme-handler/http" = lib.mkForce "ghaf-url-xdg-flatpak.desktop";
+              "x-scheme-handler/https" = lib.mkForce "ghaf-url-xdg-flatpak.desktop";
             };
           };
         };
