@@ -18,6 +18,7 @@ let
     "mic"
     "net"
     "cam"
+    "bluetooth"
   ];
 
   audioPciDevices =
@@ -29,6 +30,94 @@ let
       lib.filter (d: lib.hasPrefix "cam" d.name) config.ghaf.common.hardware.usb
     else
       [ ];
+  btUsbDevices =
+    if config.ghaf.common.hardware ? "usb" then
+      lib.filter (d: lib.hasPrefix "bt" d.name) config.ghaf.common.hardware.usb
+    else
+      [ ];
+
+  # A function to generate shell commands for PCI devices
+  mkPciCommands =
+    {
+      command,
+      devices,
+    }:
+    lib.concatStringsSep "\n" (
+      map (d: ''
+        vhotplugcli pci ${command} \
+          ${lib.optionalString (d.vendorId != null) "--vid ${d.vendorId}"} \
+          ${lib.optionalString (d.productId != null) "--did ${d.productId}"}
+      '') devices
+    );
+
+  # A function to generate shell commands for USB devices
+  mkUsbCommands =
+    {
+      command,
+      devices,
+      actionStr,
+    }:
+    lib.concatStringsSep "\n" (
+      map (d: ''
+        echo "${actionStr} device ${d.name} ..."
+        vhotplugcli usb ${command} \
+          ${lib.optionalString (d.vendorId != null) "--vid ${d.vendorId}"} \
+          ${lib.optionalString (d.productId != null) "--pid ${d.productId}"} \
+          ${lib.optionalString (d.hostbus != null) "--bus ${d.hostbus}"} \
+          ${lib.optionalString (d.hostport != null) "--port ${d.hostport}"}
+      '') devices
+    );
+
+  # A function to generate shell code for checking PCI device status
+  mkPciStatusCheck =
+    {
+      devices,
+      blockedVar,
+    }:
+    lib.concatStringsSep "\n" (
+      map (d: ''
+        vid="${lib.optionalString (d.vendorId != null) d.vendorId}"
+        did="${lib.optionalString (d.productId != null) d.productId}"
+        if [ -n "$vid" ] && [ -n "$did" ] && echo "$pci_out" | grep -qi "''${vid}:''${did}"; then
+          ${blockedVar}="true"
+        fi
+      '') devices
+    );
+
+  # A function to generate shell code for checking USB device status
+  mkUsbStatusCheck =
+    {
+      devices,
+      blockedVar,
+    }:
+    lib.concatStringsSep "\n" (
+      map (d: ''
+        vid="${lib.optionalString (d.vendorId != null) d.vendorId}"
+        did="${lib.optionalString (d.productId != null) d.productId}"
+        hbus="${lib.optionalString (d.hostbus != null) d.hostbus}"
+        hport="${lib.optionalString (d.hostport != null) d.hostport}"
+
+        # Normalize to lowercase for case-insensitive matching
+        vid_l=$(echo "$vid" | tr '[:upper:]' '[:lower:]')
+        did_l=$(echo "$did" | tr '[:upper:]' '[:lower:]')
+
+        # Check if vid:pid match (case-insensitive)
+        if [ -n "$vid" ] && [ -n "$did" ]; then
+          if echo "$usb_out" | grep -qi "vid[[:space:]]*:[[:space:]]*$vid_l" \
+            && echo "$usb_out" | grep -qi "pid[[:space:]]*:[[:space:]]*$did_l"; then
+            ${blockedVar}="true"
+          fi
+        fi
+
+        # Check if busnum + portnum match
+        if [ -n "$hbus" ] && [ -n "$hport" ]; then
+          if echo "$usb_out" | grep -q "busnum[[:space:]]*:[[:space:]]*$hbus" \
+            && echo "$usb_out" | grep -q "portnum[[:space:]]*:[[:space:]]*$hport"; then
+            ${blockedVar}="true"
+          fi
+        fi
+      '') devices
+    );
 
   ghaf-killswitch = pkgs.writeShellApplication {
     name = "ghaf-killswitch";
@@ -48,12 +137,13 @@ let
         block             [device]
         unblock           [device]
         list              List the devices supported
+        status            Show block/unblock status of devices
         help, --help      Show this help message and exit.
-
       Examples:
         $(basename "$0") block mic
         $(basename "$0") unblock mic
         $(basename "$0") block net
+        $(basename "$0") status
 
       EOF
       }
@@ -80,74 +170,163 @@ let
       fi
 
       block_devices() {
-        if [[ "$device" == "net" ]]; then
-          echo "Blocking net device ..."
-          ${lib.concatStringsSep "\n" (
-            map (d: ''
-              vhotplugcli pci detach \
-                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
-                ${if d.productId == null then "" else "--did ${d.productId}"}
-            '') netPciDevices
-          )}
-        elif [[ "$device" == "mic" ]]; then
-          echo "Blocking mic device ..."
-          ${lib.concatStringsSep "\n" (
-            map (d: ''
-              vhotplugcli pci detach \
-                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
-                ${if d.productId == null then "" else "--did ${d.productId}"}
-            '') audioPciDevices
-          )}
-        else
-          ${lib.concatStringsSep "\n" (
-            map (d: ''
-              echo "Blocking device ${d.name} ..."
-              vhotplugcli usb detach \
-                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
-                ${if d.productId == null then "" else "--pid ${d.productId}"} \
-                ${if d.hostbus == null then "" else "--bus ${d.hostbus}"} \
-                ${if d.hostport == null then "" else "--port ${d.hostport}"}
-            '') camUsbDevices
-          )}
-          ${lib.optionalString (camUsbDevices == [ ]) ''
-            echo "No USB devices to block"
-          ''}
-        fi
+        case "$device" in
+          net)
+            echo "Blocking net device ..."
+            ${
+              if netPciDevices == [ ] then
+                ''echo "No net devices to block"''
+              else
+                mkPciCommands {
+                  command = "detach";
+                  devices = netPciDevices;
+                }
+            }
+            ;;
+          mic)
+            echo "Blocking mic device ..."
+            ${
+              if audioPciDevices == [ ] then
+                ''echo "No mic devices to block"''
+              else
+                mkPciCommands {
+                  command = "detach";
+                  devices = audioPciDevices;
+                }
+            }
+            ;;
+          cam)
+            ${
+              if camUsbDevices == [ ] then
+                ''echo "No cam devices to block"''
+              else
+                mkUsbCommands {
+                  command = "detach";
+                  devices = camUsbDevices;
+                  actionStr = "Blocking";
+                }
+            }
+            ;;
+          bluetooth)
+            ${
+              if btUsbDevices == [ ] then
+                ''echo "No bluetooth devices to block"''
+              else
+                mkUsbCommands {
+                  command = "detach";
+                  devices = btUsbDevices;
+                  actionStr = "Blocking";
+                }
+            }
+            ;;
+        esac
       }
 
       unblock_devices() {
-        if [[ "$device" == "net" ]]; then
-          echo "Unblocking net device ..."
-          ${lib.concatStringsSep "\n" (
-            map (d: ''
-              vhotplugcli pci attach \
-                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
-                ${if d.productId == null then "" else "--did ${d.productId}"}
-            '') netPciDevices
-          )}
-        elif [[ "$device" == "mic" ]]; then
-        echo "Unblocking mic device ..."
-          ${lib.concatStringsSep "\n" (
-            map (d: ''
-              vhotplugcli pci attach \
-                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
-                ${if d.productId == null then "" else "--did ${d.productId}"}
-            '') audioPciDevices
-          )}
+        case "$device" in
+          net)
+            echo "Unblocking net device ..."
+            ${
+              if netPciDevices == [ ] then
+                ''echo "No net devices to unblock"''
+              else
+                mkPciCommands {
+                  command = "attach";
+                  devices = netPciDevices;
+                }
+            }
+            ;;
+          mic)
+            echo "Unblocking mic device ..."
+            ${
+              if audioPciDevices == [ ] then
+                ''echo "No mic devices to unblock"''
+              else
+                mkPciCommands {
+                  command = "attach";
+                  devices = audioPciDevices;
+                }
+            }
+            ;;
+          cam)
+            ${
+              if camUsbDevices == [ ] then
+                ''echo "No cam devices to unblock"''
+              else
+                mkUsbCommands {
+                  command = "attach";
+                  devices = camUsbDevices;
+                  actionStr = "Unblocking";
+                }
+            }
+            ;;
+          bluetooth)
+            ${
+              if btUsbDevices == [ ] then
+                ''echo "No bluetooth devices to unblock"''
+              else
+                mkUsbCommands {
+                  command = "attach";
+                  devices = btUsbDevices;
+                  actionStr = "Unblocking";
+                }
+            }
+            ;;
+        esac
+      }
+
+      show_status() {
+        pci_out="$(vhotplugcli pci list --short --disconnected)"
+
+        # Check for Mic status
+        mic_blocked="false"
+        ${mkPciStatusCheck {
+          devices = audioPciDevices;
+          blockedVar = "mic_blocked";
+        }}
+        if [ "$mic_blocked" = "true" ]; then
+          echo "mic: blocked"
         else
-          ${lib.concatStringsSep "\n" (
-            map (d: ''
-              echo "Unblocking device ${d.name} ..."
-              vhotplugcli usb attach \
-                ${if d.vendorId == null then "" else "--vid ${d.vendorId}"} \
-                ${if d.productId == null then "" else "--pid ${d.productId}"} \
-                ${if d.hostbus == null then "" else "--bus ${d.hostbus}"} \
-                ${if d.hostport == null then "" else "--port ${d.hostport}"}
-            '') camUsbDevices
-          )}
-          ${lib.optionalString (camUsbDevices == [ ]) ''
-            echo "No USB devices to unblock"
-          ''}
+          echo "mic: unblocked"
+        fi
+
+        # Check for Network status
+        net_blocked="false"
+        ${mkPciStatusCheck {
+          devices = netPciDevices;
+          blockedVar = "net_blocked";
+        }}
+        if [ "$net_blocked" = "true" ]; then
+          echo "net: blocked"
+        else
+          echo "net: unblocked"
+        fi
+
+        # Disable the warning that appears when no USB devices
+        # shellcheck disable=SC2034
+        usb_out="$(vhotplugcli usb list --disconnected)"
+        # Check for camera status
+        cam_blocked="false"
+        ${mkUsbStatusCheck {
+          devices = camUsbDevices;
+          blockedVar = "cam_blocked";
+        }}
+        if [ "$cam_blocked" = "true" ]; then
+          echo "cam: blocked"
+        else
+          echo "cam: unblocked"
+        fi
+
+        # Check for bluetooth status
+        bt_blocked="false"
+        ${mkUsbStatusCheck {
+          devices = btUsbDevices;
+          blockedVar = "bt_blocked";
+        }}
+        if [ "$bt_blocked" = "true" ]; then
+          echo "bluetooth: blocked"
+        else
+          echo "bluetooth: unblocked"
         fi
       }
 
@@ -173,6 +352,9 @@ let
           ;;
         unblock)
           unblock_devices
+          ;;
+        status)
+          show_status
           ;;
         help|--help)
           help_msg
