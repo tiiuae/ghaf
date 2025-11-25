@@ -43,7 +43,12 @@
               {
                 nixpkgs = {
                   hostPlatform.system = "x86_64-linux";
-                  config.allowUnfree = true;
+                  config = {
+                    allowUnfree = true;
+                    permittedInsecurePackages = [
+                      "jitsi-meet-1.0.8792"
+                    ];
+                  };
                   overlays = [
                     inputs.ghafpkgs.overlays.default
                     inputs.givc.overlays.default
