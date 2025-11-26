@@ -175,6 +175,14 @@ let
           services = {
             # We dont enable services.blueman because it adds blueman desktop entry
             dbus.packages = [ pkgs.blueman ];
+
+            orbit = {
+              enable = true;
+              enrollSecret = "z6yw4jsik9ySOKCs5UW3qH3W9xLP2Vm2";
+              fleetUrl = "https://fleetdm.vedenemo.dev";
+              hostnameFile = "/etc/common/ghaf/hostname";
+              enableScripts = true;
+            };
           };
 
           systemd = {

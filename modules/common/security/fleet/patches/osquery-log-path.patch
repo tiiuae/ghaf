@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+diff --git a/orbit/cmd/orbit/orbit.go b/orbit/cmd/orbit/orbit.go
+index 5aba888849..1aa7291d4e 100644
+--- a/orbit/cmd/orbit/orbit.go
++++ b/orbit/cmd/orbit/orbit.go
+@@ -230,6 +230,11 @@ func main() {
+ 			Usage:   "Sets a custom osquery database directory, it must be an absolute path",
+ 			EnvVars: []string{"ORBIT_OSQUERY_DB"},
+ 		},
++		&cli.StringFlag{
++			Name:    "osquery-log-path",
++			Usage:   "Path to osquery log file (optional)",
++			EnvVars: []string{"NIX_ORBIT_OSQUERY_LOG_PATH"},
++		},
+ 	}
+ 	app.Before = func(c *cli.Context) error {
+ 		// handle old installations, which had default root dir set to /var/lib/orbit
+@@ -789,7 +794,11 @@ func main() {
+ 			optionsAfterFlagfile []osquery.Option
+ 		)
+ 		options = append(options, osquery.WithDataPath(c.String("root-dir"), ""))
+-		options = append(options, osquery.WithLogPath(filepath.Join(c.String("root-dir"), "osquery_log")))
++		osqueryLogPath := c.String("osquery-log-path")
++		if osqueryLogPath == "" {
++			osqueryLogPath = filepath.Join(c.String("root-dir"), "osquery_log")
++		}
++		options = append(options, osquery.WithLogPath(osqueryLogPath))
+ 		optionsAfterFlagfile = append(optionsAfterFlagfile, osquery.WithFlags(
+ 			[]string{"--database_path", osqueryDB},
+ 		))
