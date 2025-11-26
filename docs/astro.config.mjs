@@ -96,6 +96,7 @@ export default defineConfig({
                         "ghaf/dev/ref/idsvm-development",
                         "ghaf/dev/ref/systemd-service-config",
                         "ghaf/dev/ref/dynamic-hostname",
+                        "ghaf/dev/ref/fleet",
                         "ghaf/dev/ref/memory-wipe",
                         "ghaf/dev/ref/kill_switch",
                         "ghaf/dev/ref/wireguard-gui",

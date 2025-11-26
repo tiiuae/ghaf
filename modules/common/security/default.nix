@@ -8,5 +8,6 @@
     ./fail2ban.nix
     ./pwquality.nix
     ./ssh-tarpit
+    ./fleet
   ];
 }

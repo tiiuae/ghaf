@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+diff --git a/orbit/cmd/orbit/orbit.go b/orbit/cmd/orbit/orbit.go
+index 5aba888849..a6bc59ead3 100644
+--- a/orbit/cmd/orbit/orbit.go
++++ b/orbit/cmd/orbit/orbit.go
+@@ -185,6 +185,11 @@ func main() {
+ 			Usage:   "Launch Fleet Desktop application (flag currently only used on darwin)",
+ 			EnvVars: []string{"ORBIT_FLEET_DESKTOP"},
+ 		},
++		&cli.BoolFlag{
++			Name:    "write-fleet-desktop-identifier",
++			Usage:   "Write or update the Fleet Desktop device identifier file, even if Fleet Desktop is not launched",
++			EnvVars: []string{"NIX_ORBIT_WRITE_FLEET_DESKTOP_IDENTIFIER"},
++		},
+ 		// Note: this flag doesn't have any effect anymore. I'm keeping
+ 		// it just for backwards compatibility since some users were
+ 		// using it because softwareupdated was causing problems and I
+@@ -1070,7 +1075,7 @@ func main() {
+
+ 		var trw *token.ReadWriter
+ 		var deviceClient *service.DeviceClient
+-		if c.Bool("fleet-desktop") {
++		if c.Bool("fleet-desktop") || c.Bool("write-fleet-desktop-identifier") {
+ 			trw = token.NewReadWriter(filepath.Join(c.String("root-dir"), constant.DesktopTokenFileName))
+ 			if err := trw.LoadOrGenerate(); err != nil {
+ 				return fmt.Errorf("initializing token read writer: %w", err)
