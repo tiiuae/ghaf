@@ -1,0 +1,49 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# This patch adds support for reading hostname from a file instead of the
+# system hostname. This is useful for environments where the hostname is
+# dynamically generated and shared via a file (e.g., in VM environments).
+#
+# New flag: --hostname-file / ORBIT_HOSTNAME_FILE
+# When set, orbit will read the hostname from the specified file path
+# instead of using the system hostname from osquery's system_info table.
+
+--- a/orbit/cmd/orbit/orbit.go
++++ b/orbit/cmd/orbit/orbit.go
+@@ -225,6 +225,11 @@ func main() {
+ 			EnvVars: []string{"ORBIT_HOST_IDENTIFIER"},
+ 			Value:   "uuid",
+ 		},
++		&cli.StringFlag{
++			Name:    "hostname-file",
++			Usage:   "Path to a file containing the hostname to use instead of system hostname",
++			EnvVars: []string{"ORBIT_HOSTNAME_FILE"},
++		},
+ 		&cli.StringFlag{
+ 			Name:    "end-user-email",
+ 			Hidden:  true, // experimental feature, we don't want to show it for now
+@@ -514,11 +519,23 @@ func main() {
+ 			return fmt.Errorf("get UUID: %w", err)
+ 		}
+ 		log.Debug().Str("info", fmt.Sprint(osqueryHostInfo)).Msg("retrieved host info from osquery")
++
++		// Allow overriding hostname from file
++		hostname := osqueryHostInfo.Hostname
++		if hostnameFile := c.String("hostname-file"); hostnameFile != "" {
++			if data, err := os.ReadFile(hostnameFile); err != nil {
++				log.Warn().Err(err).Str("path", hostnameFile).Msg("failed to read hostname file, using system hostname")
++			} else {
++				hostname = strings.TrimSpace(string(data))
++				log.Info().Str("hostname", hostname).Str("path", hostnameFile).Msg("using hostname from file")
++			}
++		}
++
+ 		orbitHostInfo := fleet.OrbitHostInfo{
+ 			HardwareSerial: osqueryHostInfo.HardwareSerial,
+ 			HardwareUUID:   osqueryHostInfo.HardwareUUID,
+-			Hostname:       osqueryHostInfo.Hostname,
++			Hostname:       hostname,
+ 			Platform:       osqueryHostInfo.Platform,
+ 			ComputerName:   osqueryHostInfo.ComputerName,
+ 			HardwareModel:  osqueryHostInfo.HardwareModel,

@@ -175,6 +175,14 @@ let
           services = {
             # We dont enable services.blueman because it adds blueman desktop entry
             dbus.packages = [ pkgs.blueman ];
+
+            orbit = {
+              enable = true;
+              enrollSecret = "enroll_secret";
+              fleetUrl = "https://fleet.example.com";
+              hostnameFile = "/etc/common/ghaf/hostname";
+              enableScripts = true;
+            };
           };
 
           systemd = {
