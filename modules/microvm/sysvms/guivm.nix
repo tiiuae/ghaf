@@ -165,9 +165,64 @@ let
             security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
           };
 
-          # We dont enable services.blueman because it adds blueman desktop entry
-          services.dbus.packages = [ pkgs.blueman ];
-          systemd.packages = [ pkgs.blueman ];
+          services = {
+            # We dont enable services.blueman because it adds blueman desktop entry
+            dbus.packages = [ pkgs.blueman ];
+
+            orbit = {
+              enable = true;
+              # CI/dev injects enroll secret via virtiofs to avoid baking secrets into images.
+              enrollSecretPath = "/etc/common/ghaf/fleet/enroll";
+              fleetUrl = "https://fleetdm.vedenemo.dev";
+              hostnameFile = "/etc/common/ghaf/hostname";
+              rootDir = "/etc/common/ghaf/orbit";
+              enableScripts = true;
+              hostIdentifier = "specified";
+              osqueryPackage = lib.mkForce pkgs."osquery-with-hostname";
+            };
+          };
+
+          systemd = {
+            packages = [ pkgs.blueman ];
+            user.services."fleet-desktop".enable = false;
+
+            services."waypipe-ssh-keygen" =
+              let
+                uid =
+                  if config.ghaf.users.homedUser.enable then
+                    "${toString config.ghaf.users.homedUser.uid}"
+                  else
+                    "${toString config.ghaf.users.admin.uid}";
+                pubDir = lib.attrByPath [
+                  "ghaf"
+                  "security"
+                  "sshKeys"
+                  "waypipeSshPublicKeyDir"
+                ] "/run/waypipe-ssh-public-key" config;
+                keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
+                  set -xeuo pipefail
+                  mkdir -p /run/waypipe-ssh
+                  mkdir -p ${pubDir}
+                  echo -en "\n\n\n" | ${pkgs.openssh}/bin/ssh-keygen -t ed25519 -f /run/waypipe-ssh/id_ed25519 -C ""
+                  chown ${uid}:users /run/waypipe-ssh/*
+                  cp /run/waypipe-ssh/id_ed25519.pub ${pubDir}/id_ed25519.pub
+                  chown -R ${uid}:users ${pubDir}
+                '';
+              in
+              {
+                enable = true;
+                description = "Generate SSH keys for Waypipe";
+                path = [ keygenScript ];
+                wantedBy = [ "multi-user.target" ];
+                serviceConfig = {
+                  Type = "oneshot";
+                  RemainAfterExit = true;
+                  StandardOutput = "journal";
+                  StandardError = "journal";
+                  ExecStart = "${keygenScript}/bin/waypipe-ssh-keygen";
+                };
+              };
+          };
 
           environment = {
             systemPackages =

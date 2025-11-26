@@ -1,0 +1,32 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+diff --git a/orbit/cmd/orbit/orbit.go b/orbit/cmd/orbit/orbit.go
+index 5aba888849..3650578096 100644
+--- a/orbit/cmd/orbit/orbit.go
++++ b/orbit/cmd/orbit/orbit.go
+@@ -85,6 +85,11 @@ func main() {
+ 		shellCommand,
+ 	}
+ 	app.Flags = []cli.Flag{
++		&cli.StringFlag{
++			Name:    "osqueryd-path",
++			Usage:   "Override the path to the osqueryd binary",
++			EnvVars: []string{"NIX_ORBIT_OSQUERYD_PATH"},
++		},
+ 		&cli.StringFlag{
+ 			Name:    "root-dir",
+ 			Usage:   "Root directory for Orbit state",
+@@ -587,7 +592,11 @@ func main() {
+ 		// it fetches osqueryd once as part of initialization.
+ 		var updater *update.Updater
+ 		var updateRunner *update.Runner
+-		if !c.Bool("disable-updates") || c.Bool("dev-mode") {
++
++		if override := c.String("osqueryd-path"); override != "" {
++			log.Info().Msgf("Overriding osqueryd path: %s", override)
++			osquerydPath = override
++		} else if !c.Bool("disable-updates") || c.Bool("dev-mode") {
+ 			updater, err := update.NewUpdater(opt)
+ 			if err != nil {
+ 				return fmt.Errorf("create updater: %w", err)
