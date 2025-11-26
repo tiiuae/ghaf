@@ -1,0 +1,56 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+--- a/osquery/tables/system/linux/system_info.cpp
++++ b/osquery/tables/system/linux/system_info.cpp
+@@ -9,6 +9,7 @@
+ 
+ #include <thread>
+ 
++#include <cstdlib>
+ #include <sys/utsname.h>
+ 
+ #include <boost/algorithm/string.hpp>
+@@ -27,12 +28,39 @@
+ 
+ QueryData genSystemInfo(QueryContext& context) {
+   Row r;
+-  r["hostname"] = osquery::getFqdn();
+-  r["computer_name"] = osquery::getHostname();
+-  r["local_hostname"] = r["hostname"];
++  std::string hostname = osquery::getFqdn();
++  if (const char* hostname_file = std::getenv("OSQUERY_HOSTNAME_FILE")) {
++    std::string content;
++    if (readFile(hostname_file, content)) {
++      boost::trim(content);
++      if (!content.empty()) {
++        hostname = content;
++      } else {
++        LOG(WARNING) << "OSQUERY_HOSTNAME_FILE is empty, using system hostname";
++      }
++    } else {
++      LOG(WARNING) << "Failed to read OSQUERY_HOSTNAME_FILE, using system hostname";
++    }
++  }
++  r["hostname"] = hostname;
++  r["computer_name"] = hostname;
++  r["local_hostname"] = hostname;
+ 
+   std::string uuid;
+   r["uuid"] = (osquery::getHostUUID(uuid)) ? uuid : "";
++  if (const char* uuid_file = std::getenv("OSQUERY_UUID_FILE")) {
++    std::string content;
++    if (readFile(uuid_file, content)) {
++      boost::trim(content);
++      if (!content.empty()) {
++        r["uuid"] = content;
++      } else {
++        LOG(WARNING) << "OSQUERY_UUID_FILE is empty, using system UUID";
++      }
++    } else {
++      LOG(WARNING) << "Failed to read OSQUERY_UUID_FILE, using system UUID";
++    }
++  }
+ 
+#ifdef __x86_64__
+  auto qd = SQL::selectAllFrom("cpuid");

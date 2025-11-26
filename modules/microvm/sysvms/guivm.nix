@@ -163,10 +163,23 @@ let
           services = {
             # We dont enable services.blueman because it adds blueman desktop entry
             dbus.packages = [ pkgs.blueman ];
+
+            orbit = {
+              enable = true;
+              # CI/dev injects enroll secret via virtiofs to avoid baking secrets into images.
+              enrollSecretPath = "/etc/common/ghaf/fleet/enroll";
+              fleetUrl = "https://fleetdm.vedenemo.dev";
+              hostnameFile = "/etc/common/ghaf/hostname";
+              rootDir = "/etc/common/ghaf/orbit";
+              enableScripts = true;
+              hostIdentifier = "specified";
+              osqueryPackage = lib.mkForce pkgs."osquery-with-hostname";
+            };
           };
 
           systemd = {
             packages = [ pkgs.blueman ];
+            user.services."fleet-desktop".enable = false;
 
             services."waypipe-ssh-keygen" =
               let

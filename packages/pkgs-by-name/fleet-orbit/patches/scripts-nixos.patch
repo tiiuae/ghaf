@@ -1,0 +1,37 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+
+*** a/server/fleet/scripts.go	2025-10-13 15:52:19.166839634 +0300
+--- b/server/fleet/scripts.go	2025-10-13 15:56:18.766893082 +0300
+*************** const (
+*** 333,338 ****
+
+  // anchored, so that it matches to the end of the line
+  var (
+! 	scriptHashbangValidation  = regexp.MustCompile(`^#!\s*(:?/usr)?/bin/(ba|z)?sh(?:\s*|\s+.*)$`)
+! 	ErrUnsupportedInterpreter = errors.New(`Interpreter not supported. Shell scripts must run in "#!/bin/sh", "#!/bin/bash", or "#!/bin/zsh."`)
+  )
+--- 333,339 ----
+
++
+  // anchored, so that it matches to the end of the line
+  var (
+! 	scriptHashbangValidation  = regexp.MustCompile(`^#!\s*(?:(?:/usr)?/bin/|/run/current-system/sw/bin/|/usr/bin/env\s+)(ba|z)?sh(?:\s*|\s+.*)$`)
+! 	ErrUnsupportedInterpreter = errors.New(`Interpreter not supported. Shell scripts must run in "#!/bin/sh", "#!/bin/bash", "#!/bin/zsh", or their NixOS/env equivalents.`)
+  )
+*************** func ValidateShebang(s string) (directEx
+*** 345,347 ****
+  		s := bufio.NewScanner(strings.NewReader(s))
+! 		// if a hashbang is present, it can only be `(/usr)/bin/sh`, `(/usr)/bin/bash`, `(/usr)/bin/zsh` for now
+  		if s.Scan() && !scriptHashbangValidation.MatchString(s.Text()) {
+--- 346,349 ----
+  		s := bufio.NewScanner(strings.NewReader(s))
+! 		// if a hashbang is present, it can only be `(/usr)/bin/sh`, `(/usr)/bin/bash`, `(/usr)/bin/zsh`,
+! 		// `/run/current-system/sw/bin/(ba|z)?sh` (NixOS), or `/usr/bin/env (ba|z)?sh` for now
+  		if s.Scan() && !scriptHashbangValidation.MatchString(s.Text()) {
+*************** func ValidateShebang(s string) (directEx
+*** 354,355 ****
+--- 356,358 ----
+
++
+  func ValidateHostScriptContents(s string, isSavedScript bool) error {
