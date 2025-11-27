@@ -43,20 +43,6 @@ in
     system.build.ghafImage = config.system.build.diskoImages;
     disko = {
       imageBuilder = {
-        # Use cp instead of xcp because xcp fails with "Permission denied" on virtiofs
-        # when trying to preserve attributes/ownership.
-        pkgs = pkgs.extend (
-          final: _prev: {
-            xcp = final.writeShellApplication {
-              name = "xcp";
-              runtimeInputs = [ _prev.xcp ];
-              text = ''
-                 # Limit parallelism to avoid hitting file descriptor limits
-                exec ${_prev.xcp}/bin/xcp --workers 2 "$@"
-              '';
-            };
-          }
-        );
         extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
           ${pkgs.zstd}/bin/zstd --compress $out/*raw
           rm $out/*raw
