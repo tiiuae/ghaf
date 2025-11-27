@@ -201,6 +201,12 @@ in
         mountPoint = "/etc/common";
         proto = "virtiofs";
       }
+      {
+        tag = "sysupdate";
+        source = "/persist/sysupdate";
+        mountPoint = "/persist/sysupdate";
+        proto = "virtiofs";
+      }
     ]
     # Shared store (when not using storeOnDisk)
     ++ lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
