@@ -1,0 +1,66 @@
+---
+title: YubiKey Support
+---
+
+Ghaf provides integrated support for YubiKey devices, primarily for hardware-backed user authentication and session management. This enhances the security posture of the system by leveraging hardware-backed security keys.
+
+## Features
+
+- **Hardware-Backed User Authentication**: A YubiKey can be used as an alternative to a password for user authentication to unlock the system, utilizing the Universal 2nd Factor (U2F) protocol.
+- **Session Management**: Ghaf includes udev rules to automatically lock user sessions upon the removal of a configured YubiKey.
+
+## Supported YubiKey Models
+
+The current integration primarily targets YubiKey devices that support FIDO2/U2F protocols. Specifically, the udev rules are configured for YubiKeys with `idVendor=="1050"` and `idProduct=="0407"`.
+
+
+## Enabling YubiKey Support
+
+### Case 1: On a Fresh Ghaf Install
+To enable YubiKey support on a fresh installation of Ghaf, plug in the YubiKey before booting the Ghaf image for the first time. When the system boots, the user will be prompted to enter a username. After that, they will be prompted to enroll the YubiKey once the security token's presence is detected successfully.
+
+The user will see a message similar to the one below:
+```bash
+User <user-name> created successfully with the following details"
+  User Name: <user-name>
+  Display Name: <display-name>
+  FIDO2 Device: Supported
+```
+The `FIDO2 Device: Supported` message indicates that the YubiKey has been successfully enrolled with Ghaf and is ready for use.
+
+### Case 2: On an Existing Ghaf System
+If you are already using Ghaf OS and want to enable YubiKey support, you must re-enroll your user. First, remove the existing user by running the following command in the `gui-vm`:
+```bash
+$ homectl remove <user-name>
+```
+Then, reboot the system and follow the steps described in Case 1.
+
+### YubiKey Module
+ The YubiKey module provides the following services and configurations:
+
+- It enables the `pcscd` service, a daemon for accessing smart cards and readers.
+- It installs the `pam_u2f` package, enabling PAM modules for U2F authentication.
+- It configures PAM for `sudo` and `gtklock` to use U2F.
+- It adds udev rules to recognize YubiKey devices and manage sessions (e.g., locking the session on YubiKey removal).
+
+### Screen Locker
+
+If you unplug the YubiKey while the screen is unlocked, the configured udev rules will automatically lock the user sessions for security.
+
+## How to Generate a Per-User U2F Configuration
+To generate a per-user U2F configuration, run the following command in the `gui-vm`:
+```bash
+$ pamu2fcfg
+```
+This command will output the U2F configuration, a combination of a public key and a key handle.
+
+## Known Issues and Limitations
+
+- YubiKey support in Ghaf is currently limited to the `gui-vm`.
+- The YubiKey must be configured during the initial user creation process.
+- Support is currently limited to a specific range of YubiKey devices.
+
+## References
+- https://www.yubico.com/products/
+- https://support.yubico.com/s/article/YubiKey-USB-ID-values
+- https://developers.yubico.com/pam-u2f

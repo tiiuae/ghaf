@@ -97,6 +97,7 @@ export default defineConfig({
                         "ghaf/dev/ref/memory-wipe",
                         "ghaf/dev/ref/kill_switch",
                         "ghaf/dev/ref/wireguard-gui",
+                        "ghaf/dev/ref/yubikey",
                       ],
                     },
                     {
