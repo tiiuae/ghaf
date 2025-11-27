@@ -81,6 +81,31 @@
         "type": "github"
       }
     },
+    "cuda-legacy": {
+      "inputs": {
+        "flake-parts": [
+          "jetpack-nixos",
+          "cuda-legacy"
+        ],
+        "nixpkgs": [
+          "jetpack-nixos",
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1762806692,
+        "narHash": "sha256-JhgQIwJe0U2vxj+pu+Sgm+VLgNqucpXtZYGKZOgkQdc=",
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "rev": "9856d70acc3e2ae9081930b33d946326e07f1482",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos-cuda",
+        "repo": "cuda-legacy",
+        "type": "github"
+      }
+    },
     "devshell": {
       "inputs": {
         "nixpkgs": [
@@ -352,21 +377,22 @@
     },
     "jetpack-nixos": {
       "inputs": {
+        "cuda-legacy": "cuda-legacy",
         "nixpkgs": [
           "nixpkgs"
         ]
       },
       "locked": {
-        "lastModified": 1762188514,
-        "narHash": "sha256-BuhI/GLAnjVUnsEBiBXJn+o+GRUMw//7Dhv6ANVden4=",
+        "lastModified": 1764210424,
+        "narHash": "sha256-v5+P67em4OVtnBhHdi0ldT5S64UzlnJMdD+FQ0QQxDA=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "0000d0df349ea86877482b7e485703ae932569a0",
+        "rev": "12fd024dff4938d1664030f06156b71ca2ea3725",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "another-fix-kernel-rebased",
+        "ref": "another-kernel-fix-rebased-again",
         "repo": "jetpack-nixos",
         "type": "github"
       }
