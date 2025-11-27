@@ -126,11 +126,17 @@ let
             optimize.enable = false;
             hypervisor = "qemu";
 
-            shares = [
+            shares =  [
               {
                 tag = "ghaf-common";
                 source = "/persist/common";
                 mountPoint = "/etc/common";
+                proto = "virtiofs";
+              }
+              {
+                tag = "sysupdate";
+                source = "/persist/sysupdate";
+                mountPoint = "/persist/sysupdate";
                 proto = "virtiofs";
               }
             ]
