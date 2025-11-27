@@ -54,7 +54,9 @@
 
     # For building and creating disk images and installers
     disko = {
-      url = "github:nix-community/disko";
+      # We currently test if this runs more stable in our CI
+      # https://github.com/nix-community/disko/pull/1166
+      url = "github:nix-community/disko/xcp";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
