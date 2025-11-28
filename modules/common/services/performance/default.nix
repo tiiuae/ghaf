@@ -145,6 +145,16 @@ in
     ];
     services.system76-scheduler = {
       useStockConfig = false;
+      settings = {
+        processScheduler = {
+          pipewireBoost.enable = false;
+          # cosmic-comp still lacks integration with s76-scheduler
+          foregroundBoost.enable = false;
+          useExecsnoop = true;
+        };
+        cfsProfiles.enable = false;
+      };
+    };
     services.tuned.package = tunedNoDesktop;
     systemd.services = mkIf config.ghaf.profiles.debug.enable {
       tuned = {

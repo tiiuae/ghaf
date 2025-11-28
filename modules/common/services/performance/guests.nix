@@ -31,17 +31,17 @@ let
 
   guiVmSchedulerAssignments = {
     desktop-environment = {
-      nice = -9;
-      ioClass = "realtime";
+      nice = -5;
+      ioClass = "best-effort";
       ioPrio = 0;
       matchers = [
         "cosmic-comp"
       ];
     };
     waypipe = {
-      nice = -12;
+      nice = -3;
       ioClass = "best-effort";
-      ioPrio = 1;
+      ioPrio = 2;
       matchers = [
         "waypipe"
       ];
@@ -55,22 +55,33 @@ let
         "pipewire-pulse"
       ];
     };
+    # Apps belonging to user
+    # Minor prioritization
+    # Should be removed when cosmic-comp supports foreground checking
+    app-slice = {
+      nice = -2;
+      ioClass = "best-effort";
+      ioPrio = 0;
+      matchers = [
+        "include cgroup=\"/user.slice/*slice/*service/*slice/*.scope\""
+      ];
+    };
     # Session services belonging to the user
     session-services = {
-      nice = 12;
+      nice = 5;
       ioClass = "idle";
       matchers = [
-        "include cgroup=\"/user.slice/*.service\" parent=\"systemd\""
-        "include cgroup=\"/user.slice/*.session.slice/*\" parent=\"systemd\""
-        "include cgroup=\"/user.slice/*app-dbus*\""
+        "include cgroup=\"/user.slice/*.slice/*\""
+        "exclude cgroup=\"/user.slice/*.slice/*.service/app.slice/*\""
       ];
     };
     # System services belonging to root
     system-services = {
-      nice = 15;
+      nice = 7;
       ioClass = "idle";
       matchers = [
         "include cgroup=\"/system.slice/*\""
+        "exclude cgroup=\"/user.slice/*\" parent=\"systemd\""
       ];
     };
   };
@@ -89,8 +100,8 @@ let
       start =
         (mkBrightnessScript 40)
         + optionalString useGivc ''
-          ${givc-cli} start service --vm "ghaf-host" host-powersave.service &
-          ${givc-cli} start service --vm "net-vm" net-powersave.service &
+          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-powersave.service &
+          timeout 5s ${givc-cli} start service --vm "net-vm" net-powersave.service &
         '';
     };
     gui-balanced = mkTunedScript {
@@ -98,8 +109,8 @@ let
       start =
         (mkBrightnessScript 70)
         + optionalString useGivc ''
-          ${givc-cli} start service --vm "ghaf-host" host-balanced.service &
-          ${givc-cli} start service --vm "net-vm" net-balanced.service &
+          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-balanced.service &
+          timeout 5s ${givc-cli} start service --vm "net-vm" net-balanced.service &
         '';
     };
     gui-performance = mkTunedScript {
@@ -107,8 +118,8 @@ let
       start =
         ''''
         + optionalString useGivc ''
-          ${givc-cli} start service --vm "ghaf-host" host-performance.service &
-          ${givc-cli} start service --vm "net-vm" net-performance.service &
+          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-performance.service &
+          timeout 5s ${givc-cli} start service --vm "net-vm" net-performance.service &
         '';
     };
     gui-powersave-battery = mkTunedScript {
@@ -116,8 +127,8 @@ let
       start =
         (mkBrightnessScript 25)
         + optionalString useGivc ''
-          ${givc-cli} start service --vm "ghaf-host" host-powersave-battery.service &
-          ${givc-cli} start service --vm "net-vm" net-powersave-battery.service &
+          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-powersave-battery.service &
+          timeout 5s ${givc-cli} start service --vm "net-vm" net-powersave-battery.service &
         '';
     };
     gui-balanced-battery = mkTunedScript {
@@ -125,8 +136,8 @@ let
       start =
         (mkBrightnessScript 50)
         + optionalString useGivc ''
-          ${givc-cli} start service --vm "ghaf-host" host-balanced-battery.service &
-          ${givc-cli} start service --vm "net-vm" net-balanced-battery.service &
+          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-balanced-battery.service &
+          timeout 5s ${givc-cli} start service --vm "net-vm" net-balanced-battery.service &
         '';
     };
     gui-performance-battery = mkTunedScript {
@@ -134,8 +145,8 @@ let
       start =
         (mkBrightnessScript 70)
         + optionalString useGivc ''
-          ${givc-cli} start service --vm "ghaf-host" host-performance-battery.service &
-          ${givc-cli} start service --vm "net-vm" net-performance-battery.service &
+          timeout 5s ${givc-cli} start service --vm "ghaf-host" host-performance-battery.service &
+          timeout 5s ${givc-cli} start service --vm "net-vm" net-performance-battery.service &
         '';
     };
   };
@@ -182,11 +193,7 @@ in
     };
 
     net = {
-      enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for net-vm.";
-      scheduler = {
-        # net-vm is running on one core, so scheduling is too heavy for it to be useful
-        enable = mkEnableOption "system76-scheduler on net-vm for Ghaf-specific process scheduling.";
-      };
+      enable = mkEnableOption "Ghaf-specific power optimizations for net-vm.";
       tuned = {
         enable = mkEnableOption "TuneD service on the net-vm for Ghaf-specific performance profiles." // {
           default = true;
@@ -215,7 +222,7 @@ in
         inherit (cfg.gui.scheduler) enable;
         settings = {
           processScheduler = {
-            pipewireBoost.enable = true;
+            refreshInterval = 30;
           };
         };
         assignments = guiVmSchedulerAssignments;
@@ -267,15 +274,6 @@ in
 
     (mkIf cfg.net.enable (
       {
-        services.system76-scheduler = {
-          inherit (cfg.net.scheduler) enable;
-          settings = {
-            processScheduler = {
-              # Instead poll every 60s
-              useExecsnoop = false;
-            };
-          };
-        };
         services.tuned = {
           inherit (cfg.net.tuned) enable;
           ppdSupport = true;
