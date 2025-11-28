@@ -24,8 +24,8 @@ let
             }
           ];
 
-          # For WLAN firmwares
-          hardware.enableRedistributableFirmware = true;
+          # For WLAN firmwares including the unfree ones
+          hardware.enableAllFirmware = true;
 
           networking.wireless = {
             enable = true;
