@@ -24,15 +24,15 @@ let
 
   hostSchedulerAssignments = {
     system-vms = {
-      nice = -15;
-      ioClass = "realtime";
+      nice = -5;
+      ioClass = "best-effort";
       ioPrio = 0;
       matchers = [
         "include cgroup=\"/system.slice/system-sysvms.slice/*\""
       ];
     };
     app-vms = {
-      nice = -10;
+      nice = 0;
       ioClass = "best-effort";
       ioPrio = 2;
       matchers = [
@@ -41,10 +41,13 @@ let
     };
     # System services belonging to root
     system-services = {
-      nice = 12;
-      ioClass = "idle";
+      nice = 5;
+      ioClass = "best-effort";
+      ioPrio = 5;
       matchers = [
         "include cgroup=\"/system.slice/*\""
+        "exclude cgroup=\"/system.slice/system-sysvms.slice/*\""
+        "exclude cgroup=\"/system.slice/system-appvms.slice/*\""
       ];
     };
   };
@@ -170,7 +173,6 @@ let
       sysctl = {
         "vm.swappiness" = "20";
         "vm.dirty_writeback_centisecs" = "1500";
-        "kernel.sched_autogroup_enabled" = "1";
         "vm.laptop_mode" = "2";
       };
     };
@@ -239,10 +241,8 @@ in
         services.system76-scheduler = {
           inherit (cfg.host.scheduler) enable;
           settings = {
-            cfsProfiles.enable = false;
             processScheduler = {
-              pipewireBoost.enable = false;
-              foregroundBoost.enable = false;
+              refreshInterval = 60;
             };
           };
           assignments = hostSchedulerAssignments;
