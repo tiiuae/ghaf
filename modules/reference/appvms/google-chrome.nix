@@ -119,7 +119,12 @@
           ../services/wireguard-gui/wireguard-gui.nix
         ];
         # Enable WireGuard GUI
-        ghaf.reference.services.wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
+        ghaf.reference.services.wireguard-gui = {
+          enable = config.ghaf.reference.services.wireguard-gui;
+          serverPorts = [
+            51821
+          ];
+        };
 
       }
     ];
