@@ -9,11 +9,20 @@
 let
   cfg = config.ghaf.reference.services.wireguard-gui;
   hasStorageVm = (lib.hasAttr "storagevm" config.ghaf) && config.ghaf.storagevm.enable;
-
+  wg_app_dir = "/etc/wireguard";
+  debugFlag = lib.optionalString config.ghaf.profiles.debug.enable "--log-level TRACE";
   wireguard-gui-launcher = pkgs.writeShellScriptBin "wireguard-gui-launcher" ''
     PATH=/run/wrappers/bin:/run/current-system/sw/bin
-    ${pkgs.wireguard-gui}/bin/wireguard-gui --config-owner ${config.ghaf.users.appUser.name} --config-owner-group ${config.ghaf.users.appUser.name}
+    ${pkgs.wireguard-gui}/bin/wireguard-gui \
+      --app-dir ${wg_app_dir} \
+      --config-owner ${config.ghaf.users.appUser.name} \
+      --config-owner-group ${config.ghaf.users.appUser.name} \
+      ${debugFlag}
   '';
+  scriptsDir = builtins.path {
+    path = ./scripts;
+    name = "wg-scripts";
+  };
 
 in
 {
@@ -28,22 +37,29 @@ in
       // lib.mkIf hasStorageVm {
         directories = [
           {
-            directory = "/etc/wireguard/";
+            directory = "${wg_app_dir}";
+            mode = "0600";
+          }
+          {
+            directory = "${wg_app_dir}/configs";
             mode = "0600";
           }
         ];
       };
+    systemd.tmpfiles.rules = [
+      # Create directory owned by appUser
+      "d /etc/wireguard/scripts 0644 ${config.ghaf.users.appUser.name} ${config.ghaf.users.appUser.name} -"
+
+      # Symlink scripts from Nix store
+      "L /etc/wireguard/scripts/server - - - - ${scriptsDir}/server"
+      "L /etc/wireguard/scripts/client_full_vpn - - - - ${scriptsDir}/client_full_vpn"
+    ];
 
     ghaf.givc.appvm.applications = [
       {
         name = "wireguard-gui";
         command = "${config.ghaf.givc.appPrefix}/run-waypipe ${wireguard-gui-launcher}/bin/wireguard-gui-launcher";
       }
-    ];
-
-    environment.systemPackages = [
-      pkgs.polkit
-      pkgs.wireguard-tools
     ];
 
     security.polkit = {
