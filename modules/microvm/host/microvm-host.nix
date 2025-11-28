@@ -107,6 +107,7 @@ in
             gui.enable = config.ghaf.profiles.graphics.enable;
           };
           create-fake-battery.enable = true;
+          firmware.enable = true;
         };
         development.nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
         logging.client.enable = config.ghaf.logging.enable;
