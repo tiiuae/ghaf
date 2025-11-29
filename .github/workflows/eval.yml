@@ -28,6 +28,8 @@ jobs:
                     - jobid: 5
                     - jobid: 6
                     - jobid: 7
+                    - jobid: 8
+                    - jobid: 9
         concurrency:
             # Cancel any in-progress workflow runs from the same PR or branch,
             # allowing matrix jobs to run concurrently:
@@ -51,6 +53,6 @@ jobs:
               run: |
                   echo "JOB_TOTAL: ${JOB_TOTAL}"
                   echo "matrix.jobid: ${{ matrix.jobid }}"
-                  nix develop --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m "${JOB_TOTAL}"
+                  nix develop --accept-flake-config --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m "${JOB_TOTAL}"
               env:
                   JOB_TOTAL: ${{ strategy.job-total }}

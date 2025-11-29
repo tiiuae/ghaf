@@ -33,20 +33,20 @@ jobs:
                   # Run all pre-commit hooks defined in nix/checks.nix
                   # This includes: treefmt (with nixf-diagnose, deadnix, statix, etc.),
                   # reuse, end-of-file-fixer, and trim-trailing-whitespace
-                  nix build .#checks.x86_64-linux.pre-commit --print-build-logs
+                  nix build .#checks.x86_64-linux.pre-commit --print-build-logs --accept-flake-config
             - name: Check nix flake show runs successfully
-              run: nix flake show --all-systems
+              run: nix flake show --all-systems --accept-flake-config
             - name: Check templates
               run: |
                   set -eux -o pipefail
                   tmp_flakes=$(mktemp -d)
                   cleanup() { rm -rf "$tmp_flakes"; }
                   trap cleanup EXIT
-                  nix eval --json --apply builtins.attrNames .#templates | jq -r '.[]' | while IFS=$'\t' read -r name; do
+                  nix eval --json --apply builtins.attrNames .#templates --accept-flake-config | jq -r '.[]' | while IFS=$'\t' read -r name; do
                     nix flake new -t ".#$name" "${tmp_flakes}/${name}";
                     if [[ "$name" == "ghaf-module" ]]; then
                         nix-instantiate --parse "${tmp_flakes}/${name}/default.nix"
                     else
-                       nix flake show "${tmp_flakes}/${name}"
+                       nix flake show "${tmp_flakes}/${name}" --accept-flake-config
                     fi
                   done
