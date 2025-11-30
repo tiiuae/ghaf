@@ -90,7 +90,6 @@
         ./nix/flake-module.nix
         ./packages/flake-module.nix
         ./targets/flake-module.nix
-        ./hydrajobs/flake-module.nix
         inputs.flake-root.flakeModule
         inputs.treefmt-nix.flakeModule
       ];
