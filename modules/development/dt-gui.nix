@@ -8,8 +8,7 @@
 }:
 let
   cfg = config.ghaf.development.debug.tools.gui;
-  #TODO; make sure that the lib is exported correctly and remove this cross file import
-  inherit (import ../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  inherit (lib) rmDesktopEntries;
 in
 {
   options.ghaf.development.debug.tools.gui = {

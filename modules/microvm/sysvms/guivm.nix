@@ -4,15 +4,13 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
   configHost = config;
   vmName = "gui-vm";
 
-  #TODO do not import from a path like this
-  inherit (import ../../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  inherit (lib) rmDesktopEntries;
   guivmBaseConfiguration = {
     imports = [
       inputs.self.nixosModules.profiles
