@@ -13,6 +13,7 @@
       ./graphics.nix
       ./debug.nix
       ./release.nix
+      ./minimal.nix
       ./host-hardening.nix
       # NOTE: kernel-hardening is NOT included here because it requires specific kernel
       # hardening options that don't exist in all configurations. Import it explicitly
