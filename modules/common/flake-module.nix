@@ -8,7 +8,6 @@
     common.imports = [
       ./common.nix
       ./firewall
-      ./profiles
       ./security
       ./users
       ./version

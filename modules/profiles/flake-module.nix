@@ -13,6 +13,10 @@
       ./graphics.nix
       ./debug.nix
       ./release.nix
+      ./host-hardening.nix
+      # NOTE: kernel-hardening is NOT included here because it requires specific kernel
+      # hardening options that don't exist in all configurations. Import it explicitly
+      # in targets that support it.
     ];
 
     # speciic profiles that are needed for certain classes of devices should be included below.
