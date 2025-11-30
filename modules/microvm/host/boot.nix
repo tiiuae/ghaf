@@ -99,12 +99,6 @@ let
     '';
   };
 
-  # Wait for user login and ghaf-session to be active
-  loginTarget = {
-    labwc = "ghaf-session.target";
-    cosmic = "xdg-desktop-portal.service";
-  };
-
   wait-for-user = pkgs.writeShellApplication {
     name = "wait-for-user";
     runtimeInputs = [
@@ -122,9 +116,7 @@ let
       echo "Waiting for user-session to be active..."
       state="inactive"
       until [ "$state" == "active" ]; do
-        state=$(systemctl --user is-active ${
-          loginTarget.${config.ghaf.profiles.graphics.compositor}
-        } --machine=${toString config.ghaf.users.loginUser.uid}@.host)
+        state=$(systemctl --user is-active xdg-desktop-portal.service --machine=${toString config.ghaf.users.loginUser.uid}@.host)
         sleep 1
       done
       echo "user-session is now active"

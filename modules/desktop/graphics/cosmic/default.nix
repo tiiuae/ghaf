@@ -312,6 +312,10 @@ in
       };
     };
 
+    fonts.packages = [
+      pkgs.inter
+    ];
+
     systemd.user.services = {
       autostart = {
         description = "Ghaf autostart";

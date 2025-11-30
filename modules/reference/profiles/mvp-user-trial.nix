@@ -11,12 +11,6 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
-      graphics = {
-        labwc = {
-          autologinUser = lib.mkForce null;
-        };
-      };
-
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "business-vm"

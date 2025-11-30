@@ -89,7 +89,6 @@ export default defineConfig({
                         "ghaf/dev/ref/modules",
                         "ghaf/dev/ref/dependencies",
                         "ghaf/dev/ref/builder-functions",
-                        "ghaf/dev/ref/labwc",
                         "ghaf/dev/ref/cosmic",
                         "ghaf/dev/ref/idsvm-development",
                         "ghaf/dev/ref/systemd-service-config",

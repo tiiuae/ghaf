@@ -91,8 +91,6 @@ let
                 graphics.enable = true;
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";
-                # Uncomment this line to use Labwc instead of Cosmic:
-                # graphics.compositor = "labwc";
               };
               reference.programs.windows-launcher.enable = true;
               reference.host-demo-apps.demo-apps.enableDemoApplications = true;

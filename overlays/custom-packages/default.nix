@@ -16,7 +16,6 @@
   element-desktop = import ./element-desktop { inherit prev; };
   gtklock = import ./gtklock { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
-  labwc = import ./labwc { inherit prev; };
   libfm = import ./libfm { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
   qemu_kvm = import ./qemu { inherit final prev; };

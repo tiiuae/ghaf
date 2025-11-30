@@ -31,6 +31,5 @@ in
     };
 
     environment.sessionVariables = environmentVariables;
-    ghaf.graphics.labwc.extraVariables = environmentVariables;
   };
 }

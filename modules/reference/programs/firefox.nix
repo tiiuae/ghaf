@@ -40,8 +40,5 @@ in
     environment.sessionVariables = {
       MOZ_DISABLE_RDD_SANDBOX = "1";
     };
-    ghaf.graphics.labwc.extraVariables = {
-      MOZ_DISABLE_RDD_SANDBOX = "1";
-    };
   };
 }

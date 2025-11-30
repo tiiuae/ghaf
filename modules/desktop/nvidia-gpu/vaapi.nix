@@ -62,8 +62,6 @@ in
       sessionVariables = environmentVariables;
     };
 
-    ghaf.graphics.labwc.extraVariables = environmentVariables;
-
     hardware.graphics.extraPackages = [
       pkgs.nvidia-vaapi-driver
     ];
