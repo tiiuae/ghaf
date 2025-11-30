@@ -33,10 +33,10 @@
               config.treefmt.build.wrapper
               self'.legacyPackages.ghaf-build-helper
               self'.legacyPackages.update-docs-depends
+              pkgs.cachix
             ]
             ++ config.pre-commit.settings.enabledPackages
-            ++ lib.attrValues config.treefmt.build.programs # make all the trefmt packages available
-            ++ lib.optional (pkgs.stdenv.hostPlatform.system != "riscv64-linux") pkgs.cachix;
+            ++ lib.attrValues config.treefmt.build.programs; # make all the trefmt packages available
 
             startup.hook.text = config.pre-commit.installationScript;
           };

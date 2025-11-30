@@ -5,7 +5,6 @@
   perSystem =
     {
       pkgs,
-      lib,
       ...
     }:
     {
@@ -27,7 +26,7 @@
               nix-fast-build
               ;
           }
-          ++ lib.optional (pkgs.stdenv.hostPlatform.system != "riscv64-linux") pkgs.cachix;
+          ++ [ pkgs.cachix ];
       };
     };
 }
