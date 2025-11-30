@@ -17,6 +17,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Enable minimal profile as base
+    ghaf.profiles.minimal.enable = true;
+
     # Enable default accounts and passwords
     ghaf = {
       # Enable development on target
