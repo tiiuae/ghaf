@@ -14,9 +14,7 @@ let
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix { };
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix { };
 
-  inherit (lib) mkEnableOption mkIf;
-  #TODO; make sure that the lib is exported correctly and remove this cross file import
-  inherit (import ../../lib/launcher.nix { inherit pkgs lib; }) rmDesktopEntries;
+  inherit (lib) mkEnableOption mkIf rmDesktopEntries;
 in
 {
   options.ghaf.development.debug.tools = {

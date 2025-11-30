@@ -201,7 +201,7 @@
     inputs@{ flake-parts, ... }:
     let
       # Create the extended lib
-      ghafLib = import ./lib.nix { inherit inputs; };
+      ghafLib = import ./lib { inherit inputs; };
       extendedLib = inputs.nixpkgs.lib.extend ghafLib;
     in
     flake-parts.lib.mkFlake

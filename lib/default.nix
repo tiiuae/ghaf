@@ -4,7 +4,12 @@
 # SPDX-License-Identifier: MIT
 # FlattenTree and rakeLeaves originate from
 # https://github.com/divnix/digga
-_: lib: prev: {
+_: lib: prev:
+let
+  # Import launcher utilities
+  launcherLib = import ./launcher.nix { };
+in
+{
   /*
        *
        Filters Nix packages based on the target system platform.
@@ -97,4 +102,7 @@ _: lib: prev: {
     };
 
   };
+
+  # Launcher utilities
+  inherit (launcherLib) rmDesktopEntries;
 }
