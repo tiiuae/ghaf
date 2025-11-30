@@ -10,7 +10,6 @@ let
   cfg = config.ghaf.development.debug.tools;
 
   rm-linux-bootmgrs = pkgs.callPackage ./scripts/rm_linux_bootmgr_entries.nix { };
-  perf-test-script-icicle = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix { };
   sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix { };
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix { };
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix { };
@@ -78,15 +77,12 @@ in
     ++ rmDesktopEntries [ pkgs.htop ]
     #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
     ++ lib.optional (config.nixpkgs.hostPlatform.system != "aarch64-linux") pkgs.perf
-    # LuaJIT (which is sysbench dependency) not available on RISC-V
-    # ydotool and grim are tools for automated GUI-testing, useless on riscv
-    ++ lib.optionals (config.nixpkgs.hostPlatform.system != "riscv64-linux") [
+    # Sysbench, ydotool, and grim for testing
+    ++ [
       pkgs.sysbench
       pkgs.ydotool
       pkgs.grim
     ]
-    # Icicle Kit performance test script available on RISC-V
-    ++ lib.optional (config.nixpkgs.hostPlatform.system == "riscv64-linux") perf-test-script-icicle
     # Build VLC only on x86. Ffmpeg7 and v4l for camera related testing only on x86
     ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
       pkgs.vlc

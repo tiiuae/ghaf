@@ -9,7 +9,6 @@
     ./imx8mp-evk/flake-module.nix
     ./laptop/flake-module.nix
     ./laptop-hw-scan/flake-module.nix
-    #./microchip-icicle-kit/flake-module.nix
     ./nvidia-jetson-orin/flake-module.nix
     ./vm/flake-module.nix
   ];

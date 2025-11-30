@@ -78,10 +78,6 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        # RISC-V is a target built from cross compilation and is not
-        # included as a host build possibility at this point
-        # Future HW permitting this can be re-evaluated
-        #"riscv64-linux"
       ];
 
       imports = [

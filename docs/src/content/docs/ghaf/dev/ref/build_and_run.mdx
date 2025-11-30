@@ -298,29 +298,3 @@ In the case of i.MX8, Ghaf deployment consists of creating a bootable SD card an
 2. Insert an SD card and USB boot media into the board and switch the power on.
 
 ---
-
-## Building Ghaf Image for Microchip Icicle Kit
-
-Before you begin:
-
-- Check device-independent [prerequisites](#prerequisites).
-- Make sure HSS version 0.99.35-v2023.02 is programmed in your board eNVM. The version can be seen in the pre-bootloader log. Check the video guide to build HSS and program the eNVM: [How to build HSS and program the eNVM?](https://www.youtube.com/watch?v=McAt2-6cwd4)
-
-In the case of the Icicle Kit, Ghaf deployment consists of creating an SD image with U-Boot and Linux kernel from Microchip, and Ghaf-based NixOS rootfs:
-
-1. Build a Ghaf SD image:
-
-   a. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-release command to release the image.
-   b. Run the nix build .#packages.riscv64-linux.microchip-icicle-kit-debug command to debug the image.
-
-2. Flash the Ghaf SD image:
-
-   - If you want to use a SD card:
-
-     - Prepare the SD card with the target HW image you built: `./packages/flash/flash.sh -d /dev/<YOUR_SD_CARD> -i result/<IMAGE_NAME>`.
-     - Insert an SD card into the board and switch the power on.
-
-   - If you want to use the onboard MMC:
-     - You can directly flash a NixOS image to an onboard MMC card: `./packages/flash/flash.sh -d /dev/<YOUR_MMC_DEVICE> -i result/<IMAGE_NAME>`.
-
-For more information on how to access the MMC card as a USB disk, see [MPFS Icicle Kit User Guide](https://github.com/polarfire-soc/polarfire-soc-documentation/blob/v2023.02/reference-designs-fpga-and-development-kits/icicle-kit-user-guide.md).
