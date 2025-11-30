@@ -120,14 +120,6 @@ let
                 renderer = "gpu"; # Use GPU for graphical boot in gui-vm
               };
               launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
-              labwc = {
-                autolock.enable = lib.mkDefault config.ghaf.graphics.labwc.autolock.enable;
-                autologinUser = lib.mkDefault config.ghaf.graphics.labwc.autologinUser;
-                securityContext = map (vm: {
-                  identifier = vm.name;
-                  color = vm.borderColor;
-                }) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
-              };
               cosmic = {
                 securityContext.rules = map (vm: {
                   identifier = vm.name;
@@ -161,10 +153,7 @@ let
 
               locale.enable = true;
 
-              disks = {
-                enable = true;
-                fileManager = lib.mkIf config.ghaf.graphics.labwc.enable "${pkgs.pcmanfm}/bin/pcmanfm";
-              };
+              disks.enable = true;
             };
             xdgitems.enable = true;
 

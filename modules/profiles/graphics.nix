@@ -9,15 +9,6 @@
 }:
 let
   cfg = config.ghaf.profiles.graphics;
-  compositors = [
-    "labwc"
-    "cosmic"
-  ];
-  renderers = [
-    "vulkan"
-    "pixman"
-    "gles2"
-  ];
 
   inherit (lib)
     mkEnableOption
@@ -29,24 +20,6 @@ in
 {
   options.ghaf.profiles.graphics = {
     enable = mkEnableOption "Graphics profile";
-    compositor = mkOption {
-      type = types.enum compositors;
-      default = "cosmic";
-      description = ''
-        Which Wayland compositor to use.
-
-        Choose one of: ${lib.concatStringsSep "," compositors}
-      '';
-    };
-    renderer = mkOption {
-      type = types.enum renderers;
-      default = "gles2";
-      description = ''
-        Which wlroots renderer to use.
-
-        Choose one of: ${lib.concatStringsSep "," renderers}
-      '';
-    };
     idleManagement = {
       enable = mkOption {
         type = types.bool;
@@ -159,17 +132,6 @@ in
       ];
     };
     environment = {
-      sessionVariables = {
-        XKB_DEFAULT_LAYOUT = "us,ara,fi";
-        XKB_DEFAULT_OPTIONS = "grp:alt_shift_toggle";
-      }
-      // lib.optionalAttrs (cfg.compositor == "labwc") {
-        WLR_NO_HARDWARE_CURSORS = if (cfg.renderer == "pixman") then 1 else 0;
-        WLR_RENDERER = cfg.renderer;
-        _JAVA_AWT_WM_NONREPARENTING = 1;
-        XDG_SESSION_TYPE = "wayland";
-      };
-
       systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ pkgs.ghaf-open ];
     };
 
@@ -181,9 +143,7 @@ in
     };
 
     ghaf.graphics = {
-      labwc.enable = cfg.compositor == "labwc";
-      labwc.autolock.enable = cfg.idleManagement.enable;
-      cosmic.enable = cfg.compositor == "cosmic";
+      cosmic.enable = true;
     };
 
     assertions = [

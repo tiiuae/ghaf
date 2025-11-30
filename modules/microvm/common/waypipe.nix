@@ -109,9 +109,7 @@ in
           RestartSec = "1";
           ExecStart =
             let
-              titlePrefix = lib.optionalString (
-                config.ghaf.profiles.graphics.compositor == "cosmic"
-              ) ''--title-prefix "[${cfg.vm.name}-vm] "'';
+              titlePrefix = ''--title-prefix "[${cfg.vm.name}-vm] "'';
               secctx = "--secctx \"${cfg.vm.name}\"";
               socketPath =
                 if cfg.serverSocketPath != null then

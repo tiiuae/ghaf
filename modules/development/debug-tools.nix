@@ -77,11 +77,10 @@ in
     ++ rmDesktopEntries [ pkgs.htop ]
     #TODO tmp disable perf as it is broken in cross-compiled Orin AGX/NX
     ++ lib.optional (config.nixpkgs.hostPlatform.system != "aarch64-linux") pkgs.perf
-    # Sysbench, ydotool, and grim for testing
+    # Sysbench and ydotool for testing
     ++ [
       pkgs.sysbench
       pkgs.ydotool
-      pkgs.grim
     ]
     # Build VLC only on x86. Ffmpeg7 and v4l for camera related testing only on x86
     ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [

@@ -31,9 +31,5 @@ in
       LIBVA_DRIVER_NAME = "iHD";
     }; # Force to use intel-media-driver
 
-    ghaf.graphics.labwc.extraVariables = {
-      LIBVA_DRIVER_NAME = "iHD";
-    }; # Force to use intel-media-driver
-
   };
 }

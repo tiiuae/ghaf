@@ -109,7 +109,6 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          #profiles.graphics.compositor = "labwc";
 
           virtualization.microvm.guivm.extraModules = [
             {

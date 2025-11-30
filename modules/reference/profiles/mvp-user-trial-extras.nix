@@ -42,12 +42,6 @@ in
 
       virtualization.storagevm-encryption.enable = true;
 
-      graphics = {
-        labwc = {
-          autologinUser = lib.mkForce null;
-        };
-      };
-
       # Enable audit
       security.audit.enable = lib.mkForce true;
 

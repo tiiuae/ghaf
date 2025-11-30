@@ -235,40 +235,6 @@ in
           icon = "losslesscut";
           command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
         }
-      ]
-      ++ optionals (config.ghaf.profiles.graphics.compositor != "cosmic") [
-        {
-          name = "Text Editor";
-          description = "Simple Text Editor";
-          packages =
-            let
-              # Remove rounded corners from the text editor window
-              gnomeTextEditor = pkgs.gnome-text-editor.overrideAttrs (oldAttrs: {
-                postPatch = (oldAttrs.postPatch or "") + ''
-                  echo -e '\nwindow { border-radius: 0px; }' >> src/style.css
-                '';
-              });
-            in
-            [
-              gnomeTextEditor
-              pkgs.adwaita-icon-theme
-            ];
-          icon = "org.gnome.TextEditor";
-          command = "gnome-text-editor";
-          extraModules = [
-            {
-              # Enable dconf for gnome text editor
-              programs.dconf.enable = true;
-            }
-          ];
-        }
-        {
-          name = "Xarchiver";
-          description = "File Compressor";
-          packages = [ pkgs.xarchiver ];
-          icon = "xarchiver";
-          command = "xarchiver";
-        }
       ];
     extraModules = [
       {
