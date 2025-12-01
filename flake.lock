@@ -383,16 +383,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1764210424,
-        "narHash": "sha256-v5+P67em4OVtnBhHdi0ldT5S64UzlnJMdD+FQ0QQxDA=",
+        "lastModified": 1764556344,
+        "narHash": "sha256-ow6zdXAHNcOuO9UGhQskvfzYsSbzdx5CcmQvWZH+qPQ=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "12fd024dff4938d1664030f06156b71ca2ea3725",
+        "rev": "2c419c95dbd0df00c1e55b3e07eb21a4c6d58b1a",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "another-kernel-fix-rebased-again",
+        "ref": "cuda-fix",
         "repo": "jetpack-nixos",
         "type": "github"
       }
