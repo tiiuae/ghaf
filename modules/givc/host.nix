@@ -50,6 +50,7 @@ in
       appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
       tls.enable = config.ghaf.givc.enableTls;
       admin = lib.head config.ghaf.givc.adminConfig.addresses;
+      enableExecModule = true;
     };
 
     givc.tls = {
