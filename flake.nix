@@ -154,11 +154,11 @@
 
     # Hardware specific modules and configurations for NixOS
     nixos-hardware = {
-      url = "github:NixOS/nixos-hardware/ae91411396f37d84850e07e7310f251b83fd3a93";
+      url = "github:NixOS/nixos-hardware";
     };
 
     # Packages managment similar to nixpkgs, applied to flake parts
-    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts/7013e769c509a97cfe53c5924b45b273021225c3";
+    pkgs-by-name-for-flake-parts.url = "github:drupol/pkgs-by-name-for-flake-parts";
 
     # For preserving data across NixOS rebuilds
     preservation = {
