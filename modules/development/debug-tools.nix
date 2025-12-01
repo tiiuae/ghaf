@@ -9,7 +9,6 @@
 let
   cfg = config.ghaf.development.debug.tools;
 
-  rm-linux-bootmgrs = pkgs.callPackage ./scripts/rm_linux_bootmgr_entries.nix { };
   perf-test-script-icicle = pkgs.callPackage ./scripts/perf_test_icicle_kit.nix { };
   sysbench-test-script = pkgs.callPackage ./scripts/sysbench_test.nix { };
   sysbench-fileio-test-script = pkgs.callPackage ./scripts/sysbench_fileio_test.nix { };
@@ -48,6 +47,7 @@ in
 
       # For deleting Linux Boot Manager entries in automated testing
       pkgs.efibootmgr
+      pkgs.efiboot-clean
 
       # Performance testing
       pkgs.ookla-speedtest
@@ -68,7 +68,6 @@ in
       sysbench-test-script
       sysbench-fileio-test-script
       nvpmodel-check
-      rm-linux-bootmgrs
 
       # To inspect LUKS partitions metadata
       pkgs.cryptsetup

@@ -140,6 +140,11 @@ in
       default = config.ghaf.virtualization.microvm.guivm.enable && config.ghaf.givc.enable;
       description = "Enable microvm boot order for GUI targets";
     };
+    cleanupEFIOnBoot = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Prune EFI boot records pointing to previous Ghaf installations";
+    };
   };
 
   config = mkMerge [
@@ -251,6 +256,20 @@ in
         serviceConfig = {
           Type = "simple";
           ExecStart = "${pkgs.systemd-bootchart}/lib/systemd/systemd-bootchart -r -n 1500";
+        };
+      };
+    })
+
+    (mkIf (cfg.cleanupEFIOnBoot && pkgs.stdenv.hostPlatform.isx86_64) {
+      systemd.services = {
+        efiboot-clean = {
+          description = "Prune outdated EFI bootrecords";
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe pkgs.efiboot-clean} --apply";
+            RemainAfterExit = true;
+          };
         };
       };
     })

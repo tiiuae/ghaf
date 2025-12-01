@@ -7,6 +7,7 @@
     audit-rules = final.callPackage ./pkgs-by-name/audit-rules/package.nix { };
     chrome-extensions = final.callPackage ./chrome-extensions { };
     dendrite-pinecone = final.callPackage ./pkgs-by-name/dendrite-pinecone/package.nix { };
+    efiboot-clean = final.callPackage ./pkgs-by-name/efiboot-clean/package.nix { };
     falcon-launcher = final.callPackage ./falcon-launcher/package.nix { };
     flash-script = final.callPackage ./pkgs-by-name/flash-script/package.nix { };
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
