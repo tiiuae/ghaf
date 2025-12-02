@@ -30,8 +30,21 @@ let
                 "${toString modulesPath}/installer/cd-dvd/installation-cd-minimal.nix"
               ];
 
+              # Prevent the image from being included in the nix store
+              # by explicitly excluding store contents
+              isoImage.storeContents = [ ];
+
+              # Include the image file directly in the ISO filesystem (not in /nix/store)
+              # This copies the file without creating a runtime dependency
+              isoImage.contents = [
+                {
+                  source = "${imagePath}/disk1.raw.zst";
+                  target = "/ghaf-image/disk1.raw.zst";
+                }
+              ];
+
               environment.sessionVariables = {
-                IMG_PATH = imagePath;
+                IMG_PATH = "/iso/ghaf-image";
               };
 
               systemd.services.wpa_supplicant.wantedBy = lib.mkForce [ "multi-user.target" ];
