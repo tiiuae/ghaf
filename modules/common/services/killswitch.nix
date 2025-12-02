@@ -356,6 +356,23 @@ let
           if [[ "$device" == "--all" ]]; then
             for d in "''${supportedDevices[@]}"; do
               device=$d
+              # Get status and extract device state
+              show_output="$(show_status)"
+               status=$(awk -F': ' -v dev="$device" '
+                  tolower($1) == tolower(dev) {
+                      print tolower($2);
+                      exit
+                  }
+              ' <<< "$show_output")
+
+              # Check status and block if needed
+              if [[ -z "$status" ]]; then
+                echo "warning: couldn't find status for '$device'" >&2
+              elif [[ "$status" == "blocked" ]]; then
+                echo "Skipping $device - already blocked"
+                continue
+              fi
+
               block_devices
             done
           else
