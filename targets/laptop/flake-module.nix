@@ -96,6 +96,7 @@ let
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
           profiles.graphics.idleManagement.enable = false;
+          services.performance.host.thermalLimitMode = "enabled";
         };
       }
     ]))
@@ -117,6 +118,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
+          services.performance.host.thermalLimitMode = "enabled";
         };
       }
     ]))
@@ -292,6 +294,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
+          services.performance.host.thermalLimitMode = "enabled";
         };
       }
     ]))

@@ -15,6 +15,7 @@ let
     getExe
     getExe'
     mkEnableOption
+    mkForce
     mkIf
     mkMerge
     mkOption
@@ -74,37 +75,55 @@ let
         name = "host-powersave";
         start = ''
           pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        '';
+        ''
+        + lib.optionalString (
+          cfg.host.thermalLimitMode == "ac"
+        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} start thermald";
       };
       host-balanced = mkTunedScript {
         name = "host-balanced";
         start = ''
           pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        '';
+        ''
+        + lib.optionalString (
+          cfg.host.thermalLimitMode == "ac"
+        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} start thermald";
       };
       host-performance = mkTunedScript {
         name = "host-performance";
         start = ''
           pci_device_runtime_pm on "${lib.concatStringsSep " " pciDevices}"
-        '';
+        ''
+        + lib.optionalString (
+          cfg.host.thermalLimitMode == "ac"
+        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} start thermald";
       };
       host-powersave-battery = mkTunedScript {
         name = "host-powersave-battery";
         start = ''
           pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        '';
+        ''
+        + lib.optionalString (
+          cfg.host.thermalLimitMode == "ac"
+        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} stop thermald";
       };
       host-balanced-battery = mkTunedScript {
         name = "host-balanced-battery";
         start = ''
           pci_device_runtime_pm auto "${lib.concatStringsSep " " pciDevices}"
-        '';
+        ''
+        + lib.optionalString (
+          cfg.host.thermalLimitMode == "ac"
+        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} stop thermald";
       };
       host-performance-battery = mkTunedScript {
         name = "host-performance-battery";
         start = ''
           pci_device_runtime_pm on "${lib.concatStringsSep " " pciDevices}"
-        '';
+        ''
+        + lib.optionalString (
+          cfg.host.thermalLimitMode == "ac"
+        ) "timeout 5s ${getExe' pkgs.systemd "systemctl"} stop thermald";
       };
     };
 
@@ -227,99 +246,205 @@ in
         };
         defaultProfile = mkOption {
           type = types.str;
-          # Default to performance to improve boot time
           default = "host-balanced";
           description = "Default TuneD profile to use on the host.";
         };
       };
+      thermalLimitTemp = mkOption {
+        type = types.int;
+        description = ''
+          CPU package temperature (°C) at which passive thermal throttling begins.
+
+          Valid values are 60-97 °C. Lower temperatures are at or below typical CPU
+          idle temps, while higher values approach the CPU's hardware thermal ceiling
+          and might cause system shutdown.
+
+          This setting is used only when
+          `ghaf.services.performance.host.thermalLimitMode != "enabled"`.
+
+          Raising this value allows the CPU to sustain higher boost clocks before
+          throttling, at the cost of increased temperature, power draw, and fan noise.
+
+          Supports Intel CPUs only.
+        '';
+        default = 90;
+        apply =
+          value: if value < 60 || value > 97 then throw "Value must be between 60 and 97 °C" else value;
+      };
+      thermalLimitMode = mkOption {
+        type = types.enum [
+          "enabled"
+          "ac"
+          "disabled"
+        ];
+        default = "ac";
+        description = ''
+          Controls how passive thermal limits are applied.
+
+          `enabled` - Use the platform's built-in passive thermal limits
+            (typically around 60-70 °C). Boosting and throttling behavior are
+            determined entirely by firmware and ignore `thermalLimitTemp`.
+
+          `ac` - Disable the platform's passive limits when running on AC power,
+            but keep them active on battery. When passive limits are disabled,
+            `thermalLimitTemp` defines the temperature at which throttling begins.
+            Requires `ghaf.services.performance.host.tuned` to be enabled.
+
+          `disabled` - Disable the platform's passive limits on both AC and
+            battery. Boosting is allowed up to `thermalLimitTemp`, after which
+            throttling is applied.
+
+          Supports Intel CPUs only.
+        '';
+      };
     };
   };
 
-  config = mkIf cfg.enable (mkMerge [
-    (mkIf cfg.host.enable (
-      {
-        services.system76-scheduler = {
-          inherit (cfg.host.scheduler) enable;
-          settings = {
-            processScheduler = {
-              refreshInterval = 60;
-            };
+  config = mkIf (cfg.enable && cfg.host.enable) (mkMerge [
+    {
+      assertions = [
+        {
+          assertion = (cfg.host.thermalLimitMode == "ac") -> cfg.host.tuned.enable;
+          message = ''
+            thermalLimitMode = "ac" requires TuneD to be enabled.
+            Enable:
+
+              ghaf.services.performance.host.tuned.enable = true;
+
+            or choose thermalLimitMode = "enabled" or "disabled".
+          '';
+        }
+      ];
+      services.system76-scheduler = {
+        inherit (cfg.host.scheduler) enable;
+        settings = {
+          processScheduler = {
+            refreshInterval = 60;
           };
-          assignments = hostSchedulerAssignments;
         };
-        services.tuned = {
-          inherit (cfg.host.tuned) enable;
+        assignments = hostSchedulerAssignments;
+      };
+      services.tuned = {
+        inherit (cfg.host.tuned) enable;
 
-          settings.profile_dirs = "/etc/tuned/profiles,${
-            concatMapStringsSep "," (script: "${script}") (lib.attrValues hostProfileScripts)
-          }";
+        settings.profile_dirs = "/etc/tuned/profiles,${
+          concatMapStringsSep "," (script: "${script}") (lib.attrValues hostProfileScripts)
+        }";
 
-          settings.recommend_command = false;
+        settings.recommend_command = false;
 
-          ppdSettings = {
-            main.default = "balanced";
-            battery = {
-              power-saver = "host-powersave-battery";
-              balanced = "host-balanced-battery";
-              performance = "host-performance-battery";
-            };
-            profiles = {
-              power-saver = "host-powersave";
-              balanced = "host-balanced";
-              performance = "host-performance";
-            };
+        ppdSettings = {
+          main.default = "balanced";
+          battery = {
+            power-saver = "host-powersave-battery";
+            balanced = "host-balanced-battery";
+            performance = "host-performance-battery";
           };
-
           profiles = {
-            host-powersave = tunedProfiles.powersave // {
-              script.script = "${getExe hostProfileScripts.host-powersave}";
-            };
-            host-balanced = tunedProfiles.balanced // {
-              script.script = "${getExe hostProfileScripts.host-balanced}";
-            };
-            host-performance = tunedProfiles.performance // {
-              script.script = "${getExe hostProfileScripts.host-performance}";
-            };
-            host-powersave-battery = tunedProfiles.powersave // {
-              script.script = "${getExe hostProfileScripts.host-powersave-battery}";
-            };
-            host-balanced-battery = tunedProfiles.balanced // {
-              script.script = "${getExe hostProfileScripts.host-balanced-battery}";
-            };
-            host-performance-battery = tunedProfiles.performance // {
-              script.script = "${getExe hostProfileScripts.host-performance-battery}";
-            };
+            power-saver = "host-powersave";
+            balanced = "host-balanced";
+            performance = "host-performance";
           };
         };
-        environment.etc."tuned/recommend.conf".text = ''
-          [${cfg.host.tuned.defaultProfile}]
-        '';
-      }
+
+        profiles = {
+          host-powersave = tunedProfiles.powersave // {
+            script.script = "${getExe hostProfileScripts.host-powersave}";
+          };
+          host-balanced = tunedProfiles.balanced // {
+            script.script = "${getExe hostProfileScripts.host-balanced}";
+          };
+          host-performance = tunedProfiles.performance // {
+            script.script = "${getExe hostProfileScripts.host-performance}";
+          };
+          host-powersave-battery = tunedProfiles.powersave // {
+            script.script = "${getExe hostProfileScripts.host-powersave-battery}";
+          };
+          host-balanced-battery = tunedProfiles.balanced // {
+            script.script = "${getExe hostProfileScripts.host-balanced-battery}";
+          };
+          host-performance-battery = tunedProfiles.performance // {
+            script.script = "${getExe hostProfileScripts.host-performance-battery}";
+          };
+        };
+      };
+      environment.etc."tuned/recommend.conf".text = ''
+        [${cfg.host.tuned.defaultProfile}]
+      '';
       # Service units to set Ghaf PPD profiles on the host when requested from GUI VM
       # These must be whitelisted in modules/givc/host.nix
-      // {
-        systemd.services =
-          let
-            mkPpdService = profile: {
-              description = "Enable ${profile} Ghaf PPD profile on host";
-              serviceConfig = {
-                Type = "oneshot";
-                ExecStart = ''
-                  -${getExe' pkgs.tuned "tuned-adm"} profile ${profile}
-                '';
-              };
+      systemd.services =
+        let
+          mkPpdService = profile: {
+            description = "Enable ${profile} Ghaf PPD profile on host";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = ''
+                -${getExe' pkgs.tuned "tuned-adm"} profile ${profile}
+              '';
             };
-            hostProfiles = [
-              "host-powersave"
-              "host-balanced"
-              "host-performance"
-              "host-powersave-battery"
-              "host-balanced-battery"
-              "host-performance-battery"
-            ];
-          in
-          lib.listToAttrs (map (profile: nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
-      }
-    ))
+          };
+          hostProfiles = [
+            "host-powersave"
+            "host-balanced"
+            "host-performance"
+            "host-powersave-battery"
+            "host-balanced-battery"
+            "host-performance-battery"
+          ];
+        in
+        lib.listToAttrs (map (profile: nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
+    }
+    (mkIf (cfg.host.thermalLimitMode != "enabled") {
+      environment.systemPackages = lib.optionals config.ghaf.profiles.debug.enable [
+        # stress test and performance monitoring tool
+        pkgs.s-tui
+      ];
+      services.thermald.enable = true;
+      systemd.services.thermald =
+        let
+          thermaldConfig = pkgs.writeText "thermald-ghaf.xml" ''
+            <?xml version="1.0"?>
+            <ThermalConfiguration>
+              <Platform>
+                <Name>Override CPU default passive</Name>
+                <ProductName>*</ProductName>
+                <Preference>QUIET</Preference>
+                <ThermalZones>
+                  <ThermalZone>
+                    <Type>x86_pkg_temp</Type>
+                    <TripPoints>
+                      <TripPoint>
+                        <Temperature>${toString (cfg.host.thermalLimitTemp * 1000)}</Temperature>
+                        <type>passive</type>
+                        <SensorType>x86_pkg_temp</SensorType>
+                        <ControlType>SEQUENTIAL</ControlType>
+                        <CoolingDevice>
+                          <type>Processor</type>
+                          <SamplingPeriod>6</SamplingPeriod>
+                        </CoolingDevice>
+                      </TripPoint>
+                    </TripPoints>
+                  </ThermalZone>
+                </ThermalZones>
+              </Platform>
+            </ThermalConfiguration>
+          '';
+        in
+        {
+          serviceConfig.ExecStart = mkForce ''
+            ${getExe pkgs.thermald} \
+            --no-daemon \
+            --ignore-cpuid-check \
+            --workaround-enabled \
+            --ignore-default-control \
+            --config-file ${thermaldConfig}
+          '';
+          after = [ "tuned.service" ];
+        };
+      # Throttled is a good alternative but may not
+      # work with secure boot enabled
+      services.throttled.enable = false;
+    })
   ]);
 }
