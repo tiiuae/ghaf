@@ -288,11 +288,7 @@ let
           devices = audioPciDevices;
           blockedVar = "mic_blocked";
         }}
-        if [ "$mic_blocked" = "true" ]; then
-          echo "mic: blocked"
-        else
-          echo "mic: unblocked"
-        fi
+        [ "$mic_blocked" = true ] && echo "mic: blocked" || echo "mic: unblocked"
 
         # Check for Network status
         net_blocked="false"
@@ -300,11 +296,7 @@ let
           devices = netPciDevices;
           blockedVar = "net_blocked";
         }}
-        if [ "$net_blocked" = "true" ]; then
-          echo "net: blocked"
-        else
-          echo "net: unblocked"
-        fi
+        [ "$net_blocked" = true ] && echo "net: blocked" || echo "net: unblocked"
 
         # Disable the warning that appears when no USB devices
         # shellcheck disable=SC2034
@@ -316,11 +308,7 @@ let
           devices = camUsbDevices;
           blockedVar = "cam_blocked";
         }}
-        if [ "$cam_blocked" = "true" ]; then
-          echo "cam: blocked"
-        else
-          echo "cam: unblocked"
-        fi
+        [ "$cam_blocked" = true ] && echo "cam: blocked" || echo "cam: unblocked"
 
         # Check for bluetooth status
         bt_blocked="false"
@@ -328,11 +316,7 @@ let
           devices = btUsbDevices;
           blockedVar = "bt_blocked";
         }}
-        if [ "$bt_blocked" = "true" ]; then
-          echo "bluetooth: blocked"
-        else
-          echo "bluetooth: unblocked"
-        fi
+        [ "$bt_blocked" = true ] && echo "bluetooth: blocked" || echo "bluetooth: unblocked"
       }
 
       supportedDevices=(${builtins.concatStringsSep " " supportedDevices})
