@@ -49,7 +49,7 @@ in
           business-vm.permittedDevices = [ "cam0" ];
         };
         usb = {
-          guivmRules = [
+          guivmRules = lib.mkOptionDefault [
             {
               description = "Fingerprint Readers for GUIVM";
               targetVm = "gui-vm";
