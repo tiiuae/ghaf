@@ -666,24 +666,6 @@ in
           )
         ))
       ];
-
-      # Power management services
-      # TODO Evaluate these services
-      # powerManagement.powertop.enable = config.ghaf.profiles.debug.enable;
-      # services.thermald.enable = true;
-      # services.auto-cpufreq = {
-      #   enable = true;
-      #   settings = {
-      #     battery = {
-      #       governor = "powersave";
-      #       turbo = "never";
-      #     };
-      #     charger = {
-      #       governor = "performance";
-      #       turbo = "auto";
-      #     };
-      #   };
-      # };
     })
   ]);
 }
