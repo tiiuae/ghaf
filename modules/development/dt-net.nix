@@ -7,25 +7,24 @@
   ...
 }:
 let
-  cfg = config.ghaf.development.debug.tools.gui;
+  cfg = config.ghaf.development.debug.tools.net;
   inherit (lib) rmDesktopEntries;
 in
 {
-  options.ghaf.development.debug.tools.gui = {
-    enable = lib.mkEnableOption "GUI Debugging Tools";
+  options.ghaf.development.debug.tools.net = {
+    enable = lib.mkEnableOption "Network Debugging Tools";
   };
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages =
       lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux")
         (rmDesktopEntries [
-          pkgs.intel-gpu-tools
-          pkgs.vulkan-tools
-          pkgs.glmark2
-          pkgs.clinfo
-          pkgs.ydotool
-          pkgs.evtest
-          #pkgs.nvtopPackages.full
+          # Useful in NetVM
+          pkgs.ethtool
+          pkgs.ookla-speedtest
+          pkgs.iperf
+          pkgs.dig
+          pkgs.iftop
         ]);
   };
 }

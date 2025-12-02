@@ -13,6 +13,7 @@ let
     mkEnableOption
     mkIf
     mkDefault
+    mkForce
     ;
 in
 {
@@ -40,7 +41,7 @@ in
     environment = {
       # Perl is a default package.
       # TODO: reenable the below, once we sync with the test teams-for-linux
-      #defaultPackages = mkForce [ ];
+      defaultPackages = mkForce [ ];
       #corePackages = mkForce [ ];
       #stub-ld.enable = mkDefault false;
     };
@@ -63,8 +64,7 @@ in
 
     # Provide a minimal set of system packages
     environment.systemPackages = [
-      # TODO: will need to define the base set of packages
-      #pkgs.busybox
+      pkgs.busybox
       pkgs.openssh
     ];
 

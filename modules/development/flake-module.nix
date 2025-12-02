@@ -7,7 +7,10 @@
       inputs.srvos.nixosModules.mixins-nix-experimental
       ./cuda.nix
       ./debug-tools.nix
+      ./dt-av.nix
       ./dt-gui.nix
+      ./dt-host.nix
+      ./dt-net.nix
       ./nix.nix
       ./ssh.nix
       ./usb-serial.nix

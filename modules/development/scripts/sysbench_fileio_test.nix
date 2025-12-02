@@ -1,8 +1,16 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ writeShellApplication }:
+{
+  writeShellApplication,
+  util-linux,
+  sysbench,
+}:
 writeShellApplication {
   name = "sysbench-fileio-test";
+  runtimeInputs = [
+    util-linux
+    sysbench
+  ];
   text = ''
     # Test set to be run with sysbench
 

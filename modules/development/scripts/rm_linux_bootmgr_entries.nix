@@ -1,8 +1,9 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ writeShellApplication }:
+{ writeShellApplication, efibootmgr }:
 writeShellApplication {
   name = "rm-linux-bootmgrs";
+  runtimeInputs = [ efibootmgr ];
   text = ''
     for id in ''$(efibootmgr | grep Linux | awk 'NR > 0 {print ''$1}' | cut -c 5-8)
     do

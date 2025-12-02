@@ -279,6 +279,8 @@ in
           wireguard-gui.enable = config.ghaf.reference.services.wireguard-gui;
 
         };
+
+        ghaf.development.debug.tools.av.enable = config.ghaf.profiles.debug.enable;
       }
     ];
 
