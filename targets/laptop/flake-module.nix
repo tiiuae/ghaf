@@ -78,6 +78,13 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
+
+          virtualization.microvm.guivm.extraModules = [
+            {
+              microvm.mem = lib.mkForce 6144;
+            }
+          ];
+          virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
         };
       }
     ]))
@@ -257,6 +264,13 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
+
+          virtualization.microvm.guivm.extraModules = [
+            {
+              microvm.mem = lib.mkForce 6144;
+            }
+          ];
+          virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
         };
       }
     ]))
