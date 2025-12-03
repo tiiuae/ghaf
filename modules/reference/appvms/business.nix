@@ -228,13 +228,6 @@ in
             }
           ];
         }
-        {
-          name = "Video Editor";
-          description = "Losslesscut Video Editor";
-          packages = [ pkgs.losslesscut-bin ];
-          icon = "losslesscut";
-          command = "losslesscut --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        }
       ];
     extraModules = [
       {
