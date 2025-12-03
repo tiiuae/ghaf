@@ -15,7 +15,9 @@
     ./locale.nix
     ./performance
     ./power.nix
+    ./provisioning.nix
     ./storewatcher.nix
+    ./sssd.nix
     ./timezone.nix
     ./wifi.nix
     ./xpadneo.nix

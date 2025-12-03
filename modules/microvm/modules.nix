@@ -142,6 +142,7 @@ let
   # User account settings
   managedUserAccounts = {
     config.ghaf.users = {
+      inherit (configHost.ghaf.users) profile;
       inherit (configHost.ghaf.users) admin;
       inherit (configHost.ghaf.users) managed;
     };

@@ -54,6 +54,11 @@ in
       type = types.bool;
       default = false;
     };
+    homeSize = mkOption {
+      description = "Size of the admin user's home directory image in megabytes.";
+      type = types.int;
+      default = 10 * 1024; # 10 GB
+    };
     extraGroups = mkOption {
       description = "Extra groups for the admin user.";
       type = types.listOf types.str;

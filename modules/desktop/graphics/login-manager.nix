@@ -64,9 +64,9 @@ in
     users.users.${greeterUser}.extraGroups = [ "video" ];
 
     # Needed for the greeter to query systemd-homed users correctly
-    systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath [
-      pkgs.systemd
-    ]}";
+    systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath (
+      [ pkgs.systemd ] ++ lib.optionals config.ghaf.services.sssd.enable [ pkgs.sssd ]
+    )}";
 
     security.pam.services = {
       cosmic-greeter = {
@@ -80,19 +80,9 @@ in
       greetd = {
         fprintAuth = false; # User needs to enter password to decrypt home on login
         rules = {
-          account.group_video = {
-            enable = true;
-            control = "requisite";
-            modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
-            order = 10700;
-            args = [
-              "user"
-              "ingroup"
-              "video"
-            ];
-          };
           auth = {
-            systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+            # Re-order to allow either password _or_ fingerprint on lockscreen
+            systemd_home.order = 11399;
             fprintd.args = [ "maxtries=3" ];
 
             # This should precede other auth rules e.g. pam_sss.so (pam module for SSSD)
@@ -129,6 +119,18 @@ in
               control = "required";
               modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
               order = 10600;
+            };
+            # For now, we disable ghaf UI login
+            group_admin = {
+              enable = true;
+              control = "requisite";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
+              order = 10700;
+              args = [
+                "user"
+                "notingroup"
+                "ghaf"
+              ];
             };
           };
         };
