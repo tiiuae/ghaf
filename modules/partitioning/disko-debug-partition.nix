@@ -52,7 +52,7 @@ in
         disk = {
           disk1 = {
             type = "disk";
-            imageSize = "80G";
+            imageSize = "60G";
             content = {
               type = "gpt";
               partitions = {
@@ -108,7 +108,7 @@ in
                       priority = 3;
                     };
                 root = {
-                  size = "60G";
+                  size = "40G";
                   content = {
                     type = "filesystem";
                     format = "ext4";
