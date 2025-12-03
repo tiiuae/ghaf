@@ -41,8 +41,6 @@ in
         proxyAudio = false;
       };
 
-      graphics.login-manager.unixAuth = true;
-
       graphics.cosmic = {
         # Crucial for Orin devices to use the correct render device
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
@@ -129,8 +127,8 @@ in
         enable = true;
       };
 
-      # Create admin home folder; temporary solution
-      users.admin.createHome = true;
+      # Allow admin UI login
+      users.admin.enableUILogin = true;
     };
 
     hardware.graphics.extraPackages = lib.mkAfter [

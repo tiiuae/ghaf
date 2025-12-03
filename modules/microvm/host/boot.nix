@@ -9,6 +9,7 @@
 let
   cfg = config.ghaf.microvm-boot;
   inherit (lib)
+    getExe
     mkEnableOption
     mkIf
     mkMerge
@@ -99,27 +100,29 @@ let
     '';
   };
 
-  wait-for-user = pkgs.writeShellApplication {
-    name = "wait-for-user";
+  wait-for-session = pkgs.writeShellApplication {
+    name = "wait-for-session";
     runtimeInputs = [
       pkgs.systemd
+      pkgs.jq
     ];
     text = ''
-      set +e # don't exit on error
       echo "Waiting for user to login..."
-      state="inactive"
-      until [ "$state" == "active" ]; do
-        sleep 1
-        state=$(${pkgs.systemd}/bin/loginctl show-user ${toString config.ghaf.users.loginUser.uid} -P State 2>/dev/null)
-      done
-      echo "User is now active"
-      echo "Waiting for user-session to be active..."
-      state="inactive"
-      until [ "$state" == "active" ]; do
-        state=$(systemctl --user is-active xdg-desktop-portal.service --machine=${toString config.ghaf.users.loginUser.uid}@.host)
+      USER_ID=1
+      while [ "$USER_ID" -lt 1000 ]; do
+        tmp_id=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid') || true
+        [[ "$tmp_id" =~ ^[0-9]+$ ]] && USER_ID="$tmp_id" || USER_ID=1
         sleep 1
       done
-      echo "user-session is now active"
+      echo "User with ID=$USER_ID is now active"
+
+      echo "Waiting for user-session to be running..."
+      state="inactive"
+      while [[ "$state" != "active" ]]; do
+        state=$(systemctl --user is-active session.slice --machine="$USER_ID"@.host) || true
+        sleep 1
+      done
+      echo "User-session is active"
     '';
   };
 in
@@ -225,7 +228,7 @@ in
             after = [ "greetd.service" ];
             serviceConfig = {
               Type = "oneshot";
-              ExecStartPre = "${wait-for-user}/bin/wait-for-user";
+              ExecStartPre = "${getExe wait-for-session}";
               ExecStart = "/bin/sh -c exit"; # no-op
               RemainAfterExit = true;
             };

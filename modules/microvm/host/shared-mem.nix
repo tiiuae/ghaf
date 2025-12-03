@@ -87,7 +87,7 @@ in
     };
     serverSocketPath = mkOption {
       type = types.path;
-      default = "/run/user/${toString config.ghaf.users.loginUser.uid}/memsocket-server.sock";
+      default = "/run/user/${toString config.ghaf.users.homedUser.uid}/memsocket-server.sock";
       description = ''
         Specifies the path of the listening socket, which is used by Waypipe
         or other server applications as the output socket in server mode for
@@ -96,7 +96,7 @@ in
     };
     clientSocketPath = mkOption {
       type = types.path;
-      default = "/run/user/${toString config.ghaf.users.loginUser.uid}/memsocket-client.sock";
+      default = "/run/user/${toString config.ghaf.users.homedUser.uid}/memsocket-client.sock";
       description = ''
         Specifies the location of the output socket, which will connected to
         in order to receive data from AppVMs. This socket must be created by

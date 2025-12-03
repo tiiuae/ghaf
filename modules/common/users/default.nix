@@ -2,9 +2,12 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./common.nix
+    ./active-directory.nix
     ./admin.nix
-    ./desktop.nix
+    ./ad-users.nix
+    ./auxiliary.nix
+    ./profiles.nix
+    ./homed.nix
     ./managed.nix
   ];
 }

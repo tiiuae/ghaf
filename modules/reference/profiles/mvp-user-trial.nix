@@ -11,6 +11,14 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+
+      # Setup user profiles
+      users.profile = {
+        homed-user.enable = true;
+        ad-users.enable = false;
+        mutable-users.enable = false;
+      };
+
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "business-vm"
