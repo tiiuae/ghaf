@@ -33,6 +33,7 @@ let
               extraGroups = [
                 "audio"
                 "pipewire"
+                "bluetooth"
               ];
             };
 

@@ -46,13 +46,24 @@ in
       type = types.nullOr types.str;
       default = null;
     };
-    createHome = mkOption {
-      description = ''
-        Boolean value whether to create admin home folder. Defaults to false, which
-        sets it to '/var/empty'. A value of true will create the home directory as /home/<name>.
-      '';
+    enableUILogin = mkOption {
+      description = "Allow the admin user to login via the graphical login manager.";
       type = types.bool;
       default = false;
+    };
+    createHome = mkOption {
+      description = ''
+        Boolean value whether to create admin home folder. Defaults to `config.ghaf.users.admin.enableUILogin`.
+        A value of 'false' results in home directory set to `/var/empty`, 'true' will create the home directory
+        as `/home/<name>`.
+      '';
+      type = types.bool;
+      default = cfg.enableUILogin;
+    };
+    homeSize = mkOption {
+      description = "Size of the admin user's home directory image in megabytes.";
+      type = types.int;
+      default = 10 * 1024; # 10 GB
     };
     extraGroups = mkOption {
       description = "Extra groups for the admin user.";
@@ -94,10 +105,6 @@ in
             "wheel"
           ]
           ++ cfg.extraGroups
-          ++ optionals cfg.createHome [
-            "audio"
-            "video"
-          ]
           ++ optionals config.security.tpm2.enable [ "tss" ]
           ++ optionals config.virtualisation.docker.enable [ "docker" ];
         };
