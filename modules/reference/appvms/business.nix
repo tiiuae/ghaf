@@ -13,6 +13,7 @@ let
     getExe
     ;
   enableOpenNormalExtension = true;
+  deploymentCfg = config.ghaf.reference.deployments;
 in
 {
   business = {
@@ -200,12 +201,16 @@ in
           icon = "teams-for-linux";
           command = "trusted-browser-wrapper --app=https://teams.microsoft.com";
         }
+      ]
+      ++ lib.optionals deploymentCfg.gala.enable [
         {
           name = "Gala";
           description = "Secure Android-in-the-Cloud";
           icon = "distributor-logo-android";
-          command = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
+          command = "trusted-browser-wrapper --app=${deploymentCfg.gala.serverUrl}";
         }
+      ]
+      ++ lib.optionals deploymentCfg.globalProtect.enable [
         {
           name = "VPN";
           description = "GlobalProtect VPN Client";
@@ -241,24 +246,30 @@ in
         ghaf.firewall.extra =
           let
             # WARN: if all the traffic including VPN flowing through proxy is intended,
-            # remove "151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
-            # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
+            # remove VPN IP rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
+            # also remove VPN IP and related addresses from noProxy option and add
             # them to allow acl list in modules/reference/appvms/3proxy-config.nix file.
-            vpnIpAddr = "151.253.154.18";
+            vpnIpAddr = config.ghaf.reference.deployments.globalProtect.serverAddress;
+            hasVpn = config.ghaf.reference.deployments.globalProtect.enable && vpnIpAddr != "";
           in
           {
             input.filter = [
               # allow everything for local VPN traffic
               "-i tun0 -j ghaf-fw-conncheck-accept"
+            ]
+            ++ lib.optionals hasVpn [
               "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ghaf-fw-conncheck-accept"
             ];
 
-            output.filter = [
-              "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
-              # Block HTTP and HTTPS if NOT going out via VPN
-              "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-              "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-            ];
+            output.filter =
+              lib.optionals hasVpn [
+                "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
+              ]
+              ++ [
+                # Block HTTP and HTTPS if NOT going out via VPN
+                "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
+                "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
+              ];
           };
         # Enable Proxy Auto-Configuration service for the browser
         ghaf.reference.services = {

@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
+    ../deployments
     ./keys.nix
     ./accounts.nix
     ./authorizedSshKeys.nix

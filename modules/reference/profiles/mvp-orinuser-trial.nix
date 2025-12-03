@@ -7,6 +7,7 @@
 }:
 let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial;
+  deploymentCfg = config.ghaf.reference.deployments;
 in
 {
   options.ghaf.reference.profiles.mvp-orinuser-trial = {
@@ -15,6 +16,10 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      # Enable TII internal deployment profile by default
+      # This provides TII-specific settings: SSH keys, logging endpoint, VPN, etc.
+      reference.deployments.profiles.tii-internal.enable = lib.mkDefault true;
+
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "net-vm"
@@ -86,15 +91,15 @@ in
       #   };
       # };
 
-      # Disable logging
-      # logging = {
-      #   enable = true;
-      #   server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
-      #   listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
-      # };
+      # Logging - use deployment profile settings
+      logging = {
+        enable = deploymentCfg.logging.serverEndpoint != "";
+        server.endpoint = deploymentCfg.logging.serverEndpoint;
+        listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
+      };
 
-      # Enable audit
-      security.audit.enable = false;
+      # Enable audit - use deployment profile settings
+      security.audit.enable = deploymentCfg.security.auditEnabled;
     };
   };
 }
