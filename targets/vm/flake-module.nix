@@ -95,8 +95,6 @@ let
                     initialPassword = "ghaf";
                     uid = 1000;
                     extraGroups = [
-                      "audio"
-                      "video"
                       "wheel"
                     ];
                   }
@@ -121,7 +119,6 @@ let
                   release.enable = variant == "release";
                   debug.enable = lib.hasPrefix "debug" variant;
                 };
-                graphics.login-manager.unixAuth = true;
               };
 
               # Enable GUI component on host

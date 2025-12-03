@@ -31,7 +31,7 @@ in
     givc.appvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      inherit (config.ghaf.users.loginUser) uid;
+      inherit (config.ghaf.users.homedUser) uid;
       transport = {
         name = hostName;
         addr = hosts.${hostName}.ipv4;

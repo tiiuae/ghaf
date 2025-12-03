@@ -53,17 +53,22 @@ let
           ];
 
           ghaf = {
-            security.pwquality.enable = true;
             # Profiles
             profiles = {
               debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
               graphics.enable = true;
             };
-            users.loginUser = {
-              createRecoveryKey = true;
-              enable = true;
-              fidoAuth = true;
+
+            users = {
+              adUsers = {
+                inherit (config.ghaf.users.profile.ad-users) enable;
+              };
+              homedUser = {
+                inherit (config.ghaf.users.profile.homed-user) enable;
+                fidoAuth = true;
+              };
             };
+
             development = {
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
@@ -131,6 +136,7 @@ let
 
             # Services
             services = {
+              user-provisioning.enable = true;
               power-manager = {
                 vm.enable = true;
                 gui.enable = true;
@@ -157,14 +163,10 @@ let
             xdgitems.enable = true;
 
             security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
-
           };
 
-          services = {
-            # We dont enable services.blueman because it adds blueman desktop entry
-            dbus.packages = [ pkgs.blueman ];
-          };
-
+          # We dont enable services.blueman because it adds blueman desktop entry
+          services.dbus.packages = [ pkgs.blueman ];
           systemd.packages = [ pkgs.blueman ];
 
           environment = {

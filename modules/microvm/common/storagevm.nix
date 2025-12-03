@@ -17,6 +17,17 @@ let
     types
     optionals
     ;
+
+  homeImageSize =
+    if config.ghaf.users.admin.enable then
+      if config.ghaf.users.homedUser.enable then
+        config.ghaf.users.admin.homeSize + config.ghaf.users.homedUser.homeSize
+      else
+        config.ghaf.users.admin.homeSize
+    else if config.ghaf.users.homedUser.enable then
+      config.ghaf.users.homedUser.homeSize
+    else
+      200000; # Default to 200 GB
 in
 {
   options.ghaf.storagevm = {
@@ -306,14 +317,16 @@ in
     (lib.mkIf cfg.enable {
       ## Common config
 
-      microvm.volumes = lib.optionals config.ghaf.users.loginUser.enable [
-        {
-          image = "/persist/storagevm/homes/${cfg.name}-home.img";
-          size = config.ghaf.users.loginUser.homeSize;
-          fsType = "ext4";
-          mountPoint = "/home";
-        }
-      ];
+      microvm.volumes =
+        lib.optionals (config.ghaf.users.homedUser.enable || config.ghaf.users.adUsers.enable)
+          [
+            {
+              image = "/persist/storagevm/homes/${cfg.name}-home.img";
+              size = homeImageSize;
+              fsType = "ext4";
+              mountPoint = "/home";
+            }
+          ];
 
       preservation = {
         enable = true;
@@ -321,9 +334,6 @@ in
 
           # Standard directories and files
           {
-            directories = [
-              "/var/lib/nixos"
-            ];
             files = [
               {
                 file = "/etc/machine-id";
@@ -362,13 +372,6 @@ in
                 how = "symlink";
                 configureParent = true;
               }
-            ];
-          })
-
-          # Optional directories for systemd home
-          (mkIf config.ghaf.users.loginUser.enable {
-            directories = [
-              "/var/lib/systemd/home"
             ];
           })
         ];

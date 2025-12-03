@@ -41,7 +41,6 @@ in
         default = 2;
       };
     };
-    unixAuth = mkEnableOption "Unix authentication for greetd and greeters";
   };
 
   config = mkIf cfg.enable {
@@ -64,14 +63,13 @@ in
 
     users.users.${greeterUser}.extraGroups = [ "video" ];
 
-    # Needed for the greeter to query systemd-homed users correctly
-    systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath [
-      pkgs.systemd
-    ]}";
+    # Needed for the greeter to query systemd-homed / sssd users correctly
+    systemd.services.cosmic-greeter-daemon.environment.LD_LIBRARY_PATH = "${pkgs.lib.makeLibraryPath (
+      [ pkgs.systemd ] ++ lib.optionals config.ghaf.services.sssd.enable [ pkgs.sssd ]
+    )}";
 
     security.pam.services = {
       cosmic-greeter = {
-        inherit (cfg) unixAuth;
         rules = {
           auth = {
             systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
@@ -80,20 +78,8 @@ in
         };
       };
       greetd = {
-        inherit (cfg) unixAuth;
         fprintAuth = false; # User needs to enter password to decrypt home on login
         rules = {
-          account.group_video = {
-            enable = true;
-            control = "requisite";
-            modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
-            order = 10700;
-            args = [
-              "user"
-              "ingroup"
-              "video"
-            ];
-          };
           auth = {
             systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
             fprintd.args = [ "maxtries=3" ];
@@ -117,7 +103,7 @@ in
               enable = true;
               control = "[default=die]";
               modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
-              order = 12300;
+              order = 12399;
               args = [
                 "authfail"
                 "audit"
@@ -132,6 +118,17 @@ in
               control = "required";
               modulePath = "${pkgs.linux-pam}/lib/security/pam_faillock.so";
               order = 10600;
+            };
+            deny_admin = {
+              enable = !config.ghaf.users.admin.enableUILogin;
+              control = "requisite";
+              modulePath = "${pkgs.linux-pam}/lib/security/pam_succeed_if.so";
+              order = 10700;
+              args = [
+                "user"
+                "!="
+                "${config.ghaf.users.admin.name}"
+              ];
             };
           };
         };
