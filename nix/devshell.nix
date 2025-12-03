@@ -32,6 +32,7 @@
               pkgs.prefetch-npm-deps
               config.treefmt.build.wrapper
               self'.legacyPackages.ghaf-build-helper
+              self'.legacyPackages.flash-script
               self'.legacyPackages.update-docs-depends
               pkgs.cachix
             ]
@@ -51,6 +52,12 @@
               help = "Ghaf nixos-rebuild command";
               name = "ghaf-rebuild";
               command = "ghaf-build-helper $@";
+              category = "builder";
+            }
+            {
+              help = "Ghaf flash command";
+              name = "ghaf-flash";
+              command = "flash-script $@";
               category = "builder";
             }
             {
