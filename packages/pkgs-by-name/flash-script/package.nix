@@ -5,6 +5,7 @@
   util-linux,
   writeShellApplication,
   zstd,
+  pv,
 }:
 writeShellApplication {
   name = "flash-script";
@@ -12,10 +13,11 @@ writeShellApplication {
     coreutils
     util-linux
     zstd
+    pv
   ];
   text = builtins.readFile ./flash.sh;
   meta = {
-    description = "Flashingscript for the Ghaf project";
+    description = "Flashing script for the Ghaf project";
     platforms = [
       "aarch64-linux"
       "x86_64-linux"
