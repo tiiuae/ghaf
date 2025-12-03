@@ -33,6 +33,7 @@ in
       # Grpc testing
       pkgs.grpcurl
 
+      pkgs.sysbench
       sysbench-test-script
       sysbench-fileio-test-script
     ]
@@ -40,7 +41,6 @@ in
       pkgs.htop
     ]
     ++ lib.optionals (config.nixpkgs.hostPlatform.system != "aarch64-linux") [
-      pkgs.perf
       pkgs.kitty.terminfo
     ]
     ++ lib.optional (config.nixpkgs.hostPlatform.system == "aarch64-linux") nvpmodel-check;
