@@ -90,7 +90,7 @@ let
     bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
 
     # Xpadneo module
-    xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = true; };
+    xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = false; };
 
     # Wifi module
     wifi = optionalAttrs cfg.netvm.wifi { config.ghaf.services.wifi.enable = true; };
