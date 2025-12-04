@@ -35,7 +35,7 @@
 #
 # 2. Runtime:
 #    - systemd-journald seals entries every sealInterval
-#    - journal-fss-verify.timer runs hourly + 2min after boot
+#    - journal-fss-verify.timer runs hourly + 5min after boot
 #    - Verification failures trigger critical alerts to admin-vm
 #
 # 3. Key Management:
@@ -164,6 +164,13 @@ let
     ];
     text = ''
       echo "Verifying journal integrity with Forward Secure Sealing..."
+
+      # Check if any journals exist to verify
+      if ! journalctl --list-boots >/dev/null 2>&1; then
+        echo "No journals found to verify, skipping verification"
+        echo "This is normal on fresh boot before journals are created"
+        exit 0
+      fi
 
       # Check if verification key exists and use it
       VERIFY_KEY_FILE="${cfg.keyPath}/verification-key"
@@ -300,8 +307,8 @@ in
       description = ''
         Run journal verification on system boot.
 
-        Verification will run 2 minutes after systemd-journald starts
-        to ensure journal files are ready.
+        Verification will run 5 minutes after systemd-journald starts
+        to ensure journal files are ready and FSS setup has completed.
       '';
     };
 
@@ -354,8 +361,16 @@ in
       description = "Verify systemd journal integrity using Forward Secure Sealing";
       documentation = [ "man:journalctl(1)" ];
 
-      after = [ "systemd-journald.service" ];
+      after = [
+        "systemd-journald.service"
+        "journal-fss-setup.service"
+      ];
       wants = [ "systemd-journald.service" ];
+
+      unitConfig = {
+        # Only run if FSS setup has completed successfully
+        ConditionPathExists = "${cfg.keyPath}/initialized";
+      };
 
       serviceConfig = {
         Type = "oneshot";
@@ -386,7 +401,7 @@ in
         RandomizedDelaySec = "5min";
       }
       // optionalAttrs cfg.verifyOnBoot {
-        OnBootSec = "2min";
+        OnBootSec = "5min";
       };
     };
 
