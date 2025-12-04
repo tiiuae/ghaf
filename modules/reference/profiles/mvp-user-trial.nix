@@ -70,7 +70,8 @@ in
             # Should match the name of the chrome VM above
             vmName = "chrome-vm";
           };
-          alpaca-ollama = true;
+          # TODO: Re-enable when ipython Python 3.13 compatibility is fixed upstream
+          # alpaca-ollama = true;
           wireguard-gui = true;
         };
 
