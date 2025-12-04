@@ -103,6 +103,7 @@ in
     # System is now immutable
     system.switch.enable = false;
 
+    # FIXME: merge with definition in repart-common.nix
     swapDevices = [
       {
         device =
@@ -120,6 +121,7 @@ in
         };
       in
       {
+        # FIXME: could we make / a tmpfs, and mount erofs as /nix/store?
         "/" = {
           fsType = "erofs";
           # for systemd-remount-fs
@@ -127,6 +129,7 @@ in
           device = "/dev/mapper/root";
         };
 
+        # FIXME: merge with definition in repart-common.nix
         "/persist" =
           let
             partConf = config.image.repart.partitions."50-persist".repartConfig;
