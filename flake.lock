@@ -517,16 +517,16 @@
     },
     "nixpkgs_2": {
       "locked": {
-        "lastModified": 1764802714,
-        "narHash": "sha256-5o6fFoPTaQexLfZQJuX+NlO/4dfxL/oSK32ZFbYhJis=",
+        "lastModified": 1764867602,
+        "narHash": "sha256-ksv5pVK3H662cxFWy2LC8+5MwOaf330vUjAb8hslJdg=",
         "owner": "tiiuae",
         "repo": "nixpkgs",
-        "rev": "c9bc5cf2d4f290c2ecae82e9a319faf601331371",
+        "rev": "b669fe5e6e65f6296f51955d5340bf0b6e7fdb2b",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "rust-fix-cosmic8",
+        "ref": "cosmic-beta9",
         "repo": "nixpkgs",
         "type": "github"
       }
