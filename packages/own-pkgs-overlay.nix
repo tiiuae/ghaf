@@ -14,6 +14,7 @@
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
+    ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
     hardware-scan = final.callPackage ./pkgs-by-name/hardware-scan/package.nix { };
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
