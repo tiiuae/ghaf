@@ -1,0 +1,78 @@
+---
+title: Ghaf VMs Status Tool
+description: CLI tool to monitor and manage MicroVM status in Ghaf.
+---
+
+## Overview
+
+`ghaf-vms` is a command-line utility in Ghaf that provides real-time status information about running MicroVMs on the host system. It queries systemd to determine the state of each configured MicroVM and displays the information in a color-coded, easy-to-read format.
+
+This tool is particularly useful for:
+- Checking which VMs are running or stopped
+- Debugging VM startup issues
+- Monitoring the overall health of the MicroVM architecture
+- Quick system status overview without navigating through systemd commands
+
+---
+
+## Usage & Commands
+
+Run `ghaf-vms` on the Ghaf host to view VM status. General usage:
+
+```sh
+[ghaf@ghaf-host:~]$ ghaf-vms [OPTIONS]
+```
+
+### Options
+
+* `-l` — List all configured MicroVMs and their current status (default behavior)
+* `-h` — Show usage instructions
+
+### Examples
+
+#### List all VMs and their status
+
+```bash
+[ghaf@ghaf-host:~]$ ghaf-vms -l
+```
+
+Or simply:
+
+```bash
+[ghaf@ghaf-host:~]$ ghaf-vms
+```
+
+Example output:
+
+```
+  VM Status:
+  =========
+  audio-vm: running
+  business-vm: running
+  chrome-vm: running
+  gui-vm: running
+  ids-vm: running
+  net-vm: running
+  zathura-vm: stopped
+```
+
+### Status Indicators
+
+The tool displays VMs with color-coded status indicators:
+
+| Status | Color | Description |
+|--------|-------|-------------|
+| `RUNNING` | Green | VM is currently active and running |
+| `STOPPED` | Red | VM is configured but not running |
+| `FAILED` | Bold Red | VM service failed to start |
+| `ACTIVATING` | Yellow | VM is in the process of starting |
+| Other states | Cyan | VM is in another systemd state (e.g., deactivating, reloading) |
+
+
+---
+
+## See Also
+
+- [Creating Application VM](/ghaf/dev/ref/creating_appvm/) — How to create new MicroVMs
+- [MicroVM Architecture](/ghaf/overview/arch/system-architecture/) — Understanding Ghaf's VM architecture
+- [Troubleshooting](/ghaf/dev/troubleshooting/) — General troubleshooting guidance

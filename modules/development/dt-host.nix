@@ -27,6 +27,8 @@ in
           pkgs.cryptsetup
           # check hardware info
           pkgs.lshw
+          # List microvm status
+          pkgs.ghaf-vms
         ]);
   };
 }
