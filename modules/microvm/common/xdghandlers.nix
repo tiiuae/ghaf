@@ -53,7 +53,7 @@ let
       }
 
       start_browser() {
-       ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
+        ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
           --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
       }
 
@@ -94,12 +94,19 @@ in
     pdf = lib.mkEnableOption "XDG PDF Handler";
     image = lib.mkEnableOption "XDG Image Handler";
     url = lib.mkEnableOption "XDG Url Handler";
+    urlScript = lib.mkOption {
+      type = lib.types.path;
+      default = "${xdgOpenUrl}/bin/xdgopenurl";
+      description = "Custom script to handle URLs";
+    };
     elementDesktop = lib.mkEnableOption "XDG Element desktop Handler";
   };
 
   config = lib.mkIf config.ghaf.givc.enable {
     environment.systemPackages =
-      (lib.optional cfg.pdf pkgs.zathura) ++ (lib.optional cfg.image pkgs.oculante);
+      (lib.optional cfg.pdf pkgs.zathura)
+      ++ (lib.optional cfg.image pkgs.oculante)
+      ++ (lib.optional cfg.url pkgs.zenity);
 
     ghaf.givc.appvm.applications =
       (lib.optional cfg.pdf {
@@ -116,7 +123,7 @@ in
       })
       ++ (lib.optional cfg.url {
         name = "xdg-url";
-        command = "${xdgOpenUrl}/bin/xdgopenurl";
+        command = config.ghaf.xdghandlers.urlScript;
         args = [ "url" ];
       })
       ++ (lib.optional cfg.elementDesktop {
