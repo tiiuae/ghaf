@@ -46,7 +46,13 @@ in
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
         renderDevice = "/dev/dri/renderD129";
         # Keep only essential applets for Orin devices
-        panelApplets.right = [
+        topPanelApplets.right = [
+          "com.system76.CosmicAppletInputSources"
+          "com.system76.CosmicAppletStatusArea"
+          "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletPower"
+        ];
+        bottomPanelApplets.right = [
           "com.system76.CosmicAppletInputSources"
           "com.system76.CosmicAppletStatusArea"
           "com.system76.CosmicAppletTiling"
