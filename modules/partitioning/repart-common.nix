@@ -32,7 +32,7 @@ in
       # (create verity partition, even if we booted from disko populated image)
       "11-root-verity-a" = {
         Type = "root-verity";
-        Label = "root-verity-a";
+        Label = "root-verity_0";
         Verity = "hash";
         VerityMatchKey = "${definition.root.label}";
         SizeMinBytes = "8G";
@@ -41,15 +41,15 @@ in
 
       # 'B' blank partitions.
       "20-root-verity-b" = {
-        Type = "linux-generic";
-        Label = "_empty_verity";
+        Type = "root-verity";
+        Label = "_empty";
         ReadOnly = 1;
         SizeMinBytes = "8G";
         SizeMaxBytes = "8G";
       };
 
       "21-root-b" = {
-        Type = "linux-generic";
+        Type = "root";
         SizeMaxBytes = definition.root.size;
         Label = "_empty";
         ReadOnly = 1;

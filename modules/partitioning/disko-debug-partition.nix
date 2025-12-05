@@ -76,7 +76,8 @@ in
                   priority = 2;
                 };
                 root = {
-                  inherit (definition.root) size label;
+                  inherit (definition.root) size;
+                  label = "${definition.root.label}_0"; # Disko partition always have _0 version
                   type = "4f68bce3-e8cd-4db1-96e7-fbcaf984b709"; # x86-64 root partType UUID from https://uapi-group.org/specifications/specs/discoverable_partitions_specification/
                   content = {
                     type = "filesystem";
