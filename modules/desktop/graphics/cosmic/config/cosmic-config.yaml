@@ -85,6 +85,12 @@ com.system76.CosmicPanel:
         "Dock",
     ]
 
+com.system76.CosmicPanel-bottom-panel:
+  entries: |
+    [
+        "Panel",
+    ]
+
 com.system76.CosmicPanel.Dock:
   anchor: Bottom
   anchor_gap: true
@@ -156,6 +162,46 @@ com.system76.CosmicPanel.Panel:
         "com.system76.CosmicAppletPower",
     ]))
   size: XS
+  spacing: 2
+
+com.system76.CosmicPanel.Panel-bottom-panel:
+  anchor: Bottom
+  anchor_gap: false
+  autohide: None
+  autohover_delay_ms: Some(500)
+  background: ThemeDefault
+  border_radius: 0
+  exclusive_zone: false
+  expand_to_edges: true
+  keyboard_interactivity: OnDemand
+  layer: Top
+  margin: 0
+  name: "Panel"
+  opacity: 0.75
+  output: All
+  padding: 0
+  plugins_center: Some([])
+  plugins_wings: |
+    Some(([
+        "com.system76.CosmicPanelLauncherButton",
+        "com.system76.CosmicPanelWorkspacesButton",
+        "com.system76.CosmicPanelAppButton",
+        "com.system76.CosmicAppList",
+        "com.system76.CosmicAppletMinimize",
+    ], [
+        "com.system76.CosmicAppletInputSources",
+        "com.system76.CosmicAppletStatusArea",
+        "com.system76.CosmicAppletA11y",
+        "com.system76.CosmicAppletTiling",
+        "com.system76.CosmicAppletAudio",
+        "com.system76.CosmicAppletBluetooth",
+        "com.system76.CosmicAppletNetwork",
+        "com.system76.CosmicAppletBattery",
+        "com.system76.CosmicAppletNotifications",
+        "com.system76.CosmicAppletTime",
+        "com.system76.CosmicAppletPower",
+    ]))
+  size: M
   spacing: 2
 
 com.system76.CosmicSettings.Shortcuts:
