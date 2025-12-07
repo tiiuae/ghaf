@@ -8,50 +8,10 @@ let
     types
     mkIf
     mkForce
-    hasAttrByPath
     ;
   cfg = config.ghaf.reference.services;
   isNetVM = "net-vm" == config.system.name;
   isGuiVM = "gui-vm" == config.system.name;
-  isHost = hasAttrByPath [
-    "hardware"
-    "devices"
-  ] config.ghaf;
-  appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "vms" ] { } config;
-  # Extract all VMs where wireguard-gui is enabled
-  wireguardEnabledVms =
-    lib.lists.filter
-      (
-        app:
-        let
-          services = lib.attrByPath [ "ghaf" "reference" "services" ] { } app;
-          wgService = services."wireguard-gui" or null;
-        in
-        wgService != null && (wgService.enable or false)
-      )
-      (
-        lib.lists.concatMap (vm: map (app: (app // { vmName = "${vm.name}-vm"; })) vm.extraModules) (
-          lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
-            lib.filterAttrs (_: vm: vm.enable) appVms
-          )
-        )
-      );
-
-  # Map only the vmName values
-  wgEnabledVmNames = lib.lists.map (app: app.vmName) wireguardEnabledVms;
-  # Server ports per VM
-  wgServerPortsByVm =
-    lib.lists.map
-      (app: {
-        inherit (app) vmName;
-        inherit (app.ghaf.reference.services."wireguard-gui") serverPorts;
-      })
-      (
-        lib.lists.filter (
-          app: (app.ghaf.reference.services."wireguard-gui".serverPorts or [ ]) != [ ]
-        ) wireguardEnabledVms
-      );
-
 in
 {
   imports = [
@@ -100,13 +60,7 @@ in
         vmName = mkForce cfg.google-chromecast.vmName;
       };
       ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
-      wireguard-gui-config = mkIf cfg.wireguard-gui {
-        enabledVmNames = mkIf (wgEnabledVmNames != [ ]) (mkForce wgEnabledVmNames);
-        serverPortsByVm = mkIf (wgServerPortsByVm != [ ]) (mkForce wgServerPortsByVm);
-        netVmExternalNic = mkIf isHost (
-          mkForce (lib.head config.ghaf.hardware.definition.network.pciDevices).name
-        );
-      };
+      wireguard-gui-config.enable = mkForce cfg.wireguard-gui;
     };
     assertions = [
       {
