@@ -123,7 +123,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/cuda-fix";
+      url = "github:tiiuae/jetpack-nixos/xavier-merged";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 

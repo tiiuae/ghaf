@@ -383,16 +383,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1764556344,
-        "narHash": "sha256-ow6zdXAHNcOuO9UGhQskvfzYsSbzdx5CcmQvWZH+qPQ=",
+        "lastModified": 1765275864,
+        "narHash": "sha256-NtJ5vWEjeYVPNkMWwCqDtDmCaWTujZBonGgX3l1M1dc=",
         "owner": "tiiuae",
         "repo": "jetpack-nixos",
-        "rev": "2c419c95dbd0df00c1e55b3e07eb21a4c6d58b1a",
+        "rev": "7fed21ac8c8908d584f8e8344408166703a6b4ad",
         "type": "github"
       },
       "original": {
         "owner": "tiiuae",
-        "ref": "cuda-fix",
+        "ref": "xavier-merged",
         "repo": "jetpack-nixos",
         "type": "github"
       }

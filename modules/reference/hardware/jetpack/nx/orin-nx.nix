@@ -18,7 +18,7 @@
     kernelVersion = "upstream-6-6";
     somType = "nx";
     nx.enableNetvmEthernetPCIPassthrough = true;
-    carrierBoard = "xavierNXdevkit";
+    carrierBoard = "xavierNxDevkit";
   };
   hardware = {
     # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
@@ -33,7 +33,7 @@
     nvidia-jetpack = {
       enable = true;
       som = "orin-nx";
-      carrierBoard = "xavierNXdevkit";
+      carrierBoard = "xavierNxDevkit";
       modesetting.enable = true;
       firmware.uefi = {
         logo = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.svg";
