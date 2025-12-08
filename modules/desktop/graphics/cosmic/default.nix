@@ -24,7 +24,7 @@ let
 
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit lib pkgs;
-    inherit (cfg) panelApplets;
+    inherit (cfg) topPanelApplets bottomPanelApplets;
     secctx = cfg.securityContext;
     extraShortcuts = lib.optionals cfg.screenRecorder.enable [
       {
@@ -165,7 +165,7 @@ in
       description = "Security context settings";
     };
 
-    panelApplets = mkOption {
+    topPanelApplets = mkOption {
       type = types.submodule {
         options = {
           left = lib.mkOption {
@@ -205,7 +205,60 @@ in
           "com.system76.CosmicAppletPower"
         ];
       };
-      description = "Cosmic panel applets configuration";
+      description = ''
+        Cosmic top panel applets configuration.
+
+        Used only when the top and bottom panel layout is selected.
+      '';
+    };
+
+    bottomPanelApplets = mkOption {
+      type = types.submodule {
+        options = {
+          left = lib.mkOption {
+            description = "List of applets to show on the left side of the panel.";
+            type = types.listOf types.str;
+            default = [ ];
+          };
+          center = lib.mkOption {
+            description = "List of applets to show in the center of the panel.";
+            type = types.listOf types.str;
+            default = [ ];
+          };
+          right = lib.mkOption {
+            description = "List of applets to show on the right side of the panel.";
+            type = types.listOf types.str;
+            default = [ ];
+          };
+        };
+      };
+      default = {
+        left = [
+          "com.system76.CosmicPanelAppButton"
+          "com.system76.CosmicPanelWorkspacesButton"
+          "com.system76.CosmicAppList"
+          "com.system76.CosmicAppletMinimize"
+        ];
+        # Keep center empty when using bottom-only panel
+        center = [ ];
+        right = [
+          "com.system76.CosmicAppletInputSources"
+          "com.system76.CosmicAppletStatusArea"
+          "ae.tii.CosmicAppletKillSwitch"
+          "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletNetwork"
+          "com.system76.CosmicAppletAudio"
+          "com.system76.CosmicAppletBattery"
+          "com.system76.CosmicAppletNotifications"
+          "com.system76.CosmicAppletTime"
+          "com.system76.CosmicAppletPower"
+        ];
+      };
+      description = ''
+        Cosmic top panel applets configuration.
+
+        Used only when the bottom-only panel layout is selected.
+      '';
     };
 
     renderDevice = mkOption {
