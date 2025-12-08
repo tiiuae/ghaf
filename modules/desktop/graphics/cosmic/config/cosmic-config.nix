@@ -4,7 +4,12 @@
   lib,
   pkgs,
   secctx,
-  panelApplets ? {
+  topPanelApplets ? {
+    left = [ ];
+    center = [ ];
+    right = [ ];
+  },
+  bottomPanelApplets ? {
     left = [ ];
     center = [ ];
     right = [ ];
@@ -42,23 +47,45 @@ let
     )
   '';
 
-  hasPanelApplets = panelApplets != null && panelApplets != { };
+  mkRonList = list: "[${lib.concatMapStringsSep ",\n  " (x: "\"${x}\"") list}\n]";
 
-  panelAppletsCenterConfig = lib.optionalString hasPanelApplets (
+  hasTopPanelApplets = topPanelApplets != null && topPanelApplets != { };
+
+  hasBottomPanelApplets = bottomPanelApplets != null && bottomPanelApplets != { };
+
+  topPanelAppletsCenterConfig = lib.optionalString hasTopPanelApplets (
     pkgs.writeText "plugins_center" ''
-      Some([
-          ${lib.concatMapStringsSep ",\n  " (a: "\"${a}\"") panelApplets.center}
-      ])
+      Some(
+          ${mkRonList topPanelApplets.center}
+      )
     ''
   );
 
-  panelAppletsWingsConfig = lib.optionalString hasPanelApplets (
+  topPanelAppletsWingsConfig = lib.optionalString hasTopPanelApplets (
     pkgs.writeText "plugins_wings" ''
-      Some(([
-          ${lib.concatMapStringsSep ",\n  " (a: "\"${a}\"") panelApplets.left}
-      ], [
-          ${lib.concatMapStringsSep ",\n  " (a: "\"${a}\"") panelApplets.right}
-      ]))
+      Some((
+          ${mkRonList topPanelApplets.left}
+      ,
+          ${mkRonList topPanelApplets.right}
+      ))
+    ''
+  );
+
+  bottomPanelAppletsCenterConfig = lib.optionalString hasBottomPanelApplets (
+    pkgs.writeText "plugins_center" ''
+      Some(
+          ${mkRonList bottomPanelApplets.center}
+      )
+    ''
+  );
+
+  bottomPanelAppletsWingsConfig = lib.optionalString hasBottomPanelApplets (
+    pkgs.writeText "plugins_wings" ''
+      Some((
+          ${mkRonList bottomPanelApplets.left}
+      ,
+          ${mkRonList bottomPanelApplets.right}
+      ))
     ''
   );
 
@@ -124,6 +151,7 @@ pkgs.stdenv.mkDerivation {
   nativeBuildInputs = [
     pkgs.yq-go
     pkgs.imagemagick
+    pkgs.rsync
   ];
 
   unpackPhase = ''
@@ -142,9 +170,9 @@ pkgs.stdenv.mkDerivation {
 
   installPhase = ''
     # Install configuration files
-    mkdir -p $out/share
-    cp -r cosmic-unpacked $out/share/cosmic
-    rm -rf cosmic-unpacked
+    mkdir -p $out/share/cosmic
+    # cp -r cosmic-unpacked $out/share/cosmic
+    rsync -a --exclude '*bottom-panel' cosmic-unpacked/ "$out/share/cosmic/"
 
     # Install themes
     mkdir -p $out/share/cosmic-themes
@@ -158,10 +186,43 @@ pkgs.stdenv.mkDerivation {
     install -Dm0644 ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
   ''
   + ''
-    install -Dm0644 ${panelAppletsCenterConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center
+    install -Dm0644 ${topPanelAppletsCenterConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center
+    install -Dm0644 ${topPanelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
   ''
   + ''
-    install -Dm0644 ${panelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
+    mkdir -p build-layouts/top-panel-and-bottom-dock \
+      build-layouts/bottom-panel
+
+    src_layouts=${pkgs.cosmic-initial-setup}/share/cosmic-layouts-unused
+
+    for name in top-panel-and-bottom-dock bottom-panel; do
+      install -Dm0644 "$src_layouts/$name/layout.kdl" "build-layouts/$name/layout.kdl"
+      install -Dm0644 "$src_layouts/$name/icon.png"   "build-layouts/$name/icon.png"
+    done
+
+    for dir in cosmic-unpacked/com.system76.CosmicPanel{,.Panel,.Dock}; do
+      cp -rL "$dir" "build-layouts/top-panel-and-bottom-dock/"
+    done
+
+    for dir in cosmic-unpacked/*-bottom-panel; do
+      base="$(basename "$dir")"
+      clean="''${base%-bottom-panel}"
+      cp -rL "$dir" "build-layouts/bottom-panel/$clean"
+    done
+
+    install -Dm0644 ${topPanelAppletsCenterConfig} build-layouts/top-panel-and-bottom-dock/com.system76.CosmicPanel.Panel/v1/plugins_center
+    install -Dm0644 ${topPanelAppletsWingsConfig} build-layouts/top-panel-and-bottom-dock/com.system76.CosmicPanel.Panel/v1/plugins_wings
+
+    install -Dm0644 ${bottomPanelAppletsCenterConfig} build-layouts/bottom-panel/com.system76.CosmicPanel.Panel/v1/plugins_center
+    install -Dm0644 ${bottomPanelAppletsWingsConfig} build-layouts/bottom-panel/com.system76.CosmicPanel.Panel/v1/plugins_wings
+
+    # Install layouts
+    pushd build-layouts
+    find . -type f -exec install -Dm0644 "{}" "$out/share/cosmic-layouts/{}" \;
+    popd
+  ''
+  + ''
+    rm -rf cosmic-unpacked build-layouts
   '';
 
   postInstall = ''
