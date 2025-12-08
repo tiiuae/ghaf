@@ -10,22 +10,33 @@ let
     literalExpression
     ;
   cfg = config.ghaf.hardware.passthrough.pciPorts;
-  qemuPciPorts =
-    portCount:
-    builtins.concatMap (n: [
-      "-device"
-      "pcie-root-port,bus=pcie.0,id=${cfg.pcieBusPrefix}${toString n},chassis=${toString n}"
-    ]) (lib.range 1 portCount);
+
+  # Helper function to get the count of PCI devices from hardware definitions
+  staticPciCount =
+    dev:
+    if lib.hasAttr "definitions" config.ghaf.hardware then
+      lib.length config.ghaf.hardware.definition.${dev}.pciDevices
+    else
+      0;
 
   # Default number of ports for PCI hotplugging in VMs
   pciPortDefaults = {
     # GUIVM requires multiple ports for evdev passthrough (touchpad, keyboard, etc.)
-    "gui-vm" = (lib.length config.ghaf.hardware.definition.gpu.pciDevices) + 7;
+    "gui-vm" = staticPciCount "gpu" + 7;
     # NetVM only needs ports for a PCIe Wi-Fi adapter or NIC
-    "net-vm" = (lib.length config.ghaf.hardware.definition.network.pciDevices) + 2;
+    "net-vm" = staticPciCount "network" + 2;
     # Audio controllers often include multiple devices in the same IOMMU group
-    "audio-vm" = (lib.length config.ghaf.hardware.definition.audio.pciDevices) + 7;
+    "audio-vm" = staticPciCount "audio" + 7;
   };
+
+  # Helper function to create PCIe root ports in a microvm
+  mkPcieRootPorts =
+    vmName:
+    map (i: {
+      id = "${cfg.pcieBusPrefix}${toString i}";
+      chassis = i;
+    }) (lib.range 0 cfg.pciePortCountForVMs.${vmName});
+
 in
 {
   options.ghaf.hardware.passthrough.pciPorts = {
@@ -60,8 +71,20 @@ in
   };
 
   config = mkIf (config.ghaf.hardware.passthrough.mode != "none") {
-    ghaf.hardware.passthrough.qemuExtraArgs = lib.mapAttrs (
-      _vmName: qemuPciPorts
-    ) cfg.pciePortCountForVMs;
+    ghaf.virtualization.microvm.guivm.extraModules = [
+      {
+        microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
+      }
+    ];
+    ghaf.virtualization.microvm.netvm.extraModules = [
+      {
+        microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
+      }
+    ];
+    ghaf.virtualization.microvm.audiovm.extraModules = [
+      {
+        microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
+      }
+    ];
   };
 }
