@@ -10,6 +10,7 @@ let
   cfg = config.ghaf.reference.services.wireguard-gui;
   hasStorageVm = (lib.hasAttr "storagevm" config.ghaf) && config.ghaf.storagevm.enable;
   wg_app_dir = "/etc/wireguard";
+  docUrl = "https://ghaf.tii.ae/ghaf/dev/ref/wireguard-gui/";
   debugFlag = lib.optionalString config.ghaf.profiles.debug.enable "--log-level TRACE";
   wireguard-gui-launcher = pkgs.writeShellScriptBin "wireguard-gui-launcher" ''
     PATH=/run/wrappers/bin:/run/current-system/sw/bin
@@ -17,6 +18,7 @@ let
       --app-dir ${wg_app_dir} \
       --config-owner ${config.ghaf.users.appUser.name} \
       --config-owner-group ${config.ghaf.users.appUser.name} \
+      --doc-url ${docUrl} \
       ${debugFlag}
   '';
   scriptsDir = builtins.path {
@@ -72,6 +74,9 @@ in
 
     ghaf.firewall.allowedUDPPorts = cfg.serverPorts;
 
+    environment.systemPackages = lib.optionals config.ghaf.profiles.debug.enable [
+      pkgs.wireguard-tools
+    ];
     security.polkit = {
       enable = true;
       debug = true;

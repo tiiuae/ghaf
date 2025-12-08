@@ -106,37 +106,21 @@ in
         map (
           vm:
           map (
-            port: "-i ${cfg.netVmExternalNic} -o ${netVmInternalNic} -p udp --dport ${toString port} -j ACCEPT"
+            port:
+            "-i ${cfg.netVmExternalNic} -o ${netVmInternalNic} -p udp --dport ${toString port} -m comment --comment \"wg-server-${vm.vmName}\" -j ACCEPT"
           ) vm.serverPorts
         ) cfg.serverPortsByVm
       );
 
-      postrouting.nat = lib.concatLists (
+      prerouting.nat = lib.concatLists (
         map (
           vm:
           map (
-            port: "-o ${cfg.netVmExternalNic} -p udp --dport ${toString port} -j MASQUERADE"
+            port:
+            "-i ${cfg.netVmExternalNic} -p udp --dport ${toString port} -m comment --comment \"wg-server-${vm.vmName}\" -j DNAT --to-destination  ${hosts.${vm.vmName}.ipv4}:${toString port}"
           ) vm.serverPorts
         ) cfg.serverPortsByVm
       );
     };
-    environment.etc."ctrl-panel/wireguard-TEST.txt" = mkIf isNetVM (
-      let
-        # Format each entry as: vmName: port1,port2,port3
-        formatEntry =
-          entry: "${entry.vmName}: ${lib.concatStringsSep "," (map toString entry.serverPorts)}";
-
-        vmstxt = lib.concatStringsSep "\n" (
-          builtins.trace (builtins.deepSeq cfg.serverPortsByVm cfg.serverPortsByVm) (
-            map formatEntry cfg.serverPortsByVm
-          )
-        );
-      in
-      {
-        text = ''
-          ${vmstxt}
-        '';
-      }
-    );
   };
 }
