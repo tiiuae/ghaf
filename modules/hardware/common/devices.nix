@@ -12,8 +12,8 @@ let
     imap1
     getExe
     mkOption
-    optionalString
     types
+    optionalAttrs
     ;
 
   cfg = config.ghaf.hardware.devices;
@@ -104,11 +104,13 @@ in
         microvm.devices = imap1 (i: d: {
           bus = "pci";
           path = pciPath d;
-          qemu.deviceExtraArgs =
-            optionalString (d.qemu.deviceExtraArgs != null) (
-              d.qemu.deviceExtraArgs + optionalString cfg.hotplug ","
-            )
-            + optionalString cfg.hotplug "id=pci${toString i},bus=${busPrefix}${toString i}";
+          qemu = {
+            inherit (d.qemu) deviceExtraArgs;
+          }
+          // optionalAttrs cfg.hotplug {
+            id = "pci${toString i}";
+            bus = "${busPrefix}${toString i}";
+          };
         }) nicPciDevices;
 
         services.udev.extraRules = concatMapStringsSep "\n" (
@@ -120,21 +122,25 @@ in
       gpus.microvm.devices = imap1 (i: d: {
         bus = "pci";
         path = pciPath d;
-        qemu.deviceExtraArgs =
-          optionalString (d.qemu.deviceExtraArgs != null) (
-            d.qemu.deviceExtraArgs + optionalString cfg.hotplug ","
-          )
-          + optionalString cfg.hotplug "id=pci${toString i},bus=${busPrefix}${toString i}";
+        qemu = {
+          inherit (d.qemu) deviceExtraArgs;
+        }
+        // optionalAttrs cfg.hotplug {
+          id = "pci${toString i}";
+          bus = "${busPrefix}${toString i}";
+        };
       }) gpuPciDevices;
 
       audio.microvm.devices = imap1 (i: d: {
         bus = "pci";
         path = pciPath d;
-        qemu.deviceExtraArgs =
-          optionalString (d.qemu.deviceExtraArgs != null) (
-            d.qemu.deviceExtraArgs + optionalString cfg.hotplug ","
-          )
-          + optionalString cfg.hotplug "id=pci${toString i},bus=${busPrefix}${toString i}";
+        qemu = {
+          inherit (d.qemu) deviceExtraArgs;
+        }
+        // optionalAttrs cfg.hotplug {
+          id = "pci${toString i}";
+          bus = "${busPrefix}${toString i}";
+        };
       }) sndPciDevices;
 
       evdev.microvm.qemu.extraArgs = lib.concatLists (
