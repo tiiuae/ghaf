@@ -121,9 +121,10 @@ let
       fi
 
       # Extract verification key robustly (locale-independent)
-      # The verification key is after the "/" on the last line of output
-      # Format: sealing-key-id/verification-key
-      if tail -1 "$KEY_DIR/setup-output.txt" | cut -d'/' -f2 | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
+      # The verification key is the last line of output
+      # Format: seed-hex-with-hyphens/start-hex-interval-hex
+      # Example: f90032-d54bd1-57dd7a-d09e1b/190250-35a4e900
+      if tail -1 "$KEY_DIR/setup-output.txt" | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
         if [ -s "$KEY_DIR/verification-key" ]; then
           chmod 0400 "$KEY_DIR/verification-key"
           echo "FSS verification key extracted successfully"
@@ -179,18 +180,40 @@ let
         VERIFY_KEY=$(cat "$VERIFY_KEY_FILE")
         VERIFY_CMD="journalctl --verify --verify-key=$VERIFY_KEY"
         echo "Using verification key from $VERIFY_KEY_FILE"
+        # Diagnostic: Show key length for troubleshooting
+        KEY_LENGTH=$(echo -n "$VERIFY_KEY" | wc -c)
+        echo "Verification key length: $KEY_LENGTH bytes (expected: 30-40 bytes)"
+      else
+        echo "WARNING: No verification key found at $VERIFY_KEY_FILE"
+        echo "Running verification without key - sealed journals will fail verification"
       fi
 
       # Capture output and exit code
       VERIFY_OUTPUT=$($VERIFY_CMD 2>&1) || VERIFY_EXIT=$?
       VERIFY_EXIT=''${VERIFY_EXIT:-0}
 
-      # Check for actual integrity failures (FAIL in output)
-      if echo "$VERIFY_OUTPUT" | grep -q "FAIL"; then
-        echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
-        echo "Journal integrity verification: FAILED"
-        echo "Output: $VERIFY_OUTPUT"
-        echo "WARNING: Audit log integrity compromised - alert sent to central logging"
+      # Check for actual integrity failures (FAIL/Failed in output)
+      # Catches: "FAIL", "Failed to parse seed", "verification failed", etc.
+      if echo "$VERIFY_OUTPUT" | grep -qi "FAIL"; then
+        # Provide specific guidance for seed parsing failures
+        if echo "$VERIFY_OUTPUT" | grep -qi "parse.*seed"; then
+          echo "AUDIT_LOG_INTEGRITY_FAIL: FSS seed parsing failed - verification key is malformed or incomplete" | systemd-cat -t journal-fss -p crit
+          echo "Journal integrity verification: FAILED (seed parsing error)"
+          echo "Output: $VERIFY_OUTPUT"
+          echo ""
+          echo "This error indicates the verification key is incomplete or corrupted."
+          echo "The verification key should be 30-40 bytes and contain '/' separator."
+          echo ""
+          echo "To fix:"
+          echo "1. Reset FSS: rm ${cfg.keyPath}/initialized && rm /var/log/journal/*/fss"
+          echo "2. Reboot to regenerate keys with correct extraction"
+          echo "3. Backup the new verification key from ${cfg.keyPath}/verification-key"
+        else
+          echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
+          echo "Journal integrity verification: FAILED"
+          echo "Output: $VERIFY_OUTPUT"
+          echo "WARNING: Audit log integrity compromised - alert sent to central logging"
+        fi
         exit 1
       fi
 
