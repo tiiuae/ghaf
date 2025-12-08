@@ -430,7 +430,6 @@ in
           ### FORWARD rules ###
           iptables -t filter -A ghaf-fw-fwd-filter -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
-
           ### OUTPUT rules ###
 
           ### POSTROUTING rules ###

@@ -271,7 +271,7 @@ in
           # Enable WireGuard GUI
           wireguard-gui = {
             enable = config.ghaf.reference.services.wireguard-gui;
-            serverPorts = [ 51820 ];
+            serverPorts = [ 51821 ];
           };
 
         };
