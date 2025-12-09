@@ -3,15 +3,14 @@
 #
 #
 # This partition scheme is used for development & debug systems. It contains
-# four partitions.
+# three partitions.
 #
 # First two partitions are related to the boot process:
 # - boot : Bootloader partition
 # - ESP-A : (500M) Kernel and initrd
 #
-# Which is followed by the data partitions:
-# - root : Root partition which contains the Nix store
-# - persist : Persistence partition for system & user data
+# The third partition is a container for LVM, optionally encrypted with LUKS.
+# LVM is used to create logical volumes for root, swap and persist.
 {
   pkgs,
   lib,
@@ -77,85 +76,69 @@ in
                   };
                   priority = 2;
                 };
-                swap =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      size = "12G";
-                      content = {
+                luks = {
+                  size = "100%";
+                  priority = 3;
+                  content =
+                    if config.ghaf.storage.encryption.enable then
+                      {
                         type = "luks";
-                        name = "swap";
-                        askPassword = false;
+                        name = "crypted";
                         initrdUnlock = false;
+                        askPassword = false;
                         settings = {
                           keyFile = "${defaultPassword}";
                         };
                         content = {
-                          type = "swap";
-                          resumeDevice = true; # resume from hiberation from this device
+                          type = "lvm_pv";
+                          vg = "pool";
                         };
+                      }
+                    else
+                      {
+                        type = "lvm_pv";
+                        vg = "pool";
                       };
-                      priority = 3;
-                    }
-                  else
-                    {
-                      size = "12G";
-                      type = "8200";
-                      content = {
-                        type = "swap";
-                        resumeDevice = true; # resume from hiberation from this device
-                        randomEncryption = true;
-                      };
-                      priority = 3;
-                    };
-                root = {
-                  size = "50G";
-                  content = {
-                    type = "filesystem";
-                    format = "ext4";
-                    mountpoint = "/";
-                    mountOptions = [
-                      "noatime"
-                      "nodiratime"
-                    ];
-                  };
-                  priority = 4;
                 };
-                persist =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      size = "2G";
-                      content = {
-                        type = "luks";
-                        name = "persist";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "filesystem";
-                          format = "btrfs";
-                          mountpoint = "/persist";
-                          mountOptions = [
-                            "noatime"
-                            "nodiratime"
-                          ];
-                        };
-                      };
-                    }
-                  else
-                    {
-                      size = "100%";
-                      content = {
-                        type = "filesystem";
-                        format = "btrfs";
-                        mountpoint = "/persist";
-                        mountOptions = [
-                          "noatime"
-                          "nodiratime"
-                        ];
-                      };
-                    };
+              };
+            };
+          };
+        };
+        lvm_vg = {
+          pool = {
+            type = "lvm_vg";
+            lvs = {
+              swap = {
+                size = "12G";
+                content = {
+                  type = "swap";
+                  resumeDevice = true; # resume from hiberation from this device
+                  randomEncryption = !config.ghaf.storage.encryption.enable;
+                };
+              };
+              root = {
+                size = "50G";
+                content = {
+                  type = "filesystem";
+                  format = "ext4";
+                  mountpoint = "/";
+                  mountOptions = [
+                    "noatime"
+                    "nodiratime"
+                  ];
+                };
+              };
+              persist = {
+                size = if config.ghaf.storage.encryption.enable then "2G" else "100%";
+                content = {
+                  type = "filesystem";
+                  format = "btrfs";
+                  mountpoint = "/persist";
+                  mountOptions = [
+                    "noatime"
+                    "nodiratime"
+                  ];
+                };
               };
             };
           };
