@@ -382,6 +382,7 @@ in
     # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
     systemd.tmpfiles.rules =
       lib.optionals (config.ghaf.type == "host") [
+        "d /persist/common/journal-fss 0755 root root - -"
         "d ${cfg.keyPath} 0700 root root - -"
       ]
       ++ [
@@ -422,7 +423,10 @@ in
         "systemd-journald.service"
         "journal-fss-setup.service"
       ];
-      wants = [ "systemd-journald.service" ];
+      wants = [
+        "systemd-journald.service"
+        "journal-fss-setup.service"
+      ];
 
       unitConfig = {
         # Only run if FSS setup has completed successfully
@@ -458,7 +462,7 @@ in
         RandomizedDelaySec = "5min";
       }
       // optionalAttrs cfg.verifyOnBoot {
-        OnBootSec = "5min";
+        OnBootSec = "10min";
       };
     };
 
