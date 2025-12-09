@@ -12,36 +12,48 @@
 #
 # Architecture:
 # ------------
-# - Sealing keys: Generated per-VM, stored in /var/log/journal/<machine-id>/fss
-# - Verification keys: Extracted once during setup, stored in cfg.keyPath/verification-key
-# - Setup service: One-shot service that generates keys on first boot
+# - Sealing keys: Generated per-component, stored in /var/log/journal/<machine-id>/fss
+# - Verification keys: Generated per-component, stored in cfg.keyPath/<hostname>/verification-key
+# - Setup service: One-shot service that generates keys on first boot for each component
 # - Verify service: Periodic integrity checks (default: hourly + on boot)
 # - Alerts: Verification failures logged via systemd-cat and forwarded to admin-vm
+# - Shared storage: Verification keys stored in virtiofs-mounted /persist/common for backup access
+#
+# Per-Component Isolation:
+# -----------------------
+# Each component (host + all VMs) generates and maintains its own FSS key pair:
+# - Host: /persist/common/journal-fss/ghaf-host/{initialized, verification-key}
+# - VMs:  /etc/common/journal-fss/<vm-name>/{initialized, verification-key}
+# This ensures tamper detection works correctly - each component's journals are
+# sealed with its own sealing key and verified with its matching verification key.
 #
 # Security Properties:
 # -------------------
 # - Forward security: Compromising current key does not allow forging past entries
 # - Tamper detection: Any modification to sealed entries invalidates HMAC chain
-# - Per-VM isolation: Each VM has independent FSS keys for compartmentalization
+# - Per-component isolation: Each component has independent FSS key pairs
 # - Offline verification: Verification keys can validate exported journal archives
 #
 # Operational Notes:
 # -----------------
-# 1. First Boot:
+# 1. First Boot (per component):
 #    - journal-fss-setup.service runs before systemd-journald
 #    - Generates sealing keys with configured seal interval
-#    - Extracts verification key to cfg.keyPath/verification-key
-#    - CRITICAL: Immediately backup verification-key to secure offline storage
+#    - Extracts verification key to cfg.keyPath/<hostname>/verification-key
+#    - Each component creates its own subdirectory with independent keys
+#    - CRITICAL: Backup all verification-keys to secure offline storage
 #
 # 2. Runtime:
 #    - systemd-journald seals entries every sealInterval
 #    - journal-fss-verify.timer runs hourly + 5min after boot
+#    - Each component verifies only its own journals
 #    - Verification failures trigger critical alerts to admin-vm
 #
 # 3. Key Management:
-#    - Sealing keys NEVER leave the host (security-critical)
-#    - Verification keys should be stored in secure offline vault
-#    - Key rotation requires journal archive, clear, and reboot
+#    - Sealing keys NEVER leave their component (security-critical)
+#    - Verification keys stored per-component in shared /persist/common
+#    - Backup entire /persist/common/journal-fss/ tree for offline verification
+#    - Key rotation requires per-component journal archive, clear, and reboot
 #
 # 4. Monitoring:
 #    - Audit rules monitor FSS key directory and journal access
@@ -256,9 +268,27 @@ in
 
     keyPath = mkOption {
       type = types.path;
-      default = "/persist/common/journal-fss";
+      default =
+        let
+          componentName = config.networking.hostName;
+          basePath =
+            if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
+        in
+        "${basePath}/${componentName}";
       description = ''
-        Directory to store FSS keys and metadata.
+        Directory to store FSS keys and metadata for this component.
+
+        Per-component isolation ensures each component (host + VMs) has
+        independent FSS key pairs for proper tamper detection.
+
+        Path structure:
+        - Host: /persist/common/journal-fss/ghaf-host/ (direct persist access)
+        - VMs:  /etc/common/journal-fss/<vm-name>/ (virtiofs mount from host)
+
+        Examples:
+        - Host: /persist/common/journal-fss/ghaf-host/verification-key
+        - Audio-VM: /etc/common/journal-fss/audio-vm/verification-key
+        - Admin-VM: /etc/common/journal-fss/admin-vm/verification-key
 
         Contains:
         - initialized: Sentinel file (prevents re-initialization)
@@ -349,10 +379,14 @@ in
 
   config = mkIf cfg.enable {
     # Create key directory and journal directory via tmpfiles
-    systemd.tmpfiles.rules = [
-      "d ${cfg.keyPath} 0700 root root - -"
-      "d /var/log/journal 0755 root systemd-journal - -"
-    ];
+    # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
+    systemd.tmpfiles.rules =
+      lib.optionals (config.ghaf.type == "host") [
+        "d ${cfg.keyPath} 0700 root root - -"
+      ]
+      ++ [
+        "d /var/log/journal 0755 root systemd-journal - -"
+      ];
 
     # One-shot service to generate FSS keys on first boot
     systemd.services.journal-fss-setup = {
