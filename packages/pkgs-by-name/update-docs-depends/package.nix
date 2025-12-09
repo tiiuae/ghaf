@@ -16,7 +16,38 @@ writeShellApplication {
   text = ''
     set -euo pipefail
 
-    echo "[update-docs-deps] Starting…"
+    # Parse command-line arguments
+    UPGRADE=false
+    while [[ $# -gt 0 ]]; do
+      case $1 in
+        --upgrade)
+          UPGRADE=true
+          shift
+          ;;
+        -h|--help)
+          echo "Usage: update-docs-deps [--upgrade]"
+          echo ""
+          echo "Options:"
+          echo "  --upgrade    Upgrade dependencies to latest versions (npm upgrade)"
+          echo "  --help       Show this help message"
+          echo ""
+          echo "By default, runs 'npm update' to update within semver constraints."
+          echo "With --upgrade, runs 'npm upgrade' to get latest versions."
+          exit 0
+          ;;
+        *)
+          echo "Error: Unknown option: $1" >&2
+          echo "Use --help for usage information." >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    if [ "$UPGRADE" = true ]; then
+      echo "[update-docs-deps] Starting (upgrade mode)…"
+    else
+      echo "[update-docs-deps] Starting (update mode)…"
+    fi
 
     # Find repo root (directory containing .git)
     if ROOT="$(git rev-parse --show-toplevel 2>/dev/null)"; then
@@ -44,7 +75,6 @@ writeShellApplication {
       exit 1
     fi
 
-    echo "[update-docs-deps] Running npm update in $DOCS_DIR"
     pushd "$DOCS_DIR" >/dev/null
 
     # Prefer using existing lock file; do not delete it
@@ -52,7 +82,21 @@ writeShellApplication {
       echo "[update-docs-deps] Using existing package-lock.json"
     fi
 
-    npm update
+    if [ "$UPGRADE" = true ]; then
+      echo "[update-docs-deps] Running npm upgrade in $DOCS_DIR (latest versions)"
+      # npm upgrade requires npm-check-updates or manual package.json edits
+      # We'll use npx to run npm-check-updates to upgrade package.json, then npm install
+      if command -v npx &> /dev/null; then
+        npx --yes npm-check-updates -u
+        npm install
+      else
+        echo "Error: npx not found. Cannot run upgrade mode." >&2
+        exit 1
+      fi
+    else
+      echo "[update-docs-deps] Running npm update in $DOCS_DIR (within semver constraints)"
+      npm update
+    fi
 
     WANTED_HASH=$(prefetch-npm-deps ./package-lock.json)
     if [ -z "$WANTED_HASH" ]; then
@@ -83,7 +127,11 @@ writeShellApplication {
 
     # Create a unique branch
     TS="$(date -u +%Y%m%d-%H%M%S)"
-    BRANCH="update-docs-deps-$TS"
+    if [ "$UPGRADE" = true ]; then
+      BRANCH="upgrade-docs-deps-$TS"
+    else
+      BRANCH="update-docs-deps-$TS"
+    fi
 
     # Detect default remote and branch
     REMOTE="''${REMOTE:-origin}"
@@ -114,7 +162,11 @@ writeShellApplication {
     echo "[update-docs-deps] Changes staged on branch $BRANCH."
     echo "Next steps:"
     echo "  1. Review with: git diff --cached"
-    echo "  2. Commit: git commit -sm 'docs: update npm dependencies & hash'"
+    if [ "$UPGRADE" = true ]; then
+      echo "  2. Commit: git commit -sm 'docs: upgrade npm dependencies to latest versions'"
+    else
+      echo "  2. Commit: git commit -sm 'docs: update npm dependencies & hash'"
+    fi
     echo "  3. Push:   git push -u origin $BRANCH"
     echo "  4. Open a PR."
     echo
