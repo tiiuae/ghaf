@@ -131,6 +131,6 @@ in
     };
 
     # to build ghaf as admin with caches
-    nix.settings.trusted-users = mkIf config.ghaf.profiles.debug.enable [ cfg.name ];
+    ghaf.nix-setup.trusted-users = [ cfg.name ];
   };
 }

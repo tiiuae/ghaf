@@ -22,6 +22,7 @@ let
 in
 {
   imports = [
+    ./nix-setup.nix
     # TODO remove this when the minimal config is defined
     # Replace with the baseModules definition
     # UPDATE 26.07.2023:
