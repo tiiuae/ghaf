@@ -30,7 +30,7 @@ How this is enforced in Ghaf
 
 - Runtime gating of developer tooling and sources
   - Developer features that could introduce or modify sources are disabled by default and only enabled under an explicit debug profile.
-  - Evidence in code: modules/microvm/sysvms/netvm.nix ties developer toggles to ghaf.profiles.debug.enable (for example, development.nix-setup.enable, development.debug.tools.enable). In production, these remain off, preventing repository configuration changes from within a Trusted VM.
+  - Evidence in code: modules/microvm/sysvms/netvm.nix ties developer toggles to ghaf.profiles.debug.enable (for example, nix-setup.enable, development.debug.tools.enable). In production, these remain off, preventing repository configuration changes from within a Trusted VM.
 
 - Complementary hardening and controls
   - Systemd sandboxing and AppArmor confinement limit the ability of processes to fetch or install from arbitrary networks.
