@@ -35,26 +35,20 @@ jobs:
         strategy:
             matrix:
                 include:
-                    - arch: x86_64-linux
-                      target: generic-x86_64-debug
-                    - arch: x86_64-linux
-                      target: lenovo-x1-carbon-gen11-debug
-                    - arch: x86_64-linux
-                      target: nvidia-jetson-orin-agx-debug-from-x86_64
-                    - arch: x86_64-linux
-                      target: nvidia-jetson-orin-nx-debug-from-x86_64
-                    - arch: x86_64-linux
-                      target: doc
-                    - arch: x86_64-linux
-                      target: system76-darp11-b-debug
-                    - arch: aarch64-linux
-                      target: nvidia-jetson-orin-nx-debug
-                    - arch: aarch64-linux
-                      target: nvidia-jetson-orin-agx-debug
+                    - target: checks.x86_64-linux.pre-commit
+                    - target: devShells.x86_64-linux.default
+                    - target: packages.x86_64-linux.generic-x86_64-debug
+                    - target: packages.x86_64-linux.lenovo-x1-carbon-gen11-debug
+                    - target: packages.x86_64-linux.nvidia-jetson-orin-agx-debug-from-x86_64
+                    - target: packages.x86_64-linux.nvidia-jetson-orin-nx-debug-from-x86_64
+                    - target: packages.x86_64-linux.doc
+                    - target: packages.x86_64-linux.system76-darp11-b-debug
+                    - target: packages.aarch64-linux.nvidia-jetson-orin-nx-debug
+                    - target: packages.aarch64-linux.nvidia-jetson-orin-agx-debug
         concurrency:
             # Cancel any in-progress workflow runs from the same PR or branch,
             # allowing matrix jobs to run concurrently:
-            group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.arch }}.${{ matrix.target }}
+            group: ${{ github.workflow }}.${{ github.event.pull_request.number || github.ref }}.${{ matrix.target }}
             cancel-in-progress: true
         steps:
             - name: Harden the runner (Audit all outbound calls)
@@ -97,18 +91,22 @@ jobs:
                   sudo sh -c "echo '${BUILDER_SSH_KNOWN_HOST}' >>/etc/ssh/ssh_known_hosts"
               env:
                   BUILDER_SSH_KNOWN_HOST: ${{ vars.BUILDER_SSH_KNOWN_HOST }}
-            - name: Build ${{ matrix.arch }}.${{ matrix.target }}
+            - name: Build ${{ matrix.target }}
               run: |
-                  if [ "${{ matrix.arch }}" == "x86_64-linux" ]; then
+                  case "${{ matrix.target }}" in
+                  *.x86_64-linux.*)
                     BUILDER="${BUILDER_X86}"
-                  elif [ "${{ matrix.arch }}" == "aarch64-linux" ]; then
+                    ;;
+                  *.aarch64-linux.*)
                     BUILDER="${BUILDER_AARCH}"
-                  else
-                    echo "::error::Unknown architecture: '${{ matrix.arch }}'"
+                    ;;
+                  *)
+                    echo "::error::Unknown architecture in: '${{ matrix.target }}'"
                     exit 1
-                  fi
+                    ;;
+                  esac
                   nix run --inputs-from .# nixpkgs#nix-fast-build -- \
-                    --flake .#packages.${{ matrix.arch }}.${{ matrix.target }} \
+                    --flake .#${{ matrix.target }} \
                     --remote "$BUILDER" \
                     --option accept-flake-config true \
                     --no-download --skip-cached --no-nom

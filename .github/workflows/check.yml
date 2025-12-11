@@ -28,12 +28,6 @@ jobs:
                   persist-credentials: false
             - name: Install nix
               uses: cachix/install-nix-action@0b0e072294b088b73964f1d72dfdac0951439dbd # v31.8.4
-            - name: Run pre-commit checks
-              run: |
-                  # Run all pre-commit hooks defined in nix/checks.nix
-                  # This includes: treefmt (with nixf-diagnose, deadnix, statix, etc.),
-                  # reuse, end-of-file-fixer, and trim-trailing-whitespace
-                  nix build .#checks.x86_64-linux.pre-commit --print-build-logs --accept-flake-config
             - name: Check nix flake show runs successfully
               run: nix flake show --all-systems --accept-flake-config
             - name: Check templates
