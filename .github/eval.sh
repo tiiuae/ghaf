@@ -170,6 +170,9 @@ main () {
     argparse "$@"
     exit_unless_command_exists nix-eval-jobs
     exit_unless_command_exists jq
+    exit_unless_command_exists sed
+    exit_unless_command_exists grep
+    exit_unless_command_exists mktemp
     evaluate "$JOB_ID" "$MAX_JOBS" "$EVAL_TARGETS"
 }
 
