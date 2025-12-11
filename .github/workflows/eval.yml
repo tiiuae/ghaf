@@ -53,6 +53,7 @@ jobs:
               run: |
                   echo "JOB_TOTAL: ${JOB_TOTAL}"
                   echo "matrix.jobid: ${{ matrix.jobid }}"
-                  nix develop --accept-flake-config --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m "${JOB_TOTAL}"
+                  nix shell nixpkgs#nix-eval-jobs nixpkgs#jq \
+                    --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m "${JOB_TOTAL}"
               env:
                   JOB_TOTAL: ${{ strategy.job-total }}
