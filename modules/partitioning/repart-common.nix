@@ -2,16 +2,29 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
+  pkgs,
   ...
 }:
 let
   inherit (config.ghaf.partitions) definition;
+  defaultPassword = pkgs.writeTextFile {
+    name = "disko-default-password";
+    text = "";
+  };
 in
 {
   boot.initrd.systemd.enable = true;
   boot.initrd.systemd.repart = {
     enable = true;
     device = null; # Operate on current root device, from which system booted
+    extraArgs =
+      if config.ghaf.storage.encryption.enable then
+        [
+          "--key-file"
+          defaultPassword
+        ]
+      else
+        [ ];
   };
   # FIXME: make conditional if we have any btrfs enabled in definitions
   boot.initrd.supportedFilesystems.btrfs = true; # systemd-repart need btrfs-progs in initrd
@@ -61,6 +74,9 @@ in
         UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
         SizeMinBytes = definition.swap.size;
         SizeMaxBytes = definition.swap.size;
+        # When Encrypt is "key-file" and the key file isn't specified, the
+        # disk will be LUKS formatted with an empty passphrase
+        Encrypt = if config.ghaf.storage.encryption.enable then "key-file" else "off";
       };
       # Persistence partition.
       "50-persist" = {
@@ -68,7 +84,7 @@ in
         Label = definition.persist.label;
         Format = "btrfs";
         SizeMinBytes = definition.persist.size;
-        MakeDirectories = builtins.toString [
+        MakeDirectories = toString [
           "/storagevm"
         ];
         UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
