@@ -1,0 +1,51 @@
+{ config, lib, pkgs, ... }:
+
+let
+  inherit (lib) mkIf mkEnableOption concatStringsSep;
+
+  cfg = config.ghaf.hardware.lenovo-x1-efi-uki;
+
+  # Kernel command line from config (no system.build.toplevel here to avoid recursion)
+  kernelCmdline =
+    concatStringsSep " " config.boot.kernelParams;
+
+  # Use systemdUkify so ukify lives in bin/
+  ukify = "${pkgs.systemdUkify}/bin/ukify";
+
+  ghafX1Uki = pkgs.runCommand "ghaf-x1-uki" {
+    nativeBuildInputs = [ pkgs.systemdUkify ];
+  } ''
+    set -e
+    echo "Building UKI for Lenovo X1 with config-based cmdline…"
+
+    mkdir -p "$out/EFI/BOOT"
+
+    # Provide an os-release file so ukify doesn't try /usr/lib/os-release
+    cat > os-release <<'EOF'
+NAME="Ghaf"
+ID=ghaf
+PRETTY_NAME="Ghaf (Lenovo X1 UKI)"
+VERSION_ID="debug"
+EOF
+
+    "${ukify}" build \
+      --linux  "${config.system.build.kernel}/${config.system.boot.loader.kernelFile}" \
+      --initrd "${config.system.build.initialRamdisk}/${config.system.boot.loader.initrdFile}" \
+      --cmdline ${lib.escapeShellArg kernelCmdline} \
+      --os-release=@os-release \
+      --output "$out/EFI/BOOT/BOOTX64.EFI"
+
+  '';
+in {
+  options.ghaf.hardware.lenovo-x1-efi-uki.enable =
+    mkEnableOption "custom UKI for Lenovo X1";
+
+  config = mkIf cfg.enable {
+    system.build.ghafX1Uki = ghafX1Uki;
+
+    boot.loader.systemd-boot.extraFiles = {
+      "EFI/BOOT/BOOTX64.EFI" = "${ghafX1Uki}/EFI/BOOT/BOOTX64.EFI";
+      "EFI/BOOT/test.lex"    = "${ghafX1Uki}/EFI/BOOT/test.lex";
+    };
+  };
+}
