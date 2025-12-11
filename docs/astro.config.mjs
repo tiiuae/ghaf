@@ -98,6 +98,7 @@ export default defineConfig({
                         "ghaf/dev/ref/wireguard-gui",
                         "ghaf/dev/ref/yubikey",
                         "ghaf/dev/ref/ghaf-vms",
+                        "ghaf/dev/ref/disk-encryption",
                       ],
                     },
                     {

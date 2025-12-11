@@ -1,0 +1,40 @@
+---
+title: Disk Encryption
+description: How Ghaf uses LVM on LUKS for flexible and secure full disk encryption.
+---
+
+# LVM on LUKS for Full Disk Encryption
+
+Ghaf provides a disk layout that uses LVM (Logical Volume Manager) on top of a LUKS-encrypted container. This provides a flexible and secure environment.
+
+-   **LUKS (Linux Unified Key Setup)**: Provides the underlying block device encryption.
+-   **LVM (Logical Volume Manager)**: Allows for creating and managing flexible logical volumes (e.g., for root, swap and persistent storage) on top of the single encrypted LUKS container.
+
+This setup is typically used when `ghaf.storage.encryption.enable` is `true`.
+
+## Configuration
+
+The LVM on LUKS setup is primarily configured through two NixOS modules:
+
+1.  **Partition Layout (`disko`)**: The partition table, LUKS container and LVM volumes are defined in `disko-debug-partition.nix`.
+2.  **Encryption Hooks (`disk-encryption.nix`)**: The configuration for unlocking the LUKS container at boot and enrolling encryption keys is in `disk-encryption.nix`.
+
+Key points from this configuration:
+-   A GPT partition named `luks` is created to span the majority of the disk.
+-   This partition is formatted as a `luks` container, which will be named `crypted` once opened.
+-   Inside the LUKS container, a single LVM Physical Volume (PV) is created.
+-   This PV is used to create a Volume Group (VG) named `pool`.
+-   Finally, Logical Volumes (LVs) for `swap`, `root` and `persist` are carved out of the `pool` volume group.
+
+### Unlocking and Key Enrollment
+
+The `disk-encryption.nix` module configures the system to handle the encrypted container at boot.
+
+#### Unlocking at Boot
+
+To unlock the `crypted` volume during early boot, it is registered with `systemd-cryptsetup` in the initrd.
+
+#### TPM/FIDO2 Key Enrollment
+
+A systemd service, `luks-enroll-tpm`, is responsible for enrolling a hardware-backed key (from a TPM or a FIDO2 device) as a valid decryptor for the LUKS volume. This allows for automatic unlocking at boot without requiring a passphrase.
+This service runs once to set up the enrollment, making subsequent boots seamless and secure.
