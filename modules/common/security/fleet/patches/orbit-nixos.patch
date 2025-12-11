@@ -1,0 +1,116 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+*** a/orbit/pkg/scripts/exec_nonwindows.go	1970-01-01 02:00:01.000000000 +0200
+--- b/orbit/pkg/scripts/exec_nonwindows.go	2025-10-13 15:19:40.765156834 +0300
+***************
+*** 1,3 ****
+  //go:build !windows
+- 
+  package scripts
+--- 1,2 ----
+*************** import (
+*** 9,10 ****
+--- 8,10 ----
+  	"path/filepath"
++ 	"strings"
+  	"time"
+*************** import (
+*** 15,16 ****
+--- 15,60 ----
+  
++ // patchShebang replaces common shebang paths with NixOS-style paths
++ func patchShebang(contents []byte) []byte {
++ 	script := string(contents)
++ 
++ 	// Check if it starts with shebang
++ 	if !strings.HasPrefix(script, "#!") {
++ 		return contents
++ 	}
++ 
++ 	// Find the end of the first line
++ 	firstLineEnd := strings.Index(script, "\n")
++ 	if firstLineEnd == -1 {
++ 		firstLineEnd = len(script)
++ 	}
++ 
++ 	shebang := script[:firstLineEnd]
++ 	rest := script[firstLineEnd:]
++ 
++ 	// Define replacements for common shebangs
++ 	replacements := map[string]string{
++ 		"#!/bin/bash":          "#!/run/current-system/sw/bin/bash",
++ 		"#!/bin/sh":            "#!/run/current-system/sw/bin/sh",
++ 		"#!/bin/zsh":           "#!/run/current-system/sw/bin/zsh",
++ 		"#!/usr/bin/env bash":  "#!/run/current-system/sw/bin/bash",
++ 		"#!/usr/bin/env sh":    "#!/run/current-system/sw/bin/sh",
++ 		"#!/usr/bin/env zsh":   "#!/run/current-system/sw/bin/zsh",
++ 		"#!/usr/bin/python":    "#!/run/current-system/sw/bin/python",
++ 		"#!/usr/bin/python3":   "#!/run/current-system/sw/bin/python3",
++ 		"#!/usr/bin/env python": "#!/run/current-system/sw/bin/python",
++ 		"#!/usr/bin/env python3": "#!/run/current-system/sw/bin/python3",
++ 	}
++ 
++ 	// Check if shebang needs replacement
++ 	for old, new := range replacements {
++ 		if strings.HasPrefix(shebang, old) {
++ 			// Preserve any trailing arguments after the interpreter
++ 			shebang = new + strings.TrimPrefix(shebang, old)
++ 			break
++ 		}
++ 	}
++ 
++ 	return []byte(shebang + rest)
++ }
++ 
+  func ExecCmd(ctx context.Context, scriptPath string, env []string) (output []byte, exitCode int, err error) {
+*************** func ExecCmd(ctx context.Context, script
+*** 23,25 ****
+  	}
+! 	directExecute, err := fleet.ValidateShebang(string(contents))
+  	if err != nil {
+--- 67,81 ----
+  	}
+! 
+! 	// Patch the shebang to use NixOS paths
+! 	patchedContents := patchShebang(contents)
+! 
+! 	// Write patched contents back to the script file
+! 	if string(patchedContents) != string(contents) {
+! 		err = os.WriteFile(scriptPath, patchedContents, 0o600)
+! 		if err != nil {
+! 			return nil, -1, ctxerr.Wrapf(ctx, err, "writing patched script %s", scriptPath)
+! 		}
+! 	}
+! 
+! 	directExecute, err := fleet.ValidateShebang(string(patchedContents))
+  	if err != nil {
+*************** func ExecCmd(ctx context.Context, script
+*** 28,31 ****
+  
+! 	cmd := exec.CommandContext(ctx, "/bin/sh", scriptPath)
+! 
+  	if directExecute {
+--- 84,86 ----
+  
+! 	cmd := exec.CommandContext(ctx, "/run/current-system/sw/bin/sh", scriptPath)
+  	if directExecute {
+*************** func ExecCmd(ctx context.Context, script
+*** 41,43 ****
+  	}
+- 
+  	cmd.Dir = filepath.Dir(scriptPath)
+--- 96,97 ----
+*************** func ExecCmd(ctx context.Context, script
+*** 47,48 ****
+--- 101,103 ----
+  	cmd.WaitDelay = time.Second
++ 
+  	output, err = cmd.CombinedOutput()
+*************** func ExecCmd(ctx context.Context, script
+*** 51,53 ****
+--- 106,110 ----
+  	}
++ 
+  	return output, exitCode, err
+  }
++ 
