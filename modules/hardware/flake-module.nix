@@ -25,5 +25,6 @@
       ./aarch64/systemd-boot-dtb.nix
       ./passthrough
     ];
+    lenovo-x1-efi-uki = import ./lenovo-x1-efi-uki.nix;
   };
 }
