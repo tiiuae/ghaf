@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/cosmic-beta9";
+    nixpkgs.url = "github:tiiuae/nixpkgs/mid-dec-bump";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # A framework for testing ghaf configurations
@@ -54,9 +54,7 @@
 
     # For building and creating disk images and installers
     disko = {
-      # We currently test if this runs more stable in our CI
-      # https://github.com/nix-community/disko/pull/1166
-      url = "github:nix-community/disko/xcp";
+      url = "github:nix-community/disko";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -129,7 +127,7 @@
 
     # For building and managing VMs
     microvm = {
-      url = "github:microvm-nix/microvm.nix/c20e339b190036b68c33f5bcf116e2adee2b6237";
+      url = "github:microvm-nix/microvm.nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
