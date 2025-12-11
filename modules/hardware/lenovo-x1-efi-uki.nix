@@ -45,7 +45,6 @@ in {
 
     boot.loader.systemd-boot.extraFiles = {
       "EFI/BOOT/BOOTX64.EFI" = "${ghafX1Uki}/EFI/BOOT/BOOTX64.EFI";
-      "EFI/BOOT/test.lex"    = "${ghafX1Uki}/EFI/BOOT/test.lex";
     };
   };
 }
