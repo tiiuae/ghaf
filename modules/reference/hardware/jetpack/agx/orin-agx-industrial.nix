@@ -22,7 +22,7 @@
   };
 
   # To enable or disable wireless
-  networking.wireless.enable = true;
+  networking.wireless.enable = false;
 
   hardware = {
     # Device Tree
@@ -61,17 +61,11 @@
       # modules/reference/hardware/jetpack Please refer to that
       # section for hardware dependent netvm configuration.
 
-      # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX does
-      # not.
+      # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX and
+      # Orin AGX-industrial does not.
 
       # To enable or disable wireless
-      networking.wireless.enable = true;
-
-      # For WLAN firmwares
-      hardware = {
-        enableRedistributableFirmware = true;
-        wirelessRegulatoryDatabase = true;
-      };
+      networking.wireless.enable = false;
 
     }
     # Hardware info guest support

@@ -11,7 +11,7 @@ let
 in
 {
   options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
-    lib.mkEnableOption "WLAN card PCI passthrough to NetVM";
+    lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
   config = lib.mkIf cfg.agx.enableNetvmWlanPCIPassthrough {
     # Orin AGX WLAN card PCI passthrough
     ghaf.hardware.nvidia.orin.enablePCIPassthroughCommon = true;
@@ -22,12 +22,26 @@ in
     ghaf.virtualization.microvm.netvm.extraModules = [
       {
         ghaf.services.wifi.enable = true;
-        microvm.devices = [
-          {
-            bus = "pci";
-            path = "0001:01:00.0";
-          }
-        ];
+        # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's
+        microvm.devices =
+          if cfg.somType == "agx-industrial" then
+            [
+              {
+                bus = "pci";
+                path = "0001:01:00.0";
+              }
+              {
+                bus = "pci";
+                path = "0000:01:00.0";
+              }
+            ]
+          else
+            [
+              {
+                bus = "pci";
+                path = "0001:01:00.0";
+              }
+            ];
         # Network Manager is defined for netvm of Orin Devices
         environment.systemPackages = [ pkgs.networkmanager ];
         # Network Manager package defines a gnome plugin with build failure on Orin
@@ -41,6 +55,8 @@ in
         dtsFile =
           if (cfg.somType == "agx64") then
             ./agx64-ethernet-pci-passthrough-overlay.dts
+          else if (cfg.somType == "agx-industrial") then
+            ./agx-industrial-ethernet-pci-passthrough-overlay.dts
           else
             ./agx-ethernet-pci-passthrough-overlay.dts;
       }
@@ -53,8 +69,9 @@ in
       }
     ];
 
+    # The PCI IDs for the onboard Realtek ethernet and wifi cards and the intel ethernet on AGX Industrial
     boot.kernelParams = [
-      "vfio-pci.ids=10ec:c822,10ec:c82f"
+      "vfio-pci.ids=10ec:c822,10ec:c82f,8086:1533"
       "vfio_iommu_type1.allow_unsafe_interrupts=1"
     ];
   };
