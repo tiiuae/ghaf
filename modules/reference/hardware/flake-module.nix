@@ -147,6 +147,8 @@
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
 
+    lenovo-x1-efi-uki = import ./lenovo-x1/definitions/lenovo-x1-efi-uki.nix;
+
     polarfire.imports = [ ./polarfire ];
 
   };
