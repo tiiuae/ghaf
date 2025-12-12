@@ -14,8 +14,8 @@ let
   pacServerAddr = "127.0.0.1:8000";
   _ghafPacFileFetcher =
     let
-      pacFileDownloadUrl = cfg.pacUrl;
-      proxyServerUrl = "http://${cfg.proxyAddress}:${toString cfg.proxyPort}";
+      pacFileDownloadUrl = cfg.pacFileFetcher.pacUrl;
+      proxyServerUrl = "http://${cfg.pacFileFetcher.proxyAddress}:${toString cfg.pacFileFetcher.proxyPort}";
       logTag = "ghaf-pac-fetcher";
     in
     pkgs.writeShellApplication {
@@ -72,28 +72,31 @@ in
 {
   options.ghaf.reference.services.pac = {
     enable = lib.mkEnableOption "Proxy Auto-Configuration (PAC)";
-
-    proxyAddress = lib.mkOption {
-      type = lib.types.str;
-      description = "Proxy address";
-    };
-
-    proxyPort = lib.mkOption {
-      type = lib.types.int;
-      description = "Proxy port";
-    };
-
-    pacUrl = lib.mkOption {
-      type = lib.types.str;
-      description = "URL of the Proxy Auto-Configuration (PAC) file";
-      default = "https://raw.githubusercontent.com/tiiuae/ghaf-rt-config/refs/heads/main/network/proxy/ghaf.pac";
-    };
-
     proxyPacUrl = lib.mkOption {
       type = lib.types.str;
       description = "Local PAC URL that can be passed to the browser";
       default = "http://${pacServerAddr}/${pacFileName}";
       readOnly = true;
+    };
+
+    pacFileFetcher = {
+      enable = lib.mkEnableOption "PAC file fetcher";
+
+      proxyAddress = lib.mkOption {
+        type = lib.types.str;
+        description = "Proxy address";
+      };
+
+      proxyPort = lib.mkOption {
+        type = lib.types.int;
+        description = "Proxy port";
+      };
+
+      pacUrl = lib.mkOption {
+        type = lib.types.str;
+        description = "URL of the Proxy Auto-Configuration (PAC) file";
+        default = "https://raw.githubusercontent.com/tiiuae/ghaf-rt-config/refs/heads/main/network/proxy/ghaf.pac";
+      };
     };
   };
 
@@ -109,9 +112,11 @@ in
     };
 
     systemd = {
-      tmpfiles.rules = [
-        "f /etc/proxy/${pacFileName} 0664 ${proxyUserName} ${proxyGroupName} - -"
-      ];
+      tmpfiles = lib.mkIf cfg.pacFileFetcher.enable {
+        rules = [
+          "f /etc/proxy/${pacFileName} 0664 ${proxyUserName} ${proxyGroupName} - -"
+        ];
+      };
 
       services = {
         pacServer = {
@@ -131,7 +136,7 @@ in
           };
         };
 
-        ghafPacFileFetcher = {
+        ghafPacFileFetcher = lib.mkIf cfg.pacFileFetcher.enable {
           description = "Fetch ghaf pac file periodically with retries if internet is available";
           serviceConfig = {
             ExecStart = "${_ghafPacFileFetcher}/bin/ghafPacFileFetcher";

@@ -64,6 +64,12 @@ let
               enable = true;
               name = vmName;
               encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
+              directories = [
+                {
+                  directory = "/etc/policies";
+                  mode = "0755";
+                }
+              ];
             };
 
             # Networking
