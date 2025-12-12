@@ -12,7 +12,7 @@
     packages = lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
     ramMb = 6144;
     cores = 4;
-    borderColor = "#630505";
+    borderColor = "#9C0000";
     ghafAudio.enable = true;
     vtpm = {
       enable = true;
