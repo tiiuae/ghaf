@@ -120,6 +120,20 @@ in
       "audit_backlog_limit=${toString config.security.audit.backlogLimit}"
     ];
 
+    systemd.services.audit-rules-nixos = {
+      serviceConfig.ExecStart =
+        let
+          auditRulesFile = pkgs.writeText "ghaf-audit.rules" (
+            lib.concatStringsSep "\n" ([ "-D" ] ++ config.security.audit.rules)
+          );
+        in
+        lib.mkForce "${pkgs.audit}/bin/auditctl -R ${auditRulesFile}";
+
+      # Let systemd use default ordering for audit-rules instead of early-boot
+      unitConfig.DefaultDependencies = lib.mkForce true;
+      before = lib.mkForce [ ];
+    };
+
     environment.etc."audit/auditd.conf".text = ''
       log_file = /var/log/audit/audit.log
       log_format = RAW
