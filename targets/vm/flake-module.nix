@@ -121,6 +121,7 @@ let
                   release.enable = variant == "release";
                   debug.enable = lib.hasPrefix "debug" variant;
                 };
+                graphics.login-manager.unixAuth = true;
               };
 
               # Enable GUI component on host
