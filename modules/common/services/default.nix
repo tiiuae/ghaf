@@ -16,7 +16,9 @@
     ./performance
     ./power.nix
     ./storewatcher.nix
+    ./sssd.nix
     ./timezone.nix
+    ./user-provision.nix
     ./wifi.nix
     ./xpadneo.nix
     ./yubikey.nix

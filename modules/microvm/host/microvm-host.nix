@@ -16,13 +16,14 @@ let
     mkOption
     types
     ;
-  guivm_has_loginuser =
-    (lib.hasAttr "gui-vm" config.microvm.vms)
-    && config.ghaf.virtualization.microvm.guivm.enable
-    && config.microvm.vms.gui-vm.config.config.ghaf.users.loginUser.enable;
-  audiovm_has_acpi_path =
+  userConfig =
+    if (lib.hasAttr "gui-vm" config.microvm.vms) then
+      config.microvm.vms.gui-vm.config.config.ghaf.users
+    else
+      config.ghaf.users;
+  hasLoginUser = userConfig.homedUser.enable || userConfig.adUsers.enable;
+  hasAudioVmAcpiPath =
     (lib.hasAttr "audio-vm" config.microvm.vms)
-    && config.ghaf.virtualization.microvm.audiovm.enable
     && (config.ghaf.hardware.definition.audio.acpiPath != null);
 in
 {
@@ -125,7 +126,7 @@ in
           ) (builtins.attrValues config.microvm.vms);
           xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
           xdgRules = map (
-            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.loginUser.uid} users -"
+            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.homedUser.uid} users -"
           ) xdgDirs;
         in
         [
@@ -133,16 +134,15 @@ in
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"
           "f /tmp/cancel 0770 microvm kvm -"
-          "d ${config.ghaf.security.sshKeys.waypipeSshPublicKeyDir} 0700 root root -"
         ]
         ++ lib.optionals config.ghaf.givc.enable [
           "d /persist/storagevm/givc 0700 microvm kvm -"
         ]
-        ++ lib.optionals guivm_has_loginuser [
+        ++ lib.optionals hasLoginUser [
           "d /persist/storagevm/homes 0700 microvm kvm -"
         ]
         # Allow permission to microvm user to read ACPI tables of soundcard mic array
-        ++ lib.optionals audiovm_has_acpi_path [
+        ++ lib.optionals hasAudioVmAcpiPath [
           "f ${config.ghaf.hardware.definition.audio.acpiPath} 0400 microvm kvm -"
         ]
         ++ xdgRules;
@@ -230,12 +230,12 @@ in
         let
           vmDirs = map (
             n:
-            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.loginUser.uid} users"
+            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.homedUser.uid} users"
           ) cfg.sharedVmDirectory.vms;
         in
         [
           "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.loginUser.uid} users"
+          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.homedUser.uid} users"
         ]
         ++ vmDirs;
     })

@@ -95,8 +95,6 @@ let
                     initialPassword = "ghaf";
                     uid = 1000;
                     extraGroups = [
-                      "audio"
-                      "video"
                       "wheel"
                     ];
                   }

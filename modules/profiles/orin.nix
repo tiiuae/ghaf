@@ -129,8 +129,8 @@ in
         enable = true;
       };
 
-      # Create admin home folder; temporary solution
-      users.admin.createHome = true;
+      # Allow admin UI login
+      users.admin.enableUILogin = true;
     };
 
     hardware.graphics.extraPackages = lib.mkAfter [
