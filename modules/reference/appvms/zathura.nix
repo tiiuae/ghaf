@@ -44,11 +44,6 @@
           pdf = true;
           image = true;
         };
-        # Let systemd use default ordering for audit-rules instead of early-boot
-        systemd.services.audit-rules-nixos = {
-          unitConfig.DefaultDependencies = lib.mkForce true;
-          before = lib.mkForce [ ];
-        };
       }
     ];
   };
