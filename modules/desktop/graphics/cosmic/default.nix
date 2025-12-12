@@ -321,13 +321,14 @@ in
         XDG_VIDEOS_DIR = "$HOME/Videos";
         XCURSOR_THEME = "Cosmic";
         XCURSOR_SIZE = 24;
-        RUST_LOG = "error";
+        RUST_LOG = "info";
       }
       // lib.optionalAttrs (cfg.renderDevice != null) {
         COSMIC_RENDER_DEVICE = cfg.renderDevice;
       }
       // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
         PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
+        PIPEWIRE_DEBUG = "3";
       };
 
       etc = {
@@ -379,7 +380,7 @@ in
       };
 
       audio-control = {
-        enable = graphicsProfileCfg.proxyAudio;
+        enable = false;
         description = "Audio Control application";
         serviceConfig = {
           Type = "simple";
@@ -477,7 +478,7 @@ in
     networking.networkmanager.enable = graphicsProfileCfg.networkManager.enable;
 
     services.gvfs.enable = lib.mkForce false;
-    services.avahi.enable = lib.mkForce false;
+    services.avahi.enable = true;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
@@ -485,11 +486,22 @@ in
 
     services.pipewire = {
       enable = true;
-
       # Disable audio backends
       alsa.enable = false;
-      pulse.enable = !graphicsProfileCfg.proxyAudio;
+      pulse.enable = true;
       jack.enable = false;
+      systemWide = false;
+      extraConfig = {
+        pipewire."10-remote-pulseaudio" = {
+          "context.modules" = [
+            {
+              name = "libpipewire-module-zeroconf-discover";
+              args = { };
+              flags = [ "nofail" ];
+            }
+          ];
+        };
+      };
     };
   };
 }

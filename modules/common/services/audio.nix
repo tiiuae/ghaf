@@ -43,6 +43,7 @@ in
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
     hardware.firmware = [ pkgs.sof-firmware ];
+    services.avahi.enable = true;
     services.pipewire = {
       enable = true;
       pulse.enable = true;
@@ -78,6 +79,11 @@ in
                 ];
               };
             }
+            {
+              name = "libpipewire-module-zeroconf-discover";
+              args = { };
+              flags = [ "nofail" ];
+            }
           ];
         };
       };
@@ -97,7 +103,7 @@ in
 
     systemd.services =
       let
-        debugLevel = if cfg.debug then "3" else "0";
+        debugLevel = if cfg.debug then "2" else "0";
       in
       {
         pipewire = {
