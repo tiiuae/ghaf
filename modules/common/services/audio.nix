@@ -43,7 +43,26 @@ in
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
     hardware.firmware = [ pkgs.sof-firmware ];
-    services.avahi.enable = true;
+    services.avahi = {
+      enable = true;
+      nssmdns4 = true;
+      publish = {
+        enable = true;
+        userServices = true;
+        addresses = true;
+      };
+      openFirewall = true;
+    };
+    services.resolved = {
+      enable = true;
+
+      llmnr = "false";
+
+      extraConfig = ''
+        MulticastDNS=no
+        DNSStubListener=yes
+      '';
+    };
     services.pipewire = {
       enable = true;
       pulse.enable = true;
@@ -83,6 +102,33 @@ in
               name = "libpipewire-module-zeroconf-discover";
               args = { };
               flags = [ "nofail" ];
+            }
+          ];
+        };
+        pipewire-pulse."50-remote-pulseaudio" = {
+          "pulse.cmd" = [
+            {
+              cmd = "load-module";
+              args = "module-zeroconf-publish";
+              flags = [ ];
+            }
+            {
+              cmd = "load-module";
+              args = "module-native-protocol-tcp";
+              flags = [
+                "port=${toString cfg.pulseaudioTcpPort}"
+                "listen=0.0.0.0"
+                "auth-ip-acl=192.168.100.0/8"
+              ];
+            }
+            {
+              cmd = "load-module";
+              args = "module-native-protocol-tcp";
+              flags = [
+                "port=${toString cfg.pulseaudioTcpControlPort}"
+                "listen=0.0.0.0"
+                "auth-ip-acl=192.168.100.0/8"
+              ];
             }
           ];
         };

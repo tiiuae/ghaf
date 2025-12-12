@@ -297,7 +297,7 @@ in
     services.displayManager.cosmic-greeter.enable = true;
 
     ghaf.graphics.login-manager.enable = true;
-    ghaf.graphics.login-manager.failLock.enable = false;
+    ghaf.graphics.login-manager.failLock.enable = true;
 
     ghaf.graphics.screen-recorder.enable = cfg.screenRecorder.enable;
 
@@ -327,8 +327,8 @@ in
         COSMIC_RENDER_DEVICE = cfg.renderDevice;
       }
       // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
-        PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
-        PIPEWIRE_DEBUG = "3";
+        # PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
+        PIPEWIRE_DEBUG = "1";
       };
 
       etc = {
@@ -478,11 +478,32 @@ in
     networking.networkmanager.enable = graphicsProfileCfg.networkManager.enable;
 
     services.gvfs.enable = lib.mkForce false;
-    services.avahi.enable = true;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
     services.orca.enable = pkgs.stdenv.hostPlatform.isx86_64;
+
+    services.avahi = {
+      enable = true;
+      nssmdns4 = true;
+      publish = {
+        enable = true;
+        userServices = true;
+        addresses = true;
+      };
+      openFirewall = true;
+    };
+
+    services.resolved = {
+      enable = true;
+
+      llmnr = "false";
+
+      extraConfig = ''
+        MulticastDNS=no
+        DNSStubListener=yes
+      '';
+    };
 
     services.pipewire = {
       enable = true;
@@ -498,6 +519,20 @@ in
               name = "libpipewire-module-zeroconf-discover";
               args = { };
               flags = [ "nofail" ];
+            }
+          ];
+        };
+        pipewire-pulse."50-remote-pulseaudio" = {
+          "pulse.cmd" = [
+            {
+              cmd = "load-module";
+              args = "module-zeroconf-discover";
+              flags = [ ];
+            }
+            {
+              cmd = "load-module";
+              args = "module-native-protocol-tcp";
+              flags = [ ];
             }
           ];
         };
