@@ -140,7 +140,7 @@ com.system76.CosmicPanel.Panel:
   layer: Top
   margin: 0
   name: "Panel"
-  opacity: 0.15
+  opacity: 0.5
   output: All
   padding: 0
   plugins_center: |
