@@ -297,7 +297,7 @@ in
     services.displayManager.cosmic-greeter.enable = true;
 
     ghaf.graphics.login-manager.enable = true;
-    ghaf.graphics.login-manager.failLock.enable = true;
+    ghaf.graphics.login-manager.failLock.enable = false;
 
     ghaf.graphics.screen-recorder.enable = cfg.screenRecorder.enable;
 
