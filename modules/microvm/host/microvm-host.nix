@@ -109,8 +109,8 @@ in
           create-fake-battery.enable = true;
           firmware.enable = true;
         };
+
         development = {
-          nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
           debug.tools.host.enable = config.ghaf.development.debug.tools.enable;
         };
         logging.client.enable = config.ghaf.logging.enable;

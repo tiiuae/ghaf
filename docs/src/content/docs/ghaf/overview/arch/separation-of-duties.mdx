@@ -16,7 +16,7 @@ How SoD is implemented in Ghaf
 - Separation through profiles and build-time gating
   - Administrative/debug capabilities are opt-in and controlled through profiles rather than present by default. In production, debug knobs remain off.
   - Evidence in code: in modules/microvm/sysvms/netvm.nix, multiple toggles derive from ghaf.profiles.debug.enable:
-    - ghaf.systemd.withDebug, development.ssh.daemon.enable, development.debug.tools.enable, development.nix-setup.enable are all wired to the debug profile. This prevents routine operators or workloads from gaining access to debug interfaces unless an authorized maintainer explicitly enables the profile.
+    - ghaf.systemd.withDebug, development.ssh.daemon.enable, development.debug.tools.enable, nix-setup.enable are all wired to the debug profile. This prevents routine operators or workloads from gaining access to debug interfaces unless an authorized maintainer explicitly enables the profile.
 
 - Network plane separation (operations vs. debugging)
   - Production adapters are distinct from debug/maintenance adapters, so production users and services cannot reach administrative endpoints.

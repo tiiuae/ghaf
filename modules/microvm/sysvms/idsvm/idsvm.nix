@@ -36,8 +36,9 @@ let
               #       that has been passed through to NetVM
               ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
             };
+            nix-setup.enable =
+              configHost.ghaf.nix-setup.enable && !configHost.ghaf.virtualization.microvm.storeOnDisk;
             virtualization.microvm.vm-networking = {
               enable = true;
               isGateway = true;

@@ -32,6 +32,12 @@ let
                 debug.enable = variant == "debug";
                 release.enable = variant == "release";
               };
+              # NOTE: nix-setup.nixpkgs points to the nixpkgs source.
+              # Overlays and config cannot be included in nixPath/registry,
+              # as those point to source code, not evaluated package sets.
+              # For shells with overlays, use `nix develop` or configure
+              # overlays in ~/.config/nixpkgs/overlays.nix
+              nix-setup.nixpkgs = inputs.nixpkgs.outPath;
             };
 
             nixpkgs = {
