@@ -41,8 +41,10 @@ in
         proxyAudio = false;
       };
 
+      graphics.login-manager.unixAuth = true;
+
       graphics.cosmic = {
-        # Crucial to for Orin devices to use the correct render device
+        # Crucial for Orin devices to use the correct render device
         # Also needs 'mesa' to be in hardware.graphics.extraPackages
         renderDevice = "/dev/dri/renderD129";
         # Keep only essential applets for Orin devices

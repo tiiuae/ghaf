@@ -32,7 +32,8 @@ path = [
   "overlays/custom-packages/cosmic/cosmic-initial-setup/0001-Preselect-Ghaf-themes.patch",
   "overlays/custom-packages/cosmic/cosmic-greeter/0001-Replace-fallback-background-with-Ghaf-default.patch",
   "overlays/custom-packages/cosmic/cosmic-applets/*.patch",
-  "overlays/custom-packages/system76-scheduler/0001-fix-add-missing-loop-in-process-scheduler-refresh-ta.patch"
+  "overlays/custom-packages/system76-scheduler/0001-fix-add-missing-loop-in-process-scheduler-refresh-ta.patch",
+  "overlays/custom-packages/cosmic/cosmic-greeter/0001-Fix-softlock.patch"
 ]
 
 [[annotations]]

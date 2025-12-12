@@ -41,6 +41,7 @@ in
         default = 2;
       };
     };
+    unixAuth = mkEnableOption "Unix authentication for greetd and greeters";
   };
 
   config = mkIf cfg.enable {
@@ -70,6 +71,7 @@ in
 
     security.pam.services = {
       cosmic-greeter = {
+        inherit (cfg) unixAuth;
         rules = {
           auth = {
             systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
@@ -78,6 +80,7 @@ in
         };
       };
       greetd = {
+        inherit (cfg) unixAuth;
         fprintAuth = false; # User needs to enter password to decrypt home on login
         rules = {
           account.group_video = {
