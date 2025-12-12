@@ -12,26 +12,6 @@ let
   cfg = config.ghaf.reference.services;
   isNetVM = "net-vm" == config.system.name;
   isGuiVM = "gui-vm" == config.system.name;
-
-  appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "vms" ] { } config;
-  wireguardGuiEnabledVms = lib.lists.map (app: app.vmName) (
-    lib.lists.filter
-      (
-        app:
-        let
-          services = lib.attrByPath [ "ghaf" "reference" "services" ] { } app;
-          wgService = services."wireguard-gui" or null;
-        in
-        wgService != null && (wgService.enable or false)
-      )
-      (
-        lib.lists.concatMap (vm: map (app: (app // { vmName = "${vm.name}-vm"; })) vm.extraModules) (
-          lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (
-            lib.filterAttrs (_: vm: vm.enable) appVms
-          )
-        )
-      )
-  );
 in
 {
   imports = [
@@ -80,10 +60,7 @@ in
         vmName = mkForce cfg.google-chromecast.vmName;
       };
       ollama.enable = mkForce (cfg.alpaca-ollama && isGuiVM);
-      wireguard-gui-config = {
-        vms = mkIf (wireguardGuiEnabledVms != [ ]) (mkForce wireguardGuiEnabledVms);
-        enable = mkForce (cfg.wireguard-gui && isGuiVM);
-      };
+      wireguard-gui-config.enable = mkForce cfg.wireguard-gui;
     };
     assertions = [
       {

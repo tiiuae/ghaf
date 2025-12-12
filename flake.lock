@@ -760,15 +760,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1765326671,
-        "narHash": "sha256-0fe9Xeh0+ZGJnf3BSYMgea6jCpOF1MrgXKtjB6xDxi4=",
-        "owner": "tiiuae",
+        "lastModified": 1765532687,
+        "narHash": "sha256-QkBIZ0bv65KisWYINPCihyvnInT7MH6EZnM0JZRHu0w=",
+        "owner": "enesoztrk",
         "repo": "wireguard-gui",
-        "rev": "dc852059e7860d3a3329db648635b35580378e76",
+        "rev": "527b21c7fbe597c76691e29d8fad0d3e37215656",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "enesoztrk",
+        "ref": "feat/routing_scripts",
         "repo": "wireguard-gui",
         "type": "github"
       }
