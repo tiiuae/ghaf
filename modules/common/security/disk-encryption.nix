@@ -19,23 +19,15 @@ let
   partitions =
     if config.ghaf.partitioning.verity.enable then
       {
-        persist = rec {
+        luks = rec {
           partConf = config.image.repart.partitions."50-persist".repartConfig;
-          device = "/dev/disk/by-partuuid/${partConf.UUID}";
-        };
-        swap = rec {
-          partConf = config.image.repart.partitions."40-swap".repartConfig;
           device = "/dev/disk/by-partuuid/${partConf.UUID}";
         };
       }
     else
       {
-        persist = rec {
-          partConf = config.disko.devices.disk.disk1.content.partitions.persist;
-          inherit (partConf) device;
-        };
-        swap = rec {
-          partConf = config.disko.devices.disk.disk1.content.partitions.swap;
+        luks = rec {
+          partConf = config.disko.devices.disk.disk1.content.partitions.luks;
           inherit (partConf) device;
         };
       };
@@ -53,7 +45,7 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf (cfg.enable && !cfg.deferred) {
     security.tpm2.enable = true;
 
     environment.systemPackages =
@@ -67,8 +59,8 @@ in
       ];
 
     boot.initrd.luks.devices = {
-      persist = {
-        inherit (partitions.persist) device;
+      crypted = {
+        inherit (partitions.luks) device;
         tryEmptyPassphrase = true;
         crypttabExtraOpts =
           {
@@ -81,11 +73,6 @@ in
             fido2 = [ "fido2-device=auto" ];
           }
           .${cfg.backendType};
-      };
-      swap = {
-        inherit (partitions.swap) device;
-        tryEmptyPassphrase = true;
-        crypttabExtraOpts = [ "tpm2-device=auto" ];
       };
     };
 
@@ -108,19 +95,21 @@ in
             tpm2-tools
           ];
           text = ''
-            if cryptsetup luksDump ${partitions.persist.device} | grep -E '(systemd-tpm2|systemd-fido2)'; then
+            P_DEVPATH=$(readlink -f ${partitions.luks.device})
+            if cryptsetup luksDump "$P_DEVPATH" | grep -E '(systemd-tpm2|systemd-fido2)'; then
               echo 'TPM already enrolled'
               exit 0
             fi
-            echo '========== Enrolling TPM/Yubikey for persist partition =========='
-            PASSWORD="" systemd-cryptenroll ${enrollOpts} ${partitions.persist.device}
+            echo "========== Enrolling ${
+              if cfg.backendType == "tpm2" then "TPM2" else "FIDO2 device"
+            } for persist partition =========="
+            PASSWORD="" systemd-cryptenroll ${enrollOpts} "$P_DEVPATH"
+
             echo '-- adding recovery key --'
-            PASSWORD="" systemd-cryptenroll --recovery ${partitions.persist.device}
-            echo '========== Setting up encrypted swap =========='
-            PASSWORD="" systemd-cryptenroll --tpm2-device=auto ${partitions.swap.device}
+            PASSWORD="" systemd-cryptenroll --recovery "$P_DEVPATH"
+
             echo '========== Removing default passphrase =========='
-            systemd-cryptenroll --wipe-slot=password ${partitions.persist.device}
-            systemd-cryptenroll --wipe-slot=password ${partitions.swap.device}
+            systemd-cryptenroll --wipe-slot=password "$P_DEVPATH"
           '';
         };
       in
@@ -141,66 +130,7 @@ in
         wants = [
           "systemd-tpm2-setup.service"
           "nix-store.mount"
-          "${utils.escapeSystemdPath partitions.persist.device}.device"
-          "${utils.escapeSystemdPath partitions.swap.device}.device"
-        ];
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${lib.getExe unitScript}";
-          RemainAfterExit = true;
-        };
-      };
-
-    systemd.services.extendswap =
-      let
-        unitScript = pkgs.writeShellApplication {
-          name = "extendswap-unit-script";
-          runtimeInputs = with pkgs; [
-            util-linux
-            gawk
-            cryptsetup
-            parted
-          ];
-          text = ''
-            PARTNUM=$(partx --noheadings --raw ${partitions.swap.device} | awk '{ print $1 }')
-            PARENT_DISK=/dev/$(lsblk --nodeps --noheadings -o pkname ${partitions.swap.device})
-
-            swapoff -va
-            echo '- +' | sfdisk -f -N "$PARTNUM" "$PARENT_DISK"
-            partprobe
-            echo | cryptsetup resize swap
-            mkswap /dev/mapper/swap
-            swapon -va
-            touch /persist/.extendswap
-          '';
-        };
-      in
-      {
-        inherit (config.ghaf.partitioning.verity) enable;
-        description = "Extend swap partition to use available free space";
-        unitConfig = {
-          DefaultDependencies = "no"; # run before VMs are launched
-          ConditionPathExists = "!/persist/.extendswap";
-        };
-        wantedBy = [
-          "sysinit.target"
-        ];
-        before = [
-          "sysinit.target"
-          config.systemd.services.luks-enroll-tpm.name
-          "shutdown.target"
-        ];
-        conflicts = [
-          "shutdown.target"
-        ];
-        after = [
-          "nix-store.mount"
-          "persist.mount"
-        ];
-        wants = [
-          "nix-store.mount"
-          "dev-mapper-swap.device"
-          "persist.mount"
+          "${utils.escapeSystemdPath partitions.luks.device}.device"
         ];
         serviceConfig = {
           Type = "oneshot";
