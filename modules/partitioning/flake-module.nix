@@ -6,6 +6,7 @@
     disko-debug-partition.imports = [
       inputs.disko.nixosModules.disko
       ./disko-debug-partition.nix
+      ./deferred-disk-encryption.nix
       ./btrfs-postboot.nix
     ];
     verity-release-partition.imports = [
