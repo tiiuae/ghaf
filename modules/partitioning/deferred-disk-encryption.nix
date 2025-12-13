@@ -1,0 +1,685 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Deferred disk encryption module.
+#
+# This module handles applying LUKS encryption on first boot rather than
+# at image creation time. The workflow is:
+#
+# 1. Image is created with plain LVM (no encryption)
+# 2. On first boot, systemd service detects unencrypted state
+# 3. User is prompted for encryption password/PIN (release mode)
+#    OR encryption is applied automatically (debug mode)
+# 4. cryptsetup-reencrypt applies LUKS encryption in-place
+# 5. TPM2/FIDO2 enrollment happens automatically
+# 6. System reboots with encrypted disk
+# 7. Subsequent boots use LUKS with TPM/FIDO2 unlock
+{
+  lib,
+  config,
+  pkgs,
+  utils,
+  ...
+}:
+let
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    getExe
+    ;
+  cfg = config.ghaf.storage.encryption;
+
+  # Determine the LVM partition device
+  # This is the partition that will be encrypted
+  lvmPartition =
+    if config.ghaf.partitioning.verity.enable then
+      # For verity setups, use persist partition
+      "/dev/disk/by-partuuid/${config.image.repart.partitions."50-persist".repartConfig.UUID}"
+    else
+      # For disko setups, use the luks partition (which contains LVM)
+      config.disko.devices.disk.disk1.content.partitions.luks.device;
+
+  # Script to extend persist partition after encryption
+
+  # Script to check if device is LUKS before attempting unlock
+  cryptsetupPreCheckScript = pkgs.writeShellApplication {
+    name = "cryptsetup-pre-check";
+    runtimeInputs = [
+      pkgs.cryptsetup
+      pkgs.systemd
+      pkgs.util-linux
+    ];
+    text = ''
+      set -euo pipefail
+
+      DEVICE="${lvmPartition}"
+
+      echo "Checking device $DEVICE for LUKS header..." > /dev/console
+
+      # Wait for device to appear
+      for i in {1..60}; do
+        if [ -e "$DEVICE" ]; then
+          echo "Device found at iteration $i." > /dev/console
+          break
+        fi
+        sleep 1
+      done
+
+      # Ensure udev has processed the device
+      udevadm settle || true
+
+      # Check if the device is actually a LUKS device
+      # Retry a few times in case of transient read errors
+      for i in {1..5}; do
+        if cryptsetup isLuks "$DEVICE"; then
+          echo "Device $DEVICE is encrypted, allowing cryptsetup to proceed" > /dev/console
+          # Create marker file to satisfy ConditionPathExists
+          mkdir -p /run
+          touch /run/cryptsetup-pre-checked
+          exit 0
+        fi
+        echo "isLuks check failed at iteration $i, retrying..." > /dev/console
+        sleep 1
+      done
+
+      echo "Device $DEVICE is not encrypted (or header not readable)." > /dev/console
+      echo "Skipping LUKS unlock, will use plain LVM" > /dev/console
+      # Do NOT create marker file, so systemd-cryptsetup@crypted.service won't start
+    '';
+  };
+
+  firstBootEncryptScript = pkgs.writeShellApplication {
+    name = "first-boot-encrypt";
+    runtimeInputs = [
+      pkgs.cryptsetup
+      pkgs.lvm2
+      pkgs.systemd
+      pkgs.util-linux
+      pkgs.tpm2-tools
+      pkgs.e2fsprogs
+      pkgs.btrfs-progs
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.gawk
+      pkgs.kmod
+    ];
+    text = ''
+      set -euo pipefail
+
+      LVM_PV="${lvmPartition}"
+
+      # Wait for device to appear
+      echo "Waiting for device $LVM_PV..."
+      for _ in {1..30}; do
+        if [ -e "$LVM_PV" ]; then
+          echo "Device found."
+          break
+        fi
+        sleep 1
+      done
+
+      # Check if device is already LUKS (state indicator)
+      if cryptsetup isLuks "$LVM_PV"; then
+        echo "Device already encrypted."
+
+        if [ -e "/dev/mapper/crypted" ]; then
+           echo "Device is unlocked. Skipping..."
+
+           # Ensure state file is written
+           echo "Writing state file..."
+           modprobe btrfs || true
+           modprobe ext4 || true
+           vgchange -ay pool || true
+           mkdir -p /tmp/persist
+           mount /dev/pool/persist /tmp/persist || true
+           touch /tmp/persist/.encryption-applied
+           umount /tmp/persist || true
+
+           exit 0
+        fi
+
+        echo "Device is encrypted but NOT unlocked. Attempting recovery..."
+
+        # Ensure marker exists
+        mkdir -p /run
+        touch /run/cryptsetup-pre-checked
+
+        ${
+          if config.ghaf.profiles.debug.enable then
+            ''
+              # Debug mode: Try to unlock with empty password explicitly
+              echo "Debug mode: Attempting explicit unlock..."
+              printf '\n' | cryptsetup open "$LVM_PV" crypted --key-file=- || true
+            ''
+          else
+            ''''
+        }
+
+        # Try to start the service
+        echo "Starting systemd-cryptsetup@crypted..."
+        systemctl start systemd-cryptsetup@crypted || true
+
+        # Wait for it
+        for _ in {1..10}; do
+          if [ -e "/dev/mapper/crypted" ]; then
+            echo "Device unlocked successfully."
+
+            # Ensure state file is written so we don't loop here next boot
+            echo "Writing state file..."
+            modprobe btrfs || true
+            modprobe ext4 || true
+            vgchange -ay pool || true
+            mkdir -p /tmp/persist
+            mount /dev/pool/persist /tmp/persist || true
+            touch /tmp/persist/.encryption-applied
+            umount /tmp/persist || true
+
+            exit 0
+          fi
+          sleep 1
+        done
+
+        echo "Failed to unlock device automatically."
+        exit 1
+      fi
+
+      # Stop Plymouth to show encryption progress
+      if command -v plymouth >/dev/null 2>&1; then
+        plymouth quit || true
+        systemctl stop plymouth-quit-wait.service || true
+      fi
+
+      echo "+--------------------------------------------------------+"
+      echo "|         First Boot - Disk Encryption Setup             |"
+      echo "+--------------------------------------------------------+"
+      echo ""
+      echo "This system will now apply full disk encryption to protect"
+      echo "your data. This process is irreversible and required for"
+      echo "system security."
+      echo ""
+
+      ${
+        if config.ghaf.profiles.debug.enable then
+          ''
+            # Debug mode: automatic encryption with empty password
+            echo "! Debug mode: Applying encryption automatically..."
+            PASSPHRASE=""
+          ''
+        else
+          ''
+            # Release mode: prompt for user password/PIN
+            echo "You will be prompted to set a PIN or password."
+            echo "This will be required on every boot to unlock the system."
+            echo ""
+            echo "Requirements:"
+            echo "  - Minimum 4 characters"
+            echo "  - Cannot be empty"
+            echo ""
+
+            # Read passphrase securely using systemd-ask-password
+            PASSPHRASE=""
+            PASSPHRASE2="x"
+            while [ "$PASSPHRASE" != "$PASSPHRASE2" ] || [ -z "$PASSPHRASE" ] || [ ''${#PASSPHRASE} -lt 4 ]; do
+              # Use systemd-ask-password for robust TTY handling
+              if ! PASSPHRASE=$(systemd-ask-password --timeout=0 "Enter encryption PIN/password (min 4 chars):"); then
+                 echo "! Failed to read password"
+                 sleep 2
+                 continue
+              fi
+              echo ""
+
+              if [ -z "$PASSPHRASE" ]; then
+                echo "! Password cannot be empty"
+                continue
+              fi
+
+              if [ ''${#PASSPHRASE} -lt 4 ]; then
+                echo "! Password must be at least 4 characters"
+                continue
+              fi
+
+              if ! PASSPHRASE2=$(systemd-ask-password --timeout=0 "Confirm PIN/password:"); then
+                 echo "! Failed to read confirmation"
+                 continue
+              fi
+              echo ""
+
+              if [ "$PASSPHRASE" != "$PASSPHRASE2" ]; then
+                echo "! Passwords don't match, please try again"
+                echo ""
+              fi
+            done
+
+            echo "! Password set successfully"
+          ''
+      }
+
+      echo ""
+      echo "! Preparing system for encryption..."
+
+      # Ensure all filesystems are synced
+      sync
+
+      # Wait for any pending udev events
+      udevadm settle
+
+      # Shrink the PV to make space for LUKS header
+      # We need to shrink it by at least 32M
+      echo "! Resizing physical volume..."
+
+      # Get current size in bytes
+      PV_SIZE=$(blockdev --getsize64 "$LVM_PV")
+      # Calculate new size (current - 32MB)
+      NEW_SIZE=$((PV_SIZE - 32 * 1024 * 1024))
+
+      echo "Current size: $PV_SIZE bytes"
+      echo "New size:     $NEW_SIZE bytes"
+
+      # Resize PV
+      # We use --yes to confirm if prompted
+      pvresize --setphysicalvolumesize "''${NEW_SIZE}B" --yes "$LVM_PV" || {
+          echo "! Failed to resize PV, encryption might fail if no space for header"
+      }
+
+      # Deactivate all LVs to prepare for encryption
+      echo "! Deactivating logical volumes..."
+
+      # Show current state for debugging
+      echo "DEBUG: Current LVM state:"
+      lvs || true
+      echo "DEBUG: Open devices:"
+      dmsetup ls || true
+
+      # Try to deactivate pool
+      if ! vgchange -an pool; then
+          echo "! Failed to deactivate pool, forcing..."
+
+          # Debug: list /dev/mapper
+          echo "DEBUG: /dev/mapper contents:"
+          ls -la /dev/mapper/ || true
+
+          # Try to force remove device mapper entries if vgchange failed
+          # We iterate through dmsetup ls output to get exact names
+          # Use || true for grep to avoid pipefail exit if no devices found
+          dmsetup ls | { grep '^pool-' || true; } | awk '{print $1}' | while read -r dev; do
+            [ -z "$dev" ] && continue
+            echo "Forcing removal of device-mapper device: $dev"
+            # Check open count
+            dmsetup info -c "$dev" || true
+            dmsetup remove -f "$dev" || true
+          done
+
+          # Try vgchange again
+          vgchange -an pool || true
+      fi
+
+      sleep 1
+
+      # Verify deactivation
+      if dmsetup ls | grep -q "pool-"; then
+          echo "! LVM volumes still active:"
+          dmsetup ls
+          exit 1
+      fi
+
+      # Unmount if mounted (shouldn't be at this stage but safety check)
+      umount -f /persist 2>/dev/null || true
+      swapoff -a 2>/dev/null || true
+
+      echo ""
+      echo "! Encrypting partition..."
+      echo "    This will take several minutes depending on disk size."
+      echo "    Please do not power off the system!"
+      echo ""
+
+      # Encrypt the partition in-place using cryptsetup-reencrypt
+      # Options:
+      #   --encrypt: Convert plain device to LUKS
+      #   --type luks2: Use LUKS version 2
+      #   --reduce-device-size: Leave space for LUKS header
+      #   --resilience journal: Use journal for crash safety
+      #   --pbkdf argon2id: Use memory-hard KDF (secure against GPU attacks)
+      # Note: For empty passphrase (debug mode), we use printf to ensure a newline is sent
+      printf '%s\n' "$PASSPHRASE" | cryptsetup reencrypt \
+        --encrypt \
+        --type luks2 \
+        --reduce-device-size 32M \
+        --resilience journal \
+        --pbkdf argon2id \
+        --pbkdf-memory 1048576 \
+        --pbkdf-parallel 4 \
+        "$LVM_PV" \
+        --key-file=- || {
+          echo "! Encryption failed!"
+          exit 1
+        }
+
+      echo ""
+      echo "! Encryption complete!"
+
+      # Open the newly encrypted device
+      echo "! Opening encrypted device..."
+      printf '%s\n' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
+        echo "! Failed to open encrypted device!"
+        exit 1
+      }
+
+      # Activate LVM on the encrypted device for TPM enrollment
+      echo "! Activating logical volumes..."
+      vgchange -ay pool || {
+        echo "! Failed to activate volume group!"
+        exit 1
+      }
+
+      ${
+        if cfg.backendType == "tpm2" then
+          ''
+            # Enroll TPM2 for automatic unlocking
+            echo ""
+            echo "! Enrolling TPM 2.0 for automatic unlock..."
+
+            if [ -e /dev/tpmrm0 ]; then
+              # Enroll TPM with optional PIN
+              if PASSWORD="$PASSPHRASE" systemd-cryptenroll \
+                --tpm2-device=auto \
+                --tpm2-pcrs=7 \
+                ${if config.ghaf.profiles.debug.enable then "--tpm2-with-pin=no" else "--tpm2-with-pin=yes"} \
+                "$LVM_PV"; then
+
+                # Add recovery key
+                echo "! Adding recovery key..."
+                PASSWORD="$PASSPHRASE" systemd-cryptenroll \
+                  --recovery \
+                  "$LVM_PV" || {
+                    echo "!  Recovery key enrollment failed"
+                  }
+
+                # Remove the password slot only if TPM enrollment succeeded
+                echo "!  Removing password slot..."
+                systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
+                  echo "!  Could not remove password slot, it will remain available"
+                }
+
+                echo "! TPM enrollment complete!"
+              else
+                echo "!  TPM enrollment failed!"
+                echo "    Password slot will NOT be removed. You must use your password to unlock the disk."
+              fi
+            else
+              echo "!  No TPM device found, password will be required on each boot"
+            fi
+          ''
+        else if cfg.backendType == "fido2" then
+          ''
+            # Enroll FIDO2 device for unlocking
+            echo ""
+            echo "! Enrolling FIDO2 device for unlock..."
+
+            if [ -e /dev/hidraw0 ]; then
+              if PASSWORD="$PASSPHRASE" systemd-cryptenroll \
+                --fido2-device=auto \
+                --fido2-with-user-presence=yes \
+                --fido2-with-client-pin=yes \
+                "$LVM_PV"; then
+
+                # Add recovery key
+                echo "! Adding recovery key..."
+                PASSWORD="$PASSPHRASE" systemd-cryptenroll \
+                  --recovery \
+                  "$LVM_PV" || {
+                    echo "!  Recovery key enrollment failed"
+                  }
+
+                # Remove the password slot only if FIDO2 enrollment succeeded
+                echo "!  Removing password slot..."
+                systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
+                  echo "!  Could not remove password slot, it will remain available"
+                }
+
+                echo "! FIDO2 enrollment complete!"
+              else
+                echo "!  FIDO2 enrollment failed!"
+                echo "    Password slot will NOT be removed. You must use your password to unlock the disk."
+              fi
+            else
+              echo "!  No FIDO2 device found, password will be required on each boot"
+            fi
+          ''
+        else
+          ''
+            echo "!  Unknown backend type: ${cfg.backendType}"
+          ''
+      }
+
+      # Clear passphrase from memory for security
+      unset PASSPHRASE PASSPHRASE2 2>/dev/null || true
+
+      # Write state file to prevent re-running on next boot
+      echo "! Writing state file..."
+      modprobe btrfs || true
+      modprobe ext4 || true
+      mkdir -p /tmp/persist
+      mount /dev/pool/persist /tmp/persist || {
+        echo "! Failed to mount persist for state file writing"
+      }
+      touch /tmp/persist/.encryption-applied || true
+      umount /tmp/persist || true
+
+      # Deactivate LVM so system can boot cleanly
+      echo "! Deactivating logical volumes for reboot..."
+      vgchange -an pool || true
+      cryptsetup close crypted || true
+
+      echo ""
+      echo "+--------------------------------------------------------+"
+      echo "|              Encryption Setup Complete!                |"
+      echo "+--------------------------------------------------------+"
+      echo ""
+      echo "Your disk is now fully encrypted and protected."
+      echo "The system will reboot to complete the setup."
+      echo ""
+
+      ${
+        if config.ghaf.profiles.debug.enable then
+          ''
+            echo "Debug mode: Rebooting in 5 seconds..."
+            sleep 5
+          ''
+        else
+          ''
+            if [ -e /dev/tpmrm0 ]; then
+              echo "On next boot:"
+              echo "  ! TPM will automatically unlock the disk"
+              echo "  ! You may be prompted for your PIN as additional security"
+            else
+              echo "On next boot:"
+              echo "  ! You will need to enter your password to unlock the disk"
+            fi
+            echo ""
+            echo "Press Enter to reboot..."
+            read -r
+          ''
+      }
+
+      echo "! Rebooting system..."
+      systemctl reboot
+    '';
+  };
+in
+{
+  options.ghaf.storage.encryption = {
+    deferred = mkEnableOption "Apply disk encryption on first boot instead of at image creation";
+  };
+
+  config = mkIf (cfg.enable && cfg.deferred) {
+    # Ensure TPM support is enabled
+    security.tpm2.enable = mkIf (cfg.backendType == "tpm2") true;
+
+    # Disable Plymouth to ensure we have TTY access for password prompt
+    boot.plymouth.enable = lib.mkForce false;
+
+    # Install required tools
+    environment.systemPackages = [
+      pkgs.cryptsetup
+      pkgs.lvm2
+      pkgs.tpm2-tools
+      pkgs.util-linux
+      pkgs.parted
+      pkgs.gptfdisk
+    ];
+
+    # Include required packages in initrd
+    boot.initrd.systemd.storePaths = [
+      pkgs.cryptsetup
+      pkgs.lvm2
+      pkgs.systemd
+      pkgs.tpm2-tools
+      pkgs.util-linux
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.gawk
+      pkgs.plymouth
+      firstBootEncryptScript
+      cryptsetupPreCheckScript
+    ];
+
+    # First-boot encryption service (runs in initrd)
+    boot.initrd.systemd.services.first-boot-encrypt = {
+      description = "First Boot Disk Encryption Setup (Initrd)";
+      documentation = [ "https://github.com/tiiuae/ghaf" ];
+
+      # Run in initrd BEFORE root is mounted
+      wantedBy = [ "initrd.target" ];
+      before = [
+        "sysroot.mount"
+        "initrd-root-fs.target"
+      ];
+      after = [
+        "cryptsetup-pre.target"
+        "systemd-cryptsetup@crypted.service"
+      ];
+
+      unitConfig = {
+        DefaultDependencies = false;
+      };
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+
+        # Interactive service - needs TTY access
+        StandardInput = "tty-force";
+        StandardOutput = "journal+console";
+        StandardError = "journal+console";
+
+        # Disable restart - encryption only happens once
+        Restart = "no";
+
+        # Execute the encryption script
+        ExecStart = getExe firstBootEncryptScript;
+      };
+    };
+
+    # After encryption is applied, configure boot with LUKS.
+    # On first boot, device is not encrypted yet. We use a systemd service
+    # bound to cryptsetup-pre.target to skip LUKS unlock if device is not encrypted.
+    boot.initrd.luks.devices.crypted = {
+      device = lvmPartition;
+      allowDiscards = true;
+      bypassWorkqueues = true;
+
+      # Crypttab options for TPM/FIDO2
+      crypttabExtraOpts =
+        if cfg.backendType == "tpm2" then
+          [
+            "tpm2-device=auto"
+            "tpm2-measure-pcr=yes"
+          ]
+        else
+          [ "fido2-device=auto" ];
+    };
+
+    # Override systemd-cryptsetup@crypted.service to add a condition
+    # that checks if the device is actually LUKS before attempting unlock
+    # We define the service manually to override the generator and add the condition
+    boot.initrd.systemd.services."systemd-cryptsetup@crypted" = {
+      description = "Cryptography Setup for crypted";
+      documentation = [
+        "man:crypttab(5)"
+        "man:systemd-cryptsetup-generator(8)"
+        "man:systemd-cryptsetup@.service(8)"
+      ];
+
+      unitConfig = {
+        DefaultDependencies = false;
+        Conflicts = "umount.target";
+        Before = [
+          "cryptsetup.target"
+          "umount.target"
+        ];
+        After = [
+          "cryptsetup-pre.target"
+          "${utils.escapeSystemdPath lvmPartition}.device"
+        ];
+        BindsTo = [
+          "dev-mapper-crypted.device"
+          "${utils.escapeSystemdPath lvmPartition}.device"
+        ];
+        IgnoreOnIsolate = true;
+        ConditionPathExists = "/run/cryptsetup-pre-checked";
+      };
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        TimeoutSec = 0;
+        KeyringMode = "shared";
+        OOMScoreAdjust = 500;
+        ExecStart =
+          let
+            # Replicate options from boot.initrd.luks.devices.crypted
+            # We hardcode standard options here to match what the generator would produce
+            options = [
+              "allow-discards"
+              "no-read-workqueue"
+              "no-write-workqueue"
+            ]
+            ++ config.boot.initrd.luks.devices.crypted.crypttabExtraOpts;
+            optionsStr = builtins.concatStringsSep "," options;
+          in
+          "${config.boot.initrd.systemd.package}/lib/systemd/systemd-cryptsetup attach crypted ${lvmPartition} - ${optionsStr}";
+      };
+    };
+
+    # Ensure necessary kernel modules are available in initrd
+    boot.initrd.kernelModules = [
+      "dm-crypt"
+      "dm-mod"
+      "btrfs"
+      "ext4"
+    ];
+
+    # Service to check if device is LUKS and create marker file
+    # This runs before systemd-cryptsetup@crypted.service due to the ConditionPathExists
+    boot.initrd.systemd.services.cryptsetup-pre-check = {
+      description = "Check if device is LUKS before cryptsetup";
+      unitConfig.DefaultDependencies = false;
+
+      before = [
+        "cryptsetup-pre.target"
+        "systemd-cryptsetup@crypted.service"
+      ];
+      wantedBy = [ "cryptsetup-pre.target" ];
+      after = [ "${utils.escapeSystemdPath lvmPartition}.device" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = "${lib.getExe cryptsetupPreCheckScript}";
+      };
+    };
+
+    # Enable LVM support in initrd
+    boot.initrd.services.lvm.enable = true;
+  };
+}

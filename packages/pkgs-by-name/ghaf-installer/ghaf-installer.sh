@@ -108,6 +108,21 @@ case "$response" in
 esac
 
 echo "Wiping device..."
+
+# Deactivate any active LVM volume groups on the device
+echo "Deactivating LVM volumes on $DEVICE_NAME..."
+for vg in $(pvs --noheadings -o vg_name "$DEVICE_NAME"* 2>/dev/null | sort -u); do
+  vgchange -an "$vg" 2>/dev/null || true
+done
+
+# Remove LVM physical volumes
+echo "Removing LVM signatures..."
+pvremove -ff -y "$DEVICE_NAME" "$DEVICE_NAME"* 2>/dev/null || true
+
+# Wipe filesystem and partition signatures
+echo "Wiping filesystem signatures..."
+wipefs -af "$DEVICE_NAME" 2>/dev/null || true
+
 # Wipe any possible ZFS leftovers from previous installations
 # Set sector size to 512 bytes
 SECTOR=512
@@ -119,6 +134,10 @@ SECTORS=$(blockdev --getsz "$DEVICE_NAME")
 dd if=/dev/zero of="$DEVICE_NAME" bs="$SECTOR" count="$MIB_TO_SECTORS" conv=fsync status=none
 # Wipe last 10MiB of disk
 dd if=/dev/zero of="$DEVICE_NAME" bs="$SECTOR" count="$MIB_TO_SECTORS" seek="$((SECTORS - MIB_TO_SECTORS))" conv=fsync status=none
+
+# Force kernel to re-read partition table
+partprobe "$DEVICE_NAME" 2>/dev/null || true
+
 echo "Wipe done."
 
 if [ "$WIPE_ONLY" = true ]; then
