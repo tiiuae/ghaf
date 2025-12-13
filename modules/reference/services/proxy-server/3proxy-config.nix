@@ -13,9 +13,6 @@ let
   proxyGroupName = "proxy-admin";
   url-fetcher = pkgs.callPackage ./url_fetcher.nix { };
 
-  msUrls = "https://endpoints.office.com/endpoints/worldwide?clientrequestid=b10c5ed1-bad1-445f-b386-b919946339a7";
-  ghafUrls = "https://api.github.com/repos/tiiuae/ghaf-rt-config/contents/network/proxy/urls?ref=main";
-
   msAllowFilePath = "3proxy/ms_whitelist.txt";
   ghafAllowFilePath = "3proxy/ghaf_whitelist.txt";
 
@@ -86,7 +83,7 @@ in
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf (cfg.enable && config.ghaf.reference.deployments.proxy.enable) {
     assertions = [
     ];
     # Define a new group for proxy management
@@ -145,7 +142,7 @@ in
         wantedBy = [ "multi-user.target" ];
 
         serviceConfig = {
-          ExecStart = "${url-fetcher}/bin/url-fetcher -u ${msUrls} -p /etc/${msAllowFilePath}";
+          ExecStart = "${url-fetcher}/bin/url-fetcher -u ${config.ghaf.reference.deployments.proxy.microsoftEndpointsUrl} -p /etc/${msAllowFilePath}";
           # Ensure msFetchUrl starts after the network is up
           Type = "simple";
           # Retry until systemctl restart 3proxy succeeds
@@ -166,7 +163,7 @@ in
         timerConfig = {
           User = "${proxyUserName}";
           Persistent = true; # Ensures the timer runs after a system reboot
-          OnCalendar = "hourly"; # Set to your desired schedule
+          OnCalendar = config.ghaf.reference.deployments.proxy.allowlistRefreshInterval;
           OnBootSec = "60s";
         };
       };
@@ -180,7 +177,7 @@ in
       wantedBy = [ "multi-user.target" ];
 
       serviceConfig = {
-        ExecStart = "${url-fetcher}/bin/url-fetcher -f ${ghafUrls} -p /etc/${ghafAllowFilePath}";
+        ExecStart = "${url-fetcher}/bin/url-fetcher -f ${config.ghaf.reference.deployments.proxy.allowlistRepoUrl} -p /etc/${ghafAllowFilePath}";
         # Ensure ghafFetchUrl starts after the network is up
         Type = "simple";
         # Retry until systemctl restart 3proxy succeeds
@@ -203,7 +200,7 @@ in
         Group = "${proxyGroupName}";
 
         Persistent = true; # Ensures the timer runs after a system reboot
-        OnCalendar = "hourly"; # Set to your desired schedule
+        OnCalendar = config.ghaf.reference.deployments.proxy.allowlistRefreshInterval;
         OnBootSec = "90s";
       };
     };
