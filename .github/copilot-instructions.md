@@ -4,6 +4,96 @@
 
 **CRITICAL: Always reference these instructions first and fallback to search or bash commands only when you encounter unexpected information that does not match the info here.**
 
+## Tool Initialization
+
+When starting a new session, **ALWAYS initialize these tools first** before proceeding with any tasks:
+
+### Serena (Code Intelligence)
+
+**REQUIRED**: Initialize Serena MCP for semantic code navigation and intelligent editing.
+
+Start by activating the project with this command:
+
+```
+#serena activate project
+```
+
+This invokes the Serena MCP server for code intelligence. The `#serena` prefix is required to access the MCP tools.
+
+**Key Serena capabilities**:
+- Semantic code search and navigation
+- Symbol-level understanding (find_symbol, get_symbols_overview)
+- Intelligent code editing (replace_symbol_body, insert_after_symbol)
+- Cross-reference analysis (find_referencing_symbols)
+- Memory system for project context
+
+**When to use `#serena` commands**:
+- Understanding code structure and relationships
+- Finding specific functions, classes, or modules
+- Making precise code modifications
+- Analyzing dependencies between components
+- Any task requiring code comprehension
+
+All Serena commands must be prefixed with `#serena` to invoke the MCP server.
+
+### Context7 (Documentation Intelligence)
+
+**REQUIRED**: Use Context7 for up-to-date library documentation:
+
+**Available Context7 libraries**:
+
+- `/NixOS/nixos` - NixOS system configuration options
+- `/NixOS/nixpkgs` - Nixpkgs package set and functions
+- `/NixOS/nix` - Nix language and package manager
+- `/nix-community/home-manager` - Home Manager user environment management
+- `/Mic92/sops-nix` - SOPS secrets management for NixOS
+- `/numtide/flake-utils` - Flake utility functions
+
+**Note**: Always resolve library IDs first unless you know the exact Context7-compatible ID format.
+
+## Project Overview
+
+Ghaf Framework is a security-focused operating system framework that:
+- **Compartmentalizes** applications and services into isolated VMs
+- **Supports multiple architectures**: x86_64, aarch64 (ARM), riscv64
+- **Targets diverse hardware**: From laptops to embedded devices (Jetson, i.MX)
+- **Uses NixOS**: Declarative, reproducible, and immutable system configuration
+- **Implements security by design**: Inter-VM communication via GIVC, minimal attack surface
+
+### Architecture
+
+The configuration uses a modular architecture:
+- **`modules/`** - NixOS system modules
+  - **`common/`** - Base configurations (networking, security, services, users, logging, etc.)
+  - **`hardware/`** - Hardware-specific configurations (x86_64-generic, aarch64, passthrough)
+  - **`desktop/`** - Desktop environment configurations
+  - **`microvm/`** - MicroVM configurations for compartmentalization
+  - **`givc/`** - Ghaf Inter-VM Communication library
+  - **`development/`** - Debug tools, SSH, testing utilities
+  - **`reference/`**, **`profiles/`**, **`partitioning/`** - Additional configs
+- **`targets/`** - Hardware target configurations (vm, generic-x86_64, laptop, nvidia-jetson-orin, imx8mp-evk, etc.)
+- **`packages/`** - Custom packages and overlays (pkgs-by-name structure)
+- **`lib/`** - Library functions and build helpers
+- **`docs/`** - Documentation (Astro Starlight framework)
+- **`overlays/`** - Nix overlays
+- **`nix/`** - Flake infrastructure
+- **`tests/`** - Test configurations
+
+## Prerequisites and Setup
+
+### Initial Setup
+- Install Nix package manager: `curl -L https://nixos.org/nix/install | sh`
+- Enable flakes: `echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf`
+- **CRITICAL**: For cross-compilation, set up an AArch64 remote builder: https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html
+
+### Development Environment
+Enter the development shell to access all tools:
+```bash
+nix develop
+```
+
+This provides: treefmt, reuse, and all formatting tools configured for the project.
+
 ## Code Quality Standards
 
 ### **ALWAYS Strip Trailing Whitespace**
@@ -19,11 +109,6 @@
 - **No trailing whitespace**: Clean, professional code standards
 
 ## Working Effectively
-
-### Prerequisites and Setup
-- Install Nix package manager: `curl -L https://nixos.org/nix/install | sh`
-- Enable flakes in Nix configuration: `echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf`
-- **CRITICAL**: For cross-compilation, set up an AArch64 remote builder: https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html
 
 ### Essential Build Commands
 - View all available targets: `nix flake show` -- takes 30-60 seconds
@@ -93,16 +178,44 @@
 
 - **ALWAYS format code before committing**: `nix fmt` or `nix fmt -- --fail-on-change`
 - **ALWAYS run license check**: `nix develop --command reuse lint`
+- **ALWAYS run all checks**: `nix flake check` - Validates entire flake
 - Check flake validity: `nix flake show --all-systems`
 - **These checks must pass** or CI will fail
 
 The project uses treefmt for consistent code formatting across multiple languages:
-- Nix files: nixfmt-rfc-style (RFC 166 standard)
-- Python files: ruff formatter and linter
-- Shell scripts: shellcheck linting
-- JavaScript/TypeScript: prettier formatting
+- **Nix files**: nixfmt-rfc-style (RFC 166 standard)
+- **Python files**: ruff formatter and linter
+- **Shell scripts**: shellcheck linting
+- **JavaScript/TypeScript**: prettier formatting
 
 Use `nix fmt -- --fail-on-change` to check if formatting is needed without making changes.
+
+### Testing
+
+Run all checks to validate changes:
+```bash
+nix flake check  # Runs all validation checks
+```
+
+**Test configurations before deployment:**
+
+Dry-run tests (fast, shows what would change without building):
+```bash
+# Build specific target without switching
+nix build .#generic-x86_64-debug
+nix build .#lenovo-x1-carbon-gen11-debug
+```
+
+Build and test (creates full system):
+```bash
+# Test VM (primary validation method)
+nix run .#packages.x86_64-linux.vm-debug
+
+# Test specific hardware target
+nix build .#<target-name>
+```
+
+These commands validate configuration changes. VM testing is the fastest way to verify functionality.
 
 ### File Structure and Conventions
 - Nix modules: `modules/` (common, hardware, desktop, etc.)
@@ -113,9 +226,50 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 ### Adding New Hardware Support
 - Create target in `targets/<new-hardware>/`
 - Add modules in `modules/hardware/<new-hardware>/`
-- Update `flake.nix` with new target
+- Update target's `flake-module.nix` to export configuration
 - Add documentation in `docs/src/content/docs/ghaf/dev/ref/`
 - **ALWAYS test build and validation** on actual hardware
+
+### Adding New Packages
+Follow Nixpkgs pkgs-by-name structure:
+```
+packages/pkgs-by-name/<first-letter>/<package-name>/
+├── package.nix
+└── (source files)
+```
+
+### Adding New Modules
+```
+modules/<category>/<module-name>.nix
+# or for complex modules:
+modules/<category>/<module-name>/
+├── default.nix
+└── (supporting files)
+```
+
+## Common Tasks
+
+### Updating Dependencies
+```bash
+nix flake update              # Update all inputs
+nix flake lock --update-input nixpkgs  # Update specific input
+```
+
+### Building Without Running
+```bash
+nix build .#<target-name>
+```
+
+### Viewing Configuration
+```bash
+nix flake show --all-systems   # Show all flake outputs
+```
+
+### Garbage Collection
+```bash
+nix-collect-garbage -d        # Delete old generations
+sudo nix-collect-garbage -d   # Delete old system generations (on NixOS)
+```
 
 ## Common Troubleshooting
 
@@ -134,6 +288,30 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 - **Device not found**: Check device path with `lsblk`
 - **Permission denied**: Run flash script as root with `sudo`
 - **Invalid format**: Ensure image is `.img`, `.iso`, or `.zst`
+
+### Debugging with Nix
+
+**Enter build environment**:
+```bash
+nix develop .#<package>
+# Or with more control:
+nix develop --command bash
+```
+
+**Show build logs**:
+```bash
+nix build .#<package> --print-build-logs
+```
+
+**Show trace on errors**:
+```bash
+nix build .#<target> --show-trace
+```
+
+**Check package evaluation**:
+```bash
+nix eval .#packages.x86_64-linux.<package>.name
+```
 
 ## Important Files and Locations
 
@@ -190,15 +368,100 @@ Use `nix fmt -- --fail-on-change` to check if formatting is needed without makin
 - Vulnerability scanning: Automated via `ghafscan`
 - Security fixes: Follow coordinated disclosure process
 
+## Project Standards
+
+### Module Structure
+When creating new feature modules:
+```nix
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.ghaf.<module-name>;
+in
+{
+  options.ghaf.<module-name> = {
+    enable = lib.mkEnableOption "<feature description>";
+    # Additional options...
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Implementation...
+  };
+}
+```
+
+### Naming Conventions
+- Use kebab-case for file names: `feature-name.nix`
+- Use camelCase for option names: `ghaf.categoryName.featureName.enable`
+- Host/target names should be lowercase and descriptive
+
+### Commit Messages
+Use conventional commits format:
+- `feat:` - New feature or package
+- `fix:` - Bug fix
+- `chore:` - Maintenance (dependencies, formatting)
+- `docs:` - Documentation changes
+- `refactor:` - Code refactoring
+- `test:` - Test additions/changes
+
+Examples:
+- `feat(hardware): add support for NVIDIA Jetson Orin NX`
+- `fix(vm): resolve networking issues in gui-vm`
+- `chore: update flake dependencies`
+
+## Ghaf Framework Integration
+
+### Related Repositories
+
+This repository is the main Ghaf framework. Related projects include:
+- **ghafpkgs**: https://github.com/tiiuae/ghafpkgs - Ghaf-specific packages
+- **ghaf-infra**: CI/CD infrastructure
+- **sbomnix**: SBOM generation utility
+- **ghafscan**: Security vulnerability scanning
+- **ghaf-installation-wizard**: Installation helper tool
+
+### Ghafpkgs Dependency
+
+Ghaf consumes ghafpkgs as a flake input for additional packages:
+
+**In Ghaf's flake.nix**:
+```nix
+inputs.ghafpkgs = {
+  url = "github:tiiuae/ghafpkgs";
+  inputs.nixpkgs.follows = "nixpkgs";
+};
+```
+
+**Testing with ghafpkgs PR**:
+```nix
+# In flake.nix
+ghafpkgs.url = "github:tiiuae/ghafpkgs?ref=pull/<number>/head";
+```
+
 ## Final Validation Checklist
 
 Before submitting any changes:
 - [ ] Build succeeds with appropriate timeout (60+ minutes for major targets)
 - [ ] Code properly formatted with treefmt: `nix fmt -- --fail-on-change` passes
-- [ ] `nix develop --command reuse lint` passes
+- [ ] License check passes: `nix develop --command reuse lint`
+- [ ] All checks pass: `nix flake check`
 - [ ] VM boots and basic functionality works (if applicable)
 - [ ] Documentation updated (if adding features)
 - [ ] Security implications considered
 - [ ] No secrets or credentials committed
 
 **Remember: Build processes are time-intensive. Plan for 1-3 hours for full validation cycles. NEVER CANCEL long-running builds.**
+
+## Resources
+
+- **Ghaf Documentation**: https://ghaf.tii.ae
+- **Ghaf Repository**: https://github.com/tiiuae/ghaf
+- **Ghafpkgs Repository**: https://github.com/tiiuae/ghafpkgs
+- **Nixpkgs Manual**: https://nixos.org/manual/nixpkgs/
+- **NixOS Manual**: https://nixos.org/manual/nixos/
+- **Nix Flakes**: https://nixos.wiki/wiki/Flakes
+- **REUSE Specification**: https://reuse.software/

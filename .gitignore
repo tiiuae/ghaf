@@ -8,6 +8,7 @@ ghaf-host.qcow2
 .direnv/
 .idea
 linux-*/
+.serena/
 gcroot/
 .pre-commit-config.yaml
 .aider*
