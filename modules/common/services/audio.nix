@@ -23,7 +23,7 @@ in
     enable = mkEnableOption "Enable audio service for audio VM";
     debug = mkOption {
       type = types.bool;
-      default = config.ghaf.profiles.debug.enable;
+      default = false;
       defaultText = "config.ghaf.profiles.debug.enable";
       description = "Enable debug logs for pipewire and wireplumber";
     };
@@ -97,7 +97,7 @@ in
 
     systemd.services =
       let
-        debugLevel = if cfg.debug then "3" else "1";
+        debugLevel = if cfg.debug then "3" else "0";
       in
       {
         pipewire = {
