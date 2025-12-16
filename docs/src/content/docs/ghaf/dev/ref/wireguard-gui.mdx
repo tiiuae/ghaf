@@ -21,7 +21,7 @@ import { Aside } from "@astrojs/starlight/components";
  wireguard-gui service should be enabled to appear ```Wireguard GUI``` button.
  It can be enabled to add vm nix config like following:
 ```nix
-ghaf.reference.services.wireguard-gui.enable =true;
+ghaf.reference.services.wireguard-gui.enable = true;
 ```
 </Aside>
 
@@ -60,14 +60,28 @@ You can try to ping: ```ping 10.10.10.0```
 Use this mode if you want all network traffic to be routed through the VPN tunnel for maximum privacy and encryption.
 ![Wireguard full tunnelling configuration](@assets/ghaf/wireguard_full_tunelling.png)
 
-You can run ```curl ifconfig.me``` command and response should be vpn server's public IP. For our case it should be ```1.2.3.4```
+You can run ```curl ifconfig.me``` command from ```chrome-vm``` and response should be vpn server's public IP. For our case it should be ```1.2.3.4```
+
+<Aside type="caution">
+- This configuration will not work from the `business-vm` due to its firewall configuration.
+</Aside>
 
 ### 3. VPN as server
 Configure WireGuard as a server to accept connections from multiple clients.
 
 ![Wireguard as server configuration](@assets/ghaf/wireguard_server_cfg.png)
 
-You can try to ping: ```ping 10.10.10.0```
+You can try to ping from test client: ```ping 10.10.10.4```
+
+<Aside type="caution">
+- You have to enable ```serverPorts``` in nix file.
+```nix
+ghaf.reference.services.wireguard-gui = {
+    enable = true;
+    serverPorts = [ 51820 ];
+};
+```
+</Aside>
 
 <Aside>
 - You can use an IP calculator to help generate correct `AllowedIPs` values: [WireGuard AllowedIPs Calculator](https://www.procustodibus.com/blog/2021/03/wireguard-allowedips-calculator/)
