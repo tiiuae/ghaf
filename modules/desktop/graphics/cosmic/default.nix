@@ -328,7 +328,7 @@ in
       }
       // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
         # PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
-        PIPEWIRE_DEBUG = "1";
+        # PIPEWIRE_DEBUG = "3";
       };
 
       etc = {
@@ -432,7 +432,8 @@ in
       };
 
       swayidle = {
-        inherit (cfg.idleManagement) enable;
+        #inherit (cfg.idleManagement) enable;
+        enable = false;
         description = "Ghaf system idle handler";
         path = with pkgs; [
           brightnessctl
@@ -485,13 +486,10 @@ in
 
     services.avahi = {
       enable = true;
+      ipv6 = false;
       nssmdns4 = true;
-      publish = {
-        enable = true;
-        userServices = true;
-        addresses = true;
-      };
       openFirewall = true;
+      allowInterfaces = [ "ethint0" ];
     };
 
     services.resolved = {
@@ -513,26 +511,12 @@ in
       jack.enable = false;
       systemWide = false;
       extraConfig = {
-        pipewire."10-remote-pulseaudio" = {
-          "context.modules" = [
-            {
-              name = "libpipewire-module-zeroconf-discover";
-              args = { };
-              flags = [ "nofail" ];
-            }
-          ];
-        };
-        pipewire-pulse."50-remote-pulseaudio" = {
+        pipewire-pulse."10-network-discover" = {
           "pulse.cmd" = [
             {
               cmd = "load-module";
               args = "module-zeroconf-discover";
-              flags = [ ];
-            }
-            {
-              cmd = "load-module";
-              args = "module-native-protocol-tcp";
-              flags = [ ];
+              flags = [ "nofail" ];
             }
           ];
         };

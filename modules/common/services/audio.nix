@@ -45,6 +45,7 @@ in
     hardware.firmware = [ pkgs.sof-firmware ];
     services.avahi = {
       enable = true;
+      ipv6 = false;
       nssmdns4 = true;
       publish = {
         enable = true;
@@ -52,6 +53,7 @@ in
         addresses = true;
       };
       openFirewall = true;
+      allowInterfaces = [ "ethint0" ];
     };
     services.resolved = {
       enable = true;
@@ -69,66 +71,17 @@ in
       alsa.enable = config.ghaf.development.debug.tools.enable;
       systemWide = true;
       extraConfig = {
-        pipewire."10-remote-pulseaudio" = {
-          "context.modules" = [
-            {
-              name = "libpipewire-module-protocol-pulse";
-              args = {
-                # Enable TCP socket for VMs pulseaudio clients
-                "server.address" = [
-                  {
-                    address = "tcp:0.0.0.0:${toString cfg.pulseaudioTcpPort}";
-                    "client.access" = "restricted";
-                  }
-                ];
-                "pulse.min.req" = "1024/48000";
-                "pulse.min.quantum" = "1024/48000";
-                "pulse.idle.timeout" = "3";
-              };
-            }
-            {
-              name = "libpipewire-module-protocol-pulse";
-              args = {
-                # Enable TCP socket for VMs pulseaudio clients
-                "server.address" = [
-                  {
-                    address = "tcp:0.0.0.0:${toString cfg.pulseaudioTcpControlPort}";
-                    "client.access" = "unrestricted";
-                  }
-                ];
-              };
-            }
-            {
-              name = "libpipewire-module-zeroconf-discover";
-              args = { };
-              flags = [ "nofail" ];
-            }
-          ];
-        };
-        pipewire-pulse."50-remote-pulseaudio" = {
+        pipewire-pulse."10-network-publish" = {
           "pulse.cmd" = [
             {
               cmd = "load-module";
               args = "module-zeroconf-publish";
-              flags = [ ];
+              flags = [ "nofail" ];
             }
             {
               cmd = "load-module";
-              args = "module-native-protocol-tcp";
-              flags = [
-                "port=${toString cfg.pulseaudioTcpPort}"
-                "listen=0.0.0.0"
-                "auth-ip-acl=192.168.100.0/8"
-              ];
-            }
-            {
-              cmd = "load-module";
-              args = "module-native-protocol-tcp";
-              flags = [
-                "port=${toString cfg.pulseaudioTcpControlPort}"
-                "listen=0.0.0.0"
-                "auth-ip-acl=192.168.100.0/8"
-              ];
+              args = "module-native-protocol-tcp listen=0.0.0.0 port=${toString cfg.pulseaudioTcpControlPort} auth-ip-acl=192.168.100.0/8";
+              flags = [ "nofail" ];
             }
           ];
         };
@@ -155,6 +108,13 @@ in
         pipewire = {
           wantedBy = [ "multi-user.target" ];
           environment.PIPEWIRE_DEBUG = debugLevel;
+        };
+        pipewire-pulse = {
+          wantedBy = [ "multi-user.target" ];
+          serviceConfig.ExecStart = lib.mkIf (debugLevel != "0") [
+            ""
+            "${lib.getExe' pkgs.pipewire "pipewire-pulse"} -vvv"
+          ];
         };
         wireplumber.environment.WIREPLUMBER_DEBUG = debugLevel;
       };
