@@ -127,11 +127,8 @@ let
                   inherit (configHost.ghaf.shm) serverSocketPath;
                 };
 
-                ghaf-audio = {
-                  inherit (vm.ghafAudio) enable;
-                  inherit (vm.ghafAudio) useTunneling;
-                  name = "${vm.name}";
-                };
+                services.audio.client = vm.ghafAudio.enable;
+
                 logging.client.enable = configHost.ghaf.logging.enable;
 
                 security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;

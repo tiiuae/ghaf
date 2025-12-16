@@ -327,7 +327,7 @@ in
         COSMIC_RENDER_DEVICE = cfg.renderDevice;
       }
       // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
-        # PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
+        # PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpPort}";
         # PIPEWIRE_DEBUG = "3";
       };
 
@@ -387,7 +387,7 @@ in
           Restart = "always";
           RestartSec = "5";
           ExecStart = ''
-            ${getExe' pkgs.ghaf-audio-control "GhafAudioControlStandalone"} --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=adjustlevels
+            ${getExe' pkgs.ghaf-audio-control "GhafAudioControlStandalone"} --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpPort} --deamon_mode=true --indicator_icon_name=adjustlevels
           '';
         };
         partOf = [ "cosmic-session.target" ];
