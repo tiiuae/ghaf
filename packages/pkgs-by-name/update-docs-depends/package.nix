@@ -89,6 +89,8 @@ writeShellApplication {
       if command -v npx &> /dev/null; then
         npx --yes npm-check-updates -u
         npm install
+        echo "[update-docs-deps] Running npm update in $DOCS_DIR (within semver constraints)"
+        npm update
       else
         echo "Error: npx not found. Cannot run upgrade mode." >&2
         exit 1
