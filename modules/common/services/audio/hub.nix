@@ -17,7 +17,6 @@ let
   inherit (lib)
     mkEnableOption
     mkIf
-    mkMerge
     mkOption
     types
     ;
@@ -25,110 +24,117 @@ let
 in
 {
   options.ghaf.services.audio = {
-    hub = mkEnableOption "";
-    guiPulseaudioTcpPort = mkOption {
-      type = types.int;
-      default = 4715;
-      description = "TCP port used by Pipewire-pulseaudio control on gui-vm";
+    hub = {
+      pulseaudioTcpPort = mkOption {
+        type = types.int;
+        default = 4715;
+        description = ''
+          TCP port used by PipeWire-PulseAudio control on hub server.
+
+          Ghaf audio clients should use this port to connect to the audio hub.
+        '';
+      };
+      debug = mkEnableOption "debug logs for pipewire and wireplumber";
     };
   };
 
-  config = mkIf cfg.hub {
+  config = mkIf (cfg.enable && (cfg.role == "hub")) {
     security.rtkit.enable = true;
-    hardware.firmware = [ pkgs.sof-firmware ];
 
     environment.systemPackages = with pkgs; [
       pavucontrol
     ];
 
-    services.avahi = {
-      enable = true;
-      ipv6 = false;
-      nssmdns4 = true;
-      publish = {
+    services = {
+      avahi = {
         enable = true;
-        userServices = true;
-        addresses = true;
+        ipv6 = false;
+        nssmdns4 = true;
+        openFirewall = true;
+        allowInterfaces = [ "ethint0" ];
       };
-      openFirewall = true;
-      allowInterfaces = [ "ethint0" ];
-    };
 
-    services.resolved = {
-      enable = true;
+      resolved = {
+        enable = true;
+        llmnr = "false";
+        extraConfig = ''
+          MulticastDNS=no
+          DNSStubListener=yes
+        '';
+      };
 
-      llmnr = "false";
-
-      extraConfig = ''
-        MulticastDNS=no
-        DNSStubListener=yes
-      '';
-    };
-
-    services.pipewire = {
-      enable = true;
-      pulse.enable = true;
-      alsa.enable = config.ghaf.development.debug.tools.enable;
-      systemWide = false;
-      extraConfig = {
-        pipewire."10-remote-pulseaudio" = {
-          "context.modules" = [
-            {
-              name = "libpipewire-module-protocol-pulse";
-              args = {
-                # Enable TCP socket for VMs pulseaudio clients
-                "server.address" = [
-                  {
-                    address = "tcp:0.0.0.0:${toString cfg.guiPulseaudioTcpPort}";
-                    "client.access" = "restricted";
-                  }
+      pipewire = {
+        enable = true;
+        pulse.enable = true;
+        alsa.enable = config.ghaf.development.debug.tools.enable;
+        systemWide = false;
+        extraConfig = {
+          pipewire."10-remote-pulseaudio" = {
+            "context.modules" = [
+              {
+                name = "libpipewire-module-protocol-pulse";
+                args = {
+                  # Enable TCP socket for VMs pulseaudio clients
+                  "server.address" = [
+                    {
+                      address = "tcp:0.0.0.0:${toString cfg.hub.pulseaudioTcpPort}";
+                      "client.access" = "restricted";
+                    }
+                  ];
+                  "pulse.min.req" = "1024/48000";
+                  "pulse.min.quantum" = "1024/48000";
+                  "pulse.idle.timeout" = "3";
+                };
+              }
+            ];
+          };
+          pipewire."20-add-tunnel-nicks" = {
+            "node.rules" = [
+              {
+                matches = [
+                  { "node.name" = "~tunnel.*output*"; }
                 ];
-                "pulse.min.req" = "1024/48000";
-                "pulse.min.quantum" = "1024/48000";
-                "pulse.idle.timeout" = "3";
-              };
-            }
-          ];
-        };
-        pipewire."20-rename-tunnels" = {
-          "node.rules" = [
-            {
-              matches = [
-                { "node.name" = "~tunnel.*output*"; }
-              ];
-              actions = {
-                update-props = {
-                  "node.nick" = "audio-vm output device";
+                actions = {
+                  update-props = {
+                    "node.nick" = "audio-vm output device";
+                  };
                 };
-              };
-            }
-            {
-              matches = [
-                { "node.name" = "~tunnel.*input*"; }
-              ];
-              actions = {
-                update-props = {
-                  "node.nick" = "audio-vm input device";
+              }
+              {
+                matches = [
+                  { "node.name" = "~tunnel.*input*"; }
+                ];
+                actions = {
+                  update-props = {
+                    "node.nick" = "audio-vm input device";
+                  };
                 };
-              };
-            }
-          ];
-        };
-        pipewire-pulse."30-network-discover" = {
-          "pulse.cmd" = [
-            {
-              cmd = "load-module";
-              args = "module-zeroconf-discover";
-              flags = [ "nofail" ];
-            }
-          ];
+              }
+            ];
+          };
+          pipewire-pulse."30-network-discover" = {
+            "pulse.cmd" = [
+              {
+                cmd = "load-module";
+                args = "module-zeroconf-discover";
+                flags = [ "nofail" ];
+              }
+            ];
+          };
+          pipewire-pulse."40-pulse-config" = {
+            "pulse.properties" = {
+              "pulse.min.req" = "128/48000";
+              "pulse.min.quantum" = "128/48000";
+              "pulse.idle.timeout" = "3";
+            };
+          };
         };
       };
     };
 
     systemd.services =
       let
-        debugLevel = if cfg.debug then "2" else "0";
+        debugLevel = if cfg.hub.debug then "2" else "0";
       in
       {
         pipewire = {
@@ -139,19 +145,17 @@ in
           wantedBy = [ "multi-user.target" ];
           serviceConfig.ExecStart = lib.mkIf (debugLevel != "0") [
             ""
-            "${lib.getExe' pkgs.pipewire "pipewire-pulse"} -vvv"
+            "${lib.getExe' pkgs.pipewire "pipewire-pulse"} -vv"
           ];
         };
         wireplumber.environment.WIREPLUMBER_DEBUG = debugLevel;
       };
 
-    ghaf = mkMerge [
-      {
-        # Open TCP port for the pipewire pulseaudio socket
-        firewall.allowedTCPPorts = with cfg; [
-          guiPulseaudioTcpPort
-        ];
-      }
-    ];
+    ghaf = {
+      # Open TCP port for the pipewire pulseaudio socket
+      firewall.allowedTCPPorts = with cfg.hub; [
+        pulseaudioTcpPort
+      ];
+    };
   };
 }

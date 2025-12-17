@@ -9,19 +9,14 @@
 let
   cfg = config.ghaf.services.audio;
   inherit (lib)
-    mkEnableOption
     mkIf
     ;
   host = "gui-vm";
-  address = "tcp:${host}:${toString 4715}";
+  address = "tcp:${host}:${toString cfg.hub.pulseaudioTcpPort}";
 
 in
 {
-  options.ghaf.services.audio = {
-    client = mkEnableOption "";
-  };
-
-  config = mkIf cfg.client {
+  config = mkIf (cfg.enable && (cfg.role == "client")) {
     environment = {
       systemPackages = [ pkgs.pulseaudio ];
       sessionVariables = {

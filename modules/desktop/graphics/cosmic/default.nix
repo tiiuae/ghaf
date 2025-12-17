@@ -467,8 +467,5 @@ in
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
     services.orca.enable = pkgs.stdenv.hostPlatform.isx86_64;
-
-    ghaf.services.audio.hub = true;
-    services.playerctld.enable = true;
   };
 }
