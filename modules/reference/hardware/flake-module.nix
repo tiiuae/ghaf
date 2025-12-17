@@ -49,7 +49,9 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix;
-        ghaf.hardware.passthrough.pci.autoDetectPci = true;
+        ghaf.hardware.passthrough.pci.autoDetectGpu = true;
+        ghaf.hardware.passthrough.pci.autoDetectNet = true;
+        ghaf.hardware.passthrough.pci.autoDetectAudio = true;
       }
     ];
 
@@ -113,6 +115,7 @@
         ghaf.virtualization.microvm.guivm.extraModules = [
           (import ./tower-5080/extra-config.nix)
         ];
+        ghaf.hardware.passthrough.pci.autoDetectNet = true;
       }
     ];
 

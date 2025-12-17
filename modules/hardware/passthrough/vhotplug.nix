@@ -153,6 +153,7 @@ in
           inherit (cfg.api) port;
           inherit (cfg.api) transports;
           inherit (cfg.api) allowedCids;
+          unixSocketUser = "microvm";
         };
         modprobe = lib.getExe' pkgs.kmod "modprobe";
         modinfo = lib.getExe' pkgs.kmod "modinfo";
@@ -164,6 +165,7 @@ in
       description = "vhotplug";
       wantedBy = [ "multi-user.target" ];
       after = [ "local-fs.target" ];
+      before = [ "microvm@.service" ];
       serviceConfig = {
         Type = "simple";
         Restart = "always";
