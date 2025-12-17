@@ -84,7 +84,7 @@ let
     };
 
     # Audio module
-    audio = optionalAttrs cfg.audiovm.audio { config.ghaf.services.audio.server = true; };
+    audio = optionalAttrs cfg.audiovm.audio { config.ghaf.services.audio.anchor = true; };
 
     # Bluetooth module
     bluetooth = optionalAttrs cfg.audiovm.audio {

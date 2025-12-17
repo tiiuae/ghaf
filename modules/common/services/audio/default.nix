@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./server.nix
+    ./anchor.nix
     ./client.nix
+    ./hub.nix
   ];
 }

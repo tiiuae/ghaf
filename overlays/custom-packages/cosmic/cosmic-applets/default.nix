@@ -9,7 +9,7 @@
 prev.cosmic-applets.overrideAttrs (oldAttrs: {
   patches = oldAttrs.patches ++ [
     # audio and bluetooth patches should be removed when dbus-proxy allows
-    ./0001-audio-applet-hide-sound-settings-button.patch
+    # ./0001-audio-applet-hide-sound-settings-button.patch
     ./0001-bluetooth-applet-hide-bluetooth-settings-button.patch
     ./0001-network-applet-hide-airplane-mode-toggle.patch
   ];

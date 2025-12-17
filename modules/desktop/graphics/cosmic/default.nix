@@ -13,7 +13,6 @@ let
     mkOption
     types
     getExe
-    getExe'
     literalExpression
     ;
 
@@ -379,21 +378,6 @@ in
         wantedBy = [ "cosmic-session.target" ];
       };
 
-      audio-control = {
-        enable = false;
-        description = "Audio Control application";
-        serviceConfig = {
-          Type = "simple";
-          Restart = "always";
-          RestartSec = "5";
-          ExecStart = ''
-            ${getExe' pkgs.ghaf-audio-control "GhafAudioControlStandalone"} --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpPort} --deamon_mode=true --indicator_icon_name=adjustlevels
-          '';
-        };
-        partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
-
       usb-passthrough-applet = {
         description = "USB Passthrough Applet";
         serviceConfig = {
@@ -484,43 +468,7 @@ in
     # Fails to build in cross-compilation for Orins
     services.orca.enable = pkgs.stdenv.hostPlatform.isx86_64;
 
-    services.avahi = {
-      enable = true;
-      ipv6 = false;
-      nssmdns4 = true;
-      openFirewall = true;
-      allowInterfaces = [ "ethint0" ];
-    };
-
-    services.resolved = {
-      enable = true;
-
-      llmnr = "false";
-
-      extraConfig = ''
-        MulticastDNS=no
-        DNSStubListener=yes
-      '';
-    };
-
-    services.pipewire = {
-      enable = true;
-      # Disable audio backends
-      alsa.enable = false;
-      pulse.enable = true;
-      jack.enable = false;
-      systemWide = false;
-      extraConfig = {
-        pipewire-pulse."10-network-discover" = {
-          "pulse.cmd" = [
-            {
-              cmd = "load-module";
-              args = "module-zeroconf-discover";
-              flags = [ "nofail" ];
-            }
-          ];
-        };
-      };
-    };
+    ghaf.services.audio.hub = true;
+    services.playerctld.enable = true;
   };
 }

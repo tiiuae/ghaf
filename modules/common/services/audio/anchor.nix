@@ -1,26 +1,30 @@
-# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-FileCopyrightText: 2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-#
+
+# Ghaf audio server configuration
+# This module should be enabled on the VM acting as the main audio server with access to all audio hardware.
+# Typically, this module is enabled on the audio vm.
 {
-  config,
   pkgs,
+  config,
   lib,
   ...
 }:
 let
   cfg = config.ghaf.services.audio;
   inherit (lib)
-    mkIf
     mkEnableOption
+    mkIf
+    mkMerge
     mkOption
     types
-    mkMerge
     optionalAttrs
     ;
+
 in
 {
   options.ghaf.services.audio = {
-    enable = mkEnableOption "Enable audio service for audio VM";
+    anchor = mkEnableOption "";
     debug = mkOption {
       type = types.bool;
       default = false;
@@ -29,17 +33,12 @@ in
     };
     pulseaudioTcpPort = mkOption {
       type = types.int;
-      default = 4713;
-      description = "TCP port used by Pipewire-pulseaudio service";
-    };
-    pulseaudioTcpControlPort = mkOption {
-      type = types.int;
       default = 4714;
       description = "TCP port used by Pipewire-pulseaudio control";
     };
   };
 
-  config = mkIf cfg.enable {
+  config = mkIf cfg.anchor {
     # Enable pipewire service for audioVM with pulseaudio support
     security.rtkit.enable = true;
     hardware.firmware = [ pkgs.sof-firmware ];
@@ -71,7 +70,16 @@ in
       alsa.enable = config.ghaf.development.debug.tools.enable;
       systemWide = true;
       extraConfig = {
-        pipewire-pulse."10-network-publish" = {
+        pipewire-pulse."10-pulse-config" = {
+          "pulse.properties" = {
+            "flat-volumes" = "yes";
+            "pulse.flat-volumes" = "yes";
+            "pulse.min.req" = "1024/48000";
+            "pulse.min.quantum" = "1024/48000";
+            "pulse.idle.timeout" = "3";
+          };
+        };
+        pipewire-pulse."20-network-publish" = {
           "pulse.cmd" = [
             {
               cmd = "load-module";
@@ -80,22 +88,29 @@ in
             }
             {
               cmd = "load-module";
-              args = "module-native-protocol-tcp listen=0.0.0.0 port=${toString cfg.pulseaudioTcpControlPort} auth-ip-acl=192.168.100.0/8";
+              args = "module-native-protocol-tcp listen=0.0.0.0 port=${toString cfg.pulseaudioTcpPort} auth-ip-acl=192.168.100.0/8";
               flags = [ "nofail" ];
             }
           ];
         };
       };
       # Disable the auto-switching to the low-quality HSP profile
-      wireplumber.extraConfig.disable-autoswitch = {
-        "wireplumber.settings" = {
-          "bluetooth.autoswitch-to-headset-profile" = "false";
+      wireplumber.extraConfig = {
+        "disable-autoswitch" = {
+          "wireplumber.settings" = {
+            "bluetooth.autoswitch-to-headset-profile" = "false";
+          };
+          "monitor.alsa.properties" = {
+            "alsa.use-acp" = "true";
+            "acp.auto-profile" = "true";
+            "acp.auto-port" = "true";
+          };
         };
-        # Enable alsa ACP auto profile for headphones
-        "monitor.alsa.properties" = {
-          "alsa.use-acp" = "true";
-          "acp.auto-profile" = "true";
-          "acp.auto-port" = "true";
+        "set-default-volumes" = {
+          "wireplumber.settings" = {
+            "device.routes.default-sink-volume" = 1.0;
+            "device.routes.default-source-volume" = 1.0;
+          };
         };
       };
     };
@@ -124,7 +139,6 @@ in
         # Open TCP port for the pipewire pulseaudio socket
         firewall.allowedTCPPorts = with cfg; [
           pulseaudioTcpPort
-          pulseaudioTcpControlPort
         ];
       }
       # Enable persistent storage for pipewire state to restore settings on boot
