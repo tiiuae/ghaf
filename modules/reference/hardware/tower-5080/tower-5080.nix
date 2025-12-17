@@ -20,6 +20,13 @@
       "acpi_osi=linux"
       "module_blacklist=nouveau,snd,snd_hda_intel,igc,iwlwifi,bluetooth"
     ];
+
+    # Assign the vfio-pci driver for all device types eligible for passthrough
+    # vfio-pci.ids format is vendor:device[:subvendor[:subdevice[:class[:class_mask]]]]
+    # 0xffffffff = PCI_ANY_ID
+    extraVfioPciIds = [
+      "ffffffff:ffffffff:ffffffff:ffffffff:020000:ff0000" # Network Controllers
+    ];
   };
 
   # Input devices

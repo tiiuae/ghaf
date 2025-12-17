@@ -1,7 +1,12 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
 let
   inherit (lib)
     mkOption
@@ -25,9 +30,9 @@ let
         }) config.ghaf.hardware.definition.gpu.pciDevices;
       }
     ]
-    ++ optionals cfg.autoDetectPci [
+    ++ optionals cfg.autoDetectGpu [
       {
-        description = "Dynamic PCI Devices for GUIVM";
+        description = "Auto-detected PCI Devices for GUIVM";
         targetVm = "gui-vm";
         skipOnSuspend = true;
         pciIommuAddAll = true;
@@ -54,9 +59,9 @@ let
         ;
       }
     ]
-    ++ optionals cfg.autoDetectPci [
+    ++ optionals cfg.autoDetectNet [
       {
-        description = "Dynamic PCI Devices for NetVM";
+        description = "Auto-detected PCI Devices for NetVM";
         targetVm = "net-vm";
         pciIommuSkipIfShared = true;
         allow = [
@@ -80,9 +85,9 @@ let
         }) config.ghaf.hardware.definition.audio.pciDevices;
       }
     ]
-    ++ optionals cfg.autoDetectPci [
+    ++ optionals cfg.autoDetectAudio [
       {
-        description = "Dynamic Devices for AudioVM";
+        description = "Auto-detected Devices for AudioVM";
         targetVm = "audio-vm";
         pciIommuAddAll = true;
         allow = [
@@ -94,6 +99,12 @@ let
         ];
       }
     ];
+  busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
+  hwDetectModule = vm: [
+    {
+      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} pci vmmargs --vm ${vm} --qemu-bus-prefix ${busPrefix}";
+    }
+  ];
 
 in
 {
@@ -117,9 +128,25 @@ in
       default = defaultAudiovmPciRules;
     };
 
-    autoDetectPci = mkOption {
+    autoDetectGpu = mkOption {
       description = ''
-        Auto-detect PCI devices.
+        Auto-detect GPU PCI devices.
+      '';
+      type = types.bool;
+      default = false;
+    };
+
+    autoDetectNet = mkOption {
+      description = ''
+        Auto-detect network PCI devices.
+      '';
+      type = types.bool;
+      default = false;
+    };
+
+    autoDetectAudio = mkOption {
+      description = ''
+        Auto-detect audio PCI devices.
       '';
       type = types.bool;
       default = false;
@@ -133,5 +160,14 @@ in
       ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
       ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
 
+    ghaf.virtualization.microvm.guivm.extraModules = optionals cfg.autoDetectGpu (
+      hwDetectModule "gui-vm"
+    );
+    ghaf.virtualization.microvm.netvm.extraModules = optionals cfg.autoDetectNet (
+      hwDetectModule "net-vm"
+    );
+    ghaf.virtualization.microvm.audiovm.extraModules = optionals cfg.autoDetectAudio (
+      hwDetectModule "audio-vm"
+    );
   };
 }

@@ -9,13 +9,21 @@
 
   # Host configuration
   host = {
-    kernelConfig.kernelParams = [
-      "intel_iommu=on,sm_on"
-      "iommu=pt"
-      "acpi_backlight=vendor"
-      "acpi_osi=linux"
-      "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus"
-    ];
+    kernelConfig = {
+      kernelParams = [
+        "intel_iommu=on,sm_on"
+        "iommu=pt"
+        "acpi_backlight=vendor"
+        "acpi_osi=linux"
+        "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus"
+      ];
+
+      # The vfio-pci module must be explicitly enabled on the host
+      # On other targets, microvm loads it when static PCI devices are present
+      stage2.kernelModules = [
+        "vfio_pci"
+      ];
+    };
 
     # Assign the vfio-pci driver for all device types eligible for passthrough
     # vfio-pci.ids format is vendor:device[:subvendor[:subdevice[:class[:class_mask]]]]
@@ -37,14 +45,8 @@
     }
   ];
 
-  # GPU devices generally don't handle hotplugging well
-  # However, Intel integrated GPU usually has PCI address 0000:00:02.0, so we can keep it statically defined here
+  # GPU devices for passthrough to guivm detected dynamically in vhotplug
   gpu = {
-    pciDevices = [
-      {
-        path = "0000:00:02.0";
-      }
-    ];
     kernelConfig = {
       stage1.kernelModules = [
         "i915"
