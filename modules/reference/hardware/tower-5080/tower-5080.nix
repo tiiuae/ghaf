@@ -43,24 +43,13 @@
 
   # Network devices for passthrough to netvm
   network = {
+    # Network devices for passthrough to netvm detected dynamically in vhotplug
+    # This is left here because google-chromecast service depends on the static network interface name
+    # TODO: refactor google-chromecast service to avoid using staticly defined network interface name
     pciDevices = [
       {
-        # Network controller: Intel Corporation Raptor Lake-S PCH CNVi WiFi (rev 11)
         name = "wlp0s5f0";
-        path = "0000:00:14.3";
-        vendorId = "8086";
-        productId = "7a70";
-        # Detected kernel driver: iwlwifi
-        # Detected kernel modules: iwlwifi
-      }
-      {
-        # Ethernet controller: Intel Corporation Ethernet Controller I226-V (rev 04)
-        name = "eth0";
-        path = "0000:04:00.0";
-        vendorId = "8086";
-        productId = "125c";
-        # Detected kernel driver: igc
-        # Detected kernel modules: igc
+        path = "";
       }
     ];
     kernelConfig = {
