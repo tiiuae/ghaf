@@ -2,16 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 #
-# This partition scheme is used for development & debug systems. It contains
-# four partitions.
+# This partition scheme is used for development & debug systems.
 #
 # First two partitions are related to the boot process:
 # - boot : Bootloader partition
-# - ESP-A : (500M) Kernel and initrd
+# - ESP : (500M) Kernel and initrd
 #
-# Which is followed by the data partitions:
-# - root : Root partition which contains the Nix store
-# - persist : Persistence partition for system & user data
+# The third partition is a container for LVM, optionally encrypted with LUKS.
+# LVM is used to create logical volumes for root, swap and persist.
+#
+# When deferred encryption is enabled, the image is created WITHOUT LUKS
+# encryption initially. Encryption is applied on first boot when the user
+# provides credentials, converting the layout to: LUKS → LVM → LVs
 {
   pkgs,
   lib,
@@ -77,85 +79,79 @@ in
                   };
                   priority = 2;
                 };
-                swap =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      size = "12G";
-                      content = {
-                        type = "luks";
-                        name = "swap";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "swap";
-                          resumeDevice = true; # resume from hiberation from this device
-                        };
-                      };
-                      priority = 3;
-                    }
-                  else
-                    {
-                      size = "12G";
-                      type = "8200";
-                      content = {
-                        type = "swap";
-                        resumeDevice = true; # resume from hiberation from this device
-                        randomEncryption = true;
-                      };
-                      priority = 3;
+                luks =
+                  let
+                    # Plain LVM content without LUKS wrapper
+                    plainLvmContent = {
+                      type = "lvm_pv";
+                      vg = "pool";
                     };
-                root = {
-                  size = "50G";
-                  content = {
-                    type = "filesystem";
-                    format = "ext4";
-                    mountpoint = "/";
-                    mountOptions = [
-                      "noatime"
-                      "nodiratime"
-                    ];
+                    # LUKS-wrapped LVM content
+                    encryptedLvmContent = {
+                      type = "luks";
+                      name = "crypted";
+                      askPassword = false;
+                      initrdUnlock = false;
+                      settings = {
+                        keyFile = "${defaultPassword}";
+                      };
+                      content = plainLvmContent;
+                    };
+                  in
+                  {
+                    size = "100%";
+                    priority = 3;
+                    name = "luks";
+                    content =
+                      if config.ghaf.storage.encryption.enable && !config.ghaf.storage.encryption.deferred then
+                        encryptedLvmContent
+                      else
+                        plainLvmContent;
                   };
-                  priority = 4;
+              };
+            };
+          };
+        };
+
+        lvm_vg = {
+          pool = {
+            type = "lvm_vg";
+            lvs = {
+              swap = {
+                size = "12G";
+                content = {
+                  type = "swap";
+                  resumeDevice = true; # resume from hibernation from this device
+                  randomEncryption = !config.ghaf.storage.encryption.enable;
                 };
-                persist =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      size = "2G";
-                      content = {
-                        type = "luks";
-                        name = "persist";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "filesystem";
-                          format = "btrfs";
-                          mountpoint = "/persist";
-                          mountOptions = [
-                            "noatime"
-                            "nodiratime"
-                          ];
-                        };
-                      };
-                    }
-                  else
-                    {
-                      size = "100%";
-                      content = {
-                        type = "filesystem";
-                        format = "btrfs";
-                        mountpoint = "/persist";
-                        mountOptions = [
-                          "noatime"
-                          "nodiratime"
-                        ];
-                      };
-                    };
+              };
+
+              root = {
+                size = "50G";
+                content = {
+                  type = "filesystem";
+                  format = "ext4";
+                  mountpoint = "/";
+                  mountOptions = [
+                    "noatime"
+                    "nodiratime"
+                  ];
+                };
+              };
+
+              persist = {
+                # For deferred encryption, start with full size (will be extended after encryption)
+                # For immediate encryption, start with 2G (will be extended by btrfs-postboot)
+                size = "2G";
+                content = {
+                  type = "filesystem";
+                  format = "btrfs";
+                  mountpoint = "/persist";
+                  mountOptions = [
+                    "noatime"
+                    "nodiratime"
+                  ];
+                };
               };
             };
           };
