@@ -44,7 +44,11 @@ in
         '';
         type = types.nullOr types.str;
         defaultText = "config.ghaf.networking.hosts.gui-vm.ipv4";
-        default = config.ghaf.networking.hosts."gui-vm".ipv4;
+        default =
+          if (lib.hasAttr "gui-vm" config.ghaf.networking.hosts) then
+            config.ghaf.networking.hosts."gui-vm".ipv4
+          else
+            null;
       };
       restoreOnBoot = mkEnableOption ''
         restoring pipewire audio settings on boot from persistent storage.
