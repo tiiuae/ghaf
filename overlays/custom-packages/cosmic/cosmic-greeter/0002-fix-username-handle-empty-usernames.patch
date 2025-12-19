@@ -1,0 +1,64 @@
+From 029608aded74b2bb303656b04a5137a9afa434c7 Mon Sep 17 00:00:00 2001
+From: Manuel Bluhm <manuel@ssrc.tii.ae>
+Date: Fri, 19 Dec 2025 16:23:36 +0400
+Subject: [PATCH] fix(username): handle empty usernames
+
+Default to prompting username if no user was found, and create
+session only if username is available.
+
+Signed-off-by: Manuel Bluhm <manuel@ssrc.tii.ae>
+---
+ src/greeter.rs | 16 +++++++++++-----
+ 1 file changed, 11 insertions(+), 5 deletions(-)
+
+diff --git a/src/greeter.rs b/src/greeter.rs
+index d917e79..25c1bac 100644
+--- a/src/greeter.rs
++++ b/src/greeter.rs
+@@ -1152,6 +1152,7 @@ impl cosmic::Application for App {
+             .or_else(|| session_names.first().cloned())
+             .unwrap_or_default();
+         let data_idx = Some(0);
++        let entering_name = username.is_empty();
+         let selected_username = NameIndexPair { username, data_idx };
+         let accessibility = Accessibility {
+             helper: cosmic_settings_daemon_config::greeter::GreeterAccessibilityState::config()
+@@ -1171,7 +1172,7 @@ impl cosmic::Application for App {
+             dialog_page_opt: None,
+             dropdown_opt: None,
+             heartbeat_handle: None,
+-            entering_name: false,
++            entering_name,
+             accessibility,
+             theme_builder: Default::default(),
+             randr_list: None,
+@@ -1324,10 +1325,12 @@ impl cosmic::Application for App {
+             Message::Socket(socket_state) => {
+                 self.socket_state = socket_state;
+                 if let SocketState::Open = &self.socket_state {
+-                    // When socket is opened, send create session
+-                    self.send_request(Request::CreateSession {
+-                        username: self.selected_username.username.clone(),
+-                    });
++                    if !self.selected_username.username.is_empty() {
++                        // When socket is opened and username is set, send create session
++                        self.send_request(Request::CreateSession {
++                            username: self.selected_username.username.clone(),
++                        });
++                    }
+                 }
+             }
+             Message::Reload(new) => {
+@@ -1357,6 +1360,9 @@ impl cosmic::Application for App {
+                 }
+             }
+             Message::Username(username) => {
++                if username.trim().is_empty() {
++                    return Task::none();
++                }
+                 if self.dropdown_opt == Some(Dropdown::User) {
+                     self.dropdown_opt = None;
+                 }
+--
+2.49.0
+
