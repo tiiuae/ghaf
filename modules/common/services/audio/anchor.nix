@@ -34,22 +34,6 @@ in
           Ghaf audio hub server should use this port to connect to the audio anchor server.
         '';
       };
-      authIpAcl = mkOption {
-        description = ''
-          IP ACL for clients allowed to connect to the PipeWire-Pulse TCP socket.
-
-          By default, allow only gui-vm to connect, as it's the default hub server.
-
-          Set to an empty string to allow all VMs (not recommended).
-        '';
-        type = types.nullOr types.str;
-        defaultText = "config.ghaf.networking.hosts.gui-vm.ipv4";
-        default =
-          if (lib.hasAttr "gui-vm" config.ghaf.networking.hosts) then
-            config.ghaf.networking.hosts."gui-vm".ipv4
-          else
-            null;
-      };
       restoreOnBoot = mkEnableOption ''
         restoring pipewire audio settings on boot from persistent storage.
 
@@ -91,31 +75,44 @@ in
       pipewire = {
         enable = true;
         pulse.enable = true;
+        socketActivation = false;
         alsa.enable = config.ghaf.development.debug.tools.enable;
         systemWide = true;
         extraConfig = {
-          pipewire-pulse."10-pulse-config" = {
+          pipewire-pulse."10-anchor-server" = {
+            "context.modules" = [ ];
             "pulse.properties" = {
-              "pulse.min.req" = "128/48000";
-              "pulse.min.quantum" = "128/48000";
-              "pulse.idle.timeout" = "0";
+              # the addresses this server listens on
+              "server.address" = [
+                #"unix:native"                # We don't need a unix native server on anchor
+                #"unix:/tmp/something"        # absolute paths may be used
+                #"tcp:4714"                   # IPv4 and IPv6 on all addresses
+                #"tcp:[::]:9999"              # IPv6 on all addresses
+                #"tcp:127.0.0.1:8888"         # IPv4 on a single address
+                #
+                {
+                  "address" = "tcp:${toString cfg.anchor.pulseaudioTcpPort}"; # address
+                  "max-clients" = 8; # maximum number of clients
+                  "listen-backlog" = 32; # backlog in the server listen queue
+                  "client.access" = "restricted"; # permissions for clients (restricted|unrestricted)
+                }
+              ];
+              #"server.dbus-name"       = "org.pulseaudio.Server";
+              "pulse.allow-module-loading" = false;
+              "pulse.min.req" = "128/48000"; # 2.7ms
+              "pulse.default.req" = "960/48000"; # 20 milliseconds
+              "pulse.min.frag" = "128/48000"; # 2.7ms
+              "pulse.default.frag" = "96000/48000"; # 2 seconds
+              "pulse.default.tlength" = "96000/48000"; # 2 seconds
+              "pulse.min.quantum" = "128/48000"; # 2.7ms
+              #"pulse.default.format" = "F32";
+              #"pulse.default.position" = [ FL FR ];
+              "pulse.idle.timeout" = "30";
             };
-          };
-          pipewire-pulse."20-network-publish" = {
             "pulse.cmd" = [
               {
                 cmd = "load-module";
                 args = "module-zeroconf-publish";
-                flags = [ "nofail" ];
-              }
-              {
-                cmd = "load-module";
-                args = "module-native-protocol-tcp listen=0.0.0.0 port=${toString cfg.anchor.pulseaudioTcpPort} auth-ip-acl=${
-                  if (cfg.anchor.authIpAcl == "" || cfg.anchor.authIpAcl == null) then
-                    "192.168.100.0/8"
-                  else
-                    cfg.anchor.authIpAcl
-                }";
                 flags = [ "nofail" ];
               }
             ];
@@ -151,6 +148,7 @@ in
         pipewire = {
           wantedBy = [ "multi-user.target" ];
           environment.PIPEWIRE_DEBUG = debugLevel;
+          environment.PULSE_LATENCY_MSEC = "0";
         };
         pipewire-pulse = {
           wantedBy = [ "multi-user.target" ];
@@ -170,7 +168,7 @@ in
         ];
       }
       # Enable persistent storage for pipewire state to restore settings on boot
-      # This is not necessarily needed as we
+      # This is not necessarily needed as we force the anchor to restore at 100% volume on boot
       (mkIf cfg.anchor.restoreOnBoot (
         optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
           storagevm.directories = [

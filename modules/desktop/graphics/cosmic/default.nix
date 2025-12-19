@@ -44,46 +44,6 @@ let
     text = '''' + cfg.extraAutostart;
   };
 
-  cosmic-cpu-watchdog = pkgs.writeShellApplication {
-    name = "cosmic-cpu-watchdog";
-
-    runtimeInputs = [
-      pkgs.procps
-      pkgs.gawk
-    ];
-
-    text = ''
-      PROCESSES=("cosmic-applet-audio" "cosmic-osd")
-      KILLABLES=("cosmic-panel" "cosmic-osd")
-
-      THRESHOLD=80
-      TIMEOUT=300
-      INTERVAL=10
-      ELAPSED=0
-
-      while (( ELAPSED < TIMEOUT )); do
-          for PROC in "''${PROCESSES[@]}"; do
-              PID=$(pgrep -n -f "$PROC" 2>/dev/null) || continue
-              CPU=$(ps -o %cpu= -p "$PID" 2>/dev/null | awk '{print int($1)}')
-              [[ -z "$CPU" ]] && continue
-
-              if (( CPU > THRESHOLD )); then
-                  echo "High CPU detected, killing processes..."
-                  for KILL_PROC in "''${KILLABLES[@]}"; do
-                      pkill -xf "$KILL_PROC" && echo "Killed $KILL_PROC"
-                  done
-                  exit 0
-              fi
-          done
-
-          sleep "$INTERVAL"
-          ELAPSED=$((ELAPSED + INTERVAL))
-      done
-
-      echo "No processes exceeded threshold, exiting"
-    '';
-  };
-
   # Change papirus folder icons to grey
   papirus-icon-theme-grey = pkgs.papirus-icon-theme.override {
     color = "grey";
@@ -296,7 +256,6 @@ in
     services.displayManager.cosmic-greeter.enable = true;
 
     ghaf.graphics.login-manager.enable = true;
-    ghaf.graphics.login-manager.failLock.enable = true;
 
     ghaf.graphics.screen-recorder.enable = cfg.screenRecorder.enable;
 
@@ -320,14 +279,10 @@ in
         XDG_VIDEOS_DIR = "$HOME/Videos";
         XCURSOR_THEME = "Cosmic";
         XCURSOR_SIZE = 24;
-        RUST_LOG = "info";
+        RUST_LOG = "error";
       }
       // lib.optionalAttrs (cfg.renderDevice != null) {
         COSMIC_RENDER_DEVICE = cfg.renderDevice;
-      }
-      // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
-        # PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpPort}";
-        # PIPEWIRE_DEBUG = "3";
       };
 
       etc = {
@@ -346,23 +301,6 @@ in
       }
       // lib.optionalAttrs cfg.idleManagement.enable {
         "swayidle/config".text = swayidleConfig;
-      }
-      // lib.optionalAttrs (!graphicsProfileCfg.proxyAudio) {
-        # This ensures pulse doesn't try to load any hardware modules,
-        # and runs 'empty' modules instead.
-        # ref https://github.com/pop-os/cosmic-osd/issues/70
-        "pulse/default.pa".text = ''
-          # Load a null sink so the daemon doesn't quit
-          load-module module-null-sink sink_name=dummy
-          # Optionally: Load a null source too
-          load-module module-null-source source_name=void
-
-          # Don't load any real hardware modules
-          # You could also add: .nofail to skip errors
-
-          # No auto-detection
-          .nofail
-        '';
       };
     };
 
@@ -416,8 +354,7 @@ in
       };
 
       swayidle = {
-        #inherit (cfg.idleManagement) enable;
-        enable = false;
+        inherit (cfg.idleManagement) enable;
         description = "Ghaf system idle handler";
         path = with pkgs; [
           brightnessctl
@@ -431,19 +368,6 @@ in
           ExecStart = "${getExe pkgs.swayidle} -w -C /etc/swayidle/config";
         };
         partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
-
-      # Kill cosmic-osd and cosmic-applet-audio if they exceed CPU usage threshold
-      # TODO: remove when upstream fixes the issue
-      # ref https://github.com/pop-os/cosmic-osd/issues/70
-      cosmic-cpu-watchdog = {
-        description = "Ghaf COSMIC CPU usage watchdog";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${getExe cosmic-cpu-watchdog}";
-        };
-        after = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
       };
     };

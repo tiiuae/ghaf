@@ -1,0 +1,72 @@
+From e63e4dc2976dedcfb29244e820711fa03d6f798a Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Date: Fri, 19 Dec 2025 14:54:57 +0200
+Subject: [PATCH] zeroconf-discover: allow nodes with same names
+
+Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+---
+ src/modules/module-zeroconf-discover.c | 13 ++++++-------
+ 1 file changed, 6 insertions(+), 7 deletions(-)
+
+diff --git a/src/modules/module-zeroconf-discover.c b/src/modules/module-zeroconf-discover.c
+index b324db403..465a54765 100644
+--- a/src/modules/module-zeroconf-discover.c
++++ b/src/modules/module-zeroconf-discover.c
+@@ -95,6 +95,7 @@ struct impl {
+
+ struct tunnel_info {
+ 	const char *name;
++	const char *mode;
+ };
+
+ #define TUNNEL_INFO(...) ((struct tunnel_info){ __VA_ARGS__ })
+@@ -117,6 +118,7 @@ static struct tunnel *make_tunnel(struct impl *impl, const struct tunnel_info *i
+ 		return NULL;
+
+ 	t->info.name = strdup(info->name);
++	t->info.mode = strdup(info->mode);
+ 	spa_list_append(&impl->tunnel_list, &t->link);
+
+ 	return t;
+@@ -126,7 +128,7 @@ static struct tunnel *find_tunnel(struct impl *impl, const struct tunnel_info *i
+ {
+ 	struct tunnel *t;
+ 	spa_list_for_each(t, &impl->tunnel_list, link) {
+-		if (spa_streq(t->info.name, info->name))
++		if (spa_streq(t->info.name, info->name) && spa_streq(t->info.mode, info->mode))
+ 			return t;
+ 	}
+ 	return NULL;
+@@ -138,6 +140,7 @@ static void free_tunnel(struct tunnel *t)
+ 	if (t->module)
+ 		pw_impl_module_destroy(t->module);
+ 	free((char *) t->info.name);
++	free((char *) t->info.mode);
+
+ 	free(t);
+ }
+@@ -261,7 +264,7 @@ static void resolver_cb(AvahiServiceResolver *r, AvahiIfIndex interface, AvahiPr
+ 		goto done;
+ 	}
+
+-	tinfo = TUNNEL_INFO(.name = name);
++	tinfo = TUNNEL_INFO(.name = name, .mode = strstr(type, "sink") ? "sink" : "source");
+
+ 	t = find_tunnel(impl, &tinfo);
+ 	if (t == NULL)
+@@ -327,11 +330,7 @@ static void resolver_cb(AvahiServiceResolver *r, AvahiIfIndex interface, AvahiPr
+
+ 	user = pw_properties_get(props, "tunnel.remote.user");
+
+-	if (desc != NULL && user != NULL && fqdn != NULL) {
+-		pw_properties_setf(props, PW_KEY_NODE_DESCRIPTION,
+-				_("%s on %s@%s"), desc, user, fqdn);
+-	}
+-	else if (desc != NULL && fqdn != NULL) {
++	if (desc != NULL && fqdn != NULL) {
+ 		pw_properties_setf(props, PW_KEY_NODE_DESCRIPTION,
+ 				_("%s on %s"), desc, fqdn);
+ 	}
+--
+2.51.2
+

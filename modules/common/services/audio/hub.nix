@@ -69,24 +69,53 @@ in
         alsa.enable = config.ghaf.development.debug.tools.enable;
         systemWide = false;
         extraConfig = {
-          pipewire."10-remote-pulseaudio" = {
+          pipewire-pulse."10-hub-server" = {
             "context.modules" = [
               {
-                name = "libpipewire-module-protocol-pulse";
+                name = "libpipewire-module-zeroconf-discover";
                 args = {
-                  # Enable TCP socket for VMs pulseaudio clients
-                  "server.address" = [
-                    {
-                      address = "tcp:0.0.0.0:${toString cfg.hub.pulseaudioTcpPort}";
-                      "client.access" = "restricted";
-                    }
-                  ];
-                  "pulse.min.req" = "1024/48000";
-                  "pulse.min.quantum" = "1024/48000";
-                  "pulse.idle.timeout" = "3";
+                  "pulse.discover-local" = true;
+                  "pulse.latency" = 100;
                 };
               }
             ];
+            "pulse.properties" = {
+              # the addresses this server listens on
+              "server.address" = [
+                "unix:native" # Run the unix native server so DE tools can connect
+                #"unix:/tmp/something"              # absolute paths may be used
+                #"tcp:4714"                         # IPv4 and IPv6 on all addresses
+                #"tcp:[::]:9999"                    # IPv6 on all addresses
+                #"tcp:127.0.0.1:8888"               # IPv4 on a single address
+                #
+                {
+                  "address" = "tcp:${toString cfg.hub.pulseaudioTcpPort}"; # address
+                  "max-clients" = 64; # maximum number of clients
+                  "listen-backlog" = 32; # backlog in the server listen queue
+                  "client.access" = "restricted"; # permissions for clients (restricted|unrestricted)
+                }
+              ];
+              #server.dbus-name       = "org.pulseaudio.Server"
+              "pulse.allow-module-loading" = false;
+              "pulse.min.req" = "128/48000"; # 2.7ms
+              "pulse.default.req" = "960/48000"; # 20 milliseconds
+              "pulse.min.frag" = "128/48000"; # 2.7ms
+              "pulse.default.frag" = "96000/48000"; # 2 seconds
+              "pulse.default.tlength" = "96000/48000"; # 2 seconds
+              "pulse.min.quantum" = "128/48000"; # 2.7ms
+              #"pulse.default.format" = "F32";
+              #pulse.default.position = [ FL FR ]
+              "pulse.idle.timeout" = "30";
+            };
+            /*
+              "pulse.cmd" = [
+                         {
+                           cmd = "load-module";
+                           args = "module-zeroconf-discover";
+                           flags = [ "nofail" ];
+                         }
+                       ];
+            */
           };
           pipewire."20-add-tunnel-nicks" = {
             "node.rules" = [
@@ -112,36 +141,23 @@ in
               }
             ];
           };
-          pipewire-pulse."30-network-discover" = {
-            "pulse.cmd" = [
-              {
-                cmd = "load-module";
-                args = "module-zeroconf-discover";
-                flags = [ "nofail" ];
-              }
-            ];
-          };
-          pipewire-pulse."40-pulse-config" = {
-            "pulse.properties" = {
-              "pulse.min.req" = "128/48000";
-              "pulse.min.quantum" = "128/48000";
-              "pulse.idle.timeout" = "3";
-            };
-          };
         };
       };
     };
 
-    systemd.services =
+    systemd.user.services =
       let
         debugLevel = if cfg.hub.debug then "2" else "0";
       in
       {
         pipewire = {
+          # Do we need to start this manually or is socket activation enough?
           wantedBy = [ "multi-user.target" ];
           environment.PIPEWIRE_DEBUG = debugLevel;
+          environment.PULSE_LATENCY_MSEC = "0";
         };
         pipewire-pulse = {
+          # Do we need to start this manually or is socket activation enough?
           wantedBy = [ "multi-user.target" ];
           serviceConfig.ExecStart = lib.mkIf (debugLevel != "0") [
             ""
