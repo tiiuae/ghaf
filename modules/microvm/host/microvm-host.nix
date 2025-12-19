@@ -108,6 +108,9 @@ in
           };
           create-fake-battery.enable = true;
           firmware.enable = true;
+
+          # Monitoring of /nix/store for nixos-rebuild copy sessions and flagging interruptions
+          storeWatcher.enable = false;
         };
         development = {
           nix-setup.automatic-gc.enable = config.ghaf.development.nix-setup.enable;
