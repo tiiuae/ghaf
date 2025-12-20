@@ -16,20 +16,11 @@ permissions:
 jobs:
     eval:
         runs-on: ubuntu-latest
-        timeout-minutes: 360
+        timeout-minutes: 120
         strategy:
+            fail-fast: false
             matrix:
-                include:
-                    - jobid: 0
-                    - jobid: 1
-                    - jobid: 2
-                    - jobid: 3
-                    - jobid: 4
-                    - jobid: 5
-                    - jobid: 6
-                    - jobid: 7
-                    - jobid: 8
-                    - jobid: 9
+                jobid: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
         concurrency:
             # Cancel any in-progress workflow runs from the same PR or branch,
             # allowing matrix jobs to run concurrently:
@@ -47,13 +38,13 @@ jobs:
                   ref: ${{ github.event.pull_request.merge.sha || github.ref }}
                   fetch-depth: 0
                   persist-credentials: false
+
             - name: Install nix
               uses: cachix/install-nix-action@4e002c8ec80594ecd40e759629461e26c8abed15 # v31.9.0
-            - name: Evaluate (jobid=${{ matrix.jobid }})
-              run: |
-                  echo "JOB_TOTAL: ${JOB_TOTAL}"
-                  echo "matrix.jobid: ${{ matrix.jobid }}"
-                  nix shell nixpkgs#nix-eval-jobs nixpkgs#jq \
-                    --command .github/eval.sh -t '(devShells\.|packages\.)' -j ${{ matrix.jobid }} -m "${JOB_TOTAL}"
+
+            - name: Evaluate (job ${{ matrix.jobid }}/${{ strategy.job-total }})
               env:
+                  JOB_ID: ${{ matrix.jobid }}
                   JOB_TOTAL: ${{ strategy.job-total }}
+              run: |
+                  python3 .github/eval.py "$JOB_ID" "$JOB_TOTAL"
