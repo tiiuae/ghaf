@@ -18,24 +18,25 @@ let
         util-linux
         gptfdisk
         parted
+        lvm2
       ]
       ++ lib.optionals config.ghaf.storage.encryption.enable [
         cryptsetup
       ];
     text = ''
       if [ ! -f /persist/.extendpersist ]; then
-        # Check which physical disk is used by btrfs
-        # TODO use a label in case there are more than one btrfs partitions/subvolumes
-        BTRFS_LOCATION=$(btrfs filesystem show | grep '/dev' | awk '{print $8}')
+        # Extracts the Physical Volume path
+        DEV_LOCATION=$(pvdisplay | grep "PV Name" | awk '{print $3}')
+        DEVICE="$DEV_LOCATION"
     ''
     + lib.optionalString config.ghaf.storage.encryption.enable ''
       # on encrypted disk `btrfs filesystem show` will return /dev/mapper/persist
       # map it to the actual partition
-      BTRFS_LOCATION=$(cryptsetup status "$BTRFS_LOCATION" | grep 'device:' | awk '{ print $2 }')
+      DEV_LOCATION=$(cryptsetup status "$DEVICE" | grep 'device:' | awk '{ print $2 }')
     ''
     + ''
       # Get the actual device path
-      P_DEVPATH=$(readlink -f "$BTRFS_LOCATION")
+      P_DEVPATH=$(readlink -f "$DEV_LOCATION")
 
       # Extract the partition number using regex
       if [[ "$P_DEVPATH" =~ [0-9]+$ ]]; then
@@ -53,12 +54,15 @@ let
 
       # Call partprobe to update kernel's partitions
       partprobe
-      touch /persist/.extendpersist
     ''
     + lib.optionalString config.ghaf.storage.encryption.enable ''
-      echo | cryptsetup resize persist
+      echo | cryptsetup resize crypted
     ''
     + ''
+        echo "Extending 'persist' Logical Volume to use all free space..."
+        pvresize "$DEVICE"
+        lvextend -l +100%FREE /dev/pool/persist
+        touch /persist/.extendpersist
       fi
     '';
   };
