@@ -244,7 +244,7 @@ let
             optimize.enable = false;
             vcpu = 6;
             mem = 12288;
-            hypervisor = "qemu";
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
 
             shares = [
               {
@@ -274,13 +274,12 @@ let
             writableStoreOverlay = lib.mkIf (
               !configHost.ghaf.virtualization.microvm.storeOnDisk
             ) "/nix/.rw-store";
+            vsock.cid = config.ghaf.networking.hosts.${vmName}.cid;
 
             qemu = {
               extraArgs = [
                 "-device"
                 "qemu-xhci"
-                "-device"
-                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
               ];
 
               machine =
@@ -291,6 +290,11 @@ let
                 }
                 .${config.nixpkgs.hostPlatform.system};
             };
+
+            crosvm.extraArgs = [
+              "--battery"
+              "goldfish"
+            ];
           }
           // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
             storeOnDisk = true;

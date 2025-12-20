@@ -176,7 +176,7 @@ let
                 balloon = vm.balloonRatio > 0;
                 deflateOnOOM = false;
                 vcpu = vm.cores;
-                hypervisor = "qemu";
+                hypervisor = configHost.ghaf.virtualization.microvm.vmm;
 
                 shares = [
                   {
@@ -206,13 +206,12 @@ let
                 writableStoreOverlay = lib.mkIf (
                   !configHost.ghaf.virtualization.microvm.storeOnDisk
                 ) "/nix/.rw-store";
+                vsock.cid = config.ghaf.networking.hosts."${vm.name}-vm".cid;
 
                 qemu = {
                   extraArgs = [
                     "-M"
                     "accel=kvm:tcg,mem-merge=on,sata=off"
-                    "-device"
-                    "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
                     "-device"
                     "qemu-xhci"
                   ]

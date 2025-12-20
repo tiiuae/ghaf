@@ -113,7 +113,7 @@ let
             optimize.enable = false;
             vcpu = 2;
             mem = 384;
-            hypervisor = "qemu";
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
 
             shares = [
               {

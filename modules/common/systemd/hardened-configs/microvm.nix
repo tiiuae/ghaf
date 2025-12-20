@@ -65,7 +65,7 @@
   ProtectHostname = true;
   ProtectClock = true;
   ProtectControlGroups = true;
-  RestrictNamespaces = true;
+  RestrictNamespaces = false;
   /*
       RestrictNamespaces=[
      #"~user"
@@ -126,7 +126,7 @@
     # "~CAP_AUDIT_CONTROL"
     # "~CAP_AUDIT_READ"
     # "~CAP_AUDIT_WRITE"
-    "~CAP_SYS_ADMIN"
+    # "~CAP_SYS_ADMIN"
     # "~CAP_SYSLOG"
     # "~CAP_SYS_TIME
   ];
@@ -140,7 +140,7 @@
     # "~@cpu-emulation"
     "~@debug"
     "~@module"
-    "~@mount"
+    # "~@mount"
     "~@obsolete"
     # "~@privileged"
     # "~@raw-io"
