@@ -15,7 +15,7 @@ permissions:
 
 jobs:
     eval:
-        runs-on: ubuntu-latest
+        runs-on: ubuntu-24.04-arm
         timeout-minutes: 120
         strategy:
             fail-fast: false
