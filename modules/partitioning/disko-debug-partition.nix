@@ -20,10 +20,7 @@
 }:
 let
   cfg = config.ghaf.partitioning.disko;
-  defaultPassword = pkgs.writeTextFile {
-    name = "disko-default-password";
-    text = "";
-  };
+  inherit (config.ghaf.partitions) definition;
 in
 {
   options.ghaf.partitioning.disko = {
@@ -52,24 +49,25 @@ in
         disk = {
           disk1 = {
             type = "disk";
+            # Our root is 64G (defined in ./definitions.nix)
+            # FIXME: make this value derived from root+esp sizes
             imageSize = "70G";
             content = {
               type = "gpt";
               partitions = {
-                boot = {
-                  name = "boot";
-                  size = "1M";
-                  type = "EF02";
-                  priority = 1; # Needs to be first partition
-                };
+                # FIXME: would we really need this old compatibility stuff?
+                # The ef02 partition type, identified by the GUID partition table (GPT) tool gdisk, is a BIOS Boot Partition.
+                # It's a small, ~1-2MB partition without a filesystem that holds parts of the GRUB bootloader when booting a non-UEFI system from a GPT-partitioned disk.
+                # This partition is necessary for GRUB to function in BIOS mode on a GPT disk,
+                # providing a place to store its core files that wouldn't fit in the post-MBR reserved space.
                 esp = {
                   name = "ESP";
-                  size = "500M";
-                  type = "EF00";
+                  inherit (definition.esp) size label;
+                  type = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B"; # UUID PartType of ESP
                   content = {
                     type = "filesystem";
-                    format = "vfat";
-                    mountpoint = "/boot";
+                    format = definition.esp.fileSystem;
+                    mountpoint = definition.esp.mountPoint;
                     mountOptions = [
                       "umask=0077"
                       "nofail"
@@ -77,42 +75,14 @@ in
                   };
                   priority = 2;
                 };
-                swap =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      size = "12G";
-                      content = {
-                        type = "luks";
-                        name = "swap";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "swap";
-                          resumeDevice = true; # resume from hiberation from this device
-                        };
-                      };
-                      priority = 3;
-                    }
-                  else
-                    {
-                      size = "12G";
-                      type = "8200";
-                      content = {
-                        type = "swap";
-                        resumeDevice = true; # resume from hiberation from this device
-                        randomEncryption = true;
-                      };
-                      priority = 3;
-                    };
                 root = {
-                  size = "50G";
+                  inherit (definition.root) size;
+                  label = "${definition.root.label}_0"; # Disko partition always have _0 version
+                  type = "4f68bce3-e8cd-4db1-96e7-fbcaf984b709"; # x86-64 root partType UUID from https://uapi-group.org/specifications/specs/discoverable_partitions_specification/
                   content = {
                     type = "filesystem";
-                    format = "ext4";
-                    mountpoint = "/";
+                    format = definition.root.fileSystem;
+                    mountpoint = definition.root.mountPoint;
                     mountOptions = [
                       "noatime"
                       "nodiratime"
@@ -120,42 +90,6 @@ in
                   };
                   priority = 4;
                 };
-                persist =
-                  if config.ghaf.storage.encryption.enable then
-                    {
-                      size = "2G";
-                      content = {
-                        type = "luks";
-                        name = "persist";
-                        askPassword = false;
-                        initrdUnlock = false;
-                        settings = {
-                          keyFile = "${defaultPassword}";
-                        };
-                        content = {
-                          type = "filesystem";
-                          format = "btrfs";
-                          mountpoint = "/persist";
-                          mountOptions = [
-                            "noatime"
-                            "nodiratime"
-                          ];
-                        };
-                      };
-                    }
-                  else
-                    {
-                      size = "100%";
-                      content = {
-                        type = "filesystem";
-                        format = "btrfs";
-                        mountpoint = "/persist";
-                        mountOptions = [
-                          "noatime"
-                          "nodiratime"
-                        ];
-                      };
-                    };
               };
             };
           };
