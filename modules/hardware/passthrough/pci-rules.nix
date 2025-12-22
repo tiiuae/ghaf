@@ -99,10 +99,25 @@ let
         ];
       }
     ];
+
+  # ACPI NHLT table passthrough is required for the microphone array on some devices
+  audiovmAcpiRules = [
+    {
+      description = "NHLT ACPI Table for AudioVM";
+      targetVm = "audio-vm";
+      allow = [
+        {
+          acpiTable = "/sys/firmware/acpi/tables/NHLT";
+          setUser = "microvm";
+        }
+      ];
+    }
+  ];
+
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
   hwDetectModule = vm: [
     {
-      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} pci vmmargs --vm ${vm} --qemu-bus-prefix ${busPrefix}";
+      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix}";
     }
   ];
 
@@ -159,6 +174,8 @@ in
       optionals config.ghaf.virtualization.microvm.guivm.enable cfg.guivmRules
       ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
       ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
+
+    ghaf.hardware.passthrough.vhotplug.acpiRules = optionals cfg.autoDetectAudio audiovmAcpiRules;
 
     ghaf.virtualization.microvm.guivm.extraModules = optionals cfg.autoDetectGpu (
       hwDetectModule "gui-vm"

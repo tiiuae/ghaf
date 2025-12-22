@@ -59,6 +59,11 @@
 
   # Audio device for passthrough to audiovm detected dynamically in vhotplug
   audio = {
+    # This is used to pass the NHLT ACPI table from the host to audio-vm (/sys/firmware/acpi/tables/NHLT)
+    # It is required to enable the Lenovo X1 microphone array profile
+    # The NHLT table may not exist on other systems so it is disabled here and managed dynamically by vhotplug
+    acpiPath = null;
+
     kernelConfig = {
       stage1.kernelModules = [ ];
       stage2.kernelModules = [
