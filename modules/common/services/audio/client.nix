@@ -8,22 +8,33 @@
 }:
 let
   cfg = config.ghaf.services.audio;
-  inherit (lib)
-    mkIf
-    ;
   host = "gui-vm";
   address = "tcp:${host}:${toString cfg.hub.pulseaudioTcpPort}";
 
 in
 {
-  config = mkIf (cfg.enable && (cfg.role == "client")) {
+  options.ghaf.services.audio = {
+    client = {
+      remotePulseServerAddress = lib.mkOption {
+        type = lib.types.str;
+        default = address;
+        defaultText = "tcp:gui-vm:4715";
+        description = ''
+          Address of the remote PulseAudio server to connect to.
+
+          This should point to the Ghaf audio hub server.
+        '';
+      };
+    };
+  };
+  config = lib.mkIf (cfg.enable && (cfg.role == "client")) {
     environment = {
       systemPackages = [ pkgs.pulseaudio ];
       sessionVariables = {
-        PULSE_SERVER = "${address}";
+        PULSE_SERVER = "${cfg.client.remotePulseServerAddress}";
       };
       variables = {
-        PULSE_SERVER = "${address}";
+        PULSE_SERVER = "${cfg.client.remotePulseServerAddress}";
       };
     };
   };

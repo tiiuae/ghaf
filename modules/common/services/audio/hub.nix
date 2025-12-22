@@ -107,15 +107,16 @@ in
               #pulse.default.position = [ FL FR ]
               "pulse.idle.timeout" = "30";
             };
-            /*
-              "pulse.cmd" = [
-                         {
-                           cmd = "load-module";
-                           args = "module-zeroconf-discover";
-                           flags = [ "nofail" ];
-                         }
-                       ];
-            */
+            "pulse.cmd" = [
+              {
+                cmd = "load-module";
+                args = "module-switch-on-connect";
+                flags = [
+                  "nofail"
+                  "ignore_virtual=false"
+                ];
+              }
+            ];
           };
           pipewire."20-add-tunnel-nicks" = {
             "node.rules" = [
