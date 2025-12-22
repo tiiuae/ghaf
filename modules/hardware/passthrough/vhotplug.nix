@@ -50,6 +50,14 @@ in
       '';
     };
 
+    acpiRules = mkOption {
+      type = types.listOf types.attrs;
+      default = [ ];
+      description = ''
+        List of ACPI hot plugging rules.
+      '';
+    };
+
     vms = mkOption {
       type = types.listOf types.attrs;
       default = defaultVms;
@@ -144,6 +152,7 @@ in
       usbPassthrough = cfg.prependUsbRules ++ cfg.usbRules ++ cfg.postpendUsbRules;
       pciPassthrough = cfg.pciRules;
       evdevPassthrough = cfg.evdevRules;
+      acpiPassthrough = cfg.acpiRules;
 
       inherit (cfg) vms;
 
