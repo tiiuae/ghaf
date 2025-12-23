@@ -124,7 +124,7 @@ let
           microvm = {
             # Optimize is disabled because when it is enabled, qemu is built without libusb
             optimize.enable = false;
-            hypervisor = "qemu";
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
 
             shares = [
               {

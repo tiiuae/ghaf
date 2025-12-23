@@ -13,6 +13,7 @@
   cosmic-initial-setup = import ./cosmic/cosmic-initial-setup { inherit prev; };
   cosmic-osd = import ./cosmic/cosmic-osd { inherit prev; };
   cosmic-settings = import ./cosmic/cosmic-settings { inherit prev; };
+  crosvm = import ./crosvm { inherit prev; };
   element-desktop = import ./element-desktop { inherit prev; };
   gtklock = import ./gtklock { inherit prev; };
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
