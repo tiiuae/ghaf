@@ -340,7 +340,7 @@ in
           Type = "simple";
           Restart = "always";
           RestartSec = "1";
-          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
+          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.anchor.pulseaudioTcpControlPort}";
         };
         partOf = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
@@ -349,7 +349,7 @@ in
       blueman-manager = {
         inherit (graphicsProfileCfg.bluetooth.applet) enable;
         serviceConfig = {
-          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
+          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.anchor.pulseaudioTcpControlPort}";
         };
       };
 

@@ -34,6 +34,15 @@ in
           Ghaf audio hub server should use this port to connect to the audio anchor server.
         '';
       };
+      pulseaudioTcpControlPort = mkOption {
+        type = types.int;
+        default = 4713;
+        description = ''
+          TCP control port used by PipeWire-PulseAudio on the anchor server.
+
+          This port has unrestricted access, use with caution.
+        '';
+      };
       restoreOnBoot = mkEnableOption ''
         restoring pipewire audio settings on boot from persistent storage.
 
@@ -84,7 +93,7 @@ in
             "pulse.properties" = {
               # the addresses this server listens on
               "server.address" = [
-                #"unix:native"                # We don't need a unix native server on anchor
+                "unix:native" # We don't need a unix native server on anchor
                 #"unix:/tmp/something"        # absolute paths may be used
                 #"tcp:4714"                   # IPv4 and IPv6 on all addresses
                 #"tcp:[::]:9999"              # IPv6 on all addresses
@@ -95,6 +104,12 @@ in
                   "max-clients" = 8; # maximum number of clients
                   "listen-backlog" = 32; # backlog in the server listen queue
                   "client.access" = "restricted"; # permissions for clients (restricted|unrestricted)
+                }
+                {
+                  "address" = "tcp:${toString cfg.anchor.pulseaudioTcpControlPort}"; # address
+                  "max-clients" = 8; # maximum number of clients
+                  "listen-backlog" = 32; # backlog in the server listen queue
+                  "client.access" = "unrestricted"; # permissions for clients (restricted|unrestricted)
                 }
               ];
               #"server.dbus-name"       = "org.pulseaudio.Server";
@@ -120,7 +135,7 @@ in
         };
         # Disable the auto-switching to the low-quality HSP profile
         wireplumber.extraConfig = {
-          "disable-autoswitch" = {
+          disable-autoswitch = {
             "wireplumber.settings" = {
               "bluetooth.autoswitch-to-headset-profile" = "false";
             };
@@ -130,7 +145,7 @@ in
               "acp.auto-port" = "true";
             };
           };
-          "set-default-volumes" = {
+          set-default-volumes = {
             "wireplumber.settings" = {
               "device.routes.default-sink-volume" = 1.0;
               "device.routes.default-source-volume" = 1.0;
@@ -165,6 +180,7 @@ in
         # Open TCP port for the pipewire pulseaudio socket
         firewall.allowedTCPPorts = with cfg.anchor; [
           pulseaudioTcpPort
+          pulseaudioTcpControlPort
         ];
       }
       # Enable persistent storage for pipewire state to restore settings on boot
