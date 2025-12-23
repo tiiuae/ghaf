@@ -84,10 +84,17 @@ let
     };
 
     # Audio module
-    audio = optionalAttrs cfg.audiovm.audio { config.ghaf.services.audio.enable = true; };
+    audio = optionalAttrs cfg.audiovm.audio {
+      config.ghaf.services.audio = {
+        enable = true;
+        role = "anchor";
+      };
+    };
 
     # Bluetooth module
-    bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
+    bluetooth = optionalAttrs cfg.audiovm.audio {
+      config.ghaf.services.bluetooth.enable = true;
+    };
 
     # Xpadneo module
     xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = false; };

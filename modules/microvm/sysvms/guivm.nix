@@ -131,6 +131,10 @@ let
 
             # Services
             services = {
+              audio = {
+                enable = true;
+                role = "hub";
+              };
               power-manager = {
                 vm.enable = true;
                 gui.enable = true;

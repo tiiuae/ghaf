@@ -72,7 +72,10 @@ let
             };
             # Services
             services = {
-              audio.enable = true;
+              audio = {
+                enable = true;
+                role = "anchor";
+              };
               power-manager.vm = {
                 enable = true;
                 pciSuspendServices = [
