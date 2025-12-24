@@ -139,10 +139,10 @@ in
       log_format = RAW
       flush = INCREMENTAL_ASYNC
       freq = 512
-      num_logs = 5
+      num_logs = 30
       name_format = HOSTNAME
       max_log_file = 10
-      max_log_file_action = ROTATE
+      max_log_file_action = IGNORE
       space_left = 10%
       space_left_action = SYSLOG
       admin_space_left = 5%
@@ -150,5 +150,27 @@ in
       disk_full_action = ROTATE
       disk_error_action = SUSPEND
     '';
+
+    # Systemd oneshot service to immediate rotation, obeying num_logs.
+    systemd.services.auditd-rotate = {
+      description = "Time-based rotation of audit logs";
+      after = [ "auditd.service" ];
+      wants = [ "auditd.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${pkgs.audit}/bin/auditctl --signal rotate";
+      };
+    };
+
+    # Systemd timer: when to rotate.
+    # Default = daily. It is possible to change OnCalendar for testing (e.g. "minutely")
+    systemd.timers.auditd-rotate = {
+      description = "Periodic audit log rotation (time-based)";
+      wantedBy = [ "timers.target" ];
+      timerConfig = {
+        OnCalendar = "daily";
+        Persistent = true;
+      };
+    };
   };
 }
