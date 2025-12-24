@@ -1,7 +1,48 @@
 ---
-title: System Logs — Encryption in Transit and at Rest
-description: Why Ghaf encrypts logs on the wire and on disk to protect confidentiality, integrity, and availability across trust boundaries.
+title: System Logs
+description: "Overview of Ghaf’s logging architecture—journald/auditd collection, Admin VM aggregation, retention, and encryption in transit and at rest."
 ---
+Ghaf’s logging pipeline for journald and auditd: centralized aggregation, retention, and encryption to protect log confidentiality and tamper-evidence across isolation boundaries.
+
+## Logging Architecture
+
+This section documents the current logging architecture of the Ghaf Framework and summarizes the logging-related modules deployed across the System VMs and Application VMs ([Figure 1](#fig-ghaf-logging-arch)).
+
+<figure id="fig-ghaf-logging-arch">
+  ![Ghaf Logging Architecture](@assets/ghaf/ghaf_logging_architecture.png "Ghaf Logging Architecture")
+  <figcaption><strong>Figure 1.</strong> Ghaf Logging Architecture.</figcaption>
+</figure>
+
+The topology in [Figure 1](#fig-ghaf-logging-arch) is organized around two VM classes: System VMs and Application VMs. Each VM produces system and security events locally via `systemd-journald`, including `auditd` entries routed into the journal. Non-admin VMs then forward their journal stream to the Admin VM for aggregation. From there, the Admin VM forwards a unified stream to a remote backend, enabling centralized monitoring and analysis without requiring direct network exposure of every VM. In the [Figure 1](#fig-ghaf-logging-arch), purple blocks denote components that produce or hold logs (e.g., Auditd and Journal logs), while blue blocks denote modules that enforce security properties on the logging pipeline (e.g., integrity protection, encryption, and retention).
+
+### Log producers and local collection
+
+The purple blocks in [Figure 1](#fig-ghaf-logging-arch) represent the log sources in Ghaf Platform: (i) `systemd-journald` (the system journal) and (ii) `auditd` (the Linux auditing subsystem). Together, they form the per-VM record of operational activity and security-relevant events.
+
+On every VM, system services, kernel messages, and application/service outputs are collected by `systemd-journald` as the default local logging facility. In parallel, `auditd` captures security audit events based on the configured rule set. These audit events are then forwarded into `systemd-journald`, so that both system logs and audit logs are available through a single local journal stream. This keeps the logging surface consistent across VM types (i.e., Application VMs and System VMs) and provides one standardized interface for local persistence and subsequent forwarding.
+
+#### Audit policy and rule coverage
+
+Audit collection is guided by a layered rule approach. Per-VM audit rules include (i) Nix-specific rules (to capture Ghaf/NixOS operational activity and configuration changes), (ii) STIG-aligned rules for compliance-oriented auditing, (iii) OSPP-aligned rules for security auditing baselines, and (iv) VM-specific rules to tailor monitoring to each VM’s role. The Ghaf Host additionally includes extra host rules (as shown in the host audit-rule block), reflecting that the host has unique responsibilities and a distinct attack surface compared to guest VMs.
+
+#### Intra-platform log forwarding
+
+All non-admin VMs (including both system and application VMs) forward their `journald` streams to the Admin VM. The Admin VM plays a dual role: it (i) generates its own logs locally (like any other VM) and (ii) runs a listener/receiver that ingests forwarded logs from the other VMs. This makes the Admin VM the single aggregation point inside the Ghaf Platform, reducing the need for each VM to maintain independent connectivity to remote logging infrastructure and allowing policy enforcement to be concentrated in one place.
+
+Once logs are aggregated, the Admin VM forwards the unified journal stream to the Remote Log Server. In the [Figure 1](#fig-ghaf-logging-arch), the remote server is depicted as an external storage/service endpoint, and the link represents the log shipping path from the platform boundary to the remote backend. This remote endpoint is intended to support centralized querying, alerting, and longer-term storage beyond what is retained locally.
+
+### Secure Logging
+The blue blocks in [Figure 1](#fig-ghaf-logging-arch) represent the security controls applied to the logging pipeline (i.e., mechanisms that protect logs as they are stored, forwarded, and retained across isolation boundaries). Ghaf’s design emphasizes three complementary properties: integrity/tamper-evidence, retention, and confidentiality (in transit and at rest).
+
+- **Integrity** (Log Integrity / FSS sealing proxy): The [Figure 1](#fig-ghaf-logging-arch) highlights a log integrity module based on an FSS sealing proxy, which is intended to provide tamper-evidence for logs. Conceptually, this strengthens assurances that once logs are generated and recorded, unauthorized modification can be detected during later inspection or after shipping to remote storage.
+
+- **Retention** (Journal and Audit): Retention policies are treated as a first-class concern and are applied in a tiered manner: (i) per-VM retention for local journal/audit logs, (ii) retention at the Admin VM for aggregated logs, and (iii) retention at the remote backend for long-term storage. Explicit retention boundaries help balance forensic usefulness with storage constraints and reduce exposure from over-retaining sensitive telemetry.
+
+- **Confidentiality at rest** (Log security / Data-at-rest encryption): Local journal and audit storage can be protected via data-at-rest encryption, limiting the impact of offline access or storage-layer compromise.
+
+- **Confidentiality in transit** (Encrypt logs in transit): The [Figure 1](#fig-ghaf-logging-arch) calls out encryption in transit, both for the VMs → Admin VM, and for Admin VM → Remote Log Server paths. This protects logs while traversing untrusted networks and prevents passive observation or trivial manipulation between the platform boundary and the remote backend. The following Section gives more details on the encryption of logs on the Ghaf Platform.
+
+## Encryption in Transit and at Rest
 
 Why encrypt logs
 
