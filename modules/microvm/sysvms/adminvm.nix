@@ -58,9 +58,16 @@ let
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"
               ];
-              directories = lib.mkIf configHost.ghaf.virtualization.storagevm-encryption.enable [
+              directories = [
+                {
+                  directory = "/etc/policies";
+                  mode = "0755";
+                }
+              ]
+              ++ lib.optionals configHost.ghaf.virtualization.storagevm-encryption.enable [
                 "/var/lib/swtpm"
               ];
+
               encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
             };
             # Networking
