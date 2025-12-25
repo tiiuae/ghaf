@@ -3,7 +3,6 @@
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 let
@@ -20,7 +19,6 @@ let
     optionals
     types
     ;
-  sshKeysHelper = pkgs.callPackage ../common/ssh-keys-helper.nix { inherit config; };
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
   inherit (config.ghaf.common.extraNetworking) enableStaticArp;
@@ -155,11 +153,6 @@ in
           );
         };
       };
-
-      environment.etc = {
-        ${config.ghaf.security.sshKeys.getAuthKeysFilePathInEtc} = sshKeysHelper.getAuthKeysSource;
-      };
-      services.openssh = config.ghaf.security.sshKeys.sshAuthorizedKeysCommand;
     })
   ];
 }

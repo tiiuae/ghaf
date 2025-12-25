@@ -39,7 +39,6 @@ in
     security.rtkit.enable = cfg.useTunneling;
     ghaf.users.appUser.extraGroups = mkIf cfg.useTunneling [
       "audio"
-      "video"
     ];
 
     hardware.pulseaudio = mkIf cfg.useTunneling {
