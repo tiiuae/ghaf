@@ -3,6 +3,7 @@
 { config, lib, ... }:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
+  deploymentCfg = config.ghaf.reference.deployments;
 in
 {
   options.ghaf.reference.profiles.mvp-user-trial = {
@@ -11,6 +12,13 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      # Enable TII internal deployment profile by default
+      # This provides TII-specific settings: SSH keys, logging endpoint, VPN, etc.
+      # For other deployments, disable this and enable a different profile:
+      #   ghaf.reference.deployments.profiles.tii-internal.enable = false;
+      #   ghaf.reference.deployments.profiles.demo.enable = true;
+      reference.deployments.profiles.tii-internal.enable = lib.mkDefault true;
+
       # Enable shared directories for the selected VMs
       virtualization.microvm-host.sharedVmDirectory.vms = [
         "business-vm"
@@ -71,7 +79,7 @@ in
             vmName = "chrome-vm";
           };
           alpaca-ollama = true;
-          wireguard-gui = true;
+          wireguard-gui = deploymentCfg.wireguard.enable;
         };
 
         personalize = {
@@ -87,29 +95,35 @@ in
           netvmExtraModules = [
             ../services
             ../personalize
+            ../deployments
             { ghaf.reference.personalize.keys.enable = true; }
           ];
           guivmExtraModules = [
             ../services
             ../programs
             ../personalize
+            ../deployments
             { ghaf.reference.personalize.keys.enable = true; }
           ];
         };
       };
 
-      # Enable logging
+      # Enable logging - use deployment profile settings if available
       logging = {
         enable = true;
-        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+        server.endpoint =
+          if deploymentCfg.logging.serverEndpoint != "" then
+            deploymentCfg.logging.serverEndpoint
+          else
+            "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
         listener.address = config.ghaf.networking.hosts.admin-vm.ipv4;
       };
 
-      # Disk encryption
-      storage.encryption.enable = false;
+      # Disk encryption - use deployment profile settings
+      storage.encryption.enable = deploymentCfg.security.encryptionEnabled;
 
-      # Enable audit
-      security.audit.enable = false;
+      # Enable audit - use deployment profile settings
+      security.audit.enable = deploymentCfg.security.auditEnabled;
 
       # Enable power management
       services.power-manager.enable = true;
