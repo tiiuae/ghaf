@@ -36,12 +36,32 @@ let
 
               # Include the image file directly in the ISO filesystem (not in /nix/store)
               # This copies the file without creating a runtime dependency
-              isoImage.contents = [
-                {
-                  source = "${imagePath}/disk1.raw.zst";
-                  target = "/ghaf-image/disk1.raw.zst";
-                }
-              ];
+              # Support both disko (disk1.raw.zst) and verity (ghaf-*.raw.zst) images
+              # Use reflinks/hardlinks to avoid duplicating large image files
+              isoImage.contents =
+                let
+                  # Create a derivation that finds the .raw.zst file and creates a normalized reference
+                  # Using cp --reflink=auto attempts copy-on-write, falling back to hardlink
+                  normalizedImage = pkgs.runCommand "normalized-ghaf-image" { } ''
+                    mkdir -p $out
+                    # Find the .raw.zst file (either disk1.raw.zst or ghaf-*.raw.zst)
+                    imageFile=$(find ${imagePath} -maxdepth 1 -name "*.raw.zst" -type f | head -n 1)
+                    if [ -z "$imageFile" ]; then
+                      echo "Error: No .raw.zst file found in ${imagePath}" >&2
+                      exit 1
+                    fi
+                    # Use reflink if supported (e.g. btrfs), otherwise hardlink to avoid duplication
+                    # This saves significant disk space (6-7GB per installer build) compared to cp.
+                    cp --reflink=auto "$imageFile" $out/ghaf-image.raw.zst || \
+                      ln "$imageFile" $out/ghaf-image.raw.zst
+                  '';
+                in
+                [
+                  {
+                    source = "${normalizedImage}/ghaf-image.raw.zst";
+                    target = "/ghaf-image/ghaf-image.raw.zst";
+                  }
+                ];
 
               environment.sessionVariables = {
                 IMG_PATH = "/iso/ghaf-image";
