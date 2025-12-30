@@ -35,7 +35,7 @@ let
     map (i: {
       id = "${cfg.pcieBusPrefix}${toString i}";
       chassis = i;
-    }) (lib.range 0 cfg.pciePortCountForVMs.${vmName});
+    }) (lib.range 1 cfg.pciePortCountForVMs.${vmName});
 
 in
 {
