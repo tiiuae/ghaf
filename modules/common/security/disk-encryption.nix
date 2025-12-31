@@ -19,7 +19,7 @@ let
   partitions =
     if config.ghaf.partitioning.verity.enable then
       {
-        persist = rec {
+        luks = rec {
           partConf = config.image.repart.partitions."50-persist".repartConfig;
           device = "/dev/disk/by-partuuid/${partConf.UUID}";
         };
@@ -30,12 +30,8 @@ let
       }
     else
       {
-        persist = rec {
-          partConf = config.disko.devices.disk.disk1.content.partitions.persist;
-          inherit (partConf) device;
-        };
-        swap = rec {
-          partConf = config.disko.devices.disk.disk1.content.partitions.swap;
+        luks = rec {
+          partConf = config.disko.devices.disk.disk1.content.partitions.luks;
           inherit (partConf) device;
         };
       };
@@ -67,8 +63,8 @@ in
       ];
 
     boot.initrd.luks.devices = {
-      persist = {
-        inherit (partitions.persist) device;
+      crypted = {
+        inherit (partitions.luks) device;
         tryEmptyPassphrase = true;
         crypttabExtraOpts =
           {
@@ -81,11 +77,6 @@ in
             fido2 = [ "fido2-device=auto" ];
           }
           .${cfg.backendType};
-      };
-      swap = {
-        inherit (partitions.swap) device;
-        tryEmptyPassphrase = true;
-        crypttabExtraOpts = [ "tpm2-device=auto" ];
       };
     };
 
@@ -108,19 +99,19 @@ in
             tpm2-tools
           ];
           text = ''
-            if cryptsetup luksDump ${partitions.persist.device} | grep -E '(systemd-tpm2|systemd-fido2)'; then
+            P_DEVPATH=$(readlink -f ${partitions.luks.device})
+            if cryptsetup luksDump "$P_DEVPATH" | grep -E '(systemd-tpm2|systemd-fido2)'; then
               echo 'TPM already enrolled'
               exit 0
             fi
             echo '========== Enrolling TPM/Yubikey for persist partition =========='
-            PASSWORD="" systemd-cryptenroll ${enrollOpts} ${partitions.persist.device}
+            PASSWORD="" systemd-cryptenroll ${enrollOpts} "$P_DEVPATH"
+
             echo '-- adding recovery key --'
-            PASSWORD="" systemd-cryptenroll --recovery ${partitions.persist.device}
-            echo '========== Setting up encrypted swap =========='
-            PASSWORD="" systemd-cryptenroll --tpm2-device=auto ${partitions.swap.device}
+            PASSWORD="" systemd-cryptenroll --recovery "$P_DEVPATH"
+
             echo '========== Removing default passphrase =========='
-            systemd-cryptenroll --wipe-slot=password ${partitions.persist.device}
-            systemd-cryptenroll --wipe-slot=password ${partitions.swap.device}
+            systemd-cryptenroll --wipe-slot=password "$P_DEVPATH"
           '';
         };
       in
@@ -141,8 +132,7 @@ in
         wants = [
           "systemd-tpm2-setup.service"
           "nix-store.mount"
-          "${utils.escapeSystemdPath partitions.persist.device}.device"
-          "${utils.escapeSystemdPath partitions.swap.device}.device"
+          "${utils.escapeSystemdPath partitions.luks.device}.device"
         ];
         serviceConfig = {
           Type = "oneshot";
@@ -175,8 +165,7 @@ in
           '';
         };
       in
-      {
-        inherit (config.ghaf.partitioning.verity) enable;
+      lib.mkIf config.ghaf.partitioning.verity.enable {
         description = "Extend swap partition to use available free space";
         unitConfig = {
           DefaultDependencies = "no"; # run before VMs are launched
@@ -208,5 +197,6 @@ in
           RemainAfterExit = true;
         };
       };
+
   };
 }
