@@ -190,7 +190,7 @@
 
     # A UI for the one true VPN: Wireguard
     wireguard-gui = {
-      url = "github:tiiuae/wireguard-gui";
+      url = "github:enesoztrk/wireguard-gui/fix/err-dialog-box";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";

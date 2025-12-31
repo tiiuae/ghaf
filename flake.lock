@@ -760,15 +760,16 @@
         "rust-overlay": "rust-overlay"
       },
       "locked": {
-        "lastModified": 1765587093,
-        "narHash": "sha256-pzXUjG3Mb6tMSop4unp69O5yA6tsYE313CL06eV0+Pg=",
-        "owner": "tiiuae",
+        "lastModified": 1767170262,
+        "narHash": "sha256-NIl6ktdHyMOG0LReYsArFdY446nYW+PTVDsQfyui2PI=",
+        "owner": "enesoztrk",
         "repo": "wireguard-gui",
-        "rev": "fff7e1a4aeee62777df1bedbafa315dc7a428212",
+        "rev": "809ce3f777086426b062521b6401006221b5d3b9",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "enesoztrk",
+        "ref": "fix/err-dialog-box",
         "repo": "wireguard-gui",
         "type": "github"
       }
