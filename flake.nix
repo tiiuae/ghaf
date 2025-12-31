@@ -22,7 +22,7 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/cosmic-stable";
+    nixpkgs.url = "github:tiiuae/nixpkgs/cosmic-stable-dec";
     #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # A framework for testing ghaf configurations
@@ -130,7 +130,6 @@
       url = "github:microvm-nix/microvm.nix";
       inputs = {
         nixpkgs.follows = "nixpkgs";
-        flake-utils.follows = "flake-utils";
       };
     };
 
