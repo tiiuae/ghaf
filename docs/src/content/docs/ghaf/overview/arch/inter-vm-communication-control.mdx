@@ -1,0 +1,55 @@
+---
+title: Controlled, Auditable Inter-VM Communication
+description: Why Ghaf restricts inter-VM communication to tightly controlled, auditable channels
+---
+
+# Controlled, Auditable Inter-VM Communication
+
+Ghaf isolates workloads into MicroVMs and then deliberately constrains how those VMs can talk to each other. Inter-VM communication is allowed only through explicitly designed, controlled channels because the VM boundary is the primary security barrier. If that boundary is pierced by arbitrary or hidden links, the isolation model collapses. This document explains the security, operational, and auditability reasons for keeping inter-VM communication narrow and observable.
+
+## Why unrestricted inter-VM links are unacceptable
+
+### Preserve isolation and limit lateral movement
+Ghaf treats each VM as a distinct trust domain. High-risk or network-facing components run in isolated VMs, and the architecture relies on minimal, audited inter-VM interfaces to prevent lateral movement if one VM is compromised. Allowing ad-hoc or implicit communication paths would create invisible trust bridges that bypass the isolation model and increase the blast radius of a compromise.
+
+### Enforce least privilege across domains
+Ghaf applies least privilege at the VM boundary, not just within a single OS instance. A VM should only have the minimal rights and interfaces required to do its job. A controlled inter-VM channel allows Ghaf to restrict what a VM can request, who it can talk to, and what data can traverse the boundary. This fits the platform-wide principle of least privilege and maintains clear trust levels between untrusted, trusted, and system roles.
+
+### Reduce attack surface and ambiguity
+Every additional communication path is a new attack surface and a new source of ambiguity during incident response. A small, well-defined set of inter-VM channels reduces the number of protocols to defend and makes it possible to reason about cross-VM dependencies. This is especially important in a zero-trust architecture where all cross-domain flows must be explicit and justified.
+
+## How Ghaf enforces controlled communication
+
+### GIVC as the primary control channel
+Ghaf uses GIVC (Guest Inter-VM Communication) as the secure, structured control plane for VM-to-VM and host-to-VM interactions. GIVC provides authenticated message passing, VM identity verification, and resource access control, which keeps cross-VM interactions explicit and policy-driven. It also uses a registry-based model where services and applications must be registered, and only whitelisted operations are exposed.
+
+### Default-deny networking and interface separation
+Inter-VM traffic is constrained by network segmentation and strict firewalling. Production services bind on the production interface and use TLS for inter-VM or external communications, while debug tooling is confined to a separate interface and admin plane. This separation avoids mixing trust levels and prevents debug or administrative pathways from leaking into production networks.
+
+### Minimal, auditable interfaces by design
+Ghaf avoids broad cross-VM APIs in favor of narrow, auditable interfaces. For example, GIVC provides a controlled control plane, while other specialized components (such as memory-based sockets for inter-VM messaging) are scoped to their specific use cases. This limits the amount of cross-domain functionality and keeps each interface reviewable.
+
+### TLS and identity-bound channels
+GIVC supports TLS for gRPC communication and defaults to secure transport. Encrypting and authenticating inter-VM traffic prevents unauthenticated or spoofed connections and ensures the integrity of commands and data that cross VM boundaries.
+
+## Why auditability matters
+
+### Verifiable security posture
+Controlled channels enable meaningful auditing because all cross-VM actions pass through known components with explicit policies. This supports the broader Ghaf practice of auditable configuration and declarative security, enabling reviewers to validate what communication paths exist and why.
+
+### Monitoring and incident response
+When communication is centralized and constrained, monitoring tools and audit rules can focus on specific channels and events. This makes it feasible to detect anomalous behavior, reconstruct cross-VM activity during investigations, and apply targeted mitigations without blanket restrictions.
+
+### Alignment with platform hardening
+Auditable inter-VM communication complements Ghaf hardening measures such as systemd sandboxing, AppArmor confinement, and strict firewalling. These layers reinforce each other by ensuring that even if a VM or service is compromised, its ability to affect other domains is limited and visible.
+
+## Practical implications for system design
+
+- Inter-VM communication should go through GIVC or other explicitly approved channels, not ad-hoc sockets or raw networking paths.
+- Services and applications must be registered and whitelisted before they can be invoked across VM boundaries.
+- Debug or maintenance traffic must remain isolated from production traffic through dedicated interfaces and policies.
+- Security reviews should treat any new inter-VM interface as a high-risk change that requires justification, authentication, and auditability.
+
+## Summary
+
+Ghaf’s isolation model is only as strong as the boundaries between VMs. By restricting inter-VM communication to controlled, auditable channels, Ghaf preserves isolation, enforces least privilege, reduces attack surface, and enables reliable monitoring and response. GIVC and network plane separation provide the foundation for this approach, while secure transport and strict registration ensure that cross-VM interactions are explicit, minimal, and verifiable.

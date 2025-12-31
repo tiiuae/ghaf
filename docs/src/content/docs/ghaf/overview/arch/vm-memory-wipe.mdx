@@ -1,0 +1,48 @@
+---
+title: VM Memory Zeroing and Wipe on Shutdown
+description: Why Ghaf clears VM memory on shutdown and how it prevents cross-VM data leakage
+---
+
+# VM Memory Zeroing and Wipe on Shutdown
+
+Ghaf treats VM memory as sensitive because it often contains secrets (keys, tokens, decrypted content, session state). When a VM shuts down, the memory pages it used return to the host. If those pages are not cleared, a later VM or host process could observe residual data. To prevent this class of data remanence issues, Ghaf ensures that VM memory is wiped as it is freed and zeroed before it is reused.
+
+## Why memory must be cleared on shutdown
+
+### Prevent cross-VM data leakage
+MicroVMs are strict trust boundaries. Reusing physical pages without clearing can expose one VM’s data to another VM or to the host after shutdown. Wiping memory on free and zeroing on allocation removes residual data from prior tenants and preserves the confidentiality of VM state across lifecycle events.
+
+### Reduce the blast radius after compromise
+A compromised VM should not be able to recover data from previously terminated VMs by scavenging uninitialized memory. Zeroing on allocation is a direct defense against this class of information disclosure bugs and helps maintain isolation even under adverse conditions.
+
+### Protect secrets at rest in RAM
+Many high-value secrets live only in RAM: TLS keys, authentication tokens, and decrypted files. On shutdown, these secrets should not persist in physical memory. Clearing memory on free ensures they do not remain available to a later VM or process.
+
+### Support auditable, repeatable security posture
+Ghaf’s security model depends on explicit, verifiable controls. Memory wipe on free/alloc is a build-time kernel configuration that is easy to audit and deterministic across builds, making the behavior reliable and reviewable.
+
+## How Ghaf implements memory clearing
+
+### Kernel-level zero-on-free and zero-on-alloc
+Ghaf configures the host kernel with built-in protections:
+
+- `INIT_ON_FREE_DEFAULT_ON` wipes pages when they are released back to the allocator.
+- `INIT_ON_ALLOC_DEFAULT_ON` zeroes pages before they are handed to a new consumer.
+- `PAGE_POISONING` provides additional overwrite protection for freed pages.
+
+These options are compiled into the host kernel, so they are always active during runtime. When a VM shuts down and its memory is freed, the host kernel wipes those pages. When another VM (or the host) later allocates memory, the pages are zeroed again. This double-layered approach helps prevent memory remanence across VM lifecycles.
+
+### Default enablement on x86_64 hosts
+Memory wipe is enabled by default for the host kernel on x86_64 platforms via the `ghaf.host.kernel.memory-wipe.enable` option. This focuses on the system component that owns and recycles VM memory, which is where shutdown wiping is enforced.
+
+For implementation details and configuration knobs, see [Memory Wipe on Boot and Free](/ghaf/dev/ref/memory-wipe).
+
+## Operational considerations
+
+- **Performance trade-off**: Zeroing on free/alloc adds a modest overhead, but the security benefits outweigh the cost for a hardened platform.
+- **Defense in depth**: Memory wiping complements other controls (VM isolation, least privilege, audited inter-VM channels) by ensuring that even after shutdown, no residual data crosses trust boundaries.
+- **Scope**: The wipe happens in the host kernel where VM pages are managed, so it applies consistently to VM shutdown events regardless of the guest OS.
+
+## Summary
+
+VM shutdown is a sensitive moment because memory pages leave one trust domain and return to the host allocator. Ghaf eliminates the risk of residual data reuse by enabling kernel features that wipe memory on free and zero memory on allocation. This protects secrets, prevents cross-VM leakage, and keeps the VM boundary trustworthy throughout the VM lifecycle.
