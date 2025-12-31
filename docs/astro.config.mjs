@@ -44,8 +44,11 @@ export default defineConfig({
                       items: [
                         "ghaf/overview/arch",
                         "ghaf/overview/arch/system-architecture",
+                        "ghaf/overview/arch/inter-vm-communication-control",
                         "ghaf/overview/arch/variants",
                         "ghaf/overview/arch/hardening",
+                        "ghaf/overview/arch/vm-memory-wipe",
+                        "ghaf/overview/arch/prohibited-hardcoded-secrets",
                         "ghaf/overview/arch/critical-services-privilege-escalation",
                         "ghaf/overview/arch/system-logs-encryption",
                         "ghaf/overview/arch/vm-network-separation",
