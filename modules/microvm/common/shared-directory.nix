@@ -45,7 +45,7 @@ in
     };
 
     # Add bookmark to skel
-    environment.etc = lib.mkIf config.ghaf.users.loginUser.enable {
+    environment.etc = {
       "skel/.gtk-bookmarks".text = ''
         file:///Shares Shares
       '';
