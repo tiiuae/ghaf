@@ -130,6 +130,9 @@
         "snd_sof_pci_intel_mtl"
         "spi_intel_pci"
       ];
+      kernelParams = [
+        "snd_intel_dspcfg.dsp_driver=0"
+      ];
     };
   };
 

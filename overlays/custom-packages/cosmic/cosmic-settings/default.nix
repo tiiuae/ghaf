@@ -16,7 +16,7 @@
     "page-input"
     "page-region"
     # "page-power"
-    # "page-sound"
+    "page-sound"
     # "page-users"
     "page-legacy-applications"
     # "page-bluetooth"
