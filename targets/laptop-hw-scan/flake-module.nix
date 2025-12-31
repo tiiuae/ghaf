@@ -35,7 +35,6 @@ let
               isoImage.squashfsCompression = "zstd -Xcompression-level 3";
               environment.systemPackages = [ self.packages.${system}.hardware-scan ];
               networking.networkmanager.enable = true;
-              networking.wireless.enable = false;
               boot.kernelParams = [
                 # TODO AMD support
                 "intel_iommu=on,sm_on"
