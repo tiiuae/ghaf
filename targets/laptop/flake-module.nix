@@ -112,6 +112,18 @@ let
       }
     ]))
 
+    # Experimental target with crosvm enabled instead of qemu
+    (laptop-configuration "intel-laptop-crosvm" "debug" (withCommonModules [
+      self.nixosModules.hardware-intel-laptop
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          virtualization.microvm.vmm = "crosvm";
+        };
+      }
+    ]))
+
     (laptop-configuration "lenovo-t14-amd-gen5" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-t14-amd-gen5
       {

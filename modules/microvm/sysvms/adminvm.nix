@@ -108,13 +108,8 @@ let
             optimize.enable = false;
             #TODO: Add back support cloud-hypervisor
             #the system fails to switch root to the stage2 with cloud-hypervisor
-            hypervisor = "qemu";
-            qemu = {
-              extraArgs = [
-                "-device"
-                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
-              ];
-            };
+            hypervisor = config.ghaf.virtualization.microvm.vmm;
+            vsock.cid = config.ghaf.networking.hosts.${vmName}.cid;
 
             shares = [
               {

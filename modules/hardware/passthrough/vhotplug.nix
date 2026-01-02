@@ -166,6 +166,7 @@ in
         };
         modprobe = lib.getExe' pkgs.kmod "modprobe";
         modinfo = lib.getExe' pkgs.kmod "modinfo";
+        crosvm = "${pkgs.crosvm}/bin/crosvm";
       };
     };
 
