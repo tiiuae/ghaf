@@ -17,6 +17,10 @@ let
 
   cfg = config.ghaf.identity.dynamicHostName;
 
+  # Get list of active microvm names (empty if microvms not configured)
+  activeMicrovms =
+    if config ? microvm && config.microvm ? vms then builtins.attrNames config.microvm.vms else [ ];
+
   computeScript = pkgs.writeShellApplication {
     name = "ghaf-compute-hostname";
     runtimeInputs = [
@@ -146,6 +150,20 @@ let
       # Generate device-id from our hardware-derived ID (for backward compatibility)
       # Use the same ID but format as hex string with dashes like: 00-01-23-45-67
       printf "%010x" "$((10#$id))" | fold -w2 | paste -sd'-' | tr -d '\n' > "$shareDir/../device-id"
+
+      # Generate a stable UUID from the hardware key and export it for VMs.
+      uuid_hash=$(echo -n "$key" | sha256sum | cut -d' ' -f1)
+      uuid="''${uuid_hash:0:8}-''${uuid_hash:8:4}-5''${uuid_hash:13:3}-a''${uuid_hash:17:3}-''${uuid_hash:20:12}"
+      printf "%s" "$uuid" > "$shareDir/uuid"
+
+      # Generate unique machine-ids for all VMs based on hardware ID
+      # Each VM gets a deterministic ID derived from hardware + VM name
+      ${lib.concatMapStringsSep "\n" (vm: ''
+        mkdir -p /persist/storagevm/${vm}/etc
+        vm_key="$key-${vm}"
+        vm_hash=$(echo -n "$vm_key" | sha256sum | cut -d' ' -f1)
+        echo -n "$vm_hash" > /persist/storagevm/${vm}/etc/machine-id
+      '') activeMicrovms}
     '';
   };
 in

@@ -1,0 +1,171 @@
+---
+title: Fleet Device Management
+sidebar:
+  label: Fleet MDM
+---
+
+Fleet is an open-source device management platform that uses osquery to provide visibility and control over your device fleet. In Ghaf, Fleet Orbit is integrated to enable centralized device management, monitoring, and remote script execution.
+
+## Overview
+
+The Fleet integration in Ghaf provides:
+
+- **Device Visibility**: Query device state, installed software, and system configuration
+- **Remote Management**: Execute scripts and commands on managed devices
+- **Policy Enforcement**: Define and monitor compliance policies
+- **Fleet Desktop**: User-facing tray application for device status
+
+Fleet Orbit runs in the GUI VM and reports to a central Fleet server using a dynamic hostname derived from the device hardware, ensuring consistent identification across reboots.
+
+## Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Host VM                               │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  ghaf-dynamic-hostname service                       │    │
+│  │  └─► /persist/common/ghaf/hostname                   │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                           │ (virtiofs)                       │
+└───────────────────────────┼─────────────────────────────────┘
+                            │
+┌───────────────────────────┼─────────────────────────────────┐
+│                        GUI VM                                │
+│                           ▼                                  │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  /etc/common/ghaf/hostname                           │    │
+│  └──────────────────────┬──────────────────────────────┘    │
+│                         │                                    │
+│  ┌──────────────────────▼──────────────────────────────┐    │
+│  │  orbit.service                                       │    │
+│  │  └─► ORBIT_HOSTNAME_FILE=/etc/common/ghaf/hostname   │    │
+│  │  └─► Reports to Fleet Server                         │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                              │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │  fleet-desktop.service (user)                        │    │
+│  │  └─► Tray icon for device status                     │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Configuration
+
+Fleet is configured in the GUI VM via `services.orbit`. The following example shows the default configuration:
+
+```nix
+services.orbit = {
+  enable = true;
+  fleetUrl = "https://your-fleet.example.com";
+  enrollSecret = "your-enroll-secret";       # Use enrollSecretPath for production
+  hostnameFile = "/etc/common/ghaf/hostname"; # Dynamic hostname from host
+  enableScripts = true;                       # Allow remote script execution
+};
+```
+
+### Configuration Options
+
+| Option | Environment Variable | Description |
+|--------|---------------------|-------------|
+| `enable` | — | Enable Fleet Orbit systemd service |
+| `fleetUrl` | `ORBIT_FLEET_URL` | Base URL of the Fleet server |
+| `enrollSecret` | `ORBIT_ENROLL_SECRET` | Enroll secret for Fleet server |
+| `enrollSecretPath` | `ORBIT_ENROLL_SECRET_PATH` | Path to enroll secret file (recommended for production) |
+| `fleetCertificate` | `ORBIT_FLEET_CERTIFICATE` | Path to Fleet server certificate chain |
+| `hostnameFile` | `ORBIT_HOSTNAME_FILE` | Path to file containing hostname (Ghaf-specific) |
+| `hostIdentifier` | `ORBIT_HOST_IDENTIFIER` | Host identifier mode: `uuid` or `instance` |
+| `enableScripts` | `ORBIT_ENABLE_SCRIPTS` | Enable remote script execution |
+| `debug` | `ORBIT_DEBUG` | Enable debug logging |
+| `insecure` | `ORBIT_INSECURE` | Disable TLS certificate verification |
+
+### Secret Management
+
+For production deployments, use `enrollSecretPath` with a secrets management solution like sops-nix:
+
+```nix
+services.orbit = {
+  enable = true;
+  fleetUrl = "https://fleet.example.com";
+  enrollSecretPath = config.sops.secrets.fleet-enroll-secret.path;
+  hostnameFile = "/etc/common/ghaf/hostname";
+};
+
+sops.secrets.fleet-enroll-secret = {
+  sopsFile = ./secrets.yaml;
+};
+
+For CI/dev images, keep secrets out of the image and inject the enroll secret at
+runtime. Ghaf uses a shared host path for dynamic hostname; you can reuse the
+same mechanism for the enroll secret (for example, `/etc/common/ghaf/fleet/enroll`
+inside the guest).
+```
+
+## Dynamic Hostname
+
+Ghaf uses hardware-derived hostnames for device identification. The `ghaf-dynamic-hostname` service on the host generates a unique hostname based on hardware identifiers (DMI serial, disk UUID, or MAC address) and writes it to `/persist/common/ghaf/hostname`.
+
+This file is shared with VMs via virtiofs and mounted at `/etc/common/ghaf/hostname`. The Fleet module is patched to read the hostname from this file via the `hostnameFile` option, ensuring devices are consistently identified on the Fleet server.
+
+The orbit service includes a `ConditionPathExists` directive to wait for the hostname file before starting.
+
+## Systemd Services
+
+Two systemd services are created:
+
+- **`orbit.service`** (system): Runs the Orbit agent, connecting to the Fleet server
+- **`fleet-desktop.service`** (user): Runs Fleet Desktop tray application in graphical sessions
+
+## Logs
+
+Orbit logs are written to:
+- `/var/log/orbit/orbit.log` — Main Orbit log
+- `/var/log/orbit/osquery/` — osquery result and status logs
+- `journalctl -u orbit` — Systemd journal
+
+## NixOS-Specific Considerations
+
+The Ghaf Fleet integration includes patches for NixOS compatibility:
+
+- **Disabled auto-updates**: NixOS manages packages declaratively; Orbit's auto-update is disabled
+- **Disabled keystore**: Secrets are not stored in OS-specific keystores
+- **Fixed paths**: osqueryd binary path is set from Nix store
+- **Shebang patching**: Remote scripts have shebangs patched to use NixOS paths
+
+## Troubleshooting
+
+### Orbit not starting
+
+Check if the hostname file exists:
+```bash
+ls -la /etc/common/ghaf/hostname
+```
+
+Check service status:
+```bash
+systemctl status orbit
+journalctl -u orbit -f
+```
+
+### Connection issues
+
+Enable debug logging:
+```nix
+services.orbit = {
+  debug = true;
+  # For testing only:
+  # insecure = true;
+};
+```
+
+### Script execution failures
+
+Verify scripts are enabled and check logs:
+```bash
+cat /var/log/orbit/orbit.log | grep -i script
+```
+
+## References
+
+- [Fleet Documentation](https://fleetdm.com/docs)
+- [osquery Documentation](https://osquery.readthedocs.io/)
+- [Dynamic Hostname Generation](/ghaf/dev/ref/dynamic-hostname) — Ghaf hardware-derived hostname system
