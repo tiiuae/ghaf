@@ -10,11 +10,17 @@ let
 in
 {
   options.ghaf.reference.personalize.keys = {
-    enable = mkEnableOption "Enable personalization of keys for dev team";
+    enable = mkEnableOption "Enable personalization of keys";
   };
 
-  config = mkIf cfg.enable {
-    users.users.root.openssh.authorizedKeys.keys = cfg.authorizedSshKeys;
-    users.users.${config.ghaf.users.admin.name}.openssh.authorizedKeys.keys = cfg.authorizedSshKeys;
-  };
+  config = mkIf cfg.enable (
+    let
+      # Use deployment SSH keys if provided, otherwise empty
+      effectiveSshKeys = config.ghaf.reference.deployments.development.authorizedSshKeys;
+    in
+    mkIf (effectiveSshKeys != [ ]) {
+      users.users.root.openssh.authorizedKeys.keys = effectiveSshKeys;
+      users.users.${config.ghaf.users.admin.name}.openssh.authorizedKeys.keys = effectiveSshKeys;
+    }
+  );
 }

@@ -11,6 +11,7 @@
     reference-programs.imports = [ ./programs ];
     reference-services.imports = [ ./services ];
     reference-passthrough.imports = [ ./passthrough ];
+    reference-deployments.imports = [ ./deployments ];
     reference-profiles.imports = [
       inputs.self.nixosModules.reference-appvms
       inputs.self.nixosModules.reference-programs
@@ -18,6 +19,7 @@
       inputs.self.nixosModules.reference-personalize
       inputs.self.nixosModules.reference-desktop
       inputs.self.nixosModules.reference-passthrough
+      inputs.self.nixosModules.reference-deployments
       ./profiles/mvp-user-trial.nix
       ./profiles/mvp-user-trial-extras.nix
     ];
@@ -28,8 +30,8 @@
       inputs.self.nixosModules.reference-personalize
       inputs.self.nixosModules.reference-desktop
       inputs.self.nixosModules.reference-passthrough
+      inputs.self.nixosModules.reference-deployments
       ./profiles/mvp-orinuser-trial.nix
-      ./profiles/mvp-orinuser-trial-extras.nix
     ];
   };
 }
