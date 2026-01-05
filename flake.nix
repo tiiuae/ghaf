@@ -22,8 +22,8 @@
 
   inputs = {
     #TODO: carrying the extra patch(es) until merged to unstable
-    nixpkgs.url = "github:tiiuae/nixpkgs/cosmic-stable";
-    #nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    #nixpkgs.url = "github:tiiuae/nixpkgs/nixos-unstable-occulante";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
 
     # A framework for testing ghaf configurations
     ci-test-automation = {
@@ -134,7 +134,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/december-bump";
+      url = "github:tiiuae/jetpack-nixos/jan-bump";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
@@ -150,6 +150,7 @@
     nixd = {
       url = "github:nix-community/nixd";
       inputs = {
+        nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
         flake-root.follows = "flake-root";
         treefmt-nix.follows = "treefmt-nix";
