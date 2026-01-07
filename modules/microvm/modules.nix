@@ -82,10 +82,6 @@ let
         };
       };
     };
-
-    # Audio module
-    audio = optionalAttrs cfg.audiovm.audio { config.ghaf.services.audio.enable = true; };
-
     # Bluetooth module
     bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
 

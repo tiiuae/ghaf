@@ -20,7 +20,6 @@
     ];
 
     vm-modules.imports = [
-      ./common/ghaf-audio.nix
       ./common/microvm-store-mode.nix
       ./common/shared-directory.nix
       ./common/storagevm.nix

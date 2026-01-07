@@ -137,6 +137,10 @@ let
             # Services
             services = {
               user-provisioning.enable = true;
+              audio = {
+                enable = true;
+                role = "hub";
+              };
               power-manager = {
                 vm.enable = true;
                 gui.enable = true;

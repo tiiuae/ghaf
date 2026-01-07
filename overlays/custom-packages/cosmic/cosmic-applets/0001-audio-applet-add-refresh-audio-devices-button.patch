@@ -1,0 +1,53 @@
+From b6443fce6ece9fe7724901f5e3d6ceff56f809d0 Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Date: Mon, 22 Dec 2025 13:39:01 +0200
+Subject: [PATCH] audio-applet: add refresh audio devices button
+
+Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+---
+ cosmic-applet-audio/src/lib.rs | 15 +++++++++++++++
+ 1 file changed, 15 insertions(+)
+
+diff --git a/cosmic-applet-audio/src/lib.rs b/cosmic-applet-audio/src/lib.rs
+index 3adc747..378eb7b 100644
+--- a/cosmic-applet-audio/src/lib.rs
++++ b/cosmic-applet-audio/src/lib.rs
+@@ -138,6 +138,7 @@ pub enum Message {
+     OpenSettings,
+     Subscription(css::Message),
+     Surface(surface::Action),
++    RefreshDevices,
+ }
+
+ // TODO
+@@ -471,6 +472,18 @@ impl cosmic::Application for Audio {
+                     cosmic::app::Action::Surface(a),
+                 ));
+             }
++            Message::RefreshDevices => {
++                tokio::spawn(async move {
++                    let res = tokio::process::Command::new("systemctl")
++                        .args(["--user", "start", "refresh-audio-devices.service"])
++                        .status()
++                        .await;
++
++                    if let Err(err) = res {
++                        tracing::error!("Failed to refresh audio devices: {}", err);
++                    }
++                });
++            }
+         }
+
+         Task::none()
+@@ -744,6 +757,8 @@ impl cosmic::Application for Audio {
+         let content = column![
+             audio_content,
+             padded_control(divider::horizontal::default()).padding([space_xxs, space_s]),
++            menu_button(text::body("Refresh audio devices")).on_press(Message::RefreshDevices),
++            padded_control(divider::horizontal::default()).padding([space_xxs, space_s]),
+             padded_control(
+                 anim!(
+                     // toggler
+--
+2.51.2
+

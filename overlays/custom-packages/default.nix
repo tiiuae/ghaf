@@ -6,7 +6,6 @@
 #
 # keep-sorted start skip_lines=1
 (final: prev: {
-
   cosmic-applets = import ./cosmic/cosmic-applets { inherit prev; };
   cosmic-comp = import ./cosmic/cosmic-comp { inherit prev; };
   cosmic-greeter = import ./cosmic/cosmic-greeter { inherit prev; };
@@ -18,6 +17,7 @@
   intel-gpu-tools = import ./intel-gpu-tools { inherit prev; };
   libfm = import ./libfm { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
+  pipewire = import ./pipewire { inherit prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
   system76-scheduler = import ./system76-scheduler { inherit prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
