@@ -5,6 +5,7 @@
   imports = [
     ./evdev-rules.nix
     ./passthrough.nix
+    ./pci-acs-override/pci-acs-override.nix
     ./pci-ports.nix
     ./pci-rules.nix
     ./usb-quirks.nix

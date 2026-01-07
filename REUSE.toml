@@ -36,7 +36,8 @@ path = [
   "overlays/custom-packages/system76-scheduler/0001-fix-add-missing-loop-in-process-scheduler-refresh-ta.patch",
   "overlays/custom-packages/cosmic/cosmic-greeter/0001-Fix-softlock.patch",
   "overlays/custom-packages/cosmic/cosmic-greeter/0002-fix-username-handle-empty-usernames.patch",
-  "modules/secureboot/keys/*"
+  "modules/secureboot/keys/*",
+  "modules/hardware/passthrough/pci-acs-override/0001-pci-add-pcie_acs_override-for-pci-passthrough.patch"
 ]
 
 [[annotations]]
