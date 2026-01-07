@@ -50,8 +50,6 @@ let
       pkgs.util-linux
     ];
     text = ''
-      set -euo pipefail
-
       DEVICE="${lvmPartition}"
 
       echo "Checking device $DEVICE for LUKS header..." > /dev/console
@@ -104,8 +102,6 @@ let
       pkgs.kmod
     ];
     text = ''
-      set -euo pipefail
-
       LVM_PV="${lvmPartition}"
 
       # Wait for device to appear
@@ -160,6 +156,32 @@ let
         echo "Failed to unlock device automatically."
         exit 1
       fi
+
+      # Check for installer/completion markers on the ESP partition.
+        ESP_DEVICE=""
+        for i in {1..10}; do
+            ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
+            [ -n "$ESP_DEVICE" ] && break
+            sleep 1
+        done
+
+        if [ -z "$ESP_DEVICE" ]; then
+            echo "ESP partition not found, cannot check for markers. Skipping deferred encryption."
+            exit 0
+        fi
+
+        mkdir -p /mnt/esp
+        if ! mount "$ESP_DEVICE" /mnt/esp; then
+          echo "Failed to mount ESP to check for markers. Skipping deferred encryption."
+          exit 0
+        fi
+
+        # If it's not an installer-based boot, we also do nothing.
+        if [ ! -f "/mnt/esp/.ghaf-installer-encrypt" ]; then
+          echo "Not an installer-based installation (marker not found on ESP). Skipping deferred encryption."
+          umount /mnt/esp
+          exit 0
+        fi
 
       # Stop Plymouth to show encryption progress
       if command -v plymouth >/dev/null 2>&1; then
@@ -331,6 +353,8 @@ let
         --pbkdf argon2id \
         --pbkdf-memory 1048576 \
         --pbkdf-parallel 4 \
+        --progress-frequency 5 \
+        --verbose \
         "$LVM_PV" \
         --key-file=- || {
           echo "! Encryption failed!"
@@ -559,6 +583,11 @@ let
       echo "Your disk is now fully encrypted and protected."
       echo "The system will reboot to complete the setup."
       echo ""
+
+      # Remove the installer marker so we don't run again if this fails.
+      rm -f /mnt/esp/.ghaf-installer-encrypt
+      umount /mnt/esp
+      rmdir /mnt/esp
 
       ${
         if config.ghaf.profiles.debug.enable then

@@ -1,7 +1,6 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  lib,
   coreutils,
   util-linux,
   hwinfo,
@@ -22,13 +21,7 @@ writeShellApplication {
     lvm2 # Needed for vgchange, pvremove
     parted # Needed for partprobe
   ];
-  text = builtins.readFile (
-    lib.fileset.toSource {
-      root = ./.;
-      fileset = ./ghaf-installer.sh;
-    }
-    + "/ghaf-installer.sh"
-  );
+  text = builtins.readFile ./ghaf-installer.sh;
   meta = {
     description = "Installer script for the Ghaf project";
     platforms = [
