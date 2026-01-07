@@ -27,17 +27,6 @@ in
       }
 
       {
-        name = "Bluetooth Settings";
-        description = "Manage Bluetooth Devices & Settings";
-        icon = "bluetooth-48";
-        command = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
-          DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock \
-          PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} \
-          ${pkgs.blueman}/bin/blueman-manager
-        ''}/bin/bluetooth-settings";
-      }
-
-      {
         name = "Ghaf Control Panel";
         description = "Ghaf Control Panel";
         icon = "utilities-tweak-tool";

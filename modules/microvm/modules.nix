@@ -82,8 +82,6 @@ let
         };
       };
     };
-    # Bluetooth module
-    bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
 
     # Xpadneo module
     xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = false; };
@@ -234,9 +232,7 @@ in
           kernelConfigs.audiovm
           firmwareModule
           qemuModules.audiovm
-          serviceModules.audio
           serviceModules.audit
-          serviceModules.bluetooth
           serviceModules.xpadneo
           serviceModules.power
           serviceModules.performance

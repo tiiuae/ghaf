@@ -86,31 +86,6 @@ in
       };
     };
 
-    # If needed we can add an option to enable bluetooth via cosmic,
-    # which may be wanted in scenarios where audio-vm is not used
-    bluetooth = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Whether to enable support for Bluetooth on the system where graphics profile is applied.";
-      };
-      applet = {
-        enable = mkOption {
-          type = types.bool;
-          default = true;
-          description = "Enable the Blueman tray applet";
-        };
-
-        useDbusProxy = mkOption {
-          type = types.bool;
-          default = true;
-          description = ''
-            If true, run the applet via a D-Bus proxy to audio-vm.
-          '';
-        };
-      };
-    };
-
   };
 
   config = mkIf cfg.enable {

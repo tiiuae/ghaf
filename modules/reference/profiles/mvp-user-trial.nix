@@ -51,9 +51,10 @@ in
             "xbox0"
             "xbox1"
             "xbox2"
+            "bt0"
           ];
           comms-vm.permittedDevices = [ "gps0" ];
-          audio-vm.permittedDevices = [ "bt0" ];
+          audio-vm.permittedDevices = [ ];
           business-vm.permittedDevices = [ "cam0" ];
         };
         usb = {

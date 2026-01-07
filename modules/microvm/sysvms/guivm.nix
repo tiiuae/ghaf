@@ -88,6 +88,7 @@ let
               withLocaled = true;
               withNss = true;
               withResolved = true;
+              withBluetooth = true;
               withTimesyncd = true;
               withDebug = config.ghaf.profiles.debug.enable;
               withHardenedConfigs = true;
@@ -141,6 +142,7 @@ let
                 enable = true;
                 role = "hub";
               };
+              bluetooth.enable = true;
               power-manager = {
                 vm.enable = true;
                 gui.enable = true;

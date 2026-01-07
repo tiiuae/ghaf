@@ -158,6 +158,7 @@ in
           "com.system76.CosmicAppletStatusArea"
           "ae.tii.CosmicAppletKillSwitch"
           "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletBluetooth"
           "com.system76.CosmicAppletNetwork"
           "com.system76.CosmicAppletAudio"
           "com.system76.CosmicAppletBattery"
@@ -205,6 +206,7 @@ in
           "com.system76.CosmicAppletStatusArea"
           "ae.tii.CosmicAppletKillSwitch"
           "com.system76.CosmicAppletTiling"
+          "com.system76.CosmicAppletBluetooth"
           "com.system76.CosmicAppletNetwork"
           "com.system76.CosmicAppletAudio"
           "com.system76.CosmicAppletBattery"
@@ -333,26 +335,6 @@ in
         wantedBy = [ "cosmic-session.target" ];
       };
 
-      # We use existing blueman services and create overrides for both
-      blueman-applet = {
-        inherit (graphicsProfileCfg.bluetooth.applet) enable;
-        serviceConfig = {
-          Type = "simple";
-          Restart = "always";
-          RestartSec = "1";
-          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
-        };
-        partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
-
-      blueman-manager = {
-        inherit (graphicsProfileCfg.bluetooth.applet) enable;
-        serviceConfig = {
-          Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
-        };
-      };
-
       swayidle = {
         inherit (cfg.idleManagement) enable;
         description = "Ghaf system idle handler";
@@ -379,11 +361,6 @@ in
       wantedBy = [ "cosmic-session.target" ];
     };
 
-    # Below we adjust the default services from desktopManager.cosmic
-
-    # Network manager and bluetooth could be enabled if we're sure
-    # net-vm and audio-vm are not used e.g. on Orin devices
-    hardware.bluetooth.enable = graphicsProfileCfg.bluetooth.enable;
     networking.networkmanager.enable = graphicsProfileCfg.networkManager.enable;
 
     services.gvfs.enable = lib.mkForce false;

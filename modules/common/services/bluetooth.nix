@@ -26,12 +26,32 @@ in
       description = "Name of the bluetooth user";
     };
 
+    defaultName = mkOption {
+      type = types.str;
+      default = "Ghaf";
+      description = ''
+        Default Bluetooth adapter name.
+
+        If unset, BlueZ will attempt to fetch the hostname via hostnamed DBus service.
+        If hostnamed is disabled, BlueZ will fall back to "BlueZ [BlueZ version]".
+      '';
+    };
+
   };
   config = mkIf cfg.enable {
 
     # Enable bluetooth
     hardware.bluetooth = {
       enable = true;
+      settings = {
+        General = {
+          Name = lib.optionalAttrs (cfg.defaultName != null && cfg.defaultName != "") cfg.defaultName;
+          FastConnectable = "true";
+          JustWorksRepairing = "confirm";
+          Privacy = "device";
+          DiscoverableTimeout = "60"; # Default is 180 seconds
+        };
+      };
     };
 
     # Setup bluetooth user and group
@@ -98,16 +118,18 @@ in
     };
 
     # Add blueman-mechanism helper
-    systemd.services.blueman-mechanism = {
-      enable = true;
-      description = "Blueman mechanism";
-      path = [ pkgs.blueman ];
-      serviceConfig = {
-        Type = "dbus";
-        BusName = "org.blueman.Mechanism";
-        Restart = "always";
-        RestartSec = "1";
-        ExecStart = "${pkgs.blueman}/libexec/blueman-mechanism";
+    systemd.services = {
+      blueman-mechanism = {
+        enable = true;
+        description = "Blueman mechanism";
+        path = [ pkgs.blueman ];
+        serviceConfig = {
+          Type = "dbus";
+          BusName = "org.blueman.Mechanism";
+          Restart = "always";
+          RestartSec = "1";
+          ExecStart = "${pkgs.blueman}/libexec/blueman-mechanism";
+        };
       };
     };
   };

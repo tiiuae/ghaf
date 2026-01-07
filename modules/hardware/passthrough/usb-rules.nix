@@ -40,6 +40,12 @@ let
           interfaceClass = 17;
           description = "USB-C alternate modes supported by device";
         }
+        {
+          interfaceClass = 224;
+          interfaceSubclass = 1;
+          interfaceProtocol = 1;
+          description = "Bluetooth";
+        }
       ];
     }
   ];
@@ -70,12 +76,6 @@ let
         {
           interfaceClass = 1;
           description = "Audio";
-        }
-        {
-          interfaceClass = 224;
-          interfaceSubclass = 1;
-          interfaceProtocol = 1;
-          description = "Bluetooth";
         }
       ];
       deny = [
