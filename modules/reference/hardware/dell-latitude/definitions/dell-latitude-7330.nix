@@ -35,7 +35,6 @@
 
   # Network devices for passthrough to netvm
   network = {
-    #TODO Add the Ethernet device
     pciDevices = [
       {
         # Network controller: Intel Corporation Wi-Fi 6E(802.11ax) AX210/AX1675* 2x2 [Typhoon Peak] (rev 1a)
@@ -47,11 +46,23 @@
         # Detected kernel driver: iwlwifi
         # Detected kernel modules: iwlwifi
       }
+      {
+        # Ethernet controller: Intel Corporation Ethernet Connection (13) I219-LM (rev 20)
+        name = "eth0";
+        path = "0000:00:1f.6";
+        vendorId = "8086";
+        productId = "15fb";
+        # Detected kernel driver: e1000e
+        # Detected kernel modules: e1000e
+      }
     ];
     kernelConfig = {
       # Kernel modules are indicative only, please investigate with lsmod/modinfo
       stage1.kernelModules = [ ];
-      stage2.kernelModules = [ "iwlwifi" ];
+      stage2.kernelModules = [
+        "iwlwifi"
+        "e1000e"
+      ];
       kernelParams = [ ];
     };
   };
@@ -79,7 +90,7 @@
 
   # Audio device for passthrough to audiovm
   audio = {
-    #TODO: Fix splitting the Ethernet from the Audio iommu
+
     pciDevices = [
       {
         # ISA bridge: Intel Corporation Tiger Lake-LP LPC Controller (rev 20)
@@ -109,15 +120,6 @@
         # Detected kernel modules: snd_hda_intel,snd_sof_pci_intel_tgl
       }
       {
-        # Ethernet controller: Intel Corporation Ethernet Connection (13) I219-LM (rev 20)
-        name = "snd0-3";
-        path = "0000:00:1f.6";
-        vendorId = "8086";
-        productId = "15fb";
-        # Detected kernel driver: e1000e
-        # Detected kernel modules: e1000e
-      }
-      {
         # SMBus: Intel Corporation Tiger Lake-LP SMBus Controller (rev 20)
         name = "snd0-4";
         path = "0000:00:1f.4";
@@ -131,7 +133,6 @@
       # Kernel modules are indicative only, please investigate with lsmod/modinfo
       stage1.kernelModules = [ ];
       stage2.kernelModules = [
-        "e1000e"
         "i2c_i801"
         "snd_hda_intel"
         "snd_sof_pci_intel_tgl"

@@ -44,7 +44,23 @@
         # Detected kernel driver: iwlwifi
         # Detected kernel modules: iwlwifi
       }
+      {
+        # Ethernet controller: Intel Corporation Device 550a
+        # NOTE: This device is in the same IOMMU group as audio devices (0000:00:1f.x).
+        # PCI ACS override is enabled in the laptop configuration to split this group.
+        name = "eth0";
+        path = "0000:00:1f.6";
+        vendorId = "8086";
+        productId = "550a";
+        # Detected kernel driver: e1000e
+        # Detected kernel modules: e1000e
+      }
     ];
+    kernelConfig = {
+      stage2.kernelModules = [
+        "e1000e"
+      ];
+    };
   };
 
   # GPU devices for passthrough to guivm
@@ -111,20 +127,9 @@
         # Detected kernel driver: i801_smbus
         # Detected kernel modules: i2c_i801
       }
-      # TODO: Fix splitting the Ethernet from the Audio iommu
-      {
-        # Ethernet controller: Intel Corporation Device 550a
-        name = "snd0-4";
-        path = "0000:00:1f.6";
-        vendorId = "8086";
-        productId = "550a";
-        # Detected kernel driver: e1000e
-        # Detected kernel modules: e1000e
-      }
     ];
     kernelConfig = {
       stage2.kernelModules = [
-        "e1000e"
         "i2c_i801"
         "snd_hda_intel"
         "snd_sof_pci_intel_mtl"

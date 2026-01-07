@@ -1,0 +1,136 @@
+From 4f9ce06d51e1e4574e80f2a30809f0cec6abbc0d Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Enes=20=C3=96zt=C3=BCrk?= <enes.ozturk@unikie.com>
+Date: Fri, 16 Jan 2026 11:00:24 +0200
+Subject: [PATCH] pci: add pcie_acs_override for pci passthrough
+
+Add kernel boot parameter pcie_acs_override to override missing PCIe
+ACS (Access Control Services) support for IOMMU grouping. This enables
+PCI passthrough for devices that don't properly implement ACS.
+
+Usage: pcie_acs_override=id:vid:did[,id:vid:did...]
+Example: pcie_acs_override=id:8086:550a
+---
+ .../admin-guide/kernel-parameters.txt         |  6 ++
+ drivers/pci/quirks.c                          | 82 +++++++++++++++++++
+ 2 files changed, 88 insertions(+)
+
+diff --git a/Documentation/admin-guide/kernel-parameters.txt b/Documentation/admin-guide/kernel-parameters.txt
+index 184f2f96f..e3483d4ac 100644
+--- a/Documentation/admin-guide/kernel-parameters.txt
++++ b/Documentation/admin-guide/kernel-parameters.txt
+@@ -4309,6 +4309,12 @@
+ 		nomsi		[MSI] If the PCI_MSI kernel config parameter is
+ 				enabled, this kernel boot option can be used to
+ 				disable the use of MSI interrupts system-wide.
++		pcie_acs_override=
++				[PCIE] Override ACS for specific devices to isolate
++				them into separate IOMMU groups.
++				Format: id:vid:did[,id:vid:did...]
++				vid:did = vendor:device ID in hex
++				Example: pcie_acs_override=id:8086:550a
+ 		noioapicquirk	[APIC] Disable all boot interrupt quirks.
+ 				Safety option to keep boot IRQs enabled. This
+ 				should never be necessary.
+diff --git a/drivers/pci/quirks.c b/drivers/pci/quirks.c
+index 70f484b81..c2b6792a4 100644
+--- a/drivers/pci/quirks.c
++++ b/drivers/pci/quirks.c
+@@ -3740,6 +3740,87 @@ static void quirk_no_bus_reset(struct pci_dev *dev)
+ 	dev->dev_flags |= PCI_DEV_FLAGS_NO_BUS_RESET;
+ }
+ 
++#define NUM_ACS_IDS 16
++struct acs_on_id {
++	unsigned short vendor;
++	unsigned short device;
++};
++static struct acs_on_id acs_on_ids[NUM_ACS_IDS];
++static u8 max_acs_id;
++
++static __init int pcie_acs_override_setup(char *p)
++{
++	if (!p)
++		return -EINVAL;
++
++	while (*p) {
++		if (!strncmp(p, "id:", 3)) {
++			char opt[5];
++			int ret;
++			long val;
++
++			if (max_acs_id >= NUM_ACS_IDS - 1) {
++				pr_warn("pcie_acs_override: out of slots (%d)\n", NUM_ACS_IDS);
++				goto next;
++			}
++
++			p += 3;
++			snprintf(opt, 5, "%s", p);
++			ret = kstrtol(opt, 16, &val);
++			if (ret) {
++				pr_warn("pcie_acs_override: parse error %d\n", ret);
++				goto next;
++			}
++			acs_on_ids[max_acs_id].vendor = val;
++
++			p += strcspn(p, ":");
++			if (*p != ':') {
++				pr_warn("pcie_acs_override: invalid ID format\n");
++				goto next;
++			}
++
++			p++;
++			snprintf(opt, 5, "%s", p);
++			ret = kstrtol(opt, 16, &val);
++			if (ret) {
++				pr_warn("pcie_acs_override: parse error %d\n", ret);
++				goto next;
++			}
++			acs_on_ids[max_acs_id].device = val;
++			pr_info("pcie_acs_override: added %04x:%04x\n",
++				acs_on_ids[max_acs_id].vendor,
++				acs_on_ids[max_acs_id].device);
++			max_acs_id++;
++		}
++next:
++		p += strcspn(p, ",");
++		if (*p == ',')
++			p++;
++	}
++
++	if (max_acs_id)
++		pr_warn("pcie_acs_override: %d device(s) will be isolated\n", max_acs_id);
++
++	return 0;
++}
++early_param("pcie_acs_override", pcie_acs_override_setup);
++
++static int pcie_acs_overrides(struct pci_dev *dev, u16 acs_flags)
++{
++	int i;
++
++	for (i = 0; i < max_acs_id; i++) {
++		if (acs_on_ids[i].vendor == dev->vendor &&
++		    acs_on_ids[i].device == dev->device) {
++			pr_info("pcie_acs_override: %04x:%04x isolated\n",
++				dev->vendor, dev->device);
++			return 1;
++		}
++	}
++
++	return -ENOTTY;
++}
++
+ /*
+  * Some NVIDIA GPU devices do not work with bus reset, SBR needs to be
+  * prevented for those affected devices.
+@@ -5164,6 +5245,7 @@ static const struct pci_dev_acs_enabled {
+ 	{ PCI_VENDOR_ID_ZHAOXIN, PCI_ANY_ID, pci_quirk_zhaoxin_pcie_ports_acs },
+ 	/* Wangxun nics */
+ 	{ PCI_VENDOR_ID_WANGXUN, PCI_ANY_ID, pci_quirk_wangxun_nic_acs },
++	{ PCI_ANY_ID, PCI_ANY_ID, pcie_acs_overrides },
+ 	{ 0 }
+ };
+ 
+-- 
+2.47.2
+

@@ -80,6 +80,12 @@ let
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
 
+          # Enable PCI ACS override to split IOMMU groups
+          # Needed to separate Ethernet (8086:15fb) from Audio devices
+          hardware.passthrough.pciAcsOverride = {
+            enable = true;
+            ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
+          };
           virtualization.microvm.guivm.extraModules = [
             {
               microvm.mem = lib.mkForce 6144;
@@ -209,6 +215,13 @@ let
           partitioning.disko.enable = true;
           services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
 
+          # Enable PCI ACS override to split IOMMU groups
+          # Needed to separate Ethernet (8086:550a) from Audio devices
+          hardware.passthrough.pciAcsOverride = {
+            enable = true;
+            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
+          };
+
           virtualization.microvm.guivm.extraModules = [
             {
               # We explicitly enable only those we need
@@ -237,6 +250,13 @@ let
 
           # Enable storeOnDisk for all VMs
           virtualization.microvm.storeOnDisk = true;
+
+          # Enable PCI ACS override to split IOMMU groups
+          # Needed to separate Ethernet (8086:550a) from Audio devices
+          hardware.passthrough.pciAcsOverride = {
+            enable = true;
+            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
+          };
 
           virtualization.microvm.guivm.extraModules = [
             {
@@ -295,7 +315,12 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-
+          # Enable PCI ACS override to split IOMMU groups
+          # Needed to separate Ethernet (8086:15fb) from Audio devices
+          hardware.passthrough.pciAcsOverride = {
+            enable = true;
+            ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
+          };
           virtualization.microvm.guivm.extraModules = [
             {
               microvm.mem = lib.mkForce 6144;
@@ -398,6 +423,13 @@ let
           profiles.graphics.idleManagement.enable = true;
           services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
 
+          # Enable PCI ACS override to split IOMMU groups
+          # Needed to separate Ethernet (8086:550a) from Audio devices
+          hardware.passthrough.pciAcsOverride = {
+            enable = true;
+            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
+          };
+
           virtualization.microvm.guivm.extraModules = [
             {
               # We explicitly enable only those we need
@@ -426,6 +458,13 @@ let
 
           # Enable storeOnDisk for all VMs
           virtualization.microvm.storeOnDisk = true;
+
+          # Enable PCI ACS override to split IOMMU groups
+          # Needed to separate Ethernet (8086:550a) from Audio devices
+          hardware.passthrough.pciAcsOverride = {
+            enable = true;
+            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
+          };
 
           virtualization.microvm.guivm.extraModules = [
             {
