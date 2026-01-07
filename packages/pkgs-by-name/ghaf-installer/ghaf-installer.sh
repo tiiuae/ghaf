@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-
 if [ "$EUID" -ne 0 ]; then
   echo "Please run as root"
   exit
@@ -15,17 +14,22 @@ fi
 
 usage() {
   echo " "
-  echo "Usage: $(basename "$0") [-w]"
+  echo "Usage: $(basename "$0") [-w] [-e]"
   echo "  -w  Wipe only"
+  echo "  -e  Install with disk encryption"
   exit 1
 }
 
 WIPE_ONLY=false
+ENCRYPTED_INSTALL=false
 
-while getopts "w" opt; do
+while getopts "we" opt; do
   case $opt in
   w)
     WIPE_ONLY=true
+    ;;
+  e)
+    ENCRYPTED_INSTALL=true
     ;;
   ?)
     usage
@@ -151,5 +155,44 @@ shopt -s nullglob
 raw_file=("$IMG_PATH"/*.raw.zst)
 
 zstdcat "${raw_file[0]}" | dd of="$DEVICE_NAME" bs=32M status=progress
+
+if [ "$ENCRYPTED_INSTALL" = true ]; then
+  echo "Setting up deferred encryption..."
+
+  # Give udev time to process new partitions
+  udevadm settle
+  sleep 2
+
+  ESP_DEVICE=""
+  for i in {1..5}; do
+    echo "Attempt $i: Listing partitions for ${DEVICE_NAME}..."
+
+    # Find ESP partition by its partition label (case-insensitive)
+    ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL "${DEVICE_NAME}" | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
+
+    if [ -n "$ESP_DEVICE" ]; then
+      echo "Found ESP partition: $ESP_DEVICE"
+      break
+    fi
+
+    echo "Waiting for partitions to appear..."
+    partprobe "${DEVICE_NAME}"
+    sleep 2
+  done
+
+  if [ -z "$ESP_DEVICE" ]; then
+    echo "Error: Could not find ESP partition by label to create installer marker."
+    exit 1
+  fi
+
+  mkdir -p /mnt/esp
+  mount "$ESP_DEVICE" /mnt/esp || {
+    echo "Failed to mount ESP partition"
+    exit 1
+  }
+  touch /mnt/esp/.ghaf-installer-encrypt
+  umount /mnt/esp
+  echo "Deferred encryption setup complete."
+fi
 
 echo "Installation done. Please remove the installation media and reboot"
