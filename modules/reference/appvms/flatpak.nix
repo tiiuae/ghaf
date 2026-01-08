@@ -100,7 +100,7 @@ let
         else
           echo "No supported browser found on the system"
           # Assignment in order to avoid build warning
-          if ${lib.getExe pkgs.yad} --title="No App Store Browser Found" \
+          if XDG_SESSION_TYPE="wayland" WAYLAND_DISPLAY="wayland-1" DISPLAY=":0" ${lib.getExe pkgs.yad} --title="No Browser Found" \
               --image=dialog-warning \
               --width=500 \
               --text="<b>No browser installed through App Store was found in this VM.</b>\n\nFor optimal security and functionality, please install a browser:\n  • Firefox\n  • Chrome\n  • Brave\n  • Chromium\n\nInstall from the App Store and try again.\n\n<i>Alternatively, continue with the standard browser (may malfunction).</i>" \
