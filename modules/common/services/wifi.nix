@@ -8,7 +8,7 @@
 }:
 let
   cfg = config.ghaf.services.wifi;
-  inherit (lib) mkIf mkForce mkEnableOption;
+  inherit (lib) mkIf mkEnableOption;
   inherit (config.ghaf.networking) hosts;
 in
 {
@@ -17,8 +17,6 @@ in
   };
   config = mkIf cfg.enable {
     networking = {
-      # wireless is disabled because we use NetworkManager for wireless
-      wireless.enable = mkForce false;
       networkmanager = {
         enable = true;
         wifi.powersave = true;

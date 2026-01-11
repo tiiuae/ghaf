@@ -3,7 +3,7 @@
 #
 # Reference hardware modules
 #
-{ pkgs, ... }:
+{ pkgs, lib, ... }:
 {
   imports = [ ../../../../common/services/hwinfo ];
 
@@ -22,7 +22,7 @@
   };
 
   # To enable or disable wireless
-  networking.wireless.enable = false;
+  networking.wireless.enable = lib.mkForce false;
 
   hardware = {
     # Device Tree
@@ -65,7 +65,7 @@
       # Orin AGX-industrial does not.
 
       # To enable or disable wireless
-      networking.wireless.enable = false;
+      networking.wireless.enable = lib.mkForce false;
 
     }
     # Hardware info guest support
