@@ -207,6 +207,17 @@ let
       }
     ]))
 
+    (laptop-configuration "lenovo-x1-gen11-sysupdate" "debug" (withCommonModules [
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      {
+        ghaf = {
+          # TODO profiles.kernel-hardening.enable = true;
+          reference.profiles.mvp-user-trial-extras.enable = true;
+          partitioning.verity-volume.enable = true;
+        };
+      }
+    ]))
+
     (laptop-configuration "system76-darp11-b" "debug" (withCommonModules [
       self.nixosModules.hardware-system76-darp11-b
       {
