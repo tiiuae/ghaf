@@ -48,7 +48,9 @@ in
 
     ghaf.storage.encryption.partitionDevice = lib.mkDefault config.disko.devices.disk.disk1.content.partitions.luks.device;
 
-    system.build.ghafImage = config.system.build.diskoImages;
+    system.build.ghafImage = lib.mkIf (
+      !config.ghaf.partitioning.verity-volume.enable
+    ) config.system.build.diskoImages;
     disko = {
       imageBuilder = {
         extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''

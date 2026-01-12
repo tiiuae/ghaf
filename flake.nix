@@ -156,6 +156,15 @@
       };
     };
 
+    nix-store-veritysetup-generator = {
+      url = "github:tiiuae/ghaf-nix-store-veritysetup-generator/ghaf";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        pre-commit-hooks-nix.follows = "git-hooks-nix";
+      };
+    };
+
     # Hardware specific modules and configurations for NixOS
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
