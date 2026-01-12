@@ -186,6 +186,7 @@ in
       allowedUDPPorts = [ dnsPort ];
     };
 
+  systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
