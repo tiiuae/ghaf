@@ -13,6 +13,7 @@
     ];
     verity-release-partition.imports = [
       ./verity-partition.nix
+      ./verity-volume.nix
       ./verity-repart.nix
       ./verity-sysupdate.nix
       ./btrfs-postboot.nix
