@@ -451,6 +451,33 @@
         "type": "github"
       }
     },
+    "nix-store-veritysetup-generator": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks-nix": [
+          "git-hooks-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1770738456,
+        "narHash": "sha256-9cYLP+UeItZISv/3VkYOwbk0I7yc2Am/P8oUhLMNscM=",
+        "owner": "tiiuae",
+        "repo": "ghaf-nix-store-veritysetup-generator",
+        "rev": "a26e5f0e8541997ac67f4589752a60584c89487c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "tiiuae",
+        "ref": "ghaf",
+        "repo": "ghaf-nix-store-veritysetup-generator",
+        "type": "github"
+      }
+    },
     "nixd": {
       "inputs": {
         "flake-parts": [
@@ -555,6 +582,7 @@
         "gp-gui": "gp-gui",
         "jetpack-nixos": "jetpack-nixos",
         "microvm": "microvm",
+        "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
         "nixos-hardware": "nixos-hardware",
         "nixpkgs": "nixpkgs",
