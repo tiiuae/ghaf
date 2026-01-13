@@ -60,7 +60,9 @@ in
         disk = {
           disk1 = {
             type = "disk";
-            imageSize = "70G";
+            # NOTE: Disk image size should be enough big to fit both slots
+            #       Actual file created as sparsed, and use only as much space as root content need.
+            imageSize = "128G";
             content = {
               type = "gpt";
               partitions = {
@@ -126,7 +128,8 @@ in
                 };
               };
 
-              root = {
+              # `_0` denote version of installed system. In terms of A/B update -- debug version always `0`
+              root_0 = {
                 size = "50G";
                 content = {
                   type = "filesystem";
@@ -137,6 +140,19 @@ in
                     "nodiratime"
                   ];
                 };
+              };
+
+              # NOTE: placeholder for A-slot verity
+              verity_0 = {
+                size = "1G";
+              };
+
+              # NOTE: placeholders for B-slot root and verity
+              root_empty = {
+                size = "50G";
+              };
+              verity_empty = {
+                size = "1G";
               };
 
               persist = {
