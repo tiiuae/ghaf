@@ -73,7 +73,11 @@ let
             };
             # Services
             services = {
-              audio.enable = true;
+              audio = {
+                enable = true;
+                role = "server";
+                server.pipewireForwarding.enable = true;
+              };
               power-manager.vm = {
                 enable = true;
                 pciSuspendServices = [

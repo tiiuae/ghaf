@@ -110,15 +110,7 @@ in
         };
       };
     };
-    proxyAudio = mkOption {
-      type = types.bool;
-      default = true;
-      description = ''
-        Proxy audio via a D-Bus proxy to audio-vm
 
-        Also enables the Ghaf audio control applet.
-      '';
-    };
   };
 
   config = mkIf cfg.enable {

@@ -98,17 +98,31 @@ let
       '') extraShortcuts}
     ''
   );
-
   ghaf-volume = pkgs.writeShellApplication {
     name = "ghaf-volume";
 
-    runtimeInputs = [ pkgs.pamixer ];
+    runtimeInputs = with pkgs; [
+      wireplumber
+      pulseaudio
+    ];
 
     text = ''
+      export PIPEWIRE_RUNTIME_DIR=/tmp
+
       AMP_FILE="$HOME/.config/cosmic/com.system76.CosmicAudio/v1/amplification_sink"
       # Enable amplification by default, following COSMIC upstream behavior
       AMP_ENABLED="true"
-      LIMIT=150
+      LIMIT=1.5
+      VOLUME_CHANGE_SOUND="/run/current-system/sw/share/sounds/freedesktop/stereo/audio-volume-change.oga"
+
+      exit_error() {
+        echo "Usage: ghaf-volume {up|down}"
+        exit 1
+      }
+
+      DIR=''${1:-}
+
+      [ -z "$DIR" ] && exit_error
 
       if [ -f "$AMP_FILE" ] && [ -s "$AMP_FILE" ]; then
         VALUE=$(tr -d '[:space:]' < "$AMP_FILE")
@@ -117,22 +131,19 @@ let
         fi
       fi
 
-      change_volume() {
-        local dir=$1
-        local allow_boost=""
-        [[ "$AMP_ENABLED" == "true" ]] && allow_boost="--allow-boost"
+      [[ "$AMP_ENABLED" == "false" ]] && LIMIT=1.0
 
-        if [[ "$dir" == "up" ]]; then
-          pamixer --unmute --increase 5 --set-limit $LIMIT $allow_boost
-        elif [[ "$dir" == "down" ]]; then
-          pamixer --unmute --decrease 5 --set-limit $LIMIT $allow_boost
-        else
-          echo "Usage: ghaf-volume {up|down}"
-          exit 1
-        fi
-      }
+      if [[ "$DIR" == "up" ]]; then
+          DIR=+
+      elif [[ "$DIR" == "down" ]]; then
+          DIR=-
+      else
+          exit_error
+      fi
 
-      change_volume "$1"
+      wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 &
+      wpctl set-volume @DEFAULT_AUDIO_SINK@ "5%$DIR" -l $LIMIT
+      paplay "$VOLUME_CHANGE_SOUND"
     '';
   };
 in

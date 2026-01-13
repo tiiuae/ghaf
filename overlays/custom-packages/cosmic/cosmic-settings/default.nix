@@ -3,7 +3,7 @@
 # Disable certain settings pages in cosmic-settings
 # Ref: https://github.com/pop-os/cosmic-settings/blob/master/cosmic-settings/Cargo.toml
 { prev }:
-(prev.cosmic-settings.overrideAttrs (_oldAttrs: {
+(prev.cosmic-settings.overrideAttrs (oldAttrs: {
   cargoBuildNoDefaultFeatures = true;
   cargoBuildFeatures = [
     "a11y"
@@ -16,7 +16,7 @@
     "page-input"
     "page-region"
     # "page-power"
-    # "page-sound"
+    "page-sound"
     # "page-users"
     "page-legacy-applications"
     # "page-bluetooth"
@@ -28,4 +28,16 @@
     "wgpu"
     "xdg-portal"
   ];
+
+  # Below is needed for cosmic DE and tools to query PipeWire on audio-vm
+  # rather than any local PipeWire instance on the gui-vm
+  # Ensure `config.ghaf.services.audio.client.enablePipewireControl` is enabled
+  nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [
+    prev.buildPackages.makeWrapper
+  ];
+
+  postInstall = oldAttrs.postInstall or "" + ''
+    wrapProgram "$out/bin/cosmic-settings" \
+      --set PIPEWIRE_RUNTIME_DIR /tmp
+  '';
 }))

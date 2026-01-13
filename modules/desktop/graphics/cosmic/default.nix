@@ -13,7 +13,6 @@ let
     mkOption
     types
     getExe
-    getExe'
     literalExpression
     ;
 
@@ -43,46 +42,6 @@ let
     name = "autostart";
 
     text = '''' + cfg.extraAutostart;
-  };
-
-  cosmic-cpu-watchdog = pkgs.writeShellApplication {
-    name = "cosmic-cpu-watchdog";
-
-    runtimeInputs = [
-      pkgs.procps
-      pkgs.gawk
-    ];
-
-    text = ''
-      PROCESSES=("cosmic-applet-audio" "cosmic-osd")
-      KILLABLES=("cosmic-panel" "cosmic-osd")
-
-      THRESHOLD=80
-      TIMEOUT=300
-      INTERVAL=10
-      ELAPSED=0
-
-      while (( ELAPSED < TIMEOUT )); do
-          for PROC in "''${PROCESSES[@]}"; do
-              PID=$(pgrep -n -f "$PROC" 2>/dev/null) || continue
-              CPU=$(ps -o %cpu= -p "$PID" 2>/dev/null | awk '{print int($1)}')
-              [[ -z "$CPU" ]] && continue
-
-              if (( CPU > THRESHOLD )); then
-                  echo "High CPU detected, killing processes..."
-                  for KILL_PROC in "''${KILLABLES[@]}"; do
-                      pkill -xf "$KILL_PROC" && echo "Killed $KILL_PROC"
-                  done
-                  exit 0
-              fi
-          done
-
-          sleep "$INTERVAL"
-          ELAPSED=$((ELAPSED + INTERVAL))
-      done
-
-      echo "No processes exceeded threshold, exiting"
-    '';
   };
 
   # Change papirus folder icons to grey
@@ -308,7 +267,6 @@ in
           papirus-icon-theme-grey
           adwaita-icon-theme
           ghaf-wallpapers
-          pamixer
           (import ../launchers-pkg.nix { inherit pkgs config; })
         ]
         ++ [ (lib.hiPrio ghaf-cosmic-config) ];
@@ -325,9 +283,6 @@ in
       }
       // lib.optionalAttrs (cfg.renderDevice != null) {
         COSMIC_RENDER_DEVICE = cfg.renderDevice;
-      }
-      // lib.optionalAttrs graphicsProfileCfg.proxyAudio {
-        PULSE_SERVER = "audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort}";
       };
 
       etc = {
@@ -346,23 +301,6 @@ in
       }
       // lib.optionalAttrs cfg.idleManagement.enable {
         "swayidle/config".text = swayidleConfig;
-      }
-      // lib.optionalAttrs (!graphicsProfileCfg.proxyAudio) {
-        # This ensures pulse doesn't try to load any hardware modules,
-        # and runs 'empty' modules instead.
-        # ref https://github.com/pop-os/cosmic-osd/issues/70
-        "pulse/default.pa".text = ''
-          # Load a null sink so the daemon doesn't quit
-          load-module module-null-sink sink_name=dummy
-          # Optionally: Load a null source too
-          load-module module-null-source source_name=void
-
-          # Don't load any real hardware modules
-          # You could also add: .nofail to skip errors
-
-          # No auto-detection
-          .nofail
-        '';
       };
     };
 
@@ -378,27 +316,12 @@ in
         wantedBy = [ "cosmic-session.target" ];
       };
 
-      audio-control = {
-        enable = graphicsProfileCfg.proxyAudio;
-        description = "Audio Control application";
-        serviceConfig = {
-          Type = "simple";
-          Restart = "always";
-          RestartSec = "5";
-          ExecStart = ''
-            ${getExe' pkgs.ghaf-audio-control "GhafAudioControlStandalone"} --pulseaudio_server=audio-vm:${toString config.ghaf.services.audio.pulseaudioTcpControlPort} --deamon_mode=true --indicator_icon_name=adjustlevels
-          '';
-        };
-        partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
-
       usb-passthrough-applet = {
         description = "USB Passthrough Applet";
         serviceConfig = {
           Type = "simple";
-          Restart = "always";
-          RestartSec = "2";
+          Restart = "on-failure";
+          RestartSec = "5";
           Path = [
             "${pkgs.ghaf-usb-applet}/bin"
           ];
@@ -410,13 +333,69 @@ in
         wantedBy = [ "cosmic-session.target" ];
       };
 
+      # Kill cosmic-osd and cosmic-applet-audio if they exceed CPU usage threshold
+      # TODO: remove when upstream fixes the issue
+      # ref https://github.com/pop-os/cosmic-osd/issues/70
+      cosmic-cpu-watchdog =
+        let
+          cosmic-cpu-watchdog = pkgs.writeShellApplication {
+            name = "cosmic-cpu-watchdog";
+
+            runtimeInputs = [
+              pkgs.procps
+              pkgs.gawk
+            ];
+
+            text = ''
+              PROCESSES=("cosmic-osd")
+              KILLABLES=("cosmic-osd")
+
+              THRESHOLD=80
+              INTERVAL=10
+              COOLDOWN=60
+              LAST_KILL=0
+
+              while true; do
+                  NOW=$(date +%s)
+
+                  for PROC in "''${PROCESSES[@]}"; do
+                      PID=$(pgrep -n -f "$PROC" 2>/dev/null) || continue
+                      CPU=$(ps -o %cpu= -p "$PID" 2>/dev/null | awk '{print int($1)}')
+                      [[ -z "$CPU" ]] && continue
+
+                      if (( CPU > THRESHOLD )); then
+                          if (( NOW - LAST_KILL >= COOLDOWN )); then
+                              echo "$(date) High CPU detected ($PROC: ''${CPU}%), killing processes..."
+                              for KILL_PROC in "''${KILLABLES[@]}"; do
+                                  pkill -xf "$KILL_PROC" && echo "$(date) Killed $KILL_PROC"
+                              done
+                              LAST_KILL=$NOW
+                          fi
+                      fi
+                  done
+
+                  sleep "$INTERVAL"
+              done
+            '';
+          };
+        in
+        {
+          description = "Ghaf COSMIC CPU usage watchdog";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${getExe cosmic-cpu-watchdog}";
+          };
+          after = [ "cosmic-session.target" ];
+          wantedBy = [ "cosmic-session.target" ];
+        };
+
       # We use existing blueman services and create overrides for both
       blueman-applet = {
         inherit (graphicsProfileCfg.bluetooth.applet) enable;
         serviceConfig = {
           Type = "simple";
-          Restart = "always";
-          RestartSec = "1";
+          Restart = "on-failure";
+          RestartSec = "5";
           Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
         };
         partOf = [ "cosmic-session.target" ];
@@ -447,19 +426,6 @@ in
         partOf = [ "cosmic-session.target" ];
         wantedBy = [ "cosmic-session.target" ];
       };
-
-      # Kill cosmic-osd and cosmic-applet-audio if they exceed CPU usage threshold
-      # TODO: remove when upstream fixes the issue
-      # ref https://github.com/pop-os/cosmic-osd/issues/70
-      cosmic-cpu-watchdog = {
-        description = "Ghaf COSMIC CPU usage watchdog";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${getExe cosmic-cpu-watchdog}";
-        };
-        after = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
-      };
     };
 
     systemd.user.targets.ghaf-session = {
@@ -477,19 +443,9 @@ in
     networking.networkmanager.enable = graphicsProfileCfg.networkManager.enable;
 
     services.gvfs.enable = lib.mkForce false;
-    services.avahi.enable = lib.mkForce false;
     services.gnome.gnome-keyring.enable = lib.mkForce false;
     services.power-profiles-daemon.enable = lib.mkForce false;
     # Fails to build in cross-compilation for Orins
     services.orca.enable = pkgs.stdenv.hostPlatform.isx86_64;
-
-    services.pipewire = {
-      enable = true;
-
-      # Disable audio backends
-      alsa.enable = false;
-      pulse.enable = !graphicsProfileCfg.proxyAudio;
-      jack.enable = false;
-    };
   };
 }

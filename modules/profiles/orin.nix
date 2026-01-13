@@ -38,7 +38,6 @@ in
         # together with applets without dbusProxy on Orins
         bluetooth.applet.enable = false;
         networkManager.applet.enable = false;
-        proxyAudio = false;
       };
 
       graphics.cosmic = {

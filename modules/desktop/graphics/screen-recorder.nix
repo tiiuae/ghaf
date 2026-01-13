@@ -65,12 +65,6 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    # OBS is another option to capture the screen in Cosmic
-    # Other options include Kooha and Wayfarer, but are misbehaving as of Cosmic Alpha 7
-    # due to issues with the xdg-desktop-portal-cosmic implementation
-    # ref. https://github.com/SeaDve/Kooha/issues/311
-    # programs.obs-studio.enable = true;
-
     # XDG desktop portal screen capture requires pipewire and wireplumber to be enabled
     services.pipewire = {
       enable = true;
