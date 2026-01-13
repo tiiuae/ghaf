@@ -30,6 +30,7 @@ in
         rm-linux-bootmgrs
         # To inspect LUKS partitions metadata
         pkgs.cryptsetup
+        pkgs.lvm2
         # check hardware info
         pkgs.lshw
         # List microvm status
