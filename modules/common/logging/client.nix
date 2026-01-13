@@ -124,19 +124,24 @@ in
 
     services.alloy.enable = true;
 
-    # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
-    systemd.services.alloy.serviceConfig.LoadCredential = [
-      "client_cert:${cfg.tls.certFile}"
-      "client_key:${cfg.tls.keyFile}"
-    ]
-    ++ lib.optionals (cfg.tls.caFile != null) [
-      "client_ca:${cfg.tls.caFile}"
-    ];
+    systemd.services.alloy.serviceConfig = {
+      after = [ "systemd-journald.service" ];
+      requires = [ "systemd-journald.service" ];
 
-    # Once alloy.service in admin-vm stopped this service will
-    # still keep on retrying to send logs batch, so we need to
-    # stop it forcefully.
-    systemd.services.alloy.serviceConfig.TimeoutStopSec = 4;
+      # Once alloy.service in admin-vm stopped this service will
+      # still keep on retrying to send logs batch, so we need to
+      # stop it forcefully.
+      TimeoutStopSec = 4;
+
+      # Copy certs/keys (and optional CA) into /run/credentials/alloy.service/…
+      LoadCredential = [
+        "client_cert:${cfg.tls.certFile}"
+        "client_key:${cfg.tls.keyFile}"
+      ]
+      ++ lib.optionals (cfg.tls.caFile != null) [
+        "client_ca:${cfg.tls.caFile}"
+      ];
+    };
 
     ghaf.security.audit.extraRules = [
       "-w /etc/alloy/client.alloy -p rwxa -k alloy_client_config"

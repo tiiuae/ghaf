@@ -91,6 +91,7 @@ let
                   };
                 };
               };
+              recovery.enable = true;
             };
 
             security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;

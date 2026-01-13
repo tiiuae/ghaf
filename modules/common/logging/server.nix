@@ -177,12 +177,15 @@ in
           stage.drop {
             expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
           }
+          stage.drop {
+            older_than = "168h"
+          }
         }
 
         loki.source.journal "journal" {
           path          = "/var/log/journal"
           relabel_rules = discovery.relabel.adminJournal.rules
-          forward_to    = [loki.write.remote.receiver]
+          forward_to    = [loki.process.system.receiver]
         }
 
         loki.write "remote" {
@@ -205,7 +208,7 @@ in
           // system in order to guarantee persistence of acknowledged data.
           wal {
             enabled = true
-            max_segment_age = "240h"
+            max_segment_age = "168h"
             drain_timeout = "4s"
           }
           external_labels = { machine = local.file.macAddress.content }
@@ -229,6 +232,9 @@ in
     services.alloy.enable = true;
 
     systemd.services.alloy.serviceConfig = {
+      after = [ "systemd-journald.service" ];
+      requires = [ "systemd-journald.service" ];
+
       # If there is no internet connection , shutdown/reboot will take around 100sec
       # So, to fix that problem we need to add stop timeout
       # https://github.com/grafana/loki/issues/6533
