@@ -7,6 +7,7 @@
   ...
 }:
 let
+  audioCfg = config.ghaf.services.audio;
   cfg = config.ghaf.givc.guivm;
   inherit (lib)
     mkEnableOption
@@ -63,6 +64,15 @@ in
             };
             socket = "/tmp/dbusproxy_snd.sock";
           }
+          (lib.optionalAttrs (audioCfg.enable && audioCfg.client.pipewireControl.enable) {
+            transport = {
+              name = audiovmName;
+              addr = hosts.${audiovmName}.ipv4;
+              inherit (audioCfg.server.pipewireForwarding) port;
+              protocol = "tcp";
+            };
+            inherit (audioCfg.client.pipewireControl) socket;
+          })
         ];
       eventProxy = [
         {

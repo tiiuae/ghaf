@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   imports = [
-    ./audio.nix
+    ./audio
     ./bluetooth.nix
     ./brightness.nix
     ./createFakeBattery.nix

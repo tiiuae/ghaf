@@ -353,9 +353,9 @@ com.system76.CosmicSettings.Shortcuts:
         /// Locks the screen
         LockScreen: "loginctl lock-session",
         /// Mutes the active output device
-        Mute: "pamixer --toggle-mute",
+        Mute: "PIPEWIRE_RUNTIME_DIR=/tmp wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
         /// Mutes the active microphone
-        MuteMic: "pamixer --default-source --toggle-mute",
+        MuteMic: "PIPEWIRE_RUNTIME_DIR=/tmp wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
         /// Plays and Pauses audio
         PlayPause: "playerctl play-pause",
         /// Goes to the next track
@@ -370,9 +370,9 @@ com.system76.CosmicSettings.Shortcuts:
         Terminal: "cosmic-term",
         /// Toggles touchpad on/off
         TouchpadToggle: "cosmic-osd touchpad",
-        /// Lowers the volume of the active output device
+        /// Lowers the volume of the active output device (uses wpctl internally)
         VolumeLower: "",
-        /// Raises the volume of the active output device
+        /// Raises the volume of the active output device (uses wpctl internally)
         VolumeRaise: "",
         /// Opens the system default web browser
         WebBrowser: "xdg-open http://",

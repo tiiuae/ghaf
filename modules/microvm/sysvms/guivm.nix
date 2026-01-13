@@ -137,6 +137,13 @@ let
             # Services
             services = {
               user-provisioning.enable = true;
+              audio = {
+                enable = true;
+                role = "client";
+                client = {
+                  pipewireControl.enable = true;
+                };
+              };
               power-manager = {
                 vm.enable = true;
                 gui.enable = true;

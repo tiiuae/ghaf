@@ -126,11 +126,11 @@ let
                   inherit (configHost.ghaf.shm) serverSocketPath;
                 };
 
-                ghaf-audio = {
-                  inherit (vm.ghafAudio) enable;
-                  inherit (vm.ghafAudio) useTunneling;
-                  name = "${vm.name}";
+                services.audio = lib.mkIf vm.ghafAudio.enable {
+                  enable = true;
+                  role = "client";
                 };
+
                 logging.client.enable = configHost.ghaf.logging.enable;
 
                 security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
@@ -354,7 +354,6 @@ in
             };
             ghafAudio = {
               enable = lib.mkEnableOption "Ghaf application audio support";
-              useTunneling = lib.mkEnableOption "Use Pulseaudio tunneling";
             };
             vtpm = {
               enable = lib.mkEnableOption "vTPM support in the virtual machine";
