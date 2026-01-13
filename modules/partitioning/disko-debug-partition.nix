@@ -126,7 +126,8 @@ in
                 };
               };
 
-              root = {
+              # `_0` denote version of installed system. In terms of A/B update -- debug version always `0`
+              root_0 = {
                 size = "50G";
                 content = {
                   type = "filesystem";
@@ -137,6 +138,19 @@ in
                     "nodiratime"
                   ];
                 };
+              };
+
+              # NOTE: placeholder for A-slot verity
+              verity_0 = {
+                size = "6G";
+              };
+
+              # NOTE: placeholders for B-slot root and verity
+              root_empty = {
+                size = "50G";
+              };
+              verity_empty = {
+                size = "6G";
               };
 
               persist = {
