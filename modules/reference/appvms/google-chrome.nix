@@ -19,6 +19,7 @@
       runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
       basePort = 9150;
     };
+    yubiProxy = true;
     applications =
       let
         chromeWrapper = pkgs.writeShellApplication {

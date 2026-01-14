@@ -82,7 +82,6 @@
 
     # A set of useful nix packages and utilities for ghaf
     ghafpkgs = {
-      #url = "github:tiiuae/ghafpkgs?ref=pull/142/head";
       url = "github:tiiuae/ghafpkgs";
       inputs = {
         nixpkgs.follows = "nixpkgs";

@@ -19,6 +19,7 @@
       runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
       basePort = 9120;
     };
+    yubiProxy = true;
     applications = [
       {
         # The SPKI fingerprint is calculated like this:
