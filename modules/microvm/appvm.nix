@@ -12,6 +12,7 @@ let
   configHost = config;
 
   inherit (lib)
+    mkEnableOption
     mkOption
     types
     optionalAttrs
@@ -31,6 +32,34 @@ let
       # Packages and extra modules from all applications defined in the appvm
       appPackages = builtins.concatLists (map (app: app.packages) vm.applications);
       appExtraModules = builtins.concatLists (map (app: app.extraModules) vm.applications);
+      yubiPackages = lib.optional vm.yubiProxy pkgs.qubes-ctap;
+      yubiExtra = lib.optional vm.yubiProxy {
+        services.udev.extraRules = ''
+          ACTION=="remove", GOTO="qctap_hidraw_end"
+          SUBSYSTEM=="hidraw", MODE="0660", GROUP="users"
+          LABEL="qctap_hidraw_end"
+        '';
+        systemd.services.ctapproxy = {
+          enable = true;
+          description = "CTAP Proxy";
+          serviceConfig = {
+            ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/log/qubes";
+            ExecStart = "${pkgs.qubes-ctap}/bin/qctap-proxy --qrexec ${
+              pkgs.writeShellApplication {
+                name = "qrexec-client-vm";
+                runtimeInputs = [ pkgs.givc-cli ];
+                text = ''
+                  shift
+                  exec givc-cli ${config.ghaf.givc.cliArgs} ctap "$@"
+                '';
+              }
+            }/bin/qrexec-client-vm dummy";
+            Type = "notify";
+            KillMode = "process";
+          };
+          wantedBy = [ "multi-user.target" ];
+        };
+      };
 
       appvmConfiguration = {
         imports = [
@@ -150,7 +179,8 @@ let
                 pkgs.givc-cli
               ]
               ++ vm.packages
-              ++ appPackages;
+              ++ appPackages
+              ++ yubiPackages;
 
               security.pki.certificateFiles =
                 lib.mkIf configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
@@ -236,7 +266,8 @@ let
       inherit (inputs) nixpkgs;
       specialArgs = { inherit lib; };
       config = appvmConfiguration // {
-        imports = appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ appExtraModules;
+        imports =
+          appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ yubiExtra ++ appExtraModules;
       };
     };
 in
@@ -401,6 +432,7 @@ in
               '';
               default = [ ];
             };
+            yubiProxy = mkEnableOption "2FA token proxy";
           };
         }
       );

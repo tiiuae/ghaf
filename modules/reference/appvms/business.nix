@@ -27,6 +27,7 @@ in
       runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
       basePort = 9110;
     };
+    yubiProxy = true;
     applications =
       let
         inherit (config.microvm.vms."business-vm".config.config.ghaf.reference.services.pac) proxyPacUrl;
