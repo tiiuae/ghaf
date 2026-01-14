@@ -1,0 +1,134 @@
+---
+title: Release ghaf-25.11.1
+sidebar:
+  order: 9973
+  badge:
+    text: Latest
+    variant: success
+---
+
+This release is for Secure Laptop platforms, full testing has been performed with Lenovo X1 Carbon Gen11 and System76 Darter Pro
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-25.12.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+
+## What's Changed
+* version:bump for the next release by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1574
+* cosmic: enable nm in login, replace nm-applet with cosmi's builtin by @kajusnau in https://github.com/tiiuae/ghaf/pull/1575
+* docs: add 25.11.1 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1576
+* performance module by @kajusnau in https://github.com/tiiuae/ghaf/pull/1542
+* shfmt: enable shfmt to align all the shell scripts by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1578
+* build(deps): bump js-yaml from 4.1.0 to 4.1.1 in /docs in the npm_and_yarn group across 1 directory by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1572
+* build(deps): bump github/codeql-action from 4.31.3 to 4.31.5 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1584
+* build(deps): bump actions/checkout from 5.0.1 to 6.0.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1583
+* build(deps): bump astral-sh/setup-uv from 7.1.3 to 7.1.4 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1585
+* build(deps): bump starlight-blog from 0.25.0 to 0.25.1 in /docs by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1581
+* build(deps): bump astro from 5.15.6 to 5.16.0 in /docs by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1582
+* cosmic-applets: hide some buttons by @kajusnau in https://github.com/tiiuae/ghaf/pull/1580
+* modules/partitioning: fix disko builder permission error by @vadika in https://github.com/tiiuae/ghaf/pull/1588
+* unixbench: remove, it pull compilers to resulting closure by @avnik in https://github.com/tiiuae/ghaf/pull/1589
+* dynamic-hostname: fix Darter Pro uniqueness issue by @vadika in https://github.com/tiiuae/ghaf/pull/1579
+* docs: Add YubiKey integration documentation by @vunnyso in https://github.com/tiiuae/ghaf/pull/1592
+* modules/partitioning: remove xcp workaround by @Mic92 in https://github.com/tiiuae/ghaf/pull/1593
+* cosmic7: Update to the beta7 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1564
+* AGX Industrial (64GB) target added by @emrahbillur in https://github.com/tiiuae/ghaf/pull/1472
+* jetpack-nixos: rebased by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1591
+* jetpack: fix cuda support by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1595
+* feat(givc): enable notifier and exec by @mbssrc in https://github.com/tiiuae/ghaf/pull/1596
+* Refactor cleanup by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1594
+* build(deps): bump github/codeql-action from 4.31.5 to 4.31.6 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1598
+* Implement PCI device management via vhotplug by @nesteroff in https://github.com/tiiuae/ghaf/pull/1528
+* performance: fix scheduler, fix dell performance by @kajusnau in https://github.com/tiiuae/ghaf/pull/1586
+* bump: docs depends and ghafpkgs by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1604
+* Ghaf kill switch GUI application by @vunnyso in https://github.com/tiiuae/ghaf/pull/1577
+* performance: add thermal limit adjustment option by @kajusnau in https://github.com/tiiuae/ghaf/pull/1605
+* Fix USB input devices hot-plugging by @nesteroff in https://github.com/tiiuae/ghaf/pull/1608
+* Firmware control by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1607
+* microvm: use a store image and not share /nix/store by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1562
+* iso: do not copy the system closure only the disk by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1609
+* givc: bump to include fix for shutdown hang by @kajusnau in https://github.com/tiiuae/ghaf/pull/1610
+* sysbench: Add back to the system PATH by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1612
+* devshell: add ghaf-flash to devshell, improve readability by @kajusnau in https://github.com/tiiuae/ghaf/pull/1613
+* cosmic: bump to cosmic beta 8 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1597
+* Storedisk size and ghaf-vms (to list status) by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1614
+* killswitch: avoid re-blocking devices already in blocked state by @vunnyso in https://github.com/tiiuae/ghaf/pull/1606
+* bump: cosmic 9 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1616
+* build(deps): bump github/codeql-action from 4.31.6 to 4.31.7 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1618
+* build(deps): bump step-security/harden-runner from 2.13.2 to 2.13.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1621
+* build(deps): bump astral-sh/setup-uv from 7.1.4 to 7.1.5 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1620
+* build(deps): bump actions/checkout from 6.0.0 to 6.0.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1619
+* cosmic: add pre-defined layouts and layout config by @kajusnau in https://github.com/tiiuae/ghaf/pull/1617
+* Update docs deps 20251209 042454 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1626
+* logging: add MaxFileSec for journald by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1565
+* Upgrade docs deps 20251209 080940 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1627
+* jetpack-nixos: bump by @TanelDettenborn in https://github.com/tiiuae/ghaf/pull/1625
+* Bump mid dec by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1629
+* GhA: stop building in github runners by @henrirosten in https://github.com/tiiuae/ghaf/pull/1631
+* Flatpak fix: add browser detection and launch support by @jkuro-tii in https://github.com/tiiuae/ghaf/pull/1587
+* fix: fix softlock on incorrect password by @kajusnau in https://github.com/tiiuae/ghaf/pull/1633
+* desktop: add proper light/dark themes, unify chrome vm colors by @kajusnau in https://github.com/tiiuae/ghaf/pull/1636
+* bot: improve the copilot reviews by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1638
+* audit: Centralize ordering and systemd service override by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1635
+* audio: disable pipewire logs by default by @kajusnau in https://github.com/tiiuae/ghaf/pull/1640
+* build(deps): bump cachix/install-nix-action from 31.8.4 to 31.9.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1645
+* build(deps): bump actions/upload-artifact from 5.0.0 to 6.0.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1644
+* build(deps): bump astral-sh/setup-uv from 7.1.5 to 7.1.6 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1643
+* build(deps): bump tj-actions/changed-files from 47.0.0 to 47.0.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1642
+* build(deps): bump step-security/harden-runner from 2.13.3 to 2.14.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1641
+* cosmic: bump to the latest stable by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1632
+* docs: bump by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1648
+* Update docs deps 20251216 073030 by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1649
+* Improve PCI device auto-detection and enable it in the demo-tower target for network devices by @nesteroff in https://github.com/tiiuae/ghaf/pull/1650
+* jetpack-nixos: bump by @TanelDettenborn in https://github.com/tiiuae/ghaf/pull/1654
+* 5080: switch to vhotplug network by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1655
+* Agx industrial ethernet by @emrahbillur in https://github.com/tiiuae/ghaf/pull/1653
+* build(deps): bump github/codeql-action from 4.31.7 to 4.31.9 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1659
+* ci/eval: rewrite script to use nix-eval-jobs --select by @Mic92 in https://github.com/tiiuae/ghaf/pull/1658
+* Pass NHLT table in intel-laptop target only when present on the host by @nesteroff in https://github.com/tiiuae/ghaf/pull/1661
+* docs: Add system logs architecture diagram and notes by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1662
+* verity-images: Fix the installer to copy the image by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1663
+* audit/logging: add time-based audit log retention and journald transport label by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1656
+* docs: add architecture notes on inter-VM channels, memory wipe, and secret handling by @vadika in https://github.com/tiiuae/ghaf/pull/1666
+* fix(pci-ports): start PCIe port range from 1 by @vunnyso in https://github.com/tiiuae/ghaf/pull/1664
+* Active Directory by @mbssrc in https://github.com/tiiuae/ghaf/pull/1416
+* Integrate Fleet MDM services by @vadika in https://github.com/tiiuae/ghaf/pull/1590
+* feat(installer): implement deferred disk encryption trigger by @vunnyso in https://github.com/tiiuae/ghaf/pull/1670
+* bump: wireguard-gui by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1615
+* build(deps): bump astro from 5.16.5 to 5.16.7 in /docs by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1675
+* build(deps): bump github/codeql-action from 4.31.9 to 4.31.10 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1673
+* build(deps): bump astral-sh/setup-uv from 7.1.6 to 7.2.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1674
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-25.11.1...ghaf-25.12.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release:
+
+* (System76) All devices have the same device-id
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| (System76) Suspension has been disabled | In Progress |  |
+| (X1) Downloading large file (10G) crashes the browser                                                          | In progress | Issue is under investigation                                               |
+| (X1) Unlock with fingerprint doesn't work                            | In Progress                                                       | Issue is under investigation
+| Local user login with Yubikey doesn't work | In Progress | Issue is under investigation |
+| Gala app doesn't get connected | In Progress | Will be fixed in next release |
+| Audio applet doesn't show devices and volume control doesn't work | In Progress | Will be fixed in next release |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/ghaf-25.12.1/
+
+Download the required image and use the following instructions: [Build and Run](/ghaf/dev/ref/build_and_run).
