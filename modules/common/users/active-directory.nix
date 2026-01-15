@@ -337,9 +337,9 @@ in
     # Add LDAP TLS certificates into global cert store
     security.pki.certificates = map (
       d:
-      ''${lib.optionalString (cfg.domains.${d}.ldap.tlsCaCert != null)
+      "${lib.optionalString (cfg.domains.${d}.ldap.tlsCaCert != null)
         "${cfg.domains.${d}.ldap.tlsCaCert}"
-      }''
+      }"
     ) (lib.attrNames cfg.domains);
 
     # Setup DNS for domains with DNS providers

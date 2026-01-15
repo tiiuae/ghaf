@@ -137,7 +137,7 @@ let
               printf '\n' | cryptsetup open "$LVM_PV" crypted --key-file=- || true
             ''
           else
-            ''''
+            ""
         }
 
         # Try to start the service

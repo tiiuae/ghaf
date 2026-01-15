@@ -58,7 +58,7 @@
           --output firmware/ \
           --device-tree ${fdtPath}
       '';
-      populateRootCommands = '''';
+      populateRootCommands = "";
       postBuildCommands = ''
         fdisk_output=$(fdisk -l "$img")
 

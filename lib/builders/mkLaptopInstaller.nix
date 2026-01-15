@@ -80,7 +80,7 @@ let
               ];
 
               services.getty = {
-                greetingLine = ''<<< Welcome to the Ghaf installer >>>'';
+                greetingLine = "<<< Welcome to the Ghaf installer >>>";
                 helpLine = lib.mkAfter ''
 
                   To run the installer, type

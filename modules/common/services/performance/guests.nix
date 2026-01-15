@@ -116,7 +116,7 @@ let
     gui-performance = mkTunedScript {
       name = "gui-performance";
       start =
-        ''''
+        ""
         + optionalString useGivc ''
           timeout 5s ${givc-cli} start service --vm "ghaf-host" host-performance.service &
           timeout 5s ${givc-cli} start service --vm "net-vm" net-performance.service &
