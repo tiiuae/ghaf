@@ -41,7 +41,7 @@ let
   autostart = pkgs.writeShellApplication {
     name = "autostart";
 
-    text = '''' + cfg.extraAutostart;
+    text = "" + cfg.extraAutostart;
   };
 
   # Change papirus folder icons to grey

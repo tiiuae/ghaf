@@ -6,8 +6,8 @@
   kernel,
   kernelModuleMakeFlags,
   kmod,
-# Pass e.g. (import <nixpkgs> {}).linuxPackages.kernel when calling manually,
-# or let NixOS inject it via boot.extraModulePackages usage.
+  # Pass e.g. (import <nixpkgs> {}).linuxPackages.kernel when calling manually,
+  # or let NixOS inject it via boot.extraModulePackages usage.
 }:
 
 stdenv.mkDerivation {

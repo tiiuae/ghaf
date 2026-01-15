@@ -36,7 +36,7 @@ let
     domains = ${lib.concatStringsSep ", " (lib.attrNames cfg.domains)}
     ${optionalString (cfg.debugLevel != null) "debug_level = ${toString cfg.debugLevel}"}
     core_dumpable = false
-    ${optionalString (cfg.extraConfig != null) ''${cfg.extraConfig}''}
+    ${optionalString (cfg.extraConfig != null) "${cfg.extraConfig}"}
 
     [nss]
     filter_users = ${concatMapStrings (u: u + " ") (lib.attrNames config.users.users)}
@@ -45,7 +45,7 @@ let
     ${optionalString (cfg.nss.shellOverride != null) "override_shell = ${cfg.nss.shellOverride}"}
     ${optionalString (cfg.nss.defaultShell != null) "default_shell = ${cfg.nss.defaultShell}"}
     entry_cache_nowait_percentage = ${toString cfg.entryCacheNowaitPercentage}
-    ${optionalString (cfg.nss.extraConfig != null) ''${cfg.nss.extraConfig}''}
+    ${optionalString (cfg.nss.extraConfig != null) "${cfg.nss.extraConfig}"}
 
     [pam]
     offline_credentials_expiration = ${toString cfg.pam.offlineCredentialsExpiration}
@@ -53,7 +53,7 @@ let
     offline_failed_login_delay = ${toString cfg.pam.offlineFailedLoginDelay}
     pam_initgroups_scheme = ${cfg.pam.initGroupsScheme}
     pam_verbosity = 0
-    ${optionalString (cfg.pam.extraConfig != null) ''${cfg.pam.extraConfig}''}
+    ${optionalString (cfg.pam.extraConfig != null) "${cfg.pam.extraConfig}"}
 
     [kcm]
     ${optionalString (cfg.debugLevel != null) "debug_level = ${toString cfg.debugLevel}"}
@@ -70,7 +70,7 @@ let
 
       ${optionalString (
         cfg.domains.${domainName}.extraConfig != null
-      ) ''${cfg.domains.${domainName}.extraConfig}''}
+      ) "${cfg.domains.${domainName}.extraConfig}"}
 
       # Kerberos Settings
       ${optionalString (cfg.domains.${domainName}.authProvider == "krb5") "krb5_validate = true"}
@@ -107,7 +107,7 @@ let
       ''}
       ${optionalString (
         cfg.domains.${domainName}.ad.extraConfig != null
-      ) ''${cfg.domains.${domainName}.ad.extraConfig}''}
+      ) "${cfg.domains.${domainName}.ad.extraConfig}"}
 
       # LDAP Settings
       ${optionalString (cfg.domains.${domainName}.ldap.uri != [ ])
@@ -131,7 +131,7 @@ let
 
       ${optionalString (
         cfg.domains.${domainName}.ldap.extraConfig != null
-      ) ''${cfg.domains.${domainName}.ldap.extraConfig}''}
+      ) "${cfg.domains.${domainName}.ldap.extraConfig}"}
 
     '') (lib.attrNames cfg.domains)}
   '';

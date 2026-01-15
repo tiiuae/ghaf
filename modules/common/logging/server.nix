@@ -198,7 +198,7 @@ in
               password_file = "/etc/loki/pass"
             }
             tls_config {
-              ${optionalString (cfg.tls.remoteCAFile != null) ''ca_pem = local.file.remote_ca.content''}
+              ${optionalString (cfg.tls.remoteCAFile != null) "ca_pem = local.file.remote_ca.content"}
               cert_pem    = local.file.tls_cert.content
               key_pem     = local.file.tls_key.content
               min_version = "${cfg.tls.minVersion}"
