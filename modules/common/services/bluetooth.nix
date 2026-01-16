@@ -26,12 +26,35 @@ in
       description = "Name of the bluetooth user";
     };
 
+    defaultName = mkOption {
+      type = types.str;
+      default = "Ghaf";
+      description = ''
+        Default Bluetooth adapter name.
+
+        If unset, BlueZ will attempt to fetch the hostname via hostnamed DBus service.
+        If hostnamed is disabled, BlueZ will fall back to "BlueZ [BlueZ version]".
+      '';
+    };
+
   };
   config = mkIf cfg.enable {
 
     # Enable bluetooth
     hardware.bluetooth = {
       enable = true;
+      # Save battery by disabling bluetooth on boot
+      powerOnBoot = false;
+      # https://github.com/bluez/bluez/blob/master/src/main.conf full list of options
+      settings = {
+        General = {
+          Name = lib.optionalAttrs (cfg.defaultName != null && cfg.defaultName != "") cfg.defaultName;
+          FastConnectable = "true";
+          JustWorksRepairing = "confirm";
+          Privacy = "device";
+          DiscoverableTimeout = "60"; # Default is 180 seconds
+        };
+      };
     };
 
     # Setup bluetooth user and group
