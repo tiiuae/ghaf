@@ -98,13 +98,13 @@ in
                     # but keep it for compatibility with CLI tools
                     {
                       "address" = "tcp:${toString cfg.server.pulseaudioTcpPort}"; # address
-                      "max-clients" = 8; # maximum number of clients
+                      "max-clients" = 32; # maximum number of clients
                       "listen-backlog" = 32; # backlog in the server listen queue
                       "client.access" = "restricted"; # permissions for clients (restricted|unrestricted)
                     }
                     {
                       "address" = "tcp:${toString cfg.server.pulseaudioTcpControlPort}";
-                      "max-clients" = 8;
+                      "max-clients" = 32;
                       "listen-backlog" = 32;
                       "client.access" = "unrestricted";
                     }

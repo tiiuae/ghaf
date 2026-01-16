@@ -348,7 +348,6 @@ in
 
             text = ''
               PROCESSES=("cosmic-osd")
-              KILLABLES=("cosmic-osd")
 
               THRESHOLD=80
               INTERVAL=10
@@ -366,7 +365,7 @@ in
                       if (( CPU > THRESHOLD )); then
                           if (( NOW - LAST_KILL >= COOLDOWN )); then
                               echo "$(date) High CPU detected ($PROC: ''${CPU}%), killing processes..."
-                              for KILL_PROC in "''${KILLABLES[@]}"; do
+                              for KILL_PROC in "''${PROCESSES[@]}"; do
                                   pkill -xf "$KILL_PROC" && echo "$(date) Killed $KILL_PROC"
                               done
                               LAST_KILL=$NOW

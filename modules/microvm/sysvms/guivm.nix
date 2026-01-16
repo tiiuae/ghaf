@@ -238,11 +238,6 @@ let
                 pkgs.gnome-calculator
                 pkgs.sticky-notes
               ])
-              ++ [
-                pkgs.pamixer
-                pkgs.eww
-                pkgs.wlr-randr
-              ]
               ++ [ pkgs.ctrl-panel ]
               # For GIVC debugging/testing
               ++ lib.optional config.ghaf.profiles.debug.enable pkgs.givc-cli
