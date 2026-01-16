@@ -30,8 +30,8 @@ let
               ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
               debug.tools.net.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
             };
+            nix-setup.enable = config.ghaf.nix-setup.enable && !config.ghaf.virtualization.microvm.storeOnDisk;
             users = {
               proxyUser = {
                 enable = true;
