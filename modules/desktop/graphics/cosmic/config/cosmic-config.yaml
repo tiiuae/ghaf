@@ -353,9 +353,9 @@ com.system76.CosmicSettings.Shortcuts:
         /// Locks the screen
         LockScreen: "loginctl lock-session",
         /// Mutes the active output device
-        Mute: "PIPEWIRE_RUNTIME_DIR=/tmp wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        Mute: "pactl set-sink-mute @DEFAULT_SINK@ toggle",
         /// Mutes the active microphone
-        MuteMic: "PIPEWIRE_RUNTIME_DIR=/tmp wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle",
+        MuteMic: "pactl set-source-mute @DEFAULT_SOURCE@ toggle",
         /// Plays and Pauses audio
         PlayPause: "playerctl play-pause",
         /// Goes to the next track

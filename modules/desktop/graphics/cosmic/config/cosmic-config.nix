@@ -98,58 +98,56 @@ let
       '') extraShortcuts}
     ''
   );
+
   ghaf-volume = pkgs.writeShellApplication {
     name = "ghaf-volume";
 
     runtimeInputs = with pkgs; [
-      wireplumber
       pulseaudio
+      pamixer
     ];
 
     text = ''
-      export PIPEWIRE_RUNTIME_DIR=/tmp
-
       AMP_FILE="$HOME/.config/cosmic/com.system76.CosmicAudio/v1/amplification_sink"
-      # Enable amplification by default, following COSMIC upstream behavior
-      AMP_ENABLED="true"
-      LIMIT=1.5
       VOLUME_CHANGE_SOUND="/run/current-system/sw/share/sounds/freedesktop/stereo/audio-volume-change.oga"
 
-      exit_error() {
-        echo "Usage: ghaf-volume {up|down}"
-        exit 1
-      }
+      # Enable amplification by default, following COSMIC upstream behavior
+      AMP_ENABLED=true
+      LIMIT=150
 
-      DIR=''${1:-}
+      # Fast argument parsing
+      case "$1" in
+        up)   DIR=-i ;;
+        down) DIR=-d ;;
+        *) echo "Usage: ghaf-volume {up|down}" >&2; exit 1 ;;
+      esac
 
-      [ -z "$DIR" ] && exit_error
-
-      if [ -f "$AMP_FILE" ] && [ -s "$AMP_FILE" ]; then
-        VALUE=$(tr -d '[:space:]' < "$AMP_FILE")
-        if [[ "$VALUE" == "true" || "$VALUE" == "false" ]]; then
-          AMP_ENABLED="$VALUE"
-        fi
+      if [[ -s "$AMP_FILE" ]]; then
+        read -r AMP_ENABLED < "$AMP_FILE" || true
       fi
 
-      [[ "$AMP_ENABLED" == "false" ]] && LIMIT=1.0
+      [[ "$AMP_ENABLED" == "false" ]] && LIMIT=100
 
-      if [[ "$DIR" == "up" ]]; then
-          DIR=+
-      elif [[ "$DIR" == "down" ]]; then
-          DIR=-
+      if [[ "$AMP_ENABLED" != "true" ]]; then
+        LIMIT=100
+        BOOST=""
       else
-          exit_error
+        BOOST="--allow-boost"
       fi
 
-      wpctl set-mute @DEFAULT_AUDIO_SINK@ 0 &
-      wpctl set-volume @DEFAULT_AUDIO_SINK@ "5%$DIR" -l $LIMIT
-      paplay "$VOLUME_CHANGE_SOUND"
+      CUR_VOLUME=$(pamixer --get-volume)
+
+      pamixer --unmute $DIR 5 --set-limit $LIMIT $BOOST
+
+      # Play sound only if volume changed
+      NEW_VOLUME=$(pamixer --get-volume)
+      [[ "$CUR_VOLUME" != "$NEW_VOLUME" ]] && paplay "$VOLUME_CHANGE_SOUND"
     '';
   };
 in
 pkgs.stdenv.mkDerivation {
   pname = "ghaf-cosmic-config";
-  version = "0.2";
+  version = "0.3";
 
   phases = [
     "unpackPhase"
