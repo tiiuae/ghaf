@@ -15,6 +15,7 @@ let
     ;
   cfg = config.ghaf.logging.client;
   inherit (config.ghaf.logging) listener;
+  dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
 in
 {
   options.ghaf.logging.client = {
@@ -125,7 +126,10 @@ in
     services.alloy.enable = true;
 
     systemd.services.alloy.serviceConfig = {
-      after = [ "systemd-journald.service" ];
+      after = [
+        "systemd-journald.service"
+      ]
+      ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ];
       requires = [ "systemd-journald.service" ];
 
       # Once alloy.service in admin-vm stopped this service will
