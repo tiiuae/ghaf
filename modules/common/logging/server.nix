@@ -16,6 +16,7 @@ let
     ;
   inherit (lib.strings) hasPrefix;
   cfg = config.ghaf.logging.server;
+  dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
 in
 {
   options.ghaf.logging.server = {
@@ -232,7 +233,10 @@ in
     services.alloy.enable = true;
 
     systemd.services.alloy.serviceConfig = {
-      after = [ "systemd-journald.service" ];
+      after = [
+        "systemd-journald.service"
+      ]
+      ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ];
       requires = [ "systemd-journald.service" ];
 
       # If there is no internet connection , shutdown/reboot will take around 100sec
