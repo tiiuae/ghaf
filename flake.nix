@@ -156,6 +156,16 @@
       };
     };
 
+    nix-store-veritysetup-generator = {
+      # FIXME: Move to github:tiiuae
+      url = "github:avnik/nix-store-veritysetup-generator/ghaf";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-parts.follows = "flake-parts";
+        pre-commit-hooks-nix.follows = "";
+      };
+    };
+
     # Hardware specific modules and configurations for NixOS
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware";
