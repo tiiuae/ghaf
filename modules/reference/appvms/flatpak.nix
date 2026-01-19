@@ -118,6 +118,31 @@ let
 
     '';
   };
+  # XDG item for slack://
+  xdgSlackFlatpakItem = pkgs.makeDesktopItem {
+    name = "ghaf-slack-xdg-flatpak";
+    desktopName = "Ghaf Slack Opener";
+    exec = "${slackScript}/bin/xdgflatpakslack %u";
+    mimeTypes = [
+      "x-scheme-handler/slack"
+    ];
+    noDisplay = true;
+  };
+  slackScript = pkgs.writeShellApplication {
+    name = "xdgflatpakslack";
+    text = ''
+      url="$*"
+      [[ -z "$url" ]] && { echo "xdgflatpakslack: No URL provided" >&2; exit 1; }
+
+      app="com.slack.Slack"
+
+      ${lib.getExe pkgs.flatpak} info --system "$app" &>/dev/null || {
+        echo "xdgflatpakslack: Slack not installed" >&2
+        exit 1
+      }
+
+      exec ${lib.getExe pkgs.flatpak} run "$app" "$url"    '';
+  };
 
 in
 {
@@ -153,6 +178,7 @@ in
 
         environment.systemPackages = [
           xdgUrlFlatpakItem
+          xdgSlackFlatpakItem
         ];
 
         security.polkit = {
@@ -190,6 +216,7 @@ in
               "text/html" = lib.mkForce "ghaf-url-xdg-flatpak.desktop";
               "x-scheme-handler/http" = lib.mkForce "ghaf-url-xdg-flatpak.desktop";
               "x-scheme-handler/https" = lib.mkForce "ghaf-url-xdg-flatpak.desktop";
+              "x-scheme-handler/slack" = lib.mkForce "ghaf-slack-xdg-flatpak.desktop";
             };
           };
         };
