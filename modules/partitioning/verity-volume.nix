@@ -17,10 +17,6 @@ in
     enable = lib.mkEnableOption "the verity (image-based) partitioning scheme";
   };
 
-  imports = [
-    # FIXME: ghaf-veritysetup-generator here!
-  ];
-
   config = lib.mkIf cfg.enable {
     system.build.ghafImage =
       let
@@ -89,21 +85,9 @@ in
 
     ghaf.graphics.boot.enable = lib.mkForce (!debugEnable); # FIXME: temporary
 
-    # FIXME: Remove overlay when/if https://github.com/NixOS/nixpkgs/pull/468940 merged
-    # FIXME: switch to own custom fork, which support volumes instead of partitions
-    nixpkgs.overlays = [
-      (_final: prev: {
-        # nix-store-veritysetup-generator should be built against same systemd that used in initrd
-        # FIXME: upstream it!
-        nix-store-veritysetup-generator = prev.nix-store-veritysetup-generator.override {
-          systemd = config.boot.initrd.systemd.package;
-        };
-      })
-    ];
-
     boot = {
       kernelParams = [
-        "storehash=${roothashPlaceholder}" # See `nix-store-veritysetup.enable` for details
+        "storehash=${roothashPlaceholder}" # See `ghaf-store-veritysetup.enable` for details
         "systemd.verity_root_options=panic-on-corruption"
         "ghaf.revision=${config.ghaf.version}" # Help ghaf-veritysetup-generator to find root and verity volumes
       ]
@@ -120,8 +104,8 @@ in
         systemd = {
           enable = true;
           dmVerity.enable = true;
+          ghaf-store-veritysetup-generator.enable = true;
         };
-        # nix-store-veritysetup.enable = true; # FIXME: put back our forked version
 
         compressor = "zstd";
         compressorArgs = [ "-6" ];
@@ -150,7 +134,7 @@ in
     ];
 
     fileSystems = {
-      "/" = {
+      "/" = lib.mkForce {
         device = "none";
         fsType = "tmpfs";
         options = [

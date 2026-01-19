@@ -118,6 +118,10 @@ let
 
   enable =
     ((builtins.hasAttr "verity" config.ghaf.partitioning) && config.ghaf.partitioning.verity.enable)
+    || (
+      (builtins.hasAttr "verity-volume" config.ghaf.partitioning)
+      && config.ghaf.partitioning.verity-volume.enable
+    )
     || ((builtins.hasAttr "disko" config.ghaf.partitioning) && config.ghaf.partitioning.disko.enable);
 in
 {

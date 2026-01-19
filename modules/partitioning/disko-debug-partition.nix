@@ -44,7 +44,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    system.build.ghafImage = config.system.build.diskoImages;
+    system.build.ghafImage = lib.mkIf (
+      !config.ghaf.partitioning.verity-volume.enable
+    ) config.system.build.diskoImages;
     disko = {
       imageBuilder = {
         extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
