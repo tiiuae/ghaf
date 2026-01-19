@@ -105,7 +105,7 @@
 
     # Ghaf Inter VM communication and control library
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:avnik/ghaf-givc?ref=avnik/ab-update";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
@@ -158,11 +158,11 @@
 
     nix-store-veritysetup-generator = {
       # FIXME: Move to github:tiiuae
-      url = "github:avnik/nix-store-veritysetup-generator/ghaf";
+      url = "github:avnik/nix-store-veritysetup-generator?ref=avnik/ghaf";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
-        pre-commit-hooks-nix.follows = "";
+        pre-commit-hooks-nix.follows = "git-hooks-nix";
       };
     };
 
