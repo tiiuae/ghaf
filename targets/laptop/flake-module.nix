@@ -214,6 +214,7 @@ let
           # TODO profiles.kernel-hardening.enable = true;
           reference.profiles.mvp-user-trial-extras.enable = true;
           partitioning.verity-volume.enable = true;
+          partitioning.disko.enable = true;
         };
       }
     ]))
