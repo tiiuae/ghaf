@@ -34,7 +34,8 @@ path = [
   "overlays/custom-packages/cosmic/cosmic-applets/*.patch",
   "overlays/custom-packages/system76-scheduler/0001-fix-add-missing-loop-in-process-scheduler-refresh-ta.patch",
   "overlays/custom-packages/cosmic/cosmic-greeter/0001-Fix-softlock.patch",
-  "overlays/custom-packages/cosmic/cosmic-greeter/0002-fix-username-handle-empty-usernames.patch"
+  "overlays/custom-packages/cosmic/cosmic-greeter/0002-fix-username-handle-empty-usernames.patch",
+  "overlays/custom-packages/cosmic/cosmic-greeter/0003-greeter-avoid-auth-on-empty-password.patch"
 ]
 
 [[annotations]]

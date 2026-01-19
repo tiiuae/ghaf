@@ -6,5 +6,6 @@ prev.cosmic-greeter.overrideAttrs (oldAttrs: {
     ./0001-Replace-fallback-background-with-Ghaf-default.patch
     ./0001-Fix-softlock.patch
     ./0002-fix-username-handle-empty-usernames.patch
+    ./0003-greeter-avoid-auth-on-empty-password.patch
   ];
 })
