@@ -62,7 +62,8 @@ in
         disk = {
           disk1 = {
             type = "disk";
-            imageSize = "70G";
+            # FIXME: Huge disk size to fit empty slots for root/verity.
+            imageSize = "128G";
             content = {
               type = "gpt";
               partitions = {
