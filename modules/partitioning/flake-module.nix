@@ -13,14 +13,6 @@
     ];
     verity-release-partition.imports = [
       inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
-      (
-        { pkgs, ... }:
-        {
-          # FIXME: Need better way for package injection
-          boot.initrd.systemd.ghaf-store-veritysetup-generator.package =
-            inputs.nix-store-veritysetup-generator.packages.${pkgs.hostPlatform.system}.ghaf-store-veritysetup-generator;
-        }
-      )
       ./verity-partition.nix
       ./verity-volume.nix
       ./verity-repart.nix
