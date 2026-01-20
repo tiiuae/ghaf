@@ -483,11 +483,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1768820352,
-        "narHash": "sha256-MVLhvxdQoj7yvP4F/LhC5GaxfBxSQu1GThWXyJfHFVU=",
+        "lastModified": 1768917916,
+        "narHash": "sha256-62GGoGe9w2aTH0BSzFe8MpJyI+E/1hpl35kW8tGA7Dw=",
         "owner": "avnik",
         "repo": "nix-store-veritysetup-generator",
-        "rev": "627fbf42e8b73664e31558618de08d9c500e319f",
+        "rev": "44881654fa489477ee92c81f07d84c4aed2187cc",
         "type": "github"
       },
       "original": {
