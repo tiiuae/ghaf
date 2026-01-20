@@ -817,11 +817,11 @@
         "rust-overlay": "rust-overlay_2"
       },
       "locked": {
-        "lastModified": 1767948499,
-        "narHash": "sha256-7KspDX1EZ9y9+OacMhRoZb8x+Ypn9HWUmhPV4UdueKs=",
+        "lastModified": 1769001222,
+        "narHash": "sha256-SV8V8cR91/o+y+p0N8cwv9WG9R5ahzAaDeIZa4Gk6RQ=",
         "owner": "tiiuae",
         "repo": "wireguard-gui",
-        "rev": "9921370533dea60cf9db593d6177ddf611ab0827",
+        "rev": "d2873e286d1b13069be0683da1dfd4f992e9d0cb",
         "type": "github"
       },
       "original": {
