@@ -42,6 +42,8 @@ let
           self.nixosModules.reference-personalize
         ];
 
+        ghaf.host.secureboot.enable = true;
+
         users.users.nixos.openssh.authorizedKeys.keys =
           config.ghaf.reference.personalize.keys.authorizedSshKeys;
       }

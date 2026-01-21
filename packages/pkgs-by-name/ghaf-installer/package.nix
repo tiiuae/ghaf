@@ -9,6 +9,8 @@
   zstd,
   lvm2,
   parted,
+  efitools,
+  e2fsprogs,
 }:
 writeShellApplication {
   name = "ghaf-installer";
@@ -20,6 +22,8 @@ writeShellApplication {
     ncurses # Needed for `clear` command
     lvm2 # Needed for vgchange, pvremove
     parted # Needed for partprobe
+    efitools # Needed for Secure Boot key enrollment
+    e2fsprogs # Needed for chattr in efivar cleanup
   ];
   text = builtins.readFile ./ghaf-installer.sh;
   meta = {

@@ -8,7 +8,10 @@ The reader is expected to know the fundamentals of UEFI and have a basic underst
 
 ## Enabling Secure Boot
 
-TODO: This needs to be filled later with UKI description.
+Secure Boot enrollment is performed during installation when the installer is
+run with the `-s` flag. The installer expects the system firmware to be in
+Setup Mode (PK cleared). If PK is present, enrollment will be skipped and you
+must clear PK in firmware settings before retrying.
 
 ## Creating Secure Boot Keys
 
@@ -25,8 +28,16 @@ Using "sudo sbctl create-keys" command user can create secure keys on the truste
 ## Current Implementation
 
 For demonstration purposes, we use pre-generated secure keys which are **unsecure** as whoever has keys can break into the system.
-Currently, the Secure Boot feature is enabled in debug builds only, since secure key creation requires sudo rights.
+Secure Boot enrollment is performed by the installer when invoked with `-s`. The
+installer uses the key material staged at `/etc/ghaf/secureboot/keys` and enrolls
+PK/KEK/db using EFI authentication files (`.auth`).
 
 ### Secure Boot Verification
 
-- TODO: this needs to be filled.
+After installation, verify the enrolled keys from the host:
+
+```sh
+efi-readvar -v PK
+efi-readvar -v KEK
+efi-readvar -v db
+```
