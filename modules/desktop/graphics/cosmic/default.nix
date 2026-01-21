@@ -267,6 +267,7 @@ in
           papirus-icon-theme-grey
           adwaita-icon-theme
           ghaf-wallpapers
+          grim # promptless screenshot for test automation
           (import ../launchers-pkg.nix { inherit pkgs config; })
         ]
         ++ [ (lib.hiPrio ghaf-cosmic-config) ];
