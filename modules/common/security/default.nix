@@ -9,5 +9,6 @@
     ./pwquality.nix
     ./ssh-tarpit
     ./fleet
+    ../../secureboot/secureboot.nix
   ];
 }
