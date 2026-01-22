@@ -56,8 +56,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = false;
-          profiles.graphics.allowSuspend = false;
+          services.power-manager.allowSuspend = false;
         };
       }
     ]))
@@ -206,8 +205,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          profiles.graphics.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
 
           virtualization.microvm.guivm.extraModules = [
             {
@@ -233,7 +231,7 @@ let
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
           profiles.graphics.idleManagement.enable = true;
-          profiles.graphics.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
 
           # Enable storeOnDisk for all VMs
           virtualization.microvm.storeOnDisk = true;
@@ -396,7 +394,7 @@ let
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
           profiles.graphics.idleManagement.enable = true;
-          profiles.graphics.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
 
           virtualization.microvm.guivm.extraModules = [
             {

@@ -73,15 +73,6 @@ let
       };
     };
 
-    # Graphics profiles module
-    graphics = {
-      config.ghaf.profiles.graphics = {
-        inherit (configHost.ghaf.profiles.graphics) allowSuspend;
-        idleManagement = {
-          inherit (configHost.ghaf.profiles.graphics.idleManagement) enable;
-        };
-      };
-    };
     # Bluetooth module
     bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
 
@@ -255,7 +246,6 @@ in
           kernelConfigs.guivm
           firmwareModule
           qemuModules.guivm
-          serviceModules.graphics
           serviceModules.fprint
           serviceModules.yubikey
           serviceModules.audit

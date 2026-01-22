@@ -335,9 +335,11 @@ com.system76.CosmicSettings.Shortcuts:
         /// Opens the application library
         AppLibrary: "cosmic-app-library",
         /// Decreases screen brightness
-        BrightnessDown: "",
+        BrightnessDown: "busctl --user call com.system76.CosmicSettingsDaemon /com/system76/CosmicSettingsDaemon com.system76.CosmicSettingsDaemon DecreaseDisplayBrightness",
         /// Increases screen brightness
-        BrightnessUp: "",
+        BrightnessUp: "busctl --user call com.system76.CosmicSettingsDaemon /com/system76/CosmicSettingsDaemon com.system76.CosmicSettingsDaemon IncreaseDisplayBrightness",
+        /// Toggles display mode
+        DisplayToggle: "cosmic-osd display",
         /// Switch between input sources
         InputSourceSwitch: "busctl --user call com.system76.CosmicSettingsDaemon /com/system76/CosmicSettingsDaemon com.system76.CosmicSettingsDaemon InputSourceSwitch",
         /// Opens the home folder in a system default file browser
@@ -366,6 +368,10 @@ com.system76.CosmicSettings.Shortcuts:
         PowerOff: "cosmic-osd shutdown",
         /// Takes a screenshot
         Screenshot: "cosmic-screenshot",
+        /// Suspend the system
+        Suspend: "systemctl suspend",
+        /// Toggles the screen reader
+        ScreenReader: "busctl --user call com.system76.CosmicSettingsDaemon /com/system76/CosmicSettingsDaemon com.system76.CosmicSettingsDaemon ScreenReader",
         /// Opens the system default terminal
         Terminal: "cosmic-term",
         /// Toggles touchpad on/off

@@ -121,7 +121,7 @@ writeShellApplication {
         ;;
       suspend)
       ${
-        if ghafConfig.profiles.graphics.allowSuspend then
+        if ghafConfig.services.power-manager.allowSuspend then
           ''
             systemctl suspend
           ''

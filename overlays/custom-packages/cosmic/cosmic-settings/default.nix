@@ -15,7 +15,7 @@
     "page-display"
     "page-input"
     "page-region"
-    # "page-power"
+    "page-power"
     "page-sound"
     # "page-users"
     "page-legacy-applications"
