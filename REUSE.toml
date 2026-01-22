@@ -27,6 +27,7 @@ path = [
   "modules/reference/hardware/jetpack/ghaf_host_hardened_baseline-jetson-orin",
   "modules/microvm/sysvms/idsvm/mitmproxy/mitmproxy-ca/*",
   "modules/reference/hardware/jetpack/0001-ARM-SMMU-drivers-return-always-true-for-IOMMU_CAP_CA.patch",
+  "packages/pkgs-by-name/ghaf-intro/**/*.png",
   "overlays/custom-packages/cosmic/cosmic-comp/0001-Add-security-context-indicator.patch",
   "overlays/custom-packages/cosmic/cosmic-comp/0001-Disable-VRR-by-default.patch",
   "overlays/custom-packages/cosmic/cosmic-initial-setup/0001-Preselect-Ghaf-themes.patch",

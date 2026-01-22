@@ -89,6 +89,24 @@
           ];
         }
       ]
+      ++ [
+        {
+          name = "Getting Started";
+          description = "Introduction to your Ghaf secure system";
+          packages = [
+            pkgs.google-chrome
+            chromeWrapper
+          ];
+          icon = "security-high";
+          command = "chrome-wrapper --incognito --start-maximized --app=http://127.0.0.1:8080";
+          extraModules = [
+            {
+              imports = [ ../services/ghaf-intro/ghaf-intro.nix ];
+              ghaf.reference.services.ghaf-intro.enable = true;
+            }
+          ];
+        }
+      ]
       ++ (lib.optionals config.ghaf.virtualization.microvm.idsvm.mitmproxy.webUIEnabled [
         (
           let

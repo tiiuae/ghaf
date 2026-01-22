@@ -1,0 +1,3014 @@
+<!--
+  SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+  SPDX-License-Identifier: Apache-2.0
+-->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to Ghaf</title>
+    <style>
+      :root {
+        --bg-primary: #0a0a0f;
+        --bg-secondary: #12121a;
+        --bg-card: #1a1a25;
+        --text-primary: #e8e8ed;
+        --text-secondary: #b8b8c8;
+        --accent-green: #218838;
+        --accent-blue: #337aff;
+        --accent-red: #9c0000;
+        --accent-orange: #ffa500;
+        --accent-purple: #122263;
+        --border-color: #2a2a3a;
+      }
+
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family:
+          "Segoe UI",
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        line-height: 1.7;
+        min-height: 100vh;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+      }
+
+      header {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: linear-gradient(
+          135deg,
+          var(--bg-secondary) 0%,
+          var(--bg-primary) 100%
+        );
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      header h1 {
+        font-size: 3rem;
+        font-weight: 300;
+        margin-bottom: 1rem;
+        letter-spacing: 0.1em;
+      }
+
+      header .tagline {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+      }
+
+      .section {
+        padding: 3rem 0;
+        border-bottom: 1px solid var(--border-color);
+      }
+
+      .section:last-child {
+        border-bottom: none;
+      }
+
+      h2 {
+        font-size: 1.75rem;
+        font-weight: 500;
+        margin-bottom: 1.5rem;
+        color: var(--accent-blue);
+      }
+
+      h3 {
+        font-size: 1.25rem;
+        font-weight: 500;
+        margin: 1.5rem 0 1rem;
+        color: var(--text-primary);
+      }
+
+      p {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        font-size: 1.05rem;
+        line-height: 1.7;
+      }
+
+      .highlight {
+        background: var(--bg-card);
+        border-left: 4px solid var(--accent-blue);
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        border-radius: 0 8px 8px 0;
+      }
+
+      .highlight p:last-child {
+        margin-bottom: 0;
+      }
+
+      .vm-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin: 2rem 0;
+      }
+
+      .vm-card {
+        background: var(--bg-card);
+        border-radius: 12px;
+        padding: 1.5rem;
+        border: 1px solid var(--border-color);
+        transition:
+          transform 0.2s,
+          box-shadow 0.2s;
+      }
+
+      .vm-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+      }
+
+      .vm-card .badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 1rem;
+      }
+
+      .vm-card.trusted .badge {
+        background: var(--accent-green);
+        color: white;
+      }
+
+      .vm-card.semi-trusted .badge {
+        background: var(--accent-blue);
+        color: white;
+      }
+
+      .vm-card.untrusted .badge {
+        background: var(--accent-red);
+        color: white;
+      }
+
+      .vm-card.sandboxed .badge {
+        background: var(--accent-orange);
+        color: black;
+      }
+
+      .vm-card.ephemeral .badge {
+        background: var(--accent-purple);
+        color: white;
+      }
+
+      .vm-card h4 {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .vm-card p {
+        font-size: 0.9rem;
+      }
+
+      .vm-card .border-indicator {
+        width: 100%;
+        height: 4px;
+        border-radius: 2px;
+        margin-top: 1rem;
+      }
+
+      .vm-card.trusted .border-indicator {
+        background: var(--accent-green);
+      }
+      .vm-card.semi-trusted .border-indicator {
+        background: var(--accent-blue);
+      }
+      .vm-card.untrusted .border-indicator {
+        background: var(--accent-red);
+      }
+      .vm-card.sandboxed .border-indicator {
+        background: var(--accent-orange);
+      }
+      .vm-card.ephemeral .border-indicator {
+        background: var(--accent-purple);
+      }
+
+      .principle-list {
+        list-style: none;
+        margin: 1.5rem 0;
+      }
+
+      .principle-list li {
+        padding: 1rem 1.5rem;
+        background: var(--bg-card);
+        margin-bottom: 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        position: relative;
+        padding-left: 3rem;
+      }
+
+      .principle-list li::before {
+        content: "→";
+        position: absolute;
+        left: 1rem;
+        color: var(--accent-blue);
+        font-weight: bold;
+      }
+
+      .diagram {
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 2rem;
+        margin: 2rem 0;
+        font-family: "Courier New", monospace;
+        font-size: 0.85rem;
+        overflow-x: auto;
+        white-space: pre;
+        line-height: 1.4;
+        color: var(--text-secondary);
+      }
+
+      .warning-box {
+        background: rgba(156, 0, 0, 0.1);
+        border: 1px solid var(--accent-red);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+
+      .warning-box h4 {
+        color: var(--accent-red);
+        margin-bottom: 0.75rem;
+      }
+
+      .info-box {
+        background: rgba(51, 122, 255, 0.1);
+        border: 1px solid var(--accent-blue);
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+      }
+
+      .info-box h4 {
+        color: var(--accent-blue);
+        margin-bottom: 0.75rem;
+      }
+
+      .two-column {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 2rem;
+        margin: 2rem 0;
+      }
+
+      footer {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+      }
+
+      footer a {
+        color: var(--accent-blue);
+        text-decoration: none;
+      }
+
+      footer a:hover {
+        text-decoration: underline;
+      }
+
+      /* Navigation Sidebar */
+      .nav-toggle {
+        position: fixed;
+        top: 1.5rem;
+        left: 1.5rem;
+        z-index: 1001;
+        width: 48px;
+        height: 48px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 5px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+      }
+
+      .nav-toggle:hover {
+        background: var(--bg-secondary);
+        transform: scale(1.05);
+        box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+      }
+
+      .nav-toggle span {
+        display: block;
+        width: 22px;
+        height: 2px;
+        background: var(--text-primary);
+        border-radius: 2px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .nav-toggle.active span:nth-child(1) {
+        transform: rotate(45deg) translate(5px, 5px);
+      }
+
+      .nav-toggle.active span:nth-child(2) {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+
+      .nav-toggle.active span:nth-child(3) {
+        transform: rotate(-45deg) translate(5px, -5px);
+      }
+
+      .nav-sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 280px;
+        height: 100vh;
+        background: linear-gradient(
+          180deg,
+          rgba(18, 18, 26, 0.98) 0%,
+          rgba(10, 10, 15, 0.98) 100%
+        );
+        backdrop-filter: blur(20px);
+        border-right: 1px solid var(--border-color);
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 5rem 0 2rem;
+        overflow-y: auto;
+        box-shadow: 4px 0 30px rgba(0, 0, 0, 0.5);
+      }
+
+      .nav-sidebar.open {
+        transform: translateX(0);
+      }
+
+      .nav-sidebar nav {
+        padding: 1rem 0;
+      }
+
+      .nav-sidebar a {
+        display: flex;
+        align-items: center;
+        padding: 0.875rem 1.5rem;
+        color: var(--text-secondary);
+        text-decoration: none;
+        font-size: 0.9rem;
+        font-weight: 400;
+        position: relative;
+        transition: all 0.3s ease;
+        border-left: 3px solid transparent;
+        margin: 0.25rem 0;
+      }
+
+      .nav-sidebar a::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 0;
+        background: linear-gradient(
+          90deg,
+          rgba(51, 122, 255, 0.1) 0%,
+          transparent 100%
+        );
+        transition: width 0.3s ease;
+      }
+
+      .nav-sidebar a:hover {
+        color: var(--text-primary);
+        border-left-color: var(--accent-blue);
+      }
+
+      .nav-sidebar a:hover::before {
+        width: 100%;
+      }
+
+      .nav-sidebar a.active {
+        color: var(--accent-blue);
+        border-left-color: var(--accent-blue);
+        background: linear-gradient(
+          90deg,
+          rgba(51, 122, 255, 0.15) 0%,
+          transparent 100%
+        );
+        font-weight: 500;
+      }
+
+      .nav-sidebar a .nav-icon {
+        width: 20px;
+        margin-right: 0.75rem;
+        opacity: 0.6;
+        transition: opacity 0.3s ease;
+      }
+
+      .nav-sidebar a:hover .nav-icon,
+      .nav-sidebar a.active .nav-icon {
+        opacity: 1;
+      }
+
+      .nav-sidebar .nav-header {
+        padding: 1rem 1.5rem 0.5rem;
+        font-size: 0.7rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--text-secondary);
+        opacity: 0.5;
+      }
+
+      .nav-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        z-index: 999;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+      }
+
+      .nav-overlay.visible {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      /* Tutorial Steps - cleaner flow */
+      .tutorial-steps {
+        margin: 1.5rem 0;
+        padding-left: 0;
+        list-style: none;
+      }
+
+      .tutorial-steps li {
+        position: relative;
+        padding: 0.5rem 0 1.5rem 2.5rem;
+        color: var(--text-secondary);
+        border-left: 2px solid var(--border-color);
+        margin-left: 0.75rem;
+      }
+
+      .tutorial-steps li:last-child {
+        border-left-color: transparent;
+        padding-bottom: 0;
+      }
+
+      .tutorial-steps li::before {
+        content: counter(step-counter);
+        counter-increment: step-counter;
+        position: absolute;
+        left: -0.85rem;
+        top: 0.35rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        background: var(--bg-primary);
+        border: 2px solid var(--accent-blue);
+        border-radius: 50%;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--accent-blue);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+      }
+
+      .tutorial-steps {
+        counter-reset: step-counter;
+      }
+
+      .tutorial-steps li strong {
+        color: var(--text-primary);
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .tutorial-steps code {
+        background: var(--bg-card);
+        padding: 0.15rem 0.4rem;
+        border-radius: 4px;
+        font-size: 0.85rem;
+        color: var(--accent-green);
+      }
+
+      .tutorial-note {
+        margin: 1rem 0 1rem 2.5rem;
+        padding: 0.75rem 1rem;
+        border-left: 3px solid var(--accent-blue);
+        background: rgba(51, 122, 255, 0.05);
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+        border-radius: 0 6px 6px 0;
+      }
+
+      .tutorial-note.warning {
+        border-left-color: var(--accent-orange);
+        background: rgba(255, 165, 0, 0.05);
+      }
+
+      .tutorial-result {
+        margin: 1.5rem 0;
+        padding: 1rem 1.25rem;
+        background: linear-gradient(
+          135deg,
+          rgba(33, 136, 56, 0.1) 0%,
+          rgba(51, 122, 255, 0.05) 100%
+        );
+        border-radius: 8px;
+        border: 1px solid rgba(33, 136, 56, 0.3);
+      }
+
+      .tutorial-result h4 {
+        color: var(--accent-green);
+        font-size: 0.9rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .tutorial-result p {
+        margin: 0;
+        font-size: 0.9rem;
+      }
+
+      /* Philosophy section enhancements */
+      .defense-layers {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin: 1.5rem 0;
+      }
+
+      .defense-layer {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 0.75rem 1rem;
+        background: linear-gradient(90deg, var(--bg-card) 0%, transparent 100%);
+        border-radius: 8px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .defense-layer::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: var(--accent-blue);
+      }
+
+      .defense-layer:nth-child(1)::before {
+        background: #5ac379;
+      }
+      .defense-layer:nth-child(2)::before {
+        background: #3d8252;
+      }
+      .defense-layer:nth-child(3)::before {
+        background: #337aff;
+      }
+      .defense-layer:nth-child(4)::before {
+        background: #9090a0;
+      }
+      .defense-layer:nth-child(5)::before {
+        background: #ffa500;
+      }
+      .defense-layer:nth-child(6)::before {
+        background: #122263;
+      }
+
+      .defense-layer .layer-icon {
+        font-size: 1.25rem;
+        width: 2rem;
+        text-align: center;
+        opacity: 0.8;
+      }
+
+      .defense-layer .layer-content strong {
+        color: var(--text-primary);
+        display: block;
+        font-size: 0.95rem;
+        margin-bottom: 0.15rem;
+      }
+
+      .defense-layer .layer-content span {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+      }
+
+      .zero-trust-box {
+        background: linear-gradient(
+          135deg,
+          var(--bg-card) 0%,
+          var(--bg-secondary) 100%
+        );
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 1.5rem 0;
+        text-align: center;
+      }
+
+      .zero-trust-box .motto {
+        font-size: 1.5rem;
+        font-weight: 300;
+        color: var(--accent-blue);
+        margin-bottom: 0.75rem;
+        letter-spacing: 0.05em;
+      }
+
+      .zero-trust-box p {
+        max-width: 600px;
+        margin: 0 auto;
+        font-size: 0.95rem;
+      }
+
+      /* Trade-off comparison */
+      .tradeoff-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+        margin: 1.5rem 0;
+      }
+
+      @media (max-width: 700px) {
+        .tradeoff-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .tradeoff-col {
+        padding: 1.25rem;
+        border-radius: 12px;
+      }
+
+      .tradeoff-col.give {
+        background: rgba(255, 165, 0, 0.05);
+        border: 1px solid rgba(255, 165, 0, 0.2);
+      }
+
+      .tradeoff-col.gain {
+        background: rgba(90, 195, 121, 0.05);
+        border: 1px solid rgba(90, 195, 121, 0.2);
+      }
+
+      .tradeoff-col h4 {
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        margin-bottom: 1rem;
+        opacity: 0.7;
+      }
+
+      .tradeoff-col.give h4 {
+        color: var(--accent-orange);
+      }
+      .tradeoff-col.gain h4 {
+        color: var(--accent-green);
+      }
+
+      .tradeoff-col ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .tradeoff-col li {
+        padding: 0.4rem 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+      }
+
+      .tradeoff-col li::before {
+        content: "→";
+        color: var(--text-secondary);
+        opacity: 0.5;
+      }
+
+      /* Progress items */
+      .progress-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin: 1.5rem 0;
+      }
+
+      .progress-item {
+        padding: 1rem;
+        background: var(--bg-card);
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+      }
+
+      .progress-item strong {
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+
+      .progress-item span {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+      }
+
+      /* Restrictions box */
+      .restrictions-box {
+        background: linear-gradient(
+          135deg,
+          rgba(220, 53, 69, 0.08) 0%,
+          rgba(220, 53, 69, 0.02) 100%
+        );
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin: 1.5rem 0;
+      }
+
+      .restrictions-box h4 {
+        color: #dc3545;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .restrictions-box h4::before {
+        content: "✕";
+        font-size: 0.9rem;
+      }
+
+      .restrictions-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0 2rem;
+      }
+
+      @media (max-width: 500px) {
+        .restrictions-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .restrictions-grid .item {
+        padding: 0.5rem 0;
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        border-bottom: 1px solid rgba(220, 53, 69, 0.1);
+      }
+
+      .restrictions-grid .item:last-child {
+        border-bottom: none;
+      }
+
+      .restrictions-grid .item strong {
+        color: var(--text-primary);
+        font-weight: 500;
+        margin-right: 0.25rem;
+      }
+
+      /* Progress indicator */
+      .scroll-progress {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 0%;
+        height: 3px;
+        background: linear-gradient(
+          90deg,
+          var(--accent-green),
+          var(--accent-blue)
+        );
+        z-index: 1002;
+        transition: width 0.1s ease-out;
+      }
+
+      @media (max-width: 600px) {
+        header h1 {
+          font-size: 2rem;
+        }
+        .two-column {
+          grid-template-columns: 1fr;
+        }
+        .diagram {
+          font-size: 0.7rem;
+        }
+        .nav-sidebar {
+          width: 260px;
+        }
+      }
+
+      @media (min-width: 1400px) {
+        .nav-sidebar {
+          transform: translateX(0);
+        }
+        .nav-toggle {
+          display: none;
+        }
+        .nav-overlay {
+          display: none;
+        }
+        body {
+          padding-left: 280px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Scroll Progress Bar -->
+    <div class="scroll-progress" id="scrollProgress"></div>
+
+    <!-- Navigation Toggle Button -->
+    <button class="nav-toggle" id="navToggle" aria-label="Toggle navigation">
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <!-- Navigation Overlay -->
+    <div class="nav-overlay" id="navOverlay"></div>
+
+    <!-- Navigation Sidebar -->
+    <aside class="nav-sidebar" id="navSidebar">
+      <nav>
+        <div class="nav-header">Overview</div>
+        <a href="#what-is-ghaf">What is Ghaf?</a>
+        <a href="#why-this-approach">Why This Approach?</a>
+        <a href="#vm-isolation">VM Isolation</a>
+
+        <div class="nav-header">Your System</div>
+        <a href="#applications">Your Applications</a>
+        <a href="#privacy">Privacy</a>
+        <a href="#infrastructure">System Infrastructure</a>
+        <a href="#file-sharing">File Sharing</a>
+
+        <div class="nav-header">Tutorials</div>
+        <a href="#vpn-setup">VPN Setup</a>
+        <a href="#kill-switch-test">Kill Switch Test</a>
+        <a href="#firewall-test">Firewall Test</a>
+
+        <div class="nav-header">Philosophy</div>
+        <a href="#security-philosophy">Security Philosophy</a>
+        <a href="#what-this-means">What This Means For You</a>
+      </nav>
+    </aside>
+
+    <header>
+      <svg
+        width="80"
+        height="80"
+        viewBox="0 0 600 756"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        style="margin-bottom: 1rem"
+      >
+        <path
+          d="M472.696 385.792C468.832 379.377 463.997 373.484 458.646 368.136C412.038 321.55 336.596 321.347 289.736 367.529L276.015 381.242C248.231 409.014 248.231 454.039 276.015 481.81C303.8 509.58 348.847 509.58 376.632 481.81L472.696 385.792Z"
+          fill="#3D8252"
+        />
+        <path
+          d="M534.872 663.745C633.948 564.719 652.73 415.83 591.225 297.897C584.328 284.677 574.986 272.933 564.75 262.085C517.943 215.295 442.043 215.295 395.23 262.085L289.736 367.529C336.596 321.347 412.038 321.55 458.646 368.136C469.088 378.573 477.564 391.083 480.695 405.507C492.632 460.488 476.971 520.484 434.257 563.178C367.575 629.827 259.461 629.827 192.779 563.178C126.096 496.528 126.096 388.466 192.779 321.816L313.517 201.135C369.086 145.594 369.086 55.5421 313.517 0L101.309 212.106L101.516 212.313C100.319 213.4 99.1041 214.527 97.8713 215.693C96.0099 217.454 94.1083 219.304 92.1624 221.249C-30.0889 343.441 -30.0884 541.555 92.1624 663.745C214.413 785.939 412.622 785.939 534.872 663.745Z"
+          fill="#5AC379"
+        />
+      </svg>
+      <h1>GHAF SECURE LAPTOP</h1>
+      <p class="tagline">A security-first operating system</p>
+    </header>
+
+    <div class="container">
+      <section class="section" id="what-is-ghaf">
+        <h2>What is Ghaf?</h2>
+        <p>
+          Ghaf is an open-source framework developed by TII that fundamentally
+          reimagines how operating systems should protect you. Unlike
+          traditional laptops where all applications share the same security
+          context, Ghaf uses
+          <strong>hardware-enforced virtualization</strong> to create isolated
+          compartments for different activities.
+        </p>
+
+        <div class="highlight">
+          <p>
+            <strong>The core insight:</strong> In today's threat landscape,
+            assuming your system will never be compromised is naive. Ghaf is
+            designed with the assumption that compromise <em>will</em> happen —
+            and when it does, the damage should be contained, detected, and
+            recoverable.
+          </p>
+        </div>
+
+        <p>
+          Think of it as having multiple computers in one device, each isolated
+          from the others at the hardware level. Your banking activities never
+          share memory with your web browsing. A malicious PDF cannot reach your
+          business documents. Network traffic is handled by a dedicated system
+          that other applications cannot directly access.
+        </p>
+      </section>
+
+      <section class="section" id="why-this-approach">
+        <h2>Why This Approach?</h2>
+
+        <h3>The Problem with Traditional Operating Systems</h3>
+        <p>
+          Traditional operating systems like Windows, macOS, and standard Linux
+          treat all applications as existing within a single trust domain. While
+          they have user permissions and process isolation, these are
+          software-enforced boundaries that malware regularly bypasses through
+          privilege escalation, kernel exploits, or supply chain attacks.
+        </p>
+
+        <p>
+          When one application is compromised on a traditional system, the
+          attacker typically gains access to everything that user can access:
+          emails, documents, browser sessions, saved passwords, and the ability
+          to persist across reboots.
+        </p>
+
+        <h3>Ghaf's Multi-Layer Defense</h3>
+        <div class="vm-grid">
+          <div class="vm-card" style="border-color: #5ac379">
+            <span class="badge" style="background: #5ac379">Layer 1</span>
+            <h4>Hardware Isolation</h4>
+            <p>
+              VMs isolated by CPU virtualization (Intel VT-x, AMD-V) — not just
+              software permissions
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: #3d8252">
+            <span class="badge" style="background: #3d8252">Layer 2</span>
+            <h4>Minimal Surface</h4>
+            <p>
+              Each VM runs only what it needs — less code means fewer
+              vulnerabilities to exploit
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: #337aff">
+            <span class="badge" style="background: #337aff">Layer 3</span>
+            <h4>Contained Blast</h4>
+            <p>
+              Compromised VM? Attacker is trapped within that VM's boundaries
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: #9090a0">
+            <span class="badge" style="background: #9090a0">Layer 4</span>
+            <h4>Detection</h4>
+            <p>
+              Isolated VMs can monitor each other — malware can't disable the
+              watchers
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: #122263">
+            <span class="badge" style="background: #122263">Layer 5</span>
+            <h4>Recovery</h4>
+            <p>
+              Ephemeral VMs can be destroyed and recreated, eliminating
+              persistence
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: #9c0000">
+            <span class="badge" style="background: #9c0000">Result</span>
+            <h4>Chain Required</h4>
+            <p>
+              Attackers need multiple independent exploits — dramatically harder
+              than traditional systems
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="vm-isolation">
+        <h2>Understanding VM Isolation</h2>
+        <p>
+          <strong>Application VMs</strong> run your day-to-day software —
+          browsers, office apps, messaging. Each runs in its own isolated
+          environment with a colored border indicating its trust level. A
+          compromised app can't see what's happening in other VMs.
+        </p>
+        <p>
+          <strong>System VMs</strong> handle hardware and infrastructure.
+          They're minimal, hardened, and never run user applications. Your apps
+          can't directly access network hardware, audio devices, or USB
+          peripherals — they must go through these controlled gatekeepers.
+        </p>
+
+        <svg
+          viewBox="0 0 800 500"
+          xmlns="http://www.w3.org/2000/svg"
+          style="
+            width: 100%;
+            max-width: 800px;
+            margin: 2rem auto;
+            display: block;
+          "
+        >
+          <!-- Background -->
+          <rect width="800" height="500" fill="#12121a" rx="12" />
+
+          <!-- Visible/Hidden divider line between App VMs and Communication layer -->
+          <line
+            x1="40"
+            y1="140"
+            x2="760"
+            y2="140"
+            stroke="#5AC379"
+            stroke-width="1"
+            stroke-dasharray="6,3"
+          />
+          <rect x="335" y="132" width="130" height="16" fill="#12121a" />
+          <text
+            x="400"
+            y="144"
+            fill="#5AC379"
+            font-size="11"
+            text-anchor="middle"
+            font-weight="600"
+          >
+            ▲ VISIBLE · HIDDEN ▼
+          </text>
+
+          <!-- App VMs label - left side, vertical -->
+          <text
+            x="25"
+            y="95"
+            fill="#5AC379"
+            font-size="12"
+            font-weight="600"
+            transform="rotate(-90 25 95)"
+          >
+            APP VMs
+          </text>
+
+          <!-- Business VM -->
+          <rect
+            x="60"
+            y="55"
+            width="160"
+            height="70"
+            fill="#1a1a25"
+            stroke="#218838"
+            stroke-width="3"
+            rx="8"
+          />
+          <text
+            x="140"
+            y="82"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Business VM
+          </text>
+          <text
+            x="140"
+            y="102"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Trusted
+          </text>
+          <rect x="60" y="117" width="160" height="4" fill="#218838" rx="2" />
+
+          <!-- Chrome VM -->
+          <rect
+            x="235"
+            y="55"
+            width="160"
+            height="70"
+            fill="#1a1a25"
+            stroke="#9c0000"
+            stroke-width="3"
+            rx="8"
+          />
+          <text
+            x="315"
+            y="82"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Chrome VM
+          </text>
+          <text
+            x="315"
+            y="102"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Untrusted
+          </text>
+          <rect x="235" y="117" width="160" height="4" fill="#9c0000" rx="2" />
+
+          <!-- Comms VM -->
+          <rect
+            x="410"
+            y="55"
+            width="160"
+            height="70"
+            fill="#1a1a25"
+            stroke="#337aff"
+            stroke-width="3"
+            rx="8"
+          />
+          <text
+            x="490"
+            y="82"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Comms VM
+          </text>
+          <text
+            x="490"
+            y="102"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Semi-Trusted
+          </text>
+          <rect x="410" y="117" width="160" height="4" fill="#337aff" rx="2" />
+
+          <!-- Flatpak VM -->
+          <rect
+            x="585"
+            y="55"
+            width="160"
+            height="70"
+            fill="#1a1a25"
+            stroke="#ffa500"
+            stroke-width="3"
+            rx="8"
+          />
+          <text
+            x="665"
+            y="82"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Flatpak VM
+          </text>
+          <text
+            x="665"
+            y="102"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Sandboxed
+          </text>
+          <rect x="585" y="117" width="160" height="4" fill="#ffa500" rx="2" />
+
+          <!-- Connection lines from App VMs -->
+          <line
+            x1="140"
+            y1="125"
+            x2="140"
+            y2="155"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+          <line
+            x1="315"
+            y1="125"
+            x2="315"
+            y2="155"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+          <line
+            x1="490"
+            y1="125"
+            x2="490"
+            y2="155"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+          <line
+            x1="665"
+            y1="125"
+            x2="665"
+            y2="155"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+
+          <!-- Communication Layer -->
+          <rect
+            x="40"
+            y="155"
+            width="720"
+            height="50"
+            fill="#1a1a25"
+            stroke="#337aff"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="400"
+            y="180"
+            fill="#337aff"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            INTER-VM COMMUNICATION
+          </text>
+          <text
+            x="400"
+            y="196"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Authenticated · Encrypted · Controlled
+          </text>
+
+          <!-- Connection lines to System VMs -->
+          <line
+            x1="140"
+            y1="205"
+            x2="140"
+            y2="235"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+          <line
+            x1="315"
+            y1="205"
+            x2="315"
+            y2="235"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+          <line
+            x1="490"
+            y1="205"
+            x2="490"
+            y2="235"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+          <line
+            x1="665"
+            y1="205"
+            x2="665"
+            y2="235"
+            stroke="#2a2a3a"
+            stroke-width="2"
+          />
+
+          <!-- System VMs label - left side, vertical -->
+          <text
+            x="25"
+            y="280"
+            fill="#337aff"
+            font-size="12"
+            font-weight="600"
+            transform="rotate(-90 25 280)"
+          >
+            SYSTEM VMs
+          </text>
+
+          <!-- GUI VM -->
+          <rect
+            x="60"
+            y="235"
+            width="160"
+            height="60"
+            fill="#1a1a25"
+            stroke="#2a2a3a"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="140"
+            y="262"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            GUI VM
+          </text>
+          <text
+            x="140"
+            y="280"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Display
+          </text>
+
+          <!-- Audio VM -->
+          <rect
+            x="235"
+            y="235"
+            width="160"
+            height="60"
+            fill="#1a1a25"
+            stroke="#2a2a3a"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="315"
+            y="262"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Audio VM
+          </text>
+          <text
+            x="315"
+            y="280"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Sound
+          </text>
+
+          <!-- Net VM -->
+          <rect
+            x="410"
+            y="235"
+            width="160"
+            height="60"
+            fill="#1a1a25"
+            stroke="#2a2a3a"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="490"
+            y="262"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Net VM
+          </text>
+          <text
+            x="490"
+            y="280"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Network
+          </text>
+
+          <!-- Admin VM -->
+          <rect
+            x="585"
+            y="235"
+            width="160"
+            height="60"
+            fill="#1a1a25"
+            stroke="#2a2a3a"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="665"
+            y="262"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            Admin VM
+          </text>
+          <text
+            x="665"
+            y="280"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Control
+          </text>
+
+          <!-- Hardware passthrough lines from GUI, Audio, Net VMs directly to Hardware -->
+          <line
+            x1="140"
+            y1="295"
+            x2="140"
+            y2="415"
+            stroke="#5AC379"
+            stroke-width="2"
+            stroke-dasharray="4,2"
+          />
+          <line
+            x1="315"
+            y1="295"
+            x2="315"
+            y2="415"
+            stroke="#5AC379"
+            stroke-width="2"
+            stroke-dasharray="4,2"
+          />
+          <line
+            x1="490"
+            y1="295"
+            x2="490"
+            y2="415"
+            stroke="#5AC379"
+            stroke-width="2"
+            stroke-dasharray="4,2"
+          />
+
+          <!-- Host System Layer -->
+          <rect
+            x="40"
+            y="345"
+            width="720"
+            height="50"
+            fill="#1a1a25"
+            stroke="#2a2a3a"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="400"
+            y="368"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            MINIMAL HOST SYSTEM
+          </text>
+          <text
+            x="400"
+            y="386"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Hypervisor + Thin Management Layer
+          </text>
+
+          <!-- Hardware Layer -->
+          <rect
+            x="40"
+            y="415"
+            width="720"
+            height="50"
+            fill="#0a0a0f"
+            stroke="#2a2a3a"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="400"
+            y="438"
+            fill="#e8e8ed"
+            font-size="14"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            HARDWARE + FIRMWARE
+          </text>
+          <text
+            x="400"
+            y="456"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            CPU (VT-x/AMD-V) · RAM · Storage · Network · TPM
+          </text>
+
+          <!-- Outer border -->
+          <rect
+            x="10"
+            y="10"
+            width="780"
+            height="480"
+            fill="none"
+            stroke="#2a2a3a"
+            stroke-width="1"
+            rx="10"
+          />
+        </svg>
+      </section>
+
+      <section class="section" id="applications">
+        <h2>Your Applications</h2>
+        <p>
+          Not all activities require the same level of security. Ghaf implements
+          a
+          <strong>mixed criticality</strong> model where applications run in VMs
+          matched to their trust requirements. The colored borders around
+          windows indicate which security zone an application belongs to.
+        </p>
+
+        <div class="vm-grid">
+          <div class="vm-card trusted">
+            <span class="badge">Trusted</span>
+            <h4>Business VM</h4>
+            <p>
+              Corporate applications, VPN access, sensitive documents. This VM
+              has the highest protection and most restricted network access.
+            </p>
+            <div class="border-indicator"></div>
+          </div>
+
+          <div class="vm-card semi-trusted">
+            <span class="badge">Semi-Trusted</span>
+            <h4>Communications VM</h4>
+            <p>
+              Messaging apps, video calls, collaboration tools. Isolated from
+              business data but with necessary network access for real-time
+              communication.
+            </p>
+            <div class="border-indicator"></div>
+          </div>
+
+          <div class="vm-card untrusted">
+            <span class="badge">Untrusted</span>
+            <h4>Chrome VM</h4>
+            <p>
+              General web browsing. Treats the internet as hostile. Even if a
+              malicious website exploits the browser, it's contained in this VM.
+            </p>
+            <div class="border-indicator"></div>
+          </div>
+
+          <div class="vm-card sandboxed">
+            <span class="badge">Sandboxed</span>
+            <h4>Flatpak VM</h4>
+            <p>
+              Third-party applications from app stores. Double-sandboxed: the
+              Flatpak sandbox within an isolated VM provides defense in depth.
+            </p>
+            <div class="border-indicator"></div>
+          </div>
+
+          <div class="vm-card ephemeral">
+            <span class="badge">Ephemeral</span>
+            <h4>PDF VM</h4>
+            <p>
+              Document viewing in a disposable environment. No persistent
+              storage means malicious documents cannot establish persistence.
+              The VM is destroyed after use.
+            </p>
+            <div class="border-indicator"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="privacy">
+        <h2>Privacy</h2>
+
+        <p>
+          Privacy-sensitive hardware — microphones, cameras, network interfaces,
+          and Bluetooth — receives special treatment in Ghaf. These devices can
+          be used to spy on you if compromised, so Ghaf provides multiple layers
+          of protection that go far beyond what traditional operating systems
+          offer.
+        </p>
+
+        <div class="highlight">
+          <p>
+            <strong>The key insight:</strong> On a traditional system, malware
+            with sufficient privileges can silently activate your microphone or
+            camera. In Ghaf, even with full root access to an application VM, an
+            attacker cannot access these devices — they simply don't exist in
+            that VM's world.
+          </p>
+        </div>
+
+        <h3>Hardware Kill-Switches</h3>
+        <p>
+          Ghaf provides <strong>kill-switches</strong> that instantly disconnect
+          sensitive hardware at the hypervisor level. This is much stronger than
+          software controls — the hardware completely disappears from the guest
+          VM's view, as if it was physically unplugged.
+        </p>
+
+        <div class="vm-grid">
+          <div class="vm-card" style="border-color: var(--accent-red)">
+            <span class="badge" style="background: var(--accent-red)"
+              >Microphone</span
+            >
+            <h4>Audio Kill-Switch</h4>
+            <p>
+              Detaches audio hardware entirely. No VM can access microphone
+              input until you explicitly re-enable it.
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: var(--accent-orange)">
+            <span class="badge" style="background: var(--accent-orange)"
+              >Camera</span
+            >
+            <h4>Camera Kill-Switch</h4>
+            <p>
+              Removes camera devices from the system. Even root access in any VM
+              cannot re-enable a blocked camera.
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: var(--accent-blue)">
+            <span class="badge" style="background: var(--accent-blue)"
+              >Network</span
+            >
+            <h4>Network Kill-Switch</h4>
+            <p>
+              Disconnects network at the hardware level. More robust than
+              firewall rules — the interface simply disappears.
+            </p>
+          </div>
+
+          <div class="vm-card" style="border-color: var(--accent-purple)">
+            <span class="badge" style="background: var(--accent-purple)"
+              >Bluetooth</span
+            >
+            <h4>Bluetooth Kill-Switch</h4>
+            <p>
+              Removes Bluetooth adapter completely. Prevents wireless data
+              exfiltration and unauthorized device pairing.
+            </p>
+          </div>
+        </div>
+
+        <h3>How Kill-Switches Work</h3>
+        <p>
+          Kill-switches use <strong>virtual hot-plug (vhotplug)</strong>
+          technology to dynamically detach hardware from VMs at runtime.
+        </p>
+        <p>
+          <a
+            href="#kill-switch-test"
+            style="
+              display: inline-block;
+              padding: 0.5rem 1rem;
+              background: rgba(51, 122, 255, 0.1);
+              border: 1px solid var(--accent-blue);
+              border-radius: 6px;
+              color: var(--accent-blue);
+              text-decoration: none;
+              font-weight: 500;
+              font-size: 0.9rem;
+            "
+            >Try it yourself →</a
+          >
+        </p>
+
+        <div class="defense-layers">
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Device Removal</strong>
+              <span
+                >When blocked, the device is removed entirely — the kernel no
+                longer sees it, there's nothing to hack</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Host-Enforced</strong>
+              <span
+                >The user controls the switches from GUI-VM, the hypervisor
+                enforces them — no other VM privilege escalation can
+                override</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Instant Effect</strong>
+              <span
+                >Devices detach immediately without reboot — audio cuts off
+                mid-stream if you block it</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Private Control Channel</strong>
+              <span
+                >Kill-switch commands travel over vsock — a private host channel
+                inaccessible to other VMs</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="warning-box">
+          <h4>Emergency Privacy Mode</h4>
+          <p>
+            You can block all sensitive devices simultaneously with a single
+            action. Use this before entering sensitive meetings or locations
+            where you need certainty that no recording is possible — even if
+            your system were fully compromised, blocked hardware cannot be
+            accessed.
+          </p>
+        </div>
+
+        <h3>Camera Isolation</h3>
+        <p>
+          Cameras are carefully controlled with different policies for internal
+          and external devices:
+        </p>
+
+        <div class="two-column">
+          <div class="info-box">
+            <h4>Internal Webcam</h4>
+            <p>
+              Your laptop's built-in camera is passed exclusively to
+              <strong>Business-VM</strong>. This is your trusted environment for
+              corporate video calls. The internal camera is:
+            </p>
+            <ul
+              style="
+                margin-top: 0.75rem;
+                margin-left: 1.5rem;
+                color: var(--text-secondary);
+              "
+            >
+              <li>Identified by physical USB bus/port location</li>
+              <li>Explicitly blocked from Chrome-VM and other VMs</li>
+              <li>Never accessible to untrusted browsing sessions</li>
+            </ul>
+          </div>
+
+          <div class="info-box">
+            <h4>External Webcams</h4>
+            <p>
+              USB webcams you plug in can be shared between
+              <strong>Business-VM</strong> and <strong>Chrome-VM</strong>
+              for flexibility. External cameras are:
+            </p>
+            <ul
+              style="
+                margin-top: 0.75rem;
+                margin-left: 1.5rem;
+                color: var(--text-secondary);
+              "
+            >
+              <li>Detected by USB device class (Video)</li>
+              <li>Dynamically assignable via hot-plug</li>
+              <li>Still isolated from other application VMs</li>
+            </ul>
+          </div>
+        </div>
+
+        <p>
+          This separation means a compromised website in Chrome-VM cannot access
+          your internal webcam to spy on you during a business call — the device
+          literally doesn't exist from Chrome-VM's perspective.
+        </p>
+
+        <h3>Audio Isolation</h3>
+        <p>
+          Your microphone and speakers are controlled exclusively by
+          <strong>Audio-VM</strong>, a dedicated system VM that no application
+          can directly access.
+        </p>
+
+        <div class="two-column">
+          <div class="info-box">
+            <h4>Hardware Control</h4>
+            <p>
+              Audio hardware is passed directly to Audio-VM via IOMMU. No other
+              VM can access the physical audio devices. Audio-VM provides:
+            </p>
+            <ul
+              style="
+                margin-top: 0.75rem;
+                margin-left: 1.5rem;
+                color: var(--text-secondary);
+              "
+            >
+              <li>Exclusive hardware passthrough</li>
+              <li>Centralized volume control</li>
+              <li>Kill-switch enforcement</li>
+            </ul>
+          </div>
+
+          <div class="info-box">
+            <h4>Application Access</h4>
+            <p>
+              Applications request audio through a controlled TCP connection to
+              Audio-VM — they never touch the hardware directly:
+            </p>
+            <ul
+              style="
+                margin-top: 0.75rem;
+                margin-left: 1.5rem;
+                color: var(--text-secondary);
+              "
+            >
+              <li>Network audio protocol only</li>
+              <li>Microphone requires explicit authorization</li>
+              <li>No arbitrary audio module loading</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Network Isolation</h3>
+        <p>
+          Your applications never touch the network hardware directly. All
+          network traffic flows through <strong>Net-VM</strong>, a dedicated
+          gateway that acts as the only connection to the outside world.
+        </p>
+
+        <div class="two-column">
+          <div class="info-box">
+            <h4>Hardware Control</h4>
+            <p>
+              The physical network interface is passed exclusively to Net-VM. No
+              application VM can access network hardware:
+            </p>
+            <ul
+              style="
+                margin-top: 0.75rem;
+                margin-left: 1.5rem;
+                color: var(--text-secondary);
+              "
+            >
+              <li>Exclusive IOMMU passthrough</li>
+              <li>No low-level protocol manipulation</li>
+              <li>Kill-switch removes interface entirely</li>
+            </ul>
+          </div>
+
+          <div class="info-box">
+            <h4>Traffic Rules</h4>
+            <p>
+              All traffic must route through Net-VM where it's monitored and
+              filtered. There's no way to bypass this:
+            </p>
+            <ul
+              style="
+                margin-top: 0.75rem;
+                margin-left: 1.5rem;
+                color: var(--text-secondary);
+              "
+            >
+              <li>Mandatory gateway enforcement</li>
+              <li>Default-deny firewall policy</li>
+              <li>Per-VM traffic inspection</li>
+            </ul>
+          </div>
+        </div>
+
+        <p>
+          This means a compromised application VM cannot even see the network
+          hardware — it can only make requests through controlled channels that
+          Net-VM monitors and filters.
+        </p>
+      </section>
+
+      <section class="section" id="infrastructure">
+        <h2>System Infrastructure</h2>
+        <p>
+          Behind the scenes, specialized System VMs handle hardware and
+          coordinate everything. They're minimal, hardened, and isolated from
+          your daily work.
+        </p>
+
+        <svg
+          viewBox="0 0 800 420"
+          xmlns="http://www.w3.org/2000/svg"
+          style="
+            width: 100%;
+            max-width: 800px;
+            margin: 2rem auto;
+            display: block;
+          "
+        >
+          <!-- Background -->
+          <rect width="800" height="420" fill="#12121a" rx="12" />
+
+          <!-- System VMs Header -->
+          <text
+            x="400"
+            y="30"
+            fill="#337aff"
+            font-size="13"
+            text-anchor="middle"
+            font-weight="600"
+            letter-spacing="0.1em"
+          >
+            SYSTEM VMs — HARDWARE GATEKEEPERS
+          </text>
+
+          <!-- GUI VM -->
+          <rect
+            x="40"
+            y="50"
+            width="170"
+            height="90"
+            fill="#1a1a25"
+            stroke="#337aff"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="125"
+            y="75"
+            fill="#337aff"
+            font-size="12"
+            text-anchor="middle"
+            font-weight="600"
+          >
+            GUI-VM
+          </text>
+          <text
+            x="125"
+            y="95"
+            fill="#e8e8ed"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Display Compositor
+          </text>
+          <text
+            x="125"
+            y="112"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Window management
+          </text>
+          <text
+            x="125"
+            y="125"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Input routing
+          </text>
+
+          <!-- Audio VM -->
+          <rect
+            x="225"
+            y="50"
+            width="170"
+            height="90"
+            fill="#1a1a25"
+            stroke="#5ac379"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="310"
+            y="75"
+            fill="#5ac379"
+            font-size="12"
+            text-anchor="middle"
+            font-weight="600"
+          >
+            AUDIO-VM
+          </text>
+          <text
+            x="310"
+            y="95"
+            fill="#e8e8ed"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Sound Controller
+          </text>
+          <text
+            x="310"
+            y="112"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Microphone gating
+          </text>
+          <text
+            x="310"
+            y="125"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Speaker output
+          </text>
+
+          <!-- Net VM -->
+          <rect
+            x="410"
+            y="50"
+            width="170"
+            height="90"
+            fill="#1a1a25"
+            stroke="#ffa500"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="495"
+            y="75"
+            fill="#ffa500"
+            font-size="12"
+            text-anchor="middle"
+            font-weight="600"
+          >
+            NET-VM
+          </text>
+          <text
+            x="495"
+            y="95"
+            fill="#e8e8ed"
+            font-size="11"
+            text-anchor="middle"
+          >
+            Network Gateway
+          </text>
+          <text
+            x="495"
+            y="112"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Firewall enforcement
+          </text>
+          <text
+            x="495"
+            y="125"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Traffic routing
+          </text>
+
+          <!-- Admin VM -->
+          <rect
+            x="595"
+            y="50"
+            width="170"
+            height="90"
+            fill="#1a1a25"
+            stroke="#9090a0"
+            stroke-width="2"
+            rx="8"
+          />
+          <text
+            x="680"
+            y="75"
+            fill="#9090a0"
+            font-size="12"
+            text-anchor="middle"
+            font-weight="600"
+          >
+            ADMIN-VM
+          </text>
+          <text
+            x="680"
+            y="95"
+            fill="#e8e8ed"
+            font-size="11"
+            text-anchor="middle"
+          >
+            System Coordinator
+          </text>
+          <text
+            x="680"
+            y="112"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Service registry
+          </text>
+          <text
+            x="680"
+            y="125"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Updates & control
+          </text>
+
+          <!-- Passthrough arrows -->
+          <defs>
+            <marker
+              id="arrowBlue"
+              markerWidth="10"
+              markerHeight="10"
+              refX="9"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L0,6 L9,3 z" fill="#337aff" />
+            </marker>
+            <marker
+              id="arrowGreen"
+              markerWidth="10"
+              markerHeight="10"
+              refX="9"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L0,6 L9,3 z" fill="#5ac379" />
+            </marker>
+            <marker
+              id="arrowOrange"
+              markerWidth="10"
+              markerHeight="10"
+              refX="9"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L0,6 L9,3 z" fill="#ffa500" />
+            </marker>
+          </defs>
+
+          <!-- Passthrough label -->
+          <text
+            x="400"
+            y="170"
+            fill="#5ac379"
+            font-size="11"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            HARDWARE PASSTHROUGH (IOMMU)
+          </text>
+          <line
+            x1="180"
+            y1="170"
+            x2="280"
+            y2="170"
+            stroke="#5ac379"
+            stroke-width="1"
+            stroke-dasharray="4,2"
+          />
+          <line
+            x1="520"
+            y1="170"
+            x2="620"
+            y2="170"
+            stroke="#5ac379"
+            stroke-width="1"
+            stroke-dasharray="4,2"
+          />
+
+          <!-- Passthrough lines -->
+          <line
+            x1="125"
+            y1="140"
+            x2="125"
+            y2="220"
+            stroke="#337aff"
+            stroke-width="2"
+            marker-end="url(#arrowBlue)"
+          />
+          <line
+            x1="310"
+            y1="140"
+            x2="310"
+            y2="220"
+            stroke="#5ac379"
+            stroke-width="2"
+            marker-end="url(#arrowGreen)"
+          />
+          <line
+            x1="495"
+            y1="140"
+            x2="495"
+            y2="220"
+            stroke="#ffa500"
+            stroke-width="2"
+            marker-end="url(#arrowOrange)"
+          />
+
+          <!-- Hardware boxes -->
+          <rect
+            x="55"
+            y="230"
+            width="140"
+            height="55"
+            fill="#0a0a0f"
+            stroke="#337aff"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="125"
+            y="255"
+            fill="#337aff"
+            font-size="10"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            GPU
+          </text>
+          <text
+            x="125"
+            y="272"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Display output
+          </text>
+
+          <rect
+            x="240"
+            y="230"
+            width="140"
+            height="55"
+            fill="#0a0a0f"
+            stroke="#5ac379"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="310"
+            y="255"
+            fill="#5ac379"
+            font-size="10"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            AUDIO HARDWARE
+          </text>
+          <text
+            x="310"
+            y="272"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Mic + Speakers
+          </text>
+
+          <rect
+            x="425"
+            y="230"
+            width="140"
+            height="55"
+            fill="#0a0a0f"
+            stroke="#ffa500"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="495"
+            y="255"
+            fill="#ffa500"
+            font-size="10"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            NETWORK
+          </text>
+          <text
+            x="495"
+            y="272"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            WiFi + Ethernet
+          </text>
+
+          <rect
+            x="610"
+            y="230"
+            width="140"
+            height="55"
+            fill="#0a0a0f"
+            stroke="#9090a0"
+            stroke-width="1"
+            stroke-dasharray="4,2"
+            rx="6"
+          />
+          <text
+            x="680"
+            y="255"
+            fill="#9090a0"
+            font-size="10"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            NO HARDWARE
+          </text>
+          <text
+            x="680"
+            y="272"
+            fill="#9090a0"
+            font-size="9"
+            text-anchor="middle"
+          >
+            Control plane only
+          </text>
+
+          <!-- Host layer -->
+          <rect
+            x="40"
+            y="310"
+            width="720"
+            height="45"
+            fill="#1a1a25"
+            stroke="#2a2a3a"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="400"
+            y="330"
+            fill="#e8e8ed"
+            font-size="12"
+            text-anchor="middle"
+            font-weight="500"
+          >
+            MINIMAL HOST
+          </text>
+          <text
+            x="400"
+            y="345"
+            fill="#9090a0"
+            font-size="10"
+            text-anchor="middle"
+          >
+            Hypervisor + IOMMU enforcement
+          </text>
+
+          <!-- Hardware layer -->
+          <rect
+            x="40"
+            y="365"
+            width="720"
+            height="40"
+            fill="#0a0a0f"
+            stroke="#2a2a3a"
+            stroke-width="1"
+            rx="6"
+          />
+          <text
+            x="400"
+            y="390"
+            fill="#9090a0"
+            font-size="11"
+            text-anchor="middle"
+          >
+            CPU · RAM · Storage · TPM
+          </text>
+
+          <!-- Outer border -->
+          <rect
+            x="10"
+            y="10"
+            width="780"
+            height="400"
+            fill="none"
+            stroke="#2a2a3a"
+            stroke-width="1"
+            rx="10"
+          />
+        </svg>
+
+        <div class="defense-layers">
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>GUI-VM</strong>
+              <span
+                >Manages display and composites windows from all VMs — apps
+                can't capture each other's screens</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Audio-VM</strong>
+              <span
+                >Controls sound hardware exclusively — apps request audio
+                through controlled channels</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Net-VM</strong>
+              <span
+                >The only VM with network access — all traffic routes here,
+                enforcing firewall rules</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Admin-VM</strong>
+              <span
+                >Silent coordinator — manages service registry, updates, and
+                system operations</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <h3>How VMs Communicate</h3>
+        <p>
+          All inter-VM communication goes through controlled channels —
+          authenticated, encrypted, and auditable.
+        </p>
+
+        <div class="restrictions-box">
+          <h4>Applications Cannot</h4>
+          <div class="restrictions-grid">
+            <div class="item">
+              <strong>Network</strong> — access interfaces directly
+            </div>
+            <div class="item">
+              <strong>Display</strong> — capture another VM's screen
+            </div>
+            <div class="item">
+              <strong>Audio</strong> — access mic without permission
+            </div>
+            <div class="item">
+              <strong>Storage</strong> — read another VM's files
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="file-sharing">
+        <h2>File Sharing</h2>
+
+        <div class="warning-box">
+          <h4>The Security Challenge</h4>
+          <p>
+            File sharing between VMs is intentionally restricted because it
+            represents a potential pathway for malware to escape containment.
+            When you copy a file from an untrusted VM to a trusted one, you
+            might be moving malicious content across security boundaries.
+          </p>
+        </div>
+
+        <p>
+          Consider downloading a document in Chrome-VM. It could contain
+          malicious macros, exploit code, or embedded files. When files cross VM
+          boundaries, they go through a controlled process: scanned, logged, and
+          requiring explicit approval. This friction is intentional — it makes
+          you think before moving potentially dangerous content into trusted
+          environments.
+        </p>
+      </section>
+
+      <section class="section" id="vpn-setup">
+        <h2>Tutorial: VPN Setup</h2>
+
+        <p>
+          Configure a WireGuard VPN connection in Business-VM or Chrome-VM using
+          a profile from your preferred provider. For detailed documentation,
+          see the
+          <a
+            href="https://ghaf.tii.ae/ghaf/dev/ref/wireguard-gui/"
+            target="_blank"
+            >WireGuard GUI reference</a
+          >.
+        </p>
+
+        <h3>Prerequisites</h3>
+
+        <ol class="tutorial-steps">
+          <li>
+            <strong>Get a VPN profile</strong>
+            Download a WireGuard configuration file from your VPN provider
+            (e.g., ProtonVPN) via Chrome-VM, or copy it from a USB drive.
+          </li>
+          <li>
+            <strong>Copy the profile to the target VM</strong>
+            Open the file browser, locate your VPN profile, and copy it to the
+            appropriate share folder for the VM you want to configure
+            (Business-VM or Chrome-VM).
+          </li>
+        </ol>
+
+        <h3>Configure the VPN</h3>
+
+        <ol class="tutorial-steps">
+          <li>
+            <strong>Open Ghaf Control Panel</strong>
+            Go to Applications and launch "Ghaf Control Panel".
+          </li>
+          <li>
+            <strong>Select the target VM</strong>
+            In the navigation bar on the left, click on either Business-VM or
+            Chrome-VM depending on where you want to set up the VPN.
+          </li>
+          <li>
+            <strong>Launch WireGuard GUI</strong>
+            Click "Wireguard GUI" to open the configuration interface.
+            <img
+              src="img/ctrl-panel-wg.png"
+              alt="Ghaf Control Panel showing WireGuard GUI button"
+              style="
+                display: block;
+                max-width: 100%;
+                margin: 1rem 0;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+              "
+            />
+          </li>
+          <li>
+            <strong>Import your profile</strong>
+            Click "Import Tunnel", then navigate to the share folder: click
+            "Other Locations", then "Computer", then
+            <code>home/appuser/Unsafe Share</code>. Select your VPN profile.
+          </li>
+          <li>
+            <strong>Activate the VPN</strong>
+            Toggle the connection on to establish the VPN tunnel.
+          </li>
+          <li>
+            <strong>Verify the connection</strong>
+            In Chrome-VM, visit
+            <a href="https://whatismyipaddress.com" target="_blank"
+              >whatismyipaddress.com</a
+            >
+            or a similar service to confirm your traffic is routed through the
+            VPN.
+          </li>
+        </ol>
+
+        <div class="tutorial-result">
+          <h4>Result</h4>
+          <p>
+            Your selected VM now routes traffic through the VPN. Each VM
+            maintains its own network configuration — a VPN in Chrome-VM doesn't
+            affect Business-VM's network path and vice versa.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="kill-switch-test">
+        <h2>Tutorial: Testing Kill Switches</h2>
+
+        <p>
+          Verify that Ghaf's hardware kill switches work correctly by testing
+          the camera — confirming it truly disappears from VMs when blocked.
+        </p>
+
+        <h3>Camera Kill Switch Test</h3>
+
+        <ol class="tutorial-steps">
+          <li>
+            <strong>Confirm camera is working</strong>
+            Open Teams in Business-VM and verify video, or check the camera
+            tickbox at
+            <a href="https://devicetest.teams.microsoft.com" target="_blank"
+              >devicetest.teams.microsoft.com</a
+            >.
+          </li>
+          <li>
+            <strong>Activate the kill switch</strong>
+            Toggle the Camera Kill Switch OFF in settings. Instant effect.
+            <img
+              src="img/killswitch.png"
+              alt="Ghaf Control Panel showing Camera Kill Switch toggle"
+              style="
+                display: block;
+                max-width: 100%;
+                margin: 1rem 0;
+                border-radius: 8px;
+                border: 1px solid var(--border-color);
+              "
+            />
+          </li>
+          <li>
+            <strong>Verify camera is gone</strong>
+            The camera feed disappears. The device test page no longer shows it.
+          </li>
+          <li>
+            <strong>Re-enable and confirm</strong>
+            Toggle back ON. Camera reappears — vhotplug confirmed working.
+          </li>
+        </ol>
+
+        <div class="tutorial-result">
+          <h4>What this proves</h4>
+          <p>
+            When blocked, the camera doesn't just turn off — it vanishes from
+            the VM's hardware tree entirely. Even root access couldn't restore
+            it. This is hardware-level isolation, not software permissions.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="firewall-test">
+        <h2>Tutorial: Testing Firewall Isolation</h2>
+
+        <p>
+          See how Ghaf's per-VM firewall rules work in practice. Business-VM has
+          restricted access; Chrome-VM can browse freely.
+        </p>
+
+        <h3>Cross-VM Network Test</h3>
+
+        <ol class="tutorial-steps">
+          <li>
+            <strong>Try a blocked site in Business-VM</strong>
+            Open the browser in Business-VM (green border) and navigate to a
+            general website — news, social media, or streaming. The connection
+            should fail or time out.
+          </li>
+          <li>
+            <strong>Copy the URL</strong>
+            Note the address that was blocked. This confirms Business-VM only
+            reaches approved corporate destinations.
+          </li>
+          <li>
+            <strong>Open the same site in Chrome-VM</strong>
+            Switch to Chrome-VM (red border) and paste the URL. It should load
+            normally — Chrome-VM has broader internet access for general
+            browsing.
+          </li>
+        </ol>
+
+        <div class="tutorial-result">
+          <h4>What this proves</h4>
+          <p>
+            Each VM has its own network rules. A compromised Chrome-VM can't
+            reach corporate resources, and Business-VM can't leak data to
+            unauthorized sites. They're isolated network contexts.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="security-philosophy">
+        <h2>Security Philosophy</h2>
+
+        <div class="highlight">
+          <p>
+            <strong>Ghaf extends traditional security</strong> — which focuses
+            on preventing attacks — by also limiting damage when defenses are
+            bypassed. Containment, detection, and recovery, not just prevention.
+          </p>
+        </div>
+
+        <h3>Defense in Depth</h3>
+        <p>
+          Multiple independent security layers ensure that bypassing one control
+          doesn't compromise the system:
+        </p>
+
+        <div class="defense-layers">
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Trusted Source</strong>
+              <span
+                >You run exactly what was built — reproducible, verifiable,
+                untampered</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Isolation</strong>
+              <span
+                >Hardware-enforced walls between activities — much harder to
+                bypass than software</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Minimalism</strong>
+              <span
+                >Each component runs only what it needs — less code means fewer
+                vulnerabilities</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Least Privilege</strong>
+              <span
+                >Each VM gets only the access it needs — network, devices, files
+                — nothing more</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Visibility</strong>
+              <span
+                >System components detect unusual behavior without being
+                disabled by malware</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Impermanence</strong>
+              <span
+                >VMs are disposable — attackers can't establish a lasting
+                foothold</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <div class="zero-trust-box">
+          <div class="motto">"Never trust, always verify"</div>
+          <p>
+            Zero Trust Architecture is typically applied to networks. Ghaf
+            applies it <em>within your device</em>. Each VM is a separate trust
+            domain — even components on your own computer must authenticate and
+            prove authorization for every action.
+          </p>
+        </div>
+      </section>
+
+      <section class="section" id="what-this-means">
+        <h2>What This Means For You</h2>
+
+        <h3>Security in Practice</h3>
+        <p>The isolation model has a few visible effects in daily use:</p>
+
+        <div class="defense-layers">
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Colored Borders</strong>
+              <span
+                >Windows have colored frames indicating their security zone —
+                learn to recognize them</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Explicit Actions</strong>
+              <span
+                >Moving files between zones requires deliberate steps, not just
+                drag-and-drop</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>Separate Sessions</strong>
+              <span
+                >Logging into a website in Business-VM doesn't log you in on
+                Chrome-VM</span
+              >
+            </div>
+          </div>
+          <div class="defense-layer">
+            <div class="layer-content">
+              <strong>USB Device Assignment</strong>
+              <span
+                >USB drives and devices appear only in specific VMs — not
+                system-wide like traditional systems</span
+              >
+            </div>
+          </div>
+        </div>
+
+        <h3>The Trade-off</h3>
+
+        <div class="tradeoff-grid">
+          <div class="tradeoff-col give">
+            <h4>Some friction</h4>
+            <ul>
+              <li>Extra steps to move files between VMs</li>
+              <li>Separate logins for different zones</li>
+              <li>USB devices assigned to specific VMs</li>
+              <li>Slight performance overhead</li>
+            </ul>
+          </div>
+          <div class="tradeoff-col gain">
+            <h4>Real protection</h4>
+            <ul>
+              <li>Compromised sites can't steal business docs</li>
+              <li>Malware can't persist across reboots</li>
+              <li>Network attacks can't reach your apps directly</li>
+              <li>Kernel exploits stay contained in one VM</li>
+            </ul>
+          </div>
+        </div>
+
+        <h3>Work in Progress</h3>
+        <p>
+          Ghaf is under active development — think of it as moving into a
+          high-security building that's still being fitted out.
+        </p>
+
+        <div class="progress-items">
+          <div class="progress-item">
+            <strong>Usability</strong>
+            <span
+              >Some workflows require extra steps — we're streamlining
+              these</span
+            >
+          </div>
+          <div class="progress-item">
+            <strong>Features</strong>
+            <span>Some functionality may be missing or work differently</span>
+          </div>
+          <div class="progress-item">
+            <strong>Performance</strong>
+            <span>Virtualization has overhead — we're optimizing</span>
+          </div>
+          <div class="progress-item">
+            <strong>Build Variant</strong>
+            <span
+              >You may be running a debug build with relaxed restrictions</span
+            >
+          </div>
+        </div>
+
+        <div class="warning-box">
+          <h4>Security Hardening in Progress</h4>
+          <p>
+            The architectural isolation is in place, but some security features
+            are still being actively developed and improved with each release.
+            Check with your administrator for your build's status.
+          </p>
+        </div>
+
+        <p>
+          Found an issue? Report it on
+          <a href="https://github.com/tiiuae/ghaf/issues" target="_blank"
+            >GitHub</a
+          >
+          — your feedback helps improve Ghaf for everyone.
+        </p>
+      </section>
+    </div>
+
+    <footer>
+      <p>Ghaf is developed by TII's Secure Technologies Team</p>
+      <p style="margin-top: 0.5rem">
+        <a href="https://github.com/tiiuae/ghaf" target="_blank">GitHub</a> ·
+        <a href="https://tiiuae.github.io/ghaf/" target="_blank"
+          >Documentation</a
+        >
+      </p>
+    </footer>
+
+    <script>
+      // Navigation functionality
+      const navToggle = document.getElementById("navToggle");
+      const navSidebar = document.getElementById("navSidebar");
+      const navOverlay = document.getElementById("navOverlay");
+      const navLinks = document.querySelectorAll(".nav-sidebar a");
+      const scrollProgress = document.getElementById("scrollProgress");
+      const sections = document.querySelectorAll("section[id]");
+
+      // Toggle navigation
+      function toggleNav() {
+        navToggle.classList.toggle("active");
+        navSidebar.classList.toggle("open");
+        navOverlay.classList.toggle("visible");
+        document.body.style.overflow = navSidebar.classList.contains("open")
+          ? "hidden"
+          : "";
+      }
+
+      navToggle.addEventListener("click", toggleNav);
+      navOverlay.addEventListener("click", toggleNav);
+
+      // Close nav on link click (mobile)
+      navLinks.forEach((link) => {
+        link.addEventListener("click", () => {
+          if (window.innerWidth < 1400) {
+            toggleNav();
+          }
+        });
+      });
+
+      // Smooth scroll with offset
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (e) => {
+          e.preventDefault();
+          const targetId = link.getAttribute("href").slice(1);
+          const targetSection = document.getElementById(targetId);
+          if (targetSection) {
+            const offset = 20;
+            const targetPosition =
+              targetSection.getBoundingClientRect().top +
+              window.pageYOffset -
+              offset;
+            window.scrollTo({
+              top: targetPosition,
+              behavior: "smooth",
+            });
+          }
+        });
+      });
+
+      // Update active link and scroll progress on scroll
+      function updateOnScroll() {
+        const scrollTop = window.pageYOffset;
+        const docHeight =
+          document.documentElement.scrollHeight - window.innerHeight;
+        const scrollPercent = (scrollTop / docHeight) * 100;
+        scrollProgress.style.width = scrollPercent + "%";
+
+        // Find current section
+        let currentSection = "";
+        sections.forEach((section) => {
+          const sectionTop = section.offsetTop - 100;
+          const sectionHeight = section.offsetHeight;
+          if (
+            scrollTop >= sectionTop &&
+            scrollTop < sectionTop + sectionHeight
+          ) {
+            currentSection = section.getAttribute("id");
+          }
+        });
+
+        // Update active link
+        navLinks.forEach((link) => {
+          link.classList.remove("active");
+          if (link.getAttribute("href") === "#" + currentSection) {
+            link.classList.add("active");
+          }
+        });
+      }
+
+      // Throttle scroll events
+      let ticking = false;
+      window.addEventListener("scroll", () => {
+        if (!ticking) {
+          window.requestAnimationFrame(() => {
+            updateOnScroll();
+            ticking = false;
+          });
+          ticking = true;
+        }
+      });
+
+      // Handle resize
+      window.addEventListener("resize", () => {
+        if (window.innerWidth >= 1400) {
+          navSidebar.classList.remove("open");
+          navToggle.classList.remove("active");
+          navOverlay.classList.remove("visible");
+          document.body.style.overflow = "";
+        }
+      });
+
+      // Initial state
+      updateOnScroll();
+    </script>
+  </body>
+</html>

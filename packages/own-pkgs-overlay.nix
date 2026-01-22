@@ -14,6 +14,7 @@
     gala = final.callPackage ./pkgs-by-name/gala/package.nix { };
     ghaf-build-helper = final.callPackage ./pkgs-by-name/ghaf-build-helper/package.nix { };
     ghaf-installer = final.callPackage ./pkgs-by-name/ghaf-installer/package.nix { };
+    ghaf-intro = final.callPackage ./pkgs-by-name/ghaf-intro/package.nix { };
     ghaf-open = final.callPackage ./pkgs-by-name/ghaf-open/package.nix { };
     ghaf-powercontrol = final.callPackage ./ghaf-powercontrol/package.nix { };
     ghaf-vms = final.callPackage ./pkgs-by-name/ghaf-vms/package.nix { };
