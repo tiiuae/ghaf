@@ -40,14 +40,48 @@ let
       mkdir -p "$outDir" "$shareDir"
 
       read_hardware_id() {
-        ids=""
+        ids_lines=""
+
+        is_virtual_disk() {
+          dev="$1"
+
+          if [ -z "$dev" ] || [ ! -e "/sys/block/$dev" ]; then
+            return 0
+          fi
+
+          devpath=$(readlink -f "/sys/block/$dev" 2>/dev/null || echo "")
+          if echo "$devpath" | grep -Eq '/virtual/|/virtio'; then
+            return 0
+          fi
+
+          if [ -r "/sys/block/$dev/device/uevent" ] && \
+             grep -Eq '^DRIVER=(virtio_blk|virtio_scsi|xen-blkfront|vmw_pvscsi)$' "/sys/block/$dev/device/uevent"; then
+            return 0
+          fi
+
+          vendor=$(cat "/sys/block/$dev/device/vendor" 2>/dev/null | tr -d '[:space:]')
+          model=$(cat "/sys/block/$dev/device/model" 2>/dev/null | tr -d '[:space:]')
+          case "$vendor$model" in
+            *QEMU*|*VMware*|*Virtual*|*VBOX*|*Msft*|*Xen*|*virtio*)
+              return 0
+              ;;
+          esac
+
+          return 1
+        }
+
+        add_id() {
+          if [ -n "$1" ]; then
+            ids_lines="$ids_lines$1\n"
+          fi
+        }
 
         # Collect DMI serial/UUID
         for p in /sys/class/dmi/id/product_serial /sys/class/dmi/id/product_uuid; do
           if [ -r "$p" ]; then
             v=$(tr -cd '[:alnum:]' <"$p")
             if [ -n "$v" ]; then
-              ids="''${ids}''${v}"
+              add_id "$v"
             fi
           fi
         done
@@ -60,7 +94,11 @@ let
             if [[ ! "$diskid" =~ -part[0-9]+$ ]] && \
                [[ ! "$diskid" =~ ^usb- ]] && \
                [[ ! "$diskid" =~ ^dm- ]]; then
-              ids="''${ids}''${diskid}"
+              realdev=$(readlink -f "$disk" 2>/dev/null || echo "")
+              base=$(basename "$realdev")
+              if ! is_virtual_disk "$base"; then
+                add_id "$diskid"
+              fi
             fi
           fi
         done 2>/dev/null
@@ -86,26 +124,57 @@ let
             # Include if on physical bus (check path for bus type)
             if [[ "$device_path" =~ /(pci|platform|amba|sdio|mmc)/ ]] || \
                [[ "$device_path" =~ /usb/ && ! "$device_path" =~ /gadget ]]; then
+              if [ -r "$iface/device/uevent" ] && \
+                 grep -Eq '^DRIVER=(virtio_net|vmxnet3|hv_netvsc|xen_netfront)$' "$iface/device/uevent"; then
+                continue
+              fi
 
               mac=$(cat "$iface/address" 2>/dev/null)
               if [[ -n "$mac" && "$mac" != "00:00:00:00:00:00" ]]; then
-                ids="''${ids}''${mac}"
+                add_id "$mac"
               fi
             fi
           fi
         done
 
         # Fallback to machine-id only if no other IDs were collected
-        if [ -z "$ids" ] && [ -r /etc/machine-id ]; then
-          ids="$(cat /etc/machine-id)"
+        if [ -z "$ids_lines" ] && [ -r /etc/machine-id ]; then
+          add_id "$(cat /etc/machine-id)"
         fi
 
+        ids=$(printf "%b" "$ids_lines" | sed '/^$/d' | LC_ALL=C sort | tr -d '\n')
         if [ -n "$ids" ]; then
           echo "$ids"
           return 0
         fi
 
         return 1
+      }
+
+      write_outputs() {
+        printf "%s" "$name" | tee "$outDir/hostname" "$shareDir/hostname" >/dev/null
+        printf "%s" "$id" | tee "$outDir/id" "$shareDir/id" > /dev/null
+        printf "%s" "$key" > "$outDir/hardware-key"
+
+        ln -sf "$outDir/hostname" /run/ghaf-hostname
+
+        # Generate device-id from our hardware-derived ID (for backward compatibility)
+        # Use the same ID but format as hex string with dashes like: 00-01-23-45-67
+        printf "%010x" "$((10#$id))" | fold -w2 | paste -sd'-' | tr -d '\n' > "$shareDir/../device-id"
+
+        # Generate a stable UUID from the hardware key and export it for VMs.
+        uuid_hash=$(echo -n "$key" | sha256sum | cut -d' ' -f1)
+        uuid="''${uuid_hash:0:8}-''${uuid_hash:8:4}-5''${uuid_hash:13:3}-a''${uuid_hash:17:3}-''${uuid_hash:20:12}"
+        printf "%s" "$uuid" > "$shareDir/uuid"
+
+        # Generate unique machine-ids for all VMs based on hardware ID
+        # Each VM gets a deterministic ID derived from hardware + VM name
+        ${lib.concatMapStringsSep "\n" (vm: ''
+          mkdir -p /persist/storagevm/${vm}/etc
+          vm_key="$key-${vm}"
+          vm_hash=$(echo -n "$vm_key" | sha256sum | cut -d' ' -f1)
+          echo -n "$vm_hash" > /persist/storagevm/${vm}/etc/machine-id
+        '') activeMicrovms}
       }
 
       # Get hardware key based on configured source
@@ -126,6 +195,18 @@ let
           key=$(cat "$randomFile")
           ;;
         hardware)
+          if [ -s "$outDir/hostname" ] && [ -s "$outDir/id" ]; then
+            name=$(cat "$outDir/hostname")
+            id=$(cat "$outDir/id")
+            if [ -s "$outDir/hardware-key" ]; then
+              key=$(cat "$outDir/hardware-key")
+            else
+              key="id:$id"
+            fi
+            write_outputs
+            exit 0
+          fi
+
           key=$(read_hardware_id || echo "fallback")
           ;;
         *)
@@ -142,28 +223,7 @@ let
 
       name="''${prefix}-''${id}"
 
-      printf "%s" "$name" | tee "$outDir/hostname" "$shareDir/hostname" >/dev/null
-      printf "%s" "$id" | tee "$outDir/id" "$shareDir/id" > /dev/null
-
-      ln -sf "$outDir/hostname" /run/ghaf-hostname
-
-      # Generate device-id from our hardware-derived ID (for backward compatibility)
-      # Use the same ID but format as hex string with dashes like: 00-01-23-45-67
-      printf "%010x" "$((10#$id))" | fold -w2 | paste -sd'-' | tr -d '\n' > "$shareDir/../device-id"
-
-      # Generate a stable UUID from the hardware key and export it for VMs.
-      uuid_hash=$(echo -n "$key" | sha256sum | cut -d' ' -f1)
-      uuid="''${uuid_hash:0:8}-''${uuid_hash:8:4}-5''${uuid_hash:13:3}-a''${uuid_hash:17:3}-''${uuid_hash:20:12}"
-      printf "%s" "$uuid" > "$shareDir/uuid"
-
-      # Generate unique machine-ids for all VMs based on hardware ID
-      # Each VM gets a deterministic ID derived from hardware + VM name
-      ${lib.concatMapStringsSep "\n" (vm: ''
-        mkdir -p /persist/storagevm/${vm}/etc
-        vm_key="$key-${vm}"
-        vm_hash=$(echo -n "$vm_key" | sha256sum | cut -d' ' -f1)
-        echo -n "$vm_hash" > /persist/storagevm/${vm}/etc/machine-id
-      '') activeMicrovms}
+      write_outputs
     '';
   };
 in
