@@ -19,11 +19,18 @@ let
   cfg = config.ghaf.graphics.cosmic;
   graphicsProfileCfg = config.ghaf.profiles.graphics;
 
-  ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
-
   ghaf-cosmic-config = import ./config/cosmic-config.nix {
     inherit lib pkgs;
     inherit (cfg) topPanelApplets bottomPanelApplets;
+    idle =
+      let
+        ms = v: if cfg.idleManagement.enable then v * 1000 else 0;
+      in
+      {
+        screenOffTime = ms cfg.idleManagement.screenOffTime;
+        suspendOnBattery = ms cfg.idleManagement.suspendOnBattery;
+        suspendOnAC = ms cfg.idleManagement.suspendOnAC;
+      };
     secctx = cfg.securityContext;
     extraShortcuts = lib.optionals cfg.screenRecorder.enable [
       {
@@ -50,17 +57,6 @@ let
     # The following fixes a cross-compilation issue
     inherit (pkgs.buildPackages) papirus-folders;
   };
-
-  swayidleConfig = ''
-    timeout ${
-      toString (builtins.floor (cfg.idleManagement.duration * 0.8))
-
-    } '${lib.optionalString graphicsProfileCfg.allowSuspend ''notify-send -a System -u normal -t 10000 -i system "Automatic suspend" "The system will suspend soon due to inactivity.";''} brightnessctl -q -s; brightnessctl -q -m | { IFS=',' read -r _ _ _ brightness _ && [ "''${brightness%\%}" -le 25 ] || brightnessctl -q set 25% ;}' resume "brightnessctl -q -r || brightnessctl -q set 100%"
-    timeout ${toString cfg.idleManagement.duration} "loginctl lock-session" resume "brightnessctl -q -r || brightnessctl -q set 100%"
-    ${lib.optionalString graphicsProfileCfg.allowSuspend ''timeout ${
-      toString (builtins.floor (cfg.idleManagement.duration * 3))
-    } "systemctl suspend"''}
-  '';
 in
 {
   options.ghaf.graphics.cosmic = {
@@ -72,16 +68,43 @@ in
         default = graphicsProfileCfg.idleManagement.enable;
         defaultText = literalExpression "config.ghaf.profiles.graphics.idleManagement.enable";
         description = ''
-          Wether to override cosmic-idle system idle management using swayidle.
+          Whether to enable idle management.
 
-          When enabled, swayidle will handle automatic screen dimming, locking, and suspending.
+          When enabled, the system will automatically manage screen blanking and suspension
+          based on user inactivity.
+
+          If disabled, the default timeouts will be set to 'Never'.
+          However, users can still manually configure the settings via COSMIC Settings to override this behavior.
+
+          If 'config.ghaf.services.power-manager.allowSuspend' is false, suspension will not occur
+          regardless of this setting.
         '';
       };
-      duration = mkOption {
+      screenOffTime = mkOption {
         type = types.int;
-        default = 300;
+        default =
+          if cfg.idleManagement.enable then
+            300 # 5 minutes by default
+          else
+            0;
         description = ''
-          Timeout for idle suspension in seconds.
+          Time in seconds of inactivity before the screen is turned off and the session is locked.
+        '';
+      };
+      suspendOnBattery = mkOption {
+        type = types.int;
+        default = cfg.idleManagement.screenOffTime * 3; # 15 minutes by default
+        defaultText = literalExpression "config.ghaf.graphics.cosmic.idleManagement.screenOffTime * 3";
+        description = ''
+          Time in seconds of inactivity before the system suspends when on battery power.
+        '';
+      };
+      suspendOnAC = mkOption {
+        type = types.int;
+        default = cfg.idleManagement.screenOffTime * 3; # 15 minutes by default
+        defaultText = literalExpression "config.ghaf.graphics.cosmic.idleManagement.screenOffTime * 3";
+        description = ''
+          Time in seconds of inactivity before the system suspends when on AC power.
         '';
       };
     };
@@ -299,9 +322,6 @@ in
           #TEMPLATES=Templates
           #DESKTOP=Desktop
         '';
-      }
-      // lib.optionalAttrs cfg.idleManagement.enable {
-        "swayidle/config".text = swayidleConfig;
       };
     };
 
@@ -407,24 +427,6 @@ in
         serviceConfig = {
           Environment = mkIf graphicsProfileCfg.bluetooth.applet.useDbusProxy "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock";
         };
-      };
-
-      swayidle = {
-        inherit (cfg.idleManagement) enable;
-        description = "Ghaf system idle handler";
-        path = with pkgs; [
-          brightnessctl
-          systemd
-          ghaf-powercontrol
-          libnotify
-          wlopm
-        ];
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${getExe pkgs.swayidle} -w -C /etc/swayidle/config";
-        };
-        partOf = [ "cosmic-session.target" ];
-        wantedBy = [ "cosmic-session.target" ];
       };
     };
 

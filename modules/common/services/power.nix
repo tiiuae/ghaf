@@ -282,10 +282,10 @@ in
 
     allowSuspend = mkOption {
       type = types.bool;
-      default = config.ghaf.profiles.graphics.allowSuspend;
-      defaultText = "config.ghaf.profiles.graphics.allowSuspend";
+      default = true;
       description = ''
-        Whether to allow the system to suspend. This is enabled if the option config.ghaf.profiles.graphics.allowSuspend is set.
+        Whether to enable system suspension.
+
         If disabled, the system will not respond to suspend requests, and all VMs with a power management profile enabled are
         prohibited to perform any suspend action.
       '';

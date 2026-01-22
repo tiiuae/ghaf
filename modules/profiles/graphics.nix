@@ -25,19 +25,17 @@ in
         type = types.bool;
         default = true;
         description = ''
-          Enable or disable system idle management using swayidle.
+          Whether to enable idle management.
 
-          When enabled, this will handle automatic screen dimming, locking, and suspending.
+          When enabled, the system will automatically manage screen blanking and suspension
+          based on user inactivity.
+
+          Disabling this option is the same as setting all idle timeouts to '0'.
+
+          If 'config.ghaf.services.power-manager.allowSuspend' is false, suspension will not occur
+          regardless of this setting.
         '';
       };
-    };
-    allowSuspend = mkOption {
-      type = types.bool;
-      default = true;
-      description = ''
-        Allow the system to suspend. When enabled, the system will suspend via either the suspend icon,
-        lid close, or button press.
-      '';
     };
     autoLogin = {
       enable = mkOption {

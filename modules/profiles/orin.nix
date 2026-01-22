@@ -26,9 +26,6 @@ in
     ghaf = {
       profiles.graphics = {
         enable = true;
-        idleManagement.enable = false;
-        # Disable suspend by default, not working as intended
-        allowSuspend = false;
         # Explicitly enable auto-login for Orins
         autoLogin = {
           enable = true;
@@ -39,6 +36,9 @@ in
         bluetooth.applet.enable = false;
         networkManager.applet.enable = false;
       };
+
+      # Disable suspend by default, not working as intended
+      services.power-manager.allowSuspend = false;
 
       graphics.cosmic = {
         # Crucial for Orin devices to use the correct render device

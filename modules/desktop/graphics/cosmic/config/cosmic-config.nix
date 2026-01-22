@@ -4,6 +4,11 @@
   lib,
   pkgs,
   secctx,
+  idle ? {
+    screenOffTime = 5 * 60 * 1000;
+    suspendOnBattery = 15 * 60 * 1000;
+    suspendOnAC = 15 * 60 * 1000;
+  },
   topPanelApplets ? {
     left = [ ];
     center = [ ];
@@ -98,6 +103,15 @@ let
       '') extraShortcuts}
     ''
   );
+
+  idleConfig =
+    builtins.mapAttrs
+      (name: value: pkgs.writeText name (if value == 0 then "None" else "Some(${toString value})"))
+      {
+        screen_off_time = idle.screenOffTime;
+        suspend_on_battery_time = idle.suspendOnBattery;
+        suspend_on_ac_time = idle.suspendOnAC;
+      };
 
   ghaf-volume = pkgs.writeShellApplication {
     name = "ghaf-volume";
@@ -194,6 +208,12 @@ pkgs.stdenv.mkDerivation {
 
     install -Dm0644 ${securityContextConfig} $out/share/cosmic/com.system76.CosmicComp/v1/security_context
   ''
+  + lib.concatStringsSep "\n" (
+    lib.mapAttrsToList (n: v: ''
+      install -Dm0644 ${v} \
+        $out/share/cosmic/com.system76.CosmicIdle/v1/${n}
+    '') idleConfig
+  )
   + ''
     install -Dm0644 ${topPanelAppletsCenterConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_center
     install -Dm0644 ${topPanelAppletsWingsConfig} $out/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
@@ -237,9 +257,7 @@ pkgs.stdenv.mkDerivation {
   postInstall = ''
     substituteInPlace $out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/system_actions \
     --replace-fail 'VolumeLower: ""' 'VolumeLower: "${lib.getExe ghaf-volume} down"' \
-    --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "${lib.getExe ghaf-volume} up"' \
-    --replace-fail 'BrightnessUp: ""' 'BrightnessUp: "${lib.getExe pkgs.brightnessctl} set +5% > /dev/null 2>&1"' \
-    --replace-fail 'BrightnessDown: ""' 'BrightnessDown: "${lib.getExe pkgs.brightnessctl} set 5%- > /dev/null 2>&1"'
+    --replace-fail 'VolumeRaise: ""' 'VolumeRaise: "${lib.getExe ghaf-volume} up"'
   ''
   + lib.optionalString (extraShortcuts != [ ]) ''
     if [ -f "$out/share/cosmic/com.system76.CosmicSettings.Shortcuts/v1/defaults" ]; then
