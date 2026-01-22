@@ -73,6 +73,7 @@ in
         rules = {
           auth = {
             systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+            unix.settings.use_first_pass = !config.ghaf.services.sssd.enable;
             fprintd.args = [ "maxtries=3" ];
           };
         };
@@ -82,6 +83,7 @@ in
         rules = {
           auth = {
             systemd_home.order = 11399; # Re-order to allow either password _or_ fingerprint on lockscreen
+            unix.settings.use_first_pass = !config.ghaf.services.sssd.enable;
             fprintd.args = [ "maxtries=3" ];
 
             # This should precede other auth rules e.g. pam_sss.so (pam module for SSSD)
