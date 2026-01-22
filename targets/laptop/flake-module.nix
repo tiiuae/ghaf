@@ -414,6 +414,35 @@ let
         hardware.system76.kernel-modules.enable = true;
       }
     ]))
+
+    (laptop-configuration "system76-darp11-b-storeDisk" "release" (withCommonModules [
+      self.nixosModules.hardware-system76-darp11-b
+      {
+        ghaf = {
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+          profiles.graphics.idleManagement.enable = true;
+          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+
+          # Enable storeOnDisk for all VMs
+          virtualization.microvm.storeOnDisk = true;
+
+          virtualization.microvm.guivm.extraModules = [
+            {
+              # We explicitly enable only those we need
+              hardware.system76 = {
+                power-daemon.enable = false;
+                kernel-modules.enable = true;
+                # Firmware daemon requires EFI mount point, not available in guivm
+                firmware-daemon.enable = false;
+              };
+            }
+          ];
+        };
+        # Add system76 and system76-io kernel modules to host
+        hardware.system76.kernel-modules.enable = true;
+      }
+    ]))
     # keep-sorted end
   ];
 
