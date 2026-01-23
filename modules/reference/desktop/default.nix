@@ -3,5 +3,6 @@
 {
   imports = [
     ./applications.nix
+    ./ghaf-intro.nix
   ];
 }

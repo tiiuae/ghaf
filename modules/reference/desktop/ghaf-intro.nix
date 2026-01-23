@@ -1,0 +1,77 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Ghaf Introduction - Getting Started guide
+#
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.ghaf.reference.desktop.ghaf-intro;
+
+  introWrapper = pkgs.writeShellApplication {
+    name = "ghaf-intro-wrapper";
+    runtimeInputs = [
+      pkgs.google-chrome
+      pkgs.ghaf-intro
+    ];
+    text = ''
+      ${lib.getExe pkgs.google-chrome} \
+      --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland \
+      --incognito --start-maximized \
+      --app=file://${pkgs.ghaf-intro}/index.html
+    '';
+  };
+
+  introCommand = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm chrome-vm ghaf-intro";
+in
+{
+  options.ghaf.reference.desktop.ghaf-intro = {
+    enable = lib.mkEnableOption "Ghaf introduction guide";
+  };
+
+  config = lib.mkIf cfg.enable {
+
+    assertions = [
+      {
+        assertion =
+          (lib.hasAttr "chrome" config.ghaf.virtualization.microvm.appvm.vms)
+          && config.ghaf.virtualization.microvm.appvm.vms.chrome.enable;
+        message = "Ghaf Introduction requires the Chrome AppVM to be enabled.";
+      }
+    ];
+
+    ghaf.virtualization.microvm.appvm.vms.chrome.applications = [
+      {
+        name = "Getting Started";
+        description = "Introduction to your Ghaf secure system";
+        icon = "security-high";
+        packages = [ introWrapper ];
+        command = "ghaf-intro-wrapper";
+        givcName = "ghaf-intro";
+      }
+    ];
+
+    ghaf.virtualization.microvm.guivm.extraModules = [
+      {
+        # First-boot autostart trigger after COSMIC initial setup
+        systemd.user.paths.ghaf-intro-autostart = {
+          description = "Watch for COSMIC initial setup completion";
+          wantedBy = [ "ghaf-session.target" ];
+          pathConfig.PathModified = "%h/.config/cosmic-initial-setup-done";
+        };
+        systemd.user.services.ghaf-intro-autostart = {
+          description = "Ghaf Introduction first-boot launcher";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = introCommand;
+          };
+        };
+      }
+    ];
+
+  };
+}

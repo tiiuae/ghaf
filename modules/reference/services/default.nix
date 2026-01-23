@@ -24,7 +24,6 @@ in
     ./chromecast/chromecast-config.nix
     ./nw-packet-forwarder/nw-packet-forwarder.nix
     ./wireguard-gui/wireguard-gui-config.nix
-    ./ghaf-intro/ghaf-intro.nix
   ];
   options.ghaf.reference.services = {
     enable = mkEnableOption "Ghaf reference services";
