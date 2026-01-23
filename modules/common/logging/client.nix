@@ -102,6 +102,7 @@ in
         loki.source.journal "journal" {
           path          = "/var/log/journal"
           relabel_rules = discovery.relabel.journal.rules
+          max_age       = "168h"
           forward_to    = [loki.write.adminvm.receiver]
         }
 
@@ -131,6 +132,11 @@ in
       ]
       ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ];
       requires = [ "systemd-journald.service" ];
+
+      SupplementaryGroups = [
+        "systemd-journal"
+        "adm"
+      ];
 
       # Once alloy.service in admin-vm stopped this service will
       # still keep on retrying to send logs batch, so we need to

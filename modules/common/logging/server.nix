@@ -176,16 +176,17 @@ in
         loki.process "system" {
           forward_to = [loki.write.remote.receiver]
           stage.drop {
-            expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
+            older_than = "15m"
           }
           stage.drop {
-            older_than = "168h"
+            expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
           }
         }
 
         loki.source.journal "journal" {
           path          = "/var/log/journal"
           relabel_rules = discovery.relabel.adminJournal.rules
+          max_age       = "168h"
           forward_to    = [loki.process.system.receiver]
         }
 
@@ -197,6 +198,11 @@ in
               username = "ghaf"
               password_file = "/etc/loki/pass"
             }
+
+            batch_size          = "256KiB"
+            max_backoff_period  = "30s"
+            remote_timeout      = "60s"
+
             tls_config {
               ${optionalString (cfg.tls.remoteCAFile != null) "ca_pem = local.file.remote_ca.content"}
               cert_pem    = local.file.tls_cert.content
@@ -238,6 +244,11 @@ in
       ]
       ++ lib.optionals dynHostEnabled [ "set-dynamic-hostname.service" ];
       requires = [ "systemd-journald.service" ];
+
+      SupplementaryGroups = [
+        "systemd-journal"
+        "adm"
+      ];
 
       # If there is no internet connection , shutdown/reboot will take around 100sec
       # So, to fix that problem we need to add stop timeout

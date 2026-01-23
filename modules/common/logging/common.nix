@@ -198,5 +198,12 @@ in
         ExecStart = lib.getExe ghafJournalAlloyRecover;
       };
     };
+
+    systemd.tmpfiles.rules = [
+      # Create persistent journal dir with the standard perms/group.
+      "d /var/log/journal 2755 root systemd-journal - -"
+      # Repair perms recursively if something messes them up.
+      "Z /var/log/journal 2755 root systemd-journal - -"
+    ];
   };
 }
