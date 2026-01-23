@@ -26,6 +26,7 @@ let
                 inputs.self.nixosModules.common
                 inputs.self.nixosModules.development
                 inputs.self.nixosModules.reference-personalize
+                inputs.self.nixosModules.givc
               ];
               users.users.nixos.openssh.authorizedKeys.keys =
                 config.ghaf.reference.personalize.keys.authorizedSshKeys;
