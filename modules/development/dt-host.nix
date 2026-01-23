@@ -29,6 +29,8 @@ in
           pkgs.lshw
           # List microvm status
           pkgs.ghaf-vms
+          # EFI tools for enrolling certs
+          pkgs.efitools
         ]);
   };
 }
