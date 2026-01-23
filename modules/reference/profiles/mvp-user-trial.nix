@@ -87,6 +87,7 @@ in
         };
 
         desktop.applications.enable = true;
+        desktop.ghaf-intro.enable = true;
       };
 
       profiles = {
