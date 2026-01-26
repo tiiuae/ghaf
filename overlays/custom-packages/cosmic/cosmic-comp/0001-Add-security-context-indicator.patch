@@ -1,38 +1,37 @@
-From 8736ddbc9db1d4ab3229ff8b21422cb37edf1db6 Mon Sep 17 00:00:00 2001
+From a30eafe28f638078c6f4f919ed90ebb67b5a676a Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
 Date: Fri, 2 May 2025 20:43:32 +0300
 Subject: [PATCH] Add security context indicator
 
-Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
 ---
  cosmic-comp-config/src/lib.rs         | 24 +++++++++
- src/backend/render/mod.rs             | 31 +++++++++++
- src/shell/grabs/moving.rs             | 76 ++++++++++++++++++++-------
+ src/backend/render/mod.rs             |  7 +++
+ src/shell/grabs/moving.rs             | 75 +++++++++++++++++++++------
  src/shell/layout/floating/mod.rs      | 36 +++++++++++--
- src/wayland/handlers/xdg_shell/mod.rs | 45 ++++++++++++++++
- 5 files changed, 187 insertions(+), 25 deletions(-)
+ src/wayland/handlers/xdg_shell/mod.rs | 42 +++++++++++++++
+ 5 files changed, 165 insertions(+), 19 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
-index aa85dd2..13c1201 100644
+index 6063d476..43c5bccf 100644
 --- a/cosmic-comp-config/src/lib.rs
 +++ b/cosmic-comp-config/src/lib.rs
-@@ -81,6 +81,7 @@ pub struct CosmicCompConfig {
-     /// The threshold before windows snap themselves to output edges
+@@ -99,6 +99,7 @@ pub struct CosmicCompConfig {
      pub edge_snap_threshold: u32,
      pub accessibility_zoom: ZoomConfig,
+     pub appearance_settings: AppearanceConfig,
 +    pub security_context: SecurityContextConfig,
  }
-
+ 
  impl Default for CosmicCompConfig {
-@@ -116,6 +117,7 @@ impl Default for CosmicCompConfig {
-             xwayland_eavesdropping: XwaylandEavesdropping::default(),
+@@ -135,6 +136,7 @@ impl Default for CosmicCompConfig {
              edge_snap_threshold: 0,
              accessibility_zoom: ZoomConfig::default(),
+             appearance_settings: AppearanceConfig::default(),
 +            security_context: SecurityContextConfig::default(),
          }
      }
  }
-@@ -215,3 +217,25 @@ pub enum XwaylandDescaling {
+@@ -234,3 +236,25 @@ pub enum XwaylandDescaling {
      #[default]
      Fractional,
  }
@@ -59,13 +58,13 @@ index aa85dd2..13c1201 100644
 +    }
 +}
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
-index 9b9faa9..deadb9d 100644
+index c7d79967..cb7ee466 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
-@@ -128,6 +128,13 @@ pub enum Usage {
-     FocusIndicator,
+@@ -137,6 +137,13 @@ pub enum Usage {
      PotentialGroupIndicator,
      SnappingIndicator,
+     Border,
 +    SecurityContextIndicator,
 +}
 +
@@ -74,78 +73,33 @@ index 9b9faa9..deadb9d 100644
 +    pub border_color: [f32; 3],
 +    pub border_size: u8,
  }
-
+ 
  #[derive(Clone)]
-@@ -214,6 +221,30 @@ impl IndicatorShader {
-         )
-     }
-
-+    pub fn focus_element_with_radius<R: AsGlowRenderer>(
-+        renderer: &R,
-+        key: impl Into<Key>,
-+        mut element_geo: Rectangle<i32, Local>,
-+        thickness: u8,
-+        alpha: f32,
-+        active_window_hint: [f32; 3],
-+        radius: u8,
-+    ) -> PixelShaderElement {
-+        let t = thickness as i32;
-+        element_geo.loc -= (t, t).into();
-+        element_geo.size += (t * 2, t * 2).into();
-+
-+        IndicatorShader::element(
-+            renderer,
-+            key,
-+            element_geo,
-+            thickness,
-+            [radius, radius, radius, radius],
-+            alpha,
-+            active_window_hint,
-+        )
-+    }
-+
-     pub fn element<R: AsGlowRenderer>(
-         renderer: &R,
-         key: impl Into<Key>,
 diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
-index 28939ff..cc4e42d 100644
+index f59f93d6..35ef8ba7 100644
 --- a/src/shell/grabs/moving.rs
 +++ b/src/shell/grabs/moving.rs
 @@ -2,7 +2,7 @@
-
+ 
  use crate::{
      backend::render::{
 -        BackdropShader, IndicatorShader, Key, Usage, cursor::CursorState, element::AsGlowRenderer,
-+        BackdropShader, IndicatorShader, Key, Usage, cursor::CursorState, element::AsGlowRenderer, SecurityContextIndicatorSettings,
++        BackdropShader, IndicatorShader, Key, Usage, cursor::CursorState, element::AsGlowRenderer, SecurityContextIndicatorSettings
      },
      shell::{
          CosmicMapped, CosmicSurface, Direction, ManagedLayer,
-@@ -47,7 +47,6 @@ use std::{
-     sync::{Mutex, atomic::Ordering},
-     time::Instant,
- };
--
- use super::{GrabStartData, ReleaseMode};
-
- pub type SeatMoveGrabState = Mutex<Option<MoveGrabState>>;
-@@ -75,6 +74,7 @@ impl MoveGrabState {
-         CosmicMappedRenderElement<R>: RenderElement<R>,
-         I: From<CosmicMappedRenderElement<R>>,
-     {
-+
-         let scale = if self.previous == ManagedLayer::Tiling {
-             0.6 + ((1.0
-                 - (Instant::now().duration_since(self.start).as_millis() as f64
-@@ -108,36 +108,71 @@ impl MoveGrabState {
+@@ -108,26 +108,67 @@ impl MoveGrabState {
              + self.window_offset
              - scaling_offset;
-
+ 
++        // Security context indicator
 +        let mut secctx_element = None;
 +        let mut secctx_border_size = 0;
 +        if self.window.is_window() {
 +            let surface = self.window.active_window();
 +            if let Some(secctx_settings) = surface.user_data().get::<SecurityContextIndicatorSettings>() {
 +                secctx_border_size = secctx_settings.border_size;
++                let radius = self.element().corner_radius(window_geo.size, secctx_border_size);
 +                secctx_element = Some(
 +                    CosmicMappedRenderElement::from(IndicatorShader::focus_element(
 +                        renderer,
@@ -160,9 +114,10 @@ index 28939ff..cc4e42d 100644
 +                                .to_i32_round(),
 +                        )
 +                        .as_local(),
-+                        secctx_settings.border_size,
-+                        [secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size],
++                        secctx_border_size,
++                        radius,
 +                        alpha,
++                        output_scale.x,
 +                        secctx_settings.border_color,
 +                    ))
 +                    .into(),
@@ -172,9 +127,10 @@ index 28939ff..cc4e42d 100644
 +
          let active_window_hint = crate::theme::active_window_hint(theme);
 -        let radius = self
--            .element()
--            .corner_radius(window_geo.size, self.indicator_thickness);
-
++        let mut radius = self
+             .element()
+             .corner_radius(window_geo.size, self.indicator_thickness);
+ 
          let focus_element = if self.indicator_thickness > 0 {
 -            Some(CosmicMappedRenderElement::from(
 -                IndicatorShader::focus_element(
@@ -187,15 +143,16 @@ index 28939ff..cc4e42d 100644
 +                    .upscale(scale)
 +                    .to_i32_round(),
 +            ).as_local();
-+            let mut radius = self.indicator_thickness * 2;
 +            if secctx_border_size > 0 {
-+                let offset = (secctx_border_size) as i32;
++                let offset = secctx_border_size as i32;
 +                indicator_geometry.loc -= (offset, offset).into();
 +                indicator_geometry.size += (offset * 2, offset * 2).into();
-+                radius = secctx_border_size as u8 * 2;
++                for r in &mut radius {
++                   *r += offset as u8;
++                }
 +            }
 +            Some(
-+                CosmicMappedRenderElement::from(IndicatorShader::focus_element_with_radius(
++                CosmicMappedRenderElement::from(IndicatorShader::focus_element(
                      renderer,
                      Key::Window(Usage::MoveGrabIndicator, self.window.key()),
 -                    Rectangle::new(
@@ -210,60 +167,60 @@ index 28939ff..cc4e42d 100644
 -                    .as_local(),
 +                    indicator_geometry,
                      self.indicator_thickness,
--                    radius,
+                     radius,
                      alpha,
-                     [
-                         active_window_hint.red,
+@@ -137,8 +178,9 @@ impl MoveGrabState {
                          active_window_hint.green,
                          active_window_hint.blue,
                      ],
 -                ),
 -            ))
-+                    radius,
 +                ))
 +                .into(),
 +            )
          } else {
              None
          };
-@@ -218,6 +253,7 @@ impl MoveGrabState {
+@@ -229,6 +271,7 @@ impl MoveGrabState {
              })
              .chain(p_elements)
              .chain(focus_element)
 +            .chain(secctx_element)
-             .chain(w_elements.into_iter().map(|elem| match elem {
-                 CosmicMappedRenderElement::Stack(stack) => {
-                     CosmicMappedRenderElement::GrabbedStack(
+             .chain(
+                 w_elements
+                     .into_iter()
 diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
-index ae29e60..a5a1c1e 100644
+index 1f3a7334..c047743e 100644
 --- a/src/shell/layout/floating/mod.rs
 +++ b/src/shell/layout/floating/mod.rs
-@@ -24,7 +24,7 @@ use smithay::{
+@@ -25,7 +25,7 @@ use smithay::{
  };
-
+ 
  use crate::{
 -    backend::render::{IndicatorShader, Key, Usage, element::AsGlowRenderer},
 +    backend::render::{IndicatorShader, Key, Usage, element::AsGlowRenderer, SecurityContextIndicatorSettings},
      shell::{
          CosmicSurface, Direction, ManagedLayer, MoveResult, ResizeMode,
          element::{
-@@ -1558,6 +1558,25 @@ impl FloatingLayout {
+@@ -1590,6 +1590,27 @@ impl FloatingLayout {
                      .collect();
              }
-
+ 
 +            // Security context indicator
 +            let mut secctx_border_size = 0;
 +            if elem.is_window() {
 +                let surface = elem.active_window();
 +                if let Some(secctx_settings) = surface.user_data().get::<SecurityContextIndicatorSettings>() {
-+                    secctx_border_size = secctx_settings.border_size;
++                    secctx_border_size =  secctx_settings.border_size;
++                    let radius = elem.corner_radius(geometry.size.as_logical(), secctx_border_size);
 +                    let element = IndicatorShader::focus_element(
 +                        renderer,
 +                        Key::Window(Usage::SecurityContextIndicator, elem.key()),
 +                        geometry,
-+                        secctx_settings.border_size,
-+                        [secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size, secctx_settings.border_size],
++                        secctx_border_size,
++                        radius,
 +                        alpha,
++                        output_scale,
 +                        secctx_settings.border_color,
 +                    );
 +                    window_elements.insert(0, element.into());
@@ -273,40 +230,32 @@ index ae29e60..a5a1c1e 100644
              if focused == Some(elem) && !elem.is_maximized(false) {
                  if let Some((mode, resize)) = resize_indicator.as_mut() {
                      let mut resize_geometry = geometry;
-@@ -1583,20 +1602,27 @@ impl FloatingLayout {
+@@ -1615,12 +1636,21 @@ impl FloatingLayout {
                  }
-
+ 
                  let active_window_hint = crate::theme::active_window_hint(theme);
 -                let radius = elem.corner_radius(geometry.size.as_logical(), indicator_thickness);
++                let mut radius = elem.corner_radius(geometry.size.as_logical(), indicator_thickness);
                  if indicator_thickness > 0 {
--                    let element = IndicatorShader::focus_element(
 +                    let mut indicator_geometry = geometry.clone();
-+                    let mut radius = indicator_thickness * 2;
 +                    if secctx_border_size > 0 {
-+                        let offset = (secctx_border_size) as i32;
++                        let offset = secctx_border_size as i32;
 +                        indicator_geometry.loc -= (offset, offset).into();
 +                        indicator_geometry.size += (offset * 2, offset * 2).into();
-+                        radius = secctx_border_size as u8 * 2;
++                        for r in &mut radius {
++                            *r += offset as u8;
++                        }
 +                    }
-+                    let element = IndicatorShader::focus_element_with_radius(
+                     let element = IndicatorShader::focus_element(
                          renderer,
                          Key::Window(Usage::FocusIndicator, elem.key()),
 -                        geometry,
 +                        indicator_geometry,
                          indicator_thickness,
--                        radius,
+                         radius,
                          alpha,
-                         [
-                             active_window_hint.red,
-                             active_window_hint.green,
-                             active_window_hint.blue,
-                         ],
-+                        radius,
-                     );
-                     window_elements.insert(0, element.into());
-                 }
 diff --git a/src/wayland/handlers/xdg_shell/mod.rs b/src/wayland/handlers/xdg_shell/mod.rs
-index 56efd92..955ef4a 100644
+index 43e6a46d..dcf69aca 100644
 --- a/src/wayland/handlers/xdg_shell/mod.rs
 +++ b/src/wayland/handlers/xdg_shell/mod.rs
 @@ -3,6 +3,8 @@
@@ -326,11 +275,9 @@ index 56efd92..955ef4a 100644
      },
      utils::{Logical, Point, Serial},
      wayland::{
-@@ -44,7 +47,49 @@ impl XdgShellHandler for State {
-     fn new_toplevel(&mut self, surface: ToplevelSurface) {
+@@ -45,6 +48,45 @@ impl XdgShellHandler for State {
          let mut shell = self.common.shell.write();
          let seat = shell.seats.last_active().clone();
-+
          let window = CosmicSurface::from(surface);
 +
 +        // Get security context data
@@ -346,7 +293,6 @@ index 56efd92..955ef4a 100644
 +                .as_ref()
 +                .and_then(|data| data.downcast_ref::<ClientState>())
 +                .and_then(|data| data.security_context.as_ref()) {
-+
 +                // Try to find a security context rule by sandbox engine and appid
 +                let sandbox_engine = security_context
 +                    .sandbox_engine
@@ -362,7 +308,6 @@ index 56efd92..955ef4a 100644
 +                    .map(|config| config.border_color.clone());
 +
 +                if let Some(color) = border_color {
-+
 +                    // Add security context indicator settings to the user data
 +                    let indicator = SecurityContextIndicatorSettings {
 +                        border_color: color,
@@ -376,5 +321,6 @@ index 56efd92..955ef4a 100644
          shell.pending_windows.push(PendingWindow {
              surface: window,
              seat,
---
-2.51.0
+-- 
+2.43.0
+
