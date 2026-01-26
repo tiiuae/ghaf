@@ -20,7 +20,6 @@
   osquery-with-hostname = import ./osquery-with-hostname { inherit prev; };
   papirus-icon-theme = import ./papirus-icon-theme { inherit prev; };
   qemu_kvm = import ./qemu { inherit final prev; };
-  system76-scheduler = import ./system76-scheduler { inherit prev; };
   tpm2-pkcs11 = import ./tpm2-pkcs11 { inherit prev; };
   tpm2-tools = import ./tpm2-tools { inherit prev; };
   xdg-desktop-portal-cosmic = import ./cosmic/xdg-desktop-portal-cosmic { inherit prev; };
