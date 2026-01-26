@@ -134,7 +134,7 @@
     # Nvidia Orin support for NixOS
     jetpack-nixos = {
       #url = "github:anduril/jetpack-nixos";
-      url = "github:tiiuae/jetpack-nixos/jan-bump";
+      url = "github:tiiuae/jetpack-nixos/bump-mid-jan";
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
