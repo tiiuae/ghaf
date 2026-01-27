@@ -1,18 +1,18 @@
-From dbae1dc00b337dc4353472646fdf07a77823cfae Mon Sep 17 00:00:00 2001
+From bd2074bea17243edd791c83f894f016a0cabb4b1 Mon Sep 17 00:00:00 2001
 From: Kajus Naujokaitis <kajusn@gmail.com>
-Date: Mon, 24 Nov 2025 12:48:06 +0200
-Subject: [PATCH] network-applet: hide airplane mode toggle
+Date: Tue, 27 Jan 2026 08:50:12 +0200
+Subject: [PATCH] network applet hide airplane mode toggle
 
-Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
+Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
 ---
  cosmic-applet-network/src/app.rs | 14 --------------
  1 file changed, 14 deletions(-)
 
 diff --git a/cosmic-applet-network/src/app.rs b/cosmic-applet-network/src/app.rs
-index b28b6ff..421f21e 100644
+index ae956bd1..21118154 100644
 --- a/cosmic-applet-network/src/app.rs
 +++ b/cosmic-applet-network/src/app.rs
-@@ -892,20 +892,6 @@ impl cosmic::Application for CosmicNetworkApplet {
+@@ -1587,20 +1587,6 @@ impl cosmic::Application for CosmicNetworkApplet {
                  Element::from(
                      column![
                          vpn_ethernet_col,
@@ -22,7 +22,7 @@ index b28b6ff..421f21e 100644
 -                                AIRPLANE_MODE,
 -                                &self.timeline,
 -                                fl!("airplane-mode"),
--                                self.nm_state.airplane_mode,
+-                                self.nm_state.nm_state.airplane_mode,
 -                                |_chain, enable| { Message::ToggleAirplaneMode(enable) },
 -                            )
 -                            .text_size(14)
@@ -34,5 +34,5 @@ index b28b6ff..421f21e 100644
                      .align_x(Alignment::Center)
                  ),
 -- 
-2.51.2
+2.52.0
 
