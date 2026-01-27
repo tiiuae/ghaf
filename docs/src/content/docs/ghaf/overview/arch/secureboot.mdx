@@ -41,3 +41,38 @@ efi-readvar -v PK
 efi-readvar -v KEK
 efi-readvar -v db
 ```
+
+## Jetson Orin signed flashing workflow
+
+Jetson Orin targets produce two independent build artifacts in CI:
+
+1. The flash script (`nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script`) which orchestrates NVIDIA's flashing tools.
+2. The filesystem image (`nix build .#nvidia-jetson-orin-agx-debug-from-x86_64`) that contains the ESP and root partitions.
+
+After the filesystem image is signed, pass its Nix store path directly to the flash helper:
+
+```sh
+SIGNED_SD_IMAGE=$(nix path-info .#nvidia-jetson-orin-agx-debug-from-x86_64)
+./result/bin/initrd-flash-ghaf-host -s "$SIGNED_SD_IMAGE"
+```
+
+The `-s/--signed-sd-image` flag extracts `BOOTAA64.EFI` and the kernel from the signed image, wires them into the flashing workdir, and launches NVIDIA's flashing script without requiring any additional staging directories or host key material.
+
+For ad-hoc debugging you can also point `-s` to a copy of the signed build outside the Nix store (for example, `cp -a $(nix path-info …) /tmp/orin-signed` and then pass `/tmp/orin-signed`), which is useful when the original store path is unavailable on the flashing host.
+
+For CI jobs that still need a deterministic artifact directory (for example when reusing the same signed files across multiple runs), the helper `modules/secureboot/extract-signed-orin-artifacts.sh` can be used:
+
+```sh
+./modules/secureboot/extract-signed-orin-artifacts.sh \
+  --sd-image-dir "$SIGNED_SD_IMAGE" \
+  --output /build/orin-flash-artifacts \
+  --force
+
+# Optional: reuse the staged directory via configuration or the environment
+export SIGNED_ARTIFACTS_DIR=/build/orin-flash-artifacts
+./result/bin/initrd-flash-ghaf-host
+```
+
+The helper resolves the supplied directory—whether it's a `/nix/store/...` path or a copy under `/tmp`—before extracting the ESP and root partitions.
+
+The existing module option `ghaf.hardware.nvidia.orin.flashScriptOverrides.signedArtifactsPath` still forces the flash script to pick up a specific directory when the environment variable is not convenient.
