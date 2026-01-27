@@ -1,40 +1,38 @@
-diff --git a/src/electron-main.ts b/src/electron-main.ts
-index d907312..8ed7061 100644
 --- a/src/electron-main.ts
 +++ b/src/electron-main.ts
-@@ -466,11 +466,10 @@ app.on("ready", async () => {
+@@ -448,11 +448,10 @@
          // https://www.electronjs.org/docs/faq#the-font-looks-blurry-what-is-this-and-what-can-i-do
          backgroundColor: "#fff",
- 
+
 -        titleBarStyle: process.platform === "darwin" ? "hidden" : "default",
          trafficLightPosition: { x: 9, y: 8 },
- 
+
          icon: global.trayConfig.icon_path,
 -        show: false,
 +        show: true,
          autoHideMenuBar: store.get("autoHideMenuBar"),
- 
+
          x: mainWindowState.x,
-@@ -496,7 +495,6 @@ app.on("ready", async () => {
+@@ -478,7 +477,6 @@
          app.exit(1);
      }
- 
+
 -    void global.mainWindow.loadURL("vector://vector/webapp/");
- 
+
      if (process.platform === "darwin") {
          setupMacosTitleBar(global.mainWindow);
-@@ -507,79 +505,31 @@ app.on("ready", async () => {
+@@ -489,89 +487,34 @@
      global.mainWindow.webContents.session.setSpellCheckerEnabled(store.get("spellCheckerEnabled", true));
- 
+
      // Create trayIcon icon
 -    if (store.get("minimizeToTray")) tray.create(global.trayConfig);
 +    //if (store.get("minimizeToTray")) tray.create(global.trayConfig);
- 
+
 -    global.mainWindow.once("ready-to-show", () => {
 +    global.mainWindow.webContents.once('did-finish-load',function() {
          if (!global.mainWindow) return;
          mainWindowState.manage(global.mainWindow);
- 
+
          if (!argv["hidden"]) {
              global.mainWindow.show();
 +            global.mainWindow.restore();
@@ -44,13 +42,20 @@ index d907312..8ed7061 100644
              global.mainWindow.hide();
          }
      });
- 
+
 -    global.mainWindow.webContents.on("before-input-event", (event: Event, input: Input): void => {
--        const shouldWarnBeforeExit = store.get("warnBeforeExit", true);
 -        const exitShortcutPressed =
 -            input.type === "keyDown" && exitShortcuts.some((shortcutFn) => shortcutFn(input, process.platform));
 -
--        if (shouldWarnBeforeExit && exitShortcutPressed && global.mainWindow) {
+-        // We only care about the exit shortcuts here
+-        if (!exitShortcutPressed || !global.mainWindow) return;
+-
+-        // Prevent the default behaviour
+-        event.preventDefault();
+-
+-        // Let's ask the user if they really want to exit the app
+-        const shouldWarnBeforeExit = store.get("warnBeforeExit", true);
+-        if (shouldWarnBeforeExit) {
 -            const shouldCancelCloseRequest =
 -                dialog.showMessageBoxSync(global.mainWindow, {
 -                    type: "question",
@@ -64,14 +69,14 @@ index d907312..8ed7061 100644
 -                    defaultId: 1,
 -                    cancelId: 0,
 -                }) === 0;
--
--            if (shouldCancelCloseRequest) {
--                event.preventDefault();
--            }
+-            if (shouldCancelCloseRequest) return;
 -        }
+-
+-        // Exit the app
+-        app.exit();
 -    });
 +    void global.mainWindow.loadURL("vector://vector/webapp/");
- 
+
      global.mainWindow.on("closed", () => {
          global.mainWindow = null;
      });
@@ -90,12 +95,11 @@ index d907312..8ed7061 100644
 -            } else {
 -                global.mainWindow?.hide();
 -            }
--
+
 -            return false;
 -        }
-+
      });
- 
+
 -    if (process.platform === "win32") {
 -        // Handle forward/backward mouse buttons in Windows
 -        global.mainWindow.on("app-command", (e, cmd) => {
@@ -106,6 +110,10 @@ index d907312..8ed7061 100644
 -            }
 -        });
 -    }
- 
+-
      webContentsHandler(global.mainWindow.webContents);
- 
+
++
+     session.defaultSession.setDisplayMediaRequestHandler(
+         (_, callback) => {
+             if (process.env.XDG_SESSION_TYPE === "wayland") {
