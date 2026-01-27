@@ -1,27 +1,26 @@
-From 4b7a57d5a64eed2eaf7d8c493f1567f4266b923d Mon Sep 17 00:00:00 2001
+From 9a1b84b51ca2ee9bcf54fba716116a916700fdd7 Mon Sep 17 00:00:00 2001
 From: Kajus Naujokaitis <kajusn@gmail.com>
-Date: Mon, 24 Nov 2025 12:50:07 +0200
-Subject: [PATCH] bluetooth-applet: hide bluetooth settings button
+Date: Tue, 27 Jan 2026 08:47:39 +0200
+Subject: [PATCH] bluetooth applet hide settings button
 
-Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
+Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
 ---
  cosmic-applet-bluetooth/src/app.rs | 3 ---
  1 file changed, 3 deletions(-)
 
 diff --git a/cosmic-applet-bluetooth/src/app.rs b/cosmic-applet-bluetooth/src/app.rs
-index 386f4d4..3d10428 100644
+index 3fed7463..70f7359e 100644
 --- a/cosmic-applet-bluetooth/src/app.rs
 +++ b/cosmic-applet-bluetooth/src/app.rs
-@@ -537,9 +537,6 @@ impl cosmic::Application for CosmicBluetoothApplet {
+@@ -538,9 +538,6 @@ impl cosmic::Application for CosmicBluetoothApplet {
          } else {
              content = content.push(Column::with_children(list_column));
          }
 -        content = content
 -            .push(padded_control(divider::horizontal::default()).padding([space_xxs, space_s]))
 -            .push(menu_button(text::body(fl!("settings"))).on_press(Message::OpenSettings));
- 
+
          self.core.applet.popup_container(content).into()
      }
--- 
-2.51.2
-
+--
+2.52.0
