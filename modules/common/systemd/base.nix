@@ -92,6 +92,8 @@ let
     "system-update.target"
     "system-update-pre.target"
     "system-update-cleanup.service"
+    # Factory reset units not included in minimal systemd
+    "systemd-tpm2-clear.service"
   ]
   ++ (lib.optionals (!cfg.withMachines) [
     "container-getty.service"
