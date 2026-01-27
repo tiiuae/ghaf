@@ -49,6 +49,8 @@ in
   };
 
   config = mkIf cfg.enable {
+    ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault true;
+
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
