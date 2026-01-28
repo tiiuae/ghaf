@@ -16,3 +16,6 @@ gcroot/
 uv-x86_64-unknown-linux-gnu/
 __pycache__/
 .vscode
+
+# Ignore VIM backup files (from reuse lint)
+*.swp

@@ -42,7 +42,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    system.build.ghafImage = config.system.build.diskoImages;
+    system.build.ghafImage = lib.mkIf (
+      !config.ghaf.partitioning.verity-volume.enable
+    ) config.system.build.diskoImages;
     disko = {
       imageBuilder = {
         extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
@@ -54,16 +56,11 @@ in
         disk = {
           disk1 = {
             type = "disk";
-            imageSize = "70G";
+            # FIXME: Huge disk size to fit empty slots for root/verity.
+            imageSize = "128G";
             content = {
               type = "gpt";
               partitions = {
-                boot = {
-                  name = "boot";
-                  size = "1M";
-                  type = "EF02";
-                  priority = 1; # Needs to be first partition
-                };
                 esp = {
                   name = "ESP";
                   size = "500M";
@@ -126,7 +123,8 @@ in
                 };
               };
 
-              root = {
+              # `_0` denote version of installed system. In terms of A/B update -- debug version always `0`
+              root_0 = {
                 size = "50G";
                 content = {
                   type = "filesystem";
@@ -137,6 +135,19 @@ in
                     "nodiratime"
                   ];
                 };
+              };
+
+              # NOTE: placeholder for A-slot verity
+              verity_0 = {
+                size = "6G";
+              };
+
+              # NOTE: placeholders for B-slot root and verity
+              root_empty = {
+                size = "50G";
+              };
+              verity_empty = {
+                size = "6G";
               };
 
               persist = {

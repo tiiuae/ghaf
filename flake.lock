@@ -376,15 +376,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1769199643,
-        "narHash": "sha256-A435AmTos3AaGFDIuxy7JuRUk/ahntsj2L+QmiRqxv4=",
-        "owner": "tiiuae",
+        "lastModified": 1769519752,
+        "narHash": "sha256-PnL0WwShMyiiAzFZ8fH4Mbcb/g16Q8npFhtO/JUsMc0=",
+        "owner": "avnik",
         "repo": "ghaf-givc",
-        "rev": "4e80a026b0edcfe24eae38b845dd041d73c325ec",
+        "rev": "1d4fe0a1e3d2e6140cbab0ac3f568845cad71a45",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "avnik",
+        "ref": "avnik/ab-update",
         "repo": "ghaf-givc",
         "type": "github"
       }
@@ -466,6 +467,33 @@
       "original": {
         "owner": "microvm-nix",
         "repo": "microvm.nix",
+        "type": "github"
+      }
+    },
+    "nix-store-veritysetup-generator": {
+      "inputs": {
+        "flake-parts": [
+          "flake-parts"
+        ],
+        "nixpkgs": [
+          "nixpkgs"
+        ],
+        "pre-commit-hooks-nix": [
+          "git-hooks-nix"
+        ]
+      },
+      "locked": {
+        "lastModified": 1768917916,
+        "narHash": "sha256-62GGoGe9w2aTH0BSzFe8MpJyI+E/1hpl35kW8tGA7Dw=",
+        "owner": "avnik",
+        "repo": "nix-store-veritysetup-generator",
+        "rev": "44881654fa489477ee92c81f07d84c4aed2187cc",
+        "type": "github"
+      },
+      "original": {
+        "owner": "avnik",
+        "ref": "avnik/ghaf",
+        "repo": "nix-store-veritysetup-generator",
         "type": "github"
       }
     },
@@ -612,6 +640,7 @@
         "gp-gui": "gp-gui",
         "jetpack-nixos": "jetpack-nixos",
         "microvm": "microvm",
+        "nix-store-veritysetup-generator": "nix-store-veritysetup-generator",
         "nixd": "nixd",
         "nixos-generators": "nixos-generators",
         "nixos-hardware": "nixos-hardware",
