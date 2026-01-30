@@ -48,7 +48,6 @@ let
             };
 
             nixpkgs = {
-              buildPlatform.system = "x86_64-linux";
               # Increase the support for different devices by allowing the use
               # of proprietary drivers from the respective vendors
               config = {
@@ -89,7 +88,7 @@ let
     // rec {
       name = tgt.name + "-from-x86_64";
       hostConfiguration = tgt.hostConfiguration.extendModules {
-        modules = [ { nixpkgs.buildPlatform.system = "x86_64-linux"; } ]; # buildPlatform to force cross-compilation
+        modules = [ self.nixosModules.cross-compilation-from-x86_64 ];
       };
       package = hostConfiguration.config.system.build.sdImage;
     };

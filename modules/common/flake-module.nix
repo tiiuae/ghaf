@@ -3,6 +3,7 @@
 #
 # Common ghaf modules
 #
+{ inputs, ... }:
 {
   flake.nixosModules = {
     common.imports = [
@@ -18,5 +19,15 @@
       ./logging
       ./identity
     ];
+
+    # Cross-compilation module for building aarch64 targets from x86_64
+    # This should be included via extendModules when generating
+    # cross-compiled variants (e.g., -from-x86_64 builds).
+    cross-compilation-from-x86_64 = {
+      nixpkgs = {
+        buildPlatform.system = "x86_64-linux";
+        overlays = [ inputs.self.overlays.cross-compilation ];
+      };
+    };
   };
 }

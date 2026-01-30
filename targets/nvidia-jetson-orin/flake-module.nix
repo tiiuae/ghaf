@@ -122,7 +122,9 @@ let
     tgt
     // rec {
       name = tgt.name + "-from-x86_64";
-      hostConfiguration = tgt.hostConfiguration.extendModules { modules = [ ./cross-compilation.nix ]; };
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [ self.nixosModules.cross-compilation-from-x86_64 ];
+      };
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
 
