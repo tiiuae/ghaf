@@ -245,6 +245,15 @@ let
     '';
   };
 
+  genericSleepConf = ''
+    AllowHibernation=no
+    AllowHybridSleep=no
+    AllowSuspendThenHibernate=no
+  ''
+  + optionalString (!cfg.suspend.enable) ''
+    AllowSuspend=no
+  '';
+
 in
 {
   options.ghaf.services.power-manager = {
@@ -280,15 +289,35 @@ in
       '';
     };
 
-    allowSuspend = mkOption {
-      type = types.bool;
-      default = true;
-      description = ''
-        Whether to enable system suspension.
+    suspend = {
+      enable = mkOption {
+        type = types.bool;
+        default = true;
+        description = ''
+          Whether to enable system suspension.
 
-        If disabled, the system will not respond to suspend requests, and all VMs with a power management profile enabled are
-        prohibited to perform any suspend action.
-      '';
+            If disabled, the system will not respond to suspend requests, and all VMs with a
+            power management profile enabled are prohibited to perform any suspend action.
+        '';
+      };
+
+      mode = mkOption {
+        type = types.nullOr (
+          types.enum [
+            "s2idle"
+            "shallow"
+            "deep"
+          ]
+        );
+        default = null;
+        description = ''
+          The memory suspend mode to use.
+
+          To check which modes are supported, run `cat /sys/power/mem_sleep`.
+
+          More info: https://docs.kernel.org/admin-guide/pm/sleep-states.html
+        '';
+      };
     };
 
     vm = {
@@ -412,15 +441,7 @@ in
         }
       ];
 
-      # Prohibited sleep actions for VMs
-      systemd.sleep.extraConfig = ''
-        AllowHibernation=no
-        AllowHybridSleep=no
-        AllowSuspendThenHibernate=no
-      ''
-      + optionalString (!cfg.allowSuspend) ''
-        AllowSuspend=no
-      '';
+      systemd.sleep.extraConfig = genericSleepConf;
 
       powerManagement = optionalAttrs cfg.vm.enable {
         powerDownCommands = optionalString cfg.vm.pciSuspend (
@@ -497,7 +518,7 @@ in
       # Logind configuration for desktop
       services.logind.settings.Login =
         let
-          lidEvent = if cfg.allowSuspend then "suspend" else "lock";
+          lidEvent = if cfg.suspend.enable then "suspend" else "lock";
         in
         mkDefault {
           HandleLidSwitch = lidEvent;
@@ -519,16 +540,15 @@ in
     (mkIf cfg.host.enable {
       services.logind.settings.Login.HandleLidSwitch = mkDefault "ignore";
 
-      systemd.sleep.extraConfig = ''
-        AllowHibernation=no
-        AllowHybridSleep=no
-        AllowSuspendThenHibernate=no
-      ''
-      + optionalString (!cfg.allowSuspend) ''
-        AllowSuspend=no
-      '';
+      systemd.sleep.extraConfig = genericSleepConf;
 
-      systemd.targets = optionalAttrs cfg.allowSuspend {
+      # We can accomplish the same via systemd.sleep.extraConfig MemorySleepMode
+      # but it seems keyboard wakeup stops functioning with that approach
+      boot.kernelParams = optionals (cfg.suspend.mode != null) [
+        "mem_sleep_default=${cfg.suspend.mode}"
+      ];
+
+      systemd.targets = optionalAttrs cfg.suspend.enable {
         "pre-sleep-actions" = {
           description = "Target for pre-sleep host actions";
           unitConfig.StopWhenUnneeded = true;
@@ -552,7 +572,7 @@ in
 
       systemd.services = mkMerge [
         # suspend/resume action units
-        (optionalAttrs cfg.allowSuspend (
+        (optionalAttrs cfg.suspend.enable (
           lib.listToAttrs (
             flatten (
               map

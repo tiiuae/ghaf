@@ -12,6 +12,8 @@
   # Host configuration
   host = {
     kernelConfig.kernelParams = [
+      # Suspension is broken (SSRCSP-7016)
+      # "mem_sleep_default=s2idle"
       "intel_iommu=on,sm_on"
       "iommu=pt"
       "module_blacklist=e1000e,i2c_i801,i915,iwlwifi,snd_hda_intel,snd_sof_pci_intel_mtl,spi_intel_pci,bluetooth,btusb,xe"
