@@ -36,7 +36,7 @@ let
         inherit (cfg) withHomed;
         inherit (cfg) withOpenSSL;
         inherit (cfg) withHostnamed;
-        withImportd = cfg.withMachines;
+        withImportd = cfg.withMachines || cfg.withSysupdate;
         withKexectools = cfg.withDebug;
         withKmod = true;
         withLibBPF = true;
@@ -271,7 +271,7 @@ in
     withOpenSSL = mkOption {
       description = "Enable systemd OpenSSL functionality.";
       type = types.bool;
-      default = cfg.withFido2 || cfg.withHomed;
+      default = cfg.withFido2 || cfg.withHomed || cfg.withSysupdate;
     };
 
     withUkify = mkOption {
