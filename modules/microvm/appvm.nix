@@ -160,7 +160,10 @@ let
                   role = "client";
                 };
 
-                logging.client.enable = configHost.ghaf.logging.enable;
+                logging = {
+                  inherit (configHost.ghaf.logging) enable;
+                  client.enable = configHost.ghaf.logging.enable;
+                };
 
                 security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
 

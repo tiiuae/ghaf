@@ -43,6 +43,11 @@ let
               isGateway = true;
               inherit vmName;
             };
+
+            logging = {
+              inherit (configHost.ghaf.logging) enable listener;
+              client.enable = configHost.ghaf.logging.enable;
+            };
           };
 
           system.stateVersion = lib.trivial.release;

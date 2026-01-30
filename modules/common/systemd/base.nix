@@ -33,6 +33,7 @@ let
         inherit (cfg) withEfi;
         inherit (cfg) withBootloader;
         inherit (cfg) withFido2;
+        withGcrypt = cfg.withJournal; # Required for Forward Secure Sealing (FSS)
         inherit (cfg) withHomed;
         inherit (cfg) withOpenSSL;
         inherit (cfg) withHostnamed;

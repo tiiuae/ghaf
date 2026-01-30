@@ -1,0 +1,89 @@
+---
+title: Forward Secure Sealing for Audit Logs
+sidebar:
+  badge:
+    text: Accepted
+    variant: success
+---
+
+## Status
+
+Accepted, implemented in `modules/common/logging/fss.nix`.
+
+## Context
+
+Ghaf requires tamper-evident audit logging to meet security compliance requirements and detect unauthorized modifications to system logs. Traditional logging approaches lack cryptographic integrity guarantees—an attacker with root access can modify or delete log entries without detection.
+
+Key requirements:
+- **Tamper detection**: Any modification to sealed log entries must be detectable
+- **Forward security**: Compromising the current key must not allow forging past entries
+- **Per-component isolation**: Each VM must have independent integrity guarantees
+- **Offline verification**: Exported logs must be verifiable on separate systems
+- **Minimal overhead**: Solution must not significantly impact system performance
+
+## Decision
+
+Implement Forward Secure Sealing (FSS) using systemd journal's built-in HMAC-SHA256 chain mechanism.
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Per-Component FSS                       │
+├─────────────────────────────────────────────────────────────┤
+│  Component          Sealing Key              Verification   │
+│  ─────────          ───────────              ────────────   │
+│  ghaf-host    /var/log/journal/<id>/fss   /persist/.../     │
+│  admin-vm     /var/log/journal/<id>/fss   /etc/common/...   │
+│  net-vm       /var/log/journal/<id>/fss   /etc/common/...   │
+│  gui-vm       /var/log/journal/<id>/fss   /etc/common/...   │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Key Components
+
+1. **Sealing Keys**: Generated per-component, stored in `/var/log/journal/<machine-id>/fss`. Never exported.
+
+2. **Verification Keys**: Generated during setup, stored in shared storage for backup. Enable offline verification.
+
+3. **Setup Service**: `journal-fss-setup.service` runs before journald on first boot, generates key pairs.
+
+4. **Verify Service**: `journal-fss-verify.service` runs hourly and on boot, checks HMAC chain integrity.
+
+5. **Audit Rules**: Monitor FSS key directory and journal files for unauthorized access attempts.
+
+### Cryptographic Properties
+
+- **HMAC-SHA256 chains**: Each seal interval creates a new HMAC that chains to previous entries
+- **Key evolution**: Sealing key evolves forward; old states are destroyed (forward security)
+- **Verification**: Verification key can validate entire chain without revealing sealing key
+
+## Consequences
+
+### Benefits
+
+- **Cryptographic tamper detection**: Any modification breaks HMAC chain
+- **Forward security**: Past entries secure even if current key compromised
+- **Native integration**: Uses systemd's built-in FSS, no external dependencies
+- **Per-component isolation**: Compromise of one VM doesn't affect others
+- **Offline verification**: Verification keys enable independent audit
+
+### Trade-offs
+
+- **Key management overhead**: Verification keys must be backed up securely
+- **Storage overhead**: ~0.5% increase per seal interval
+- **Cannot prevent deletion**: Attacker can still delete entire journal (mitigated by remote forwarding)
+- **No real-time alerting**: Tampering detected at next verification, not immediately
+
+### Operational Impact
+
+- First boot generates keys automatically (no manual intervention)
+- Verification failures trigger critical alerts to admin-vm
+- Key rotation requires journal archive and system reboot
+- Verification keys should be copied to secure offline storage
+
+## References
+
+- [systemd Journal FSS Documentation](https://www.freedesktop.org/software/systemd/man/journalctl.html#--setup-keys)
+- [Forward Secure Sealing for Logs](https://lwn.net/Articles/512895/)
+- [SCS Forward Secure Sealing](/ghaf/scs/fss)

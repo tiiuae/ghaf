@@ -76,6 +76,7 @@ let
 
             # Services
             logging = {
+              inherit (configHost.ghaf.logging) enable;
               server = {
                 inherit (configHost.ghaf.logging) enable;
                 tls = {
