@@ -10,5 +10,8 @@ prev.cosmic-initial-setup.overrideAttrs (oldAttrs: {
     substituteInPlace justfile \
       --replace-fail "find res/themes" "# find res/themes" \
       --replace-fail "'share' / 'cosmic-layouts'" "'share' / 'cosmic-layouts-unused'"
+    # Disable screen reader by default
+    substituteInPlace src/page/a11y.rs \
+      --replace-fail 'return cosmic::Task::done(Message::ScreenReaderEnabled(true).into());' ""
   '';
 })
