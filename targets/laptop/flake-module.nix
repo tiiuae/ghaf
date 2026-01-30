@@ -58,7 +58,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          services.power-manager.allowSuspend = false;
+          services.power-manager.suspend.enable = false;
         };
       }
     ]))
@@ -102,7 +102,6 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = false;
           services.performance.host.thermalLimitMode = "enabled";
         };
       }
@@ -213,7 +212,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.suspend.mode = "s2idle";
 
           # Enable PCI ACS override to split IOMMU groups
           # Needed to separate Ethernet (8086:550a) from Audio devices
@@ -245,8 +244,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.suspend.mode = "s2idle";
 
           # Enable storeOnDisk for all VMs
           virtualization.microvm.storeOnDisk = true;
@@ -281,7 +279,6 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = false;
         };
       }
     ]))
@@ -420,8 +417,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.suspend.mode = "s2idle";
 
           # Enable PCI ACS override to split IOMMU groups
           # Needed to separate Ethernet (8086:550a) from Audio devices
@@ -453,8 +449,7 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+          services.power-manager.suspend.mode = "s2idle";
 
           # Enable storeOnDisk for all VMs
           virtualization.microvm.storeOnDisk = true;

@@ -89,7 +89,7 @@ writeShellApplication {
         done
 
         export NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
-        nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --fast "''${args[@]}"
+        nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${args[@]}"
   '';
   meta = {
     description = "Helper script to use nixos-rebuild without persistent changes of the ssh configuration.";
