@@ -79,6 +79,14 @@
       }
     ];
 
+    hardware-lenovo-x1-efi-uki.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
+      }
+      ./lenovo-x1/uki.nix
+    ];
+
     hardware-lenovo-x1-carbon-gen11.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
