@@ -1,0 +1,207 @@
+---
+title: Forward Secure Sealing
+---
+
+Forward Secure Sealing (FSS) provides cryptographic tamper-evidence for Ghaf audit logs. It uses HMAC-SHA256 chains to seal journal entries at regular intervals, ensuring any modification to sealed entries is detectable.
+
+## Overview
+
+FSS addresses a critical security requirement: ensuring audit logs cannot be tampered with by attackers who gain root access. Traditional logging provides no cryptographic guarantees—an attacker can modify or delete entries without detection. FSS solves this by:
+
+- **Cryptographic sealing**: Journal entries are sealed with HMAC-SHA256 at configurable intervals
+- **Forward security**: The sealing key evolves forward; compromising the current key cannot forge past entries
+- **Per-component isolation**: Each Ghaf component (host and VMs) maintains independent FSS keys
+
+## Configuration
+
+FSS is automatically enabled when `ghaf.logging.enable = true`. Configuration options:
+
+```nix
+ghaf.logging.fss = {
+  enable = true;              # Enable FSS (default: follows ghaf.logging.enable)
+  sealInterval = "15min";     # Interval between seals (default: 15min)
+  verifyOnBoot = true;        # Run verification on boot (default: true)
+  verifySchedule = "hourly";  # Periodic verification schedule (default: hourly)
+};
+```
+
+### Seal Interval Considerations
+
+| Interval | Tamper Granularity | Storage Overhead | Verification Time |
+|----------|--------------------|------------------|-------------------|
+| 5min     | Fine               | Higher (~2%)     | Longer            |
+| 15min    | Moderate           | Moderate (~0.5%) | Moderate          |
+| 1h       | Coarse             | Lower (~0.1%)    | Faster            |
+
+## Key Management
+
+### Key Locations
+
+| Component | Sealing Key | Verification Key |
+|-----------|-------------|------------------|
+| Host | `/var/log/journal/<id>/fss` | `/persist/common/journal-fss/ghaf-host/verification-key` |
+| VMs | `/var/log/journal/<id>/fss` | `/etc/common/journal-fss/<vm-name>/verification-key` |
+
+### Verification Key Backup
+
+**Critical**: Back up verification keys to secure offline storage immediately after first boot.
+
+```bash
+# On host, copy all verification keys
+cp -r /persist/common/journal-fss/ /secure-backup/
+
+# Or for a specific component
+cat /persist/common/journal-fss/ghaf-host/verification-key
+```
+
+The verification key enables:
+- Independent verification of exported journal archives
+- Audit by external parties without access to the live system
+- Disaster recovery verification
+
+## Operations
+
+### Manual Verification
+
+```bash
+# Basic verification (uses local key)
+journalctl --verify
+
+# Verify with explicit key
+journalctl --verify --verify-key=$(cat /persist/common/journal-fss/ghaf-host/verification-key)
+```
+
+### Service Status
+
+```bash
+# Check FSS setup status
+systemctl status journal-fss-setup
+
+# Check verification timer
+systemctl list-timers journal-fss-verify
+
+# View FSS-related logs
+journalctl -t journal-fss
+```
+
+### Hardware Testing
+
+A test script is available for deployed systems:
+
+```bash
+# Build the test
+nix build .#checks.x86_64-linux.fss-test
+
+# Deploy and run
+scp result/bin/fss-test root@ghaf-host:/tmp/
+ssh root@ghaf-host /tmp/fss-test
+```
+
+The test verifies:
+1. FSS setup service completed
+2. Sealing key exists
+3. Verification key extracted
+4. Initialization sentinel present
+5. Journal integrity passes
+6. Verification timer active
+7. Audit rules configured
+
+### Key Rotation
+
+Key rotation destroys the existing tamper-evidence chain. Only rotate when necessary:
+
+```bash
+# 1. Archive and verify existing journals
+journalctl --verify
+journalctl -o export > /backup/journal-archive-$(date +%Y%m%d).export
+
+# 2. Remove initialization sentinel
+rm /persist/common/journal-fss/ghaf-host/initialized
+
+# 3. Clear sealing key (optional, regenerated on boot)
+rm /var/log/journal/*/fss
+
+# 4. Reboot to regenerate keys
+reboot
+
+# 5. Backup new verification key
+cat /persist/common/journal-fss/ghaf-host/verification-key > /secure-backup/
+```
+
+## Offline Verification
+
+To verify journals on a separate system:
+
+```bash
+# On the Ghaf system: export journals
+journalctl -o export > journal.export
+
+# Transfer journal.export and verification-key to verification system
+
+# On verification system: verify the export
+journalctl --verify --verify-key=<verification-key> --file=journal.export
+```
+
+## Troubleshooting
+
+### Verification Fails with "FAIL"
+
+Indicates potential tampering or corruption:
+
+```bash
+# Check which files failed
+journalctl --verify 2>&1 | grep FAIL
+
+# If only .journal~ files fail, these are temp files (not critical)
+# Real failures affect .journal files
+```
+
+### "Failed to parse seed" Error
+
+The verification key is malformed:
+
+```bash
+# Check key format (should be ~35 bytes with '/' separator)
+cat /persist/common/journal-fss/ghaf-host/verification-key | wc -c
+
+# Regenerate if necessary (see Key Rotation above)
+```
+
+### Service Not Starting
+
+```bash
+# Check conditions
+systemctl show journal-fss-setup --property=ConditionResult
+
+# Common issues:
+# - /var/log/journal not writable (check permissions)
+# - Already initialized (check for initialized sentinel)
+```
+
+## Security Considerations
+
+### What FSS Protects Against
+
+- Modification of sealed log entries
+- Insertion of false entries into sealed ranges
+- Backdating of events
+
+### What FSS Does Not Protect Against
+
+- Deletion of entire journal files (mitigated by remote log forwarding)
+- Real-time tampering before sealing (mitigated by short seal intervals)
+- Denial of service against logging
+
+### Audit Integration
+
+FSS integrates with Ghaf's audit subsystem. The following events are monitored:
+
+- `journal_fss_keys`: Write/attribute changes to FSS key directory
+- `journal_sealed_logs`: Write/attribute changes to journal files
+- `machine_id_read`: Reads of machine-id (used in journal path)
+
+## References
+
+- [ADR: Forward Secure Sealing](/ghaf/overview/arch/adr/fss)
+- [systemd Journal FSS](https://www.freedesktop.org/software/systemd/man/journalctl.html#--setup-keys)
+- [Forward Secure Sealing Paper](https://eprint.iacr.org/2013/397.pdf)

@@ -126,6 +126,9 @@ in
       SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
       SystemMaxFileSize=100M
       Storage=persistent
+      ${optionalString config.ghaf.logging.fss.enable ''
+        Seal=yes
+      ''}
     '';
 
     environment.etc."loki/pass" = {

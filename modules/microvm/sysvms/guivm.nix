@@ -132,7 +132,10 @@ let
             };
 
             # Logging
-            logging.client.enable = config.ghaf.logging.enable;
+            logging = {
+              inherit (config.ghaf.logging) enable;
+              client.enable = config.ghaf.logging.enable;
+            };
 
             # Services
             services = {

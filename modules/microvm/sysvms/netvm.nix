@@ -93,7 +93,10 @@ let
                 net.enable = true;
               };
             };
-            logging.client.enable = config.ghaf.logging.enable;
+            logging = {
+              inherit (config.ghaf.logging) enable;
+              client.enable = config.ghaf.logging.enable;
+            };
 
             security = {
               fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
