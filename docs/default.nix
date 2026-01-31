@@ -5,9 +5,7 @@
   lib,
   nixosOptionsDoc,
   runCommandLocal,
-  pkg-config,
   nodejs,
-  vips,
   revision ? "",
   options ? { },
   givc-docs,
@@ -57,16 +55,8 @@ buildNpmPackage (_finalAttrs: {
   src = combinedSrc;
   inherit nodejs;
 
-  buildInputs = [
-    vips
-  ];
-
-  nativeBuildInputs = [
-    pkg-config
-  ];
-
-  # Tell sharp to use system libvips instead of building from source
-  SHARP_IGNORE_GLOBAL_LIBVIPS = "1";
+  # Note: Sharp is no longer used since we configured astro with passthroughImageService
+  # This avoids native dependency issues in Nix sandbox builds
 
   installPhase = ''
     runHook preInstall
