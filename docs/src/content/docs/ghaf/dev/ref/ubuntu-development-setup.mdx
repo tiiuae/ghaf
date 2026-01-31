@@ -1,0 +1,707 @@
+---
+title: Ubuntu Development Setup
+---
+
+import { Aside, Steps, Tabs, TabItem, Code } from "@astrojs/starlight/components";
+
+This guide provides comprehensive instructions for setting up a Ghaf development environment on Ubuntu or Debian-based systems. Both automated and manual installation methods are covered.
+
+<Aside type="tip">
+  **Recommended**: Use the automated setup script for the fastest and most reliable setup experience.
+</Aside>
+
+## Prerequisites
+
+Before you begin, ensure your system meets the following requirements:
+
+### System Requirements
+
+| Requirement | Minimum | Recommended |
+|-------------|---------|-------------|
+| **Ubuntu Version** | 22.04 LTS | 24.04 LTS |
+| **Architecture** | x86_64 | x86_64 |
+| **RAM** | 8 GB | 16 GB or more |
+| **Disk Space** | 50 GB free | 100 GB or more |
+| **Network** | Stable internet | Fast broadband |
+
+<Aside type="caution">
+  **Disk Space for ARM Builds**: Building ARM64 targets (like NVIDIA Jetson) locally via QEMU emulation requires **100GB+ free disk space**. For faster builds with less disk usage, configure [remote build machines](#remote-build-machines-optional) with native ARM64 hardware.
+</Aside>
+
+<Aside type="note">
+  **Debian Support**: This guide also works on Debian 11 (Bullseye) and newer, as well as other Debian-based distributions like Linux Mint and Pop!_OS.
+</Aside>
+
+### Ubuntu 24.04 Users
+
+Ubuntu 24.04 introduces stricter AppArmor policies that may affect Nix sandboxing. The automated setup script handles this automatically, but if you're installing manually, see the [AppArmor Configuration](#apparmor-configuration-ubuntu-2404) section.
+
+---
+
+## Automated Installation (Recommended)
+
+The automated setup script handles all installation and configuration steps with interactive prompts for operations requiring elevated privileges.
+
+### Quick Start
+
+<Steps>
+
+1. **Clone the Ghaf repository**:
+   ```bash
+   git clone https://github.com/tiiuae/ghaf.git
+   cd ghaf
+   ```
+
+2. **Run the setup script**:
+   ```bash
+   ./scripts/ubuntu-setup.sh
+   ```
+
+3. **Activate your shell configuration**:
+   ```bash
+   source ~/.bashrc  # or ~/.zshrc for Zsh users
+   ```
+
+4. **Allow direnv for the Ghaf project**:
+   ```bash
+   direnv allow
+   ```
+
+</Steps>
+
+### Script Options
+
+| Option | Description |
+|--------|-------------|
+| `--accept` | Accept all prompts automatically (non-interactive mode) |
+| `--uninstall` | Remove Nix and related configurations |
+| `--help` | Show help message |
+
+**Non-interactive installation** (for CI/CD or automated setups):
+
+```bash
+./scripts/ubuntu-setup.sh --accept
+```
+
+**Uninstall** (removes Nix and configurations):
+
+```bash
+./scripts/ubuntu-setup.sh --uninstall
+```
+
+### What the Script Does
+
+The automated script performs the following steps:
+
+1. **System Dependencies**: Installs `curl`, `git`, and `xz-utils` via apt
+2. **Nix Installation**: Installs Nix using the Determinate Systems installer
+3. **Binary Cache**: Configures the Ghaf binary cache for faster builds
+4. **direnv Setup**: Installs and configures direnv with nix-direnv
+5. **Shell Integration**: Adds direnv hook to your shell configuration
+6. **AppArmor** (Ubuntu 24.04): Configures user namespaces for Nix sandboxing
+7. **binfmt** (Optional): Sets up QEMU for AArch64 emulation
+8. **VSCode** (Optional): Creates VSCode configuration files
+
+---
+
+## Manual Installation
+
+If you prefer to install components manually or need more control over the setup process, follow these steps.
+
+### Step 1: Install System Dependencies
+
+Install the required system packages:
+
+```bash
+sudo apt update
+sudo apt install -y curl git xz-utils
+```
+
+### Step 2: Install Nix Package Manager
+
+We recommend the **Determinate Systems Nix Installer** for Ubuntu systems:
+
+<Tabs>
+  <TabItem label="Determinate Systems (Recommended)">
+    ```bash
+    curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+    ```
+
+    **Benefits**:
+    - ✅ Flakes enabled by default
+    - ✅ Clean uninstall support (`/nix/nix-installer uninstall`)
+    - ✅ Multi-user mode (more secure)
+    - ✅ Better enterprise support
+  </TabItem>
+  <TabItem label="Official Nix Installer">
+    ```bash
+    curl -L https://nixos.org/nix/install | sh -s -- --daemon
+    ```
+
+    **After installation**, enable flakes manually:
+    ```bash
+    mkdir -p ~/.config/nix
+    echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
+    ```
+  </TabItem>
+</Tabs>
+
+After installation, restart your terminal or source the Nix profile:
+
+```bash
+# For Determinate Systems installer
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+
+# Or restart your terminal
+```
+
+Verify the installation:
+
+```bash
+nix --version
+```
+
+### Step 3: Configure Binary Cache
+
+Configure the Ghaf binary cache for significantly faster builds. Create or edit `~/.config/nix/nix.conf`:
+
+```bash
+mkdir -p ~/.config/nix
+cat >> ~/.config/nix/nix.conf << 'EOF'
+
+# Ghaf development configuration
+experimental-features = nix-command flakes
+
+# Binary caches for faster builds
+substituters = https://ghaf-dev.cachix.org https://cache.nixos.org
+trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+
+# Trust the Ghaf binary cache
+extra-trusted-substituters = https://ghaf-dev.cachix.org
+
+# Recommended settings
+keep-outputs = true
+keep-derivations = true
+EOF
+```
+
+Restart the Nix daemon to apply changes:
+
+```bash
+sudo systemctl restart nix-daemon
+```
+
+### Step 4: Install and Configure direnv
+
+direnv automatically loads the Ghaf development environment when you enter the project directory.
+
+#### Install direnv
+
+<Tabs>
+  <TabItem label="Via Nix (Recommended)">
+    ```bash
+    nix profile install nixpkgs#direnv
+    nix profile install nixpkgs#nix-direnv
+    ```
+  </TabItem>
+  <TabItem label="Via apt">
+    ```bash
+    sudo apt install -y direnv
+
+    # nix-direnv still needs to be installed via Nix
+    nix profile install nixpkgs#nix-direnv
+    ```
+  </TabItem>
+</Tabs>
+
+#### Configure direnv
+
+Create the direnv configuration file:
+
+```bash
+mkdir -p ~/.config/direnv
+cat > ~/.config/direnv/direnvrc << 'EOF'
+# Use nix-direnv for better caching and performance
+if [ -f "${HOME}/.nix-profile/share/nix-direnv/direnvrc" ]; then
+    source "${HOME}/.nix-profile/share/nix-direnv/direnvrc"
+elif [ -f "/nix/var/nix/profiles/default/share/nix-direnv/direnvrc" ]; then
+    source "/nix/var/nix/profiles/default/share/nix-direnv/direnvrc"
+fi
+
+# Increase timeout for Nix operations
+export DIRENV_WARN_TIMEOUT=60s
+EOF
+```
+
+#### Add Shell Hook
+
+Add the direnv hook to your shell configuration:
+
+<Tabs>
+  <TabItem label="Bash">
+    ```bash
+    echo 'eval "$(direnv hook bash)"' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+  </TabItem>
+  <TabItem label="Zsh">
+    ```bash
+    echo 'eval "$(direnv hook zsh)"' >> ~/.zshrc
+    source ~/.zshrc
+    ```
+  </TabItem>
+  <TabItem label="Fish">
+    ```bash
+    echo 'direnv hook fish | source' >> ~/.config/fish/config.fish
+    source ~/.config/fish/config.fish
+    ```
+  </TabItem>
+</Tabs>
+
+### Step 5: Clone and Set Up Ghaf
+
+```bash
+git clone https://github.com/tiiuae/ghaf.git
+cd ghaf
+direnv allow
+```
+
+The development environment will now load automatically when you enter the directory.
+
+---
+
+## Optional Configuration
+
+### AppArmor Configuration (Ubuntu 24.04)
+
+Ubuntu 24.04 has stricter AppArmor policies that may affect Nix sandboxing. If you encounter sandbox-related build errors, configure user namespaces:
+
+```bash
+# Create sysctl configuration
+echo 'kernel.unprivileged_userns_clone=1' | sudo tee /etc/sysctl.d/99-nix-userns.conf
+
+# Apply immediately
+sudo sysctl --system
+```
+
+<Aside type="caution">
+  This setting reduces system security slightly by allowing unprivileged user namespaces. This is required for Nix sandboxing to work properly on Ubuntu 24.04.
+</Aside>
+
+### Cross-Architecture Support (binfmt)
+
+For building AArch64 targets via emulation (alternative to cross-compilation):
+
+```bash
+sudo apt install -y qemu-user-static binfmt-support
+sudo update-binfmts --enable qemu-aarch64
+```
+
+<Aside type="tip">
+  **Recommendation**: Use `-from-x86_64` cross-compilation targets instead of binfmt emulation for better performance:
+  ```bash
+  nix build .#nvidia-jetson-orin-agx-debug-from-x86_64
+  ```
+</Aside>
+
+### Remote Build Machines
+
+Remote builders allow offloading Nix builds to more powerful machines. This is useful for:
+- Building AArch64 targets on native ARM64 hardware (faster than cross-compilation)
+- Speeding up builds using dedicated build servers
+- Distributed builds across multiple machines
+
+The automated setup script can configure remote builders interactively. For manual configuration:
+
+#### Prerequisites
+
+1. **SSH access** to the remote build machine
+2. **Nix installed** on the remote machine
+3. **Remote machine configured** to accept builds (see [Remote Build Setup](/ghaf/dev/ref/remote_build_setup))
+
+#### Manual Configuration
+
+1. **Create the machines file** (`/etc/nix/machines`):
+
+```bash
+sudo mkdir -p /etc/nix
+sudo tee /etc/nix/machines << 'EOF'
+# Format: ssh://user@host system ssh-key max-jobs speed-factor features mandatory-features public-key
+ssh://builder@build-server.example.com x86_64-linux /home/user/.ssh/id_ed25519 8 1 nixos-test,benchmark,big-parallel,kvm - -
+ssh://builder@arm-server.example.com aarch64-linux /home/user/.ssh/id_ed25519 16 1 nixos-test,benchmark,big-parallel,kvm - -
+EOF
+```
+
+2. **Configure nix.conf** to use remote builders:
+
+```bash
+cat >> ~/.config/nix/nix.conf << 'EOF'
+
+# Remote build machines configuration
+builders = @/etc/nix/machines
+builders-use-substitutes = true
+EOF
+```
+
+3. **Add the remote host to known_hosts**:
+
+```bash
+# Fetch and add the host key
+ssh-keyscan -t ed25519 build-server.example.com | sudo tee -a /etc/ssh/ssh_known_hosts
+```
+
+4. **Restart the Nix daemon**:
+
+```bash
+sudo systemctl restart nix-daemon
+```
+
+5. **Test the connection**:
+
+```bash
+nix store ping --store ssh://builder@build-server.example.com
+```
+
+#### Machine File Format
+
+Each line in `/etc/nix/machines` specifies a build machine:
+
+```
+ssh://USER@HOST SYSTEM SSH_KEY MAX_JOBS SPEED_FACTOR FEATURES MANDATORY_FEATURES PUBLIC_KEY
+```
+
+| Field | Description | Example |
+|-------|-------------|---------|
+| `USER@HOST` | SSH connection | `builder@server.com` |
+| `SYSTEM` | Target system(s) | `x86_64-linux` or `aarch64-linux` |
+| `SSH_KEY` | Path to private key | `/home/user/.ssh/id_ed25519` |
+| `MAX_JOBS` | Parallel build jobs | `8` |
+| `SPEED_FACTOR` | Priority (higher = preferred) | `1` |
+| `FEATURES` | Supported features | `nixos-test,benchmark,big-parallel,kvm` |
+| `MANDATORY_FEATURES` | Required features | `-` (none) |
+| `PUBLIC_KEY` | Base64 host key | `-` (use known_hosts) |
+
+<Aside type="note">
+  For more detailed information about remote builds, see [Remote Build Setup](/ghaf/dev/ref/remote_build_setup) and the [Nix Manual on Distributed Builds](https://nixos.org/manual/nix/stable/advanced-topics/distributed-builds.html).
+</Aside>
+
+### VSCode Configuration
+
+For the best development experience with VSCode, install the recommended extensions and configure user settings.
+
+#### Install Extensions
+
+Install the following VSCode extensions:
+
+- **Nix IDE** (`jnoortheen.nix-ide`) - Nix language support
+- **direnv** (`mkhl.direnv`) - Environment integration
+- **EditorConfig** (`editorconfig.editorconfig`) - Code style
+- **ShellCheck** (`timonwong.shellcheck`) - Shell script linting
+
+Install via command line:
+
+```bash
+code --install-extension jnoortheen.nix-ide
+code --install-extension mkhl.direnv
+code --install-extension editorconfig.editorconfig
+code --install-extension timonwong.shellcheck
+```
+
+For VSCodium users, replace `code` with `codium`.
+
+#### Configure User Settings
+
+Add Nix-specific settings to your VSCode user configuration. The settings file is located at:
+
+- **VSCode**: `~/.config/Code/User/settings.json`
+- **VSCodium**: `~/.config/VSCodium/User/settings.json`
+
+If the file exists, merge the following settings. If it doesn't exist, create it:
+
+```json
+{
+  "nix.enableLanguageServer": true,
+  "nix.serverPath": "nixd",
+  "nix.serverSettings": {
+    "nixd": {
+      "formatting": {
+        "command": ["nixfmt"]
+      }
+    }
+  },
+  "[nix]": {
+    "editor.tabSize": 2,
+    "editor.insertSpaces": true,
+    "editor.formatOnSave": true
+  },
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true
+}
+```
+
+:::tip[JSON Merging]
+If you have existing settings, you can use `jq` to merge:
+```bash
+# Install jq if needed
+sudo apt install jq
+
+# Merge settings (backup first!)
+cp ~/.config/Code/User/settings.json ~/.config/Code/User/settings.json.backup
+jq -s '.[0] * .[1]' ~/.config/Code/User/settings.json nix-settings.json > merged.json
+mv merged.json ~/.config/Code/User/settings.json
+```
+:::
+
+#### How It Works
+
+With the direnv extension installed, VSCode will automatically:
+1. Detect the `.envrc` file in the Ghaf project directory
+2. Load the Nix development environment
+3. Make tools like `nixd`, `nixfmt`, `treefmt` available to extensions
+
+You'll see a notification asking to allow direnv when opening the Ghaf project for the first time.
+
+---
+
+## Verifying Your Setup
+
+After installation, verify that everything is working correctly:
+
+### Check Nix Installation
+
+```bash
+# Check Nix version
+nix --version
+
+# Check flakes support
+nix flake --help
+```
+
+### Check direnv
+
+```bash
+# Check direnv version
+direnv version
+
+# In the Ghaf directory, check that environment loads
+cd ghaf
+direnv status
+```
+
+### Test a Build
+
+```bash
+cd ghaf
+direnv allow
+
+# Quick test: build documentation (5-10 minutes)
+nix build .#doc
+
+# Full test: build VM (45-90 minutes with binary cache)
+nix build .#packages.x86_64-linux.vm-debug
+```
+
+### Check Binary Cache
+
+Verify that the binary cache is being used:
+
+```bash
+# During a build, you should see downloads from ghaf-dev.cachix.org
+nix build .#doc --print-build-logs 2>&1 | head -20
+```
+
+---
+
+## Troubleshooting
+
+### Common Issues
+
+#### "experimental feature 'flakes' is disabled"
+
+Your Nix configuration doesn't have flakes enabled. Add to `~/.config/nix/nix.conf`:
+
+```
+experimental-features = nix-command flakes
+```
+
+Then restart the Nix daemon:
+
+```bash
+sudo systemctl restart nix-daemon
+```
+
+#### "error: could not set permissions on '/nix/var/nix/profiles/per-user'"
+
+This indicates a single-user Nix installation issue. Reinstall Nix in multi-user mode:
+
+```bash
+# Uninstall (if using Determinate Systems)
+/nix/nix-installer uninstall
+
+# Reinstall
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
+```
+
+#### Sandbox Errors on Ubuntu 24.04
+
+If you see errors related to sandboxing or user namespaces:
+
+```bash
+# Enable unprivileged user namespaces
+echo 'kernel.unprivileged_userns_clone=1' | sudo tee /etc/sysctl.d/99-nix-userns.conf
+sudo sysctl --system
+```
+
+#### direnv Not Loading Environment
+
+1. Ensure direnv hook is in your shell configuration
+2. Run `direnv allow` in the Ghaf directory
+3. Check direnv status: `direnv status`
+
+#### Slow Builds
+
+If builds are taking longer than expected:
+
+1. Verify binary cache is configured:
+   ```bash
+   grep "ghaf-dev.cachix.org" ~/.config/nix/nix.conf
+   ```
+
+2. Check network connectivity to the cache:
+   ```bash
+   curl -I https://ghaf-dev.cachix.org
+   ```
+
+3. Explicitly use the cache:
+   ```bash
+   nix build .#target --option substituters "https://ghaf-dev.cachix.org https://cache.nixos.org"
+   ```
+
+### Getting Help
+
+If you encounter issues not covered here:
+
+1. Check the [Ghaf GitHub Issues](https://github.com/tiiuae/ghaf/issues)
+2. Review the [Nix manual](https://nixos.org/manual/nix/stable/)
+3. Ask in the [NixOS Discourse](https://discourse.nixos.org/)
+
+---
+
+## Development Containers and VMs
+
+For isolated or reproducible development environments, you can use the provided helper scripts to create Docker containers or QEMU virtual machines pre-configured for Ghaf development.
+
+### Docker Container
+
+The `dev-container.sh` script creates a Docker container with all Ghaf development tools installed.
+
+**Requirements**:
+- Docker installed (`sudo apt install docker.io`)
+- User in docker group (`sudo usermod -aG docker $USER`)
+
+**Quick Start**:
+
+```bash
+# Create a container with current directory mounted
+./scripts/dev-container.sh -m $(pwd) --accept create
+
+# SSH into the container
+./scripts/dev-container.sh ssh
+
+# Or open a shell directly
+./scripts/dev-container.sh shell
+```
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-n, --name` | ghaf-dev | Container name |
+| `-m, --mount` | (auto) | Directory to mount in container |
+| `-c, --cpus` | 4 | Number of CPUs |
+| `-r, --ram` | 8g | Memory limit |
+| `-p, --ssh-port` | 2222 | SSH port on host |
+| `-P, --password` | ghaf | SSH password |
+| `--accept` | - | Auto-accept all prompts |
+
+**Commands**: `create`, `start`, `stop`, `shell`, `ssh`, `remove`, `status`
+
+### QEMU Virtual Machine
+
+The `dev-vm.sh` script creates a full Ubuntu VM for Ghaf development, useful when you need complete isolation or to test the setup process itself.
+
+**Requirements**:
+- QEMU and KVM (`sudo apt install qemu-system-x86 qemu-utils`)
+- cloud-image-utils (`sudo apt install cloud-image-utils`)
+- KVM support (check with `ls /dev/kvm`)
+
+**Quick Start**:
+
+```bash
+# Create a VM with 120GB disk (recommended for Jetson builds)
+./scripts/dev-vm.sh -d 120 -r 16 --accept create
+
+# SSH into the VM
+./scripts/dev-vm.sh ssh
+
+# Stop the VM
+./scripts/dev-vm.sh stop
+```
+
+**Options**:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `-n, --name` | ghaf-dev-vm | VM name |
+| `-m, --mount` | - | Directory to mount via 9p |
+| `-c, --cpus` | 4 | Number of CPUs |
+| `-r, --ram` | 16 | Memory in GB |
+| `-d, --disk` | 120 | Disk size in GB |
+| `-p, --ssh-port` | 2223 | SSH port on host |
+| `-P, --password` | ghaf | SSH password |
+| `-D, --vm-dir` | ~/ghaf-vms | VM files directory |
+| `--accept` | - | Auto-accept all prompts |
+
+**Commands**: `create`, `start`, `stop`, `ssh`, `remove`, `status`
+
+<Aside type="note">
+  **Disk Space**: For ARM64 builds (like NVIDIA Jetson), use at least 120GB disk size (`-d 120`). The default is already set to 120GB for this reason.
+</Aside>
+
+---
+
+## Uninstalling
+
+### Using the Setup Script
+
+```bash
+./scripts/ubuntu-setup.sh --uninstall
+```
+
+### Manual Uninstall
+
+If you installed Nix with the Determinate Systems installer:
+
+```bash
+/nix/nix-installer uninstall
+```
+
+Remove configuration files:
+
+```bash
+rm -rf ~/.config/nix
+rm -rf ~/.config/direnv
+```
+
+Remove direnv hook from your shell configuration (`~/.bashrc` or `~/.zshrc`).
+
+---
+
+## Next Steps
+
+After setting up your development environment:
+
+1. **[Build and Run Guide](/ghaf/dev/ref/build_and_run)** - Learn how to build Ghaf images
+2. **[Cross Compilation](/ghaf/dev/ref/cross_compilation)** - Build ARM targets from x86_64
+3. **[Development Guide](/ghaf/dev/ref/development)** - Contributing to Ghaf
+4. **[Remote Build Setup](/ghaf/dev/ref/remote_build_setup)** - Set up distributed builds

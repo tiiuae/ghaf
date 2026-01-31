@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 // @ts-check
-import { defineConfig } from "astro/config";
+import { defineConfig, passthroughImageService } from "astro/config";
 import starlight from "@astrojs/starlight";
 import starlightSidebarTopics from "starlight-sidebar-topics";
 import starlightLinksValidator from "starlight-links-validator";
@@ -11,6 +11,10 @@ import starlightLinksValidator from "starlight-links-validator";
 // https://astro.build/config
 export default defineConfig({
   site: "https://ghaf.tii.ae",
+  // Use passthrough image service to avoid Sharp dependency issues in Nix builds
+  image: {
+    service: passthroughImageService(),
+  },
   integrations: [
     starlight({
       title: "Ghaf Framework",
@@ -80,6 +84,7 @@ export default defineConfig({
                       label: "Reference",
                       items: [
                         "ghaf/dev/ref",
+                        "ghaf/dev/ref/ubuntu-development-setup",
                         "ghaf/dev/ref/development",
                         "ghaf/dev/ref/build_and_run",
                         "ghaf/dev/ref/remote_build_setup",
