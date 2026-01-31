@@ -20,17 +20,18 @@ in
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages =
-      lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux")
-        (rmDesktopEntries [
-          rm-linux-bootmgrs
-          # To inspect LUKS partitions metadata
-          pkgs.cryptsetup
-          # check hardware info
-          pkgs.lshw
-          # List microvm status
-          pkgs.ghaf-vms
-          # EFI tools for enrolling certs
-          pkgs.efitools
-        ]);
+      (rmDesktopEntries [
+        # EFI tools for enrolling certs
+        pkgs.efitools
+      ])
+      ++ lib.optionals (config.nixpkgs.hostPlatform.system == "x86_64-linux") (rmDesktopEntries [
+        rm-linux-bootmgrs
+        # To inspect LUKS partitions metadata
+        pkgs.cryptsetup
+        # check hardware info
+        pkgs.lshw
+        # List microvm status
+        pkgs.ghaf-vms
+      ]);
   };
 }
