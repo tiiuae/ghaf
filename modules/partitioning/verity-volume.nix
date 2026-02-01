@@ -124,15 +124,6 @@ in
     # System is now immutable
     system.switch.enable = false;
 
-    swapDevices = [
-      {
-        device =
-          if config.ghaf.storage.encryption.enable then "/dev/mapper/swap" else "/dev/disk/by-partlabel/swap";
-        discardPolicy = "both";
-        options = [ "nofail" ];
-      }
-    ];
-
     fileSystems = {
       "/" = lib.mkForce {
         device = "none";
