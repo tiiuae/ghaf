@@ -817,11 +817,11 @@ diff --git a/include/hw/acpi/acpi_dev_interface.h b/include/hw/acpi/acpi_dev_int
 index 3064ef6734..588fbbd05f 100644
 --- a/include/hw/acpi/acpi_dev_interface.h
 +++ b/include/hw/acpi/acpi_dev_interface.h
-@@ -14,6 +14,7 @@ typedef enum {
-     ACPI_VMGENID_CHANGE_STATUS = 32,
+@@ -15,6 +15,7 @@ typedef enum {
      ACPI_POWER_DOWN_STATUS = 64,
-     ACPI_BATTERY_CHANGE_STATUS = 128,
-+    ACPI_AC_ADAPTER_CHANGE_STATUS = 1024,
+     ACPI_GENERIC_ERROR = 128,
+     ACPI_BATTERY_CHANGE_STATUS = 256,
++    ACPI_AC_ADAPTER_CHANGE_STATUS = 512,
  } AcpiEventStatusBits;
  
  #define TYPE_ACPI_DEVICE_IF "acpi-device-interface"
