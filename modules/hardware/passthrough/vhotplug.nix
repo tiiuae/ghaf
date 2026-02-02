@@ -18,8 +18,8 @@ let
 
   defaultVms = lib.attrsets.mapAttrsToList (vmName: vmParams: {
     name = vmName;
-    type = vmParams.config.config.microvm.hypervisor;
-    socket = "${config.microvm.stateDir}/${vmName}/${vmParams.config.config.microvm.socket}";
+    type = vmParams.evaluatedConfig.config.microvm.hypervisor;
+    socket = "${config.microvm.stateDir}/${vmName}/${vmParams.evaluatedConfig.config.microvm.socket}";
   }) config.microvm.vms;
 in
 {

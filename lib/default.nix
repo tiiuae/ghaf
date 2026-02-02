@@ -8,8 +8,20 @@ _: lib: prev:
 let
   # Import launcher utilities
   launcherLib = import ./launcher.nix { };
+
+  # Import VM utilities
+  vmLib = import ./vm.nix { inherit lib; };
+
+  # Import common host bindings factory
+  mkCommonHostBindings = import ./mkCommonHostBindings.nix { inherit lib; };
 in
 {
+  # VM helper functions (Layer 0)
+  vm = vmLib;
+
+  # Common host bindings factory for all VMs
+  # Creates a NixOS module with shared configuration (logging, platform, store, TPM)
+  inherit mkCommonHostBindings;
   /*
        *
        Filters Nix packages based on the target system platform.

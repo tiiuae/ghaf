@@ -1,0 +1,219 @@
+---
+title: Quick Start
+description: Build and run your first Ghaf system in minutes
+---
+
+import { Aside, Steps, Tabs, TabItem, Code } from "@astrojs/starlight/components";
+
+# Quick Start
+
+This guide walks you through building and running a Ghaf system for the first time.
+
+## Build Your First Ghaf VM
+
+The fastest way to experience Ghaf is to build and run the VM target:
+
+<Steps>
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/tiiuae/ghaf.git
+   cd ghaf
+   ```
+
+2. **Build and run the VM**
+   ```bash
+   nix run .#packages.x86_64-linux.vm-debug
+   ```
+
+   <Aside type="note">
+     First build takes 45-90 minutes. Subsequent builds use cached artifacts.
+   </Aside>
+
+3. **Log in to the system**
+   - Username: `ghaf`
+   - Password: `ghaf`
+</Steps>
+
+## Available Build Targets
+
+### Virtual Machines (Fastest for Development)
+
+```bash
+# Debug VM with full development tools
+nix run .#packages.x86_64-linux.vm-debug
+
+# Release VM (production configuration)
+nix run .#packages.x86_64-linux.vm-release
+```
+
+### Laptop Images (x86_64)
+
+```bash
+# Lenovo X1 Carbon Gen 11
+nix build .#lenovo-x1-carbon-gen11-debug
+nix build .#lenovo-x1-carbon-gen11-release
+
+# Dell Latitude 7230/7330
+nix build .#dell-latitude-7230-debug
+nix build .#dell-latitude-7330-debug
+
+# Generic x86_64
+nix build .#generic-x86_64-debug
+```
+
+### Embedded Targets (AArch64)
+
+```bash
+# NVIDIA Jetson Orin AGX
+nix build .#nvidia-jetson-orin-agx-debug
+
+# NVIDIA Jetson Orin NX
+nix build .#nvidia-jetson-orin-nx-debug
+
+# NXP i.MX 8MP EVK
+nix build .#packages.aarch64-linux.imx8mp-evk-release
+```
+
+<Aside type="caution">
+  AArch64 builds require either a native ARM machine or a configured remote builder.
+  See [Cross-Compilation Setup](/ghaf/dev/getting-started/prerequisites#cross-compilation-setup-optional).
+</Aside>
+
+## View All Available Targets
+
+```bash
+# Show all flake outputs
+nix flake show
+
+# Show targets for specific architecture
+nix flake show --all-systems | grep nixosConfigurations
+```
+
+## Understanding the Output
+
+After a successful build, you'll find:
+
+| Output | Location | Description |
+|--------|----------|-------------|
+| System image | `./result/` | Bootable disk image |
+| VM overlay | `./ghaf-host.qcow2` | VM state (created at runtime) |
+
+### VM-Specific Output
+
+When running `nix run .#vm-debug`:
+
+1. **QEMU window opens** with Ghaf desktop
+2. **VM overlay file** `ghaf-host.qcow2` stores VM state
+3. **Clean shutdown**: Use QEMU menu → Machine → Power Down
+
+<Aside type="tip">
+  To reset VM state, delete `ghaf-host.qcow2` and restart.
+</Aside>
+
+## Making Your First Change
+
+Let's make a simple change to verify your development setup:
+
+<Steps>
+1. **Enter development shell**
+   ```bash
+   nix develop
+   ```
+
+2. **Edit a configuration**
+
+   Open `modules/profiles/debug.nix` and find:
+   ```nix
+   debug.tools.enable = true;
+   ```
+
+3. **Rebuild and test**
+   ```bash
+   nix run .#packages.x86_64-linux.vm-debug
+   ```
+
+4. **Check formatting**
+   ```bash
+   nix fmt
+   ```
+
+5. **Run validation checks**
+   ```bash
+   nix flake check
+   ```
+</Steps>
+
+## Debug vs Release Builds
+
+| Aspect | Debug | Release |
+|--------|-------|---------|
+| SSH Access | ✅ Enabled | ❌ Disabled |
+| Debug Tools | ✅ Installed | ❌ Minimal |
+| Default User | `ghaf`/`ghaf` | Configured at install |
+| Security | Development-friendly | Production-hardened |
+| Build Time | Faster | Slower (optimizations) |
+
+**Use debug builds for:**
+- Development and testing
+- Exploring the system
+- Debugging issues
+
+**Use release builds for:**
+- Production deployments
+- Security testing
+- Performance benchmarks
+
+## Creating Installer Images
+
+For deploying to real hardware:
+
+```bash
+# Build installer ISO
+nix build .#lenovo-x1-carbon-gen11-debug-installer
+
+# Flash to USB drive (replace /dev/sdX with your device)
+sudo dd if=result/iso/ghaf-*.iso of=/dev/sdX bs=4M status=progress
+```
+
+## Next Steps
+
+Now that you have Ghaf running:
+
+- [Project Structure](/ghaf/dev/architecture/project-structure) - Understand the codebase
+- [Creating Modules](/ghaf/dev/guides/creating-modules) - Write your first module
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - Add a new virtual machine
+- [Ghaf as Library](/ghaf/dev/library/) - Use Ghaf in your own project
+
+## Troubleshooting
+
+### VM Won't Start
+
+**Symptom**: QEMU fails to launch
+
+**Solution**: Remove stale state file:
+```bash
+rm ghaf-host.qcow2
+```
+
+### Build Fails with "No space left on device"
+
+**Solution**: Clean Nix store:
+```bash
+nix-collect-garbage -d
+sudo nix-collect-garbage -d  # If using multi-user Nix
+```
+
+### Build Takes Too Long
+
+**Check binary cache**:
+```bash
+nix config show | grep substituters
+```
+
+Ensure `ghaf-dev.cachix.org` is configured.
+
+### Black Screen in VM
+
+**Wait**: Initial boot can take 2-5 minutes as VMs initialize.
+
+**Check resources**: Ensure host has enough RAM (16GB+ recommended).

@@ -1,0 +1,450 @@
+---
+title: Creating Modules
+description: How to create NixOS modules for Ghaf
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# Creating Modules
+
+This guide covers how to create NixOS modules that integrate properly with Ghaf's architecture.
+
+## Module Basics
+
+A NixOS module is a function that takes inputs and returns configuration:
+
+```nix
+# Basic module structure
+{
+  config,    # Current system configuration
+  lib,       # Nixpkgs library functions
+  pkgs,      # Package set
+  ...        # Additional arguments (specialArgs)
+}:
+{
+  options = { /* Define configuration interface */ };
+  config = { /* Implementation */ };
+}
+```
+
+## Ghaf Module Pattern
+
+Ghaf modules follow a consistent pattern:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+let
+  cfg = config.ghaf.myFeature;
+in
+{
+  options.ghaf.myFeature = {
+    enable = lib.mkEnableOption "my feature description";
+
+    setting = lib.mkOption {
+      type = lib.types.str;
+      default = "default-value";
+      description = "Description of what this setting does.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Implementation when enabled
+    services.someService.enable = true;
+    services.someService.config = cfg.setting;
+  };
+}
+```
+
+## specialArgs in Ghaf
+
+Ghaf modules receive additional arguments via `specialArgs`:
+
+```nix
+{
+  config,
+  lib,
+  pkgs,
+  self,              # The ghaf flake itself
+  inputs,            # All flake inputs
+  sharedSystemConfig, # Shared configuration (in VMs)
+  ...
+}:
+```
+
+### Available specialArgs
+
+| Argument | Description | Where Available |
+|----------|-------------|-----------------|
+| `self` | Ghaf flake reference | All modules |
+| `inputs` | All flake inputs | All modules |
+| `lib` | Extended library (includes Ghaf additions) | All modules |
+| `sharedSystemConfig` | Host→VM shared values | VM modules only |
+
+### Using specialArgs
+
+```nix
+{ config, lib, self, inputs, ... }:
+{
+  config = {
+    # Access ghaf modules
+    imports = [ self.nixosModules.givc ];
+
+    # Access other flake inputs
+    environment.systemPackages = [
+      inputs.ghafpkgs.packages.x86_64-linux.somePackage
+    ];
+  };
+}
+```
+
+<Aside type="caution">
+  Never import modules using relative paths like `../../some/module.nix`.
+  Always use `self.nixosModules.*` or `inputs.*.nixosModules.*`.
+</Aside>
+
+## Step-by-Step: Creating a Feature Module
+
+<Steps>
+1. **Choose the right location**
+
+   ```
+   modules/
+   ├── common/        # System-wide features
+   ├── desktop/       # Desktop/graphics features
+   ├── development/   # Development tools
+   ├── hardware/      # Hardware support
+   ├── profiles/      # High-level profiles
+   └── reference/     # Reference implementations
+   ```
+
+2. **Create the module file**
+
+   ```nix
+   # modules/common/services/my-service.nix
+   {
+     config,
+     lib,
+     pkgs,
+     ...
+   }:
+   let
+     cfg = config.ghaf.services.myService;
+   in
+   {
+     options.ghaf.services.myService = {
+       enable = lib.mkEnableOption "my custom service";
+
+       port = lib.mkOption {
+         type = lib.types.port;
+         default = 8080;
+         description = "Port to listen on.";
+       };
+     };
+
+     config = lib.mkIf cfg.enable {
+       systemd.services.my-service = {
+         description = "My Custom Service";
+         wantedBy = [ "multi-user.target" ];
+         serviceConfig = {
+           ExecStart = "${pkgs.myPackage}/bin/my-service --port ${toString cfg.port}";
+           Restart = "always";
+         };
+       };
+
+       networking.firewall.allowedTCPPorts = [ cfg.port ];
+     };
+   }
+   ```
+
+3. **Register the module**
+
+   Add to the category's flake-module.nix:
+
+   ```nix
+   # modules/common/flake-module.nix
+   { inputs, ... }:
+   {
+     flake.nixosModules.common.imports = [
+       # Existing imports...
+       ./services/my-service.nix
+     ];
+   }
+   ```
+
+4. **Test the module**
+
+   ```nix
+   # In a target configuration
+   {
+     ghaf.services.myService = {
+       enable = true;
+       port = 9000;
+     };
+   }
+   ```
+
+5. **Build and verify**
+
+   ```bash
+   nix build .#lenovo-x1-carbon-gen11-debug --dry-run
+   nix flake check
+   ```
+</Steps>
+
+## Module Types
+
+### Simple Feature Module
+
+Enables a single feature:
+
+```nix
+{ config, lib, pkgs, ... }:
+let cfg = config.ghaf.feature;
+in {
+  options.ghaf.feature.enable = lib.mkEnableOption "feature";
+
+  config = lib.mkIf cfg.enable {
+    environment.systemPackages = [ pkgs.somePackage ];
+  };
+}
+```
+
+### Complex Service Module
+
+Full service with multiple options:
+
+```nix
+{ config, lib, pkgs, ... }:
+let cfg = config.ghaf.services.complex;
+in {
+  options.ghaf.services.complex = {
+    enable = lib.mkEnableOption "complex service";
+
+    settings = lib.mkOption {
+      type = lib.types.submodule {
+        options = {
+          debug = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+          };
+          logLevel = lib.mkOption {
+            type = lib.types.enum [ "error" "warn" "info" "debug" ];
+            default = "info";
+          };
+        };
+      };
+      default = {};
+    };
+
+    extraConfig = lib.mkOption {
+      type = lib.types.lines;
+      default = "";
+      description = "Extra configuration lines.";
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Implementation
+  };
+}
+```
+
+### Hardware Support Module
+
+Platform-specific configuration:
+
+```nix
+{ config, lib, pkgs, ... }:
+let cfg = config.ghaf.hardware.myDevice;
+in {
+  options.ghaf.hardware.myDevice = {
+    enable = lib.mkEnableOption "my device support";
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Kernel modules
+    boot.kernelModules = [ "my_driver" ];
+
+    # Firmware
+    hardware.firmware = [ pkgs.myFirmware ];
+
+    # Services
+    services.udev.extraRules = ''
+      # Device rules
+    '';
+  };
+}
+```
+
+### VM-Aware Module
+
+Module that behaves differently in host vs guest:
+
+```nix
+{ config, lib, pkgs, sharedSystemConfig ? null, ... }:
+let
+  cfg = config.ghaf.myFeature;
+  isVm = sharedSystemConfig != null;
+in {
+  options.ghaf.myFeature.enable = lib.mkEnableOption "my feature";
+
+  config = lib.mkIf cfg.enable (lib.mkMerge [
+    # Common configuration
+    {
+      environment.systemPackages = [ pkgs.commonTool ];
+    }
+
+    # Host-only configuration
+    (lib.mkIf (!isVm) {
+      services.hostService.enable = true;
+    })
+
+    # VM-only configuration
+    (lib.mkIf isVm {
+      services.guestService.enable = true;
+      services.guestService.debug = sharedSystemConfig.debugEnable;
+    })
+  ]);
+}
+```
+
+## Best Practices
+
+### Option Naming
+
+```nix
+# ✅ Good: Clear hierarchy
+options.ghaf.services.myService.enable = ...;
+options.ghaf.hardware.myDevice.enable = ...;
+
+# ❌ Bad: Flat naming
+options.myServiceEnable = ...;
+options.enableMyDevice = ...;
+```
+
+### Default Values
+
+```nix
+# ✅ Good: Sensible defaults
+port = lib.mkOption {
+  type = lib.types.port;
+  default = 8080;  # Common default
+};
+
+# ✅ Good: mkDefault for overridable defaults
+config = lib.mkIf cfg.enable {
+  services.foo.setting = lib.mkDefault "value";
+};
+```
+
+### Documentation
+
+```nix
+# ✅ Good: Descriptive documentation
+enable = lib.mkEnableOption "my service for handling X";
+
+configFile = lib.mkOption {
+  type = lib.types.path;
+  description = ''
+    Path to the configuration file.
+
+    Example:
+    ```nix
+    ghaf.myService.configFile = ./my-config.json;
+    ```
+  '';
+};
+```
+
+### Conditional Configuration
+
+```nix
+# ✅ Good: mkMerge for conditional blocks
+config = lib.mkMerge [
+  (lib.mkIf cfg.enable { /* base config */ })
+  (lib.mkIf (cfg.enable && cfg.advanced) { /* advanced config */ })
+];
+
+# ❌ Bad: Nested mkIf
+config = lib.mkIf cfg.enable {
+  foo = lib.mkIf cfg.advanced { /* ... */ };
+};
+```
+
+## Testing Modules
+
+### Quick Evaluation Test
+
+```bash
+# Check if module evaluates without errors
+nix eval .#nixosConfigurations.lenovo-x1-carbon-gen11-debug.config.ghaf.myFeature
+```
+
+### Build Test
+
+```bash
+# Build with your module enabled
+nix build .#lenovo-x1-carbon-gen11-debug --dry-run
+```
+
+### NixOS Test
+
+```nix
+# tests/my-feature.nix
+{ pkgs, ... }:
+pkgs.nixosTest {
+  name = "my-feature-test";
+
+  nodes.machine = { config, ... }: {
+    imports = [ /* your module */ ];
+    ghaf.myFeature.enable = true;
+  };
+
+  testScript = ''
+    machine.wait_for_unit("my-service")
+    machine.succeed("curl localhost:8080")
+  '';
+}
+```
+
+## Common Patterns
+
+### Enabling Based on Profile
+
+```nix
+{ config, lib, ... }:
+{
+  config = lib.mkIf config.ghaf.profiles.debug.enable {
+    ghaf.myFeature.enable = lib.mkDefault true;
+  };
+}
+```
+
+### Cross-VM Communication Setup
+
+```nix
+{ config, lib, self, ... }:
+{
+  imports = [ self.nixosModules.givc ];
+
+  config = lib.mkIf cfg.enable {
+    ghaf.givc.appvm = {
+      enable = true;
+      applications = [ /* apps that can be called from other VMs */ ];
+    };
+  };
+}
+```
+
+## Next Steps
+
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - Create virtual machines
+- [Module Layers](/ghaf/dev/architecture/module-layers) - Understand where modules fit
+- [Ghaf Modules Reference](/ghaf/dev/ref/modules) - All available modules

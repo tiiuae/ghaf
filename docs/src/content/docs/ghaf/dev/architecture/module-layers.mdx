@@ -1,0 +1,357 @@
+---
+title: Module Layers Architecture
+description: Understanding Ghaf's 5-layer composable module architecture
+---
+
+import { Aside } from "@astrojs/starlight/components";
+
+# Module Layers Architecture
+
+Ghaf uses a **5-layer composable architecture** for VM configurations. This design enables clean separation of concerns, reduces duplication, and allows downstream projects to extend any layer.
+
+## The 5 Layers
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 5: Target-Specific                                     │
+│ Hardware modules, device-specific configuration             │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 4: Profile Modules                                     │
+│ debug, release, mvp-user-trial                              │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 3: Role Modules                                        │
+│ audio-role, net-role, gui-role, app-role                    │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 2: Shared System Configuration                         │
+│ Debug settings, logging, storage, common values             │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 1: Base VM Module                                      │
+│ Common VM infrastructure, networking, users                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Layer Details
+
+### Layer 1: Base VM Module
+
+**Location**: `modules/microvm/vmConfigurations/base.nix`
+
+**Purpose**: Provides the foundational configuration shared by ALL virtual machines.
+
+**What it configures**:
+- Basic NixOS settings (i18n, time zones)
+- VM user accounts
+- Minimal system services
+- Nix configuration for VMs
+- Common networking setup
+
+```nix
+# base.nix provides
+{
+  system.stateVersion = "24.11";
+  time.timeZone = "UTC";
+
+  users.users.ghaf = {
+    isNormalUser = true;
+    # ...
+  };
+
+  nix.settings = {
+    experimental-features = [ "nix-command" "flakes" ];
+  };
+}
+```
+
+<Aside>
+  Every VM automatically includes Layer 1. You never need to import it manually.
+</Aside>
+
+### Layer 2: Shared System Configuration
+
+**Location**: `modules/microvm/vmConfigurations/sharedSystemConfig.nix`
+
+**Purpose**: Passes host-level decisions to all VMs consistently.
+
+**What it provides**:
+- Debug enable state
+- Logging configuration
+- Storage VM settings
+- System-wide feature flags
+
+**How it works**:
+
+```nix
+# Created by the target builder from host config
+sharedSystemConfig = mkSharedSystemConfig {
+  inherit config lib;
+};
+
+# Results in:
+{
+  debugEnable = true;     # From ghaf.profiles.debug.enable
+  loggingEnable = true;   # From ghaf.logging.enable
+  storagevmEnable = true; # From ghaf.storagevm.enable
+  # ...
+}
+
+# Passed to VMs via specialArgs
+lib.nixosSystem {
+  specialArgs = { inherit sharedSystemConfig; };
+  # ...
+}
+```
+
+**Benefits**:
+- Set once in profile, automatically propagates to all VMs
+- No duplication of settings across VMs
+- Type-safe value passing (not arbitrary config)
+
+### Layer 3: Role Modules
+
+**Location**: `modules/microvm/vmConfigurations/roles/`
+
+**Purpose**: Defines the specialized behavior for each VM type.
+
+**Available roles**:
+
+| Role | File | Purpose |
+|------|------|---------|
+| Audio | `roles/audio.nix` | Audio stack, PulseAudio/PipeWire |
+| Network | `roles/net.nix` | Firewall, routing, VPN |
+| GUI | (in mkGuiVm.nix) | Graphics, Wayland, compositor |
+| App | (in mkAppVm.nix) | Application isolation |
+
+**Example role module**:
+
+```nix
+# roles/audio.nix
+{ config, lib, pkgs, sharedSystemConfig, ... }:
+{
+  # Audio-specific configuration
+  services.pipewire = {
+    enable = true;
+    audio.enable = true;
+    pulse.enable = true;
+  };
+
+  # Uses shared config for debug
+  ghaf.development.debug.tools.enable = sharedSystemConfig.debugEnable;
+
+  # Microvm-specific audio passthrough
+  microvm.devices = [
+    { bus = "pci"; path = "0000:00:1f.3"; }  # Audio device
+  ];
+}
+```
+
+### Layer 4: Profile Modules
+
+**Location**: `modules/profiles/` and `modules/reference/profiles/`
+
+**Purpose**: High-level configuration presets that enable features across the system.
+
+**Available profiles**:
+
+| Profile | Purpose |
+|---------|---------|
+| `debug` | Development: SSH, debug tools, default passwords |
+| `release` | Production: Security hardening, no debug access |
+| `minimal` | Bare minimum system |
+| `mvp-user-trial` | Demo configuration with apps |
+
+**How profiles work**:
+
+```nix
+# profiles/debug.nix
+{ config, lib, ... }:
+let cfg = config.ghaf.profiles.debug;
+in {
+  options.ghaf.profiles.debug = {
+    enable = lib.mkEnableOption "debug profile";
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Enables development features system-wide
+    ghaf.development = {
+      nix-setup.enable = true;
+      debug.tools.enable = true;
+      ssh.daemon.enable = true;
+    };
+  };
+}
+```
+
+**Profile cascading**:
+
+```nix
+# In target configuration
+ghaf.profiles.debug.enable = true;
+
+# This automatically enables:
+# - ghaf.development.debug.tools.enable = true
+# - ghaf.development.ssh.daemon.enable = true
+# - etc.
+
+# Which propagates to VMs via sharedSystemConfig:
+# sharedSystemConfig.debugEnable = true
+# -> All VMs get debug tools
+```
+
+### Layer 5: Target-Specific
+
+**Location**: `targets/` and hardware modules in `modules/hardware/`
+
+**Purpose**: Hardware-specific configuration for the actual device.
+
+**What it configures**:
+- Kernel and device drivers
+- Device passthrough mappings
+- Hardware-specific optimizations
+- Peripheral support
+
+**Example**:
+
+```nix
+# targets/laptop/flake-module.nix
+laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
+  # Layer 5: Hardware-specific module
+  self.nixosModules.hardware-lenovo-x1-carbon-gen11
+
+  # Layer 4: Profile selection
+  { ghaf.reference.profiles.mvp-user-trial.enable = true; }
+
+  # Additional target-specific config
+  {
+    ghaf.hardware.passthrough.pci-ports = [ /* ... */ ];
+  }
+]
+```
+
+## How Layers Compose
+
+When a VM is created, layers are applied in order:
+
+```nix
+# mkAudioVm.nix
+lib.nixosSystem {
+  modules = [
+    # Layer 1: Base (always included)
+    ./base.nix
+
+    # Layer 2: Shared config (via specialArgs)
+    # { sharedSystemConfig available to all modules }
+
+    # Layer 3: Role
+    ./roles/audio.nix
+
+    # Layer 4: Profile modules (inherited from host)
+    # Enabled features propagate via sharedSystemConfig
+
+    # Layer 5: Target-specific (from extraModules)
+    # extensions.audiovm from host config
+  ];
+}
+```
+
+## Configuration Inheritance Flow
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                      Target Definition                        │
+│  ghaf.profiles.debug.enable = true                           │
+│  ghaf.reference.profiles.mvp-user-trial.enable = true        │
+└───────────────────────────┬──────────────────────────────────┘
+                            │
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     mkLaptopConfiguration                     │
+│  Creates sharedSystemConfig from host config                 │
+│  sharedSystemConfig.debugEnable = true                       │
+└───────────────────────────┬──────────────────────────────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+        ▼                   ▼                   ▼
+┌──────────────┐    ┌──────────────┐    ┌──────────────┐
+│   net-vm     │    │   gui-vm     │    │   audio-vm   │
+│              │    │              │    │              │
+│ Receives:    │    │ Receives:    │    │ Receives:    │
+│ - base.nix   │    │ - base.nix   │    │ - base.nix   │
+│ - sharedCfg  │    │ - sharedCfg  │    │ - sharedCfg  │
+│ - net role   │    │ - gui role   │    │ - audio role │
+│ - extraMods  │    │ - extraMods  │    │ - extraMods  │
+└──────────────┘    └──────────────┘    └──────────────┘
+```
+
+## Extending Layers
+
+### Adding to Layer 3 (Roles)
+
+Create a new role in `modules/microvm/vmConfigurations/roles/`:
+
+```nix
+# roles/my-role.nix
+{ config, lib, pkgs, sharedSystemConfig, ... }:
+{
+  # Role-specific services
+  services.myService.enable = true;
+
+  # Use shared configuration
+  myService.debug = sharedSystemConfig.debugEnable;
+}
+```
+
+### Adding to Layer 4 (Profiles)
+
+Create a new profile:
+
+```nix
+# modules/profiles/my-profile.nix
+{ config, lib, ... }:
+{
+  options.ghaf.profiles.myProfile = {
+    enable = lib.mkEnableOption "my profile";
+  };
+
+  config = lib.mkIf config.ghaf.profiles.myProfile.enable {
+    # Profile-wide settings
+    ghaf.someFeature.enable = true;
+  };
+}
+```
+
+### Downstream Layer 5 Extension
+
+```nix
+# downstream project
+{
+  inputs.ghaf.url = "github:tiiuae/ghaf";
+
+  outputs = { ghaf, ... }:
+    ghaf.builders.mkLaptopConfiguration { ... }
+      "my-device" "debug" [
+        # Your Layer 5 additions
+        ./my-hardware.nix
+        {
+          ghaf.virtualization.microvm.extensions.guivm = [
+            { programs.firefox.enable = true; }
+          ];
+        }
+      ];
+}
+```
+
+## Benefits of This Architecture
+
+1. **No Duplication**: Configuration set once propagates everywhere
+2. **Clear Boundaries**: Each layer has a specific responsibility
+3. **Easy Extension**: Add to any layer without modifying others
+4. **Downstream-Friendly**: `extendModules` works at any layer
+5. **Testable**: Each layer can be tested independently
+6. **Maintainable**: Changes in one layer don't break others
+
+## Next Steps
+
+- [VM Architecture](/ghaf/dev/architecture/vm-architecture) - How VMs are composed
+- [Creating Modules](/ghaf/dev/guides/creating-modules) - Write modules for any layer
+- [Extending VMs](/ghaf/dev/guides/extending-vms) - Customize VMs in downstream projects

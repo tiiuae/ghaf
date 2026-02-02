@@ -81,6 +81,34 @@ export default defineConfig({
                   label: "Developer Guide",
                   items: [
                     {
+                      label: "Getting Started",
+                      items: [
+                        "ghaf/dev/getting-started",
+                        "ghaf/dev/getting-started/prerequisites",
+                        "ghaf/dev/getting-started/quick-start",
+                      ],
+                    },
+                    {
+                      label: "Architecture",
+                      items: [
+                        "ghaf/dev/architecture",
+                        "ghaf/dev/architecture/project-structure",
+                        "ghaf/dev/architecture/module-layers",
+                        "ghaf/dev/architecture/vm-architecture",
+                      ],
+                    },
+                    {
+                      label: "Guides",
+                      items: [
+                        "ghaf/dev/guides",
+                        "ghaf/dev/guides/creating-modules",
+                        "ghaf/dev/guides/creating-vms",
+                        "ghaf/dev/guides/extending-vms",
+                        "ghaf/dev/guides/creating-targets",
+                        "ghaf/dev/guides/system-config",
+                      ],
+                    },
+                    {
                       label: "Reference",
                       items: [
                         "ghaf/dev/ref",

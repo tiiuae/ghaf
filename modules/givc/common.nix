@@ -39,12 +39,23 @@ let
     };
   };
   inherit (config.ghaf.networking) hosts;
-  adminAddress = {
-    name = "admin-vm";
-    addr = hosts."admin-vm".ipv4;
-    port = "9001";
-    protocol = "tcp";
-  };
+  # Only compute adminAddress when admin-vm exists to avoid evaluation errors
+  # on targets that don't have admin-vm (like generic-x86)
+  adminAddress =
+    if hosts ? "admin-vm" then
+      {
+        name = "admin-vm";
+        addr = hosts."admin-vm".ipv4;
+        port = "9001";
+        protocol = "tcp";
+      }
+    else
+      {
+        name = "admin-vm";
+        addr = "192.168.100.10"; # Fallback - shouldn't be used if GIVC is disabled
+        port = "9001";
+        protocol = "tcp";
+      };
   mitmEnabled =
     config.ghaf.virtualization.microvm.idsvm.enable
     && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;

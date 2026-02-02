@@ -1,0 +1,288 @@
+---
+title: Prerequisites
+description: Required tools and setup for Ghaf development
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# Prerequisites
+
+This guide covers the required tools and environment setup for developing with Ghaf.
+
+## System Requirements
+
+### Hardware
+
+| Requirement | Minimum | Recommended |
+|-------------|---------|-------------|
+| CPU | 4 cores | 8+ cores |
+| RAM | 16 GB | 32+ GB |
+| Disk Space | 50 GB free | 100+ GB free |
+| Architecture | x86_64 | x86_64 |
+
+<Aside type="caution">
+  Ghaf builds are resource-intensive. Builds can take 1-3 hours depending on target and available resources.
+</Aside>
+
+### Operating System
+
+Ghaf development is supported on:
+
+- **NixOS** (recommended)
+- **Linux** with Nix package manager
+- **macOS** with Nix (limited - requires remote builder for Linux targets)
+- **WSL2** on Windows (experimental)
+
+## Installing Nix
+
+<Tabs>
+<TabItem label="Linux/macOS">
+
+Install Nix with flakes enabled:
+
+```bash
+curl -L https://nixos.org/nix/install | sh
+```
+
+Enable experimental features by adding to `~/.config/nix/nix.conf`:
+
+```ini
+experimental-features = nix-command flakes
+```
+
+Restart your shell or run:
+
+```bash
+source ~/.nix-profile/etc/profile.d/nix.sh
+```
+
+</TabItem>
+<TabItem label="NixOS">
+
+Flakes are configured in your NixOS configuration:
+
+```nix
+# /etc/nixos/configuration.nix
+{
+  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+}
+```
+
+</TabItem>
+</Tabs>
+
+### Verify Installation
+
+```bash
+nix --version
+# nix (Nix) 2.18.1 or later
+
+nix flake --help
+# Should show flake subcommands
+```
+
+## Binary Cache Configuration
+
+Ghaf uses a binary cache to speed up builds. Configure it to avoid building everything from source:
+
+Add to `~/.config/nix/nix.conf`:
+
+```ini
+substituters = https://ghaf-dev.cachix.org https://cache.nixos.org
+trusted-public-keys = ghaf-dev.cachix.org-1:S3M8x3no8LFQPBfHw1jl6nmP8A7cVWKntoMKN3IsEQY= cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY=
+```
+
+Or use cachix:
+
+```bash
+nix-env -iA cachix -f https://cachix.org/api/v1/install
+cachix use ghaf-dev
+```
+
+## Development Tools
+
+### Enter Development Shell
+
+The Ghaf repository provides a development shell with all necessary tools:
+
+```bash
+cd ghaf
+nix develop
+```
+
+This provides:
+
+| Tool | Purpose |
+|------|---------|
+| `treefmt` | Multi-language code formatter |
+| `nixfmt` | Nix code formatter (RFC 166 style) |
+| `deadnix` | Dead code detection |
+| `statix` | Static analysis for Nix |
+| `reuse` | License compliance checking |
+| `shellcheck` | Shell script linting |
+
+### Editor Setup
+
+<Tabs>
+<TabItem label="VS Code">
+
+Recommended extensions:
+
+- **Nix IDE** - Nix language support
+- **direnv** - Automatic environment loading
+
+Settings for Nix formatting:
+
+```json
+{
+  "[nix]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "jnoortheen.nix-ide"
+  },
+  "nix.enableLanguageServer": true,
+  "nix.serverPath": "nil"
+}
+```
+
+</TabItem>
+<TabItem label="Neovim">
+
+Using `nvim-lspconfig`:
+
+```lua
+require('lspconfig').nil_ls.setup{
+  settings = {
+    ['nil'] = {
+      formatting = {
+        command = { "nixfmt" },
+      },
+    },
+  },
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Cross-Compilation Setup (Optional)
+
+For building AArch64 or RISC-V targets on x86_64, you need a remote builder.
+
+### Option 1: QEMU Emulation
+
+Enable binfmt in NixOS:
+
+```nix
+{
+  boot.binfmt.emulatedSystems = [ "aarch64-linux" ];
+}
+```
+
+<Aside type="caution">
+  QEMU emulation is slow. Remote builders are recommended for production use.
+</Aside>
+
+### Option 2: Remote Builder
+
+Configure a remote AArch64 machine in `~/.config/nix/machines`:
+
+```
+ssh://builder@aarch64-builder aarch64-linux /path/to/key 8 1 big-parallel,benchmark
+```
+
+And enable in `nix.conf`:
+
+```ini
+builders-use-substitutes = true
+builders = @/home/user/.config/nix/machines
+```
+
+See [Remote Build Setup](/ghaf/dev/ref/remote_build_setup) for detailed instructions.
+
+## Git Configuration
+
+### Clone the Repository
+
+```bash
+git clone https://github.com/tiiuae/ghaf.git
+cd ghaf
+```
+
+### Configure Git (Optional)
+
+For contributors:
+
+```bash
+git config user.name "Your Name"
+git config user.email "your.email@example.com"
+```
+
+## Verification
+
+Verify your setup is complete:
+
+<Steps>
+1. **Check Nix installation**
+   ```bash
+   nix --version
+   ```
+
+2. **Enter development shell**
+   ```bash
+   cd ghaf
+   nix develop
+   ```
+
+3. **Run format check**
+   ```bash
+   nix fmt -- --fail-on-change
+   ```
+
+4. **Evaluate the flake**
+   ```bash
+   nix flake show --all-systems
+   ```
+
+5. **Build documentation** (quick validation)
+   ```bash
+   nix build .#doc
+   ```
+</Steps>
+
+<Aside type="tip">
+  If all steps complete successfully, you're ready to start developing!
+</Aside>
+
+## Troubleshooting
+
+### Common Issues
+
+**"error: experimental Nix feature 'flakes' is disabled"**
+
+Add to `~/.config/nix/nix.conf`:
+```ini
+experimental-features = nix-command flakes
+```
+
+**"error: getting status of '/nix/store/...': No such file or directory"**
+
+Your binary cache may not be configured. See [Binary Cache Configuration](#binary-cache-configuration).
+
+**"error: cannot connect to daemon"**
+
+Restart the Nix daemon:
+```bash
+sudo systemctl restart nix-daemon
+```
+
+**Out of disk space during build**
+
+Nix builds require significant disk space. Run garbage collection:
+```bash
+nix-collect-garbage -d
+```
+
+## Next Steps
+
+- [Quick Start](/ghaf/dev/getting-started/quick-start) - Build your first Ghaf system
+- [Project Structure](/ghaf/dev/architecture/project-structure) - Understand the codebase

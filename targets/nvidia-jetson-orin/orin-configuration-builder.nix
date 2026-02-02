@@ -9,17 +9,35 @@
 let
   system = "aarch64-linux";
 
+  # Use flake export - self.lib
+  inherit (self.lib) mkSharedSystemConfig;
+
   #TODO move this to a standalone function
   #should it live in the library or just as a function file
   mkOrinConfiguration =
     name: som: variant: extraModules:
     let
+      # Create the shared configuration for host and VMs
+      sharedSystemConfig = mkSharedSystemConfig {
+        inherit lib variant;
+        sshDaemonEnable = variant == "debug";
+        debugToolsEnable = variant == "debug";
+        nixSetupEnable = variant == "debug";
+        loggingEnable = false;
+        timeZone = "UTC";
+      };
+
       hostConfiguration = lib.nixosSystem {
+        # Pass self and inputs as specialArgs for standard access pattern
+        # Note: individual inputs (nixpkgs, etc.) are also spread via `inputs // {...}`
         specialArgs = inputs // {
+          inherit self inputs sharedSystemConfig;
           inherit (self) lib;
         };
         modules = [
           self.nixosModules.profiles-orin
+          # Import the shared config in the host
+          sharedSystemConfig
           {
             hardware.nvidia-jetpack.firmware.uefi.edk2NvidiaPatches = [
               # Jetpack-nixos (at least with HEAD d7631edca76885047fe1df32b00d4224e6a0ad71)

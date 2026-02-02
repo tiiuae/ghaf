@@ -3,6 +3,9 @@
 #
 # Reference hardware modules
 #
+# Note: VM extensions now use ghaf.virtualization.microvm.extensions.*
+# instead of the old *.extraModules pattern
+#
 { inputs, lib, ... }:
 {
   # keep-sorted start skip_lines=1 block=yes newline_separated=yes by_regex=\s*nixosModules\.(.*)$ prefix_order=hardware-x86_64-workstation,jetpack
@@ -11,10 +14,10 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./alienware/alienware-m18.nix;
-        ghaf.virtualization.microvm.guivm.extraModules = [
+        ghaf.virtualization.microvm.extensions.guivm = [
           (import ./alienware/extra-config.nix)
         ];
-        ghaf.virtualization.microvm.netvm.extraModules = [
+        ghaf.virtualization.microvm.extensions.netvm = [
           (import ./alienware/net-config.nix)
         ];
       }
@@ -39,7 +42,7 @@
       {
         ghaf.hardware.definition = import ./demo-tower/demo-tower.nix;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
-        ghaf.virtualization.microvm.guivm.extraModules = [
+        ghaf.virtualization.microvm.extensions.guivm = [
           (import ./demo-tower/extra-config.nix)
         ];
       }
@@ -59,7 +62,7 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./lenovo-t14-amd/definitions/gen-5.nix;
-        ghaf.virtualization.microvm.guivm.extraModules = [
+        ghaf.virtualization.microvm.extensions.guivm = [
           ./lenovo-t14-amd/gpu-config.nix
         ];
       }
@@ -112,7 +115,7 @@
       {
         ghaf.hardware.definition = import ./tower-5080/tower-5080.nix;
         ghaf.hardware.tpm2.enable = lib.mkForce false;
-        ghaf.virtualization.microvm.guivm.extraModules = [
+        ghaf.virtualization.microvm.extensions.guivm = [
           (import ./tower-5080/extra-config.nix)
         ];
         ghaf.hardware.passthrough.pci.autoDetectNet = true;
@@ -148,6 +151,11 @@
       ./jetpack
       ./jetpack/nvidia-jetson-orin/optee.nix
       inputs.self.nixosModules.hardware-aarch64-generic
+    ];
+
+    # NVIDIA Jetson Orin format module for nixos-generators
+    jetpack-format-module.imports = [
+      ./jetpack/nvidia-jetson-orin/format-module.nix
     ];
 
     polarfire.imports = [ ./polarfire ];

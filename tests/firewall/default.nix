@@ -3,6 +3,7 @@
 {
   pkgs,
   lib,
+  self,
   ...
 }:
 let
@@ -42,7 +43,7 @@ pkgs.testers.nixosTest {
 
       {
         imports = [
-          ../../modules/common/firewall
+          self.nixosModules.common-firewall
         ];
         inherit users security;
         virtualisation.vlans = [ 100 ];
@@ -77,9 +78,9 @@ pkgs.testers.nixosTest {
 
       inherit users security;
       imports = [
-        ../../modules/common/firewall
-        ../../modules/common/security/fail2ban.nix
-        ../../modules/common/security/ssh-tarpit
+        self.nixosModules.common-firewall
+        self.nixosModules.common-security-fail2ban
+        self.nixosModules.common-security-ssh-tarpit
       ];
       virtualisation.vlans = [
         1 # 192.168.1.x

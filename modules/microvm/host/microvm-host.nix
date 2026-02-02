@@ -1,10 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# MicroVM Host Module
+# - inputs comes from specialArgs (no currying)
+#
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -16,9 +20,10 @@ let
     mkOption
     types
     ;
+
   userConfig =
     if (lib.hasAttr "gui-vm" config.microvm.vms) then
-      config.microvm.vms.gui-vm.config.config.ghaf.users
+      config.microvm.vms.gui-vm.evaluatedConfig.config.ghaf.users
     else
       config.ghaf.users;
   hasLoginUser = userConfig.homedUser.enable || userConfig.adUsers.enable;
@@ -125,9 +130,15 @@ in
       systemd.tmpfiles.rules =
         let
           vmsWithXdg = lib.filter (
-            vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
+            vm:
+            let
+              guestCfg = vm.evaluatedConfig.config;
+            in
+            lib.hasAttr "xdgitems" guestCfg.ghaf && guestCfg.ghaf.xdgitems.enable
           ) (builtins.attrValues config.microvm.vms);
-          xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
+          xdgDirs = lib.flatten (
+            map (vm: vm.evaluatedConfig.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg
+          );
           xdgRules = map (
             xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.homedUser.uid} users -"
           ) xdgDirs;
@@ -166,7 +177,10 @@ in
 
           vmsWithEncryptedStorage = lib.filterAttrs (
             _name: vm:
-            lib.hasAttr "storagevm" vm.config.config.ghaf && vm.config.config.ghaf.storagevm.encryption.enable
+            let
+              guestCfg = vm.evaluatedConfig.config;
+            in
+            lib.hasAttr "storagevm" guestCfg.ghaf && guestCfg.ghaf.storagevm.encryption.enable
           ) config.microvm.vms;
 
           vmstorageSetupServices = lib.foldl' (
@@ -176,9 +190,9 @@ in
               "format-microvm-storage-${name}" =
                 let
                   microvmConfig = config.microvm.vms.${name};
-                  cfg = microvmConfig.config.config.ghaf.storagevm;
+                  storageCfg = microvmConfig.evaluatedConfig.config.ghaf.storagevm;
 
-                  hostImage = "/persist/storagevm/img/${cfg.name}.img";
+                  hostImage = "/persist/storagevm/img/${storageCfg.name}.img";
 
                   formatStorageScript = pkgs.writeShellApplication {
                     name = "format-microvm-storage-${name}-script";
@@ -190,7 +204,7 @@ in
                     ];
                     text = ''
                       set -x
-                      qemu-img create ${hostImage} ${toString cfg.encryption.initialDiskSize}M
+                      qemu-img create ${hostImage} ${toString storageCfg.encryption.initialDiskSize}M
                       # Reduce KDF memory and time cost because VMs have limited resources
                       # This keyslot will be wiped later once TPM is enrolled
                       cryptsetup luksFormat -q \
@@ -266,7 +280,7 @@ in
         };
 
         # Receive shared folder inotify events from the host to automatically refresh the file manager
-        ghaf.virtualization.microvm.guivm.extraModules = [
+        ghaf.virtualization.microvm.extensions.guivm = [
           {
             systemd.services.vinotify = {
               enable = true;

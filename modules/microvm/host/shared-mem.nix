@@ -194,7 +194,7 @@ in
                     boot.extraModulePackages = [
                       # TODO: fix this to not call back to packages dir
                       (pkgs.linuxPackages.callPackage ../../../packages/pkgs-by-name/memsocket/module.nix {
-                        inherit (config.microvm.vms.${vmName}.config.config.boot.kernelPackages) kernel;
+                        inherit (config.microvm.vms.${vmName}.evaluatedConfig.config.boot.kernelPackages) kernel;
                         vmCount = cfg.instancesCount;
                       })
                     ];

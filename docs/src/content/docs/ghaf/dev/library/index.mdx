@@ -1,82 +1,328 @@
 ---
-title: Ghaf Templates
+title: Ghaf as a Library
+description: Using Ghaf in downstream projects
 ---
 
-Ghaf is a framework for creating virtualized edge devices, it is therefore expected that projects wishing to use Ghaf should import it to create a derived work for the specific use case.
+import { Aside, Card, CardGrid, LinkCard, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
 
-In practice, projects should import Ghaf and its dependencies into an external version control (git) repository. Ghaf provides templates for the reference hardware to ease this process. In this section:
+# Ghaf as a Library
 
-- overview of Ghaf usage and upstream dependencies
-- required steps to create a Ghaf-based project
-- updating the project to get the latest changes
-- customization of the project using Ghaf-modules and Nix-supported mechanisms
+Ghaf is designed to be used as a library by downstream projects. This section covers how to create Ghaf-based projects, customize configurations, and stay updated with upstream changes.
 
-The possible Ghaf usage in your project is illustrated in the following diagram:
+## Overview
 
-![Ghaf Usage Overview](@assets/ghaf/usage_overview.drawio.png "Your project and example inputs from Ghaf and other repositories")
+Ghaf provides three main mechanisms for downstream use:
 
-The Ghaf Platform repository provides declarative modules and reference implementations to help with declaring your customized secure system.
+<CardGrid>
+  <Card title="Templates" icon="document">
+    Quick-start project templates for common hardware
+  </Card>
+  <Card title="Builders" icon="setting">
+    Reusable configuration builder functions
+  </Card>
+  <Card title="Modules" icon="puzzle">
+    50+ NixOS modules for customization
+  </Card>
+  <Card title="extendModules" icon="add-document">
+    NixOS mechanism for extending configurations
+  </Card>
+</CardGrid>
 
-External repositories help make various HW options, system image generators, and reference board-support packages available.
+## Quick Start: Templates
 
-## Using Ghaf Templates
+The fastest way to start a Ghaf-based project:
 
-1. Check the available target templates:
+<Steps>
+1. **Check available templates**
+   ```bash
+   nix flake show github:tiiuae/ghaf | grep templates
+   ```
 
-```
-nix flake show github:tiiuae/ghaf
-```
+2. **Create project from template**
+   ```bash
+   nix flake new --template github:tiiuae/ghaf#target-boilerplate ~/my-ghaf-project
+   cd ~/my-ghaf-project
+   ```
 
-2. Select the appropriate template based on reference implementation, for example, `target-aarch64-nvidia-orin-agx`:
+3. **Customize the template**
+   ```bash
+   # Edit flake.nix to set your project name and configuration
+   vim flake.nix
+   ```
 
-```
-nix flake new --template github:tiiuae/ghaf#target-aarch64-nvidia-orin-agx ~/ghaf-example
-wrote: ~/ghaf-example/flake.nix
-```
+4. **Build and test**
+   ```bash
+   nix build .#my-device-debug
+   ```
+</Steps>
 
-3. See your project template outputs:
+## Using Ghaf Builders
 
-```
-cd ~/ghaf-example/
-nix flake show
-git+file://~/ghaf-example
-├───formatter
-│   ├───aarch64-linux: package 'alejandra-3.0.0'
-│   └───x86_64-linux: package 'alejandra-3.0.0'
-├───nixosConfigurations
-│   └───PROJ_NAME-ghaf-debug: NixOS configuration
-└───packages
-├───aarch64-linux
-│   └───PROJ_NAME-ghaf-debug: package 'nixos-disk-image'
-└───x86_64-linux
-└───PROJ_NAME-ghaf-debug-flash-script: package 'flash-ghaf'
-```
+For more control, use Ghaf's builder functions directly:
 
-4. Change the placeholder `<PROJ NAME>` to the name of your project `your_project`:
+### Available Builders
 
-```
-sed -i 's/PROJ_NAME/your_project/g' flake.nix
-```
+| Builder | Purpose |
+|---------|---------|
+| `mkLaptopConfiguration` | Create laptop configurations |
+| `mkLaptopInstaller` | Create installer ISOs |
 
-## Updating Ghaf Revision
-
-To update your project, run `nix flake update`. This checks the inputs for updates and based on the availability of the updates, and then generates an updated `flake.lock` which locks the specific versions to support the reproducible builds without side effects.
-
-In practice, a Nix flake does not allow floating inputs but all the inputs and declared packages must be mapped to specific hashes to get exact revisions of your inputs. This mechanism also supports the supply-chain security: if someone changes the upstream project, for example, by overwriting a part of the input so that the hash changes, you will notice.
-
-After updating, reviewing, and testing: commit the updated `flake.lock` to your version history to share reproducible builds within your project.
-
-## Customizing Ghaf Modules
-
-To use the Ghaf declarative module system, check what you need in your system and choose the [modules options](/ghaf/dev/library/modules_options) you need. For example, import the ghaf `graphics`-module and declare that you will need the reference Wayland compositor Weston and the demo applications:
+### Basic Usage
 
 ```nix
+# flake.nix
 {
-  ghaf.graphics.weston = {
-    enable = false;
-    enableDemoApplications = false;
+  description = "My Ghaf-based project";
+
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, nixpkgs, ... }:
+  let
+    system = "x86_64-linux";
+
+    # Get builder with required parameters
+    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+      inherit (ghaf) self lib;
+      inputs = { inherit ghaf; } // ghaf.inputs;
+    };
+
+    # Create your configuration
+    myDevice = mkLaptopConfiguration "my-device" "debug" [
+      # Hardware configuration
+      ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11
+
+      # Enable features
+      {
+        ghaf.reference.profiles.mvp-user-trial.enable = true;
+
+        # Custom VM configuration via extensions registry
+        ghaf.virtualization.microvm.extensions.guivm = [{
+          programs.firefox.enable = true;
+        }];
+      }
+    ];
+
+  in {
+    nixosConfigurations.${myDevice.name} = myDevice.hostConfiguration;
+    packages.${system}.${myDevice.name} = myDevice.package;
   };
 }
 ```
 
-After the change, rebuild the system and switch it into use in your target device and it will run with the GUI and apps removed. After testing, you can commit the changes and share them with your colleagues to build the same system (even a system image) as needed in your project.
+## Using extendModules
+
+For extending existing Ghaf configurations without rebuilding from scratch:
+
+```nix
+{
+  outputs = { ghaf, ... }: {
+    nixosConfigurations.my-device =
+      ghaf.nixosConfigurations.lenovo-x1-carbon-gen11-debug.extendModules {
+        modules = [{
+          # Add your customizations
+          networking.hostName = "my-custom-hostname";
+
+          # Use extensions registry for VM customization
+          ghaf.virtualization.microvm.extensions.guivm = [{
+            environment.systemPackages = [ pkgs.vlc ];
+          }];
+        }];
+      };
+  };
+}
+```
+
+<Aside type="tip">
+  `extendModules` is ideal when you want to make small modifications to an existing configuration. For larger customizations, use the builders directly.
+</Aside>
+
+## Available Exports
+
+Ghaf exports the following for downstream use:
+
+### Modules (`ghaf.nixosModules.*`)
+
+```nix
+# Import specific modules
+imports = [
+  ghaf.nixosModules.profiles
+  ghaf.nixosModules.hardware-x86_64-generic
+  ghaf.nixosModules.microvm
+];
+```
+
+### Library (`ghaf.lib.*`)
+
+```nix
+# Access library functions
+ghaf.lib.mkSharedSystemConfig { ... }
+ghaf.lib.vm.getVmConfig "gui-vm" config
+```
+
+### Builders (`ghaf.builders.*`)
+
+```nix
+# Access builder functions
+ghaf.builders.mkLaptopConfiguration { ... }
+ghaf.builders.mkLaptopInstaller { ... }
+```
+
+### Overlays (`ghaf.overlays.*`)
+
+```nix
+# Apply Ghaf package overlays
+nixpkgs.overlays = [
+  ghaf.overlays.default
+];
+```
+
+## Complete Downstream Example
+
+```nix
+# flake.nix
+{
+  description = "Enterprise Ghaf Deployment";
+
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, nixpkgs, ... }:
+  let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs { inherit system; };
+
+    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+      inherit (ghaf) self lib;
+      inputs = { inherit ghaf; } // ghaf.inputs;
+    };
+
+    mkLaptopInstaller = ghaf.builders.mkLaptopInstaller {
+      inherit (ghaf) self lib;
+    };
+
+    # Standard employee laptop
+    employeeLaptop = mkLaptopConfiguration "employee-laptop" "release" [
+      ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11
+      ./configs/enterprise-security.nix
+      {
+        ghaf.virtualization.microvm.extensions.guivm = [
+          ./configs/enterprise-apps.nix
+        ];
+      }
+    ];
+
+    # Developer workstation
+    devWorkstation = mkLaptopConfiguration "dev-workstation" "debug" [
+      ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11
+      ./configs/developer-tools.nix
+    ];
+
+  in {
+    nixosConfigurations = {
+      ${employeeLaptop.name} = employeeLaptop.hostConfiguration;
+      ${devWorkstation.name} = devWorkstation.hostConfiguration;
+    };
+
+    packages.${system} = {
+      ${employeeLaptop.name} = employeeLaptop.package;
+      ${devWorkstation.name} = devWorkstation.package;
+      employee-installer = (mkLaptopInstaller
+        employeeLaptop.name
+        employeeLaptop.package
+        []
+      ).package;
+    };
+  };
+}
+```
+
+## Updating Ghaf Version
+
+To update to the latest Ghaf:
+
+```bash
+# Update all inputs
+nix flake update
+
+# Or update only Ghaf
+nix flake lock --update-input ghaf
+
+# Test the update
+nix build .#my-device-debug
+
+# Commit if successful
+git add flake.lock
+git commit -m "chore: update ghaf input"
+```
+
+<Aside type="caution">
+  Always test builds after updating Ghaf. Breaking changes will be documented in the Ghaf changelog.
+</Aside>
+
+## Customizing Ghaf Options
+
+All Ghaf options are available in your downstream project:
+
+```nix
+{
+  # System profiles
+  ghaf.profiles.debug.enable = true;
+  ghaf.profiles.graphics.enable = true;
+
+  # Reference implementations
+  ghaf.reference.profiles.mvp-user-trial.enable = true;
+
+  # VM configuration
+  ghaf.virtualization.microvm = {
+    guivm.enable = true;
+    netvm.enable = true;
+    audiovm.enable = true;
+  };
+
+  # Hardware configuration
+  ghaf.hardware.definition = {
+    network.pciPath = "0000:00:14.3";
+    gpu.pciPath = "0000:00:02.0";
+  };
+}
+```
+
+See [Module Options](/ghaf/dev/library/modules_options) for the complete list.
+
+## Best Practices
+
+1. **Pin Ghaf version**: Use `flake.lock` to ensure reproducible builds
+2. **Test updates**: Always test after `nix flake update`
+3. **Use extensions registry**: Prefer `ghaf.virtualization.microvm.extensions.*` over forking Ghaf
+4. **Document customizations**: Keep a changelog of your modifications
+5. **Follow upstream**: Watch the Ghaf repository for security updates
+
+## Next Steps
+
+<CardGrid>
+  <LinkCard
+    title="Example Project"
+    description="Complete downstream project example"
+    href="/ghaf/dev/library/example_project"
+  />
+  <LinkCard
+    title="Module Options"
+    description="All available configuration options"
+    href="/ghaf/dev/library/modules_options"
+  />
+  <LinkCard
+    title="Extending VMs"
+    description="Customize VM configurations"
+    href="/ghaf/dev/guides/extending-vms"
+  />
+  <LinkCard
+    title="Builder Functions"
+    description="Detailed builder documentation"
+    href="/ghaf/dev/ref/builder-functions"
+  />
+</CardGrid>

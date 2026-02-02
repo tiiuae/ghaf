@@ -1,0 +1,439 @@
+---
+title: VM Architecture
+description: Understanding how Ghaf VMs are composed and configured
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# VM Architecture
+
+Ghaf uses virtual machines (VMs) to isolate different system components. This document explains how VMs are defined, composed, and how they communicate.
+
+## VM Types
+
+Ghaf has two categories of VMs:
+
+### System VMs (sysvms)
+
+Core system functionality isolated into dedicated VMs:
+
+| VM | Purpose | Always Running |
+|----|---------|----------------|
+| **net-vm** | Network stack, firewall, routing | Yes |
+| **gui-vm** | Graphics, Wayland compositor, desktop | Yes |
+| **audio-vm** | Audio stack, sound devices | Yes |
+| **admin-vm** | System administration, logging | Optional |
+| **ids-vm** | Intrusion detection system | Optional |
+
+### Application VMs (appvms)
+
+Per-application isolation:
+
+| VM | Purpose |
+|----|---------|
+| **chrome-vm** | Chromium browser |
+| **business-vm** | Business applications |
+| **comms-vm** | Communication tools |
+| Custom | User-defined applications |
+
+## VM Configuration Pattern
+
+All VMs use the `evaluatedConfig` pattern with microvm.nix:
+
+```nix
+# Host configuration creates the VM
+microvm.vms.audio-vm = {
+  # Pre-evaluated NixOS configuration
+  evaluatedConfig = lib.nixosSystem {
+    modules = [
+      ./base.nix
+      ./roles/audio.nix
+      { /* VM-specific config */ }
+    ];
+    specialArgs = {
+      inherit inputs sharedSystemConfig;
+      inherit (inputs.self) lib;
+    };
+  };
+};
+```
+
+### Why `evaluatedConfig`?
+
+<Tabs>
+<TabItem label="✅ evaluatedConfig (Current)">
+
+```nix
+# Clean, standard pattern
+microvm.vms.audio-vm.evaluatedConfig = lib.nixosSystem { ... };
+
+# Access guest config
+v.evaluatedConfig.config.ghaf.foo
+#  ↑               ↑
+#  |               └─ Standard NixOS config access
+#  └─ Clear: "a pre-evaluated configuration"
+```
+
+</TabItem>
+<TabItem label="❌ config (Old Pattern)">
+
+```nix
+# Confusing pattern (DEPRECATED)
+microvm.vms.audio-vm.config = { ... };
+
+# Access guest config
+v.config.config.ghaf.foo
+#  ↑      ↑
+#  |      └─ Implementation detail leak
+#  └─ Confusing: is this the option or result?
+```
+
+</TabItem>
+</Tabs>
+
+## VM Builder Functions
+
+Each system VM has a dedicated builder in `modules/microvm/vmConfigurations/`:
+
+```
+vmConfigurations/
+├── base.nix           # Shared base configuration
+├── sharedSystemConfig.nix  # Host→VM value passing
+├── mkAudioVm.nix      # Audio VM builder
+├── mkNetVm.nix        # Network VM builder
+├── mkGuiVm.nix        # GUI VM builder
+├── mkAdminVm.nix      # Admin VM builder
+├── mkIdsVm.nix        # IDS VM builder
+├── mkAppVm.nix        # Application VM builder
+└── roles/
+    ├── audio.nix      # Audio role module
+    └── net.nix        # Network role module
+```
+
+### Builder Structure
+
+```nix
+# mkAudioVm.nix
+{
+  config,           # Host configuration
+  lib,
+  inputs,
+  sharedSystemConfig,
+  ...
+}:
+let
+  # Create the guest NixOS system
+  audiovm = lib.nixosSystem {
+    system = "x86_64-linux";
+
+    specialArgs = {
+      inherit inputs sharedSystemConfig;
+      inherit (inputs.self) lib;
+    };
+
+    modules = [
+      # Layer 1: Base
+      ./base.nix
+
+      # Layer 3: Role
+      ./roles/audio.nix
+
+      # VM-specific configuration
+      {
+        networking.hostName = "audio-vm";
+
+        # Hardware passthrough
+        microvm.devices = [
+          { bus = "pci"; path = config.ghaf.hardware.audio.pciPath; }
+        ];
+      }
+
+      # Layer 5: Extensions from registry
+    ] ++ registryExtensions;
+  };
+in {
+  # Register the VM with microvm
+  microvm.vms.audio-vm = {
+    evaluatedConfig = audiovm;
+    autostart = true;
+  };
+}
+```
+
+## VM Communication
+
+VMs communicate through controlled channels:
+
+### 1. GIVC (Ghaf Inter-VM Communication)
+
+Authenticated message passing between VMs:
+
+```nix
+# In gui-vm
+{
+  ghaf.givc = {
+    enable = true;
+    appLauncher.enable = true;  # Launch apps in other VMs
+  };
+}
+```
+
+### 2. Network (vsock/virtiofs)
+
+VMs connect through virtual sockets:
+
+```nix
+{
+  microvm = {
+    # Virtual serial console
+    hypervisor = "qemu";
+
+    # Shared filesystem
+    shares = [{
+      proto = "virtiofs";
+      tag = "shared";
+      source = "/shared";
+    }];
+  };
+}
+```
+
+### 3. Host-Managed Resources
+
+The host orchestrates resources between VMs:
+
+```nix
+# Host configuration
+{
+  # Audio device assigned to audio-vm
+  ghaf.hardware.passthrough.audio = {
+    enable = true;
+    vmName = "audio-vm";
+  };
+}
+```
+
+## Extending VMs
+
+### Using the Extensions Registry
+
+Add modules via the centralized extensions registry:
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [
+    {
+      programs.firefox = {
+        enable = true;
+        policies.DisableTelemetry = true;
+      };
+    }
+  ];
+}
+```
+
+### From Downstream Projects
+
+Use NixOS's `extendModules` combined with the extensions registry:
+
+```nix
+# In downstream project
+let
+  baseConfig = ghaf.nixosConfigurations.lenovo-x1-carbon-gen11-debug;
+
+  extendedConfig = baseConfig.extendModules {
+    modules = [{
+      ghaf.virtualization.microvm.extensions.guivm = [
+        ./my-gui-customization.nix
+      ];
+    }];
+  };
+in {
+  nixosConfigurations.my-laptop = extendedConfig;
+}
+```
+
+## Creating a New System VM
+
+<Aside type="caution">
+  Creating new system VMs requires understanding of microvm.nix and device passthrough.
+  Consider using Application VMs for most use cases.
+</Aside>
+
+### Step 1: Create the Builder
+
+```nix
+# modules/microvm/vmConfigurations/mkCustomVm.nix
+{
+  config,
+  lib,
+  inputs,
+  sharedSystemConfig,
+  ...
+}:
+let
+  customvm = lib.nixosSystem {
+    system = "x86_64-linux";
+    specialArgs = {
+      inherit inputs sharedSystemConfig;
+      inherit (inputs.self) lib;
+    };
+    modules = [
+      ./base.nix
+      {
+        networking.hostName = "custom-vm";
+
+        # Your custom configuration
+        services.myService.enable = true;
+      }
+    ] ++ registryExtensions;  # Get extensions from registry
+  };
+in {
+  microvm.vms.custom-vm = {
+    evaluatedConfig = customvm;
+    autostart = config.ghaf.virtualization.microvm.customvm.enable;
+  };
+}
+```
+
+### Step 2: Consume from Extensions Registry
+
+```nix
+# modules/microvm/sysvms/customvm.nix
+{ config, lib, ... }:
+let
+  # Get extensions from the centralized registry
+  registryExtensions = config.ghaf.virtualization.microvm.extensions.customvm or [];
+in
+{
+  options.ghaf.virtualization.microvm.customvm = {
+    enable = lib.mkEnableOption "custom VM";
+  };
+
+  # NOTE: Extensions are added via ghaf.virtualization.microvm.extensions.customvm
+  # No extraModules option needed - use the centralized registry pattern
+
+  config = lib.mkIf config.ghaf.virtualization.microvm.customvm.enable {
+    # Import the builder
+    imports = [ ../vmConfigurations/mkCustomVm.nix ];
+  };
+}
+```
+
+### Step 3: Register the Module
+
+Add to `modules/microvm/flake-module.nix`.
+
+### Step 4: Add Extension Point (Optional)
+
+If you want downstream to extend your VM, add an extension point:
+
+```nix
+# In modules/microvm/vm-extensions.nix
+options.ghaf.virtualization.microvm.extensions.customvm = lib.mkOption {
+  type = extensionType;
+  default = [];
+  description = "Extensions for custom VM";
+};
+```
+
+## Application VM Pattern
+
+Application VMs are simpler and follow a data-driven pattern:
+
+```nix
+# modules/reference/appvms/my-app.nix
+{ config, lib, pkgs, ... }:
+{
+  name = "my-app";
+  packages = [ pkgs.myApplication ];
+  macAddress = "02:00:00:03:10:01";
+  ramMb = 2048;
+  cores = 2;
+
+  # Application-specific config (data structure field, not option)
+  extraModules = [{
+    programs.myApplication.settings = { ... };
+  }];
+}
+```
+
+<Aside type="note">
+Application VMs use `extraModules` as a **data structure field** in their specification. This is different from the extensions registry used by system VMs.
+</Aside>
+
+See [Creating Application VMs](/ghaf/dev/ref/creating_appvm) for details.
+
+## Resource Allocation
+
+### Memory
+
+```nix
+{
+  microvm.vms.gui-vm.evaluatedConfig.config.microvm = {
+    mem = 4096;  # MB
+  };
+}
+```
+
+### CPU
+
+```nix
+{
+  microvm.vms.gui-vm.evaluatedConfig.config.microvm = {
+    vcpu = 4;
+  };
+}
+```
+
+### Device Passthrough
+
+```nix
+{
+  microvm.vms.gui-vm.evaluatedConfig.config.microvm = {
+    devices = [
+      { bus = "pci"; path = "0000:00:02.0"; }  # GPU
+    ];
+  };
+}
+```
+
+## Debugging VMs
+
+### View VM Status
+
+```bash
+# On the host
+systemctl status microvm@gui-vm
+journalctl -u microvm@gui-vm
+
+# Using ghaf-vms tool
+ghaf-vms -l
+```
+
+### Access VM Console
+
+```bash
+# Attach to VM console
+microvm -c gui-vm
+
+# SSH into VM (debug builds)
+ssh ghaf@gui-vm
+```
+
+### Enable VM Debug Output
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    boot.consoleLogLevel = 7;
+    services.journald.extraConfig = "SystemMaxUse=1G";
+  }];
+}
+```
+
+## Next Steps
+
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - Step-by-step VM creation guide
+- [Extending VMs](/ghaf/dev/guides/extending-vms) - Customize VMs for your needs
+- [Creating App VMs](/ghaf/dev/ref/creating_appvm) - Application VM tutorial

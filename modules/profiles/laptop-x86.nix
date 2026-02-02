@@ -8,16 +8,16 @@ in
   options.ghaf.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
 
-    netvmExtraModules = lib.mkOption {
+    netvmExtensions = lib.mkOption {
       description = ''
-        List of additional modules to be passed to the netvm.
+        List of additional modules to be passed to the netvm via extensions registry.
       '';
       default = [ ];
     };
 
-    guivmExtraModules = lib.mkOption {
+    guivmExtensions = lib.mkOption {
       description = ''
-        List of additional modules to be passed to the guivm.
+        List of additional modules to be passed to the guivm via extensions registry.
       '';
       default = [ ];
     };
@@ -51,7 +51,6 @@ in
           netvm = {
             enable = true;
             wifi = true;
-            extraModules = cfg.netvmExtraModules;
           };
 
           adminvm = {
@@ -65,12 +64,17 @@ in
 
           guivm = {
             enable = true;
-            extraModules = cfg.guivmExtraModules;
           };
 
           audiovm = {
             enable = true;
             audio = true;
+          };
+
+          # Extensions registry for VM configuration
+          extensions = {
+            netvm = cfg.netvmExtensions;
+            guivm = cfg.guivmExtensions;
           };
         };
       };

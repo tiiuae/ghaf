@@ -45,8 +45,8 @@ lib.mkIf cfg.enable {
       lib.attrsets.nameValuePair "swtpm-proxy-${name}" (mkSwtpmProxyService name vm.vtpm.basePort)
     ) vmsWithVtpm;
 
-  # Launch swtpm processes in admin VM
-  ghaf.virtualization.microvm.adminvm.extraModules = [
+  # Launch swtpm processes in admin VM - uses extensions registry
+  ghaf.virtualization.microvm.extensions.adminvm = [
     (
       { lib, pkgs, ... }:
       let

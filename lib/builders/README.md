@@ -18,6 +18,11 @@ Creates a laptop configuration with Ghaf modules and profiles.
 - `variant`: The build variant
 - `name`: Generated name in format `"${machineType}-${variant}"`
 - `package`: The built system image
+- `vmConfigurations`: Pre-built VM configurations (for downstream composition)
+- `sharedSystemConfig`: The shared system configuration module
+- `extendHost`: Function to extend the host configuration
+- `extendVm`: Function to extend individual VMs
+- `mkCustomAppVm`: Function to create custom app VMs
 
 ### mkLaptopInstaller
 
@@ -32,6 +37,24 @@ Creates a laptop installer ISO image.
 - `hostConfiguration`: The NixOS configuration for the installer
 - `name`: Generated name in format `"${name}-installer"`
 - `package`: The built ISO image
+
+### vmBuilders
+
+Standalone VM builders for downstream composition. Each builder returns a NixOS configuration
+that can be extended using `extendModules`.
+
+Available builders:
+- `mkAudioVm`: Audio VM with pipewire, speakers, microphone
+- `mkNetVm`: Network VM with firewall, networking services
+- `mkGuiVm`: GUI VM with desktop environment, display
+- `mkAdminVm`: Admin VM with logging, management services
+- `mkIdsVm`: IDS VM with intrusion detection
+- `mkAppVm`: Application VM builder
+
+### mkSharedSystemConfig
+
+Creates a shared system configuration module that's used across host and all VMs.
+This ensures consistent settings (debug/release, timezone, logging, etc.) across all components.
 
 ## Usage in Downstream Projects
 
@@ -81,6 +104,106 @@ Creates a laptop installer ISO image.
 }
 ```
 
+### Extending VMs (Downstream Composition)
+
+The new architecture allows downstream projects to extend individual VMs:
+
+```nix
+{
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, nixpkgs, ... }:
+  let
+    builders = ghaf.builders;
+
+    # Create base laptop configuration
+    base-laptop = builders.mkLaptopConfiguration {
+      inherit (ghaf) self inputs;
+      lib = ghaf.lib;
+    } "my-laptop" "debug" [];
+
+    # Extend the GUI VM with custom applications
+    customGuiVm = base-laptop.extendVm "gui-vm" [
+      {
+        # Add custom packages to GUI VM
+        environment.systemPackages = [ pkgs.vscode ];
+      }
+    ];
+
+    # Create a custom app VM
+    myAppVm = base-laptop.mkCustomAppVm {
+      name = "my-custom-app";
+      modules = [
+        {
+          # Custom app configuration
+          environment.systemPackages = [ pkgs.firefox ];
+        }
+      ];
+    };
+
+  in {
+    # Export configurations...
+  };
+}
+```
+
+### Creating Custom VMs with vmBuilders
+
+For complete control, use the standalone VM builders directly:
+
+```nix
+{
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, nixpkgs, ... }:
+  let
+    builders = ghaf.builders;
+    system = "x86_64-linux";
+
+    # Create shared system config for your project
+    sharedConfig = builders.mkSharedSystemConfig {
+      lib = ghaf.lib;
+      variant = "debug";
+      sshDaemonEnable = true;
+      loggingEnable = true;
+    };
+
+    # Create a standalone audio VM
+    myAudioVm = builders.vmBuilders.mkAudioVm {
+      inherit (ghaf) self inputs;
+      inherit system;
+      hostParams = {
+        hostName = "my-custom-host";
+        # ... other host params
+      };
+      systemConfigModule = sharedConfig;
+    };
+
+    # Extend it with custom modules
+    extendedAudioVm = myAudioVm.extendModules {
+      modules = [
+        {
+          # Custom audio configuration
+          services.pipewire.wireplumber.extraConfig = {
+            # ...
+          };
+        }
+      ];
+    };
+
+  in {
+    # Export as standalone VM for testing
+    packages.${system}.my-audio-vm = extendedAudioVm.config.system.build.vm;
+  };
+}
+```
+
 ### Advanced Usage with Custom System
 
 ```nix
@@ -116,6 +239,48 @@ Creates a laptop installer ISO image.
       ]).package;
   };
 }
+```
+
+## 5-Layer Architecture
+
+The VM system is organized in layers for clear separation of concerns:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 5: Target Compositions (targets/laptop/...)          │
+│  - Final NixOS configurations with extendModules exposed    │
+│  - Hardware profiles, target-specific settings              │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 4: Host Modules (modules/, profiles/)                │
+│  - Host-specific hardware, profiles                         │
+│  - VM instantiation via microvm.vms.<name>.evaluatedConfig  │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 3: Shared System Config (sharedSystemConfig.nix)     │
+│  - debug/release profiles, timezone, logging                │
+│  - Passed to ALL VMs and host via specialArgs               │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 2: VM Role Modules (vmConfigurations/mkXxxVm.nix)    │
+│  - Role-specific configuration (audio, net, gui, etc.)      │
+│  - Returns nixosSystem with extendModules                   │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: Base VM Config (vmConfigurations/base.nix)        │
+│  - Common VM settings (stateVersion, hypervisor, etc.)      │
+│  - GIVC integration, preservation, identity                 │
+└─────────────────────────────────────────────────────────────┘
+                              ▲
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 0: Pure Library Functions (lib/vm.nix)               │
+│  - Helper functions with no implicit config access          │
+│  - mkVmSystemParams, mkStoreShares, extendVmConfig, etc.    │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ## Internal Ghaf Usage

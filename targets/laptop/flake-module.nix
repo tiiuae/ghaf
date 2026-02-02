@@ -86,7 +86,7 @@ let
             enable = true;
             ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
           };
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               microvm.mem = lib.mkForce 6144;
             }
@@ -137,7 +137,7 @@ let
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
 
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               microvm.mem = lib.mkForce 2047;
             }
@@ -222,7 +222,7 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {
@@ -258,7 +258,7 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {
@@ -321,7 +321,7 @@ let
             enable = true;
             ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
           };
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               microvm.mem = lib.mkForce 6144;
             }
@@ -430,7 +430,7 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {
@@ -466,7 +466,7 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          virtualization.microvm.extensions.guivm = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {

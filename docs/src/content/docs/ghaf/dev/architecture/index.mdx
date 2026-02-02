@@ -1,0 +1,347 @@
+---
+title: Codebase Architecture
+description: Understanding the Ghaf codebase organization and design principles
+---
+
+import { Aside, FileTree } from "@astrojs/starlight/components";
+
+# Codebase Architecture
+
+This document explains how the Ghaf codebase is organized and the design principles that guide its structure.
+
+## Design Principles
+
+### 1. Composition Over Configuration
+
+Ghaf uses the NixOS module system to compose functionality from smaller, reusable pieces. Rather than monolithic configurations, features are:
+
+- **Modular**: Each feature is a separate module
+- **Composable**: Modules can be combined freely
+- **Overridable**: Downstream projects can modify any setting
+
+### 2. Explicit Dependencies
+
+Modules declare their dependencies explicitly through:
+
+- **imports**: Direct module dependencies
+- **options**: Configuration interface contracts
+- **specialArgs**: Injected values (lib, self, inputs)
+
+### 3. Layer Separation
+
+Configuration is organized in layers with clear responsibilities:
+
+```
+Target → Profile → Role → Shared → Base
+```
+
+Each layer has a specific purpose and scope.
+
+### 4. Single Source of Truth
+
+Configuration values are set once and propagated via the module system:
+
+```nix
+# Set once in profile
+ghaf.profiles.debug.enable = true;
+
+# Automatically enables in all VMs
+# No need to set in each VM individually
+```
+
+## Directory Structure
+
+<FileTree>
+- flake.nix             # Main flake entry point
+- flake.lock            # Pinned dependency versions
+- lib/
+  - builders/           # Target builder functions
+    - mkLaptopConfiguration.nix
+    - mkLaptopInstaller.nix
+  - vm.nix              # VM helper library
+  - lib.nix             # Core library extensions
+- modules/
+  - common/             # Base system modules
+  - desktop/            # Desktop environment
+  - development/        # Debug and dev tools
+  - givc/               # Inter-VM communication
+  - hardware/           # Hardware support
+  - microvm/            # VM orchestration
+    - vmConfigurations/ # VM builder functions
+  - partitioning/       # Disk layout
+  - profiles/           # System profiles
+  - reference/          # Reference implementations
+    - appvms/           # Application VMs
+    - profiles/         # Pre-configured profiles
+- packages/
+  - flake-module.nix    # Package definitions
+  - pkgs-by-name/       # Custom packages
+- targets/
+  - laptop/             # Laptop configurations
+  - vm/                 # VM target
+  - nvidia-jetson-orin/ # Jetson targets
+  - generic-x86_64/     # Generic x86 target
+- docs/                 # Documentation
+- tests/                # Test configurations
+</FileTree>
+
+## Key Components
+
+### 1. Flake Entry Point (`flake.nix`)
+
+The flake defines:
+
+- **inputs**: External dependencies (nixpkgs, microvm.nix, ghafpkgs)
+- **outputs**: What Ghaf exports (configurations, modules, packages)
+- **lib**: Library functions available to downstream projects
+
+```nix
+{
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
+    microvm.url = "github:astro/microvm.nix";
+    # ...
+  };
+
+  outputs = inputs: {
+    # Exported for downstream use
+    lib = { /* ghaf library functions */ };
+    nixosModules = { /* reusable modules */ };
+    builders = { /* configuration builders */ };
+
+    # Built configurations
+    nixosConfigurations = { /* hardware targets */ };
+    packages = { /* buildable packages */ };
+  };
+}
+```
+
+### 2. Library Functions (`lib/`)
+
+The `lib/` directory contains reusable functions:
+
+| File | Purpose |
+|------|---------|
+| `lib.nix` | Core library extensions merged into `self.lib` |
+| `vm.nix` | VM helper functions (`mkVm`, `getVmConfig`) |
+| `builders/mkLaptopConfiguration.nix` | Laptop configuration builder |
+| `builders/mkLaptopInstaller.nix` | Installer ISO builder |
+
+<Aside>
+  All library functions are exported via `self.lib` and available to downstream projects.
+</Aside>
+
+### 3. Modules (`modules/`)
+
+Modules are organized by domain:
+
+| Directory | Purpose | Example Options |
+|-----------|---------|-----------------|
+| `common/` | Base system features | `ghaf.systemd.*`, `ghaf.boot.*` |
+| `desktop/` | Desktop environment | `ghaf.graphics.*` |
+| `development/` | Debug tools | `ghaf.development.debug.*` |
+| `givc/` | Inter-VM communication | `ghaf.givc.*` |
+| `hardware/` | Hardware support | `ghaf.hardware.x86_64.*` |
+| `microvm/` | VM orchestration | `ghaf.virtualization.microvm.*` |
+| `profiles/` | System profiles | `ghaf.profiles.debug.*` |
+| `reference/` | Reference implementations | `ghaf.reference.*` |
+
+### 4. Targets (`targets/`)
+
+Targets combine modules for specific hardware:
+
+```nix
+# targets/laptop/flake-module.nix
+{
+  nixosConfigurations.lenovo-x1-carbon-gen11-debug =
+    laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
+      { ghaf.reference.profiles.mvp-user-trial.enable = true; }
+    ];
+}
+```
+
+### 5. VM Configurations (`modules/microvm/vmConfigurations/`)
+
+Each system VM has a dedicated builder:
+
+| Builder | Creates |
+|---------|---------|
+| `mkAudioVm.nix` | Audio VM with audio stack |
+| `mkNetVm.nix` | Network VM with firewall |
+| `mkGuiVm.nix` | GUI VM with graphics |
+| `mkAdminVm.nix` | Admin VM for management |
+| `mkIdsVm.nix` | IDS VM for security monitoring |
+| `mkAppVm.nix` | Application VMs |
+
+## Module System Architecture
+
+### How Modules Are Loaded
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         flake.nix                                │
+│  imports = [ ./modules/flake-module.nix ]                       │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                   modules/flake-module.nix                       │
+│  imports = [                                                     │
+│    ./common/flake-module.nix                                    │
+│    ./profiles/flake-module.nix                                  │
+│    ./microvm/flake-module.nix                                   │
+│    ...                                                          │
+│  ]                                                              │
+└─────────────────────────┬───────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              Per-Category flake-module.nix                       │
+│  flake.nixosModules.category = { imports = [...] }              │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Module Dependencies via specialArgs
+
+Modules receive dependencies through `specialArgs`:
+
+```nix
+# In target builder
+lib.nixosSystem {
+  specialArgs = {
+    inherit self inputs;
+    inherit (self) lib;
+    inherit sharedSystemConfig;
+  };
+  modules = [ ... ];
+}
+
+# In any module
+{ config, lib, pkgs, self, inputs, sharedSystemConfig, ... }:
+{
+  # Access self.nixosModules, inputs.microvm, etc.
+}
+```
+
+## Configuration Flow
+
+### From Target to VM
+
+```
+┌──────────────┐    ┌────────────────┐    ┌─────────────────┐
+│    Target    │───▶│     Builder    │───▶│  Host Config    │
+│ (flake-mod)  │    │ (mkLaptop...)  │    │ (nixosSystem)   │
+└──────────────┘    └────────────────┘    └────────┬────────┘
+                                                   │
+                    ┌──────────────────────────────┤
+                    │                              │
+                    ▼                              ▼
+          ┌─────────────────┐            ┌─────────────────┐
+          │   microvm.vms   │            │ sharedSystemCfg │
+          │ (VM definitions)│            │ (shared values) │
+          └────────┬────────┘            └────────┬────────┘
+                   │                              │
+                   ▼                              │
+          ┌─────────────────┐                     │
+          │    mk*Vm.nix    │◀────────────────────┘
+          │  (VM builders)  │
+          └────────┬────────┘
+                   │
+                   ▼
+          ┌─────────────────┐
+          │  Guest Config   │
+          │ (isolated VM)   │
+          └─────────────────┘
+```
+
+### Value Propagation Example
+
+```nix
+# 1. Set in profile (once)
+ghaf.profiles.debug.enable = true;
+
+# 2. Profile sets development options
+config = lib.mkIf cfg.enable {
+  ghaf.development.debug.tools.enable = true;
+};
+
+# 3. sharedSystemConfig captures this
+sharedSystemConfig = mkSharedSystemConfig {
+  debugEnable = config.ghaf.profiles.debug.enable;
+};
+
+# 4. VMs receive via specialArgs
+# In mkGuiVm.nix
+specialArgs = { inherit sharedSystemConfig; };
+
+# 5. VM uses the value
+{ sharedSystemConfig, ... }:
+{
+  ghaf.development.debug.tools.enable = sharedSystemConfig.debugEnable;
+}
+```
+
+## Export Architecture
+
+### What Ghaf Exports
+
+```nix
+{
+  # Library functions for downstream use
+  lib = {
+    vm = { /* VM helpers */ };
+    vmBuilders = { mkAudioVm, mkNetVm, ... };
+    mkSharedSystemConfig = /* ... */;
+  };
+
+  # Reusable NixOS modules
+  nixosModules = {
+    profiles = /* ... */;
+    hardware-x86_64-generic = /* ... */;
+    microvm = /* ... */;
+    # ... 40+ modules
+  };
+
+  # Configuration builder functions
+  builders = {
+    mkLaptopConfiguration = /* ... */;
+    mkLaptopInstaller = /* ... */;
+  };
+
+  # Built configurations (not reusable)
+  nixosConfigurations = {
+    lenovo-x1-carbon-gen11-debug = /* ... */;
+    # ...
+  };
+}
+```
+
+### Downstream Usage Pattern
+
+```nix
+# downstream/flake.nix
+{
+  inputs.ghaf.url = "github:tiiuae/ghaf";
+
+  outputs = { ghaf, ... }: {
+    nixosConfigurations.my-device =
+      ghaf.builders.mkLaptopConfiguration {
+        inherit (ghaf) self lib;
+        inputs = { inherit ghaf; };
+      } "my-device" "debug" [
+        ./hardware.nix
+        {
+          # Override any Ghaf option
+          ghaf.reference.profiles.mvp-user-trial.enable = true;
+        }
+      ];
+  };
+}
+```
+
+## Next Steps
+
+- [Project Structure](/ghaf/dev/architecture/project-structure) - Detailed directory breakdown
+- [Module Layers](/ghaf/dev/architecture/module-layers) - 5-layer architecture explanation
+- [VM Architecture](/ghaf/dev/architecture/vm-architecture) - VM composition model

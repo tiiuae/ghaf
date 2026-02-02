@@ -93,12 +93,12 @@ in
       profiles = {
         laptop-x86 = {
           enable = true;
-          netvmExtraModules = [
+          netvmExtensions = [
             ../services
             ../personalize
             { ghaf.reference.personalize.keys.enable = true; }
           ];
-          guivmExtraModules = [
+          guivmExtensions = [
             ../services
             ../programs
             ../personalize

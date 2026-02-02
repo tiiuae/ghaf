@@ -9,12 +9,32 @@
 let
   inherit (inputs) nixos-generators;
   system = "x86_64-linux";
+
+  # Use flake export - self.lib
+  inherit (self.lib) mkSharedSystemConfig;
+
   vm =
     format: variant: withGraphics:
     let
+      # Create the shared configuration that's used by BOTH host AND all VMs
+      sharedSystemConfig = mkSharedSystemConfig {
+        inherit lib;
+        # For VM targets, variant can be "debug", "debug-nogui", or "release"
+        variant = if lib.hasPrefix "debug" variant then "debug" else "release";
+        sshDaemonEnable = lib.hasPrefix "debug" variant;
+        debugToolsEnable = lib.hasPrefix "debug" variant;
+        nixSetupEnable = lib.hasPrefix "debug" variant;
+        # Logging disabled for VM targets (no admin-vm listener configured)
+        loggingEnable = false;
+        timeZone = "UTC";
+      };
+
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
+          inherit self inputs;
           inherit (self) lib;
+          # Pass sharedSystemConfig to all modules via specialArgs
+          inherit sharedSystemConfig;
         };
         modules = [
           (builtins.getAttr format nixos-generators.nixosModules)
@@ -23,6 +43,8 @@ let
           self.nixosModules.profiles
           self.nixosModules.reference-appvms
           self.nixosModules.hardware-x86_64-generic
+          # Import the shared config in the host
+          sharedSystemConfig
 
           (
             { config, pkgs, ... }:

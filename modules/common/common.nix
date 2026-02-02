@@ -156,7 +156,7 @@ in
               let
                 adminHosts = lib.lists.remove "" (
                   lib.attrsets.mapAttrsToList (
-                    n: v: lib.optionalString (v.config.config.ghaf.type == "admin-vm") n
+                    n: v: lib.optionalString (v.evaluatedConfig.config.ghaf.type == "admin-vm") n
                   ) config.microvm.vms
                 );
               in
@@ -164,20 +164,29 @@ in
               lib.lists.head (adminHosts ++ [ null ]);
             systemHosts = lib.lists.remove "" (
               lib.attrsets.mapAttrsToList (
-                n: v: lib.optionalString (v.config.config.ghaf.type == "system-vm") n
+                n: v: lib.optionalString (v.evaluatedConfig.config.ghaf.type == "system-vm") n
               ) config.microvm.vms
             );
             appHosts = lib.lists.remove "" (
               lib.attrsets.mapAttrsToList (
-                n: v: lib.optionalString (v.config.config.ghaf.type == "app-vm") n
+                n: v: lib.optionalString (v.evaluatedConfig.config.ghaf.type == "app-vm") n
               ) config.microvm.vms
             );
-            hardware = {
-              nics = config.ghaf.hardware.definition.network.pciDevices;
-              gpus = config.ghaf.hardware.definition.gpu.pciDevices;
-              audio = config.ghaf.hardware.definition.audio.pciDevices;
-              usb = config.ghaf.hardware.definition.usb.devices;
-            };
+            hardware =
+              if hasAttrByPath [ "hardware" "definition" ] config.ghaf then
+                {
+                  nics = config.ghaf.hardware.definition.network.pciDevices;
+                  gpus = config.ghaf.hardware.definition.gpu.pciDevices;
+                  audio = config.ghaf.hardware.definition.audio.pciDevices;
+                  usb = config.ghaf.hardware.definition.usb.devices;
+                }
+              else
+                {
+                  nics = [ ];
+                  gpus = [ ];
+                  audio = [ ];
+                  usb = [ ];
+                };
           };
         };
 
