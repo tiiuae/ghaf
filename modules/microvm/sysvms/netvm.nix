@@ -94,7 +94,7 @@ let
               };
             };
             logging = {
-              inherit (config.ghaf.logging) enable;
+              inherit (config.ghaf.logging) enable listener;
               client.enable = config.ghaf.logging.enable;
             };
 

@@ -44,7 +44,11 @@ pkgs.testers.nixosTest {
         default = "host";
       };
 
-      # Mock ghaf.security.audit.extraRules (used by fss.nix)
+      # Mock ghaf.security.audit options (used by fss.nix)
+      options.ghaf.security.audit.enable = lib.mkOption {
+        type = lib.types.bool;
+        default = false;
+      };
       options.ghaf.security.audit.extraRules = lib.mkOption {
         type = lib.types.listOf lib.types.str;
         default = [ ];

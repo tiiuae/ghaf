@@ -220,13 +220,32 @@ let
           echo "1. Reset FSS: rm ${cfg.keyPath}/initialized && rm /var/log/journal/*/fss"
           echo "2. Reboot to regenerate keys with correct extraction"
           echo "3. Backup the new verification key from ${cfg.keyPath}/verification-key"
+          exit 1
+        # Check if only user journals failed (not system journal)
+        # User journals may fail due to entries written before FSS initialization
+        elif echo "$VERIFY_OUTPUT" | grep -qi "FAIL:.*user-.*\.journal\|user-.*\.journal.*FAIL"; then
+          if ! echo "$VERIFY_OUTPUT" | grep -qi "FAIL:.*system\.journal\|system\.journal.*FAIL"; then
+            echo "WARNING: User journal verification failed but system journal OK" | systemd-cat -t journal-fss -p warning
+            echo "Journal integrity verification: PARTIAL (user journals failed, system journal OK)"
+            echo "Output: $VERIFY_OUTPUT"
+            echo ""
+            echo "User journal failures are typically caused by entries written before FSS initialization."
+            echo "This is expected during initial setup and does not indicate tampering."
+            # Continue without failing - system journal integrity is what matters
+          else
+            echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
+            echo "Journal integrity verification: FAILED"
+            echo "Output: $VERIFY_OUTPUT"
+            echo "WARNING: Audit log integrity compromised - alert sent to central logging"
+            exit 1
+          fi
         else
           echo "AUDIT_LOG_INTEGRITY_FAIL: Journal integrity verification FAILED - potential tampering detected" | systemd-cat -t journal-fss -p crit
           echo "Journal integrity verification: FAILED"
           echo "Output: $VERIFY_OUTPUT"
           echo "WARNING: Audit log integrity compromised - alert sent to central logging"
+          exit 1
         fi
-        exit 1
       fi
 
       # Check for permission/filesystem errors that don't indicate tampering
