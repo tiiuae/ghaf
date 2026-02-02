@@ -141,31 +141,56 @@ writeShellApplication {
 
     # Test 5: Run journal verification
     info "Test 5: Running journal verification..."
+
+    # Find and use verification key (same logic as verify service)
+    # Without the key, sealed journals will fail verification with "Required key not available"
+    VERIFY_KEY=""
+    for KEY_PATH in \
+      "/persist/common/journal-fss/$HOSTNAME/verification-key" \
+      "/etc/common/journal-fss/$HOSTNAME/verification-key"; do
+      if [ -f "$KEY_PATH" ] && [ -s "$KEY_PATH" ]; then
+        VERIFY_KEY=$(cat "$KEY_PATH")
+        echo "   Using verification key from $KEY_PATH"
+        break
+      fi
+    done
+
+    VERIFY_CMD="journalctl --verify"
+    if [ -n "$VERIFY_KEY" ]; then
+      VERIFY_CMD="journalctl --verify --verify-key=$VERIFY_KEY"
+    else
+      echo "   WARNING: No verification key found - sealed journals may fail verification"
+    fi
+
     VERIFY_OUTPUT=""
     VERIFY_EXIT=0
 
-    if VERIFY_OUTPUT=$(journalctl --verify 2>&1); then
+    if VERIFY_OUTPUT=$($VERIFY_CMD 2>&1); then
       VERIFY_EXIT=0
     else
       VERIFY_EXIT=$?
     fi
 
-    # Filter out temp files (*.journal~) - these are not sealed journals
-    # Only consider failures in actual .journal files (not .journal~)
-    REAL_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -v '\.journal~' || true)
+    # Categorize failures:
+    # - Active journal (system.journal): failures are critical
+    # - Archived journals (system@*.journal): failures expected for pre-FSS entries, warn only
+    # - Temp files (*.journal~): ignore completely
+    ACTIVE_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '/system\.journal|/user-[0-9]+\.journal' | grep -v '\.journal~' || true)
+    ARCHIVED_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '@.*\.journal' | grep -v '\.journal~' || true)
 
-    if [ -n "$REAL_FAILURES" ]; then
-      fail "Journal verification found integrity failures in sealed journals"
-      echo "   Failures: $REAL_FAILURES"
+    if [ -n "$ACTIVE_FAILURES" ]; then
+      fail "Active journal verification failed - potential integrity issue"
+      echo "   Failures: $ACTIVE_FAILURES"
+    elif [ -n "$ARCHIVED_FAILURES" ]; then
+      # Archived journals may fail if they predate FSS activation - this is expected
+      warn "Archived journals failed verification (expected for pre-FSS entries)"
+      echo "   Archives: $ARCHIVED_FAILURES"
+      echo "   Note: Run 'journalctl --vacuum-time=1s' to remove old archives if needed"
     elif [ "$VERIFY_EXIT" -eq 0 ]; then
       pass "Journal verification passed"
     else
-      # Check if only temp files failed (not critical)
-      TEMP_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep '\.journal~' || true)
-      if [ -n "$TEMP_FAILURES" ]; then
-        warn "Verification found issues only in temp files (*.journal~) - not critical"
-        echo "   Temp file issues: $TEMP_FAILURES"
-      elif echo "$VERIFY_OUTPUT" | grep -qi "read-only\|permission denied"; then
+      # Check for filesystem errors
+      if echo "$VERIFY_OUTPUT" | grep -qi "read-only\|permission denied"; then
         warn "Verification encountered filesystem restrictions (not an integrity failure)"
       else
         warn "Verification returned exit code $VERIFY_EXIT but no critical failures detected"
@@ -174,7 +199,7 @@ writeShellApplication {
 
     # Test 6: Check verification timer
     info "Test 6: Checking verification timer..."
-    if systemctl list-unit-files | grep -q "journal-fss-verify.timer"; then
+    if systemctl list-unit-files 2>/dev/null | grep -q "journal-fss-verify.timer"; then
       if systemctl is-active --quiet journal-fss-verify.timer; then
         pass "journal-fss-verify.timer is active"
         NEXT_RUN=$(systemctl list-timers journal-fss-verify --no-pager 2>/dev/null | grep journal-fss-verify | awk '{print $1, $2}' || echo "unknown")

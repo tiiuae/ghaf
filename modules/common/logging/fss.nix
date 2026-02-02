@@ -37,8 +37,9 @@
 # Operational Notes:
 # -----------------
 # 1. First Boot (per component):
-#    - journal-fss-setup.service runs before systemd-journald
+#    - journal-fss-setup.service runs after systemd-journald is ready
 #    - Generates sealing keys with configured seal interval
+#    - Rotates journal to start using FSS keys immediately
 #    - Extracts verification key to cfg.keyPath/<hostname>/verification-key
 #    - Each component creates its own subdirectory with independent keys
 #    - CRITICAL: Backup all verification-keys to secure offline storage
@@ -155,6 +156,14 @@ let
       if [ ! -f "$FSS_KEY_FILE" ]; then
         echo "Error: FSS key generation failed - key file not found at $FSS_KEY_FILE"
         exit 1
+      fi
+
+      # Rotate journal to start using FSS keys immediately
+      # Per systemd documentation, rotation is required after --setup-keys
+      # to create a new journal file that uses the FSS keys
+      echo "Rotating journal to enable sealing..."
+      if ! journalctl --rotate; then
+        echo "Warning: Journal rotation failed - sealing may not start until next natural rotation"
       fi
 
       # Create sentinel file to prevent re-initialization
@@ -414,21 +423,18 @@ in
       ];
 
     # One-shot service to generate FSS keys on first boot
+    # Runs after journald is ready, then rotates journal to enable sealing
     systemd.services.journal-fss-setup = {
       description = "Setup Forward Secure Sealing keys for systemd journal";
       documentation = [ "man:journalctl(1)" ];
 
-      wantedBy = [ "sysinit.target" ];
-      before = [ "systemd-journald.service" ];
-      after = [ "local-fs.target" ];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-journald.service" ];
+      wants = [ "systemd-journald.service" ];
 
       unitConfig = {
-        # Prevent implicit After=basic.target which creates ordering cycle
-        DefaultDependencies = false;
         # Only run if not already initialized
         ConditionPathExists = "!${cfg.keyPath}/initialized";
-        # Ensure journal directory is ready and writable
-        ConditionPathIsReadWrite = "/var/log/journal";
       };
 
       serviceConfig = {
