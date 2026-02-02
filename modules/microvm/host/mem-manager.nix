@@ -11,7 +11,7 @@
 }:
 let
   balloonvms = builtins.filter (
-    name: (config.microvm.vms.${name}.config.config.microvm.balloon or false)
+    name: (config.microvm.vms.${name}.evaluatedConfig.config.microvm.balloon or false)
   ) (builtins.attrNames (config.microvm.vms or { }));
 in
 {
@@ -22,7 +22,7 @@ in
         result
         // (
           let
-            microvmConfig = config.microvm.vms.${name}.config.config.microvm;
+            microvmConfig = config.microvm.vms.${name}.evaluatedConfig.config.microvm;
             appvmConfig = config.ghaf.virtualization.microvm.appvm.vms.${lib.removeSuffix "-vm" name};
           in
           {

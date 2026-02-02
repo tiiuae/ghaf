@@ -27,7 +27,9 @@ let
   # Filter system and enabled app VMs
   appVms = lib.attrNames (filterAttrs (_: vm: vm.enable) appvm.vms);
   sysVms = map (name: removeSuffix "-vm" name) (
-    lib.attrNames (filterAttrs (_: vm: vm.config.config.ghaf.type == "system-vm") config.microvm.vms)
+    lib.attrNames (
+      filterAttrs (_: vm: vm.evaluatedConfig.config.ghaf.type == "system-vm") config.microvm.vms
+    )
   );
 
   # Boot priority mapping for app VMs
@@ -213,7 +215,7 @@ in
           };
         };
 
-      ghaf.virtualization.microvm.guivm.extraModules = optionals cfg.uiEnabled [
+      ghaf.virtualization.microvm.extensions.guivm = optionals cfg.uiEnabled [
         {
           # Allow systemd units to be monitored via givc
           givc.sysvm.services = [

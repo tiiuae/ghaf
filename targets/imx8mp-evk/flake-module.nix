@@ -16,6 +16,7 @@ let
     let
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
+          inherit self inputs;
           inherit (self) lib;
         };
         modules = [

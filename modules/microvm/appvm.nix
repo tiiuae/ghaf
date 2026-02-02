@@ -1,15 +1,22 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# App VM Module - Uses evaluatedConfig pattern for composability
+#
+# This module creates app VMs using lib.nixosSystem + extendModules,
+# enabling clean composition and downstream extensibility.
+# - self and inputs come from specialArgs (no currying)
+#
 {
   config,
   lib,
   pkgs,
+  self,
+  inputs,
   ...
 }:
 let
   cfg = config.ghaf.virtualization.microvm.appvm;
-  configHost = config;
 
   inherit (lib)
     mkEnableOption
@@ -17,7 +24,47 @@ let
     types
     optionalAttrs
     ;
-  inherit (configHost.ghaf.virtualization.microvm-host) sharedVmDirectory;
+  inherit (config.ghaf.virtualization.microvm-host) sharedVmDirectory;
+
+  # Use flake export - self.lib.vmBuilders
+  mkAppVm = self.lib.vmBuilders.mkAppVm { inherit inputs lib; };
+
+  # Get sharedSystemConfig from specialArgs (set by target builders)
+  # Provides an empty default for targets that don't use VMs (assertion checks when enabled)
+  sharedSystemConfig = config._module.specialArgs.sharedSystemConfig or { };
+  systemConfigModule = sharedSystemConfig;
+
+  # Capture host values needed for host bindings
+  # IMPORTANT: Capture these BEFORE the makeVm function to avoid closure issues
+  hostValues = {
+    inherit (config.ghaf.virtualization.microvm) storeOnDisk;
+    storageEncryptionEnable = config.ghaf.virtualization.storagevm-encryption.enable;
+    mitmproxyEnable = config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable or false;
+    buildPlatformSystem = config.nixpkgs.buildPlatform.system;
+    hostPlatformSystem = config.nixpkgs.hostPlatform.system;
+    microvmBootEnable = config.ghaf.microvm-boot.enable;
+    sharedVmDirectoryEnable = sharedVmDirectory.enable;
+    sharedVmDirectoryVms = sharedVmDirectory.vms;
+    shmEnable = config.ghaf.shm.enable or false;
+    shmServerSocketPath = config.ghaf.shm.serverSocketPath or "";
+    networkingHosts = config.ghaf.networking.hosts;
+    qemuExtraArgs = config.ghaf.hardware.passthrough.qemuExtraArgs or { };
+    vmUdevExtraRules = config.ghaf.hardware.passthrough.vmUdevExtraRules or { };
+    givcAppPrefix = config.ghaf.givc.appPrefix;
+    givcCliArgs = config.ghaf.givc.cliArgs;
+    loggingEnable = config.ghaf.logging.enable;
+    sshDaemonEnable = config.ghaf.development.ssh.daemon.enable;
+    # Logging config - pass to all app VMs
+    loggingListenerAddress = config.ghaf.logging.listener.address or "";
+    loggingServerEndpoint = config.ghaf.logging.server.endpoint or "";
+  };
+
+  # Common namespace from host - passed to all app VMs
+  commonModule = {
+    config.ghaf = {
+      inherit (config.ghaf) common;
+    };
+  };
 
   makeVm =
     { vm }:
@@ -26,7 +73,7 @@ let
       # A list of applications for the GIVC service
       givcApplications = map (app: {
         name = app.givcName;
-        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.command}";
+        command = "${hostValues.givcAppPrefix}/run-waypipe ${hostValues.givcAppPrefix}/${app.command}";
         args = app.givcArgs;
       }) vm.applications;
       # Packages and extra modules from all applications defined in the appvm
@@ -50,7 +97,7 @@ let
                 runtimeInputs = [ pkgs.givc-cli ];
                 text = ''
                   shift
-                  exec givc-cli ${config.ghaf.givc.cliArgs} ctap "$@"
+                  exec givc-cli ${hostValues.givcCliArgs} ctap "$@"
                 '';
               }
             }/bin/qrexec-client-vm dummy";
@@ -61,213 +108,108 @@ let
         };
       };
 
-      appvmConfiguration = {
-        imports = [
-          inputs.preservation.nixosModules.preservation
-          inputs.self.nixosModules.givc
-          inputs.self.nixosModules.hardware-x86_64-guest-kernel
-          inputs.self.nixosModules.vm-modules
-          inputs.self.nixosModules.profiles
-          {
-            ghaf.givc.appvm = {
-              enable = true;
-              applications = givcApplications;
-            };
-          }
-          (
-            {
-              lib,
-              config,
-              pkgs,
-              ...
-            }:
-            {
-              ghaf = {
-                # Profiles
-                users.appUser = {
-                  enable = true;
-                  extraGroups = [
-                    "audio"
-                    "video"
-                    "users"
-                    "plugdev"
-                  ];
-                };
+      # Create the base app VM configuration
+      baseAppVm = mkAppVm {
+        system = hostValues.hostPlatformSystem;
+        inherit
+          vm
+          givcApplications
+          appPackages
+          yubiPackages
+          appExtraModules
+          yubiExtra
+          systemConfigModule
+          ;
+        inherit (cfg) extraModules;
+      };
 
-                profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-                development = {
-                  ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-                  debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-                  nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
-                };
+      # Host-specific bindings (values that MUST come from the host)
+      hostBindings = {
+        # Platform settings (cross-compilation support)
+        nixpkgs.buildPlatform.system = hostValues.buildPlatformSystem;
 
-                # System
-                type = "app-vm";
-                systemd = {
-                  enable = true;
-                  withName = "appvm-systemd";
-                  withLocaled = true;
-                  withNss = true;
-                  withResolved = true;
-                  withTimesyncd = true;
-                  withPolkit = true;
-                  withDebug = configHost.ghaf.profiles.debug.enable;
-                  withHardenedConfigs = true;
-                };
+        # Storage encryption
+        ghaf.storagevm = {
+          shared-folders.enable =
+            hostValues.sharedVmDirectoryEnable && builtins.elem vmName hostValues.sharedVmDirectoryVms;
+          encryption.enable = hostValues.storageEncryptionEnable;
+        };
 
-                # Storage
-                storagevm = {
-                  enable = true;
-                  name = vmName;
-                  directories =
-                    lib.optionals (!lib.hasAttr "${config.ghaf.users.appUser.name}" config.ghaf.storagevm.users)
-                      [
-                        # By default, persist appusers entire home directory unless overwritten by defining
-                        # either storagevm.users.<user>.directories and/or .files explicitly in an appvm.
-                        {
-                          directory = "/home/${config.ghaf.users.appUser.name}";
-                          user = "${config.ghaf.users.appUser.name}";
-                          group = "${config.ghaf.users.appUser.name}";
-                          mode = "0700";
-                        }
-                      ];
-                  shared-folders.enable = sharedVmDirectory.enable && builtins.elem vmName sharedVmDirectory.vms;
-                  encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
-                };
+        # Logging - pass host logging config to VM
+        ghaf.logging = {
+          client.enable = hostValues.loggingEnable;
+          listener.address = hostValues.loggingListenerAddress;
+          server.endpoint = hostValues.loggingServerEndpoint;
+        };
 
-                # Networking
-                virtualization.microvm.vm-networking = {
-                  enable = true;
-                  inherit vmName;
-                };
+        # Security
+        ghaf.security.fail2ban.enable = hostValues.sshDaemonEnable;
 
-                virtualization.microvm.tpm.emulated = {
-                  inherit (vm.vtpm) enable runInVM;
-                  inherit (vm) name;
-                };
+        # Waypipe SHM settings
+        ghaf.waypipe = optionalAttrs hostValues.shmEnable {
+          inherit (hostValues) shmServerSocketPath;
+        };
 
-                # Services
-                waypipe = {
-                  inherit (vm.waypipe) enable;
-                  inherit vm;
-                }
-                // optionalAttrs configHost.ghaf.shm.enable {
-                  inherit (configHost.ghaf.shm) serverSocketPath;
-                };
-
-                services.audio = lib.mkIf vm.ghafAudio.enable {
-                  enable = true;
-                  role = "client";
-                };
-
-                logging.client.enable = configHost.ghaf.logging.enable;
-
-                security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
-
-                # Enable dynamic hostname export for AppVMs
-                identity.vmHostNameExport.enable = true;
-
-              };
-
-              system.stateVersion = lib.trivial.release;
-
-              nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-              nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
-              environment.systemPackages = [
-                pkgs.opensc
-                pkgs.givc-cli
-              ]
-              ++ vm.packages
-              ++ appPackages
-              ++ yubiPackages;
-
-              security.pki.certificateFiles =
-                lib.mkIf configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable
-                  [ ./sysvms/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem ];
-
-              time.timeZone = configHost.time.timeZone;
-
-              microvm = {
-                optimize.enable = false;
-                mem = vm.ramMb * (vm.balloonRatio + 1);
-                balloon = vm.balloonRatio > 0;
-                deflateOnOOM = false;
-                vcpu = vm.cores;
-                hypervisor = "qemu";
-
-                shares = [
-                  {
-                    tag = "ghaf-common";
-                    source = "/persist/common";
-                    mountPoint = "/etc/common";
-                    proto = "virtiofs";
-                  }
-                ]
-                # Shared store (when not using storeOnDisk)
-                ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
-                  {
-                    tag = "ro-store";
-                    source = "/nix/store";
-                    mountPoint = "/nix/.ro-store";
-                    proto = "virtiofs";
-                  }
-                ];
-
-                writableStoreOverlay = lib.mkIf (
-                  !configHost.ghaf.virtualization.microvm.storeOnDisk
-                ) "/nix/.rw-store";
-
-                qemu = {
-                  extraArgs = [
-                    "-M"
-                    "accel=kvm:tcg,mem-merge=on,sata=off"
-                    "-device"
-                    "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts."${vm.name}-vm".cid}"
-                    "-device"
-                    "qemu-xhci"
-                  ]
-                  ++
-                    lib.optionals (lib.hasAttr "${vm.name}-vm" configHost.ghaf.hardware.passthrough.qemuExtraArgs)
-                      configHost.ghaf.hardware.passthrough.qemuExtraArgs."${vm.name}-vm";
-
-                  machine =
-                    {
-                      # Use the same machine type as the host
-                      x86_64-linux = "q35";
-                      aarch64-linux = "virt";
-                    }
-                    .${configHost.nixpkgs.hostPlatform.system};
-                };
-              }
-              // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
-                storeOnDisk = true;
-                storeDiskType = "erofs";
-                storeDiskErofsFlags = [
-                  "-zlz4hc"
-                  "-Eztailpacking"
-                ];
-              };
-
-              services.udev =
-                lib.mkIf (lib.hasAttr "${vm.name}-vm" configHost.ghaf.hardware.passthrough.vmUdevExtraRules)
-                  {
-                    extraRules =
-                      lib.concatStringsSep "\n"
-                        configHost.ghaf.hardware.passthrough.vmUdevExtraRules."${vm.name}-vm";
-                  };
-            }
-          )
+        # Certificate files for mitmproxy
+        security.pki.certificateFiles = lib.mkIf hostValues.mitmproxyEnable [
+          ./sysvms/idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
         ];
+
+        # Store configuration
+        microvm = {
+          shares = lib.optionals (!hostValues.storeOnDisk) [
+            {
+              tag = "ro-store";
+              source = "/nix/store";
+              mountPoint = "/nix/.ro-store";
+              proto = "virtiofs";
+            }
+          ];
+
+          writableStoreOverlay = lib.mkIf (!hostValues.storeOnDisk) "/nix/.rw-store";
+
+          qemu = {
+            extraArgs = [
+              "-M"
+              "accel=kvm:tcg,mem-merge=on,sata=off"
+              "-device"
+              "vhost-vsock-pci,guest-cid=${toString hostValues.networkingHosts."${vmName}".cid}"
+            ]
+            ++ lib.optionals (lib.hasAttr vmName hostValues.qemuExtraArgs) hostValues.qemuExtraArgs.${vmName};
+
+            machine =
+              {
+                x86_64-linux = "q35";
+                aarch64-linux = "virt";
+              }
+              .${hostValues.hostPlatformSystem};
+          };
+        }
+        // lib.optionalAttrs hostValues.storeOnDisk {
+          storeOnDisk = true;
+          storeDiskType = "erofs";
+          storeDiskErofsFlags = [
+            "-zlz4hc"
+            "-Eztailpacking"
+          ];
+        };
+
+        # Udev rules from passthrough
+        services.udev = lib.mkIf (lib.hasAttr vmName hostValues.vmUdevExtraRules) {
+          extraRules = lib.concatStringsSep "\n" hostValues.vmUdevExtraRules.${vmName};
+        };
       };
     in
     {
-      autostart = !configHost.ghaf.microvm-boot.enable;
-      inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
-      config = appvmConfiguration // {
-        imports =
-          appvmConfiguration.imports ++ cfg.extraModules ++ vm.extraModules ++ yubiExtra ++ appExtraModules;
+      autostart = !hostValues.microvmBootEnable;
+
+      # Use evaluatedConfig with extendModules for composability
+      evaluatedConfig = baseAppVm.extendModules {
+        modules = [
+          hostBindings
+          commonModule
+        ]
+        ++ vm.extraModules;
       };
     };
 in
@@ -452,7 +394,7 @@ in
     let
       vms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
       vmsWithWaypipe = lib.filterAttrs (
-        name: _vm: config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.enable
+        name: _vm: config.microvm.vms."${name}-vm".evaluatedConfig.config.ghaf.waypipe.enable
       ) vms;
 
       makeSwtpmService =
@@ -493,6 +435,14 @@ in
         };
     in
     lib.mkIf cfg.enable {
+      # Assert that sharedSystemConfig is provided when VM is enabled
+      assertions = [
+        {
+          assertion = sharedSystemConfig != { };
+          message = "AppVM requires sharedSystemConfig to be provided via specialArgs. Update your target builder to provide sharedSystemConfig.";
+        }
+      ];
+
       # Define microvms for each AppVM configuration
       microvm.vms =
         let
@@ -509,17 +459,18 @@ in
           }) vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
           proxyServices = map (name: {
-            "vsockproxy-${name}-vm" = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.proxyService;
+            "vsockproxy-${name}-vm" =
+              config.microvm.vms."${name}-vm".evaluatedConfig.config.ghaf.waypipe.proxyService;
           }) (builtins.attrNames vmsWithWaypipe);
         in
         lib.foldr lib.recursiveUpdate { } (swtpms ++ proxyServices);
 
       # GUIVM needs to have a dedicated waypipe instance for each AppVM
-      ghaf.virtualization.microvm.guivm.extraModules = [
+      ghaf.virtualization.microvm.extensions.guivm = [
         {
           systemd.user.services = lib.mapAttrs' (name: _: {
             name = "waypipe-${name}-vm";
-            value = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.waypipeService;
+            value = config.microvm.vms."${name}-vm".evaluatedConfig.config.ghaf.waypipe.waypipeService;
           }) vmsWithWaypipe;
         }
       ];

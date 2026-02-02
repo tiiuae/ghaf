@@ -1,0 +1,514 @@
+---
+title: System Configuration
+description: Configuring debug, logging, profiles and system-wide settings in Ghaf
+---
+
+import { Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# System Configuration
+
+This guide covers how to configure system-wide settings in Ghaf, including debug mode, logging, profiles, and other global options.
+
+## Configuration Hierarchy
+
+Ghaf configuration follows a hierarchy:
+
+```
+Target Definition
+    └── Profile Selection
+        └── Feature Flags
+            └── Individual Settings
+```
+
+Settings at higher levels automatically propagate to lower levels and VMs.
+
+## Profiles
+
+Profiles are high-level configuration presets that enable groups of features.
+
+### Available Profiles
+
+| Profile | Purpose | Includes |
+|---------|---------|----------|
+| `ghaf.profiles.debug` | Development/testing | SSH, debug tools, default passwords |
+| `ghaf.profiles.release` | Production | Security hardening, minimal attack surface |
+| `ghaf.profiles.minimal` | Base configuration | Essential services only |
+| `ghaf.profiles.graphics` | Graphics support | GPU drivers, Wayland |
+| `ghaf.reference.profiles.mvp-user-trial` | Demo/trial | Full feature set, sample apps |
+
+### Enabling Profiles
+
+```nix
+{
+  # Enable debug profile
+  ghaf.profiles.debug.enable = true;
+
+  # Enable reference profile
+  ghaf.reference.profiles.mvp-user-trial.enable = true;
+}
+```
+
+### Profile Effects
+
+<Tabs>
+<TabItem label="Debug Profile">
+
+```nix
+# ghaf.profiles.debug.enable = true enables:
+{
+  ghaf.development = {
+    nix-setup.enable = true;
+    debug.tools.enable = true;
+    ssh.daemon.enable = true;
+    usb-serial.enable = true;
+  };
+}
+```
+
+</TabItem>
+<TabItem label="Release Profile">
+
+```nix
+# ghaf.profiles.release.enable = true enables:
+{
+  # Security hardening
+  boot.kernelParams = [ "quiet" "loglevel=3" ];
+  security.lockKernelModules = true;
+
+  # Disable development features
+  ghaf.development.debug.tools.enable = false;
+  ghaf.development.ssh.daemon.enable = false;
+}
+```
+
+</TabItem>
+</Tabs>
+
+## Debug Configuration
+
+### Host Debug Settings
+
+```nix
+{
+  # Enable debug profile (recommended way)
+  ghaf.profiles.debug.enable = true;
+
+  # Or enable individual debug features
+  ghaf.development = {
+    # Debug tools (strace, gdb, etc.)
+    debug.tools.enable = true;
+
+    # SSH access
+    ssh.daemon.enable = true;
+
+    # USB serial console
+    usb-serial.enable = true;
+
+    # Nix development tools
+    nix-setup.enable = true;
+  };
+}
+```
+
+### VM Debug Settings
+
+Debug settings propagate automatically to VMs via `sharedSystemConfig`:
+
+```nix
+# In host configuration
+ghaf.profiles.debug.enable = true;
+
+# This automatically enables in ALL VMs:
+# - Debug tools
+# - SSH access (where applicable)
+# - Verbose logging
+```
+
+### Per-VM Debug Override
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    # Override debug for specific VM
+    ghaf.development.debug.tools.enable = false;
+  }];
+}
+```
+
+## Logging Configuration
+
+### System-Wide Logging
+
+```nix
+{
+  # Enable central logging
+  ghaf.logging = {
+    enable = true;
+
+    # Log aggregation
+    server = {
+      enable = true;
+      address = "192.168.101.1";
+      port = 514;
+    };
+
+    # Client configuration
+    client = {
+      enable = true;
+      serverAddress = "admin-vm";
+    };
+  };
+}
+```
+
+### VM Logging
+
+```nix
+{
+  # Enable logging in admin VM
+  ghaf.virtualization.microvm.extensions.adminvm = [{
+    ghaf.logging.server.enable = true;
+  }];
+
+  # Configure other VMs to send logs
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    ghaf.logging.client = {
+      enable = true;
+      serverAddress = "admin-vm";
+    };
+  }];
+}
+```
+
+### Log Levels
+
+```nix
+{
+  # Set systemd log level
+  systemd.extraConfig = ''
+    DefaultStandardOutput=journal
+    DefaultStandardError=journal
+  '';
+
+  # Set kernel log level
+  boot.consoleLogLevel = 3;  # 1=alerts, 3=errors, 7=debug
+}
+```
+
+## Security Configuration
+
+### Host Hardening
+
+```nix
+{
+  ghaf.security = {
+    # Firewall configuration
+    firewall.enable = true;
+
+    # Fail2ban for SSH protection
+    fail2ban.enable = true;
+
+    # Audit logging
+    audit = {
+      enable = true;
+      rules = [ /* audit rules */ ];
+    };
+  };
+}
+```
+
+### VM Isolation
+
+```nix
+{
+  ghaf.virtualization.microvm = {
+    # Memory isolation
+    memoryIsolation.enable = true;
+
+    # Network isolation
+    networkIsolation = {
+      enable = true;
+      allowedConnections = [
+        { from = "gui-vm"; to = "net-vm"; ports = [ 80 443 ]; }
+      ];
+    };
+  };
+}
+```
+
+## Storage Configuration
+
+### Storage VM
+
+```nix
+{
+  ghaf.storagevm = {
+    enable = true;
+
+    # Encryption
+    encryption = {
+      enable = true;
+      method = "luks2";
+    };
+
+    # Shared storage
+    shares = [
+      { name = "documents"; size = "10G"; }
+      { name = "media"; size = "50G"; }
+    ];
+  };
+}
+```
+
+### Per-VM Storage
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    microvm.shares = [{
+      proto = "virtiofs";
+      tag = "user-data";
+      source = "/var/lib/user-data";
+      mountPoint = "/home/ghaf/data";
+    }];
+  }];
+}
+```
+
+## Network Configuration
+
+### Host Networking
+
+```nix
+{
+  ghaf.networking = {
+    # Internal VM network
+    vmNetwork = {
+      enable = true;
+      subnet = "192.168.101.0/24";
+    };
+
+    # External network
+    externalInterface = "eth0";
+  };
+}
+```
+
+### VM Network Access
+
+```nix
+{
+  # Configure which VMs can access network
+  ghaf.virtualization.microvm.extensions.netvm = [{
+    networking = {
+      interfaces.eth0 = {
+        useDHCP = true;
+      };
+
+      firewall = {
+        enable = true;
+        allowedTCPPorts = [ 22 80 443 ];
+      };
+    };
+  }];
+}
+```
+
+## Hardware Configuration
+
+### Device Passthrough
+
+```nix
+{
+  ghaf.hardware = {
+    # GPU passthrough
+    gpu = {
+      enable = true;
+      vmTarget = "gui-vm";
+      pciPath = "0000:00:02.0";
+    };
+
+    # Audio passthrough
+    audio = {
+      enable = true;
+      vmTarget = "audio-vm";
+      pciPath = "0000:00:1f.3";
+    };
+
+    # USB configuration
+    usb = {
+      internal.vmTarget = "gui-vm";
+      external.vmTarget = "gui-vm";
+    };
+  };
+}
+```
+
+## Shared System Configuration
+
+The `sharedSystemConfig` mechanism passes host decisions to VMs:
+
+### What's Shared
+
+| Value | Description |
+|-------|-------------|
+| `debugEnable` | Debug profile enabled |
+| `loggingEnable` | Logging enabled |
+| `storagevmEnable` | Storage VM enabled |
+| `storagevmEncryption` | Storage encryption enabled |
+
+### How It Works
+
+```nix
+# Host configuration
+ghaf.profiles.debug.enable = true;
+
+# Automatically creates sharedSystemConfig:
+# {
+#   debugEnable = true;
+#   loggingEnable = true;
+#   ...
+# }
+
+# VM modules receive this via specialArgs:
+{ sharedSystemConfig, ... }:
+{
+  ghaf.development.debug.tools.enable = sharedSystemConfig.debugEnable;
+}
+```
+
+### Custom Shared Values
+
+Extend shared config in your target:
+
+```nix
+let
+  sharedSystemConfig = self.lib.mkSharedSystemConfig {
+    inherit config lib;
+    # Add custom values
+    customValue = config.myCustomOption;
+  };
+in
+# Use in VM builders
+```
+
+## Environment Variables
+
+### System-Wide
+
+```nix
+{
+  environment.variables = {
+    EDITOR = "vim";
+    LANG = "en_US.UTF-8";
+  };
+}
+```
+
+### Per-VM
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    environment.variables = {
+      GTK_THEME = "Adwaita:dark";
+    };
+  }];
+}
+```
+
+## Users and Authentication
+
+### Default Users
+
+```nix
+{
+  users.users.ghaf = {
+    isNormalUser = true;
+    extraGroups = [ "wheel" "video" "audio" ];
+    # Only in debug builds
+    hashedPassword = lib.mkIf config.ghaf.profiles.debug.enable
+      "$6$...";  # "ghaf"
+  };
+}
+```
+
+### SSH Keys
+
+```nix
+{
+  users.users.ghaf.openssh.authorizedKeys.keys = [
+    "ssh-ed25519 AAAA... user@host"
+  ];
+}
+```
+
+## Common Configuration Patterns
+
+### Debug-Only Features
+
+```nix
+{
+  config = lib.mkIf config.ghaf.profiles.debug.enable {
+    services.debugService.enable = true;
+  };
+}
+```
+
+### Feature Flags
+
+```nix
+{
+  options.myFeature.enable = lib.mkEnableOption "my feature";
+
+  config = lib.mkMerge [
+    # Base configuration
+    { }
+
+    # Feature-specific
+    (lib.mkIf config.myFeature.enable {
+      services.foo.enable = true;
+    })
+  ];
+}
+```
+
+### Conditional VM Configuration
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [
+    ({ config, ... }: {
+      services.feature.enable = config.ghaf.profiles.debug.enable;
+    })
+  ];
+}
+```
+
+## Troubleshooting
+
+### Check Current Configuration
+
+```bash
+# View evaluated option
+nix eval .#nixosConfigurations.my-device.config.ghaf.profiles.debug.enable
+
+# List all ghaf options
+nix eval .#nixosConfigurations.my-device.config.ghaf --json | jq
+```
+
+### Debug Configuration Issues
+
+```bash
+# Show trace on error
+nix build .#my-device --show-trace
+
+# Check specific module
+nix eval .#nixosConfigurations.my-device.config.ghaf.development
+```
+
+## Next Steps
+
+- [Creating Modules](/ghaf/dev/guides/creating-modules) - Create custom modules
+- [Profiles Reference](/ghaf/dev/ref/profiles-config) - All profile options
+- [Module Layers](/ghaf/dev/architecture/module-layers) - Configuration hierarchy

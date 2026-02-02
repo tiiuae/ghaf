@@ -1,6 +1,11 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-
+#
+# PCI Hardware Passthrough Rules
+#
+# This module defines PCI passthrough rules and uses the extensions
+# registry to add hardware detection to VMs.
+#
 {
   config,
   lib,
@@ -54,9 +59,7 @@ let
           address = d.path;
           deviceId = d.productId;
           inherit (d) vendorId;
-        }) config.ghaf.hardware.definition.network.pciDevices
-
-        ;
+        }) config.ghaf.hardware.definition.network.pciDevices;
       }
     ]
     ++ optionals cfg.autoDetectNet [
@@ -76,7 +79,7 @@ let
   defaultAudiovmPciRules =
     optionals (builtins.hasAttr "definition" config.ghaf.hardware) [
       {
-        description = "PCI Devices for AudioVM";
+        description = "Static PCI Devices for AudioVM";
         targetVm = "audio-vm";
         allow = map (d: {
           address = d.path;
@@ -87,7 +90,7 @@ let
     ]
     ++ optionals cfg.autoDetectAudio [
       {
-        description = "Auto-detected Devices for AudioVM";
+        description = "Auto-detected PCI Devices for AudioVM";
         targetVm = "audio-vm";
         pciIommuAddAll = true;
         allow = [
@@ -115,11 +118,11 @@ let
   ];
 
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
-  hwDetectModule = vm: [
-    {
-      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix}";
-    }
-  ];
+
+  # Hardware detection module for auto-detect features
+  hwDetectModule = vm: {
+    microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix}";
+  };
 
 in
 {
@@ -144,25 +147,19 @@ in
     };
 
     autoDetectGpu = mkOption {
-      description = ''
-        Auto-detect GPU PCI devices.
-      '';
+      description = "Auto-detect GPU PCI devices.";
       type = types.bool;
       default = false;
     };
 
     autoDetectNet = mkOption {
-      description = ''
-        Auto-detect network PCI devices.
-      '';
+      description = "Auto-detect network PCI devices.";
       type = types.bool;
       default = false;
     };
 
     autoDetectAudio = mkOption {
-      description = ''
-        Auto-detect audio PCI devices.
-      '';
+      description = "Auto-detect audio PCI devices.";
       type = types.bool;
       default = false;
     };
@@ -177,14 +174,11 @@ in
 
     ghaf.hardware.passthrough.vhotplug.acpiRules = optionals cfg.autoDetectAudio audiovmAcpiRules;
 
-    ghaf.virtualization.microvm.guivm.extraModules = optionals cfg.autoDetectGpu (
-      hwDetectModule "gui-vm"
-    );
-    ghaf.virtualization.microvm.netvm.extraModules = optionals cfg.autoDetectNet (
-      hwDetectModule "net-vm"
-    );
-    ghaf.virtualization.microvm.audiovm.extraModules = optionals cfg.autoDetectAudio (
-      hwDetectModule "audio-vm"
-    );
+    # Use extensions registry for hardware detection modules
+    ghaf.virtualization.microvm.extensions = {
+      guivm = optionals cfg.autoDetectGpu [ (hwDetectModule "gui-vm") ];
+      netvm = optionals cfg.autoDetectNet [ (hwDetectModule "net-vm") ];
+      audiovm = optionals cfg.autoDetectAudio [ (hwDetectModule "audio-vm") ];
+    };
   };
 }

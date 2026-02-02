@@ -20,6 +20,12 @@
       ./identity
     ];
 
+    # Individual module exports for testing and fine-grained imports
+    common-firewall.imports = [ ./firewall ];
+    common-security.imports = [ ./security ];
+    common-security-fail2ban.imports = [ ./security/fail2ban.nix ];
+    common-security-ssh-tarpit.imports = [ ./security/ssh-tarpit ];
+
     # Cross-compilation module for building aarch64 targets from x86_64
     # This should be included via extendModules when generating
     # cross-compiled variants (e.g., -from-x86_64 builds).

@@ -44,7 +44,7 @@ in
       profiles = {
         orin = {
           enable = true;
-          netvmExtraModules = [
+          netvmExtensions = [
             ../services
             ../personalize
             { ghaf.reference.personalize.keys.enable = true; }

@@ -1,21 +1,34 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-
-{ config, lib, ... }:
+#
+# PCI Root Ports Configuration
+#
+# This module configures PCIe root ports for passthrough VMs.
+# Exposes VM-specific configuration via extensions registry.
+#
+{
+  config,
+  lib,
+  ...
+}:
 let
   inherit (lib)
     mkOption
-    types
     mkIf
+    types
     literalExpression
+    range
+    length
+    hasAttr
     ;
+
   cfg = config.ghaf.hardware.passthrough.pciPorts;
 
   # Helper function to get the count of PCI devices from hardware definitions
   staticPciCount =
     dev:
-    if lib.hasAttr "definitions" config.ghaf.hardware then
-      lib.length config.ghaf.hardware.definition.${dev}.pciDevices
+    if hasAttr "definitions" config.ghaf.hardware then
+      length config.ghaf.hardware.definition.${dev}.pciDevices
     else
       0;
 
@@ -35,12 +48,11 @@ let
     map (i: {
       id = "${cfg.pcieBusPrefix}${toString i}";
       chassis = i;
-    }) (lib.range 1 cfg.pciePortCountForVMs.${vmName});
+    }) (range 1 cfg.pciePortCountForVMs.${vmName});
 
 in
 {
   options.ghaf.hardware.passthrough.pciPorts = {
-
     pcieBusPrefix = mkOption {
       type = types.nullOr types.str;
       default = "pci_hotplug_";
@@ -49,7 +61,7 @@ in
       '';
     };
 
-    pciePortCountForVMs = lib.mkOption {
+    pciePortCountForVMs = mkOption {
       type = types.attrsOf types.int;
       default = pciPortDefaults;
       description = ''
@@ -71,20 +83,25 @@ in
   };
 
   config = mkIf (config.ghaf.hardware.passthrough.mode != "none") {
-    ghaf.virtualization.microvm.guivm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
-      }
-    ];
-    ghaf.virtualization.microvm.netvm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
-      }
-    ];
-    ghaf.virtualization.microvm.audiovm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
-      }
-    ];
+    # Use extensions registry pattern instead of extraModules
+    ghaf.virtualization.microvm.extensions = {
+      guivm = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
+        }
+      ];
+
+      netvm = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
+        }
+      ];
+
+      audiovm = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
+        }
+      ];
+    };
   };
 }

@@ -1,0 +1,149 @@
+---
+title: Getting Started with Ghaf Development
+description: Introduction to developing with the Ghaf Framework
+---
+
+import { Aside, Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+# Getting Started with Ghaf Development
+
+Welcome to the Ghaf Framework developer documentation. This guide will help you understand the project structure, set up your development environment, and start contributing to Ghaf or using it in downstream projects.
+
+## What is Ghaf?
+
+Ghaf is a **security-focused operating system framework** built on NixOS that provides:
+
+- **Compartmentalization**: Applications run in isolated virtual machines (VMs)
+- **Hardware Security**: Leverages hardware-backed isolation mechanisms
+- **Reproducibility**: Declarative NixOS configuration ensures consistent builds
+- **Composability**: Modular architecture allows customization and extension
+
+## Who Should Read This?
+
+<CardGrid>
+  <Card title="Contributors" icon="pencil">
+    Developers wanting to contribute modules, VMs, or features to Ghaf
+  </Card>
+  <Card title="Integrators" icon="puzzle">
+    Teams using Ghaf as a library for downstream projects
+  </Card>
+  <Card title="Hardware Vendors" icon="laptop">
+    Adding support for new hardware platforms
+  </Card>
+  <Card title="Security Engineers" icon="seti:lock">
+    Understanding Ghaf's security architecture
+  </Card>
+</CardGrid>
+
+## Quick Navigation
+
+<CardGrid>
+  <LinkCard
+    title="Prerequisites"
+    description="Required tools and setup for Ghaf development"
+    href="/ghaf/dev/getting-started/prerequisites"
+  />
+  <LinkCard
+    title="Quick Start"
+    description="Build and run your first Ghaf system in minutes"
+    href="/ghaf/dev/getting-started/quick-start"
+  />
+  <LinkCard
+    title="Project Structure"
+    description="Understand the Ghaf codebase organization"
+    href="/ghaf/dev/architecture/project-structure"
+  />
+  <LinkCard
+    title="Creating Modules"
+    description="Write your first Ghaf NixOS module"
+    href="/ghaf/dev/guides/creating-modules"
+  />
+</CardGrid>
+
+## Architecture Overview
+
+Ghaf uses a **5-layer composable architecture** for VM configurations:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 5: Target-Specific (hardware modules, device config)  │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 4: Profile Modules (debug, release, mvp-user-trial)   │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 3: Role Modules (audio-role, net-role, gui-role)      │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 2: Shared System Config (debug, logging, storagevm)   │
+├─────────────────────────────────────────────────────────────┤
+│ Layer 1: Base VM Module (common VM infrastructure)          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Each layer adds configuration that builds upon the previous layers, creating a clean separation of concerns.
+
+## Key Concepts
+
+### NixOS Modules
+
+Ghaf is built entirely on the [NixOS module system](https://nixos.wiki/wiki/NixOS_modules). Every feature, VM, and configuration is expressed as a composable module that can be:
+
+- **Enabled/disabled** via options
+- **Extended** by other modules
+- **Overridden** in downstream projects
+
+### Virtual Machine Isolation
+
+Ghaf separates concerns into specialized VMs:
+
+| VM | Purpose |
+|---|---|
+| **net-vm** | Network stack, firewall, VPN |
+| **gui-vm** | Graphics, display, user interface |
+| **audio-vm** | Audio stack and hardware |
+| **admin-vm** | System administration, logging |
+| **app-vms** | Individual application containers |
+
+### Configuration Inheritance
+
+Ghaf uses NixOS's `extendModules` for downstream customization:
+
+```nix
+# Downstream project can extend any Ghaf VM
+ghaf.lib.extendVm "gui-vm" {
+  config.programs.firefox.enable = true;
+}
+```
+
+## Development Workflow
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/tiiuae/ghaf.git
+   cd ghaf
+   ```
+
+2. **Enter development shell**
+   ```bash
+   nix develop
+   ```
+
+3. **Build and test in VM**
+   ```bash
+   nix run .#packages.x86_64-linux.vm-debug
+   ```
+
+4. **Make changes and validate**
+   ```bash
+   nix fmt                    # Format code
+   nix flake check           # Run all checks
+   ```
+
+## Next Steps
+
+<Aside type="tip">
+  Start with the [Prerequisites](/ghaf/dev/getting-started/prerequisites) guide to ensure your development environment is properly configured.
+</Aside>
+
+- [Prerequisites](/ghaf/dev/getting-started/prerequisites) - Set up your development environment
+- [Quick Start](/ghaf/dev/getting-started/quick-start) - Build your first Ghaf system
+- [Project Structure](/ghaf/dev/architecture/project-structure) - Understand the codebase
+- [Creating Modules](/ghaf/dev/guides/creating-modules) - Write NixOS modules for Ghaf

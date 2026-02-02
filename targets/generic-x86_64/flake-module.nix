@@ -12,10 +12,25 @@ let
   inherit (inputs) nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
+
+  # Use flake export - self.lib
+  inherit (self.lib) mkSharedSystemConfig;
+
   generic-x86 =
     variant: extraModules:
     let
-      netvmExtraModules = [
+      # Create the shared configuration that's used by BOTH host AND all VMs
+      sharedSystemConfig = mkSharedSystemConfig {
+        inherit lib variant;
+        sshDaemonEnable = variant == "debug";
+        debugToolsEnable = variant == "debug";
+        nixSetupEnable = variant == "debug";
+        # Logging disabled for generic target (no admin-vm listener configured)
+        loggingEnable = false;
+        timeZone = "UTC";
+      };
+
+      netvmExtensions = [
         {
           microvm.devices = [
             {
@@ -36,7 +51,10 @@ let
       ];
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
+          inherit self inputs;
           inherit (self) lib;
+          # Pass sharedSystemConfig to all modules via specialArgs
+          inherit sharedSystemConfig;
         };
         modules = [
           nixos-generators.nixosModules.raw-efi
@@ -45,6 +63,8 @@ let
           self.nixosModules.profiles
           self.nixosModules.reference-host-demo-apps
           self.nixosModules.reference-programs
+          # Import the shared config in the host
+          sharedSystemConfig
 
           (
             {
@@ -78,9 +98,9 @@ let
                   networkSupport = true;
                 };
 
-                microvm.netvm = {
-                  enable = true;
-                  extraModules = netvmExtraModules;
+                microvm = {
+                  netvm.enable = true;
+                  extensions.netvm = netvmExtensions;
                 };
               };
 

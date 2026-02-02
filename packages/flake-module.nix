@@ -24,24 +24,30 @@
       # exposed to downstream projects
       pkgsDirectory = ./pkgs-by-name;
 
-      # Generate comprehensive documentation with enhanced module coverage
+      # Generate comprehensive documentation with maximum module coverage
+      # This configuration imports key modules to document all options
+      # Note: Some modules have dependencies that can conflict, so we use
+      # profiles-workstation which includes most common modules
       packages.doc =
         let
           cfg = lib.nixosSystem {
-            # Enhanced from lenovo-x1-carbon-gen11-debug with broader module coverage
             specialArgs = {
-              inherit inputs;
+              inherit self inputs;
+              inherit (self) lib;
             };
             modules = [
-              # Original proven working base
-              self.nixosModules.reference-profiles
-              self.nixosModules.disko-debug-partition
-              self.nixosModules.hardware-lenovo-x1-carbon-gen11
+              # profiles-workstation includes: profiles, microvm, common, desktop, development
               self.nixosModules.profiles-workstation
 
-              # Additional modules for comprehensive options coverage
+              # Reference implementations (appvms, services, programs)
+              self.nixosModules.reference-profiles
               self.nixosModules.reference-appvms
-              self.nixosModules.development
+
+              # Hardware-specific module for documentation
+              self.nixosModules.hardware-lenovo-x1-carbon-gen11
+
+              # Partitioning module
+              self.nixosModules.disko-debug-partition
 
               {
                 nixpkgs = {
@@ -59,10 +65,21 @@
                   ];
                 };
 
-                # Enable profiles for broader options documentation
+                # Enable key profiles to trigger all options being documented
                 ghaf = {
+                  # Core profiles
                   profiles.debug.enable = true;
+                  profiles.graphics.enable = true;
+
+                  # Reference implementation profile (enables appvms, services, etc.)
                   reference.profiles.mvp-user-trial.enable = true;
+
+                  # Development features
+                  development = {
+                    nix-setup.enable = true;
+                    debug.tools.enable = true;
+                    ssh.daemon.enable = true;
+                  };
                 };
               }
             ];

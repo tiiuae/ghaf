@@ -13,9 +13,9 @@ in
   options.ghaf.profiles.orin = {
     enable = lib.mkEnableOption "Enable the basic nvidia orin config";
 
-    netvmExtraModules = lib.mkOption {
+    netvmExtensions = lib.mkOption {
       description = ''
-        List of additional modules to be passed to the netvm.
+        List of additional modules to be passed to the netvm via extensions registry.
       '';
       default = [ ];
     };
@@ -86,18 +86,10 @@ in
           netvm = {
             enable = true;
             wifi = false;
-            extraModules = cfg.netvmExtraModules;
           };
 
           adminvm = {
             enable = true;
-            extraModules = [
-              {
-                config.ghaf = {
-                  inherit (config.ghaf) common;
-                };
-              }
-            ];
           };
 
           idsvm = {
@@ -106,12 +98,25 @@ in
 
           guivm = {
             enable = false;
-            #extraModules = cfg.guivmExtraModules;
+            #extensions provided by cfg.guivmExtensions when available
           };
 
           audiovm = {
             enable = false;
             #audio = true;
+          };
+
+          # Extensions registry for VM configuration
+          extensions = {
+            netvm = cfg.netvmExtensions;
+            # Admin VM needs common namespace from host
+            adminvm = [
+              {
+                config.ghaf = {
+                  inherit (config.ghaf) common;
+                };
+              }
+            ];
           };
         };
 

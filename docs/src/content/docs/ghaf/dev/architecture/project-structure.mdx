@@ -1,0 +1,416 @@
+---
+title: Project Structure
+description: Detailed breakdown of the Ghaf repository structure
+---
+
+import { FileTree, Aside, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# Project Structure
+
+This document provides a detailed breakdown of every directory and key file in the Ghaf repository.
+
+## Root Directory
+
+<FileTree>
+- flake.nix           # Main flake entry point
+- flake.lock          # Pinned dependency versions
+- default.nix         # Compatibility shim for non-flake Nix
+- shell.nix           # Development shell definition
+- .version            # Project version number
+- REUSE.toml          # License configuration
+- README.md           # Project readme
+- lib/                # Library functions
+- modules/            # NixOS modules
+- packages/           # Custom packages
+- targets/            # Hardware targets
+- docs/               # Documentation
+- tests/              # Test configurations
+- overlays/           # Nixpkgs overlays
+- nix/                # Flake infrastructure
+- templates/          # Project templates
+- scripts/            # Utility scripts
+</FileTree>
+
+## `lib/` - Library Functions
+
+The `lib/` directory contains reusable functions exported via `self.lib`:
+
+<FileTree>
+- lib/
+  - lib.nix             # Core library extensions
+  - vm.nix              # VM helper functions
+  - builders/
+    - mkLaptopConfiguration.nix  # Laptop builder
+    - mkLaptopInstaller.nix      # Installer builder
+    - README.md                  # Builder documentation
+</FileTree>
+
+### Key Files
+
+**`lib.nix`** - Extends nixpkgs lib with Ghaf-specific functions:
+```nix
+{ lib }:
+{
+  # Custom assertion helpers
+  assertMsg = pred: msg: ...;
+
+  # Path manipulation
+  relativeToRoot = path: ...;
+}
+```
+
+**`vm.nix`** - VM-related helper functions:
+```nix
+{
+  # Get evaluated VM configuration
+  getVmConfig = vmName: hostConfig: ...;
+
+  # Create VM module list
+  mkVmModules = { role, extraModules }: ...;
+}
+```
+
+**`builders/mkLaptopConfiguration.nix`** - Creates laptop configurations:
+```nix
+{
+  inputs,
+  lib,
+  ...
+}:
+machineType: variant: extraModules:
+{
+  hostConfiguration = lib.nixosSystem { ... };
+  name = "${machineType}-${variant}";
+  package = /* disk image derivation */;
+}
+```
+
+## `modules/` - NixOS Modules
+
+The heart of Ghaf - all functionality is implemented as NixOS modules:
+
+<FileTree>
+- modules/
+  - flake-module.nix      # Module export orchestrator
+  - common/               # Base system configuration
+    - flake-module.nix
+    - boot/               # Boot configuration
+    - networking/         # Network setup
+    - security/           # Security features
+    - services/           # System services
+    - systemd/            # Systemd configuration
+    - users/              # User management
+  - desktop/              # Desktop environment
+    - flake-module.nix
+    - graphics/           # Graphics stack
+  - development/          # Development tools
+    - flake-module.nix
+    - debug-tools.nix
+    - ssh.nix
+  - givc/                 # Inter-VM communication
+    - flake-module.nix
+  - hardware/             # Hardware support
+    - flake-module.nix
+    - x86_64-generic/     # Generic x86
+    - aarch64/            # ARM64 support
+    - passthrough/        # Device passthrough
+  - microvm/              # VM orchestration
+    - flake-module.nix
+    - vmConfigurations/   # VM builders
+    - sysvms/             # System VM modules
+    - host/               # Host-side VM config
+  - partitioning/         # Disk layouts
+  - profiles/             # System profiles
+    - flake-module.nix
+    - debug.nix
+    - release.nix
+  - reference/            # Reference implementations
+    - flake-module.nix
+    - appvms/             # Application VMs
+    - profiles/           # Pre-configured profiles
+</FileTree>
+
+### Module Organization Pattern
+
+Each category follows the same pattern:
+
+```
+category/
+├── flake-module.nix    # Exports nixosModules.category
+├── feature1.nix        # Individual feature module
+├── feature2.nix
+└── subcategory/        # Optional grouping
+    └── feature3.nix
+```
+
+### `modules/microvm/vmConfigurations/`
+
+VM builder functions that create isolated guest configurations:
+
+<FileTree>
+- vmConfigurations/
+  - base.nix          # Shared VM base configuration
+  - sharedSystemConfig.nix  # Host→VM value passing
+  - mkAudioVm.nix     # Audio VM builder
+  - mkNetVm.nix       # Network VM builder
+  - mkGuiVm.nix       # GUI VM builder
+  - mkAdminVm.nix     # Admin VM builder
+  - mkIdsVm.nix       # IDS VM builder
+  - mkAppVm.nix       # Application VM builder
+  - roles/
+    - audio.nix       # Audio role module
+    - net.nix         # Network role module
+</FileTree>
+
+Each `mk*Vm.nix` follows this structure:
+
+```nix
+# mkAudioVm.nix
+{
+  config,       # Host configuration
+  lib,
+  inputs,
+  sharedSystemConfig,
+  ...
+}:
+let
+  audiovm = lib.nixosSystem {
+    specialArgs = {
+      inherit inputs sharedSystemConfig;
+      inherit (inputs.self) lib;
+    };
+    modules = [
+      ./base.nix
+      ./roles/audio.nix
+      { /* audio-specific config */ }
+    ];
+  };
+in {
+  microvm.vms.audio-vm.evaluatedConfig = audiovm;
+}
+```
+
+## `packages/` - Custom Packages
+
+Ghaf-specific packages following nixpkgs conventions:
+
+<FileTree>
+- packages/
+  - flake-module.nix      # Package exports
+  - own-pkgs-overlay.nix  # Overlay definition
+  - pkgs-by-name/         # Nixpkgs pkgs-by-name structure
+    - g/
+      - ghaf-audio-control/
+        - package.nix
+      - ghaf-installer/
+        - package.nix
+    - f/
+      - flash-script/
+        - package.nix
+</FileTree>
+
+### Adding a New Package
+
+Create `packages/pkgs-by-name/<first-letter>/<name>/package.nix`:
+
+```nix
+{
+  lib,
+  stdenv,
+  fetchFromGitHub,
+  ...
+}:
+stdenv.mkDerivation {
+  pname = "my-package";
+  version = "1.0.0";
+  src = fetchFromGitHub { ... };
+  # ...
+}
+```
+
+The package is automatically available as `pkgs.my-package`.
+
+## `targets/` - Hardware Targets
+
+Hardware-specific configurations that combine modules:
+
+<FileTree>
+- targets/
+  - laptop/
+    - flake-module.nix    # Laptop targets (X1, Dell, etc.)
+  - vm/
+    - flake-module.nix    # QEMU VM target
+  - nvidia-jetson-orin/
+    - orin-configuration-builder.nix
+    - flake-module.nix
+    - optee.nix
+  - generic-x86_64/
+    - flake-module.nix
+  - imx8mp-evk/
+    - flake-module.nix
+</FileTree>
+
+### Target Structure
+
+Each target directory contains:
+
+1. **`flake-module.nix`** - Exports `nixosConfigurations` and `packages`
+2. **Builder calls** - Uses `lib/builders/` functions
+3. **Hardware modules** - Target-specific hardware configuration
+
+Example target:
+
+```nix
+# targets/laptop/flake-module.nix
+{ lib, self, inputs, ... }:
+let
+  laptop-configuration = self.builders.mkLaptopConfiguration {
+    inherit self inputs;
+    inherit (self) lib;
+  };
+
+  targets = [
+    (laptop-configuration "lenovo-x1-carbon-gen11" "debug" [
+      self.nixosModules.hardware-lenovo-x1-carbon-gen11
+    ])
+  ];
+in {
+  flake = {
+    nixosConfigurations = lib.listToAttrs (map (t: {
+      name = t.name;
+      value = t.hostConfiguration;
+    }) targets);
+  };
+}
+```
+
+## `docs/` - Documentation
+
+Astro Starlight documentation site:
+
+<FileTree>
+- docs/
+  - astro.config.mjs     # Site configuration
+  - package.json         # Node dependencies
+  - default.nix          # Nix build expression
+  - src/
+    - content/
+      - docs/
+        - ghaf/          # Ghaf documentation
+          - dev/         # Developer docs
+          - overview/    # Architecture docs
+        - givc/          # GIVC documentation
+    - styles/
+      - custom.css       # Custom styling
+  - public/              # Static assets
+</FileTree>
+
+## `overlays/` - Nixpkgs Overlays
+
+Modifications to nixpkgs packages:
+
+<FileTree>
+- overlays/
+  - flake-module.nix       # Overlay exports
+  - default.nix            # Main overlay
+  - cross-compilation.nix  # Cross-compile fixes
+  - custom-packages.nix    # Package overrides
+</FileTree>
+
+### Using Overlays
+
+```nix
+# In a configuration
+{
+  nixpkgs.overlays = [
+    inputs.ghaf.overlays.default
+    inputs.ghaf.overlays.cross-compilation
+  ];
+}
+```
+
+## `nix/` - Flake Infrastructure
+
+Build system configuration:
+
+<FileTree>
+- nix/
+  - flake-module.nix     # flake-parts import
+  - treefmt.nix          # Code formatter config
+</FileTree>
+
+## `templates/` - Project Templates
+
+Starter templates for downstream projects:
+
+<FileTree>
+- templates/
+  - flake-module.nix
+  - target-boilerplate/
+    - flake.nix          # Template flake
+</FileTree>
+
+### Using Templates
+
+```bash
+nix flake new --template github:tiiuae/ghaf#target-boilerplate my-project
+```
+
+## `tests/` - Test Configurations
+
+NixOS test configurations:
+
+<FileTree>
+- tests/
+  - flake-module.nix
+  - installer.nix        # Installer test
+  - firewall.nix         # Firewall test
+</FileTree>
+
+## Key Configuration Files
+
+### `flake.nix`
+
+The main entry point that ties everything together:
+
+```nix
+{
+  inputs = { /* external dependencies */ };
+
+  outputs = inputs @ { flake-parts, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        ./nix/flake-module.nix
+        ./modules/flake-module.nix
+        ./packages/flake-module.nix
+        ./targets/laptop/flake-module.nix
+        # ...
+      ];
+
+      flake = {
+        lib = import ./lib/lib.nix { inherit (inputs.nixpkgs) lib; };
+        builders = { /* exported builders */ };
+      };
+    };
+}
+```
+
+### `REUSE.toml`
+
+License configuration for all files:
+
+```toml
+version = 1
+SPDX-PackageName = "Ghaf Framework"
+
+[[annotations]]
+path = "**/*.nix"
+SPDX-FileCopyrightText = "2022-2026 TII (SSRC) and the Ghaf contributors"
+SPDX-License-Identifier = "Apache-2.0"
+```
+
+## Next Steps
+
+- [Module Layers](/ghaf/dev/architecture/module-layers) - Understand the 5-layer architecture
+- [VM Architecture](/ghaf/dev/architecture/vm-architecture) - How VMs are composed
+- [Creating Modules](/ghaf/dev/guides/creating-modules) - Write your first module

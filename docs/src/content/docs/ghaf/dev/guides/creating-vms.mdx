@@ -1,0 +1,518 @@
+---
+title: Creating VMs
+description: How to create new virtual machines in Ghaf
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# Creating VMs
+
+This guide covers how to create new virtual machines in Ghaf, both system VMs and application VMs.
+
+## VM Types Overview
+
+| Type | Purpose | Complexity | Use Case |
+|------|---------|------------|----------|
+| **Application VM** | Isolate a single application | Low | Most use cases |
+| **System VM** | Core system functionality | High | Network, audio, graphics |
+
+<Aside type="tip">
+  For most use cases, create an **Application VM**. System VMs require deep understanding of device passthrough and system architecture.
+</Aside>
+
+## Creating an Application VM
+
+Application VMs are the simplest way to add isolated applications.
+
+<Steps>
+1. **Create the VM definition**
+
+   Create a new file in `modules/reference/appvms/`:
+
+   ```nix
+   # modules/reference/appvms/my-app.nix
+   {
+     pkgs,
+     lib,
+     config,
+     ...
+   }:
+   {
+     # Required properties
+     name = "my-app";            # Max 8 characters
+     packages = [ pkgs.myApp ];  # Packages to include
+     macAddress = "02:00:00:03:10:01";  # Unique MAC address
+     ramMb = 2048;               # Memory in MB
+     cores = 2;                  # CPU cores
+
+     # Optional: Additional configuration
+     extraModules = [{
+       # Any NixOS configuration
+       environment.variables.MY_VAR = "value";
+     }];
+   }
+   ```
+
+2. **Register the VM**
+
+   Add to `modules/reference/appvms/default.nix`:
+
+   ```nix
+   {
+     options.ghaf.reference.appvms = {
+       # Add option
+       my-app-vm = lib.mkEnableOption "Enable the my-app appvm";
+     };
+
+     config.ghaf.reference.appvms.vms =
+       # Add to VM list
+       (lib.optionals cfg.my-app-vm [(import ./my-app.nix {inherit pkgs lib config;})])
+       ++ # ... other VMs
+     ;
+   }
+   ```
+
+3. **Enable in a profile**
+
+   Add to a profile like `modules/reference/profiles/mvp-user-trial.nix`:
+
+   ```nix
+   {
+     ghaf.reference.appvms.my-app-vm = true;
+   }
+   ```
+
+4. **Add networking**
+
+   Register in `modules/common/networking/hosts.nix`:
+
+   ```nix
+   {
+     ip = 110;  # Unique IP (192.168.101.110)
+     name = "my-app-vm";
+   }
+   ```
+
+5. **Add desktop launcher** (optional)
+
+   In `modules/common/services/desktop.nix`:
+
+   ```nix
+   {
+     name = "My App";
+     path = "${pkgs.myApp}/bin/my-app";
+     icon = "my-app-icon";
+   }
+   ```
+</Steps>
+
+### Application VM Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | string | Yes | VM hostname (≤8 chars) |
+| `packages` | list | Yes | Packages to install |
+| `macAddress` | string | Yes | Unique MAC address |
+| `ramMb` | int | Yes | Memory allocation |
+| `cores` | int | Yes | CPU cores |
+| `extraModules` | list | No | Additional NixOS config |
+| `borderColor` | string | No | Window border color |
+
+## Creating a System VM
+
+System VMs provide core functionality and require more setup.
+
+<Aside type="caution">
+  Only create system VMs when you need:
+  - Hardware device passthrough
+  - System-level services shared by other VMs
+  - Core platform functionality
+</Aside>
+
+### System VM Architecture
+
+System VMs use the 5-layer architecture:
+
+```
+┌─────────────────────────────────────────┐
+│ Layer 5: Target extraModules            │
+├─────────────────────────────────────────┤
+│ Layer 4: Profile settings               │
+├─────────────────────────────────────────┤
+│ Layer 3: Role module (roles/*.nix)      │
+├─────────────────────────────────────────┤
+│ Layer 2: sharedSystemConfig             │
+├─────────────────────────────────────────┤
+│ Layer 1: base.nix                       │
+└─────────────────────────────────────────┘
+```
+
+### Step-by-Step: System VM
+
+<Steps>
+1. **Create the role module**
+
+   ```nix
+   # modules/microvm/vmConfigurations/roles/custom.nix
+   {
+     config,
+     lib,
+     pkgs,
+     sharedSystemConfig,
+     ...
+   }:
+   {
+     # Role-specific services
+     services.customService = {
+       enable = true;
+       debug = sharedSystemConfig.debugEnable;
+     };
+
+     # Role-specific packages
+     environment.systemPackages = with pkgs; [
+       customTool
+     ];
+   }
+   ```
+
+2. **Create the VM builder**
+
+   ```nix
+   # modules/microvm/vmConfigurations/mkCustomVm.nix
+   {
+     config,
+     lib,
+     inputs,
+     sharedSystemConfig,
+     ...
+   }:
+   let
+     cfg = config.ghaf.virtualization.microvm.customvm;
+
+     customvm = lib.nixosSystem {
+       system = "x86_64-linux";
+
+       specialArgs = {
+         inherit inputs sharedSystemConfig;
+         inherit (inputs.self) lib;
+       };
+
+       modules = [
+         # Layer 1: Base
+         ./base.nix
+
+         # Layer 3: Role
+         ./roles/custom.nix
+
+         # VM-specific configuration
+         {
+           networking.hostName = "custom-vm";
+
+           microvm = {
+             mem = cfg.memory;
+             vcpu = cfg.cores;
+
+             # Device passthrough (if needed)
+             devices = cfg.passthroughDevices;
+           };
+         }
+
+         # Kernel module for VM guests
+         inputs.self.nixosModules.hardware-x86_64-guest-kernel
+
+         # Layer 5: Extra modules
+       ] ++ cfg.extraModules;
+     };
+   in
+   {
+     # Assertions
+     assertions = [
+       {
+         assertion = sharedSystemConfig != null;
+         message = "custom-vm requires sharedSystemConfig via specialArgs";
+       }
+     ];
+
+     # Register with microvm
+     microvm.vms.custom-vm = {
+       evaluatedConfig = customvm;
+       autostart = cfg.enable;
+     };
+   }
+   ```
+
+3. **Create the host module**
+
+   ```nix
+   # modules/microvm/sysvms/customvm.nix
+   {
+     config,
+     lib,
+     ...
+   }:
+   let
+     cfg = config.ghaf.virtualization.microvm.customvm;
+   in
+   {
+     options.ghaf.virtualization.microvm.customvm = {
+       enable = lib.mkEnableOption "custom VM";
+
+       memory = lib.mkOption {
+         type = lib.types.int;
+         default = 1024;
+         description = "Memory in MB";
+       };
+
+       cores = lib.mkOption {
+         type = lib.types.int;
+         default = 2;
+         description = "CPU cores";
+       };
+
+       passthroughDevices = lib.mkOption {
+         type = lib.types.listOf lib.types.attrs;
+         default = [];
+         description = "PCI devices to passthrough";
+       };
+
+       extraModules = lib.mkOption {
+         type = lib.types.listOf lib.types.anything;
+         default = [];
+         description = "Extra NixOS modules for the VM";
+       };
+     };
+
+     config = lib.mkIf cfg.enable {
+       # Import the builder
+       imports = [ ../vmConfigurations/mkCustomVm.nix ];
+
+       # Host-side configuration for this VM
+       # (networking, firewall rules, etc.)
+     };
+   }
+   ```
+
+4. **Register the module**
+
+   Add to `modules/microvm/flake-module.nix`:
+
+   ```nix
+   {
+     flake.nixosModules.microvm.imports = [
+       # ... existing imports
+       ./sysvms/customvm.nix
+     ];
+   }
+   ```
+
+5. **Enable in target**
+
+   ```nix
+   {
+     ghaf.virtualization.microvm.customvm = {
+       enable = true;
+       memory = 2048;
+       cores = 4;
+     };
+   }
+   ```
+</Steps>
+
+## Device Passthrough
+
+System VMs often need hardware access:
+
+### PCI Passthrough
+
+```nix
+{
+  microvm.devices = [
+    {
+      bus = "pci";
+      path = "0000:00:1f.3";  # Audio controller
+    }
+    {
+      bus = "pci";
+      path = "0000:00:02.0";  # GPU
+    }
+  ];
+}
+```
+
+### USB Passthrough
+
+```nix
+{
+  microvm.devices = [
+    {
+      bus = "usb";
+      path = "1-1";  # USB device path
+    }
+  ];
+}
+```
+
+### Finding Device Paths
+
+```bash
+# List PCI devices
+lspci -nn
+
+# List USB devices
+lsusb
+
+# Show IOMMU groups
+find /sys/kernel/iommu_groups/ -type l | sort -V
+```
+
+## VM Communication
+
+### GIVC (Recommended)
+
+```nix
+# In the VM
+{
+  ghaf.givc = {
+    enable = true;
+    appvm = {
+      enable = true;
+      applications = [{
+        name = "my-app";
+        command = "${pkgs.myApp}/bin/my-app";
+      }];
+    };
+  };
+}
+```
+
+### Direct Network
+
+```nix
+# VMs can communicate via internal network
+{
+  networking = {
+    interfaces.virbr0.ipv4.addresses = [{
+      address = "192.168.101.X";
+      prefixLength = 24;
+    }];
+  };
+}
+```
+
+### Shared Filesystem
+
+```nix
+{
+  microvm.shares = [{
+    proto = "virtiofs";
+    tag = "shared-data";
+    source = "/var/shared";
+    mountPoint = "/mnt/shared";
+  }];
+}
+```
+
+## Testing VMs
+
+### Build Test
+
+```bash
+# Check evaluation
+nix eval .#nixosConfigurations.lenovo-x1-carbon-gen11-debug.config.microvm.vms
+
+# Build dry-run
+nix build .#lenovo-x1-carbon-gen11-debug --dry-run
+```
+
+### Runtime Test
+
+```bash
+# Run in VM
+nix run .#packages.x86_64-linux.vm-debug
+
+# Check VM status (inside ghaf)
+ghaf-vms -l
+```
+
+### Debug VM
+
+```bash
+# Attach to console
+microvm -c custom-vm
+
+# Check logs
+journalctl -u microvm@custom-vm
+```
+
+## Best Practices
+
+### Memory Allocation
+
+```nix
+# Set reasonable defaults
+memory = lib.mkOption {
+  type = lib.types.int;
+  default = 1024;  # Start small
+  description = "Memory in MB. Increase for memory-intensive applications.";
+};
+```
+
+### CPU Allocation
+
+```nix
+# Don't over-allocate
+cores = lib.mkOption {
+  type = lib.types.int;
+  default = 2;
+  description = "CPU cores. Host needs cores too!";
+};
+```
+
+### Autostart
+
+```nix
+# Only autostart essential VMs
+microvm.vms.custom-vm = {
+  evaluatedConfig = customvm;
+  autostart = cfg.enable && cfg.autostart;  # Configurable
+};
+```
+
+## Common Patterns
+
+### Conditional VM Features
+
+```nix
+{
+  config = lib.mkMerge [
+    # Base configuration
+    { /* ... */ }
+
+    # Debug-only features
+    (lib.mkIf sharedSystemConfig.debugEnable {
+      services.sshd.enable = true;
+    })
+
+    # Optional feature
+    (lib.mkIf cfg.advancedFeature.enable {
+      services.advanced.enable = true;
+    })
+  ];
+}
+```
+
+### VM with Optional Passthrough
+
+```nix
+{
+  microvm.devices = lib.optionals (cfg.passthroughDevice != null) [
+    { bus = "pci"; path = cfg.passthroughDevice; }
+  ];
+}
+```
+
+## Next Steps
+
+- [Extending VMs](/ghaf/dev/guides/extending-vms) - Customize existing VMs
+- [VM Architecture](/ghaf/dev/architecture/vm-architecture) - Deep dive into VM structure
+- [Creating App VMs](/ghaf/dev/ref/creating_appvm) - Detailed app VM guide

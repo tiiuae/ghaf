@@ -223,13 +223,33 @@
       # Create the extended lib
       ghafLib = import ./lib { inherit inputs; };
       extendedLib = inputs.nixpkgs.lib.extend ghafLib;
+
+      # Import VM builders and shared config
+      vmBuilders = {
+        mkAudioVm = import ./modules/microvm/vmConfigurations/mkAudioVm.nix;
+        mkNetVm = import ./modules/microvm/vmConfigurations/mkNetVm.nix;
+        mkGuiVm = import ./modules/microvm/vmConfigurations/mkGuiVm.nix;
+        mkAdminVm = import ./modules/microvm/vmConfigurations/mkAdminVm.nix;
+        mkIdsVm = import ./modules/microvm/vmConfigurations/mkIdsVm.nix;
+        mkAppVm = import ./modules/microvm/vmConfigurations/mkAppVm.nix;
+      };
+      mkSharedSystemConfig = import ./modules/microvm/vmConfigurations/sharedSystemConfig.nix;
+
+      # Common host bindings factory - creates shared VM configuration module
+      # Takes hostConfig as first arg, only needs vmName + tpmIndex
+      mkCommonHostBindings = import ./lib/mkCommonHostBindings.nix;
+
+      # Final lib with VM builders consolidated
+      finalLib = extendedLib // {
+        inherit vmBuilders mkSharedSystemConfig mkCommonHostBindings;
+      };
     in
     flake-parts.lib.mkFlake
       {
         inherit inputs;
         # Pass the extended lib via specialArgs for immediate access
         specialArgs = {
-          lib = extendedLib;
+          lib = finalLib;
         };
       }
       {
@@ -253,7 +273,7 @@
           ./tests/flake-module.nix
         ];
 
-        # Export the extended lib for explicit use
-        flake.lib = extendedLib;
+        # Export the final lib with vmBuilders consolidated
+        flake.lib = finalLib;
       };
 }

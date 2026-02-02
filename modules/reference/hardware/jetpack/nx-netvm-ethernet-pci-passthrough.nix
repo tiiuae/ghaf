@@ -34,7 +34,7 @@ in
       echo "PCI device ${ethPciDevice} is present."'
     '';
 
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    ghaf.virtualization.microvm.extensions.netvm = [
       {
         microvm.devices = [
           {

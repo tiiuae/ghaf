@@ -1,0 +1,505 @@
+---
+title: Creating Hardware Targets
+description: How to add support for new hardware platforms in Ghaf
+---
+
+import { Aside, Steps } from "@astrojs/starlight/components";
+
+# Creating Hardware Targets
+
+This guide covers how to add support for new hardware platforms in Ghaf.
+
+## Target Architecture
+
+A hardware target combines:
+
+1. **Hardware module** - Device-specific configuration
+2. **Target configuration** - Combines modules with builders
+3. **Flake outputs** - Exports the configuration
+
+```
+targets/my-device/
+├── flake-module.nix      # Target definition & exports
+├── hardware.nix          # Hardware-specific module
+└── my-config.nix         # Optional additional config
+```
+
+## Prerequisites
+
+Before creating a target:
+
+1. **Identify hardware requirements**:
+   - CPU architecture (x86_64, aarch64, riscv64)
+   - Device passthrough needs
+   - Kernel requirements
+   - Firmware dependencies
+
+2. **Test basic NixOS first**:
+   - Ensure NixOS boots on the device
+   - Identify kernel modules needed
+   - Document device paths
+
+## Step-by-Step: x86_64 Laptop Target
+
+<Steps>
+1. **Create target directory**
+
+   ```bash
+   mkdir -p targets/my-laptop
+   ```
+
+2. **Create hardware module**
+
+   ```nix
+   # modules/hardware/my-laptop.nix
+   {
+     config,
+     lib,
+     pkgs,
+     ...
+   }:
+   {
+     options.ghaf.hardware.myLaptop.enable =
+       lib.mkEnableOption "My Laptop hardware support";
+
+     config = lib.mkIf config.ghaf.hardware.myLaptop.enable {
+       # Boot configuration
+       boot = {
+         kernelModules = [ "kvm-intel" ];
+         initrd.kernelModules = [ "i915" ];
+       };
+
+       # Hardware-specific firmware
+       hardware.firmware = [ pkgs.linux-firmware ];
+
+       # Power management
+       services.thermald.enable = true;
+
+       # Device passthrough configuration
+       ghaf.hardware.definition = {
+         network = {
+           # WiFi device for net-vm
+           pciPath = "0000:00:14.3";
+         };
+         gpu = {
+           # GPU for gui-vm
+           pciPath = "0000:00:02.0";
+         };
+       };
+     };
+   }
+   ```
+
+3. **Register hardware module**
+
+   Add to `modules/hardware/flake-module.nix`:
+
+   ```nix
+   {
+     flake.nixosModules = {
+       hardware-my-laptop.imports = [
+         ./my-laptop.nix
+       ];
+     };
+   }
+   ```
+
+4. **Create target flake-module**
+
+   ```nix
+   # targets/my-laptop/flake-module.nix
+   {
+     lib,
+     self,
+     inputs,
+     ...
+   }:
+   let
+     system = "x86_64-linux";
+
+     # Get the laptop builder
+     laptop-configuration = self.builders.mkLaptopConfiguration {
+       inherit self inputs;
+       inherit (self) lib;
+     };
+
+     laptop-installer = self.builders.mkLaptopInstaller {
+       inherit self;
+       inherit (self) lib;
+     };
+
+     # Define target configurations
+     target-configs = [
+       # Debug build
+       (laptop-configuration "my-laptop" "debug" [
+         self.nixosModules.hardware-my-laptop
+         {
+           ghaf.hardware.myLaptop.enable = true;
+           ghaf.reference.profiles.mvp-user-trial.enable = true;
+         }
+       ])
+
+       # Release build
+       (laptop-configuration "my-laptop" "release" [
+         self.nixosModules.hardware-my-laptop
+         {
+           ghaf.hardware.myLaptop.enable = true;
+           ghaf.profiles.release.enable = true;
+         }
+       ])
+     ];
+
+     # Create installers
+     installers = map (target:
+       laptop-installer target.name target.package []
+     ) target-configs;
+   in {
+     flake = {
+       # Export NixOS configurations
+       nixosConfigurations = lib.listToAttrs (map (t: {
+         name = t.name;
+         value = t.hostConfiguration;
+       }) target-configs);
+
+       # Export packages
+       packages.${system} = lib.listToAttrs (
+         # Target images
+         (map (t: { name = t.name; value = t.package; }) target-configs)
+         ++
+         # Installer images
+         (map (t: { name = t.name; value = t.package; }) installers)
+       );
+     };
+   }
+   ```
+
+5. **Register target**
+
+   Add to main `flake.nix`:
+
+   ```nix
+   {
+     imports = [
+       # ... existing imports
+       ./targets/my-laptop/flake-module.nix
+     ];
+   }
+   ```
+
+6. **Build and test**
+
+   ```bash
+   # Evaluate
+   nix flake show | grep my-laptop
+
+   # Build
+   nix build .#my-laptop-debug
+
+   # Create installer
+   nix build .#my-laptop-debug-installer
+   ```
+</Steps>
+
+## Step-by-Step: Embedded Target (AArch64)
+
+<Steps>
+1. **Create target directory**
+
+   ```bash
+   mkdir -p targets/my-embedded
+   ```
+
+2. **Create hardware module**
+
+   ```nix
+   # modules/hardware/my-embedded.nix
+   {
+     config,
+     lib,
+     pkgs,
+     ...
+   }:
+   {
+     options.ghaf.hardware.myEmbedded.enable =
+       lib.mkEnableOption "My embedded device support";
+
+     config = lib.mkIf config.ghaf.hardware.myEmbedded.enable {
+       # ARM-specific boot
+       boot.loader.grub.enable = false;
+       boot.loader.generic-extlinux-compatible.enable = true;
+
+       # Device tree
+       hardware.deviceTree = {
+         enable = true;
+         name = "vendor/my-device.dtb";
+       };
+
+       # Kernel configuration
+       boot.kernelPackages = pkgs.linuxPackages_latest;
+
+       # Hardware-specific modules
+       boot.kernelModules = [ "spi-dev" "i2c-dev" ];
+     };
+   }
+   ```
+
+3. **Create target builder**
+
+   For non-laptop targets, create a custom builder:
+
+   ```nix
+   # targets/my-embedded/builder.nix
+   {
+     inputs,
+     lib,
+     self,
+   }:
+   name: variant: extraModules:
+   let
+     sharedSystemConfig = self.lib.mkSharedSystemConfig {
+       debugEnable = variant == "debug";
+       loggingEnable = false;
+       storagevmEnable = false;
+     };
+
+     hostConfiguration = lib.nixosSystem {
+       system = "aarch64-linux";
+
+       specialArgs = {
+         inherit self inputs sharedSystemConfig;
+         inherit (self) lib;
+       };
+
+       modules = [
+         self.nixosModules.profiles
+         self.nixosModules.hardware-aarch64-generic
+         {
+           networking.hostName = name;
+         }
+       ] ++ extraModules;
+     };
+   in {
+     inherit hostConfiguration name;
+     package = hostConfiguration.config.system.build.sdImage;
+   };
+   ```
+
+4. **Create flake-module**
+
+   ```nix
+   # targets/my-embedded/flake-module.nix
+   {
+     lib,
+     self,
+     inputs,
+     ...
+   }:
+   let
+     system = "aarch64-linux";
+
+     mkEmbeddedConfig = import ./builder.nix {
+       inherit inputs lib self;
+     };
+
+     target = mkEmbeddedConfig "my-embedded" "debug" [
+       self.nixosModules.hardware-my-embedded
+       { ghaf.hardware.myEmbedded.enable = true; }
+     ];
+   in {
+     flake = {
+       nixosConfigurations.${target.name} = target.hostConfiguration;
+       packages.${system}.${target.name} = target.package;
+     };
+   }
+   ```
+</Steps>
+
+## Hardware Definition Module
+
+Ghaf uses a structured hardware definition:
+
+```nix
+{
+  ghaf.hardware.definition = {
+    # Network device for net-vm
+    network = {
+      pciPath = "0000:00:14.3";
+      kernelModules = [ "iwlwifi" ];
+    };
+
+    # GPU for gui-vm
+    gpu = {
+      pciPath = "0000:00:02.0";
+      kernelModules = [ "i915" ];
+    };
+
+    # Audio for audio-vm
+    audio = {
+      pciPath = "0000:00:1f.3";
+    };
+
+    # USB controllers
+    usb = {
+      internal = "0000:00:14.0";
+      external = "0000:00:0d.0";
+    };
+  };
+}
+```
+
+## Finding Device Information
+
+### PCI Devices
+
+```bash
+# List all PCI devices
+lspci -nn
+
+# Show IOMMU groups (for passthrough)
+#!/bin/bash
+for d in /sys/kernel/iommu_groups/*/devices/*; do
+  n=$(basename $(dirname $(dirname $d)))
+  echo "IOMMU Group $n: $(lspci -nns ${d##*/})"
+done
+```
+
+### Device Tree (ARM)
+
+```bash
+# List device tree
+ls /proc/device-tree/
+
+# Find specific device
+find /proc/device-tree -name "compatible" -exec cat {} \; -print
+```
+
+### Kernel Modules
+
+```bash
+# List loaded modules
+lsmod
+
+# Find module for device
+lspci -k
+```
+
+## Testing Targets
+
+### Dry Run Evaluation
+
+```bash
+# Quick syntax check
+nix flake check
+
+# Evaluate specific target
+nix eval .#nixosConfigurations.my-device-debug.config.networking.hostName
+```
+
+### Full Build
+
+```bash
+# Build target
+nix build .#my-device-debug
+
+# Build with verbose output
+nix build .#my-device-debug -L
+```
+
+### Hardware Testing
+
+1. **Flash image to device**:
+   ```bash
+   sudo dd if=result/... of=/dev/sdX bs=4M status=progress
+   ```
+
+2. **Boot and verify**:
+   - Check dmesg for errors
+   - Verify devices recognized
+   - Test VM functionality
+
+## Best Practices
+
+### Modular Configuration
+
+```nix
+# Separate concerns
+{
+  imports = [
+    ./boot.nix      # Boot configuration
+    ./devices.nix   # Device passthrough
+    ./power.nix     # Power management
+  ];
+}
+```
+
+### Variant Support
+
+```nix
+# Support both debug and release
+target-configs = [
+  (builder "device" "debug" [ ... ])
+  (builder "device" "release" [ ... ])
+];
+```
+
+### Documentation
+
+```nix
+{
+  options.ghaf.hardware.myDevice = {
+    enable = lib.mkEnableOption ''
+      Support for My Device.
+
+      Tested with:
+      - Firmware version X.Y
+      - Kernel 6.x
+
+      Known issues:
+      - Suspend not working (WIP)
+    '';
+  };
+}
+```
+
+## Common Issues
+
+### IOMMU Groups
+
+If devices are in the same IOMMU group, they must be passed through together:
+
+```nix
+{
+  # Pass through entire IOMMU group
+  microvm.devices = [
+    { bus = "pci"; path = "0000:00:1f.0"; }
+    { bus = "pci"; path = "0000:00:1f.3"; }  # Same group
+  ];
+}
+```
+
+### Firmware Loading
+
+```nix
+{
+  # Ensure firmware is available early
+  hardware.firmware = [ pkgs.linux-firmware ];
+  boot.initrd.availableKernelModules = [ "firmware_class" ];
+}
+```
+
+### Cross-Compilation
+
+For AArch64 targets built on x86_64:
+
+```nix
+{
+  nixpkgs.buildPlatform = "x86_64-linux";
+  nixpkgs.hostPlatform = "aarch64-linux";
+}
+```
+
+## Next Steps
+
+- [Module Layers](/ghaf/dev/architecture/module-layers) - Understand configuration layers
+- [VM Architecture](/ghaf/dev/architecture/vm-architecture) - VM composition
+- [Hardware Reference](/ghaf/dev/ref/hw-config) - Hardware configuration options

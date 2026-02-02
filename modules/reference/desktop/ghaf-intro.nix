@@ -55,7 +55,7 @@ in
       }
     ];
 
-    ghaf.virtualization.microvm.guivm.extraModules = [
+    ghaf.virtualization.microvm.extensions.guivm = [
       {
         # First-boot autostart trigger after COSMIC initial setup
         systemd.user.paths.ghaf-intro-autostart = {

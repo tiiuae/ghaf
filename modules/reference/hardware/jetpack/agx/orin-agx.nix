@@ -55,7 +55,7 @@
     };
   };
 
-  ghaf.profiles.orin.netvmExtraModules = [
+  ghaf.profiles.orin.netvmExtensions = [
     {
       # The Nvidia Orin hardware dependent configuration is in
       # modules/reference/hardware/jetpack Please refer to that

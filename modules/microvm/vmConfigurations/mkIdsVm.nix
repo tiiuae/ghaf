@@ -1,0 +1,95 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# IDS VM Builder - Creates a standalone, extensible IDS VM configuration
+#
+# This function creates a base IDS VM configuration using lib.nixosSystem.
+# The result can be extended via .extendModules for composition.
+#
+# Note: `inputs` is passed via specialArgs to lib.nixosSystem, so all modules
+# (including base.nix) receive it directly - no currying needed.
+#
+{ inputs, lib }:
+{
+  # Target system architecture
+  system,
+  # Shared configuration module (debug/release settings, timezone, etc.)
+  systemConfigModule ? { },
+  # Additional modules to include
+  extraModules ? [ ],
+}:
+let
+  vmName = "ids-vm";
+
+  # IDS VM specific configuration module (Layer 2: VM role)
+  idsVmModule =
+    {
+      config,
+      lib,
+      pkgs,
+      ...
+    }:
+    {
+      imports = [
+        ../sysvms/idsvm/mitmproxy
+      ];
+
+      networking.hostName = lib.mkDefault vmName;
+
+      ghaf = {
+        # System VM type
+        type = "system-vm";
+
+        # Networking - IDS is a gateway
+        virtualization.microvm.vm-networking = {
+          enable = true;
+          isGateway = true;
+          inherit vmName;
+        };
+      };
+
+      environment.systemPackages = [
+        pkgs.snort # IDS functionality
+      ]
+      ++ (lib.optional (config.ghaf.profiles.debug.enable or false) pkgs.tcpdump);
+
+      microvm = {
+        optimize.enable = true;
+        vcpu = 1;
+        mem = 256;
+      };
+    };
+in
+lib.nixosSystem {
+  inherit system;
+  specialArgs = {
+    inherit lib inputs;
+  };
+  modules = [
+    # Core microvm module
+    inputs.microvm.nixosModules.microvm
+    # Guest kernel for x86_64
+    inputs.self.nixosModules.hardware-x86_64-guest-kernel
+    # Layer 1: Base VM configuration (common defaults) - gets inputs via specialArgs
+    ./base.nix
+    # nixpkgs configuration (must match host settings)
+    {
+      nixpkgs = {
+        hostPlatform.system = system;
+        config = {
+          allowUnfree = true;
+          permittedInsecurePackages = [
+            "jitsi-meet-1.0.8043"
+            "qtwebengine-5.15.19"
+          ];
+        };
+        overlays = [ inputs.self.overlays.default ];
+      };
+    }
+    # Layer 3: Shared system configuration (debug/release, timezone, etc.)
+    systemConfigModule
+    # Layer 2: IDS-specific configuration (VM role)
+    idsVmModule
+  ]
+  ++ extraModules;
+}

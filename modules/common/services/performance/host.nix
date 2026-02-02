@@ -22,6 +22,7 @@ let
     nameValuePair
     types
     ;
+  inherit (pkgs.stdenv.hostPlatform) isx86;
 
   hostSchedulerAssignments = {
     system-vms = {
@@ -40,8 +41,8 @@ let
         "include cgroup=\"/system.slice/system-appvms.slice/*\""
       ];
     };
-    # System services belonging to root
-    system-services = {
+    # System services belonging to root (host-side)
+    host-system-services = {
       nice = 5;
       ioClass = "best-effort";
       ioPrio = 5;
@@ -319,10 +320,12 @@ in
         inherit (cfg.host.scheduler) enable;
         settings = {
           processScheduler = {
+            # Host takes precedence for refresh interval
             refreshInterval = 60;
           };
         };
-        assignments = hostSchedulerAssignments;
+        # Use mkMerge to allow merging with guest assignments
+        assignments = lib.mkMerge [ hostSchedulerAssignments ];
       };
       services.tuned = {
         inherit (cfg.host.tuned) enable;
@@ -395,7 +398,8 @@ in
         in
         lib.listToAttrs (map (profile: nameValuePair "${profile}" (mkPpdService profile)) hostProfiles);
     }
-    (mkIf (cfg.host.thermalLimitMode != "enabled") {
+    # thermald is only available on x86
+    (mkIf (isx86 && cfg.host.thermalLimitMode != "enabled") {
       environment.systemPackages = lib.optionals config.ghaf.profiles.debug.enable [
         # stress test and performance monitoring tool
         pkgs.s-tui

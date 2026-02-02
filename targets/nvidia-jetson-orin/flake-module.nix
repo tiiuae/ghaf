@@ -24,7 +24,7 @@ let
   # setup some commonality between the configurations
   commonModules = [
     (nixos-generators + "/format-module.nix")
-    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+    self.nixosModules.jetpack-format-module
     jetpack-nixos.nixosModules.default
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin

@@ -75,8 +75,8 @@ let
         "exclude cgroup=\"/user.slice/*.slice/*.service/app.slice/*\""
       ];
     };
-    # System services belonging to root
-    system-services = {
+    # System services belonging to root (guest-side)
+    guest-system-services = {
       nice = 7;
       ioClass = "idle";
       matchers = [
@@ -222,18 +222,21 @@ in
         inherit (cfg.gui.scheduler) enable;
         settings = {
           processScheduler = {
-            refreshInterval = 30;
+            refreshInterval = lib.mkDefault 30;
           };
         };
-        assignments = guiVmSchedulerAssignments;
+        # Use mkMerge to allow merging with host assignments
+        assignments = lib.mkMerge [ guiVmSchedulerAssignments ];
       };
       services.tuned = {
         inherit (cfg.gui.tuned) enable;
         ppdSupport = true;
-        settings.profile_dirs = "/etc/tuned/profiles,${
+        # Use mkDefault to allow host settings to take precedence when both are enabled
+        settings.profile_dirs = lib.mkDefault "/etc/tuned/profiles,${
           concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
         }";
-        ppdSettings = {
+        # Use mkDefault to allow host settings to take precedence when both are enabled
+        ppdSettings = lib.mkDefault {
           main.default = "balanced";
           battery = {
             power-saver = "gui-powersave-battery";

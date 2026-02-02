@@ -1,0 +1,445 @@
+---
+title: Extending VMs
+description: How to customize existing VMs using the extensions registry
+---
+
+import { Aside, Steps, Tabs, TabItem } from "@astrojs/starlight/components";
+
+# Extending VMs
+
+This guide covers how to customize existing VMs without modifying Ghaf source code. This is essential for downstream projects.
+
+## Overview
+
+Ghaf provides two mechanisms for extending VMs:
+
+1. **Extensions Registry** - Add configuration to system VMs via `ghaf.virtualization.microvm.extensions.*`
+2. **`extendModules`** - Extend entire configurations (NixOS feature)
+
+<Aside type="note">
+The extensions registry replaced the old `extraModules` options on individual VM modules. This provides a cleaner, centralized approach to VM configuration.
+</Aside>
+
+## Using the Extensions Registry
+
+The extensions registry provides a centralized way to inject configuration into system VMs:
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [
+    {
+      # Any NixOS configuration
+      programs.firefox.enable = true;
+      environment.systemPackages = [ pkgs.vlc ];
+    }
+  ];
+}
+```
+
+### Available Extension Points
+
+| VM | Option Path |
+|----|-------------|
+| GUI VM | `ghaf.virtualization.microvm.extensions.guivm` |
+| Network VM | `ghaf.virtualization.microvm.extensions.netvm` |
+| Audio VM | `ghaf.virtualization.microvm.extensions.audiovm` |
+| Admin VM | `ghaf.virtualization.microvm.extensions.adminvm` |
+| IDS VM | `ghaf.virtualization.microvm.extensions.idsvm` |
+
+### Example: Adding Firefox to GUI VM
+
+```nix
+# In your target configuration
+{
+  ghaf.virtualization.microvm.extensions.guivm = [
+    ({ pkgs, ... }: {
+      programs.firefox = {
+        enable = true;
+        policies = {
+          DisableTelemetry = true;
+          DisableFirefoxStudies = true;
+        };
+      };
+
+      environment.systemPackages = with pkgs; [
+        firefox
+      ];
+    })
+  ];
+}
+```
+
+### Example: Custom Network Configuration
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.netvm = [
+    {
+      # Add VPN support
+      services.openvpn.servers.myVpn = {
+        config = "...";
+      };
+
+      # Additional firewall rules
+      networking.firewall.extraCommands = ''
+        iptables -A INPUT -p tcp --dport 1194 -j ACCEPT
+      '';
+    }
+  ];
+}
+```
+
+## Using extendModules
+
+For deeper customization, use NixOS's `extendModules` function:
+
+```nix
+# Extend an existing configuration
+let
+  baseConfig = inputs.ghaf.nixosConfigurations.lenovo-x1-carbon-gen11-debug;
+
+  extendedConfig = baseConfig.extendModules {
+    modules = [
+      {
+        # Your modifications
+        ghaf.myCustomOption = "value";
+      }
+    ];
+  };
+in {
+  nixosConfigurations.my-laptop = extendedConfig;
+}
+```
+
+### When to Use Each Approach
+
+| Use Case | Approach |
+|----------|----------|
+| Add packages to a VM | Extensions registry |
+| Modify VM settings | Extensions registry |
+| Override host configuration | `extendModules` |
+| Add new VMs | `extendModules` |
+| Change hardware configuration | `extendModules` |
+
+## Downstream Project Patterns
+
+### Pattern 1: Simple VM Customization
+
+```nix
+# downstream/flake.nix
+{
+  inputs.ghaf.url = "github:tiiuae/ghaf";
+
+  outputs = { self, ghaf, nixpkgs, ... }: {
+    nixosConfigurations.my-device =
+      ghaf.nixosConfigurations.lenovo-x1-carbon-gen11-debug.extendModules {
+        modules = [{
+          # Customize GUI VM via extensions registry
+          ghaf.virtualization.microvm.extensions.guivm = [{
+            programs.chromium.enable = true;
+          }];
+
+          # Add custom host packages
+          environment.systemPackages = [
+            nixpkgs.legacyPackages.x86_64-linux.htop
+          ];
+        }];
+      };
+  };
+}
+```
+
+### Pattern 2: Using Ghaf Builders
+
+```nix
+# downstream/flake.nix
+{
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, ... }:
+  let
+    # Get builder with parameters
+    mkLaptopConfiguration = ghaf.builders.mkLaptopConfiguration {
+      inherit (ghaf) self lib;
+      inputs = { inherit ghaf; } // ghaf.inputs;
+    };
+
+    # Create your configuration
+    myLaptop = mkLaptopConfiguration "my-device" "debug" [
+      # Hardware configuration
+      ./hardware.nix
+
+      # VM customizations via extensions registry
+      {
+        ghaf.virtualization.microvm.extensions.guivm = [
+          ./gui-customization.nix
+        ];
+
+        ghaf.virtualization.microvm.extensions.netvm = [
+          ./network-customization.nix
+        ];
+      }
+
+      # Profile selection
+      {
+        ghaf.reference.profiles.mvp-user-trial.enable = true;
+      }
+    ];
+  in {
+    nixosConfigurations.${myLaptop.name} = myLaptop.hostConfiguration;
+    packages.x86_64-linux.${myLaptop.name} = myLaptop.package;
+  };
+}
+```
+
+### Pattern 3: Adding Custom Application VMs
+
+```nix
+{
+  inputs.ghaf.url = "github:tiiuae/ghaf";
+
+  outputs = { self, ghaf, ... }: {
+    nixosConfigurations.my-device =
+      ghaf.nixosConfigurations.lenovo-x1-carbon-gen11-debug.extendModules {
+        modules = [{
+          # Enable your custom app VM
+          ghaf.reference.appvms.my-custom-app = true;
+
+          # Define the app VM
+          ghaf.reference.appvms.vms = [
+            {
+              name = "my-app";
+              packages = [ pkgs.myApplication ];
+              macAddress = "02:00:00:03:99:01";
+              ramMb = 2048;
+              cores = 2;
+            }
+          ];
+        }];
+      };
+  };
+}
+```
+
+## Advanced Customization
+
+### Overriding VM Resources
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    microvm = {
+      mem = 8192;   # Override memory
+      vcpu = 8;     # Override CPU cores
+    };
+  }];
+}
+```
+
+### Adding Device Passthrough
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [{
+    microvm.devices = [
+      {
+        bus = "pci";
+        path = "0000:01:00.0";  # Additional GPU
+      }
+    ];
+  }];
+}
+```
+
+### Conditional Configuration
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [
+    ({ config, lib, ... }: {
+      # Only enable in debug builds
+      programs.htop.enable = lib.mkIf
+        config.ghaf.profiles.debug.enable
+        true;
+    })
+  ];
+}
+```
+
+### Using Shared Values
+
+Access `sharedSystemConfig` in VM modules:
+
+```nix
+{
+  ghaf.virtualization.microvm.extensions.guivm = [
+    ({ sharedSystemConfig, ... }: {
+      # Use shared debug state
+      services.myService.debug = sharedSystemConfig.debugEnable;
+
+      # Use shared logging configuration
+      services.myService.logging = sharedSystemConfig.loggingEnable;
+    })
+  ];
+}
+```
+
+## Complete Downstream Example
+
+```nix
+# downstream/flake.nix
+{
+  description = "My Ghaf-based project";
+
+  inputs = {
+    ghaf.url = "github:tiiuae/ghaf";
+    nixpkgs.follows = "ghaf/nixpkgs";
+  };
+
+  outputs = { self, ghaf, nixpkgs, ... }:
+  let
+    system = "x86_64-linux";
+    pkgs = nixpkgs.legacyPackages.${system};
+
+    # Extend Ghaf configuration
+    baseConfig = ghaf.nixosConfigurations.lenovo-x1-carbon-gen11-debug;
+
+    myConfig = baseConfig.extendModules {
+      modules = [
+        # GUI VM customization
+        {
+          ghaf.virtualization.microvm.extensions.guivm = [
+            {
+              # Custom desktop applications
+              environment.systemPackages = with pkgs; [
+                firefox
+                libreoffice
+                vlc
+              ];
+
+              # Custom desktop settings
+              services.xserver.desktopManager.cosmic.enable = true;
+            }
+          ];
+        }
+
+        # Network VM customization
+        {
+          ghaf.virtualization.microvm.extensions.netvm = [
+            {
+              # VPN configuration
+              services.wireguard.enable = true;
+
+              # Custom DNS
+              networking.nameservers = [ "1.1.1.1" "8.8.8.8" ];
+            }
+          ];
+        }
+
+        # Host customization
+        {
+          # Custom hostname
+          networking.hostName = "my-ghaf-laptop";
+
+          # Additional host packages
+          environment.systemPackages = with pkgs; [
+            vim
+            git
+          ];
+        }
+      ];
+    };
+  in {
+    nixosConfigurations.my-laptop = myConfig;
+
+    packages.${system}.my-laptop =
+      myConfig.config.system.build.diskoImages;
+  };
+}
+```
+
+## How the Extensions Registry Works
+
+The extensions registry is defined in `modules/microvm/vm-extensions.nix`:
+
+```nix
+# Central registry for VM extensions
+options.ghaf.virtualization.microvm.extensions = {
+  guivm = lib.mkOption {
+    type = extensionType;
+    default = [];
+    description = "Extensions to be applied to GUI VM configuration.";
+  };
+  # ... other VMs
+};
+```
+
+Each system VM module consumes from its registry:
+
+```nix
+# In guivm.nix
+registryExtensions = config.ghaf.virtualization.microvm.extensions.guivm or [];
+
+evaluatedConfig = baseGuiVm.extendModules {
+  modules = [
+    commonHostBindings
+    vmSpecificBindings
+    commonModule
+  ] ++ hardwareModules
+    ++ registryExtensions;  # ← Extensions applied here
+};
+```
+
+This pattern:
+- Centralizes VM extension points
+- Allows multiple modules to contribute to VM config
+- Enables proper `extendModules` chaining
+- Supports downstream composition
+
+## Debugging Extensions
+
+### Check What's Applied
+
+```bash
+# See effective configuration
+nix eval .#nixosConfigurations.my-device.config.ghaf.virtualization.microvm.extensions.guivm
+
+# Build and inspect
+nix build .#nixosConfigurations.my-device.config.system.build.toplevel
+```
+
+### Common Issues
+
+**Module not applied:**
+```nix
+# ❌ Wrong: module not in list
+extensions.guivm = { programs.foo.enable = true; };
+
+# ✅ Correct: module in list
+extensions.guivm = [{ programs.foo.enable = true; }];
+```
+
+**Missing dependencies:**
+```nix
+# ❌ Wrong: pkgs not available
+extensions.guivm = [{ environment.systemPackages = [ pkgs.foo ]; }];
+
+# ✅ Correct: get pkgs from module args
+extensions.guivm = [({ pkgs, ... }: { environment.systemPackages = [ pkgs.foo ]; })];
+```
+
+## Best Practices
+
+1. **Keep extensions focused**: Each extension entry should do one thing
+2. **Use module arguments**: Access `pkgs`, `config`, `lib` through function args
+3. **Test incrementally**: Add one extension at a time and verify
+4. **Document customizations**: Comment why each extension exists
+
+## Next Steps
+
+- [Using Ghaf as Library](/ghaf/dev/library/) - Complete downstream guide
+- [Creating Targets](/ghaf/dev/guides/creating-targets) - Add new hardware
+- [Builder Functions](/ghaf/dev/ref/builder-functions) - Available builders

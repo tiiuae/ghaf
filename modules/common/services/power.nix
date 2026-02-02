@@ -33,6 +33,9 @@ let
   givc-cli = "${pkgs.givc-cli}/bin/givc-cli ${replaceString "/run" "/etc" config.ghaf.givc.cliArgs}";
   ghaf-powercontrol = pkgs.ghaf-powercontrol.override { ghafConfig = config.ghaf; };
 
+  # Get admin-vm IP with fallback for targets that don't have admin-vm
+  adminVmIp = config.ghaf.networking.hosts."admin-vm".ipv4 or "192.168.100.10";
+
   # List of all passthrough nic and audio PCI devices. The generated list of "vendorId:productId" strings
   # is used to determine suspend actions for PCI devices at runtime
   pciDevices = flatten (
@@ -48,10 +51,11 @@ let
   fakeSuspendVms = lib.attrNames (
     filterAttrs (
       _n: v:
-      (
-        v.config.config.ghaf.services.power-manager.vm.enable
-        && v.config.config.ghaf.services.power-manager.vm.fakeSuspend
-      )
+      let
+        guestCfg = v.evaluatedConfig.config;
+      in
+      guestCfg.ghaf.services.power-manager.vm.enable
+      && guestCfg.ghaf.services.power-manager.vm.fakeSuspend
     ) config.microvm.vms
   );
 
@@ -59,10 +63,10 @@ let
   pciSuspendVms = lib.attrNames (
     filterAttrs (
       _n: v:
-      (
-        v.config.config.ghaf.services.power-manager.vm.enable
-        && v.config.config.ghaf.services.power-manager.vm.pciSuspend
-      )
+      let
+        guestCfg = v.evaluatedConfig.config;
+      in
+      guestCfg.ghaf.services.power-manager.vm.enable && guestCfg.ghaf.services.power-manager.vm.pciSuspend
     ) config.microvm.vms
   );
 
@@ -70,10 +74,11 @@ let
   powerOffVms = lib.attrNames (
     filterAttrs (
       _n: v:
-      (
-        v.config.config.ghaf.services.power-manager.vm.enable
-        && v.config.config.ghaf.services.power-manager.vm.powerOffOnSuspend
-      )
+      let
+        guestCfg = v.evaluatedConfig.config;
+      in
+      guestCfg.ghaf.services.power-manager.vm.enable
+      && guestCfg.ghaf.services.power-manager.vm.powerOffOnSuspend
     ) config.microvm.vms
   );
 
@@ -125,7 +130,7 @@ let
               vm=''${vm_name/-vm/}
               ${givc-cli} start service --vm "$vm" suspend.target &
               # Wait until suspend is active
-              ${getExe pkgs.wait-for-unit} ${config.ghaf.networking.hosts.admin-vm.ipv4} 9001 \
+              ${getExe pkgs.wait-for-unit} ${adminVmIp} 9001 \
               "$vm_name" systemd-suspend.service 5 \
               activating start
               ;;
@@ -659,7 +664,11 @@ in
               (
                 lib.attrNames (
                   filterAttrs (
-                    _: vm: vm.config.config.ghaf.type == "system-vm" && vm.config.config.ghaf.gracefulShutdown
+                    _: vm:
+                    let
+                      guestCfg = vm.evaluatedConfig.config;
+                    in
+                    guestCfg.ghaf.type == "system-vm" && guestCfg.ghaf.gracefulShutdown
                   ) config.microvm.vms
                 )
               )

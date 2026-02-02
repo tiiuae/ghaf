@@ -1,0 +1,87 @@
+---
+title: Developer Guides
+description: Step-by-step guides for common Ghaf development tasks
+---
+
+import { Card, CardGrid, LinkCard } from "@astrojs/starlight/components";
+
+# Developer Guides
+
+This section contains step-by-step guides for common development tasks in Ghaf.
+
+## Getting Started
+
+<CardGrid>
+  <LinkCard
+    title="Creating Modules"
+    description="Write NixOS modules that integrate with Ghaf's architecture"
+    href="/ghaf/dev/guides/creating-modules"
+  />
+  <LinkCard
+    title="Creating VMs"
+    description="Create new virtual machines for system or application isolation"
+    href="/ghaf/dev/guides/creating-vms"
+  />
+</CardGrid>
+
+## Customization
+
+<CardGrid>
+  <LinkCard
+    title="Extending VMs"
+    description="Customize existing VMs using extendModules"
+    href="/ghaf/dev/guides/extending-vms"
+  />
+  <LinkCard
+    title="Creating Targets"
+    description="Add support for new hardware platforms"
+    href="/ghaf/dev/guides/creating-targets"
+  />
+</CardGrid>
+
+## Configuration
+
+<CardGrid>
+  <LinkCard
+    title="System Configuration"
+    description="Configure debug, logging, and system-wide settings"
+    href="/ghaf/dev/guides/system-config"
+  />
+  <LinkCard
+    title="Using Ghaf as a Library"
+    description="Integrate Ghaf into downstream projects"
+    href="/ghaf/dev/library/"
+  />
+</CardGrid>
+
+## Quick Reference
+
+### Common Tasks
+
+| Task | Guide |
+|------|-------|
+| Add a new NixOS module | [Creating Modules](/ghaf/dev/guides/creating-modules) |
+| Create a system VM | [Creating VMs](/ghaf/dev/guides/creating-vms) |
+| Create an application VM | [Creating App VMs](/ghaf/dev/ref/creating_appvm) |
+| Customize an existing VM | [Extending VMs](/ghaf/dev/guides/extending-vms) |
+| Add new hardware support | [Creating Targets](/ghaf/dev/guides/creating-targets) |
+| Enable debug features | [System Configuration](/ghaf/dev/guides/system-config) |
+| Use Ghaf in your project | [Ghaf as Library](/ghaf/dev/library/) |
+
+### Development Workflow
+
+1. **Explore**: Understand the codebase structure
+2. **Plan**: Identify which layers to modify
+3. **Implement**: Write modules following Ghaf patterns
+4. **Test**: Build and run in VM
+5. **Validate**: Run `nix fmt` and `nix flake check`
+6. **Document**: Update relevant documentation
+
+### Key Concepts to Understand
+
+Before diving into development:
+
+1. **[NixOS Module System](https://nixos.wiki/wiki/NixOS_modules)** - Foundation of all Ghaf configuration
+2. **[5-Layer Architecture](/ghaf/dev/architecture/module-layers)** - How configuration composes
+3. **[VM Architecture](/ghaf/dev/architecture/vm-architecture)** - How VMs are structured
+4. **[specialArgs](/ghaf/dev/guides/creating-modules#specialargs)** - How dependencies are passed
