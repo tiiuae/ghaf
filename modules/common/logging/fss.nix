@@ -39,7 +39,7 @@
 # 1. First Boot (per component):
 #    - journal-fss-setup.service runs after systemd-journald is ready
 #    - Generates sealing keys with configured seal interval
-#    - Rotates journal to start using FSS keys immediately
+#    - Restarts journald to pick up FSS keys immediately
 #    - Extracts verification key to cfg.keyPath/<hostname>/verification-key
 #    - Each component creates its own subdirectory with independent keys
 #    - CRITICAL: Backup all verification-keys to secure offline storage
@@ -122,6 +122,9 @@ let
         echo "Setup already complete, creating sentinel file"
         touch "$INIT_FILE"
         chmod 0644 "$INIT_FILE"
+        # Write config pointer so test scripts can discover KEY_DIR without hostname
+        echo "$KEY_DIR" > "/var/log/journal/$MACHINE_ID/fss-config"
+        chmod 0644 "/var/log/journal/$MACHINE_ID/fss-config"
         exit 0
       fi
 
@@ -158,17 +161,20 @@ let
         exit 1
       fi
 
-      # Rotate journal to start using FSS keys immediately
-      # Per systemd documentation, rotation is required after --setup-keys
-      # to create a new journal file that uses the FSS keys
-      echo "Rotating journal to enable sealing..."
-      if ! journalctl --rotate; then
-        echo "Warning: Journal rotation failed - sealing may not start until next natural rotation"
+      # Restart journald to pick up the new FSS key
+      # Journald only checks for FSS keys at startup, so rotation alone is insufficient
+      echo "Restarting journald to enable sealing..."
+      if ! systemctl restart systemd-journald; then
+        echo "Warning: Journald restart failed - sealing may not be active"
       fi
 
       # Create sentinel file to prevent re-initialization
       touch "$INIT_FILE"
       chmod 0644 "$INIT_FILE"
+
+      # Write config pointer so test scripts can discover KEY_DIR without hostname
+      echo "$KEY_DIR" > "/var/log/journal/$MACHINE_ID/fss-config"
+      chmod 0644 "/var/log/journal/$MACHINE_ID/fss-config"
 
       echo "Forward Secure Sealing initialization complete"
       echo "Sealing key: $FSS_KEY_FILE"
@@ -423,7 +429,7 @@ in
       ];
 
     # One-shot service to generate FSS keys on first boot
-    # Runs after journald is ready, then rotates journal to enable sealing
+    # Runs after journald is ready, then restarts journald to enable sealing
     systemd.services.journal-fss-setup = {
       description = "Setup Forward Secure Sealing keys for systemd journal";
       documentation = [ "man:journalctl(1)" ];

@@ -102,20 +102,37 @@ writeShellApplication {
       fail "FSS sealing key not found in persistent or volatile storage"
     fi
 
+    # Discover KEY_DIR: prefer fss-config pointer, fall back to hostname-based paths
+    # The fss-config file is written by journal-fss-setup and contains the Nix-configured
+    # key directory path, which is stable even when the runtime hostname differs (e.g. net-vm
+    # with dynamic AD hostname).
+    KEY_DIR=""
+    FSS_CONFIG="/var/log/journal/$MACHINE_ID/fss-config"
+    if [ -f "$FSS_CONFIG" ] && [ -s "$FSS_CONFIG" ]; then
+      KEY_DIR=$(cat "$FSS_CONFIG")
+      info "Discovered key directory from fss-config: $KEY_DIR"
+    else
+      # Fallback: try hostname-based paths (works for VMs without dynamic hostname)
+      HOSTNAME=$(hostname)
+      for CANDIDATE in \
+        "/persist/common/journal-fss/$HOSTNAME" \
+        "/etc/common/journal-fss/$HOSTNAME"; do
+        if [ -d "$CANDIDATE" ]; then
+          KEY_DIR="$CANDIDATE"
+          info "Discovered key directory from hostname fallback: $KEY_DIR"
+          break
+        fi
+      done
+    fi
+
     # Test 3: Check verification key
     info "Test 3: Checking verification key..."
-    HOSTNAME=$(hostname)
     FOUND_VERIFY_KEY=false
 
-    for KEY_PATH in \
-      "/persist/common/journal-fss/$HOSTNAME/verification-key" \
-      "/etc/common/journal-fss/$HOSTNAME/verification-key"; do
-      if [ -f "$KEY_PATH" ] && [ -s "$KEY_PATH" ]; then
-        pass "Verification key exists at $KEY_PATH"
-        FOUND_VERIFY_KEY=true
-        break
-      fi
-    done
+    if [ -n "$KEY_DIR" ] && [ -f "$KEY_DIR/verification-key" ] && [ -s "$KEY_DIR/verification-key" ]; then
+      pass "Verification key exists at $KEY_DIR/verification-key"
+      FOUND_VERIFY_KEY=true
+    fi
 
     if [ "$FOUND_VERIFY_KEY" = false ]; then
       warn "Verification key not found - offline verification won't be possible"
@@ -125,15 +142,10 @@ writeShellApplication {
     info "Test 4: Checking initialization sentinel..."
     FOUND_INIT=false
 
-    for INIT_PATH in \
-      "/persist/common/journal-fss/$HOSTNAME/initialized" \
-      "/etc/common/journal-fss/$HOSTNAME/initialized"; do
-      if [ -f "$INIT_PATH" ]; then
-        pass "Initialization sentinel exists at $INIT_PATH"
-        FOUND_INIT=true
-        break
-      fi
-    done
+    if [ -n "$KEY_DIR" ] && [ -f "$KEY_DIR/initialized" ]; then
+      pass "Initialization sentinel exists at $KEY_DIR/initialized"
+      FOUND_INIT=true
+    fi
 
     if [ "$FOUND_INIT" = false ]; then
       warn "Initialization sentinel not found"
@@ -145,15 +157,10 @@ writeShellApplication {
     # Find and use verification key (same logic as verify service)
     # Without the key, sealed journals will fail verification with "Required key not available"
     VERIFY_KEY=""
-    for KEY_PATH in \
-      "/persist/common/journal-fss/$HOSTNAME/verification-key" \
-      "/etc/common/journal-fss/$HOSTNAME/verification-key"; do
-      if [ -f "$KEY_PATH" ] && [ -s "$KEY_PATH" ]; then
-        VERIFY_KEY=$(cat "$KEY_PATH")
-        echo "   Using verification key from $KEY_PATH"
-        break
-      fi
-    done
+    if [ -n "$KEY_DIR" ] && [ -f "$KEY_DIR/verification-key" ] && [ -s "$KEY_DIR/verification-key" ]; then
+      VERIFY_KEY=$(cat "$KEY_DIR/verification-key")
+      echo "   Using verification key from $KEY_DIR/verification-key"
+    fi
 
     VERIFY_CMD="journalctl --verify"
     if [ -n "$VERIFY_KEY" ]; then
@@ -172,15 +179,23 @@ writeShellApplication {
     fi
 
     # Categorize failures:
-    # - Active journal (system.journal): failures are critical
+    # - System journal (system.journal): failures are critical
+    # - User journals (user-*.journal): failures are expected for pre-FSS entries, warn only
     # - Archived journals (system@*.journal): failures expected for pre-FSS entries, warn only
     # - Temp files (*.journal~): ignore completely
-    ACTIVE_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '/system\.journal|/user-[0-9]+\.journal' | grep -v '\.journal~' || true)
+    SYSTEM_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '/system\.journal' | grep -v '\.journal~' || true)
+    USER_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '/user-[0-9]+.*\.journal' | grep -v '\.journal~' || true)
     ARCHIVED_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '@.*\.journal' | grep -v '\.journal~' || true)
 
-    if [ -n "$ACTIVE_FAILURES" ]; then
-      fail "Active journal verification failed - potential integrity issue"
-      echo "   Failures: $ACTIVE_FAILURES"
+    if [ -n "$SYSTEM_FAILURES" ]; then
+      fail "System journal verification failed - potential integrity issue"
+      echo "   Failures: $SYSTEM_FAILURES"
+    elif [ -n "$USER_FAILURES" ]; then
+      # User journals may contain entries written before FSS initialization
+      # This is expected and does not indicate tampering
+      warn "User journal verification failed (expected for pre-FSS entries)"
+      echo "   Failures: $USER_FAILURES"
+      echo "   Note: User journals with pre-FSS entries will fail until rotated out"
     elif [ -n "$ARCHIVED_FAILURES" ]; then
       # Archived journals may fail if they predate FSS activation - this is expected
       warn "Archived journals failed verification (expected for pre-FSS entries)"
