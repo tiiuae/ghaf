@@ -30,6 +30,16 @@ in
         Profiles should extend this with extendModules to add services.
       '';
     };
+
+    # Admin VM base configuration for profiles to extend
+    adminvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Laptop-x86 Admin VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -52,6 +62,29 @@ in
         hostConfig = lib.ghaf.mkVmHostConfig {
           inherit config;
           vmName = "gui-vm";
+        };
+      };
+    };
+
+    # Export Admin VM base for profiles to extend
+    ghaf.profiles.laptop-x86.adminvmBase = lib.nixosSystem {
+      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
+      modules = [
+        inputs.microvm.nixosModules.microvm
+        inputs.self.nixosModules.adminvm-base
+        inputs.self.nixosModules.adminvm-features
+        # Import nixpkgs config module to get overlays
+        {
+          nixpkgs.overlays = config.nixpkgs.overlays;
+          nixpkgs.config = config.nixpkgs.config;
+        }
+      ];
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.mkVmHostConfig {
+          inherit config;
+          vmName = "admin-vm";
         };
       };
     };
@@ -87,6 +120,7 @@ in
 
           adminvm = {
             enable = true;
+            # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
           };
 
           idsvm = {

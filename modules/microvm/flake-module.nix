@@ -39,5 +39,15 @@ _: {
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.guivm-base ]; ... }
     #     .extendModules { modules = [ ../services ]; }
     guivm-base = ./sysvms/guivm-base.nix;
+
+    # Admin VM base module for layered composition
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.adminvm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    adminvm-base = ./sysvms/adminvm-base.nix;
+
+    # Admin VM feature modules (vTPM services, etc.)
+    # Auto-includes based on hostConfig conditions
+    adminvm-features = ./adminvm-features;
   };
 }
