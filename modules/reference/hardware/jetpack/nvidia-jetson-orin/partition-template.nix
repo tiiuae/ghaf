@@ -129,59 +129,82 @@ let
       tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml >>"$out"
     ''
   );
+  # Expose the partition template and preFlashCommands as ghaf options
+  # These will be set on hardware.nvidia-jetpack.flashScriptOverrides
+  # in the individual device configuration files
+  ghafPartitionTemplate = partitionTemplate;
+
+  ghafPreFlashCommands = ''
+    echo "============================================================"
+    echo "ghaf flashing script"
+    echo "============================================================"
+    echo "ghaf version: ${config.ghaf.version}"
+    echo "som: ${config.hardware.nvidia-jetpack.som}"
+    echo "carrierBoard: ${config.hardware.nvidia-jetpack.carrierBoard}"
+    echo "============================================================"
+    echo ""
+    echo "Working dir: $WORKDIR"
+    echo "Removing bootlodaer/esp.img if it exists ..."
+    rm -fv "$WORKDIR/bootloader/esp.img"
+    mkdir -pv "$WORKDIR/bootloader"
+
+    # See https://developer.download.nvidia.com/embedded/L4T/r35_Release_v4.1/docs/Jetson_Linux_Release_Notes_r35.4.1.pdf
+    # and https://developer.download.nvidia.com/embedded/L4T/r35_Release_v5.0/docs/Jetson_Linux_Release_Notes_r35.5.0.pdf
+    #
+    # In Section: Adaptation to the Carrier Board with HDMI for the Orin
+    #             NX/Nano Modules
+    #"${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
+  ''
+  + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+    ESP_OFFSET=$(cat "${images}/esp.offset")
+    ESP_SIZE=$(cat "${images}/esp.size")
+    ROOT_OFFSET=$(cat "${images}/root.offset")
+    ROOT_SIZE=$(cat "${images}/root.size")
+
+    img="${images}/sd-image/${config.image.fileName}"
+    echo "Extracting ESP partition to $WORKDIR/bootloader/esp.img ..."
+    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
+    echo "Extracting root partition to $WORKDIR/root.img ..."
+    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE"
+
+    echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
+    "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
+      -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
+      -e "s#root.img#$WORKDIR/root.img#" \
+      -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
+      -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
+      flash.xml
+
+  ''
+  + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
+    echo "Flashing QSPI only, boot and root images not included."
+  ''
+  + ''
+    echo "Ready to flash!"
+    echo "============================================================"
+    echo ""
+  '';
 in
 {
+  options.ghaf.hardware.nvidia.orin = {
+    flashScriptOverrides.partitionTemplate = lib.mkOption {
+      type = lib.types.package;
+      internal = true;
+      description = "Generated partition template for flashing";
+    };
+
+    flashScriptOverrides.preFlashCommands = lib.mkOption {
+      type = lib.types.str;
+      internal = true;
+      description = "Generated pre-flash commands for flashing";
+    };
+  };
+
   config = lib.mkIf cfg.enable {
-    hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = ''
-      echo "============================================================"
-      echo "ghaf flashing script"
-      echo "============================================================"
-      echo "ghaf version: ${config.ghaf.version}"
-      echo "som: ${config.hardware.nvidia-jetpack.som}"
-      echo "carrierBoard: ${config.hardware.nvidia-jetpack.carrierBoard}"
-      echo "============================================================"
-      echo ""
-      echo "Working dir: $WORKDIR"
-      echo "Removing bootlodaer/esp.img if it exists ..."
-      rm -fv "$WORKDIR/bootloader/esp.img"
-      mkdir -pv "$WORKDIR/bootloader"
-
-      # See https://developer.download.nvidia.com/embedded/L4T/r35_Release_v4.1/docs/Jetson_Linux_Release_Notes_r35.4.1.pdf
-      # and https://developer.download.nvidia.com/embedded/L4T/r35_Release_v5.0/docs/Jetson_Linux_Release_Notes_r35.5.0.pdf
-      #
-      # In Section: Adaptation to the Carrier Board with HDMI for the Orin
-      #             NX/Nano Modules
-      #"${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
-    ''
-    + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-      ESP_OFFSET=$(cat "${images}/esp.offset")
-      ESP_SIZE=$(cat "${images}/esp.size")
-      ROOT_OFFSET=$(cat "${images}/root.offset")
-      ROOT_SIZE=$(cat "${images}/root.size")
-
-      img="${images}/sd-image/${config.image.fileName}"
-      echo "Extracting ESP partition to $WORKDIR/bootloader/esp.img ..."
-      dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
-      echo "Extracting root partition to $WORKDIR/root.img ..."
-      dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE"
-
-      echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
-      "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
-        -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
-        -e "s#root.img#$WORKDIR/root.img#" \
-        -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
-        -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
-        flash.xml
-
-    ''
-    + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
-      echo "Flashing QSPI only, boot and root images not included."
-    ''
-    + ''
-      echo "Ready to flash!"
-      echo "============================================================"
-      echo ""
-    '';
+    # Expose the generated partition template and preFlashCommands
+    # These are set directly on hardware.nvidia-jetpack.flashScriptOverrides
+    # in the device-specific configuration files (orin-agx.nix, etc.)
+    ghaf.hardware.nvidia.orin.flashScriptOverrides.partitionTemplate = ghafPartitionTemplate;
+    ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands = ghafPreFlashCommands;
   };
 }
