@@ -1,9 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# GUI VM Configuration Module
+#
+# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
+# TODO: Migrate to globalConfig pattern (Phase 2)
 {
   config,
   lib,
+  inputs,
   ...
 }:
 let

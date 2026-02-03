@@ -1,14 +1,21 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# Admin VM Configuration Module
+#
+# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
+# This module uses `globalConfig` for settings that propagate from host.
 {
   config,
   lib,
+  inputs,
   ...
 }:
 let
+  # Use globalConfig for settings that should propagate from host
+  # This replaces the old configHost pattern
+  globalConfig = config.ghaf.global-config;
 
-  configHost = config;
   vmName = "admin-vm";
 
   adminvmBaseConfiguration = {
@@ -21,15 +28,17 @@ let
       (
         { lib, ... }:
         {
+          _file = ./adminvm.nix;
+
           ghaf = {
-            # Profiles
-            profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+            # Profiles - use globalConfig for propagated settings
+            profiles.debug.enable = lib.mkDefault globalConfig.debug.enable;
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
               #       that has been passed through to VM
-              ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+              ssh.daemon.enable = lib.mkDefault globalConfig.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault globalConfig.development.nix-setup.enable;
             };
 
             # System
@@ -42,7 +51,7 @@ let
               withResolved = true;
               withPolkit = true;
               withTimesyncd = true;
-              withDebug = configHost.ghaf.profiles.debug.enable;
+              withDebug = globalConfig.debug.enable;
               withHardenedConfigs = true;
             };
             givc.adminvm.enable = true;
@@ -58,10 +67,10 @@ let
                 "/etc/locale-givc.conf"
                 "/etc/timezone.conf"
               ];
-              directories = lib.mkIf configHost.ghaf.virtualization.storagevm-encryption.enable [
+              directories = lib.mkIf globalConfig.storage.encryption.enable [
                 "/var/lib/swtpm"
               ];
-              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
+              encryption.enable = globalConfig.storage.encryption.enable;
             };
             # Networking
             virtualization.microvm.vm-networking = {
@@ -70,7 +79,7 @@ let
             };
 
             virtualization.microvm.tpm.passthrough = {
-              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              inherit (globalConfig.storage.encryption) enable;
               rootNVIndex = "0x81701000";
             };
 
@@ -78,7 +87,7 @@ let
             logging = {
               inherit (configHost.ghaf.logging) enable;
               server = {
-                inherit (configHost.ghaf.logging) enable;
+                inherit (globalConfig.logging) enable;
                 tls = {
                   remoteCAFile = null;
                   certFile = "/etc/givc/cert.pem";
@@ -95,15 +104,15 @@ let
               recovery.enable = true;
             };
 
-            security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
+            security.fail2ban.enable = globalConfig.development.ssh.daemon.enable;
 
           };
 
           system.stateVersion = lib.trivial.release;
 
           nixpkgs = {
-            buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-            hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+            buildPlatform.system = globalConfig.platform.buildSystem;
+            hostPlatform.system = globalConfig.platform.hostSystem;
           };
 
           microvm = {
@@ -127,7 +136,7 @@ let
               }
             ]
             # Shared store (when not using storeOnDisk)
-            ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+            ++ lib.optionals (!globalConfig.storage.storeOnDisk) [
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -136,11 +145,9 @@ let
               }
             ];
 
-            writableStoreOverlay = lib.mkIf (
-              !configHost.ghaf.virtualization.microvm.storeOnDisk
-            ) "/nix/.rw-store";
+            writableStoreOverlay = lib.mkIf (!globalConfig.storage.storeOnDisk) "/nix/.rw-store";
           }
-          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+          // lib.optionalAttrs globalConfig.storage.storeOnDisk {
             storeOnDisk = true;
             storeDiskType = "erofs";
             storeDiskErofsFlags = [
@@ -155,6 +162,8 @@ let
   cfg = config.ghaf.virtualization.microvm.adminvm;
 in
 {
+  _file = ./adminvm.nix;
+
   options.ghaf.virtualization.microvm.adminvm = {
     enable = lib.mkEnableOption "AdminVM";
 
@@ -178,7 +187,10 @@ in
     microvm.vms."${vmName}" = {
       autostart = true;
       inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
+      # Pass globalConfig to VM via specialArgs for consistent propagation
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs globalConfig;
+      };
       config = adminvmBaseConfiguration // {
         imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
       };

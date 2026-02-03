@@ -17,6 +17,7 @@ let
       hostConfiguration = lib.nixosSystem {
         specialArgs = inputs // {
           inherit (self) lib;
+          inherit inputs; # Ensure inputs is available as a single key for modules
         };
         modules = [
           self.nixosModules.profiles-orin

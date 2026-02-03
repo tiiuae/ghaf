@@ -8,6 +8,8 @@ _: lib: prev:
 let
   # Import launcher utilities
   launcherLib = import ./launcher.nix { };
+  # Import global config types and utilities
+  globalConfigLib = import ./global-config.nix { inherit lib; };
 in
 {
   /*
@@ -101,8 +103,15 @@ in
       };
     };
 
+    # Global configuration type for ghaf.global-config
+    globalConfig = globalConfigLib.globalConfigType;
   };
 
   # Launcher utilities
   inherit (launcherLib) rmDesktopEntries;
+
+  # Global configuration utilities under ghaf namespace
+  ghaf = {
+    inherit (globalConfigLib) profiles mkVmSpecialArgs mkGlobalConfig;
+  };
 }

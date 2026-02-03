@@ -37,6 +37,7 @@ let
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
           inherit (self) lib;
+          inherit inputs; # Required for microvm modules
         };
         modules = [
           nixos-generators.nixosModules.raw-efi

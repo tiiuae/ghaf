@@ -1,10 +1,15 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# MicroVM Host Configuration Module
+#
+# Note: `inputs` is received via specialArgs from mkLaptopConfiguration,
+# eliminating the need for the `{ inputs }:` wrapper pattern.
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -27,6 +32,8 @@ let
     && (config.ghaf.hardware.definition.audio.acpiPath != null);
 in
 {
+  _file = ./microvm-host.nix;
+
   imports = [
     inputs.microvm.nixosModules.host
     inputs.self.nixosModules.givc
