@@ -3,7 +3,11 @@
 #
 # Reference hardware modules
 #
-{ pkgs, ... }:
+{
+  pkgs,
+  config,
+  ...
+}:
 {
   imports = [ ../../../../common/services/hwinfo ];
 
@@ -38,6 +42,8 @@
           "jetson-agx-orin-devkit"
           "mmcblk0p1"
         ];
+        partitionTemplate = config.ghaf.hardware.nvidia.orin.flashScriptOverrides.partitionTemplate;
+        preFlashCommands = config.ghaf.hardware.nvidia.orin.flashScriptOverrides.preFlashCommands;
       };
       firmware.uefi = {
         logo = "${pkgs.ghaf-artwork}/1600px-Ghaf_logo.svg";
