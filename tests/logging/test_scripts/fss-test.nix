@@ -222,6 +222,12 @@ writeShellApplication {
       else
         warn "journal-fss-verify.timer exists but is not active"
       fi
+    elif systemctl cat journal-fss-verify.timer &>/dev/null; then
+      if systemctl is-active --quiet journal-fss-verify.timer; then
+        pass "journal-fss-verify.timer is active"
+      else
+        pass "journal-fss-verify.timer exists"
+      fi
     else
       warn "journal-fss-verify.timer not found"
     fi
