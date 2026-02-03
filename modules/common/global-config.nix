@@ -151,5 +151,19 @@ in
     ghaf.global-config.storage.storeOnDisk = lib.mkOverride 900 (
       configOrDefault [ "ghaf" "virtualization" "microvm" "storeOnDisk" ] false
     );
+
+    # Shared memory settings
+    ghaf.global-config.shm.enable = lib.mkOverride 900 (
+      configOrDefault [ "ghaf" "shm" "enable" ] false
+    );
+
+    ghaf.global-config.shm.serverSocketPath = lib.mkOverride 900 (
+      configOrDefault [ "ghaf" "shm" "serverSocketPath" ] ""
+    );
+
+    # IDS VM settings
+    ghaf.global-config.idsvm.mitmproxy.enable = lib.mkOverride 900 (
+      configOrDefault [ "ghaf" "virtualization" "microvm" "idsvm" "mitmproxy" "enable" ] false
+    );
   };
 }

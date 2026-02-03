@@ -3,8 +3,11 @@
 #
 # Audio VM Configuration Module
 #
-# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
-# TODO: Migrate to globalConfig pattern (Phase 2)
+# This module uses the globalConfig pattern:
+# - Global settings (debug, development, logging, storage) come via globalConfig specialArg
+# - Host-specific settings (platform, boot) come via globalConfig.platform
+#
+# The VM configuration is self-contained and does not reference `configHost`.
 {
   config,
   lib,
@@ -12,10 +15,11 @@
   ...
 }:
 let
-  configHost = config;
   vmName = "audio-vm";
+  hostGlobalConfig = config.ghaf.global-config;
 
   audiovmBaseConfiguration = {
+    _file = ./audiovm.nix;
     imports = [
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.givc
@@ -23,15 +27,21 @@ let
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.profiles
       (
-        { lib, pkgs, ... }:
+        {
+          config,
+          lib,
+          pkgs,
+          globalConfig,
+          ...
+        }:
         {
           ghaf = {
-            # Profiles
-            profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+            # Profiles - from globalConfig
+            profiles.debug.enable = lib.mkDefault globalConfig.debug.enable;
             development = {
-              ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+              ssh.daemon.enable = lib.mkDefault globalConfig.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault globalConfig.development.nix-setup.enable;
             };
             users.proxyUser = {
               enable = true;
@@ -53,7 +63,7 @@ let
               withNss = true;
               withResolved = true;
               withTimesyncd = true;
-              withDebug = configHost.ghaf.profiles.debug.enable;
+              withDebug = globalConfig.debug.enable;
               withHardenedConfigs = true;
             };
             givc.audiovm.enable = true;
@@ -61,11 +71,11 @@ let
             # Enable dynamic hostname export for VMs
             identity.vmHostNameExport.enable = true;
 
-            # Storage
+            # Storage - from globalConfig
             storagevm = {
               enable = true;
               name = vmName;
-              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
+              encryption.enable = globalConfig.storage.encryption.enable;
             };
             # Networking
             virtualization.microvm.vm-networking = {
@@ -73,7 +83,7 @@ let
               inherit vmName;
             };
             virtualization.microvm.tpm.passthrough = {
-              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              inherit (globalConfig.storage.encryption) enable;
               rootNVIndex = "0x81702000";
             };
             # Services
@@ -96,11 +106,11 @@ let
               };
             };
             logging = {
-              inherit (configHost.ghaf.logging) enable listener;
-              client.enable = configHost.ghaf.logging.enable;
+              inherit (globalConfig.logging) enable listener;
+              client.enable = globalConfig.logging.enable;
             };
 
-            security.fail2ban.enable = configHost.ghaf.development.ssh.daemon.enable;
+            security.fail2ban.enable = globalConfig.development.ssh.daemon.enable;
 
           };
 
@@ -113,12 +123,12 @@ let
             ++ lib.optional config.ghaf.development.debug.tools.enable pkgs.alsa-utils;
           };
 
-          time.timeZone = config.time.timeZone;
+          time.timeZone = globalConfig.platform.timeZone;
           system.stateVersion = lib.trivial.release;
 
           nixpkgs = {
-            buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-            hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+            buildPlatform.system = globalConfig.platform.buildSystem;
+            hostPlatform.system = globalConfig.platform.hostSystem;
           };
 
           microvm = {
@@ -137,7 +147,7 @@ let
               }
             ]
             # Shared store (when not using storeOnDisk)
-            ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+            ++ lib.optionals (!globalConfig.storage.storeOnDisk) [
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -146,9 +156,7 @@ let
               }
             ];
 
-            writableStoreOverlay = lib.mkIf (
-              !configHost.ghaf.virtualization.microvm.storeOnDisk
-            ) "/nix/.rw-store";
+            writableStoreOverlay = lib.mkIf (!globalConfig.storage.storeOnDisk) "/nix/.rw-store";
 
             qemu = {
               machine =
@@ -157,14 +165,14 @@ let
                   x86_64-linux = "q35";
                   aarch64-linux = "virt";
                 }
-                .${configHost.nixpkgs.hostPlatform.system};
+                .${globalConfig.platform.hostSystem};
               extraArgs = [
                 "-device"
                 "qemu-xhci"
               ];
             };
           }
-          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+          // lib.optionalAttrs globalConfig.storage.storeOnDisk {
             storeOnDisk = true;
             storeDiskType = "erofs";
             storeDiskErofsFlags = [
@@ -202,7 +210,10 @@ in
     microvm.vms."${vmName}" = {
       autostart = !config.ghaf.microvm-boot.enable;
       inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+      };
 
       config = audiovmBaseConfiguration // {
         imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;

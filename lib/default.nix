@@ -112,6 +112,11 @@ in
 
   # Global configuration utilities under ghaf namespace
   ghaf = {
-    inherit (globalConfigLib) profiles mkVmSpecialArgs mkGlobalConfig;
+    inherit (globalConfigLib)
+      profiles
+      mkVmSpecialArgs
+      mkVmHostConfig
+      mkGlobalConfig
+      ;
   };
 }

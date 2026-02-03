@@ -3,20 +3,23 @@
 #
 # Net VM Configuration Module
 #
-# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
-# TODO: Migrate to globalConfig pattern (Phase 2)
+# This module uses the globalConfig pattern:
+# - Global settings (debug, development, logging, storage) come via globalConfig specialArg
+# - Host-specific settings (networking.hosts) come via hostConfig specialArg
+#
+# The VM configuration is self-contained and does not reference `configHost`.
 {
   config,
   lib,
-  pkgs,
   inputs,
   ...
 }:
 let
-  configHost = config;
   vmName = "net-vm";
+  hostGlobalConfig = config.ghaf.global-config;
 
   netvmBaseConfiguration = {
+    _file = ./netvm.nix;
     imports = [
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.givc
@@ -24,18 +27,24 @@ let
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.profiles
       (
-        { lib, ... }:
+        {
+          lib,
+          pkgs,
+          globalConfig,
+          hostConfig,
+          ...
+        }:
         {
           ghaf = {
-            # Profiles
-            profiles.debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
+            # Profiles - from globalConfig
+            profiles.debug.enable = lib.mkDefault globalConfig.debug.enable;
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
               #       that has been passed through to NetVM
-              ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
-              debug.tools.net.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
+              ssh.daemon.enable = lib.mkDefault globalConfig.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              debug.tools.net.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault globalConfig.development.nix-setup.enable;
             };
             users = {
               proxyUser = {
@@ -59,16 +68,16 @@ let
               withPolkit = true;
               withResolved = true;
               withTimesyncd = true;
-              withDebug = config.ghaf.profiles.debug.enable;
+              withDebug = globalConfig.debug.enable;
               withHardenedConfigs = true;
             };
             givc.netvm.enable = true;
 
-            # Storage
+            # Storage - from globalConfig
             storagevm = {
               enable = true;
               name = vmName;
-              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
+              encryption.enable = globalConfig.storage.encryption.enable;
             };
 
             # Networking
@@ -80,7 +89,7 @@ let
 
             virtualization.microvm.tpm.passthrough = {
               # At the moment the TPM is only used for storage encryption, so the features are coupled.
-              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              inherit (globalConfig.storage.encryption) enable;
               rootNVIndex = "0x81704000";
             };
 
@@ -99,25 +108,25 @@ let
               };
             };
             logging = {
-              inherit (config.ghaf.logging) enable listener;
-              client.enable = config.ghaf.logging.enable;
+              inherit (globalConfig.logging) enable listener;
+              client.enable = globalConfig.logging.enable;
             };
 
             security = {
-              fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
+              fail2ban.enable = globalConfig.development.ssh.daemon.enable;
               ssh-tarpit = {
-                inherit (config.ghaf.development.ssh.daemon) enable;
-                listenAddress = config.ghaf.networking.hosts.${vmName}.ipv4;
+                inherit (globalConfig.development.ssh.daemon) enable;
+                listenAddress = hostConfig.networking.thisVm.ipv4;
               };
             };
           };
 
-          time.timeZone = config.time.timeZone;
+          time.timeZone = globalConfig.platform.timeZone;
           system.stateVersion = lib.trivial.release;
 
           nixpkgs = {
-            buildPlatform.system = config.nixpkgs.buildPlatform.system;
-            hostPlatform.system = config.nixpkgs.hostPlatform.system;
+            buildPlatform.system = globalConfig.platform.buildSystem;
+            hostPlatform.system = globalConfig.platform.hostSystem;
           };
 
           ghaf.firewall =
@@ -143,7 +152,7 @@ let
               }
             ]
             # Shared store (when not using storeOnDisk)
-            ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+            ++ lib.optionals (!globalConfig.storage.storeOnDisk) [
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -152,9 +161,7 @@ let
               }
             ];
 
-            writableStoreOverlay = lib.mkIf (
-              !configHost.ghaf.virtualization.microvm.storeOnDisk
-            ) "/nix/.rw-store";
+            writableStoreOverlay = lib.mkIf (!globalConfig.storage.storeOnDisk) "/nix/.rw-store";
 
             qemu = {
               machine =
@@ -163,14 +170,14 @@ let
                   x86_64-linux = "q35";
                   aarch64-linux = "virt";
                 }
-                .${config.nixpkgs.hostPlatform.system};
+                .${globalConfig.platform.hostSystem};
               extraArgs = [
                 "-device"
                 "qemu-xhci"
               ];
             };
           }
-          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+          // lib.optionalAttrs globalConfig.storage.storeOnDisk {
             storeOnDisk = true;
             storeDiskType = "erofs";
             storeDiskErofsFlags = [
@@ -208,7 +215,13 @@ in
       autostart = !config.ghaf.microvm-boot.enable;
       restartIfChanged = false;
       inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.mkVmHostConfig {
+          inherit config vmName;
+        };
+      };
 
       config = netvmBaseConfiguration // {
         imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
