@@ -1,16 +1,20 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs, ... }:
-{
+#
+# MicroVM Module Definitions
+#
+# Note: Modules receive `inputs` via specialArgs from mkLaptopConfiguration.
+# This eliminates the need for the `{ inputs }:` wrapper anti-pattern.
+_: {
   flake.nixosModules = {
     microvm.imports = [
-      (import ./host/microvm-host.nix { inherit inputs; })
-      (import ./sysvms/netvm.nix { inherit inputs; })
-      (import ./sysvms/adminvm.nix { inherit inputs; })
-      (import ./appvm.nix { inherit inputs; })
-      (import ./sysvms/guivm.nix { inherit inputs; })
-      (import ./sysvms/audiovm.nix { inherit inputs; })
-      (import ./sysvms/idsvm/idsvm.nix { inherit inputs; })
+      ./host/microvm-host.nix
+      ./sysvms/netvm.nix
+      ./sysvms/adminvm.nix
+      ./appvm.nix
+      ./sysvms/guivm.nix
+      ./sysvms/audiovm.nix
+      ./sysvms/idsvm/idsvm.nix
       ./common/microvm-store-mode.nix
       ./modules.nix
     ];

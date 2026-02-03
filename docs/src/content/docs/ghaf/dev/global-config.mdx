@@ -1,0 +1,337 @@
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Global Configuration System
+
+The Ghaf framework provides a **global configuration system** that allows settings to be defined once at the host level and automatically propagated to all VMs. This eliminates the need to manually synchronize settings between the host and each virtual machine.
+
+## Overview
+
+The global configuration system solves the "configuration propagation problem" where settings like debug mode, SSH access, or storage encryption need to be consistent across the host and all guest VMs.
+
+### Key Benefits
+
+- **Single Source of Truth**: Set configuration once, applied everywhere
+- **Reduced Errors**: No more forgetting to update a setting in one VM
+- **Clear Inheritance**: VMs automatically receive host settings
+- **Override Capability**: Individual VMs can override inherited settings when needed
+- **Profile Support**: Predefined profiles for common configurations (debug, release, minimal)
+
+## Usage
+
+### Using Predefined Profiles
+
+The simplest way to configure Ghaf is to use a predefined profile:
+
+```nix
+{
+  ghaf.global-config = lib.ghaf.profiles.debug;
+}
+```
+
+Available profiles:
+- `lib.ghaf.profiles.debug` - Full development/debugging capabilities
+- `lib.ghaf.profiles.release` - Production settings with security enabled
+- `lib.ghaf.profiles.minimal` - Bare minimum configuration
+
+### Customizing a Profile
+
+You can extend a profile with custom settings:
+
+```nix
+{
+  ghaf.global-config = lib.ghaf.mkGlobalConfig "debug" {
+    storage.encryption.enable = true;  # Override storage setting
+  };
+}
+```
+
+### Direct Configuration
+
+Set options directly without using a profile:
+
+```nix
+{
+  ghaf.global-config = {
+    debug.enable = true;
+    development = {
+      ssh.daemon.enable = true;
+      debug.tools.enable = true;
+      nix-setup.enable = false;  # Don't enable nix development setup
+    };
+    logging.enable = true;
+    storage.encryption.enable = true;
+  };
+}
+```
+
+## Available Options
+
+### Debug Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `debug.enable` | bool | false | Enable debug mode globally |
+
+### Development Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `development.ssh.daemon.enable` | bool | false | Enable SSH daemon on all VMs |
+| `development.debug.tools.enable` | bool | false | Install debug tools |
+| `development.nix-setup.enable` | bool | false | Enable Nix development setup |
+
+### Logging Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `logging.enable` | bool | false | Enable centralized logging |
+| `logging.listener.address` | string | "" | Logging listener address |
+| `logging.server.endpoint` | string | "" | Remote logging server endpoint |
+
+### Security Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `security.audit.enable` | bool | false | Enable security auditing |
+
+### GIVC Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `givc.enable` | bool | false | Enable GIVC (Inter-VM Communication) |
+| `givc.debug` | bool | false | Enable GIVC debug mode |
+
+### Service Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `services.power-manager.enable` | bool | false | Enable power manager |
+| `services.performance.enable` | bool | false | Enable performance service |
+
+### Storage Settings
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `storage.encryption.enable` | bool | false | Enable storage encryption |
+| `storage.storeOnDisk` | bool | false | Store VM nix stores on disk |
+
+### Platform Information
+
+These are automatically populated from host configuration:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `platform.buildSystem` | string | Build platform (e.g., "x86_64-linux") |
+| `platform.hostSystem` | string | Host platform (e.g., "x86_64-linux") |
+| `platform.timeZone` | string | System timezone |
+
+## How It Works
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                         HOST CONFIGURATION                       │
+│                                                                  │
+│  ghaf.global-config = lib.ghaf.profiles.debug;                  │
+│         │                                                        │
+│         ▼                                                        │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │ ghaf.global-config (evaluated)                            │   │
+│  │  - debug.enable = true                                    │   │
+│  │  - development.ssh.daemon.enable = true                   │   │
+│  │  - ...                                                    │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└────────────────────────────┬────────────────────────────────────┘
+                             │ specialArgs
+                             ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                          VM CONFIGURATION                        │
+│                                                                  │
+│  { config, lib, globalConfig, ... }:                            │
+│  {                                                               │
+│    # Access inherited settings                                   │
+│    ghaf.profiles.debug.enable = globalConfig.debug.enable;      │
+│    ghaf.development.ssh.daemon.enable =                         │
+│      globalConfig.development.ssh.daemon.enable;                 │
+│  }                                                               │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### For Module Authors
+
+When creating VM modules that need global settings, access them via the `globalConfig` specialArg:
+
+```nix
+# modules/microvm/sysvms/my-vm.nix
+{
+  config,
+  lib,
+  globalConfig,  # Provided via specialArgs
+  ...
+}:
+let
+  # Use globalConfig for settings that should be inherited from host
+  debugEnabled = globalConfig.debug.enable;
+in
+{
+  config = {
+    # Apply global settings to VM
+    ghaf.profiles.debug.enable = lib.mkDefault debugEnabled;
+
+    ghaf.development.ssh.daemon.enable =
+      lib.mkDefault globalConfig.development.ssh.daemon.enable;
+  };
+}
+```
+
+### Backward Compatibility
+
+The global configuration system maintains backward compatibility with existing Ghaf configurations. Old-style settings like `ghaf.profiles.debug.enable = true` are automatically synchronized to `ghaf.global-config.debug.enable`.
+
+This means:
+- Existing configurations continue to work without changes
+- VMs using the new `globalConfig` pattern receive correct values
+- Migration can be done incrementally
+
+## Migration Guide
+
+### For Existing Configurations
+
+No changes are required. Your existing configuration will continue to work, and `ghaf.global-config` will automatically reflect your current settings.
+
+### For New Configurations
+
+Consider using `ghaf.global-config` with profiles:
+
+```nix
+# Before (still works)
+{
+  ghaf.profiles.debug.enable = true;
+  ghaf.development.ssh.daemon.enable = true;
+  # ... repeated in each VM
+}
+
+# After (recommended)
+{
+  ghaf.global-config = lib.ghaf.profiles.debug;
+  # Settings automatically propagate to all VMs
+}
+```
+
+### For VM Module Authors
+
+Migrate from `configHost` pattern to `globalConfig`:
+
+```nix
+# Before
+{ configHost }:
+{
+  config = {
+    ghaf.profiles.debug.enable = configHost.ghaf.profiles.debug.enable;
+  };
+}
+
+# After
+{ globalConfig, ... }:
+{
+  config = {
+    ghaf.profiles.debug.enable = lib.mkDefault globalConfig.debug.enable;
+  };
+}
+```
+
+## Profiles Reference
+
+### Debug Profile
+
+```nix
+{
+  debug.enable = true;
+  development = {
+    ssh.daemon.enable = true;
+    debug.tools.enable = true;
+    nix-setup.enable = true;
+  };
+  logging.enable = true;
+  security.audit.enable = false;
+  givc = {
+    enable = true;
+    debug = true;
+  };
+  services = {
+    power-manager.enable = false;
+    performance.enable = false;
+  };
+  storage = {
+    encryption.enable = false;
+    storeOnDisk = false;
+  };
+}
+```
+
+### Release Profile
+
+```nix
+{
+  debug.enable = false;
+  development = {
+    ssh.daemon.enable = false;
+    debug.tools.enable = false;
+    nix-setup.enable = false;
+  };
+  logging.enable = false;
+  security.audit.enable = true;
+  givc = {
+    enable = true;
+    debug = false;
+  };
+  services = {
+    power-manager.enable = true;
+    performance.enable = true;
+  };
+  storage = {
+    encryption.enable = true;
+    storeOnDisk = false;
+  };
+}
+```
+
+### Minimal Profile
+
+```nix
+{
+  debug.enable = false;
+  development = {
+    ssh.daemon.enable = false;
+    debug.tools.enable = false;
+    nix-setup.enable = false;
+  };
+  logging.enable = false;
+  security.audit.enable = false;
+  givc = {
+    enable = false;
+    debug = false;
+  };
+  services = {
+    power-manager.enable = false;
+    performance.enable = false;
+  };
+  storage = {
+    encryption.enable = false;
+    storeOnDisk = false;
+  };
+}
+```
+
+## Future Development
+
+The global configuration system will be extended in future phases to include:
+
+- Complete VM migration to `globalConfig` pattern
+- Additional settings for hardware passthrough
+- Custom profile creation utilities
+- Downstream project composition support
