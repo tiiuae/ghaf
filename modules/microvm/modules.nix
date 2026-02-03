@@ -278,10 +278,10 @@ in
         ++ optionals (cfg.appvm.enable && fullVirtualization) [
           serviceModules.audit
         ];
-      # Idsvm modules
-      idsvm.extraModules = optionals cfg.idsvm.enable [
-        commonModule
-      ];
+
+      # IDS VM modules - MIGRATED to idsvm-base.nix
+      # The commonModule functionality is now included directly in idsvm-base.nix
+      # via hostConfig.common assignment. No extraModules needed.
     };
   };
 }

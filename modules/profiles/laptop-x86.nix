@@ -40,6 +40,16 @@ in
         Profiles can extend this with extendModules if customization needed.
       '';
     };
+
+    # IDS VM base configuration for profiles to extend
+    idsvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Laptop-x86 IDS VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -85,6 +95,28 @@ in
         hostConfig = lib.ghaf.mkVmHostConfig {
           inherit config;
           vmName = "admin-vm";
+        };
+      };
+    };
+
+    # Export IDS VM base for profiles to extend
+    ghaf.profiles.laptop-x86.idsvmBase = lib.nixosSystem {
+      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
+      modules = [
+        inputs.microvm.nixosModules.microvm
+        inputs.self.nixosModules.idsvm-base
+        # Import nixpkgs config module to get overlays
+        {
+          nixpkgs.overlays = config.nixpkgs.overlays;
+          nixpkgs.config = config.nixpkgs.config;
+        }
+      ];
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.mkVmHostConfig {
+          inherit config;
+          vmName = "ids-vm";
         };
       };
     };

@@ -112,10 +112,24 @@ in
   options.ghaf.virtualization.microvm.idsvm = {
     enable = lib.mkEnableOption "Whether to enable IDS-VM on the system";
 
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+      description = ''
+        Pre-evaluated NixOS configuration for IDS VM.
+        When set (by profiles like mvp-user-trial-extras), uses this instead of building inline.
+        This enables the layered composition pattern with extendModules.
+      '';
+    };
+
     extraModules = lib.mkOption {
       description = ''
         List of additional modules to be imported and evaluated as part of
         IDSVM's NixOS configuration.
+
+        DEPRECATED: This option is deprecated. Use the evaluatedConfig pattern instead:
+          ghaf.virtualization.microvm.idsvm.evaluatedConfig =
+            config.ghaf.profiles.laptop-x86.idsvmBase.extendModules { modules = [...]; };
       '';
       default = [ ];
     };
@@ -129,17 +143,36 @@ in
   config = lib.mkIf cfg.enable {
     ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      specialArgs = lib.ghaf.mkVmSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-      };
+    # Deprecation warning for extraModules
+    warnings = lib.optional (cfg.extraModules != [ ]) ''
+      ghaf.virtualization.microvm.idsvm.extraModules is deprecated.
+      Please migrate to the evaluatedConfig pattern using idsvm-base.nix.
+      See modules/microvm/sysvms/idsvm/idsvm-base.nix for the new approach.
+    '';
 
-      config = idsvmBaseConfiguration // {
-        imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
-    };
+    microvm.vms."${vmName}" =
+      if cfg.evaluatedConfig != null then
+        # New path: Use pre-evaluated config from profile
+        # This is the recommended approach for laptop targets
+        {
+          autostart = true;
+          inherit (inputs) nixpkgs;
+          inherit (cfg) evaluatedConfig;
+        }
+      else
+        # Legacy path: Build config inline
+        # Used by non-laptop targets (Jetson, etc.) that don't have laptop-x86 profile
+        {
+          autostart = true;
+          inherit (inputs) nixpkgs;
+          specialArgs = lib.ghaf.mkVmSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+          };
+
+          config = idsvmBaseConfiguration // {
+            imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;
+          };
+        };
   };
 }
