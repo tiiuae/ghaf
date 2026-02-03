@@ -1,5 +1,15 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# Shared VM Module Configuration
+#
+# This module adds common extraModules to each VM type based on host configuration.
+# It passes host-specific settings (devices, kernels, qemu configs) via inline modules
+# that get added to VMs.
+#
+# Global settings (givc, logging, audit, power, performance) are now available via
+# globalConfig specialArg, but we still pass them here for modules that don't
+# directly use globalConfig yet.
 {
   config,
   lib,
@@ -16,8 +26,9 @@ let
     ;
 
   cfg = config.ghaf.virtualization.microvm;
+  hostGlobalConfig = config.ghaf.global-config;
 
-  # Host configuration; for clarity
+  # Host configuration reference for hardware-specific settings
   configHost = config;
 
   # Currently only x86 with hw definition supported
@@ -29,7 +40,7 @@ let
       "devices"
     ] config.ghaf);
 
-  # Hardware devices passthrough modules
+  # Hardware devices passthrough modules (host-specific, can't use globalConfig)
   deviceModules = optionalAttrs fullVirtualization {
     inherit (configHost.ghaf.hardware.devices)
       nics
@@ -39,7 +50,7 @@ let
       ;
   };
 
-  # Kernel configurations
+  # Kernel configurations (host-specific, can't use globalConfig)
   kernelConfigs = optionalAttrs fullVirtualization {
     inherit (configHost.ghaf.kernel) guivm audiovm netvm;
   };
@@ -49,7 +60,7 @@ let
     config.ghaf.services.firmware.enable = true;
   };
 
-  # Qemu configuration modules
+  # Qemu configuration modules (host-specific, can't use globalConfig)
   qemuModules = {
     inherit (configHost.ghaf.qemu) guivm;
     inherit (configHost.ghaf.qemu) audiovm;
@@ -63,13 +74,15 @@ let
     };
   };
 
-  # Service modules
+  # Service modules - these now use globalConfig where available
+  # Note: VMs receive globalConfig via specialArgs, so these modules can
+  # access it if they're written as functions ({ globalConfig, ... }: ...)
   serviceModules = {
-    # Givc module
+    # Givc module - uses globalConfig values synced from backward compat
     givc = {
       config.ghaf.givc = {
-        inherit (configHost.ghaf.givc) enable;
-        inherit (configHost.ghaf.givc) debug;
+        inherit (hostGlobalConfig.givc) enable;
+        inherit (hostGlobalConfig.givc) debug;
       };
     };
 
@@ -91,42 +104,38 @@ let
     # Brightness module
     brightness = optionalAttrs cfg.guivm.brightness { config.ghaf.services.brightness.enable = true; };
 
-    # Logging module
+    # Logging module - uses globalConfig values
     logging = {
       config.ghaf.logging = {
-        inherit (configHost.ghaf.logging) enable;
-        listener = {
-          inherit (configHost.ghaf.logging.listener) address;
-        };
-        server = {
-          inherit (configHost.ghaf.logging.server) endpoint;
-        };
+        inherit (hostGlobalConfig.logging) enable;
+        listener.address = hostGlobalConfig.logging.listener.address;
+        server.endpoint = hostGlobalConfig.logging.server.endpoint;
       };
     };
 
-    # Audit module
+    # Audit module - uses globalConfig values
     audit = {
       config.ghaf.security.audit = {
-        inherit (configHost.ghaf.security.audit) enable;
+        inherit (hostGlobalConfig.security.audit) enable;
       };
     };
 
-    # Power management module
+    # Power management module - uses globalConfig values
     power = {
       config.ghaf.services.power-manager = {
-        inherit (configHost.ghaf.services.power-manager) enable;
+        inherit (hostGlobalConfig.services.power-manager) enable;
       };
     };
 
-    # Performance module
+    # Performance module - uses globalConfig values
     performance = {
       config.ghaf.services.performance = {
-        inherit (configHost.ghaf.services.performance) enable;
+        inherit (hostGlobalConfig.services.performance) enable;
       };
     };
   };
 
-  # User account settings
+  # User account settings (host-specific, can't use globalConfig)
   managedUserAccounts = {
     config.ghaf.users = {
       inherit (configHost.ghaf.users) profile;
@@ -135,7 +144,7 @@ let
     };
   };
 
-  # Reference services module
+  # Reference services module (host-specific, can't use globalConfig)
   referenceServiceModule = {
     config.ghaf =
       optionalAttrs

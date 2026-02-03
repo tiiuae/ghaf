@@ -3,19 +3,22 @@
 #
 # IDS VM Configuration Module
 #
-# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
-# TODO: Migrate to globalConfig pattern (Phase 2)
+# This module uses the globalConfig pattern:
+# - Global settings (debug, development, logging, storage, idsvm) come via globalConfig specialArg
+#
+# The VM configuration is self-contained and does not reference `configHost`.
 {
   config,
   lib,
-  pkgs,
   inputs,
   ...
 }:
 let
-  configHost = config;
   vmName = "ids-vm";
+  hostGlobalConfig = config.ghaf.global-config;
+
   idsvmBaseConfiguration = {
+    _file = ./idsvm.nix;
     imports = [
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.vm-modules
@@ -23,7 +26,12 @@ let
       inputs.self.nixosModules.hardware-x86_64-guest-kernel
       inputs.self.nixosModules.profiles
       (
-        { lib, ... }:
+        {
+          lib,
+          pkgs,
+          globalConfig,
+          ...
+        }:
         {
           imports = [
             ./mitmproxy
@@ -31,17 +39,16 @@ let
 
           ghaf = {
             type = "system-vm";
-            profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
+            profiles.debug.enable = lib.mkDefault globalConfig.debug.enable;
 
-            virtualization.microvm.idsvm.mitmproxy.enable =
-              configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;
+            virtualization.microvm.idsvm.mitmproxy.enable = globalConfig.idsvm.mitmproxy.enable;
 
             development = {
               # NOTE: SSH port also becomes accessible on the network interface
               #       that has been passed through to NetVM
-              ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
+              ssh.daemon.enable = lib.mkDefault globalConfig.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault globalConfig.development.nix-setup.enable;
             };
             virtualization.microvm.vm-networking = {
               enable = true;
@@ -57,20 +64,22 @@ let
 
           system.stateVersion = lib.trivial.release;
 
-          nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-          nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
+          nixpkgs = {
+            buildPlatform.system = globalConfig.platform.buildSystem;
+            hostPlatform.system = globalConfig.platform.hostSystem;
+          };
 
           environment.systemPackages = [
             pkgs.snort # TODO: put into separate module
           ]
-          ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.tcpdump);
+          ++ (lib.optional globalConfig.debug.enable pkgs.tcpdump);
 
           microvm = {
             hypervisor = "qemu";
             optimize.enable = true;
 
             # Shared store (when not using storeOnDisk)
-            shares = lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+            shares = lib.optionals (!globalConfig.storage.storeOnDisk) [
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -79,11 +88,9 @@ let
               }
             ];
 
-            writableStoreOverlay = lib.mkIf (
-              !configHost.ghaf.virtualization.microvm.storeOnDisk
-            ) "/nix/.rw-store";
+            writableStoreOverlay = lib.mkIf (!globalConfig.storage.storeOnDisk) "/nix/.rw-store";
           }
-          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+          // lib.optionalAttrs globalConfig.storage.storeOnDisk {
             storeOnDisk = true;
             storeDiskType = "erofs";
             storeDiskErofsFlags = [
@@ -125,7 +132,10 @@ in
     microvm.vms."${vmName}" = {
       autostart = true;
       inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+      };
 
       config = idsvmBaseConfiguration // {
         imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;

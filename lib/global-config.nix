@@ -153,6 +153,32 @@ rec {
         };
       };
 
+      # Shared memory configuration
+      shm = {
+        enable = mkOption {
+          type = types.bool;
+          default = false;
+          description = "Enable shared memory for inter-VM communication";
+        };
+
+        serverSocketPath = mkOption {
+          type = types.str;
+          default = "";
+          description = "Shared memory server socket path";
+        };
+      };
+
+      # IDS VM specific settings
+      idsvm = {
+        mitmproxy = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable MITM proxy in IDS VM for traffic inspection";
+          };
+        };
+      };
+
       # Platform information (populated from host config)
       platform = {
         buildSystem = mkOption {
@@ -204,6 +230,8 @@ rec {
         encryption.enable = false;
         storeOnDisk = false;
       };
+      shm.enable = false;
+      idsvm.mitmproxy.enable = false;
     };
 
     # Release profile - production settings
@@ -228,6 +256,8 @@ rec {
         encryption.enable = true;
         storeOnDisk = false;
       };
+      shm.enable = false;
+      idsvm.mitmproxy.enable = false;
     };
 
     # Minimal profile - bare minimum
@@ -252,6 +282,8 @@ rec {
         encryption.enable = false;
         storeOnDisk = false;
       };
+      shm.enable = false;
+      idsvm.mitmproxy.enable = false;
     };
   };
 
@@ -269,12 +301,105 @@ rec {
       lib,
       inputs,
       globalConfig,
+      hostConfig ? null, # Optional host-specific config (from mkVmHostConfig)
       extraArgs ? { },
     }:
     {
       inherit lib inputs globalConfig;
     }
+    // (if hostConfig != null then { inherit hostConfig; } else { })
     // extraArgs;
+
+  # Helper to create host-specific config for VM specialArgs
+  # This passes settings that are inherently host-bound (hardware, kernel, qemu)
+  # and cannot be globalized.
+  #
+  # Usage:
+  #   microvm.vms.audio-vm = {
+  #     specialArgs = lib.ghaf.mkVmSpecialArgs {
+  #       inherit lib inputs;
+  #       globalConfig = config.ghaf.global-config;
+  #       hostConfig = lib.ghaf.mkVmHostConfig {
+  #         inherit config;
+  #         vmName = "audio-vm";
+  #       };
+  #     };
+  #   };
+  mkVmHostConfig =
+    {
+      config, # Host config
+      vmName, # e.g., "gui-vm", "audio-vm"
+      extraConfig ? { },
+    }:
+    let
+      vmType = builtins.replaceStrings [ "-vm" ] [ "" ] vmName;
+
+      # Safely get nested attributes with default
+    in
+    {
+      # VM name for reference
+      inherit vmName vmType;
+
+      # Kernel configuration for this VM type (if defined)
+      kernel = config.ghaf.kernel.${vmType} or null;
+
+      # QEMU configuration for this VM type (if defined)
+      qemu = config.ghaf.qemu.${vmType} or null;
+
+      # Hardware passthrough settings
+      passthrough = {
+        qemuExtraArgs = config.ghaf.hardware.passthrough.qemuExtraArgs.${vmName} or [ ];
+        # vmUdevExtraRules is a list in the host config; join into a single string
+        vmUdevExtraRules =
+          let
+            rules = config.ghaf.hardware.passthrough.vmUdevExtraRules.${vmName} or [ ];
+          in
+          if rules == [ ] then "" else lib.concatStringsSep "\n" rules;
+      };
+
+      # Host filesystem paths
+      sharedVmDirectory = config.ghaf.virtualization.microvm-host.sharedVmDirectory or null;
+
+      # Boot configuration
+      microvmBoot = {
+        enable = config.ghaf.microvm-boot.enable or false;
+      };
+
+      # Hardware devices (for modules.nix)
+      hardware = {
+        devices = config.ghaf.hardware.devices or { };
+      };
+
+      # User configuration (complex, kept as-is for now)
+      users = config.ghaf.users or { };
+
+      # Reference services (profile-specific)
+      reference = {
+        services = config.ghaf.reference.services or { };
+      };
+
+      # Networking info (IP addresses, CIDs, etc. for this VM and others)
+      networking = {
+        hosts = config.ghaf.networking.hosts or { };
+        # Convenience accessor for this VM's network config
+        thisVm = config.ghaf.networking.hosts.${vmName} or { };
+      };
+
+      # GIVC configuration
+      givc = {
+        cliArgs = config.ghaf.givc.cliArgs or "";
+        enableTls = config.ghaf.givc.enableTls or false;
+      };
+
+      # Security settings (SSH keys, etc.)
+      security = {
+        sshKeys = config.ghaf.security.sshKeys or { };
+      };
+
+      # AppVM configurations (needed by guivm for launcher generation)
+      appvms = config.ghaf.virtualization.microvm.appvm.vms or { };
+    }
+    // extraConfig;
 
   # Helper to merge a profile with overrides
   #

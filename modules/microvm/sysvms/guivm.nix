@@ -3,8 +3,11 @@
 #
 # GUI VM Configuration Module
 #
-# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
-# TODO: Migrate to globalConfig pattern (Phase 2)
+# This module uses the globalConfig pattern:
+# - Global settings (debug, development, logging, storage, givc) come via globalConfig specialArg
+# - Host-specific settings (networking.hosts, users, appvms) come via hostConfig specialArg
+#
+# The VM configuration is self-contained and does not reference `configHost`.
 {
   config,
   lib,
@@ -12,11 +15,12 @@
   ...
 }:
 let
-  configHost = config;
   vmName = "gui-vm";
+  hostGlobalConfig = config.ghaf.global-config;
 
   inherit (lib) rmDesktopEntries;
   guivmBaseConfiguration = {
+    _file = ./guivm.nix;
     imports = [
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.givc
@@ -25,10 +29,16 @@ let
       inputs.self.nixosModules.vm-modules
 
       (
-        { lib, pkgs, ... }:
+        {
+          lib,
+          pkgs,
+          globalConfig,
+          hostConfig,
+          ...
+        }:
         let
-          # A list of applications from all AppVMs
-          enabledVms = lib.filterAttrs (_: vm: vm.enable) config.ghaf.virtualization.microvm.appvm.vms;
+          # A list of applications from all AppVMs (accessed via hostConfig)
+          enabledVms = lib.filterAttrs (_: vm: vm.enable) hostConfig.appvms;
           virtualApps = lib.lists.concatMap (
             vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
           ) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
@@ -37,9 +47,9 @@ let
           virtualLaunchers = map (app: rec {
             inherit (app) name;
             inherit (app) description;
-            #inherit (app) givcName;
             vm = app.vmName;
-            execPath = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
+            # Use givc settings from globalConfig
+            execPath = "${pkgs.givc-cli}/bin/givc-cli ${hostConfig.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
             inherit (app) icon;
           }) virtualApps;
 
@@ -58,27 +68,27 @@ let
           ];
 
           ghaf = {
-            # Profiles
+            # Profiles - from globalConfig
             profiles = {
-              debug.enable = lib.mkDefault config.ghaf.profiles.debug.enable;
+              debug.enable = lib.mkDefault globalConfig.debug.enable;
               graphics.enable = true;
             };
 
             users = {
               adUsers = {
-                inherit (config.ghaf.users.profile.ad-users) enable;
+                inherit (hostConfig.users.profile.ad-users) enable;
               };
               homedUser = {
-                inherit (config.ghaf.users.profile.homed-user) enable;
+                inherit (hostConfig.users.profile.homed-user) enable;
                 fidoAuth = true;
               };
             };
 
             development = {
-              ssh.daemon.enable = lib.mkDefault config.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
-              debug.tools.gui.enable = lib.mkDefault config.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault config.ghaf.development.nix-setup.enable;
+              ssh.daemon.enable = lib.mkDefault globalConfig.development.ssh.daemon.enable;
+              debug.tools.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              debug.tools.gui.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
+              nix-setup.enable = lib.mkDefault globalConfig.development.nix-setup.enable;
             };
 
             # Enable dynamic hostname export for VMs
@@ -94,12 +104,12 @@ let
               withNss = true;
               withResolved = true;
               withTimesyncd = true;
-              withDebug = config.ghaf.profiles.debug.enable;
+              withDebug = globalConfig.debug.enable;
               withHardenedConfigs = true;
             };
             givc.guivm.enable = true;
 
-            # Storage
+            # Storage - from globalConfig
             storagevm = {
               enable = true;
               name = vmName;
@@ -107,7 +117,7 @@ let
                 enable = true;
                 isGuiVm = true;
               };
-              encryption.enable = configHost.ghaf.virtualization.storagevm-encryption.enable;
+              encryption.enable = globalConfig.storage.encryption.enable;
             };
 
             # Networking
@@ -117,7 +127,7 @@ let
             };
 
             virtualization.microvm.tpm.passthrough = {
-              inherit (configHost.ghaf.virtualization.storagevm-encryption) enable;
+              inherit (globalConfig.storage.encryption) enable;
               rootNVIndex = "0x81703000";
             };
 
@@ -127,7 +137,7 @@ let
                 enable = true; # Enable graphical boot on gui-vm
                 renderer = "gpu"; # Use GPU for graphical boot in gui-vm
               };
-              launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
+              launchers = guivmLaunchers ++ lib.optionals globalConfig.givc.enable virtualLaunchers;
               cosmic = {
                 securityContext.rules = map (vm: {
                   identifier = vm.name;
@@ -138,8 +148,8 @@ let
 
             # Logging
             logging = {
-              inherit (config.ghaf.logging) enable listener;
-              client.enable = config.ghaf.logging.enable;
+              inherit (globalConfig.logging) enable listener;
+              client.enable = globalConfig.logging.enable;
             };
 
             # Services
@@ -177,7 +187,7 @@ let
             };
             xdgitems.enable = true;
 
-            security.fail2ban.enable = config.ghaf.development.ssh.daemon.enable;
+            security.fail2ban.enable = globalConfig.development.ssh.daemon.enable;
           };
 
           services = {
@@ -204,16 +214,11 @@ let
             services."waypipe-ssh-keygen" =
               let
                 uid =
-                  if config.ghaf.users.homedUser.enable then
-                    "${toString config.ghaf.users.homedUser.uid}"
+                  if hostConfig.users.homedUser.enable then
+                    "${toString hostConfig.users.homedUser.uid}"
                   else
-                    "${toString config.ghaf.users.admin.uid}";
-                pubDir = lib.attrByPath [
-                  "ghaf"
-                  "security"
-                  "sshKeys"
-                  "waypipeSshPublicKeyDir"
-                ] "/run/waypipe-ssh-public-key" config;
+                    "${toString hostConfig.users.admin.uid}";
+                pubDir = hostConfig.security.sshKeys.waypipeSshPublicKeyDir or "/run/waypipe-ssh-public-key";
                 keygenScript = pkgs.writeShellScriptBin "waypipe-ssh-keygen" ''
                   set -xeuo pipefail
                   mkdir -p /run/waypipe-ssh
@@ -248,21 +253,21 @@ let
               ])
               ++ [ pkgs.ctrl-panel ]
               # For GIVC debugging/testing
-              ++ lib.optional config.ghaf.profiles.debug.enable pkgs.givc-cli
+              ++ lib.optional globalConfig.debug.enable pkgs.givc-cli
               # Packages for checking hardware acceleration
-              ++ lib.optionals config.ghaf.profiles.debug.enable [
+              ++ lib.optionals globalConfig.debug.enable [
                 pkgs.mesa-demos
                 pkgs.libva-utils
                 pkgs.glib
               ]
               ++ [ pkgs.vhotplug ];
-            sessionVariables = lib.optionalAttrs config.ghaf.profiles.debug.enable (
+            sessionVariables = lib.optionalAttrs globalConfig.debug.enable (
               {
                 GIVC_NAME = "admin-vm";
-                GIVC_ADDR = config.ghaf.networking.hosts."admin-vm".ipv4;
+                GIVC_ADDR = hostConfig.networking.hosts."admin-vm".ipv4;
                 GIVC_PORT = "9001";
               }
-              // lib.optionalAttrs config.ghaf.givc.enableTls {
+              // lib.optionalAttrs hostConfig.givc.enableTls {
                 GIVC_CA_CERT = "/run/givc/ca-cert.pem";
                 GIVC_HOST_CERT = "/run/givc/cert.pem";
                 GIVC_HOST_KEY = "/run/givc/key.pem";
@@ -270,12 +275,12 @@ let
             );
           };
 
-          time.timeZone = config.time.timeZone;
+          time.timeZone = globalConfig.platform.timeZone;
           system.stateVersion = lib.trivial.release;
 
           nixpkgs = {
-            buildPlatform.system = config.nixpkgs.buildPlatform.system;
-            hostPlatform.system = config.nixpkgs.hostPlatform.system;
+            buildPlatform.system = globalConfig.platform.buildSystem;
+            hostPlatform.system = globalConfig.platform.hostSystem;
           };
 
           microvm = {
@@ -293,7 +298,7 @@ let
               }
             ]
             # Shared store (when not using storeOnDisk)
-            ++ lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
+            ++ lib.optionals (!globalConfig.storage.storeOnDisk) [
               {
                 tag = "ro-store";
                 source = "/nix/store";
@@ -302,16 +307,14 @@ let
               }
             ];
 
-            writableStoreOverlay = lib.mkIf (
-              !configHost.ghaf.virtualization.microvm.storeOnDisk
-            ) "/nix/.rw-store";
+            writableStoreOverlay = lib.mkIf (!globalConfig.storage.storeOnDisk) "/nix/.rw-store";
 
             qemu = {
               extraArgs = [
                 "-device"
                 "qemu-xhci"
                 "-device"
-                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
+                "vhost-vsock-pci,guest-cid=${toString hostConfig.networking.thisVm.cid}"
               ];
 
               machine =
@@ -320,10 +323,10 @@ let
                   x86_64-linux = "q35";
                   aarch64-linux = "virt";
                 }
-                .${config.nixpkgs.hostPlatform.system};
+                .${globalConfig.platform.hostSystem};
             };
           }
-          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
+          // lib.optionalAttrs globalConfig.storage.storeOnDisk {
             storeOnDisk = true;
             storeDiskType = "erofs";
             storeDiskErofsFlags = [
@@ -391,7 +394,15 @@ in
     microvm.vms."${vmName}" = {
       autostart = !config.ghaf.microvm-boot.enable;
       inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
+
+      # Use mkVmSpecialArgs for globalConfig + hostConfig
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.mkVmHostConfig {
+          inherit config vmName;
+        };
+      };
 
       config = guivmBaseConfiguration // {
         imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
