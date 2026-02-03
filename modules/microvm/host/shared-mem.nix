@@ -249,16 +249,7 @@ in
           in
           lib.foldl' lib.attrsets.recursiveUpdate { } (map makeAssignment cfg.vms_enabled);
       }
-      {
-        # When using evaluatedConfig, we can't set config directly.
-        # Instead, add kernel params via extraModules which profile collects.
-        ghaf.virtualization.microvm.guivm.extraModules = [
-          {
-            boot.kernelParams = [
-              "kvm_ivshmem.flataddr=${cfg.flataddr}"
-            ];
-          }
-        ];
-      }
+      # Shared memory guest config is now provided by guivm-desktop-features module
+      # See: modules/desktop/guivm/shared-mem.nix
     ]);
 }

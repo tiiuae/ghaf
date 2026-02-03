@@ -70,9 +70,10 @@ in
           storage.encryption.enable = true;
         };
 
-      VMs automatically inherit these settings but can override them if needed:
-        ghaf.virtualization.microvm.guivm.extraModules = [{
-          ghaf.profiles.debug.enable = lib.mkForce false;  # Override for this VM only
+      Hardware-specific VM configurations go via hardware definition:
+        ghaf.hardware.definition.guivm.extraModules = [{
+          # Hardware-specific overrides for GUI VM
+          microvm.mem = 8192;
         }];
     '';
   };

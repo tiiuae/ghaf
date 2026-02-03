@@ -12,11 +12,15 @@
   lib,
   pkgs,
   inputs,
+  options,
   ...
 }:
 let
   cfg = config.ghaf.virtualization.microvm.appvm;
   hostGlobalConfig = config.ghaf.global-config;
+
+  # Check if hardware.definition option exists
+  hasHardwareDefinition = options ? ghaf.hardware.definition;
 
   inherit (lib)
     mkEnableOption
@@ -522,59 +526,62 @@ in
           };
         };
     in
-    lib.mkIf cfg.enable {
-      # Define microvms for each AppVM configuration
-      microvm.vms =
-        let
-          vms' = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) vms;
-          vms'' = map (vm: { "${vm.name}-vm" = makeVm { inherit vm; }; }) vms';
-        in
-        lib.foldr lib.recursiveUpdate { } vms'';
+    lib.mkIf cfg.enable (
+      {
+        # Define microvms for each AppVM configuration
+        microvm.vms =
+          let
+            vms' = lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) vms;
+            vms'' = map (vm: { "${vm.name}-vm" = makeVm { inherit vm; }; }) vms';
+          in
+          lib.foldr lib.recursiveUpdate { } vms'';
 
-      # Apply host service dependencies, add swtpm
-      systemd.services =
-        let
-          swtpms = lib.mapAttrsToList (name: vm: {
-            "${name}-vm-swtpm" = makeSwtpmService name vm;
-          }) vms;
-          # Each AppVM with waypipe needs its own instance of vsockproxy on the host
-          proxyServices = map (
-            name:
-            let
-              vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
-            in
-            {
-              "vsockproxy-${name}-vm" = vmConfig.ghaf.waypipe.proxyService;
-            }
-          ) (builtins.attrNames vmsWithWaypipe);
-        in
-        lib.foldr lib.recursiveUpdate { } (swtpms ++ proxyServices);
+        # Apply host service dependencies, add swtpm
+        systemd.services =
+          let
+            swtpms = lib.mapAttrsToList (name: vm: {
+              "${name}-vm-swtpm" = makeSwtpmService name vm;
+            }) vms;
+            # Each AppVM with waypipe needs its own instance of vsockproxy on the host
+            proxyServices = map (
+              name:
+              let
+                vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
+              in
+              {
+                "vsockproxy-${name}-vm" = vmConfig.ghaf.waypipe.proxyService;
+              }
+            ) (builtins.attrNames vmsWithWaypipe);
+          in
+          lib.foldr lib.recursiveUpdate { } (swtpms ++ proxyServices);
 
+        ghaf.common.extraNetworking.hosts = lib.mapAttrs' (name: vm: {
+          name = "${name}-vm";
+          value = vm.extraNetworking or { };
+        }) vms;
+
+        # Add USB passthrough rules from AppVMs
+        ghaf.hardware.passthrough.vhotplug.usbRules = lib.concatMap (vm: vm.usbPassthrough) (
+          lib.attrValues vms
+        );
+      }
       # GUIVM needs to have a dedicated waypipe instance for each AppVM
-      ghaf.virtualization.microvm.guivm.extraModules = [
-        {
-          systemd.user.services = lib.mapAttrs' (
-            name: _:
-            let
-              vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
-            in
-            {
-              name = "waypipe-${name}-vm";
-              value = vmConfig.ghaf.waypipe.waypipeService;
-            }
-          ) vmsWithWaypipe;
-        }
-      ];
-
-      ghaf.common.extraNetworking.hosts = lib.mapAttrs' (name: vm: {
-        name = "${name}-vm";
-        value = vm.extraNetworking or { };
-      }) vms;
-
-      # Add USB passthrough rules from AppVMs
-      ghaf.hardware.passthrough.vhotplug.usbRules = lib.concatMap (vm: vm.usbPassthrough) (
-        lib.attrValues vms
-      );
-
-    };
+      # This is passed via hardware.definition since it requires host-level VM info (only on x86)
+      // lib.optionalAttrs hasHardwareDefinition {
+        ghaf.hardware.definition.guivm.extraModules = [
+          {
+            systemd.user.services = lib.mapAttrs' (
+              name: _:
+              let
+                vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
+              in
+              {
+                name = "waypipe-${name}-vm";
+                value = vmConfig.ghaf.waypipe.waypipeService;
+              }
+            ) vmsWithWaypipe;
+          }
+        ];
+      }
+    );
 }
