@@ -125,6 +125,12 @@ let
         # Write config pointer so test scripts can discover KEY_DIR without hostname
         echo "$KEY_DIR" > "/var/log/journal/$MACHINE_ID/fss-config"
         chmod 0644 "/var/log/journal/$MACHINE_ID/fss-config"
+        # One-time rotation to move pre-FSS entries to archive (fixes "Bad message")
+        if [ ! -f "/var/log/journal/$MACHINE_ID/fss-rotated" ]; then
+          echo "Rotating journal to ensure clean FSS state..."
+          journalctl --rotate 2>/dev/null || true
+          touch "/var/log/journal/$MACHINE_ID/fss-rotated"
+        fi
         exit 0
       fi
 
@@ -168,6 +174,9 @@ let
         echo "Warning: Journald restart failed - sealing may not be active"
       fi
 
+      # Rotate so active journal starts clean with FSS (pre-FSS entries become archive)
+      journalctl --rotate 2>/dev/null || true
+
       # Create sentinel file to prevent re-initialization
       touch "$INIT_FILE"
       chmod 0644 "$INIT_FILE"
@@ -175,6 +184,8 @@ let
       # Write config pointer so test scripts can discover KEY_DIR without hostname
       echo "$KEY_DIR" > "/var/log/journal/$MACHINE_ID/fss-config"
       chmod 0644 "/var/log/journal/$MACHINE_ID/fss-config"
+
+      touch "/var/log/journal/$MACHINE_ID/fss-rotated"
 
       echo "Forward Secure Sealing initialization complete"
       echo "Sealing key: $FSS_KEY_FILE"
@@ -437,11 +448,6 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [ "systemd-journald.service" ];
       wants = [ "systemd-journald.service" ];
-
-      unitConfig = {
-        # Only run if not already initialized
-        ConditionPathExists = "!${cfg.keyPath}/initialized";
-      };
 
       serviceConfig = {
         Type = "oneshot";
