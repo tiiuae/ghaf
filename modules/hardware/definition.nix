@@ -351,5 +351,48 @@ in
           '';
         };
       };
+
+      # GUI VM hardware-specific configuration
+      # These options allow hardware modules to specify VM-level configs
+      # that profiles include via extendModules
+      guivm = {
+        mem = mkOption {
+          description = ''
+            Override GUI VM memory allocation in MB.
+            If null, the default from guivm-base.nix is used (12288 MB).
+          '';
+          type = types.nullOr types.int;
+          default = null;
+          example = 8192;
+        };
+        vcpu = mkOption {
+          description = ''
+            Override GUI VM vCPU count.
+            If null, the default from guivm-base.nix is used (6 vCPUs).
+          '';
+          type = types.nullOr types.int;
+          default = null;
+          example = 4;
+        };
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for GUI VM configuration.
+            These modules are included in the profile's extendModules call.
+
+            Use this for hardware-specific configurations like:
+            - GPU passthrough settings (PRIME, OVMF)
+            - Hardware-specific QEMU arguments
+            - Device-specific services
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./gpu-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
     };
 }

@@ -370,6 +370,9 @@ rec {
         devices = config.ghaf.hardware.devices or { };
       };
 
+      # Common namespace (for killswitch, etc.)
+      common = config.ghaf.common or { };
+
       # User configuration (complex, kept as-is for now)
       users = config.ghaf.users or { };
 

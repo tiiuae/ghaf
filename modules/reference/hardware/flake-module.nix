@@ -9,14 +9,51 @@
   flake.nixosModules = {
     hardware-alienware-m18-r2.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./alienware/alienware-m18.nix; }
       {
-        ghaf.hardware.definition = import ./alienware/alienware-m18.nix;
-        ghaf.virtualization.microvm.guivm.extraModules = [
+        # Hardware-specific VM configs via hardware definition
+        ghaf.hardware.definition.guivm.extraModules = [
           (import ./alienware/extra-config.nix)
         ];
         ghaf.virtualization.microvm.netvm.extraModules = [
           (import ./alienware/net-config.nix)
         ];
+      }
+    ];
+
+    hardware-demo-tower-mk1.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./demo-tower/demo-tower.nix; }
+      {
+        ghaf.hardware.tpm2.enable = lib.mkForce false;
+        # Hardware-specific VM configs via hardware definition
+        ghaf.hardware.definition.guivm.extraModules = [
+          (import ./demo-tower/extra-config.nix)
+        ];
+      }
+    ];
+
+    hardware-lenovo-t14-amd-gen5.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./lenovo-t14-amd/definitions/gen-5.nix; }
+      {
+        # Hardware-specific VM configs via hardware definition
+        ghaf.hardware.definition.guivm.extraModules = [
+          ./lenovo-t14-amd/gpu-config.nix
+        ];
+      }
+    ];
+
+    hardware-tower-5080.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./tower-5080/tower-5080.nix; }
+      {
+        ghaf.hardware.tpm2.enable = lib.mkForce false;
+        # Hardware-specific VM configs via hardware definition
+        ghaf.hardware.definition.guivm.extraModules = [
+          (import ./tower-5080/extra-config.nix)
+        ];
+        ghaf.hardware.passthrough.pci.autoDetectNet = true;
       }
     ];
 
@@ -34,17 +71,6 @@
       }
     ];
 
-    hardware-demo-tower-mk1.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./demo-tower/demo-tower.nix;
-        ghaf.hardware.tpm2.enable = lib.mkForce false;
-        ghaf.virtualization.microvm.guivm.extraModules = [
-          (import ./demo-tower/extra-config.nix)
-        ];
-      }
-    ];
-
     hardware-intel-laptop.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
@@ -52,16 +78,6 @@
         ghaf.hardware.passthrough.pci.autoDetectGpu = true;
         ghaf.hardware.passthrough.pci.autoDetectNet = true;
         ghaf.hardware.passthrough.pci.autoDetectAudio = true;
-      }
-    ];
-
-    hardware-lenovo-t14-amd-gen5.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-t14-amd/definitions/gen-5.nix;
-        ghaf.virtualization.microvm.guivm.extraModules = [
-          ./lenovo-t14-amd/gpu-config.nix
-        ];
       }
     ];
 
@@ -104,18 +120,6 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./system76/definitions/system76-darp11-b.nix;
-      }
-    ];
-
-    hardware-tower-5080.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./tower-5080/tower-5080.nix;
-        ghaf.hardware.tpm2.enable = lib.mkForce false;
-        ghaf.virtualization.microvm.guivm.extraModules = [
-          (import ./tower-5080/extra-config.nix)
-        ];
-        ghaf.hardware.passthrough.pci.autoDetectNet = true;
       }
     ];
 

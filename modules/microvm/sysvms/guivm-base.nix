@@ -92,6 +92,14 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    # Networking hosts - from hostConfig
+    # Required for vm-networking.nix to look up this VM's MAC/IP
+    networking.hosts = hostConfig.networking.hosts or { };
+
+    # Common namespace - from hostConfig
+    # Required for killswitch, etc. to access hardware device info
+    common = hostConfig.common or { };
+
     # Enable dynamic hostname export for VMs
     identity.vmHostNameExport.enable = true;
 
@@ -148,7 +156,12 @@ in
     };
 
     # Logging - from globalConfig
-    logging.client.enable = globalConfig.logging.enable or false;
+    logging = {
+      inherit (globalConfig.logging) enable;
+      listener.address = globalConfig.logging.listener.address or "";
+      server.endpoint = globalConfig.logging.server.endpoint or "";
+      client.enable = globalConfig.logging.enable or false;
+    };
 
     # Services
     services = {
@@ -283,8 +296,9 @@ in
 
   microvm = {
     optimize.enable = false;
-    vcpu = 6;
-    mem = 12288;
+    # Use hardware definition values if set, otherwise defaults
+    vcpu = globalConfig.hardware.definition.guivm.vcpu or 6;
+    mem = globalConfig.hardware.definition.guivm.mem or 12288;
     hypervisor = "qemu";
 
     shares = [

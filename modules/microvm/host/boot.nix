@@ -9,7 +9,6 @@
 let
   cfg = config.ghaf.microvm-boot;
   inherit (lib)
-    getExe
     mkEnableOption
     mkIf
     mkMerge
@@ -18,7 +17,6 @@ let
     types
     filterAttrs
     removeSuffix
-    optionals
     optionalAttrs
     ;
   inherit (config.ghaf.networking) hosts;
@@ -105,32 +103,6 @@ let
       systemctl set-property --runtime system-sysvms.slice CPUWeight= IOWeight=
       systemctl set-property --runtime system-appvms.slice CPUWeight= IOWeight=
       systemctl daemon-reload
-    '';
-  };
-
-  wait-for-session = pkgs.writeShellApplication {
-    name = "wait-for-session";
-    runtimeInputs = [
-      pkgs.systemd
-      pkgs.jq
-    ];
-    text = ''
-      echo "Waiting for user to login..."
-      USER_ID=1
-      while [ "$USER_ID" -lt 1000 ]; do
-        tmp_id=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid') || true
-        [[ "$tmp_id" =~ ^[0-9]+$ ]] && USER_ID="$tmp_id" || USER_ID=1
-        sleep 1
-      done
-      echo "User with ID=$USER_ID is now active"
-
-      echo "Waiting for user-session to be running..."
-      state="inactive"
-      while [[ "$state" != "active" ]]; do
-        state=$(systemctl --user is-active session.slice --machine="$USER_ID"@.host) || true
-        sleep 1
-      done
-      echo "User-session is active"
     '';
   };
 in
@@ -221,28 +193,8 @@ in
           };
         };
 
-      ghaf.virtualization.microvm.guivm.extraModules = optionals cfg.uiEnabled [
-        {
-          # Allow systemd units to be monitored via givc
-          givc.sysvm.services = [
-            "greetd.service"
-            "user-login.service"
-          ];
-
-          # Wait until user logs in and ghaf-session is active
-          systemd.services.user-login = {
-            description = "Wait for ghaf-session to be active";
-            wantedBy = [ "multi-user.target" ];
-            after = [ "greetd.service" ];
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStartPre = "${getExe wait-for-session}";
-              ExecStart = "/bin/sh -c exit"; # no-op
-              RemainAfterExit = true;
-            };
-          };
-        }
-      ];
+      # Boot UI config for GUI VM is now provided by guivm-desktop-features module
+      # See: modules/desktop/guivm/boot-ui.nix
     })
 
     # Enable systemd-bootchart if debug is enabled

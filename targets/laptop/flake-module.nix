@@ -86,11 +86,8 @@ let
             enable = true;
             ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
           };
-          virtualization.microvm.guivm.extraModules = [
-            {
-              microvm.mem = lib.mkForce 6144;
-            }
-          ];
+          # Hardware-specific VM memory via hardware definition
+          hardware.definition.guivm.mem = 6144;
           virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
         };
       }
@@ -136,12 +133,8 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-
-          virtualization.microvm.guivm.extraModules = [
-            {
-              microvm.mem = lib.mkForce 2047;
-            }
-          ];
+          # Hardware-specific VM memory via hardware definition
+          hardware.definition.guivm.mem = 2047;
         };
       }
     ]))
@@ -222,7 +215,8 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          # Hardware-specific VM configs via hardware definition
+          hardware.definition.guivm.extraModules = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {
@@ -258,7 +252,8 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          # Hardware-specific VM configs via hardware definition
+          hardware.definition.guivm.extraModules = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {
@@ -321,11 +316,8 @@ let
             enable = true;
             ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
           };
-          virtualization.microvm.guivm.extraModules = [
-            {
-              microvm.mem = lib.mkForce 6144;
-            }
-          ];
+          # Hardware-specific VM memory via hardware definition
+          hardware.definition.guivm.mem = 6144;
           virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
         };
       }
@@ -430,7 +422,8 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          # Hardware-specific VM configs via hardware definition
+          hardware.definition.guivm.extraModules = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {
@@ -466,7 +459,8 @@ let
             ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
           };
 
-          virtualization.microvm.guivm.extraModules = [
+          # Hardware-specific VM configs via hardware definition
+          hardware.definition.guivm.extraModules = [
             {
               # We explicitly enable only those we need
               hardware.system76 = {

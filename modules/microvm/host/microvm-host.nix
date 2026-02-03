@@ -138,16 +138,26 @@ in
             vm:
             let
               vmConfig = lib.ghaf.getVmConfig vm;
+              # Safe check for xdgitems.enable - avoid triggering option evaluation
+              hasXdgEnabled =
+                vmConfig != null
+                && lib.hasAttr "ghaf" vmConfig
+                && lib.hasAttr "xdgitems" vmConfig.ghaf
+                && lib.hasAttr "enable" vmConfig.ghaf.xdgitems
+                && vmConfig.ghaf.xdgitems.enable;
             in
-            vmConfig != null && lib.hasAttr "xdgitems" vmConfig.ghaf && vmConfig.ghaf.xdgitems.enable
+            hasXdgEnabled
           ) (builtins.attrValues config.microvm.vms);
           xdgDirs = lib.flatten (
             map (
               vm:
               let
                 vmConfig = lib.ghaf.getVmConfig vm;
+                # Safe access to xdgHostPaths - readOnly option that may not be set
+                # Use tryEval to handle the case where option has no value
+                xdgPathsAttempt = builtins.tryEval (vmConfig.ghaf.xdgitems.xdgHostPaths or [ ]);
               in
-              vmConfig.ghaf.xdgitems.xdgHostPaths or [ ]
+              if xdgPathsAttempt.success then xdgPathsAttempt.value else [ ]
             ) vmsWithXdg
           );
           xdgRules = map (
@@ -292,23 +302,8 @@ in
           startLimitIntervalSec = 0;
         };
 
-        # Receive shared folder inotify events from the host to automatically refresh the file manager
-        ghaf.virtualization.microvm.guivm.extraModules = [
-          {
-            systemd.services.vinotify = {
-              enable = true;
-              description = "vinotify";
-              wantedBy = [ "multi-user.target" ];
-              serviceConfig = {
-                Type = "simple";
-                Restart = "always";
-                RestartSec = "1";
-                ExecStart = "${pkgs.vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
-              };
-              startLimitIntervalSec = 0;
-            };
-          }
-        ];
+        # Shared folders guest config is now provided by guivm-desktop-features module
+        # See: modules/desktop/guivm/shared-folders.nix
       }
     )
     (mkIf (cfg.enable && config.services.userborn.enable) {

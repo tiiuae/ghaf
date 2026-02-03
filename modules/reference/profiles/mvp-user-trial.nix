@@ -108,17 +108,21 @@ in
         };
       };
 
-      # GUI VM: Extend laptop base with MVP services (HYBRID: includes extraModules)
+      # GUI VM: Extend laptop base with MVP services and feature modules
       virtualization.microvm.guivm.evaluatedConfig =
         config.ghaf.profiles.laptop-x86.guivmBase.extendModules
           {
             modules = [
+              # Reference services and personalization
               ../services
               ../programs
               ../personalize
               { ghaf.reference.personalize.keys.enable = true; }
+              # Feature modules (auto-include based on feature flags)
+              inputs.self.nixosModules.guivm-desktop-features
             ]
-            ++ config.ghaf.virtualization.microvm.guivm.extraModules;
+            # Hardware-specific modules from hardware definition
+            ++ config.ghaf.hardware.definition.guivm.extraModules;
             specialArgs = lib.ghaf.mkVmSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;

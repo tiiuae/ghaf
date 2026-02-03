@@ -1,7 +1,12 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  options,
+  ...
+}:
 let
   inherit (lib)
     mkOption
@@ -11,13 +16,13 @@ let
     ;
   cfg = config.ghaf.hardware.passthrough.pciPorts;
 
+  # Check if hardware.definition option exists
+  hasHardwareDefinition = options ? ghaf.hardware.definition;
+
   # Helper function to get the count of PCI devices from hardware definitions
   staticPciCount =
     dev:
-    if lib.hasAttr "definitions" config.ghaf.hardware then
-      lib.length config.ghaf.hardware.definition.${dev}.pciDevices
-    else
-      0;
+    if hasHardwareDefinition then lib.length config.ghaf.hardware.definition.${dev}.pciDevices else 0;
 
   # Default number of ports for PCI hotplugging in VMs
   pciPortDefaults = {
@@ -70,21 +75,26 @@ in
     };
   };
 
-  config = mkIf (config.ghaf.hardware.passthrough.mode != "none") {
-    ghaf.virtualization.microvm.guivm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
-      }
-    ];
-    ghaf.virtualization.microvm.netvm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
-      }
-    ];
-    ghaf.virtualization.microvm.audiovm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
-      }
-    ];
-  };
+  config = mkIf (config.ghaf.hardware.passthrough.mode != "none") (
+    {
+      ghaf.virtualization.microvm.netvm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
+        }
+      ];
+      ghaf.virtualization.microvm.audiovm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
+        }
+      ];
+    }
+    # PCIe root ports config for GUI VM goes via hardware definition (only on x86)
+    // lib.optionalAttrs hasHardwareDefinition {
+      ghaf.hardware.definition.guivm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
+        }
+      ];
+    }
+  );
 }
