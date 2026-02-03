@@ -1,8 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  inputs,
+  ...
+}:
 let
   cfg = config.ghaf.profiles.laptop-x86;
+  hostGlobalConfig = config.ghaf.global-config;
 in
 {
   options.ghaf.profiles.laptop-x86 = {
@@ -15,15 +21,40 @@ in
       default = [ ];
     };
 
-    guivmExtraModules = lib.mkOption {
+    # GUI VM base configuration for profiles to extend
+    guivmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
       description = ''
-        List of additional modules to be passed to the guivm.
+        Laptop-x86 GUI VM base configuration.
+        Profiles should extend this with extendModules to add services.
       '';
-      default = [ ];
     };
   };
 
   config = lib.mkIf cfg.enable {
+
+    # Export GUI VM base for profiles to extend
+    ghaf.profiles.laptop-x86.guivmBase = lib.nixosSystem {
+      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
+      modules = [
+        inputs.microvm.nixosModules.microvm
+        inputs.self.nixosModules.guivm-base
+        # Import nixpkgs config module to get overlays
+        {
+          nixpkgs.overlays = config.nixpkgs.overlays;
+          nixpkgs.config = config.nixpkgs.config;
+        }
+      ];
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig = lib.ghaf.mkVmHostConfig {
+          inherit config;
+          vmName = "gui-vm";
+        };
+      };
+    };
 
     ghaf = {
       # Hardware definitions
@@ -65,7 +96,8 @@ in
 
           guivm = {
             enable = true;
-            extraModules = cfg.guivmExtraModules;
+            # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
+            # Profile extends guivmBase and collects extraModules
           };
 
           audiovm = {

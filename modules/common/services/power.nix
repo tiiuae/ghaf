@@ -48,10 +48,12 @@ let
   fakeSuspendVms = lib.attrNames (
     filterAttrs (
       _n: v:
-      (
-        v.config.config.ghaf.services.power-manager.vm.enable
-        && v.config.config.ghaf.services.power-manager.vm.fakeSuspend
-      )
+      let
+        vmConfig = lib.ghaf.getVmConfig v;
+      in
+      vmConfig != null
+      && vmConfig.ghaf.services.power-manager.vm.enable
+      && vmConfig.ghaf.services.power-manager.vm.fakeSuspend
     ) config.microvm.vms
   );
 
@@ -59,10 +61,12 @@ let
   pciSuspendVms = lib.attrNames (
     filterAttrs (
       _n: v:
-      (
-        v.config.config.ghaf.services.power-manager.vm.enable
-        && v.config.config.ghaf.services.power-manager.vm.pciSuspend
-      )
+      let
+        vmConfig = lib.ghaf.getVmConfig v;
+      in
+      vmConfig != null
+      && vmConfig.ghaf.services.power-manager.vm.enable
+      && vmConfig.ghaf.services.power-manager.vm.pciSuspend
     ) config.microvm.vms
   );
 
@@ -70,10 +74,12 @@ let
   powerOffVms = lib.attrNames (
     filterAttrs (
       _n: v:
-      (
-        v.config.config.ghaf.services.power-manager.vm.enable
-        && v.config.config.ghaf.services.power-manager.vm.powerOffOnSuspend
-      )
+      let
+        vmConfig = lib.ghaf.getVmConfig v;
+      in
+      vmConfig != null
+      && vmConfig.ghaf.services.power-manager.vm.enable
+      && vmConfig.ghaf.services.power-manager.vm.powerOffOnSuspend
     ) config.microvm.vms
   );
 
@@ -659,7 +665,11 @@ in
               (
                 lib.attrNames (
                   filterAttrs (
-                    _: vm: vm.config.config.ghaf.type == "system-vm" && vm.config.config.ghaf.gracefulShutdown
+                    _: vm:
+                    let
+                      vmConfig = lib.ghaf.getVmConfig vm;
+                    in
+                    vmConfig != null && vmConfig.ghaf.type == "system-vm" && vmConfig.ghaf.gracefulShutdown
                   ) config.microvm.vms
                 )
               )

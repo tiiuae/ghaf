@@ -345,10 +345,28 @@ in
   options.ghaf.virtualization.microvm.guivm = {
     enable = lib.mkEnableOption "GUIVM";
 
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+      description = ''
+        Pre-evaluated GUI VM configuration from extendModules.
+        When set, this takes precedence over the legacy guivmBaseConfiguration.
+        Profiles should set this by extending guivmBase from laptop-x86 profile.
+      '';
+    };
+
     extraModules = lib.mkOption {
+      type = lib.types.listOf lib.types.deferredModule;
       description = ''
         List of additional modules to be imported and evaluated as part of
         GUIVM's NixOS configuration.
+
+        NOTE: When using evaluatedConfig (recommended), ensure your profile
+        includes these extraModules in its extendModules call. Example:
+
+          guivm.evaluatedConfig = guivmBase.extendModules {
+            modules = [ ... ] ++ config.ghaf...guivm.extraModules;
+          };
       '';
       default = [ ];
     };
@@ -389,24 +407,45 @@ in
     };
   };
   config = lib.mkIf cfg.enable {
+    # Warning if extraModules set but profile might not include them
+    warnings = lib.optionals (cfg.evaluatedConfig != null && cfg.extraModules != [ ]) [
+      ''
+        ghaf.virtualization.microvm.guivm.extraModules is non-empty but evaluatedConfig is set.
+        Ensure your profile includes extraModules in its extendModules call:
+          guivm.evaluatedConfig = guivmBase.extendModules {
+            modules = [ ... ] ++ config.ghaf.virtualization.microvm.guivm.extraModules;
+          };
+      ''
+    ];
+
     ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = !config.ghaf.microvm-boot.enable;
-      inherit (inputs) nixpkgs;
+    microvm.vms."${vmName}" =
+      if cfg.evaluatedConfig != null then
+        # New path: Use pre-evaluated config from profile (via extendModules)
+        {
+          autostart = !config.ghaf.microvm-boot.enable;
+          inherit (inputs) nixpkgs;
+          inherit (cfg) evaluatedConfig;
+        }
+      else
+        # Legacy path: Build config inline (for non-laptop targets)
+        {
+          autostart = !config.ghaf.microvm-boot.enable;
+          inherit (inputs) nixpkgs;
 
-      # Use mkVmSpecialArgs for globalConfig + hostConfig
-      specialArgs = lib.ghaf.mkVmSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.mkVmHostConfig {
-          inherit config vmName;
+          # Use mkVmSpecialArgs for globalConfig + hostConfig
+          specialArgs = lib.ghaf.mkVmSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.mkVmHostConfig {
+              inherit config vmName;
+            };
+          };
+
+          config = guivmBaseConfiguration // {
+            imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
+          };
         };
-      };
-
-      config = guivmBaseConfiguration // {
-        imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
-      };
-    };
   };
 }

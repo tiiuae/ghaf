@@ -478,7 +478,11 @@ in
     let
       vms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
       vmsWithWaypipe = lib.filterAttrs (
-        name: _vm: config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.enable
+        name: _vm:
+        let
+          vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
+        in
+        vmConfig != null && vmConfig.ghaf.waypipe.enable
       ) vms;
 
       makeSwtpmService =
@@ -534,19 +538,31 @@ in
             "${name}-vm-swtpm" = makeSwtpmService name vm;
           }) vms;
           # Each AppVM with waypipe needs its own instance of vsockproxy on the host
-          proxyServices = map (name: {
-            "vsockproxy-${name}-vm" = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.proxyService;
-          }) (builtins.attrNames vmsWithWaypipe);
+          proxyServices = map (
+            name:
+            let
+              vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
+            in
+            {
+              "vsockproxy-${name}-vm" = vmConfig.ghaf.waypipe.proxyService;
+            }
+          ) (builtins.attrNames vmsWithWaypipe);
         in
         lib.foldr lib.recursiveUpdate { } (swtpms ++ proxyServices);
 
       # GUIVM needs to have a dedicated waypipe instance for each AppVM
       ghaf.virtualization.microvm.guivm.extraModules = [
         {
-          systemd.user.services = lib.mapAttrs' (name: _: {
-            name = "waypipe-${name}-vm";
-            value = config.microvm.vms."${name}-vm".config.config.ghaf.waypipe.waypipeService;
-          }) vmsWithWaypipe;
+          systemd.user.services = lib.mapAttrs' (
+            name: _:
+            let
+              vmConfig = lib.ghaf.getVmConfig config.microvm.vms."${name}-vm";
+            in
+            {
+              name = "waypipe-${name}-vm";
+              value = vmConfig.ghaf.waypipe.waypipeService;
+            }
+          ) vmsWithWaypipe;
         }
       ];
 

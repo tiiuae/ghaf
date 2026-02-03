@@ -191,13 +191,17 @@ in
                       };
                       kernelParams = [ "kvm_ivshmem.flataddr=${cfg.flataddr}" ];
                     };
-                    boot.extraModulePackages = [
-                      # TODO: fix this to not call back to packages dir
-                      (pkgs.linuxPackages.callPackage ../../../packages/pkgs-by-name/memsocket/module.nix {
-                        inherit (config.microvm.vms.${vmName}.config.config.boot.kernelPackages) kernel;
-                        vmCount = cfg.instancesCount;
-                      })
-                    ];
+                    boot.extraModulePackages =
+                      let
+                        vmConfig = lib.ghaf.getVmConfig config.microvm.vms.${vmName};
+                      in
+                      [
+                        # TODO: fix this to not call back to packages dir
+                        (pkgs.linuxPackages.callPackage ../../../packages/pkgs-by-name/memsocket/module.nix {
+                          inherit (vmConfig.boot.kernelPackages) kernel;
+                          vmCount = cfg.instancesCount;
+                        })
+                      ];
                     services = {
                       udev = {
                         extraRules = ''
@@ -246,8 +250,14 @@ in
           lib.foldl' lib.attrsets.recursiveUpdate { } (map makeAssignment cfg.vms_enabled);
       }
       {
-        microvm.vms.gui-vm.config.config.boot.kernelParams = [
-          "kvm_ivshmem.flataddr=${cfg.flataddr}"
+        # When using evaluatedConfig, we can't set config directly.
+        # Instead, add kernel params via extraModules which profile collects.
+        ghaf.virtualization.microvm.guivm.extraModules = [
+          {
+            boot.kernelParams = [
+              "kvm_ivshmem.flataddr=${cfg.flataddr}"
+            ];
+          }
         ];
       }
     ]);

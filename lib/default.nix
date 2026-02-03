@@ -10,6 +10,8 @@ let
   launcherLib = import ./launcher.nix { };
   # Import global config types and utilities
   globalConfigLib = import ./global-config.nix { inherit lib; };
+  # Import VM base configurations
+  vmBasesLib = import ./vm-bases { inherit lib; };
 in
 {
   /*
@@ -117,6 +119,13 @@ in
       mkVmSpecialArgs
       mkVmHostConfig
       mkGlobalConfig
+      mkExtendedVm
+      getVmConfig
+      ;
+
+    # VM base configurations for extendModules composition
+    inherit (vmBasesLib)
+      mkGuiVmBase
       ;
   };
 }

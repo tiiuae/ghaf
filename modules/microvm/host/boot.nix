@@ -27,7 +27,15 @@ let
   # Filter system and enabled app VMs
   appVms = lib.attrNames (filterAttrs (_: vm: vm.enable) appvm.vms);
   sysVms = map (name: removeSuffix "-vm" name) (
-    lib.attrNames (filterAttrs (_: vm: vm.config.config.ghaf.type == "system-vm") config.microvm.vms)
+    lib.attrNames (
+      filterAttrs (
+        _: vm:
+        let
+          vmConfig = lib.ghaf.getVmConfig vm;
+        in
+        vmConfig != null && vmConfig.ghaf.type == "system-vm"
+      ) config.microvm.vms
+    )
   );
 
   # Boot priority mapping for app VMs
