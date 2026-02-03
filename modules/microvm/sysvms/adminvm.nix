@@ -3,8 +3,14 @@
 #
 # Admin VM Configuration Module
 #
-# Note: `inputs` is received via specialArgs from mkLaptopConfiguration.
-# This module uses `globalConfig` for settings that propagate from host.
+# This module uses the globalConfig pattern:
+# - Global settings come via globalConfig specialArg
+# - Host-specific settings come via hostConfig specialArg
+#
+# For new profiles, use evaluatedConfig with adminvmBase from laptop-x86:
+#   ghaf.virtualization.microvm.adminvm.evaluatedConfig =
+#     config.ghaf.profiles.laptop-x86.adminvmBase;
+#
 {
   config,
   lib,
@@ -12,13 +18,12 @@
   ...
 }:
 let
-  # Use globalConfig for settings that should propagate from host
-  # This replaces the old configHost pattern
-  globalConfig = config.ghaf.global-config;
-
   vmName = "admin-vm";
+  hostGlobalConfig = config.ghaf.global-config;
 
+  # Legacy inline configuration (for non-laptop targets that don't use evaluatedConfig)
   adminvmBaseConfiguration = {
+    _file = ./adminvm.nix;
     imports = [
       inputs.preservation.nixosModules.preservation
       inputs.self.nixosModules.givc
@@ -26,19 +31,33 @@ let
       inputs.self.nixosModules.vm-modules
       inputs.self.nixosModules.profiles
       (
-        { lib, ... }:
         {
-          _file = ./adminvm.nix;
-
+          lib,
+          globalConfig,
+          hostConfig,
+          ...
+        }:
+        {
           ghaf = {
             # Profiles - use globalConfig for propagated settings
             profiles.debug.enable = lib.mkDefault globalConfig.debug.enable;
             development = {
-              # NOTE: SSH port also becomes accessible on the network interface
-              #       that has been passed through to VM
               ssh.daemon.enable = lib.mkDefault globalConfig.development.ssh.daemon.enable;
               debug.tools.enable = lib.mkDefault globalConfig.development.debug.tools.enable;
               nix-setup.enable = lib.mkDefault globalConfig.development.nix-setup.enable;
+            };
+
+            # Networking hosts - from hostConfig
+            networking.hosts = hostConfig.networking.hosts or { };
+
+            # Common namespace - from hostConfig
+            common = hostConfig.common or { };
+
+            # User configuration - from hostConfig
+            users = {
+              profile = hostConfig.users.profile or { };
+              admin = hostConfig.users.admin or { };
+              managed = hostConfig.users.managed or { };
             };
 
             # System
@@ -72,6 +91,7 @@ let
               ];
               encryption.enable = globalConfig.storage.encryption.enable;
             };
+
             # Networking
             virtualization.microvm.vm-networking = {
               enable = true;
@@ -83,11 +103,12 @@ let
               rootNVIndex = "0x81701000";
             };
 
-            # Services
+            # Logging - from globalConfig
             logging = {
-              inherit (configHost.ghaf.logging) enable;
+              inherit (globalConfig.logging) enable listener;
               server = {
                 inherit (globalConfig.logging) enable;
+                endpoint = globalConfig.logging.server.endpoint or "";
                 tls = {
                   remoteCAFile = null;
                   certFile = "/etc/givc/cert.pem";
@@ -104,8 +125,17 @@ let
               recovery.enable = true;
             };
 
-            security.fail2ban.enable = globalConfig.development.ssh.daemon.enable;
+            # GIVC configuration - from globalConfig
+            givc = {
+              inherit (globalConfig.givc) enable;
+              inherit (globalConfig.givc) debug;
+            };
 
+            # Security
+            security = {
+              fail2ban.enable = globalConfig.development.ssh.daemon.enable;
+              audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+            };
           };
 
           system.stateVersion = lib.trivial.release;
@@ -117,13 +147,11 @@ let
 
           microvm = {
             optimize.enable = false;
-            #TODO: Add back support cloud-hypervisor
-            #the system fails to switch root to the stage2 with cloud-hypervisor
             hypervisor = "qemu";
             qemu = {
               extraArgs = [
                 "-device"
-                "vhost-vsock-pci,guest-cid=${toString config.ghaf.networking.hosts.${vmName}.cid}"
+                "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 10)}"
               ];
             };
 
@@ -135,7 +163,6 @@ let
                 proto = "virtiofs";
               }
             ]
-            # Shared store (when not using storeOnDisk)
             ++ lib.optionals (!globalConfig.storage.storeOnDisk) [
               {
                 tag = "ro-store";
@@ -167,13 +194,25 @@ in
   options.ghaf.virtualization.microvm.adminvm = {
     enable = lib.mkEnableOption "AdminVM";
 
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+      description = ''
+        Pre-evaluated Admin VM NixOS configuration.
+        When set, this takes precedence over the legacy adminvmBaseConfiguration.
+        Profiles should set this using adminvmBase from laptop-x86 profile.
+      '';
+    };
+
     extraModules = lib.mkOption {
       description = ''
+        DEPRECATED: Use adminvm-features modules instead.
         List of additional modules to be imported and evaluated as part of
         AdminVM's NixOS configuration.
       '';
       default = [ ];
     };
+
     extraNetworking = lib.mkOption {
       type = lib.types.networking;
       description = "Extra Networking option";
@@ -182,18 +221,40 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # Warning if extraModules still used (deprecated)
+    warnings = lib.optionals (cfg.extraModules != [ ]) [
+      ''
+        ghaf.virtualization.microvm.adminvm.extraModules is deprecated.
+        Use adminvm-features modules instead, or set evaluatedConfig
+        from config.ghaf.profiles.laptop-x86.adminvmBase.
+      ''
+    ];
+
     ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      # Pass globalConfig to VM via specialArgs for consistent propagation
-      specialArgs = lib.ghaf.mkVmSpecialArgs {
-        inherit lib inputs globalConfig;
-      };
-      config = adminvmBaseConfiguration // {
-        imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
-    };
+    microvm.vms."${vmName}" =
+      if cfg.evaluatedConfig != null then
+        # New path: Use pre-evaluated config from profile
+        {
+          autostart = true;
+          inherit (inputs) nixpkgs;
+          inherit (cfg) evaluatedConfig;
+        }
+      else
+        # Legacy path: Build config inline (for non-laptop targets)
+        {
+          autostart = true;
+          inherit (inputs) nixpkgs;
+          specialArgs = lib.ghaf.mkVmSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.mkVmHostConfig {
+              inherit config vmName;
+            };
+          };
+          config = adminvmBaseConfiguration // {
+            imports = adminvmBaseConfiguration.imports ++ cfg.extraModules;
+          };
+        };
   };
 }

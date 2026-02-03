@@ -133,6 +133,9 @@ in
             };
           };
 
+      # Admin VM: Use laptop base directly (no customization needed for MVP)
+      virtualization.microvm.adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
+
       # Enable logging
       logging = {
         enable = true;

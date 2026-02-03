@@ -264,17 +264,9 @@ in
           referenceServiceModule
         ];
 
-      # Adminvm modules
-      adminvm.extraModules =
-        optionals cfg.adminvm.enable [
-          serviceModules.logging
-          serviceModules.givc
-          commonModule
-          managedUserAccounts
-        ]
-        ++ optionals (cfg.adminvm.enable && fullVirtualization) [
-          serviceModules.audit
-        ];
+      # Adminvm modules - MIGRATED to adminvm-base.nix and adminvm-features
+      # Service configs now come via globalConfig/hostConfig in adminvm-base.nix
+
       # Appvm modules
       appvm.extraModules =
         optionals cfg.appvm.enable [
