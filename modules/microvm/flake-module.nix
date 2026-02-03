@@ -49,5 +49,11 @@ _: {
     # Admin VM feature modules (vTPM services, etc.)
     # Auto-includes based on hostConfig conditions
     adminvm-features = ./adminvm-features;
+
+    # IDS VM base module for layered composition
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.idsvm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    idsvm-base = ./sysvms/idsvm/idsvm-base.nix;
   };
 }
