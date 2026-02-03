@@ -144,7 +144,7 @@ let
     echo "============================================================"
     echo ""
     echo "Working dir: $WORKDIR"
-    echo "Removing bootlodaer/esp.img if it exists ..."
+    echo "Removing bootloader/esp.img if it exists ..."
     rm -fv "$WORKDIR/bootloader/esp.img"
     mkdir -pv "$WORKDIR/bootloader"
 
