@@ -1,8 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  inputs,
+  ...
+}:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
+  hostGlobalConfig = config.ghaf.global-config;
 in
 {
   options.ghaf.reference.profiles.mvp-user-trial = {
@@ -98,14 +104,30 @@ in
             ../personalize
             { ghaf.reference.personalize.keys.enable = true; }
           ];
-          guivmExtraModules = [
-            ../services
-            ../programs
-            ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
+          # guivmExtraModules removed - now using evaluatedConfig below
         };
       };
+
+      # GUI VM: Extend laptop base with MVP services (HYBRID: includes extraModules)
+      virtualization.microvm.guivm.evaluatedConfig =
+        config.ghaf.profiles.laptop-x86.guivmBase.extendModules
+          {
+            modules = [
+              ../services
+              ../programs
+              ../personalize
+              { ghaf.reference.personalize.keys.enable = true; }
+            ]
+            ++ config.ghaf.virtualization.microvm.guivm.extraModules;
+            specialArgs = lib.ghaf.mkVmSpecialArgs {
+              inherit lib inputs;
+              globalConfig = hostGlobalConfig;
+              hostConfig = lib.ghaf.mkVmHostConfig {
+                inherit config;
+                vmName = "gui-vm";
+              };
+            };
+          };
 
       # Enable logging
       logging = {

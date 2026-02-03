@@ -30,7 +30,8 @@ in
     yubiProxy = true;
     applications =
       let
-        inherit (config.microvm.vms."business-vm".config.config.ghaf.reference.services.pac) proxyPacUrl;
+        vmConfig = lib.ghaf.getVmConfig config.microvm.vms."business-vm";
+        inherit (vmConfig.ghaf.reference.services.pac) proxyPacUrl;
 
         withDebug = config.ghaf.profiles.debug.enable;
 

@@ -413,4 +413,63 @@ rec {
       base = profiles.${profileName} or (throw "Unknown global-config profile: ${profileName}");
     in
     lib.recursiveUpdate base overrides;
+
+  # Helper to extend a VM base with additional modules
+  #
+  # This function takes a base VM configuration (lib.nixosSystem result)
+  # and extends it with additional modules for profile-specific functionality.
+  #
+  # Usage:
+  #   let
+  #     guivmBase = lib.ghaf.mkGuiVmBase { inherit lib inputs system; };
+  #     extendedGuivm = lib.ghaf.mkExtendedVm {
+  #       vmBase = guivmBase;
+  #       extraModules = [
+  #         ../services
+  #         ../programs
+  #       ];
+  #       globalConfig = config.ghaf.global-config;
+  #       hostConfig = lib.ghaf.mkVmHostConfig { inherit config; vmName = "gui-vm"; };
+  #     };
+  #   in
+  #   ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedGuivm;
+  #
+  mkExtendedVm =
+    {
+      vmBase, # lib.nixosSystem result with .extendModules
+      extraModules ? [ ],
+      globalConfig ? { },
+      hostConfig ? { },
+      extraSpecialArgs ? { },
+    }:
+    vmBase.extendModules {
+      modules = extraModules;
+      specialArgs = {
+        inherit globalConfig hostConfig;
+      }
+      // extraSpecialArgs;
+    };
+
+  # Helper to get the inner NixOS config from a microvm.vms entry
+  #
+  # microvm.nix supports two ways to define VMs:
+  # 1. `config` - module-based (evaluates via eval-config.nix)
+  #    Access inner config: vmEntry.config.config
+  # 2. `evaluatedConfig` - pre-evaluated NixOS system
+  #    Access inner config: vmEntry.evaluatedConfig.config
+  #
+  # This helper abstracts that difference.
+  #
+  # Usage:
+  #   lib.ghaf.getVmConfig config.microvm.vms.gui-vm
+  #   => returns the inner NixOS config of the VM
+  #
+  getVmConfig =
+    vmEntry:
+    if vmEntry.evaluatedConfig != null then
+      vmEntry.evaluatedConfig.config
+    else if vmEntry.config != null then
+      vmEntry.config.config
+    else
+      null;
 }

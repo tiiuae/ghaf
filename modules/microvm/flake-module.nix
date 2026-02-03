@@ -33,5 +33,11 @@ _: {
       ./common/xdghandlers.nix
       ./common/xdgitems.nix
     ];
+
+    # GUI VM base module for layered composition
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.guivm-base ]; ... }
+    #     .extendModules { modules = [ ../services ]; }
+    guivm-base = ./sysvms/guivm-base.nix;
   };
 }
