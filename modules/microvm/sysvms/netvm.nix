@@ -195,10 +195,34 @@ in
   options.ghaf.virtualization.microvm.netvm = {
     enable = lib.mkEnableOption "NetVM";
 
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+      description = ''
+        Pre-evaluated NixOS configuration for Net VM.
+
+        When set, this configuration is used directly instead of building
+        the VM config inline. This enables the composition model where
+        profiles can extend a base configuration.
+
+        Example:
+          netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase;
+          # Or with extensions:
+          netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase.extendModules {
+            modules = config.ghaf.hardware.definition.netvm.extraModules;
+          };
+      '';
+    };
+
     extraModules = lib.mkOption {
       description = ''
         List of additional modules to be imported and evaluated as part of
         NetVM's NixOS configuration.
+
+        NOTE: For laptop targets using evaluatedConfig, platform-specific
+        modules should go through hardware.definition.netvm.extraModules.
+        This option is primarily for non-laptop platforms (Jetson, etc.)
+        that don't use the laptop-x86 profile.
       '';
       default = [ ];
     };
@@ -208,25 +232,39 @@ in
       default = { };
     };
   };
+
   config = lib.mkIf cfg.enable {
     ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = !config.ghaf.microvm-boot.enable;
-      restartIfChanged = false;
-      inherit (inputs) nixpkgs;
-      specialArgs = lib.ghaf.mkVmSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.mkVmHostConfig {
-          inherit config vmName;
-        };
-      };
+    microvm.vms."${vmName}" =
+      if cfg.evaluatedConfig != null then
+        # New path: Use pre-evaluated config from profile
+        # This is the recommended approach for laptop targets
+        {
+          autostart = !config.ghaf.microvm-boot.enable;
+          restartIfChanged = false;
+          inherit (inputs) nixpkgs;
+          inherit (cfg) evaluatedConfig;
+        }
+      else
+        # Legacy path: Build config inline
+        # Used by Jetson and other non-laptop targets that don't have laptop-x86 profile
+        {
+          autostart = !config.ghaf.microvm-boot.enable;
+          restartIfChanged = false;
+          inherit (inputs) nixpkgs;
+          specialArgs = lib.ghaf.mkVmSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.mkVmHostConfig {
+              inherit config vmName;
+            };
+          };
 
-      config = netvmBaseConfiguration // {
-        imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
-    };
+          config = netvmBaseConfiguration // {
+            imports = netvmBaseConfiguration.imports ++ cfg.extraModules;
+          };
+        };
   };
 
 }

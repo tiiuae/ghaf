@@ -202,25 +202,12 @@ in
   config = {
     # System VM configurations
     ghaf.virtualization.microvm = {
-      # Netvm modules
-      netvm.extraModules =
-        optionals cfg.netvm.enable [
-          serviceModules.logging
-          serviceModules.givc
-          commonModule
-          managedUserAccounts
-        ]
-        ++ optionals (cfg.netvm.enable && fullVirtualization) [
-          deviceModules.nics
-          kernelConfigs.netvm
-          firmwareModule
-          qemuModules.netvm
-          serviceModules.wifi
-          serviceModules.audit
-          serviceModules.power
-          serviceModules.performance
-          referenceServiceModule
-        ];
+      # Net VM modules - MIGRATED to netvm-base.nix
+      # Service modules (logging, givc, wifi, audit, power, performance) are now in netvm-base.nix
+      # Hardware modules (devices.nics, kernel, qemu) go via hardware.definition.netvm.extraModules
+      # commonModule functionality is now in netvm-base.nix via hostConfig.common
+      # managedUserAccounts functionality is now in netvm-base.nix via hostConfig.users
+      # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules directly
 
       # Audio VM modules - MIGRATED to audiovm-base.nix and audiovm-features/
       # Service modules (logging, givc, audit, power, performance) are now in audiovm-base.nix

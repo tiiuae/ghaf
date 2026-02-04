@@ -182,10 +182,6 @@ in
       # ACPI rules are host-side vhotplug config (not VM extraModules)
       # They pass the NHLT ACPI table needed for microphone arrays
       ghaf.hardware.passthrough.vhotplug.acpiRules = optionals cfg.autoDetectAudio audiovmAcpiRules;
-
-      ghaf.virtualization.microvm.netvm.extraModules = optionals cfg.autoDetectNet (
-        hwDetectModule "net-vm"
-      );
     }
     # Auto-detected config goes via hardware definition (only available on x86 with hardware definition)
     // lib.optionalAttrs hasHardwareDefinition {
@@ -193,6 +189,7 @@ in
       ghaf.hardware.definition.audiovm.extraModules = optionals cfg.autoDetectAudio (
         hwDetectModule "audio-vm"
       );
+      ghaf.hardware.definition.netvm.extraModules = optionals cfg.autoDetectNet (hwDetectModule "net-vm");
     }
   );
 }

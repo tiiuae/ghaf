@@ -437,5 +437,45 @@ in
           '';
         };
       };
+
+      netvm = {
+        mem = mkOption {
+          type = types.int;
+          default = 512;
+          description = "Amount of RAM in MegaBytes for Net VM";
+        };
+        vcpu = mkOption {
+          type = types.int;
+          default = 2;
+          description = "Number of virtual CPU cores allocated for Net VM";
+        };
+        extraModules = mkOption {
+          description = ''
+            Extra NixOS modules for Net VM configuration.
+
+            This option allows hardware definitions to provide VM-specific
+            configuration that will be merged with the base Net VM config.
+
+            Use for hardware-specific settings like:
+            - PCIe root ports configuration
+            - Network device passthrough
+            - Custom kernel parameters
+
+            Example:
+              netvm.extraModules = [
+                { microvm.qemu.pcieRootPorts = 4; }
+                ./net-config.nix
+              ];
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./net-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
     };
 }
