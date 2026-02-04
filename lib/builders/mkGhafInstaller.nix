@@ -1,22 +1,48 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Laptop Installer Builder Library
+# mkGhafInstaller - Unified Ghaf Installer Builder
 #
-# This module provides a reusable function for building laptop installer ISOs
-# that can be consumed by both Ghaf internally and downstream projects.
+# Creates a bootable ISO installer for any Ghaf configuration.
+# This builder creates installer ISOs that include the pre-built Ghaf image
+# and the ghaf-installer tool for writing to target devices.
 #
-# Usage in downstream projects:
-#   let mkLaptopInstaller = inputs.ghaf.lib.builders.mkLaptopInstaller inputs.ghaf;
-#   in mkLaptopInstaller "my-laptop-installer" "/path/to/image" [...]
+# Usage:
+#   let
+#     ghafInstaller = ghaf.builders.mkGhafInstaller {
+#       inherit self;
+#     };
+#   in ghafInstaller {
+#     name = "lenovo-x1-carbon-gen11-debug";
+#     imagePath = self.packages.x86_64-linux.lenovo-x1-carbon-gen11-debug;
+#     extraModules = [ ... ];
+#   }
+#
+# Parameters:
+#   name         - Base name for the installer (e.g., "lenovo-x1-carbon-gen11-debug")
+#   imagePath    - Path to the built Ghaf image package
+#   extraModules - Additional NixOS modules for the installer (default: [])
+#   system       - Target system architecture (default: "x86_64-linux")
+#
+# Output:
+#   {
+#     name              - Full installer name (e.g., "lenovo-x1-carbon-gen11-debug-installer")
+#     hostConfiguration - The NixOS system configuration
+#     package           - The ISO image derivation
+#   }
+#
 {
   self,
   lib ? self.lib,
   system ? "x86_64-linux",
 }:
 let
-  mkLaptopInstaller =
-    name: imagePath: extraModules:
+  mkGhafInstaller =
+    {
+      name,
+      imagePath,
+      extraModules ? [ ],
+    }:
     let
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
@@ -125,4 +151,4 @@ let
       package = hostConfiguration.config.system.build.isoImage;
     };
 in
-mkLaptopInstaller
+mkGhafInstaller

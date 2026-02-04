@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for laptop devices based on the hardware and usecase profile
+# Migrated to mkGhafConfiguration (Phase 4.3.7)
 {
   lib,
   self,
@@ -11,25 +12,25 @@
 let
   system = "x86_64-linux";
 
-  laptop-configuration = self.builders.mkLaptopConfiguration {
-    inherit self inputs system;
+  # Unified Ghaf configuration builder
+  ghaf-configuration = self.builders.mkGhafConfiguration {
+    inherit self inputs;
     inherit (self) lib;
   };
-  laptop-installer = self.builders.mkLaptopInstaller {
+
+  # Unified Ghaf installer builder
+  ghaf-installer = self.builders.mkGhafInstaller {
     inherit self system;
     inherit (self) lib;
   };
 
-  # setup some commonality between the configurations
+  # Common modules shared across all laptop configurations
   commonModules = [
     self.nixosModules.disko-debug-partition
     self.nixosModules.verity-release-partition
     self.nixosModules.reference-profiles
     self.nixosModules.profiles
   ];
-
-  # concatinate modules that are specific to a target
-  withCommonModules = specificModules: specificModules ++ commonModules;
 
   installerModules = [
     (
@@ -49,439 +50,513 @@ let
       }
     )
   ];
+
+  # All laptop configurations using mkGhafConfiguration
   target-configs = [
-    # keep-sorted start skip_lines=1 block=yes newline_separated=yes by_regex=laptop-configuration\s*"(.*)"
-    # Laptop Debug configurations
-    (laptop-configuration "alienware-m18-R2" "debug" (withCommonModules [
-      self.nixosModules.hardware-alienware-m18-r2
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          services.power-manager.allowSuspend = false;
+    # ============================================================
+    # Debug Configurations
+    # ============================================================
+
+    (ghaf-configuration {
+      name = "alienware-m18-R2";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-alienware-m18-r2;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        services.power-manager.allowSuspend = false;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "dell-latitude-7230";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-dell-latitude-7230;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "dell-latitude-7330";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-dell-latitude-7330;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        # Enable PCI ACS override to split IOMMU groups
+        # Needed to separate Ethernet (8086:15fb) from Audio devices
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:15fb" ];
         };
-      }
-    ]))
+        virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
+      };
+      vmConfig = {
+        guivm.mem = 6144;
+      };
+    })
 
-    (laptop-configuration "dell-latitude-7230" "debug" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7230
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
+    (ghaf-configuration {
+      name = "demo-tower-mk1";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-demo-tower-mk1;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        profiles.graphics.idleManagement.enable = false;
+        services.performance.host.thermalLimitMode = "enabled";
+      };
+    })
+
+    (ghaf-configuration {
+      name = "intel-laptop";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-intel-laptop;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-t14-amd-gen5";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-t14-amd-gen5;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        services.performance.host.thermalLimitMode = "enabled";
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-2-in-1-gen9";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-2-in-1-gen9;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+      vmConfig = {
+        guivm.mem = 2047;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen10";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen10;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen11";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen12";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen12;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen13";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen13;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-extras";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial-extras.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-gen11-hardening";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        # TODO profiles.kernel-hardening.enable = true;
+        reference.profiles.mvp-user-trial-extras.enable = true;
+        partitioning.verity.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "system76-darp11-b";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-system76-darp11-b;
+      variant = "debug";
+      extraModules = commonModules ++ [
+        {
+          # Add system76 and system76-io kernel modules to host
+          hardware.system76.kernel-modules.enable = true;
+        }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+        # Enable PCI ACS override to split IOMMU groups
+        # Needed to separate Ethernet (8086:550a) from Audio devices
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
         };
-      }
-    ]))
+        # Hardware-specific VM configs via hardware definition
+        hardware.definition.guivm.extraModules = [
+          {
+            hardware.system76 = {
+              power-daemon.enable = false;
+              kernel-modules.enable = true;
+              firmware-daemon.enable = false;
+            };
+          }
+        ];
+      };
+    })
 
-    (laptop-configuration "dell-latitude-7330" "debug" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7330
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-
-          # Enable PCI ACS override to split IOMMU groups
-          # Needed to separate Ethernet (8086:15fb) from Audio devices
-          hardware.passthrough.pciAcsOverride = {
-            enable = true;
-            ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
-          };
-          # Target-specific VM memory allocation via vmConfig
-          virtualization.vmConfig.guivm.mem = 6144;
-          virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
+    (ghaf-configuration {
+      name = "system76-darp11-b-storeDisk";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-system76-darp11-b;
+      variant = "debug";
+      extraModules = commonModules ++ [
+        {
+          hardware.system76.kernel-modules.enable = true;
+        }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        profiles.graphics.idleManagement.enable = true;
+        services.power-manager.allowSuspend = false;
+        virtualization.microvm.storeOnDisk = true;
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
         };
-      }
-    ]))
+        hardware.definition.guivm.extraModules = [
+          {
+            hardware.system76 = {
+              power-daemon.enable = false;
+              kernel-modules.enable = true;
+              firmware-daemon.enable = false;
+            };
+          }
+        ];
+      };
+    })
 
-    (laptop-configuration "demo-tower-mk1" "debug" (withCommonModules [
-      self.nixosModules.hardware-demo-tower-mk1
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = false;
-          services.performance.host.thermalLimitMode = "enabled";
+    (ghaf-configuration {
+      name = "tower-5080";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-tower-5080;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        profiles.graphics.idleManagement.enable = false;
+      };
+    })
+
+    # ============================================================
+    # Release Configurations
+    # ============================================================
+
+    (ghaf-configuration {
+      name = "alienware-m18-R2";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-alienware-m18-r2;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "dell-latitude-7230";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-dell-latitude-7230;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "dell-latitude-7330";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-dell-latitude-7330;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:15fb" ];
         };
-      }
-    ]))
+        virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
+      };
+      vmConfig = {
+        guivm.mem = 6144;
+      };
+    })
 
-    # Generic target for Intel laptops with integrated graphics
-    (laptop-configuration "intel-laptop" "debug" (withCommonModules [
-      self.nixosModules.hardware-intel-laptop
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
+    (ghaf-configuration {
+      name = "intel-laptop";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-intel-laptop;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-t14-amd-gen5";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-t14-amd-gen5;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        services.performance.host.thermalLimitMode = "enabled";
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen10";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen10;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen11";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen12";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen12;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-carbon-gen13";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen13;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-extras";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-user-trial-extras.enable = true;
+        partitioning.disko.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "lenovo-x1-gen11-hardening";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        # TODO profiles.kernel-hardening.enable = true;
+        reference.profiles.mvp-user-trial-extras.enable = true;
+        partitioning.verity.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "system76-darp11-b";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-system76-darp11-b;
+      variant = "release";
+      extraModules = commonModules ++ [
+        {
+          hardware.system76.kernel-modules.enable = true;
+        }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        profiles.graphics.idleManagement.enable = true;
+        services.power-manager.allowSuspend = false;
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
         };
-      }
-    ]))
+        hardware.definition.guivm.extraModules = [
+          {
+            hardware.system76 = {
+              power-daemon.enable = false;
+              kernel-modules.enable = true;
+              firmware-daemon.enable = false;
+            };
+          }
+        ];
+      };
+    })
 
-    (laptop-configuration "lenovo-t14-amd-gen5" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-t14-amd-gen5
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          services.performance.host.thermalLimitMode = "enabled";
+    (ghaf-configuration {
+      name = "system76-darp11-b-storeDisk";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-system76-darp11-b;
+      variant = "release";
+      extraModules = commonModules ++ [
+        {
+          hardware.system76.kernel-modules.enable = true;
+        }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.disko.enable = true;
+        profiles.graphics.idleManagement.enable = true;
+        services.power-manager.allowSuspend = false;
+        virtualization.microvm.storeOnDisk = true;
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
         };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-2-in-1-gen9" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-2-in-1-gen9
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          # Target-specific VM memory allocation via vmConfig
-          virtualization.vmConfig.guivm.mem = 2047;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen10" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen10
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen11" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen12" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen12
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen13" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen13
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-extras" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-gen11-hardening" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          # TODO profiles.kernel-hardening.enable = true;
-          reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.verity.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "system76-darp11-b" "debug" (withCommonModules [
-      self.nixosModules.hardware-system76-darp11-b
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
-
-          # Enable PCI ACS override to split IOMMU groups
-          # Needed to separate Ethernet (8086:550a) from Audio devices
-          hardware.passthrough.pciAcsOverride = {
-            enable = true;
-            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
-          };
-
-          # Hardware-specific VM configs via hardware definition
-          hardware.definition.guivm.extraModules = [
-            {
-              # We explicitly enable only those we need
-              hardware.system76 = {
-                power-daemon.enable = false;
-                kernel-modules.enable = true;
-                # Firmware daemon requires EFI mount point, not available in guivm
-                firmware-daemon.enable = false;
-              };
-            }
-          ];
-        };
-        # Add system76 and system76-io kernel modules to host
-        hardware.system76.kernel-modules.enable = true;
-      }
-    ]))
-
-    (laptop-configuration "system76-darp11-b-storeDisk" "debug" (withCommonModules [
-      self.nixosModules.hardware-system76-darp11-b
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
-
-          # Enable storeOnDisk for all VMs
-          virtualization.microvm.storeOnDisk = true;
-
-          # Enable PCI ACS override to split IOMMU groups
-          # Needed to separate Ethernet (8086:550a) from Audio devices
-          hardware.passthrough.pciAcsOverride = {
-            enable = true;
-            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
-          };
-
-          # Hardware-specific VM configs via hardware definition
-          hardware.definition.guivm.extraModules = [
-            {
-              # We explicitly enable only those we need
-              hardware.system76 = {
-                power-daemon.enable = false;
-                kernel-modules.enable = true;
-                # Firmware daemon requires EFI mount point, not available in guivm
-                firmware-daemon.enable = false;
-              };
-            }
-          ];
-        };
-        # Add system76 and system76-io kernel modules to host
-        hardware.system76.kernel-modules.enable = true;
-      }
-    ]))
-
-    (laptop-configuration "tower-5080" "debug" (withCommonModules [
-      self.nixosModules.hardware-tower-5080
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = false;
-        };
-      }
-    ]))
-    # keep-sorted end
-
-    # keep-sorted start skip_lines=1 block=yes newline_separated=yes by_regex=laptop-configuration\s*"(.*)"
-    # Laptop Release configurations
-    (laptop-configuration "alienware-m18-R2" "release" (withCommonModules [
-      self.nixosModules.hardware-alienware-m18-r2
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "dell-latitude-7230" "release" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7230
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "dell-latitude-7330" "release" (withCommonModules [
-      self.nixosModules.hardware-dell-latitude-7330
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          # Enable PCI ACS override to split IOMMU groups
-          # Needed to separate Ethernet (8086:15fb) from Audio devices
-          hardware.passthrough.pciAcsOverride = {
-            enable = true;
-            ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
-          };
-          # Target-specific VM memory allocation via vmConfig
-          virtualization.vmConfig.guivm.mem = 6144;
-          virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
-        };
-      }
-    ]))
-
-    # Generic target for Intel laptops with integrated graphics
-    (laptop-configuration "intel-laptop" "release" (withCommonModules [
-      self.nixosModules.hardware-intel-laptop
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-t14-amd-gen5" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-t14-amd-gen5
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          services.performance.host.thermalLimitMode = "enabled";
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen10" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen10
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen11" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen12" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen12
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-carbon-gen13" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen13
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-extras" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "lenovo-x1-gen11-hardening" "release" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          # TODO profiles.kernel-hardening.enable = true;
-          reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.verity.enable = true;
-        };
-      }
-    ]))
-
-    (laptop-configuration "system76-darp11-b" "release" (withCommonModules [
-      self.nixosModules.hardware-system76-darp11-b
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
-
-          # Enable PCI ACS override to split IOMMU groups
-          # Needed to separate Ethernet (8086:550a) from Audio devices
-          hardware.passthrough.pciAcsOverride = {
-            enable = true;
-            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
-          };
-
-          # Hardware-specific VM configs via hardware definition
-          hardware.definition.guivm.extraModules = [
-            {
-              # We explicitly enable only those we need
-              hardware.system76 = {
-                power-daemon.enable = false;
-                kernel-modules.enable = true;
-                # Firmware daemon requires EFI mount point, not available in guivm
-                firmware-daemon.enable = false;
-              };
-            }
-          ];
-        };
-        # Add system76 and system76-io kernel modules to host
-        hardware.system76.kernel-modules.enable = true;
-      }
-    ]))
-
-    (laptop-configuration "system76-darp11-b-storeDisk" "release" (withCommonModules [
-      self.nixosModules.hardware-system76-darp11-b
-      {
-        ghaf = {
-          reference.profiles.mvp-user-trial.enable = true;
-          partitioning.disko.enable = true;
-          profiles.graphics.idleManagement.enable = true;
-          services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
-
-          # Enable storeOnDisk for all VMs
-          virtualization.microvm.storeOnDisk = true;
-
-          # Enable PCI ACS override to split IOMMU groups
-          # Needed to separate Ethernet (8086:550a) from Audio devices
-          hardware.passthrough.pciAcsOverride = {
-            enable = true;
-            ids = [ "8086:550a" ]; # Ethernet controller at 00:1f.6
-          };
-
-          # Hardware-specific VM configs via hardware definition
-          hardware.definition.guivm.extraModules = [
-            {
-              # We explicitly enable only those we need
-              hardware.system76 = {
-                power-daemon.enable = false;
-                kernel-modules.enable = true;
-                # Firmware daemon requires EFI mount point, not available in guivm
-                firmware-daemon.enable = false;
-              };
-            }
-          ];
-        };
-        # Add system76 and system76-io kernel modules to host
-        hardware.system76.kernel-modules.enable = true;
-      }
-    ]))
-    # keep-sorted end
+        hardware.definition.guivm.extraModules = [
+          {
+            hardware.system76 = {
+              power-daemon.enable = false;
+              kernel-modules.enable = true;
+              firmware-daemon.enable = false;
+            };
+          }
+        ];
+      };
+    })
   ];
 
-  # map all of the defined configurations to an installer image
+  # Map all of the defined configurations to an installer image
   target-installers = map (
-    t: laptop-installer t.name self.packages.x86_64-linux.${t.name} installerModules
+    t:
+    ghaf-installer {
+      inherit (t) name;
+      imagePath = self.packages.x86_64-linux.${t.name};
+      extraModules = installerModules;
+    }
   ) target-configs;
 
   targets = target-configs ++ target-installers;
