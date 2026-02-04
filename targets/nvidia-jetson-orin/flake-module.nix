@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX
+# Migrated to mkGhafConfiguration (Phase 4.3.8)
 #
 {
   lib,
@@ -11,97 +12,144 @@
 }:
 let
   inherit (inputs) nixos-generators jetpack-nixos;
+  system = "aarch64-linux";
 
-  orin-configuration = import ./orin-configuration-builder.nix {
-    inherit
-      lib
-      self
-      inputs
-      jetpack-nixos
-      ;
+  # Unified Ghaf configuration builder
+  ghaf-configuration = self.builders.mkGhafConfiguration {
+    inherit self inputs;
+    inherit (self) lib;
   };
 
-  # setup some commonality between the configurations
-  commonModules = [
+  # Orin-specific modules (UEFI patches, OP-TEE, format modules)
+  orinSpecificModules = [
     (nixos-generators + "/format-module.nix")
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
     jetpack-nixos.nixosModules.default
+    {
+      hardware.nvidia-jetpack.firmware.uefi.edk2NvidiaPatches = [
+        # Jetpack-nixos enters into boot loop if display is connected to NX/AGX device.
+        # EDK2-Nvidia has had fixes/workarounds for display related issues.
+        # As a workaround, UEFI display is disabled from UEFI config.
+        # NOTE: Display stays blank until kernel starts to print. No Nvidia logo,
+        # no UEFI menu and no Ghaf splash screen!!
+        ./0001-Remove-nvidia-display-config.patch
+      ];
+    }
+    (import ./optee.nix { })
+  ];
+
+  # Common modules shared across all Orin configurations
+  commonModules = orinSpecificModules ++ [
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
     self.nixosModules.profiles
   ];
 
-  # concatinate modules that are specific to a target
-  withCommonModules = specificModules: specificModules ++ commonModules;
-
+  # All Orin configurations using mkGhafConfiguration
   target-configs = [
-    # Orin Debug configurations
-    (orin-configuration "nvidia-jetson-orin" "agx" "debug" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-agx
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
-    (orin-configuration "nvidia-jetson-orin" "agx64" "debug" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-agx64
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
-    (orin-configuration "nvidia-jetson-orin" "agx-industrial" "debug" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-agx-industrial
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
-    (orin-configuration "nvidia-jetson-orin" "nx" "debug" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-nx
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
+    # ============================================================
+    # Debug Configurations
+    # ============================================================
 
-    # Orin Release configurations
-    (orin-configuration "nvidia-jetson-orin" "agx" "release" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-agx
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
-    (orin-configuration "nvidia-jetson-orin" "agx64" "release" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-agx64
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
-    (orin-configuration "nvidia-jetson-orin" "agx-industrial" "release" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-agx-industrial
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
-    (orin-configuration "nvidia-jetson-orin" "nx" "release" (withCommonModules [
-      self.nixosModules.hardware-nvidia-jetson-orin-nx
-      {
-        ghaf = {
-          reference.profiles.mvp-orinuser-trial.enable = true;
-        };
-      }
-    ]))
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx64";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx-industrial";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx-industrial;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-nx";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
+      variant = "debug";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    # ============================================================
+    # Release Configurations
+    # ============================================================
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx64";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx64;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-agx-industrial";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx-industrial;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
+
+    (ghaf-configuration {
+      name = "nvidia-jetson-orin-nx";
+      inherit system;
+      profile = "orin";
+      hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-nx;
+      variant = "release";
+      extraModules = commonModules;
+      extraConfig = {
+        reference.profiles.mvp-orinuser-trial.enable = true;
+      };
+    })
   ];
 
   generate-nodemoapps =
