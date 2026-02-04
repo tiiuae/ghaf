@@ -23,6 +23,8 @@ let
   ] config.ghaf;
   appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "vms" ] { } config;
   # Extract all VMs where wireguard-gui is enabled
+  # Look through applications and their extraModules (new composition model)
+  # Flatten: for each VM -> for each application -> for each extraModule
   wireguardEnabledVms =
     lists.filter
       (
@@ -34,9 +36,16 @@ let
         wgService != null && (wgService.enable or false)
       )
       (
-        lists.concatMap (vm: map (app: (app // { vmName = "${vm.name}-vm"; })) vm.extraModules) (
-          attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (filterAttrs (_: vm: vm.enable) appVms)
-        )
+        lists.concatMap
+          (
+            vm:
+            lists.concatMap (
+              appDef: map (extraMod: extraMod // { vmName = "${vm.name}-vm"; }) (appDef.extraModules or [ ])
+            ) (vm.applications or [ ])
+          )
+          (
+            attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (filterAttrs (_: vm: vm.enable) appVms)
+          )
       );
 
   # Map only the vmName values

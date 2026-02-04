@@ -63,6 +63,27 @@ in
         Profiles can extend this with extendModules if customization needed.
       '';
     };
+
+    # App VM factory function for creating app VMs
+    mkAppVm = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Function to create an App VM configuration.
+        Takes a VM definition and returns a nixosSystem that can be extended.
+
+        Example:
+          mkAppVm {
+            name = "chromium";
+            ramMb = 6144;
+            cores = 4;
+            applications = [ { name = "Chromium"; command = "chromium"; ... } ];
+          }
+
+        The result can be extended with:
+          (mkAppVm vmDef).extendModules { modules = [ ... ]; }
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -191,6 +212,42 @@ in
           };
       };
     };
+
+    # Export mkAppVm function for creating App VMs
+    # Unlike singleton VMs, App VMs are instantiated multiple times
+    ghaf.profiles.laptop-x86.mkAppVm =
+      vmDef:
+      lib.nixosSystem {
+        inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.appvm-base
+          # Import nixpkgs config module to get overlays
+          {
+            nixpkgs.overlays = config.nixpkgs.overlays;
+            nixpkgs.config = config.nixpkgs.config;
+          }
+        ];
+        specialArgs = lib.ghaf.mkVmSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig =
+            lib.ghaf.mkVmHostConfig {
+              inherit config;
+              vmName = "${vmDef.name}-vm";
+            }
+            // {
+              # App VM-specific hostConfig fields
+              appvm = vmDef;
+              # Pass shared directory config for storage
+              sharedVmDirectory =
+                config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
+                  enable = false;
+                  vms = [ ];
+                };
+            };
+        };
+      };
 
     ghaf = {
       # Hardware definitions

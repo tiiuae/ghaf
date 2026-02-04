@@ -18,8 +18,9 @@ let
     getExe
     ;
 
-  inherit (config.ghaf.networking.hosts."${cfg.vm.name}-vm") cid;
-  guivmCID = config.ghaf.networking.hosts.gui-vm.cid;
+  # CID values - use option values if set, otherwise look up from hosts
+  cid = cfg.vmCid;
+  guivmCID = cfg.guivmCid;
 
   waypipeBaseCmd = "${getExe pkgs.waypipe} --compress none --no-gpu";
   waypipePort = cfg.waypipeBasePort + cid;
@@ -52,6 +53,23 @@ in
       type = types.attrs;
       # TODO should we centralize submodules?
       default = { };
+    };
+
+    vmCid = mkOption {
+      description = "CID of this VM for vsock communication";
+      type = types.int;
+      default =
+        if config.ghaf.networking.hosts ? "${cfg.vm.name}-vm" then
+          config.ghaf.networking.hosts."${cfg.vm.name}-vm".cid
+        else
+          0;
+    };
+
+    guivmCid = mkOption {
+      description = "CID of the GUI VM for vsock communication";
+      type = types.int;
+      default =
+        if config.ghaf.networking.hosts ? "gui-vm" then config.ghaf.networking.hosts."gui-vm".cid else 3;
     };
 
     proxyService = mkOption {
