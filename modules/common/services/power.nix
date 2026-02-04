@@ -49,7 +49,7 @@ let
     filterAttrs (
       _n: v:
       let
-        vmConfig = lib.ghaf.getVmConfig v;
+        vmConfig = lib.ghaf.vm.getConfig v;
       in
       vmConfig != null
       && vmConfig.ghaf.services.power-manager.vm.enable
@@ -62,7 +62,7 @@ let
     filterAttrs (
       _n: v:
       let
-        vmConfig = lib.ghaf.getVmConfig v;
+        vmConfig = lib.ghaf.vm.getConfig v;
       in
       vmConfig != null
       && vmConfig.ghaf.services.power-manager.vm.enable
@@ -75,7 +75,7 @@ let
     filterAttrs (
       _n: v:
       let
-        vmConfig = lib.ghaf.getVmConfig v;
+        vmConfig = lib.ghaf.vm.getConfig v;
       in
       vmConfig != null
       && vmConfig.ghaf.services.power-manager.vm.enable
@@ -667,7 +667,7 @@ in
                   filterAttrs (
                     _: vm:
                     let
-                      vmConfig = lib.ghaf.getVmConfig vm;
+                      vmConfig = lib.ghaf.vm.getConfig vm;
                     in
                     vmConfig != null && vmConfig.ghaf.type == "system-vm" && vmConfig.ghaf.gracefulShutdown
                   ) config.microvm.vms

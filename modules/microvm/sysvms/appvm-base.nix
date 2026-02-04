@@ -18,10 +18,10 @@
 # Usage:
 #   mkAppVm = vmDef: lib.nixosSystem {
 #     modules = [ inputs.self.nixosModules.appvm-base ];
-#     specialArgs = lib.ghaf.mkVmSpecialArgs {
+#     specialArgs = lib.ghaf.vm.mkSpecialArgs {
 #       inherit lib inputs;
 #       globalConfig = hostGlobalConfig;
-#       hostConfig = (lib.ghaf.mkVmHostConfig { ... }) // { appvm = vmDef; };
+#       hostConfig = (lib.ghaf.vm.mkHostConfig { ... }) // { appvm = vmDef; };
 #     };
 #   };
 #

@@ -83,4 +83,69 @@ _: {
     #   }
     appvm-base = ./sysvms/appvm-base.nix;
   };
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VM BASES - Composable Base Modules for Ghaf Virtual Machines
+  # ═══════════════════════════════════════════════════════════════════════════
+  #
+  # These modules provide the foundation for building Ghaf VMs using the
+  # composition model. Each base includes:
+  #   - Core VM configuration (microvm settings, networking)
+  #   - Integration with globalConfig/hostConfig via specialArgs
+  #   - Default services appropriate for the VM type
+  #
+  # USAGE PATTERN:
+  #
+  #   # 1. Create the base configuration
+  #   guivmBase = lib.nixosSystem {
+  #     inherit system;
+  #     modules = [ inputs.ghaf.vmBases.guivm ];
+  #     specialArgs = lib.ghaf.vm.mkSpecialArgs {
+  #       inherit inputs;
+  #       globalConfig = myGlobalConfig;
+  #       hostConfig = { inherit (hostConfig) networking hardware; };
+  #     };
+  #   };
+  #
+  #   # 2. Extend with additional modules
+  #   guivmExtended = guivmBase.extendModules {
+  #     modules = [ ./my-custom-services.nix ];
+  #   };
+  #
+  #   # 3. Use in microvm.vms
+  #   microvm.vms.gui-vm = {
+  #     evaluatedConfig = guivmExtended;
+  #   };
+  #
+  # For downstream projects, import ghaf as a flake input and access:
+  #   inputs.ghaf.vmBases.guivm
+  #   inputs.ghaf.lib.ghaf.vm.mkSpecialArgs
+  #
+  # ═══════════════════════════════════════════════════════════════════════════
+  flake.vmBases = {
+    # GUI VM - Desktop environment and display management
+    # Requires: GPU passthrough, display hardware
+    guivm = ./sysvms/guivm-base.nix;
+
+    # Network VM - External network connectivity and routing
+    # Requires: Network device passthrough
+    netvm = ./sysvms/netvm-base.nix;
+
+    # Audio VM - Sound services and Bluetooth
+    # Requires: Audio device passthrough (optional)
+    audiovm = ./sysvms/audiovm-base.nix;
+
+    # Admin VM - System administration and updates
+    # Requires: Storage access for updates
+    adminvm = ./sysvms/adminvm-base.nix;
+
+    # IDS VM - Intrusion Detection System
+    # Requires: Network tap access
+    idsvm = ./sysvms/idsvm/idsvm-base.nix;
+
+    # App VM - Template for application VMs
+    # Instantiated multiple times (chrome-vm, comms-vm, etc.)
+    # Use with mkAppVm pattern in profiles
+    appvm = ./sysvms/appvm-base.nix;
+  };
 }

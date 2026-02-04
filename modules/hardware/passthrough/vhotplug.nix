@@ -19,7 +19,7 @@ let
   defaultVms = lib.attrsets.mapAttrsToList (
     vmName: vmParams:
     let
-      vmConfig = lib.ghaf.getVmConfig vmParams;
+      vmConfig = lib.ghaf.vm.getConfig vmParams;
     in
     {
       name = vmName;

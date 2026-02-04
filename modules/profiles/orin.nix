@@ -69,11 +69,11 @@ in
             nixpkgs.config = config.nixpkgs.config;
           }
         ];
-        specialArgs = lib.ghaf.mkVmSpecialArgs {
+        specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
           globalConfig = hostGlobalConfig;
           hostConfig =
-            lib.ghaf.mkVmHostConfig {
+            lib.ghaf.vm.mkHostConfig {
               inherit config;
               vmName = "net-vm";
             }
@@ -98,10 +98,10 @@ in
             nixpkgs.config = config.nixpkgs.config;
           }
         ];
-        specialArgs = lib.ghaf.mkVmSpecialArgs {
+        specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
           globalConfig = hostGlobalConfig;
-          hostConfig = lib.ghaf.mkVmHostConfig {
+          hostConfig = lib.ghaf.vm.mkHostConfig {
             inherit config;
             vmName = "admin-vm";
           };

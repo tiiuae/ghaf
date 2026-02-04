@@ -23,7 +23,7 @@
 # Usage in profiles:
 #   lib.nixosSystem {
 #     modules = [ inputs.self.nixosModules.guivm-base ];
-#     specialArgs = lib.ghaf.mkVmSpecialArgs { ... };
+#     specialArgs = lib.ghaf.vm.mkSpecialArgs { ... };
 #   }
 #
 # Then extend with:

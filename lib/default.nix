@@ -117,11 +117,9 @@ in
   ghaf = {
     inherit (globalConfigLib)
       profiles
-      mkVmSpecialArgs
-      mkVmHostConfig
       mkGlobalConfig
-      mkExtendedVm
-      getVmConfig
+      # VM composition utilities organized under lib.ghaf.vm.*
+      vm
       ;
   };
 }
