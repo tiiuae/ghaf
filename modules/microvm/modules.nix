@@ -1,15 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Shared VM Module Configuration
+# VM Feature Options Module
 #
-# This module adds common extraModules to each VM type based on host configuration.
-# It passes host-specific settings (devices, kernels, qemu configs) via inline modules
-# that get added to VMs.
+# This module provides feature flag options for VMs.
+# The actual module configurations have been migrated to:
+#   - *-base.nix modules (via globalConfig/hostConfig)
+#   - hardware.definition.*.extraModules (via pci-ports.nix/pci-rules.nix)
 #
-# Global settings (givc, logging, audit, power, performance) are now available via
-# globalConfig specialArg, but we still pass them here for modules that don't
-# directly use globalConfig yet.
+# These options remain for backward compatibility and may be removed in a future release.
 {
   config,
   lib,
@@ -17,148 +16,12 @@
   ...
 }:
 let
-  inherit (lib)
-    mkOption
-    types
-    optionals
-    optionalAttrs
-    hasAttrByPath
-    ;
+  inherit (lib) mkOption types;
 
   cfg = config.ghaf.virtualization.microvm;
-  hostGlobalConfig = config.ghaf.global-config;
-
-  # Host configuration reference for hardware-specific settings
-  configHost = config;
 
   # Currently only x86 with hw definition supported
   inherit (pkgs.stdenv.hostPlatform) isx86;
-  fullVirtualization =
-    isx86
-    && (hasAttrByPath [
-      "hardware"
-      "devices"
-    ] config.ghaf);
-
-  # Hardware devices passthrough modules (host-specific, can't use globalConfig)
-  deviceModules = optionalAttrs fullVirtualization {
-    inherit (configHost.ghaf.hardware.devices)
-      nics
-      audio
-      gpus
-      evdev
-      ;
-  };
-
-  # Kernel configurations (host-specific, can't use globalConfig)
-  kernelConfigs = optionalAttrs fullVirtualization {
-    inherit (configHost.ghaf.kernel) guivm audiovm netvm;
-  };
-
-  # Firmware module
-  firmwareModule = {
-    config.ghaf.services.firmware.enable = true;
-  };
-
-  # Qemu configuration modules (host-specific, can't use globalConfig)
-  qemuModules = {
-    inherit (configHost.ghaf.qemu) guivm;
-    inherit (configHost.ghaf.qemu) audiovm;
-    inherit (configHost.ghaf.qemu) netvm;
-  };
-
-  # Common namespace to pass parameters at built-time from host to VMs
-  commonModule = {
-    config.ghaf = {
-      inherit (configHost.ghaf) common;
-    };
-  };
-
-  # Service modules - these now use globalConfig where available
-  # Note: VMs receive globalConfig via specialArgs, so these modules can
-  # access it if they're written as functions ({ globalConfig, ... }: ...)
-  serviceModules = {
-    # Givc module - uses globalConfig values synced from backward compat
-    givc = {
-      config.ghaf.givc = {
-        inherit (hostGlobalConfig.givc) enable;
-        inherit (hostGlobalConfig.givc) debug;
-      };
-    };
-
-    # Bluetooth module
-    bluetooth = optionalAttrs cfg.audiovm.audio { config.ghaf.services.bluetooth.enable = true; };
-
-    # Xpadneo module
-    xpadneo = optionalAttrs cfg.audiovm.audio { config.ghaf.services.xpadneo.enable = false; };
-
-    # Wifi module
-    wifi = optionalAttrs cfg.netvm.wifi { config.ghaf.services.wifi.enable = true; };
-
-    # Fprint module
-    fprint = optionalAttrs cfg.guivm.fprint { config.ghaf.services.fprint.enable = true; };
-
-    # Yubikey module
-    yubikey = optionalAttrs cfg.guivm.yubikey { config.ghaf.services.yubikey.enable = true; };
-
-    # Brightness module
-    brightness = optionalAttrs cfg.guivm.brightness { config.ghaf.services.brightness.enable = true; };
-
-    # Logging module - uses globalConfig values
-    logging = {
-      config.ghaf.logging = {
-        inherit (hostGlobalConfig.logging) enable;
-        listener.address = hostGlobalConfig.logging.listener.address;
-        server.endpoint = hostGlobalConfig.logging.server.endpoint;
-      };
-    };
-
-    # Audit module - uses globalConfig values
-    audit = {
-      config.ghaf.security.audit = {
-        inherit (hostGlobalConfig.security.audit) enable;
-      };
-    };
-
-    # Power management module - uses globalConfig values
-    power = {
-      config.ghaf.services.power-manager = {
-        inherit (hostGlobalConfig.services.power-manager) enable;
-      };
-    };
-
-    # Performance module - uses globalConfig values
-    performance = {
-      config.ghaf.services.performance = {
-        inherit (hostGlobalConfig.services.performance) enable;
-      };
-    };
-  };
-
-  # User account settings (host-specific, can't use globalConfig)
-  managedUserAccounts = {
-    config.ghaf.users = {
-      inherit (configHost.ghaf.users) profile;
-      inherit (configHost.ghaf.users) admin;
-      inherit (configHost.ghaf.users) managed;
-    };
-  };
-
-  # Reference services module (host-specific, can't use globalConfig)
-  referenceServiceModule = {
-    config.ghaf =
-      optionalAttrs
-        (hasAttrByPath [
-          "reference"
-          "services"
-        ] config.ghaf)
-        {
-          reference = {
-            inherit (configHost.ghaf.reference) services;
-          };
-        };
-  };
-
 in
 {
   _file = ./modules.nix;
@@ -217,28 +80,15 @@ in
       # commonModule functionality is now in audiovm-base.nix via hostConfig.common
       # No extraModules needed.
 
-      # Guivm modules
-      guivm.extraModules =
-        optionals cfg.guivm.enable [
-          serviceModules.logging
-          serviceModules.givc
-          commonModule
-          managedUserAccounts
-        ]
-        ++ optionals (cfg.guivm.enable && fullVirtualization) [
-          deviceModules.gpus
-          deviceModules.evdev
-          kernelConfigs.guivm
-          firmwareModule
-          qemuModules.guivm
-          serviceModules.fprint
-          serviceModules.yubikey
-          serviceModules.audit
-          serviceModules.brightness
-          serviceModules.power
-          serviceModules.performance
-          referenceServiceModule
-        ];
+      # GUI VM modules - MIGRATED to guivm-base.nix and hardware.definition
+      # Service modules (logging, givc, fprint, yubikey, brightness, audit, power, performance)
+      #   are now in guivm-base.nix via globalConfig
+      # Hardware modules (devices.gpus, evdev, kernel, qemu, firmware)
+      #   go via hardware.definition.guivm.extraModules (set by pci-ports.nix/pci-rules.nix)
+      # commonModule functionality is now in guivm-base.nix via hostConfig.common
+      # managedUserAccounts functionality is now in guivm-base.nix via hostConfig.users
+      # referenceServiceModule is imported via profile extendModules (mvp-user-trial.nix)
+      # No extraModules needed.
 
       # Adminvm modules - MIGRATED to adminvm-base.nix and adminvm-features
       # Service configs now come via globalConfig/hostConfig in adminvm-base.nix
