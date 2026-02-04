@@ -107,6 +107,8 @@ let
   };
 in
 {
+  _file = ./boot.nix;
+
   options.ghaf.microvm-boot = {
     enable = mkEnableOption "ghaf-specific microvm boot order";
     debug = mkEnableOption "resource tracing of the ghaf-specific microvm boot order";

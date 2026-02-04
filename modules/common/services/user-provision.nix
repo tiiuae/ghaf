@@ -143,6 +143,8 @@ let
 
 in
 {
+  _file = ./user-provision.nix;
+
   options.ghaf.services.user-provisioning = {
     enable = mkEnableOption "Ghaf provisioning service";
 

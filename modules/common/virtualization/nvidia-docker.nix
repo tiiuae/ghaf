@@ -6,6 +6,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./nvidia-docker.nix;
+
   options.ghaf.virtualization.nvidia-docker.daemon = {
     enable = mkEnableOption "Nvidia Docker Daemon";
   };

@@ -4,6 +4,8 @@
 # Hardware information modules
 #
 {
+  _file = ./default.nix;
+
   imports = [
     ./host.nix
     ./guest.nix

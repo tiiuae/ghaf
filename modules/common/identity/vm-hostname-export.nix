@@ -17,6 +17,8 @@ let
   cfg = config.ghaf.identity.vmHostNameExport;
 in
 {
+  _file = ./vm-hostname-export.nix;
+
   options.ghaf.identity.vmHostNameExport = {
     enable = mkEnableOption "export dynamic hostname to VM environment";
     hostnamePath = mkOption {

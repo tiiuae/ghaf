@@ -89,6 +89,8 @@ let
     };
 in
 {
+  _file = ./appvm.nix;
+
   options.ghaf.virtualization.microvm.appvm = {
     enable = lib.mkEnableOption "appvm";
 

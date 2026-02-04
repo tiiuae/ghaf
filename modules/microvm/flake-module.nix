@@ -6,6 +6,8 @@
 # Note: Modules receive `inputs` via specialArgs from mkLaptopConfiguration.
 # This eliminates the need for the `{ inputs }:` wrapper anti-pattern.
 _: {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     microvm.imports = [
       ./host/microvm-host.nix

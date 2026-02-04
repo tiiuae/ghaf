@@ -25,6 +25,8 @@ let
   hasNetvm = lib.hasAttr "net-vm" config.microvm.vms;
 in
 {
+  _file = ./networking.nix;
+
   options.ghaf.host.networking = {
     enable = mkEnableOption "Host networking";
     enableExternalNetworking = mkOption {

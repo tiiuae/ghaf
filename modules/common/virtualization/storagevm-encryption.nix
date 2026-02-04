@@ -14,6 +14,8 @@ let
     ;
 in
 {
+  _file = ./storagevm-encryption.nix;
+
   options.ghaf.virtualization.storagevm-encryption = {
     enable = mkEnableOption "Encryption of the VM storage area for all VMs";
   };

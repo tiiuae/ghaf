@@ -90,6 +90,8 @@ let
 
 in
 {
+  _file = ./xdghandlers.nix;
+
   options.ghaf.xdghandlers = {
     pdf = lib.mkEnableOption "XDG PDF Handler";
     image = lib.mkEnableOption "XDG Image Handler";

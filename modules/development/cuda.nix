@@ -6,6 +6,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./cuda.nix;
+
   options.ghaf.development.cuda = {
     enable = mkEnableOption "CUDA Support";
   };

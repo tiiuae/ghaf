@@ -18,6 +18,8 @@ let
   cfg = config.ghaf.identity.vmHostNameSetter;
 in
 {
+  _file = ./vm-hostname-setter.nix;
+
   options.ghaf.identity.vmHostNameSetter = {
     enable = mkEnableOption "set VM hostname from shared hardware-based hostname file";
     hostnamePath = mkOption {

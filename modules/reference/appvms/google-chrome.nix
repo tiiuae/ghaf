@@ -43,6 +43,8 @@ let
   };
 in
 {
+  _file = ./google-chrome.nix;
+
   options.ghaf.reference.appvms.chrome = {
     enable = lib.mkEnableOption "Google Chrome Browser App VM";
   };

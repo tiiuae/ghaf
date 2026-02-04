@@ -11,6 +11,8 @@ let
   hostGlobalConfig = config.ghaf.global-config;
 in
 {
+  _file = ./mvp-user-trial.nix;
+
   options.ghaf.reference.profiles.mvp-user-trial = {
     enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
   };

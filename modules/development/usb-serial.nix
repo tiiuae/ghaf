@@ -6,6 +6,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./usb-serial.nix;
+
   options.ghaf.development.usb-serial = {
     enable = mkEnableOption "Usb-Serial";
   };

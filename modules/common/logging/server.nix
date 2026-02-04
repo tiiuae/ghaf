@@ -19,6 +19,8 @@ let
   dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
 in
 {
+  _file = ./server.nix;
+
   options.ghaf.logging.server = {
     enable = mkEnableOption "Logs aggregator server";
     endpoint = mkOption {

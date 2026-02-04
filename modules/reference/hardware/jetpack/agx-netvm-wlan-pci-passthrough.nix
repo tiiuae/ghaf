@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.hardware.nvidia.orin;
 in
 {
+  _file = ./agx-netvm-wlan-pci-passthrough.nix;
+
   options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
     lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
   config = lib.mkIf cfg.agx.enableNetvmWlanPCIPassthrough {

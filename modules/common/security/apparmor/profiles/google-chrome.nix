@@ -7,6 +7,8 @@
   ...
 }:
 {
+  _file = ./google-chrome.nix;
+
   ## Apparmor profile for Chromium
   config.security.apparmor.policies."bin.chrome" = lib.mkIf config.ghaf.security.apparmor.enable {
     state = "enforce";

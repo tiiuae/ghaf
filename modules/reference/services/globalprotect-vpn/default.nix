@@ -26,6 +26,8 @@ let
 in
 
 {
+  _file = ./default.nix;
+
   options.ghaf.reference.services.globalprotect = {
     enable = mkEnableOption "globalprotect";
 

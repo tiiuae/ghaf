@@ -10,6 +10,8 @@ let
   inherit (lib) mkEnableOption mkIf optionalAttrs;
 in
 {
+  _file = ./ollama.nix;
+
   options.ghaf.reference.services.ollama = {
     enable = mkEnableOption "Enable the ollama service";
   };

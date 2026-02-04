@@ -89,6 +89,8 @@ let
 
 in
 {
+  _file = ./usb-rules.nix;
+
   options.ghaf.hardware.passthrough.usb = {
 
     guivmRules = mkOption {

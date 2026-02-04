@@ -20,6 +20,8 @@ let
   inherit (config.networking) hostName;
 in
 {
+  _file = ./guivm.nix;
+
   options.ghaf.givc.guivm = {
     enable = mkEnableOption "Enable guivm givc module.";
   };

@@ -3,6 +3,8 @@
 #
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     # The top-level profile should import all the common modules that can be shared across all targets
     # Only entries that can be included in those targets without causing conflicts should be included here

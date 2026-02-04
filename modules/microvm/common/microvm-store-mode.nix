@@ -10,6 +10,7 @@ let
   inherit (lib) mkOption types;
 in
 {
+  _file = ./microvm-store-mode.nix;
   options.ghaf.virtualization.microvm.storeOnDisk = mkOption {
     type = types.bool;
     default = false;

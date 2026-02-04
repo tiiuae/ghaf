@@ -31,6 +31,8 @@ let
   hostGlobalConfig = config.ghaf.global-config;
 in
 {
+  _file = ./orin.nix;
+
   options.ghaf.profiles.orin = {
     enable = lib.mkEnableOption "Enable the basic nvidia orin config";
 

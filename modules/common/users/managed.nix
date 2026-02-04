@@ -71,6 +71,8 @@ let
   };
 in
 {
+  _file = ./managed.nix;
+
   options.ghaf.users = {
     managed = mkOption {
       description = ''

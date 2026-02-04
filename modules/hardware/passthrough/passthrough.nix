@@ -22,6 +22,8 @@ let
 
 in
 {
+  _file = ./passthrough.nix;
+
   options.ghaf.hardware.passthrough = {
     mode = mkOption {
       description = ''

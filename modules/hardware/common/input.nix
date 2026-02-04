@@ -6,6 +6,8 @@ let
   cfg = config.ghaf.hardware.definition;
 in
 {
+  _file = ./input.nix;
+
   config = {
     # Host udev rules for input devices
     services.udev.extraRules = ''

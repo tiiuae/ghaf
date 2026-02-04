@@ -8,6 +8,8 @@ let
   hasGuest = builtins.hasAttr "guest" config.ghaf;
 in
 {
+  _file = ./kernel-hardening.nix;
+
   options.ghaf.profiles.kernel-hardening = {
     enable = lib.mkEnableOption "hardened profile";
   };

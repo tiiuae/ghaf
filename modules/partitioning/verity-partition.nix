@@ -14,6 +14,8 @@ let
   debugEnable = config.ghaf.profiles.debug.enable;
 in
 {
+  _file = ./verity-partition.nix;
+
   options.ghaf.partitioning.verity = {
     enable = lib.mkEnableOption "the verity (image-based) partitioning scheme";
 

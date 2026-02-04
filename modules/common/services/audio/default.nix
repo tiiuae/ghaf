@@ -5,6 +5,8 @@
   ...
 }:
 {
+  _file = ./default.nix;
+
   imports = [
     ./server.nix
     ./client.nix

@@ -17,6 +17,8 @@ let
     ;
 in
 {
+  _file = ./jetson-orin.nix;
+
   options.ghaf.hardware.nvidia.orin = {
     # Enable the Orin boards
     enable = mkEnableOption "Orin hardware";

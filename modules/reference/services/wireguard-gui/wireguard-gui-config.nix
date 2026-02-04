@@ -65,6 +65,8 @@ let
 
 in
 {
+  _file = ./wireguard-gui-config.nix;
+
   options.ghaf.reference.services.wireguard-gui-config = {
     enable = mkEnableOption "wireguard gui config";
   };

@@ -23,6 +23,8 @@ let
     };
 in
 {
+  _file = ./demo-apps.nix;
+
   options.ghaf.reference.host-demo-apps.demo-apps = {
     enableDemoApplications = lib.mkEnableOption "some applications for demoing";
     chromium = mkProgramOption "Chromium browser" false;

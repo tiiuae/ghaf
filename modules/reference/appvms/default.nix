@@ -19,6 +19,8 @@ let
   cfg = config.ghaf.reference.appvms;
 in
 {
+  _file = ./default.nix;
+
   imports = [
     ./business.nix
     ./chromium.nix

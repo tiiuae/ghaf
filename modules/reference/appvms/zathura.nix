@@ -13,6 +13,8 @@ let
   cfg = config.ghaf.reference.appvms.zathura;
 in
 {
+  _file = ./zathura.nix;
+
   options.ghaf.reference.appvms.zathura = {
     enable = lib.mkEnableOption "Zathura PDF Viewer App VM";
   };

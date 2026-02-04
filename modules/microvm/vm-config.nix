@@ -106,6 +106,8 @@ let
   };
 in
 {
+  _file = ./vm-config.nix;
+
   options.ghaf.virtualization.vmConfig = {
     guivm = mkOption {
       type = systemVmConfigType;

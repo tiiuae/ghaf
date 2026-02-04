@@ -253,6 +253,8 @@ let
 
 in
 {
+  _file = ./power.nix;
+
   options.ghaf.services.power-manager = {
 
     enable = mkOption {

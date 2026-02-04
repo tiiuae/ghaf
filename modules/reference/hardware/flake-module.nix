@@ -5,6 +5,7 @@
 #
 { inputs, lib, ... }:
 {
+  _file = ./flake-module.nix;
   # keep-sorted start skip_lines=1 block=yes newline_separated=yes by_regex=\s*nixosModules\.(.*)$ prefix_order=hardware-x86_64-workstation,jetpack
   flake.nixosModules = {
     hardware-alienware-m18-r2.imports = [

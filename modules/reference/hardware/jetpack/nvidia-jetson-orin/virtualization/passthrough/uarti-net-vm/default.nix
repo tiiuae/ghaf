@@ -40,6 +40,8 @@ let
   };
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.hardware.nvidia.passthroughs.uarti_net_vm.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;

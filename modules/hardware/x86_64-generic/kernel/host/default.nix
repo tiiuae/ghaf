@@ -22,6 +22,8 @@ let
   cfg = config.ghaf.host.kernel.hardening;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.host.kernel.hardening = {
     enable = mkOption {
       description = "Enable Ghaf Host hardening feature";

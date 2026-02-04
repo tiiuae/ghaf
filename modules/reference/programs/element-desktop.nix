@@ -20,6 +20,8 @@ let
 
 in
 {
+  _file = ./element-desktop.nix;
+
   options.ghaf.reference.programs.element-desktop = {
     enable = mkEnableOption "element-desktop program settings";
     gpsSupport = mkEnableOption "gps support for location sharing";

@@ -5,6 +5,8 @@
 #
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     desktop.imports = [
       inputs.self.nixosModules.graphics

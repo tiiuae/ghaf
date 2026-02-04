@@ -33,6 +33,8 @@ let
       };
 in
 {
+  _file = ./disk-encryption.nix;
+
   options.ghaf.storage.encryption = {
     enable = mkEnableOption "Encryption of the data partition";
     backendType = mkOption {

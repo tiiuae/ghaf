@@ -16,6 +16,8 @@ let
     ;
 in
 {
+  _file = ./fail2ban.nix;
+
   options.ghaf.security.fail2ban = {
     enable = mkEnableOption "the fail2ban";
     sshd-jail-fwmark = mkOption {

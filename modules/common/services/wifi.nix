@@ -12,6 +12,8 @@ let
   inherit (config.ghaf.networking) hosts;
 in
 {
+  _file = ./wifi.nix;
+
   options.ghaf.services.wifi = {
     enable = mkEnableOption "Wifi configuration for the net-vm";
   };

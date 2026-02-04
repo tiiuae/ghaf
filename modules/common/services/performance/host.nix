@@ -232,6 +232,8 @@ let
   };
 in
 {
+  _file = ./host.nix;
+
   options.ghaf.services.performance = {
     host = {
       enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for the host.";

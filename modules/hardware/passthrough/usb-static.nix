@@ -93,6 +93,8 @@ let
   }) vmNames;
 in
 {
+  _file = ./usb-static.nix;
+
   config = mkIf (builtins.hasAttr "definition" config.ghaf.hardware) (mkMerge [
     (mkIf
       (

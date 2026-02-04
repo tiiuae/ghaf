@@ -31,6 +31,8 @@ let
   ) config.microvm.vms;
 in
 {
+  _file = ./vhotplug.nix;
+
   options.ghaf.hardware.passthrough.vhotplug = {
     enable = mkEnableOption "Enable hot plugging of USB devices";
 

@@ -123,6 +123,8 @@ let
   };
 in
 {
+  _file = ./business.nix;
+
   options.ghaf.reference.appvms.business = {
     enable = lib.mkEnableOption "Business App VM";
   };

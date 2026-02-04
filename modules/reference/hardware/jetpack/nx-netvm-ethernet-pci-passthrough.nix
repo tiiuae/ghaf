@@ -11,6 +11,8 @@ let
   ethPciDevice = "0008:01:00.0";
 in
 {
+  _file = ./nx-netvm-ethernet-pci-passthrough.nix;
+
   options.ghaf.hardware.nvidia.orin.nx.enableNetvmEthernetPCIPassthrough =
     lib.mkEnableOption "Ethernet card PCI passthrough to NetVM";
   config = lib.mkIf cfg.enableNetvmEthernetPCIPassthrough {

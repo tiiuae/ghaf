@@ -18,6 +18,8 @@ let
   dynHostEnabled = config.ghaf.identity.vmHostNameSetter.enable or false;
 in
 {
+  _file = ./client.nix;
+
   options.ghaf.logging.client = {
     enable = mkEnableOption "Alloy client service";
     endpoint = mkOption {

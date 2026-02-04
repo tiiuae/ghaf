@@ -5,6 +5,8 @@
 #
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     common.imports = [
       ./common.nix

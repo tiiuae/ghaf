@@ -17,6 +17,8 @@ let
   bluetoothUser = "bluetooth";
 in
 {
+  _file = ./bluetooth.nix;
+
   options.ghaf.services.bluetooth = {
     enable = mkEnableOption "Bluetooth configurations";
 

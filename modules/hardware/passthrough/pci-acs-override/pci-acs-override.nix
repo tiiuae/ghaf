@@ -28,6 +28,8 @@ let
   unmatchedIds = builtins.filter (id: !(builtins.elem id devicePciIds)) cfg.ids;
 in
 {
+  _file = ./pci-acs-override.nix;
+
   options.ghaf.hardware.passthrough.pciAcsOverride = {
     enable = mkEnableOption "PCIe ACS (Access Control Services) override support for VFIO device assignment";
 

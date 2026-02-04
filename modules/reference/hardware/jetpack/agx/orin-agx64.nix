@@ -5,6 +5,8 @@
 #
 { pkgs, ... }:
 {
+  _file = ./orin-agx64.nix;
+
   imports = [ ../../../../common/services/hwinfo ];
 
   # Enable hardware info generation on host

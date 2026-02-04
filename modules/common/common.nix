@@ -21,6 +21,8 @@ let
     ;
 in
 {
+  _file = ./common.nix;
+
   imports = [
     # TODO remove this when the minimal config is defined
     # Replace with the baseModules definition

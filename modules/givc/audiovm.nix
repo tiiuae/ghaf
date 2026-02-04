@@ -18,6 +18,8 @@ let
   inherit (config.networking) hostName;
 in
 {
+  _file = ./audiovm.nix;
+
   options.ghaf.givc.audiovm = {
     enable = mkEnableOption "Enable audiovm givc module.";
   };
