@@ -534,23 +534,26 @@ in
         in
         mkDefault {
           HandleLidSwitch = lidEvent;
-          HandleLidSwitchDocked = lidEvent;
-          HandleLidSwitchExternalPower = lidEvent;
+          HandleLidSwitchDocked = "ignore";
+          HandleLidSwitchExternalPower = "ignore";
+          # Below keys are usually handled by host anyway
           HandleSuspendKey = "ignore";
           HandleHibernateKey = "ignore";
           HandlePowerKey = "ignore";
           HandlePowerKeyLongPress = "ignore";
           KillUserProcesses = true;
-          IdleAction = "lock";
-          IdleActionSec = "10min";
           UserStopDelaySec = 0;
-          HoldoffTimeoutSec = 20;
         };
     })
 
     # Host power management
     (mkIf cfg.host.enable {
-      services.logind.settings.Login.HandleLidSwitch = mkDefault "ignore";
+      # Host still handles power buttons in most situations
+      services.logind.settings.Login = {
+        HandleLidSwitch = mkDefault "ignore";
+        # Disable accidental poweroff with light touch
+        HandlePowerKey = mkDefault "ignore";
+      };
 
       # We can accomplish the same via systemd.sleep.extraConfig MemorySleepMode
       # but it seems keyboard wakeup stops functioning with that approach
