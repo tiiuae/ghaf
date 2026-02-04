@@ -84,7 +84,7 @@ let
             if config.ghaf.profiles.debug.enable then
               ''
                 # Debug mode: use empty password
-                printf '\n' | cryptsetup resize -v crypted --key-file=- 2>&1 || {
+                printf 'ghaf' | cryptsetup resize -v crypted --key-file=- 2>&1 || {
                   echo "WARNING: LUKS resize failed, trying without key..."
                   cryptsetup resize -v crypted || true
                 }
