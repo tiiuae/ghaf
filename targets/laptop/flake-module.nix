@@ -276,7 +276,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        services.power-manager.allowSuspend = false; # Suspension is broken (SSRCSP-7016)
+        services.power-manager.suspend.mode = "s2idle";
         # Enable PCI ACS override to split IOMMU groups
         # Needed to separate Ethernet (8086:550a) from Audio devices
         hardware.passthrough.pciAcsOverride = {
@@ -310,8 +310,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        profiles.graphics.idleManagement.enable = true;
-        services.power-manager.allowSuspend = false;
+        services.power-manager.suspend.mode = "s2idle";
         virtualization.microvm.storeOnDisk = true;
         hardware.passthrough.pciAcsOverride = {
           enable = true;
@@ -531,8 +530,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        profiles.graphics.idleManagement.enable = true;
-        services.power-manager.allowSuspend = false;
+        services.power-manager.suspend.mode = "s2idle";
         hardware.passthrough.pciAcsOverride = {
           enable = true;
           ids = [ "8086:550a" ];
@@ -563,8 +561,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        profiles.graphics.idleManagement.enable = true;
-        services.power-manager.allowSuspend = false;
+        services.power-manager.suspend.mode = "s2idle";
         virtualization.microvm.storeOnDisk = true;
         hardware.passthrough.pciAcsOverride = {
           enable = true;

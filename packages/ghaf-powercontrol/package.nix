@@ -121,7 +121,7 @@ writeShellApplication {
         ;;
       suspend)
       ${
-        if ghafConfig.services.power-manager.allowSuspend then
+        if ghafConfig.services.power-manager.suspend.enable then
           ''
             systemctl suspend
           ''

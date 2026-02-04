@@ -127,7 +127,7 @@ in
       };
 
       # Disable suspend by default, not working as intended
-      services.power-manager.allowSuspend = false;
+      services.power-manager.suspend.enable = false;
 
       graphics.cosmic = {
         # Crucial for Orin devices to use the correct render device
