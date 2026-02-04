@@ -50,6 +50,16 @@ in
         Profiles can extend this with extendModules if customization needed.
       '';
     };
+
+    # Audio VM base configuration for profiles to extend
+    audiovmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Laptop-x86 Audio VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -118,6 +128,35 @@ in
           inherit config;
           vmName = "ids-vm";
         };
+      };
+    };
+
+    # Export Audio VM base for profiles to extend
+    ghaf.profiles.laptop-x86.audiovmBase = lib.nixosSystem {
+      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
+      modules = [
+        inputs.microvm.nixosModules.microvm
+        inputs.self.nixosModules.audiovm-base
+        # Import nixpkgs config module to get overlays
+        {
+          nixpkgs.overlays = config.nixpkgs.overlays;
+          nixpkgs.config = config.nixpkgs.config;
+        }
+      ];
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig =
+          lib.ghaf.mkVmHostConfig {
+            inherit config;
+            vmName = "audio-vm";
+          }
+          // {
+            # Audio-specific hostConfig fields
+            audiovm = {
+              audio = config.ghaf.virtualization.microvm.audiovm.audio or false;
+            };
+          };
       };
     };
 

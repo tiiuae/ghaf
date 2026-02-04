@@ -394,5 +394,48 @@ in
           '';
         };
       };
+
+      # Audio VM hardware-specific configuration
+      # These options allow hardware modules to specify VM-level configs
+      # that profiles include via extendModules
+      audiovm = {
+        mem = mkOption {
+          description = ''
+            Override Audio VM memory allocation in MB.
+            If null, the default from audiovm-base.nix is used (384 MB).
+          '';
+          type = types.nullOr types.int;
+          default = null;
+          example = 512;
+        };
+        vcpu = mkOption {
+          description = ''
+            Override Audio VM vCPU count.
+            If null, the default from audiovm-base.nix is used (2 vCPUs).
+          '';
+          type = types.nullOr types.int;
+          default = null;
+          example = 4;
+        };
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for Audio VM configuration.
+            These modules are included in the profile's extendModules call.
+
+            Use this for hardware-specific configurations like:
+            - Audio device passthrough settings
+            - Hardware-specific QEMU arguments
+            - Hardware detection modules
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./audio-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
     };
 }

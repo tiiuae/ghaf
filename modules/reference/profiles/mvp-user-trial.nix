@@ -136,6 +136,13 @@ in
       # Admin VM: Use laptop base directly (no customization needed for MVP)
       virtualization.microvm.adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
 
+      # Audio VM: Use laptop base with hardware definition extraModules
+      virtualization.microvm.audiovm.evaluatedConfig =
+        config.ghaf.profiles.laptop-x86.audiovmBase.extendModules
+          {
+            modules = config.ghaf.hardware.definition.audiovm.extraModules or [ ];
+          };
+
       # Enable logging
       logging = {
         enable = true;
