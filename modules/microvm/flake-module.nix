@@ -66,5 +66,12 @@ _: {
     # Currently not used - hardware passthrough handled via hardware.definition.audiovm.extraModules
     # TODO: Revisit in future phase with proper hostConfig structure
     # audiovm-features = ./audiovm-features;
+
+    # Net VM base module for layered composition
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.netvm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules
+    netvm-base = ./sysvms/netvm-base.nix;
   };
 }

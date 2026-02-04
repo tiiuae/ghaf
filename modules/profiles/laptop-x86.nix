@@ -60,6 +60,16 @@ in
         Profiles can extend this with extendModules if customization needed.
       '';
     };
+
+    # Net VM base configuration for profiles to extend
+    netvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Laptop-x86 Net VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -155,6 +165,35 @@ in
             # Audio-specific hostConfig fields
             audiovm = {
               audio = config.ghaf.virtualization.microvm.audiovm.audio or false;
+            };
+          };
+      };
+    };
+
+    # Export Net VM base for profiles to extend
+    ghaf.profiles.laptop-x86.netvmBase = lib.nixosSystem {
+      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
+      modules = [
+        inputs.microvm.nixosModules.microvm
+        inputs.self.nixosModules.netvm-base
+        # Import nixpkgs config module to get overlays
+        {
+          nixpkgs.overlays = config.nixpkgs.overlays;
+          nixpkgs.config = config.nixpkgs.config;
+        }
+      ];
+      specialArgs = lib.ghaf.mkVmSpecialArgs {
+        inherit lib inputs;
+        globalConfig = hostGlobalConfig;
+        hostConfig =
+          lib.ghaf.mkVmHostConfig {
+            inherit config;
+            vmName = "net-vm";
+          }
+          // {
+            # Net-specific hostConfig fields
+            netvm = {
+              wifi = config.ghaf.virtualization.microvm.netvm.wifi or false;
             };
           };
       };

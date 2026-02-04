@@ -15,7 +15,7 @@
         ghaf.hardware.definition.guivm.extraModules = [
           (import ./alienware/extra-config.nix)
         ];
-        ghaf.virtualization.microvm.netvm.extraModules = [
+        ghaf.hardware.definition.netvm.extraModules = [
           (import ./alienware/net-config.nix)
         ];
       }
