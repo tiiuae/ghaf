@@ -26,7 +26,7 @@ let
   netPciDevices =
     if config.ghaf.common.hardware ? "nics" then config.ghaf.common.hardware.nics else [ ];
   camUsbDevices =
-    if config.ghaf.common.hardware ? "usb" then
+    if config.ghaf.common.hardware ? usb then
       lib.filter (d: lib.hasPrefix "cam" d.name) config.ghaf.common.hardware.usb
     else
       [ ];
@@ -388,6 +388,8 @@ let
   };
 in
 {
+  _file = ./killswitch.nix;
+
   options.ghaf.services.kill-switch = {
     enable = mkOption {
       type = types.bool;

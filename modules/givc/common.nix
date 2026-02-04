@@ -51,6 +51,8 @@ let
   idsExtraArgs = optionalString mitmEnabled "--user-data-dir=/home/${config.ghaf.users.appUser.name}/.config/google-chrome/Default --test-type --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
 in
 {
+  _file = ./common.nix;
+
   options.ghaf.givc = {
     enable = mkEnableOption "Enable gRPC inter-vm communication";
     debug = mkEnableOption "Enable givc debug mode";

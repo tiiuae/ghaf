@@ -14,6 +14,7 @@ let
   };
 in
 {
+  _file = ./prime.nix;
 
   options.ghaf.graphics.hybrid-setup.prime = {
     enable = mkOption {

@@ -16,6 +16,8 @@ let
 
 in
 {
+  _file = ./server.nix;
+
   options.ghaf.services.audio = {
     server = {
       pulseaudioTcpPort = lib.mkOption {

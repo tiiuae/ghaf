@@ -14,6 +14,8 @@ let
   isGuiVM = "gui-vm" == config.system.name;
 in
 {
+  _file = ./default.nix;
+
   imports = [
     ./dendrite-pinecone/dendrite-pinecone.nix
     ./dendrite-pinecone/dendrite-config.nix

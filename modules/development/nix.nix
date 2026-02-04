@@ -11,6 +11,8 @@ let
     ;
 in
 {
+  _file = ./nix.nix;
+
   options.ghaf.development.nix-setup = {
     enable = mkEnableOption "Target Nix config options";
     nixpkgs = mkOption {

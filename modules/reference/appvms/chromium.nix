@@ -13,6 +13,8 @@ let
   cfg = config.ghaf.reference.appvms.chromium;
 in
 {
+  _file = ./chromium.nix;
+
   options.ghaf.reference.appvms.chromium = {
     enable = lib.mkEnableOption "Chromium Browser App VM";
   };

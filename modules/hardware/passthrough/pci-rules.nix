@@ -127,6 +127,8 @@ let
 
 in
 {
+  _file = ./pci-rules.nix;
+
   options.ghaf.hardware.passthrough.pci = {
 
     guivmRules = mkOption {

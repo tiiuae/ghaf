@@ -55,6 +55,8 @@ let
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
 in
 {
+  _file = ./devices.nix;
+
   options.ghaf.hardware.devices = {
 
     hotplug = mkOption {

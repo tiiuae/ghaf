@@ -292,6 +292,8 @@ let
   };
 in
 {
+  _file = ./storewatcher.nix;
+
   options.ghaf.services.storeWatcher = {
     enable = mkEnableOption "monitoring of /nix/store for nixos-rebuild copy sessions and flagging interruptions";
     quietSeconds = mkOption {

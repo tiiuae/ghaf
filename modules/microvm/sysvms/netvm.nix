@@ -22,6 +22,8 @@ let
   cfg = config.ghaf.virtualization.microvm.netvm;
 in
 {
+  _file = ./netvm.nix;
+
   options.ghaf.virtualization.microvm.netvm = {
     enable = lib.mkEnableOption "NetVM";
 

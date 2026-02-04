@@ -10,6 +10,8 @@ let
   inherit (lib) mkOption types literalExpression;
 in
 {
+  _file = ./definition.nix;
+
   options.ghaf.hardware.definition =
     let
       pciDevSubmodule = types.submodule {

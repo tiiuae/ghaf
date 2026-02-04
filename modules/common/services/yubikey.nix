@@ -17,6 +17,8 @@ let
   cfg = config.ghaf.services.yubikey;
 in
 {
+  _file = ./yubikey.nix;
+
   options.ghaf.services.yubikey = {
     enable = mkEnableOption "the yubikey support which provide 2FA";
 

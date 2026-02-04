@@ -13,6 +13,8 @@ let
   cfg = config.ghaf.reference.appvms.gala;
 in
 {
+  _file = ./gala.nix;
+
   options.ghaf.reference.appvms.gala = {
     enable = lib.mkEnableOption "GALA Android-in-the-Cloud App VM";
   };

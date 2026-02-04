@@ -172,6 +172,8 @@ let
   };
 in
 {
+  _file = ./guests.nix;
+
   options.ghaf.services.performance = {
     gui = {
       enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for gui-vm.";

@@ -19,6 +19,8 @@ let
 
 in
 {
+  _file = ./client.nix;
+
   options.ghaf.services.audio = {
     client = {
       remotePulseServerAddress = lib.mkOption {

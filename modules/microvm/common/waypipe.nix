@@ -45,6 +45,7 @@ let
 
 in
 {
+  _file = ./waypipe.nix;
   options.ghaf.waypipe = {
     enable = mkEnableOption "Waypipe support";
 

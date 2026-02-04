@@ -13,6 +13,8 @@ let
 
 in
 {
+  _file = ./secureboot.nix;
+
   options.ghaf.host.secureboot = {
     enable = lib.mkEnableOption "Secure Boot support";
 

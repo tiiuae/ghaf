@@ -6,6 +6,8 @@ let
   cfg = config.ghaf.profiles.debug;
 in
 {
+  _file = ./debug.nix;
+
   config = lib.mkIf cfg.enable {
     # Enable default accounts and passwords
     ghaf.hardware.nvidia.orin.optee = {

@@ -27,6 +27,8 @@ let
   };
 in
 {
+  _file = ./attack-mitigation.nix;
+
   options.ghaf.firewall.attack-mitigation = {
 
     enable = mkEnableOption "Attack mitigation features integrated into the firewall" // {

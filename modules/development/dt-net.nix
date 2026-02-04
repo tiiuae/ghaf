@@ -11,6 +11,8 @@ let
   inherit (lib) rmDesktopEntries;
 in
 {
+  _file = ./dt-net.nix;
+
   options.ghaf.development.debug.tools.net = {
     enable = lib.mkEnableOption "Network Debugging Tools";
   };

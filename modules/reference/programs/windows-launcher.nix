@@ -11,6 +11,8 @@ let
   windows-launcher = pkgs.windows-launcher.override { enableSpice = cfg.spice; };
 in
 {
+  _file = ./windows-launcher.nix;
+
   options.ghaf.reference.programs.windows-launcher = {
     enable = lib.mkEnableOption "Windows launcher";
 

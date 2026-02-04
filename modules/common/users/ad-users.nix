@@ -12,6 +12,8 @@ let
     ;
 in
 {
+  _file = ./ad-users.nix;
+
   options.ghaf.users.adUsers = {
     enable = mkEnableOption "Active Directory user configuration";
   };

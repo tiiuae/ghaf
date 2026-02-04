@@ -13,6 +13,8 @@ let
   cfg = config.ghaf.reference.appvms.comms;
 in
 {
+  _file = ./comms.nix;
+
   options.ghaf.reference.appvms.comms = {
     enable = lib.mkEnableOption "Communications App VM";
   };

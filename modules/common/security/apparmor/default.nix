@@ -5,6 +5,8 @@ let
   cfg = config.ghaf.security.apparmor;
 in
 {
+  _file = ./default.nix;
+
   ## Option to enable Apparmor security
   options.ghaf.security.apparmor = {
     enable = lib.mkOption {

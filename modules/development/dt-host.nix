@@ -14,6 +14,8 @@ let
   inherit (lib) rmDesktopEntries;
 in
 {
+  _file = ./dt-host.nix;
+
   options.ghaf.development.debug.tools.host = {
     enable = lib.mkEnableOption "Host Debugging Tools";
   };

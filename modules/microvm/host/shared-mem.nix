@@ -20,6 +20,8 @@ let
     ;
 in
 {
+  _file = ./shared-mem.nix;
+
   options.ghaf.shm = {
     enable = mkOption {
       type = types.bool;

@@ -161,6 +161,8 @@ let
 
 in
 {
+  _file = ./modules.nix;
+
   options.ghaf.virtualization.microvm = {
     netvm.wifi = mkOption {
       type = types.bool;

@@ -15,6 +15,8 @@ let
   '';
 in
 {
+  _file = ./default.nix;
+
   options = {
     ghaf.version = lib.mkOption {
       type = lib.types.str;

@@ -16,6 +16,8 @@ let
     ;
 in
 {
+  _file = ./github.nix;
+
   options.ghaf.services.github = {
     enable = mkEnableOption "Github configurations";
     owner = mkOption {

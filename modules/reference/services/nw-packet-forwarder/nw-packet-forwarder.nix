@@ -31,6 +31,8 @@ let
   '';
 in
 {
+  _file = ./nw-packet-forwarder.nix;
+
   options.services.nw-packet-forwarder = {
     enable = mkEnableOption "nw-packet-forwarder";
     confFile = mkOption {

@@ -14,6 +14,8 @@ let
   ] config.ghaf;
 in
 {
+  _file = ./dendrite-config.nix;
+
   config.ghaf.reference.services.dendrite-pinecone = optionalAttrs isHost {
     enable = lib.mkDefault false;
     externalNic = (lib.head config.ghaf.hardware.definition.network.pciDevices).name;

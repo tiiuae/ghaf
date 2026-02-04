@@ -19,6 +19,8 @@ let
   ) (builtins.attrNames (config.microvm.vms or { }));
 in
 {
+  _file = ./mem-manager.nix;
+
   systemd.services =
     builtins.foldl'
       (

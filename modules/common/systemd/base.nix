@@ -194,6 +194,8 @@ let
   ]);
 in
 {
+  _file = ./base.nix;
+
   options.ghaf.systemd = {
     enable = mkEnableOption "Enable minimal systemd configuration.";
 

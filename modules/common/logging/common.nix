@@ -70,6 +70,8 @@ let
   };
 in
 {
+  _file = ./common.nix;
+
   # Creating logging configuration options needed across the host and vms
   options.ghaf.logging = {
     enable = mkOption {

@@ -7,6 +7,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./release.nix;
+
   options.ghaf.profiles.release = {
     enable = (mkEnableOption "release profile") // {
       default = false;

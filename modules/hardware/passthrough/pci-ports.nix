@@ -44,6 +44,8 @@ let
 
 in
 {
+  _file = ./pci-ports.nix;
+
   options.ghaf.hardware.passthrough.pciPorts = {
 
     pcieBusPrefix = mkOption {

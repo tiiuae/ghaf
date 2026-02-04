@@ -68,6 +68,7 @@ let
       }
 
       start_flatpak_browser() {
+
         local browsers="com.google.Chrome org.chromium.Chromium org.mozilla.firefox com.brave.Browser com.opera.Opera"
         local browser=""
 
@@ -126,6 +127,8 @@ let
   };
 in
 {
+  _file = ./flatpak.nix;
+
   options.ghaf.reference.appvms.flatpak = {
     enable = lib.mkEnableOption "Flatpak App Store VM";
   };

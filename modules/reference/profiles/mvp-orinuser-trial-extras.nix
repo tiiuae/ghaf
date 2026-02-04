@@ -5,6 +5,8 @@ let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial-extras;
 in
 {
+  _file = ./mvp-orinuser-trial-extras.nix;
+
   imports = [ ./mvp-orinuser-trial.nix ];
 
   options.ghaf.reference.profiles.mvp-orinuser-trial-extras = {

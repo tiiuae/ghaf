@@ -11,6 +11,8 @@ let
   hostGlobalConfig = config.ghaf.global-config;
 in
 {
+  _file = ./laptop-x86.nix;
+
   options.ghaf.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
 

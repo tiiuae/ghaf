@@ -57,6 +57,8 @@ let
   ];
 in
 {
+  _file = ./evdev-rules.nix;
+
   options.ghaf.hardware.passthrough.evdev = {
     evdevRules = mkOption {
       description = "Non-USB Input Device Passthrough Rules for GUIVM";

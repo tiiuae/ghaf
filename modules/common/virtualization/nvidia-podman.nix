@@ -6,6 +6,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./nvidia-podman.nix;
+
   options.ghaf.virtualization.nvidia-podman.daemon = {
     enable = mkEnableOption "Nvidia Podman Daemon";
   };

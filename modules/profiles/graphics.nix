@@ -18,6 +18,8 @@ let
     ;
 in
 {
+  _file = ./graphics.nix;
+
   options.ghaf.profiles.graphics = {
     enable = mkEnableOption "Graphics profile";
     idleManagement = {

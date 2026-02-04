@@ -17,6 +17,8 @@ let
     ;
 in
 {
+  _file = ./disks.nix;
+
   options.ghaf.services.disks = {
     enable = mkEnableOption "Enable disk mount daemon";
 

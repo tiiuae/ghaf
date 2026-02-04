@@ -17,6 +17,8 @@ let
   inherit (config.networking) hostName;
 in
 {
+  _file = ./netvm.nix;
+
   options.ghaf.givc.netvm = {
     enable = mkEnableOption "Enable netvm givc module.";
   };

@@ -6,6 +6,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./ssh.nix;
+
   options.ghaf.development.ssh.daemon = {
     enable = mkEnableOption "ssh daemon";
   };

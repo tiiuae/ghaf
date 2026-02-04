@@ -60,6 +60,8 @@ let
     ]);
 in
 {
+  _file = ./boot.nix;
+
   options.ghaf.systemd.boot = {
     enable = mkOption {
       default = config.ghaf.systemd.enable;

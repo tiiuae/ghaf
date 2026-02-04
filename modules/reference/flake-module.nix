@@ -3,6 +3,8 @@
 #
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     reference-appvms.imports = [ ./appvms ];
     reference-desktop.imports = [ ./desktop ];

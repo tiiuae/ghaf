@@ -10,6 +10,8 @@ let
   cfg = config.services.smcroute;
 in
 {
+  _file = ./smcroute.nix;
+
   options.services.smcroute = {
     enable = lib.mkEnableOption "smcroute";
     confFile = lib.mkOption {

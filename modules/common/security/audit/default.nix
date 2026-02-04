@@ -25,6 +25,8 @@ let
 
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.security.audit = {
     enable = mkEnableOption "Enable audit support";
     debug = mkOption {

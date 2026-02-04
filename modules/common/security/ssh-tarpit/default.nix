@@ -18,6 +18,8 @@ let
   sshPort = lib.head config.services.openssh.ports;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.security.ssh-tarpit = {
     enable = mkEnableOption "Enable ssh tarpit";
     listenAddress = mkOption {

@@ -10,6 +10,8 @@ let
   );
 in
 {
+  _file = ./adminvm.nix;
+
   options.ghaf.givc.adminvm = {
     enable = mkEnableOption "Enable adminvm givc module.";
   };

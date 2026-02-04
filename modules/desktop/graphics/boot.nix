@@ -44,6 +44,8 @@ let
   '';
 in
 {
+  _file = ./boot.nix;
+
   options.ghaf.graphics.boot = {
     enable = mkOption {
       type = types.bool;

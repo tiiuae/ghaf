@@ -9,6 +9,8 @@ let
   cfg = config.ghaf.hardware.x86_64.common;
 in
 {
+  _file = ./x86_64-linux.nix;
+
   options.ghaf.hardware.x86_64.common = {
     enable = lib.mkEnableOption "Common x86 configs";
   };

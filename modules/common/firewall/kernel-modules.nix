@@ -11,6 +11,8 @@ let
   cfg = config.ghaf.firewall.kernel-modules;
 in
 {
+  _file = ./kernel-modules.nix;
+
   options.ghaf.firewall.kernel-modules = {
     enable = lib.mkEnableOption "kernel modules required for firewall";
   };

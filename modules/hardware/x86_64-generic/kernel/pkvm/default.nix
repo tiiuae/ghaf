@@ -37,6 +37,8 @@ let
   hyp_cfg = config.ghaf.host.kernel.hardening.hypervisor;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.host.kernel.hardening.hypervisor.enable = lib.mkOption {
     description = "Enable Hypervisor hardening feature";
     type = lib.types.bool;
