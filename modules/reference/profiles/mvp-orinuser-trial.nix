@@ -41,16 +41,14 @@ in
         desktop.applications.enable = false;
       };
 
-      profiles = {
-        orin = {
-          enable = true;
-          netvmExtraModules = [
-            ../services
-            ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
-        };
-      };
+      profiles.orin.enable = true;
+
+      # Net VM hardware-specific modules - use hardware.definition for composition model
+      hardware.definition.netvm.extraModules = [
+        ../services
+        ../personalize
+        { ghaf.reference.personalize.keys.enable = true; }
+      ];
 
       graphics = {
         # Plymouth doesn't work as it should on Orins
