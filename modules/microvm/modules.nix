@@ -241,17 +241,11 @@ in
       # Adminvm modules - MIGRATED to adminvm-base.nix and adminvm-features
       # Service configs now come via globalConfig/hostConfig in adminvm-base.nix
 
-      # Appvm modules
-      appvm.extraModules =
-        optionals cfg.appvm.enable [
-          serviceModules.logging
-          serviceModules.givc
-          commonModule
-          managedUserAccounts
-        ]
-        ++ optionals (cfg.appvm.enable && fullVirtualization) [
-          serviceModules.audit
-        ];
+      # App VM modules - MIGRATED to appvm-base.nix
+      # Service modules (logging, givc, audit) are now in appvm-base.nix via globalConfig
+      # commonModule functionality is now in appvm-base.nix via hostConfig.common
+      # managedUserAccounts functionality is now in appvm-base.nix via hostConfig.users
+      # No extraModules needed - all config is in appvm-base.nix
 
       # IDS VM modules - MIGRATED to idsvm-base.nix
       # The commonModule functionality is now included directly in idsvm-base.nix

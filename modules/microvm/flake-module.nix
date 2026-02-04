@@ -73,5 +73,14 @@ _: {
     #     .extendModules { modules = [ ... ]; }
     # Note: Jetson and other non-laptop platforms continue to use netvm.extraModules
     netvm-base = ./sysvms/netvm-base.nix;
+
+    # App VM base module for layered composition
+    # Unlike singleton VMs, App VMs are instantiated multiple times using mkAppVm.
+    # Use with extendModules pattern:
+    #   mkAppVm = vmDef: lib.nixosSystem {
+    #     modules = [ inputs.self.nixosModules.appvm-base ];
+    #     specialArgs = { hostConfig.appvm = vmDef; ... };
+    #   }
+    appvm-base = ./sysvms/appvm-base.nix;
   };
 }
