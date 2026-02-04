@@ -9,7 +9,7 @@
 # ===========================
 # Enabled VMs:
 # - Net VM (netvmBase exported for composition)
-# - Admin VM (enabled but uses legacy extraModules, no adminvmBase yet)
+# - Admin VM (adminvmBase exported for composition)
 #
 # Disabled VMs (architectural reasons):
 # - GUI VM: GPU passthrough not supported, desktop runs natively on host (COSMIC)
@@ -17,8 +17,7 @@
 # - IDS VM: Resource constraints on embedded platform
 # - App VMs: No GUI VM means no Waypipe, apps run on host or via Docker
 #
-# Only netvmBase is exported because Net VM has hardware-specific composition needs.
-# Admin VM could be migrated to composition model in future if needed.
+# Both netvmBase and adminvmBase are exported for composition needs.
 #
 {
   config,
@@ -41,6 +40,16 @@ in
       readOnly = true;
       description = ''
         Orin Net VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
+
+    # Admin VM base configuration for profiles to extend
+    adminvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Orin Admin VM base configuration.
         Profiles can extend this with extendModules if customization needed.
       '';
     };
@@ -76,6 +85,29 @@ in
             };
         };
       };
+
+      # Export Admin VM base for profiles to extend
+      profiles.orin.adminvmBase = lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.adminvm-base
+          # Import nixpkgs config module to get overlays
+          {
+            nixpkgs.overlays = config.nixpkgs.overlays;
+            nixpkgs.config = config.nixpkgs.config;
+          }
+        ];
+        specialArgs = lib.ghaf.mkVmSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig = lib.ghaf.mkVmHostConfig {
+            inherit config;
+            vmName = "admin-vm";
+          };
+        };
+      };
+
       profiles.graphics = {
         enable = true;
         # Explicitly enable auto-login for Orins
@@ -146,13 +178,8 @@ in
 
           adminvm = {
             enable = true;
-            extraModules = [
-              {
-                config.ghaf = {
-                  inherit (config.ghaf) common;
-                };
-              }
-            ];
+            # Use evaluatedConfig pattern - common is passed via hostConfig
+            evaluatedConfig = cfg.adminvmBase;
           };
 
           idsvm = {
