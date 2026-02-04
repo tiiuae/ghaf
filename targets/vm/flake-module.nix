@@ -1,5 +1,11 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# VM Target - QEMU VM for development and testing
+#
+# This target runs GUI on the HOST (not in a gui-vm microvm).
+# VMs: netvm, audiovm, adminvm, appvms (zathura)
+#
 {
   inputs,
   lib,
@@ -15,20 +21,61 @@ let
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
           inherit (self) lib;
-          inherit inputs; # Required for microvm modules
+          inherit inputs;
         };
         modules = [
           (builtins.getAttr format nixos-generators.nixosModules)
-          self.nixosModules.common
-          self.nixosModules.microvm
-          self.nixosModules.profiles
-          self.nixosModules.reference-appvms
+          self.nixosModules.profiles-vm
           self.nixosModules.hardware-x86_64-generic
 
           (
             { config, pkgs, ... }:
+            let
+              # Helper for GIVC transport config pointing to host
+              inherit (config.networking) hostName;
+              hostIpv4 = config.ghaf.networking.hosts.${hostName}.ipv4;
+
+              # GIVC config for netvm - point socket proxy to host
+              netvmGivcModule = lib.optionalAttrs withGraphics {
+                givc.sysvm = {
+                  hwidService = lib.mkForce false;
+                  socketProxy = lib.mkForce [
+                    {
+                      transport = {
+                        name = hostName;
+                        addr = hostIpv4;
+                        port = "9010";
+                        protocol = "tcp";
+                      };
+                      socket = "/tmp/dbusproxy_net.sock";
+                    }
+                  ];
+                };
+              };
+
+              # GIVC config for audiovm - point socket proxy to host
+              audiovmGivcModule = lib.optionalAttrs withGraphics {
+                givc.sysvm.socketProxy = lib.mkForce [
+                  {
+                    transport = {
+                      name = hostName;
+                      addr = hostIpv4;
+                      port = "9011";
+                      protocol = "tcp";
+                    };
+                    socket = "/tmp/dbusproxy_snd.sock";
+                  }
+                ];
+              };
+
+              # Reference to profile for convenience
+              vmProfile = config.ghaf.profiles.vm;
+            in
             {
               ghaf = {
+                # Enable the VM profile (creates netvmBase, audiovmBase, adminvmBase, mkAppVm)
+                profiles.vm.enable = true;
+
                 hardware.x86_64.common.enable = true;
                 hardware.tpm2.enable = true;
                 microvm-boot.enable = lib.mkForce false;
@@ -39,36 +86,69 @@ let
                     networkSupport = true;
                   };
 
-                  # TODO: Systemvms enabled but there is no passthroughs
-                  microvm.netvm.enable = true;
-                  microvm.audiovm.enable = true;
-                  microvm.adminvm.enable = true;
+                  # Wire up VM evaluatedConfigs using the profile's bases
+                  microvm.netvm = {
+                    enable = true;
+                    evaluatedConfig = vmProfile.netvmBase.extendModules {
+                      modules = [ netvmGivcModule ];
+                    };
+                  };
 
-                  # TODO: Currently we run the desktop on the host in this target.
-                  # GUI VM usage would require some display forwarding or remote display connection
+                  microvm.audiovm = {
+                    enable = true;
+                    evaluatedConfig = vmProfile.audiovmBase.extendModules {
+                      modules = [ audiovmGivcModule ];
+                    };
+                  };
+
+                  microvm.adminvm = {
+                    enable = true;
+                    evaluatedConfig = vmProfile.adminvmBase;
+                  };
+
+                  # NOTE: GUI runs on host, not in a gui-vm
                   # microvm.guivm.enable = withGraphics;
 
+                  # AppVMs - configured inline since reference-appvms uses laptop-x86 profile
                   microvm.appvm = {
                     enable = true;
                     vms = {
                       zathura = {
                         enable = true;
-                        waypipe.enable = false; # disable waypipe when guivm is not used
-                      };
-                      gala = {
-                        enable = false;
-                        waypipe.enable = withGraphics;
+                        name = "zathura";
+                        borderColor = "#122263";
+                        applications = [
+                          {
+                            name = "PDF Viewer";
+                            description = "Isolated PDF Viewer";
+                            packages = [ pkgs.zathura ];
+                            icon = "document-viewer";
+                            command = "zathura";
+                          }
+                        ];
+                        # Create evaluatedConfig with waypipe disabled (no guivm)
+                        evaluatedConfig = vmProfile.mkAppVm {
+                          name = "zathura";
+                          ramMb = 512;
+                          cores = 1;
+                          borderColor = "#122263";
+                          waypipe.enable = false; # No guivm, so no waypipe
+                          applications = [
+                            {
+                              name = "PDF Viewer";
+                              description = "Isolated PDF Viewer";
+                              packages = [ pkgs.zathura ];
+                              icon = "document-viewer";
+                              command = "zathura";
+                            }
+                          ];
+                        };
                       };
                     };
                   };
                 };
 
-                reference = {
-                  appvms.enable = true;
-                };
-
-                # Add some launchers
-                # TODO: The application interface needs to move to a common module to be reused here
+                # Add some launchers for host GUI
                 graphics.launchers = lib.optionals withGraphics [
                   {
                     name = "Calculator";
@@ -139,44 +219,11 @@ let
                 givc-user-key-setup.after = [ "givc-key-setup.service" ];
               };
 
-              # Reconfigure net-vm and audio-vm socket proxies to connect with host
-              microvm.vms = lib.optionalAttrs withGraphics {
-                net-vm.config.config.givc.sysvm = {
-                  hwidService = lib.mkForce false;
-                  socketProxy = lib.mkForce [
-                    {
-                      transport = {
-                        name = config.networking.hostName;
-                        addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
-                        port = "9010";
-                        protocol = "tcp";
-                      };
-                      socket = "/tmp/dbusproxy_net.sock";
-                    }
-                  ];
-                };
-                audio-vm.config.config.givc.sysvm.socketProxy = lib.mkForce [
-                  {
-                    transport = {
-                      name = config.networking.hostName;
-                      addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
-                      port = "9011";
-                      protocol = "tcp";
-                    };
-                    socket = "/tmp/dbusproxy_snd.sock";
-                  }
-                ];
-              };
-
               nixpkgs = {
                 hostPlatform.system = system;
 
-                # Increase the support for different devices by allowing the use
-                # of proprietary drivers from the respective vendors
                 config = {
                   allowUnfree = true;
-                  #jitsi was deemed insecure because of an obsecure potential security
-                  #vulnerability but it is still used by many people
                   permittedInsecurePackages = [
                     "jitsi-meet-1.0.8043"
                     "qtwebengine-5.15.19"
