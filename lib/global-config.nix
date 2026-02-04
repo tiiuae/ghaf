@@ -490,5 +490,74 @@ rec {
         vmEntry.config.config
       else
         null;
+
+    # Build modules list with vmConfig applied
+    #
+    # This function collects modules from hardware.definition and vmConfig
+    # and builds a resource allocation module from vmConfig.mem/vcpu.
+    #
+    # Module merge order (highest priority last):
+    #   1. Base module (guivm-base.nix) - sets mkDefault values
+    #   2. resourceModule - applies vmConfig.mem/vcpu
+    #   3. hwModules - hardware.definition.<vm>.extraModules
+    #   4. vmConfigModules - vmConfig.<vm>.extraModules (highest priority)
+    #
+    # Arguments:
+    #   config - Host configuration (with ghaf.hardware.definition and ghaf.virtualization.vmConfig)
+    #   vmName - VM name without -vm suffix (e.g., "guivm", "netvm")
+    #
+    # Returns: List of modules to add via extendModules
+    #
+    # Usage in profiles:
+    #   guivmBase.extendModules {
+    #     modules = lib.ghaf.vm.applyVmConfig { inherit config; vmName = "guivm"; };
+    #   };
+    applyVmConfig =
+      {
+        config,
+        vmName,
+      }:
+      let
+        hwDef = config.ghaf.hardware.definition.${vmName} or { };
+        vmCfg = config.ghaf.virtualization.vmConfig.${vmName} or { };
+
+        hwModules = hwDef.extraModules or [ ];
+        vmConfigModules = vmCfg.extraModules or [ ];
+
+        # Resource allocation module (applies vmConfig.mem/vcpu)
+        resourceModule =
+          lib.optionalAttrs (vmCfg.mem or null != null) { microvm.mem = vmCfg.mem; }
+          // lib.optionalAttrs (vmCfg.vcpu or null != null) { microvm.vcpu = vmCfg.vcpu; };
+      in
+      [ resourceModule ] ++ hwModules ++ vmConfigModules;
+
+    # Build modules list with vmConfig applied for App VMs
+    #
+    # Similar to applyVmConfig but uses appvms namespace and
+    # ramMb/cores naming convention for consistency with appvm definitions.
+    #
+    # Arguments:
+    #   config - Host configuration
+    #   appName - App VM name (e.g., "chromium", "comms")
+    #
+    # Returns: List of modules to add via extendModules
+    applyAppVmConfig =
+      {
+        config,
+        appName,
+      }:
+      let
+        vmCfg = config.ghaf.virtualization.vmConfig.appvms.${appName} or { };
+        vmConfigModules = vmCfg.extraModules or [ ];
+
+        # Resource allocation module (applies ramMb/cores as mem/vcpu)
+        resourceModule =
+          lib.optionalAttrs (vmCfg.ramMb or null != null) {
+            # App VMs use balloon, so scale by balloon ratio
+            microvm.mem = vmCfg.ramMb * 3; # Default balloon ratio is 2
+          }
+          // lib.optionalAttrs (vmCfg.cores or null != null) { microvm.vcpu = vmCfg.cores; };
+      in
+      [ resourceModule ] ++ vmConfigModules;
   };
 }

@@ -43,8 +43,9 @@ in
 
       profiles.orin.enable = true;
 
-      # Net VM hardware-specific modules - use hardware.definition for composition model
-      hardware.definition.netvm.extraModules = [
+      # Net VM profile-specific modules - use vmConfig for resource allocation and profile services
+      # Hardware-specific modules should go in hardware.definition.netvm.extraModules
+      virtualization.vmConfig.netvm.extraModules = [
         ../services
         ../personalize
         { ghaf.reference.personalize.keys.enable = true; }

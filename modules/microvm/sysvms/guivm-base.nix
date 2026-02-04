@@ -310,9 +310,9 @@ in
 
   microvm = {
     optimize.enable = false;
-    # Use hardware definition values if set, otherwise defaults
-    vcpu = globalConfig.hardware.definition.guivm.vcpu or 6;
-    mem = globalConfig.hardware.definition.guivm.mem or 12288;
+    # Sensible defaults - can be overridden via vmConfig
+    vcpu = lib.mkDefault 6;
+    mem = lib.mkDefault 12288;
     hypervisor = "qemu";
 
     shares = [

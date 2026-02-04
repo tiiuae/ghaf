@@ -170,9 +170,12 @@ in
           netvm = {
             enable = true;
             wifi = false;
-            # Use evaluatedConfig pattern - extend netvmBase with hardware-specific modules
+            # Use evaluatedConfig pattern - extend netvmBase with vmConfig modules
             evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
-              modules = config.ghaf.hardware.definition.netvm.extraModules or [ ];
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "netvm";
+              };
             };
           };
 

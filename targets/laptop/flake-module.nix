@@ -86,8 +86,8 @@ let
             enable = true;
             ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
           };
-          # Hardware-specific VM memory via hardware definition
-          hardware.definition.guivm.mem = 6144;
+          # Target-specific VM memory allocation via vmConfig
+          virtualization.vmConfig.guivm.mem = 6144;
           virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
         };
       }
@@ -133,8 +133,8 @@ let
         ghaf = {
           reference.profiles.mvp-user-trial.enable = true;
           partitioning.disko.enable = true;
-          # Hardware-specific VM memory via hardware definition
-          hardware.definition.guivm.mem = 2047;
+          # Target-specific VM memory allocation via vmConfig
+          virtualization.vmConfig.guivm.mem = 2047;
         };
       }
     ]))
@@ -316,8 +316,8 @@ let
             enable = true;
             ids = [ "8086:15fb" ]; # Ethernet controller at 00:1f.6
           };
-          # Hardware-specific VM memory via hardware definition
-          hardware.definition.guivm.mem = 6144;
+          # Target-specific VM memory allocation via vmConfig
+          virtualization.vmConfig.guivm.mem = 6144;
           virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
         };
       }
