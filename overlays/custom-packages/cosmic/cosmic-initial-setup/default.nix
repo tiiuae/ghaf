@@ -4,6 +4,7 @@
 prev.cosmic-initial-setup.overrideAttrs (oldAttrs: {
   patches = oldAttrs.patches ++ [
     ./0001-Preselect-Ghaf-themes.patch
+    ./0002-dont-use-secret-agent.patch
   ];
   # Don't install default cosmic themes and layouts
   postPatch = oldAttrs.postPatch or "" + ''
