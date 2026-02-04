@@ -29,7 +29,7 @@ let
       filterAttrs (
         _: vm:
         let
-          vmConfig = lib.ghaf.getVmConfig vm;
+          vmConfig = lib.ghaf.vm.getConfig vm;
         in
         vmConfig != null && vmConfig.ghaf.type == "system-vm"
       ) config.microvm.vms

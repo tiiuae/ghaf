@@ -245,10 +245,10 @@ in
         {
           autostart = true;
           inherit (inputs) nixpkgs;
-          specialArgs = lib.ghaf.mkVmSpecialArgs {
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
             inherit lib inputs;
             globalConfig = hostGlobalConfig;
-            hostConfig = lib.ghaf.mkVmHostConfig {
+            hostConfig = lib.ghaf.vm.mkHostConfig {
               inherit config vmName;
             };
           };

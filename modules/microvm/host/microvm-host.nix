@@ -24,7 +24,7 @@ let
   userConfig =
     if (lib.hasAttr "gui-vm" config.microvm.vms) then
       let
-        vmConfig = lib.ghaf.getVmConfig config.microvm.vms.gui-vm;
+        vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.gui-vm;
       in
       if vmConfig != null then vmConfig.ghaf.users else config.ghaf.users
     else
@@ -137,7 +137,7 @@ in
           vmsWithXdg = lib.filter (
             vm:
             let
-              vmConfig = lib.ghaf.getVmConfig vm;
+              vmConfig = lib.ghaf.vm.getConfig vm;
               # Safe check for xdgitems.enable - avoid triggering option evaluation
               hasXdgEnabled =
                 vmConfig != null
@@ -152,7 +152,7 @@ in
             map (
               vm:
               let
-                vmConfig = lib.ghaf.getVmConfig vm;
+                vmConfig = lib.ghaf.vm.getConfig vm;
                 # Safe access to xdgHostPaths - readOnly option that may not be set
                 # Use tryEval to handle the case where option has no value
                 xdgPathsAttempt = builtins.tryEval (vmConfig.ghaf.xdgitems.xdgHostPaths or [ ]);
@@ -199,7 +199,7 @@ in
           vmsWithEncryptedStorage = lib.filterAttrs (
             _name: vm:
             let
-              vmConfig = lib.ghaf.getVmConfig vm;
+              vmConfig = lib.ghaf.vm.getConfig vm;
             in
             vmConfig != null
             && lib.hasAttr "storagevm" vmConfig.ghaf
@@ -212,7 +212,7 @@ in
             // {
               "format-microvm-storage-${name}" =
                 let
-                  vmConfig = lib.ghaf.getVmConfig config.microvm.vms.${name};
+                  vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
                   cfg = vmConfig.ghaf.storagevm;
 
                   hostImage = "/persist/storagevm/img/${cfg.name}.img";

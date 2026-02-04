@@ -17,7 +17,7 @@ let
   enableOpenNormalExtension = true;
 
   # Get VM config for proxy PAC URL
-  vmConfig = lib.ghaf.getVmConfig config.microvm.vms."business-vm";
+  vmConfig = lib.ghaf.vm.getConfig config.microvm.vms."business-vm";
   proxyPacUrl = vmConfig.ghaf.reference.services.pac.proxyPacUrl or "";
 
   withDebug = config.ghaf.profiles.debug.enable;

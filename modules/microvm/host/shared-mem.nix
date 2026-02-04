@@ -193,7 +193,7 @@ in
                     };
                     boot.extraModulePackages =
                       let
-                        vmConfig = lib.ghaf.getVmConfig config.microvm.vms.${vmName};
+                        vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${vmName};
                       in
                       [
                         # TODO: fix this to not call back to packages dir

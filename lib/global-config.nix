@@ -287,123 +287,6 @@ rec {
     };
   };
 
-  # Helper function to create specialArgs for VM modules
-  # This ensures consistent propagation of global config
-  #
-  # Usage:
-  #   microvm.vms.my-vm = {
-  #     specialArgs = lib.ghaf.mkVmSpecialArgs {
-  #       inherit lib inputs globalConfig;
-  #     };
-  #   };
-  mkVmSpecialArgs =
-    {
-      lib,
-      inputs,
-      globalConfig,
-      hostConfig ? null, # Optional host-specific config (from mkVmHostConfig)
-      extraArgs ? { },
-    }:
-    {
-      inherit lib inputs globalConfig;
-    }
-    // (if hostConfig != null then { inherit hostConfig; } else { })
-    // extraArgs;
-
-  # Helper to create host-specific config for VM specialArgs
-  # This passes settings that are inherently host-bound (hardware, kernel, qemu)
-  # and cannot be globalized.
-  #
-  # Usage:
-  #   microvm.vms.audio-vm = {
-  #     specialArgs = lib.ghaf.mkVmSpecialArgs {
-  #       inherit lib inputs;
-  #       globalConfig = config.ghaf.global-config;
-  #       hostConfig = lib.ghaf.mkVmHostConfig {
-  #         inherit config;
-  #         vmName = "audio-vm";
-  #       };
-  #     };
-  #   };
-  mkVmHostConfig =
-    {
-      config, # Host config
-      vmName, # e.g., "gui-vm", "audio-vm"
-      extraConfig ? { },
-    }:
-    let
-      vmType = builtins.replaceStrings [ "-vm" ] [ "" ] vmName;
-
-      # Safely get nested attributes with default
-    in
-    {
-      # VM name for reference
-      inherit vmName vmType;
-
-      # Kernel configuration for this VM type (if defined)
-      kernel = config.ghaf.kernel.${vmType} or null;
-
-      # QEMU configuration for this VM type (if defined)
-      qemu = config.ghaf.qemu.${vmType} or null;
-
-      # Hardware passthrough settings
-      passthrough = {
-        qemuExtraArgs = config.ghaf.hardware.passthrough.qemuExtraArgs.${vmName} or [ ];
-        # vmUdevExtraRules is a list in the host config; join into a single string
-        vmUdevExtraRules =
-          let
-            rules = config.ghaf.hardware.passthrough.vmUdevExtraRules.${vmName} or [ ];
-          in
-          if rules == [ ] then "" else lib.concatStringsSep "\n" rules;
-      };
-
-      # Host filesystem paths
-      sharedVmDirectory = config.ghaf.virtualization.microvm-host.sharedVmDirectory or null;
-
-      # Boot configuration
-      microvmBoot = {
-        enable = config.ghaf.microvm-boot.enable or false;
-      };
-
-      # Hardware devices (for modules.nix)
-      hardware = {
-        devices = config.ghaf.hardware.devices or { };
-      };
-
-      # Common namespace (for killswitch, etc.)
-      common = config.ghaf.common or { };
-
-      # User configuration (complex, kept as-is for now)
-      users = config.ghaf.users or { };
-
-      # Reference services (profile-specific)
-      reference = {
-        services = config.ghaf.reference.services or { };
-      };
-
-      # Networking info (IP addresses, CIDs, etc. for this VM and others)
-      networking = {
-        hosts = config.ghaf.networking.hosts or { };
-        # Convenience accessor for this VM's network config
-        thisVm = config.ghaf.networking.hosts.${vmName} or { };
-      };
-
-      # GIVC configuration
-      givc = {
-        cliArgs = config.ghaf.givc.cliArgs or "";
-        enableTls = config.ghaf.givc.enableTls or false;
-      };
-
-      # Security settings (SSH keys, etc.)
-      security = {
-        sshKeys = config.ghaf.security.sshKeys or { };
-      };
-
-      # AppVM configurations (needed by guivm for launcher generation)
-      appvms = config.ghaf.virtualization.microvm.appvm.vms or { };
-    }
-    // extraConfig;
-
   # Helper to merge a profile with overrides
   #
   # Usage:
@@ -417,65 +300,195 @@ rec {
     in
     lib.recursiveUpdate base overrides;
 
-  # Helper to extend a VM base with additional modules
+  # ═══════════════════════════════════════════════════════════════════════════
+  # VM COMPOSITION NAMESPACE
+  # ═══════════════════════════════════════════════════════════════════════════
   #
-  # This function takes a base VM configuration (lib.nixosSystem result)
-  # and extends it with additional modules for profile-specific functionality.
+  # All VM composition helpers are organized under lib.ghaf.vm.*
   #
-  # Usage:
-  #   # In a profile module (e.g., laptop-x86.nix):
-  #   let
-  #     guivmBase = lib.nixosSystem {
-  #       modules = [ inputs.self.nixosModules.guivm-base ... ];
-  #       specialArgs = lib.ghaf.mkVmSpecialArgs { ... };
-  #     };
-  #     extendedGuivm = lib.ghaf.mkExtendedVm {
-  #       vmBase = guivmBase;
-  #       extraModules = [ ../services ../programs ];
+  # Functions:
+  #   lib.ghaf.vm.mkSpecialArgs - Create specialArgs for VM modules
+  #   lib.ghaf.vm.mkHostConfig  - Extract host config for VM specialArgs
+  #   lib.ghaf.vm.extend        - Extend a VM base with modules
+  #   lib.ghaf.vm.getConfig     - Get inner NixOS config from microvm.vms entry
+  #
+  # Usage Example:
+  #   guivmBase = lib.nixosSystem {
+  #     modules = [ inputs.ghaf.vmBases.guivm ];
+  #     specialArgs = lib.ghaf.vm.mkSpecialArgs {
+  #       inherit inputs;
   #       globalConfig = config.ghaf.global-config;
-  #       hostConfig = lib.ghaf.mkVmHostConfig { inherit config; vmName = "gui-vm"; };
+  #       hostConfig = lib.ghaf.vm.mkHostConfig { inherit config; vmName = "gui-vm"; };
   #     };
-  #   in
-  #   ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedGuivm;
+  #   };
   #
-  # See modules/profiles/laptop-x86.nix for the canonical pattern.
-  #
-  mkExtendedVm =
-    {
-      vmBase, # lib.nixosSystem result with .extendModules
-      extraModules ? [ ],
-      globalConfig ? { },
-      hostConfig ? { },
-      extraSpecialArgs ? { },
-    }:
-    vmBase.extendModules {
-      modules = extraModules;
-      specialArgs = {
-        inherit globalConfig hostConfig;
+  # ═══════════════════════════════════════════════════════════════════════════
+  vm = {
+    # Create specialArgs for VM modules
+    # This ensures consistent propagation of global config to VMs
+    #
+    # Arguments:
+    #   lib         - Extended lib with ghaf functions
+    #   inputs      - Flake inputs
+    #   globalConfig - Global config value (from config.ghaf.global-config)
+    #   hostConfig  - Optional host-specific config (from vm.mkHostConfig)
+    #   extraArgs   - Optional additional specialArgs
+    #
+    # Returns: Attribute set suitable for specialArgs
+    mkSpecialArgs =
+      {
+        lib,
+        inputs,
+        globalConfig,
+        hostConfig ? null,
+        extraArgs ? { },
+      }:
+      {
+        inherit lib inputs globalConfig;
       }
-      // extraSpecialArgs;
-    };
+      // (if hostConfig != null then { inherit hostConfig; } else { })
+      // extraArgs;
 
-  # Helper to get the inner NixOS config from a microvm.vms entry
-  #
-  # microvm.nix supports two ways to define VMs:
-  # 1. `config` - module-based (evaluates via eval-config.nix)
-  #    Access inner config: vmEntry.config.config
-  # 2. `evaluatedConfig` - pre-evaluated NixOS system
-  #    Access inner config: vmEntry.evaluatedConfig.config
-  #
-  # This helper abstracts that difference.
-  #
-  # Usage:
-  #   lib.ghaf.getVmConfig config.microvm.vms.gui-vm
-  #   => returns the inner NixOS config of the VM
-  #
-  getVmConfig =
-    vmEntry:
-    if vmEntry.evaluatedConfig != null then
-      vmEntry.evaluatedConfig.config
-    else if vmEntry.config != null then
-      vmEntry.config.config
-    else
-      null;
+    # Extract host-specific config for VM specialArgs
+    # This passes settings that are inherently host-bound and cannot be globalized.
+    #
+    # Arguments:
+    #   config      - Host configuration
+    #   vmName      - VM name (e.g., "gui-vm", "audio-vm")
+    #   extraConfig - Optional additional config to merge
+    #
+    # Returns: Attribute set with host-specific VM config
+    mkHostConfig =
+      {
+        config,
+        vmName,
+        extraConfig ? { },
+      }:
+      let
+        vmType = builtins.replaceStrings [ "-vm" ] [ "" ] vmName;
+      in
+      {
+        # VM name for reference
+        inherit vmName vmType;
+
+        # Kernel configuration for this VM type (if defined)
+        kernel = config.ghaf.kernel.${vmType} or null;
+
+        # QEMU configuration for this VM type (if defined)
+        qemu = config.ghaf.qemu.${vmType} or null;
+
+        # Hardware passthrough settings
+        passthrough = {
+          qemuExtraArgs = config.ghaf.hardware.passthrough.qemuExtraArgs.${vmName} or [ ];
+          vmUdevExtraRules =
+            let
+              rules = config.ghaf.hardware.passthrough.vmUdevExtraRules.${vmName} or [ ];
+            in
+            if rules == [ ] then "" else lib.concatStringsSep "\n" rules;
+        };
+
+        # Host filesystem paths
+        sharedVmDirectory = config.ghaf.virtualization.microvm-host.sharedVmDirectory or null;
+
+        # Boot configuration
+        microvmBoot = {
+          enable = config.ghaf.microvm-boot.enable or false;
+        };
+
+        # Hardware devices (for modules.nix)
+        hardware = {
+          devices = config.ghaf.hardware.devices or { };
+        };
+
+        # Common namespace (for killswitch, etc.)
+        common = config.ghaf.common or { };
+
+        # User configuration (complex, kept as-is for now)
+        users = config.ghaf.users or { };
+
+        # Reference services (profile-specific)
+        reference = {
+          services = config.ghaf.reference.services or { };
+        };
+
+        # Networking info (IP addresses, CIDs, etc. for this VM and others)
+        networking = {
+          hosts = config.ghaf.networking.hosts or { };
+          thisVm = config.ghaf.networking.hosts.${vmName} or { };
+        };
+
+        # GIVC configuration
+        givc = {
+          cliArgs = config.ghaf.givc.cliArgs or "";
+          enableTls = config.ghaf.givc.enableTls or false;
+        };
+
+        # Security settings (SSH keys, etc.)
+        security = {
+          sshKeys = config.ghaf.security.sshKeys or { };
+        };
+
+        # AppVM configurations (needed by guivm for launcher generation)
+        appvms = config.ghaf.virtualization.microvm.appvm.vms or { };
+      }
+      // extraConfig;
+
+    # Extend a VM base with additional modules
+    #
+    # This function takes a base VM configuration (lib.nixosSystem result)
+    # and extends it with additional modules for profile-specific functionality.
+    #
+    # Arguments:
+    #   vmBase          - lib.nixosSystem result with .extendModules
+    #   extraModules    - Additional modules to add
+    #   globalConfig    - Global config value
+    #   hostConfig      - Host-specific config
+    #   extraSpecialArgs - Optional additional specialArgs
+    #
+    # Returns: Extended NixOS system configuration
+    #
+    # See modules/profiles/laptop-x86.nix for canonical pattern.
+    extend =
+      {
+        vmBase,
+        extraModules ? [ ],
+        globalConfig ? { },
+        hostConfig ? { },
+        extraSpecialArgs ? { },
+      }:
+      vmBase.extendModules {
+        modules = extraModules;
+        specialArgs = {
+          inherit globalConfig hostConfig;
+        }
+        // extraSpecialArgs;
+      };
+
+    # Get the inner NixOS config from a microvm.vms entry
+    #
+    # microvm.nix supports two ways to define VMs:
+    # 1. `config` - module-based (evaluates via eval-config.nix)
+    #    Access inner config: vmEntry.config.config
+    # 2. `evaluatedConfig` - pre-evaluated NixOS system
+    #    Access inner config: vmEntry.evaluatedConfig.config
+    #
+    # This helper abstracts that difference.
+    #
+    # WARNING: For legacy VMs (using `config` not `evaluatedConfig`),
+    # this triggers full VM evaluation which can cause infinite recursion
+    # if the VM imports modules that reference host config.
+    #
+    # Arguments:
+    #   vmEntry - Entry from config.microvm.vms.<name>
+    #
+    # Returns: Inner NixOS config, or null if not available
+    getConfig =
+      vmEntry:
+      if vmEntry.evaluatedConfig != null then
+        vmEntry.evaluatedConfig.config
+      else if vmEntry.config != null then
+        vmEntry.config.config
+      else
+        null;
+  };
 }

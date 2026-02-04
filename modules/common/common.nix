@@ -158,7 +158,7 @@ in
                   lib.attrsets.mapAttrsToList (
                     n: v:
                     let
-                      vmConfig = lib.ghaf.getVmConfig v;
+                      vmConfig = lib.ghaf.vm.getConfig v;
                     in
                     lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "admin-vm") n
                   ) config.microvm.vms
@@ -170,7 +170,7 @@ in
               lib.attrsets.mapAttrsToList (
                 n: v:
                 let
-                  vmConfig = lib.ghaf.getVmConfig v;
+                  vmConfig = lib.ghaf.vm.getConfig v;
                 in
                 lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "system-vm") n
               ) config.microvm.vms
@@ -179,7 +179,7 @@ in
               lib.attrsets.mapAttrsToList (
                 n: v:
                 let
-                  vmConfig = lib.ghaf.getVmConfig v;
+                  vmConfig = lib.ghaf.vm.getConfig v;
                 in
                 lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "app-vm") n
               ) config.microvm.vms
