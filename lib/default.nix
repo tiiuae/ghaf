@@ -10,8 +10,9 @@ let
   launcherLib = import ./launcher.nix { };
   # Import global config types and utilities
   globalConfigLib = import ./global-config.nix { inherit lib; };
-  # Import VM base configurations
-  vmBasesLib = import ./vm-bases { inherit lib; };
+  # Note: VM base modules are in modules/microvm/sysvms/*-base.nix
+  # and exported via nixosModules (e.g., guivm-base, netvm-base, etc.)
+  # Profiles (laptop-x86, orin) create *Base options using these modules.
 in
 {
   /*
@@ -121,11 +122,6 @@ in
       mkGlobalConfig
       mkExtendedVm
       getVmConfig
-      ;
-
-    # VM base configurations for extendModules composition
-    inherit (vmBasesLib)
-      mkGuiVmBase
       ;
   };
 }

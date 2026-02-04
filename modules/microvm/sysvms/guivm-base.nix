@@ -1,15 +1,29 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# GUI VM Base Module
+# GUI VM Base Module (Canonical Reference)
 #
-# This module contains the full GUI VM configuration and can be composed using extendModules.
-# It takes globalConfig and hostConfig via specialArgs for configuration.
+# This is the canonical reference for VM base module patterns.
+# All other *-base.nix modules should follow this structure.
+#
+# VM Base Module Pattern:
+# =======================
+# 1. Function parameters: lib, pkgs, inputs, globalConfig, hostConfig
+#    - config is optional (only if VM needs self-reference)
+# 2. Set _file for debugging: _file = ./<name>.nix;
+# 3. Standard imports: preservation, givc, kernel, vm-modules, profiles
+# 4. Use lib.mkDefault for all overrideable options
+# 5. Include: system.stateVersion, time.timeZone, nixpkgs.{build,host}Platform
+# 6. VM-specific configuration in microvm = { ... }
+#
+# Composition via specialArgs:
+#   - globalConfig: Host's global configuration (debug, development, storage, etc.)
+#   - hostConfig: VM-specific config (networking.thisVm, applications, etc.)
 #
 # Usage in profiles:
 #   lib.nixosSystem {
 #     modules = [ inputs.self.nixosModules.guivm-base ];
-#     specialArgs = { inherit globalConfig hostConfig; };
+#     specialArgs = lib.ghaf.mkVmSpecialArgs { ... };
 #   }
 #
 # Then extend with:

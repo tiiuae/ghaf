@@ -142,6 +142,7 @@ in
   };
 
   system.stateVersion = lib.trivial.release;
+  time.timeZone = globalConfig.platform.timeZone or "UTC";
 
   nixpkgs = {
     buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";

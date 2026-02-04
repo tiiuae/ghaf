@@ -1,5 +1,25 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# NVIDIA Jetson Orin Profile
+#
+# This profile configures Ghaf for NVIDIA Jetson Orin hardware (AGX, NX).
+#
+# VM Configuration on Jetson:
+# ===========================
+# Enabled VMs:
+# - Net VM (netvmBase exported for composition)
+# - Admin VM (enabled but uses legacy extraModules, no adminvmBase yet)
+#
+# Disabled VMs (architectural reasons):
+# - GUI VM: GPU passthrough not supported, desktop runs natively on host (COSMIC)
+# - Audio VM: Audio hardware directly accessible from host
+# - IDS VM: Resource constraints on embedded platform
+# - App VMs: No GUI VM means no Waypipe, apps run on host or via Docker
+#
+# Only netvmBase is exported because Net VM has hardware-specific composition needs.
+# Admin VM could be migrated to composition model in future if needed.
+#
 {
   config,
   lib,

@@ -423,19 +423,22 @@ rec {
   # and extends it with additional modules for profile-specific functionality.
   #
   # Usage:
+  #   # In a profile module (e.g., laptop-x86.nix):
   #   let
-  #     guivmBase = lib.ghaf.mkGuiVmBase { inherit lib inputs system; };
+  #     guivmBase = lib.nixosSystem {
+  #       modules = [ inputs.self.nixosModules.guivm-base ... ];
+  #       specialArgs = lib.ghaf.mkVmSpecialArgs { ... };
+  #     };
   #     extendedGuivm = lib.ghaf.mkExtendedVm {
   #       vmBase = guivmBase;
-  #       extraModules = [
-  #         ../services
-  #         ../programs
-  #       ];
+  #       extraModules = [ ../services ../programs ];
   #       globalConfig = config.ghaf.global-config;
   #       hostConfig = lib.ghaf.mkVmHostConfig { inherit config; vmName = "gui-vm"; };
   #     };
   #   in
   #   ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedGuivm;
+  #
+  # See modules/profiles/laptop-x86.nix for the canonical pattern.
   #
   mkExtendedVm =
     {
