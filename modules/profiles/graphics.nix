@@ -34,7 +34,7 @@ in
 
           Disabling this option is the same as setting all idle timeouts to '0'.
 
-          If 'config.ghaf.services.power-manager.allowSuspend' is false, suspension will not occur
+          If 'config.ghaf.services.power-manager.suspend.enable' is false, suspension will not occur
           regardless of this setting.
         '';
       };

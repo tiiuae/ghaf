@@ -78,7 +78,7 @@ in
           If disabled, the default timeouts will be set to 'Never'.
           However, users can still manually configure the settings via COSMIC Settings to override this behavior.
 
-          If 'config.ghaf.services.power-manager.allowSuspend' is false, suspension will not occur
+          If 'config.ghaf.services.power-manager.suspend.enable' is false, suspension will not occur
           regardless of this setting.
         '';
       };
