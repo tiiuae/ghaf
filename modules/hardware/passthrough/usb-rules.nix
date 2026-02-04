@@ -64,24 +64,31 @@ let
 
   defaultAudiovmUsbRules = [
     {
-      description = "USB Devices for AudioVM";
+      description = "Audio Devices for AudioVM";
       targetVm = "audio-vm";
       allow = [
         {
           interfaceClass = 1;
           description = "Audio";
         }
-        {
-          interfaceClass = 224;
-          interfaceSubclass = 1;
-          interfaceProtocol = 1;
-          description = "Bluetooth";
-        }
       ];
       deny = [
         {
           interfaceClass = 14;
           description = "Video (USB Webcams)";
+        }
+      ];
+    }
+    {
+      description = "Bluetooth Devices for AudioVM";
+      targetVm = "audio-vm";
+      tag = "bt";
+      allow = [
+        {
+          interfaceClass = 224;
+          interfaceSubclass = 1;
+          interfaceProtocol = 1;
+          description = "Bluetooth";
         }
       ];
     }

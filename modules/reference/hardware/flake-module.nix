@@ -34,6 +34,30 @@
       }
     ];
 
+    hardware-intel-laptop.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix; }
+      {
+        ghaf.hardware = {
+          passthrough = {
+            pci.autoDetectGpu = true;
+            pci.autoDetectNet = true;
+            pci.autoDetectAudio = true;
+            pciAcsOverride = {
+              enable = true;
+              ids = [
+                "8086:15fb" # Intel Corporation Ethernet Connection (13) I219-LM (dell-latitude-7330)
+                "8086:550a" # Intel Corporation Ethernet Connection (18) I219-LM (system76-darp11-b)
+              ];
+            };
+          };
+          definition.guivm.extraModules = [
+            (import ./intel-laptop/extra-config.nix)
+          ];
+        };
+      }
+    ];
+
     hardware-lenovo-t14-amd-gen5.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       { ghaf.hardware.definition = import ./lenovo-t14-amd/definitions/gen-5.nix; }
@@ -56,20 +80,6 @@
             (import ./tower-5080/extra-config.nix)
           ];
           passthrough.pci.autoDetectNet = true;
-        };
-      }
-    ];
-
-    hardware-intel-laptop.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware = {
-          definition = import ./intel-laptop/intel-laptop.nix;
-          passthrough.pci = {
-            autoDetectGpu = true;
-            autoDetectNet = true;
-            autoDetectAudio = true;
-          };
         };
       }
     ];
