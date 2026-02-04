@@ -48,10 +48,19 @@
     hardware-intel-laptop.imports = [
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
-        ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix;
-        ghaf.hardware.passthrough.pci.autoDetectGpu = true;
-        ghaf.hardware.passthrough.pci.autoDetectNet = true;
-        ghaf.hardware.passthrough.pci.autoDetectAudio = true;
+        ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix; # Keep this on top so keep-sorted correctly orders everything
+        ghaf.hardware.passthrough = {
+          pci.autoDetectGpu = true;
+          pci.autoDetectNet = true;
+          pci.autoDetectAudio = true;
+          pciAcsOverride = {
+            enable = true;
+            ids = [
+              "8086:15fb" # Intel Corporation Ethernet Connection (13) I219-LM (dell-latitude-7330)
+              "8086:550a" # Intel Corporation Ethernet Connection (18) I219-LM (system76-darp11-b)
+            ];
+          };
+        };
       }
     ];
 
