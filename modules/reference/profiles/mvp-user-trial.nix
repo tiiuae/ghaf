@@ -99,12 +99,8 @@ in
       profiles = {
         laptop-x86 = {
           enable = true;
-          netvmExtraModules = [
-            ../services
-            ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
           # guivmExtraModules removed - now using evaluatedConfig below
+          # netvmExtraModules removed - now using evaluatedConfig below
         };
       };
 
@@ -143,11 +139,17 @@ in
             modules = config.ghaf.hardware.definition.audiovm.extraModules or [ ];
           };
 
-      # Net VM: Use laptop base with hardware definition extraModules
+      # Net VM: Use laptop base with reference services and hardware definition extraModules
       virtualization.microvm.netvm.evaluatedConfig =
         config.ghaf.profiles.laptop-x86.netvmBase.extendModules
           {
-            modules = config.ghaf.hardware.definition.netvm.extraModules or [ ];
+            modules = [
+              # Reference services and personalization
+              ../services
+              ../personalize
+              { ghaf.reference.personalize.keys.enable = true; }
+            ]
+            ++ (config.ghaf.hardware.definition.netvm.extraModules or [ ]);
           };
 
       # Enable logging

@@ -18,8 +18,8 @@ in
 
     # Common Wifi Service set
 
-    # Passthrough devices
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    # Passthrough devices - use hardware.definition for composition model
+    ghaf.hardware.definition.netvm.extraModules = [
       {
         ghaf.services.wifi.enable = true;
         # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's

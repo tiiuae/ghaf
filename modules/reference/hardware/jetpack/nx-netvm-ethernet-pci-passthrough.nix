@@ -34,7 +34,8 @@ in
       echo "PCI device ${ethPciDevice} is present."'
     '';
 
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    # Passthrough devices - use hardware.definition for composition model
+    ghaf.hardware.definition.netvm.extraModules = [
       {
         microvm.devices = [
           {

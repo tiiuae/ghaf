@@ -4,26 +4,58 @@
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
   cfg = config.ghaf.profiles.orin;
+  hostGlobalConfig = config.ghaf.global-config;
 in
 {
   options.ghaf.profiles.orin = {
     enable = lib.mkEnableOption "Enable the basic nvidia orin config";
 
-    netvmExtraModules = lib.mkOption {
+    # Net VM base configuration for profiles to extend
+    netvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
       description = ''
-        List of additional modules to be passed to the netvm.
+        Orin Net VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
       '';
-      default = [ ];
     };
-
   };
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      # Export Net VM base for profiles to extend
+      profiles.orin.netvmBase = lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.netvm-base
+          # Import nixpkgs config module to get overlays
+          {
+            nixpkgs.overlays = config.nixpkgs.overlays;
+            nixpkgs.config = config.nixpkgs.config;
+          }
+        ];
+        specialArgs = lib.ghaf.mkVmSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig =
+            lib.ghaf.mkVmHostConfig {
+              inherit config;
+              vmName = "net-vm";
+            }
+            // {
+              # Net-specific hostConfig fields
+              netvm = {
+                wifi = config.ghaf.virtualization.microvm.netvm.wifi or false;
+              };
+            };
+        };
+      };
       profiles.graphics = {
         enable = true;
         # Explicitly enable auto-login for Orins
@@ -86,7 +118,10 @@ in
           netvm = {
             enable = true;
             wifi = false;
-            extraModules = cfg.netvmExtraModules;
+            # Use evaluatedConfig pattern - extend netvmBase with hardware-specific modules
+            evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
+              modules = config.ghaf.hardware.definition.netvm.extraModules or [ ];
+            };
           };
 
           adminvm = {

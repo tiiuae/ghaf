@@ -14,13 +14,6 @@ in
   options.ghaf.profiles.laptop-x86 = {
     enable = lib.mkEnableOption "Enable the basic x86 laptop config";
 
-    netvmExtraModules = lib.mkOption {
-      description = ''
-        List of additional modules to be passed to the netvm.
-      '';
-      default = [ ];
-    };
-
     # GUI VM base configuration for profiles to extend
     guivmBase = lib.mkOption {
       type = lib.types.unspecified;
@@ -225,7 +218,7 @@ in
           netvm = {
             enable = true;
             wifi = true;
-            extraModules = cfg.netvmExtraModules;
+            # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
           };
 
           adminvm = {

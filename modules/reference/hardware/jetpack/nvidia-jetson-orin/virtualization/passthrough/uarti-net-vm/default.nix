@@ -53,7 +53,8 @@ in
     '';
     ghaf.hardware.nvidia.virtualization.enable = true;
 
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    # Passthrough devices - use hardware.definition for composition model
+    ghaf.hardware.definition.netvm.extraModules = [
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console
