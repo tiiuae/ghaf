@@ -39,53 +39,6 @@ let
       # For disko setups, use the luks partition (which contains LVM)
       config.disko.devices.disk.disk1.content.partitions.luks.device;
 
-  # Script to extend persist partition after encryption
-
-  # Script to check if device is LUKS before attempting unlock
-  cryptsetupPreCheckScript = pkgs.writeShellApplication {
-    name = "cryptsetup-pre-check";
-    runtimeInputs = [
-      pkgs.cryptsetup
-      pkgs.systemd
-      pkgs.util-linux
-    ];
-    text = ''
-      DEVICE="${lvmPartition}"
-
-      echo "Checking device $DEVICE for LUKS header..." > /dev/console
-
-      # Wait for device to appear
-      for i in {1..60}; do
-        if [ -e "$DEVICE" ]; then
-          echo "Device found at iteration $i." > /dev/console
-          break
-        fi
-        sleep 1
-      done
-
-      # Ensure udev has processed the device
-      udevadm settle || true
-
-      # Check if the device is actually a LUKS device
-      # Retry a few times in case of transient read errors
-      for i in {1..5}; do
-        if cryptsetup isLuks "$DEVICE"; then
-          echo "Device $DEVICE is encrypted, allowing cryptsetup to proceed" > /dev/console
-          # Create marker file to satisfy ConditionPathExists
-          mkdir -p /run
-          touch /run/cryptsetup-pre-checked
-          exit 0
-        fi
-        echo "isLuks check failed at iteration $i, retrying..." > /dev/console
-        sleep 1
-      done
-
-      echo "Device $DEVICE is not encrypted (or header not readable)." > /dev/console
-      echo "Skipping LUKS unlock, will use plain LVM" > /dev/console
-      # Do NOT create marker file, so systemd-cryptsetup@crypted.service won't start
-    '';
-  };
-
   firstBootEncryptScript = pkgs.writeShellApplication {
     name = "first-boot-encrypt";
     runtimeInputs = [
@@ -100,9 +53,13 @@ let
       pkgs.gnugrep
       pkgs.gawk
       pkgs.kmod
+      pkgs.pcsclite.lib
     ];
     text = ''
       LVM_PV="${lvmPartition}"
+      # TODO: Need to assess the necessity of wiping the slot, as the
+      # resize-partitions service currently relies on the password slot.
+      WIPE_PASSWORD_SLOT=false
 
       # Wait for device to appear
       echo "Waiting for device $LVM_PV..."
@@ -117,28 +74,15 @@ let
       # Check if device is already LUKS (state indicator)
       if cryptsetup isLuks "$LVM_PV"; then
         echo "Device already encrypted."
-
         if [ -e "/dev/mapper/crypted" ]; then
            echo "Device is unlocked. Skipping..."
            exit 0
         fi
-
         echo "Device is encrypted but NOT unlocked. Attempting recovery..."
 
-        # Ensure marker exists
+       # Ensure marker exists
         mkdir -p /run
         touch /run/cryptsetup-pre-checked
-
-        ${
-          if config.ghaf.profiles.debug.enable then
-            ''
-              # Debug mode: Try to unlock with empty password explicitly
-              echo "Debug mode: Attempting explicit unlock..."
-              printf '\n' | cryptsetup open "$LVM_PV" crypted --key-file=- || true
-            ''
-          else
-            ""
-        }
 
         # Try to start the service
         echo "Starting systemd-cryptsetup@crypted..."
@@ -152,7 +96,6 @@ let
           fi
           sleep 1
         done
-
         echo "Failed to unlock device automatically."
         exit 1
       fi
@@ -206,9 +149,10 @@ let
       ${
         if config.ghaf.profiles.debug.enable then
           ''
-            # Debug mode: automatic encryption with empty password
+            # Debug mode: automatic encryption with default password as
+            # systemd-cryptenroll cannot work with empty password
             echo "! Debug mode: Applying encryption automatically..."
-            PASSPHRASE=""
+            PASSPHRASE="ghaf"
           ''
         else
           ''
@@ -345,7 +289,7 @@ let
       #   --resilience journal: Use journal for crash safety
       #   --pbkdf argon2id: Use memory-hard KDF (secure against GPU attacks)
       # Note: For empty passphrase (debug mode), we use printf to ensure a newline is sent
-      printf '%s\n' "$PASSPHRASE" | cryptsetup reencrypt \
+      printf '%s' "$PASSPHRASE" | cryptsetup reencrypt \
         --encrypt \
         --type luks2 \
         --reduce-device-size 32M \
@@ -366,7 +310,7 @@ let
 
       # Open the newly encrypted device
       echo "! Opening encrypted device..."
-      printf '%s\n' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
+      printf '%s' "$PASSPHRASE" | cryptsetup open "$LVM_PV" crypted --key-file=- || {
         echo "! Failed to open encrypted device!"
         exit 1
       }
@@ -411,10 +355,12 @@ let
                     }
 
                   # Remove the password slot only if TPM enrollment succeeded
-                  echo "!  Removing password slot..."
-                  systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
+                  if [ "$WIPE_PASSWORD_SLOT" = true ]; then
+                    echo "!  Removing password slot..."
+                    systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
                     echo "!  Could not remove password slot, it will remain available"
-                  }
+                   }
+                   fi
 
                   echo "! TPM enrollment complete!"
                 else
@@ -432,7 +378,15 @@ let
             echo ""
             echo "! Enrolling FIDO2 device for unlock..."
 
-            if [ -e /dev/hidraw0 ]; then
+            if systemd-cryptenroll --fido2-device=list 2>/dev/null | grep -q '/dev'; then
+
+               if systemctl is-active --quiet plymouth-start.service; then
+                 plymouth quit || true
+                 systemctl stop plymouth-quit-wait.service || true
+                 sleep 2
+                 echo 'Please confirm presence on security token'
+               fi
+
               if PASSWORD="$PASSPHRASE" systemd-cryptenroll \
                 --fido2-device=auto \
                 --fido2-with-user-presence=yes \
@@ -448,10 +402,12 @@ let
                   }
 
                 # Remove the password slot only if FIDO2 enrollment succeeded
-                echo "!  Removing password slot..."
-                systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
-                  echo "!  Could not remove password slot, it will remain available"
+                if [ "$WIPE_PASSWORD_SLOT" = true ]; then
+                  echo "!  Removing password slot..."
+                  systemd-cryptenroll --wipe-slot=password "$LVM_PV" || {
+                    echo "!  Could not remove password slot, it will remain available"
                 }
+                fi
 
                 echo "! FIDO2 enrollment complete!"
               else
@@ -490,11 +446,6 @@ let
       else
         echo "!  WARNING: Failed to load ext4 module"
       fi
-
-      echo "!  Available filesystems after loading:"
-      cat /proc/filesystems | grep -E "btrfs|ext4" || echo "    (none found)"
-      echo "!  Loaded kernel modules:"
-      lsmod | grep -E "btrfs|ext4" || echo "    (none found)"
 
       # Wait for device to be ready
       echo "! Waiting for persist volume..."
@@ -659,8 +610,8 @@ in
           pkgs.btrfs-progs
           pkgs.e2fsprogs
           pkgs.kmod
+          pkgs.pcsclite.lib
           firstBootEncryptScript
-          cryptsetupPreCheckScript
         ];
 
         services = {
@@ -753,25 +704,6 @@ in
             };
           };
 
-          # Service to check if device is LUKS and create marker file
-          # This runs before systemd-cryptsetup@crypted.service due to the ConditionPathExists
-          cryptsetup-pre-check = {
-            description = "Check if device is LUKS before cryptsetup";
-            unitConfig.DefaultDependencies = false;
-
-            before = [
-              "cryptsetup-pre.target"
-              "systemd-cryptsetup@crypted.service"
-            ];
-            wantedBy = [ "cryptsetup-pre.target" ];
-            after = [ "${utils.escapeSystemdPath lvmPartition}.device" ];
-
-            serviceConfig = {
-              Type = "oneshot";
-              RemainAfterExit = true;
-              ExecStart = "${lib.getExe cryptsetupPreCheckScript}";
-            };
-          };
         };
       };
 
