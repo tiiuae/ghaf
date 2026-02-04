@@ -67,7 +67,7 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        services.power-manager.allowSuspend = false;
+        services.power-manager.suspend.enable = false;
       };
     })
 
@@ -117,7 +117,6 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        profiles.graphics.idleManagement.enable = false;
         services.performance.host.thermalLimitMode = "enabled";
       };
     })
@@ -338,7 +337,6 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
-        profiles.graphics.idleManagement.enable = false;
       };
     })
 
