@@ -89,7 +89,12 @@ in
       graphics.enable = true;
     };
 
+    # User accounts - from hostConfig
+    # Full user configuration including profile, admin, and managed users
     users = {
+      profile = hostConfig.users.profile or { };
+      admin = hostConfig.users.admin or { };
+      managed = hostConfig.users.managed or [ ];
       adUsers = {
         enable = hostConfig.users.profile.ad-users.enable or false;
       };
@@ -98,6 +103,9 @@ in
         fidoAuth = true;
       };
     };
+
+    # Security - from globalConfig
+    security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
 
     development = {
       ssh.daemon.enable = lib.mkDefault (globalConfig.development.ssh.daemon.enable or false);
@@ -179,6 +187,15 @@ in
 
     # Services
     services = {
+      # Firmware - always enabled for GUI VM (hardware passthrough needs it)
+      firmware.enable = true;
+
+      # Feature services - enabled by default for GUI VM
+      # These can be overridden via vmConfig.guivm.extraModules if needed
+      fprint.enable = lib.mkDefault true;
+      yubikey.enable = lib.mkDefault true;
+      brightness.enable = lib.mkDefault true;
+
       user-provisioning.enable = true;
       audio = {
         enable = true;
