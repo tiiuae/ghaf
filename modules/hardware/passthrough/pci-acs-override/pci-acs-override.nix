@@ -7,7 +7,6 @@
 }:
 let
   cfg = config.ghaf.hardware.passthrough.pciAcsOverride;
-  hwDef = config.ghaf.hardware.definition;
   inherit (lib)
     mkEnableOption
     mkOption
@@ -17,15 +16,6 @@ let
 
   # Convert device IDs to kernel parameter format (id:VENDOR:DEVICE)
   idOptions = map (id: "id:${id}") cfg.ids;
-
-  # Get all known PCI device IDs from all *.pciDevices in hardware definition
-  allPciDevices = hwDef.network.pciDevices ++ hwDef.gpu.pciDevices ++ hwDef.audio.pciDevices;
-  devicePciIds = map (dev: "${dev.vendorId}:${dev.productId}") (
-    builtins.filter (dev: dev.vendorId != null && dev.productId != null) allPciDevices
-  );
-
-  # Check which IDs are not in the hardware definition
-  unmatchedIds = builtins.filter (id: !(builtins.elem id devicePciIds)) cfg.ids;
 in
 {
   _file = ./pci-acs-override.nix;
@@ -55,14 +45,6 @@ in
       {
         assertion = cfg.ids != [ ];
         message = "pciAcsOverride: 'ids' cannot be empty when enabled.";
-      }
-      {
-        assertion = unmatchedIds == [ ];
-        message = ''
-          pciAcsOverride: IDs must match devices in hardware definition (*.pciDevices).
-          Unmatched IDs: ${lib.concatStringsSep ", " unmatchedIds}
-          Device PCI IDs: ${lib.concatStringsSep ", " devicePciIds}
-        '';
       }
     ];
 

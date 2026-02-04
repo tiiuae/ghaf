@@ -32,12 +32,22 @@
   # Network devices for passthrough to netvm detected dynamically in vhotplug
   # This is left here because google-chromecast service depends on the static network interface name
   # TODO: refactor google-chromecast service to avoid using staticly defined network interface name
-  network.pciDevices = [
-    {
-      name = "wlp0s5f0";
-      path = "";
-    }
-  ];
+  network = {
+    pciDevices = [
+      {
+        name = "wlp0s5f0";
+        path = "";
+      }
+    ];
+    kernelConfig = {
+      stage1.kernelModules = [ ];
+      stage2.kernelModules = [
+        "iwlwifi"
+        "e1000e"
+      ];
+      kernelParams = [ ];
+    };
+  };
 
   # GPU devices for passthrough to guivm detected dynamically in vhotplug
   gpu = {

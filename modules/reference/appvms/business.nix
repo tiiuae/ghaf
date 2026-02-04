@@ -141,6 +141,7 @@ in
         {
           description = "Internal Webcams for BusinessVM";
           targetVm = "business-vm";
+          tag = "cam";
           allow = config.ghaf.reference.passthrough.usb.internalWebcams;
         }
       ];

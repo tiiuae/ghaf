@@ -39,7 +39,6 @@ let
         description = "Auto-detected PCI Devices for GUIVM";
         targetVm = "gui-vm";
         skipOnSuspend = true;
-        pciIommuAddAll = true;
         allow = [
           {
             deviceClass = 3;
@@ -54,6 +53,7 @@ let
       {
         description = "Static PCI Devices for NetVM";
         targetVm = "net-vm";
+        tag = "net";
         allow = map (d: {
           address = d.path;
           deviceId = d.productId;
@@ -67,7 +67,7 @@ let
       {
         description = "Auto-detected PCI Devices for NetVM";
         targetVm = "net-vm";
-        pciIommuSkipIfShared = true;
+        tag = "net";
         allow = [
           {
             deviceClass = 2;
@@ -82,6 +82,7 @@ let
       {
         description = "PCI Devices for AudioVM";
         targetVm = "audio-vm";
+        tag = "audio";
         allow = map (d: {
           address = d.path;
           deviceId = d.productId;
@@ -94,6 +95,7 @@ let
         description = "Auto-detected Devices for AudioVM";
         targetVm = "audio-vm";
         pciIommuAddAll = true;
+        tag = "audio";
         allow = [
           {
             deviceClass = 4;
@@ -121,7 +123,7 @@ let
   busPrefix = config.ghaf.hardware.passthrough.pciPorts.pcieBusPrefix;
   hwDetectModule = vm: [
     {
-      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix}";
+      microvm.extraArgsScript = "${lib.getExe' pkgs.vhotplug "vhotplugcli"} vmm args --vm ${vm} --qemu-bus-prefix ${busPrefix} --qemu-bus-start-index 1";
     }
   ];
 
