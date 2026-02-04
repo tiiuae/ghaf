@@ -117,8 +117,11 @@ in
               # Feature modules (auto-include based on feature flags)
               inputs.self.nixosModules.guivm-desktop-features
             ]
-            # Hardware-specific modules from hardware definition
-            ++ config.ghaf.hardware.definition.guivm.extraModules;
+            # Apply vmConfig (resource allocation + hardware + profile modules)
+            ++ lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "guivm";
+            };
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
@@ -132,14 +135,17 @@ in
       # Admin VM: Use laptop base directly (no customization needed for MVP)
       virtualization.microvm.adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
 
-      # Audio VM: Use laptop base with hardware definition extraModules
+      # Audio VM: Use laptop base with vmConfig
       virtualization.microvm.audiovm.evaluatedConfig =
         config.ghaf.profiles.laptop-x86.audiovmBase.extendModules
           {
-            modules = config.ghaf.hardware.definition.audiovm.extraModules or [ ];
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "audiovm";
+            };
           };
 
-      # Net VM: Use laptop base with reference services and hardware definition extraModules
+      # Net VM: Use laptop base with reference services and vmConfig
       virtualization.microvm.netvm.evaluatedConfig =
         config.ghaf.profiles.laptop-x86.netvmBase.extendModules
           {
@@ -149,7 +155,10 @@ in
               ../personalize
               { ghaf.reference.personalize.keys.enable = true; }
             ]
-            ++ (config.ghaf.hardware.definition.netvm.extraModules or [ ]);
+            ++ lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "netvm";
+            };
           };
 
       # Enable logging

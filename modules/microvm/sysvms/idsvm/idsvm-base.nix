@@ -83,6 +83,9 @@ in
   microvm = {
     hypervisor = "qemu";
     optimize.enable = true;
+    # Sensible defaults - can be overridden via vmConfig
+    vcpu = lib.mkDefault 2;
+    mem = lib.mkDefault 512;
 
     # Shared store (when not using storeOnDisk)
     shares = lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [

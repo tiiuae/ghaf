@@ -355,34 +355,21 @@ in
       # GUI VM hardware-specific configuration
       # These options allow hardware modules to specify VM-level configs
       # that profiles include via extendModules
+      #
+      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.guivm
       guivm = {
-        mem = mkOption {
-          description = ''
-            Override GUI VM memory allocation in MB.
-            If null, the default from guivm-base.nix is used (12288 MB).
-          '';
-          type = types.nullOr types.int;
-          default = null;
-          example = 8192;
-        };
-        vcpu = mkOption {
-          description = ''
-            Override GUI VM vCPU count.
-            If null, the default from guivm-base.nix is used (6 vCPUs).
-          '';
-          type = types.nullOr types.int;
-          default = null;
-          example = 4;
-        };
         extraModules = mkOption {
           description = ''
             Hardware-specific NixOS modules for GUI VM configuration.
             These modules are included in the profile's extendModules call.
 
-            Use this for hardware-specific configurations like:
+            Use this ONLY for hardware-specific configurations like:
             - GPU passthrough settings (PRIME, OVMF)
             - Hardware-specific QEMU arguments
-            - Device-specific services
+            - Device-specific drivers/services
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.guivm instead.
           '';
           type = types.listOf types.unspecified;
           default = [ ];
@@ -398,34 +385,21 @@ in
       # Audio VM hardware-specific configuration
       # These options allow hardware modules to specify VM-level configs
       # that profiles include via extendModules
+      #
+      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.audiovm
       audiovm = {
-        mem = mkOption {
-          description = ''
-            Override Audio VM memory allocation in MB.
-            If null, the default from audiovm-base.nix is used (384 MB).
-          '';
-          type = types.nullOr types.int;
-          default = null;
-          example = 512;
-        };
-        vcpu = mkOption {
-          description = ''
-            Override Audio VM vCPU count.
-            If null, the default from audiovm-base.nix is used (2 vCPUs).
-          '';
-          type = types.nullOr types.int;
-          default = null;
-          example = 4;
-        };
         extraModules = mkOption {
           description = ''
             Hardware-specific NixOS modules for Audio VM configuration.
             These modules are included in the profile's extendModules call.
 
-            Use this for hardware-specific configurations like:
+            Use this ONLY for hardware-specific configurations like:
             - Audio device passthrough settings
             - Hardware-specific QEMU arguments
             - Hardware detection modules
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.audiovm instead.
           '';
           type = types.listOf types.unspecified;
           default = [ ];
@@ -439,33 +413,20 @@ in
       };
 
       netvm = {
-        mem = mkOption {
-          type = types.int;
-          default = 512;
-          description = "Amount of RAM in MegaBytes for Net VM";
-        };
-        vcpu = mkOption {
-          type = types.int;
-          default = 2;
-          description = "Number of virtual CPU cores allocated for Net VM";
-        };
         extraModules = mkOption {
           description = ''
-            Extra NixOS modules for Net VM configuration.
+            Hardware-specific NixOS modules for Net VM configuration.
 
             This option allows hardware definitions to provide VM-specific
             configuration that will be merged with the base Net VM config.
 
-            Use for hardware-specific settings like:
+            Use this ONLY for hardware-specific settings like:
             - PCIe root ports configuration
             - Network device passthrough
             - Custom kernel parameters
 
-            Example:
-              netvm.extraModules = [
-                { microvm.qemu.pcieRootPorts = 4; }
-                ./net-config.nix
-              ];
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.netvm instead.
           '';
           type = types.listOf types.unspecified;
           default = [ ];

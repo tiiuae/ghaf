@@ -17,6 +17,7 @@ _: {
       ./sysvms/idsvm/idsvm.nix
       ./common/microvm-store-mode.nix
       ./modules.nix
+      ./vm-config.nix
     ];
 
     mem-manager.imports = [

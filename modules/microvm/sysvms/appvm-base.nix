@@ -236,10 +236,11 @@ in
 
   microvm = {
     optimize.enable = false;
-    mem = (vm.ramMb or 4096) * ((vm.balloonRatio or 2) + 1);
+    # Sensible defaults based on vm definition - can be further overridden via vmConfig
+    mem = lib.mkDefault ((vm.ramMb or 4096) * ((vm.balloonRatio or 2) + 1));
     balloon = (vm.balloonRatio or 2) > 0;
     deflateOnOOM = false;
-    vcpu = vm.cores or 4;
+    vcpu = lib.mkDefault (vm.cores or 4);
     hypervisor = "qemu";
 
     shares = [
