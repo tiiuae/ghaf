@@ -221,26 +221,13 @@ in
           serviceModules.performance
           referenceServiceModule
         ];
-      # Audiovm modules
-      audiovm.extraModules =
-        optionals cfg.audiovm.enable [
-          serviceModules.logging
-          serviceModules.givc
-          commonModule
-          managedUserAccounts
-        ]
-        ++ optionals (cfg.audiovm.enable && fullVirtualization) [
-          deviceModules.audio
-          kernelConfigs.audiovm
-          firmwareModule
-          qemuModules.audiovm
-          serviceModules.audit
-          serviceModules.bluetooth
-          serviceModules.xpadneo
-          serviceModules.power
-          serviceModules.performance
-          managedUserAccounts
-        ];
+
+      # Audio VM modules - MIGRATED to audiovm-base.nix and audiovm-features/
+      # Service modules (logging, givc, audit, power, performance) are now in audiovm-base.nix
+      # Hardware modules (devices, kernel, qemu, bluetooth, xpadneo) are now in audiovm-features/
+      # commonModule functionality is now in audiovm-base.nix via hostConfig.common
+      # No extraModules needed.
+
       # Guivm modules
       guivm.extraModules =
         optionals cfg.guivm.enable [

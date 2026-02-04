@@ -82,17 +82,17 @@ in
           microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
         }
       ];
-      ghaf.virtualization.microvm.audiovm.extraModules = [
-        {
-          microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
-        }
-      ];
     }
-    # PCIe root ports config for GUI VM goes via hardware definition (only on x86)
+    # PCIe root ports config for GUI VM and Audio VM goes via hardware definition (only on x86)
     // lib.optionalAttrs hasHardwareDefinition {
       ghaf.hardware.definition.guivm.extraModules = [
         {
           microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
+        }
+      ];
+      ghaf.hardware.definition.audiovm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
         }
       ];
     }

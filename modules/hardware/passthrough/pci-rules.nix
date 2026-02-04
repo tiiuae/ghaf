@@ -179,18 +179,20 @@ in
         ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
         ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
 
+      # ACPI rules are host-side vhotplug config (not VM extraModules)
+      # They pass the NHLT ACPI table needed for microphone arrays
       ghaf.hardware.passthrough.vhotplug.acpiRules = optionals cfg.autoDetectAudio audiovmAcpiRules;
 
       ghaf.virtualization.microvm.netvm.extraModules = optionals cfg.autoDetectNet (
         hwDetectModule "net-vm"
       );
-      ghaf.virtualization.microvm.audiovm.extraModules = optionals cfg.autoDetectAudio (
-        hwDetectModule "audio-vm"
-      );
     }
-    # Auto-detected GPU config goes via hardware definition (only available on x86 with hardware definition)
+    # Auto-detected config goes via hardware definition (only available on x86 with hardware definition)
     // lib.optionalAttrs hasHardwareDefinition {
       ghaf.hardware.definition.guivm.extraModules = optionals cfg.autoDetectGpu (hwDetectModule "gui-vm");
+      ghaf.hardware.definition.audiovm.extraModules = optionals cfg.autoDetectAudio (
+        hwDetectModule "audio-vm"
+      );
     }
   );
 }

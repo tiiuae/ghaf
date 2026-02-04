@@ -190,10 +190,24 @@ in
   options.ghaf.virtualization.microvm.audiovm = {
     enable = lib.mkEnableOption "AudioVM";
 
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+      description = ''
+        Pre-evaluated NixOS configuration for Audio VM.
+        When set (by profiles like mvp-user-trial), uses this instead of building inline.
+        This enables the layered composition pattern with extendModules.
+      '';
+    };
+
     extraModules = lib.mkOption {
       description = ''
         List of additional modules to be imported and evaluated as part of
         AudioVM's NixOS configuration.
+
+        DEPRECATED: This option is deprecated. Use the evaluatedConfig pattern instead:
+          ghaf.virtualization.microvm.audiovm.evaluatedConfig =
+            config.ghaf.profiles.laptop-x86.audiovmBase.extendModules { modules = [...]; };
       '';
       default = [ ];
     };
@@ -207,17 +221,36 @@ in
   config = lib.mkIf cfg.enable {
     ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = !config.ghaf.microvm-boot.enable;
-      inherit (inputs) nixpkgs;
-      specialArgs = lib.ghaf.mkVmSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-      };
+    # Deprecation warning for extraModules
+    warnings = lib.optional (cfg.extraModules != [ ]) ''
+      ghaf.virtualization.microvm.audiovm.extraModules is deprecated.
+      Please migrate to the evaluatedConfig pattern using audiovm-base.nix.
+      See modules/microvm/sysvms/audiovm-base.nix for the new approach.
+    '';
 
-      config = audiovmBaseConfiguration // {
-        imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
-      };
-    };
+    microvm.vms."${vmName}" =
+      if cfg.evaluatedConfig != null then
+        # New path: Use pre-evaluated config from profile
+        # This is the recommended approach for laptop targets
+        {
+          autostart = !config.ghaf.microvm-boot.enable;
+          inherit (inputs) nixpkgs;
+          inherit (cfg) evaluatedConfig;
+        }
+      else
+        # Legacy path: Build config inline
+        # Used by non-laptop targets (Jetson, etc.) that don't have laptop-x86 profile
+        {
+          autostart = !config.ghaf.microvm-boot.enable;
+          inherit (inputs) nixpkgs;
+          specialArgs = lib.ghaf.mkVmSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+          };
+
+          config = audiovmBaseConfiguration // {
+            imports = audiovmBaseConfiguration.imports ++ cfg.extraModules;
+          };
+        };
   };
 }

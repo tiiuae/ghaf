@@ -55,5 +55,16 @@ _: {
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.idsvm-base ]; ... }
     #     .extendModules { modules = [ ... ]; }
     idsvm-base = ./sysvms/idsvm/idsvm-base.nix;
+
+    # Audio VM base module for layered composition
+    # Use with extendModules pattern:
+    #   lib.nixosSystem { modules = [ inputs.self.nixosModules.audiovm-base ]; ... }
+    #     .extendModules { modules = [ ... ]; }
+    audiovm-base = ./sysvms/audiovm-base.nix;
+
+    # Audio VM feature modules (bluetooth, xpadneo, hardware passthrough)
+    # Currently not used - hardware passthrough handled via hardware.definition.audiovm.extraModules
+    # TODO: Revisit in future phase with proper hostConfig structure
+    # audiovm-features = ./audiovm-features;
   };
 }
