@@ -54,12 +54,7 @@ in
     mkAppVm = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
-      description = ''
-        Function to create App VM configurations.
-        Takes a vmDef attribute set and returns a NixOS configuration.
-        The result can be extended with:
-          (mkAppVm vmDef).extendModules { modules = [ ... ]; }
-      '';
+      description = "Function to create App VM configurations from a vmDef attribute set.";
     };
   };
 

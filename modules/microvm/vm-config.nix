@@ -112,16 +112,7 @@ in
     guivm = mkOption {
       type = systemVmConfigType;
       default = { };
-      description = ''
-        GUI VM resource allocation and profile configuration.
-
-        Example:
-          ghaf.virtualization.vmConfig.guivm = {
-            mem = 8192;
-            vcpu = 6;
-            extraModules = [ ./my-apps.nix ];
-          };
-      '';
+      description = "GUI VM resource allocation and profile configuration.";
     };
 
     netvm = mkOption {

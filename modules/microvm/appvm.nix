@@ -95,9 +95,7 @@ in
     enable = lib.mkEnableOption "appvm";
 
     vms = mkOption {
-      description = ''
-        App VM configurations. Each VM must have evaluatedConfig set via mkAppVm.
-      '';
+      description = "App VM configurations. Each VM must have evaluatedConfig set via mkAppVm.";
       type = types.attrsOf (
         types.submodule {
           options = {
@@ -105,18 +103,7 @@ in
 
             evaluatedConfig = lib.mkOption {
               type = lib.types.unspecified;
-              description = ''
-                Pre-evaluated NixOS configuration for this App VM.
-                Use mkAppVm from a profile to create this configuration.
-
-                Example:
-                  evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
-                    name = "chromium";
-                    ramMb = 6144;
-                    cores = 4;
-                    applications = [ ... ];
-                  };
-              '';
+              description = "Pre-evaluated NixOS configuration from mkAppVm profile function.";
             };
 
             # Host-side configuration options

@@ -1,0 +1,403 @@
+---
+title: "Migration Guide"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Migration Guide
+
+This guide helps migrate code from legacy Ghaf patterns to the modern composition-based architecture.
+
+## Overview of Changes
+
+The Ghaf architecture has been significantly refactored to improve composability and maintainability:
+
+| Aspect | Legacy Pattern | Modern Pattern |
+|--------|---------------|----------------|
+| Host-VM communication | `configHost = config;` | `globalConfig` + `hostConfig` via specialArgs |
+| VM customization | `extraModules` option | `extendModules` on VM bases |
+| Settings propagation | Manual threading | `specialArgs` injection |
+| Feature assignment | Hardcoded in VMs | `globalConfig.features` with targetVms |
+| Profile selection | Debug flag checks | `lib.ghaf.profiles.*` |
+
+## Migration Path
+
+### Step 1: Update Module Arguments
+
+**Legacy:**
+```nix
+{ configHost }:
+let
+  cfg = configHost.ghaf.virtualization.microvm.guivm;
+in
+{
+  config = {
+    ghaf.profiles.debug.enable = configHost.ghaf.profiles.debug.enable;
+  };
+}
+```
+
+**Modern:**
+```nix
+{ config, lib, globalConfig, hostConfig, ... }:
+{
+  _file = ./my-module.nix;
+
+  config = {
+    ghaf.profiles.debug.enable = globalConfig.debug.enable;
+    networking.hostName = hostConfig.vmName;
+  };
+}
+```
+
+### Step 2: Update VM Base Modules
+
+**Legacy:**
+```nix
+# Inline in guivm.nix
+guivmBaseConfiguration = {
+  imports = [ ... ];
+  config = {
+    ghaf.profiles.debug.enable = configHost.ghaf.profiles.debug.enable;
+    networking.hostName = "gui-vm";
+    # ... hundreds of lines of config
+  };
+};
+
+microvm.vms.gui-vm.config = guivmBaseConfiguration // {
+  imports = guivmBaseConfiguration.imports ++ cfg.extraModules;
+};
+```
+
+**Modern:**
+```nix
+# In guivm-base.nix (separate file)
+{ globalConfig, hostConfig, ... }:
+{
+  _file = ./guivm-base.nix;
+
+  ghaf.profiles.debug.enable = globalConfig.debug.enable;
+  networking.hostName = hostConfig.vmName;
+  # ... config with specialArgs access
+}
+
+# In profile (laptop-x86.nix)
+guivmBase = lib.evalModules {
+  specialArgs = lib.ghaf.vm.mkSpecialArgs globalConfig hostConfigGuivm lib;
+  modules = [ guivm-base hardwareExtras ];
+};
+
+# In guivm.nix
+config = lib.mkIf cfg.enable {
+  microvm.vms.gui-vm.config = lib.ghaf.vm.getConfig config "guivm";
+};
+```
+
+### Step 3: Update extraModules Usage
+
+**Legacy:**
+```nix
+# In modules.nix
+ghaf.virtualization.microvm.guivm.extraModules = [
+  firmwareModule
+  servicesModule
+  desktopModule
+];
+
+# In target
+ghaf.virtualization.microvm.guivm.extraModules = lib.mkAfter [
+  myCustomModule
+];
+```
+
+**Modern:**
+```nix
+# In profile - compose base with hardware modules
+guivmBase = lib.evalModules {
+  specialArgs = ...;
+  modules = [
+    guivm-base
+    hardware.definition.guivm.extraModules
+    # Feature modules auto-included via imports
+  ];
+};
+
+# In target - use extendModules
+let
+  baseVm = config.ghaf.profiles.laptop-x86.guivmBase;
+  extendedVm = baseVm.extendModules {
+    modules = [ myCustomModule ];
+  };
+in
+{
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm.config;
+}
+```
+
+### Step 4: Update Feature Configuration
+
+**Legacy:**
+```nix
+# Hardcoded in guivm-base.nix
+services.fprintd.enable = true;
+
+# Or with option
+services.fprintd.enable = cfg.features.fprint.enable;
+```
+
+**Modern:**
+```nix
+# In global config
+ghaf.global-config.features.fprint = {
+  enable = true;
+  targetVms = [ "gui-vm" ];
+};
+
+# In VM base
+services.fprintd.enable =
+  lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm";
+```
+
+### Step 5: Update Profile Selection
+
+**Legacy:**
+```nix
+# In target
+{ ... }:
+let
+  variant = "debug";
+in
+{
+  # Manual debug/release logic everywhere
+  ghaf.profiles.debug.enable = variant == "debug";
+  ghaf.development.ssh.daemon.enable = variant == "debug";
+  # ... repeated for every option
+}
+```
+
+**Modern:**
+```nix
+# In target
+mkGhafConfiguration {
+  name = "my-target";
+  globalConfigOverrides =
+    if variant == "release"
+    then lib.ghaf.profiles.release
+    else lib.ghaf.profiles.debug;
+}
+
+# Or with customization
+globalConfigOverrides = lib.ghaf.profiles.debug // {
+  features.bluetooth.enable = false;
+};
+```
+
+---
+
+## Common Migration Patterns
+
+### Pattern: Threading Inputs
+
+**Legacy (Anti-pattern):**
+```nix
+# module-a.nix
+{ inputs }:
+{
+  imports = [ (import ./module-b.nix { inherit inputs; }) ];
+}
+
+# module-b.nix
+{ inputs }:
+{
+  config = {
+    something = inputs.self.packages.x86_64-linux.foo;
+  };
+}
+```
+
+**Modern:**
+```nix
+# In evaluation (profile or target)
+lib.evalModules {
+  specialArgs = { inherit inputs lib; };
+  modules = [ ./module-a.nix ./module-b.nix ];
+}
+
+# In module-b.nix
+{ inputs, ... }:  # Available from specialArgs
+{
+  config.something = inputs.self.packages.x86_64-linux.foo;
+}
+```
+
+### Pattern: Accessing Host Config in VM
+
+**Legacy:**
+```nix
+# VM module
+{ configHost }:
+{
+  services.foo.hostAddress = configHost.ghaf.common.extraNetworking.hostAddress;
+  services.foo.debug = configHost.ghaf.profiles.debug.enable;
+}
+```
+
+**Modern:**
+```nix
+# VM module
+{ globalConfig, hostConfig, ... }:
+{
+  services.foo.hostAddress = hostConfig.networking.hostAddress;
+  services.foo.debug = globalConfig.debug.enable;
+}
+```
+
+### Pattern: Conditional VM Features
+
+**Legacy:**
+```nix
+# In modules.nix
+options.ghaf.virtualization.microvm.guivm.features.fprint.enable = ...;
+
+# In guivm.nix
+services.fprintd.enable = cfg.features.fprint.enable;
+
+# In profile
+ghaf.virtualization.microvm.guivm.features.fprint.enable = true;
+```
+
+**Modern:**
+```nix
+# In lib/global-config.nix
+features.fprint = {
+  enable = mkEnableOption "fingerprint" // { default = true; };
+  targetVms = mkOption { default = [ "gui-vm" ]; };
+};
+
+# In guivm-base.nix
+services.fprintd.enable =
+  lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm";
+
+# In target (to customize)
+ghaf.global-config.features.fprint.targetVms = [ "admin-vm" ];
+```
+
+---
+
+## Downstream Project Migration
+
+### Before (Legacy Downstream)
+
+```nix
+# flake.nix
+{
+  outputs = { ghaf, ... }:
+    let
+      laptop-configuration = ghaf.builders.laptop-configuration;
+    in
+    {
+      nixosConfigurations.my-product = laptop-configuration "lenovo-x1" "debug" [
+        ./hardware.nix
+        ({ config, ... }: {
+          # Customize via extraModules option
+          ghaf.virtualization.microvm.guivm.extraModules = [
+            ./my-gui-customizations.nix
+          ];
+        })
+      ];
+    };
+}
+```
+
+### After (Modern Downstream)
+
+```nix
+# flake.nix
+{
+  outputs = { ghaf, ... }:
+    let
+      mkGhafConfiguration = ghaf.lib.ghaf.builders.mkGhafConfiguration;
+    in
+    {
+      nixosConfigurations.my-product-debug = mkGhafConfiguration {
+        name = "my-product";
+        hwDefinition = ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+        profile = ghaf.nixosModules.profiles-laptop-x86;
+        globalConfigOverrides = ghaf.lib.ghaf.profiles.debug;
+        extraModules = [
+          ({ config, ... }:
+          let
+            baseVm = config.ghaf.profiles.laptop-x86.guivmBase;
+            extendedVm = baseVm.extendModules {
+              modules = [ ./my-gui-customizations.nix ];
+            };
+          in
+          {
+            ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm.config;
+          })
+        ];
+      };
+    };
+}
+```
+
+---
+
+## Module Migration Checklist
+
+For each module you're migrating:
+
+- [ ] Add `_file = ./module-name.nix;` as first attribute
+- [ ] Replace `{ configHost }:` with `{ config, lib, globalConfig, hostConfig, ... }:`
+- [ ] Replace `configHost.ghaf.profiles.debug.enable` with `globalConfig.debug.enable`
+- [ ] Replace hardcoded VM names with `hostConfig.vmName`
+- [ ] Replace `configHost.ghaf.common.extraNetworking.*` with `hostConfig.networking.*`
+- [ ] Replace feature checks with `lib.ghaf.features.isEnabledFor`
+- [ ] Remove `{ inputs }:` wrapper if present (use specialArgs instead)
+- [ ] Add proper imports from inputs
+- [ ] Use `lib.mkDefault` for overridable values
+- [ ] Test build with `nix build .#target --dry-run`
+
+---
+
+## Breaking Changes Reference
+
+### Removed Options
+
+| Removed | Replacement |
+|---------|-------------|
+| `ghaf.virtualization.microvm.*.extraModules` | Use `extendModules` on VM base |
+| `modules.nix` feature options | `globalConfig.features.*` |
+| `lib.ghaf.mkVmSpecialArgs` | `lib.ghaf.vm.mkSpecialArgs` |
+| `lib.ghaf.mkVmHostConfig` | `lib.ghaf.vm.mkHostConfig` |
+| `lib.ghaf.getVmConfig` | `lib.ghaf.vm.getConfig` |
+
+### Changed Behavior
+
+| Change | Impact |
+|--------|--------|
+| VMs require `evaluatedConfig` | Must set via profile or extendModules |
+| Features centralized | Move feature config to `globalConfig.features` |
+| Profiles simplified | Use `lib.ghaf.profiles.*` for common presets |
+
+---
+
+## Getting Help
+
+If you encounter issues migrating:
+
+1. Check the [Architecture Documentation](/ghaf/dev/architecture/)
+2. Review [Anti-Patterns](/ghaf/dev/architecture/anti-patterns) for common mistakes
+3. Look at existing modules for examples
+4. Open an issue on GitHub with specific error messages
+
+---
+
+## See Also
+
+- [Downstream Setup](/ghaf/dev/guides/downstream-setup) - New project setup
+- [Writing Modules](/ghaf/dev/guides/writing-modules) - Module conventions
+- [Config Propagation](/ghaf/dev/architecture/config-propagation) - globalConfig/hostConfig
+- [VM Composition](/ghaf/dev/architecture/vm-composition) - extendModules pattern

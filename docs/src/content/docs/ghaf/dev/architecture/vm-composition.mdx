@@ -1,0 +1,454 @@
+---
+title: "VM Composition with extendModules"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# VM Composition with extendModules
+
+This guide explains how Ghaf uses NixOS's `extendModules` pattern for composable, lazy VM configuration. Understanding this pattern is essential for creating new VMs, extending existing ones, or building downstream projects.
+
+## The Problem
+
+In a naive approach, you might try to define VM configurations inline:
+
+```nix
+# DON'T DO THIS - causes evaluation issues
+microvm.vms.gui-vm = {
+  config = {
+    imports = [ ./guivm-config.nix ];
+    # This gets evaluated immediately, causing:
+    # - Circular dependencies if config references host
+    # - All VMs evaluated even if disabled
+    # - No way to extend from downstream
+  };
+};
+```
+
+This approach has several problems:
+
+1. **Eager evaluation**: All VM configs are evaluated even when `enable = false`
+2. **Circular dependencies**: If VM config needs host values, you get infinite recursion
+3. **No composition**: Downstream projects can't extend without copying code
+4. **Tight coupling**: Changes to one VM affect all build times
+
+## The Solution: extendModules
+
+Ghaf uses a three-layer composition pattern:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 1: BASE MODULE                                        │
+│  (modules/microvm/sysvms/*-base.nix)                        │
+│                                                              │
+│  • Core VM functionality                                     │
+│  • Uses globalConfig/hostConfig via specialArgs              │
+│  • Reusable across targets                                   │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ evalModules
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 2: PROFILE BASE                                       │
+│  (modules/profiles/*.nix → *Base options)                   │
+│                                                              │
+│  • Creates evaluated base for each VM type                   │
+│  • Injects specialArgs (globalConfig, hostConfig)           │
+│  • Hardware-family specific (laptop-x86, orin, etc.)        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              │ extendModules
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Layer 3: TARGET CONFIG                                      │
+│  (targets/*/flake-module.nix)                               │
+│                                                              │
+│  • Extends profile base with target specifics               │
+│  • Sets evaluatedConfig for VM module                        │
+│  • Device-specific customizations                            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## How evalModules Works
+
+The `lib.evalModules` function creates a lazily-evaluated module system:
+
+```nix
+lib.evalModules {
+  # Values available to all modules without explicit passing
+  specialArgs = {
+    inherit lib inputs;
+    globalConfig = config.ghaf.global-config;
+    hostConfig = { vmName = "gui-vm"; /* ... */ };
+  };
+
+  # Modules to compose
+  modules = [
+    inputs.self.nixosModules.guivm-base
+    # Additional modules...
+  ];
+}
+```
+
+The result is an attribute set with an `extendModules` function:
+
+```nix
+result = {
+  # The evaluated configuration
+  config = { /* ... */ };
+
+  # Function to create extended version
+  extendModules = { modules ? [], specialArgs ? {}, ... }: /* new result */;
+
+  # Other attributes...
+  options = { /* ... */ };
+}
+```
+
+## How extendModules Works
+
+The `extendModules` function creates a **new** evaluated module set that includes the original modules plus additional ones:
+
+```nix
+# Start with base
+baseConfig = lib.evalModules {
+  specialArgs = { /* ... */ };
+  modules = [ ./base.nix ];
+};
+
+# Extend without modifying original
+extendedConfig = baseConfig.extendModules {
+  modules = [
+    { environment.systemPackages = [ pkgs.vim ]; }
+    ./my-customizations.nix
+  ];
+};
+
+# Can extend again
+furtherExtended = extendedConfig.extendModules {
+  modules = [ ./more-stuff.nix ];
+};
+```
+
+Key properties:
+- **Immutable**: Original is not modified
+- **Lazy**: New config only evaluated when accessed
+- **Composable**: Can chain multiple extensions
+- **Inherits specialArgs**: Extended config has same specialArgs
+
+## Ghaf's Three-Layer Pattern
+
+### Layer 1: Base Module
+
+Base modules define the core VM configuration. They use `globalConfig` and `hostConfig` from specialArgs:
+
+```nix
+# modules/microvm/sysvms/guivm-base.nix
+{
+  config,
+  lib,
+  pkgs,
+  inputs,
+  globalConfig,  # From specialArgs
+  hostConfig,    # From specialArgs
+  ...
+}:
+{
+  _file = ./guivm-base.nix;
+
+  imports = [
+    inputs.self.nixosModules.vm-modules
+    inputs.self.nixosModules.givc
+  ];
+
+  # Use globalConfig for settings that should match host
+  ghaf = {
+    profiles.debug.enable = globalConfig.debug.enable;
+    development.ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
+    logging = {
+      inherit (globalConfig.logging) enable listener;
+      client.enable = globalConfig.logging.enable;
+    };
+  };
+
+  # Use hostConfig for VM-specific settings from host
+  networking.hostName = hostConfig.vmName;
+
+  # VM-specific configuration
+  services.displayManager.enable = true;
+  # ...
+}
+```
+
+### Layer 2: Profile Base
+
+Profiles create evaluated bases for each hardware family:
+
+```nix
+# modules/profiles/laptop-x86.nix
+{ config, lib, inputs, ... }:
+let
+  # Helper to create specialArgs
+  mkSpecialArgs = vmName: lib.ghaf.vm.mkSpecialArgs {
+    inherit lib inputs;
+    globalConfig = config.ghaf.global-config;
+    hostConfig = lib.ghaf.vm.mkHostConfig {
+      inherit config vmName;
+    };
+  };
+in
+{
+  options.ghaf.profiles.laptop-x86 = {
+    # Evaluated base for GUI VM
+    guivmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      default = lib.evalModules {
+        specialArgs = mkSpecialArgs "gui-vm";
+        modules = [
+          inputs.self.nixosModules.guivm-base
+          # Laptop-x86 specific additions
+          { hardware.graphics.enable = true; }
+        ];
+      };
+      description = "Base GUI VM configuration for laptop-x86";
+    };
+
+    # Similar for other VMs...
+    netvmBase = lib.mkOption { /* ... */ };
+    audiovmBase = lib.mkOption { /* ... */ };
+  };
+}
+```
+
+### Layer 3: Target Configuration
+
+Targets extend profile bases with device-specific settings:
+
+```nix
+# targets/laptop/flake-module.nix
+{ config, lib, ... }:
+{
+  # Use the laptop-x86 profile
+  imports = [ inputs.self.nixosModules.profiles-laptop-x86 ];
+
+  # Extend the profile's guivmBase for this specific device
+  ghaf.virtualization.microvm.guivm.evaluatedConfig =
+    config.ghaf.profiles.laptop-x86.guivmBase.extendModules {
+      modules = [
+        # Device-specific GPU configuration
+        { hardware.nvidia.enable = true; }
+
+        # Target-specific packages
+        { environment.systemPackages = [ pkgs.deviceSpecificTool ]; }
+      ];
+    };
+}
+```
+
+## Downstream Usage
+
+Downstream projects can extend at any layer:
+
+### Option 1: Extend Profile Base
+
+```nix
+# my-project/flake.nix
+{
+  inputs.ghaf.url = "github:tiiuae/ghaf";
+
+  outputs = { self, ghaf, ... }: {
+    nixosConfigurations.my-device = ghaf.nixosModules.mkLaptopConfiguration {
+      name = "my-device";
+
+      # Extend from ghaf's laptop profile
+      extraModules = [
+        ({ config, ... }: {
+          # Extend GUI VM with my apps
+          ghaf.virtualization.microvm.guivm.evaluatedConfig =
+            config.ghaf.profiles.laptop-x86.guivmBase.extendModules {
+              modules = [
+                { environment.systemPackages = [ pkgs.myApp ]; }
+              ];
+            };
+        })
+      ];
+    };
+  };
+}
+```
+
+### Option 2: Create Custom Profile
+
+```nix
+# my-project/profiles/my-profile.nix
+{ config, lib, inputs, ... }:
+{
+  imports = [ inputs.ghaf.nixosModules.profiles-laptop-x86 ];
+
+  options.myProject.profiles.custom = {
+    guivmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      default = config.ghaf.profiles.laptop-x86.guivmBase.extendModules {
+        modules = [
+          # My organization's standard GUI VM config
+          ./my-guivm-additions.nix
+        ];
+      };
+    };
+  };
+}
+```
+
+## Why This Pattern?
+
+### Lazy Evaluation
+
+```nix
+# VMs only evaluated when their evaluatedConfig is accessed
+ghaf.virtualization.microvm = {
+  guivm.enable = true;   # evaluatedConfig IS evaluated
+  netvm.enable = false;  # evaluatedConfig is NOT evaluated
+};
+```
+
+### No Circular Dependencies
+
+```nix
+# This works because evaluation is deferred
+guivmBase = lib.evalModules {
+  specialArgs = {
+    # References host config, but evaluated lazily
+    globalConfig = config.ghaf.global-config;
+    hostConfig = lib.ghaf.vm.mkHostConfig { inherit config; vmName = "gui-vm"; };
+  };
+  modules = [ ... ];
+};
+```
+
+### Clean Composition
+
+```nix
+# Downstream extends without copying
+myGuivm = upstreamGuivmBase.extendModules {
+  modules = [ ./my-additions.nix ];
+};
+
+# Original unchanged
+upstreamGuivmBase  # Still the same
+```
+
+### Testability
+
+```nix
+# Test VM config in isolation
+testConfig = lib.evalModules {
+  specialArgs = {
+    globalConfig = lib.ghaf.profiles.debug;
+    hostConfig = { vmName = "test-vm"; /* mock data */ };
+  };
+  modules = [ ./guivm-base.nix ];
+};
+
+# Assert expected values
+assert testConfig.config.ghaf.profiles.debug.enable == true;
+```
+
+## Common Patterns
+
+### Adding Packages to a VM
+
+```nix
+evaluatedConfig = baseConfig.extendModules {
+  modules = [{
+    environment.systemPackages = with pkgs; [
+      vim
+      htop
+      myCustomPackage
+    ];
+  }];
+};
+```
+
+### Enabling a Service
+
+```nix
+evaluatedConfig = baseConfig.extendModules {
+  modules = [{
+    services.myService = {
+      enable = true;
+      port = 8080;
+    };
+  }];
+};
+```
+
+### Overriding a Setting
+
+```nix
+evaluatedConfig = baseConfig.extendModules {
+  modules = [{
+    # Use mkForce to override base module's value
+    networking.firewall.enable = lib.mkForce false;
+  }];
+};
+```
+
+### Conditional Extension
+
+```nix
+evaluatedConfig = baseConfig.extendModules {
+  modules = [
+    # Always include
+    ./common.nix
+  ] ++ lib.optionals config.myProject.enableFeatureX [
+    # Only if feature enabled
+    ./feature-x.nix
+  ];
+};
+```
+
+## Debugging Tips
+
+### View Evaluated Config
+
+```bash
+# In nix repl
+nix repl .#
+:p config.ghaf.virtualization.microvm.guivm.evaluatedConfig.config.environment.systemPackages
+```
+
+### Trace Evaluation
+
+```nix
+evaluatedConfig = let
+  result = baseConfig.extendModules { modules = [ ... ]; };
+in builtins.trace "Evaluating guivm config" result;
+```
+
+### Check Module Sources
+
+```nix
+# The _file attribute shows where config came from
+evaluatedConfig.config._module.args._file
+# Or look at options
+evaluatedConfig.options.services.myService._file
+```
+
+## Summary
+
+The extendModules pattern enables:
+
+1. **Lazy evaluation** - VMs only evaluated when needed
+2. **Clean composition** - Extend without copying
+3. **No circular deps** - Host can safely reference VM config
+4. **Testability** - Evaluate VMs in isolation
+5. **Downstream flexibility** - Projects can extend at any layer
+
+For more details:
+- [Configuration Propagation](/ghaf/dev/architecture/config-propagation) - How globalConfig/hostConfig work
+- [Creating VMs Guide](/ghaf/dev/guides/creating-vms) - Step-by-step VM creation
+- [Downstream Setup Guide](/ghaf/dev/guides/downstream-setup) - Building on top of Ghaf

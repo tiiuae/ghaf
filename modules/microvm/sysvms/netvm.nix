@@ -29,19 +29,7 @@ in
     evaluatedConfig = lib.mkOption {
       type = lib.types.nullOr lib.types.unspecified;
       default = null;
-      description = ''
-        Pre-evaluated NixOS configuration for Net VM.
-
-        This configuration is used directly for the VM. This enables the
-        composition model where profiles can extend a base configuration.
-
-        Example:
-          netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase;
-          # Or with extensions:
-          netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase.extendModules {
-            modules = config.ghaf.hardware.definition.netvm.extraModules;
-          };
-      '';
+      description = "Pre-evaluated NixOS configuration for Net VM set via profile's netvmBase.extendModules.";
     };
 
     extraNetworking = lib.mkOption {

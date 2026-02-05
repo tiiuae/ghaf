@@ -70,21 +70,7 @@ in
     mkAppVm = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
-      description = ''
-        Function to create an App VM configuration.
-        Takes a VM definition and returns a nixosSystem that can be extended.
-
-        Example:
-          mkAppVm {
-            name = "chromium";
-            ramMb = 6144;
-            cores = 4;
-            applications = [ { name = "Chromium"; command = "chromium"; ... } ];
-          }
-
-        The result can be extended with:
-          (mkAppVm vmDef).extendModules { modules = [ ... ]; }
-      '';
+      description = "Function to create App VM configurations from a vmDef attribute set.";
     };
   };
 

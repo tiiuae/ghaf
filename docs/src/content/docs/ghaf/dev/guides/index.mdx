@@ -1,0 +1,62 @@
+---
+title: "Developer Guides"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Developer Guides
+
+Welcome to the Ghaf Framework developer guides. These guides cover common development tasks and best practices.
+
+## Getting Started
+
+| Guide | Description |
+|-------|-------------|
+| [Writing Modules](/ghaf/dev/guides/writing-modules) | How to write NixOS modules for Ghaf |
+| [Creating VMs](/ghaf/dev/guides/creating-vms) | How to create new VM types |
+| [Adding Features](/ghaf/dev/guides/adding-features) | How to add hardware features |
+| [Extending Targets](/ghaf/dev/guides/extending-targets) | How to customize existing targets |
+
+## Downstream Development
+
+| Guide | Description |
+|-------|-------------|
+| [Downstream Setup](/ghaf/dev/guides/downstream-setup) | Setting up a downstream project |
+| [Migration Guide](/ghaf/dev/guides/migration) | Migrating from legacy patterns |
+
+## Quick Links
+
+### For Ghaf Core Developers
+
+If you're contributing to the main Ghaf repository:
+
+1. **[Writing Modules](/ghaf/dev/guides/writing-modules)** - Learn the module conventions
+2. **[Adding Features](/ghaf/dev/guides/adding-features)** - Add new hardware features
+3. **[Creating VMs](/ghaf/dev/guides/creating-vms)** - Create new VM types
+
+### For Downstream Developers
+
+If you're building a product based on Ghaf:
+
+1. **[Downstream Setup](/ghaf/dev/guides/downstream-setup)** - Start here
+2. **[Extending Targets](/ghaf/dev/guides/extending-targets)** - Customize configurations
+3. **[Migration Guide](/ghaf/dev/guides/migration)** - If upgrading from legacy patterns
+
+## Architecture Reference
+
+Before diving into the guides, review the architecture documentation:
+
+- [Architecture Overview](/ghaf/dev/architecture/) - System design
+- [VM Composition](/ghaf/dev/architecture/vm-composition) - How VMs are built
+- [Config Propagation](/ghaf/dev/architecture/config-propagation) - globalConfig/hostConfig
+- [Anti-Patterns](/ghaf/dev/architecture/anti-patterns) - What to avoid
+
+## Library API Reference
+
+When you need specific function documentation:
+
+- [VM Helpers](/ghaf/dev/library/vm-helpers) - `lib.ghaf.vm.*` functions
+- [Features API](/ghaf/dev/library/features-api) - `lib.ghaf.features.*` functions
+- [Profiles API](/ghaf/dev/library/profiles-api) - `lib.ghaf.profiles.*` reference

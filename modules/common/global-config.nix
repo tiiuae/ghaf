@@ -26,23 +26,7 @@
   options.ghaf.global-config = lib.mkOption {
     type = lib.types.globalConfig;
     default = { };
-    description = ''
-      Global configuration options that propagate to all VMs.
-
-      These settings represent the "single source of truth" for values that
-      should be consistent across the host and all guest virtual machines.
-
-      The actual propagation to VMs happens via:
-      1. lib.ghaf.mkGlobalConfig creates globalConfig from host config
-      2. Profiles pass globalConfig to VM bases via specialArgs
-      3. VMs read from globalConfig specialArg
-
-      Hardware-specific VM configurations go via hardware definition:
-        ghaf.hardware.definition.guivm.extraModules = [{
-          # Hardware-specific overrides for GUI VM
-          microvm.mem = 8192;
-        }];
-    '';
+    description = "Global configuration options that propagate to all VMs via specialArgs.";
   };
 
   config = {
