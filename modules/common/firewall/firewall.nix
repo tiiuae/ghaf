@@ -365,7 +365,8 @@ in
           iptables -t filter -N ghaf-fw-ban 2> /dev/null || true
 
           # ghaf-fw-blacklist-add rules
-          iptables -t filter -A ghaf-fw-blacklist-add -m limit --limit 10/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
+          # Log only if not already in blacklist
+          iptables -t filter -A ghaf-fw-blacklist-add -m set ! --match-set ${blackListName} src -m limit --limit 100/min -j LOG --log-prefix "Blacklist [add]: " --log-level 4
 
           iptables -t filter -A ghaf-fw-blacklist-add -j SET --add-set ${blackListName} src --exist
 
