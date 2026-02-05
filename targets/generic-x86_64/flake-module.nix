@@ -76,16 +76,11 @@ let
                 ];
                 specialArgs = lib.ghaf.vm.mkSpecialArgs {
                   inherit lib inputs globalConfig;
-                  hostConfig =
-                    lib.ghaf.vm.mkHostConfig {
-                      inherit config;
-                      vmName = "net-vm";
-                    }
-                    // {
-                      netvm = {
-                        wifi = config.ghaf.virtualization.microvm.netvm.wifi or false;
-                      };
-                    };
+                  hostConfig = lib.ghaf.vm.mkHostConfig {
+                    inherit config;
+                    vmName = "net-vm";
+                  };
+                  # Note: netvm.wifi now controlled via globalConfig.features.wifi
                 };
               };
             in

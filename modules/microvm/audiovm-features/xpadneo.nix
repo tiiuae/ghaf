@@ -6,16 +6,17 @@
 # This module configures Xbox controller support (xpadneo) in the Audio VM.
 # Currently disabled by default but available for future use.
 #
-# Auto-enables when: hostConfig.audiovm.audio == true
+# Auto-enables when: globalConfig.features.audio enabled for this VM
 #
 {
   lib,
-  hostConfig,
+  globalConfig,
   ...
 }:
 let
-  # Check if audio hardware passthrough is enabled
-  audioEnabled = hostConfig.audiovm.audio or false;
+  vmName = "audio-vm";
+  # Check if audio feature is enabled for this VM
+  audioEnabled = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
 in
 {
   _file = ./xpadneo.nix;

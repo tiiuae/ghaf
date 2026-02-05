@@ -190,11 +190,13 @@ in
       # Firmware - always enabled for GUI VM (hardware passthrough needs it)
       firmware.enable = true;
 
-      # Feature services - enabled by default for GUI VM
-      # These can be overridden via vmConfig.guivm.extraModules if needed
-      fprint.enable = lib.mkDefault true;
-      yubikey.enable = lib.mkDefault true;
-      brightness.enable = lib.mkDefault true;
+      # Feature services - controlled via globalConfig.features
+      # Configure via ghaf.global-config.features.{fprint,yubikey,brightness}
+      # Each feature has: enable (global toggle) and targetVms (list of VMs)
+      # Use lib.ghaf.features.isEnabledFor to check if feature is enabled for this VM
+      fprint.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName);
+      yubikey.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName);
+      brightness.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName);
 
       user-provisioning.enable = true;
       audio = {
