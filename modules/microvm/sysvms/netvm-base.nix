@@ -125,8 +125,8 @@ in
 
     # Logging - from globalConfig (includes listener address)
     logging = {
+      inherit (globalConfig.logging) enable listener;
       client.enable = globalConfig.logging.enable or false;
-      listener.address = globalConfig.logging.listener.address or "";
       server.endpoint = globalConfig.logging.server.endpoint or "";
     };
 

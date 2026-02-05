@@ -297,6 +297,8 @@ let
   };
 in
 {
+  _file = ./fss.nix;
+
   options.ghaf.logging.fss = {
     enable = mkOption {
       type = types.bool;
