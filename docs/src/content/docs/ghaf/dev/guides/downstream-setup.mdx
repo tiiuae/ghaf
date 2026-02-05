@@ -1,0 +1,465 @@
+---
+title: "Downstream Project Setup"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Downstream Project Setup
+
+This guide covers how to set up a downstream project that builds on the Ghaf Framework, enabling full customization while staying updated with upstream changes.
+
+## Overview
+
+A downstream project typically:
+
+1. Imports Ghaf as a flake input
+2. Extends or replaces VM configurations
+3. Adds custom applications and services
+4. Creates product-specific targets
+
+Example downstream projects:
+- **ghaf-fmo-laptop** - Field Mission Operations variant
+- Custom product builds based on Ghaf
+
+## Project Structure
+
+Recommended directory structure for a downstream project:
+
+```
+my-ghaf-product/
+├── flake.nix                 # Main flake with ghaf input
+├── flake.lock                # Locked dependencies
+├── lib/
+│   └── profiles.nix          # Custom profiles
+├── modules/
+│   ├── custom-vm/            # Custom VM definitions
+│   │   └── my-vm-base.nix
+│   ├── services/             # Product-specific services
+│   │   └── my-service.nix
+│   └── hardware/             # Custom hardware support
+│       └── my-device.nix
+├── targets/
+│   └── my-product/
+│       └── flake-module.nix  # Product configurations
+└── README.md
+```
+
+## Basic Setup
+
+### Step 1: Create flake.nix
+
+```nix
+# flake.nix
+{
+  description = "My Ghaf-based Product";
+
+  inputs = {
+    # Pin to specific Ghaf version or branch
+    ghaf = {
+      url = "github:tiiuae/ghaf";
+      # Or pin to specific commit:
+      # url = "github:tiiuae/ghaf/abc123";
+    };
+
+    # Follow Ghaf's nixpkgs
+    nixpkgs.follows = "ghaf/nixpkgs";
+
+    # Flake-parts for module organization
+    flake-parts.follows = "ghaf/flake-parts";
+  };
+
+  outputs = inputs@{ flake-parts, ghaf, ... }:
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      systems = [ "x86_64-linux" "aarch64-linux" ];
+
+      imports = [
+        # Import Ghaf's flake modules
+        ghaf.flakeModules.targets
+
+        # Your target configurations
+        ./targets/my-product/flake-module.nix
+      ];
+
+      # Expose custom modules
+      flake.nixosModules = {
+        my-service = ./modules/services/my-service.nix;
+        my-vm-base = ./modules/custom-vm/my-vm-base.nix;
+        my-hardware = ./modules/hardware/my-device.nix;
+      };
+    };
+}
+```
+
+### Step 2: Create Target Configuration
+
+```nix
+# targets/my-product/flake-module.nix
+{ inputs, lib, ... }:
+let
+  # Access Ghaf's builders
+  mkGhafConfiguration = inputs.ghaf.lib.ghaf.builders.mkGhafConfiguration;
+  mkGhafInstaller = inputs.ghaf.lib.ghaf.builders.mkGhafInstaller;
+in
+{
+  flake.nixosConfigurations = {
+    # Debug variant
+    my-product-debug = mkGhafConfiguration {
+      name = "my-product";
+
+      # Use Ghaf's hardware definition or your own
+      hwDefinition = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+
+      # Use Ghaf's laptop profile
+      profile = inputs.ghaf.nixosModules.profiles-laptop-x86;
+
+      # Debug profile with customization
+      globalConfigOverrides = lib.ghaf.profiles.debug // {
+        # Your customizations
+        features.bluetooth.enable = false;
+      };
+
+      # Additional modules
+      extraModules = [
+        inputs.self.nixosModules.my-service
+        {
+          # Inline configuration
+          environment.systemPackages = [ inputs.nixpkgs.vim ];
+        }
+      ];
+    };
+
+    # Release variant
+    my-product-release = mkGhafConfiguration {
+      name = "my-product";
+      hwDefinition = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      profile = inputs.ghaf.nixosModules.profiles-laptop-x86;
+      globalConfigOverrides = lib.ghaf.profiles.release;
+    };
+  };
+
+  # Installer
+  flake.packages.x86_64-linux.my-product-installer = mkGhafInstaller {
+    name = "my-product";
+    configuration = inputs.self.nixosConfigurations.my-product-release;
+  };
+}
+```
+
+---
+
+## Customizing VMs
+
+### Extending GUI VM
+
+```nix
+# In your target configuration
+{ config, lib, inputs, ... }:
+let
+  # Get base GUI VM from profile
+  baseGuivm = config.ghaf.profiles.laptop-x86.guivmBase;
+
+  # Extend with your customizations
+  myGuivm = baseGuivm.extendModules {
+    modules = [
+      # Add your applications
+      ({ pkgs, ... }: {
+        environment.systemPackages = with pkgs; [
+          my-custom-app
+          my-monitoring-tool
+        ];
+      })
+
+      # Configure services
+      {
+        services.myProductService = {
+          enable = true;
+          apiEndpoint = "https://my-api.example.com";
+        };
+      }
+
+      # Desktop customization
+      {
+        services.xserver.desktopManager.gnome.enable = lib.mkForce false;
+        services.xserver.desktopManager.plasma5.enable = true;
+      }
+    ];
+  };
+in
+{
+  # Use your extended GUI VM
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = myGuivm.config;
+}
+```
+
+### Creating Custom VMs
+
+```nix
+# modules/custom-vm/gcs-vm-base.nix
+{ config, lib, pkgs, globalConfig, hostConfig, inputs, ... }:
+{
+  _file = ./gcs-vm-base.nix;
+
+  imports = [
+    # Import Ghaf's base VM modules
+    inputs.ghaf.nixosModules.vm-config
+    inputs.ghaf.nixosModules.givc
+  ];
+
+  # Standard VM setup
+  networking.hostName = hostConfig.vmName;
+
+  ghaf = {
+    profiles.debug.enable = globalConfig.debug.enable;
+    givc.enable = globalConfig.givc.enable;
+  };
+
+  # Your GCS-specific configuration
+  services.gcsClient = {
+    enable = true;
+    serverAddress = "gcs.example.com";
+  };
+
+  environment.systemPackages = with pkgs; [
+    gcs-tools
+    mission-planner
+  ];
+}
+```
+
+### Adding Application VMs
+
+```nix
+{ config, ... }:
+let
+  mkAppVm = config.ghaf.profiles.laptop-x86.mkAppVm;
+in
+{
+  ghaf.virtualization.microvm.appvm.vms = {
+    # Custom productivity app
+    my-productivity = mkAppVm {
+      name = "my-productivity";
+      applications = [{
+        name = "My Productivity Suite";
+        description = "Company productivity tools";
+        packages = [ pkgs.my-productivity ];
+        icon = "my-productivity";
+        command = "my-productivity";
+      }];
+      extraModules = [{
+        networking.proxy.default = "http://proxy.example.com:8080";
+      }];
+    };
+
+    # Secure browser
+    secure-browser = mkAppVm {
+      name = "secure-browser";
+      applications = [{
+        name = "Secure Browser";
+        description = "Isolated web browsing";
+        packages = [ pkgs.firefox ];
+        icon = "firefox";
+        command = "firefox --private-window";
+      }];
+    };
+  };
+}
+```
+
+---
+
+## Managing Features
+
+### Reassigning Features
+
+```nix
+{
+  ghaf.global-config.features = {
+    # Move fingerprint to admin VM for enrollment only
+    fprint.targetVms = [ "admin-vm" ];
+
+    # Enable YubiKey in custom VM
+    yubikey.targetVms = [ "gui-vm" "gcs-vm" ];
+
+    # Disable unused features
+    bluetooth.enable = false;
+  };
+}
+```
+
+### Adding Custom Features
+
+Define new features in your downstream project:
+
+```nix
+# modules/features/gcs-radio.nix
+{ config, lib, globalConfig, ... }:
+let
+  enabled = globalConfig.features.gcsRadio.enable or false;
+in
+{
+  _file = ./gcs-radio.nix;
+
+  config = lib.mkIf enabled {
+    services.gcsRadio = {
+      enable = true;
+      frequency = globalConfig.features.gcsRadio.frequency or 915;
+    };
+
+    hardware.firmware = [ pkgs.gcs-radio-firmware ];
+  };
+}
+```
+
+---
+
+## Updating from Upstream
+
+### Update Ghaf Input
+
+```bash
+# Update to latest
+nix flake update ghaf
+
+# Or update to specific commit
+nix flake lock --update-input ghaf --override-input ghaf github:tiiuae/ghaf/abc123
+```
+
+### Check for Breaking Changes
+
+1. Read Ghaf release notes
+2. Check for API changes in `lib.ghaf.*`
+3. Test builds before deploying:
+
+```bash
+nix build .#my-product-debug --dry-run
+nix build .#my-product-release
+```
+
+### Handle Breaking Changes
+
+If upstream changes break your configuration:
+
+```nix
+# Temporarily override in flake.nix
+inputs.ghaf = {
+  url = "github:tiiuae/ghaf";
+  # Pin to last working version
+  # url = "github:tiiuae/ghaf/known-good-commit";
+};
+```
+
+---
+
+## Best Practices
+
+### 1. Minimize Upstream Modifications
+
+Prefer extending over replacing:
+
+```nix
+# Good - extend base
+baseGuivm.extendModules { modules = [ ... ]; }
+
+# Avoid - replace entirely (loses upstream updates)
+lib.evalModules { modules = [ my-complete-guivm ]; }
+```
+
+### 2. Use Profile Overrides
+
+```nix
+# Good - override specific settings
+globalConfigOverrides = lib.ghaf.profiles.debug // {
+  features.bluetooth.enable = false;
+};
+
+# Avoid - define everything manually
+globalConfigOverrides = {
+  debug.enable = true;
+  debug.enableSsh = true;
+  # ... copying all profile values
+};
+```
+
+### 3. Keep Hardware Separate
+
+```nix
+# Good - hardware in separate module
+hwDefinition = inputs.self.nixosModules.my-hardware;
+
+# Avoid - inline hardware in target
+extraModules = [{ hardware.cpu.intel.enable = true; /* ... */ }];
+```
+
+### 4. Document Customizations
+
+```nix
+# modules/services/my-service.nix
+# SPDX-FileCopyrightText: 2026 My Company
+# SPDX-License-Identifier: Apache-2.0
+#
+# My Product Service
+#
+# This service provides XYZ functionality for our product.
+# It depends on Ghaf's GIVC for inter-VM communication.
+#
+{ config, lib, ... }: ...
+```
+
+---
+
+## Troubleshooting
+
+### Build Failures After Update
+
+```bash
+# Show detailed trace
+nix build .#my-product-debug --show-trace
+
+# Check specific option
+nix eval .#nixosConfigurations.my-product-debug.config.ghaf.global-config --json | jq
+```
+
+### VM Not Starting
+
+```bash
+# Check VM configuration
+nix eval .#nixosConfigurations.my-product-debug.config.microvm.vms.gui-vm.config.config.networking.hostName
+
+# Build VM system
+nix build .#nixosConfigurations.my-product-debug.config.microvm.vms.gui-vm.config.config.system.build.toplevel
+```
+
+### Feature Not Working
+
+```bash
+# Verify feature assignment
+nix eval .#nixosConfigurations.my-product-debug.config.ghaf.global-config.features.myFeature
+
+# Check if service enabled in VM
+nix eval .#nixosConfigurations.my-product-debug.config.microvm.vms.gui-vm.config.config.services.myService.enable
+```
+
+---
+
+## Checklist for Downstream Projects
+
+- [ ] Create flake.nix with ghaf input
+- [ ] Follow ghaf/nixpkgs to avoid conflicts
+- [ ] Create target configuration using mkGhafConfiguration
+- [ ] Use extendModules for VM customization
+- [ ] Keep hardware definitions separate
+- [ ] Document customizations
+- [ ] Test both debug and release variants
+- [ ] Set up CI for build testing
+- [ ] Plan update strategy for upstream changes
+
+---
+
+## See Also
+
+- [Extending Targets](/ghaf/dev/guides/extending-targets) - Target customization
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - New VM types
+- [Migration Guide](/ghaf/dev/guides/migration) - Migrating from legacy patterns
+- [VM Composition](/ghaf/dev/architecture/vm-composition) - Architecture overview

@@ -1,0 +1,409 @@
+---
+title: "Writing Modules"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Writing Modules
+
+This guide covers how to write NixOS modules for the Ghaf Framework, following established conventions and best practices.
+
+## Module Structure
+
+Every Ghaf module should follow this template:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{ config, lib, pkgs, ... }:
+let
+  cfg = config.ghaf.myModule;
+in
+{
+  _file = ./my-module.nix;
+
+  options.ghaf.myModule = {
+    enable = lib.mkEnableOption "my module description";
+
+    # Additional options...
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Configuration when enabled...
+  };
+}
+```
+
+### Key Elements
+
+1. **SPDX Header** - License information at the top
+2. **Module Arguments** - `{ config, lib, pkgs, ... }:`
+3. **Local Bindings** - `let cfg = ... in` for readability
+4. **`_file` Declaration** - For error tracing (first attribute!)
+5. **Options** - Under `options.ghaf.*`
+6. **Config** - Under `config`, usually with `mkIf`
+
+---
+
+## Module Categories
+
+### Host-Only Modules
+
+Modules that run on the host system:
+
+```nix
+# modules/common/my-host-service.nix
+{ config, lib, ... }:
+let
+  cfg = config.ghaf.services.myHostService;
+in
+{
+  _file = ./my-host-service.nix;
+
+  options.ghaf.services.myHostService = {
+    enable = lib.mkEnableOption "my host service";
+  };
+
+  config = lib.mkIf cfg.enable {
+    systemd.services.my-host-service = {
+      description = "My Host Service";
+      wantedBy = [ "multi-user.target" ];
+      serviceConfig.ExecStart = "${pkgs.my-tool}/bin/my-tool";
+    };
+  };
+}
+```
+
+### VM Base Modules
+
+Modules for VM base configurations receive `globalConfig` and `hostConfig`:
+
+```nix
+# modules/microvm/sysvms/my-vm-base.nix
+{ config, lib, pkgs, globalConfig, hostConfig, ... }:
+{
+  _file = ./my-vm-base.nix;
+
+  # Access global settings
+  ghaf.profiles.debug.enable = globalConfig.debug.enable;
+
+  # Access VM-specific settings
+  networking.hostName = hostConfig.vmName;
+
+  # VM configuration
+  services.myService.enable = true;
+}
+```
+
+### Feature Modules
+
+Modules that implement hardware features:
+
+```nix
+# modules/microvm/guivm-features/my-feature.nix
+{ config, lib, pkgs, globalConfig, ... }:
+let
+  featureEnabled = lib.ghaf.features.isEnabledFor globalConfig "myFeature" "gui-vm";
+in
+{
+  _file = ./my-feature.nix;
+
+  config = lib.mkIf featureEnabled {
+    services.myFeature.enable = true;
+  };
+}
+```
+
+---
+
+## Options Best Practices
+
+### Use mkEnableOption
+
+For boolean enable flags:
+
+```nix
+options.ghaf.myFeature = {
+  # Good
+  enable = lib.mkEnableOption "my feature description";
+
+  # Avoid (less discoverable)
+  enabled = lib.mkOption { type = lib.types.bool; default = false; };
+};
+```
+
+### Use mkOption with Types
+
+For other options, always specify types:
+
+```nix
+options.ghaf.myFeature = {
+  port = lib.mkOption {
+    type = lib.types.port;
+    default = 8080;
+    description = "Port for my service";
+  };
+
+  users = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [];
+    description = "Users allowed to access the feature";
+  };
+
+  config = lib.mkOption {
+    type = lib.types.attrsOf lib.types.str;
+    default = {};
+    description = "Additional configuration";
+  };
+};
+```
+
+### Use mkDefault for Overridable Defaults
+
+When setting values that downstream should be able to override:
+
+```nix
+config = lib.mkIf cfg.enable {
+  # Overridable default - downstream can change with normal priority
+  services.openssh.enable = lib.mkDefault true;
+
+  # Fixed value - requires mkForce to override
+  security.audit.enable = true;
+};
+```
+
+### Document Options
+
+Every option should have a description:
+
+```nix
+options.ghaf.myFeature.timeout = lib.mkOption {
+  type = lib.types.int;
+  default = 30;
+  description = ''
+    Timeout in seconds for my feature.
+
+    Set to 0 to disable timeout entirely.
+  '';
+  example = 60;
+};
+```
+
+---
+
+## Config Best Practices
+
+### Use mkIf for Conditional Config
+
+```nix
+config = lib.mkIf cfg.enable {
+  services.foo.enable = true;
+};
+```
+
+### Use mkMerge for Multiple Conditions
+
+```nix
+config = lib.mkMerge [
+  # Always applied
+  { environment.variables.MY_VAR = "value"; }
+
+  # Only when feature A enabled
+  (lib.mkIf cfg.featureA.enable {
+    services.a.enable = true;
+  })
+
+  # Only when feature B enabled
+  (lib.mkIf cfg.featureB.enable {
+    services.b.enable = true;
+  })
+];
+```
+
+### Avoid mkForce Unless Necessary
+
+```nix
+# Avoid - prevents downstream overrides
+services.ssh.enable = lib.mkForce true;
+
+# Better - allows overrides
+services.ssh.enable = lib.mkDefault true;
+```
+
+---
+
+## Accessing Configuration
+
+### From Host Module
+
+```nix
+{ config, ... }:
+{
+  config = {
+    # Access other ghaf options
+    services.foo.port = config.ghaf.networking.basePort + 1;
+
+    # Access global config
+    something = config.ghaf.global-config.debug.enable;
+  };
+}
+```
+
+### From VM Module (via specialArgs)
+
+```nix
+{ config, globalConfig, hostConfig, ... }:
+{
+  config = {
+    # Access global settings
+    ghaf.profiles.debug.enable = globalConfig.debug.enable;
+
+    # Access VM-specific settings
+    networking.hostName = hostConfig.vmName;
+
+    # Access networking for other VMs
+    services.foo.guivmAddress = hostConfig.networking.guivm.ipv4;
+  };
+}
+```
+
+---
+
+## File Organization
+
+### Module Placement
+
+| Type | Location | Example |
+|------|----------|---------|
+| Common/shared | `modules/common/` | `modules/common/networking.nix` |
+| Host services | `modules/common/services/` | `modules/common/services/power.nix` |
+| Hardware | `modules/hardware/` | `modules/hardware/lenovo/x1.nix` |
+| Desktop | `modules/desktop/` | `modules/desktop/cosmic.nix` |
+| VM infrastructure | `modules/microvm/` | `modules/microvm/host/microvm-host.nix` |
+| System VM bases | `modules/microvm/sysvms/` | `modules/microvm/sysvms/guivm-base.nix` |
+| VM features | `modules/microvm/*-features/` | `modules/microvm/guivm-features/fprint.nix` |
+| Profiles | `modules/profiles/` | `modules/profiles/laptop-x86.nix` |
+| Reference impl | `modules/reference/` | `modules/reference/appvms/chrome.nix` |
+
+### Exporting Modules
+
+Add modules to the appropriate flake-module.nix:
+
+```nix
+# modules/common/flake-module.nix
+{
+  flake.nixosModules = {
+    my-new-module = ./my-new-module.nix;
+  };
+}
+```
+
+---
+
+## Testing Modules
+
+### Build Validation
+
+```bash
+# Quick syntax check
+nix-instantiate --parse path/to/module.nix
+
+# Evaluate in context
+nix build .#nixosConfigurations.lenovo-x1-carbon-gen11-debug.config.system.build.toplevel --dry-run
+```
+
+### Debug Evaluation
+
+```bash
+# Show trace on errors
+nix build .#target-name --show-trace
+
+# Print specific option value
+nix eval .#nixosConfigurations.target-name.config.ghaf.myOption
+```
+
+---
+
+## Complete Example
+
+Here's a complete module example implementing a new service:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Example monitoring service module for Ghaf
+#
+{ config, lib, pkgs, ... }:
+let
+  cfg = config.ghaf.services.monitoring;
+in
+{
+  _file = ./monitoring.nix;
+
+  options.ghaf.services.monitoring = {
+    enable = lib.mkEnableOption "system monitoring service";
+
+    port = lib.mkOption {
+      type = lib.types.port;
+      default = 9100;
+      description = "Port for the monitoring endpoint";
+    };
+
+    interval = lib.mkOption {
+      type = lib.types.int;
+      default = 15;
+      description = "Collection interval in seconds";
+      example = 30;
+    };
+
+    extraFlags = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [];
+      description = "Additional flags to pass to the monitoring daemon";
+      example = [ "--verbose" "--debug" ];
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    # Add monitoring package
+    environment.systemPackages = [ pkgs.prometheus-node-exporter ];
+
+    # Configure systemd service
+    systemd.services.ghaf-monitoring = {
+      description = "Ghaf System Monitoring";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "network.target" ];
+
+      serviceConfig = {
+        Type = "simple";
+        ExecStart = lib.concatStringsSep " " ([
+          "${pkgs.prometheus-node-exporter}/bin/node_exporter"
+          "--web.listen-address=:${toString cfg.port}"
+        ] ++ cfg.extraFlags);
+        Restart = "on-failure";
+        RestartSec = 5;
+      };
+    };
+
+    # Open firewall port
+    networking.firewall.allowedTCPPorts = [ cfg.port ];
+
+    # Add to journald for log forwarding
+    services.journald.extraConfig = ''
+      SystemMaxUse=100M
+    '';
+  };
+}
+```
+
+---
+
+## See Also
+
+- [Module Conventions](/ghaf/dev/architecture/module-conventions) - Detailed conventions
+- [Anti-Patterns](/ghaf/dev/architecture/anti-patterns) - What to avoid
+- [Adding Features](/ghaf/dev/guides/adding-features) - Feature-specific modules
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - VM base modules

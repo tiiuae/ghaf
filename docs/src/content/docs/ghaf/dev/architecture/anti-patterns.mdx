@@ -1,0 +1,502 @@
+---
+title: "Anti-Patterns to Avoid"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Anti-Patterns to Avoid
+
+This guide documents common mistakes and anti-patterns in Ghaf development. Avoiding these patterns leads to more maintainable, composable, and debuggable code.
+
+## ❌ Anti-Pattern 1: Passing Inputs Through Module Chain
+
+### The Problem
+
+Passing `inputs` or other values through a chain of modules (A → B → C → D) when only D needs it:
+
+```nix
+# DON'T DO THIS
+# Module A
+{ inputs, ... }:
+{
+  imports = [ (import ./module-b.nix { inherit inputs; }) ];
+}
+
+# Module B - doesn't need inputs, just passes it
+{ inputs, ... }:
+{
+  imports = [ (import ./module-c.nix { inherit inputs; }) ];
+}
+
+# Module C - doesn't need inputs, just passes it
+{ inputs, ... }:
+{
+  imports = [ (import ./module-d.nix { inherit inputs; }) ];
+}
+
+# Module D - actually uses inputs
+{ inputs, ... }:
+{
+  environment.systemPackages = [ inputs.some-flake.packages.tool ];
+}
+```
+
+### Why It's Bad
+
+- Tight coupling between modules
+- Can't test intermediate modules without providing inputs
+- Changes to inputs ripple through entire chain
+- Unclear which module actually needs what
+
+### The Solution: Use specialArgs
+
+```nix
+# GOOD: Use specialArgs
+# inputs is available everywhere via specialArgs
+lib.evalModules {
+  specialArgs = { inherit inputs lib; };
+  modules = [ ./module-a.nix ./module-b.nix ./module-c.nix ./module-d.nix ];
+}
+
+# Module D
+{ inputs, ... }:  # Available from specialArgs
+{
+  environment.systemPackages = [ inputs.some-flake.packages.tool ];
+}
+```
+
+---
+
+## ❌ Anti-Pattern 2: Using configHost in VMs
+
+### The Problem
+
+Directly accessing host configuration from VM modules:
+
+```nix
+# DON'T DO THIS
+{ configHost }:
+{
+  config = {
+    ghaf.profiles.debug.enable = configHost.ghaf.profiles.debug.enable;
+    networking.hostName = configHost.ghaf.networking.vms.gui-vm.name;
+    services.ssh.enable = configHost.ghaf.development.ssh.daemon.enable;
+  };
+}
+```
+
+### Why It's Bad
+
+- VM module depends on exact host config structure
+- Can't test VM module without full host config
+- Changes to host option paths break VM modules
+- Circular dependency risk
+
+### The Solution: Use globalConfig and hostConfig
+
+```nix
+# GOOD: Use specialArgs-provided configs
+{ globalConfig, hostConfig, ... }:
+{
+  config = {
+    ghaf.profiles.debug.enable = globalConfig.debug.enable;
+    networking.hostName = hostConfig.vmName;
+    services.ssh.enable = globalConfig.development.ssh.daemon.enable;
+  };
+}
+```
+
+---
+
+## ❌ Anti-Pattern 3: Hardcoding VM-Specific Values
+
+### The Problem
+
+Hardcoding values that should be different per VM or configurable:
+
+```nix
+# DON'T DO THIS
+{
+  config = {
+    networking.hostName = "gui-vm";  # Hardcoded!
+    networking.interfaces.eth0.ipv4.addresses = [{
+      address = "192.168.100.3";  # Hardcoded!
+      prefixLength = 24;
+    }];
+  };
+}
+```
+
+### Why It's Bad
+
+- Can't reuse module for different VMs
+- IP conflicts if deployed multiple times
+- No single source of truth for network config
+- Difficult to maintain
+
+### The Solution: Use hostConfig
+
+```nix
+# GOOD: Get values from hostConfig
+{ hostConfig, ... }:
+{
+  config = {
+    networking.hostName = hostConfig.vmName;
+    networking.interfaces.ethint0.ipv4.addresses = [{
+      address = hostConfig.networking.thisVm.ipv4;
+      prefixLength = hostConfig.networking.thisVm.ipv4SubnetPrefixLength or 24;
+    }];
+  };
+}
+```
+
+---
+
+## ❌ Anti-Pattern 4: Duplicating Settings Across VMs
+
+### The Problem
+
+Setting the same value in multiple VMs instead of using globalConfig:
+
+```nix
+# DON'T DO THIS - repeated in every VM
+# guivm-base.nix
+{ config = { ghaf.profiles.debug.enable = true; }; }
+
+# netvm-base.nix
+{ config = { ghaf.profiles.debug.enable = true; }; }
+
+# audiovm-base.nix
+{ config = { ghaf.profiles.debug.enable = true; }; }
+```
+
+### Why It's Bad
+
+- Easy to miss updating one VM
+- Inconsistent state between VMs
+- Lots of repetitive code
+- Hard to manage profiles (debug vs release)
+
+### The Solution: Use globalConfig
+
+```nix
+# GOOD: Set once in host, inherit everywhere
+# Host configuration
+{ ghaf.global-config = lib.ghaf.profiles.debug; }
+
+# VM modules - inherit from globalConfig
+{ globalConfig, ... }:
+{
+  ghaf.profiles.debug.enable = globalConfig.debug.enable;
+}
+```
+
+---
+
+## ❌ Anti-Pattern 5: Breaking Lazy Evaluation
+
+### The Problem
+
+Forcing evaluation of VM configs when they shouldn't be evaluated:
+
+```nix
+# DON'T DO THIS
+let
+  allVmConfigs = {
+    guivm = import ./guivm.nix { inherit config lib; };
+    netvm = import ./netvm.nix { inherit config lib; };
+    # These are ALL evaluated even if disabled
+  };
+in
+{
+  microvm.vms = lib.filterAttrs (name: _: config.ghaf.vms.${name}.enable) allVmConfigs;
+}
+```
+
+### Why It's Bad
+
+- All VMs evaluated regardless of `enable` flag
+- Slower evaluation times
+- Errors in disabled VM configs still break build
+- Wasted computation
+
+### The Solution: Use evaluatedConfig Pattern
+
+```nix
+# GOOD: Only evaluate when needed
+{
+  options.ghaf.virtualization.microvm.guivm = {
+    enable = lib.mkEnableOption "GUI VM";
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+    };
+  };
+
+  config = lib.mkIf cfg.guivm.enable {
+    # Only accessed (and thus evaluated) when enable = true
+    microvm.vms.gui-vm.evaluatedConfig = cfg.guivm.evaluatedConfig;
+  };
+}
+```
+
+---
+
+## ❌ Anti-Pattern 6: Missing _file Declarations
+
+### The Problem
+
+Modules without `_file` make debugging difficult:
+
+```nix
+# DON'T DO THIS - no _file
+{ config, lib, ... }:
+{
+  options.ghaf.myFeature.enable = lib.mkEnableOption "...";
+  config = { ... };
+}
+```
+
+### Why It's Bad
+
+Error messages show unhelpful Nix store paths:
+```
+error: option 'ghaf.myFeature.enable' does not exist
+       defined in `/nix/store/abc123.../modules/my-module.nix`
+```
+
+### The Solution: Always Add _file
+
+```nix
+# GOOD: _file enables proper error tracing
+{ config, lib, ... }:
+{
+  _file = ./my-module.nix;  # First attribute!
+
+  options.ghaf.myFeature.enable = lib.mkEnableOption "...";
+  config = { ... };
+}
+```
+
+Now errors show:
+```
+error: option 'ghaf.myFeature.enable' does not exist
+       defined in `modules/my-module.nix`
+```
+
+---
+
+## ❌ Anti-Pattern 7: Hardcoding Features in Specific VMs
+
+### The Problem
+
+Embedding hardware feature support directly in one VM:
+
+```nix
+# DON'T DO THIS - in guivm-base.nix
+{
+  config = {
+    services.fprintd.enable = true;  # Always in GUI VM
+    services.pcscd.enable = true;    # YubiKey always here
+  };
+}
+```
+
+### Why It's Bad
+
+- Can't move feature to different VM
+- Can't disable feature without module changes
+- Downstream can't customize feature placement
+- Features tightly coupled to specific VM
+
+### The Solution: Use globalConfig.features
+
+```nix
+# GOOD: Centralized feature management
+# In host config
+{
+  ghaf.global-config.features = {
+    fprint = { enable = true; targetVms = [ "gui-vm" ]; };
+    yubikey = { enable = true; targetVms = [ "gui-vm" "admin-vm" ]; };
+  };
+}
+
+# In VM base module
+{ globalConfig, ... }:
+{
+  config = lib.mkMerge [
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm") {
+      services.fprintd.enable = true;
+    })
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "yubikey" "gui-vm") {
+      services.pcscd.enable = true;
+    })
+  ];
+}
+```
+
+---
+
+## ❌ Anti-Pattern 8: Inline VM Configurations
+
+### The Problem
+
+Defining entire VM configurations inline in target files:
+
+```nix
+# DON'T DO THIS - in targets/laptop/flake-module.nix
+{
+  microvm.vms.gui-vm = {
+    config = {
+      # Hundreds of lines of VM configuration...
+      imports = [ ... ];
+      services = { ... };
+      systemd = { ... };
+      environment = { ... };
+      # ...
+    };
+  };
+}
+```
+
+### Why It's Bad
+
+- Can't share VM config between targets
+- Massive duplication across targets
+- Hard to maintain and update
+- Can't test VM config in isolation
+
+### The Solution: Use Base Modules and Profiles
+
+```nix
+# GOOD: Modular approach
+
+# modules/microvm/sysvms/guivm-base.nix - reusable base
+{ ... }: { /* VM configuration */ }
+
+# modules/profiles/laptop-x86.nix - creates profile base
+{ guivmBase = lib.evalModules { modules = [ guivm-base ]; }; }
+
+# targets/laptop/flake-module.nix - just extends
+{
+  ghaf.virtualization.microvm.guivm.evaluatedConfig =
+    config.ghaf.profiles.laptop-x86.guivmBase.extendModules {
+      modules = [ /* minimal target-specific additions */ ];
+    };
+}
+```
+
+---
+
+## ❌ Anti-Pattern 9: Using mkForce Unnecessarily
+
+### The Problem
+
+Overusing `mkForce` instead of proper defaults:
+
+```nix
+# DON'T DO THIS
+{
+  services.openssh.enable = lib.mkForce true;
+  networking.firewall.enable = lib.mkForce false;
+  security.sudo.enable = lib.mkForce true;
+}
+```
+
+### Why It's Bad
+
+- Prevents any override from downstream
+- Hides intention (is this a fix or intentional?)
+- Makes debugging priority issues hard
+- Breaks composition
+
+### The Solution: Use mkDefault and Clear Structure
+
+```nix
+# GOOD: Use mkDefault for overridable defaults
+{
+  # Base module - sets sensible defaults
+  services.openssh.enable = lib.mkDefault true;
+}
+
+# Extension module - can override without mkForce
+{
+  services.openssh.enable = false;  # Normal priority wins over mkDefault
+}
+```
+
+Only use `mkForce` when you genuinely need to override something that was set at normal priority.
+
+---
+
+## ❌ Anti-Pattern 10: Circular Option Dependencies
+
+### The Problem
+
+Options that depend on each other's values:
+
+```nix
+# DON'T DO THIS
+{
+  options.ghaf.a.value = lib.mkOption {
+    default = config.ghaf.b.value + 1;  # Depends on B
+  };
+
+  options.ghaf.b.value = lib.mkOption {
+    default = config.ghaf.a.value * 2;  # Depends on A!
+  };
+}
+```
+
+### Why It's Bad
+
+- Infinite recursion during evaluation
+- Hard to understand actual values
+- Breaks lazy evaluation
+
+### The Solution: Clear Dependency Direction
+
+```nix
+# GOOD: One-way dependencies only
+{
+  options.ghaf.baseValue = lib.mkOption {
+    type = lib.types.int;
+    default = 10;  # No dependencies
+  };
+
+  options.ghaf.derivedA = lib.mkOption {
+    type = lib.types.int;
+    default = config.ghaf.baseValue + 1;  # Depends only on base
+  };
+
+  options.ghaf.derivedB = lib.mkOption {
+    type = lib.types.int;
+    default = config.ghaf.baseValue * 2;  # Depends only on base
+  };
+}
+```
+
+---
+
+## Quick Reference
+
+| Anti-Pattern | Solution |
+|--------------|----------|
+| Passing inputs through modules | Use `specialArgs` |
+| Using `configHost` in VMs | Use `globalConfig`/`hostConfig` |
+| Hardcoding VM values | Use `hostConfig` |
+| Duplicating settings | Use `globalConfig` |
+| Breaking lazy evaluation | Use `evaluatedConfig` pattern |
+| Missing `_file` | Always add `_file = ./file.nix;` |
+| Hardcoding features | Use `globalConfig.features` |
+| Inline VM configs | Use base modules + profiles |
+| Overusing `mkForce` | Use `mkDefault` properly |
+| Circular dependencies | Clear one-way deps |
+
+## See Also
+
+- [Module Conventions](/ghaf/dev/architecture/module-conventions) - How to write modules correctly
+- [Configuration Propagation](/ghaf/dev/architecture/config-propagation) - globalConfig/hostConfig details
+- [VM Composition](/ghaf/dev/architecture/vm-composition) - extendModules pattern

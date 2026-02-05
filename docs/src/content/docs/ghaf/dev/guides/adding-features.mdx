@@ -1,0 +1,395 @@
+---
+title: "Adding Features"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Adding Features
+
+This guide covers how to add new hardware features to the Ghaf Framework using the centralized features system.
+
+## Feature System Overview
+
+The features system (`globalConfig.features`) provides:
+
+- **Centralized management** - All feature assignments in one place
+- **Flexible VM assignment** - Features can run in any VM
+- **Multi-VM support** - Same feature in multiple VMs
+- **Downstream customization** - Easy to override assignments
+
+## Adding a New Feature
+
+### Step 1: Define the Feature Schema
+
+Add the feature to `lib/global-config.nix`:
+
+```nix
+# In the features attrset
+features = {
+  # ... existing features ...
+
+  myFeature = {
+    enable = lib.mkEnableOption "my hardware feature" // { default = true; };
+    targetVms = lib.mkOption {
+      type = lib.types.listOf lib.types.str;
+      default = [ "gui-vm" ];  # Default VM assignment
+      description = ''
+        VMs where my feature should be enabled.
+        The feature's services and configuration will be
+        applied to these VMs.
+      '';
+    };
+  };
+};
+```
+
+### Step 2: Create the Feature Module
+
+Create `modules/microvm/guivm-features/my-feature.nix`:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# My Feature - provides XYZ capability
+#
+{ config, lib, pkgs, globalConfig, ... }:
+let
+  featureEnabled = lib.ghaf.features.isEnabledFor globalConfig "myFeature" "gui-vm";
+in
+{
+  _file = ./my-feature.nix;
+
+  config = lib.mkIf featureEnabled {
+    # Enable required services
+    services.myFeatureService = {
+      enable = true;
+      settings = {
+        option1 = "value";
+      };
+    };
+
+    # Install required packages
+    environment.systemPackages = with pkgs; [
+      my-feature-tool
+      my-feature-cli
+    ];
+
+    # Configure udev rules if needed
+    services.udev.extraRules = ''
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1234", ATTR{idProduct}=="5678", MODE="0666"
+    '';
+
+    # PAM integration if needed
+    security.pam.services.login.myFeatureAuth = true;
+  };
+}
+```
+
+### Step 3: Include in VM Base
+
+Add to the appropriate VM base module. In `modules/microvm/sysvms/guivm-base.nix`:
+
+```nix
+imports = [
+  # ... existing imports ...
+  ../guivm-features/my-feature.nix
+];
+```
+
+Or use conditional import:
+
+```nix
+imports = [
+  # ... existing imports ...
+] ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "myFeature" "gui-vm")
+  ../guivm-features/my-feature.nix;
+```
+
+### Step 4: Add Hardware Passthrough (if needed)
+
+If the feature requires hardware passthrough, update the hardware definition:
+
+```nix
+# In modules/hardware/definition.nix
+hardware.definition.guivm.extraModules = lib.mkOption {
+  type = lib.types.listOf lib.types.unspecified;
+  default = [];
+  description = "Extra modules for GUI VM";
+};
+
+# In specific hardware file (e.g., lenovo-x1.nix)
+hardware.definition.guivm.extraModules = [
+  # USB device passthrough for my feature
+  {
+    microvm.devices = [{
+      bus = "usb";
+      vendorId = "1234";
+      productId = "5678";
+    }];
+  }
+];
+```
+
+---
+
+## Feature Patterns
+
+### Pattern 1: Simple Service Feature
+
+Feature that just enables a service:
+
+```nix
+{ config, lib, globalConfig, ... }:
+{
+  _file = ./simple-feature.nix;
+
+  config = lib.mkIf
+    (lib.ghaf.features.isEnabledFor globalConfig "simpleFeature" "gui-vm")
+  {
+    services.simpleFeature.enable = true;
+  };
+}
+```
+
+### Pattern 2: Feature with Configuration
+
+Feature with user-configurable options:
+
+```nix
+{ config, lib, pkgs, globalConfig, ... }:
+let
+  enabled = lib.ghaf.features.isEnabledFor globalConfig "configFeature" "gui-vm";
+  cfg = config.ghaf.features.configFeature;
+in
+{
+  _file = ./config-feature.nix;
+
+  options.ghaf.features.configFeature = {
+    timeout = lib.mkOption {
+      type = lib.types.int;
+      default = 30;
+      description = "Feature timeout in seconds";
+    };
+  };
+
+  config = lib.mkIf enabled {
+    services.configFeature = {
+      enable = true;
+      timeout = cfg.timeout;
+    };
+  };
+}
+```
+
+### Pattern 3: Multi-VM Feature
+
+Feature that can run in multiple VMs:
+
+```nix
+# In gui-vm base
+{ globalConfig, lib, ... }:
+{
+  config = lib.mkIf
+    (lib.ghaf.features.isEnabledFor globalConfig "multiFeature" "gui-vm")
+  {
+    services.multiFeature.enable = true;
+    services.multiFeature.role = "client";
+  };
+}
+
+# In admin-vm base
+{ globalConfig, lib, ... }:
+{
+  config = lib.mkIf
+    (lib.ghaf.features.isEnabledFor globalConfig "multiFeature" "admin-vm")
+  {
+    services.multiFeature.enable = true;
+    services.multiFeature.role = "server";
+  };
+}
+```
+
+### Pattern 4: Feature with Dependencies
+
+Feature that requires other features:
+
+```nix
+{ config, lib, globalConfig, ... }:
+let
+  enabled = lib.ghaf.features.isEnabledFor globalConfig "dependentFeature" "gui-vm";
+  hasAudio = lib.ghaf.features.isEnabledFor globalConfig "audio" "audio-vm";
+in
+{
+  _file = ./dependent-feature.nix;
+
+  config = lib.mkIf enabled {
+    assertions = [{
+      assertion = hasAudio;
+      message = "dependentFeature requires audio feature to be enabled";
+    }];
+
+    services.dependentFeature = {
+      enable = true;
+      audioBackend = "pipewire";
+    };
+  };
+}
+```
+
+---
+
+## Hardware Feature Types
+
+### USB Device Features
+
+For features requiring USB device access:
+
+```nix
+{ config, lib, pkgs, globalConfig, hostConfig, ... }:
+{
+  config = lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "usbFeature" "gui-vm") {
+    # Device passthrough
+    microvm.devices = [{
+      bus = "usb";
+      vendorId = hostConfig.hardware.usbFeature.vendorId or "1234";
+      productId = hostConfig.hardware.usbFeature.productId or "5678";
+    }];
+
+    # Udev rules
+    services.udev.extraRules = ''
+      SUBSYSTEM=="usb", ATTR{idVendor}=="1234", MODE="0666"
+    '';
+
+    # Service
+    services.usbFeatureService.enable = true;
+  };
+}
+```
+
+### PCI Device Features
+
+For features requiring PCI passthrough:
+
+```nix
+{ config, lib, globalConfig, hostConfig, ... }:
+{
+  config = lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "pciFeature" "gui-vm") {
+    # PCI passthrough from hardware definition
+    microvm.devices = lib.optionals (hostConfig.hardware.pciFeature.path != null) [{
+      bus = "pci";
+      path = hostConfig.hardware.pciFeature.path;
+    }];
+
+    # Kernel modules
+    boot.kernelModules = [ "my_pci_driver" ];
+
+    services.pciFeatureService.enable = true;
+  };
+}
+```
+
+### Kernel Feature Requirements
+
+Features needing specific kernel configuration:
+
+```nix
+{ config, lib, globalConfig, ... }:
+{
+  config = lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "kernelFeature" "gui-vm") {
+    boot = {
+      kernelModules = [ "my_module" ];
+      kernelParams = [ "my_module.option=value" ];
+      extraModulePackages = [ config.boot.kernelPackages.my_module ];
+    };
+
+    services.kernelFeatureService.enable = true;
+  };
+}
+```
+
+---
+
+## Testing Features
+
+### Verify Feature Assignment
+
+```bash
+# Check if feature is enabled for a VM
+nix eval .#nixosConfigurations.target.config.ghaf.global-config.features.myFeature.enable
+nix eval .#nixosConfigurations.target.config.ghaf.global-config.features.myFeature.targetVms
+```
+
+### Check Service Enablement
+
+```bash
+# Verify service is enabled in VM
+nix eval .#nixosConfigurations.target.config.microvm.vms.gui-vm.config.config.services.myFeatureService.enable
+```
+
+### Test Feature Reassignment
+
+```nix
+# Test configuration that moves feature to different VM
+{
+  ghaf.global-config.features.myFeature.targetVms = [ "admin-vm" ];
+}
+```
+
+---
+
+## Documentation Requirements
+
+When adding a feature, document:
+
+1. **Purpose** - What the feature provides
+2. **Hardware requirements** - USB/PCI devices needed
+3. **Default assignment** - Which VM by default
+4. **Dependencies** - Other features required
+5. **Configuration options** - Any configurable settings
+
+Example documentation block:
+
+```nix
+# My Feature
+#
+# Provides XYZ capability for users.
+#
+# Hardware requirements:
+#   - USB device with VID:PID 1234:5678
+#
+# Default VM: gui-vm
+#
+# Dependencies: none
+#
+# Configuration:
+#   ghaf.global-config.features.myFeature.enable - Enable/disable globally
+#   ghaf.global-config.features.myFeature.targetVms - VMs to enable in
+#   ghaf.features.myFeature.timeout - Feature timeout (default: 30)
+```
+
+---
+
+## Checklist for New Features
+
+- [ ] Add feature schema to `lib/global-config.nix`
+- [ ] Create feature module with `_file` declaration
+- [ ] Use `lib.ghaf.features.isEnabledFor` for conditional config
+- [ ] Add to appropriate VM base module imports
+- [ ] Configure hardware passthrough if needed
+- [ ] Add udev rules if needed
+- [ ] Test with default assignment
+- [ ] Test feature reassignment to different VM
+- [ ] Test feature disable
+- [ ] Document the feature
+
+---
+
+## See Also
+
+- [Features API](/ghaf/dev/library/features-api) - API reference
+- [Config Propagation](/ghaf/dev/architecture/config-propagation) - globalConfig details
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - VM creation guide
+- [Writing Modules](/ghaf/dev/guides/writing-modules) - Module conventions

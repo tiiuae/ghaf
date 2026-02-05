@@ -1,0 +1,437 @@
+---
+title: "Extending Targets"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Extending Targets
+
+This guide covers how to customize existing Ghaf hardware targets, from simple configuration changes to creating entirely new variants.
+
+## Target Architecture
+
+Targets in Ghaf combine:
+
+1. **Hardware Definition** - Device-specific settings (`modules/hardware/`)
+2. **Profile** - Platform capabilities (`modules/profiles/`)
+3. **Variant** - Debug/release configuration (`lib/ghaf.profiles.*`)
+4. **Custom Modules** - Target-specific additions
+
+## Simple Configuration Changes
+
+### Modifying Global Settings
+
+Override global config settings in the target:
+
+```nix
+# In targets/laptop/flake-module.nix
+laptop-configuration = { name, variant, hwDefinition, ... }:
+  mkGhafConfiguration {
+    inherit name hwDefinition;
+    profile = inputs.self.nixosModules.profiles-laptop-x86;
+
+    # Custom global config overrides
+    globalConfigOverrides = {
+      features.bluetooth.enable = false;  # Disable bluetooth
+      logging.listener.port = 10000;      # Custom log port
+    };
+
+    extraModules = [
+      # Additional modules
+    ];
+  };
+```
+
+### Adding Packages
+
+Add packages to a target:
+
+```nix
+extraModules = [
+  ({ pkgs, ... }: {
+    environment.systemPackages = with pkgs; [
+      vim
+      htop
+      tmux
+    ];
+  })
+];
+```
+
+### Enabling Services
+
+Enable host services:
+
+```nix
+extraModules = [
+  {
+    services.tailscale.enable = true;
+    networking.firewall.allowedUDPPorts = [ 41641 ];
+  }
+];
+```
+
+---
+
+## Customizing VMs
+
+### Extending VM Configuration
+
+Use `extendModules` to customize VMs:
+
+```nix
+# In a target or custom profile
+{ config, lib, ... }:
+let
+  baseGuivm = config.ghaf.profiles.laptop-x86.guivmBase;
+
+  customGuivm = baseGuivm.extendModules {
+    modules = [
+      ({ pkgs, ... }: {
+        # Add applications
+        environment.systemPackages = [ pkgs.chromium ];
+
+        # Configure desktop
+        services.xserver.desktopManager.gnome.enable = true;
+      })
+    ];
+  };
+in
+{
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = customGuivm.config;
+}
+```
+
+### Adding Application VMs
+
+Add custom application VMs:
+
+```nix
+{ config, ... }:
+let
+  mkAppVm = config.ghaf.profiles.laptop-x86.mkAppVm;
+in
+{
+  ghaf.virtualization.microvm.appvm.vms.my-custom-app = mkAppVm {
+    name = "my-custom-app";
+    applications = [{
+      name = "My Application";
+      description = "Custom application for this target";
+      packages = [ pkgs.my-app ];
+      icon = "my-app";
+      command = "my-app";
+    }];
+  };
+}
+```
+
+### Reassigning Features
+
+Move hardware features to different VMs:
+
+```nix
+{
+  ghaf.global-config.features = {
+    # Move fingerprint to admin VM
+    fprint.targetVms = [ "admin-vm" ];
+
+    # Enable YubiKey in multiple VMs
+    yubikey.targetVms = [ "gui-vm" "admin-vm" ];
+
+    # Disable Bluetooth entirely
+    bluetooth.enable = false;
+  };
+}
+```
+
+---
+
+## Creating New Variants
+
+### Debug vs Release
+
+Create both debug and release variants:
+
+```nix
+# In flake-module.nix
+flake.nixosConfigurations = {
+  # Debug variant
+  "my-target-debug" = mkGhafConfiguration {
+    name = "my-target";
+    hwDefinition = ./hardware.nix;
+    profile = inputs.self.nixosModules.profiles-laptop-x86;
+    globalConfigOverrides = lib.ghaf.profiles.debug;
+  };
+
+  # Release variant
+  "my-target-release" = mkGhafConfiguration {
+    name = "my-target";
+    hwDefinition = ./hardware.nix;
+    profile = inputs.self.nixosModules.profiles-laptop-x86;
+    globalConfigOverrides = lib.ghaf.profiles.release;
+  };
+};
+```
+
+### Custom Profile Variants
+
+Create custom profile combinations:
+
+```nix
+{
+  # Minimal debug - debug tools but reduced features
+  "my-target-minimal-debug" = mkGhafConfiguration {
+    name = "my-target-minimal";
+    hwDefinition = ./hardware.nix;
+    profile = inputs.self.nixosModules.profiles-laptop-x86;
+    globalConfigOverrides = lib.ghaf.profiles.debug // {
+      givc.enable = false;
+      features.audio.enable = false;
+      features.bluetooth.enable = false;
+    };
+  };
+}
+```
+
+---
+
+## Creating New Hardware Targets
+
+### Step 1: Hardware Definition
+
+Create `modules/hardware/my-device/definition.nix`:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{ config, lib, ... }:
+{
+  _file = ./definition.nix;
+
+  hardware.definition = {
+    name = "My Device";
+    skuName = "my-device";
+    host.kernelConfig.kernelParams = [ "quiet" ];
+
+    network.pciDevices = [{
+      path = "0000:00:14.3";
+      vendorId = "8086";
+      productId = "a0f0";
+      name = "wlp0s20f3";
+    }];
+
+    gpu.pciDevices = [{
+      path = "0000:00:02.0";
+      vendorId = "8086";
+      productId = "9a49";
+      name = "Intel Graphics";
+    }];
+
+    # VM-specific hardware
+    guivm = {
+      mem = 4096;
+      vcpu = 4;
+      extraModules = [];
+    };
+
+    netvm = {
+      mem = 512;
+      vcpu = 1;
+      extraModules = [];
+    };
+  };
+}
+```
+
+### Step 2: Hardware Module
+
+Create `modules/hardware/my-device/default.nix`:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{ config, lib, pkgs, ... }:
+{
+  _file = ./default.nix;
+
+  imports = [
+    ./definition.nix
+  ];
+
+  # Device-specific kernel
+  boot.kernelPackages = pkgs.linuxPackages_latest;
+
+  # Firmware
+  hardware.firmware = [ pkgs.linux-firmware ];
+
+  # Device-specific settings
+  hardware.enableRedistributableFirmware = true;
+}
+```
+
+### Step 3: Target Configuration
+
+Create `targets/my-device/flake-module.nix`:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{
+  inputs,
+  lib,
+  ...
+}:
+let
+  mkGhafConfiguration = inputs.self.lib.ghaf.builders.mkGhafConfiguration;
+in
+{
+  flake.nixosConfigurations = {
+    my-device-debug = mkGhafConfiguration {
+      name = "my-device";
+      hwDefinition = inputs.self.nixosModules.hardware-my-device;
+      profile = inputs.self.nixosModules.profiles-laptop-x86;
+      globalConfigOverrides = lib.ghaf.profiles.debug;
+      extraModules = [
+        # Target-specific additions
+      ];
+    };
+
+    my-device-release = mkGhafConfiguration {
+      name = "my-device";
+      hwDefinition = inputs.self.nixosModules.hardware-my-device;
+      profile = inputs.self.nixosModules.profiles-laptop-x86;
+      globalConfigOverrides = lib.ghaf.profiles.release;
+    };
+  };
+}
+```
+
+### Step 4: Export Hardware Module
+
+Add to `modules/hardware/flake-module.nix`:
+
+```nix
+{
+  flake.nixosModules = {
+    hardware-my-device = ./my-device;
+  };
+}
+```
+
+---
+
+## Target Customization Patterns
+
+### Pattern 1: Override VM Resources
+
+```nix
+{
+  ghaf.virtualization.vmConfig = {
+    guivm = { ramMb = 8192; vcpus = 8; };
+    netvm = { ramMb = 1024; vcpus = 2; };
+    audiovm = { ramMb = 512; vcpus = 1; };
+  };
+}
+```
+
+### Pattern 2: Custom Networking
+
+```nix
+{
+  ghaf.common.extraNetworking = {
+    hosts = {
+      gui-vm = { ipv4 = "10.0.0.2"; mac = "02:00:00:00:00:02"; };
+      net-vm = { ipv4 = "10.0.0.3"; mac = "02:00:00:00:00:03"; };
+    };
+    hostAddress = "10.0.0.1";
+    networkPrefix = "10.0.0.0/24";
+  };
+}
+```
+
+### Pattern 3: Hardware-Specific Modules
+
+```nix
+extraModules = [
+  ({ config, pkgs, ... }: {
+    # Touchpad configuration
+    services.libinput.enable = true;
+    services.libinput.touchpad = {
+      tapping = true;
+      naturalScrolling = true;
+    };
+
+    # Power management
+    services.tlp.enable = true;
+    services.thermald.enable = true;
+  })
+];
+```
+
+### Pattern 4: Conditional Configuration
+
+```nix
+extraModules = [
+  ({ config, lib, ... }: {
+    # Only apply if debug profile
+    config = lib.mkIf config.ghaf.global-config.debug.enable {
+      services.getty.autologinUser = "ghaf";
+    };
+  })
+];
+```
+
+---
+
+## Testing Targets
+
+### Build Target
+
+```bash
+# Debug variant
+nix build .#my-device-debug
+
+# Release variant
+nix build .#my-device-release
+```
+
+### Dry-Run Evaluation
+
+```bash
+nix build .#my-device-debug --dry-run
+```
+
+### Check Specific Configuration
+
+```bash
+# Check VM configuration
+nix eval .#nixosConfigurations.my-device-debug.config.microvm.vms.gui-vm.config.config.networking.hostName
+
+# Check global config
+nix eval .#nixosConfigurations.my-device-debug.config.ghaf.global-config --json | jq
+```
+
+---
+
+## Checklist for New Targets
+
+- [ ] Create hardware definition with `_file` declaration
+- [ ] Create hardware module with device-specific settings
+- [ ] Export hardware module in `flake-module.nix`
+- [ ] Create target configuration in `targets/`
+- [ ] Configure both debug and release variants
+- [ ] Add installer configuration if needed
+- [ ] Test build succeeds
+- [ ] Test on actual hardware
+- [ ] Document hardware requirements
+
+---
+
+## See Also
+
+- [Creating VMs](/ghaf/dev/guides/creating-vms) - New VM types
+- [Writing Modules](/ghaf/dev/guides/writing-modules) - Module conventions
+- [Downstream Setup](/ghaf/dev/guides/downstream-setup) - Downstream projects
+- [Profiles API](/ghaf/dev/library/profiles-api) - Profile configuration
