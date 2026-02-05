@@ -84,6 +84,12 @@ rec {
             default = "";
             description = "Logging listener address";
           };
+
+          port = mkOption {
+            type = types.port;
+            default = 9999;
+            description = "Logging listener port";
+          };
         };
 
         server = {

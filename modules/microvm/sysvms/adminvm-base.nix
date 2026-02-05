@@ -107,8 +107,7 @@ in
 
     # Logging - from globalConfig
     logging = {
-      inherit (globalConfig.logging) enable;
-      listener.address = globalConfig.logging.listener.address or "";
+      inherit (globalConfig.logging) enable listener;
       server = {
         inherit (globalConfig.logging) enable;
         endpoint = globalConfig.logging.server.endpoint or "";

@@ -116,7 +116,11 @@ in
     };
 
     # Logging - from globalConfig
-    logging.client.enable = globalConfig.logging.enable or false;
+    logging = {
+      inherit (globalConfig.logging) enable listener;
+      client.enable = globalConfig.logging.enable or false;
+      server.endpoint = globalConfig.logging.server.endpoint or "";
+    };
 
     security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
 
@@ -131,13 +135,6 @@ in
       profile = hostConfig.users.profile or { };
       admin = hostConfig.users.admin or { };
       managed = hostConfig.users.managed or { };
-    };
-
-    # Logging config - from globalConfig (previously from serviceModules.logging)
-    logging = {
-      enable = globalConfig.logging.enable or false;
-      listener.address = globalConfig.logging.listener.address or "";
-      server.endpoint = globalConfig.logging.server.endpoint or "";
     };
 
     # GIVC configuration - from globalConfig (previously from serviceModules.givc)

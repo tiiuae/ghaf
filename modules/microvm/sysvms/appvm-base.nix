@@ -173,8 +173,11 @@ in
       role = "client";
     };
 
-    # Logging
-    logging.client.enable = globalConfig.logging.enable or false;
+    # Logging - from globalConfig
+    logging = {
+      inherit (globalConfig.logging) enable listener;
+      client.enable = globalConfig.logging.enable or false;
+    };
 
     # Security
     security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
