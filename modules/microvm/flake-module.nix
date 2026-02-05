@@ -18,7 +18,6 @@ _: {
       ./sysvms/audiovm.nix
       ./sysvms/idsvm/idsvm.nix
       ./common/microvm-store-mode.nix
-      ./modules.nix
       ./vm-config.nix
     ];
 
@@ -66,9 +65,7 @@ _: {
     audiovm-base = ./sysvms/audiovm-base.nix;
 
     # Audio VM feature modules (bluetooth, xpadneo, hardware passthrough)
-    # Currently not used - hardware passthrough handled via hardware.definition.audiovm.extraModules
-    # TODO: Revisit in future phase with proper hostConfig structure
-    # audiovm-features = ./audiovm-features;
+    audiovm-features = ./audiovm-features;
 
     # Net VM base module for layered composition
     # Use with extendModules pattern:

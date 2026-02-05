@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for laptop devices based on the hardware and usecase profile
-# Migrated to mkGhafConfiguration (Phase 4.3.7)
+#
 {
   lib,
   self,
@@ -100,10 +100,10 @@ let
           enable = true;
           ids = [ "8086:15fb" ];
         };
-        virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
       };
       vmConfig = {
         guivm.mem = 6144;
+        appvms.flatpak.ramMb = 5120;
       };
     })
 
@@ -370,10 +370,10 @@ let
           enable = true;
           ids = [ "8086:15fb" ];
         };
-        virtualization.microvm.appvm.vms.flatpak.ramMb = lib.mkForce 5120;
       };
       vmConfig = {
         guivm.mem = 6144;
+        appvms.flatpak.ramMb = 5120;
       };
     })
 

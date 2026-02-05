@@ -342,52 +342,6 @@ rec {
           };
       in
       (feature.enable or false) && builtins.elem vmName (feature.targetVms or [ ]);
-
-    # Get all features enabled for a specific VM
-    #
-    # Usage:
-    #   lib.ghaf.features.forVm globalConfig "gui-vm"
-    #   # Returns: { fprint = true; yubikey = true; brightness = true; wifi = false; ... }
-    #
-    # Parameters:
-    #   globalConfig: The ghaf.global-config attribute set
-    #   vmName: Name of the VM to check
-    #
-    # Returns: attrset of featureName -> bool
-    forVm =
-      globalConfig: vmName:
-      let
-        featuresAttr = globalConfig.features or { };
-      in
-      lib.mapAttrs (
-        _name: feature: (feature.enable or false) && builtins.elem vmName (feature.targetVms or [ ])
-      ) featuresAttr;
-
-    # List all available feature names
-    #
-    # Usage:
-    #   lib.ghaf.features.available globalConfig
-    #   # Returns: [ "fprint" "yubikey" "brightness" "wifi" "audio" "bluetooth" ]
-    #
-    available = globalConfig: builtins.attrNames (globalConfig.features or { });
-
-    # Get VMs that have a specific feature enabled
-    #
-    # Usage:
-    #   lib.ghaf.features.vmsWithFeature globalConfig "fprint"
-    #   # Returns: [ "gui-vm" ] (or whatever targetVms is set to)
-    #
-    vmsWithFeature =
-      globalConfig: featureName:
-      let
-        featuresAttr = globalConfig.features or { };
-        feature =
-          featuresAttr.${featureName} or {
-            enable = false;
-            targetVms = [ ];
-          };
-      in
-      if feature.enable or false then feature.targetVms or [ ] else [ ];
   };
 
   # Predefined global config profiles
@@ -575,8 +529,8 @@ rec {
   # Functions:
   #   lib.ghaf.vm.mkSpecialArgs - Create specialArgs for VM modules
   #   lib.ghaf.vm.mkHostConfig  - Extract host config for VM specialArgs
-  #   lib.ghaf.vm.extend        - Extend a VM base with modules
   #   lib.ghaf.vm.getConfig     - Get inner NixOS config from microvm.vms entry
+  #   lib.ghaf.vm.applyVmConfig - Build modules list with vmConfig applied
   #
   # Usage Example:
   #   guivmBase = lib.nixosSystem {
@@ -661,7 +615,7 @@ rec {
           enable = config.ghaf.microvm-boot.enable or false;
         };
 
-        # Hardware devices (for modules.nix)
+        # Hardware devices
         hardware = {
           devices = config.ghaf.hardware.devices or { };
         };
@@ -698,37 +652,6 @@ rec {
         appvms = config.ghaf.virtualization.microvm.appvm.vms or { };
       }
       // extraConfig;
-
-    # Extend a VM base with additional modules
-    #
-    # This function takes a base VM configuration (lib.nixosSystem result)
-    # and extends it with additional modules for profile-specific functionality.
-    #
-    # Arguments:
-    #   vmBase          - lib.nixosSystem result with .extendModules
-    #   extraModules    - Additional modules to add
-    #   globalConfig    - Global config value
-    #   hostConfig      - Host-specific config
-    #   extraSpecialArgs - Optional additional specialArgs
-    #
-    # Returns: Extended NixOS system configuration
-    #
-    # See modules/profiles/laptop-x86.nix for canonical pattern.
-    extend =
-      {
-        vmBase,
-        extraModules ? [ ],
-        globalConfig ? { },
-        hostConfig ? { },
-        extraSpecialArgs ? { },
-      }:
-      vmBase.extendModules {
-        modules = extraModules;
-        specialArgs = {
-          inherit globalConfig hostConfig;
-        }
-        // extraSpecialArgs;
-      };
 
     # Get the inner NixOS config from a microvm.vms entry
     #
@@ -796,34 +719,5 @@ rec {
           // lib.optionalAttrs (vmCfg.vcpu or null != null) { microvm.vcpu = vmCfg.vcpu; };
       in
       [ resourceModule ] ++ hwModules ++ vmConfigModules;
-
-    # Build modules list with vmConfig applied for App VMs
-    #
-    # Similar to applyVmConfig but uses appvms namespace and
-    # ramMb/cores naming convention for consistency with appvm definitions.
-    #
-    # Arguments:
-    #   config - Host configuration
-    #   appName - App VM name (e.g., "chromium", "comms")
-    #
-    # Returns: List of modules to add via extendModules
-    applyAppVmConfig =
-      {
-        config,
-        appName,
-      }:
-      let
-        vmCfg = config.ghaf.virtualization.vmConfig.appvms.${appName} or { };
-        vmConfigModules = vmCfg.extraModules or [ ];
-
-        # Resource allocation module (applies ramMb/cores as mem/vcpu)
-        resourceModule =
-          lib.optionalAttrs (vmCfg.ramMb or null != null) {
-            # App VMs use balloon, so scale by balloon ratio
-            microvm.mem = vmCfg.ramMb * 3; # Default balloon ratio is 2
-          }
-          // lib.optionalAttrs (vmCfg.cores or null != null) { microvm.vcpu = vmCfg.cores; };
-      in
-      [ resourceModule ] ++ vmConfigModules;
   };
 }

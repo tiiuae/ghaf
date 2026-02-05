@@ -8,9 +8,8 @@
 # - Host-specific settings (networking.hosts) come via hostConfig specialArg
 #
 # The VM configuration is self-contained and does not reference `configHost`.
-#
-# NOTE: As of Phase 3.85, the legacy inline configuration path has been removed.
 # All platforms must use the evaluatedConfig pattern with a profile's netvmBase.
+#
 {
   config,
   lib,

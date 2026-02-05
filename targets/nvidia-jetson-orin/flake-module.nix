@@ -2,7 +2,6 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Configuration for NVIDIA Jetson Orin AGX/NX
-# Migrated to mkGhafConfiguration (Phase 4.3.8)
 #
 {
   lib,
