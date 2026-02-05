@@ -109,6 +109,7 @@ in
           inherit config;
           vmName = "gui-vm";
         };
+        # Note: guivm fprint/yubikey/brightness now controlled via globalConfig.features
       };
     };
 
@@ -172,17 +173,11 @@ in
       specialArgs = lib.ghaf.vm.mkSpecialArgs {
         inherit lib inputs;
         globalConfig = hostGlobalConfig;
-        hostConfig =
-          lib.ghaf.vm.mkHostConfig {
-            inherit config;
-            vmName = "audio-vm";
-          }
-          // {
-            # Audio-specific hostConfig fields
-            audiovm = {
-              audio = config.ghaf.virtualization.microvm.audiovm.audio or false;
-            };
-          };
+        hostConfig = lib.ghaf.vm.mkHostConfig {
+          inherit config;
+          vmName = "audio-vm";
+        };
+        # Note: audiovm.audio now controlled via globalConfig.features.audio
       };
     };
 
@@ -201,17 +196,11 @@ in
       specialArgs = lib.ghaf.vm.mkSpecialArgs {
         inherit lib inputs;
         globalConfig = hostGlobalConfig;
-        hostConfig =
-          lib.ghaf.vm.mkHostConfig {
-            inherit config;
-            vmName = "net-vm";
-          }
-          // {
-            # Net-specific hostConfig fields
-            netvm = {
-              wifi = config.ghaf.virtualization.microvm.netvm.wifi or false;
-            };
-          };
+        hostConfig = lib.ghaf.vm.mkHostConfig {
+          inherit config;
+          vmName = "net-vm";
+        };
+        # Note: netvm.wifi now controlled via globalConfig.features.wifi
       };
     };
 
@@ -276,7 +265,7 @@ in
         microvm = {
           netvm = {
             enable = true;
-            wifi = true;
+            # wifi is now controlled via ghaf.global-config.features.wifi
             # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
           };
 
@@ -292,13 +281,14 @@ in
 
           guivm = {
             enable = true;
+            # fprint/yubikey/brightness now controlled via ghaf.global-config.features
             # evaluatedConfig is set by profile (e.g., mvp-user-trial.nix)
             # Profile extends guivmBase and collects extraModules
           };
 
           audiovm = {
             enable = true;
-            audio = true;
+            # audio is now controlled via ghaf.global-config.features.audio
           };
         };
       };

@@ -3,24 +3,25 @@
 #
 # Audio VM Bluetooth Feature Module
 #
-# This module enables Bluetooth service in the Audio VM when audio hardware
-# passthrough is enabled.
+# This module enables Bluetooth service in the Audio VM when bluetooth feature
+# is enabled for this VM.
 #
-# Auto-enables when: hostConfig.audiovm.audio == true
+# Auto-enables when: globalConfig.features.bluetooth enabled for this VM
 #
 {
   lib,
-  hostConfig,
+  globalConfig,
   ...
 }:
 let
-  # Check if audio hardware passthrough is enabled
-  audioEnabled = hostConfig.audiovm.audio or false;
+  vmName = "audio-vm";
+  # Check if bluetooth feature is enabled for this VM
+  bluetoothEnabled = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
 in
 {
   _file = ./bluetooth.nix;
 
-  config = lib.mkIf audioEnabled {
+  config = lib.mkIf bluetoothEnabled {
     ghaf.services.bluetooth.enable = true;
   };
 }

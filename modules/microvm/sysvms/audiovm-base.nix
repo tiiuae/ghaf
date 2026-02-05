@@ -53,8 +53,8 @@ in
       extraGroups = [
         "audio"
         "pipewire"
-        "bluetooth"
-      ];
+      ]
+      ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName) "bluetooth";
     };
 
     # System
@@ -63,8 +63,8 @@ in
       enable = true;
       withName = "audiovm-systemd";
       withLocaled = true;
-      withAudio = true;
-      withBluetooth = true;
+      withAudio = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
+      withBluetooth = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
       withNss = true;
       withResolved = true;
       withTimesyncd = true;
@@ -97,17 +97,18 @@ in
     # Services
     services = {
       audio = {
-        enable = true;
+        enable = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
         role = "server";
         server.pipewireForwarding.enable = true;
       };
       power-manager.vm = {
         enable = true;
-        pciSuspendServices = [
-          "pipewire.socket"
-          "pipewire.service"
-          "bluetooth.service"
-        ];
+        pciSuspendServices =
+          lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.socket"
+          ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.service"
+          ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "bluetooth"
+            vmName
+          ) "bluetooth.service";
       };
       performance.vm = {
         enable = true;

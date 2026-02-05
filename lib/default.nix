@@ -120,6 +120,8 @@ in
       mkGlobalConfig
       # VM composition utilities organized under lib.ghaf.vm.*
       vm
+      # Feature assignment utilities under lib.ghaf.features.*
+      features
       ;
   };
 }

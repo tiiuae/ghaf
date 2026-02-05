@@ -103,8 +103,9 @@ in
 
     # Services
     services = {
-      # WiFi service - conditional on hostConfig flag
-      wifi.enable = lib.mkDefault (hostConfig.netvm.wifi or false);
+      # WiFi service - controlled via globalConfig.features
+      # Configure via ghaf.global-config.features.wifi.{enable, targetVms}
+      wifi.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName);
 
       # Firmware service
       firmware.enable = true;

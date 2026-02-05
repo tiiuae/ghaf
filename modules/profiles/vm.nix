@@ -79,16 +79,11 @@ in
       specialArgs = lib.ghaf.vm.mkSpecialArgs {
         inherit lib inputs;
         globalConfig = hostGlobalConfig;
-        hostConfig =
-          lib.ghaf.vm.mkHostConfig {
-            inherit config;
-            vmName = "net-vm";
-          }
-          // {
-            netvm = {
-              wifi = config.ghaf.virtualization.microvm.netvm.wifi or false;
-            };
-          };
+        hostConfig = lib.ghaf.vm.mkHostConfig {
+          inherit config;
+          vmName = "net-vm";
+        };
+        # Note: netvm.wifi now controlled via globalConfig.features.wifi
       };
     };
 
@@ -106,16 +101,11 @@ in
       specialArgs = lib.ghaf.vm.mkSpecialArgs {
         inherit lib inputs;
         globalConfig = hostGlobalConfig;
-        hostConfig =
-          lib.ghaf.vm.mkHostConfig {
-            inherit config;
-            vmName = "audio-vm";
-          }
-          // {
-            audiovm = {
-              audio = config.ghaf.virtualization.microvm.audiovm.audio or false;
-            };
-          };
+        hostConfig = lib.ghaf.vm.mkHostConfig {
+          inherit config;
+          vmName = "audio-vm";
+        };
+        # Note: audiovm.audio now controlled via globalConfig.features.audio
       };
     };
 

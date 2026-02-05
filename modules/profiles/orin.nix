@@ -74,17 +74,11 @@ in
         specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
           globalConfig = hostGlobalConfig;
-          hostConfig =
-            lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "net-vm";
-            }
-            // {
-              # Net-specific hostConfig fields
-              netvm = {
-                wifi = config.ghaf.virtualization.microvm.netvm.wifi or false;
-              };
-            };
+          hostConfig = lib.ghaf.vm.mkHostConfig {
+            inherit config;
+            vmName = "net-vm";
+          };
+          # Note: netvm.wifi now controlled via globalConfig.features.wifi
         };
       };
 
@@ -171,7 +165,7 @@ in
         microvm = {
           netvm = {
             enable = true;
-            wifi = false;
+            # wifi is now controlled via ghaf.global-config.features.wifi
             # Use evaluatedConfig pattern - extend netvmBase with vmConfig modules
             evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
               modules = lib.ghaf.vm.applyVmConfig {
@@ -193,12 +187,12 @@ in
 
           guivm = {
             enable = false;
-            #extraModules = cfg.guivmExtraModules;
+            # fprint/yubikey/brightness now controlled via ghaf.global-config.features
           };
 
           audiovm = {
             enable = false;
-            #audio = true;
+            # audio now controlled via ghaf.global-config.features.audio
           };
         };
 

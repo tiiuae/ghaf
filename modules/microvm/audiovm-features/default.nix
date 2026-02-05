@@ -4,7 +4,7 @@
 # Audio VM Features Module
 #
 # This module aggregates all Audio VM feature modules and auto-includes them
-# based on their respective feature flags in hostConfig.
+# based on their respective feature flags in globalConfig.features.
 #
 # Usage:
 #   In profile's lib.nixosSystem call:
@@ -14,9 +14,9 @@
 #     ];
 #
 # Feature modules auto-include based on:
-#   - bluetooth.nix: hostConfig.audiovm.audio (from microvm options)
-#   - xpadneo.nix: hostConfig.audiovm.audio (from microvm options)
-#   - hardware-passthrough.nix: hostConfig has hardware devices
+#   - bluetooth.nix: globalConfig.features.bluetooth (for audio-vm)
+#   - xpadneo.nix: globalConfig.features.audio (for audio-vm)
+#   - hardware-passthrough.nix: hardware.definition (from hostConfig)
 #
 { ... }:
 {
@@ -24,7 +24,7 @@
 
   imports = [
     # All feature modules use mkIf internally to conditionally enable
-    # based on their respective hostConfig flags
+    # based on their respective globalConfig.features flags
     ./bluetooth.nix
     ./xpadneo.nix
     ./hardware-passthrough.nix

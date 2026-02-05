@@ -200,9 +200,194 @@ rec {
         };
       };
 
-      # Extensible: additional settings discovered during migration
-      # will be added here as we migrate more VMs
+      # ═══════════════════════════════════════════════════════════════════════
+      # FEATURES - Service Assignment Configuration
+      # ═══════════════════════════════════════════════════════════════════════
+      #
+      # Features define which services are enabled and in which VMs they run.
+      # Each feature has:
+      #   - enable: Whether the feature is available system-wide
+      #   - targetVms: List of VMs that should have this feature
+      #
+      # Usage in downstream:
+      #   ghaf.global-config.features.fprint.targetVms = [ "admin-vm" ];
+      #   ghaf.global-config.features.yubikey.targetVms = [ "gui-vm" "admin-vm" ];
+      #
+      # VM base modules check: lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName
+      #
+      features = {
+        # Hardware authentication services
+        fprint = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable fingerprint authentication support";
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "gui-vm" ];
+            example = [
+              "gui-vm"
+              "admin-vm"
+            ];
+            description = "VMs that should have fingerprint support";
+          };
+        };
+
+        yubikey = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable Yubikey 2FA support";
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "gui-vm" ];
+            example = [
+              "gui-vm"
+              "admin-vm"
+            ];
+            description = "VMs that should have Yubikey support";
+          };
+        };
+
+        brightness = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable brightness control via VirtIO";
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "gui-vm" ];
+            description = "VMs that should have brightness control";
+          };
+        };
+
+        # Networking services
+        wifi = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable WiFi networking support";
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "net-vm" ];
+            description = "VMs that should have WiFi support";
+          };
+        };
+
+        # Audio services
+        audio = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable audio services";
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "audio-vm" ];
+            description = "VMs that should have audio support";
+          };
+        };
+
+        bluetooth = {
+          enable = mkOption {
+            type = types.bool;
+            default = true;
+            description = "Enable Bluetooth support";
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "audio-vm" ];
+            description = "VMs that should have Bluetooth support";
+          };
+        };
+      };
     };
+  };
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # FEATURE UTILITIES
+  # ═══════════════════════════════════════════════════════════════════════════
+  #
+  # Helper functions for checking and managing service feature assignments.
+  # These are used by VM base modules to determine which services to enable.
+  #
+  # Usage in VM base modules:
+  #   ghaf.services.fprint.enable = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
+  #
+  features = {
+    # Check if a feature should be enabled for a specific VM
+    #
+    # Usage:
+    #   lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm"
+    #   # Returns: true if fprint.enable && "gui-vm" in fprint.targetVms
+    #
+    # Parameters:
+    #   globalConfig: The ghaf.global-config attribute set (from specialArgs)
+    #   featureName: Name of the feature (e.g., "fprint", "wifi")
+    #   vmName: Name of the VM to check (e.g., "gui-vm", "net-vm")
+    #
+    # Returns: bool
+    isEnabledFor =
+      globalConfig: featureName: vmName:
+      let
+        featuresAttr = globalConfig.features or { };
+        feature =
+          featuresAttr.${featureName} or {
+            enable = false;
+            targetVms = [ ];
+          };
+      in
+      (feature.enable or false) && builtins.elem vmName (feature.targetVms or [ ]);
+
+    # Get all features enabled for a specific VM
+    #
+    # Usage:
+    #   lib.ghaf.features.forVm globalConfig "gui-vm"
+    #   # Returns: { fprint = true; yubikey = true; brightness = true; wifi = false; ... }
+    #
+    # Parameters:
+    #   globalConfig: The ghaf.global-config attribute set
+    #   vmName: Name of the VM to check
+    #
+    # Returns: attrset of featureName -> bool
+    forVm =
+      globalConfig: vmName:
+      let
+        featuresAttr = globalConfig.features or { };
+      in
+      lib.mapAttrs (
+        _name: feature: (feature.enable or false) && builtins.elem vmName (feature.targetVms or [ ])
+      ) featuresAttr;
+
+    # List all available feature names
+    #
+    # Usage:
+    #   lib.ghaf.features.available globalConfig
+    #   # Returns: [ "fprint" "yubikey" "brightness" "wifi" "audio" "bluetooth" ]
+    #
+    available = globalConfig: builtins.attrNames (globalConfig.features or { });
+
+    # Get VMs that have a specific feature enabled
+    #
+    # Usage:
+    #   lib.ghaf.features.vmsWithFeature globalConfig "fprint"
+    #   # Returns: [ "gui-vm" ] (or whatever targetVms is set to)
+    #
+    vmsWithFeature =
+      globalConfig: featureName:
+      let
+        featuresAttr = globalConfig.features or { };
+        feature =
+          featuresAttr.${featureName} or {
+            enable = false;
+            targetVms = [ ];
+          };
+      in
+      if feature.enable or false then feature.targetVms or [ ] else [ ];
   };
 
   # Predefined global config profiles
@@ -232,6 +417,33 @@ rec {
       };
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+      # Feature defaults for debug profile
+      features = {
+        fprint = {
+          enable = true;
+          targetVms = [ "gui-vm" ];
+        };
+        yubikey = {
+          enable = true;
+          targetVms = [ "gui-vm" ];
+        };
+        brightness = {
+          enable = true;
+          targetVms = [ "gui-vm" ];
+        };
+        wifi = {
+          enable = true;
+          targetVms = [ "net-vm" ];
+        };
+        audio = {
+          enable = true;
+          targetVms = [ "audio-vm" ];
+        };
+        bluetooth = {
+          enable = true;
+          targetVms = [ "audio-vm" ];
+        };
+      };
     };
 
     # Release profile - production settings
@@ -258,6 +470,33 @@ rec {
       };
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+      # Feature defaults for release profile
+      features = {
+        fprint = {
+          enable = true;
+          targetVms = [ "gui-vm" ];
+        };
+        yubikey = {
+          enable = true;
+          targetVms = [ "gui-vm" ];
+        };
+        brightness = {
+          enable = true;
+          targetVms = [ "gui-vm" ];
+        };
+        wifi = {
+          enable = true;
+          targetVms = [ "net-vm" ];
+        };
+        audio = {
+          enable = true;
+          targetVms = [ "audio-vm" ];
+        };
+        bluetooth = {
+          enable = true;
+          targetVms = [ "audio-vm" ];
+        };
+      };
     };
 
     # Minimal profile - bare minimum
@@ -284,6 +523,33 @@ rec {
       };
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+      # Feature defaults for minimal profile - all disabled
+      features = {
+        fprint = {
+          enable = false;
+          targetVms = [ ];
+        };
+        yubikey = {
+          enable = false;
+          targetVms = [ ];
+        };
+        brightness = {
+          enable = false;
+          targetVms = [ ];
+        };
+        wifi = {
+          enable = false;
+          targetVms = [ ];
+        };
+        audio = {
+          enable = false;
+          targetVms = [ ];
+        };
+        bluetooth = {
+          enable = false;
+          targetVms = [ ];
+        };
+      };
     };
   };
 
