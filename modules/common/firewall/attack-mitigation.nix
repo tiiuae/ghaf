@@ -105,12 +105,16 @@ in
     ghaf.firewall.extraOptions = mkIf cfg.ping.enable {
       allowPing = mkForce false;
       extraCommands = mkAfter ''
-        # Drop remaining
-        iptables -I ghaf-fw-in-filter -p icmp --icmp-type echo-request -j ghaf-fw-filter-drop
-        # Icmp requests
-        iptables -I ghaf-fw-in-filter -p icmp --icmp-type echo-request -m hashlimit \
-        --hashlimit ${toString cfg.ping.rule.maxPacketFreq} --hashlimit-burst ${toString cfg.ping.rule.burstNum} --hashlimit-mode srcip --hashlimit-name ICMP_PER_IP \
-        -j ACCEPT
+         # Accept normal ICMP requests (only if not blacklisted)
+        iptables -I ghaf-fw-in-filter -p icmp --icmp-type echo-request -m mark ! --mark ${config.ghaf.firewall.blacklistFwMarkNum} -j ACCEPT
+         # Blacklist when rate exceeded
+        iptables -I ghaf-fw-in-filter -p icmp --icmp-type echo-request \
+          -m hashlimit \
+          --hashlimit-above ${toString cfg.ping.rule.maxPacketFreq} \
+          --hashlimit-burst ${toString cfg.ping.rule.burstNum} \
+          --hashlimit-mode srcip \
+          --hashlimit-name ICMP_PER_IP \
+          -j ghaf-fw-blacklist-add
       '';
     };
 

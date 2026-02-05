@@ -14,6 +14,7 @@ let
     mkIf
     mkOption
     optionalAttrs
+    optionals
     types
     ;
   inherit (config.ghaf.networking) hosts;
@@ -72,7 +73,7 @@ in
     };
 
     ghaf.firewall = {
-      allowedTCPPorts = [ 22 ]; # TODO move this to an ssh module when it is created
+      allowedTCPPorts = optionals config.ghaf.development.ssh.daemon.enable [ 22 ];
       allowedUDPPorts = [ 67 ];
     };
 

@@ -118,7 +118,7 @@ in
       };
 
       ghaf.firewall = {
-        allowedTCPPorts = [ 22 ]; # TODO move this to an ssh module when it is created
+        allowedTCPPorts = optionals config.ghaf.development.ssh.daemon.enable [ 22 ];
         allowedUDPPorts = optionals (!hasNetvm) [ 67 ];
       };
 
