@@ -137,6 +137,10 @@ let
         sleep 2
       fi
 
+      # Ensure terminal is correctly configured for interaction
+      export TERM=linux
+      stty cols 256 2>/dev/null || true
+
       echo "+--------------------------------------------------------+"
       echo "|         First Boot - Disk Encryption Setup             |"
       echo "+--------------------------------------------------------+"

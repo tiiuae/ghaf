@@ -20,6 +20,7 @@ let
         parted
         lvm2
         coreutils
+        systemd
       ]
       ++ lib.optionals config.ghaf.storage.encryption.enable [
         cryptsetup
@@ -93,11 +94,16 @@ let
               ''
                 # Release mode: prompt user for password
                 echo "LUKS container needs to be resized to use full disk space."
-                echo "Please enter your disk encryption password:"
-                cryptsetup resize -v crypted 2>&1 || {
-                  echo "WARNING: LUKS resize failed. You may need to resize manually later."
-                  echo "Run: cryptsetup resize crypted && pvresize /dev/mapper/crypted && lvextend -l +100%FREE /dev/pool/persist"
-                }
+                while true; do
+                PASSPHRASE=$(systemd-ask-password --timeout=0 "Enter encryption PIN / password:");
+
+                    if printf '%s' "$PASSPHRASE" | cryptsetup resize -v crypted 2>&1; then
+                      echo "LUKS resize successful"
+                      break
+                    fi
+                      echo "Resize failed. Retrying in 2 seconds..."
+                    sleep 2
+                  done
               ''
           }
       fi
@@ -126,19 +132,9 @@ in
   config = lib.mkIf enable {
 
     # To debug postBootCommands, one may run
-    # journalctl -u resize-partitions.service
+    # journalctl -u initrd-nixos-activation.service
     # inside the running Ghaf host.
-    systemd.services.resize-partitions = {
-      description = "Resize partitions and filesystems on first boot";
-      wantedBy = [ "multi-user.target" ];
-      after = [ "local-fs.target" ];
-      requires = [ "local-fs.target" ];
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = "${postBootCmds}/bin/postBootScript";
-      };
-    };
+    boot.postBootCommands = "${postBootCmds}/bin/postBootScript";
 
     systemd.services.extendbtrfs =
       let
@@ -155,8 +151,8 @@ in
         enable = true;
         description = "Extend the btrfs filesystem";
         wantedBy = [ "multi-user.target" ];
-        after = [ "resize-partitions.service" ];
-        requires = [ "resize-partitions.service" ];
+        after = [ "persist.mount" ];
+        requires = [ "persist.mount" ];
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
