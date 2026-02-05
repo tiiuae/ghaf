@@ -59,8 +59,8 @@ let
               ...
             }:
             let
-              # Create globalConfig for the netvm
-              globalConfig = lib.ghaf.mkGlobalConfig config;
+              # Get globalConfig from host configuration
+              globalConfig = config.ghaf.global-config;
 
               # Create inline netvmBase (following laptop-x86 pattern)
               netvmBase = lib.nixosSystem {

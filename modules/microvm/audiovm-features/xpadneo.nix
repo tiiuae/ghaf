@@ -22,7 +22,7 @@ in
   _file = ./xpadneo.nix;
 
   config = lib.mkIf audioEnabled {
-    # Xpadneo is currently disabled (matches modules.nix behavior)
+    # Xpadneo is currently disabled
     ghaf.services.xpadneo.enable = false;
   };
 }
