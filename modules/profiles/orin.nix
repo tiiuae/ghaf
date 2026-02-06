@@ -59,14 +59,17 @@ in
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      # Orin devices are embedded, not laptops
+      hardware.definition.type = "embedded";
+
       # Export Net VM base for profiles to extend
       profiles.orin.netvmBase = lib.nixosSystem {
-        system = "aarch64-linux";
         modules = [
           inputs.microvm.nixosModules.microvm
           inputs.self.nixosModules.netvm-base
           # Import nixpkgs config module to get overlays
           {
+            nixpkgs.hostPlatform.system = "aarch64-linux";
             nixpkgs.overlays = config.nixpkgs.overlays;
             nixpkgs.config = config.nixpkgs.config;
           }
@@ -84,12 +87,12 @@ in
 
       # Export Admin VM base for profiles to extend
       profiles.orin.adminvmBase = lib.nixosSystem {
-        system = "aarch64-linux";
         modules = [
           inputs.microvm.nixosModules.microvm
           inputs.self.nixosModules.adminvm-base
           # Import nixpkgs config module to get overlays
           {
+            nixpkgs.hostPlatform.system = "aarch64-linux";
             nixpkgs.overlays = config.nixpkgs.overlays;
             nixpkgs.config = config.nixpkgs.config;
           }
@@ -200,8 +203,12 @@ in
         nvidia-docker.daemon.enable = true;
       };
 
-      # Disable givc
+      # Disable givc on Orin - GIVC requires TLS certificate infrastructure
+      # that isn't set up for Orin devices. This must be set in both:
+      # 1. ghaf.givc.enable (host-level option)
+      # 2. ghaf.global-config.givc.enable (propagates to VMs via specialArgs)
       givc.enable = false;
+      global-config.givc.enable = false;
 
       host.networking = {
         enable = true;

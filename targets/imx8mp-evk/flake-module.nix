@@ -37,6 +37,9 @@ let
 
             # Disable all the default UI applications
             ghaf = {
+              # i.MX8 is an embedded device, not a laptop
+              hardware.definition.type = "embedded";
+
               profiles = {
                 release.enable = variant == "release";
                 debug.enable = variant == "debug";

@@ -7,7 +7,7 @@
 _: lib: prev:
 let
   # Import launcher utilities
-  launcherLib = import ./launcher.nix { };
+  launcherLib = import ./launcher.nix { inherit lib; };
   # Import global config types and utilities
   globalConfigLib = import ./global-config.nix { inherit lib; };
   # Note: VM base modules are in modules/microvm/sysvms/*-base.nix
@@ -110,8 +110,8 @@ in
     globalConfig = globalConfigLib.globalConfigType;
   };
 
-  # Launcher utilities
-  inherit (launcherLib) rmDesktopEntries;
+  # Launcher utilities (remove desktop entries from packages)
+  inherit (launcherLib) rmDesktopEntry rmDesktopEntries;
 
   # Global configuration utilities under ghaf namespace
   ghaf = {

@@ -361,11 +361,18 @@ rec {
         debug.tools.enable = true;
         nix-setup.enable = true;
       };
-      logging.enable = true;
+      # Logging enabled with Ghaf's central logging infrastructure
+      # Note: listener.address is auto-populated from admin-vm IP by
+      # modules/common/global-config.nix (no need to set it per profile).
+      logging = {
+        enable = true;
+        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+      };
       security.audit.enable = false;
       givc = {
         enable = true;
-        debug = true;
+        # givc.debug disabled to allow logging (they conflict due to security)
+        debug = false;
       };
       services = {
         power-manager.enable = false;
@@ -591,7 +598,7 @@ rec {
         extraConfig ? { },
       }:
       let
-        vmType = builtins.replaceStrings [ "-vm" ] [ "" ] vmName;
+        vmType = builtins.replaceStrings [ "-" ] [ "" ] vmName;
       in
       {
         # VM name for reference
@@ -655,7 +662,13 @@ rec {
         };
 
         # AppVM configurations (needed by guivm for launcher generation)
-        appvms = config.ghaf.virtualization.microvm.appvm.vms or { };
+        # Use enabledVms which has derived values including applications from vmDef
+        appvms = config.ghaf.virtualization.microvm.appvm.enabledVms or { };
+
+        # GUIVM applications (needed by guivm for local launcher generation)
+        guivm = {
+          applications = config.ghaf.virtualization.microvm.guivm.applications or [ ];
+        };
       }
       // extraConfig;
 

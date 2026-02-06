@@ -115,17 +115,6 @@ let
                     vms = {
                       zathura = {
                         enable = true;
-                        name = "zathura";
-                        borderColor = "#122263";
-                        applications = [
-                          {
-                            name = "PDF Viewer";
-                            description = "Isolated PDF Viewer";
-                            packages = [ pkgs.zathura ];
-                            icon = "document-viewer";
-                            command = "zathura";
-                          }
-                        ];
                         # Create evaluatedConfig with waypipe disabled (no guivm)
                         evaluatedConfig = vmProfile.mkAppVm {
                           name = "zathura";

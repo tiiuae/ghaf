@@ -4,6 +4,7 @@
 
 let
   inherit (lib)
+    filter
     foldr
     mkOption
     recursiveUpdate
@@ -56,8 +57,12 @@ let
 
   # Evaluate generated hosts as attrset
   generatedHostAttrs = lib.listToAttrs (map (host: nameValuePair host.name host) generatedHosts);
-  # Extract names of all extra hosts
-  extraHostNames = lib.attrNames config.ghaf.common.extraNetworking.hosts;
+  # Extract names of all extra hosts that also exist in generatedHostAttrs
+  # This prevents evaluation errors when extraNetworking.hosts contains entries
+  # not yet in generatedHostAttrs (due to module evaluation order)
+  extraHostNames = filter (name: generatedHostAttrs ? ${name}) (
+    lib.attrNames config.ghaf.common.extraNetworking.hosts
+  );
 
   # Merge logic per host
   mergedExtraHosts = lib.listToAttrs (

@@ -78,12 +78,13 @@ in
 
     # Export GUI VM base for profiles to extend
     ghaf.profiles.laptop-x86.guivmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.guivm-base
+        inputs.self.nixosModules.guivm-features
         # Import nixpkgs config module to get overlays
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -101,13 +102,13 @@ in
 
     # Export Admin VM base for profiles to extend
     ghaf.profiles.laptop-x86.adminvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.adminvm-base
         inputs.self.nixosModules.adminvm-features
         # Import nixpkgs config module to get overlays
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -124,12 +125,12 @@ in
 
     # Export IDS VM base for profiles to extend
     ghaf.profiles.laptop-x86.idsvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.idsvm-base
         # Import nixpkgs config module to get overlays
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -146,12 +147,13 @@ in
 
     # Export Audio VM base for profiles to extend
     ghaf.profiles.laptop-x86.audiovmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.audiovm-base
+        inputs.self.nixosModules.audiovm-features
         # Import nixpkgs config module to get overlays
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -169,12 +171,12 @@ in
 
     # Export Net VM base for profiles to extend
     ghaf.profiles.laptop-x86.netvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.netvm-base
         # Import nixpkgs config module to get overlays
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -192,15 +194,19 @@ in
 
     # Export mkAppVm function for creating App VMs
     # Unlike singleton VMs, App VMs are instantiated multiple times
+    #
+    # Note: Extensions (e.g., from ghaf-intro) are now handled via the
+    # `extensions` option in appvm.nix, applied via NixOS native extendModules.
+    # mkAppVm no longer needs to read host-level options.
     ghaf.profiles.laptop-x86.mkAppVm =
       vmDef:
       lib.nixosSystem {
-        inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
         modules = [
           inputs.microvm.nixosModules.microvm
           inputs.self.nixosModules.appvm-base
           # Import nixpkgs config module to get overlays
           {
+            nixpkgs.hostPlatform.system = "x86_64-linux";
             nixpkgs.overlays = config.nixpkgs.overlays;
             nixpkgs.config = config.nixpkgs.config;
           }

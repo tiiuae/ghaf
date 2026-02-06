@@ -30,9 +30,11 @@ in
           let
             vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
             microvmConfig = vmConfig.microvm;
-            appvmConfig = config.ghaf.virtualization.microvm.appvm.vms.${lib.removeSuffix "-vm" name};
+            # Use enabledVms which has derived ramMb from evaluatedConfig
+            vmBaseName = lib.removeSuffix "-vm" name;
+            appvmConfig = config.ghaf.virtualization.microvm.appvm.enabledVms.${vmBaseName} or null;
           in
-          {
+          lib.optionalAttrs (appvmConfig != null) {
             "ghaf-mem-manager-${name}" = {
               description = "Manage MicroVM '${name}' memory levels";
               after = [ "microvm@${name}.service" ];

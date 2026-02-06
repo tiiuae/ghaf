@@ -13,9 +13,6 @@ let
     optionalString
     optionals
     ;
-  inherit (config.networking) hostName;
-  inherit (config.ghaf.networking) hosts;
-  inherit (config.ghaf.common) adminHost;
 in
 {
   _file = ./host.nix;
@@ -30,8 +27,8 @@ in
       enable = true;
       inherit (config.ghaf.givc) debug;
       transport = {
-        name = hostName;
-        addr = hosts.${hostName}.ipv4;
+        name = config.networking.hostName;
+        addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
         port = "9000";
       };
       services = [
@@ -47,7 +44,9 @@ in
         "host-balanced-battery.service"
         "host-performance-battery.service"
       ];
-      adminVm = optionalString (adminHost != null) "microvm@${adminHost}.service";
+      adminVm = optionalString (
+        config.ghaf.common.adminHost != null
+      ) "microvm@${config.ghaf.common.adminHost}.service";
       systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
       appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
       tls.enable = config.ghaf.givc.enableTls;
@@ -60,13 +59,13 @@ in
       agents = lib.attrsets.mapAttrsToList (n: v: {
         name = n;
         addr = v.ipv4;
-      }) hosts;
-      generatorHostName = hostName;
+      }) config.ghaf.networking.hosts;
+      generatorHostName = config.networking.hostName;
       storagePath = "/persist/storagevm/givc";
     };
 
     ghaf.security.audit.extraRules = [
-      "-w /etc/givc/ -p wa -k givc-${hostName}"
+      "-w /etc/givc/ -p wa -k givc-${config.networking.hostName}"
     ];
   };
 }

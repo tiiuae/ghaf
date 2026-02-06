@@ -79,6 +79,11 @@ in
       withDebug = globalConfig.debug.enable or false;
       withHardenedConfigs = true;
     };
+    # GIVC configuration - from globalConfig
+    givc = {
+      enable = globalConfig.givc.enable or false;
+      debug = globalConfig.givc.debug or false;
+    };
     givc.netvm.enable = true;
 
     # Storage - from globalConfig
@@ -97,8 +102,19 @@ in
 
     virtualization.microvm.tpm.passthrough = {
       # At the moment the TPM is only used for storage encryption, so the features are coupled.
-      enable = globalConfig.storage.encryption.enable or false;
+      # TPM passthrough is only supported on x86_64.
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
       rootNVIndex = "0x81704000";
+    };
+
+    virtualization.microvm.tpm.emulated = {
+      # Use emulated TPM for non-x86_64 systems when encryption is enabled
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+      name = vmName;
     };
 
     # Services
@@ -119,6 +135,7 @@ in
       };
 
       performance = {
+        enable = globalConfig.services.performance.enable or false;
         net.enable = true;
       };
     };

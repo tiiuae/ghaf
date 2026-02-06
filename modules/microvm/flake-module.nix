@@ -64,6 +64,9 @@ _: {
     #     .extendModules { modules = [ ... ]; }
     audiovm-base = ./sysvms/audiovm-base.nix;
 
+    # GUI VM feature modules (GPU/input/kernel/QEMU hardware passthrough)
+    guivm-features = ./guivm-features;
+
     # Audio VM feature modules (bluetooth, xpadneo, hardware passthrough)
     audiovm-features = ./audiovm-features;
 

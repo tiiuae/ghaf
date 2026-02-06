@@ -15,8 +15,8 @@
 let
   cfg = config.ghaf.virtualization.microvm.appvm;
 
-  vms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
-  vmsWithVtpm = lib.filterAttrs (_name: vm: vm.vtpm.enable && vm.vtpm.runInVM) vms;
+  # Use enabledVms which has derived vtpm values from evaluatedConfig
+  vmsWithVtpm = lib.filterAttrs (_name: vm: vm.vtpm.enable && vm.vtpm.runInVM) cfg.enabledVms;
 in
 lib.mkIf cfg.enable {
   # Spawn a swtpm-proxy on the host for each VM with vtpm enabled
