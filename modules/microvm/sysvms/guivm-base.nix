@@ -138,6 +138,11 @@ in
       withDebug = globalConfig.debug.enable or false;
       withHardenedConfigs = true;
     };
+    # GIVC configuration - from globalConfig
+    givc = {
+      enable = globalConfig.givc.enable or false;
+      debug = globalConfig.givc.debug or false;
+    };
     givc.guivm.enable = true;
 
     # Storage - from globalConfig
@@ -158,8 +163,19 @@ in
     };
 
     virtualization.microvm.tpm.passthrough = {
-      enable = globalConfig.storage.encryption.enable or false;
+      # TPM passthrough is only supported on x86_64
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
       rootNVIndex = "0x81703000";
+    };
+
+    virtualization.microvm.tpm.emulated = {
+      # Use emulated TPM for non-x86_64 systems when encryption is enabled
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+      name = vmName;
     };
 
     # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled

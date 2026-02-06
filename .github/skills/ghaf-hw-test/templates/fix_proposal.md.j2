@@ -1,0 +1,35 @@
+{# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors #}
+{# SPDX-License-Identifier: Apache-2.0 #}
+{# Fix proposal template for test failures #}
+## Fix Proposal: {{ test_name }}
+
+**Test Suite:** {{ suite }}
+**Category:** {{ category }}
+**Status:** FAILED
+
+### Error Message
+```
+{{ message | truncate(500) }}
+```
+
+### Analysis
+{% if patterns_matched %}
+The error matches these known patterns:
+{% for pattern in patterns_matched %}
+- `{{ pattern }}`
+{% endfor %}
+{% endif %}
+
+### Likely Code Locations
+{% for module in likely_modules %}
+- `{{ module }}`
+{% endfor %}
+
+### Suggested Action
+{{ suggestion }}
+
+### Next Steps
+1. Review the error message above
+2. Examine the code in the likely locations
+3. Apply the suggested fix
+4. Re-run tests with: `ghaf-hw-test test --device {{ device }} --ip {{ ip }}`

@@ -62,11 +62,11 @@ in
 
     # Export Net VM base
     ghaf.profiles.vm.netvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.netvm-base
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -84,11 +84,12 @@ in
 
     # Export Audio VM base
     ghaf.profiles.vm.audiovmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.audiovm-base
+        inputs.self.nixosModules.audiovm-features
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -106,12 +107,12 @@ in
 
     # Export Admin VM base
     ghaf.profiles.vm.adminvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.adminvm-base
         inputs.self.nixosModules.adminvm-features
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -129,12 +130,20 @@ in
     # Export mkAppVm function for creating App VMs
     ghaf.profiles.vm.mkAppVm =
       vmDef:
+      let
+        # Get additional applications from host-level option (e.g., from ghaf-intro.nix)
+        hostLevelApps = config.ghaf.virtualization.microvm.appvm.vms.${vmDef.name}.applications or [ ];
+        # Merge vmDef applications with host-level applications
+        mergedVmDef = vmDef // {
+          applications = (vmDef.applications or [ ]) ++ hostLevelApps;
+        };
+      in
       lib.nixosSystem {
-        inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
         modules = [
           inputs.microvm.nixosModules.microvm
           inputs.self.nixosModules.appvm-base
           {
+            nixpkgs.hostPlatform.system = "x86_64-linux";
             nixpkgs.overlays = config.nixpkgs.overlays;
             nixpkgs.config = config.nixpkgs.config;
           }
@@ -148,7 +157,8 @@ in
               vmName = "${vmDef.name}-vm";
             }
             // {
-              appvm = vmDef;
+              # App VM-specific hostConfig fields (with merged applications)
+              appvm = mergedVmDef;
               sharedVmDirectory =
                 config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
                   enable = false;

@@ -45,9 +45,10 @@ let
     port = "9001";
     protocol = "tcp";
   };
+  # Safe access for VMs which don't have ghaf.virtualization.microvm options
   mitmEnabled =
-    config.ghaf.virtualization.microvm.idsvm.enable
-    && config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;
+    (config.ghaf.virtualization.microvm.idsvm.enable or false)
+    && (config.ghaf.virtualization.microvm.idsvm.mitmproxy.enable or false);
   idsExtraArgs = optionalString mitmEnabled "--user-data-dir=/home/${config.ghaf.users.appUser.name}/.config/google-chrome/Default --test-type --ignore-certificate-errors-spki-list=Bq49YmAq1CG6FuBzp8nsyRXumW7Dmkp7QQ/F82azxGU=";
 in
 {

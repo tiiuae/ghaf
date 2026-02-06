@@ -19,10 +19,13 @@ in
     enable = lib.mkEnableOption "Communications App VM";
   };
 
-  config = lib.mkIf cfg.enable {
+  # Only configure when both enabled AND laptop-x86 profile is available
+  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
+  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
     ghaf.virtualization.microvm.appvm.vms.comms = {
       enable = lib.mkDefault true;
       name = "comms";
+      ramMb = 4096;
       borderColor = "#337aff";
 
       applications = [

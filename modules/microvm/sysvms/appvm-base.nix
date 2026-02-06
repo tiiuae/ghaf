@@ -39,6 +39,11 @@ let
   vm = hostConfig.appvm;
   vmName = "${vm.name}-vm";
 
+  # Helper to unwrap mkDefault values for use in lib.mkIf conditions
+  # Values like `lib.mkDefault true` become { _type = "override"; content = true; priority = 1000; }
+  # This extracts the actual boolean for use in conditionals
+  unwrap = val: if val._type or null == "override" then val.content else val;
+
   # Process applications for GIVC
   givcApps = map (app: {
     name = app.givcName or (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.name));
@@ -78,6 +83,16 @@ in
   ++ (vm.extraModules or [ ]);
 
   ghaf = {
+    # Common namespace - from hostConfig (for appHosts, systemHosts, etc.)
+    # This allows hosts.nix to generate ghaf.networking.hosts and networking.hosts
+    common = hostConfig.common or { };
+
+    # GIVC configuration - from globalConfig
+    givc = {
+      enable = globalConfig.givc.enable or false;
+      debug = globalConfig.givc.debug or false;
+    };
+
     # GIVC app configuration
     givc.appvm = {
       enable = true;
@@ -168,7 +183,7 @@ in
     };
 
     # Audio client
-    services.audio = lib.mkIf (vm.ghafAudio.enable or false) {
+    services.audio = lib.mkIf (unwrap (vm.ghafAudio.enable or false)) {
       enable = true;
       role = "client";
     };

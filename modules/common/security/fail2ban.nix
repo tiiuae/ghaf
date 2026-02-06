@@ -53,6 +53,12 @@ in
       maxretry = if (config.ghaf.profiles.debug.enable or false) then 10 else 3;
       bantime-increment.enable = true;
       bantime-increment.factor = "2";
+      # In debug mode, whitelist internal VM network to prevent SSH tarpit from
+      # blocking inter-VM and host-to-VM SSH connections during development
+      ignoreIP = lib.optionals (config.ghaf.profiles.debug.enable or false) [
+        "192.168.100.0/24" # Internal VM network
+        "127.0.0.0/8" # Localhost
+      ];
       jails = {
         # sshd is jailed by default
         sshd.settings = {

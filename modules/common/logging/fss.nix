@@ -427,8 +427,9 @@ in
   config = mkIf cfg.enable {
     # Enable audit subsystem for FSS monitoring
     # This provides auditctl and enables the audit rules defined below
-    # Use mkDefault so profiles can override if needed
-    ghaf.security.audit.enable = lib.mkDefault true;
+    # FSS requires audit to be enabled, so we use mkForce to ensure it's on
+    # regardless of profile settings (audit is fundamental to FSS functionality)
+    ghaf.security.audit.enable = lib.mkForce true;
 
     # Create key directory and journal directory via tmpfiles
     # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host

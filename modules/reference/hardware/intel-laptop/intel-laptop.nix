@@ -17,12 +17,6 @@
         "acpi_osi=linux"
         "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus"
       ];
-
-      # The vfio-pci module must be explicitly enabled on the host
-      # On other targets, microvm loads it when static PCI devices are present
-      stage2.kernelModules = [
-        "vfio_pci"
-      ];
     };
 
     # Assign the vfio-pci driver for all device types eligible for passthrough

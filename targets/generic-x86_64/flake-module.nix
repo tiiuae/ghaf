@@ -64,12 +64,12 @@ let
 
               # Create inline netvmBase (following laptop-x86 pattern)
               netvmBase = lib.nixosSystem {
-                inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
                 modules = [
                   inputs.microvm.nixosModules.microvm
                   inputs.self.nixosModules.netvm-base
                   # Import nixpkgs config for overlays
                   {
+                    nixpkgs.hostPlatform.system = "x86_64-linux";
                     nixpkgs.overlays = config.nixpkgs.overlays;
                     nixpkgs.config = config.nixpkgs.config;
                   }

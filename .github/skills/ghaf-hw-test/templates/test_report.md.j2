@@ -1,0 +1,41 @@
+{# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors #}
+{# SPDX-License-Identifier: Apache-2.0 #}
+{# Test report summary template #}
+# Test Report: {{ device }}
+
+**Date:** {{ date }}
+**Device:** {{ device }}
+**IP Address:** {{ ip }}
+**Test Tag:** {{ tag }}
+
+## Summary
+
+| Metric | Count |
+|--------|-------|
+| Total Tests | {{ total }} |
+| Passed | {{ passed }} |
+| Failed | {{ failed }} |
+| Skipped | {{ skipped }} |
+
+**Pass Rate:** {{ pass_rate }}%
+
+{% if failed > 0 %}
+## Failures
+
+{% for failure in failures %}
+### {{ failure.name }}
+
+**Suite:** {{ failure.suite }}
+
+```
+{{ failure.message | truncate(300) }}
+```
+
+{% endfor %}
+{% endif %}
+
+## Test Details
+
+{% for result in results %}
+- {% if result.status == 'PASS' %}✓{% elif result.status == 'FAIL' %}✗{% else %}○{% endif %} {{ result.name }} ({{ result.status }})
+{% endfor %}

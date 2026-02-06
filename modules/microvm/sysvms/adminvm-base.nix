@@ -101,8 +101,19 @@ in
     };
 
     virtualization.microvm.tpm.passthrough = {
-      enable = globalConfig.storage.encryption.enable or false;
+      # TPM passthrough is only supported on x86_64
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
       rootNVIndex = "0x81701000";
+    };
+
+    virtualization.microvm.tpm.emulated = {
+      # Use emulated TPM for non-x86_64 systems when encryption is enabled
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+      name = vmName;
     };
 
     # Logging - from globalConfig

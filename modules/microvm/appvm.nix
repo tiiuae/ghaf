@@ -113,6 +113,18 @@ in
               description = "Name of the App VM (without -vm suffix)";
             };
 
+            ramMb = mkOption {
+              description = "Minimum amount of RAM for this AppVM (used by mem-manager)";
+              type = types.int;
+              default = 4096;
+            };
+
+            balloonRatio = mkOption {
+              description = "Amount of dynamic RAM as a multiple of ramMb";
+              type = types.number;
+              default = 2;
+            };
+
             bootPriority = mkOption {
               type = types.enum [
                 "low"
@@ -218,8 +230,9 @@ in
     };
   };
 
-  config =
-    lib.mkIf cfg.enable {
+  config = lib.mkMerge [
+    # Main App VM configuration
+    (lib.mkIf cfg.enable {
       # Assertions - each enabled VM must have evaluatedConfig
       assertions = lib.mapAttrsToList (name: vm: {
         assertion = vm.evaluatedConfig != null;
@@ -259,18 +272,18 @@ in
       ghaf.hardware.passthrough.vhotplug.usbRules = lib.concatMap (vm: vm.usbPassthrough) (
         lib.attrValues enabledVms
       );
-    }
+    })
+
     # GUI VM waypipe services (x86 only with hardware.definition)
-    // lib.optionalAttrs hasHardwareDefinition (
-      lib.mkIf cfg.enable {
-        ghaf.hardware.definition.guivm.extraModules = [
-          {
-            systemd.user.services = lib.mapAttrs' (name: vm: {
-              name = "waypipe-${name}-vm";
-              value = vm.evaluatedConfig.config.ghaf.waypipe.waypipeService;
-            }) vmsWithWaypipe;
-          }
-        ];
-      }
-    );
+    (lib.mkIf (cfg.enable && hasHardwareDefinition) {
+      ghaf.hardware.definition.guivm.extraModules = [
+        {
+          systemd.user.services = lib.mapAttrs' (name: vm: {
+            name = "waypipe-${name}-vm";
+            value = vm.evaluatedConfig.config.ghaf.waypipe.waypipeService;
+          }) vmsWithWaypipe;
+        }
+      ];
+    })
+  ];
 }
