@@ -25,8 +25,8 @@ let
       vmName = "${vm.name}-vm";
       # A list of applications for the GIVC service
       givcApplications = map (app: {
-        name = app.givcName;
-        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.command}";
+        name = lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.desktopName);
+        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.exec}";
         args = app.givcArgs;
       }) vm.applications;
       # Packages and extra modules from all applications defined in the appvm
@@ -289,56 +289,7 @@ in
               description = ''
                 Applications to include in the AppVM
               '';
-              type = types.listOf (
-                types.submodule (
-                  { config, lib, ... }:
-                  {
-                    options = {
-                      name = mkOption {
-                        type = types.str;
-                        description = "The name of the application";
-                      };
-                      description = mkOption {
-                        type = types.str;
-                        description = "A brief description of the application";
-                      };
-                      packages = mkOption {
-                        type = types.listOf types.package;
-                        description = "A list of packages required for the application";
-                        default = [ ];
-                      };
-                      icon = mkOption {
-                        type = types.str;
-                        description = "Application icon";
-                        default = null;
-                      };
-                      command = mkOption {
-                        type = types.str;
-                        description = "The command to run the application";
-                        default = null;
-                      };
-                      extraModules = mkOption {
-                        description = "Additional modules required for the application";
-                        type = types.listOf types.attrs;
-                        default = [ ];
-                      };
-                      givcName = mkOption {
-                        description = "GIVC name for the application";
-                        type = types.str;
-                      };
-                      givcArgs = mkOption {
-                        description = "A list of GIVC arguments for the application";
-                        type = types.listOf types.str;
-                        default = [ ];
-                      };
-                    };
-                    config = {
-                      # Create a default GIVC name for the application
-                      givcName = lib.mkDefault (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] config.name));
-                    };
-                  }
-                )
-              );
+              type = lib.types.listOf lib.types.ghafApplication;
               default = [ ];
             };
             packages = mkOption {

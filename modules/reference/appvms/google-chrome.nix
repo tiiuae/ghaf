@@ -57,14 +57,16 @@
           # The SPKI fingerprint is calculated like this:
           # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
           # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
-          name = "Google Chrome";
+          name = "google-chrome";
+          desktopName = "Google Chrome";
+          categories = [ "WebBrowser" ];
           description = "Isolated General Browsing";
           packages = [
             pkgs.google-chrome
             chromeWrapper
           ];
           icon = "google-chrome";
-          command = "chrome-wrapper";
+          exec = "chrome-wrapper";
           givcArgs = [
             "url"
             "flag"
@@ -98,10 +100,11 @@
           in
           {
             name = "MitmWebUI";
+            desktopName = "MitmWebUI";
             description = "MitmWebUI";
             packages = [ pkgs.google-chrome ];
             icon = "nmap";
-            command = "${lib.getExe chromeWrapper} ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
+            exec = "${lib.getExe chromeWrapper} ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
             extraModules = [
               {
 
