@@ -19,11 +19,12 @@
     };
     applications = [
       {
-        name = "GALA";
+        name = "chrome-gala.atrc.azure-atrc.androidinthecloud.net__-Default";
+        desktopName = "GALA";
         description = "Secure Android-in-the-Cloud";
         packages = [ pkgs.gala ];
         icon = "distributor-logo-android";
-        command = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
+        exec = "gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
       }
     ];
   };

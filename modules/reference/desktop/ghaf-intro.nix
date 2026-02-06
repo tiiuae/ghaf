@@ -46,12 +46,16 @@ in
 
     ghaf.virtualization.microvm.appvm.vms.chrome.applications = [
       {
-        name = "Getting Started";
+        name = "chrome-__nix_store_850v4wcrr356skfy90gj6j8w95lmx6mq-ghaf-intro-1.0.0_index.html-Default";
+        desktopName = "Getting Started";
+        categories = [
+          "Utility"
+          "Documentation"
+        ];
         description = "Introduction to your Ghaf secure system";
         icon = "security-high";
         packages = [ introWrapper ];
-        command = "ghaf-intro-wrapper";
-        givcName = "ghaf-intro";
+        exec = "ghaf-intro-wrapper";
       }
     ];
 

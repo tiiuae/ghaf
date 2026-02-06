@@ -27,6 +27,10 @@ let
           (
             { config, pkgs, ... }:
             {
+              environment.systemPackages = [
+                pkgs.gnome-calculator
+              ];
+
               ghaf = {
                 hardware.x86_64.common.enable = true;
                 hardware.tpm2.enable = true;
@@ -70,16 +74,11 @@ let
                 # TODO: The application interface needs to move to a common module to be reused here
                 graphics.launchers = lib.optionals withGraphics [
                   {
-                    name = "Calculator";
-                    description = "Solve Math Problems";
-                    icon = "${pkgs.gnome-calculator}/share/icons/hicolor/scalable/apps/org.gnome.Calculator.svg";
-                    execPath = "${pkgs.gnome-calculator}/bin/gnome-calculator";
-                  }
-                  {
-                    name = "Bluetooth Settings";
+                    name = ".blueman-manager-wrapped";
+                    desktopName = "Bluetooth Settings";
                     description = "Manage Bluetooth Devices & Settings";
                     icon = "bluetooth-48";
-                    execPath = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
+                    exec = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
                       DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock \
                       PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.server.pulseaudioTcpControlPort} \
                       ${pkgs.blueman}/bin/blueman-manager

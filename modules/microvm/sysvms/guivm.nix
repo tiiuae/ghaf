@@ -31,20 +31,17 @@ let
           # Launchers for all virtualized applications that run in AppVMs
           virtualLaunchers = map (app: rec {
             inherit (app) name;
+            inherit (app) desktopName;
+            inherit (app) genericName;
+            inherit (app) categories;
+            inherit (app) startupWMClass;
             inherit (app) description;
-            #inherit (app) givcName;
+            inherit (app) icon;
             vm = app.vmName;
-            execPath = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${app.givcName}";
-            inherit (app) icon;
+            exec = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm ${vm} ${
+              lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.desktopName)
+            }";
           }) virtualApps;
-
-          # Launchers for all desktop, non-virtualized applications that run in the GUIVM
-          guivmLaunchers = map (app: {
-            inherit (app) name;
-            inherit (app) description;
-            execPath = app.command;
-            inherit (app) icon;
-          }) cfg.applications;
         in
         {
           imports = [
@@ -122,7 +119,7 @@ let
                 enable = true; # Enable graphical boot on gui-vm
                 renderer = "gpu"; # Use GPU for graphical boot in gui-vm
               };
-              launchers = guivmLaunchers ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
+              launchers = cfg.applications ++ lib.optionals config.ghaf.givc.enable virtualLaunchers;
               cosmic = {
                 securityContext.rules = map (vm: {
                   identifier = vm.name;
@@ -353,30 +350,7 @@ in
       description = ''
         Applications to include in the GUIVM
       '';
-      type = lib.types.listOf (
-        lib.types.submodule {
-          options = {
-            name = lib.mkOption {
-              type = lib.types.str;
-              description = "The name of the application";
-            };
-            description = lib.mkOption {
-              type = lib.types.str;
-              description = "A brief description of the application";
-            };
-            icon = lib.mkOption {
-              type = lib.types.str;
-              description = "Application icon";
-              default = null;
-            };
-            command = lib.mkOption {
-              type = lib.types.str;
-              description = "The command to run the application";
-              default = null;
-            };
-          };
-        }
-      );
+      type = lib.types.listOf lib.types.ghafApplication;
       default = [ ];
     };
   };
