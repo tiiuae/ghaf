@@ -76,7 +76,15 @@ in
       };
 
       reference = {
-        appvms.enable = true;
+        appvms = {
+          enable = true;
+          # Enable only the appvms used in this profile
+          business.enable = true;
+          chrome.enable = true;
+          comms.enable = true;
+          flatpak.enable = true;
+          zathura.enable = true;
+        };
         services = {
           enable = true;
           dendrite = false;
@@ -184,6 +192,9 @@ in
 
       # Enable performance optimizations
       services.performance.enable = true;
+
+      # Propagate performance enable to VMs via global-config
+      global-config.services.performance.enable = true;
 
       # Enable kill switch
       services.kill-switch.enable = true;

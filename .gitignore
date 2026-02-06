@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: CC0-1.0
 
 result*
+!**/result_parser.py
 ghaf-host.qcow2
 .direnv/
 .idea
@@ -16,3 +17,5 @@ gcroot/
 uv-x86_64-unknown-linux-gnu/
 __pycache__/
 .vscode
+plans/
+CLAUDE.md

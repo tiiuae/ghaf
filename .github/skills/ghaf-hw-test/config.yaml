@@ -1,0 +1,157 @@
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Ghaf Hardware Test Automation - Configuration
+#
+
+# Device profiles
+# Each device has defaults that can be overridden via CLI
+devices:
+  darter-pro:
+    architecture: x86_64
+    ghaf_target: system76-darp11-b-debug
+    test_device_name: darter-pro
+    default_threads: 16
+    default_tag: pre-merge
+    flash_method: ghaf-flash
+    connection: ssh
+    boot_wait_seconds: 180
+
+  Orin-AGX:
+    architecture: aarch64
+    ghaf_target: nvidia-jetson-orin-agx-debug
+    test_device_name: Orin-AGX
+    default_threads: 12
+    default_tag: pre-merge
+    flash_method: flash-script
+    flash_script_target: nvidia-jetson-orin-agx-debug-flash-script
+    connection: ssh
+    boot_wait_seconds: 240
+
+  Orin-NX:
+    architecture: aarch64
+    ghaf_target: nvidia-jetson-orin-nx-debug
+    test_device_name: Orin-NX
+    default_threads: 8
+    default_tag: pre-merge
+    flash_method: flash-script
+    flash_script_target: nvidia-jetson-orin-nx-debug-flash-script
+    connection: ssh
+    boot_wait_seconds: 240
+
+  Lenovo-X1:
+    architecture: x86_64
+    ghaf_target: lenovo-x1-carbon-gen11-debug
+    test_device_name: Lenovo-X1
+    default_threads: 20
+    default_tag: pre-merge
+    flash_method: ghaf-flash
+    connection: ssh
+    boot_wait_seconds: 180
+
+  dell-7330:
+    architecture: x86_64
+    ghaf_target: dell-latitude-7330-debug
+    test_device_name: dell-7330
+    default_threads: 12
+    default_tag: pre-merge
+    flash_method: ghaf-flash
+    connection: ssh
+    boot_wait_seconds: 180
+
+  NUC:
+    architecture: x86_64
+    ghaf_target: generic-x86_64-debug
+    test_device_name: NUC
+    default_threads: 8
+    default_tag: pre-merge
+    flash_method: ghaf-flash
+    connection: ssh
+    boot_wait_seconds: 180
+
+# Test execution settings
+test:
+  default_password: ghaf
+  results_dir: /tmp/test_results
+  default_tag: pre-merge
+  timeout_minutes: 60
+
+# Fix loop settings
+fix_loop:
+  max_iterations: 5
+  pause_for_fixes: true
+  auto_commit: false
+
+# Analysis settings
+analysis:
+  output_format: markdown
+  include_stack_traces: true
+  map_to_ghaf_modules: true
+
+# Failure pattern mappings
+# Maps test failures to likely Ghaf module locations
+failure_patterns:
+  ssh_connection:
+    patterns:
+      - "SSHException"
+      - "Connection refused"
+      - "Connection timed out"
+    likely_modules:
+      - modules/common/networking/
+      - modules/common/security/
+    suggestion: "Check network configuration and firewall rules"
+
+  service_not_running:
+    patterns:
+      - "service .* not found"
+      - "Unit .* not found"
+      - "systemctl.*failed"
+    likely_modules:
+      - modules/common/services/
+      - modules/microvm/
+    suggestion: "Verify systemd service configuration"
+
+  gui_failure:
+    patterns:
+      - "GUI element not found"
+      - "Screen capture failed"
+      - "Weston.*error"
+    likely_modules:
+      - modules/desktop/
+      - modules/hardware/graphics/
+    suggestion: "Check desktop and graphics configuration"
+
+  vm_communication:
+    patterns:
+      - "GIVC.*error"
+      - "inter-vm.*failed"
+      - "microvm.*unreachable"
+    likely_modules:
+      - modules/givc/
+      - modules/microvm/
+    suggestion: "Check GIVC and microvm configuration"
+
+  boot_failure:
+    patterns:
+      - "Boot timeout"
+      - "Kernel panic"
+      - "Failed to start"
+    likely_modules:
+      - modules/hardware/
+      - modules/common/boot/
+    suggestion: "Check hardware and boot configuration"
+
+  performance:
+    patterns:
+      - "Performance below threshold"
+      - "Timeout exceeded"
+      - "Too slow"
+    likely_modules:
+      - modules/hardware/
+      - modules/common/performance/
+    suggestion: "Check hardware settings and performance tuning"
+
+# Logging
+logging:
+  level: INFO
+  file: /tmp/ghaf-hw-test.log

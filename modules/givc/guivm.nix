@@ -90,10 +90,17 @@ in
     };
     systemd.services.dbus-proxy-networkmanager = {
       description = "DBus proxy for Network Manager ${guivmName}";
+      # Wait for GIVC to create the socket before starting
+      after = [ "givc-${guivmName}.service" ];
+      requires = [ "givc-${guivmName}.service" ];
       serviceConfig = {
         Type = "simple";
         Restart = "always";
         RestartSec = "1s";
+        # Wait up to 30 seconds for the socket to appear
+        ExecStartPre = [
+          "${pkgs.coreutils}/bin/timeout 30 ${pkgs.bash}/bin/bash -c 'until [ -S /tmp/dbusproxy_net.sock ]; do sleep 0.5; done'"
+        ];
         Environment = [
           "DBUS_SESSION_BUS_ADDRESS=unix:path=/tmp/dbusproxy_net.sock"
           "NM_SECRET_AGENT_XML=${pkgs.networkmanager}/share/dbus-1/interfaces/org.freedesktop.NetworkManager.SecretAgent.xml"

@@ -3,6 +3,9 @@
 #
 # Ghaf Introduction - Getting Started guide
 #
+# Uses the extensions pattern to add the Getting Started app to Chrome VM
+# without modifying the Chrome VM's base definition.
+#
 {
   config,
   lib,
@@ -42,15 +45,21 @@ in
       }
     ];
 
-    ghaf.virtualization.microvm.appvm.vms.chrome.applications = [
-      {
-        name = "Getting Started";
-        description = "Introduction to your Ghaf secure system";
-        icon = "security-high";
-        packages = [ introWrapper ];
-        command = "ghaf-intro-wrapper";
-        givcName = "ghaf-intro";
-      }
+    # Use extensions to add the Getting Started app to Chrome VM
+    # This is applied via NixOS native extendModules
+    ghaf.virtualization.microvm.appvm.vms.chrome.extensions = [
+      (_: {
+        ghaf.appvm.applications = [
+          {
+            name = "Getting Started";
+            description = "Introduction to your Ghaf secure system";
+            icon = "security-high";
+            packages = [ introWrapper ];
+            command = "ghaf-intro-wrapper";
+            givcName = "ghaf-intro";
+          }
+        ];
+      })
     ];
 
     # Ghaf intro autostart config is now provided by guivm-desktop-features module

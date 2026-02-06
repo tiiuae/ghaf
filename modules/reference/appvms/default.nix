@@ -37,15 +37,15 @@ in
     # Enable the main appvm module
     ghaf.virtualization.microvm.appvm.enable = true;
 
-    # Enable all reference appvms by default when parent enable is set
+    # disable all by default, users can enable individually
     ghaf.reference.appvms = {
-      business.enable = lib.mkDefault true;
-      chromium.enable = lib.mkDefault true;
-      comms.enable = lib.mkDefault true;
-      flatpak.enable = lib.mkDefault true;
-      gala.enable = lib.mkDefault true;
-      chrome.enable = lib.mkDefault true;
-      zathura.enable = lib.mkDefault true;
+      business.enable = lib.mkDefault false;
+      chromium.enable = lib.mkDefault false;
+      comms.enable = lib.mkDefault false;
+      flatpak.enable = lib.mkDefault false;
+      gala.enable = lib.mkDefault false;
+      chrome.enable = lib.mkDefault false;
+      zathura.enable = lib.mkDefault false;
     };
   };
 }

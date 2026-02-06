@@ -90,8 +90,19 @@ in
     };
 
     virtualization.microvm.tpm.passthrough = {
-      enable = globalConfig.storage.encryption.enable or false;
+      # TPM passthrough is only supported on x86_64
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
       rootNVIndex = "0x81702000";
+    };
+
+    virtualization.microvm.tpm.emulated = {
+      # Use emulated TPM for non-x86_64 systems when encryption is enabled
+      enable =
+        (globalConfig.storage.encryption.enable or false)
+        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+      name = vmName;
     };
 
     # Services
@@ -101,17 +112,25 @@ in
         role = "server";
         server.pipewireForwarding.enable = true;
       };
-      power-manager.vm = {
-        enable = true;
-        pciSuspendServices =
-          lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.socket"
-          ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.service"
-          ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "bluetooth"
-            vmName
-          ) "bluetooth.service";
+
+      firmware.enable = true;
+
+      power-manager = {
+        enable = globalConfig.services.power-manager.enable or false;
+        vm = {
+          enable = true;
+          pciSuspendServices =
+            lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.socket"
+            ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.service"
+            ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "bluetooth"
+              vmName
+            ) "bluetooth.service";
+        };
       };
-      performance.vm = {
-        enable = true;
+
+      performance = {
+        enable = globalConfig.services.performance.enable or false;
+        vm.enable = true;
       };
     };
 
@@ -146,14 +165,6 @@ in
     # Security - from globalConfig (previously from serviceModules.audit)
     security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
 
-    # Power management - from globalConfig (previously from serviceModules.power)
-    services.power-manager.enable = globalConfig.services.power-manager.enable or false;
-
-    # Performance - from globalConfig (previously from serviceModules.performance)
-    services.performance.enable = globalConfig.services.performance.enable or false;
-
-    # Firmware service
-    services.firmware.enable = true;
   };
 
   environment = {

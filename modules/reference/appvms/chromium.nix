@@ -19,31 +19,13 @@ in
     enable = lib.mkEnableOption "Chromium Browser App VM";
   };
 
-  config = lib.mkIf cfg.enable {
+  # Only configure when both enabled AND laptop-x86 profile is available
+  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
+  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+    # DRY: Only enable and evaluatedConfig at host level.
+    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.chromium = {
-      enable = lib.mkDefault true;
-      name = "chromium";
-      borderColor = "#9C0000";
-
-      applications = [
-        {
-          name = "Chromium";
-          description = "Isolated General Browsing";
-          packages = [ pkgs.chromium ];
-          icon = "chromium";
-          command = "chromium --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
-          givcArgs = [
-            "url"
-            "flag"
-          ];
-        }
-      ];
-
-      vtpm = {
-        enable = lib.mkDefault true;
-        runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-        basePort = 9120;
-      };
+      enable = lib.mkDefault false;
 
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
         name = "chromium";

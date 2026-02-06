@@ -133,30 +133,13 @@ in
     enable = lib.mkEnableOption "Flatpak App Store VM";
   };
 
-  config = lib.mkIf cfg.enable {
+  # Only configure when both enabled AND laptop-x86 profile is available
+  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
+  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+    # DRY: Only enable and evaluatedConfig at host level.
+    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.flatpak = {
       enable = lib.mkDefault true;
-      name = "flatpak";
-      borderColor = "#FFA500";
-
-      applications = [
-        {
-          name = "App Store";
-          description = "App Store to install Flatpak applications";
-          packages = [
-            pkgs.cosmic-store
-            runAppCenter
-          ];
-          icon = "rocs";
-          command = "run-flatpak";
-        }
-      ];
-
-      vtpm = {
-        enable = lib.mkDefault true;
-        runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-        basePort = 9170;
-      };
 
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
         name = "flatpak";

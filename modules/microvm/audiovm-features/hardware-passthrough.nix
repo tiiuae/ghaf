@@ -19,26 +19,25 @@
   ...
 }:
 let
-  # Check if we have audio hardware devices to passthrough
-  hasAudioDevices = (hostConfig.hardware.devices.audio or null) != null;
+  # Get audio devices config, defaulting to empty attrset
+  audioDevicesConfig = hostConfig.hardware.devices.audio or { };
 
-  # Check if we have kernel config for audiovm
-  hasKernelConfig = (hostConfig.kernel or null) != null;
+  # Check if we have actual audio devices to passthrough (non-empty config)
+  hasAudioDevices = audioDevicesConfig != { };
 
-  # Check if we have qemu config for audiovm
-  hasQemuConfig = (hostConfig.qemu or null) != null;
+  # Get kernel/qemu configs (can be null)
+  kernelConfig = hostConfig.kernel or null;
+  qemuConfig = hostConfig.qemu or null;
 in
 {
   _file = ./hardware-passthrough.nix;
 
-  config = lib.mkMerge [
-    # Import audio device passthrough config from host (as config values, not imports)
-    (lib.mkIf hasAudioDevices hostConfig.hardware.devices.audio)
-
-    # Kernel configuration from host
-    (lib.mkIf hasKernelConfig hostConfig.kernel)
-
-    # QEMU configuration from host
-    (lib.mkIf hasQemuConfig hostConfig.qemu)
-  ];
+  config = lib.mkMerge (
+    # Import audio device passthrough config from host
+    lib.optional hasAudioDevices audioDevicesConfig
+    # Kernel configuration from host (if defined)
+    ++ lib.optional (kernelConfig != null) kernelConfig
+    # QEMU configuration from host (if defined)
+    ++ lib.optional (qemuConfig != null) qemuConfig
+  );
 }

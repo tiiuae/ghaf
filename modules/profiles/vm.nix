@@ -62,11 +62,11 @@ in
 
     # Export Net VM base
     ghaf.profiles.vm.netvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.netvm-base
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -84,11 +84,12 @@ in
 
     # Export Audio VM base
     ghaf.profiles.vm.audiovmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.audiovm-base
+        inputs.self.nixosModules.audiovm-features
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -106,12 +107,12 @@ in
 
     # Export Admin VM base
     ghaf.profiles.vm.adminvmBase = lib.nixosSystem {
-      inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
       modules = [
         inputs.microvm.nixosModules.microvm
         inputs.self.nixosModules.adminvm-base
         inputs.self.nixosModules.adminvm-features
         {
+          nixpkgs.hostPlatform.system = "x86_64-linux";
           nixpkgs.overlays = config.nixpkgs.overlays;
           nixpkgs.config = config.nixpkgs.config;
         }
@@ -127,14 +128,15 @@ in
     };
 
     # Export mkAppVm function for creating App VMs
+    # Pure function - extensions are applied via extendModules in appvm.nix
     ghaf.profiles.vm.mkAppVm =
       vmDef:
       lib.nixosSystem {
-        inherit (inputs.nixpkgs.legacyPackages.x86_64-linux) system;
         modules = [
           inputs.microvm.nixosModules.microvm
           inputs.self.nixosModules.appvm-base
           {
+            nixpkgs.hostPlatform.system = "x86_64-linux";
             nixpkgs.overlays = config.nixpkgs.overlays;
             nixpkgs.config = config.nixpkgs.config;
           }
@@ -148,6 +150,7 @@ in
               vmName = "${vmDef.name}-vm";
             }
             // {
+              # App VM-specific hostConfig fields
               appvm = vmDef;
               sharedVmDirectory =
                 config.ghaf.virtualization.microvm-host.sharedVmDirectory or {

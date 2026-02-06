@@ -1,0 +1,485 @@
+#!/usr/bin/env bash
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# ghaf-hw-test - Hardware test automation CLI for Ghaf Framework
+#
+# This script provides commands to run Robot Framework tests on Ghaf devices,
+# flash devices, analyze test results, and propose fixes for failures.
+#
+
+set -euo pipefail
+
+# Script location
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CONFIG_FILE="$SCRIPT_DIR/config.yaml"
+LIB_DIR="$SCRIPT_DIR/lib"
+
+# Defaults
+DEFAULT_PASSWORD="ghaf"
+DEFAULT_TAG="pre-merge"
+RESULTS_DIR="/tmp/test_results"
+
+# Global flags
+YES=false
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+# Detect if running on NixOS and use nix-shell if needed
+run_with_nix() {
+    if command -v nix-shell &> /dev/null && [[ -f "$SCRIPT_DIR/shell.nix" ]]; then
+        nix-shell "$SCRIPT_DIR/shell.nix" --run "$*"
+    else
+        "$@"
+    fi
+}
+
+# Print colored output
+info() { echo -e "${BLUE}[INFO]${NC} $*"; }
+success() { echo -e "${GREEN}[OK]${NC} $*"; }
+warn() { echo -e "${YELLOW}[WARN]${NC} $*"; }
+error() { echo -e "${RED}[ERROR]${NC} $*" >&2; }
+
+# Show usage
+usage() {
+    cat << EOF
+ghaf-hw-test - Hardware test automation for Ghaf Framework
+
+USAGE:
+    ghaf-hw-test [GLOBAL OPTIONS] <COMMAND> [OPTIONS]
+
+GLOBAL OPTIONS:
+    -y, --yes               Skip all interactive confirmations
+
+COMMANDS:
+    status      Check device connectivity and readiness
+    test        Run Robot Framework tests on a device
+    flash       Flash a Ghaf image to a device
+    analyze     Analyze test results and propose fixes
+    run         Full workflow: test → analyze → [build → flash → wait] → retest
+
+OPTIONS (vary by command):
+    -d, --device <NAME>     Device name (darter-pro, Orin-AGX, etc.)
+    -i, --ip <ADDRESS>      Device IP address
+    -p, --password <PASS>   SSH password (default: ghaf)
+    -t, --tag <TAG>         Test tag to run (default: pre-merge)
+    --drive <PATH>          Drive to flash (e.g., /dev/sda)
+    --recovery              Use recovery mode for Jetson flash
+    --results <PATH>        Path to test results directory
+    --propose-fixes         Generate fix proposals for failures
+    --fix-loop              Run test-fix loop until pass
+    -h, --help              Show this help message
+
+EXAMPLES:
+    # Check device connectivity (ask user for device IP)
+    ghaf-hw-test status --device darter-pro --ip <IP>
+
+    # Run pre-merge tests
+    ghaf-hw-test test --device darter-pro --ip <IP>
+
+    # Run specific test tag
+    ghaf-hw-test test --device Orin-AGX --ip <IP> --tag boot
+
+    # Flash x86 device
+    ghaf-hw-test flash --device darter-pro --drive /dev/sda
+
+    # Flash Jetson in recovery mode
+    ghaf-hw-test flash --device Orin-AGX --recovery
+
+    # Analyze failures and propose fixes
+    ghaf-hw-test analyze --propose-fixes
+
+    # Full test-fix loop (manual rebuild)
+    ghaf-hw-test run --device darter-pro --ip <IP> --fix-loop
+
+    # Full test-fix loop with auto build+flash (non-interactive)
+    ghaf-hw-test -y run --device darter-pro --ip <IP> --fix-loop --drive /dev/sda
+EOF
+}
+
+# Get device config from config.yaml
+get_device_config() {
+    local device="$1"
+    local field="$2"
+    run_with_nix python3 -c "
+import yaml
+with open('$CONFIG_FILE') as f:
+    config = yaml.safe_load(f)
+devices = config.get('devices', {})
+device = devices.get('$device', {})
+print(device.get('$field', ''))
+"
+}
+
+# Wait for device to become reachable via SSH
+wait_for_device() {
+    local ip="$1"
+    local device="$2"
+
+    # Get per-device boot wait from config, default 180s
+    local timeout_seconds
+    timeout_seconds=$(get_device_config "$device" "boot_wait_seconds")
+    if [[ -z "$timeout_seconds" ]]; then
+        timeout_seconds=180
+    fi
+
+    local interval=15
+    local elapsed=0
+
+    info "Waiting for $device ($ip) to become reachable (timeout: ${timeout_seconds}s)..."
+
+    while [[ $elapsed -lt $timeout_seconds ]]; do
+        if timeout 10 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "ghaf@$ip" "echo OK" &>/dev/null; then
+            success "Device $device ($ip) is reachable after ${elapsed}s"
+            return 0
+        fi
+        echo -ne "\r  Waiting... ${elapsed}s / ${timeout_seconds}s"
+        sleep "$interval"
+        elapsed=$((elapsed + interval))
+    done
+    echo ""
+    error "Device $device ($ip) did not become reachable within ${timeout_seconds}s"
+    return 1
+}
+
+# STATUS command - check device connectivity
+cmd_status() {
+    local device="" ip=""
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--device) device="$2"; shift 2 ;;
+            -i|--ip) ip="$2"; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) error "Unknown option: $1"; usage; exit 1 ;;
+        esac
+    done
+
+    if [[ -z "$device" ]] || [[ -z "$ip" ]]; then
+        error "Device and IP are required"
+        echo "Usage: ghaf-hw-test status --device <NAME> --ip <ADDRESS>"
+        exit 1
+    fi
+
+    info "Checking connectivity to $device at $ip..."
+
+    # Check SSH connectivity
+    if timeout 10 ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "ghaf@$ip" "echo OK" &>/dev/null; then
+        success "SSH connection to $device ($ip) successful"
+    else
+        # Try ping
+        if ping -c 1 -W 5 "$ip" &>/dev/null; then
+            warn "Device $ip is reachable but SSH failed"
+            echo "  - Check if SSH is enabled on the device"
+            echo "  - Check if user 'ghaf' exists"
+            echo "  - Check firewall settings"
+        else
+            error "Device $ip is not reachable"
+            echo "  - Check network connectivity"
+            echo "  - Verify device is powered on"
+        fi
+        exit 1
+    fi
+
+    # Get device info
+    info "Querying device information..."
+    ssh -o StrictHostKeyChecking=no "ghaf@$ip" "uname -a" 2>/dev/null || true
+
+    success "Device $device is ready for testing"
+}
+
+# TEST command - run Robot Framework tests
+cmd_test() {
+    local device="" ip="" password="$DEFAULT_PASSWORD" tag="$DEFAULT_TAG"
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--device) device="$2"; shift 2 ;;
+            -i|--ip) ip="$2"; shift 2 ;;
+            -p|--password) password="$2"; shift 2 ;;
+            -t|--tag) tag="$2"; shift 2 ;;
+            -h|--help) usage; exit 0 ;;
+            *) error "Unknown option: $1"; usage; exit 1 ;;
+        esac
+    done
+
+    if [[ -z "$device" ]] || [[ -z "$ip" ]]; then
+        error "Device and IP are required"
+        echo "Usage: ghaf-hw-test test --device <NAME> --ip <ADDRESS> [--tag <TAG>]"
+        exit 1
+    fi
+
+    # Get device config
+    local test_device_name
+    test_device_name=$(get_device_config "$device" "test_device_name")
+    if [[ -z "$test_device_name" ]]; then
+        test_device_name="$device"
+    fi
+
+    info "Running tests on $device ($ip) with tag: $tag"
+    info "Test device name: $test_device_name"
+
+    # Create results directory
+    mkdir -p "$RESULTS_DIR"
+
+    # Find the ghaf repo root
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+
+    # Enter smoke-test devshell and run robot-test
+    info "Entering smoke-test devshell and running tests..."
+    local exit_code=0
+    (
+        cd "$repo_root"
+        nix develop .#smoke-test --command robot-test -i "$ip" -d "$test_device_name" -p "$password" -t "$tag"
+    ) || exit_code=$?
+
+    if [[ $exit_code -eq 0 ]]; then
+        success "All tests passed!"
+        echo "Results: $RESULTS_DIR"
+    else
+        warn "Some tests failed (exit code: $exit_code)"
+        echo "Results: $RESULTS_DIR"
+        echo "Run 'ghaf-hw-test analyze --propose-fixes' to see fix suggestions"
+    fi
+
+    return $exit_code
+}
+
+# FLASH command - flash device with Ghaf image
+cmd_flash() {
+    local device="" drive="" recovery=false
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--device) device="$2"; shift 2 ;;
+            --drive) drive="$2"; shift 2 ;;
+            --recovery) recovery=true; shift ;;
+            -h|--help) usage; exit 0 ;;
+            *) error "Unknown option: $1"; usage; exit 1 ;;
+        esac
+    done
+
+    if [[ -z "$device" ]]; then
+        error "Device is required"
+        echo "Usage: ghaf-hw-test flash --device <NAME> [--drive <PATH>] [--recovery]"
+        exit 1
+    fi
+
+    # Get device config
+    local flash_method ghaf_target
+    flash_method=$(get_device_config "$device" "flash_method")
+    ghaf_target=$(get_device_config "$device" "ghaf_target")
+
+    info "Flash method for $device: $flash_method"
+    info "Ghaf target: $ghaf_target"
+
+    local repo_root
+    repo_root=$(git rev-parse --show-toplevel 2>/dev/null || echo ".")
+
+    case "$flash_method" in
+        ghaf-flash)
+            if [[ -z "$drive" ]]; then
+                error "Drive is required for x86 flash"
+                echo "Usage: ghaf-hw-test flash --device $device --drive /dev/sdX"
+                exit 1
+            fi
+
+            if [[ "$YES" != "true" ]]; then
+                warn "This will ERASE all data on $drive!"
+                echo "Press Ctrl+C to cancel or Enter to continue..."
+                read -r
+            else
+                warn "This will ERASE all data on $drive! (--yes: skipping confirmation)"
+            fi
+
+            info "Building image..."
+            (cd "$repo_root" && nix build ".#$ghaf_target")
+
+            info "Flashing to $drive..."
+            (cd "$repo_root" && nix develop --command ghaf-flash -d "$drive" -i result/disk1.raw.zst)
+
+            success "Flash complete! Remove the drive and boot the device."
+            ;;
+
+        flash-script)
+            local flash_script_target
+            flash_script_target=$(get_device_config "$device" "flash_script_target")
+
+            if [[ "$recovery" != "true" ]]; then
+                warn "Jetson devices require recovery mode for flashing"
+                echo ""
+                echo "To flash $device:"
+                echo "1. Power off the device"
+                echo "2. Hold the recovery button while powering on"
+                echo "3. Connect USB-C cable to host"
+                echo "4. Run: ghaf-hw-test flash --device $device --recovery"
+                exit 1
+            fi
+
+            info "Building flash script..."
+            (cd "$repo_root" && nix build ".#$flash_script_target")
+
+            info "Running flash script (device must be in recovery mode)..."
+            (cd "$repo_root" && sudo ./result/bin/flash-ghaf)
+
+            success "Flash complete! The device will reboot automatically."
+            ;;
+
+        *)
+            error "Unknown flash method: $flash_method"
+            exit 1
+            ;;
+    esac
+}
+
+# ANALYZE command - parse results and propose fixes
+cmd_analyze() {
+    local results_dir="$RESULTS_DIR" propose_fixes=false
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --results) results_dir="$2"; shift 2 ;;
+            --propose-fixes) propose_fixes=true; shift ;;
+            -h|--help) usage; exit 0 ;;
+            *) error "Unknown option: $1"; usage; exit 1 ;;
+        esac
+    done
+
+    local output_xml="$results_dir/output.xml"
+    if [[ ! -f "$output_xml" ]]; then
+        error "No test results found at $output_xml"
+        echo "Run tests first: ghaf-hw-test test --device <NAME> --ip <ADDRESS>"
+        exit 1
+    fi
+
+    info "Analyzing test results from $output_xml..."
+
+    # Run Python analyzer
+    run_with_nix python3 "$LIB_DIR/result_parser.py" "$output_xml" "$CONFIG_FILE" "$propose_fixes"
+}
+
+# RUN command - full workflow with fix loop
+cmd_run() {
+    local device="" ip="" password="$DEFAULT_PASSWORD" tag="$DEFAULT_TAG"
+    local fix_loop=false drive="" recovery=false
+
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -d|--device) device="$2"; shift 2 ;;
+            -i|--ip) ip="$2"; shift 2 ;;
+            -p|--password) password="$2"; shift 2 ;;
+            -t|--tag) tag="$2"; shift 2 ;;
+            --fix-loop) fix_loop=true; shift ;;
+            --drive) drive="$2"; shift 2 ;;
+            --recovery) recovery=true; shift ;;
+            -h|--help) usage; exit 0 ;;
+            *) error "Unknown option: $1"; usage; exit 1 ;;
+        esac
+    done
+
+    if [[ -z "$device" ]] || [[ -z "$ip" ]]; then
+        error "Device and IP are required"
+        echo "Usage: ghaf-hw-test run --device <NAME> --ip <ADDRESS> [--fix-loop] [--drive <PATH>] [--recovery]"
+        exit 1
+    fi
+
+    local max_iterations=5
+    local iteration=1
+
+    while true; do
+        info "=== Iteration $iteration/$max_iterations ==="
+
+        # Run tests
+        if cmd_test --device "$device" --ip "$ip" --password "$password" --tag "$tag"; then
+            success "All tests passed!"
+            exit 0
+        fi
+
+        if [[ "$fix_loop" != "true" ]]; then
+            warn "Tests failed. Run with --fix-loop to iterate on fixes."
+            cmd_analyze --propose-fixes
+            exit 1
+        fi
+
+        # Analyze and propose fixes
+        echo ""
+        info "Analyzing failures and proposing fixes..."
+        cmd_analyze --propose-fixes
+
+        if [[ $iteration -ge $max_iterations ]]; then
+            error "Max iterations ($max_iterations) reached. Manual intervention needed."
+            exit 1
+        fi
+
+        echo ""
+        warn "Please apply the suggested fixes, then press Enter to re-run tests..."
+        warn "Or press Ctrl+C to abort."
+        if [[ "$YES" != "true" ]]; then
+            read -r
+        else
+            info "(--yes: proceeding automatically)"
+        fi
+
+        # Build + flash + wait if --drive or --recovery was provided
+        if [[ -n "$drive" ]] || [[ "$recovery" == "true" ]]; then
+            info "Rebuilding and flashing $device..."
+            local flash_args=(--device "$device")
+            if [[ -n "$drive" ]]; then
+                flash_args+=(--drive "$drive")
+            fi
+            if [[ "$recovery" == "true" ]]; then
+                flash_args+=(--recovery)
+            fi
+            cmd_flash "${flash_args[@]}"
+
+            info "Waiting for device to boot..."
+            wait_for_device "$ip" "$device"
+        fi
+
+        ((iteration++))
+    done
+}
+
+# Main entry point
+main() {
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+
+    # Parse global options before the command
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -y|--yes) YES=true; shift ;;
+            -h|--help|help) usage; exit 0 ;;
+            -*) # Unknown global flag - could be a command option, break
+                error "Unknown global option: $1"; usage; exit 1 ;;
+            *) break ;; # First non-option is the command
+        esac
+    done
+
+    if [[ $# -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+
+    local command="$1"
+    shift
+
+    case "$command" in
+        status) cmd_status "$@" ;;
+        test) cmd_test "$@" ;;
+        flash) cmd_flash "$@" ;;
+        analyze) cmd_analyze "$@" ;;
+        run) cmd_run "$@" ;;
+        *) error "Unknown command: $command"; usage; exit 1 ;;
+    esac
+}
+
+main "$@"

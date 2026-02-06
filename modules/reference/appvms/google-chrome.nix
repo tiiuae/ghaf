@@ -49,50 +49,13 @@ in
     enable = lib.mkEnableOption "Google Chrome Browser App VM";
   };
 
-  config = lib.mkIf cfg.enable {
+  # Only configure when both enabled AND laptop-x86 profile is available
+  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
+  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+    # DRY: Only enable, evaluatedConfig, and usbPassthrough at host level.
+    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.chrome = {
       enable = lib.mkDefault true;
-      name = "chrome";
-      borderColor = "#9C0000";
-
-      applications = [
-        {
-          name = "Google Chrome";
-          description = "Isolated General Browsing";
-          packages = [
-            pkgs.google-chrome
-            chromeWrapper
-          ];
-          icon = "google-chrome";
-          command = "chrome-wrapper";
-          givcArgs = [
-            "url"
-            "flag"
-          ];
-        }
-      ]
-      ++ (lib.optionals config.ghaf.virtualization.microvm.idsvm.mitmproxy.webUIEnabled [
-        (
-          let
-            mitmWebUIport = config.ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPort;
-            mitmWebUIpswd = config.ghaf.virtualization.microvm.idsvm.mitmproxy.webUIPswd;
-            idsvmIpAddr = config.ghaf.networking.hosts."ids-vm".ipv4;
-          in
-          {
-            name = "MitmWebUI";
-            description = "MitmWebUI";
-            packages = [ pkgs.google-chrome ];
-            icon = "nmap";
-            command = "${lib.getExe chromeWrapper} ${config.ghaf.givc.idsExtraArgs} --app=http://${toString idsvmIpAddr}:${toString mitmWebUIport}?token=${toString mitmWebUIpswd}";
-          }
-        )
-      ]);
-
-      vtpm = {
-        enable = lib.mkDefault true;
-        runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-        basePort = 9150;
-      };
 
       usbPassthrough = [
         {

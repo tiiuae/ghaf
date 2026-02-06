@@ -11,6 +11,15 @@
 #
 # The VM-side configuration is in appvm-base.nix, created via mkAppVm in profiles.
 #
+# Extension Pattern:
+#   ALL values (name, ramMb, borderColor, applications, etc.) should be defined ONLY
+#   in the mkAppVm call. Host-level options automatically read from
+#   evaluatedConfig.config.ghaf.appvm.vmDef. This eliminates duplication.
+#
+#   Features that need to extend VMs (e.g., ghaf-intro adding apps to chrome) use
+#   the `extensions` option. Extensions are applied via NixOS native `extendModules`
+#   to create the final evaluatedConfig.
+#
 {
   config,
   lib,
@@ -30,8 +39,37 @@ let
     types
     ;
 
-  # Get enabled VMs
-  enabledVms = lib.filterAttrs (_: vm: vm.enable) cfg.vms;
+  # Get enabled VMs with extensions applied via extendModules
+  # Values are derived from the final evaluatedConfig.config.ghaf.appvm.vmDef
+  enabledVms = lib.mapAttrs (
+    attrName: vm:
+    let
+      # Apply extensions using NixOS native extendModules
+      finalEvaluatedConfig =
+        if vm.extensions == [ ] then
+          vm.evaluatedConfig
+        else
+          vm.evaluatedConfig.extendModules { modules = vm.extensions; };
+
+      vmDef = finalEvaluatedConfig.config.ghaf.appvm.vmDef or { };
+    in
+    vm
+    // {
+      # Replace evaluatedConfig with the extended version
+      evaluatedConfig = finalEvaluatedConfig;
+      # Derive values from vmDef - the attrset key is used as fallback for name
+      name = vmDef.name or attrName;
+      ramMb = vmDef.ramMb or 4096;
+      balloonRatio = vmDef.balloonRatio or 2;
+      borderColor = vmDef.borderColor or null;
+      applications = vmDef.applications or [ ];
+      vtpm = {
+        enable = vmDef.vtpm.enable or false;
+        runInVM = vmDef.vtpm.runInVM or false;
+        basePort = vmDef.vtpm.basePort or null;
+      };
+    }
+  ) (lib.filterAttrs (_: vm: vm.enable) cfg.vms);
 
   # Get VMs with waypipe enabled (from evaluatedConfig)
   vmsWithWaypipe = lib.filterAttrs (
@@ -94,23 +132,74 @@ in
   options.ghaf.virtualization.microvm.appvm = {
     enable = lib.mkEnableOption "appvm";
 
+    # Read-only option exposing derived VM values for other modules
+    enabledVms = mkOption {
+      type = types.attrsOf types.unspecified;
+      readOnly = true;
+      description = ''
+        Read-only attrset of enabled VMs with all values derived from evaluatedConfig.
+        Use this instead of accessing vms directly when you need derived values
+        like vtpm, applications, ramMb, etc.
+      '';
+    };
+
     vms = mkOption {
-      description = "App VM configurations. Each VM must have evaluatedConfig set via mkAppVm.";
+      description = ''
+        App VM configurations. Each VM must have evaluatedConfig set via mkAppVm.
+
+        Extension Pattern:
+          - ALL values (name, ramMb, borderColor, applications, vtpm, etc.)
+            are derived from evaluatedConfig.config.ghaf.appvm.vmDef
+          - You only need to set 'enable' and 'evaluatedConfig' here
+          - Use 'extensions' to add modules from external features (e.g., ghaf-intro)
+          - Extensions are applied via NixOS native extendModules
+
+        The attrset key (e.g., 'chromium' in vms.chromium) is used as fallback for name.
+      '';
       type = types.attrsOf (
         types.submodule {
           options = {
             enable = lib.mkEnableOption "this virtual machine";
 
             evaluatedConfig = lib.mkOption {
-              type = lib.types.unspecified;
-              description = "Pre-evaluated NixOS configuration from mkAppVm profile function.";
+              type = lib.types.nullOr lib.types.unspecified;
+              default = null;
+              description = "Base NixOS configuration from mkAppVm profile function.";
             };
 
-            # Host-side configuration options
-            # These are used by host services, not passed to VM
-            name = mkOption {
-              type = types.str;
-              description = "Name of the App VM (without -vm suffix)";
+            extensions = lib.mkOption {
+              type = types.listOf types.deferredModule;
+              default = [ ];
+              description = ''
+                Additional modules to extend this VM's configuration.
+                Applied via NixOS native extendModules after the base evaluatedConfig.
+                Use this for features that need to add apps, services, or other
+                configuration to a VM without modifying its base definition.
+
+                Example:
+                  extensions = [
+                    ({ pkgs, ... }: {
+                      ghaf.appvm.applications = [{
+                        name = "My App";
+                        command = "myapp";
+                        packages = [ pkgs.myapp ];
+                      }];
+                    })
+                  ];
+              '';
+            };
+
+            # Host-specific options (not derived from vmDef)
+            extraNetworking = lib.mkOption {
+              type = types.anything;
+              description = "Extra networking options for this VM (host-side only)";
+              default = { };
+            };
+
+            usbPassthrough = mkOption {
+              type = types.listOf types.anything;
+              description = "USB passthrough rules for this VM (host-side only)";
+              default = [ ];
             };
 
             bootPriority = mkOption {
@@ -122,95 +211,6 @@ in
               description = "Boot priority for the VM (affects systemd ordering)";
               default = "low";
             };
-
-            applications = mkOption {
-              description = ''
-                Applications in the AppVM (used for GUI VM launchers)
-              '';
-              type = types.listOf (
-                types.submodule (
-                  { config, lib, ... }:
-                  {
-                    options = {
-                      name = mkOption {
-                        type = types.str;
-                        description = "The name of the application";
-                      };
-                      description = mkOption {
-                        type = types.str;
-                        description = "A brief description of the application";
-                        default = "";
-                      };
-                      packages = mkOption {
-                        type = types.listOf types.package;
-                        description = "Packages required for the application";
-                        default = [ ];
-                      };
-                      icon = mkOption {
-                        type = types.nullOr types.str;
-                        description = "Application icon";
-                        default = null;
-                      };
-                      command = mkOption {
-                        type = types.nullOr types.str;
-                        description = "The command to run the application";
-                        default = null;
-                      };
-                      extraModules = mkOption {
-                        description = "Additional modules for the application";
-                        type = types.listOf types.unspecified;
-                        default = [ ];
-                      };
-                      givcName = mkOption {
-                        description = "GIVC name for the application";
-                        type = types.str;
-                      };
-                      givcArgs = mkOption {
-                        description = "GIVC arguments for the application";
-                        type = types.listOf types.str;
-                        default = [ ];
-                      };
-                    };
-                    config = {
-                      givcName = lib.mkDefault (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] config.name));
-                    };
-                  }
-                )
-              );
-              default = [ ];
-            };
-
-            extraNetworking = lib.mkOption {
-              type = types.anything;
-              description = "Extra networking options for this VM";
-              default = { };
-            };
-
-            borderColor = mkOption {
-              type = types.nullOr types.str;
-              description = "Border color for the VM window";
-              default = null;
-            };
-
-            vtpm = {
-              enable = lib.mkEnableOption "vTPM support";
-              runInVM = mkOption {
-                type = types.bool;
-                description = "Run swtpm in admin VM instead of host";
-                default = false;
-              };
-              basePort = lib.mkOption {
-                type = types.nullOr types.int;
-                description = "vsock port for remote swtpm";
-                default = null;
-              };
-            };
-
-            usbPassthrough = mkOption {
-              type = types.listOf types.anything;
-              description = "USB passthrough rules for this VM";
-              default = [ ];
-            };
           };
         }
       );
@@ -218,8 +218,14 @@ in
     };
   };
 
-  config =
-    lib.mkIf cfg.enable {
+  config = lib.mkMerge [
+    # Always expose enabledVms (even if appvm.enable = false, it will be empty)
+    {
+      ghaf.virtualization.microvm.appvm.enabledVms = enabledVms;
+    }
+
+    # Main App VM configuration
+    (lib.mkIf cfg.enable {
       # Assertions - each enabled VM must have evaluatedConfig
       assertions = lib.mapAttrsToList (name: vm: {
         assertion = vm.evaluatedConfig != null;
@@ -259,18 +265,18 @@ in
       ghaf.hardware.passthrough.vhotplug.usbRules = lib.concatMap (vm: vm.usbPassthrough) (
         lib.attrValues enabledVms
       );
-    }
+    })
+
     # GUI VM waypipe services (x86 only with hardware.definition)
-    // lib.optionalAttrs hasHardwareDefinition (
-      lib.mkIf cfg.enable {
-        ghaf.hardware.definition.guivm.extraModules = [
-          {
-            systemd.user.services = lib.mapAttrs' (name: vm: {
-              name = "waypipe-${name}-vm";
-              value = vm.evaluatedConfig.config.ghaf.waypipe.waypipeService;
-            }) vmsWithWaypipe;
-          }
-        ];
-      }
-    );
+    (lib.mkIf (cfg.enable && hasHardwareDefinition) {
+      ghaf.hardware.definition.guivm.extraModules = [
+        {
+          systemd.user.services = lib.mapAttrs' (name: vm: {
+            name = "waypipe-${name}-vm";
+            value = vm.evaluatedConfig.config.ghaf.waypipe.waypipeService;
+          }) vmsWithWaypipe;
+        }
+      ];
+    })
+  ];
 }

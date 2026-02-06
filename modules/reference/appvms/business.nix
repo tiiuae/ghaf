@@ -129,59 +129,13 @@ in
     enable = lib.mkEnableOption "Business App VM";
   };
 
-  config = lib.mkIf cfg.enable {
+  # Only configure when both enabled AND laptop-x86 profile is available
+  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
+  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+    # DRY: Only enable, evaluatedConfig, and usbPassthrough at host level.
+    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.business = {
       enable = lib.mkDefault true;
-      name = "business";
-      borderColor = "#218838";
-
-      applications = [
-        {
-          name = "Trusted Browser";
-          description = "Isolated Trusted Browsing";
-          packages = [ trustedBrowserWrapper ];
-          icon = "thorium-browser";
-          command = "trusted-browser-wrapper";
-          givcArgs = [ "url" ];
-        }
-        {
-          name = "Microsoft Outlook";
-          description = "Microsoft Email Client";
-          icon = "ms-outlook";
-          command = "trusted-browser-wrapper --app=https://outlook.office.com/mail/";
-        }
-        {
-          name = "Microsoft 365";
-          description = "Microsoft 365 Software Suite";
-          icon = "microsoft-365";
-          command = "trusted-browser-wrapper --app=https://microsoft365.com";
-        }
-        {
-          name = "Teams";
-          description = "Microsoft Teams Collaboration Application";
-          icon = "teams-for-linux";
-          command = "trusted-browser-wrapper --app=https://teams.microsoft.com";
-        }
-        {
-          name = "Gala";
-          description = "Secure Android-in-the-Cloud";
-          icon = "distributor-logo-android";
-          command = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
-        }
-        {
-          name = "VPN";
-          description = "GlobalProtect VPN Client";
-          packages = [ pkgs.gp-gui ];
-          icon = "yast-vpn";
-          command = "gp-gui";
-        }
-      ];
-
-      vtpm = {
-        enable = lib.mkDefault true;
-        runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-        basePort = 9110;
-      };
 
       usbPassthrough = [
         {

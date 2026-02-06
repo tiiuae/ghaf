@@ -15,6 +15,11 @@
 #   - vtpm, waypipe, ghafAudio: Feature flags
 #   - extraModules: Additional modules for this specific appvm
 #
+# Extensions Pattern:
+#   Features that need to add applications (like ghaf-intro) use the `extensions` option
+#   at host level. Extensions are applied via NixOS native extendModules and can set
+#   ghaf.appvm.applications to add apps that merge with the base apps.
+#
 # Usage:
 #   mkAppVm = vmDef: lib.nixosSystem {
 #     modules = [ inputs.self.nixosModules.appvm-base ];
@@ -39,20 +44,19 @@ let
   vm = hostConfig.appvm;
   vmName = "${vm.name}-vm";
 
-  # Process applications for GIVC
-  givcApps = map (app: {
-    name = app.givcName or (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.name));
-    command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.command}";
-    args = app.givcArgs or [ ];
-  }) (vm.applications or [ ]);
+  # Helper to unwrap mkDefault values for use in lib.mkIf conditions
+  # Values like `lib.mkDefault true` become { _type = "override"; content = true; priority = 1000; }
+  # This extracts the actual boolean for use in conditionals
+  unwrap = val: if val._type or null == "override" then val.content else val;
 
-  # Packages from all applications
-  appPackages = builtins.concatLists (map (app: app.packages or [ ]) (vm.applications or [ ]));
+  # Base applications from hostConfig (defined in mkAppVm call)
+  baseApplications = vm.applications or [ ];
 
-  # Extra modules from applications (flattened)
-  appExtraModules = builtins.concatLists (
-    map (app: app.extraModules or [ ]) (vm.applications or [ ])
-  );
+  # Packages from base applications (computed at import time)
+  baseAppPackages = builtins.concatLists (map (app: app.packages or [ ]) baseApplications);
+
+  # Extra modules from base applications (flattened) - imported at module load time
+  baseAppExtraModules = builtins.concatLists (map (app: app.extraModules or [ ]) baseApplications);
 
   # Yubikey CTAP proxy support
   yubiPackages = lib.optional (vm.yubiProxy or false) pkgs.qubes-ctap;
@@ -72,226 +76,292 @@ in
     inputs.self.nixosModules.vm-modules
     inputs.self.nixosModules.profiles
   ]
-  # Import application extraModules
-  ++ appExtraModules
+  # Import base application extraModules (from mkAppVm call)
+  ++ baseAppExtraModules
   # Import VM-level extraModules
   ++ (vm.extraModules or [ ]);
 
-  ghaf = {
-    # GIVC app configuration
-    givc.appvm = {
-      enable = true;
-      applications = givcApps;
+  options.ghaf.appvm = {
+    # Applications option for extensions to add apps
+    # Extensions use: ghaf.appvm.applications = [{ name = "..."; ... }];
+    applications = lib.mkOption {
+      type = lib.types.listOf lib.types.attrs;
+      default = [ ];
+      description = ''
+        Additional applications added via extensions.
+        These are merged with base applications from mkAppVm.
+        Use this in extensions to add apps to an AppVM.
+
+        Note: Extension applications' extraModules should be added
+        directly as part of the extension module, not via app.extraModules.
+      '';
     };
 
-    # User configuration
-    users.appUser = {
-      enable = true;
-      extraGroups = [
-        "audio"
-        "video"
-        "users"
-        "plugdev"
-      ];
+    # Export vmDef so host can read values from evaluatedConfig.config.ghaf.appvm.vmDef
+    # This includes merged applications from both base and extensions
+    vmDef = lib.mkOption {
+      type = lib.types.attrs;
+      readOnly = true;
+      description = "The VM definition with merged applications. Exposed for host-side access.";
     };
+  };
 
-    # Profiles - from globalConfig
-    profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
+  config =
+    let
+      # All applications = base (from mkAppVm) + extensions (from ghaf.appvm.applications)
+      allApplications = baseApplications ++ config.ghaf.appvm.applications;
 
-    development = {
-      ssh.daemon.enable = lib.mkDefault (globalConfig.development.ssh.daemon.enable or false);
-      debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
-      nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
-    };
+      # Process applications for GIVC
+      givcApps = map (app: {
+        name = app.givcName or (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.name));
+        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.command}";
+        args = app.givcArgs or [ ];
+      }) allApplications;
 
-    # System
-    type = "app-vm";
-    systemd = {
-      enable = true;
-      withName = "appvm-systemd";
-      withLocaled = true;
-      withNss = true;
-      withResolved = true;
-      withTimesyncd = true;
-      withPolkit = true;
-      withDebug = globalConfig.debug.enable or false;
-      withHardenedConfigs = true;
-    };
+      # Packages from extension applications
+      extAppPackages = builtins.concatLists (
+        map (app: app.packages or [ ]) config.ghaf.appvm.applications
+      );
+    in
+    {
+      # Set vmDef with merged applications and unwrapped vtpm values
+      # vtpm values use mkDefault which wraps them - unwrap for host-side access
+      ghaf.appvm.vmDef = vm // {
+        applications = allApplications;
+        vtpm = {
+          enable = unwrap (vm.vtpm.enable or false);
+          runInVM = unwrap (vm.vtpm.runInVM or false);
+          basePort = vm.vtpm.basePort or null;
+        };
+      };
 
-    # Enable dynamic hostname export for AppVMs
-    identity.vmHostNameExport.enable = true;
+      ghaf = {
+        # Common namespace - from hostConfig (for appHosts, systemHosts, etc.)
+        # This allows hosts.nix to generate ghaf.networking.hosts and networking.hosts
+        common = hostConfig.common or { };
 
-    # Storage - from globalConfig
-    storagevm = {
-      enable = true;
-      name = vmName;
-      directories =
-        lib.optionals
-          (!lib.hasAttr "${config.ghaf.users.appUser.name}" (config.ghaf.storagevm.users or { }))
-          [
-            # By default, persist appuser's entire home directory unless overwritten
-            {
-              directory = "/home/${config.ghaf.users.appUser.name}";
-              user = "${config.ghaf.users.appUser.name}";
-              group = "${config.ghaf.users.appUser.name}";
-              mode = "0700";
-            }
+        # GIVC configuration - from globalConfig
+        givc = {
+          enable = globalConfig.givc.enable or false;
+          debug = globalConfig.givc.debug or false;
+        };
+
+        # GIVC app configuration
+        givc.appvm = {
+          enable = true;
+          applications = givcApps;
+        };
+
+        # User configuration
+        users.appUser = {
+          enable = true;
+          extraGroups = [
+            "audio"
+            "video"
+            "users"
+            "plugdev"
           ];
-      shared-folders.enable =
-        (sharedVmDirectory.enable or false) && builtins.elem vmName (sharedVmDirectory.vms or [ ]);
-      encryption.enable = globalConfig.storage.encryption.enable or false;
-    };
+        };
 
-    # Networking
-    virtualization.microvm.vm-networking = {
-      enable = true;
-      inherit vmName;
-    };
+        # Profiles - from globalConfig
+        profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
 
-    # vTPM support
-    virtualization.microvm.tpm.emulated = {
-      enable = vm.vtpm.enable or false;
-      runInVM = vm.vtpm.runInVM or false;
-      inherit (vm) name;
-    };
+        development = {
+          ssh.daemon.enable = lib.mkDefault (globalConfig.development.ssh.daemon.enable or false);
+          debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
+          nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
+        };
 
-    # Waypipe support
-    waypipe = {
-      enable = vm.waypipe.enable or true;
-      inherit vm;
-      # Pass CID values from host's networking config
-      vmCid = hostConfig.networking.thisVm.cid or 0;
-      guivmCid = hostConfig.networking.hosts."gui-vm".cid or 3;
-    }
-    // lib.optionalAttrs (globalConfig.shm.enable or false) {
-      serverSocketPath = globalConfig.shm.serverSocketPath or "";
-    };
+        # System
+        type = "app-vm";
+        systemd = {
+          enable = true;
+          withName = "appvm-systemd";
+          withLocaled = true;
+          withNss = true;
+          withResolved = true;
+          withTimesyncd = true;
+          withPolkit = true;
+          withDebug = globalConfig.debug.enable or false;
+          withHardenedConfigs = true;
+        };
 
-    # Audio client
-    services.audio = lib.mkIf (vm.ghafAudio.enable or false) {
-      enable = true;
-      role = "client";
-    };
+        # Enable dynamic hostname export for AppVMs
+        identity.vmHostNameExport.enable = true;
 
-    # Logging - from globalConfig
-    logging = {
-      inherit (globalConfig.logging) enable listener;
-      client.enable = globalConfig.logging.enable or false;
-    };
+        # Storage - from globalConfig
+        storagevm = {
+          enable = true;
+          name = vmName;
+          directories =
+            lib.optionals
+              (!lib.hasAttr "${config.ghaf.users.appUser.name}" (config.ghaf.storagevm.users or { }))
+              [
+                # By default, persist appuser's entire home directory unless overwritten
+                {
+                  directory = "/home/${config.ghaf.users.appUser.name}";
+                  user = "${config.ghaf.users.appUser.name}";
+                  group = "${config.ghaf.users.appUser.name}";
+                  mode = "0700";
+                }
+              ];
+          shared-folders.enable =
+            (sharedVmDirectory.enable or false) && builtins.elem vmName (sharedVmDirectory.vms or [ ]);
+          encryption.enable = globalConfig.storage.encryption.enable or false;
+        };
 
-    # Security
-    security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
-  };
+        # Networking
+        virtualization.microvm.vm-networking = {
+          enable = true;
+          inherit vmName;
+        };
 
-  # Combined udev rules (yubikey + passthrough)
-  services.udev.extraRules =
-    # Yubikey CTAP proxy rules
-    (lib.optionalString (vm.yubiProxy or false) ''
-      ACTION=="remove", GOTO="qctap_hidraw_end"
-      SUBSYSTEM=="hidraw", MODE="0660", GROUP="users"
-      LABEL="qctap_hidraw_end"
-    '')
-    # Passthrough udev rules
-    + (hostConfig.passthrough.vmUdevExtraRules or "");
+        # vTPM support
+        virtualization.microvm.tpm.emulated = {
+          enable = vm.vtpm.enable or false;
+          runInVM = vm.vtpm.runInVM or false;
+          inherit (vm) name;
+        };
 
-  # Yubikey CTAP proxy service
-  systemd.services.ctapproxy = lib.mkIf (vm.yubiProxy or false) {
-    enable = true;
-    description = "CTAP Proxy";
-    serviceConfig = {
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/log/qubes";
-      ExecStart = "${pkgs.qubes-ctap}/bin/qctap-proxy --qrexec ${
-        pkgs.writeShellApplication {
-          name = "qrexec-client-vm";
-          runtimeInputs = [ pkgs.givc-cli ];
-          text = ''
-            shift
-            exec givc-cli ${hostConfig.givc.cliArgs or ""} ctap "$@"
-          '';
+        # Waypipe support
+        waypipe = {
+          enable = vm.waypipe.enable or true;
+          inherit vm;
+          # Pass CID values from host's networking config
+          vmCid = hostConfig.networking.thisVm.cid or 0;
+          guivmCid = hostConfig.networking.hosts."gui-vm".cid or 3;
         }
-      }/bin/qrexec-client-vm dummy";
-      Type = "notify";
-      KillMode = "process";
-    };
-    wantedBy = [ "multi-user.target" ];
-  };
+        // lib.optionalAttrs (globalConfig.shm.enable or false) {
+          serverSocketPath = globalConfig.shm.serverSocketPath or "";
+        };
 
-  system.stateVersion = lib.trivial.release;
+        # Audio client
+        services.audio = lib.mkIf (unwrap (vm.ghafAudio.enable or false)) {
+          enable = true;
+          role = "client";
+        };
 
-  time.timeZone = globalConfig.platform.timeZone or "UTC";
+        # Logging - from globalConfig
+        logging = {
+          inherit (globalConfig.logging) enable listener;
+          client.enable = globalConfig.logging.enable or false;
+        };
 
-  nixpkgs = {
-    buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";
-    hostPlatform.system = globalConfig.platform.hostSystem or "x86_64-linux";
-  };
+        # Security
+        security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+      };
 
-  environment.systemPackages = [
-    pkgs.opensc
-    pkgs.givc-cli
-  ]
-  ++ (vm.packages or [ ])
-  ++ appPackages
-  ++ yubiPackages;
+      # Combined udev rules (yubikey + passthrough)
+      services.udev.extraRules =
+        # Yubikey CTAP proxy rules
+        (lib.optionalString (vm.yubiProxy or false) ''
+          ACTION=="remove", GOTO="qctap_hidraw_end"
+          SUBSYSTEM=="hidraw", MODE="0660", GROUP="users"
+          LABEL="qctap_hidraw_end"
+        '')
+        # Passthrough udev rules
+        + (hostConfig.passthrough.vmUdevExtraRules or "");
 
-  security.pki.certificateFiles = lib.mkIf (globalConfig.idsvm.mitmproxy.enable or false) [
-    ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
-  ];
+      # Yubikey CTAP proxy service
+      systemd.services.ctapproxy = lib.mkIf (vm.yubiProxy or false) {
+        enable = true;
+        description = "CTAP Proxy";
+        serviceConfig = {
+          ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /var/log/qubes";
+          ExecStart = "${pkgs.qubes-ctap}/bin/qctap-proxy --qrexec ${
+            pkgs.writeShellApplication {
+              name = "qrexec-client-vm";
+              runtimeInputs = [ pkgs.givc-cli ];
+              text = ''
+                shift
+                exec givc-cli ${hostConfig.givc.cliArgs or ""} ctap "$@"
+              '';
+            }
+          }/bin/qrexec-client-vm dummy";
+          Type = "notify";
+          KillMode = "process";
+        };
+        wantedBy = [ "multi-user.target" ];
+      };
 
-  microvm = {
-    optimize.enable = false;
-    # Sensible defaults based on vm definition - can be further overridden via vmConfig
-    mem = lib.mkDefault ((vm.ramMb or 4096) * ((vm.balloonRatio or 2) + 1));
-    balloon = (vm.balloonRatio or 2) > 0;
-    deflateOnOOM = false;
-    vcpu = lib.mkDefault (vm.cores or 4);
-    hypervisor = "qemu";
+      system.stateVersion = lib.trivial.release;
 
-    shares = [
-      {
-        tag = "ghaf-common";
-        source = "/persist/common";
-        mountPoint = "/etc/common";
-        proto = "virtiofs";
-      }
-    ]
-    # Shared store (when not using storeOnDisk)
-    ++ lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
-      {
-        tag = "ro-store";
-        source = "/nix/store";
-        mountPoint = "/nix/.ro-store";
-        proto = "virtiofs";
-      }
-    ];
+      time.timeZone = globalConfig.platform.timeZone or "UTC";
 
-    writableStoreOverlay = lib.mkIf (!(globalConfig.storage.storeOnDisk or false)) "/nix/.rw-store";
+      nixpkgs = {
+        buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";
+        hostPlatform.system = globalConfig.platform.hostSystem or "x86_64-linux";
+      };
 
-    qemu = {
-      extraArgs = [
-        "-M"
-        "accel=kvm:tcg,mem-merge=on,sata=off"
-        "-device"
-        "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 100)}"
-        "-device"
-        "qemu-xhci"
+      environment.systemPackages = [
+        pkgs.opensc
+        pkgs.givc-cli
       ]
-      ++ (hostConfig.passthrough.qemuExtraArgs or [ ]);
+      ++ (vm.packages or [ ])
+      ++ baseAppPackages
+      ++ extAppPackages
+      ++ yubiPackages;
 
-      machine =
-        {
-          # Use the same machine type as the host
-          x86_64-linux = "q35";
-          aarch64-linux = "virt";
-        }
-        .${globalConfig.platform.hostSystem or "x86_64-linux"};
+      security.pki.certificateFiles = lib.mkIf (globalConfig.idsvm.mitmproxy.enable or false) [
+        ./idsvm/mitmproxy/mitmproxy-ca/mitmproxy-ca-cert.pem
+      ];
+
+      microvm = {
+        optimize.enable = false;
+        # Sensible defaults based on vm definition - can be further overridden via vmConfig
+        mem = lib.mkDefault ((vm.ramMb or 4096) * ((vm.balloonRatio or 2) + 1));
+        balloon = (vm.balloonRatio or 2) > 0;
+        deflateOnOOM = false;
+        vcpu = lib.mkDefault (vm.cores or 4);
+        hypervisor = "qemu";
+
+        shares = [
+          {
+            tag = "ghaf-common";
+            source = "/persist/common";
+            mountPoint = "/etc/common";
+            proto = "virtiofs";
+          }
+        ]
+        # Shared store (when not using storeOnDisk)
+        ++ lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
+          {
+            tag = "ro-store";
+            source = "/nix/store";
+            mountPoint = "/nix/.ro-store";
+            proto = "virtiofs";
+          }
+        ];
+
+        writableStoreOverlay = lib.mkIf (!(globalConfig.storage.storeOnDisk or false)) "/nix/.rw-store";
+
+        qemu = {
+          extraArgs = [
+            "-M"
+            "accel=kvm:tcg,mem-merge=on,sata=off"
+            "-device"
+            "vhost-vsock-pci,guest-cid=${toString (hostConfig.networking.thisVm.cid or 100)}"
+            "-device"
+            "qemu-xhci"
+          ]
+          ++ (hostConfig.passthrough.qemuExtraArgs or [ ]);
+
+          machine =
+            {
+              # Use the same machine type as the host
+              x86_64-linux = "q35";
+              aarch64-linux = "virt";
+            }
+            .${globalConfig.platform.hostSystem or "x86_64-linux"};
+        };
+      }
+      // lib.optionalAttrs (globalConfig.storage.storeOnDisk or false) {
+        storeOnDisk = true;
+        storeDiskType = "erofs";
+        storeDiskErofsFlags = [
+          "-zlz4hc"
+          "-Eztailpacking"
+        ];
+      };
     };
-  }
-  // lib.optionalAttrs (globalConfig.storage.storeOnDisk or false) {
-    storeOnDisk = true;
-    storeDiskType = "erofs";
-    storeDiskErofsFlags = [
-      "-zlz4hc"
-      "-Eztailpacking"
-    ];
-  };
 }

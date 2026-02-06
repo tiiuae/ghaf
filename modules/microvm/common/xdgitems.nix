@@ -210,7 +210,7 @@ in
     handlerPath = mkOption {
       description = "Path of the XDG open file script used by the AppArmor module to whitelist it";
       type = types.str;
-      readOnly = true;
+      default = "";
       visible = false;
     };
 

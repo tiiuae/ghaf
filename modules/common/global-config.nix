@@ -36,5 +36,12 @@
       hostSystem = lib.mkDefault config.nixpkgs.hostPlatform.system;
       timeZone = lib.mkDefault (if config.time.timeZone != null then config.time.timeZone else "UTC");
     };
+
+    # Auto-populate logging listener address from admin-vm IP
+    # The logging listener always runs on admin-vm, so derive the address
+    # from hosts.nix rather than requiring each profile to set it manually.
+    ghaf.global-config.logging.listener.address = lib.mkIf (
+      config.ghaf.global-config.logging.enable && config.ghaf.common.adminHost != null
+    ) (lib.mkDefault config.ghaf.networking.hosts.admin-vm.ipv4);
   };
 }

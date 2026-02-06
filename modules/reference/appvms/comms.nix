@@ -19,39 +19,13 @@ in
     enable = lib.mkEnableOption "Communications App VM";
   };
 
-  config = lib.mkIf cfg.enable {
+  # Only configure when both enabled AND laptop-x86 profile is available
+  # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
+  config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
+    # DRY: Only enable and evaluatedConfig at host level.
+    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.comms = {
       enable = lib.mkDefault true;
-      name = "comms";
-      borderColor = "#337aff";
-
-      applications = [
-        {
-          name = "Element";
-          description = "General Messaging Application";
-          packages = [ pkgs.element-desktop ];
-          icon = "element-desktop";
-          command = "element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland";
-        }
-        {
-          name = "Slack";
-          description = "Teams Collaboration & Messaging Application";
-          icon = "slack";
-          command = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
-        }
-        {
-          name = "Zoom";
-          description = "Zoom Videoconferencing Application";
-          icon = "Zoom";
-          command = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
-        }
-      ];
-
-      vtpm = {
-        enable = lib.mkDefault true;
-        runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-        basePort = 9130;
-      };
 
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
         name = "comms";
