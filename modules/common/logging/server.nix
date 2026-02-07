@@ -228,7 +228,7 @@ in
 
         loki.source.api "listener" {
           http {
-            listen_address = "${config.ghaf.logging.listener.address}"
+            listen_address = "127.0.0.1"
             listen_port    = ${toString cfg.tls.terminator.backendPort}
           }
 
@@ -279,7 +279,7 @@ in
 
       servers."ghaf-logs" = {
         accept = config.ghaf.logging.listener.port;
-        connect = "${config.ghaf.logging.listener.address}:${toString cfg.tls.terminator.backendPort}";
+        connect = "127.0.0.1:${toString cfg.tls.terminator.backendPort}";
         cert = cfg.tls.certFile;
         key = cfg.tls.keyFile;
         verify = if cfg.tls.terminator.verifyClients then 2 else 0;
