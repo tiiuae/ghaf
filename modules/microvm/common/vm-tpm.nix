@@ -17,6 +17,7 @@ let
     ;
 in
 {
+  _file = ./vm-tpm.nix;
   options.ghaf.virtualization.microvm.tpm = {
     passthrough = {
       enable = mkEnableOption "Passthrough of TPM-RM device";

@@ -1,5 +1,11 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# vTPM Proxy Module (Host-side)
+#
+# This module spawns swtpm-proxy services on the host for VMs with vTPM enabled.
+# The admin-vm swtpm services are now in modules/microvm/adminvm-features/vtpm-services.nix
+#
 {
   config,
   lib,
@@ -45,91 +51,6 @@ lib.mkIf cfg.enable {
       lib.attrsets.nameValuePair "swtpm-proxy-${name}" (mkSwtpmProxyService name vm.vtpm.basePort)
     ) vmsWithVtpm;
 
-  # Launch swtpm processes in admin VM
-  ghaf.virtualization.microvm.adminvm.extraModules = [
-    (
-      { lib, pkgs, ... }:
-      let
-        makeSwtpmService =
-          name: basePort:
-          let
-            swtpmScript = pkgs.writeShellApplication {
-              name = "${name}-swtpm-bin";
-              runtimeInputs = with pkgs; [
-                coreutils
-                swtpm
-              ];
-              text = ''
-                mkdir -p /var/lib/swtpm/${name}/state
-                swtpm socket --tpmstate dir=/var/lib/swtpm/${name}/state \
-                  --ctrl type=tcp,port=${toString basePort} \
-                  --server type=tcp,port=${toString (basePort + 1)} \
-                  --tpm2 \
-                  --log level=20
-              '';
-            };
-          in
-          {
-            description = "swtpm service for ${name}";
-            path = [ swtpmScript ];
-            wantedBy = [ "multi-user.target" ];
-            serviceConfig = {
-              Type = "exec";
-              Restart = "always";
-              User = "swtpm_${name}";
-              StateDirectory = "swtpm/${name}";
-              StateDirectoryMode = "0700";
-              StandardOutput = "journal";
-              StandardError = "journal";
-              ExecStart = lib.getExe swtpmScript;
-            };
-          };
-
-        makeSocatService =
-          name: channel: port:
-          let
-            socatScript = pkgs.writeShellApplication {
-              name = "${name}-socat";
-              runtimeInputs = with pkgs; [
-                socat
-              ];
-              text = ''
-                socat VSOCK-LISTEN:${toString port},fork TCP:127.0.0.1:${toString port}
-              '';
-            };
-          in
-          {
-            description = "socat ${channel} channel for ${name}";
-            path = [ socatScript ];
-            wantedBy = [ "multi-user.target" ];
-            serviceConfig = {
-              Type = "simple";
-              Restart = "always";
-              DynamicUser = "on";
-              StandardOutput = "journal";
-              StandardError = "journal";
-              ExecStart = lib.getExe socatScript;
-            };
-          };
-
-        makeSwtpmInstanceConfig = name: vm: {
-          users.users."swtpm_${name}" = {
-            isSystemUser = true;
-            home = "/var/lib/swtpm/${name}";
-            group = "swtpm_${name}";
-          };
-          users.groups."swtpm_${name}" = { };
-
-          systemd.services = {
-            "${name}-swtpm" = makeSwtpmService name vm.vtpm.basePort;
-            "${name}-socat-control" = makeSocatService name "control" vm.vtpm.basePort;
-            "${name}-socat-data" = makeSocatService name "data" (vm.vtpm.basePort + 1);
-          };
-        };
-
-        configs = lib.mapAttrsToList makeSwtpmInstanceConfig vmsWithVtpm;
-      in
-      lib.foldr lib.recursiveUpdate { } configs
-    )
-  ];
+  # Note: Admin-vm swtpm/socat services are now configured via adminvm-features/vtpm-services.nix
+  # which is auto-included in adminvm-base when vTPM VMs exist.
 }

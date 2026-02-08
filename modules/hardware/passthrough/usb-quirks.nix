@@ -20,6 +20,8 @@ let
 
 in
 {
+  _file = ./usb-quirks.nix;
+
   options.ghaf.hardware.passthrough.usbQuirks = {
     enable = mkEnableOption "quirks for USB devices";
   };

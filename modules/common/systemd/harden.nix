@@ -7,6 +7,8 @@ let
   inherit (lib) mkIf mkOption types;
 in
 {
+  _file = ./harden.nix;
+
   options.ghaf.systemd = {
     withHardenedConfigs = mkOption {
       description = "Enable common hardened configs.";

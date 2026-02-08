@@ -126,8 +126,42 @@ export default defineConfig({
                       label: "Ghaf as a Library",
                       items: [
                         "ghaf/dev/library",
+                        "ghaf/dev/global-config",
                         "ghaf/dev/library/example_project",
                         "ghaf/dev/library/modules_options",
+                        {
+                          label: "Library API",
+                          collapsed: true,
+                          items: [
+                            "ghaf/dev/library/vm-helpers",
+                            "ghaf/dev/library/features-api",
+                            "ghaf/dev/library/profiles-api",
+                          ],
+                        },
+                      ],
+                    },
+                    {
+                      label: "Architecture",
+                      collapsed: true,
+                      items: [
+                        "ghaf/dev/architecture",
+                        "ghaf/dev/architecture/vm-composition",
+                        "ghaf/dev/architecture/config-propagation",
+                        "ghaf/dev/architecture/module-conventions",
+                        "ghaf/dev/architecture/anti-patterns",
+                      ],
+                    },
+                    {
+                      label: "Developer Guides",
+                      collapsed: true,
+                      items: [
+                        "ghaf/dev/guides",
+                        "ghaf/dev/guides/writing-modules",
+                        "ghaf/dev/guides/creating-vms",
+                        "ghaf/dev/guides/adding-features",
+                        "ghaf/dev/guides/extending-targets",
+                        "ghaf/dev/guides/downstream-setup",
+                        "ghaf/dev/guides/migration",
                       ],
                     },
                     {

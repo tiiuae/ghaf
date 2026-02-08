@@ -10,6 +10,8 @@ let
   ] config.ghaf;
 in
 {
+  _file = ./chromecast-config.nix;
+
   config.ghaf.reference.services.chromecast = optionalAttrs isHost {
     enable = lib.mkDefault false;
     externalNic = (lib.head config.ghaf.hardware.definition.network.pciDevices).name;

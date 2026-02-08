@@ -25,8 +25,6 @@ let
       --app=file://${pkgs.ghaf-intro}/index.html
     '';
   };
-
-  introCommand = "${pkgs.givc-cli}/bin/givc-cli ${config.ghaf.givc.cliArgs} start app --vm chrome-vm ghaf-intro";
 in
 {
   options.ghaf.reference.desktop.ghaf-intro = {
@@ -55,23 +53,8 @@ in
       }
     ];
 
-    ghaf.virtualization.microvm.guivm.extraModules = [
-      {
-        # First-boot autostart trigger after COSMIC initial setup
-        systemd.user.paths.ghaf-intro-autostart = {
-          description = "Watch for COSMIC initial setup completion";
-          wantedBy = [ "ghaf-session.target" ];
-          pathConfig.PathModified = "%h/.config/cosmic-initial-setup-done";
-        };
-        systemd.user.services.ghaf-intro-autostart = {
-          description = "Ghaf Introduction first-boot launcher";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = introCommand;
-          };
-        };
-      }
-    ];
+    # Ghaf intro autostart config is now provided by guivm-desktop-features module
+    # See: modules/desktop/guivm/ghaf-intro.nix
 
   };
 }

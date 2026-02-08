@@ -141,6 +141,8 @@ let
   }) uniquenessChecks;
 in
 {
+  _file = ./hosts.nix;
+
   options.ghaf.networking = {
     hosts = mkOption {
       type = types.attrsOf types.networking;

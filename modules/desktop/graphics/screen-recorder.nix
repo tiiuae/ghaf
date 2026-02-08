@@ -60,6 +60,8 @@ let
   };
 in
 {
+  _file = ./screen-recorder.nix;
+
   options.ghaf.graphics.screen-recorder = {
     enable = lib.mkEnableOption "Whether to enable screen recording capabilities using gpu-screen-recorder.";
   };

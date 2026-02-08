@@ -138,6 +138,8 @@ let
 
 in
 {
+  _file = ./sssd.nix;
+
   options.ghaf.services.sssd = {
     enable = mkEnableOption "SSSD service for Active Directory and LDAP user integration";
 

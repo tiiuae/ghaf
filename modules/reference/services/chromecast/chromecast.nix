@@ -21,6 +21,8 @@ let
   ssdpMcastIp = "239.255.255.250";
 in
 {
+  _file = ./chromecast.nix;
+
   options.ghaf.reference.services.chromecast = {
     enable = mkEnableOption "Enable chromecast service";
 

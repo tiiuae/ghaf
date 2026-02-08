@@ -5,6 +5,8 @@ let
   inherit (lib) mkOption types;
 in
 {
+  _file = ./sshkeys.nix;
+
   options.ghaf.security.sshKeys = {
     getAuthKeysFileName = mkOption {
       type = types.str;

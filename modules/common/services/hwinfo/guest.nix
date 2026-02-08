@@ -14,6 +14,8 @@ let
   cfg = config.ghaf.services.hwinfo-guest;
 in
 {
+  _file = ./guest.nix;
+
   options.ghaf.services.hwinfo-guest = {
     enable = lib.mkEnableOption "hardware information reading tools for guest VMs";
   };

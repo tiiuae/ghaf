@@ -1,0 +1,304 @@
+---
+title: "Features API"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Features API
+
+The `lib.ghaf.features` namespace provides utilities for managing hardware feature assignments across VMs in the Ghaf framework.
+
+## Overview
+
+The features system allows centralized management of hardware capabilities (fingerprint, YubiKey, WiFi, audio, etc.) with flexible VM assignment. Instead of hardcoding which VM owns a feature, this is now configurable.
+
+```nix
+lib.ghaf.features = {
+  isEnabledFor    # Check if a feature is enabled for a specific VM
+};
+```
+
+## Configuration Schema
+
+Features are configured through `ghaf.global-config.features`:
+
+```nix
+ghaf.global-config.features = {
+  fprint = {
+    enable = true;
+    targetVms = [ "gui-vm" ];
+  };
+  yubikey = {
+    enable = true;
+    targetVms = [ "gui-vm" ];
+  };
+  brightness = {
+    enable = true;
+    targetVms = [ "gui-vm" ];
+  };
+  wifi = {
+    enable = true;
+    targetVms = [ "net-vm" ];
+  };
+  audio = {
+    enable = true;
+    targetVms = [ "audio-vm" ];
+  };
+  bluetooth = {
+    enable = true;
+    targetVms = [ "audio-vm" ];
+  };
+};
+```
+
+### Feature Options
+
+Each feature has the same structure:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `enable` | bool | `true` | Whether the feature is enabled globally |
+| `targetVms` | list of str | varies | VMs that should have this feature |
+
+### Default Assignments
+
+| Feature | Default VMs | Description |
+|---------|-------------|-------------|
+| `fprint` | `[ "gui-vm" ]` | Fingerprint reader support |
+| `yubikey` | `[ "gui-vm" ]` | YubiKey/smart card support |
+| `brightness` | `[ "gui-vm" ]` | Screen brightness control |
+| `wifi` | `[ "net-vm" ]` | WiFi network management |
+| `audio` | `[ "audio-vm" ]` | Audio playback/recording |
+| `bluetooth` | `[ "audio-vm" ]` | Bluetooth connectivity |
+
+---
+
+## Function Reference
+
+### isEnabledFor
+
+Checks if a specific feature is enabled for a specific VM.
+
+**Signature:**
+
+```nix
+isEnabledFor :: AttrSet -> String -> String -> Bool
+isEnabledFor globalConfig featureName vmName
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `globalConfig` | AttrSet | The global configuration (`config.ghaf.global-config`) |
+| `featureName` | String | Feature name (e.g., "fprint", "wifi") |
+| `vmName` | String | VM name (e.g., "gui-vm", "net-vm") |
+
+**Returns:** `true` if the feature is enabled AND the VM is in `targetVms`, `false` otherwise.
+
+**Example:**
+
+```nix
+{ globalConfig, lib, ... }:
+{
+  config = lib.mkMerge [
+    # Only enable fprintd if fprint feature assigned to this VM
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm") {
+      services.fprintd.enable = true;
+    })
+
+    # Only enable WiFi services if wifi feature assigned
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "wifi" "net-vm") {
+      networking.wireless.enable = true;
+    })
+  ];
+}
+```
+
+---
+
+## Usage Patterns
+
+### Pattern 1: Conditional Service Enablement
+
+The most common pattern is conditionally enabling services based on feature assignment:
+
+```nix
+# In guivm-base.nix
+{ globalConfig, lib, ... }:
+{
+  config = lib.mkMerge [
+    # Fingerprint authentication
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm") {
+      services.fprintd.enable = true;
+      security.pam.services.login.fprintAuth = true;
+    })
+
+    # YubiKey/smart card support
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "yubikey" "gui-vm") {
+      services.pcscd.enable = true;
+      hardware.gpgSmartcards.enable = true;
+    })
+
+    # Brightness control
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "brightness" "gui-vm") {
+      programs.light.enable = true;
+      services.udev.extraRules = ''
+        ACTION=="add", SUBSYSTEM=="backlight", RUN+="${pkgs.coreutils}/bin/chmod 666 /sys/class/backlight/%k/brightness"
+      '';
+    })
+  ];
+}
+```
+
+### Pattern 2: Downstream Feature Reassignment
+
+Move a feature to a different VM:
+
+```nix
+# Downstream project configuration
+{
+  ghaf.global-config.features = {
+    # Move fingerprint from gui-vm to admin-vm
+    fprint.targetVms = [ "admin-vm" ];
+
+    # Enable YubiKey in multiple VMs
+    yubikey.targetVms = [ "gui-vm" "admin-vm" ];
+
+    # Disable audio entirely
+    audio.enable = false;
+  };
+}
+```
+
+### Pattern 3: Checking Multiple Features
+
+```nix
+{ globalConfig, lib, ... }:
+let
+  isAudioVm = lib.ghaf.features.isEnabledFor globalConfig "audio" "audio-vm";
+  hasBluetooth = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" "audio-vm";
+in
+{
+  config = lib.mkIf isAudioVm {
+    # Audio configuration
+    services.pipewire.enable = true;
+
+    # Bluetooth only if also assigned
+    hardware.bluetooth.enable = hasBluetooth;
+  };
+}
+```
+
+### Pattern 4: Feature-Based Package Installation
+
+```nix
+{ globalConfig, lib, pkgs, ... }:
+{
+  environment.systemPackages = lib.optionals
+    (lib.ghaf.features.isEnabledFor globalConfig "yubikey" "gui-vm")
+    [ pkgs.yubikey-manager pkgs.yubikey-personalization ];
+}
+```
+
+---
+
+## Adding New Features
+
+To add a new feature to the system:
+
+### 1. Add to globalConfig Schema
+
+In `lib/global-config.nix`:
+
+```nix
+features.myFeature = {
+  enable = lib.mkEnableOption "My Feature" // { default = true; };
+  targetVms = lib.mkOption {
+    type = lib.types.listOf lib.types.str;
+    default = [ "gui-vm" ];
+    description = "VMs where my feature should be enabled";
+  };
+};
+```
+
+### 2. Update VM Base Modules
+
+In the relevant base module (e.g., `guivm-base.nix`):
+
+```nix
+{ globalConfig, lib, ... }:
+{
+  config = lib.mkMerge [
+    # ... existing config ...
+
+    (lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "myFeature" "gui-vm") {
+      # My feature configuration
+      services.myFeature.enable = true;
+    })
+  ];
+}
+```
+
+### 3. Document the Feature
+
+Update this documentation with the new feature's default assignment and description.
+
+---
+
+## Feature vs Hardware Definition
+
+Features and hardware definitions serve different purposes:
+
+| Aspect | Features (`globalConfig.features`) | Hardware Definition (`hardware.definition`) |
+|--------|-----------------------------------|---------------------------------------------|
+| **Scope** | Software service assignment | Hardware passthrough configuration |
+| **Example** | "Which VM runs fprintd?" | "Pass USB device 1234:5678 to gui-vm" |
+| **Configurability** | Downstream can reassign VMs | Hardware-specific, rarely changed |
+| **Location** | `lib/global-config.nix` | `modules/hardware/definition.nix` |
+
+**When to use which:**
+
+- Use **features** for services that could reasonably run in different VMs
+- Use **hardware definition** for device passthrough that's tied to hardware
+
+---
+
+## Troubleshooting
+
+### Feature Not Enabling
+
+If a feature isn't activating:
+
+1. Check if feature is globally enabled:
+   ```nix
+   globalConfig.features.fprint.enable  # Should be true
+   ```
+
+2. Check if VM is in targetVms:
+   ```nix
+   globalConfig.features.fprint.targetVms  # Should include your VM
+   ```
+
+3. Verify the VM base module checks the feature:
+   ```nix
+   lib.mkIf (lib.ghaf.features.isEnabledFor globalConfig "fprint" "gui-vm") { ... }
+   ```
+
+### Feature Enabled When It Shouldn't Be
+
+If a feature is active when disabled:
+
+1. Check for hardcoded enables in the base module
+2. Ensure you're not using `lib.mkForce` to override
+3. Verify the feature check is using `mkIf`, not just `=`
+
+---
+
+## See Also
+
+- [Configuration Propagation](/ghaf/dev/architecture/config-propagation) - How globalConfig works
+- [Global Config Reference](/ghaf/dev/library) - Full globalConfig schema
+- [VM Helpers](/ghaf/dev/library/vm-helpers) - VM composition utilities

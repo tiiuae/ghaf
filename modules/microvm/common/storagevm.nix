@@ -30,6 +30,7 @@ let
       200000; # Default to 200 GB
 in
 {
+  _file = ./storagevm.nix;
   options.ghaf.storagevm = {
     enable = mkEnableOption "StorageVM support";
 

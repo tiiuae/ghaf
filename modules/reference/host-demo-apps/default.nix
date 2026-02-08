@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 
 {
+  _file = ./default.nix;
+
   imports = [
     ./demo-apps.nix
   ];

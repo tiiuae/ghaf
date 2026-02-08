@@ -40,6 +40,8 @@ let
   };
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.hardware.nvidia.passthroughs.uarti_net_vm.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;
@@ -53,7 +55,8 @@ in
     '';
     ghaf.hardware.nvidia.virtualization.enable = true;
 
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    # Passthrough devices - use hardware.definition for composition model
+    ghaf.hardware.definition.netvm.extraModules = [
       {
         # Use serial passthrough (ttyAMA0) and virtual PCI serial (ttyS0)
         # as Linux console

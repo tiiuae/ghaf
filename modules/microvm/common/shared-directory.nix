@@ -9,6 +9,7 @@ let
     if cfg.isGuiVm then "/Shares" else "/home/${config.ghaf.users.appUser.name}/Unsafe\ share";
 in
 {
+  _file = ./shared-directory.nix;
   options.ghaf.storagevm.shared-folders = {
     enable = mkEnableOption "Enable shared directory";
     isGuiVm = mkEnableOption "Indicate if the VM is the GUI VM";

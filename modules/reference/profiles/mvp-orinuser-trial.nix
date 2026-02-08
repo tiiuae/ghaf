@@ -9,6 +9,8 @@ let
   cfg = config.ghaf.reference.profiles.mvp-orinuser-trial;
 in
 {
+  _file = ./mvp-orinuser-trial.nix;
+
   options.ghaf.reference.profiles.mvp-orinuser-trial = {
     enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
   };
@@ -41,16 +43,15 @@ in
         desktop.applications.enable = false;
       };
 
-      profiles = {
-        orin = {
-          enable = true;
-          netvmExtraModules = [
-            ../services
-            ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
-        };
-      };
+      profiles.orin.enable = true;
+
+      # Net VM profile-specific modules - use vmConfig for resource allocation and profile services
+      # Hardware-specific modules should go in hardware.definition.netvm.extraModules
+      virtualization.vmConfig.netvm.extraModules = [
+        ../services
+        ../personalize
+        { ghaf.reference.personalize.keys.enable = true; }
+      ];
 
       graphics = {
         # Plymouth doesn't work as it should on Orins

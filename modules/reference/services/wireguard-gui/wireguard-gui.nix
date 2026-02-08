@@ -28,6 +28,8 @@ let
 
 in
 {
+  _file = ./wireguard-gui.nix;
+
   options.ghaf.reference.services.wireguard-gui = {
     enable = lib.mkEnableOption "Enable the Wireguard GUI service";
     serverPorts = lib.mkOption {

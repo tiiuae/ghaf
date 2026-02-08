@@ -23,6 +23,8 @@ let
       "-" + toString val;
 in
 {
+  _file = ./pwquality.nix;
+
   options.ghaf.security.pwquality = {
     enable = mkEnableOption "Password quality check.";
 

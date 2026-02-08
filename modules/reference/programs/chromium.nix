@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.reference.programs.chromium;
 in
 {
+  _file = ./chromium.nix;
+
   options.ghaf.reference.programs.chromium = {
     enable = lib.mkEnableOption "Enable Chromium program settings";
     openInNormalExtension = lib.mkEnableOption "browser extension to open links in the normal browser";

@@ -36,6 +36,8 @@ let
   };
 in
 {
+  _file = ./auxiliary.nix;
+
   options.ghaf.users = {
     appUser = mkOption {
       description = "User account for app-vms running applications.";

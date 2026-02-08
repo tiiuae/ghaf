@@ -21,6 +21,8 @@ let
     ;
 in
 {
+  _file = ./common.nix;
+
   imports = [
     # TODO remove this when the minimal config is defined
     # Replace with the baseModules definition
@@ -156,7 +158,11 @@ in
               let
                 adminHosts = lib.lists.remove "" (
                   lib.attrsets.mapAttrsToList (
-                    n: v: lib.optionalString (v.config.config.ghaf.type == "admin-vm") n
+                    n: v:
+                    let
+                      vmConfig = lib.ghaf.vm.getConfig v;
+                    in
+                    lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "admin-vm") n
                   ) config.microvm.vms
                 );
               in
@@ -164,12 +170,20 @@ in
               lib.lists.head (adminHosts ++ [ null ]);
             systemHosts = lib.lists.remove "" (
               lib.attrsets.mapAttrsToList (
-                n: v: lib.optionalString (v.config.config.ghaf.type == "system-vm") n
+                n: v:
+                let
+                  vmConfig = lib.ghaf.vm.getConfig v;
+                in
+                lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "system-vm") n
               ) config.microvm.vms
             );
             appHosts = lib.lists.remove "" (
               lib.attrsets.mapAttrsToList (
-                n: v: lib.optionalString (v.config.config.ghaf.type == "app-vm") n
+                n: v:
+                let
+                  vmConfig = lib.ghaf.vm.getConfig v;
+                in
+                lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "app-vm") n
               ) config.microvm.vms
             );
             hardware = {

@@ -11,6 +11,8 @@ let
   cfg = config.ghaf.graphics.intel-setup;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.graphics.intel-setup = {
     enable = lib.mkEnableOption "Enable Intel GPU setup";
   };

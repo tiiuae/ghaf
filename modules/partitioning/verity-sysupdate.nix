@@ -11,6 +11,8 @@ let
   cfg = config.ghaf.partitioning.verity;
 in
 {
+  _file = ./verity-sysupdate.nix;
+
   config = lib.mkIf cfg.sysupdate {
     # TODO: This is a placeholder for future implementation.
     systemd.sysupdate = {

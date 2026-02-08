@@ -1,0 +1,421 @@
+---
+title: "Creating VMs"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# Creating VMs
+
+This guide covers how to create new VM types in the Ghaf Framework, from simple extensions to entirely new system VMs.
+
+## VM Architecture Overview
+
+VMs in Ghaf use a three-layer composition model:
+
+1. **Base Module** - Core VM configuration (`modules/microvm/sysvms/*-base.nix`)
+2. **Profile** - Platform-specific VM setup (`modules/profiles/*.nix`)
+3. **Target** - Final customization (`targets/*/flake-module.nix`)
+
+## Creating a New System VM
+
+### Step 1: Create the Base Module
+
+Create `modules/microvm/sysvms/myvm-base.nix`:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# My VM base configuration
+#
+{ config, lib, pkgs, globalConfig, hostConfig, inputs, ... }:
+{
+  _file = ./myvm-base.nix;
+
+  imports = [
+    # Common VM modules
+    inputs.self.nixosModules.vm-config
+    inputs.self.nixosModules.givc
+  ];
+
+  # VM identification
+  networking.hostName = hostConfig.vmName;
+  system.name = hostConfig.vmName;
+
+  # Inherit global settings
+  ghaf = {
+    profiles.debug.enable = globalConfig.debug.enable;
+    development = {
+      debug.tools.enable = globalConfig.development.debug.tools.enable;
+      ssh.daemon.enable = globalConfig.development.ssh.daemon.enable;
+    };
+    givc = {
+      enable = globalConfig.givc.enable;
+      inherit (globalConfig.givc) debug;
+    };
+  };
+
+  # Time zone from global config
+  time.timeZone = lib.mkDefault globalConfig.platform.timeZone;
+
+  # VM-specific configuration
+  microvm = {
+    hypervisor = "qemu";
+    vcpu = 2;
+    mem = 1024;
+
+    # Shared directories
+    shares = [
+      {
+        tag = "ro-store";
+        source = "/nix/store";
+        mountPoint = "/nix/.ro-store";
+        proto = "virtiofs";
+      }
+    ];
+
+    # Network interface
+    interfaces = [{
+      type = "tap";
+      id = "vm-myvm";
+      mac = hostConfig.networking.thisVm.mac;
+    }];
+  };
+
+  # Networking
+  networking.interfaces.ethint0.ipv4.addresses = [{
+    address = hostConfig.networking.thisVm.ipv4;
+    prefixLength = 24;
+  }];
+
+  # Your VM's services
+  services.myService.enable = true;
+
+  # Packages
+  environment.systemPackages = with pkgs; [
+    htop
+    vim
+  ];
+}
+```
+
+### Step 2: Create the VM Module
+
+Create `modules/microvm/sysvms/myvm.nix`:
+
+```nix
+# SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+# SPDX-License-Identifier: Apache-2.0
+{ config, lib, ... }:
+let
+  cfg = config.ghaf.virtualization.microvm.myvm;
+in
+{
+  _file = ./myvm.nix;
+
+  options.ghaf.virtualization.microvm.myvm = {
+    enable = lib.mkEnableOption "My VM";
+
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
+      description = ''
+        Evaluated NixOS configuration for my VM.
+        Set by the profile using lib.evalModules.
+      '';
+    };
+  };
+
+  config = lib.mkIf cfg.enable {
+    assertions = [{
+      assertion = cfg.evaluatedConfig != null;
+      message = "ghaf.virtualization.microvm.myvm.evaluatedConfig must be set";
+    }];
+
+    microvm.vms.my-vm = {
+      config = lib.ghaf.vm.getConfig config "myvm";
+      specialArgs = { inherit lib; };
+    };
+  };
+}
+```
+
+### Step 3: Export the Modules
+
+Add to `modules/microvm/flake-module.nix`:
+
+```nix
+{
+  flake.nixosModules = {
+    # ... existing modules ...
+    myvm = ./sysvms/myvm.nix;
+    myvm-base = ./sysvms/myvm-base.nix;
+  };
+}
+```
+
+### Step 4: Add to Profile
+
+Update `modules/profiles/laptop-x86.nix` (or create a new profile):
+
+```nix
+{ config, lib, pkgs, inputs, ... }:
+let
+  globalConfig = config.ghaf.global-config;
+
+  # Create the VM base with proper specialArgs
+  myvmBase = lib.evalModules {
+    specialArgs = lib.ghaf.vm.mkSpecialArgs
+      globalConfig
+      (lib.ghaf.vm.mkHostConfig config "my-vm")
+      lib;
+    modules = [
+      inputs.self.nixosModules.myvm-base
+      # Add target-specific modules here
+    ];
+  };
+in
+{
+  config = lib.mkMerge [
+    # ... existing config ...
+
+    # Wire up my VM
+    (lib.ghaf.vm.applyVmConfig config "myvm" myvmBase)
+  ];
+}
+```
+
+### Step 5: Add Networking Configuration
+
+Update host networking to include your VM's address. In your hardware definition or profile:
+
+```nix
+ghaf.common.extraNetworking.hosts.my-vm = {
+  name = "my-vm";
+  ipv4 = "192.168.100.10";
+  mac = "02:00:00:00:00:10";
+};
+```
+
+---
+
+## Creating an Application VM
+
+Application VMs use a template pattern for multiple instances.
+
+### Using mkAppVm
+
+The `mkAppVm` function creates application VMs:
+
+```nix
+{ config, lib, ... }:
+let
+  mkAppVm = config.ghaf.profiles.laptop-x86.mkAppVm;
+in
+{
+  ghaf.virtualization.microvm.appvm.vms.my-app = mkAppVm {
+    name = "my-app";
+    applications = [{
+      name = "My Application";
+      description = "Description of my app";
+      packages = [ pkgs.my-app ];
+      icon = "my-app-icon";
+      command = "my-app --flag";
+    }];
+    extraModules = [
+      # Additional configuration
+      { config.services.foo.enable = true; }
+    ];
+  };
+}
+```
+
+### AppVM Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `name` | str | VM name (used as identifier) |
+| `applications` | list | Applications to run in VM |
+| `extraModules` | list | Additional NixOS modules |
+| `ramMb` | int | RAM in megabytes |
+| `vcpus` | int | Virtual CPUs |
+
+### Application Definition
+
+Each application in the `applications` list:
+
+```nix
+{
+  name = "Firefox";
+  description = "Web browser";
+  packages = [ pkgs.firefox ];
+  icon = "firefox";
+  command = "firefox";
+  args = [ "--new-window" ];
+}
+```
+
+---
+
+## Extending Existing VMs
+
+### Using extendModules
+
+Extend a VM base without modifying it:
+
+```nix
+{ config, ... }:
+let
+  baseGuivm = config.ghaf.profiles.laptop-x86.guivmBase;
+
+  extendedGuivm = baseGuivm.extendModules {
+    modules = [
+      # Add your customizations
+      ({ config, ... }: {
+        services.myService.enable = true;
+        environment.systemPackages = [ pkgs.my-tool ];
+      })
+    ];
+  };
+in
+{
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedGuivm.config;
+}
+```
+
+### Adding Feature Modules
+
+For features that might be reused, create a feature module:
+
+```nix
+# modules/microvm/guivm-features/my-feature.nix
+{ config, lib, globalConfig, ... }:
+let
+  enabled = lib.ghaf.features.isEnabledFor globalConfig "myFeature" "gui-vm";
+in
+{
+  _file = ./my-feature.nix;
+
+  config = lib.mkIf enabled {
+    services.myFeature.enable = true;
+  };
+}
+```
+
+Then include it in the base or via extendModules.
+
+---
+
+## Hardware Passthrough
+
+### PCI Device Passthrough
+
+For VMs that need direct hardware access:
+
+```nix
+# In hardware definition
+hardware.definition.myvm.pciPassthrough = [
+  { path = "0000:00:1f.3"; }  # Audio device
+];
+
+# In VM base
+microvm.devices = lib.optionals (hostConfig.pciPassthrough or []) (
+  map (dev: {
+    bus = "pci";
+    inherit (dev) path;
+  }) hostConfig.pciPassthrough
+);
+```
+
+### USB Device Passthrough
+
+```nix
+microvm.devices = [
+  {
+    bus = "usb";
+    vendorId = "1234";
+    productId = "5678";
+  }
+];
+```
+
+---
+
+## VM Resource Configuration
+
+### Using vmConfig
+
+The `vmConfig` system allows per-target resource customization:
+
+```nix
+# In target flake-module.nix
+ghaf.virtualization.vmConfig = {
+  guivm = { ramMb = 4096; vcpus = 4; };
+  netvm = { ramMb = 512; vcpus = 1; };
+  myvm = { ramMb = 2048; vcpus = 2; };
+};
+```
+
+### Reading vmConfig in Base
+
+```nix
+# In VM base module
+microvm = {
+  mem = config.ghaf.virtualization.vmConfig.myvm.ramMb or 1024;
+  vcpu = config.ghaf.virtualization.vmConfig.myvm.vcpus or 2;
+};
+```
+
+---
+
+## Debugging VMs
+
+### Build VM Independently
+
+```bash
+# Evaluate VM config
+nix eval .#nixosConfigurations.target-name.config.microvm.vms.my-vm.config.networking.hostName
+
+# Build VM system
+nix build .#nixosConfigurations.target-name.config.microvm.vms.my-vm.config.system.build.toplevel
+```
+
+### Check VM Configuration
+
+```bash
+# Show all VM options
+nix eval .#nixosConfigurations.target-name.config.ghaf.virtualization.microvm --json | jq
+```
+
+### Serial Console Access
+
+VMs can be accessed via serial console when debugging:
+
+```nix
+microvm.console = "console";
+boot.kernelParams = [ "console=ttyS0" ];
+```
+
+---
+
+## Checklist for New VMs
+
+- [ ] Create base module (`*-base.nix`) with `_file` declaration
+- [ ] Create VM module (`*.nix`) with enable option and evaluatedConfig
+- [ ] Export modules in `flake-module.nix`
+- [ ] Add VM base creation to profile
+- [ ] Configure networking (IP, MAC)
+- [ ] Add to host's microvm.vms
+- [ ] Test build and boot
+- [ ] Document the VM's purpose
+
+---
+
+## See Also
+
+- [VM Composition](/ghaf/dev/architecture/vm-composition) - Architecture details
+- [Config Propagation](/ghaf/dev/architecture/config-propagation) - globalConfig/hostConfig
+- [Writing Modules](/ghaf/dev/guides/writing-modules) - Module conventions
+- [Extending Targets](/ghaf/dev/guides/extending-targets) - Target customization

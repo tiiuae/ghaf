@@ -8,6 +8,8 @@ let
   has_secureBoot = builtins.hasAttr "secureboot" config.ghaf.host;
 in
 {
+  _file = ./host-hardening.nix;
+
   options.ghaf.profiles.host-hardening = {
     enable = lib.mkEnableOption "Host hardening profile";
   };

@@ -28,6 +28,8 @@ let
   };
 in
 {
+  _file = ./disko-debug-partition.nix;
+
   options.ghaf.partitioning.disko = {
     enable = lib.mkEnableOption "the disko partitioning scheme";
 

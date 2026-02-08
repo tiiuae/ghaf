@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 { lib, ... }:
 {
+  _file = ./authorizedSshKeys.nix;
+
   options.ghaf.reference.personalize.keys = {
 
     #TODO: shhould we turn this into a module with this default setting?

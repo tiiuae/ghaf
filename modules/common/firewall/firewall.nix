@@ -129,6 +129,8 @@ let
 
 in
 {
+  _file = ./firewall.nix;
+
   options.ghaf.firewall = {
 
     enable = mkOption {

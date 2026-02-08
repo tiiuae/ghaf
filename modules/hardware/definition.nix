@@ -10,6 +10,8 @@ let
   inherit (lib) mkOption types literalExpression;
 in
 {
+  _file = ./definition.nix;
+
   options.ghaf.hardware.definition =
     let
       pciDevSubmodule = types.submodule {
@@ -347,6 +349,93 @@ in
                 hostbus = "3";
                 hostport = "3";
               }
+            ]
+          '';
+        };
+      };
+
+      # GUI VM hardware-specific configuration
+      # These options allow hardware modules to specify VM-level configs
+      # that profiles include via extendModules
+      #
+      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.guivm
+      guivm = {
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for GUI VM configuration.
+            These modules are included in the profile's extendModules call.
+
+            Use this ONLY for hardware-specific configurations like:
+            - GPU passthrough settings (PRIME, OVMF)
+            - Hardware-specific QEMU arguments
+            - Device-specific drivers/services
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.guivm instead.
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./gpu-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
+
+      # Audio VM hardware-specific configuration
+      # These options allow hardware modules to specify VM-level configs
+      # that profiles include via extendModules
+      #
+      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.audiovm
+      audiovm = {
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for Audio VM configuration.
+            These modules are included in the profile's extendModules call.
+
+            Use this ONLY for hardware-specific configurations like:
+            - Audio device passthrough settings
+            - Hardware-specific QEMU arguments
+            - Hardware detection modules
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.audiovm instead.
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./audio-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
+            ]
+          '';
+        };
+      };
+
+      netvm = {
+        extraModules = mkOption {
+          description = ''
+            Hardware-specific NixOS modules for Net VM configuration.
+
+            This option allows hardware definitions to provide VM-specific
+            configuration that will be merged with the base Net VM config.
+
+            Use this ONLY for hardware-specific settings like:
+            - PCIe root ports configuration
+            - Network device passthrough
+            - Custom kernel parameters
+
+            For resource allocation (memory, vCPUs) or profile-specific modules,
+            use ghaf.virtualization.vmConfig.netvm instead.
+          '';
+          type = types.listOf types.unspecified;
+          default = [ ];
+          example = literalExpression ''
+            [
+              ./net-config.nix
+              { microvm.qemu.extraArgs = [ ... ]; }
             ]
           '';
         };

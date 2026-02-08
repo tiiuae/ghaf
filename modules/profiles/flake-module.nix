@@ -3,6 +3,8 @@
 #
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     # The top-level profile should import all the common modules that can be shared across all targets
     # Only entries that can be included in those targets without causing conflicts should be included here
@@ -32,6 +34,13 @@
       inputs.self.nixosModules.profiles
       inputs.self.nixosModules.microvm
       ./orin.nix
+    ];
+
+    # Profile for VM targets that run GUI on host (no gui-vm)
+    profiles-vm.imports = [
+      inputs.self.nixosModules.profiles
+      inputs.self.nixosModules.microvm
+      ./vm.nix
     ];
   };
 }

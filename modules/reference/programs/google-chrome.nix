@@ -73,6 +73,8 @@ let
   ) normalizedExtensions;
 in
 {
+  _file = ./google-chrome.nix;
+
   options.ghaf.reference.programs.google-chrome = {
     enable = mkEnableOption "Google Chrome program settings";
     openInNormalExtension = mkEnableOption "browser extension to open links in the normal browser";

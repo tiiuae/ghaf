@@ -22,6 +22,7 @@
       ./x86_64-generic/kernel/guest
     ];
     hardware-aarch64-generic.imports = [
+      ./definition.nix
       ./aarch64/systemd-boot-dtb.nix
       ./passthrough
     ];

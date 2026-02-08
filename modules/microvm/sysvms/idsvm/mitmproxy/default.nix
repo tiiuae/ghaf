@@ -13,6 +13,8 @@ let
   mitmwebUIport = 8081;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.virtualization.microvm.idsvm.mitmproxy = {
     enable = lib.mkEnableOption "Whether to enable mitmproxy on ids-vm";
     webUIEnabled = lib.mkOption {

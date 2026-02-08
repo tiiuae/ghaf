@@ -5,6 +5,8 @@
 #
 { pkgs, ... }:
 {
+  _file = ./orin-agx64.nix;
+
   imports = [ ../../../../common/services/hwinfo ];
 
   # Enable hardware info generation on host
@@ -55,7 +57,8 @@
     };
   };
 
-  ghaf.profiles.orin.netvmExtraModules = [
+  # Net VM hardware-specific modules - use hardware.definition for composition model
+  ghaf.hardware.definition.netvm.extraModules = [
     {
       # The Nvidia Orin hardware dependent configuration is in
       # modules/reference/hardware/jetpack Please refer to that

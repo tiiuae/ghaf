@@ -228,6 +228,8 @@ let
   };
 in
 {
+  _file = ./dynamic-hostname.nix;
+
   options.ghaf.identity.dynamicHostName = {
     enable = mkEnableOption "runtime human-readable hostname derived from hardware";
 

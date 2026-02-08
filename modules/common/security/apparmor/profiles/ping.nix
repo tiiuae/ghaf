@@ -7,6 +7,8 @@
   ...
 }:
 {
+  _file = ./ping.nix;
+
   ## Apparmor profile for ping
   config.security.apparmor.policies."bin.ping" = lib.mkIf config.ghaf.security.apparmor.enable {
     profile = ''

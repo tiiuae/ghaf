@@ -2,6 +2,9 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Generic x86_64 computer -target
+#
+# This is a minimal target that runs GUI on the HOST with netvm for networking.
+# It uses an inline netvmBase instead of the full laptop-x86 profile.
 {
   inputs,
   lib,
@@ -37,6 +40,7 @@ let
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
           inherit (self) lib;
+          inherit inputs; # Required for microvm modules
         };
         modules = [
           nixos-generators.nixosModules.raw-efi
@@ -54,6 +58,32 @@ let
               modulesPath,
               ...
             }:
+            let
+              # Get globalConfig from host configuration
+              globalConfig = config.ghaf.global-config;
+
+              # Create inline netvmBase (following laptop-x86 pattern)
+              netvmBase = lib.nixosSystem {
+                modules = [
+                  inputs.microvm.nixosModules.microvm
+                  inputs.self.nixosModules.netvm-base
+                  # Import nixpkgs config for overlays
+                  {
+                    nixpkgs.hostPlatform.system = "x86_64-linux";
+                    nixpkgs.overlays = config.nixpkgs.overlays;
+                    nixpkgs.config = config.nixpkgs.config;
+                  }
+                ];
+                specialArgs = lib.ghaf.vm.mkSpecialArgs {
+                  inherit lib inputs globalConfig;
+                  hostConfig = lib.ghaf.vm.mkHostConfig {
+                    inherit config;
+                    vmName = "net-vm";
+                  };
+                  # Note: netvm.wifi now controlled via globalConfig.features.wifi
+                };
+              };
+            in
             {
               # https://github.com/nix-community/nixos-generators/blob/master/formats/raw-efi.nix#L24-L29
               system.build.raw = lib.mkOverride 98 (
@@ -65,6 +95,11 @@ let
                   postVM = "${pkgs.zstd}/bin/zstd --compress --rm $out/nixos.img";
                 }
               );
+
+              # Wire up netvm using inline netvmBase
+              ghaf.virtualization.microvm.netvm.evaluatedConfig = netvmBase.extendModules {
+                modules = config.ghaf.hardware.definition.netvm.extraModules or [ ];
+              };
             }
           )
 
@@ -72,16 +107,16 @@ let
             ghaf = {
               hardware.x86_64.common.enable = true;
 
+              # Hardware passthrough for netvm (WiFi device)
+              hardware.definition.netvm.extraModules = netvmExtraModules;
+
               virtualization = {
                 microvm-host = {
                   enable = true;
                   networkSupport = true;
                 };
 
-                microvm.netvm = {
-                  enable = true;
-                  extraModules = netvmExtraModules;
-                };
+                microvm.netvm.enable = true;
               };
 
               host.networking.enable = true;

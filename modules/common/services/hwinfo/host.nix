@@ -14,6 +14,8 @@ let
   cfg = config.ghaf.services.hwinfo;
 in
 {
+  _file = ./host.nix;
+
   options.ghaf.services.hwinfo = {
     enable = lib.mkEnableOption "hardware information generation service";
 

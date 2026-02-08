@@ -11,6 +11,8 @@ let
   bluetoothUser = config.ghaf.services.bluetooth.user;
 in
 {
+  _file = ./xpadneo.nix;
+
   options.ghaf.services.xpadneo = {
     enable = mkEnableOption "The support for wireless Xbox Controllers";
   };

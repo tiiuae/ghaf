@@ -70,7 +70,21 @@ in
         initrd = {
           inherit (config.ghaf.hardware.definition.host.kernelConfig.stage1) kernelModules;
         };
-        inherit (config.ghaf.hardware.definition.host.kernelConfig.stage2) kernelModules;
+        kernelModules =
+          let
+            # PCI device passthroughs for vfio
+            filterDevices = builtins.filter (d: d.vendorId != null && d.productId != null);
+            pciDevices = filterDevices (
+              config.ghaf.hardware.definition.network.pciDevices
+              ++ config.ghaf.hardware.definition.gpu.pciDevices
+              ++ config.ghaf.hardware.definition.audio.pciDevices
+            );
+            hasPciPassthrough =
+              pciDevices != [ ] || config.ghaf.hardware.definition.host.extraVfioPciIds != [ ];
+          in
+          config.ghaf.hardware.definition.host.kernelConfig.stage2.kernelModules
+          # The vfio-pci module must be loaded for PCI passthrough to work
+          ++ lib.optionals hasPciPassthrough [ "vfio_pci" ];
         kernelParams =
           let
             # PCI device passthroughs for vfio

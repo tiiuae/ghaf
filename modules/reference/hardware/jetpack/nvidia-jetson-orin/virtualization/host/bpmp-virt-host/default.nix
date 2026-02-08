@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.hardware.nvidia.virtualization.host.bpmp;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.hardware.nvidia.virtualization.host.bpmp.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;

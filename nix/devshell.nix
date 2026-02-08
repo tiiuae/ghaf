@@ -94,6 +94,8 @@
                                     Orin-AGX
                                     Orin-NX
                                     NUC
+                                    darter-pro
+                                    dell-7330
                 -p  --password    Password for the ghaf user
 
                 Optional arguments:
@@ -159,12 +161,13 @@
                 if [[ ''${threads_manual_set} == false ]]; then
                   grep -q "X1" <<< "''$device" && threads=20
                   grep -q "AGX" <<< "''$device" && threads=12
+                  grep -q "darter-pro" <<< "''$device" && threads=16
                 fi
 
                 cd ${inputs.ci-test-automation.outPath}/Robot-Framework/test-suites
                 ${
                   inputs.ci-test-automation.packages.${system}.ghaf-robot
-                }/bin/ghaf-robot -v CONFIG_PATH:''${configpath} -v DEVICE_IP_ADDRESS:''${ip} -v THREADS_NUMBER:''${threads} -v COMMIT_HASH:''${commit} -v DEVICE:''${device} -v PASSWORD:''${pw} -i ''${device,,}AND''${tag} --outputdir ''${outputdir} .
+                }/bin/ghaf-robot -v CONFIG_PATH:''${configpath} -v DEVICE_IP_ADDRESS:''${ip} -v THREADS_NUMBER:''${threads} -v COMMIT_HASH:''${commit} -v DEVICE:''${device} -v DEVICE_TYPE:''${device} -v PASSWORD:''${pw} -i ''${device,,}AND''${tag} --outputdir ''${outputdir} .
               '';
               category = "test";
             }

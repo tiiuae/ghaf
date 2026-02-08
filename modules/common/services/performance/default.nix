@@ -87,6 +87,8 @@ let
 
 in
 {
+  _file = ./default.nix;
+
   imports = [
     (import ./host.nix {
       inherit

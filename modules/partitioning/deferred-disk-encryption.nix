@@ -617,6 +617,8 @@ let
   };
 in
 {
+  _file = ./deferred-disk-encryption.nix;
+
   options.ghaf.storage.encryption = {
     deferred = mkEnableOption "Apply disk encryption on first boot instead of at image creation";
   };

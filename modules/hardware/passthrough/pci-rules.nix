@@ -5,6 +5,7 @@
   config,
   lib,
   pkgs,
+  options,
   ...
 }:
 let
@@ -17,8 +18,11 @@ let
 
   cfg = config.ghaf.hardware.passthrough.pci;
 
+  # Check if hardware.definition option exists
+  hasHardwareDefinition = options ? ghaf.hardware.definition;
+
   defaultGuivmPciRules =
-    optionals (builtins.hasAttr "definition" config.ghaf.hardware) [
+    optionals hasHardwareDefinition [
       {
         description = "Static PCI Devices for GUIVM";
         targetVm = "gui-vm";
@@ -46,7 +50,7 @@ let
     ];
 
   defaultNetvmPciRules =
-    optionals (builtins.hasAttr "definition" config.ghaf.hardware) [
+    optionals hasHardwareDefinition [
       {
         description = "Static PCI Devices for NetVM";
         targetVm = "net-vm";
@@ -74,7 +78,7 @@ let
     ];
 
   defaultAudiovmPciRules =
-    optionals (builtins.hasAttr "definition" config.ghaf.hardware) [
+    optionals hasHardwareDefinition [
       {
         description = "PCI Devices for AudioVM";
         targetVm = "audio-vm";
@@ -123,6 +127,8 @@ let
 
 in
 {
+  _file = ./pci-rules.nix;
+
   options.ghaf.hardware.passthrough.pci = {
 
     guivmRules = mkOption {
@@ -168,23 +174,24 @@ in
     };
   };
 
-  config = mkIf (config.ghaf.hardware.passthrough.mode != "none") {
+  config = lib.mkMerge [
+    (mkIf (config.ghaf.hardware.passthrough.mode != "none") {
+      ghaf.hardware.passthrough.vhotplug.pciRules =
+        optionals config.ghaf.virtualization.microvm.guivm.enable cfg.guivmRules
+        ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
+        ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
 
-    ghaf.hardware.passthrough.vhotplug.pciRules =
-      optionals config.ghaf.virtualization.microvm.guivm.enable cfg.guivmRules
-      ++ optionals config.ghaf.virtualization.microvm.netvm.enable cfg.netvmRules
-      ++ optionals config.ghaf.virtualization.microvm.audiovm.enable cfg.audiovmRules;
-
-    ghaf.hardware.passthrough.vhotplug.acpiRules = optionals cfg.autoDetectAudio audiovmAcpiRules;
-
-    ghaf.virtualization.microvm.guivm.extraModules = optionals cfg.autoDetectGpu (
-      hwDetectModule "gui-vm"
-    );
-    ghaf.virtualization.microvm.netvm.extraModules = optionals cfg.autoDetectNet (
-      hwDetectModule "net-vm"
-    );
-    ghaf.virtualization.microvm.audiovm.extraModules = optionals cfg.autoDetectAudio (
-      hwDetectModule "audio-vm"
-    );
-  };
+      # ACPI rules are host-side vhotplug config (not VM extraModules)
+      # They pass the NHLT ACPI table needed for microphone arrays
+      ghaf.hardware.passthrough.vhotplug.acpiRules = optionals cfg.autoDetectAudio audiovmAcpiRules;
+    })
+    # Auto-detected config goes via hardware definition (only available on x86 with hardware definition)
+    (mkIf (config.ghaf.hardware.passthrough.mode != "none" && hasHardwareDefinition) {
+      ghaf.hardware.definition.guivm.extraModules = optionals cfg.autoDetectGpu (hwDetectModule "gui-vm");
+      ghaf.hardware.definition.audiovm.extraModules = optionals cfg.autoDetectAudio (
+        hwDetectModule "audio-vm"
+      );
+      ghaf.hardware.definition.netvm.extraModules = optionals cfg.autoDetectNet (hwDetectModule "net-vm");
+    })
+  ];
 }

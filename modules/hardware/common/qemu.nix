@@ -15,6 +15,8 @@ let
     ;
 in
 {
+  _file = ./qemu.nix;
+
   options.ghaf.qemu = {
     guivm = mkOption {
       type = types.attrs;

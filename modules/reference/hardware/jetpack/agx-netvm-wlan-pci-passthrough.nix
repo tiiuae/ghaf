@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.hardware.nvidia.orin;
 in
 {
+  _file = ./agx-netvm-wlan-pci-passthrough.nix;
+
   options.ghaf.hardware.nvidia.orin.agx.enableNetvmWlanPCIPassthrough =
     lib.mkEnableOption "WLAN or ethernet card PCI passthrough to NetVM";
   config = lib.mkIf cfg.agx.enableNetvmWlanPCIPassthrough {
@@ -18,8 +20,8 @@ in
 
     # Common Wifi Service set
 
-    # Passthrough devices
-    ghaf.virtualization.microvm.netvm.extraModules = [
+    # Passthrough devices - use hardware.definition for composition model
+    ghaf.hardware.definition.netvm.extraModules = [
       {
         ghaf.services.wifi.enable = true;
         # This bus holds the PCI ethernet or WLAN devices on ORIN AGX's

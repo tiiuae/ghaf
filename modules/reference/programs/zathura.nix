@@ -5,6 +5,8 @@ let
   cfg = config.ghaf.reference.programs.zathura;
 in
 {
+  _file = ./zathura.nix;
+
   options.ghaf.reference.programs.zathura = {
     enable = lib.mkEnableOption "Enable Zathura program settings";
   };

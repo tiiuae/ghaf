@@ -1,10 +1,15 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# MicroVM Host Configuration Module
+#
+# Note: `inputs` is received via specialArgs from mkLaptopConfiguration,
+# eliminating the need for the `{ inputs }:` wrapper pattern.
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
@@ -18,7 +23,10 @@ let
     ;
   userConfig =
     if (lib.hasAttr "gui-vm" config.microvm.vms) then
-      config.microvm.vms.gui-vm.config.config.ghaf.users
+      let
+        vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.gui-vm;
+      in
+      if vmConfig != null then vmConfig.ghaf.users else config.ghaf.users
     else
       config.ghaf.users;
   hasLoginUser = userConfig.homedUser.enable || userConfig.adUsers.enable;
@@ -27,6 +35,8 @@ let
     && (config.ghaf.hardware.definition.audio.acpiPath != null);
 in
 {
+  _file = ./microvm-host.nix;
+
   imports = [
     inputs.microvm.nixosModules.host
     inputs.self.nixosModules.givc
@@ -125,9 +135,31 @@ in
       systemd.tmpfiles.rules =
         let
           vmsWithXdg = lib.filter (
-            vm: lib.hasAttr "xdgitems" vm.config.config.ghaf && vm.config.config.ghaf.xdgitems.enable
+            vm:
+            let
+              vmConfig = lib.ghaf.vm.getConfig vm;
+              # Safe check for xdgitems.enable - avoid triggering option evaluation
+              hasXdgEnabled =
+                vmConfig != null
+                && lib.hasAttr "ghaf" vmConfig
+                && lib.hasAttr "xdgitems" vmConfig.ghaf
+                && lib.hasAttr "enable" vmConfig.ghaf.xdgitems
+                && vmConfig.ghaf.xdgitems.enable;
+            in
+            hasXdgEnabled
           ) (builtins.attrValues config.microvm.vms);
-          xdgDirs = lib.flatten (map (vm: vm.config.config.ghaf.xdgitems.xdgHostPaths or [ ]) vmsWithXdg);
+          xdgDirs = lib.flatten (
+            map (
+              vm:
+              let
+                vmConfig = lib.ghaf.vm.getConfig vm;
+                # Safe access to xdgHostPaths - readOnly option that may not be set
+                # Use tryEval to handle the case where option has no value
+                xdgPathsAttempt = builtins.tryEval (vmConfig.ghaf.xdgitems.xdgHostPaths or [ ]);
+              in
+              if xdgPathsAttempt.success then xdgPathsAttempt.value else [ ]
+            ) vmsWithXdg
+          );
           xdgRules = map (
             xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.homedUser.uid} users -"
           ) xdgDirs;
@@ -166,7 +198,12 @@ in
 
           vmsWithEncryptedStorage = lib.filterAttrs (
             _name: vm:
-            lib.hasAttr "storagevm" vm.config.config.ghaf && vm.config.config.ghaf.storagevm.encryption.enable
+            let
+              vmConfig = lib.ghaf.vm.getConfig vm;
+            in
+            vmConfig != null
+            && lib.hasAttr "storagevm" vmConfig.ghaf
+            && vmConfig.ghaf.storagevm.encryption.enable
           ) config.microvm.vms;
 
           vmstorageSetupServices = lib.foldl' (
@@ -175,8 +212,8 @@ in
             // {
               "format-microvm-storage-${name}" =
                 let
-                  microvmConfig = config.microvm.vms.${name};
-                  cfg = microvmConfig.config.config.ghaf.storagevm;
+                  vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
+                  cfg = vmConfig.ghaf.storagevm;
 
                   hostImage = "/persist/storagevm/img/${cfg.name}.img";
 
@@ -265,23 +302,8 @@ in
           startLimitIntervalSec = 0;
         };
 
-        # Receive shared folder inotify events from the host to automatically refresh the file manager
-        ghaf.virtualization.microvm.guivm.extraModules = [
-          {
-            systemd.services.vinotify = {
-              enable = true;
-              description = "vinotify";
-              wantedBy = [ "multi-user.target" ];
-              serviceConfig = {
-                Type = "simple";
-                Restart = "always";
-                RestartSec = "1";
-                ExecStart = "${pkgs.vinotify}/bin/vinotify --port 2000 --path /Shares --mode guest";
-              };
-              startLimitIntervalSec = 0;
-            };
-          }
-        ];
+        # Shared folders guest config is now provided by guivm-desktop-features module
+        # See: modules/desktop/guivm/shared-folders.nix
       }
     )
     (mkIf (cfg.enable && config.services.userborn.enable) {

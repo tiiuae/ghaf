@@ -16,6 +16,8 @@ let
     ;
 in
 {
+  _file = ./dendrite-pinecone.nix;
+
   options.ghaf.reference.services.dendrite-pinecone = {
     enable = mkEnableOption "Enable dendrite pinecone module";
 

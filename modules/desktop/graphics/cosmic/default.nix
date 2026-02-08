@@ -59,6 +59,8 @@ let
   };
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.graphics.cosmic = {
     enable = mkEnableOption "the COSMIC desktop environment in Ghaf";
 

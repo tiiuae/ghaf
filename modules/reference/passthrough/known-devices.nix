@@ -11,6 +11,8 @@ let
     ;
 in
 {
+  _file = ./known-devices.nix;
+
   options.ghaf.reference.passthrough.usb = {
     internalWebcams = mkOption {
       type = with types; listOf (attrsOf str);

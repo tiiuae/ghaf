@@ -5,6 +5,8 @@ let
   cfg = config.ghaf.reference.profiles.mvp-user-trial-extras;
 in
 {
+  _file = ./mvp-user-trial-extras.nix;
+
   imports = [ ./mvp-user-trial.nix ];
 
   options.ghaf.reference.profiles.mvp-user-trial-extras = {
@@ -37,6 +39,8 @@ in
         idsvm = {
           enable = lib.mkForce true;
           mitmproxy.enable = lib.mkForce true;
+          # Use the new evaluatedConfig pattern from laptop-x86 profile
+          evaluatedConfig = config.ghaf.profiles.laptop-x86.idsvmBase;
         };
       };
 

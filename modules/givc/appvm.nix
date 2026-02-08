@@ -17,6 +17,8 @@ let
   inherit (config.networking) hostName;
 in
 {
+  _file = ./appvm.nix;
+
   options.ghaf.givc.appvm = {
     enable = mkEnableOption "Enable appvm givc module.";
     applications = mkOption {

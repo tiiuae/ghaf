@@ -1,29 +1,112 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+#
+# NVIDIA Jetson Orin Profile
+#
+# This profile configures Ghaf for NVIDIA Jetson Orin hardware (AGX, NX).
+#
+# VM Configuration on Jetson:
+# ===========================
+# Enabled VMs:
+# - Net VM (netvmBase exported for composition)
+# - Admin VM (adminvmBase exported for composition)
+#
+# Disabled VMs (architectural reasons):
+# - GUI VM: GPU passthrough not supported, desktop runs natively on host (COSMIC)
+# - Audio VM: Audio hardware directly accessible from host
+# - IDS VM: Resource constraints on embedded platform
+# - App VMs: No GUI VM means no Waypipe, apps run on host or via Docker
+#
+# Both netvmBase and adminvmBase are exported for composition needs.
+#
 {
   config,
   lib,
   pkgs,
+  inputs,
   ...
 }:
 let
   cfg = config.ghaf.profiles.orin;
+  hostGlobalConfig = config.ghaf.global-config;
 in
 {
+  _file = ./orin.nix;
+
   options.ghaf.profiles.orin = {
     enable = lib.mkEnableOption "Enable the basic nvidia orin config";
 
-    netvmExtraModules = lib.mkOption {
+    # Net VM base configuration for profiles to extend
+    netvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
       description = ''
-        List of additional modules to be passed to the netvm.
+        Orin Net VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
       '';
-      default = [ ];
     };
 
+    # Admin VM base configuration for profiles to extend
+    adminvmBase = lib.mkOption {
+      type = lib.types.unspecified;
+      readOnly = true;
+      description = ''
+        Orin Admin VM base configuration.
+        Profiles can extend this with extendModules if customization needed.
+      '';
+    };
   };
 
   config = lib.mkIf cfg.enable {
     ghaf = {
+      # Orin devices are embedded, not laptops
+      hardware.definition.type = "embedded";
+
+      # Export Net VM base for profiles to extend
+      profiles.orin.netvmBase = lib.nixosSystem {
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.netvm-base
+          # Import nixpkgs config module to get overlays
+          {
+            nixpkgs.hostPlatform.system = "aarch64-linux";
+            nixpkgs.overlays = config.nixpkgs.overlays;
+            nixpkgs.config = config.nixpkgs.config;
+          }
+        ];
+        specialArgs = lib.ghaf.vm.mkSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig = lib.ghaf.vm.mkHostConfig {
+            inherit config;
+            vmName = "net-vm";
+          };
+          # Note: netvm.wifi now controlled via globalConfig.features.wifi
+        };
+      };
+
+      # Export Admin VM base for profiles to extend
+      profiles.orin.adminvmBase = lib.nixosSystem {
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.adminvm-base
+          # Import nixpkgs config module to get overlays
+          {
+            nixpkgs.hostPlatform.system = "aarch64-linux";
+            nixpkgs.overlays = config.nixpkgs.overlays;
+            nixpkgs.config = config.nixpkgs.config;
+          }
+        ];
+        specialArgs = lib.ghaf.vm.mkSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig = lib.ghaf.vm.mkHostConfig {
+            inherit config;
+            vmName = "admin-vm";
+          };
+        };
+      };
+
       profiles.graphics = {
         enable = true;
         # Explicitly enable auto-login for Orins
@@ -85,19 +168,20 @@ in
         microvm = {
           netvm = {
             enable = true;
-            wifi = false;
-            extraModules = cfg.netvmExtraModules;
+            # wifi is now controlled via ghaf.global-config.features.wifi
+            # Use evaluatedConfig pattern - extend netvmBase with vmConfig modules
+            evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "netvm";
+              };
+            };
           };
 
           adminvm = {
             enable = true;
-            extraModules = [
-              {
-                config.ghaf = {
-                  inherit (config.ghaf) common;
-                };
-              }
-            ];
+            # Use evaluatedConfig pattern - common is passed via hostConfig
+            evaluatedConfig = cfg.adminvmBase;
           };
 
           idsvm = {
@@ -106,12 +190,12 @@ in
 
           guivm = {
             enable = false;
-            #extraModules = cfg.guivmExtraModules;
+            # fprint/yubikey/brightness now controlled via ghaf.global-config.features
           };
 
           audiovm = {
             enable = false;
-            #audio = true;
+            # audio now controlled via ghaf.global-config.features.audio
           };
         };
 
@@ -119,8 +203,12 @@ in
         nvidia-docker.daemon.enable = true;
       };
 
-      # Disable givc
+      # Disable givc on Orin - GIVC requires TLS certificate infrastructure
+      # that isn't set up for Orin devices. This must be set in both:
+      # 1. ghaf.givc.enable (host-level option)
+      # 2. ghaf.global-config.givc.enable (propagates to VMs via specialArgs)
       givc.enable = false;
+      global-config.givc.enable = false;
 
       host.networking = {
         enable = true;

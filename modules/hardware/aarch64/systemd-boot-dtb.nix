@@ -17,6 +17,8 @@ let
   inherit (lib) mkEnableOption mkIf;
 in
 {
+  _file = ./systemd-boot-dtb.nix;
+
   options.ghaf.hardware.aarch64.systemd-boot-dtb = {
     enable = mkEnableOption "systemd-boot-dtb";
   };

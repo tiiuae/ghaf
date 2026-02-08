@@ -1,0 +1,324 @@
+---
+title: "VM Helper Functions"
+---
+{/*
+SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
+SPDX-License-Identifier: CC-BY-SA-4.0
+*/}
+
+# VM Helper Functions
+
+The `lib.ghaf.vm` namespace provides utilities for VM composition, configuration propagation, and evaluation within the Ghaf framework.
+
+## Overview
+
+```nix
+lib.ghaf.vm = {
+  mkSpecialArgs       # Create specialArgs for VM evaluation
+  mkHostConfig        # Create host-derived configuration for a VM
+  getConfig           # Get VM's evaluatedConfig from host config
+  applyVmConfig       # Apply VM base to profile
+};
+```
+
+## Function Reference
+
+### mkSpecialArgs
+
+Creates the `specialArgs` attribute set passed to VM module evaluation. This makes `globalConfig` and `hostConfig` available to all VM modules.
+
+**Signature:**
+
+```nix
+mkSpecialArgs :: AttrSet -> AttrSet -> AttrSet -> AttrSet
+mkSpecialArgs globalConfig hostConfig lib
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `globalConfig` | AttrSet | Global configuration settings |
+| `hostConfig` | AttrSet | Host-derived VM-specific settings |
+| `lib` | AttrSet | Nixpkgs library functions |
+
+**Returns:** AttrSet suitable for `specialArgs` in `lib.evalModules`.
+
+**Example:**
+
+```nix
+let
+  specialArgs = lib.ghaf.vm.mkSpecialArgs globalConfig hostConfig lib;
+in
+lib.evalModules {
+  inherit specialArgs;
+  modules = [ ./my-vm-module.nix ];
+}
+```
+
+**Implementation Details:**
+
+The returned attrset contains:
+- `globalConfig` - Identical settings for all VMs
+- `hostConfig` - VM-specific settings from host
+- `lib` - Extended library with ghaf functions
+
+---
+
+### mkHostConfig
+
+Creates the host-derived configuration for a specific VM. This extracts VM-specific information (networking, name, passthrough devices) from the host configuration.
+
+**Signature:**
+
+```nix
+mkHostConfig :: AttrSet -> String -> AttrSet
+mkHostConfig hostConfig vmName
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `hostConfig` | AttrSet | Full host NixOS configuration |
+| `vmName` | String | Name of the VM (e.g., "gui-vm", "net-vm") |
+
+**Returns:** AttrSet with VM-specific host-derived values.
+
+**Example:**
+
+```nix
+# In a profile module
+guivmBase = lib.evalModules {
+  specialArgs = lib.ghaf.vm.mkSpecialArgs
+    config.ghaf.global-config
+    (lib.ghaf.vm.mkHostConfig config "gui-vm")
+    lib;
+  modules = [ guivm-base-module ];
+};
+```
+
+**Returned Structure:**
+
+```nix
+{
+  vmName = "gui-vm";
+  networking = {
+    thisVm = { ... };      # This VM's network config
+    guivm = { ... };       # GUI VM network config
+    adminvm = { ... };     # Admin VM network config
+    # ... other VMs
+  };
+  users = {
+    profile = { ... };
+    admin = { ... };
+    managed = [ ... ];
+  };
+  # Additional host-derived values as needed
+}
+```
+
+---
+
+### getConfig
+
+Retrieves a VM's `evaluatedConfig` from the host configuration. This is the primary way to access VM configurations for use in `microvm.vms`.
+
+**Signature:**
+
+```nix
+getConfig :: AttrSet -> String -> AttrSet
+getConfig hostConfig vmName
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `hostConfig` | AttrSet | Full host NixOS configuration |
+| `vmName` | String | Name of the VM (e.g., "guivm", "netvm") |
+
+**Returns:** The VM's `evaluatedConfig` attribute, or throws an error if not set.
+
+**Example:**
+
+```nix
+# In a VM module (e.g., guivm.nix)
+config = lib.mkIf cfg.enable {
+  microvm.vms.gui-vm.config = lib.ghaf.vm.getConfig config "guivm";
+};
+```
+
+**Common VM Names:**
+
+| Option Path | VM Name Parameter |
+|-------------|-------------------|
+| `ghaf.virtualization.microvm.guivm` | `"guivm"` |
+| `ghaf.virtualization.microvm.netvm` | `"netvm"` |
+| `ghaf.virtualization.microvm.audiovm` | `"audiovm"` |
+| `ghaf.virtualization.microvm.adminvm` | `"adminvm"` |
+| `ghaf.virtualization.microvm.idsvm` | `"idsvm"` |
+
+---
+
+### applyVmConfig
+
+Applies a VM base configuration from a profile to the host's `evaluatedConfig`. This is used in profile modules to wire up VM bases.
+
+**Signature:**
+
+```nix
+applyVmConfig :: AttrSet -> String -> AttrSet -> AttrSet
+applyVmConfig config vmOptionName vmBase
+```
+
+**Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `config` | AttrSet | Host NixOS configuration |
+| `vmOptionName` | String | VM option name (e.g., "guivm") |
+| `vmBase` | AttrSet | Evaluated VM base module |
+
+**Returns:** Configuration attrset that sets `evaluatedConfig` for the VM.
+
+**Example:**
+
+```nix
+# In modules/profiles/laptop-x86.nix
+config = lib.mkMerge [
+  (lib.ghaf.vm.applyVmConfig config "guivm" guivmBase)
+  (lib.ghaf.vm.applyVmConfig config "netvm" netvmBase)
+  (lib.ghaf.vm.applyVmConfig config "audiovm" audiovmBase)
+  (lib.ghaf.vm.applyVmConfig config "adminvm" adminvmBase)
+];
+```
+
+**Generated Configuration:**
+
+```nix
+{
+  ghaf.virtualization.microvm.guivm = {
+    enable = true;
+    evaluatedConfig = vmBase.config;
+  };
+}
+```
+
+---
+
+## Usage Patterns
+
+### Pattern 1: Creating a Profile with VM Bases
+
+```nix
+# modules/profiles/my-profile.nix
+{ config, lib, pkgs, inputs, ... }:
+let
+  guivm-base = inputs.self.nixosModules.guivm-base;
+
+  # Create globalConfig from host settings
+  globalConfig = config.ghaf.global-config;
+
+  # Create VM base with proper specialArgs
+  guivmBase = lib.evalModules {
+    specialArgs = lib.ghaf.vm.mkSpecialArgs
+      globalConfig
+      (lib.ghaf.vm.mkHostConfig config "gui-vm")
+      lib;
+    modules = [
+      guivm-base
+      # Additional customizations
+      { config.myCustomSetting = true; }
+    ];
+  };
+in
+{
+  config = lib.ghaf.vm.applyVmConfig config "guivm" guivmBase;
+}
+```
+
+### Pattern 2: Extending a VM Base
+
+```nix
+# Downstream customization
+let
+  baseVm = config.ghaf.profiles.laptop-x86.guivmBase;
+
+  extendedVm = baseVm.extendModules {
+    modules = [
+      ./my-gui-customizations.nix
+      { config.myApp.enable = true; }
+    ];
+  };
+in
+{
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm.config;
+}
+```
+
+### Pattern 3: Creating an AppVM
+
+```nix
+# Using mkAppVm from laptop-x86 profile
+{ config, lib, ... }:
+let
+  mkAppVm = config.ghaf.profiles.laptop-x86.mkAppVm;
+in
+{
+  ghaf.virtualization.microvm.appvm.vms.my-app = mkAppVm {
+    name = "my-app";
+    applications = [{
+      name = "My Application";
+      description = "Custom application";
+      packages = [ pkgs.my-app ];
+      icon = "my-app";
+      command = "my-app";
+    }];
+    extraModules = [
+      { config.services.myService.enable = true; }
+    ];
+  };
+}
+```
+
+---
+
+## Error Handling
+
+### Missing evaluatedConfig
+
+If a VM's `evaluatedConfig` is not set, `getConfig` throws an assertion error:
+
+```
+error: assertion 'ghaf.virtualization.microvm.guivm.evaluatedConfig must be set'
+       failed at ...
+```
+
+**Solution:** Ensure the profile sets `evaluatedConfig`:
+
+```nix
+ghaf.virtualization.microvm.guivm.evaluatedConfig = guivmBase.config;
+```
+
+### Missing globalConfig
+
+If `config.ghaf.global-config` is not available:
+
+```
+error: attribute 'global-config' missing
+```
+
+**Solution:** Ensure the global-config module is imported:
+
+```nix
+imports = [ inputs.ghaf.nixosModules.global-config ];
+```
+
+---
+
+## See Also
+
+- [Configuration Propagation](/ghaf/dev/architecture/config-propagation) - How globalConfig/hostConfig work
+- [VM Composition](/ghaf/dev/architecture/vm-composition) - extendModules pattern
+- [Features API](/ghaf/dev/library/features-api) - Feature management utilities

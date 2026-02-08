@@ -6,11 +6,8 @@
   imports = [
     ./partition-template.nix
     ./jetson-orin.nix
-
     ./pci-passthrough-common.nix
-
     ./virtualization
-
     ./optee.nix
   ];
 }

@@ -25,6 +25,7 @@ let
   gateway = if isIdsvmEnabled && (cfg.vmName != "ids-vm") then [ idsVmAddress ] else [ netVmAddress ];
 in
 {
+  _file = ./vm-networking.nix;
   options.ghaf.virtualization.microvm.vm-networking = {
     enable = mkEnableOption "vm networking configuration";
     isGateway = mkEnableOption "gateway configuration";

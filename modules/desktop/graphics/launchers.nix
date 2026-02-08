@@ -9,6 +9,8 @@ let
     ;
 in
 {
+  _file = ./launchers.nix;
+
   options.ghaf.graphics = {
     launchers = mkOption {
       description = "Application launchers to show in the system drawer or launcher.";

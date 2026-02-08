@@ -12,6 +12,8 @@ let
   isX86_64 = pkgs.stdenv.hostPlatform.isx86_64;
 in
 {
+  _file = ./firmware.nix;
+
   options.ghaf.services.firmware = {
     enable = mkEnableOption "PLaceholder for firmware handling";
   };

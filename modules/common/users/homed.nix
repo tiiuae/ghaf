@@ -52,6 +52,8 @@ let
   };
 in
 {
+  _file = ./homed.nix;
+
   options.ghaf.users = {
     # Main UI user
     homedUser = mkOption {

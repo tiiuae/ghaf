@@ -9,6 +9,8 @@ let
     ;
 in
 {
+  _file = ./keys.nix;
+
   options.ghaf.reference.personalize.keys = {
     enable = mkEnableOption "Enable personalization of keys for dev team";
   };

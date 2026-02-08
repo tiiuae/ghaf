@@ -9,6 +9,8 @@ let
   cfg = config.ghaf.reference.programs.firefox;
 in
 {
+  _file = ./firefox.nix;
+
   options.ghaf.reference.programs.firefox = {
     enable = lib.mkOption {
       type = lib.types.bool;

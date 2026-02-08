@@ -17,6 +17,8 @@ let
   inherit (lib) mkEnableOption mkIf rmDesktopEntries;
 in
 {
+  _file = ./debug-tools.nix;
+
   options.ghaf.development.debug.tools = {
     enable = mkEnableOption "Debug Tools";
   };

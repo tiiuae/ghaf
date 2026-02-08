@@ -1,98 +1,28 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ inputs }:
+#
+# IDS VM Configuration Module
+#
+# This module requires evaluatedConfig to be set via profile composition.
+# The actual VM configuration is in idsvm-base.nix.
+#
+# Usage in profiles:
+#   ghaf.virtualization.microvm.idsvm.evaluatedConfig =
+#     config.ghaf.profiles.laptop-x86.idsvmBase.extendModules { ... };
+#
 {
   config,
   lib,
-  pkgs,
+  inputs,
   ...
 }:
 let
-  configHost = config;
   vmName = "ids-vm";
-  idsvmBaseConfiguration = {
-    imports = [
-      inputs.preservation.nixosModules.preservation
-      inputs.self.nixosModules.vm-modules
-      inputs.self.nixosModules.givc
-      inputs.self.nixosModules.hardware-x86_64-guest-kernel
-      inputs.self.nixosModules.profiles
-      (
-        { lib, ... }:
-        {
-          imports = [
-            ./mitmproxy
-          ];
-
-          ghaf = {
-            type = "system-vm";
-            profiles.debug.enable = lib.mkDefault configHost.ghaf.profiles.debug.enable;
-
-            virtualization.microvm.idsvm.mitmproxy.enable =
-              configHost.ghaf.virtualization.microvm.idsvm.mitmproxy.enable;
-
-            development = {
-              # NOTE: SSH port also becomes accessible on the network interface
-              #       that has been passed through to NetVM
-              ssh.daemon.enable = lib.mkDefault configHost.ghaf.development.ssh.daemon.enable;
-              debug.tools.enable = lib.mkDefault configHost.ghaf.development.debug.tools.enable;
-              nix-setup.enable = lib.mkDefault configHost.ghaf.development.nix-setup.enable;
-            };
-            virtualization.microvm.vm-networking = {
-              enable = true;
-              isGateway = true;
-              inherit vmName;
-            };
-
-            logging = {
-              inherit (configHost.ghaf.logging) enable listener;
-              client.enable = configHost.ghaf.logging.enable;
-            };
-          };
-
-          system.stateVersion = lib.trivial.release;
-
-          nixpkgs.buildPlatform.system = configHost.nixpkgs.buildPlatform.system;
-          nixpkgs.hostPlatform.system = configHost.nixpkgs.hostPlatform.system;
-
-          environment.systemPackages = [
-            pkgs.snort # TODO: put into separate module
-          ]
-          ++ (lib.optional configHost.ghaf.profiles.debug.enable pkgs.tcpdump);
-
-          microvm = {
-            hypervisor = "qemu";
-            optimize.enable = true;
-
-            # Shared store (when not using storeOnDisk)
-            shares = lib.optionals (!configHost.ghaf.virtualization.microvm.storeOnDisk) [
-              {
-                tag = "ro-store";
-                source = "/nix/store";
-                mountPoint = "/nix/.ro-store";
-                proto = "virtiofs";
-              }
-            ];
-
-            writableStoreOverlay = lib.mkIf (
-              !configHost.ghaf.virtualization.microvm.storeOnDisk
-            ) "/nix/.rw-store";
-          }
-          // lib.optionalAttrs configHost.ghaf.virtualization.microvm.storeOnDisk {
-            storeOnDisk = true;
-            storeDiskType = "erofs";
-            storeDiskErofsFlags = [
-              "-zlz4hc"
-              "-Eztailpacking"
-            ];
-          };
-        }
-      )
-    ];
-  };
   cfg = config.ghaf.virtualization.microvm.idsvm;
 in
 {
+  _file = ./idsvm.nix;
+
   imports = [
     ./mitmproxy
   ];
@@ -100,13 +30,16 @@ in
   options.ghaf.virtualization.microvm.idsvm = {
     enable = lib.mkEnableOption "Whether to enable IDS-VM on the system";
 
-    extraModules = lib.mkOption {
+    evaluatedConfig = lib.mkOption {
+      type = lib.types.nullOr lib.types.unspecified;
+      default = null;
       description = ''
-        List of additional modules to be imported and evaluated as part of
-        IDSVM's NixOS configuration.
+        Pre-evaluated NixOS configuration for IDS VM.
+        Profiles must set this using idsvmBase.extendModules from a profile
+        (e.g., laptop-x86).
       '';
-      default = [ ];
     };
+
     extraNetworking = lib.mkOption {
       type = lib.types.networking;
       description = "Extra Networking option";
@@ -115,16 +48,25 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = cfg.evaluatedConfig != null;
+        message = ''
+          ghaf.virtualization.microvm.idsvm.evaluatedConfig must be set.
+          Use idsvmBase.extendModules from a profile (laptop-x86, etc.).
+          Example:
+            ghaf.virtualization.microvm.idsvm.evaluatedConfig =
+              config.ghaf.profiles.laptop-x86.idsvmBase.extendModules { modules = [...]; };
+        '';
+      }
+    ];
+
     ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
     microvm.vms."${vmName}" = {
       autostart = true;
       inherit (inputs) nixpkgs;
-      specialArgs = { inherit lib; };
-
-      config = idsvmBaseConfiguration // {
-        imports = idsvmBaseConfiguration.imports ++ cfg.extraModules;
-      };
+      inherit (cfg) evaluatedConfig;
     };
   };
 }

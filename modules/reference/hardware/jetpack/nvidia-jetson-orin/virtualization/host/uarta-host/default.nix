@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.hardware.nvidia.passthroughs.host.uarta;
 in
 {
+  _file = ./default.nix;
+
   options.ghaf.hardware.nvidia.passthroughs.host.uarta.enable = lib.mkOption {
     type = lib.types.bool;
     default = false;

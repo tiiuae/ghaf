@@ -5,10 +5,13 @@
 #
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     common.imports = [
       ./common.nix
       ./firewall
+      ./global-config.nix
       ./security
       ./users
       ./version

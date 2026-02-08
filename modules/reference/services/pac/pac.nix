@@ -70,6 +70,8 @@ let
     };
 in
 {
+  _file = ./pac.nix;
+
   options.ghaf.reference.services.pac = {
     enable = lib.mkEnableOption "Proxy Auto-Configuration (PAC)";
 

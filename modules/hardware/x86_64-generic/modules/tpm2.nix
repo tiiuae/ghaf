@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.hardware.tpm2;
 in
 {
+  _file = ./tpm2.nix;
+
   options.ghaf.hardware.tpm2 = {
     enable = lib.mkEnableOption "TPM2 PKCS#11 interface";
   };

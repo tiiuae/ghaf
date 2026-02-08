@@ -4,6 +4,8 @@
 # Firewall related modules
 #
 {
+  _file = ./default.nix;
+
   imports = [
     ./kernel-modules.nix
     ./firewall.nix

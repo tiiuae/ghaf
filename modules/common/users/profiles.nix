@@ -15,6 +15,8 @@ let
   hasStorageVm = lib.hasAttr "storagevm" config.ghaf;
 in
 {
+  _file = ./profiles.nix;
+
   options.ghaf.users.profile = {
     homed-user = {
       enable = mkEnableOption ''

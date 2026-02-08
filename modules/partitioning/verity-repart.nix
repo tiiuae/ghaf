@@ -11,6 +11,7 @@ let
   inherit (pkgs.stdenv.hostPlatform) efiArch;
 in
 {
+  _file = ./verity-repart.nix;
 
   config = lib.mkIf cfg.enable {
     image.repart = {

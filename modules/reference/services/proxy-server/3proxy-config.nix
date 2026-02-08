@@ -72,6 +72,8 @@ let
   '';
 in
 {
+  _file = ./3proxy-config.nix;
+
   options.ghaf.reference.services.proxy-server = {
     enable = mkEnableOption "Enable proxy server module";
     internalAddress = lib.mkOption {

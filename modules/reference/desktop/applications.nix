@@ -14,6 +14,8 @@ let
   };
 in
 {
+  _file = ./applications.nix;
+
   options.ghaf.reference.desktop.applications = {
     enable = mkEnableOption "desktop applications";
   };

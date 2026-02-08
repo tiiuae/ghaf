@@ -18,6 +18,8 @@ let
   nvidiaEnabled = config.ghaf.graphics.nvidia-setup.enable;
 in
 {
+  _file = ./brightness.nix;
+
   options.ghaf.services.brightness = {
     enable = mkEnableOption "brightness controlling via VirtIO";
 

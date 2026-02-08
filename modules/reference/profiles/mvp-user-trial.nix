@@ -1,10 +1,18 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-{ config, lib, ... }:
+{
+  config,
+  lib,
+  inputs,
+  ...
+}:
 let
   cfg = config.ghaf.reference.profiles.mvp-user-trial;
+  hostGlobalConfig = config.ghaf.global-config;
 in
 {
+  _file = ./mvp-user-trial.nix;
+
   options.ghaf.reference.profiles.mvp-user-trial = {
     enable = lib.mkEnableOption "Enable the mvp configuration for apps and services";
   };
@@ -93,19 +101,67 @@ in
       profiles = {
         laptop-x86 = {
           enable = true;
-          netvmExtraModules = [
-            ../services
-            ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
-          guivmExtraModules = [
-            ../services
-            ../programs
-            ../personalize
-            { ghaf.reference.personalize.keys.enable = true; }
-          ];
+          # guivmExtraModules removed - now using evaluatedConfig below
+          # netvmExtraModules removed - now using evaluatedConfig below
         };
       };
+
+      # GUI VM: Extend laptop base with MVP services and feature modules
+      virtualization.microvm.guivm.evaluatedConfig =
+        config.ghaf.profiles.laptop-x86.guivmBase.extendModules
+          {
+            modules = [
+              # Reference services and personalization
+              ../services
+              ../programs
+              ../personalize
+              { ghaf.reference.personalize.keys.enable = true; }
+              # Feature modules (auto-include based on feature flags)
+              inputs.self.nixosModules.guivm-desktop-features
+            ]
+            # Apply vmConfig (resource allocation + hardware + profile modules)
+            ++ lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "guivm";
+            };
+            specialArgs = lib.ghaf.vm.mkSpecialArgs {
+              inherit lib inputs;
+              globalConfig = hostGlobalConfig;
+              hostConfig = lib.ghaf.vm.mkHostConfig {
+                inherit config;
+                vmName = "gui-vm";
+              };
+            };
+          };
+
+      # Admin VM: Use laptop base directly (no customization needed for MVP)
+      virtualization.microvm.adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
+
+      # Audio VM: Use laptop base with vmConfig
+      virtualization.microvm.audiovm.evaluatedConfig =
+        config.ghaf.profiles.laptop-x86.audiovmBase.extendModules
+          {
+            modules = lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "audiovm";
+            };
+          };
+
+      # Net VM: Use laptop base with reference services and vmConfig
+      virtualization.microvm.netvm.evaluatedConfig =
+        config.ghaf.profiles.laptop-x86.netvmBase.extendModules
+          {
+            modules = [
+              # Reference services and personalization
+              ../services
+              ../personalize
+              { ghaf.reference.personalize.keys.enable = true; }
+            ]
+            ++ lib.ghaf.vm.applyVmConfig {
+              inherit config;
+              vmName = "netvm";
+            };
+          };
 
       # Enable logging
       logging = {

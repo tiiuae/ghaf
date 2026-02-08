@@ -20,6 +20,8 @@ let
     ;
 in
 {
+  _file = ./shared-mem.nix;
+
   options.ghaf.shm = {
     enable = mkOption {
       type = types.bool;
@@ -191,13 +193,17 @@ in
                       };
                       kernelParams = [ "kvm_ivshmem.flataddr=${cfg.flataddr}" ];
                     };
-                    boot.extraModulePackages = [
-                      # TODO: fix this to not call back to packages dir
-                      (pkgs.linuxPackages.callPackage ../../../packages/pkgs-by-name/memsocket/module.nix {
-                        inherit (config.microvm.vms.${vmName}.config.config.boot.kernelPackages) kernel;
-                        vmCount = cfg.instancesCount;
-                      })
-                    ];
+                    boot.extraModulePackages =
+                      let
+                        vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${vmName};
+                      in
+                      [
+                        # TODO: fix this to not call back to packages dir
+                        (pkgs.linuxPackages.callPackage ../../../packages/pkgs-by-name/memsocket/module.nix {
+                          inherit (vmConfig.boot.kernelPackages) kernel;
+                          vmCount = cfg.instancesCount;
+                        })
+                      ];
                     services = {
                       udev = {
                         extraRules = ''
@@ -245,10 +251,7 @@ in
           in
           lib.foldl' lib.attrsets.recursiveUpdate { } (map makeAssignment cfg.vms_enabled);
       }
-      {
-        microvm.vms.gui-vm.config.config.boot.kernelParams = [
-          "kvm_ivshmem.flataddr=${cfg.flataddr}"
-        ];
-      }
+      # Shared memory guest config is now provided by guivm-desktop-features module
+      # See: modules/desktop/guivm/shared-mem.nix
     ]);
 }

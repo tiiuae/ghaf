@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 { inputs, ... }:
 {
+  _file = ./flake-module.nix;
+
   flake.nixosModules = {
     development.imports = [
       inputs.srvos.nixosModules.mixins-nix-experimental

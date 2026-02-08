@@ -5,7 +5,10 @@
 _: {
   # Export builder functions for downstream consumption
   flake.builders = {
-    mkLaptopConfiguration = import ./mkLaptopConfiguration.nix;
-    mkLaptopInstaller = import ./mkLaptopInstaller.nix;
+    # Unified configuration builder
+    mkGhafConfiguration = import ./mkGhafConfiguration.nix;
+
+    # Unified installer builder
+    mkGhafInstaller = import ./mkGhafInstaller.nix;
   };
 }

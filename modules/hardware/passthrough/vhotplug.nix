@@ -16,13 +16,23 @@ let
     getExe
     ;
 
-  defaultVms = lib.attrsets.mapAttrsToList (vmName: vmParams: {
-    name = vmName;
-    type = vmParams.config.config.microvm.hypervisor;
-    socket = "${config.microvm.stateDir}/${vmName}/${vmParams.config.config.microvm.socket}";
-  }) config.microvm.vms;
+  defaultVms = lib.attrsets.mapAttrsToList (
+    vmName: vmParams:
+    let
+      vmConfig = lib.ghaf.vm.getConfig vmParams;
+    in
+    {
+      name = vmName;
+      type = if vmConfig != null then vmConfig.microvm.hypervisor else "qemu";
+      socket = "${config.microvm.stateDir}/${vmName}/${
+        if vmConfig != null then vmConfig.microvm.socket else "microvm.sock"
+      }";
+    }
+  ) config.microvm.vms;
 in
 {
+  _file = ./vhotplug.nix;
+
   options.ghaf.hardware.passthrough.vhotplug = {
     enable = mkEnableOption "Enable hot plugging of USB devices";
 

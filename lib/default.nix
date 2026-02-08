@@ -8,6 +8,11 @@ _: lib: prev:
 let
   # Import launcher utilities
   launcherLib = import ./launcher.nix { };
+  # Import global config types and utilities
+  globalConfigLib = import ./global-config.nix { inherit lib; };
+  # Note: VM base modules are in modules/microvm/sysvms/*-base.nix
+  # and exported via nixosModules (e.g., guivm-base, netvm-base, etc.)
+  # Profiles (laptop-x86, orin) create *Base options using these modules.
 in
 {
   /*
@@ -101,8 +106,22 @@ in
       };
     };
 
+    # Global configuration type for ghaf.global-config
+    globalConfig = globalConfigLib.globalConfigType;
   };
 
   # Launcher utilities
   inherit (launcherLib) rmDesktopEntries;
+
+  # Global configuration utilities under ghaf namespace
+  ghaf = {
+    inherit (globalConfigLib)
+      profiles
+      mkGlobalConfig
+      # VM composition utilities organized under lib.ghaf.vm.*
+      vm
+      # Feature assignment utilities under lib.ghaf.features.*
+      features
+      ;
+  };
 }

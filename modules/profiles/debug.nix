@@ -10,6 +10,8 @@ let
   cfg = config.ghaf.profiles.debug;
 in
 {
+  _file = ./debug.nix;
+
   options.ghaf.profiles.debug = {
     enable = (lib.mkEnableOption "debug profile") // {
       default = !config.ghaf.profiles.release.enable;

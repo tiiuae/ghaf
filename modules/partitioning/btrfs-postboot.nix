@@ -121,6 +121,8 @@ let
     || ((builtins.hasAttr "disko" config.ghaf.partitioning) && config.ghaf.partitioning.disko.enable);
 in
 {
+  _file = ./btrfs-postboot.nix;
+
   config = lib.mkIf enable {
 
     # To debug postBootCommands, one may run

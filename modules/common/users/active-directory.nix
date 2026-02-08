@@ -22,6 +22,8 @@ let
 
 in
 {
+  _file = ./active-directory.nix;
+
   options.ghaf.users.active-directory = {
 
     domains = mkOption {

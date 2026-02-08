@@ -12,6 +12,8 @@ let
   cfg = config.ghaf.services.create-fake-battery;
 in
 {
+  _file = ./createFakeBattery.nix;
+
   options.ghaf.services.create-fake-battery = {
     enable = mkEnableOption "Create a fake battery device for VMs";
   };
@@ -20,6 +22,8 @@ in
     mkIf
       (
         cfg.enable
+        # fake_battery kernel module only exists for x86_64
+        && pkgs.stdenv.hostPlatform.isx86_64
         && (
           (builtins.hasAttr "definition" config.ghaf.hardware)
           && config.ghaf.hardware.definition.type == "laptop"

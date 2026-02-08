@@ -17,6 +17,8 @@ let
     ;
 in
 {
+  _file = ./minimal.nix;
+
   options.ghaf.profiles.minimal = {
     enable = (mkEnableOption "minimal profile") // {
       default = false;

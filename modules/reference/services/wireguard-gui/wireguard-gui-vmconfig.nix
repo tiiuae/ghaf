@@ -19,6 +19,8 @@ let
   netVmInternalNic = hosts."net-vm".interfaceName;
 in
 {
+  _file = ./wireguard-gui-vmconfig.nix;
+
   options.ghaf.reference.services.wireguard-gui-vmconfig = {
     enabledVmNames = mkOption {
       type = types.listOf types.str;

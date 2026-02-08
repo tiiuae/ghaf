@@ -11,10 +11,16 @@
 }:
 let
   balloonvms = builtins.filter (
-    name: (config.microvm.vms.${name}.config.config.microvm.balloon or false)
+    name:
+    let
+      vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
+    in
+    vmConfig != null && (vmConfig.microvm.balloon or false)
   ) (builtins.attrNames (config.microvm.vms or { }));
 in
 {
+  _file = ./mem-manager.nix;
+
   systemd.services =
     builtins.foldl'
       (
@@ -22,7 +28,8 @@ in
         result
         // (
           let
-            microvmConfig = config.microvm.vms.${name}.config.config.microvm;
+            vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
+            microvmConfig = vmConfig.microvm;
             appvmConfig = config.ghaf.virtualization.microvm.appvm.vms.${lib.removeSuffix "-vm" name};
           in
           {

@@ -18,6 +18,8 @@ let
   inherit (config.ghaf.common) adminHost;
 in
 {
+  _file = ./host.nix;
+
   options.ghaf.givc.host = {
     enable = mkEnableOption "Enable host givc module.";
   };

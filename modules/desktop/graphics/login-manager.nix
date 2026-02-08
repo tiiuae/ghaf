@@ -19,6 +19,8 @@ let
   greeterUser = "cosmic-greeter";
 in
 {
+  _file = ./login-manager.nix;
+
   options.ghaf.graphics.login-manager = {
     enable = mkEnableOption "Ghaf login manager config using greetd";
     failLock = {

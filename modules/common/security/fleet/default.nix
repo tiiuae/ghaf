@@ -34,6 +34,8 @@ let
   # Validation: require one of enrollSecret or enrollSecretPath
 in
 {
+  _file = ./default.nix;
+
   options.services.orbit = {
     enable = lib.mkEnableOption "Fleet Orbit systemd service";
 

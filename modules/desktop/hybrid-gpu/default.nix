@@ -13,6 +13,8 @@ let
   };
 in
 {
+  _file = ./default.nix;
+
   imports = [ ./prime.nix ];
 
   options.ghaf.graphics.hybrid-setup = {
