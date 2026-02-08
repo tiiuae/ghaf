@@ -1,8 +1,12 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Module which provides partition template for NVIDIA Jetson AGX Orin
-# flash-script
+# Module which provides partition template for NVIDIA Jetson AGX Orin flash-script.
+#
+# This module configures legacyFlashScript to extract ESP and root partitions
+# from the compressed sdImage at flash time, then patches the partition sizes
+# into flash.xml before running NVIDIA's flash.sh.
+#
 {
   pkgs,
   config,
@@ -10,11 +14,12 @@
   ...
 }:
 let
-  # Using the same config for all orin boards (for now)
-  # TODO should this be changed when NX added
   cfg = config.ghaf.hardware.nvidia.orin;
 
+  # sdImage containing ESP and root partitions (compressed)
   images = config.system.build.${config.formatAttr};
+
+  # Partition XML with placeholders (substituted at flash time by preFlashCommands)
   partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
     <partition name="master_boot_record" type="protective_master_boot_record">
       <allocation_policy> sequential </allocation_policy>
@@ -66,19 +71,14 @@ let
       <percent_reserved> 0 </percent_reserved>
     </partition>
   '';
-  # When updating jetpack-nixos version, if the flash_t234_qspi_sdmmc.xml
-  # changes (usually if the underlying BSP-version changes), you might need to
-  # update the magical numbers to match the latest flash_t234_qspi_sdmmc.xml if
-  # it has changed. The point is to replace content between
-  # `partitionTemplateReplaceRange.firstLineCount` first lines and
-  # `partitionTemplateReplaceRange.lastLineCount` last lines (i.e. the content
-  # of the <device type="sdmmc_user" ...> </device> XML-tag), from the
-  # NVIDIA-supplied flash_t234_qspi_sdmmc.xml, with the partitions specified in
-  # the above partitionsEmmc variable.
-  # Orin AGX Industrial has a slightly different flash XML template, so we
-  # need to handle that separately.
-  # it uses flash_t234_qspi_sdmmc_industrial.xml as a base and the sdmmc section
-  # starts and ends at different lines.
+
+  # Line counts for replacing the sdmmc_user device section in NVIDIA's flash XML.
+  # These numbers specify where to splice our custom partition layout.
+  #
+  # WARNING: When updating jetpack-nixos/BSP version, verify these line counts
+  # still match the <device type="sdmmc_user"> section boundaries in:
+  # - flash_t234_qspi_sdmmc.xml (standard)
+  # - flash_t234_qspi_sdmmc_industrial.xml (industrial variant)
   partitionTemplateReplaceRange =
     if (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") then
       if (!cfg.flashScriptOverrides.onlyQSPI) then
@@ -88,8 +88,7 @@ let
         }
       else
         {
-          # If we don't flash anything to eMMC, then we don't need to have the
-          # <device type="sdmmc_user" ...> </device> XML-tag at all.
+          # QSPI-only: remove entire sdmmc_user device section
           firstLineCount = 630;
           lastLineCount = 1;
         }
@@ -100,88 +99,94 @@ let
       }
     else
       {
-        # If we don't flash anything to eMMC, then we don't need to have the
-        # <device type="sdmmc_user" ...> </device> XML-tag at all.
+        # QSPI-only: remove entire sdmmc_user device section
         firstLineCount = 617;
         lastLineCount = 1;
       };
-  partitionTemplate = pkgs.runCommand "flash.xml" { } (
-    lib.optionalString (config.hardware.nvidia-jetpack.som != "orin-agx-industrial") ''
-      head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >"$out"
 
-    ''
-    + lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") ''
-      head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml >"$out"
+  # Build the final flash.xml by splicing our partition layout into NVIDIA's template
+  partitionTemplate =
+    let
+      inherit (pkgs.nvidia-jetpack) bspSrc;
+      isIndustrial = config.hardware.nvidia-jetpack.som == "orin-agx-industrial";
+      xmlFile =
+        if isIndustrial then
+          "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml"
+        else
+          "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml";
+    in
+    pkgs.runCommand "flash.xml" { } (
+      ''
+        head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${xmlFile} >"$out"
+      ''
+      + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+        cat ${partitionsEmmc} >>"$out"
+      ''
+      + ''
+        tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${xmlFile} >>"$out"
+      ''
+    );
 
-    ''
-    + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+  # preFlashCommands: Extract images from sdImage and patch flash.xml
+  preFlashCommands = ''
+    echo "============================================================"
+    echo "Ghaf flash script for NVIDIA Jetson"
+    echo "============================================================"
+    echo "Version: ${config.ghaf.version}"
+    echo "SoM: ${config.hardware.nvidia-jetpack.som}"
+    echo "Carrier board: ${config.hardware.nvidia-jetpack.carrierBoard}"
+    echo "============================================================"
+    echo ""
+    mkdir -pv "$WORKDIR/bootloader"
+    rm -fv "$WORKDIR/bootloader/esp.img"
+  ''
+  + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
 
-      # Replace the section for sdmmc-device with our own section
-      cat ${partitionsEmmc} >>"$out"
+    # Read partition offsets and sizes from sdImage metadata
+    ESP_OFFSET=$(cat "${images}/esp.offset")
+    ESP_SIZE=$(cat "${images}/esp.size")
+    ROOT_OFFSET=$(cat "${images}/root.offset")
+    ROOT_SIZE=$(cat "${images}/root.size")
 
-    ''
-    + lib.optionalString (config.hardware.nvidia-jetpack.som != "orin-agx-industrial") ''
+    img="${images}/sd-image/${config.image.fileName}"
+    echo "Source image: $img"
+    echo "ESP: offset=$ESP_OFFSET sectors, size=$ESP_SIZE sectors"
+    echo "Root: offset=$ROOT_OFFSET sectors, size=$ROOT_SIZE sectors"
+    echo ""
 
-      tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml >>"$out"
-    ''
-    + lib.optionalString (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") ''
+    echo "Extracting ESP partition..."
+    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) \
+       of="$WORKDIR/bootloader/esp.img" \
+       bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE" status=progress
 
-      tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${pkgs.nvidia-jetpack.bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc_industrial.xml >>"$out"
-    ''
-  );
+    echo "Extracting root partition..."
+    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) \
+       of="$WORKDIR/bootloader/root.img" \
+       bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
+
+    echo ""
+    echo "Patching flash.xml with image paths and sizes..."
+    "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
+      -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
+      -e "s#root.img#$WORKDIR/bootloader/root.img#" \
+      -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
+      -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
+      flash.xml
+  ''
+  + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
+
+    echo "QSPI-only mode: skipping ESP and root partition extraction."
+  ''
+  + ''
+
+    echo ""
+    echo "Ready to flash!"
+    echo "============================================================"
+  '';
 in
 {
   config = lib.mkIf cfg.enable {
     hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = ''
-      echo "============================================================"
-      echo "ghaf flashing script"
-      echo "============================================================"
-      echo "ghaf version: ${config.ghaf.version}"
-      echo "som: ${config.hardware.nvidia-jetpack.som}"
-      echo "carrierBoard: ${config.hardware.nvidia-jetpack.carrierBoard}"
-      echo "============================================================"
-      echo ""
-      echo "Working dir: $WORKDIR"
-      echo "Removing bootlodaer/esp.img if it exists ..."
-      rm -fv "$WORKDIR/bootloader/esp.img"
-      mkdir -pv "$WORKDIR/bootloader"
-
-      # See https://developer.download.nvidia.com/embedded/L4T/r35_Release_v4.1/docs/Jetson_Linux_Release_Notes_r35.4.1.pdf
-      # and https://developer.download.nvidia.com/embedded/L4T/r35_Release_v5.0/docs/Jetson_Linux_Release_Notes_r35.5.0.pdf
-      #
-      # In Section: Adaptation to the Carrier Board with HDMI for the Orin
-      #             NX/Nano Modules
-      #"${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
-    ''
-    + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-      ESP_OFFSET=$(cat "${images}/esp.offset")
-      ESP_SIZE=$(cat "${images}/esp.size")
-      ROOT_OFFSET=$(cat "${images}/root.offset")
-      ROOT_SIZE=$(cat "${images}/root.size")
-
-      img="${images}/sd-image/${config.image.fileName}"
-      echo "Extracting ESP partition to $WORKDIR/bootloader/esp.img ..."
-      dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
-      echo "Extracting root partition to $WORKDIR/root.img ..."
-      dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE"
-
-      echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
-      "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
-        -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
-        -e "s#root.img#$WORKDIR/root.img#" \
-        -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
-        -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
-        flash.xml
-
-    ''
-    + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
-      echo "Flashing QSPI only, boot and root images not included."
-    ''
-    + ''
-      echo "Ready to flash!"
-      echo "============================================================"
-      echo ""
-    '';
+    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = preFlashCommands;
   };
 }
