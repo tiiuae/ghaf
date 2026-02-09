@@ -2,6 +2,8 @@
 # SPDX-License-Identifier: Apache-2.0
 { prev }:
 prev.spire.overrideAttrs (_old: rec {
+  # version 1.14.2 has build issues (internal 'go' tests fails)
+  # Latest nixos-unstable has spire 1.14.4, this overlay can be safely removed after nixpkgs update
   version = "1.14.4";
 
   src = prev.fetchFromGitHub {

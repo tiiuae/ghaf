@@ -307,6 +307,23 @@ in
         value = vm.extraNetworking or { };
       }) enabledVms;
 
+      ghaf.common.spire.agents = lib.foldr lib.recursiveUpdate { } (
+        lib.mapAttrsToList (
+          name: vm:
+          let
+            spireAgent = vm.evaluatedConfig.config.ghaf.security.spire.agent;
+          in
+          if spireAgent.enable then
+            {
+              "${name}-vm" = {
+                inherit (spireAgent) nodeAttestationMode workloads;
+              };
+            }
+          else
+            { }
+        ) enabledVms
+      );
+
       # USB passthrough rules
       ghaf.hardware.passthrough.vhotplug.usbRules = lib.concatMap (vm: vm.usbPassthrough) (
         lib.attrValues enabledVms

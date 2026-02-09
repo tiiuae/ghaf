@@ -25,6 +25,7 @@
 let
   vmName = "admin-vm";
   timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
+  # List of VMs that will run spire-agent (token will be created if missing)
 in
 {
   _file = ./adminvm-base.nix;
@@ -164,6 +165,17 @@ in
     security = {
       fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+
+      spire = {
+        server = {
+          enable = globalConfig.spire.enable or false;
+          logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
+        };
+        agent = {
+          enable = globalConfig.spire.enable or false;
+          logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
+        };
+      };
     };
 
     services.timezone.enable = lib.mkDefault (
