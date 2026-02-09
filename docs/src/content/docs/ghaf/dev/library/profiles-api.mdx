@@ -35,19 +35,47 @@ Development profile with extensive debugging capabilities.
 
 ```nix
 lib.ghaf.profiles.debug = {
-  debug = {
-    enable = true;
-    enableSsh = true;
-    enableVnc = false;
-  };
-  release = false;
+  debug.enable = true;
+
   development = {
-    debug.tools.enable = true;
     ssh.daemon.enable = true;
+    debug.tools.enable = true;
+    nix-setup.enable = true;
   };
-  givc.enable = true;
-  givc.debug = true;
-  logging.enable = true;
+
+  logging = {
+    enable = true;
+    server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+  };
+
+  security.audit.enable = false;
+
+  givc = {
+    enable = true;
+    debug = false;  # Disabled to allow logging (they conflict)
+  };
+
+  services = {
+    power-manager.enable = false;
+    performance.enable = false;
+  };
+
+  storage = {
+    encryption.enable = false;
+    storeOnDisk = false;
+  };
+
+  shm.enable = false;
+  idsvm.mitmproxy.enable = false;
+
+  features = {
+    fprint = { enable = true; targetVms = [ "gui-vm" ]; };
+    yubikey = { enable = true; targetVms = [ "gui-vm" ]; };
+    brightness = { enable = true; targetVms = [ "gui-vm" ]; };
+    wifi = { enable = true; targetVms = [ "net-vm" ]; };
+    audio = { enable = true; targetVms = [ "audio-vm" ]; };
+    bluetooth = { enable = true; targetVms = [ "audio-vm" ]; };
+  };
 };
 ```
 
@@ -70,19 +98,44 @@ Production profile with security hardening.
 
 ```nix
 lib.ghaf.profiles.release = {
-  debug = {
-    enable = false;
-    enableSsh = false;
-    enableVnc = false;
-  };
-  release = true;
+  debug.enable = false;
+
   development = {
-    debug.tools.enable = false;
     ssh.daemon.enable = false;
+    debug.tools.enable = false;
+    nix-setup.enable = false;
   };
-  givc.enable = true;
-  givc.debug = false;
-  logging.enable = true;
+
+  logging.enable = false;
+
+  security.audit.enable = true;
+
+  givc = {
+    enable = true;
+    debug = false;
+  };
+
+  services = {
+    power-manager.enable = true;
+    performance.enable = true;
+  };
+
+  storage = {
+    encryption.enable = true;
+    storeOnDisk = false;
+  };
+
+  shm.enable = false;
+  idsvm.mitmproxy.enable = false;
+
+  features = {
+    fprint = { enable = true; targetVms = [ "gui-vm" ]; };
+    yubikey = { enable = true; targetVms = [ "gui-vm" ]; };
+    brightness = { enable = true; targetVms = [ "gui-vm" ]; };
+    wifi = { enable = true; targetVms = [ "net-vm" ]; };
+    audio = { enable = true; targetVms = [ "audio-vm" ]; };
+    bluetooth = { enable = true; targetVms = [ "audio-vm" ]; };
+  };
 };
 ```
 
@@ -104,19 +157,44 @@ Stripped-down profile for resource-constrained environments.
 
 ```nix
 lib.ghaf.profiles.minimal = {
-  debug = {
-    enable = false;
-    enableSsh = false;
-    enableVnc = false;
-  };
-  release = true;
+  debug.enable = false;
+
   development = {
-    debug.tools.enable = false;
     ssh.daemon.enable = false;
+    debug.tools.enable = false;
+    nix-setup.enable = false;
   };
-  givc.enable = false;
-  givc.debug = false;
+
   logging.enable = false;
+
+  security.audit.enable = false;
+
+  givc = {
+    enable = false;
+    debug = false;
+  };
+
+  services = {
+    power-manager.enable = false;
+    performance.enable = false;
+  };
+
+  storage = {
+    encryption.enable = false;
+    storeOnDisk = false;
+  };
+
+  shm.enable = false;
+  idsvm.mitmproxy.enable = false;
+
+  features = {
+    fprint = { enable = false; targetVms = []; };
+    yubikey = { enable = false; targetVms = []; };
+    brightness = { enable = false; targetVms = []; };
+    wifi = { enable = false; targetVms = []; };
+    audio = { enable = false; targetVms = []; };
+    bluetooth = { enable = false; targetVms = []; };
+  };
 };
 ```
 
@@ -136,14 +214,18 @@ ghaf.global-config = lib.ghaf.profiles.minimal;
 
 | Setting | debug | release | minimal |
 |---------|-------|---------|---------|
-| `debug.enable` | ✅ | ❌ | ❌ |
-| `debug.enableSsh` | ✅ | ❌ | ❌ |
-| `release` | ❌ | ✅ | ✅ |
-| `development.debug.tools.enable` | ✅ | ❌ | ❌ |
-| `development.ssh.daemon.enable` | ✅ | ❌ | ❌ |
-| `givc.enable` | ✅ | ✅ | ❌ |
-| `givc.debug` | ✅ | ❌ | ❌ |
-| `logging.enable` | ✅ | ✅ | ❌ |
+| `debug.enable` | true | false | false |
+| `development.ssh.daemon.enable` | true | false | false |
+| `development.debug.tools.enable` | true | false | false |
+| `development.nix-setup.enable` | true | false | false |
+| `logging.enable` | true | false | false |
+| `security.audit.enable` | false | true | false |
+| `givc.enable` | true | true | false |
+| `givc.debug` | false | false | false |
+| `services.power-manager.enable` | false | true | false |
+| `services.performance.enable` | false | true | false |
+| `storage.encryption.enable` | false | true | false |
+| `features.*` (all) | enabled | enabled | disabled |
 
 ---
 
@@ -154,15 +236,16 @@ Factory function for creating custom profiles by extending a base profile.
 **Signature:**
 
 ```nix
-mkGlobalConfig :: AttrSet -> AttrSet
-mkGlobalConfig overrides
+mkGlobalConfig :: String -> AttrSet -> AttrSet
+mkGlobalConfig profileName overrides
 ```
 
 **Parameters:**
 
 | Name | Type | Description |
 |------|------|-------------|
-| `overrides` | AttrSet | Values to merge over the debug profile base |
+| `profileName` | String | Base profile to extend: `"debug"`, `"release"`, or `"minimal"` |
+| `overrides` | AttrSet | Values to merge over the base profile |
 
 **Returns:** Complete global configuration attrset.
 
@@ -170,7 +253,7 @@ mkGlobalConfig overrides
 
 ```nix
 # Start with debug profile, customize some settings
-ghaf.global-config = lib.ghaf.mkGlobalConfig {
+ghaf.global-config = lib.ghaf.mkGlobalConfig "debug" {
   # Override specific settings
   givc.debug = false;
   development.ssh.daemon.enable = false;
@@ -215,7 +298,7 @@ ghaf.global-config = lib.ghaf.profiles.debug // {
 Use the factory for cleaner customization:
 
 ```nix
-ghaf.global-config = lib.ghaf.mkGlobalConfig {
+ghaf.global-config = lib.ghaf.mkGlobalConfig "debug" {
   # All debug profile defaults applied
   # Just specify overrides:
   features = {
@@ -233,13 +316,13 @@ Create a project-specific profile:
 # In downstream project's lib/profiles.nix
 { lib }:
 {
-  fmoDebug = lib.ghaf.mkGlobalConfig {
+  fmoDebug = lib.ghaf.mkGlobalConfig "debug" {
     # FMO-specific debug settings
     features.yubikey.targetVms = [ "gui-vm" "gcs-vm" ];
     logging.listener.port = 10000;
   };
 
-  fmoRelease = lib.ghaf.profiles.release // {
+  fmoRelease = lib.ghaf.mkGlobalConfig "release" {
     # FMO production overrides
     features.yubikey.targetVms = [ "gui-vm" "gcs-vm" ];
   };
@@ -270,80 +353,89 @@ For reference, here's the full schema of values in globalConfig:
 ```nix
 {
   # Debug settings
-  debug = {
-    enable = bool;        # Master debug switch
-    enableSsh = bool;     # SSH access to VMs
-    enableVnc = bool;     # VNC access to GUI VM
-  };
-
-  # Release mode
-  release = bool;
+  debug.enable = bool;         # Default: false
 
   # Development tools
   development = {
-    debug.tools.enable = bool;
-    ssh.daemon.enable = bool;
-  };
-
-  # GIVC inter-VM communication
-  givc = {
-    enable = bool;
-    debug = bool;
+    ssh.daemon.enable = bool;  # Default: false
+    debug.tools.enable = bool; # Default: false
+    nix-setup.enable = bool;   # Default: false
   };
 
   # System logging
   logging = {
-    enable = bool;
+    enable = bool;             # Default: false
     listener = {
-      address = str;      # Default: "192.168.101.2"
-      port = int;         # Default: 9999
+      address = str;           # Default: "" (auto-populated from admin-vm IP)
+      port = port;             # Default: 9999
     };
+    server.endpoint = str;     # Default: ""
   };
 
-  # Platform settings
-  platform.timeZone = str;  # Default: "UTC"
+  # Security
+  security.audit.enable = bool; # Default: false
+
+  # GIVC inter-VM communication
+  givc = {
+    enable = bool;             # Default: false
+    debug = bool;              # Default: false
+  };
+
+  # System services
+  services = {
+    power-manager.enable = bool; # Default: false
+    performance.enable = bool;   # Default: false
+  };
+
+  # Storage settings
+  storage = {
+    encryption.enable = bool;  # Default: false
+    storeOnDisk = bool;        # Default: false
+  };
+
+  # Shared memory
+  shm = {
+    enable = bool;             # Default: false
+    serverSocketPath = str;    # Default: ""
+  };
+
+  # IDS VM settings
+  idsvm.mitmproxy.enable = bool; # Default: false
+
+  # Platform information
+  platform = {
+    buildSystem = str;         # Default: "x86_64-linux"
+    hostSystem = str;          # Default: "x86_64-linux"
+    timeZone = str;            # Default: "UTC"
+  };
 
   # Feature assignments
   features = {
     fprint = {
-      enable = bool;
-      targetVms = [ str ];
+      enable = bool;           # Default: true
+      targetVms = [ str ];     # Default: [ "gui-vm" ]
     };
     yubikey = {
-      enable = bool;
-      targetVms = [ str ];
+      enable = bool;           # Default: true
+      targetVms = [ str ];     # Default: [ "gui-vm" ]
     };
     brightness = {
-      enable = bool;
-      targetVms = [ str ];
+      enable = bool;           # Default: true
+      targetVms = [ str ];     # Default: [ "gui-vm" ]
     };
     wifi = {
-      enable = bool;
-      targetVms = [ str ];
+      enable = bool;           # Default: true
+      targetVms = [ str ];     # Default: [ "net-vm" ]
     };
     audio = {
-      enable = bool;
-      targetVms = [ str ];
+      enable = bool;           # Default: true
+      targetVms = [ str ];     # Default: [ "audio-vm" ]
     };
     bluetooth = {
-      enable = bool;
-      targetVms = [ str ];
+      enable = bool;           # Default: true
+      targetVms = [ str ];     # Default: [ "audio-vm" ]
     };
   };
-
-  # Shared memory configuration
-  shm = {
-    wayland.enable = bool;
-    audio.enable = bool;
-    gpu.enable = bool;
-    control.enable = bool;
-  };
-
-  # IDS VM settings
-  idsvm.mitmproxy.enable = bool;
-
-  # Hardware display config
-  hardware.displays = [ displayDefinition ];
 }
 ```
 
@@ -351,28 +443,24 @@ For reference, here's the full schema of values in globalConfig:
 
 ## Integration with Targets
 
-Profiles are typically set in target configurations:
+Profiles are typically applied via the `variant` parameter in `mkGhafConfiguration`:
 
 ```nix
 # targets/laptop/flake-module.nix
-{
-  laptop-configuration = { name, variant, ... }:
-    inputs.self.lib.ghaf.builders.mkGhafConfiguration {
-      inherit name;
-      # Profile selected based on variant
-      globalConfig =
-        if variant == "release"
-        then lib.ghaf.profiles.release
-        else lib.ghaf.profiles.debug;
-      # ... rest of configuration
-    };
+mkGhafConfiguration {
+  name = "my-target";
+  system = "x86_64-linux";
+  profile = "laptop-x86";
+  hardwareModule = self.nixosModules.hardware-my-target;
+  variant = "debug";  # Selects lib.ghaf.profiles.debug via mkDefault
 }
 ```
+
+The builder applies the selected profile to `ghaf.global-config` using `mkDefault`, allowing profile modules to override specific values.
 
 ---
 
 ## See Also
 
-- [Global Config Reference](/ghaf/dev/global-config) - Detailed option documentation
 - [Configuration Propagation](/ghaf/dev/architecture/config-propagation) - How profiles flow to VMs
 - [Extending Targets](/ghaf/dev/guides/extending-targets) - Using profiles in targets

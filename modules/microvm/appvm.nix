@@ -175,17 +175,17 @@ in
                 Applied via NixOS native extendModules after the base evaluatedConfig.
                 Use this for features that need to add apps, services, or other
                 configuration to a VM without modifying its base definition.
-
-                Example:
-                  extensions = [
-                    ({ pkgs, ... }: {
-                      ghaf.appvm.applications = [{
-                        name = "My App";
-                        command = "myapp";
-                        packages = [ pkgs.myapp ];
-                      }];
-                    })
-                  ];
+              '';
+              example = lib.literalExpression ''
+                [
+                  ({ pkgs, ... }: {
+                    ghaf.appvm.applications = [{
+                      name = "My App";
+                      command = "myapp";
+                      packages = [ pkgs.myapp ];
+                    }];
+                  })
+                ]
               '';
             };
 

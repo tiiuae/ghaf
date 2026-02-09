@@ -55,7 +55,7 @@ Passing `inputs` or other values through a chain of modules (A → B → C → D
 ```nix
 # GOOD: Use specialArgs
 # inputs is available everywhere via specialArgs
-lib.evalModules {
+lib.nixosSystem {
   specialArgs = { inherit inputs lib; };
   modules = [ ./module-a.nix ./module-b.nix ./module-c.nix ./module-d.nix ];
 }
@@ -377,7 +377,7 @@ Defining entire VM configurations inline in target files:
 { ... }: { /* VM configuration */ }
 
 # modules/profiles/laptop-x86.nix - creates profile base
-{ guivmBase = lib.evalModules { modules = [ guivm-base ]; }; }
+{ guivmBase = lib.nixosSystem { modules = [ guivm-base ]; }; }
 
 # targets/laptop/flake-module.nix - just extends
 {

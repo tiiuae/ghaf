@@ -107,17 +107,18 @@ in
     # Debug variant
     my-product-debug = mkGhafConfiguration {
       name = "my-product";
+      system = "x86_64-linux";
+      profile = "laptop-x86";
 
       # Use Ghaf's hardware definition or your own
-      hwDefinition = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      hardwareModule = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
 
-      # Use Ghaf's laptop profile
-      profile = inputs.ghaf.nixosModules.profiles-laptop-x86;
+      # Debug variant auto-applies lib.ghaf.profiles.debug via mkDefault
+      variant = "debug";
 
-      # Debug profile with customization
-      globalConfigOverrides = lib.ghaf.profiles.debug // {
-        # Your customizations
-        features.bluetooth.enable = false;
+      # Override specific global config values
+      extraConfig = {
+        global-config.features.bluetooth.enable = false;
       };
 
       # Additional modules
@@ -133,9 +134,10 @@ in
     # Release variant
     my-product-release = mkGhafConfiguration {
       name = "my-product";
-      hwDefinition = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
-      profile = inputs.ghaf.nixosModules.profiles-laptop-x86;
-      globalConfigOverrides = lib.ghaf.profiles.release;
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = inputs.ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+      variant = "release";
     };
   };
 
@@ -188,8 +190,8 @@ let
   };
 in
 {
-  # Use your extended GUI VM
-  ghaf.virtualization.microvm.guivm.evaluatedConfig = myGuivm.config;
+  # Use your extended GUI VM (pass the full system, not .config)
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = myGuivm;
 }
 ```
 
@@ -363,22 +365,28 @@ Prefer extending over replacing:
 baseGuivm.extendModules { modules = [ ... ]; }
 
 # Avoid - replace entirely (loses upstream updates)
-lib.evalModules { modules = [ my-complete-guivm ]; }
+lib.nixosSystem { modules = [ my-complete-guivm ]; }
 ```
 
-### 2. Use Profile Overrides
+### 2. Use Variant for Profile Selection
 
 ```nix
-# Good - override specific settings
-globalConfigOverrides = lib.ghaf.profiles.debug // {
-  features.bluetooth.enable = false;
+# Good - use variant parameter
+mkGhafConfiguration {
+  variant = "debug";
+  # Overrides go in extraConfig
+  extraConfig = {
+    global-config.features.bluetooth.enable = false;
+  };
 };
 
 # Avoid - define everything manually
-globalConfigOverrides = {
-  debug.enable = true;
-  debug.enableSsh = true;
-  # ... copying all profile values
+extraConfig = {
+  global-config = {
+    debug.enable = true;
+    development.ssh.daemon.enable = true;
+    # ... copying all profile values
+  };
 };
 ```
 
@@ -386,7 +394,7 @@ globalConfigOverrides = {
 
 ```nix
 # Good - hardware in separate module
-hwDefinition = inputs.self.nixosModules.my-hardware;
+hardwareModule = inputs.self.nixosModules.my-hardware;
 
 # Avoid - inline hardware in target
 extraModules = [{ hardware.cpu.intel.enable = true; /* ... */ }];

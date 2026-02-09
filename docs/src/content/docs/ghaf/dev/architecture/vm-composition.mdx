@@ -73,10 +73,10 @@ Ghaf uses a three-layer composition pattern:
 
 ## How evalModules Works
 
-The `lib.evalModules` function creates a lazily-evaluated module system:
+The `lib.nixosSystem` function creates a lazily-evaluated module system:
 
 ```nix
-lib.evalModules {
+lib.nixosSystem {
   # Values available to all modules without explicit passing
   specialArgs = {
     inherit lib inputs;
@@ -113,7 +113,7 @@ The `extendModules` function creates a **new** evaluated module set that include
 
 ```nix
 # Start with base
-baseConfig = lib.evalModules {
+baseConfig = lib.nixosSystem {
   specialArgs = { /* ... */ };
   modules = [ ./base.nix ];
 };
@@ -205,7 +205,7 @@ in
     guivmBase = lib.mkOption {
       type = lib.types.unspecified;
       readOnly = true;
-      default = lib.evalModules {
+      default = lib.nixosSystem {
         specialArgs = mkSpecialArgs "gui-vm";
         modules = [
           inputs.self.nixosModules.guivm-base
@@ -259,9 +259,17 @@ Downstream projects can extend at any layer:
 {
   inputs.ghaf.url = "github:tiiuae/ghaf";
 
-  outputs = { self, ghaf, ... }: {
-    nixosConfigurations.my-device = ghaf.nixosModules.mkLaptopConfiguration {
+  outputs = { self, ghaf, ... }:
+  let
+    mkGhafConfiguration = ghaf.lib.ghaf.builders.mkGhafConfiguration;
+  in
+  {
+    nixosConfigurations.my-device-debug = mkGhafConfiguration {
       name = "my-device";
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = ghaf.nixosModules.hardware-my-device;
+      variant = "debug";
 
       # Extend from ghaf's laptop profile
       extraModules = [
@@ -319,7 +327,7 @@ ghaf.virtualization.microvm = {
 
 ```nix
 # This works because evaluation is deferred
-guivmBase = lib.evalModules {
+guivmBase = lib.nixosSystem {
   specialArgs = {
     # References host config, but evaluated lazily
     globalConfig = config.ghaf.global-config;
@@ -345,7 +353,7 @@ upstreamGuivmBase  # Still the same
 
 ```nix
 # Test VM config in isolation
-testConfig = lib.evalModules {
+testConfig = lib.nixosSystem {
   specialArgs = {
     globalConfig = lib.ghaf.profiles.debug;
     hostConfig = { vmName = "test-vm"; /* mock data */ };
