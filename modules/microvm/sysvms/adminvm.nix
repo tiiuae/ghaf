@@ -64,7 +64,19 @@ in
         }
       ];
 
-      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common = {
+        extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+        spire = {
+          agents = lib.mkIf cfg.evaluatedConfig.config.ghaf.security.spire.agent.enable {
+            "${vmName}" = {
+              inherit (cfg.evaluatedConfig.config.ghaf.security.spire.agent) nodeAttestationMode workloads;
+            };
+          };
+          server.address =
+            lib.mkIf cfg.evaluatedConfig.config.ghaf.security.spire.server.enable
+              cfg.evaluatedConfig.config.ghaf.networking.hosts.${vmName}.ipv4;
+        };
+      };
 
       microvm.vms."${vmName}" = {
         autostart = true;

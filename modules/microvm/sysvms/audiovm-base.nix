@@ -153,7 +153,13 @@ in
       server.endpoint = globalConfig.logging.server.endpoint or "";
     };
 
-    security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+    security = {
+      fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+      spire.agent = {
+        enable = globalConfig.spire.enable or false;
+        logLevel = if globalConfig.spire.debug then "DEBUG" else "INFO";
+      };
+    };
 
     # Networking hosts - from hostConfig (for vm-networking.nix to look up MAC/IP)
     networking.hosts = hostConfig.networking.hosts or { };

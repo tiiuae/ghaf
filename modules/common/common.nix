@@ -34,6 +34,56 @@ in
 
   options.ghaf = {
     common = {
+      spire = {
+        server = {
+          address = lib.mkOption {
+            type = lib.types.str;
+            default = "0.0.0.0";
+            description = "SPIRE server bind address";
+          };
+          port = lib.mkOption {
+            type = lib.types.port;
+            default = 8081;
+            description = "SPIRE server bind port (agents connect here)";
+          };
+          healthCheckPort = lib.mkOption {
+            type = lib.types.port;
+            default = 8080;
+            description = "SPIRE server health check port";
+          };
+          trustDomain = lib.mkOption {
+            type = lib.types.str;
+            default = "ghaf.internal";
+            description = "SPIFFE trust domain used by SPIRE (spiffe://<trustDomain>/...)";
+          };
+        };
+        agents = mkOption {
+          description = "Spire agents configuration";
+          default = { };
+          type = types.attrsOf (
+            types.submodule {
+              options = {
+                nodeAttestationMode = mkOption {
+                  type = types.spireNodeAttestationMode;
+                  default = "join_token";
+                  description = "Spire node attestation mode";
+                };
+                workloads = mkOption {
+                  type = types.spireWorkloads;
+                  default = [ ];
+                  description = "Spire workloads";
+                };
+              };
+            }
+          );
+        };
+        package = lib.mkOption {
+          type = lib.types.package;
+          default = pkgs.spire;
+          example = lib.literalExpression "pkgs.spire";
+          description = "Spire package to use.";
+        };
+      };
       policies = mkOption {
         description = "System policies";
         default = { };

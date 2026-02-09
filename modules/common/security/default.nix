@@ -11,6 +11,7 @@
     ./pwquality.nix
     ./ssh-tarpit
     ./fleet
+    ./spire
     ./tpm2-packages.nix
     ../../secureboot/secureboot.nix
   ];

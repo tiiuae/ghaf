@@ -128,12 +128,21 @@ in
           debug.tools.host.enable = config.ghaf.development.debug.tools.enable;
         };
         logging.client.enable = config.ghaf.logging.enable;
-
         common = {
           extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
           policies = lib.mkIf config.ghaf.givc.policyClient.enable {
             ghaf-host = config.ghaf.givc.policyClient.policies;
           };
+          spire.agents = lib.mkIf config.ghaf.security.spire.agent.enable {
+            ghaf-host = {
+              inherit (config.ghaf.security.spire.agent) nodeAttestationMode workloads;
+            };
+          };
+        };
+
+        security.spire.agent = {
+          inherit (config.ghaf.global-config.spire) enable;
+          logLevel = if config.ghaf.global-config.spire.debug then "DEBUG" else "INFO";
         };
       };
 
