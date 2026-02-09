@@ -171,7 +171,7 @@ The following diagram shows how settings flow from host to VM:
 ┌─────────────────────────────────────────────────────────────────┐
 │  PROFILE (modules/profiles/laptop-x86.nix)                       │
 │                                                                  │
-│  guivmBase = lib.evalModules {                                  │
+│  guivmBase = lib.nixosSystem {                                  │
 │    specialArgs = lib.ghaf.vm.mkSpecialArgs {                    │
 │      inherit lib inputs;                                         │
 │      globalConfig = config.ghaf.global-config;  ◄── From host   │

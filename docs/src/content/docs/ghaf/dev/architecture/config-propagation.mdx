@@ -55,7 +55,7 @@ Ghaf now uses `specialArgs` to inject configuration into VM modules:
 When evaluating NixOS modules with `evalModules`, `specialArgs` provides values that are automatically available to all modules:
 
 ```nix
-lib.evalModules {
+lib.nixosSystem {
   specialArgs = {
     # These become function parameters in ALL modules
     globalConfig = { /* ... */ };
@@ -175,7 +175,7 @@ globalConfig = {
   logging = {
     enable = false;
     listener = {
-      address = "";
+      address = "";     # Auto-populated from admin-vm IP
       port = 9999;
     };
     server.endpoint = "";
@@ -202,6 +202,15 @@ globalConfig = {
     storeOnDisk = false;
   };
 
+  # Shared memory
+  shm = {
+    enable = false;
+    serverSocketPath = "";
+  };
+
+  # IDS VM
+  idsvm.mitmproxy.enable = false;
+
   # Platform (auto-populated from host)
   platform = {
     buildSystem = "x86_64-linux";
@@ -213,10 +222,10 @@ globalConfig = {
   features = {
     fprint = { enable = true; targetVms = [ "gui-vm" ]; };
     yubikey = { enable = true; targetVms = [ "gui-vm" ]; };
+    brightness = { enable = true; targetVms = [ "gui-vm" ]; };
     wifi = { enable = true; targetVms = [ "net-vm" ]; };
     audio = { enable = true; targetVms = [ "audio-vm" ]; };
-    bluetooth = { enable = false; targetVms = []; };
-    brightness = { enable = true; targetVms = [ "gui-vm" ]; };
+    bluetooth = { enable = true; targetVms = [ "audio-vm" ]; };
   };
 };
 ```
@@ -231,9 +240,9 @@ globalConfig = {
 |----------|----------|-------------|
 | Identity | `vmName`, `vmType` | Each VM has unique name |
 | Networking | `ipv4`, `mac`, `hosts` | Different IPs per VM |
-| Users | `profile`, `admin`, `managed` | May vary by VM role |
+| Users | user configuration | May vary by VM role |
 | Hardware | `kernel`, `passthrough` | Device-specific |
-| GIVC | `cliArgs`, `appliances` | VM-specific IPC config |
+| GIVC | `cliArgs`, `enableTls` | VM-specific IPC config |
 
 ### Accessing hostConfig
 
@@ -289,10 +298,42 @@ hostConfig = lib.ghaf.vm.mkHostConfig {
 hostConfig = {
   # VM identity
   vmName = "gui-vm";
-  vmType = "gui";
+  vmType = "guivm";  # vmName with dashes removed
 
   # Kernel configuration (if VM type has one)
-  kernel = { /* kernel config or null */ };
+  kernel = { /* ghaf.kernel.<vmType> or null */ };
+  # QEMU configuration (if VM type has one)
+  qemu = { /* ghaf.qemu.<vmType> or null */ };
+
+  # Hardware passthrough
+  passthrough = {
+    qemuExtraArgs = [ /* extra QEMU args for this VM */ ];
+    vmUdevExtraRules = "...";  # Udev rules for passthrough
+  };
+
+  # Host filesystem paths
+  sharedVmDirectory = "/...";
+
+  # Boot configuration
+  microvmBoot = {
+    enable = bool;
+  };
+
+  # Hardware devices
+  hardware = {
+    devices = { /* ghaf.hardware.devices */ };
+  };
+
+  # Common namespace (killswitch, etc.)
+  common = { /* ghaf.common config from host */ };
+
+  # User configuration
+  users = { /* ghaf.users config from host */ };
+
+  # Reference services
+  reference = {
+    services = { /* ghaf.reference.services */ };
+  };
 
   # Networking
   networking = {
@@ -310,25 +351,23 @@ hostConfig = {
     };
   };
 
-  # User configuration
-  users = {
-    profile = { /* user profile config */ };
-    admin = { /* admin user config */ };
-    managed = { /* managed users config */ };
-  };
-
-  # Common settings namespace
-  common = { /* common config from host */ };
-
   # GIVC configuration
   givc = {
     cliArgs = "--addr ...";
-    appliances = [ /* list of services */ ];
+    enableTls = bool;
   };
 
-  # Hardware configuration
-  hardware = {
-    passthrough = { /* passthrough devices */ };
+  # Security settings
+  security = {
+    sshKeys = { /* SSH key configuration */ };
+  };
+
+  # AppVM configurations (for launcher generation)
+  appvms = { /* enabledVms with derived values */ };
+
+  # GUI VM applications
+  guivm = {
+    applications = [ /* GUI VM local applications */ ];
   };
 };
 ```
@@ -346,7 +385,7 @@ Profiles create the specialArgs when defining VM bases:
   options.ghaf.profiles.laptop-x86.guivmBase = lib.mkOption {
     type = lib.types.unspecified;
     readOnly = true;
-    default = lib.evalModules {
+    default = lib.nixosSystem {
       # This is where specialArgs are created
       specialArgs = lib.ghaf.vm.mkSpecialArgs {
         inherit lib inputs;

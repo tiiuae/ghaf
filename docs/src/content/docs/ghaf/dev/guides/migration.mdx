@@ -84,14 +84,21 @@ microvm.vms.gui-vm.config = guivmBaseConfiguration // {
 }
 
 # In profile (laptop-x86.nix)
-guivmBase = lib.evalModules {
-  specialArgs = lib.ghaf.vm.mkSpecialArgs globalConfig hostConfigGuivm lib;
+guivmBase = lib.nixosSystem {
+  specialArgs = lib.ghaf.vm.mkSpecialArgs {
+    inherit lib inputs;
+    globalConfig = config.ghaf.global-config;
+    hostConfig = lib.ghaf.vm.mkHostConfig {
+      inherit config;
+      vmName = "gui-vm";
+    };
+  };
   modules = [ guivm-base hardwareExtras ];
 };
 
-# In guivm.nix
+# In guivm.nix - wire up using evaluatedConfig
 config = lib.mkIf cfg.enable {
-  microvm.vms.gui-vm.config = lib.ghaf.vm.getConfig config "guivm";
+  microvm.vms.gui-vm.evaluatedConfig = cfg.evaluatedConfig;
 };
 ```
 
@@ -115,7 +122,7 @@ ghaf.virtualization.microvm.guivm.extraModules = lib.mkAfter [
 **Modern:**
 ```nix
 # In profile - compose base with hardware modules
-guivmBase = lib.evalModules {
+guivmBase = lib.nixosSystem {
   specialArgs = ...;
   modules = [
     guivm-base
@@ -132,7 +139,8 @@ let
   };
 in
 {
-  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm.config;
+  # Pass the full system result, not .config
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm;
 }
 ```
 
@@ -179,18 +187,22 @@ in
 
 **Modern:**
 ```nix
-# In target
+# In target - use variant parameter
 mkGhafConfiguration {
   name = "my-target";
-  globalConfigOverrides =
-    if variant == "release"
-    then lib.ghaf.profiles.release
-    else lib.ghaf.profiles.debug;
+  system = "x86_64-linux";
+  profile = "laptop-x86";
+  hardwareModule = self.nixosModules.hardware-my-target;
+  variant = "debug";  # Auto-applies lib.ghaf.profiles.debug via mkDefault
 }
 
-# Or with customization
-globalConfigOverrides = lib.ghaf.profiles.debug // {
-  features.bluetooth.enable = false;
+# Or with customization via extraConfig
+mkGhafConfiguration {
+  # ... params ...
+  variant = "debug";
+  extraConfig = {
+    global-config.features.bluetooth.enable = false;
+  };
 };
 ```
 
@@ -220,7 +232,7 @@ globalConfigOverrides = lib.ghaf.profiles.debug // {
 **Modern:**
 ```nix
 # In evaluation (profile or target)
-lib.evalModules {
+lib.nixosSystem {
   specialArgs = { inherit inputs lib; };
   modules = [ ./module-a.nix ./module-b.nix ];
 }
@@ -323,9 +335,10 @@ ghaf.global-config.features.fprint.targetVms = [ "admin-vm" ];
     {
       nixosConfigurations.my-product-debug = mkGhafConfiguration {
         name = "my-product";
-        hwDefinition = ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
-        profile = ghaf.nixosModules.profiles-laptop-x86;
-        globalConfigOverrides = ghaf.lib.ghaf.profiles.debug;
+        system = "x86_64-linux";
+        profile = "laptop-x86";
+        hardwareModule = ghaf.nixosModules.hardware-lenovo-x1-carbon-gen11;
+        variant = "debug";
         extraModules = [
           ({ config, ... }:
           let
@@ -335,7 +348,8 @@ ghaf.global-config.features.fprint.targetVms = [ "admin-vm" ];
             };
           in
           {
-            ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm.config;
+            # Pass the full system result, not .config
+            ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedVm;
           })
         ];
       };

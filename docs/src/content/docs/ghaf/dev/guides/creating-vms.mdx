@@ -123,7 +123,7 @@ in
       default = null;
       description = ''
         Evaluated NixOS configuration for my VM.
-        Set by the profile using lib.evalModules.
+        Set by the profile using lib.nixosSystem.
       '';
     };
   };
@@ -135,8 +135,7 @@ in
     }];
 
     microvm.vms.my-vm = {
-      config = lib.ghaf.vm.getConfig config "myvm";
-      specialArgs = { inherit lib; };
+      evaluatedConfig = cfg.evaluatedConfig;
     };
   };
 }
@@ -166,15 +165,27 @@ let
   globalConfig = config.ghaf.global-config;
 
   # Create the VM base with proper specialArgs
-  myvmBase = lib.evalModules {
-    specialArgs = lib.ghaf.vm.mkSpecialArgs
-      globalConfig
-      (lib.ghaf.vm.mkHostConfig config "my-vm")
-      lib;
+  myvmBase = lib.nixosSystem {
+    specialArgs = lib.ghaf.vm.mkSpecialArgs {
+      inherit lib inputs;
+      globalConfig = globalConfig;
+      hostConfig = lib.ghaf.vm.mkHostConfig {
+        inherit config;
+        vmName = "my-vm";
+      };
+    };
     modules = [
       inputs.self.nixosModules.myvm-base
       # Add target-specific modules here
     ];
+  };
+
+  # Apply vmConfig (mem, vcpu, extraModules from hardware.definition and vmConfig)
+  myvmFinal = myvmBase.extendModules {
+    modules = lib.ghaf.vm.applyVmConfig {
+      inherit config;
+      vmName = "myvm";
+    };
   };
 in
 {
@@ -182,7 +193,9 @@ in
     # ... existing config ...
 
     # Wire up my VM
-    (lib.ghaf.vm.applyVmConfig config "myvm" myvmBase)
+    {
+      ghaf.virtualization.microvm.myvm.evaluatedConfig = myvmFinal;
+    }
   ];
 }
 ```
@@ -207,7 +220,7 @@ Application VMs use a template pattern for multiple instances.
 
 ### Using mkAppVm
 
-The `mkAppVm` function creates application VMs:
+The `mkAppVm` function creates application VMs. All values (name, ramMb, borderColor, applications, vtpm) are defined in the `mkAppVm` call and stored in `evaluatedConfig.config.ghaf.appvm.vmDef`. Host-level options automatically read from there.
 
 ```nix
 { config, lib, ... }:
@@ -226,9 +239,30 @@ in
     }];
     extraModules = [
       # Additional configuration
-      { config.services.foo.enable = true; }
+      { services.foo.enable = true; }
     ];
   };
+}
+```
+
+### Extending Existing AppVMs
+
+Use the `extensions` option to add modules to an existing app VM without modifying its base definition. Extensions are applied via NixOS `extendModules`:
+
+```nix
+{ pkgs, ... }:
+{
+  # Add an app to the chrome VM without modifying its base
+  ghaf.virtualization.microvm.appvm.vms.chrome.extensions = [
+    ({ pkgs, ... }: {
+      ghaf.appvm.applications = [{
+        name = "Getting Started";
+        description = "Introduction guide";
+        packages = [ pkgs.ghaf-intro ];
+        command = "ghaf-intro";
+      }];
+    })
+  ];
 }
 ```
 
@@ -236,11 +270,14 @@ in
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `name` | str | VM name (used as identifier) |
-| `applications` | list | Applications to run in VM |
-| `extraModules` | list | Additional NixOS modules |
-| `ramMb` | int | RAM in megabytes |
-| `vcpus` | int | Virtual CPUs |
+| `enable` | bool | Enable this VM |
+| `evaluatedConfig` | NixOS system | Base config from `mkAppVm` |
+| `extensions` | list of modules | Additional modules applied via `extendModules` |
+| `extraNetworking` | attrset | Host-side networking options |
+| `usbPassthrough` | list | USB passthrough rules (host-side) |
+| `bootPriority` | enum | Boot priority: "low", "medium", "high" |
+
+Values like `name`, `ramMb`, `borderColor`, `applications`, and `vtpm` are all derived from `evaluatedConfig.config.ghaf.appvm.vmDef` and should be set in the `mkAppVm` call, not at the host level.
 
 ### Application Definition
 
@@ -281,7 +318,8 @@ let
   };
 in
 {
-  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedGuivm.config;
+  # Pass the full system result, not .config
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = extendedGuivm;
 }
 ```
 
@@ -347,26 +385,21 @@ microvm.devices = [
 
 ### Using vmConfig
 
-The `vmConfig` system allows per-target resource customization:
+The `vmConfig` parameter in `mkGhafConfiguration` allows per-target resource customization:
 
 ```nix
 # In target flake-module.nix
-ghaf.virtualization.vmConfig = {
-  guivm = { ramMb = 4096; vcpus = 4; };
-  netvm = { ramMb = 512; vcpus = 1; };
-  myvm = { ramMb = 2048; vcpus = 2; };
-};
+mkGhafConfiguration {
+  # ... other params ...
+  vmConfig = {
+    guivm = { mem = 4096; vcpu = 4; };
+    netvm = { mem = 512; vcpu = 1; };
+    myvm = { mem = 2048; vcpu = 2; };
+  };
+}
 ```
 
-### Reading vmConfig in Base
-
-```nix
-# In VM base module
-microvm = {
-  mem = config.ghaf.virtualization.vmConfig.myvm.ramMb or 1024;
-  vcpu = config.ghaf.virtualization.vmConfig.myvm.vcpus or 2;
-};
-```
+This maps to `ghaf.virtualization.vmConfig` and is applied via `lib.ghaf.vm.applyVmConfig`, which generates a resource module setting `microvm.mem` and `microvm.vcpu`.
 
 ---
 

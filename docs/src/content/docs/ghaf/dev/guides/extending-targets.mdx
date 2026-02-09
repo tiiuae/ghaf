@@ -23,25 +23,27 @@ Targets in Ghaf combine:
 
 ### Modifying Global Settings
 
-Override global config settings in the target:
+Override global config settings via `extraConfig`:
 
 ```nix
 # In targets/laptop/flake-module.nix
-laptop-configuration = { name, variant, hwDefinition, ... }:
-  mkGhafConfiguration {
-    inherit name hwDefinition;
-    profile = inputs.self.nixosModules.profiles-laptop-x86;
+mkGhafConfiguration {
+  name = "my-target";
+  system = "x86_64-linux";
+  profile = "laptop-x86";
+  hardwareModule = inputs.self.nixosModules.hardware-my-target;
+  variant = "debug";
 
-    # Custom global config overrides
-    globalConfigOverrides = {
-      features.bluetooth.enable = false;  # Disable bluetooth
-      logging.listener.port = 10000;      # Custom log port
-    };
-
-    extraModules = [
-      # Additional modules
-    ];
+  # Override specific global config values
+  extraConfig = {
+    global-config.features.bluetooth.enable = false;
+    global-config.logging.listener.port = 10000;
   };
+
+  extraModules = [
+    # Additional modules
+  ];
+};
 ```
 
 ### Adding Packages
@@ -100,7 +102,7 @@ let
   };
 in
 {
-  ghaf.virtualization.microvm.guivm.evaluatedConfig = customGuivm.config;
+  ghaf.virtualization.microvm.guivm.evaluatedConfig = customGuivm;
 }
 ```
 
@@ -156,40 +158,51 @@ Create both debug and release variants:
 
 ```nix
 # In flake-module.nix
-flake.nixosConfigurations = {
-  # Debug variant
-  "my-target-debug" = mkGhafConfiguration {
-    name = "my-target";
-    hwDefinition = ./hardware.nix;
-    profile = inputs.self.nixosModules.profiles-laptop-x86;
-    globalConfigOverrides = lib.ghaf.profiles.debug;
-  };
+let
+  mkGhafConfiguration = inputs.self.lib.ghaf.builders.mkGhafConfiguration;
+in
+{
+  flake.nixosConfigurations = {
+    # Debug variant
+    "my-target-debug" = mkGhafConfiguration {
+      name = "my-target";
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = inputs.self.nixosModules.hardware-my-target;
+      variant = "debug";
+    };
 
-  # Release variant
-  "my-target-release" = mkGhafConfiguration {
-    name = "my-target";
-    hwDefinition = ./hardware.nix;
-    profile = inputs.self.nixosModules.profiles-laptop-x86;
-    globalConfigOverrides = lib.ghaf.profiles.release;
+    # Release variant
+    "my-target-release" = mkGhafConfiguration {
+      name = "my-target";
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = inputs.self.nixosModules.hardware-my-target;
+      variant = "release";
+    };
   };
-};
+}
 ```
 
 ### Custom Profile Variants
 
-Create custom profile combinations:
+Create custom profile combinations by overriding global config:
 
 ```nix
 {
   # Minimal debug - debug tools but reduced features
   "my-target-minimal-debug" = mkGhafConfiguration {
     name = "my-target-minimal";
-    hwDefinition = ./hardware.nix;
-    profile = inputs.self.nixosModules.profiles-laptop-x86;
-    globalConfigOverrides = lib.ghaf.profiles.debug // {
-      givc.enable = false;
-      features.audio.enable = false;
-      features.bluetooth.enable = false;
+    system = "x86_64-linux";
+    profile = "laptop-x86";
+    hardwareModule = inputs.self.nixosModules.hardware-my-target;
+    variant = "debug";
+    extraConfig = {
+      global-config = {
+        givc.enable = false;
+        features.audio.enable = false;
+        features.bluetooth.enable = false;
+      };
     };
   };
 }
@@ -231,14 +244,10 @@ Create `modules/hardware/my-device/definition.nix`:
 
     # VM-specific hardware
     guivm = {
-      mem = 4096;
-      vcpu = 4;
       extraModules = [];
     };
 
     netvm = {
-      mem = 512;
-      vcpu = 1;
       extraModules = [];
     };
   };
@@ -290,9 +299,10 @@ in
   flake.nixosConfigurations = {
     my-device-debug = mkGhafConfiguration {
       name = "my-device";
-      hwDefinition = inputs.self.nixosModules.hardware-my-device;
-      profile = inputs.self.nixosModules.profiles-laptop-x86;
-      globalConfigOverrides = lib.ghaf.profiles.debug;
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = inputs.self.nixosModules.hardware-my-device;
+      variant = "debug";
       extraModules = [
         # Target-specific additions
       ];
@@ -300,9 +310,10 @@ in
 
     my-device-release = mkGhafConfiguration {
       name = "my-device";
-      hwDefinition = inputs.self.nixosModules.hardware-my-device;
-      profile = inputs.self.nixosModules.profiles-laptop-x86;
-      globalConfigOverrides = lib.ghaf.profiles.release;
+      system = "x86_64-linux";
+      profile = "laptop-x86";
+      hardwareModule = inputs.self.nixosModules.hardware-my-device;
+      variant = "release";
     };
   };
 }
@@ -327,11 +338,12 @@ Add to `modules/hardware/flake-module.nix`:
 ### Pattern 1: Override VM Resources
 
 ```nix
-{
-  ghaf.virtualization.vmConfig = {
-    guivm = { ramMb = 8192; vcpus = 8; };
-    netvm = { ramMb = 1024; vcpus = 2; };
-    audiovm = { ramMb = 512; vcpus = 1; };
+mkGhafConfiguration {
+  # ... other params ...
+  vmConfig = {
+    guivm = { mem = 8192; vcpu = 8; };
+    netvm = { mem = 1024; vcpu = 2; };
+    audiovm = { mem = 512; vcpu = 1; };
   };
 }
 ```
