@@ -166,6 +166,17 @@ let
       }
     ]))
 
+    (laptop-configuration "lenovo-x1-carbon-gen11-uki" "debug" (withCommonModules [
+      self.nixosModules.hardware-lenovo-x1-efi-uki
+      {
+        ghaf = {
+          hardware.lenovo-x1-efi-uki.enable = true;
+          reference.profiles.mvp-user-trial.enable = true;
+          partitioning.disko.enable = true;
+        };
+      }
+    ]))
+
     (laptop-configuration "lenovo-x1-carbon-gen12" "debug" (withCommonModules [
       self.nixosModules.hardware-lenovo-x1-carbon-gen12
       {
