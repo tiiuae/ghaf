@@ -59,6 +59,7 @@ in
 
     # System
     type = "system-vm";
+
     systemd = {
       enable = true;
       withName = "audiovm-systemd";
@@ -71,6 +72,7 @@ in
       withDebug = globalConfig.debug.enable or false;
       withHardenedConfigs = true;
     };
+
     givc.audiovm.enable = true;
 
     # Enable dynamic hostname export for VMs
@@ -84,25 +86,27 @@ in
     };
 
     # Networking
-    virtualization.microvm.vm-networking = {
-      enable = true;
-      inherit vmName;
-    };
+    virtualization.microvm = {
+      vm-networking = {
+        enable = true;
+        inherit vmName;
+      };
 
-    virtualization.microvm.tpm.passthrough = {
-      # TPM passthrough is only supported on x86_64
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
-      rootNVIndex = "0x81702000";
-    };
+      tpm.passthrough = {
+        # TPM passthrough is only supported on x86_64
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+        rootNVIndex = "0x81702000"; # TPM2 NV index for audio-vm LUKS key
+      };
 
-    virtualization.microvm.tpm.emulated = {
-      # Use emulated TPM for non-x86_64 systems when encryption is enabled
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
-      name = vmName;
+      tpm.emulated = {
+        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+        name = vmName;
+      };
     };
 
     # Services
@@ -145,7 +149,6 @@ in
 
     # Networking hosts - from hostConfig (for vm-networking.nix to look up MAC/IP)
     networking.hosts = hostConfig.networking.hosts or { };
-
     # Common namespace - from hostConfig (previously from commonModule in modules.nix)
     common = hostConfig.common or { };
 
@@ -156,15 +159,14 @@ in
       managed = hostConfig.users.managed or { };
     };
 
-    # GIVC configuration - from globalConfig (previously from serviceModules.givc)
+    # GIVC configuration - from globalConfig
     givc = {
       enable = globalConfig.givc.enable or false;
       debug = globalConfig.givc.debug or false;
     };
 
-    # Security - from globalConfig (previously from serviceModules.audit)
+    # Security - from globalConfig
     security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
-
   };
 
   environment = {

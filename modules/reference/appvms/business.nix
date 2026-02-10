@@ -253,44 +253,46 @@ in
               ../services/wireguard-gui/wireguard-gui.nix
             ];
 
-            ghaf.firewall.extra =
-              let
-                # WARN: if all the traffic including VPN flowing through proxy is intended,
-                # remove "151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
-                # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
-                # them to allow acl list in modules/reference/appvms/3proxy-config.nix file.
-                vpnIpAddr = "151.253.154.18";
-              in
-              {
-                input.filter = [
-                  # allow everything for local VPN traffic
-                  "-i tun0 -j ghaf-fw-conncheck-accept"
-                  "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ghaf-fw-conncheck-accept"
-                ];
+            ghaf = {
+              firewall.extra =
+                let
+                  # WARN: if all the traffic including VPN flowing through proxy is intended,
+                  # remove "151.253.154.18" rule and pass "--proxy-server=http://192.168.100.1:3128" to openconnect(VPN) app.
+                  # also remove "151.253.154.18,tii.ae,.tii.ae,sapsf.com,.sapsf.com" addresses from noProxy option and add
+                  # them to allow acl list in modules/reference/appvms/3proxy-config.nix file.
+                  vpnIpAddr = "151.253.154.18";
+                in
+                {
+                  input.filter = [
+                    # allow everything for local VPN traffic
+                    "-i tun0 -j ghaf-fw-conncheck-accept"
+                    "-p tcp -s ${vpnIpAddr} -m multiport --sports 80,443 -j ghaf-fw-conncheck-accept"
+                  ];
 
-                output.filter = [
-                  "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
-                  # Block HTTP and HTTPS if NOT going out via VPN
-                  "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-                  "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
-                ];
-              };
-            # Enable Proxy Auto-Configuration service for the browser
-            ghaf.reference.services = {
-              pac = {
-                enable = lib.mkDefault true;
-                proxyAddress = config.ghaf.reference.services.proxy-server.internalAddress;
-                proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
+                  output.filter = [
+                    "-p tcp -d ${vpnIpAddr} -m multiport --dports 80,443 -j ACCEPT"
+                    # Block HTTP and HTTPS if NOT going out via VPN
+                    "! -o tun0 -p tcp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
+                    "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
+                  ];
+                };
+              # Enable Proxy Auto-Configuration service for the browser
+              reference.services = {
+                pac = {
+                  enable = lib.mkDefault true;
+                  proxyAddress = config.ghaf.reference.services.proxy-server.internalAddress;
+                  proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
+                };
+
+                # Enable WireGuard GUI
+                wireguard-gui = {
+                  enable = config.ghaf.reference.services.wireguard-gui;
+                  serverPorts = [ 51821 ];
+                };
               };
 
-              # Enable WireGuard GUI
-              wireguard-gui = {
-                enable = config.ghaf.reference.services.wireguard-gui;
-                serverPorts = [ 51821 ];
-              };
+              development.debug.tools.av.enable = config.ghaf.profiles.debug.enable;
             };
-
-            ghaf.development.debug.tools.av.enable = config.ghaf.profiles.debug.enable;
           }
         ];
       };

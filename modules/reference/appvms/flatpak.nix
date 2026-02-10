@@ -167,27 +167,55 @@ in
         ];
         extraModules = [
           {
-            services.flatpak.enable = lib.mkDefault true;
-            security.rtkit.enable = lib.mkForce true;
-            services.packagekit.enable = lib.mkDefault true;
-            ghaf.xdgitems.enable = lib.mkDefault true;
+            services = {
+              flatpak.enable = lib.mkDefault true;
+              packagekit.enable = lib.mkDefault true;
+            };
+            security = {
+              rtkit.enable = lib.mkForce true;
+              polkit = {
+                enable = lib.mkDefault true;
+                debug = true;
+                extraConfig = ''
+                    polkit.addRule(function(action, subject) {
+                      if (action.id.startsWith("org.freedesktop.Flatpak.") &&
+                          subject.user == "${config.ghaf.users.appUser.name}") {
+                            return polkit.Result.YES;
+                      }
+                  });
+                '';
+              };
+            };
+            ghaf = {
+              xdgitems.enable = lib.mkDefault true;
+
+              users.appUser.extraGroups = [
+                "flatpak"
+              ];
+
+              # For persistant storage
+              storagevm = {
+                directories = [
+                  {
+                    directory = "/var/lib/flatpak";
+                    user = "root";
+                    group = "root";
+                    mode = "0755";
+                  }
+                ];
+                maximumSize = 200 * 1024; # 200 GB space allocated
+                mountOptions = [
+                  "rw"
+                  "nodev"
+                  "nosuid"
+                  "exec" # For Bubblewrap sandbox to execute the file
+                ];
+              };
+            };
 
             environment.systemPackages = [
               xdgUrlFlatpakItem
             ];
-
-            security.polkit = {
-              enable = lib.mkDefault true;
-              debug = true;
-              extraConfig = ''
-                  polkit.addRule(function(action, subject) {
-                    if (action.id.startsWith("org.freedesktop.Flatpak.") &&
-                        subject.user == "${config.ghaf.users.appUser.name}") {
-                          return polkit.Result.YES;
-                    }
-                });
-              '';
-            };
 
             xdg = {
               portal = {
@@ -215,54 +243,33 @@ in
               };
             };
 
-            ghaf.users.appUser.extraGroups = [
-              "flatpak"
-            ];
-
-            # For persistant storage
-            ghaf.storagevm = {
-              directories = [
-                {
-                  directory = "/var/lib/flatpak";
-                  user = "root";
-                  group = "root";
-                  mode = "0755";
-                }
-              ];
-              maximumSize = 200 * 1024; # 200 GB space allocated
-              mountOptions = [
-                "rw"
-                "nodev"
-                "nosuid"
-                "exec" # For Bubblewrap sandbox to execute the file
-              ];
-            };
-
             programs.dconf.enable = lib.mkDefault true;
 
-            systemd.services.flatpak-repo = {
-              description = "Add Flathub system-wide Flatpak repository";
-              wantedBy = [ "multi-user.target" ];
-              after = [ "network-online.target" ];
-              requires = [ "network-online.target" ];
-              serviceConfig = {
-                Type = "oneshot";
-                Restart = "on-failure";
-                RestartSec = "2s";
+            systemd = {
+              services.flatpak-repo = {
+                description = "Add Flathub system-wide Flatpak repository";
+                wantedBy = [ "multi-user.target" ];
+                after = [ "network-online.target" ];
+                requires = [ "network-online.target" ];
+                serviceConfig = {
+                  Type = "oneshot";
+                  Restart = "on-failure";
+                  RestartSec = "2s";
+                };
+                path = [ pkgs.flatpak ];
+                script = ''
+                  flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+                  flatpak update --appstream --noninteractive
+                '';
               };
-              path = [ pkgs.flatpak ];
-              script = ''
-                flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-                flatpak update --appstream --noninteractive
-              '';
-            };
 
-            systemd.user.services."run-xwayland" = {
-              description = "Grants rootless Xwayland integration to any Wayland compositor";
-              serviceConfig = {
-                ExecStart = "${config.ghaf.givc.appPrefix}/run-waypipe  ${lib.getExe pkgs.xwayland-satellite}";
-                Restart = "on-failure";
-                RestartSec = "2s";
+              user.services."run-xwayland" = {
+                description = "Grants rootless Xwayland integration to any Wayland compositor";
+                serviceConfig = {
+                  ExecStart = "${config.ghaf.givc.appPrefix}/run-waypipe  ${lib.getExe pkgs.xwayland-satellite}";
+                  Restart = "on-failure";
+                  RestartSec = "2s";
+                };
               };
             };
           }

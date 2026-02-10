@@ -54,17 +54,19 @@ in
     # Common networking configuration that sets up a network bridge for VMs
     {
       # To disable the filtering of VM network packets through the firewall.
-      boot.blacklistedKernelModules = [ "br_netfilter" ];
+      boot = {
+        blacklistedKernelModules = [ "br_netfilter" ];
+
+        kernel.sysctl = {
+          # ip forwarding functionality is needed for iptables
+          "net.ipv4.ip_forward" = 1;
+          # reply only if the target IP address is local address configured on the incoming interface
+          "net.ipv4.conf.all.arp_ignore" = 1;
+        };
+      };
 
       # Enable ARP filtering with ebtables
       ghaf.firewall.filter-arp = enableStaticArp;
-
-      boot.kernel.sysctl = {
-        # ip forwarding functionality is needed for iptables
-        "net.ipv4.ip_forward" = 1;
-        # reply only if the target IP address is local address configured on the incoming interface
-        "net.ipv4.conf.all.arp_ignore" = 1;
-      };
 
       # Setup host VM network bridge
       systemd.network = {
@@ -73,31 +75,33 @@ in
           Name = "${cfg.bridgeNicName}";
           MACAddress = hosts.${hostName}.mac;
         };
-        networks."10-${cfg.bridgeNicName}" = {
-          matchConfig.Name = "${cfg.bridgeNicName}";
-          networkConfig = {
-            LinkLocalAddressing = "no";
+        networks = {
+          "10-${cfg.bridgeNicName}" = {
+            matchConfig.Name = "${cfg.bridgeNicName}";
+            networkConfig = {
+              LinkLocalAddressing = "no";
+            };
+            linkConfig = {
+              RequiredForOnline = "routable";
+              ActivationPolicy = "always-up";
+              ARP = !enableStaticArp;
+            };
           };
-          linkConfig = {
-            RequiredForOnline = "routable";
-            ActivationPolicy = "always-up";
-            ARP = !enableStaticArp;
+          # Connect VM tun/tap device to the bridge
+          "11-vm-network" = {
+            matchConfig.Name = "tap-*";
+            networkConfig.Bridge = "${cfg.bridgeNicName}";
           };
-        };
-        # Connect VM tun/tap device to the bridge
-        networks."11-vm-network" = {
-          matchConfig.Name = "tap-*";
-          networkConfig.Bridge = "${cfg.bridgeNicName}";
-        };
-        # Disable addititional, non-defined external interfaces
-        networks."99-disable-external" = optionalAttrs (!cfg.enableExternalNetworking) {
-          matchConfig.Name = [
-            "en*"
-            "eth*"
-            "wl*"
-            "ww*"
-          ];
-          linkConfig.ActivationPolicy = "down";
+          # Disable addititional, non-defined external interfaces
+          "99-disable-external" = optionalAttrs (!cfg.enableExternalNetworking) {
+            matchConfig.Name = [
+              "en*"
+              "eth*"
+              "wl*"
+              "ww*"
+            ];
+            linkConfig.ActivationPolicy = "down";
+          };
         };
       };
     }

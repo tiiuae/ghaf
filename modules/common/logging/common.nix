@@ -175,37 +175,39 @@ in
 
   config = mkIf (config.ghaf.logging.enable && recCfg.enable) {
 
-    # Watcher: detects realtime jumps by comparing realtime vs monotonic progression
-    systemd.services.ghaf-clock-jump-watcher = {
-      description = "Detect realtime clock jumps and trigger journald/alloy recovery";
-      wantedBy = [ "multi-user.target" ];
+    systemd = {
+      # Watcher: detects realtime jumps by comparing realtime vs monotonic progression
+      services.ghaf-clock-jump-watcher = {
+        description = "Detect realtime clock jumps and trigger journald/alloy recovery";
+        wantedBy = [ "multi-user.target" ];
 
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = 2;
-        ExecStart = lib.getExe ghafClockJumpWatcher;
+        serviceConfig = {
+          Type = "simple";
+          Restart = "always";
+          RestartSec = 2;
+          ExecStart = lib.getExe ghafClockJumpWatcher;
+        };
       };
+
+      services.ghaf-journal-alloy-recover = {
+        description = "Recover journald/alloy after time jump";
+
+        unitConfig = {
+          StartLimitIntervalSec = "0";
+        };
+
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe ghafJournalAlloyRecover;
+        };
+      };
+
+      tmpfiles.rules = [
+        # Create persistent journal dir with the standard perms/group.
+        "d /var/log/journal 2755 root systemd-journal - -"
+        # Repair perms recursively if something messes them up.
+        "Z /var/log/journal 2755 root systemd-journal - -"
+      ];
     };
-
-    systemd.services.ghaf-journal-alloy-recover = {
-      description = "Recover journald/alloy after time jump";
-
-      unitConfig = {
-        StartLimitIntervalSec = "0";
-      };
-
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = lib.getExe ghafJournalAlloyRecover;
-      };
-    };
-
-    systemd.tmpfiles.rules = [
-      # Create persistent journal dir with the standard perms/group.
-      "d /var/log/journal 2755 root systemd-journal - -"
-      # Repair perms recursively if something messes them up.
-      "Z /var/log/journal 2755 root systemd-journal - -"
-    ];
   };
 }

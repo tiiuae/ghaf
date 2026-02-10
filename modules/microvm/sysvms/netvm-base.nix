@@ -69,6 +69,7 @@ in
 
     # System
     type = "system-vm";
+
     systemd = {
       enable = true;
       withName = "netvm-systemd";
@@ -79,6 +80,7 @@ in
       withDebug = globalConfig.debug.enable or false;
       withHardenedConfigs = true;
     };
+
     # GIVC configuration - from globalConfig
     givc = {
       enable = globalConfig.givc.enable or false;
@@ -94,27 +96,29 @@ in
     };
 
     # Networking
-    virtualization.microvm.vm-networking = {
-      enable = true;
-      isGateway = true;
-      inherit vmName;
-    };
+    virtualization.microvm = {
+      vm-networking = {
+        enable = true;
+        isGateway = true;
+        inherit vmName;
+      };
 
-    virtualization.microvm.tpm.passthrough = {
-      # At the moment the TPM is only used for storage encryption, so the features are coupled.
-      # TPM passthrough is only supported on x86_64.
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
-      rootNVIndex = "0x81704000";
-    };
+      tpm.passthrough = {
+        # At the moment the TPM is only used for storage encryption, so the features are coupled.
+        # TPM passthrough is only supported on x86_64.
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+        rootNVIndex = "0x81704000"; # TPM2 NV index for net-vm LUKS key
+      };
 
-    virtualization.microvm.tpm.emulated = {
-      # Use emulated TPM for non-x86_64 systems when encryption is enabled
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
-      name = vmName;
+      tpm.emulated = {
+        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+        name = vmName;
+      };
     };
 
     # Services
@@ -123,7 +127,6 @@ in
       # Configure via ghaf.global-config.features.wifi.{enable, targetVms}
       wifi.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName);
 
-      # Firmware service
       firmware.enable = true;
 
       power-manager.vm = {
@@ -149,10 +152,12 @@ in
 
     security = {
       fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+
       ssh-tarpit = {
         enable = globalConfig.development.ssh.daemon.enable or false;
         listenAddress = hostConfig.networking.thisVm.ipv4 or "192.168.100.1";
       };
+
       # Audit - from globalConfig
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
     };

@@ -9,19 +9,58 @@
 
   imports = [ ../../../../common/services/hwinfo ];
 
-  # Enable hardware info generation on host
-  ghaf.services.hwinfo = {
-    enable = true;
-    outputDir = "/var/lib/ghaf-hwinfo";
+  ghaf = {
+    # Enable hardware info generation on host
+    services.hwinfo = {
+      enable = true;
+      outputDir = "/var/lib/ghaf-hwinfo";
+    };
+
+    hardware = {
+      nvidia.orin = {
+        enable = true;
+        kernelVersion = "upstream-6-6";
+        somType = "nx";
+        nx.enableNetvmEthernetPCIPassthrough = true;
+        carrierBoard = "xavierNxDevkit";
+      };
+
+      # Net VM hardware-specific modules - use hardware.definition for composition model
+      definition.netvm.extraModules = [
+        {
+          # The Nvidia Orin hardware dependent configuration is in
+          # modules/reference/hardware/jetpack Please refer to that
+          # section for hardware dependent netvm configuration.
+
+          # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX does
+          # not.
+
+        }
+        # Hardware info guest support
+        {
+          imports = [ ../../../../common/services/hwinfo ];
+          ghaf.services.hwinfo-guest.enable = true;
+        }
+        # Ensure hardware info is generated before net-vm starts
+        {
+          systemd.services."microvm@net-vm" = {
+            wants = [ "ghaf-hwinfo-generate.service" ];
+            after = [ "ghaf-hwinfo-generate.service" ];
+          };
+        }
+        # QEMU arguments to pass hardware info via fw_cfg
+        {
+          microvm.qemu.extraArgs = [
+            "-fw_cfg"
+            "name=opt/com.ghaf.hwinfo,file=/var/lib/ghaf-hwinfo/hwinfo.json"
+          ];
+        }
+        ../../../personalize
+        { ghaf.reference.personalize.keys.enable = true; }
+      ];
+    };
   };
 
-  ghaf.hardware.nvidia.orin = {
-    enable = true;
-    kernelVersion = "upstream-6-6";
-    somType = "nx";
-    nx.enableNetvmEthernetPCIPassthrough = true;
-    carrierBoard = "xavierNxDevkit";
-  };
   hardware = {
     # Sake of clarity: Jetson 35.4 and IO BASE B carrier board
     # uses "tegra234-p3767-0000-p3509-a02.dtb"-device tree.
@@ -52,38 +91,4 @@
       };
     };
   };
-
-  # Net VM hardware-specific modules - use hardware.definition for composition model
-  ghaf.hardware.definition.netvm.extraModules = [
-    {
-      # The Nvidia Orin hardware dependent configuration is in
-      # modules/reference/hardware/jetpack Please refer to that
-      # section for hardware dependent netvm configuration.
-
-      # Wireless Configuration. Orin AGX has WiFi enabled where Orin NX does
-      # not.
-
-    }
-    # Hardware info guest support
-    {
-      imports = [ ../../../../common/services/hwinfo ];
-      ghaf.services.hwinfo-guest.enable = true;
-    }
-    # Ensure hardware info is generated before net-vm starts
-    {
-      systemd.services."microvm@net-vm" = {
-        wants = [ "ghaf-hwinfo-generate.service" ];
-        after = [ "ghaf-hwinfo-generate.service" ];
-      };
-    }
-    # QEMU arguments to pass hardware info via fw_cfg
-    {
-      microvm.qemu.extraArgs = [
-        "-fw_cfg"
-        "name=opt/com.ghaf.hwinfo,file=/var/lib/ghaf-hwinfo/hwinfo.json"
-      ];
-    }
-    ../../../personalize
-    { ghaf.reference.personalize.keys.enable = true; }
-  ];
 }

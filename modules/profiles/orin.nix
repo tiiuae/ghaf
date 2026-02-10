@@ -62,62 +62,68 @@ in
       # Orin devices are embedded, not laptops
       hardware.definition.type = "embedded";
 
-      # Export Net VM base for profiles to extend
-      profiles.orin.netvmBase = lib.nixosSystem {
-        modules = [
-          inputs.microvm.nixosModules.microvm
-          inputs.self.nixosModules.netvm-base
-          # Import nixpkgs config module to get overlays
-          {
-            nixpkgs.hostPlatform.system = "aarch64-linux";
-            nixpkgs.overlays = config.nixpkgs.overlays;
-            nixpkgs.config = config.nixpkgs.config;
-          }
-        ];
-        specialArgs = lib.ghaf.vm.mkSpecialArgs {
-          inherit lib inputs;
-          globalConfig = hostGlobalConfig;
-          hostConfig = lib.ghaf.vm.mkHostConfig {
-            inherit config;
-            vmName = "net-vm";
-          };
-          # Note: netvm.wifi now controlled via globalConfig.features.wifi
-        };
-      };
-
-      # Export Admin VM base for profiles to extend
-      profiles.orin.adminvmBase = lib.nixosSystem {
-        modules = [
-          inputs.microvm.nixosModules.microvm
-          inputs.self.nixosModules.adminvm-base
-          # Import nixpkgs config module to get overlays
-          {
-            nixpkgs.hostPlatform.system = "aarch64-linux";
-            nixpkgs.overlays = config.nixpkgs.overlays;
-            nixpkgs.config = config.nixpkgs.config;
-          }
-        ];
-        specialArgs = lib.ghaf.vm.mkSpecialArgs {
-          inherit lib inputs;
-          globalConfig = hostGlobalConfig;
-          hostConfig = lib.ghaf.vm.mkHostConfig {
-            inherit config;
-            vmName = "admin-vm";
+      profiles = {
+        # Export Net VM base for profiles to extend
+        orin.netvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.netvm-base
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "aarch64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "net-vm";
+            };
+            # Note: netvm.wifi now controlled via globalConfig.features.wifi
           };
         };
-      };
 
-      profiles.graphics = {
-        enable = true;
-        # Explicitly enable auto-login for Orins
-        autoLogin = {
+        # Export Admin VM base for profiles to extend
+        orin.adminvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.adminvm-base
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "aarch64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "admin-vm";
+            };
+          };
+        };
+
+        graphics = {
           enable = true;
-          user = config.ghaf.users.admin.name;
+          # Explicitly enable auto-login for Orins
+          autoLogin = {
+            enable = true;
+            user = config.ghaf.users.admin.name;
+          };
+          # We might be able to enable bluetooth and networkManager
+          # together with applets without dbusProxy on Orins
+          bluetooth.applet.enable = false;
+          networkManager.applet.enable = false;
         };
-        # We might be able to enable bluetooth and networkManager
-        # together with applets without dbusProxy on Orins
-        bluetooth.applet.enable = false;
-        networkManager.applet.enable = false;
       };
 
       # Disable suspend by default, not working as intended

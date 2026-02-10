@@ -38,20 +38,23 @@ pkgs.testers.nixosTest {
         ../../modules/common/logging/fss.nix
       ];
 
-      # Mock ghaf.type option (used by fss.nix for keyPath)
-      options.ghaf.type = lib.mkOption {
-        type = lib.types.str;
-        default = "host";
-      };
+      # Mock ghaf options (used by fss.nix for keyPath and audit)
+      options.ghaf = {
+        type = lib.mkOption {
+          type = lib.types.str;
+          default = "host";
+        };
 
-      # Mock ghaf.security.audit options (used by fss.nix)
-      options.ghaf.security.audit.enable = lib.mkOption {
-        type = lib.types.bool;
-        default = false;
-      };
-      options.ghaf.security.audit.extraRules = lib.mkOption {
-        type = lib.types.listOf lib.types.str;
-        default = [ ];
+        security.audit = {
+          enable = lib.mkOption {
+            type = lib.types.bool;
+            default = false;
+          };
+          extraRules = lib.mkOption {
+            type = lib.types.listOf lib.types.str;
+            default = [ ];
+          };
+        };
       };
 
       config = {

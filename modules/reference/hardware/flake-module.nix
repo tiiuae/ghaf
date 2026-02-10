@@ -49,12 +49,28 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       { ghaf.hardware.definition = import ./tower-5080/tower-5080.nix; }
       {
-        ghaf.hardware.tpm2.enable = lib.mkForce false;
-        # Hardware-specific VM configs via hardware definition
-        ghaf.hardware.definition.guivm.extraModules = [
-          (import ./tower-5080/extra-config.nix)
-        ];
-        ghaf.hardware.passthrough.pci.autoDetectNet = true;
+        ghaf.hardware = {
+          tpm2.enable = lib.mkForce false;
+          # Hardware-specific VM configs via hardware definition
+          definition.guivm.extraModules = [
+            (import ./tower-5080/extra-config.nix)
+          ];
+          passthrough.pci.autoDetectNet = true;
+        };
+      }
+    ];
+
+    hardware-intel-laptop.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      {
+        ghaf.hardware = {
+          definition = import ./intel-laptop/intel-laptop.nix;
+          passthrough.pci = {
+            autoDetectGpu = true;
+            autoDetectNet = true;
+            autoDetectAudio = true;
+          };
+        };
       }
     ];
 
@@ -69,16 +85,6 @@
       inputs.self.nixosModules.hardware-x86_64-workstation
       {
         ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
-      }
-    ];
-
-    hardware-intel-laptop.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./intel-laptop/intel-laptop.nix;
-        ghaf.hardware.passthrough.pci.autoDetectGpu = true;
-        ghaf.hardware.passthrough.pci.autoDetectNet = true;
-        ghaf.hardware.passthrough.pci.autoDetectAudio = true;
       }
     ];
 

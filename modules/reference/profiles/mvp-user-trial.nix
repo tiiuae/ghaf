@@ -27,97 +27,30 @@ in
         mutable-users.enable = false;
       };
 
-      # Enable shared directories for the selected VMs
-      virtualization.microvm-host.sharedVmDirectory.vms = [
-        "business-vm"
-        "comms-vm"
-        "chrome-vm"
-        "flatpak-vm"
-      ];
+      virtualization = {
+        # Enable shared directories for the selected VMs
+        microvm-host.sharedVmDirectory.vms = [
+          "business-vm"
+          "comms-vm"
+          "chrome-vm"
+          "flatpak-vm"
+        ];
 
-      virtualization.microvm.appvm = {
-        enable = true;
-        vms = {
-          business.enable = true;
-          chrome.enable = true;
-          comms.enable = true;
-          flatpak.enable = true;
-          gala.enable = false;
-          zathura.enable = true;
-        };
-      };
-
-      hardware.passthrough = {
-        mode = "dynamic";
-        VMs = {
-          gui-vm.permittedDevices = [
-            "crazyradio0"
-            "crazyradio1"
-            "crazyfile0"
-            "fpr0"
-            "usbKBD"
-            "xbox0"
-            "xbox1"
-            "xbox2"
-          ];
-          comms-vm.permittedDevices = [ "gps0" ];
-          audio-vm.permittedDevices = [ "bt0" ];
-          business-vm.permittedDevices = [ "cam0" ];
-        };
-        usb = {
-          guivmRules = lib.mkOptionDefault [
-            {
-              description = "Fingerprint Readers for GUIVM";
-              targetVm = "gui-vm";
-              allow = config.ghaf.reference.passthrough.usb.fingerprintReaders;
-            }
-          ];
-        };
-      };
-
-      reference = {
-        appvms = {
-          enable = true;
-          # Enable only the appvms used in this profile
-          business.enable = true;
-          chrome.enable = true;
-          comms.enable = true;
-          flatpak.enable = true;
-          zathura.enable = true;
-        };
-        services = {
-          enable = true;
-          dendrite = false;
-          proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
-          google-chromecast = {
+        microvm = {
+          appvm = {
             enable = true;
-            # Should match the name of the chrome VM above
-            vmName = "chrome-vm";
+            vms = {
+              business.enable = true;
+              chrome.enable = true;
+              comms.enable = true;
+              flatpak.enable = true;
+              gala.enable = false;
+              zathura.enable = true;
+            };
           };
-          alpaca-ollama = true;
-          wireguard-gui = true;
-        };
 
-        personalize = {
-          keys.enable = true;
-        };
-
-        desktop.applications.enable = true;
-        desktop.ghaf-intro.enable = true;
-      };
-
-      profiles = {
-        laptop-x86 = {
-          enable = true;
-          # guivmExtraModules removed - now using evaluatedConfig below
-          # netvmExtraModules removed - now using evaluatedConfig below
-        };
-      };
-
-      # GUI VM: Extend laptop base with MVP services and feature modules
-      virtualization.microvm.guivm.evaluatedConfig =
-        config.ghaf.profiles.laptop-x86.guivmBase.extendModules
-          {
+          # GUI VM: Extend laptop base with MVP services and feature modules
+          guivm.evaluatedConfig = config.ghaf.profiles.laptop-x86.guivmBase.extendModules {
             modules = [
               # Reference services and personalization
               ../services
@@ -142,23 +75,19 @@ in
             };
           };
 
-      # Admin VM: Use laptop base directly (no customization needed for MVP)
-      virtualization.microvm.adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
+          # Admin VM: Use laptop base directly (no customization needed for MVP)
+          adminvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.adminvmBase;
 
-      # Audio VM: Use laptop base with vmConfig
-      virtualization.microvm.audiovm.evaluatedConfig =
-        config.ghaf.profiles.laptop-x86.audiovmBase.extendModules
-          {
+          # Audio VM: Use laptop base with vmConfig
+          audiovm.evaluatedConfig = config.ghaf.profiles.laptop-x86.audiovmBase.extendModules {
             modules = lib.ghaf.vm.applyVmConfig {
               inherit config;
               vmName = "audiovm";
             };
           };
 
-      # Net VM: Use laptop base with reference services and vmConfig
-      virtualization.microvm.netvm.evaluatedConfig =
-        config.ghaf.profiles.laptop-x86.netvmBase.extendModules
-          {
+          # Net VM: Use laptop base with reference services and vmConfig
+          netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase.extendModules {
             modules = [
               # Reference services and personalization
               ../services
@@ -170,6 +99,68 @@ in
               vmName = "netvm";
             };
           };
+        };
+      };
+
+      hardware.passthrough = {
+        mode = "dynamic";
+
+        VMs = {
+          # Device names are defined in reference hardware modules (e.g., x1-gen11.nix)
+          gui-vm.permittedDevices = [
+            "crazyradio0" # Bitcraze Crazyradio PA
+            "crazyradio1"
+            "crazyfile0" # Bitcraze Crazyradio file interface
+            "fpr0" # Fingerprint reader
+            "usbKBD" # External USB keyboard
+            "xbox0" # Xbox controller
+            "xbox1"
+            "xbox2"
+          ];
+          comms-vm.permittedDevices = [ "gps0" ]; # GPS dongle
+          audio-vm.permittedDevices = [ "bt0" ]; # Bluetooth adapter
+          business-vm.permittedDevices = [ "cam0" ]; # Internal webcam
+        };
+        usb = {
+          guivmRules = lib.mkOptionDefault [
+            {
+              description = "Fingerprint Readers for GUIVM";
+              targetVm = "gui-vm";
+              allow = config.ghaf.reference.passthrough.usb.fingerprintReaders;
+            }
+          ];
+        };
+      };
+
+      reference = {
+        appvms = {
+          enable = true;
+          business.enable = true;
+          chrome.enable = true;
+          comms.enable = true;
+          flatpak.enable = true;
+          zathura.enable = true;
+        };
+
+        services = {
+          enable = true;
+          dendrite = false;
+          proxy-business = lib.mkForce config.ghaf.virtualization.microvm.appvm.vms.business.enable;
+          google-chromecast = {
+            enable = true;
+            vmName = "chrome-vm";
+          };
+          alpaca-ollama = true;
+          wireguard-gui = true;
+        };
+
+        personalize.keys.enable = true;
+
+        desktop.applications.enable = true;
+        desktop.ghaf-intro.enable = true;
+      };
+
+      profiles.laptop-x86.enable = true;
 
       # Enable logging
       logging = {
@@ -187,17 +178,19 @@ in
       # Enable audit
       security.audit.enable = false;
 
-      # Enable power management
-      services.power-manager.enable = true;
+      services = {
+        # Enable power management
+        power-manager.enable = true;
 
-      # Enable performance optimizations
-      services.performance.enable = true;
+        # Enable performance optimizations
+        performance.enable = true;
+
+        # Enable kill switch
+        kill-switch.enable = true;
+      };
 
       # Propagate performance enable to VMs via global-config
       global-config.services.performance.enable = true;
-
-      # Enable kill switch
-      services.kill-switch.enable = true;
     };
   };
 }

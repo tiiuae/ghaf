@@ -67,6 +67,7 @@ in
           description = "Host name as string.";
           default = null;
         };
+
         mac = lib.mkOption {
           type = lib.types.nullOr lib.types.str;
           description = "MAC address as string.";
@@ -88,11 +89,13 @@ in
           description = "The IPv4 subnet prefix length (e.g. 24 for 255.255.255.0)";
           example = 24;
         };
+
         interfaceName = lib.mkOption {
           type = lib.types.nullOr lib.types.str;
           default = null;
           description = "Name of the network interface.";
         };
+
         cid = lib.mkOption {
           type = lib.types.nullOr lib.types.int;
           default = null;

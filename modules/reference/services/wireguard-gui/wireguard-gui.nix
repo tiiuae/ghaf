@@ -41,20 +41,32 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    ghaf.storagevm =
-      (config.ghaf.storagevm or { })
-      // lib.mkIf hasStorageVm {
-        directories = [
-          {
-            directory = "${wg_app_dir}";
-            mode = "0600";
-          }
-          {
-            directory = "${wg_app_dir}/configs";
-            mode = "0600";
-          }
-        ];
-      };
+    ghaf = {
+      storagevm =
+        (config.ghaf.storagevm or { })
+        // lib.mkIf hasStorageVm {
+          directories = [
+            {
+              directory = "${wg_app_dir}";
+              mode = "0600";
+            }
+            {
+              directory = "${wg_app_dir}/configs";
+              mode = "0600";
+            }
+          ];
+        };
+
+      givc.appvm.applications = [
+        {
+          name = "wireguard-gui";
+          command = "${config.ghaf.givc.appPrefix}/run-waypipe ${wireguard-gui-launcher}/bin/wireguard-gui-launcher";
+        }
+      ];
+
+      firewall.allowedUDPPorts = cfg.serverPorts;
+    };
+
     systemd.tmpfiles.rules = [
       # Create directory owned by appUser
       "d /etc/wireguard/scripts 0644 ${config.ghaf.users.appUser.name} ${config.ghaf.users.appUser.name} -"
@@ -66,15 +78,6 @@ in
       # Only include this when serverPorts is NOT empty
       "L /etc/wireguard/scripts/server - - - - ${scriptsDir}/server"
     ];
-
-    ghaf.givc.appvm.applications = [
-      {
-        name = "wireguard-gui";
-        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${wireguard-gui-launcher}/bin/wireguard-gui-launcher";
-      }
-    ];
-
-    ghaf.firewall.allowedUDPPorts = cfg.serverPorts;
 
     environment.systemPackages = lib.optionals config.ghaf.profiles.debug.enable [
       pkgs.wireguard-tools

@@ -69,9 +69,11 @@ let
                   inputs.self.nixosModules.netvm-base
                   # Import nixpkgs config for overlays
                   {
-                    nixpkgs.hostPlatform.system = "x86_64-linux";
-                    nixpkgs.overlays = config.nixpkgs.overlays;
-                    nixpkgs.config = config.nixpkgs.config;
+                    nixpkgs = {
+                      hostPlatform.system = "x86_64-linux";
+                      inherit (config.nixpkgs) overlays;
+                      inherit (config.nixpkgs) config;
+                    };
                   }
                 ];
                 specialArgs = lib.ghaf.vm.mkSpecialArgs {

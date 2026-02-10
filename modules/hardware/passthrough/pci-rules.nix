@@ -187,11 +187,11 @@ in
     })
     # Auto-detected config goes via hardware definition (only available on x86 with hardware definition)
     (mkIf (config.ghaf.hardware.passthrough.mode != "none" && hasHardwareDefinition) {
-      ghaf.hardware.definition.guivm.extraModules = optionals cfg.autoDetectGpu (hwDetectModule "gui-vm");
-      ghaf.hardware.definition.audiovm.extraModules = optionals cfg.autoDetectAudio (
-        hwDetectModule "audio-vm"
-      );
-      ghaf.hardware.definition.netvm.extraModules = optionals cfg.autoDetectNet (hwDetectModule "net-vm");
+      ghaf.hardware.definition = {
+        guivm.extraModules = optionals cfg.autoDetectGpu (hwDetectModule "gui-vm");
+        audiovm.extraModules = optionals cfg.autoDetectAudio (hwDetectModule "audio-vm");
+        netvm.extraModules = optionals cfg.autoDetectNet (hwDetectModule "net-vm");
+      };
     })
   ];
 }

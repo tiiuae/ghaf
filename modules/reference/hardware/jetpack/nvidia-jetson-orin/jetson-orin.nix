@@ -54,7 +54,13 @@ in
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
-    ghaf.hardware.aarch64.systemd-boot-dtb.enable = true;
+    ghaf.hardware = {
+      aarch64.systemd-boot-dtb.enable = true;
+      passthrough = {
+        vhotplug.enable = true;
+        usbQuirks.enable = true;
+      };
+    };
 
     boot = {
       loader = {
@@ -81,9 +87,6 @@ in
         }
       ];
     };
-
-    ghaf.hardware.passthrough.vhotplug.enable = true;
-    ghaf.hardware.passthrough.usbQuirks.enable = true;
 
     services.nvpmodel = {
       enable = lib.mkDefault true;

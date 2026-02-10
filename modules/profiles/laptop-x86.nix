@@ -76,163 +76,176 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    # Export GUI VM base for profiles to extend
-    ghaf.profiles.laptop-x86.guivmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.guivm-base
-        inputs.self.nixosModules.guivm-features
-        # Import nixpkgs config module to get overlays
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "gui-vm";
-        };
-        # Note: guivm fprint/yubikey/brightness now controlled via globalConfig.features
-      };
-    };
-
-    # Export Admin VM base for profiles to extend
-    ghaf.profiles.laptop-x86.adminvmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.adminvm-base
-        inputs.self.nixosModules.adminvm-features
-        # Import nixpkgs config module to get overlays
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "admin-vm";
-        };
-      };
-    };
-
-    # Export IDS VM base for profiles to extend
-    ghaf.profiles.laptop-x86.idsvmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.idsvm-base
-        # Import nixpkgs config module to get overlays
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "ids-vm";
-        };
-      };
-    };
-
-    # Export Audio VM base for profiles to extend
-    ghaf.profiles.laptop-x86.audiovmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.audiovm-base
-        inputs.self.nixosModules.audiovm-features
-        # Import nixpkgs config module to get overlays
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "audio-vm";
-        };
-        # Note: audiovm.audio now controlled via globalConfig.features.audio
-      };
-    };
-
-    # Export Net VM base for profiles to extend
-    ghaf.profiles.laptop-x86.netvmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.netvm-base
-        # Import nixpkgs config module to get overlays
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "net-vm";
-        };
-        # Note: netvm.wifi now controlled via globalConfig.features.wifi
-      };
-    };
-
-    # Export mkAppVm function for creating App VMs
-    # Unlike singleton VMs, App VMs are instantiated multiple times
-    #
-    # Note: Extensions (e.g., from ghaf-intro) are now handled via the
-    # `extensions` option in appvm.nix, applied via NixOS native extendModules.
-    # mkAppVm no longer needs to read host-level options.
-    ghaf.profiles.laptop-x86.mkAppVm =
-      vmDef:
-      lib.nixosSystem {
-        modules = [
-          inputs.microvm.nixosModules.microvm
-          inputs.self.nixosModules.appvm-base
-          # Import nixpkgs config module to get overlays
-          {
-            nixpkgs.hostPlatform.system = "x86_64-linux";
-            nixpkgs.overlays = config.nixpkgs.overlays;
-            nixpkgs.config = config.nixpkgs.config;
-          }
-        ];
-        specialArgs = lib.ghaf.vm.mkSpecialArgs {
-          inherit lib inputs;
-          globalConfig = hostGlobalConfig;
-          hostConfig =
-            lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "${vmDef.name}-vm";
+    ghaf = {
+      profiles.laptop-x86 = {
+        # Export GUI VM base for profiles to extend
+        guivmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.guivm-base
+            inputs.self.nixosModules.guivm-features
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
             }
-            // {
-              # App VM-specific hostConfig fields
-              appvm = vmDef;
-              # Pass shared directory config for storage
-              sharedVmDirectory =
-                config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
-                  enable = false;
-                  vms = [ ];
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "gui-vm";
+            };
+            # Note: guivm fprint/yubikey/brightness now controlled via globalConfig.features
+          };
+        };
+
+        # Export Admin VM base for profiles to extend
+        adminvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.adminvm-base
+            inputs.self.nixosModules.adminvm-features
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "admin-vm";
+            };
+          };
+        };
+
+        # Export IDS VM base for profiles to extend
+        idsvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.idsvm-base
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "ids-vm";
+            };
+          };
+        };
+
+        # Export Audio VM base for profiles to extend
+        audiovmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.audiovm-base
+            inputs.self.nixosModules.audiovm-features
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "audio-vm";
+            };
+            # Note: audiovm.audio now controlled via globalConfig.features.audio
+          };
+        };
+
+        # Export Net VM base for profiles to extend
+        netvmBase = lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.netvm-base
+            # Import nixpkgs config module to get overlays
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig = lib.ghaf.vm.mkHostConfig {
+              inherit config;
+              vmName = "net-vm";
+            };
+            # Note: netvm.wifi now controlled via globalConfig.features.wifi
+          };
+        };
+
+        # Export mkAppVm function for creating App VMs
+        # Unlike singleton VMs, App VMs are instantiated multiple times
+        #
+        # Note: Extensions (e.g., from ghaf-intro) are now handled via the
+        # `extensions` option in appvm.nix, applied via NixOS native extendModules.
+        # mkAppVm no longer needs to read host-level options.
+        mkAppVm =
+          vmDef:
+          lib.nixosSystem {
+            modules = [
+              inputs.microvm.nixosModules.microvm
+              inputs.self.nixosModules.appvm-base
+              # Import nixpkgs config module to get overlays
+              {
+                nixpkgs = {
+                  hostPlatform.system = "x86_64-linux";
+                  inherit (config.nixpkgs) overlays;
+                  inherit (config.nixpkgs) config;
+                };
+              }
+            ];
+            specialArgs = lib.ghaf.vm.mkSpecialArgs {
+              inherit lib inputs;
+              globalConfig = hostGlobalConfig;
+              hostConfig =
+                lib.ghaf.vm.mkHostConfig {
+                  inherit config;
+                  vmName = "${vmDef.name}-vm";
+                }
+                // {
+                  # App VM-specific hostConfig fields
+                  appvm = vmDef;
+                  # Pass shared directory config for storage
+                  sharedVmDirectory =
+                    config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
+                      enable = false;
+                      vms = [ ];
+                    };
                 };
             };
-        };
+          };
       };
-
-    ghaf = {
       # Hardware definitions
       hardware = {
         x86_64.common.enable = true;

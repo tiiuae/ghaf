@@ -122,18 +122,42 @@ in
       "audit_backlog_limit=${toString config.security.audit.backlogLimit}"
     ];
 
-    systemd.services.audit-rules-nixos = {
-      serviceConfig.ExecStart =
-        let
-          auditRulesFile = pkgs.writeText "ghaf-audit.rules" (
-            lib.concatStringsSep "\n" ([ "-D" ] ++ config.security.audit.rules)
-          );
-        in
-        lib.mkForce "${pkgs.audit}/bin/auditctl -R ${auditRulesFile}";
+    systemd = {
+      services.audit-rules-nixos = {
+        serviceConfig.ExecStart =
+          let
+            auditRulesFile = pkgs.writeText "ghaf-audit.rules" (
+              lib.concatStringsSep "\n" ([ "-D" ] ++ config.security.audit.rules)
+            );
+          in
+          lib.mkForce "${pkgs.audit}/bin/auditctl -R ${auditRulesFile}";
 
-      # Let systemd use default ordering for audit-rules instead of early-boot
-      unitConfig.DefaultDependencies = lib.mkForce true;
-      before = lib.mkForce [ ];
+        # Let systemd use default ordering for audit-rules instead of early-boot
+        unitConfig.DefaultDependencies = lib.mkForce true;
+        before = lib.mkForce [ ];
+      };
+
+      # Systemd oneshot service to immediate rotation, obeying num_logs.
+      services.auditd-rotate = {
+        description = "Time-based rotation of audit logs";
+        after = [ "auditd.service" ];
+        wants = [ "auditd.service" ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${pkgs.audit}/bin/auditctl --signal rotate";
+        };
+      };
+
+      # Systemd timer: when to rotate.
+      # Default = daily. It is possible to change OnCalendar for testing (e.g. "minutely")
+      timers.auditd-rotate = {
+        description = "Periodic audit log rotation (time-based)";
+        wantedBy = [ "timers.target" ];
+        timerConfig = {
+          OnCalendar = "daily";
+          Persistent = true;
+        };
+      };
     };
 
     environment.etc."audit/auditd.conf".text = ''
@@ -152,27 +176,5 @@ in
       disk_full_action = ROTATE
       disk_error_action = SUSPEND
     '';
-
-    # Systemd oneshot service to immediate rotation, obeying num_logs.
-    systemd.services.auditd-rotate = {
-      description = "Time-based rotation of audit logs";
-      after = [ "auditd.service" ];
-      wants = [ "auditd.service" ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${pkgs.audit}/bin/auditctl --signal rotate";
-      };
-    };
-
-    # Systemd timer: when to rotate.
-    # Default = daily. It is possible to change OnCalendar for testing (e.g. "minutely")
-    systemd.timers.auditd-rotate = {
-      description = "Periodic audit log rotation (time-based)";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnCalendar = "daily";
-        Persistent = true;
-      };
-    };
   };
 }

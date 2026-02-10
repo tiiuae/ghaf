@@ -44,10 +44,10 @@ let
                       transport = {
                         name = hostName;
                         addr = hostIpv4;
-                        port = "9010";
+                        port = "9010"; # GIVC netvm proxy port
                         protocol = "tcp";
                       };
-                      socket = "/tmp/dbusproxy_net.sock";
+                      socket = "/tmp/dbusproxy_net.sock"; # D-Bus proxy for NetworkManager
                     }
                   ];
                 };
@@ -60,10 +60,10 @@ let
                     transport = {
                       name = hostName;
                       addr = hostIpv4;
-                      port = "9011";
+                      port = "9011"; # GIVC audiovm proxy port
                       protocol = "tcp";
                     };
-                    socket = "/tmp/dbusproxy_snd.sock";
+                    socket = "/tmp/dbusproxy_snd.sock"; # D-Bus proxy for PulseAudio/Blueman
                   }
                 ];
               };
@@ -78,6 +78,7 @@ let
 
                 hardware.x86_64.common.enable = true;
                 hardware.tpm2.enable = true;
+
                 microvm-boot.enable = lib.mkForce false;
 
                 virtualization = {
@@ -87,50 +88,52 @@ let
                   };
 
                   # Wire up VM evaluatedConfigs using the profile's bases
-                  microvm.netvm = {
-                    enable = true;
-                    evaluatedConfig = vmProfile.netvmBase.extendModules {
-                      modules = [ netvmGivcModule ];
+                  microvm = {
+                    netvm = {
+                      enable = true;
+                      evaluatedConfig = vmProfile.netvmBase.extendModules {
+                        modules = [ netvmGivcModule ];
+                      };
                     };
-                  };
 
-                  microvm.audiovm = {
-                    enable = true;
-                    evaluatedConfig = vmProfile.audiovmBase.extendModules {
-                      modules = [ audiovmGivcModule ];
+                    audiovm = {
+                      enable = true;
+                      evaluatedConfig = vmProfile.audiovmBase.extendModules {
+                        modules = [ audiovmGivcModule ];
+                      };
                     };
-                  };
 
-                  microvm.adminvm = {
-                    enable = true;
-                    evaluatedConfig = vmProfile.adminvmBase;
-                  };
+                    adminvm = {
+                      enable = true;
+                      evaluatedConfig = vmProfile.adminvmBase;
+                    };
 
-                  # NOTE: GUI runs on host, not in a gui-vm
-                  # microvm.guivm.enable = withGraphics;
+                    # NOTE: GUI runs on host, not in a gui-vm
+                    # guivm.enable = withGraphics;
 
-                  # AppVMs - configured inline since reference-appvms uses laptop-x86 profile
-                  microvm.appvm = {
-                    enable = true;
-                    vms = {
-                      zathura = {
-                        enable = true;
-                        # Create evaluatedConfig with waypipe disabled (no guivm)
-                        evaluatedConfig = vmProfile.mkAppVm {
-                          name = "zathura";
-                          ramMb = 512;
-                          cores = 1;
-                          borderColor = "#122263";
-                          waypipe.enable = false; # No guivm, so no waypipe
-                          applications = [
-                            {
-                              name = "PDF Viewer";
-                              description = "Isolated PDF Viewer";
-                              packages = [ pkgs.zathura ];
-                              icon = "document-viewer";
-                              command = "zathura";
-                            }
-                          ];
+                    # AppVMs - configured inline since reference-appvms uses laptop-x86 profile
+                    appvm = {
+                      enable = true;
+                      vms = {
+                        zathura = {
+                          enable = true;
+                          # Create evaluatedConfig with waypipe disabled (no guivm)
+                          evaluatedConfig = vmProfile.mkAppVm {
+                            name = "zathura";
+                            ramMb = 512;
+                            cores = 1;
+                            borderColor = "#122263"; # Dark blue — security context indicator
+                            waypipe.enable = false; # No guivm, so no waypipe
+                            applications = [
+                              {
+                                name = "PDF Viewer";
+                                description = "Isolated PDF Viewer";
+                                packages = [ pkgs.zathura ];
+                                icon = "document-viewer";
+                                command = "zathura";
+                              }
+                            ];
+                          };
                         };
                       };
                     };
@@ -196,7 +199,7 @@ let
                 transport = {
                   name = lib.mkForce "ghaf-host-gui";
                   addr = config.ghaf.networking.hosts.ghaf-host.ipv4;
-                  port = lib.mkForce "9002";
+                  port = lib.mkForce "9002"; # GIVC host GUI transport port
                 };
                 services = [ ];
                 eventProxy = lib.mkForce [ ];

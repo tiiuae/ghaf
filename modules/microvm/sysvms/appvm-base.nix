@@ -51,15 +51,14 @@ let
 
   # Base applications from hostConfig (defined in mkAppVm call)
   baseApplications = vm.applications or [ ];
-
   # Packages from base applications (computed at import time)
   baseAppPackages = builtins.concatLists (map (app: app.packages or [ ]) baseApplications);
-
   # Extra modules from base applications (flattened) - imported at module load time
   baseAppExtraModules = builtins.concatLists (map (app: app.extraModules or [ ]) baseApplications);
 
   # Yubikey CTAP proxy support
   yubiPackages = lib.optional (vm.yubiProxy or false) pkgs.qubes-ctap;
+
   sharedVmDirectory =
     hostConfig.sharedVmDirectory or {
       enable = false;
@@ -137,7 +136,6 @@ in
 
       ghaf = {
         # Common namespace - from hostConfig (for appHosts, systemHosts, etc.)
-        # This allows hosts.nix to generate ghaf.networking.hosts and networking.hosts
         common = hostConfig.common or { };
 
         # GIVC configuration - from globalConfig
@@ -145,8 +143,6 @@ in
           enable = globalConfig.givc.enable or false;
           debug = globalConfig.givc.debug or false;
         };
-
-        # GIVC app configuration
         givc.appvm = {
           enable = true;
           applications = givcApps;
@@ -174,6 +170,7 @@ in
 
         # System
         type = "app-vm";
+
         systemd = {
           enable = true;
           withName = "appvm-systemd";
@@ -215,7 +212,6 @@ in
           enable = true;
           inherit vmName;
         };
-
         # vTPM support
         virtualization.microvm.tpm.emulated = {
           enable = vm.vtpm.enable or false;
@@ -227,7 +223,6 @@ in
         waypipe = {
           enable = vm.waypipe.enable or true;
           inherit vm;
-          # Pass CID values from host's networking config
           vmCid = hostConfig.networking.thisVm.cid or 0;
           guivmCid = hostConfig.networking.hosts."gui-vm".cid or 3;
         }
