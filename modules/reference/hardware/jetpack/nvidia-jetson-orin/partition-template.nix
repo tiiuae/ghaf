@@ -128,65 +128,71 @@ let
     );
 
   # preFlashCommands: Extract images from sdImage and patch flash.xml
-  preFlashCommands = ''
-    echo "============================================================"
-    echo "Ghaf flash script for NVIDIA Jetson"
-    echo "============================================================"
-    echo "Version: ${config.ghaf.version}"
-    echo "SoM: ${config.hardware.nvidia-jetpack.som}"
-    echo "Carrier board: ${config.hardware.nvidia-jetpack.carrierBoard}"
-    echo "============================================================"
-    echo ""
-    mkdir -pv "$WORKDIR/bootloader"
-    rm -fv "$WORKDIR/bootloader/esp.img"
-  ''
-  + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+  preFlashScript = pkgs.writeShellApplication {
+    name = "pre-flash-commands";
+    runtimeInputs = [
+      pkgs.pkgsBuildBuild.zstd
+      pkgs.pkgsBuildBuild.gnused
+    ];
+    text = ''
+      echo "============================================================"
+      echo "Ghaf flash script for NVIDIA Jetson"
+      echo "============================================================"
+      echo "Version: ${config.ghaf.version}"
+      echo "SoM: ${config.hardware.nvidia-jetpack.som}"
+      echo "Carrier board: ${config.hardware.nvidia-jetpack.carrierBoard}"
+      echo "============================================================"
+      echo ""
+      WORKDIR=$PWD
+      mkdir -pv "$WORKDIR/bootloader"
+      rm -fv "$WORKDIR/bootloader/esp.img"
 
-    # Read partition offsets and sizes from sdImage metadata
-    ESP_OFFSET=$(cat "${images}/esp.offset")
-    ESP_SIZE=$(cat "${images}/esp.size")
-    ROOT_OFFSET=$(cat "${images}/root.offset")
-    ROOT_SIZE=$(cat "${images}/root.size")
+      ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
+        # Read partition offsets and sizes from sdImage metadata
+        ESP_OFFSET=$(cat "${images}/esp.offset")
+        ESP_SIZE=$(cat "${images}/esp.size")
+        ROOT_OFFSET=$(cat "${images}/root.offset")
+        ROOT_SIZE=$(cat "${images}/root.size")
 
-    img="${images}/sd-image/${config.image.fileName}"
-    echo "Source image: $img"
-    echo "ESP: offset=$ESP_OFFSET sectors, size=$ESP_SIZE sectors"
-    echo "Root: offset=$ROOT_OFFSET sectors, size=$ROOT_SIZE sectors"
-    echo ""
+        img="${images}/sd-image/${config.image.fileName}"
+        echo "Source image: $img"
+        echo "ESP: offset=$ESP_OFFSET sectors, size=$ESP_SIZE sectors"
+        echo "Root: offset=$ROOT_OFFSET sectors, size=$ROOT_SIZE sectors"
+        echo ""
 
-    echo "Extracting ESP partition..."
-    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) \
-       of="$WORKDIR/bootloader/esp.img" \
-       bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE" status=progress
+        echo "Extracting ESP partition..."
+        dd if=<(pzstd -d "$img" -c) \
+           of="$WORKDIR/bootloader/esp.img" \
+           bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE" status=progress
 
-    echo "Extracting root partition..."
-    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) \
-       of="$WORKDIR/bootloader/root.img" \
-       bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
+        echo "Extracting root partition..."
+        dd if=<(pzstd -d "$img" -c) \
+           of="$WORKDIR/bootloader/root.img" \
+           bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
 
-    echo ""
-    echo "Patching flash.xml with image paths and sizes..."
-    "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
-      -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
-      -e "s#root.img#$WORKDIR/bootloader/root.img#" \
-      -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
-      -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
-      flash.xml
-  ''
-  + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
+        echo ""
+        echo "Patching flash.xml with image paths and sizes..."
+        sed -i \
+          -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
+          -e "s#root.img#$WORKDIR/bootloader/root.img#" \
+          -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
+          -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
+          flash.xml
+      ''}
 
-    echo "QSPI-only mode: skipping ESP and root partition extraction."
-  ''
-  + ''
+      ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
+        echo "QSPI-only mode: skipping ESP and root partition extraction."
+      ''}
 
-    echo ""
-    echo "Ready to flash!"
-    echo "============================================================"
-  '';
+      echo ""
+      echo "Ready to flash!"
+      echo "============================================================"
+    '';
+  };
 in
 {
   config = lib.mkIf cfg.enable {
     hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = preFlashCommands;
+    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = "${preFlashScript}/bin/pre-flash-commands";
   };
 }
