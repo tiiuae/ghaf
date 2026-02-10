@@ -185,6 +185,13 @@ export default defineConfig({
                               ],
                             },
                             {
+                              label: "NVIDIA Jetson Thor AGX",
+                              collapsed: true,
+                              items: [
+                                "ghaf/dev/technologies/nvidia-jetson-thor-flash",
+                              ],
+                            },
+                            {
                               label: "x86",
                               collapsed: true,
                               items: [

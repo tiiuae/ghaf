@@ -71,9 +71,10 @@ let
         {
           "laptop-x86" = self.nixosModules.profiles-workstation;
           "orin" = self.nixosModules.profiles-orin;
+          "thor" = self.nixosModules.profiles-thor;
         }
         .${profile}
-          or (throw "mkGhafConfiguration: Unknown profile '${profile}'. Valid profiles: laptop-x86, orin");
+          or (throw "mkGhafConfiguration: Unknown profile '${profile}'. Valid profiles: laptop-x86, orin, thor");
 
       # Module to map vmConfig parameter to ghaf.virtualization.vmConfig option
       vmConfigModule = {
