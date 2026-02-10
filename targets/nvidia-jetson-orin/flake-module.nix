@@ -139,7 +139,10 @@ let
     // rec {
       name = tgt.name + "-from-x86_64";
       hostConfiguration = tgt.hostConfiguration.extendModules {
-        modules = [ self.nixosModules.cross-compilation-from-x86_64 ] ++ lib.optionals enableGivcForAgxDebug [
+        modules = [
+          self.nixosModules.cross-compilation-from-x86_64
+        ]
+        ++ lib.optionals enableGivcForAgxDebug [
           {
             ghaf.givc.enable = lib.mkForce true;
             ghaf.givc.debug = lib.mkForce false;
@@ -149,24 +152,111 @@ let
       package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
     };
 
+  generate-fde-phase1 =
+    tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-fde-phase1";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [
+          (
+            { pkgs, ... }:
+            {
+              disabledModules = [
+                (nixos-generators + "/format-module.nix")
+                ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+              ];
+
+              imports = [
+                self.nixosModules.disko-debug-partition
+                self.nixosModules.verity-release-partition
+              ];
+
+              ghaf = {
+                partitioning.disko.enable = lib.mkForce true;
+                partitioning.disko.imageBuilder.compression = lib.mkForce "none";
+                storage.encryption = {
+                  enable = lib.mkForce true;
+                  deferred = lib.mkForce true;
+                  lvmPartitionDevice = lib.mkForce "/dev/disk/by-partlabel/APP";
+                  requireInstallerMarker = lib.mkForce false;
+                };
+                virtualization.microvm.storeOnDisk = lib.mkForce true;
+              };
+
+              boot.initrd.luks.cryptoModules = lib.mkForce [ ];
+              boot.initrd.availableKernelModules = lib.mkForce [ ];
+              boot.initrd.kernelModules = lib.mkForce [ ];
+
+              disko.imageBuilder = {
+                pkgs = lib.mkForce pkgs.buildPackages;
+                enableBinfmt = lib.mkForce true;
+                kernelPackages = lib.mkForce pkgs.buildPackages.linuxPackages;
+                extraConfig = {
+                  nixpkgs.hostPlatform = lib.mkOverride 0 pkgs.stdenv.hostPlatform;
+                  nixpkgs.buildPlatform = lib.mkOverride 0 pkgs.stdenv.buildPlatform;
+                };
+              };
+
+              disko.devices = {
+                disk.disk1.imageSize = lib.mkForce "58G";
+                lvm_vg.pool.lvs = {
+                  swap.size = lib.mkForce "8G";
+                  root.size = lib.mkForce "44G";
+                  persist.size = lib.mkForce "2G";
+                };
+              };
+            }
+          )
+        ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
+  generate-fde-phase1-cross-from-x86_64 =
+    tgt:
+    tgt
+    // rec {
+      name = tgt.name + "-from-x86_64";
+      hostConfiguration = tgt.hostConfiguration.extendModules {
+        modules = [ self.nixosModules.cross-compilation-from-x86_64 ];
+      };
+      package = hostConfiguration.config.system.build.ghafImage;
+    };
+
   # Add nodemoapps targets
   targets = target-configs ++ (map generate-nodemoapps target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
+  fdePhase1Targets = map generate-fde-phase1 (
+    builtins.filter (
+      t:
+      builtins.elem t.name [
+        "nvidia-jetson-orin-agx-debug"
+        "nvidia-jetson-orin-agx-debug-nodemoapps"
+      ]
+    ) targets
+  );
+  fdePhase1CrossTargets = map generate-fde-phase1-cross-from-x86_64 fdePhase1Targets;
+  flashableCrossTargets = crossTargets ++ fdePhase1CrossTargets;
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
-      map (t: lib.nameValuePair t.name t.hostConfiguration) (targets ++ crossTargets)
+      map (t: lib.nameValuePair t.name t.hostConfiguration) (
+        targets ++ crossTargets ++ fdePhase1Targets ++ fdePhase1CrossTargets
+      )
     );
 
     packages = {
-      aarch64-linux = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+      aarch64-linux = builtins.listToAttrs (
+        map (t: lib.nameValuePair t.name t.package) (targets ++ fdePhase1Targets)
+      );
       x86_64-linux =
-        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) crossTargets)
+        builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) flashableCrossTargets)
         // builtins.listToAttrs (
           map (
             t: lib.nameValuePair "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.flashScript
-          ) crossTargets
+          ) flashableCrossTargets
         )
         // builtins.listToAttrs (
           map (
@@ -175,7 +265,7 @@ in
               (t.hostConfiguration.extendModules {
                 modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
               }).pkgs.nvidia-jetpack.flashScript
-          ) crossTargets
+          ) flashableCrossTargets
         );
     };
   };

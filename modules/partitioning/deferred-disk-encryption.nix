@@ -32,7 +32,9 @@ let
   # Determine the LVM partition device
   # This is the partition that will be encrypted
   lvmPartition =
-    if config.ghaf.partitioning.verity.enable then
+    if cfg.lvmPartitionDevice != null then
+      cfg.lvmPartitionDevice
+    else if config.ghaf.partitioning.verity.enable then
       # For verity setups, use persist partition
       "/dev/disk/by-partuuid/${config.image.repart.partitions."50-persist".repartConfig.UUID}"
     else
@@ -158,6 +160,7 @@ let
       fi
 
       # Check for installer/completion markers on the ESP partition.
+      ${lib.optionalString cfg.requireInstallerMarker ''
         ESP_DEVICE=""
         for i in {1..10}; do
             ESP_DEVICE="$(lsblk -pn -o PATH,PARTLABEL | awk 'tolower($2) ~ /esp/ { print $1; exit }')"
@@ -182,6 +185,7 @@ let
           umount /mnt/esp
           exit 0
         fi
+      ''}
 
       # Stop Plymouth to show encryption progress
       if command -v plymouth >/dev/null 2>&1; then
@@ -585,9 +589,11 @@ let
       echo ""
 
       # Remove the installer marker so we don't run again if this fails.
-      rm -f /mnt/esp/.ghaf-installer-encrypt
-      umount /mnt/esp
-      rmdir /mnt/esp
+      ${lib.optionalString cfg.requireInstallerMarker ''
+        rm -f /mnt/esp/.ghaf-installer-encrypt
+        umount /mnt/esp
+        rmdir /mnt/esp
+      ''}
 
       ${
         if config.ghaf.profiles.debug.enable then
@@ -619,6 +625,18 @@ in
 {
   options.ghaf.storage.encryption = {
     deferred = mkEnableOption "Apply disk encryption on first boot instead of at image creation";
+
+    lvmPartitionDevice = lib.mkOption {
+      type = lib.types.nullOr lib.types.str;
+      default = null;
+      description = "Override block device path to encrypt during deferred first-boot encryption.";
+    };
+
+    requireInstallerMarker = lib.mkOption {
+      type = lib.types.bool;
+      default = true;
+      description = "Require /.ghaf-installer-encrypt marker on ESP before running deferred first-boot encryption.";
+    };
   };
 
   config = mkIf (cfg.enable && cfg.deferred) {

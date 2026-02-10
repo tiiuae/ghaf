@@ -13,8 +13,8 @@ let
   # Using the same config for all orin boards (for now)
   # TODO should this be changed when NX added
   cfg = config.ghaf.hardware.nvidia.orin;
-
-  images = config.system.build.${config.formatAttr};
+  sdImages = config.system.build.sdImage or null;
+  ghafImages = config.system.build.ghafImage or null;
   partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
     <partition name="master_boot_record" type="protective_master_boot_record">
       <allocation_policy> sequential </allocation_policy>
@@ -155,16 +155,55 @@ in
       #"${pkgs.pkgsBuildBuild.patch}/bin/patch" -p0 < ${./tegra2-mb2-bct-scr.patch}
     ''
     + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-      ESP_OFFSET=$(cat "${images}/esp.offset")
-      ESP_SIZE=$(cat "${images}/esp.size")
-      ROOT_OFFSET=$(cat "${images}/root.offset")
-      ROOT_SIZE=$(cat "${images}/root.size")
+      SD_IMAGES_DIR="${if sdImages != null then sdImages else ""}"
+      GHAF_IMAGES_DIR="${if ghafImages != null then ghafImages else ""}"
 
-      img="${images}/sd-image/${config.image.fileName}"
-      echo "Extracting ESP partition to $WORKDIR/bootloader/esp.img ..."
-      dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
-      echo "Extracting root partition to $WORKDIR/root.img ..."
-      dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE"
+      if [ -n "$SD_IMAGES_DIR" ] && [ -e "$SD_IMAGES_DIR/esp.offset" ] && [ -e "$SD_IMAGES_DIR/root.offset" ]; then
+        ESP_OFFSET=$(cat "$SD_IMAGES_DIR/esp.offset")
+        ESP_SIZE=$(cat "$SD_IMAGES_DIR/esp.size")
+        ROOT_OFFSET=$(cat "$SD_IMAGES_DIR/root.offset")
+        ROOT_SIZE=$(cat "$SD_IMAGES_DIR/root.size")
+
+        img=$(ls "$SD_IMAGES_DIR"/sd-image/*.img.zst | head -n 1)
+        echo "Extracting ESP partition from sd-image to $WORKDIR/bootloader/esp.img ..."
+        dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
+        echo "Extracting root partition from sd-image to $WORKDIR/root.img ..."
+        dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" conv=sparse
+      elif [ -n "$GHAF_IMAGES_DIR" ] && [ -e "$GHAF_IMAGES_DIR/disk1.raw" ]; then
+        img="$GHAF_IMAGES_DIR/disk1.raw"
+        echo "Extracting ESP and APP partitions from disko raw image ..."
+
+        fdisk_output=$(${pkgs.pkgsBuildBuild.util-linux}/bin/fdisk -l "$img")
+
+        part_esp=$(${pkgs.pkgsBuildBuild.gawk}/bin/awk -v img="$img" '$1 == img "2" { print $2 " " $4; exit }' <<< "$fdisk_output")
+        part_app=$(${pkgs.pkgsBuildBuild.gawk}/bin/awk -v img="$img" '$1 == img "3" { print $2 " " $4; exit }' <<< "$fdisk_output")
+
+        if [ -z "$part_esp" ] || [ -z "$part_app" ]; then
+          echo "Failed to locate ESP/APP partitions in raw image"
+          exit 1
+        fi
+
+        ESP_OFFSET=$(echo "$part_esp" | ${pkgs.pkgsBuildBuild.gawk}/bin/awk '{print $1}')
+        ESP_SIZE=$(echo "$part_esp" | ${pkgs.pkgsBuildBuild.gawk}/bin/awk '{print $2}')
+        ROOT_OFFSET=$(echo "$part_app" | ${pkgs.pkgsBuildBuild.gawk}/bin/awk '{print $1}')
+        ROOT_SIZE=$(echo "$part_app" | ${pkgs.pkgsBuildBuild.gawk}/bin/awk '{print $2}')
+
+        # Jetson AGX eMMC APP partition has a fixed upper bound in flash.xml.
+        # Clamp extracted APP size to avoid invalid GPT generation.
+        MAX_APP_END=119537630
+        MAX_ROOT_SIZE=$((MAX_APP_END - ROOT_OFFSET + 1))
+        if [ "$ROOT_SIZE" -gt "$MAX_ROOT_SIZE" ]; then
+          ROOT_SIZE="$MAX_ROOT_SIZE"
+        fi
+
+        echo "Extracting ESP partition from raw image to $WORKDIR/bootloader/esp.img ..."
+        dd if="$img" of="$WORKDIR/bootloader/esp.img" bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE"
+        echo "Extracting APP partition from raw image to $WORKDIR/root.img ..."
+        dd if="$img" of="$WORKDIR/bootloader/root.img" bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" conv=sparse
+      else
+        echo "Unsupported image layout: expected sd-image offsets or disk1.raw"
+        exit 1
+      fi
 
       echo "Patching flash.xml with absolute paths to esp.img and root.img ..."
       "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
