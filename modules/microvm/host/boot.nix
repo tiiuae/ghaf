@@ -122,78 +122,80 @@ in
   config = mkMerge [
     (mkIf cfg.enable {
 
-      # Systemd boot targets
-      systemd.targets = {
-        # Override microvm.nix's default target (default is VMs with autostart)
-        microvms = {
-          wants = mkForce (map (name: "microvm@${name}.service") (lib.attrNames config.microvm.vms));
-        };
-      }
-      // optionalAttrs cfg.uiEnabled {
-        system-ui = {
-          description = "System UI target";
-          wantedBy = [ "microvms.target" ];
-          requires = [ "wait-for-ui.service" ];
-          after = [ "wait-for-ui.service" ];
-        };
-        system-login = {
-          description = "System Login target";
-          wantedBy = [ "microvms.target" ];
-          requires = [ "wait-for-login.service" ];
-          after = [ "wait-for-login.service" ];
-        };
-      };
-
-      # Slice groups for system- and app VMs
-      systemd.slices = mkSliceGroups;
-
-      # Systemd service dependencies
-      systemd.services =
-        mkVmDependencies "microvm@"
-        // mkVmDependencies "microvm-virtiofsd@"
-        // mkAppVmDependencies "vsockproxy-"
-        // mkAppVmDependencies "ghaf-mem-manager-"
+      systemd = {
+        # Systemd boot targets
+        targets = {
+          # Override microvm.nix's default target (default is VMs with autostart)
+          microvms = {
+            wants = mkForce (map (name: "microvm@${name}.service") (lib.attrNames config.microvm.vms));
+          };
+        }
         // optionalAttrs cfg.uiEnabled {
-
-          # Wait for gui-vm to reach multi-user.target. Times out after 60 seconds
-          wait-for-ui = {
-            description = "Wait for GuiVM startup";
-            after = [ "givc-key-setup.service" ];
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStart = ''
-                ${pkgs.wait-for-unit}/bin/wait-for-unit \
-                ${hosts.admin-vm.ipv4} 9001 \
-                gui-vm \
-                greetd.service \
-                60
-              '';
-              RemainAfterExit = true;
-            };
+          system-ui = {
+            description = "System UI target";
+            wantedBy = [ "microvms.target" ];
+            requires = [ "wait-for-ui.service" ];
+            after = [ "wait-for-ui.service" ];
           };
-
-          # Service to wait for user login to gui-vm. Resets boot resource constraints
-          # after user has logged in and ghaf-session is active. Times out after 120 seconds
-          wait-for-login = {
-            description = "Wait for user login to gui-vm";
-            after = [
-              "givc-key-setup.service"
-              "system-ui.target"
-            ];
-            serviceConfig = {
-              Type = "oneshot";
-              ExecStart = ''
-                ${pkgs.wait-for-unit}/bin/wait-for-unit \
-                ${hosts.admin-vm.ipv4} 9001 \
-                gui-vm \
-                user-login.service \
-                120
-              '';
-              ExecStartPost = "${reset-resources}/bin/reset-resources";
-              RemainAfterExit = true;
-            };
+          system-login = {
+            description = "System Login target";
+            wantedBy = [ "microvms.target" ];
+            requires = [ "wait-for-login.service" ];
+            after = [ "wait-for-login.service" ];
           };
         };
+
+        # Slice groups for system- and app VMs
+        slices = mkSliceGroups;
+
+        # Systemd service dependencies
+        services =
+          mkVmDependencies "microvm@"
+          // mkVmDependencies "microvm-virtiofsd@"
+          // mkAppVmDependencies "vsockproxy-"
+          // mkAppVmDependencies "ghaf-mem-manager-"
+          // optionalAttrs cfg.uiEnabled {
+
+            # Wait for gui-vm to reach multi-user.target. Times out after 60 seconds
+            wait-for-ui = {
+              description = "Wait for GuiVM startup";
+              after = [ "givc-key-setup.service" ];
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = ''
+                  ${pkgs.wait-for-unit}/bin/wait-for-unit \
+                  ${hosts.admin-vm.ipv4} 9001 \
+                  gui-vm \
+                  greetd.service \
+                  60
+                '';
+                RemainAfterExit = true;
+              };
+            };
+
+            # Service to wait for user login to gui-vm. Resets boot resource constraints
+            # after user has logged in and ghaf-session is active. Times out after 120 seconds
+            wait-for-login = {
+              description = "Wait for user login to gui-vm";
+              after = [
+                "givc-key-setup.service"
+                "system-ui.target"
+              ];
+              serviceConfig = {
+                Type = "oneshot";
+                ExecStart = ''
+                  ${pkgs.wait-for-unit}/bin/wait-for-unit \
+                  ${hosts.admin-vm.ipv4} 9001 \
+                  gui-vm \
+                  user-login.service \
+                  120
+                '';
+                ExecStartPost = "${reset-resources}/bin/reset-resources";
+                RemainAfterExit = true;
+              };
+            };
+          };
+      };
 
       # Boot UI config for GUI VM is now provided by guivm-desktop-features module
       # See: modules/desktop/guivm/boot-ui.nix

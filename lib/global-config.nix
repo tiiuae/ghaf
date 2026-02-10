@@ -174,6 +174,17 @@ rec {
         };
       };
 
+      # Graphics/boot UI settings
+      graphics = {
+        boot = {
+          enable = mkOption {
+            type = types.bool;
+            default = false;
+            description = "Enable graphical boot support (splash screen, user login detection)";
+          };
+        };
+      };
+
       # IDS VM specific settings
       idsvm = {
         mitmproxy = {
@@ -356,11 +367,13 @@ rec {
     # Debug profile - full development/debugging capabilities
     debug = {
       debug.enable = true;
+
       development = {
         ssh.daemon.enable = true;
         debug.tools.enable = true;
         nix-setup.enable = true;
       };
+
       # Logging enabled with Ghaf's central logging infrastructure
       # Note: listener.address is auto-populated from admin-vm IP by
       # modules/common/global-config.nix (no need to set it per profile).
@@ -368,22 +381,30 @@ rec {
         enable = true;
         server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
       };
+
       security.audit.enable = false;
+
       givc = {
         enable = true;
         # givc.debug disabled to allow logging (they conflict due to security)
         debug = false;
       };
+
       services = {
         power-manager.enable = false;
         performance.enable = false;
       };
+
       storage = {
         encryption.enable = false;
         storeOnDisk = false;
       };
+
+      graphics.boot.enable = true;
+
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+
       # Feature defaults for debug profile
       features = {
         fprint = {
@@ -416,27 +437,36 @@ rec {
     # Release profile - production settings
     release = {
       debug.enable = false;
+
       development = {
         ssh.daemon.enable = false;
         debug.tools.enable = false;
         nix-setup.enable = false;
       };
+
       logging.enable = false;
       security.audit.enable = true;
+
       givc = {
         enable = true;
         debug = false;
       };
+
       services = {
         power-manager.enable = true;
         performance.enable = true;
       };
+
       storage = {
         encryption.enable = true;
         storeOnDisk = false;
       };
+
+      graphics.boot.enable = true;
+
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+
       # Feature defaults for release profile
       features = {
         fprint = {
@@ -469,27 +499,34 @@ rec {
     # Minimal profile - bare minimum
     minimal = {
       debug.enable = false;
+
       development = {
         ssh.daemon.enable = false;
         debug.tools.enable = false;
         nix-setup.enable = false;
       };
+
       logging.enable = false;
       security.audit.enable = false;
+
       givc = {
         enable = false;
         debug = false;
       };
+
       services = {
         power-manager.enable = false;
         performance.enable = false;
       };
+
       storage = {
         encryption.enable = false;
         storeOnDisk = false;
       };
+
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
+
       # Feature defaults for minimal profile - all disabled
       features = {
         fprint = {
@@ -606,7 +643,6 @@ rec {
 
         # Kernel configuration for this VM type (if defined)
         kernel = config.ghaf.kernel.${vmType} or null;
-
         # QEMU configuration for this VM type (if defined)
         qemu = config.ghaf.qemu.${vmType} or null;
 
@@ -622,7 +658,6 @@ rec {
 
         # Host filesystem paths
         sharedVmDirectory = config.ghaf.virtualization.microvm-host.sharedVmDirectory or null;
-
         # Boot configuration
         microvmBoot = {
           enable = config.ghaf.microvm-boot.enable or false;
@@ -632,10 +667,8 @@ rec {
         hardware = {
           devices = config.ghaf.hardware.devices or { };
         };
-
         # Common namespace (for killswitch, etc.)
         common = config.ghaf.common or { };
-
         # User configuration (complex, kept as-is for now)
         users = config.ghaf.users or { };
 
@@ -664,7 +697,6 @@ rec {
         # AppVM configurations (needed by guivm for launcher generation)
         # Use enabledVms which has derived values including applications from vmDef
         appvms = config.ghaf.virtualization.microvm.appvm.enabledVms or { };
-
         # GUIVM applications (needed by guivm for local launcher generation)
         guivm = {
           applications = config.ghaf.virtualization.microvm.guivm.applications or [ ];

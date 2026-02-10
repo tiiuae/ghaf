@@ -23,7 +23,7 @@ let
     config.ghaf.common.systemHosts ++ (builtins.filter (a: a != null) [ config.ghaf.common.adminHost ])
   );
 
-  # Address bases
+  # Address bases — 02:AD is a locally administered unicast MAC prefix
   macBaseAddress = "02:AD:00:00:00:";
   ipv4BaseAddress = "192.168.100.";
   ipv6BaseAddress = "fd00::100:";
@@ -39,6 +39,7 @@ let
       ipv4SubnetPrefixLength = 24;
       interfaceName = "ethint0";
     }) hostList
+    # AppVMs start at index 100 (IP .100, MAC :64, CID 100) to leave room for system VMs
     ++ lib.lists.imap1 (
       index: name:
       let
@@ -57,6 +58,7 @@ let
 
   # Evaluate generated hosts as attrset
   generatedHostAttrs = lib.listToAttrs (map (host: nameValuePair host.name host) generatedHosts);
+
   # Extract names of all extra hosts that also exist in generatedHostAttrs
   # This prevents evaluation errors when extraNetworking.hosts contains entries
   # not yet in generatedHostAttrs (due to module evaluation order)
@@ -102,6 +104,7 @@ let
       "${host.ipv4}" = [ host.name ];
     }) (lib.attrValues combinedHosts)
   );
+
   # Extract values to check for uniqueness
   allHosts = lib.attrValues combinedHosts;
   getField = field: map (h: h.${field}) allHosts;

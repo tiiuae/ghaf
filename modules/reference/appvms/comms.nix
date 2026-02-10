@@ -55,9 +55,11 @@ in
                 imports = [
                   ../programs/element-desktop.nix
                 ];
-                ghaf.reference.programs.element-desktop.enable = lib.mkDefault true;
-                ghaf.xdghandlers.elementDesktop = true;
-                ghaf.xdgitems.elementDesktop = true;
+                ghaf = {
+                  reference.programs.element-desktop.enable = lib.mkDefault true;
+                  xdghandlers.elementDesktop = true;
+                  xdgitems.elementDesktop = true;
+                };
               }
             ];
           }

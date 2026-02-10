@@ -87,31 +87,32 @@ pkgs.testers.nixosTest {
       ];
       services.openssh.enable = true;
       systemd.services.firewall.serviceConfig = fw-service-cfg;
-      ghaf.security.fail2ban = {
-        enable = true;
-        sshd-jail-fwmark = {
-          enable = true;
-          fwMarkNum = "70";
+      ghaf = {
+        security = {
+          fail2ban = {
+            enable = true;
+            sshd-jail-fwmark = {
+              enable = true;
+              fwMarkNum = "70";
+            };
+          };
+          ssh-tarpit = {
+            enable = true;
+            listenAddress = addrs.netvm-internal;
+          };
         };
-
-      };
-      ghaf.security = {
-        ssh-tarpit = {
+        firewall = {
           enable = true;
-          listenAddress = addrs.netvm-internal;
+          allowedTCPPorts = [ 22 ];
+          tcpBlacklistRules = [
+            {
+              port = 22;
+              trackingSize = 200;
+              burstNum = 10;
+              maxPacketFreq = "5/second";
+            }
+          ];
         };
-      };
-      ghaf.firewall = {
-        enable = true;
-        allowedTCPPorts = [ 22 ];
-        tcpBlacklistRules = [
-          {
-            port = 22;
-            trackingSize = 200;
-            burstNum = 10;
-            maxPacketFreq = "5/second";
-          }
-        ];
       };
       networking = {
         nat.enable = true;

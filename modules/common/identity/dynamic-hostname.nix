@@ -280,27 +280,46 @@ in
   };
 
   config = mkIf cfg.enable {
-    systemd.tmpfiles.rules = [
-      "d ${toString cfg.outputDir} 0755 root root - -"
-      "d ${toString cfg.shareDir} 0755 root root - -"
-      "d /persist/common 0755 root root - -"
-    ];
+    systemd = {
+      tmpfiles.rules = [
+        "d ${toString cfg.outputDir} 0755 root root - -"
+        "d ${toString cfg.shareDir} 0755 root root - -"
+        "d /persist/common 0755 root root - -"
+      ];
 
-    systemd.services.ghaf-dynamic-hostname = {
-      description = "Compute and export dynamic host identity and transient hostname";
-      wantedBy = [ "multi-user.target" ];
-      after = [
-        "local-fs.target"
-        "sysinit.target"
-      ];
-      before = [
-        "multi-user.target"
-        "network-online.target"
-      ];
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = "${computeScript}/bin/ghaf-compute-hostname";
-        RemainAfterExit = true;
+      services.ghaf-dynamic-hostname = {
+        description = "Compute and export dynamic host identity and transient hostname";
+        wantedBy = [ "multi-user.target" ];
+        after = [
+          "local-fs.target"
+          "sysinit.target"
+        ];
+        before = [
+          "multi-user.target"
+          "network-online.target"
+        ];
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${computeScript}/bin/ghaf-compute-hostname";
+          RemainAfterExit = true;
+
+          # Set systemd environment for services
+          ExecStartPost =
+            let
+              setHostnameEnv = pkgs.writeShellApplication {
+                name = "set-hostname-env";
+                runtimeInputs = [ pkgs.systemd ];
+                text = ''
+                  if [ -r ${toString cfg.outputDir}/hostname ]; then
+                    if command -v systemctl >/dev/null 2>&1; then
+                      systemctl set-environment GHAF_HOSTNAME="$(cat ${toString cfg.outputDir}/hostname)"
+                    fi
+                  fi
+                '';
+              };
+            in
+            "${setHostnameEnv}/bin/set-hostname-env";
+        };
       };
     };
 
@@ -311,22 +330,5 @@ in
         export GHAF_HOSTNAME_FILE="/run/ghaf-hostname"
       fi
     '';
-
-    # Set systemd environment for services
-    systemd.services.ghaf-dynamic-hostname.serviceConfig.ExecStartPost =
-      let
-        setHostnameEnv = pkgs.writeShellApplication {
-          name = "set-hostname-env";
-          runtimeInputs = [ pkgs.systemd ];
-          text = ''
-            if [ -r ${toString cfg.outputDir}/hostname ]; then
-              if command -v systemctl >/dev/null 2>&1; then
-                systemctl set-environment GHAF_HOSTNAME="$(cat ${toString cfg.outputDir}/hostname)"
-              fi
-            fi
-          '';
-        };
-      in
-      "${setHostnameEnv}/bin/set-hostname-env";
   };
 }

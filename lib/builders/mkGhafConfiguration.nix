@@ -79,7 +79,6 @@ let
       vmConfigModule = {
         ghaf.virtualization.vmConfig = vmConfig;
       };
-
       # Module for extraConfig (wrapped properly)
       extraConfigModule = lib.optionalAttrs (extraConfig != { }) { ghaf = extraConfig; };
 
@@ -143,7 +142,6 @@ let
 
       # Full configuration name
       fullName = "${name}-${variant}";
-
       # Determine the package output based on profile
       package =
         if profile == "orin" then

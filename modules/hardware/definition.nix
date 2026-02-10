@@ -53,7 +53,8 @@ in
         };
       };
 
-      # USB device submodule, defined either by product ID and vendor ID, or by bus and port number
+      # USB device submodule
+      # Defined either by product ID and vendor ID, or by bus and port number
       usbDevSubmodule = types.submodule {
         options = {
           name = mkOption {

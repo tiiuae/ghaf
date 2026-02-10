@@ -23,6 +23,7 @@ in
 
   options.ghaf.logging.server = {
     enable = mkEnableOption "Logs aggregator server";
+
     endpoint = mkOption {
       description = ''
         Assign endpoint url value to the alloy.service running in
@@ -32,6 +33,7 @@ in
       type = types.nullOr types.str;
       default = null;
     };
+
     identifierFilePath = mkOption {
       description = ''
         This configuration option used to specify the identifier file path.
@@ -45,6 +47,7 @@ in
     };
 
     tls = {
+      # CA and certificate options
       caFile = mkOption {
         type = types.nullOr types.path;
         default = "/etc/givc/ca-cert.pem";
@@ -65,6 +68,8 @@ in
         default = "/etc/givc/key.pem";
         description = "Client private key (PEM) used for mTLS.";
       };
+
+      # Connection options
       serverName = mkOption {
         type = types.nullOr types.str;
         default = null;
@@ -122,126 +127,147 @@ in
     ];
 
     # Local journal retention for admin-vm's own logs
-    services.journald.extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
-      MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
-      MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
-      SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
-      SystemMaxFileSize=100M
-      Storage=persistent
-      ${optionalString config.ghaf.logging.fss.enable ''
-        Seal=yes
-      ''}
-    '';
-
-    environment.etc."loki/pass" = {
-      text = "ghaf";
-    };
-
-    environment.etc."alloy/logs-aggregator.alloy" = {
-      text = ''
-        local.file "macAddress" {
-          // Alloy service can read file in this specific location
-          filename = "${cfg.identifierFilePath}"
-        }
-
-        // TLS materials arrive via systemd credentials
-        local.file "tls_cert" {
-          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert"
-        }
-        local.file "tls_key" {
-          filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_key"
-        }
-        ${optionalString (cfg.tls.remoteCAFile != null) ''
-          local.file "remote_ca" {
-            filename = sys.env("CREDENTIALS_DIRECTORY") + "/remote_ca"
-          }
+    services = {
+      journald.extraConfig = mkIf config.ghaf.logging.journalRetention.enable ''
+        MaxRetentionSec=${config.ghaf.logging.journalRetention.maxRetention}
+        MaxFileSec=${config.ghaf.logging.journalRetention.MaxFileSec}
+        SystemMaxUse=${config.ghaf.logging.journalRetention.maxDiskUsage}
+        SystemMaxFileSize=100M
+        Storage=persistent
+        ${optionalString config.ghaf.logging.fss.enable ''
+          Seal=yes
         ''}
-        ${optionalString (cfg.tls.caFile != null) ''
-          local.file "tls_ca" {
-            filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca"
-          }
-        ''}
-
-        discovery.relabel "adminJournal" {
-          targets = []
-          rule {
-            source_labels = ["__journal__hostname"]
-            target_label  = "host"
-          }
-          rule {
-            source_labels = ["__journal__systemd_unit"]
-            target_label  = "service_name"
-          }
-          rule {
-            source_labels = ["__journal__transport"]
-            target_label  = "transport"
-          }
-        }
-
-        loki.process "system" {
-          forward_to = [loki.write.remote.receiver]
-          stage.drop {
-            older_than = "15m"
-          }
-          stage.drop {
-            expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
-          }
-        }
-
-        loki.source.journal "journal" {
-          path          = "/var/log/journal"
-          relabel_rules = discovery.relabel.adminJournal.rules
-          max_age       = "168h"
-          forward_to    = [loki.process.system.receiver]
-        }
-
-        loki.write "remote" {
-          endpoint {
-            url = "${cfg.endpoint}"
-            // TODO: To be replaced with stronger authentication method
-            basic_auth {
-              username = "ghaf"
-              password_file = "/etc/loki/pass"
-            }
-
-            batch_size          = "256KiB"
-            max_backoff_period  = "30s"
-            remote_timeout      = "60s"
-
-            tls_config {
-              ${optionalString (cfg.tls.remoteCAFile != null) "ca_pem = local.file.remote_ca.content"}
-              cert_pem    = local.file.tls_cert.content
-              key_pem     = local.file.tls_key.content
-              min_version = "${cfg.tls.minVersion}"
-              ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
-            }
-          }
-          // Write Ahead Log records incoming data and stores it on the local file
-          // system in order to guarantee persistence of acknowledged data.
-          wal {
-            enabled = true
-            max_segment_age = "168h"
-            drain_timeout = "4s"
-          }
-          external_labels = { machine = local.file.macAddress.content }
-        }
-
-        loki.source.api "listener" {
-          http {
-            listen_address = "127.0.0.1"
-            listen_port    = ${toString cfg.tls.terminator.backendPort}
-          }
-
-          forward_to = [
-            loki.process.system.receiver,
-          ]
-        }
       '';
-      # The UNIX file mode bits
-      mode = "0644";
+
+      alloy.enable = true;
+
+      # TLS terminator on the public socket. Alloy stays on backendPort (HTTP).
+      stunnel = {
+        enable = true;
+
+        servers."ghaf-logs" = {
+          accept = config.ghaf.logging.listener.port;
+          connect = "127.0.0.1:${toString cfg.tls.terminator.backendPort}";
+          cert = cfg.tls.certFile;
+          key = cfg.tls.keyFile;
+          verify = if cfg.tls.terminator.verifyClients then 2 else 0;
+          sslVersionMin = "TLSv1.2";
+        }
+        // lib.optionalAttrs (cfg.tls.caFile != null) {
+          CAfile = cfg.tls.caFile;
+        };
+      };
     };
 
-    services.alloy.enable = true;
+    environment.etc = {
+      "loki/pass" = {
+        text = "ghaf";
+      };
+
+      "alloy/logs-aggregator.alloy" = {
+        text = ''
+          local.file "macAddress" {
+            // Alloy service can read file in this specific location
+            filename = "${cfg.identifierFilePath}"
+          }
+
+          // TLS materials arrive via systemd credentials
+          local.file "tls_cert" {
+            filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_cert"
+          }
+          local.file "tls_key" {
+            filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_key"
+          }
+          ${optionalString (cfg.tls.remoteCAFile != null) ''
+            local.file "remote_ca" {
+              filename = sys.env("CREDENTIALS_DIRECTORY") + "/remote_ca"
+            }
+          ''}
+          ${optionalString (cfg.tls.caFile != null) ''
+            local.file "tls_ca" {
+              filename = sys.env("CREDENTIALS_DIRECTORY") + "/loki_ca"
+            }
+          ''}
+
+          discovery.relabel "adminJournal" {
+            targets = []
+            rule {
+              source_labels = ["__journal__hostname"]
+              target_label  = "host"
+            }
+            rule {
+              source_labels = ["__journal__systemd_unit"]
+              target_label  = "service_name"
+            }
+            rule {
+              source_labels = ["__journal__transport"]
+              target_label  = "transport"
+            }
+          }
+
+          loki.process "system" {
+            forward_to = [loki.write.remote.receiver]
+            stage.drop {
+              older_than = "15m"
+            }
+            stage.drop {
+              expression = "(GatewayAuthenticator::login|Gateway login succeeded|csd-wrapper|nmcli)"
+            }
+          }
+
+          loki.source.journal "journal" {
+            path          = "/var/log/journal"
+            relabel_rules = discovery.relabel.adminJournal.rules
+            max_age       = "168h"
+            forward_to    = [loki.process.system.receiver]
+          }
+
+          loki.write "remote" {
+            endpoint {
+              url = "${cfg.endpoint}"
+              // TODO: To be replaced with stronger authentication method
+              basic_auth {
+                username = "ghaf"
+                password_file = "/etc/loki/pass"
+              }
+
+              batch_size          = "256KiB"
+              max_backoff_period  = "30s"
+              remote_timeout      = "60s"
+
+              tls_config {
+                ${optionalString (cfg.tls.remoteCAFile != null) "ca_pem = local.file.remote_ca.content"}
+                cert_pem    = local.file.tls_cert.content
+                key_pem     = local.file.tls_key.content
+                min_version = "${cfg.tls.minVersion}"
+                ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
+              }
+            }
+            // Write Ahead Log records incoming data and stores it on the local file
+            // system in order to guarantee persistence of acknowledged data.
+            wal {
+              enabled = true
+              max_segment_age = "168h"
+              drain_timeout = "4s"
+            }
+            external_labels = { machine = local.file.macAddress.content }
+          }
+
+          loki.source.api "listener" {
+            http {
+              listen_address = "127.0.0.1"
+              listen_port    = ${toString cfg.tls.terminator.backendPort}
+            }
+
+            forward_to = [
+              loki.process.system.receiver,
+            ]
+          }
+        '';
+        # The UNIX file mode bits
+        mode = "0644";
+      };
+    };
 
     systemd.services.alloy.serviceConfig = {
       after = [
@@ -271,23 +297,6 @@ in
       ++ optionals (cfg.tls.caFile != null) [
         "loki_ca:${cfg.tls.caFile}"
       ];
-    };
-
-    # TLS terminator on the public socket. Alloy stays on backendPort (HTTP).
-    services.stunnel = {
-      enable = true;
-
-      servers."ghaf-logs" = {
-        accept = config.ghaf.logging.listener.port;
-        connect = "127.0.0.1:${toString cfg.tls.terminator.backendPort}";
-        cert = cfg.tls.certFile;
-        key = cfg.tls.keyFile;
-        verify = if cfg.tls.terminator.verifyClients then 2 else 0;
-        sslVersionMin = "TLSv1.2";
-      }
-      // lib.optionalAttrs (cfg.tls.caFile != null) {
-        CAfile = cfg.tls.caFile;
-      };
     };
 
     ghaf.firewall = {

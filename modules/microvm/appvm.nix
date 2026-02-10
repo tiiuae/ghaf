@@ -190,6 +190,7 @@ in
             };
 
             # Host-specific options (not derived from vmDef)
+
             extraNetworking = lib.mkOption {
               type = types.anything;
               description = "Extra networking options for this VM (host-side only)";
@@ -240,7 +241,7 @@ in
         in
         lib.foldr lib.recursiveUpdate { } vmConfigs;
 
-      # Host services: swtpm and vsockproxy
+      # Host-side swtpm and vsockproxy services
       systemd.services =
         let
           # swtpm services for VMs with vTPM on host

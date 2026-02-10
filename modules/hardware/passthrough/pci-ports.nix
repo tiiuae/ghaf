@@ -79,20 +79,22 @@ in
 
   config = mkIf (config.ghaf.hardware.passthrough.mode != "none" && hasHardwareDefinition) {
     # PCIe root ports config for all VMs goes via hardware definition (only on x86)
-    ghaf.hardware.definition.guivm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
-      }
-    ];
-    ghaf.hardware.definition.audiovm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
-      }
-    ];
-    ghaf.hardware.definition.netvm.extraModules = [
-      {
-        microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
-      }
-    ];
+    ghaf.hardware.definition = {
+      guivm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "gui-vm";
+        }
+      ];
+      audiovm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "audio-vm";
+        }
+      ];
+      netvm.extraModules = [
+        {
+          microvm.qemu.pcieRootPorts = mkPcieRootPorts "net-vm";
+        }
+      ];
+    };
   };
 }

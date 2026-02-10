@@ -277,11 +277,15 @@ in
   };
 
   config = mkIf cfg.enable {
-    services.desktopManager.cosmic.enable = true;
-    services.displayManager.cosmic-greeter.enable = true;
+    services = {
+      desktopManager.cosmic.enable = true;
+      displayManager.cosmic-greeter.enable = true;
+    };
 
-    ghaf.graphics.login-manager.enable = true;
-    ghaf.graphics.login-manager.failLock.enable = false;
+    ghaf.graphics = {
+      login-manager.enable = true;
+      login-manager.failLock.enable = false;
+    };
 
     ghaf.graphics.screen-recorder.enable = cfg.screenRecorder.enable;
 

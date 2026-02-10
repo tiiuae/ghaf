@@ -527,157 +527,159 @@ in
     (mkIf cfg.host.enable {
       services.logind.settings.Login.HandleLidSwitch = mkDefault "ignore";
 
-      systemd.sleep.extraConfig = ''
-        AllowHibernation=no
-        AllowHybridSleep=no
-        AllowSuspendThenHibernate=no
-      ''
-      + optionalString (!cfg.allowSuspend) ''
-        AllowSuspend=no
-      '';
+      systemd = {
+        sleep.extraConfig = ''
+          AllowHibernation=no
+          AllowHybridSleep=no
+          AllowSuspendThenHibernate=no
+        ''
+        + optionalString (!cfg.allowSuspend) ''
+          AllowSuspend=no
+        '';
 
-      systemd.targets = optionalAttrs cfg.allowSuspend {
-        "pre-sleep-actions" = {
-          description = "Target for pre-sleep host actions";
-          unitConfig.StopWhenUnneeded = true;
-          wantedBy = [ "sleep.target" ];
-          partOf = [ "sleep.target" ];
-          wants =
-            map (vmName: "pre-sleep-poweroff@${vmName}.service") powerOffVms
-            ++ map (vmName: "pre-sleep-fake-suspend@${vmName}.service") fakeSuspendVms
-            ++ map (vmName: "pre-sleep-pci-suspend@${vmName}.service") pciSuspendVms;
+        targets = optionalAttrs cfg.allowSuspend {
+          "pre-sleep-actions" = {
+            description = "Target for pre-sleep host actions";
+            unitConfig.StopWhenUnneeded = true;
+            wantedBy = [ "sleep.target" ];
+            partOf = [ "sleep.target" ];
+            wants =
+              map (vmName: "pre-sleep-poweroff@${vmName}.service") powerOffVms
+              ++ map (vmName: "pre-sleep-fake-suspend@${vmName}.service") fakeSuspendVms
+              ++ map (vmName: "pre-sleep-pci-suspend@${vmName}.service") pciSuspendVms;
+          };
+          "post-resume-actions" = {
+            description = "Target for post-resume host actions";
+            unitConfig.StopWhenUnneeded = true;
+            wantedBy = [ "sleep.target" ];
+            wants =
+              map (vmName: "post-resume-poweroff@${vmName}.service") powerOffVms
+              ++ map (vmName: "post-resume-fake-suspend@${vmName}.service") fakeSuspendVms
+              ++ map (vmName: "post-resume-pci-suspend@${vmName}.service") pciSuspendVms;
+          };
         };
-        "post-resume-actions" = {
-          description = "Target for post-resume host actions";
-          unitConfig.StopWhenUnneeded = true;
-          wantedBy = [ "sleep.target" ];
-          wants =
-            map (vmName: "post-resume-poweroff@${vmName}.service") powerOffVms
-            ++ map (vmName: "post-resume-fake-suspend@${vmName}.service") fakeSuspendVms
-            ++ map (vmName: "post-resume-pci-suspend@${vmName}.service") pciSuspendVms;
-        };
-      };
 
-      systemd.services = mkMerge [
-        # suspend/resume action units
-        (optionalAttrs cfg.allowSuspend (
-          lib.listToAttrs (
-            flatten (
-              map
-                (suspendAction: [
-                  (nameValuePair "pre-sleep-${suspendAction}@" {
-                    description = "pre-sleep ${suspendAction} action for '%i'";
-                    partOf = [ "pre-sleep-actions.target" ];
-                    before = [ "sleep.target" ];
-                    after = optionals (suspendAction == "pci-suspend") [ "pre-sleep-fake-suspend@%i.service" ];
-                    serviceConfig = {
-                      Type = "oneshot";
-                      ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} suspend";
-                    };
-                  })
-                  (nameValuePair "post-resume-${suspendAction}@" {
-                    description = "post-resume ${suspendAction} action for '%i'";
-                    partOf = [ "post-resume-actions.target" ];
-                    after = [ "suspend.target" ];
-                    before = optionals (suspendAction == "pci-suspend") [ "post-resume-fake-suspend@%i.service" ];
-                    serviceConfig = {
-                      Type = "oneshot";
-                      ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} resume";
-                    };
-                  })
-                ])
-                [
-                  "poweroff"
-                  "fake-suspend"
-                  "pci-suspend"
-                ]
+        services = mkMerge [
+          # suspend/resume action units
+          (optionalAttrs cfg.allowSuspend (
+            lib.listToAttrs (
+              flatten (
+                map
+                  (suspendAction: [
+                    (nameValuePair "pre-sleep-${suspendAction}@" {
+                      description = "pre-sleep ${suspendAction} action for '%i'";
+                      partOf = [ "pre-sleep-actions.target" ];
+                      before = [ "sleep.target" ];
+                      after = optionals (suspendAction == "pci-suspend") [ "pre-sleep-fake-suspend@%i.service" ];
+                      serviceConfig = {
+                        Type = "oneshot";
+                        ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} suspend";
+                      };
+                    })
+                    (nameValuePair "post-resume-${suspendAction}@" {
+                      description = "post-resume ${suspendAction} action for '%i'";
+                      partOf = [ "post-resume-actions.target" ];
+                      after = [ "suspend.target" ];
+                      before = optionals (suspendAction == "pci-suspend") [ "post-resume-fake-suspend@%i.service" ];
+                      serviceConfig = {
+                        Type = "oneshot";
+                        ExecStart = "${getExe host-suspend-actions} %i ${suspendAction} resume";
+                      };
+                    })
+                  ])
+                  [
+                    "poweroff"
+                    "fake-suspend"
+                    "pci-suspend"
+                  ]
+              )
             )
-          )
-          // optionalAttrs cfg.usbSuspend {
-            pre-sleep-usb = {
-              description = "USB suspend actions before sleep";
-              partOf = [ "pre-sleep-actions.target" ];
-              wantedBy = [ "pre-sleep-actions.target" ];
-              before = [ "sleep.target" ];
-              serviceConfig = {
-                Type = "oneshot";
-                ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb suspend";
+            // optionalAttrs cfg.usbSuspend {
+              pre-sleep-usb = {
+                description = "USB suspend actions before sleep";
+                partOf = [ "pre-sleep-actions.target" ];
+                wantedBy = [ "pre-sleep-actions.target" ];
+                before = [ "sleep.target" ];
+                serviceConfig = {
+                  Type = "oneshot";
+                  ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb suspend";
+                };
               };
-            };
 
-            post-resume-usb = {
-              description = "USB resume actions after wakeup";
-              partOf = [ "post-resume-actions.target" ];
-              wantedBy = [ "post-resume-actions.target" ];
-              after = [ "suspend.target" ];
-              serviceConfig = {
-                Type = "oneshot";
-                ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb resume";
+              post-resume-usb = {
+                description = "USB resume actions after wakeup";
+                partOf = [ "post-resume-actions.target" ];
+                wantedBy = [ "post-resume-actions.target" ];
+                after = [ "suspend.target" ];
+                serviceConfig = {
+                  Type = "oneshot";
+                  ExecStart = "${getExe' pkgs.vhotplug "vhotplugcli"} usb resume";
+                };
               };
-            };
-          }
-        ))
-        # Override microvm’s default shutdown behavior
-        #
-        # By default, microvm attempts to shut down the VM by sending a Ctrl+Alt+Del
-        # sequence and waiting for a socket disconnect:
-        #   https://github.com/microvm-nix/microvm.nix/blob/main/lib/runners/qemu.nix
-        #
-        # In our setup, this does not work because microvm uses socat to wait for input
-        # from stdio, which is /dev/null under systemd. As a result, the command returns
-        # immediately, systemd sees the process as still active, and kills it with SIGTERM.
-        #
-        # For system VMs, we replace ExecStop with custom logic:
-        #   1. Request a graceful shutdown by starting 'poweroff.target' inside the guest.
-        #   2. Wait until the associated QEMU process ($MAINPID) exits.
-        #
-        # We also shorten TimeoutStopSec from the microvm default (150s) to 30s,
-        # since system VMs are expected to power off quickly.
-        (mkIf useGivc (
-          lib.listToAttrs (
-            map
-              (
-                vmName:
-                nameValuePair "microvm@${vmName}" {
-                  serviceConfig = {
-                    TimeoutStopSec = "30";
-                    ExecStop =
-                      let
-                        sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
-                          echo "Starting poweroff target for system VM '${vmName}'"
-                          vm=''${${vmName}/-vm/}
-                          ${givc-cli} start service --vm '${vmName}' poweroff.target &
+            }
+          ))
+          # Override microvm’s default shutdown behavior
+          #
+          # By default, microvm attempts to shut down the VM by sending a Ctrl+Alt+Del
+          # sequence and waiting for a socket disconnect:
+          #   https://github.com/microvm-nix/microvm.nix/blob/main/lib/runners/qemu.nix
+          #
+          # In our setup, this does not work because microvm uses socat to wait for input
+          # from stdio, which is /dev/null under systemd. As a result, the command returns
+          # immediately, systemd sees the process as still active, and kills it with SIGTERM.
+          #
+          # For system VMs, we replace ExecStop with custom logic:
+          #   1. Request a graceful shutdown by starting 'poweroff.target' inside the guest.
+          #   2. Wait until the associated QEMU process ($MAINPID) exits.
+          #
+          # We also shorten TimeoutStopSec from the microvm default (150s) to 30s,
+          # since system VMs are expected to power off quickly.
+          (mkIf useGivc (
+            lib.listToAttrs (
+              map
+                (
+                  vmName:
+                  nameValuePair "microvm@${vmName}" {
+                    serviceConfig = {
+                      TimeoutStopSec = "30";
+                      ExecStop =
+                        let
+                          sysvm-stop = pkgs.writeShellScript "sysvm-stop" ''
+                            echo "Starting poweroff target for system VM '${vmName}'"
+                            vm=''${${vmName}/-vm/}
+                            ${givc-cli} start service --vm '${vmName}' poweroff.target &
 
-                          echo "Waiting for system VM '${vmName}' with QEMU PID=$MAINPID to stop"
-                          while kill -0 $MAINPID 2>/dev/null; do
-                            sleep 1
-                          done
-                          echo "System VM '${vmName}' with QEMU PID=$MAINPID stopped"
-                        '';
-                      in
-                      [
-                        # Clear previous microvm ExecStop logic
-                        ""
-                        # '+' allows the sysvm-stop script to be executed with full privileges
-                        "+${sysvm-stop}"
-                      ];
-                  };
-                }
-              )
-              (
-                lib.attrNames (
-                  filterAttrs (
-                    _: vm:
-                    let
-                      vmConfig = lib.ghaf.vm.getConfig vm;
-                    in
-                    vmConfig != null && vmConfig.ghaf.type == "system-vm" && vmConfig.ghaf.gracefulShutdown
-                  ) config.microvm.vms
+                            echo "Waiting for system VM '${vmName}' with QEMU PID=$MAINPID to stop"
+                            while kill -0 $MAINPID 2>/dev/null; do
+                              sleep 1
+                            done
+                            echo "System VM '${vmName}' with QEMU PID=$MAINPID stopped"
+                          '';
+                        in
+                        [
+                          # Clear previous microvm ExecStop logic
+                          ""
+                          # '+' allows the sysvm-stop script to be executed with full privileges
+                          "+${sysvm-stop}"
+                        ];
+                    };
+                  }
                 )
-              )
-          )
-        ))
-      ];
+                (
+                  lib.attrNames (
+                    filterAttrs (
+                      _: vm:
+                      let
+                        vmConfig = lib.ghaf.vm.getConfig vm;
+                      in
+                      vmConfig != null && vmConfig.ghaf.type == "system-vm" && vmConfig.ghaf.gracefulShutdown
+                    ) config.microvm.vms
+                  )
+                )
+            )
+          ))
+        ];
+      };
     })
   ]);
 }

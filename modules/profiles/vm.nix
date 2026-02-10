@@ -60,105 +60,115 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    # Export Net VM base
-    ghaf.profiles.vm.netvmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.netvm-base
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "net-vm";
-        };
-        # Note: netvm.wifi now controlled via globalConfig.features.wifi
-      };
-    };
-
-    # Export Audio VM base
-    ghaf.profiles.vm.audiovmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.audiovm-base
-        inputs.self.nixosModules.audiovm-features
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "audio-vm";
-        };
-        # Note: audiovm.audio now controlled via globalConfig.features.audio
-      };
-    };
-
-    # Export Admin VM base
-    ghaf.profiles.vm.adminvmBase = lib.nixosSystem {
-      modules = [
-        inputs.microvm.nixosModules.microvm
-        inputs.self.nixosModules.adminvm-base
-        inputs.self.nixosModules.adminvm-features
-        {
-          nixpkgs.hostPlatform.system = "x86_64-linux";
-          nixpkgs.overlays = config.nixpkgs.overlays;
-          nixpkgs.config = config.nixpkgs.config;
-        }
-      ];
-      specialArgs = lib.ghaf.vm.mkSpecialArgs {
-        inherit lib inputs;
-        globalConfig = hostGlobalConfig;
-        hostConfig = lib.ghaf.vm.mkHostConfig {
-          inherit config;
-          vmName = "admin-vm";
-        };
-      };
-    };
-
-    # Export mkAppVm function for creating App VMs
-    # Pure function - extensions are applied via extendModules in appvm.nix
-    ghaf.profiles.vm.mkAppVm =
-      vmDef:
-      lib.nixosSystem {
+    ghaf.profiles.vm = {
+      # Export Net VM base
+      netvmBase = lib.nixosSystem {
         modules = [
           inputs.microvm.nixosModules.microvm
-          inputs.self.nixosModules.appvm-base
+          inputs.self.nixosModules.netvm-base
           {
-            nixpkgs.hostPlatform.system = "x86_64-linux";
-            nixpkgs.overlays = config.nixpkgs.overlays;
-            nixpkgs.config = config.nixpkgs.config;
+            nixpkgs = {
+              hostPlatform.system = "x86_64-linux";
+              inherit (config.nixpkgs) overlays;
+              inherit (config.nixpkgs) config;
+            };
           }
         ];
         specialArgs = lib.ghaf.vm.mkSpecialArgs {
           inherit lib inputs;
           globalConfig = hostGlobalConfig;
-          hostConfig =
-            lib.ghaf.vm.mkHostConfig {
-              inherit config;
-              vmName = "${vmDef.name}-vm";
-            }
-            // {
-              # App VM-specific hostConfig fields
-              appvm = vmDef;
-              sharedVmDirectory =
-                config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
-                  enable = false;
-                  vms = [ ];
-                };
-            };
+          hostConfig = lib.ghaf.vm.mkHostConfig {
+            inherit config;
+            vmName = "net-vm";
+          };
+          # Note: netvm.wifi now controlled via globalConfig.features.wifi
         };
       };
+
+      # Export Audio VM base
+      audiovmBase = lib.nixosSystem {
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.audiovm-base
+          inputs.self.nixosModules.audiovm-features
+          {
+            nixpkgs = {
+              hostPlatform.system = "x86_64-linux";
+              inherit (config.nixpkgs) overlays;
+              inherit (config.nixpkgs) config;
+            };
+          }
+        ];
+        specialArgs = lib.ghaf.vm.mkSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig = lib.ghaf.vm.mkHostConfig {
+            inherit config;
+            vmName = "audio-vm";
+          };
+          # Note: audiovm.audio now controlled via globalConfig.features.audio
+        };
+      };
+
+      # Export Admin VM base
+      adminvmBase = lib.nixosSystem {
+        modules = [
+          inputs.microvm.nixosModules.microvm
+          inputs.self.nixosModules.adminvm-base
+          inputs.self.nixosModules.adminvm-features
+          {
+            nixpkgs = {
+              hostPlatform.system = "x86_64-linux";
+              inherit (config.nixpkgs) overlays;
+              inherit (config.nixpkgs) config;
+            };
+          }
+        ];
+        specialArgs = lib.ghaf.vm.mkSpecialArgs {
+          inherit lib inputs;
+          globalConfig = hostGlobalConfig;
+          hostConfig = lib.ghaf.vm.mkHostConfig {
+            inherit config;
+            vmName = "admin-vm";
+          };
+        };
+      };
+
+      # Export mkAppVm function for creating App VMs
+      # Pure function - extensions are applied via extendModules in appvm.nix
+      mkAppVm =
+        vmDef:
+        lib.nixosSystem {
+          modules = [
+            inputs.microvm.nixosModules.microvm
+            inputs.self.nixosModules.appvm-base
+            {
+              nixpkgs = {
+                hostPlatform.system = "x86_64-linux";
+                inherit (config.nixpkgs) overlays;
+                inherit (config.nixpkgs) config;
+              };
+            }
+          ];
+          specialArgs = lib.ghaf.vm.mkSpecialArgs {
+            inherit lib inputs;
+            globalConfig = hostGlobalConfig;
+            hostConfig =
+              lib.ghaf.vm.mkHostConfig {
+                inherit config;
+                vmName = "${vmDef.name}-vm";
+              }
+              // {
+                # App VM-specific hostConfig fields
+                appvm = vmDef;
+                sharedVmDirectory =
+                  config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
+                    enable = false;
+                    vms = [ ];
+                  };
+              };
+          };
+        };
+    };
   };
 }

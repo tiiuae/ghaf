@@ -433,81 +433,83 @@ in
 
     # Create key directory and journal directory via tmpfiles
     # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
-    systemd.tmpfiles.rules =
-      lib.optionals (config.ghaf.type == "host") [
-        "d /persist/common/journal-fss 0755 root root - -"
-        "d ${cfg.keyPath} 0700 root root - -"
-      ]
-      ++ [
-        "d /var/log/journal 0755 root systemd-journal - -"
-      ];
-
-    # One-shot service to generate FSS keys on first boot
-    # Runs after journald is ready, then restarts journald to enable sealing
-    systemd.services.journal-fss-setup = {
-      description = "Setup Forward Secure Sealing keys for systemd journal";
-      documentation = [ "man:journalctl(1)" ];
-
-      wantedBy = [ "multi-user.target" ];
-      after = [ "systemd-journald.service" ];
-      wants = [ "systemd-journald.service" ];
-
-      serviceConfig = {
-        Type = "oneshot";
-        RemainAfterExit = true;
-        ExecStart = getExe setupScript;
-      };
-    };
-
-    # Service to verify journal integrity
-    systemd.services.journal-fss-verify = {
-      description = "Verify systemd journal integrity using Forward Secure Sealing";
-      documentation = [ "man:journalctl(1)" ];
-
-      after = [
-        "systemd-journald.service"
-        "journal-fss-setup.service"
-      ];
-      wants = [
-        "systemd-journald.service"
-        "journal-fss-setup.service"
-      ];
-
-      unitConfig = {
-        # Only run if FSS setup has completed successfully
-        ConditionPathExists = "${cfg.keyPath}/initialized";
-      };
-
-      serviceConfig = {
-        Type = "oneshot";
-        ExecStart = getExe verifyScript;
-        WorkingDirectory = "/";
-
-        # File system access required for journal verification
-        # journalctl --verify needs write access to create verification metadata
-        # Also needs read access to verification key for sealed journal validation
-        ReadWritePaths = [
-          "/var/log/journal"
-          "/run/log/journal"
-          cfg.keyPath
+    systemd = {
+      tmpfiles.rules =
+        lib.optionals (config.ghaf.type == "host") [
+          "d /persist/common/journal-fss 0755 root root - -"
+          "d ${cfg.keyPath} 0700 root root - -"
+        ]
+        ++ [
+          "d /var/log/journal 0755 root systemd-journal - -"
         ];
+
+      # One-shot service to generate FSS keys on first boot
+      # Runs after journald is ready, then restarts journald to enable sealing
+      services.journal-fss-setup = {
+        description = "Setup Forward Secure Sealing keys for systemd journal";
+        documentation = [ "man:journalctl(1)" ];
+
+        wantedBy = [ "multi-user.target" ];
+        after = [ "systemd-journald.service" ];
+        wants = [ "systemd-journald.service" ];
+
+        serviceConfig = {
+          Type = "oneshot";
+          RemainAfterExit = true;
+          ExecStart = getExe setupScript;
+        };
       };
-    };
 
-    # Timer for periodic verification
-    systemd.timers.journal-fss-verify = {
-      description = "Timer for periodic journal integrity verification";
-      documentation = [ "man:journalctl(1)" ];
+      # Service to verify journal integrity
+      services.journal-fss-verify = {
+        description = "Verify systemd journal integrity using Forward Secure Sealing";
+        documentation = [ "man:journalctl(1)" ];
 
-      wantedBy = [ "timers.target" ];
+        after = [
+          "systemd-journald.service"
+          "journal-fss-setup.service"
+        ];
+        wants = [
+          "systemd-journald.service"
+          "journal-fss-setup.service"
+        ];
 
-      timerConfig = {
-        OnCalendar = cfg.verifySchedule;
-        Persistent = true;
-        RandomizedDelaySec = "5min";
-      }
-      // optionalAttrs cfg.verifyOnBoot {
-        OnBootSec = "10min";
+        unitConfig = {
+          # Only run if FSS setup has completed successfully
+          ConditionPathExists = "${cfg.keyPath}/initialized";
+        };
+
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = getExe verifyScript;
+          WorkingDirectory = "/";
+
+          # File system access required for journal verification
+          # journalctl --verify needs write access to create verification metadata
+          # Also needs read access to verification key for sealed journal validation
+          ReadWritePaths = [
+            "/var/log/journal"
+            "/run/log/journal"
+            cfg.keyPath
+          ];
+        };
+      };
+
+      # Timer for periodic verification
+      timers.journal-fss-verify = {
+        description = "Timer for periodic journal integrity verification";
+        documentation = [ "man:journalctl(1)" ];
+
+        wantedBy = [ "timers.target" ];
+
+        timerConfig = {
+          OnCalendar = cfg.verifySchedule;
+          Persistent = true;
+          RandomizedDelaySec = "5min";
+        }
+        // optionalAttrs cfg.verifyOnBoot {
+          OnBootSec = "10min";
+        };
       };
     };
 

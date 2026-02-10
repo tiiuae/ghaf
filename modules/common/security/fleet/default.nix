@@ -150,63 +150,92 @@ in
       }
     ];
 
-    systemd.services.orbit = {
-      description = "Orbit OSQuery";
-      wantedBy = [ "multi-user.target" ];
+    systemd = {
+      services.orbit = {
+        description = "Orbit OSQuery";
+        wantedBy = [ "multi-user.target" ];
 
-      after = [
-        "network.service"
-        "syslog.service"
-      ];
+        after = [
+          "network.service"
+          "syslog.service"
+        ];
 
-      unitConfig = lib.mkIf (cfg.hostnameFile != null) {
-        ConditionPathExists = cfg.hostnameFile;
+        unitConfig = lib.mkIf (cfg.hostnameFile != null) {
+          ConditionPathExists = cfg.hostnameFile;
+        };
+
+        environment = lib.mkMerge [
+          {
+            # Required config:
+            ORBIT_FLEET_URL = cfg.fleetUrl;
+            ORBIT_ENROLL_SECRET = cfg.enrollSecret;
+            ORBIT_ENROLL_SECRET_PATH = cfg.enrollSecretPath;
+
+            # Optional config:
+            ORBIT_DEBUG = nullOrBoolToString cfg.debug;
+            ORBIT_DEV_MODE = nullOrBoolToString cfg.devMode;
+            ORBIT_ENABLE_SCRIPTS = nullOrBoolToString cfg.enableScripts;
+            ORBIT_END_USER_EMAIL = cfg.endUserEmail;
+            ORBIT_FLEET_CERTIFICATE = cfg.fleetCertificate;
+            ORBIT_FLEET_DESKTOP_ALTERNATIVE_BROWSER_HOST = cfg.fleetDesktopAlternativeBrowserHost;
+            ORBIT_FLEET_MANAGED_HOST_IDENTITY_CERTIFICATE = nullOrBoolToString cfg.fleetManagedHostIdentityCertificate;
+            ORBIT_INSECURE = nullOrBoolToString cfg.insecure;
+
+            # Hardcoded variables to ensure we play nice with nix.
+            ORBIT_DISABLE_KEYSTORE = "true";
+            ORBIT_DISABLE_UPDATES = "true";
+            ORBIT_FLEET_DESKTOP = "false";
+            ORBIT_LOG_FILE = "${cfg.logDir}/orbit.log";
+            ORBIT_OSQUERY_DB = "${cfg.rootDir}/osquery.db";
+            ORBIT_ROOT_DIR = cfg.rootDir;
+            NIX_ORBIT_OSQUERYD_PATH = "${cfg.osqueryPackage}/bin/osqueryd";
+            NIX_ORBIT_OSQUERY_LOG_PATH = "${cfg.logDir}/osquery/";
+          }
+          (lib.optionalAttrs (cfg.hostnameFile != null) {
+            ORBIT_HOSTNAME_FILE = cfg.hostnameFile;
+            OSQUERY_HOSTNAME_FILE = cfg.hostnameFile;
+            OSQUERY_UUID_FILE = "/etc/common/ghaf/uuid";
+          })
+          (lib.optionalAttrs (cfg.hostIdentifier != null) {
+            ORBIT_HOST_IDENTIFIER = cfg.hostIdentifier;
+          })
+        ];
+
+        preStart = lib.mkIf (cfg.hostIdentifier == "specified") (lib.getExe orbitSpecifiedPreStart);
+
+        serviceConfig = {
+          ExecStart = lib.getExe cfg.orbitPackage;
+          TimeoutStartSec = 0;
+          Restart = "always";
+          RestartSec = 60;
+        };
       };
 
-      environment = lib.mkMerge [
-        {
-          # Required config:
-          ORBIT_FLEET_URL = cfg.fleetUrl;
-          ORBIT_ENROLL_SECRET = cfg.enrollSecret;
-          ORBIT_ENROLL_SECRET_PATH = cfg.enrollSecretPath;
-
-          # Optional config:
-          ORBIT_DEBUG = nullOrBoolToString cfg.debug;
-          ORBIT_DEV_MODE = nullOrBoolToString cfg.devMode;
-          ORBIT_ENABLE_SCRIPTS = nullOrBoolToString cfg.enableScripts;
-          ORBIT_END_USER_EMAIL = cfg.endUserEmail;
-          ORBIT_FLEET_CERTIFICATE = cfg.fleetCertificate;
-          ORBIT_FLEET_DESKTOP_ALTERNATIVE_BROWSER_HOST = cfg.fleetDesktopAlternativeBrowserHost;
-          ORBIT_FLEET_MANAGED_HOST_IDENTITY_CERTIFICATE = nullOrBoolToString cfg.fleetManagedHostIdentityCertificate;
-          ORBIT_INSECURE = nullOrBoolToString cfg.insecure;
-
-          # Hardcoded variables to ensure we play nice with nix.
-          ORBIT_DISABLE_KEYSTORE = "true";
-          ORBIT_DISABLE_UPDATES = "true";
-          ORBIT_FLEET_DESKTOP = "false";
-          ORBIT_LOG_FILE = "${cfg.logDir}/orbit.log";
-          ORBIT_OSQUERY_DB = "${cfg.rootDir}/osquery.db";
-          ORBIT_ROOT_DIR = cfg.rootDir;
-          NIX_ORBIT_OSQUERYD_PATH = "${cfg.osqueryPackage}/bin/osqueryd";
-          NIX_ORBIT_OSQUERY_LOG_PATH = "${cfg.logDir}/osquery/";
-        }
-        (lib.optionalAttrs (cfg.hostnameFile != null) {
-          ORBIT_HOSTNAME_FILE = cfg.hostnameFile;
-          OSQUERY_HOSTNAME_FILE = cfg.hostnameFile;
-          OSQUERY_UUID_FILE = "/etc/common/ghaf/uuid";
-        })
-        (lib.optionalAttrs (cfg.hostIdentifier != null) {
-          ORBIT_HOST_IDENTIFIER = cfg.hostIdentifier;
-        })
+      tmpfiles.rules = [
+        "d ${cfg.rootDir} 0755 root root -"
+        "d ${cfg.logDir} 0755 root root -"
       ];
 
-      preStart = lib.mkIf (cfg.hostIdentifier == "specified") (lib.getExe orbitSpecifiedPreStart);
+      # This service replaces the built in orbit logic for detecting running
+      # sessions and starting the fleet-desktop.
+      user.services."fleet-desktop" = {
+        description = "Fleet Desktop GUI";
+        after = [
+          "graphical-session.target"
+          "orbit.service"
+        ];
+        wantedBy = [ "graphical-session.target" ];
 
-      serviceConfig = {
-        ExecStart = lib.getExe cfg.orbitPackage;
-        TimeoutStartSec = 0;
-        Restart = "always";
-        RestartSec = 60;
+        environment = {
+          FLEET_DESKTOP_DEVICE_IDENTIFIER_PATH = "${cfg.rootDir}/identifier";
+          FLEET_DESKTOP_FLEET_URL = cfg.fleetUrl;
+        };
+
+        serviceConfig = {
+          ExecStart = "${cfg.fleetDesktopPackage}/bin/fleet-desktop";
+          Restart = "on-failure";
+          RestartSec = 10;
+        };
       };
     };
 
@@ -214,33 +243,6 @@ in
 
     environment.sessionVariables = {
       PATH = lib.mkAfter "$PATH:${pkgs.xdg-utils}/bin";
-    };
-
-    systemd.tmpfiles.rules = [
-      "d ${cfg.rootDir} 0755 root root -"
-      "d ${cfg.logDir} 0755 root root -"
-    ];
-
-    # This service replaces the built in orbit logic for detecting running
-    # sessions and starting the fleet-desktop.
-    systemd.user.services."fleet-desktop" = {
-      description = "Fleet Desktop GUI";
-      after = [
-        "graphical-session.target"
-        "orbit.service"
-      ];
-      wantedBy = [ "graphical-session.target" ];
-
-      environment = {
-        FLEET_DESKTOP_DEVICE_IDENTIFIER_PATH = "${cfg.rootDir}/identifier";
-        FLEET_DESKTOP_FLEET_URL = cfg.fleetUrl;
-      };
-
-      serviceConfig = {
-        ExecStart = "${cfg.fleetDesktopPackage}/bin/fleet-desktop";
-        Restart = "on-failure";
-        RestartSec = 10;
-      };
     };
   };
 }

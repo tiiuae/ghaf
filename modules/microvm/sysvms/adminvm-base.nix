@@ -64,6 +64,7 @@ in
 
     # System
     type = "admin-vm";
+
     systemd = {
       enable = true;
       withName = "adminvm-systemd";
@@ -75,6 +76,7 @@ in
       withDebug = globalConfig.debug.enable or false;
       withHardenedConfigs = true;
     };
+
     givc.adminvm.enable = true;
 
     # Enable dynamic hostname export for VMs
@@ -95,33 +97,37 @@ in
     };
 
     # Networking
-    virtualization.microvm.vm-networking = {
-      enable = true;
-      inherit vmName;
-    };
+    virtualization.microvm = {
+      vm-networking = {
+        enable = true;
+        inherit vmName;
+      };
 
-    virtualization.microvm.tpm.passthrough = {
-      # TPM passthrough is only supported on x86_64
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
-      rootNVIndex = "0x81701000";
-    };
+      tpm.passthrough = {
+        # TPM passthrough is only supported on x86_64
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+        rootNVIndex = "0x81701000"; # TPM2 NV index for admin-vm LUKS key
+      };
 
-    virtualization.microvm.tpm.emulated = {
-      # Use emulated TPM for non-x86_64 systems when encryption is enabled
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
-      name = vmName;
+      tpm.emulated = {
+        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+        name = vmName;
+      };
     };
 
     # Logging - from globalConfig
     logging = {
       inherit (globalConfig.logging) enable listener;
+
       server = {
         inherit (globalConfig.logging) enable;
         endpoint = globalConfig.logging.server.endpoint or "";
+
         tls = {
           remoteCAFile = null;
           certFile = "/etc/givc/cert.pem";
@@ -130,11 +136,12 @@ in
           minVersion = "TLS12";
 
           terminator = {
-            backendPort = 3101;
+            backendPort = 3101; # alloy server listens here
             verifyClients = true;
           };
         };
       };
+
       recovery.enable = true;
     };
 

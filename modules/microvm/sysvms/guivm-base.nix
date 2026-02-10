@@ -124,16 +124,15 @@ in
     # Networking hosts - from hostConfig
     # Required for vm-networking.nix to look up this VM's MAC/IP
     networking.hosts = hostConfig.networking.hosts or { };
-
     # Common namespace - from hostConfig
     # Required for killswitch, etc. to access hardware device info
     common = hostConfig.common or { };
-
     # Enable dynamic hostname export for VMs
     identity.vmHostNameExport.enable = true;
 
     # System
     type = "system-vm";
+
     systemd = {
       enable = true;
       withName = "guivm-systemd";
@@ -145,6 +144,7 @@ in
       withDebug = globalConfig.debug.enable or false;
       withHardenedConfigs = true;
     };
+
     # GIVC configuration - from globalConfig
     givc = {
       enable = globalConfig.givc.enable or false;
@@ -164,34 +164,38 @@ in
     };
 
     # Networking
-    virtualization.microvm.vm-networking = {
-      enable = true;
-      inherit vmName;
-    };
+    virtualization.microvm = {
+      vm-networking = {
+        enable = true;
+        inherit vmName;
+      };
 
-    virtualization.microvm.tpm.passthrough = {
-      # TPM passthrough is only supported on x86_64
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
-      rootNVIndex = "0x81703000";
-    };
+      tpm.passthrough = {
+        # TPM passthrough is only supported on x86_64
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+        rootNVIndex = "0x81703000"; # TPM2 NV index for gui-vm LUKS key
+      };
 
-    virtualization.microvm.tpm.emulated = {
-      # Use emulated TPM for non-x86_64 systems when encryption is enabled
-      enable =
-        (globalConfig.storage.encryption.enable or false)
-        && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
-      name = vmName;
+      tpm.emulated = {
+        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+        name = vmName;
+      };
     };
 
     # Create launchers for regular apps running in the GUIVM and virtualized ones if GIVC is enabled
     graphics = {
       boot = {
-        enable = true; # Enable graphical boot on gui-vm
-        renderer = "gpu"; # Use GPU for graphical boot in gui-vm
+        enable = true;
+        renderer = "gpu";
       };
+
       launchers = guivmLaunchers ++ lib.optionals (globalConfig.givc.enable or false) virtualLaunchers;
+
       cosmic = {
         securityContext.rules = map (vm: {
           identifier = vm.name;
@@ -221,6 +225,7 @@ in
       brightness.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName);
 
       user-provisioning.enable = true;
+
       audio = {
         enable = true;
         role = "client";
@@ -228,10 +233,12 @@ in
           pipewireControl.enable = true;
         };
       };
+
       power-manager = {
         vm.enable = true;
         gui.enable = true;
       };
+
       kill-switch.enable = true;
 
       performance = {
@@ -247,13 +254,11 @@ in
       };
 
       timezone.enable = true;
-
       locale.enable = true;
-
       disks.enable = true;
     };
-    xdgitems.enable = true;
 
+    xdgitems.enable = true;
     security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
   };
 
