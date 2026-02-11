@@ -6,23 +6,23 @@
 # This module configures the first-boot Ghaf introduction autostart service.
 # It watches for COSMIC initial setup completion and launches the intro app.
 #
-# This module is auto-included when ghaf.reference.services.ghaf-intro.enable is true.
+# This module is auto-included when ghaf-intro is enabled in the reference desktop config.
 #
 {
   lib,
   pkgs,
-  globalConfig,
+  hostConfig,
   ...
 }:
 let
-  # Only enable if ghaf-intro service is enabled in globalConfig
-  ghafIntroEnabled = globalConfig.reference.services.ghaf-intro.enable or false;
+  # Only enable if ghaf-intro is enabled in the host's reference desktop config
+  ghafIntroEnabled = hostConfig.reference.desktop.ghaf-intro.enable or false;
 
-  # Get the intro command from reference services config
+  # Launch ghaf-intro in chrome-vm via givc-cli (it's a Chrome-based app)
   introCommand =
     let
       wrapper = pkgs.writeShellScriptBin "ghaf-intro-autostart" ''
-        ${pkgs.ghaf-intro}/bin/ghaf-intro
+        ${pkgs.givc-cli}/bin/givc-cli ${hostConfig.givc.cliArgs or ""} start app --vm chrome-vm ghaf-intro
       '';
     in
     "${lib.getExe wrapper}";

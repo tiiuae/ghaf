@@ -172,6 +172,12 @@ rec {
           default = "";
           description = "Shared memory server socket path";
         };
+
+        flataddr = mkOption {
+          type = types.str;
+          default = "0x920000000";
+          description = "Maps the shared memory to a physical address for kvm_ivshmem";
+        };
       };
 
       # Graphics/boot UI settings
@@ -672,9 +678,10 @@ rec {
         # User configuration (complex, kept as-is for now)
         users = config.ghaf.users or { };
 
-        # Reference services (profile-specific)
+        # Reference config (profile-specific)
         reference = {
           services = config.ghaf.reference.services or { };
+          desktop = config.ghaf.reference.desktop or { };
         };
 
         # Networking info (IP addresses, CIDs, etc. for this VM and others)
