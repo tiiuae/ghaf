@@ -85,9 +85,13 @@ in
 
     ghaf.graphics.boot.enable = lib.mkForce (!debugEnable); # FIXME: temporary
 
+    # Show pretty name in bootloader
+    system.nixos.extraOSReleaseArgs = {
+      PRETTY_NAME = "Ghaf ${config.ghaf.version}"; # FIXME: Probably too global override
+    };
     boot = {
       kernelParams = [
-        "storehash=${roothashPlaceholder}" # See `ghaf-store-veritysetup.enable` for details
+        "ghaf.storehash=${roothashPlaceholder}" # See `ghaf-store-veritysetup.enable` for details
         "systemd.verity_root_options=panic-on-corruption"
         "ghaf.revision=${config.ghaf.version}" # Help ghaf-veritysetup-generator to find root and verity volumes
       ]

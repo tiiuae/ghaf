@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
+import hashlib
 import sys
 import json
 import os
@@ -17,6 +18,14 @@ def rename(filename, version, fragment):
     os.rename(filename, new)
     print(f"{filename} -> {new}")
     return new
+
+
+def sha256_file(path: str) -> str:
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def main():
@@ -48,15 +57,15 @@ def main():
         "root_verity_hash": root_verity_hash,
         "root": {
             "file": os.path.basename(store),
-            "sha256": "fixme",
+            "sha256": sha256_file(store),
         },
         "verity": {
             "file": os.path.basename(verity),
-            "sha256": "fixme",
+            "sha256": sha256_file(verity),
         },
         "kernel": {
             "file": os.path.basename(kernel),
-            "sha256": "fixme",
+            "sha256": sha256_file(kernel),
         },
     }
     manifest = json.dumps(manifest, indent=True)

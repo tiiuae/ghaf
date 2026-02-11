@@ -158,7 +158,7 @@
 
     nix-store-veritysetup-generator = {
       # FIXME: Move to github:tiiuae
-      url = "github:avnik/nix-store-veritysetup-generator?ref=avnik/ghaf";
+      url = "github:avnik/nix-store-veritysetup-generator/ghaf";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
