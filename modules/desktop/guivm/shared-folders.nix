@@ -7,17 +7,18 @@
 # change notifications. This allows the file manager to automatically
 # refresh when files change in shared folders.
 #
-# This module is auto-included when ghaf.storagevm.shared-folders.enable is true.
+# This module is auto-included when config.ghaf.storagevm.shared-folders.enable is true.
 #
 {
+  config,
   lib,
   pkgs,
-  globalConfig,
   ...
 }:
 let
-  # Only enable if shared folders are enabled in globalConfig
-  sharedFoldersEnabled = globalConfig.storagevm.shared-folders.enable or false;
+  # Only enable if shared folders are enabled in the VM's own config
+  # (set by guivm-base.nix: ghaf.storagevm.shared-folders.enable = true)
+  sharedFoldersEnabled = config.ghaf.storagevm.shared-folders.enable or false;
 in
 {
   _file = ./shared-folders.nix;

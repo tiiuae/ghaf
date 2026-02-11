@@ -210,7 +210,7 @@ in
                 "high"
               ];
               description = "Boot priority for the VM (affects systemd ordering)";
-              default = "low";
+              default = "medium";
             };
           };
         }

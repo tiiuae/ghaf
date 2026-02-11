@@ -15,10 +15,10 @@
 #     }
 #
 # Feature modules auto-include based on:
-#   - boot-ui.nix: ghaf.graphics.boot.enable
-#   - shared-folders.nix: ghaf.storagevm.shared-folders.enable
-#   - shared-mem.nix: ghaf.virtualization.microvm.sharedMem.enable
-#   - ghaf-intro.nix: ghaf.reference.services.ghaf-intro.enable
+#   - boot-ui.nix: globalConfig.graphics.boot.enable
+#   - shared-folders.nix: config.ghaf.storagevm.shared-folders.enable (VM-local)
+#   - shared-mem.nix: globalConfig.shm.enable
+#   - ghaf-intro.nix: hostConfig.reference.desktop.ghaf-intro.enable
 #
 # Note: Waypipe configuration is not included here as it requires host-level
 # access to microvm.vms for iterating over AppVMs. It's contributed via
