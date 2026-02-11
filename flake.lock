@@ -376,11 +376,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1770056534,
-        "narHash": "sha256-4wilF3UXnEipfPEWdzKlrEqdfTe+qv/stmfWXDH8qZk=",
+        "lastModified": 1770726058,
+        "narHash": "sha256-sIAq2qaO+30aFYG24exCdrzB4l5V3mNblXvZcl1XEfg=",
         "owner": "avnik",
         "repo": "ghaf-givc",
-        "rev": "d16905a4d9e8a719d784a396e0bf0256f47078fd",
+        "rev": "a42fbd870a99b6f61943b6172eb2559bd9ec3c6e",
         "type": "github"
       },
       "original": {
@@ -483,16 +483,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1770055812,
-        "narHash": "sha256-V8WssZDbIazyuTZ5y3RWTKHwf58NzoFCvAruafabAVQ=",
+        "lastModified": 1770738456,
+        "narHash": "sha256-9cYLP+UeItZISv/3VkYOwbk0I7yc2Am/P8oUhLMNscM=",
         "owner": "avnik",
         "repo": "nix-store-veritysetup-generator",
-        "rev": "0f15732ad862e97be810d46fd2d22310e2bef843",
+        "rev": "a26e5f0e8541997ac67f4589752a60584c89487c",
         "type": "github"
       },
       "original": {
         "owner": "avnik",
-        "ref": "avnik/ghaf",
+        "ref": "ghaf",
         "repo": "nix-store-veritysetup-generator",
         "type": "github"
       }

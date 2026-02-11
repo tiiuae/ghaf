@@ -42,6 +42,9 @@ in
 
       # FSS (Forward Secure Sealing) integrity test
       fss-test
+
+      # For debug complicated issues
+      pkgs.strace
     ]
     ++ rmDesktopEntries [
       pkgs.htop
