@@ -1,0 +1,91 @@
+---
+title: Release ghaf-26.01.1
+sidebar:
+  order: 9972
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.01.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Lenovo T14 AMD
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+- NXP i.MX 8M Plus
+
+## What's Changed
+* idle: use cosmic-idle, allow runtime idle config adjustment by @kajusnau in https://github.com/tiiuae/ghaf/pull/1693
+* storedisk: add release version of darter pro by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1700
+* efitools: add to ghaf host by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1702
+* dynamic-hostname: persist identity by @vadika in https://github.com/tiiuae/ghaf/pull/1699
+* login: fix empty password softlock by @kajusnau in https://github.com/tiiuae/ghaf/pull/1698
+* build(deps): bump github/codeql-action from 4.31.10 to 4.31.11 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1707
+* build(deps): bump step-security/harden-runner from 2.14.0 to 2.14.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1706
+* build(deps): bump actions/checkout from 6.0.1 to 6.0.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1705
+* jetpack: bump and include initrd fix by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1709
+* docs: bump the latest packages by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1710
+* refactor(about): remove server and add autostart by @mbssrc in https://github.com/tiiuae/ghaf/pull/1703
+* feat(2fa): Enable 2FA token request proxying by @slakkala in https://github.com/tiiuae/ghaf/pull/1681
+* fix: acs override to separate iommu groups by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1711
+* logging: prevent stalls on rotated journald entries by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1712
+* bump: mid jan by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1701
+* bump: get the latest jetpack cuda fixes by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1714
+* systemd: Add overlay for systemd to change token prompts type by @vunnyso in https://github.com/tiiuae/ghaf/pull/1695
+* Fix broken builds by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1716
+* initial-setup: disable screen reader by default by @kajusnau in https://github.com/tiiuae/ghaf/pull/1717
+* ubuntu: create a script for enabling nix dev environment by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1718
+* bump: docs by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1720
+* efitools: add to aarch64 also by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1719
+* bump: start feb bump by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1721
+* Log audit phase 1 by @juliuskoskela in https://github.com/tiiuae/ghaf/pull/1539
+* wifi: patch cosmic to not use secret agent auth by @kajusnau in https://github.com/tiiuae/ghaf/pull/1727
+
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/client-release1...ghaf-26.01.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* Local user login with Yubikey does not work
+* Gala app does not get connected
+* Audio applet does not show devices and volume control does not work
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| (System76) Suspension has been disabled | In Progress | Will be fixed in next release |
+| (X1) Downloading large file (10G) crashes the browser                                                          | In progress | Issue is under investigation                                               |
+| (X1) Unlock with fingerprint doesn't work                            | In Progress                                                       | Issue is under investigation
+| Laptop is not locked or suspended when the lid is closed | In Progress | Issue is under investigation |
+| Ping flooding doesn't trigger blacklisting | In Progress | Will be fixed in next release |
+| Cosmic settings timezone change does not work | In Progress | Issue is under investigation |
+| Screenshot is not saved to Pictures | In Progress | Workaround: Creating Pictures folder manually and saving then |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| If suspended, device doesn't wake-up                                            | In Progress | Issue is under investigation                       |
+| Locking the device from power menu doesn't work | In Progress | Issue is under investigation |
+| Unlocking from lock screen does not work | In Progress | Issue is under investigation |
+| Device boots to black screen with only cursor blinking | In Progress | Workaround: Boot with display connected or launch login screen manually by ctrl+C |
+| GUI login does not work | In Progress | Issue is under investigation |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/ghaf-26.01.1/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run).
