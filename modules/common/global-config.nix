@@ -37,6 +37,9 @@
       timeZone = lib.mkDefault (if config.time.timeZone != null then config.time.timeZone else "UTC");
     };
 
+    # Propagate host storeOnDisk setting to global-config for VMs
+    ghaf.global-config.storage.storeOnDisk = lib.mkIf config.ghaf.virtualization.microvm.storeOnDisk true;
+
     # Auto-populate logging listener address from admin-vm IP
     # The logging listener always runs on admin-vm, so derive the address
     # from hosts.nix rather than requiring each profile to set it manually.
