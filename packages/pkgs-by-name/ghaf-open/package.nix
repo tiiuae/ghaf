@@ -11,32 +11,121 @@ writeShellApplication {
   runtimeInputs = [ gawk ];
   text = ''
     APPS=/run/current-system/sw/share/applications
+    RED="\e[31m"
+    ENDCOLOR="\e[0m"
 
-    function list_apps() {
-      for e in "$APPS"/*.desktop; do
-        [[ -e "$e" ]] || continue  # in case of no entries
+    help_msg() {
+        cat <<EOF
+    Usage: $(basename "$0") [OPTIONS] [APPLICATION] [ARGS...]
 
-        basename "$e" .desktop
-      done
+    Options:
+        -l, --list            List available applications by their Name field and exit.
+        -h, --help            Show this help message and exit.
+
+    Examples:
+        $(basename "$0") slack
+        $(basename "$0") --list
+    EOF
     }
 
-    if [ $# -eq 0 ]; then
-      echo -e "Usage: ghaf-open <-l|application> [args...]\n"
-      echo -e "\t-l\tList available applications"
-      exit 1
+    extract_exec() {
+        awk -F= '
+        /^Exec=/ {
+            cmd=$2
+            gsub(/ %[fFuUdDnNickvm]/, "", cmd)
+            print cmd
+            exit
+        }
+        ' "$1"
+    }
+
+    list_apps() {
+        for de in "$APPS"/*.desktop; do
+            # Skip entries without Exec field
+            grep -qE '^Exec=.+$' "$de" || continue
+            # Skip entries with NoDisplay=true
+            grep -q 'NoDisplay=true' "$de" && continue
+            # Prefer Name, fall back to filename
+            name=$(awk -F= '
+                /^Name=/ {
+                    print $2
+                    found=1
+                    exit
+                }
+                END {
+                    if (!found) {
+                        gsub(/^.*\//, "", FILENAME)
+                        gsub(/\.desktop$/, "", FILENAME)
+                        print FILENAME
+                    }
+                }
+            ' "$de")
+            echo "$name"
+        done
+    }
+
+    run_app() {
+        APP=
+        echo "Trying to find application by Name..."
+
+        shopt -s dotglob
+        for de in "$APPS"/*.desktop; do
+            awk -F= -v name="$1" '
+                BEGIN { in_section=0; n=0; e=0; nd=0 }
+
+                /^\[Desktop Entry\]/ { in_section=1; next }
+                /^\[/ { in_section=0 }
+
+                in_section && /^Name=/      { n = ($2 == name) }
+                in_section && /^Exec=/      { e = 1 }
+                in_section && /^NoDisplay=/ { nd = ($2 == "true") }
+
+                END { exit !(n && e && !nd) }
+            ' "$de" && {
+                APP="$de"
+                break
+            }
+        done
+        shopt -u dotglob
+
+        if [[ -z "$APP" ]]; then
+            echo "Trying to find application by filename..."
+            if [[ -f "$APPS/$1.desktop" ]]; then
+                APP="$APPS/$1.desktop"
+            fi
+        fi
+        if [[ -z "$APP" ]]; then
+            echo -e "''${RED}No application found with 'Name=$1' or filename '$1.desktop' ''${ENDCOLOR}" >&2
+            return 1
+        fi
+        echo "Found $APP"
+        exec_cmd=$(extract_exec "$APP")
+        if [[ -n "$exec_cmd" ]]; then
+            echo "Starting application from $APP with command: $exec_cmd"
+            eval "$exec_cmd ''${*:2}"
+            return 0
+        else
+            echo "Desktop entry $APP has no 'Exec' field" >&2
+            return 1
+        fi
+    }
+
+    if [[ $# -lt 1 ]]; then
+        help_msg
+        exit 0
     fi
 
-    if [ "$1" = "-l" ]; then
-      list_apps
-      exit 0
-    fi
-
-    if [ ! -e "$APPS/$1.desktop" ]; then
-      echo "No launcher entry for $1"
-      exit 1
-    fi
-
-    eval "$(awk '/^Exec=/{sub(/^Exec=/, ""); print}' "$APPS/$1.desktop") ''${*:2}"
+    case "$1" in
+    -l | --list)
+        list_apps
+        ;;
+    -h | --help)
+        help_msg
+        ;;
+    *)
+        run_app "$1" "''${*:2}"
+        ;;
+    esac
   '';
   meta = {
     description = "Open applications from the command line";
