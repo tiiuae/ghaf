@@ -169,7 +169,8 @@ in
     # from hardware.definition.netvm.extraModules if needed
   };
 
-  time.timeZone = globalConfig.platform.timeZone or "UTC";
+  # Allow runtime timezone changes via GIVC set-timezone.
+  time.timeZone = null;
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {

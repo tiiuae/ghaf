@@ -73,5 +73,18 @@ in
         wantedBy = [ "graphical.target" ];
       };
     };
+
+    security.polkit = {
+      enable = true;
+      extraConfig = ''
+        // Allow users to set locale (needed for COSMIC Settings)
+        polkit.addRule(function(action, subject) {
+        if (action.id == "org.freedesktop.locale1.set-locale" &&
+            subject.isInGroup ("users")) {
+          return polkit.Result.YES;
+          }
+        });
+      '';
+    };
   };
 }

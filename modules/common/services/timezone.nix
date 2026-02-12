@@ -71,5 +71,18 @@ in
         wantedBy = [ "graphical.target" ];
       };
     };
+
+    security.polkit = {
+      enable = true;
+      extraConfig = ''
+        // Allow users to set timezone (needed for COSMIC Settings)
+        polkit.addRule(function(action, subject) {
+        if (action.id == "org.freedesktop.timedate1.set-timezone" &&
+            subject.isInGroup ("users")) {
+          return polkit.Result.YES;
+          }
+        });
+      '';
+    };
   };
 }
