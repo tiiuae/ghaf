@@ -40,6 +40,19 @@ in
 
   ghaf = {
     type = "system-vm";
+
+    systemd = {
+      enable = true;
+      withName = "idsvm-systemd";
+      withLocaled = true;
+      withNss = true;
+      withPolkit = true;
+      withResolved = true;
+      withTimesyncd = true;
+      withDebug = globalConfig.debug.enable or false;
+      withHardenedConfigs = true;
+    };
+
     profiles.debug.enable = lib.mkDefault (globalConfig.debug.enable or false);
 
     # MiTM proxy feature - from globalConfig
