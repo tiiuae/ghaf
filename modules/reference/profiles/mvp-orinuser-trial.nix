@@ -35,6 +35,12 @@ in
           ../services
           ../personalize
           { ghaf.reference.personalize.keys.enable = true; }
+          # Forward host reference services config to netvm
+          {
+            ghaf.reference.services = {
+              inherit (config.ghaf.reference.services) enable dendrite;
+            };
+          }
         ];
       };
 
