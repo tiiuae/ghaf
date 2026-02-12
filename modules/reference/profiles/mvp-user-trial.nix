@@ -56,7 +56,17 @@ in
               ../services
               ../programs
               ../personalize
-              { ghaf.reference.personalize.keys.enable = true; }
+              {
+                ghaf.reference.personalize.keys.enable = true;
+                # Forward host reference services config to guivm
+                ghaf.reference.services = {
+                  inherit (config.ghaf.reference.services)
+                    enable
+                    alpaca-ollama
+                    wireguard-gui
+                    ;
+                };
+              }
               # Feature modules (auto-include based on feature flags)
               inputs.self.nixosModules.guivm-desktop-features
             ]
@@ -93,6 +103,22 @@ in
               ../services
               ../personalize
               { ghaf.reference.personalize.keys.enable = true; }
+              # Forward host reference services config to netvm
+              {
+                ghaf.reference.services = {
+                  inherit (config.ghaf.reference.services)
+                    enable
+                    dendrite
+                    proxy-business
+                    ;
+                  google-chromecast = {
+                    inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
+                  };
+                  chromecast = {
+                    inherit (config.ghaf.reference.services.chromecast) externalNic internalNic;
+                  };
+                };
+              }
             ]
             ++ lib.ghaf.vm.applyVmConfig {
               inherit config;
