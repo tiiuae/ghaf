@@ -178,7 +178,8 @@ in
     ++ lib.optional (config.ghaf.development.debug.tools.enable or false) pkgs.alsa-utils;
   };
 
-  time.timeZone = globalConfig.platform.timeZone or "UTC";
+  # Allow runtime timezone changes via GIVC set-timezone.
+  time.timeZone = null;
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {

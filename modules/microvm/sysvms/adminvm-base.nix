@@ -159,7 +159,8 @@ in
   };
 
   system.stateVersion = lib.trivial.release;
-  time.timeZone = globalConfig.platform.timeZone or "UTC";
+  # Allow runtime timezone changes via GIVC set-timezone.
+  time.timeZone = null;
 
   nixpkgs = {
     buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";

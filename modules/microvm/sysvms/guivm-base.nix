@@ -139,6 +139,7 @@ in
       withHomed = true;
       withLocaled = true;
       withNss = true;
+      withPolkit = true;
       withResolved = true;
       withTimesyncd = true;
       withDebug = globalConfig.debug.enable or false;
@@ -348,7 +349,9 @@ in
     );
   };
 
-  time.timeZone = globalConfig.platform.timeZone or "UTC";
+  # Allow runtime timezone changes via timedatectl/COSMIC settings.
+  # Setting to null prevents NixOS from blocking timedatectl set-timezone.
+  time.timeZone = null;
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {
