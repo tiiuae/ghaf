@@ -56,6 +56,7 @@ let
     # ============================================================
     # Debug Configurations
     # ============================================================
+    # keep-sorted start block=yes skip_lines=1 newline_separated=yes by_regex=\sname\s=\s\"(.*)\"
 
     (ghaf-configuration {
       name = "alienware-m18-R2";
@@ -339,10 +340,12 @@ let
         partitioning.disko.enable = true;
       };
     })
+    # keep-sorted end
 
     # ============================================================
     # Release Configurations
     # ============================================================
+    # keep-sorted start block=yes skip_lines=1 newline_separated=yes by_regex=\sname\s=\s\"(.*)\"
 
     (ghaf-configuration {
       name = "alienware-m18-R2";
@@ -576,6 +579,7 @@ let
         ];
       };
     })
+    # keep-sorted end
   ];
 
   # Map all of the defined configurations to an installer image
