@@ -41,11 +41,16 @@ in
         vtpm.enable = lib.mkDefault true;
         applications = [
           {
-            name = "Element";
+            name = "electron";
+            desktopName = "Element";
+            categories = [
+              "InstantMessaging"
+              "Chat"
+            ];
             description = "General Messaging Application";
             packages = [ pkgs.element-desktop ];
             icon = "element-desktop";
-            command = "element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland";
+            exec = "element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland";
             extraModules = [
               {
                 imports = [
@@ -60,16 +65,23 @@ in
             ];
           }
           {
-            name = "Slack";
+            name = "chrome-app.slack.com__client-Default";
+            desktopName = "Slack";
+            categories = [
+              "InstantMessaging"
+              "Chat"
+            ];
             description = "Teams Collaboration & Messaging Application";
             icon = "slack";
-            command = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
+            exec = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.slack.com/client ${config.ghaf.givc.idsExtraArgs}";
           }
           {
-            name = "Zoom";
+            name = "chrome-app.zoom.us__wc_home-Default";
+            desktopName = "Zoom";
+            categories = [ "VideoConference" ];
             description = "Zoom Videoconferencing Application";
             icon = "Zoom";
-            command = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
+            exec = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
           }
         ];
         extraModules = [

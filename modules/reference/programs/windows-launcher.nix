@@ -35,8 +35,9 @@ in
     ghaf.graphics.launchers = lib.mkIf (!cfg.spice) [
       {
         name = "Windows";
+        desktopName = "Windows";
         description = "Virtualized Windows System";
-        execPath = "${windows-launcher}/bin/windows-launcher-ui";
+        exec = "${windows-launcher}/bin/windows-launcher-ui";
         icon = "distributor-logo-windows";
       }
     ];

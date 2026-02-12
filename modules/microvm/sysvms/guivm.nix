@@ -46,30 +46,7 @@ in
       description = ''
         Applications to include in the GUIVM
       '';
-      type = lib.types.listOf (
-        lib.types.submodule {
-          options = {
-            name = lib.mkOption {
-              type = lib.types.str;
-              description = "The name of the application";
-            };
-            description = lib.mkOption {
-              type = lib.types.str;
-              description = "A brief description of the application";
-            };
-            icon = lib.mkOption {
-              type = lib.types.str;
-              description = "Application icon";
-              default = null;
-            };
-            command = lib.mkOption {
-              type = lib.types.str;
-              description = "The command to run the application";
-              default = null;
-            };
-          };
-        }
-      );
+      type = lib.types.listOf lib.types.ghafApplication;
       default = [ ];
     };
   };

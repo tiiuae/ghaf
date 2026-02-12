@@ -36,11 +36,16 @@ in
         vtpm.enable = lib.mkDefault true;
         applications = [
           {
-            name = "PDF Viewer";
+            name = "org.pwmt.zathura";
+            desktopName = "PDF Viewer";
+            categories = [
+              "Office"
+              "Viewer"
+            ];
             description = "Isolated PDF Viewer";
             packages = [ pkgs.zathura ];
             icon = "document-viewer";
-            command = "zathura";
+            exec = "zathura";
             extraModules = [
               {
                 imports = [ ../programs/zathura.nix ];

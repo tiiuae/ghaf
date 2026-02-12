@@ -20,19 +20,26 @@ in
     enable = mkEnableOption "desktop applications";
   };
   config = mkIf cfg.enable {
+    ghaf.hardware.definition.guivm.extraModules = [
+      {
+        # Default desktop files are always preferred
+        environment.systemPackages = with pkgs; [
+          gnome-calculator
+          sticky-notes
+        ];
+      }
+    ];
     ghaf.virtualization.microvm.guivm.applications = [
       {
-        name = "Calculator";
-        description = "Solve Math Problems";
-        icon = "${pkgs.gnome-calculator}/share/icons/hicolor/scalable/apps/org.gnome.Calculator.svg";
-        command = "${pkgs.gnome-calculator}/bin/gnome-calculator";
-      }
-
-      {
-        name = "Bluetooth Settings";
+        name = ".blueman-manager-wrapped";
+        desktopName = "Bluetooth Settings";
+        categories = [
+          "System"
+          "Settings"
+        ];
         description = "Manage Bluetooth Devices & Settings";
         icon = "bluetooth-48";
-        command = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
+        exec = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
           DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock \
           PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.server.pulseaudioTcpControlPort} \
           ${pkgs.blueman}/bin/blueman-manager
@@ -40,25 +47,29 @@ in
       }
 
       {
-        name = "Ghaf Control Panel";
+        name = "ctrl-panel";
+        desktopName = "Ghaf Control Panel";
+        categories = [
+          "System"
+          "Settings"
+        ];
         description = "Ghaf Control Panel";
         icon = "utilities-tweak-tool";
-        command = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
-      }
-
-      {
-        name = "Sticky Notes";
-        description = "Sticky Notes on your Desktop";
-        icon = "${pkgs.sticky-notes}/share/icons/hicolor/scalable/apps/com.vixalien.sticky.svg";
-        command = "${pkgs.sticky-notes}/bin/com.vixalien.sticky";
+        exec = "${pkgs.ctrl-panel}/bin/ctrl-panel ${config.ghaf.givc.cliArgs}";
       }
     ]
     ++ lib.optionals config.ghaf.reference.services.alpaca-ollama [
       {
-        name = "Falcon AI";
+        name = "com.jeffser.Alpaca";
+        desktopName = "Falcon AI";
+        categories = [
+          "Utility"
+          "Development"
+          "Chat"
+        ];
         description = "Your local large language model, developed by TII";
         icon = "${pkgs.ghaf-artwork}/icons/falcon-icon.svg";
-        command = "${falcon-launcher}/bin/falcon-launcher";
+        exec = "${falcon-launcher}/bin/falcon-launcher";
       }
     ]
     ++ lib.optionals config.ghaf.reference.programs.windows-launcher.enable (
@@ -68,9 +79,10 @@ in
       [
         {
           name = "Windows";
+          desktopName = "Windows";
           description = "Virtualized Windows System";
           icon = "distributor-logo-windows";
-          command = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
+          exec = "${pkgs.virt-viewer}/bin/remote-viewer -f spice://${winConfig.spice-host}:${toString winConfig.spice-port}";
         }
       ]
     );

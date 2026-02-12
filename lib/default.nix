@@ -61,41 +61,8 @@ in
 
   types = prev.types // {
     networking = lib.types.submodule {
+      # keep-sorted start skip_lines=1 block=yes newline_separated=yes
       options = {
-        name = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          description = "Host name as string.";
-          default = null;
-        };
-
-        mac = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          description = "MAC address as string.";
-          default = null;
-        };
-        ipv4 = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          description = "IPv4 address as string.";
-          default = null;
-        };
-        ipv6 = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          description = "IPv6 address as string.";
-          default = null;
-        };
-        ipv4SubnetPrefixLength = lib.mkOption {
-          type = lib.types.nullOr lib.types.int;
-          default = null;
-          description = "The IPv4 subnet prefix length (e.g. 24 for 255.255.255.0)";
-          example = 24;
-        };
-
-        interfaceName = lib.mkOption {
-          type = lib.types.nullOr lib.types.str;
-          default = null;
-          description = "Name of the network interface.";
-        };
-
         cid = lib.mkOption {
           type = lib.types.nullOr lib.types.int;
           default = null;
@@ -106,11 +73,118 @@ in
             - VMADDR_CID_HOST (2) is the well-known address of the host
           '';
         };
+
+        interfaceName = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+          description = "Name of the network interface.";
+        };
+
+        ipv4 = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "IPv4 address as string.";
+          default = null;
+        };
+
+        ipv4SubnetPrefixLength = lib.mkOption {
+          type = lib.types.nullOr lib.types.int;
+          default = null;
+          description = "The IPv4 subnet prefix length (e.g. 24 for 255.255.255.0)";
+          example = 24;
+        };
+
+        ipv6 = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "IPv6 address as string.";
+          default = null;
+        };
+
+        mac = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "MAC address as string.";
+          default = null;
+        };
+
+        name = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "Host name as string.";
+          default = null;
+        };
+
       };
+      # keep-sorted end
     };
 
     # Global configuration type for ghaf.global-config
     globalConfig = globalConfigLib.globalConfigType;
+
+    ghafApplication = lib.types.submodule {
+      # keep-sorted start skip_lines=1 block=yes
+      options = {
+        categories = lib.mkOption {
+          description = "The `Categories` of the desktop entry; see https://specifications.freedesktop.org/menu-spec/1.0/category-registry.html for possible values";
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+        };
+        description = lib.mkOption {
+          type = lib.types.str;
+          description = "The `Comment` of the desktop entry";
+        };
+        desktopName = lib.mkOption {
+          type = lib.types.str;
+          description = "The `Name` of the desktop entry";
+          default = "";
+        };
+        exec = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = ''
+            The `Exec` of the desktop entry.
+            If `vm` is set, this command will be executed in the target VM.
+          '';
+          default = null;
+        };
+        extraModules = lib.mkOption {
+          type = lib.types.listOf lib.types.attrs;
+          description = "Additional modules required for the application";
+          default = [ ];
+        };
+        genericName = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "The `GenericName` of the desktop entry";
+          default = null;
+        };
+        givcArgs = lib.mkOption {
+          description = "GIVC arguments for the application";
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+        };
+        icon = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "The `Icon` of the desktop entry";
+          default = null;
+        };
+        name = lib.mkOption {
+          type = lib.types.str;
+          description = "The name of the desktop file (excluding the .desktop or .directory file extensions)";
+        };
+        packages = lib.mkOption {
+          type = lib.types.listOf lib.types.package;
+          description = "Packages required for this application";
+          default = [ ];
+        };
+        startupWMClass = lib.mkOption {
+          type = lib.types.nullOr lib.types.str;
+          description = "The `StartupWMClass` of the desktop entry";
+          default = null;
+        };
+        vm = lib.mkOption {
+          description = "VM name in case this launches an isolated application.";
+          type = lib.types.nullOr lib.types.str;
+          default = null;
+        };
+      };
+      # keep-sorted end
+    };
   };
 
   # Launcher utilities (remove desktop entries from packages)

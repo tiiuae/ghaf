@@ -44,41 +44,23 @@ let
   brightnessEnabled = lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName;
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
-  inherit (lib) rmDesktopEntries;
-
-  # Options for GUIVM applications (passed via hostConfig)
-  guivmApplications = hostConfig.guivm.applications or [ ];
 
   # A list of applications from all AppVMs (accessed via hostConfig)
   enabledVms = lib.filterAttrs (_: vm: vm.enable) (hostConfig.appvms or { });
   virtualApps = lib.lists.concatMap (
-    vm: map (app: app // { vmName = "${vm.name}-vm"; }) vm.applications
+    vm: map (app: app // { vm = "${vm.name}-vm"; }) vm.applications
   ) (lib.attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) enabledVms);
 
   # Launchers for all virtualized applications that run in AppVMs
   virtualLaunchers = map (
     app:
-    let
-      # Generate givcName from app name if not provided (same logic as appvm-base.nix)
-      givcName = app.givcName or (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.name));
-    in
-    {
-      inherit (app) name;
-      inherit (app) description;
-      vm = app.vmName;
-      # Use givc settings from hostConfig
-      execPath = "${pkgs.givc-cli}/bin/givc-cli ${hostConfig.givc.cliArgs or ""} start app --vm ${app.vmName} ${givcName}";
-      inherit (app) icon;
+    app
+    // {
+      exec = "${pkgs.givc-cli}/bin/givc-cli ${hostConfig.givc.cliArgs} start app --vm ${app.vm} ${
+        lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.desktopName)
+      }";
     }
   ) virtualApps;
-
-  # Launchers for all desktop, non-virtualized applications that run in the GUIVM
-  guivmLaunchers = map (app: {
-    inherit (app) name;
-    inherit (app) description;
-    execPath = app.command;
-    inherit (app) icon;
-  }) guivmApplications;
 in
 {
   _file = ./guivm-base.nix;
@@ -200,7 +182,8 @@ in
         renderer = "gpu";
       };
 
-      launchers = guivmLaunchers ++ lib.optionals (globalConfig.givc.enable or false) virtualLaunchers;
+      launchers =
+        hostConfig.guivm.applications ++ lib.optionals (globalConfig.givc.enable or false) virtualLaunchers;
 
       cosmic = {
         securityContext.rules = map (vm: {
@@ -324,22 +307,19 @@ in
   };
 
   environment = {
-    systemPackages =
-      (rmDesktopEntries [
-        pkgs.waypipe
-        pkgs.gnome-calculator
-        pkgs.sticky-notes
-      ])
-      ++ [ pkgs.ctrl-panel ]
-      # For GIVC debugging/testing
-      ++ lib.optional (globalConfig.debug.enable or false) pkgs.givc-cli
-      # Packages for checking hardware acceleration
-      ++ lib.optionals (globalConfig.debug.enable or false) [
-        pkgs.mesa-demos
-        pkgs.libva-utils
-        pkgs.glib
-      ]
-      ++ [ pkgs.vhotplug ];
+    systemPackages = [
+      pkgs.ctrl-panel
+      pkgs.waypipe
+    ]
+    # For GIVC debugging/testing
+    ++ lib.optional (globalConfig.debug.enable or false) pkgs.givc-cli
+    # Packages for checking hardware acceleration
+    ++ lib.optionals (globalConfig.debug.enable or false) [
+      pkgs.mesa-demos
+      pkgs.libva-utils
+      pkgs.glib
+    ]
+    ++ [ pkgs.vhotplug ];
     sessionVariables = lib.optionalAttrs (globalConfig.debug.enable or false) (
       {
         GIVC_NAME = "admin-vm";

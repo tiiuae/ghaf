@@ -151,14 +151,19 @@ in
         vtpm.enable = lib.mkDefault true;
         applications = [
           {
-            name = "App Store";
+            name = "com.system76.CosmicStore";
+            desktopName = "App Store";
+            categories = [
+              "System"
+              "PackageManager"
+            ];
             description = "App Store to install Flatpak applications";
             packages = [
               pkgs.cosmic-store
               runAppCenter
             ];
             icon = "rocs";
-            command = "run-flatpak";
+            exec = "run-flatpak";
           }
         ];
         extraModules = [
