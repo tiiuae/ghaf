@@ -212,6 +212,14 @@ in
         # mkAppVm no longer needs to read host-level options.
         mkAppVm =
           vmDef:
+          let
+            # Apply vmConfig.appvms overrides (ramMb, cores)
+            vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
+            effectiveDef =
+              vmDef
+              // lib.optionalAttrs (vmCfg.ramMb or null != null) { inherit (vmCfg) ramMb; }
+              // lib.optionalAttrs (vmCfg.cores or null != null) { inherit (vmCfg) cores; };
+          in
           lib.nixosSystem {
             modules = [
               inputs.microvm.nixosModules.microvm
@@ -224,18 +232,19 @@ in
                   inherit (config.nixpkgs) config;
                 };
               }
-            ];
+            ]
+            ++ (vmCfg.extraModules or [ ]);
             specialArgs = lib.ghaf.vm.mkSpecialArgs {
               inherit lib inputs;
               globalConfig = hostGlobalConfig;
               hostConfig =
                 lib.ghaf.vm.mkHostConfig {
                   inherit config;
-                  vmName = "${vmDef.name}-vm";
+                  vmName = "${effectiveDef.name}-vm";
                 }
                 // {
                   # App VM-specific hostConfig fields
-                  appvm = vmDef;
+                  appvm = effectiveDef;
                   # Pass shared directory config for storage
                   sharedVmDirectory =
                     config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
