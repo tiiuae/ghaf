@@ -284,7 +284,7 @@ in
 
     ghaf.graphics = {
       login-manager.enable = true;
-      login-manager.failLock.enable = false;
+      login-manager.failLock.enable = true;
     };
 
     ghaf.graphics.screen-recorder.enable = cfg.screenRecorder.enable;
