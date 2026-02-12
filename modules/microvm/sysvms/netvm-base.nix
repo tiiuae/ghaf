@@ -74,6 +74,7 @@ in
       enable = true;
       withName = "netvm-systemd";
       withLocaled = true;
+      withNss = true;
       withPolkit = true;
       withResolved = true;
       withTimesyncd = true;

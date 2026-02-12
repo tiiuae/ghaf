@@ -67,6 +67,7 @@ in
       withAudio = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
       withBluetooth = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
       withNss = true;
+      withPolkit = true;
       withResolved = true;
       withTimesyncd = true;
       withDebug = globalConfig.debug.enable or false;
