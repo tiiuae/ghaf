@@ -41,11 +41,13 @@ in
             # The SPKI fingerprint is calculated like this:
             # $ openssl x509 -noout -in mitmproxy-ca-cert.pem -pubkey | openssl asn1parse -noout -inform pem -out public.key
             # $ openssl dgst -sha256 -binary public.key | openssl enc -base64
-            name = "Chromium";
+            name = "chromium-browser";
+            desktopName = "Chromium";
+            categories = [ "WebBrowser" ];
             description = "Isolated General Browsing";
             packages = [ pkgs.chromium ];
             icon = "chromium";
-            command = "chromium --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
+            exec = "chromium --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland ${config.ghaf.givc.idsExtraArgs}";
             givcArgs = [
               "url"
               "flag"

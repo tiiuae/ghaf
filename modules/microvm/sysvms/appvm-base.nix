@@ -10,7 +10,7 @@
 # Each instance is configured via hostConfig.appvm which contains:
 #   - name: VM name (e.g., "chromium", "comms")
 #   - mem, vcpu: Resource allocation
-#   - applications: List of apps with name, command, packages, etc.
+#   - applications: List of ghafApplication type with name, exec, packages, etc.
 #   - packages: Additional packages for the VM
 #   - vtpm, waypipe, ghafAudio: Feature flags
 #   - extraModules: Additional modules for this specific appvm
@@ -84,8 +84,6 @@ in
     # Applications option for extensions to add apps
     # Extensions use: ghaf.appvm.applications = [{ name = "..."; ... }];
     applications = lib.mkOption {
-      type = lib.types.listOf lib.types.attrs;
-      default = [ ];
       description = ''
         Additional applications added via extensions.
         These are merged with base applications from mkAppVm.
@@ -94,6 +92,8 @@ in
         Note: Extension applications' extraModules should be added
         directly as part of the extension module, not via app.extraModules.
       '';
+      type = lib.types.listOf lib.types.ghafApplication;
+      default = [ ];
     };
 
     # Export vmDef so host can read values from evaluatedConfig.config.ghaf.appvm.vmDef
@@ -112,8 +112,8 @@ in
 
       # Process applications for GIVC
       givcApps = map (app: {
-        name = app.givcName or (lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.name));
-        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.command}";
+        name = lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.desktopName);
+        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.exec}";
         args = app.givcArgs or [ ];
       }) allApplications;
 

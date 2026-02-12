@@ -115,6 +115,7 @@ let
       "$CHROME_BIN" --enable-features=UseOzonePlatform \
         --ozone-platform=wayland \
         --disable-gpu \
+        --class=google-chrome-business \
         --hide-crash-restore-bubble \
         --no-first-run \
         ${config.ghaf.givc.idsExtraArgs} \
@@ -135,6 +136,7 @@ in
     # DRY: Only enable, evaluatedConfig, and usbPassthrough at host level.
     # All values (name, mem, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.business = {
+
       enable = lib.mkDefault true;
 
       usbPassthrough = [
@@ -157,11 +159,13 @@ in
         yubiProxy = true;
         applications = [
           {
-            name = "Trusted Browser";
+            name = "google-chrome-business";
+            desktopName = "Trusted Browser";
+            categories = [ "WebBrowser" ];
             description = "Isolated Trusted Browsing";
             packages = [ trustedBrowserWrapper ];
             icon = "thorium-browser";
-            command = "trusted-browser-wrapper";
+            exec = "trusted-browser-wrapper";
             givcArgs = [ "url" ];
             extraModules = [
               {
@@ -204,35 +208,57 @@ in
             ];
           }
           {
-            name = "Microsoft Outlook";
+            name = "chrome-outlook.office.com__mail_-Default";
+            desktopName = "Microsoft Outlook";
+            categories = [
+              "Email"
+              "Calendar"
+            ];
             description = "Microsoft Email Client";
             icon = "ms-outlook";
-            command = "trusted-browser-wrapper --app=https://outlook.office.com/mail/";
+            exec = "trusted-browser-wrapper --app=https://outlook.office.com/mail/";
           }
           {
-            name = "Microsoft 365";
+            name = "chrome-microsoft365.com__-Default";
+            desktopName = "Microsoft 365";
+            categories = [ "Office" ];
             description = "Microsoft 365 Software Suite";
             icon = "microsoft-365";
-            command = "trusted-browser-wrapper --app=https://microsoft365.com";
+            exec = "trusted-browser-wrapper --app=https://microsoft365.com";
           }
           {
-            name = "Teams";
+            name = "chrome-teams.microsoft.com__-Default";
+            desktopName = "Teams";
             description = "Microsoft Teams Collaboration Application";
+            categories = [
+              "Office"
+              "VideoConference"
+            ];
             icon = "teams-for-linux";
-            command = "trusted-browser-wrapper --app=https://teams.microsoft.com";
+            exec = "trusted-browser-wrapper --app=https://teams.microsoft.com";
           }
           {
-            name = "Gala";
+            name = "chrome-gala.atrc.azure-atrc.androidinthecloud.net__-Default";
+            desktopName = "Gala";
+            categories = [
+              "Network"
+              "Utility"
+            ];
             description = "Secure Android-in-the-Cloud";
             icon = "distributor-logo-android";
-            command = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
+            exec = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
           }
           {
             name = "VPN";
+            desktopName = "VPN";
             description = "GlobalProtect VPN Client";
+            categories = [
+              "Network"
+              "Settings"
+            ];
             packages = [ pkgs.gp-gui ];
             icon = "yast-vpn";
-            command = "gp-gui";
+            exec = "gp-gui";
             extraModules = [
               {
                 imports = [ inputs.gp-gui.nixosModules.default ];

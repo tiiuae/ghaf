@@ -88,6 +88,10 @@ let
               vmProfile = config.ghaf.profiles.vm;
             in
             {
+              environment.systemPackages = lib.optionals withGraphics [
+                pkgs.gnome-calculator
+              ];
+
               ghaf = {
                 # Enable the VM profile (creates netvmBase, audiovmBase, adminvmBase, mkAppVm)
                 profiles.vm.enable = true;
@@ -159,16 +163,11 @@ let
                 # Add some launchers for host GUI
                 graphics.launchers = lib.optionals withGraphics [
                   {
-                    name = "Calculator";
-                    description = "Solve Math Problems";
-                    icon = "${pkgs.gnome-calculator}/share/icons/hicolor/scalable/apps/org.gnome.Calculator.svg";
-                    execPath = "${pkgs.gnome-calculator}/bin/gnome-calculator";
-                  }
-                  {
-                    name = "Bluetooth Settings";
+                    name = ".blueman-manager-wrapped";
+                    desktopName = "Bluetooth Settings";
                     description = "Manage Bluetooth Devices & Settings";
                     icon = "bluetooth-48";
-                    execPath = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
+                    exec = "${pkgs.writeShellScriptBin "bluetooth-settings" ''
                       DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_snd.sock \
                       PULSE_SERVER=audio-vm:${toString config.ghaf.services.audio.server.pulseaudioTcpControlPort} \
                       ${pkgs.blueman}/bin/blueman-manager

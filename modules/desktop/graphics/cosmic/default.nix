@@ -297,7 +297,7 @@ in
           adwaita-icon-theme
           ghaf-wallpapers
           grim # promptless screenshot for test automation
-          (import ../launchers-pkg.nix { inherit pkgs config; })
+          (import ../launchers-pkg.nix { inherit pkgs config lib; })
         ]
         ++ [ (lib.hiPrio ghaf-cosmic-config) ];
       sessionVariables = {
