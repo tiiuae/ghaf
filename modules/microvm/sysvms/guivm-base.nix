@@ -235,6 +235,7 @@ in
       };
 
       power-manager = {
+        enable = globalConfig.services.power-manager.enable or false;
         vm.enable = true;
         gui.enable = true;
       };

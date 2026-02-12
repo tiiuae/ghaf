@@ -189,8 +189,11 @@ in
         kill-switch.enable = true;
       };
 
-      # Propagate performance enable to VMs via global-config
-      global-config.services.performance.enable = true;
+      # Propagate power and perf enable to VMs via global-config
+      global-config.services = {
+        power-manager.enable = true;
+        performance.enable = true;
+      };
     };
   };
 }
