@@ -16,18 +16,30 @@
   ...
 }:
 let
-  # Wait for ghaf-session to become active
+  # Wait for UID>=1000 session to become active with valid seat
   wait-for-session = pkgs.writeShellApplication {
     name = "wait-for-session";
     runtimeInputs = [
       pkgs.systemd
-      pkgs.coreutils
+      pkgs.jq
     ];
     text = ''
-      # Loop until ghaf-session.target is active
-      while ! systemctl --user is-active ghaf-session.target > /dev/null 2>&1; do
+      echo "Waiting for user to login..."
+      USER_ID=1
+      while [ "$USER_ID" -lt 1000 ]; do
+        tmp_id=$(loginctl list-sessions --json=short | jq -e '.[] | select(.seat != null) | .uid') || true
+        [[ "$tmp_id" =~ ^[0-9]+$ ]] && USER_ID="$tmp_id" || USER_ID=1
         sleep 1
       done
+      echo "User with ID=$USER_ID is now active"
+
+      echo "Waiting for user-session to be running..."
+      state="inactive"
+      while [[ "$state" != "active" ]]; do
+        state=$(systemctl --user is-active session.slice --machine="$USER_ID"@.host) || true
+        sleep 1
+      done
+      echo "User-session is active"
     '';
   };
 
