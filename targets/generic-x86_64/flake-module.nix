@@ -12,7 +12,6 @@
   ...
 }:
 let
-  inherit (inputs) nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
   generic-x86 =
@@ -43,7 +42,13 @@ let
           inherit inputs; # Required for microvm modules
         };
         modules = [
-          nixos-generators.nixosModules.raw-efi
+          (
+            { modulesPath, ... }:
+            {
+              imports = [ "${modulesPath}/virtualisation/disk-image.nix" ];
+              image.format = "raw";
+            }
+          )
           self.nixosModules.microvm
           self.nixosModules.hardware-x86_64-generic
           self.nixosModules.profiles
@@ -87,8 +92,7 @@ let
               };
             in
             {
-              # https://github.com/nix-community/nixos-generators/blob/master/formats/raw-efi.nix#L24-L29
-              system.build.raw = lib.mkOverride 98 (
+              system.build.image = lib.mkOverride 98 (
                 import "${toString modulesPath}/../lib/make-disk-image.nix" {
                   inherit lib config pkgs;
                   partitionTableType = "efi";
@@ -172,7 +176,7 @@ let
     {
       inherit hostConfiguration;
       name = "${name}-${variant}";
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.image;
     };
   debugModules = [ { ghaf.development.usb-serial.enable = true; } ];
   targets = [

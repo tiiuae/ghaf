@@ -26,11 +26,6 @@ Ghaf relies on a carefully curated set of external dependencies and repositories
 **Purpose**: Modular flake architecture framework
 **Usage**: Organizes Ghaf's modular structure with clean separation of concerns
 
-#### nixos-generators
-**Source**: `github:nix-community/nixos-generators`
-**Purpose**: Multiple output format generation (ISO, VM images, etc.)
-**Usage**: Creates bootable images and VM formats for different platforms
-
 ### Hardware and Platform Support
 
 #### nixos-hardware
@@ -173,8 +168,7 @@ All dependencies are pinned to specific commits to ensure:
 ```
 ghaf
 ├── nixpkgs (core)
-│   ├── flake-parts
-│   └── nixos-generators
+│   └── flake-parts
 ├── hardware-support
 │   ├── nixos-hardware
 │   ├── jetpack-nixos

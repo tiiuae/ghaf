@@ -13,8 +13,24 @@
   ...
 }:
 let
-  inherit (inputs) nixos-generators;
   system = "x86_64-linux";
+  buildAttrs = {
+    vm = "vm";
+    vmware = "vmwareImage";
+  };
+  formatModules = {
+    vm =
+      { modulesPath, lib, ... }:
+      {
+        imports = [ "${modulesPath}/virtualisation/qemu-vm.nix" ];
+        virtualisation.diskSize = lib.mkDefault (2 * 1024);
+      };
+    vmware =
+      { modulesPath, ... }:
+      {
+        imports = [ "${modulesPath}/virtualisation/vmware-image.nix" ];
+      };
+  };
   vm =
     format: variant: withGraphics:
     let
@@ -24,7 +40,7 @@ let
           inherit inputs;
         };
         modules = [
-          (builtins.getAttr format nixos-generators.nixosModules)
+          formatModules.${format}
           self.nixosModules.profiles-vm
           self.nixosModules.hardware-x86_64-generic
 
@@ -248,7 +264,7 @@ let
     {
       inherit hostConfiguration;
       name = "${format}-${variant}";
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.${buildAttrs.${format}};
     };
   targets = [
     (vm "vm" "debug" true)

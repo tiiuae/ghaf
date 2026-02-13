@@ -17,7 +17,7 @@ let
   cfg = config.ghaf.hardware.nvidia.orin;
 
   # sdImage containing ESP and root partitions (compressed)
-  images = config.system.build.${config.formatAttr};
+  images = config.system.build.sdImage;
 
   # Partition XML with placeholders (substituted at flash time by preFlashCommands)
   partitionsEmmc = pkgs.writeText "sdmmc.xml" ''

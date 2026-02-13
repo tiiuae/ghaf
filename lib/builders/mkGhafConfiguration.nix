@@ -41,7 +41,7 @@
 #     name              - Full configuration name (e.g., "lenovo-x1-carbon-gen11-debug")
 #     variant           - The variant type
 #     hostConfiguration - The NixOS system configuration
-#     package           - The build output (ghafImage or formatAttr)
+#     package           - The build output (ghafImage)
 #     extendHost        - Function to extend host with additional modules
 #     extendVm          - Function to extend a specific VM
 #     getVmConfig       - Function to get a VM's final configuration
@@ -142,12 +142,8 @@ let
 
       # Full configuration name
       fullName = "${name}-${variant}";
-      # Determine the package output based on profile
-      package =
-        if profile == "orin" then
-          hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr}
-        else
-          hostConfiguration.config.system.build.ghafImage;
+      # Determine the package output
+      package = hostConfiguration.config.system.build.ghafImage;
 
       # Recursive reference for composition helpers
       mkGhafConfiguration' = args: (import ./mkGhafConfiguration.nix { inherit self inputs lib; }) args;
