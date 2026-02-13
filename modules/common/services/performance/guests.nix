@@ -5,6 +5,7 @@
   config,
   lib,
   mkTunedScript,
+  tunedNoDesktop,
   ...
 }:
 let
@@ -222,15 +223,22 @@ in
     (mkIf cfg.gui.enable {
       services.system76-scheduler = {
         inherit (cfg.gui.scheduler) enable;
+        useStockConfig = false;
         settings = {
           processScheduler = {
             refreshInterval = 30;
+            pipewireBoost.enable = false;
+            # cosmic-comp still lacks integration with s76-scheduler
+            foregroundBoost.enable = false;
+            useExecsnoop = true;
           };
+          cfsProfiles.enable = false;
         };
         assignments = guiVmSchedulerAssignments;
       };
       services.tuned = {
         inherit (cfg.gui.tuned) enable;
+        package = tunedNoDesktop;
         ppdSupport = true;
         settings.profile_dirs = "/etc/tuned/profiles,${
           concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
