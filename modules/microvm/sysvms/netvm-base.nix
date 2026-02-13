@@ -25,6 +25,9 @@
 }:
 let
   vmName = "net-vm";
+  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
+  performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
 in
 {
   _file = ./netvm-base.nix;
@@ -126,21 +129,24 @@ in
     services = {
       # WiFi service - controlled via globalConfig.features
       # Configure via ghaf.global-config.features.wifi.{enable, targetVms}
-      wifi.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName);
+      wifi.enable = lib.mkDefault wifiEnabled;
 
       firmware.enable = true;
 
-      power-manager.vm = {
-        enable = pkgs.stdenv.hostPlatform.isx86;
-        pciSuspendServices = [
-          "NetworkManager.service"
-          "wpa_supplicant.service"
-        ];
+      power-manager = {
+        enable = lib.mkDefault powerManagerEnabled;
+        vm = {
+          enable = pkgs.stdenv.hostPlatform.isx86;
+          pciSuspendServices = [
+            "NetworkManager.service"
+            "wpa_supplicant.service"
+          ];
+        };
       };
 
       performance = {
-        enable = globalConfig.services.performance.enable or false;
-        net.enable = true;
+        enable = lib.mkDefault performanceEnabled;
+        net.enable = pkgs.stdenv.hostPlatform.isx86;
       };
     };
 

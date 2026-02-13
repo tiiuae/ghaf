@@ -39,6 +39,11 @@
 }:
 let
   vmName = "gui-vm";
+  fprintEnabled = lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName;
+  yubikeyEnabled = lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName;
+  brightnessEnabled = lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName;
+  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
+  performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   inherit (lib) rmDesktopEntries;
 
   # Options for GUIVM applications (passed via hostConfig)
@@ -221,9 +226,9 @@ in
       # Configure via ghaf.global-config.features.{fprint,yubikey,brightness}
       # Each feature has: enable (global toggle) and targetVms (list of VMs)
       # Use lib.ghaf.features.isEnabledFor to check if feature is enabled for this VM
-      fprint.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName);
-      yubikey.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "yubikey" vmName);
-      brightness.enable = lib.mkDefault (lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName);
+      fprint.enable = lib.mkDefault fprintEnabled;
+      yubikey.enable = lib.mkDefault yubikeyEnabled;
+      brightness.enable = lib.mkDefault brightnessEnabled;
 
       user-provisioning.enable = true;
 
@@ -236,7 +241,7 @@ in
       };
 
       power-manager = {
-        enable = globalConfig.services.power-manager.enable or false;
+        enable = lib.mkDefault powerManagerEnabled;
         vm.enable = true;
         gui.enable = true;
       };
@@ -244,7 +249,7 @@ in
       kill-switch.enable = true;
 
       performance = {
-        enable = globalConfig.services.performance.enable or false;
+        enable = lib.mkDefault performanceEnabled;
         gui.enable = true;
       };
 

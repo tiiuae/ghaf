@@ -26,6 +26,10 @@
 }:
 let
   vmName = "audio-vm";
+  audioEnabled = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
+  bluetoothEnabled = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
+  powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
+  performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
 in
 {
   _file = ./audiovm-base.nix;
@@ -54,7 +58,7 @@ in
         "audio"
         "pipewire"
       ]
-      ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName) "bluetooth";
+      ++ lib.optional bluetoothEnabled "bluetooth";
     };
 
     # System
@@ -64,8 +68,8 @@ in
       enable = true;
       withName = "audiovm-systemd";
       withLocaled = true;
-      withAudio = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
-      withBluetooth = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
+      withAudio = lib.mkDefault audioEnabled;
+      withBluetooth = lib.mkDefault bluetoothEnabled;
       withNss = true;
       withPolkit = true;
       withResolved = true;
@@ -113,7 +117,7 @@ in
     # Services
     services = {
       audio = {
-        enable = lib.ghaf.features.isEnabledFor globalConfig "audio" vmName;
+        enable = lib.mkDefault audioEnabled;
         role = "server";
         server.pipewireForwarding.enable = true;
       };
@@ -121,20 +125,18 @@ in
       firmware.enable = true;
 
       power-manager = {
-        enable = globalConfig.services.power-manager.enable or false;
+        enable = lib.mkDefault powerManagerEnabled;
         vm = {
           enable = true;
           pciSuspendServices =
-            lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.socket"
-            ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "audio" vmName) "pipewire.service"
-            ++ lib.optional (lib.ghaf.features.isEnabledFor globalConfig "bluetooth"
-              vmName
-            ) "bluetooth.service";
+            lib.optional audioEnabled "pipewire.socket"
+            ++ lib.optional audioEnabled "pipewire.service"
+            ++ lib.optional bluetoothEnabled "bluetooth.service";
         };
       };
 
       performance = {
-        enable = globalConfig.services.performance.enable or false;
+        enable = lib.mkDefault performanceEnabled;
         vm.enable = true;
       };
     };

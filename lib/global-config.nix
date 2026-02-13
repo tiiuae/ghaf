@@ -26,7 +26,7 @@
 #   }
 { lib }:
 let
-  inherit (lib) mkOption types;
+  inherit (lib) mkOption mkEnableOption types;
 in
 rec {
   # Type definition for global config options
@@ -34,49 +34,29 @@ rec {
   globalConfigType = types.submodule {
     options = {
       debug = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable debug mode globally (host and all VMs)";
-        };
+        enable = mkEnableOption "debug mode globally (host and all VMs)";
       };
 
       development = {
         ssh = {
           daemon = {
-            enable = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Enable SSH daemon globally";
-            };
+            enable = mkEnableOption "SSH daemon globally";
           };
         };
 
         debug = {
           tools = {
-            enable = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Enable debug tools globally";
-            };
+            enable = mkEnableOption "debug tools globally";
           };
         };
 
         nix-setup = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable Nix development setup globally";
-          };
+          enable = mkEnableOption "Nix development setup globally";
         };
       };
 
       logging = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable logging globally";
-        };
+        enable = mkEnableOption "logging globally";
 
         listener = {
           address = mkOption {
@@ -103,53 +83,23 @@ rec {
 
       security = {
         audit = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable security auditing globally";
-          };
+          enable = mkEnableOption "security auditing globally";
         };
       };
 
       givc = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable GIVC (Ghaf Inter-VM Communication) globally";
-        };
+        enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
 
         debug = mkOption {
           type = types.bool;
           default = false;
-          description = "Enable GIVC debug mode";
-        };
-      };
-
-      services = {
-        power-manager = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable power manager service globally";
-          };
-        };
-
-        performance = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable performance service globally";
-          };
+          description = "Whether to enable GIVC debug mode";
         };
       };
 
       storage = {
         encryption = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable storage encryption globally";
-          };
+          enable = mkEnableOption "storage encryption globally";
         };
 
         storeOnDisk = mkOption {
@@ -161,11 +111,7 @@ rec {
 
       # Shared memory configuration
       shm = {
-        enable = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Enable shared memory for inter-VM communication";
-        };
+        enable = mkEnableOption "shared memory for inter-VM communication";
 
         serverSocketPath = mkOption {
           type = types.str;
@@ -183,22 +129,14 @@ rec {
       # Graphics/boot UI settings
       graphics = {
         boot = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable graphical boot support (splash screen, user login detection)";
-          };
+          enable = mkEnableOption "graphical boot support (splash screen, user login detection)";
         };
       };
 
       # IDS VM specific settings
       idsvm = {
         mitmproxy = {
-          enable = mkOption {
-            type = types.bool;
-            default = false;
-            description = "Enable MITM proxy in IDS VM for traffic inspection";
-          };
+          enable = mkEnableOption "MITM proxy in IDS VM for traffic inspection";
         };
       };
 
@@ -241,10 +179,8 @@ rec {
       features = {
         # Hardware authentication services
         fprint = {
-          enable = mkOption {
-            type = types.bool;
+          enable = mkEnableOption "fingerprint authentication support" // {
             default = true;
-            description = "Enable fingerprint authentication support";
           };
           targetVms = mkOption {
             type = types.listOf types.str;
@@ -258,10 +194,8 @@ rec {
         };
 
         yubikey = {
-          enable = mkOption {
-            type = types.bool;
+          enable = mkEnableOption "Yubikey 2FA support" // {
             default = true;
-            description = "Enable Yubikey 2FA support";
           };
           targetVms = mkOption {
             type = types.listOf types.str;
@@ -275,10 +209,8 @@ rec {
         };
 
         brightness = {
-          enable = mkOption {
-            type = types.bool;
+          enable = mkEnableOption "brightness control via VirtIO" // {
             default = true;
-            description = "Enable brightness control via VirtIO";
           };
           targetVms = mkOption {
             type = types.listOf types.str;
@@ -289,10 +221,8 @@ rec {
 
         # Networking services
         wifi = {
-          enable = mkOption {
-            type = types.bool;
+          enable = mkEnableOption "WiFi networking support" // {
             default = true;
-            description = "Enable WiFi networking support";
           };
           targetVms = mkOption {
             type = types.listOf types.str;
@@ -303,10 +233,8 @@ rec {
 
         # Audio services
         audio = {
-          enable = mkOption {
-            type = types.bool;
+          enable = mkEnableOption "audio services" // {
             default = true;
-            description = "Enable audio services";
           };
           targetVms = mkOption {
             type = types.listOf types.str;
@@ -316,15 +244,31 @@ rec {
         };
 
         bluetooth = {
-          enable = mkOption {
-            type = types.bool;
+          enable = mkEnableOption "Bluetooth support" // {
             default = true;
-            description = "Enable Bluetooth support";
           };
           targetVms = mkOption {
             type = types.listOf types.str;
             default = [ "audio-vm" ];
             description = "VMs that should have Bluetooth support";
+          };
+        };
+
+        power-manager = {
+          enable = mkEnableOption "Ghaf power management";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "VMs where Ghaf power management should be enabled";
+          };
+        };
+
+        performance = {
+          enable = mkEnableOption "Ghaf performance and PPD profiles";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "VMs where Ghaf performance and PPD profiles should be enabled";
           };
         };
       };
@@ -396,11 +340,6 @@ rec {
         debug = false;
       };
 
-      services = {
-        power-manager.enable = false;
-        performance.enable = false;
-      };
-
       storage = {
         encryption.enable = false;
         storeOnDisk = false;
@@ -437,6 +376,22 @@ rec {
           enable = true;
           targetVms = [ "audio-vm" ];
         };
+        power-manager = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "audio-vm"
+            "net-vm"
+          ];
+        };
+        performance = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "audio-vm"
+            "net-vm"
+          ];
+        };
       };
     };
 
@@ -456,11 +411,6 @@ rec {
       givc = {
         enable = true;
         debug = false;
-      };
-
-      services = {
-        power-manager.enable = true;
-        performance.enable = true;
       };
 
       storage = {
@@ -499,6 +449,22 @@ rec {
           enable = true;
           targetVms = [ "audio-vm" ];
         };
+        power-manager = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "audio-vm"
+            "net-vm"
+          ];
+        };
+        performance = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "audio-vm"
+            "net-vm"
+          ];
+        };
       };
     };
 
@@ -518,11 +484,6 @@ rec {
       givc = {
         enable = false;
         debug = false;
-      };
-
-      services = {
-        power-manager.enable = false;
-        performance.enable = false;
       };
 
       storage = {
@@ -556,6 +517,14 @@ rec {
           targetVms = [ ];
         };
         bluetooth = {
+          enable = false;
+          targetVms = [ ];
+        };
+        power-manager = {
+          enable = false;
+          targetVms = [ ];
+        };
+        performance = {
           enable = false;
           targetVms = [ ];
         };
