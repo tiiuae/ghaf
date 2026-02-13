@@ -102,20 +102,22 @@ in
               # Reference services and personalization
               ../services
               ../personalize
-              { ghaf.reference.personalize.keys.enable = true; }
               # Forward host reference services config to netvm
               {
-                ghaf.reference.services = {
-                  inherit (config.ghaf.reference.services)
-                    enable
-                    dendrite
-                    proxy-business
-                    ;
-                  google-chromecast = {
-                    inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
-                  };
-                  chromecast = {
-                    inherit (config.ghaf.reference.services.chromecast) externalNic internalNic;
+                ghaf.reference = {
+                  personalize.keys.enable = true;
+                  services = {
+                    inherit (config.ghaf.reference.services)
+                      enable
+                      dendrite
+                      proxy-business
+                      ;
+                    google-chromecast = {
+                      inherit (config.ghaf.reference.services.google-chromecast) enable vmName;
+                    };
+                    chromecast = {
+                      inherit (config.ghaf.reference.services.chromecast) externalNic internalNic;
+                    };
                   };
                 };
               }

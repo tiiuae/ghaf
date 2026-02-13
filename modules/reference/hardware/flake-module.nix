@@ -40,9 +40,11 @@
       {
         ghaf.hardware = {
           passthrough = {
-            pci.autoDetectGpu = true;
-            pci.autoDetectNet = true;
-            pci.autoDetectAudio = true;
+            pci = {
+              autoDetectGpu = true;
+              autoDetectNet = true;
+              autoDetectAudio = true;
+            };
             pciAcsOverride = {
               enable = true;
               ids = [

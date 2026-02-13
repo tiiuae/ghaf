@@ -217,8 +217,8 @@ in
             vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
             effectiveDef =
               vmDef
-              // lib.optionalAttrs (vmCfg.ramMb or null != null) { inherit (vmCfg) ramMb; }
-              // lib.optionalAttrs (vmCfg.cores or null != null) { inherit (vmCfg) cores; };
+              // lib.optionalAttrs ((vmCfg.ramMb or null) != null) { inherit (vmCfg) ramMb; }
+              // lib.optionalAttrs ((vmCfg.cores or null) != null) { inherit (vmCfg) cores; };
           in
           lib.nixosSystem {
             modules = [
