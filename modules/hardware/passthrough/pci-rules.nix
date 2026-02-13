@@ -10,6 +10,7 @@
 }:
 let
   inherit (lib)
+    mkEnableOption
     mkOption
     types
     mkIf
@@ -151,29 +152,11 @@ in
       default = defaultAudiovmPciRules;
     };
 
-    autoDetectGpu = mkOption {
-      description = ''
-        Auto-detect GPU PCI devices.
-      '';
-      type = types.bool;
-      default = false;
-    };
+    autoDetectGpu = mkEnableOption "auto-detection of GPU PCI devices";
 
-    autoDetectNet = mkOption {
-      description = ''
-        Auto-detect network PCI devices.
-      '';
-      type = types.bool;
-      default = false;
-    };
+    autoDetectNet = mkEnableOption "auto-detection of network PCI devices";
 
-    autoDetectAudio = mkOption {
-      description = ''
-        Auto-detect audio PCI devices.
-      '';
-      type = types.bool;
-      default = false;
-    };
+    autoDetectAudio = mkEnableOption "auto-detection of audio PCI devices";
   };
 
   config = lib.mkMerge [

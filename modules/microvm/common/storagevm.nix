@@ -157,14 +157,7 @@ in
         example = "7+11+14";
       };
 
-      keepDefaultPassword = mkOption {
-        type = types.bool;
-        description = ''
-          Whether to keep the default password (empty string) that unlocks the VM storage partition.
-          Useful for debugging or to recover guest data from the host.
-        '';
-        default = false;
-      };
+      keepDefaultPassword = mkEnableOption "keeping the default password (empty string) that unlocks the VM storage partition";
 
       serial = mkOption {
         type = types.str;

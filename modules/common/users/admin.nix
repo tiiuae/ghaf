@@ -8,6 +8,7 @@
 let
   cfg = config.ghaf.users.admin;
   inherit (lib)
+    mkEnableOption
     mkIf
     types
     mkOption
@@ -53,11 +54,7 @@ in
       type = types.nullOr types.str;
       default = null;
     };
-    enableUILogin = mkOption {
-      description = "Allow the admin user to login via the graphical login manager.";
-      type = types.bool;
-      default = false;
-    };
+    enableUILogin = mkEnableOption "admin user login via the graphical login manager";
     createHome = mkOption {
       description = ''
         Boolean value whether to create admin home folder. Defaults to `config.ghaf.users.admin.enableUILogin`.

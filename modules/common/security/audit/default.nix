@@ -39,31 +39,11 @@ in
       default = importAuditRules "common";
       description = "Common audit rules for host and guests";
     };
-    enableVerboseCommon = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Include verbose Common audit rules";
-    };
-    enableStig = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable STIG rules";
-    };
-    enableOspp = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Enable OSPP rules";
-    };
-    enableVerboseOspp = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Include verbose OSPP rules";
-    };
-    enableVerboseRebuild = mkOption {
-      type = types.bool;
-      default = false;
-      description = "Include verbose nixos-rebuild rule";
-    };
+    enableVerboseCommon = mkEnableOption "verbose Common audit rules";
+    enableStig = mkEnableOption "STIG rules";
+    enableOspp = mkEnableOption "OSPP rules";
+    enableVerboseOspp = mkEnableOption "verbose OSPP rules";
+    enableVerboseRebuild = mkEnableOption "verbose nixos-rebuild rule";
     host = {
       enable = mkOption {
         type = types.bool;

@@ -20,9 +20,7 @@ in
       default = null;
       description = "Path to the nixpkgs repository";
     };
-    automatic-gc = {
-      enable = mkEnableOption "Enable automatic garbage collection";
-    };
+    automatic-gc.enable = mkEnableOption "Enable automatic garbage collection";
   };
 
   config.nix = {

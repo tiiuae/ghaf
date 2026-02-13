@@ -13,9 +13,7 @@ in
 {
   _file = ./dt-net.nix;
 
-  options.ghaf.development.debug.tools.net = {
-    enable = lib.mkEnableOption "Network Debugging Tools";
-  };
+  options.ghaf.development.debug.tools.net.enable = lib.mkEnableOption "Network Debugging Tools";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages =

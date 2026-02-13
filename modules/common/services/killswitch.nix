@@ -8,9 +8,8 @@
 }:
 let
   inherit (lib)
-    mkOption
+    mkEnableOption
     mkIf
-    types
     ;
   cfg = config.ghaf.services.kill-switch;
 
@@ -291,15 +290,7 @@ in
 {
   _file = ./killswitch.nix;
 
-  options.ghaf.services.kill-switch = {
-    enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Whether to enable ghaf kill switch support".
-      '';
-    };
-  };
+  options.ghaf.services.kill-switch.enable = mkEnableOption "ghaf kill switch support";
 
   # TODO: Currently enabled for x86_64, we will evaluate the need for aarch64 support in the future
   config = mkIf (cfg.enable && pkgs.stdenv.hostPlatform.isx86_64) {

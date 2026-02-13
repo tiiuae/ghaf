@@ -33,26 +33,12 @@ rec {
   # This is used in the ghaf.global-config option definition
   globalConfigType = types.submodule {
     options = {
-      debug = {
-        enable = mkEnableOption "debug mode globally (host and all VMs)";
-      };
+      debug.enable = mkEnableOption "debug mode globally (host and all VMs)";
 
       development = {
-        ssh = {
-          daemon = {
-            enable = mkEnableOption "SSH daemon globally";
-          };
-        };
-
-        debug = {
-          tools = {
-            enable = mkEnableOption "debug tools globally";
-          };
-        };
-
-        nix-setup = {
-          enable = mkEnableOption "Nix development setup globally";
-        };
+        ssh.daemon.enable = mkEnableOption "SSH daemon globally";
+        debug.tools.enable = mkEnableOption "debug tools globally";
+        nix-setup.enable = mkEnableOption "Nix development setup globally";
       };
 
       logging = {
@@ -81,32 +67,17 @@ rec {
         };
       };
 
-      security = {
-        audit = {
-          enable = mkEnableOption "security auditing globally";
-        };
-      };
+      security.audit.enable = mkEnableOption "security auditing globally";
 
       givc = {
         enable = mkEnableOption "GIVC (Ghaf Inter-VM Communication) globally";
 
-        debug = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Whether to enable GIVC debug mode";
-        };
+        debug = mkEnableOption "GIVC debug mode";
       };
 
       storage = {
-        encryption = {
-          enable = mkEnableOption "storage encryption globally";
-        };
-
-        storeOnDisk = mkOption {
-          type = types.bool;
-          default = false;
-          description = "Store VM nix stores on disk rather than virtiofs";
-        };
+        encryption.enable = mkEnableOption "storage encryption globally";
+        storeOnDisk = mkEnableOption "storing VM nix stores on disk rather than virtiofs";
       };
 
       # Shared memory configuration
@@ -127,18 +98,10 @@ rec {
       };
 
       # Graphics/boot UI settings
-      graphics = {
-        boot = {
-          enable = mkEnableOption "graphical boot support (splash screen, user login detection)";
-        };
-      };
+      graphics.boot.enable = mkEnableOption "graphical boot support (splash screen, user login detection)";
 
       # IDS VM specific settings
-      idsvm = {
-        mitmproxy = {
-          enable = mkEnableOption "MITM proxy in IDS VM for traffic inspection";
-        };
-      };
+      idsvm.mitmproxy.enable = mkEnableOption "MITM proxy in IDS VM for traffic inspection";
 
       # Platform information (populated from host config)
       platform = {

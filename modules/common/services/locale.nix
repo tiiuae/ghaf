@@ -56,9 +56,8 @@ in
 {
   _file = ./locale.nix;
 
-  options.ghaf.services.locale = {
-    enable = mkEnableOption "Propagate locale changes from the system to givc-cli";
-  };
+  options.ghaf.services.locale.enable =
+    mkEnableOption "Propagate locale changes from the system to givc-cli";
 
   config = mkIf (cfg.enable && useGivc) {
     systemd.services = {

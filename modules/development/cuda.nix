@@ -8,9 +8,7 @@ in
 {
   _file = ./cuda.nix;
 
-  options.ghaf.development.cuda = {
-    enable = mkEnableOption "CUDA Support";
-  };
+  options.ghaf.development.cuda.enable = mkEnableOption "CUDA Support";
 
   config = mkIf cfg.enable {
     #Enabling CUDA on any supported system requires below settings.

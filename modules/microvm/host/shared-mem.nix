@@ -13,6 +13,7 @@ let
   cfg = config.ghaf.shm;
   inherit (lib)
     lists
+    mkEnableOption
     mkMerge
     mkIf
     mkOption
@@ -23,13 +24,7 @@ in
   _file = ./shared-mem.nix;
 
   options.ghaf.shm = {
-    enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Enables shared memory communication between virtual machines (VMs)
-      '';
-    };
+    enable = mkEnableOption "shared memory communication between virtual machines (VMs)";
     memSize = mkOption {
       type = types.int;
       default = 16;
@@ -72,13 +67,7 @@ in
         List of vms having access to shared memory
       '';
     };
-    enable_host = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Enables the memsocket functionality on the host system
-      '';
-    };
+    enable_host = mkEnableOption "memsocket functionality on the host system";
     instancesCount = mkOption {
       type = types.int;
       default =
@@ -105,15 +94,7 @@ in
         another application, such as Waypipe, when operating in client mode
       '';
     };
-    display = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Enables the use of shared memory with Waypipe for Wayland-enabled
-        applications running on virtual machines (VMs), facilitating
-        efficient inter-VM communication
-      '';
-    };
+    display = mkEnableOption "shared memory with Waypipe for Wayland-enabled applications on VMs";
   };
   config =
     let

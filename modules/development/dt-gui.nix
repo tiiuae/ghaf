@@ -13,9 +13,7 @@ in
 {
   _file = ./dt-gui.nix;
 
-  options.ghaf.development.debug.tools.gui = {
-    enable = lib.mkEnableOption "GUI Debugging Tools";
-  };
+  options.ghaf.development.debug.tools.gui.enable = lib.mkEnableOption "GUI Debugging Tools";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages =

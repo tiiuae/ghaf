@@ -223,41 +223,17 @@ in
       default = true;
     };
 
-    withTimesyncd = mkOption {
-      description = "Enable systemd timesync daemon.";
-      type = types.bool;
-      default = false;
-    };
+    withTimesyncd = mkEnableOption "systemd timesync daemon";
 
-    withResolved = mkOption {
-      description = "Enable systemd resolve daemon.";
-      type = types.bool;
-      default = false;
-    };
+    withResolved = mkEnableOption "systemd resolve daemon";
 
-    withRepart = mkOption {
-      description = "Enable systemd repart functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withRepart = mkEnableOption "systemd repart functionality";
 
-    withHomed = mkOption {
-      description = "Enable systemd homed for users home functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withHomed = mkEnableOption "systemd homed for users home functionality";
 
-    withHostnamed = mkOption {
-      description = "Enable systemd hostname daemon.";
-      type = types.bool;
-      default = false;
-    };
+    withHostnamed = mkEnableOption "systemd hostname daemon";
 
-    withNss = mkOption {
-      description = "Enable systemd Name Service Switch (NSS) functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withNss = mkEnableOption "systemd Name Service Switch (NSS) functionality";
 
     withEfi = mkOption {
       description = "Enable systemd EFI functionality.";
@@ -283,59 +259,23 @@ in
       default = pkgs.stdenv.hostPlatform.isEfi;
     };
 
-    withApparmor = mkOption {
-      description = "Enable systemd apparmor functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withApparmor = mkEnableOption "systemd apparmor functionality";
 
-    withMachines = mkOption {
-      description = "Enable systemd container and VM functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withMachines = mkEnableOption "systemd container and VM functionality";
 
-    withAudit = mkOption {
-      description = "Enable systemd audit functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withAudit = mkEnableOption "systemd audit functionality";
 
-    withCryptsetup = mkOption {
-      description = "Enable systemd LUKS2 functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withCryptsetup = mkEnableOption "systemd LUKS2 functionality";
 
-    withFido2 = mkOption {
-      description = "Enable systemd Fido2 token functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withFido2 = mkEnableOption "systemd Fido2 token functionality";
 
-    withTpm2Tss = mkOption {
-      description = "Enable systemd TPM functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withTpm2Tss = mkEnableOption "systemd TPM functionality";
 
-    withPolkit = mkOption {
-      description = "Enable systemd polkit functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withPolkit = mkEnableOption "systemd polkit functionality";
 
-    withSerial = mkOption {
-      description = "Enable systemd serial console.";
-      type = types.bool;
-      default = false;
-    };
+    withSerial = mkEnableOption "systemd serial console";
 
-    withSysupdate = mkOption {
-      description = "Enable systemd system update functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withSysupdate = mkEnableOption "systemd system update functionality";
 
     withLocaled = mkOption {
       description = "Enable systemd locale daemon.";
@@ -343,23 +283,11 @@ in
       default = true;
     };
 
-    withAudio = mkOption {
-      description = "Enable audio functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withAudio = mkEnableOption "audio functionality";
 
-    withBluetooth = mkOption {
-      description = "Enable bluetooth functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withBluetooth = mkEnableOption "bluetooth functionality";
 
-    withDebug = mkOption {
-      description = "Enable systemd debug functionality.";
-      type = types.bool;
-      default = false;
-    };
+    withDebug = mkEnableOption "systemd debug functionality";
 
     withHwdb = mkOption {
       description = "Enable systemd hwdb functionality.";

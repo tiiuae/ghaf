@@ -10,6 +10,7 @@ let
 
   inherit (lib)
     foldr
+    mkEnableOption
     mkIf
     mkOption
     recursiveUpdate
@@ -108,21 +109,9 @@ in
               description = "DNS provider for the domain.";
             };
 
-            useFullyQualifiedNames = mkOption {
-              type = types.bool;
-              default = false;
-              description = ''
-                Whether to use fully qualified names (e.g., user@DOMAIN) for user accounts.
-                Note that the behavior is different depending on the identity provider used.
-                A value of 'false' may break functionality in multi-domain setups.
-              '';
-            };
+            useFullyQualifiedNames = mkEnableOption "fully qualified names (e.g., user@DOMAIN) for user accounts";
 
-            enableGlobalCatalog = mkOption {
-              type = types.bool;
-              default = false;
-              description = "Enable use of the Active Directory Global Catalog for this domain.";
-            };
+            enableGlobalCatalog = mkEnableOption "use of the Active Directory Global Catalog for this domain";
 
             cacheCredentials = mkOption {
               type = types.bool;
@@ -179,11 +168,7 @@ in
                   `enforcing`: Users are denied unless explicitly allowed by a GPO.
                 '';
               };
-              dyndnsUpdate = mkOption {
-                type = types.bool;
-                default = false;
-                description = "Whether to automatically update DNS records in AD for this client.";
-              };
+              dyndnsUpdate = mkEnableOption "automatic DNS record updates in AD for this client";
               extraConfig = mkOption {
                 type = types.nullOr types.lines;
                 default = null;
@@ -228,11 +213,7 @@ in
                   the global certificate store at '/etc/ssl/certs/ca-certificates.crt'.
                 '';
               };
-              useStartTls = mkOption {
-                type = types.bool;
-                default = false;
-                description = "Use StartTLS for LDAP connections for ldap:// URIs. Requires tlsCaCert to be set.";
-              };
+              useStartTls = mkEnableOption "StartTLS for LDAP connections for ldap:// URIs";
               enableSasl = mkOption {
                 type = types.bool;
                 default = true;
