@@ -31,17 +31,7 @@ in
     emulated = {
       enable = mkEnableOption "Emulated TPM with swtpm";
 
-      runInVM = mkOption {
-        description = ''
-          Whether to run the swtpm instance on a separate VM or on the host.
-          If set to false, the daemon runs on the host and keys are stored on
-          the host filesystem.
-          If true, the swtpm daemon runs in the admin VM. This setup makes it
-          harder for a host process to access the guest keys.
-        '';
-        type = types.bool;
-        default = false;
-      };
+      runInVM = mkEnableOption "running swtpm in a separate VM instead of on the host";
 
       name = mkOption {
         description = "Name of the VM";

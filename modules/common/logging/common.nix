@@ -7,7 +7,12 @@
   ...
 }:
 let
-  inherit (lib) mkIf mkOption types;
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkOption
+    types
+    ;
   recCfg = config.ghaf.logging.recovery;
 
   ghafClockJumpWatcher = pkgs.writeShellApplication {
@@ -74,15 +79,7 @@ in
 
   # Creating logging configuration options needed across the host and vms
   options.ghaf.logging = {
-    enable = mkOption {
-      description = ''
-        Enable logging service. Currently we have grafana alloy
-        running as client which will upload system journal logs to
-        grafana alloy running in admin-vm.
-      '';
-      type = types.bool;
-      default = false;
-    };
+    enable = mkEnableOption "logging service (grafana alloy client uploading journal logs to admin-vm)";
 
     listener.address = mkOption {
       description = ''
@@ -147,11 +144,7 @@ in
     };
 
     recovery = {
-      enable = mkOption {
-        description = "Recover journald/alloy after a realtime clock jump (e.g., manual clock change).";
-        type = types.bool;
-        default = false;
-      };
+      enable = mkEnableOption "journald/alloy recovery after realtime clock jumps";
 
       thresholdSeconds = mkOption {
         description = "Only act on clock jumps >= this many seconds.";

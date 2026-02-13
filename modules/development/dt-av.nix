@@ -13,9 +13,7 @@ in
 {
   _file = ./dt-av.nix;
 
-  options.ghaf.development.debug.tools.av = {
-    enable = lib.mkEnableOption "Camera Debugging Tools";
-  };
+  options.ghaf.development.debug.tools.av.enable = lib.mkEnableOption "Camera Debugging Tools";
 
   config = lib.mkIf cfg.enable {
     environment.systemPackages =

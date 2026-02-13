@@ -8,9 +8,7 @@ in
 {
   _file = ./usb-serial.nix;
 
-  options.ghaf.development.usb-serial = {
-    enable = mkEnableOption "Usb-Serial";
-  };
+  options.ghaf.development.usb-serial.enable = mkEnableOption "Usb-Serial";
 
   #TODO Should this be alos bound to only x86?
   config = mkIf cfg.enable {

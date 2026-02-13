@@ -19,9 +19,7 @@ in
 {
   _file = ./debug-tools.nix;
 
-  options.ghaf.development.debug.tools = {
-    enable = mkEnableOption "Debug Tools";
-  };
+  options.ghaf.development.debug.tools.enable = mkEnableOption "Debug Tools";
 
   config = mkIf cfg.enable {
     environment.etc = {

@@ -14,9 +14,8 @@ in
 {
   _file = ./createFakeBattery.nix;
 
-  options.ghaf.services.create-fake-battery = {
-    enable = mkEnableOption "Create a fake battery device for VMs";
-  };
+  options.ghaf.services.create-fake-battery.enable =
+    mkEnableOption "Create a fake battery device for VMs";
 
   config =
     mkIf

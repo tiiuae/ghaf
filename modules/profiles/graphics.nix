@@ -40,16 +40,7 @@ in
       };
     };
     autoLogin = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = ''
-          Whether to enable automatic login.
-
-          When enabled, the system will automatically log in the specified user
-          without requiring credentials at the login screen.
-        '';
-      };
+      enable = mkEnableOption "automatic login";
 
       user = mkOption {
         type = types.nullOr types.str;
@@ -65,11 +56,7 @@ in
     # If needed we can add an option to enable networkManager via cosmic,
     # which may be wanted in scenarios where net-vm is not used
     networkManager = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Whether to use NetworkManager on the system where graphics profile is applied.";
-      };
+      enable = mkEnableOption "NetworkManager on the system where graphics profile is applied";
       applet = {
         enable = mkOption {
           type = types.bool;
@@ -89,11 +76,7 @@ in
     # If needed we can add an option to enable bluetooth via cosmic,
     # which may be wanted in scenarios where audio-vm is not used
     bluetooth = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = "Whether to enable support for Bluetooth on the system where graphics profile is applied.";
-      };
+      enable = mkEnableOption "support for Bluetooth on the system where graphics profile is applied";
       applet = {
         enable = mkOption {
           type = types.bool;

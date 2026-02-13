@@ -7,7 +7,7 @@
   ...
 }:
 let
-  inherit (lib) types mkOption mkIf;
+  inherit (lib) mkEnableOption mkIf;
 
   # Importing kernel builder function from packages and checking hardening options
   # TODO: why is the kernek in packages and not in a central place to define the kernels
@@ -25,41 +25,17 @@ in
   _file = ./default.nix;
 
   options.ghaf.host.kernel.hardening = {
-    enable = mkOption {
-      description = "Enable Ghaf Host hardening feature";
-      type = types.bool;
-      default = false;
-    };
+    enable = mkEnableOption "Ghaf Host hardening feature";
 
-    virtualization.enable = mkOption {
-      description = "Enable support for virtualization in the Ghaf Host";
-      type = types.bool;
-      default = false;
-    };
+    virtualization.enable = mkEnableOption "support for virtualization in the Ghaf Host";
 
-    networking.enable = mkOption {
-      description = "Enable support for networking in the Ghaf Host";
-      type = types.bool;
-      default = false;
-    };
+    networking.enable = mkEnableOption "support for networking in the Ghaf Host";
 
-    usb.enable = mkOption {
-      description = "Enable support for USB in the Ghaf Host";
-      type = types.bool;
-      default = false;
-    };
+    usb.enable = mkEnableOption "support for USB in the Ghaf Host";
 
-    inputdevices.enable = mkOption {
-      description = "Enable support for input devices in the Ghaf Host";
-      type = types.bool;
-      default = false;
-    };
+    inputdevices.enable = mkEnableOption "support for input devices in the Ghaf Host";
 
-    debug.enable = mkOption {
-      description = "Enable support for debug features in the Ghaf Host";
-      type = types.bool;
-      default = false;
-    };
+    debug.enable = mkEnableOption "support for debug features in the Ghaf Host";
   };
 
   config = mkIf pkgs.stdenv.hostPlatform.isx86_64 {

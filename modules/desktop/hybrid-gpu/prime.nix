@@ -5,7 +5,7 @@
 # from https://github.com/TLATER/dotfiles
 { config, lib, ... }:
 let
-  inherit (lib) mkOption types;
+  inherit (lib) mkEnableOption mkOption types;
   inherit (config.ghaf.graphics.hybrid-setup.prime) nvidiaBusId intelBusId;
   cfg = config.ghaf.graphics.hybrid-setup.prime;
   environmentVariables = {
@@ -17,21 +17,7 @@ in
   _file = ./prime.nix;
 
   options.ghaf.graphics.hybrid-setup.prime = {
-    enable = mkOption {
-      description = ''
-        prime offload. This will allow on-demand offloading
-        of rendering tasks to the NVIDIA GPU, all other
-        rendering will happen on the GPU integrated in the CPU.
-
-        The GPU *should* be turned off whenever it is not in use, so
-        this shouldn't cause increased battery drain, but there are
-        some reports floating around that this isn't always the case -
-        likely especially for older devices. Feel free to turn it off
-        if you find this doesn't work properly for you.
-      '';
-      type = types.bool;
-      default = false;
-    };
+    enable = mkEnableOption "NVIDIA PRIME offload rendering";
 
     nvidiaBusId = mkOption {
       description = ''

@@ -8,9 +8,7 @@ in
 {
   _file = ./ssh.nix;
 
-  options.ghaf.development.ssh.daemon = {
-    enable = mkEnableOption "ssh daemon";
-  };
+  options.ghaf.development.ssh.daemon.enable = mkEnableOption "ssh daemon";
 
   config = mkIf cfg.enable {
 

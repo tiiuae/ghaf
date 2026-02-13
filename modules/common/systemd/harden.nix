@@ -4,17 +4,13 @@
 let
   # Ghaf systemd config
   cfg = config.ghaf.systemd;
-  inherit (lib) mkIf mkOption types;
+  inherit (lib) mkEnableOption mkIf;
 in
 {
   _file = ./harden.nix;
 
   options.ghaf.systemd = {
-    withHardenedConfigs = mkOption {
-      description = "Enable common hardened configs.";
-      type = types.bool;
-      default = false;
-    };
+    withHardenedConfigs = mkEnableOption "common hardened configs";
   };
 
   config = mkIf cfg.withHardenedConfigs {

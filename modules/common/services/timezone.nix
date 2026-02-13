@@ -54,9 +54,8 @@ in
 {
   _file = ./timezone.nix;
 
-  options.ghaf.services.timezone = {
-    enable = mkEnableOption "Propagate timezone changes from the system to givc-cli";
-  };
+  options.ghaf.services.timezone.enable =
+    mkEnableOption "Propagate timezone changes from the system to givc-cli";
 
   config = mkIf (cfg.enable && useGivc) {
     systemd.services = {

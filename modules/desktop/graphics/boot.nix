@@ -9,6 +9,7 @@
 let
   inherit (lib)
     mkDefault
+    mkEnableOption
     mkIf
     mkOption
     mkForce
@@ -47,13 +48,7 @@ in
   _file = ./boot.nix;
 
   options.ghaf.graphics.boot = {
-    enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Enables graphical boot with plymouth.
-      '';
-    };
+    enable = mkEnableOption "graphical boot with plymouth";
 
     waitForService = mkOption {
       type = types.nullOr types.str;
@@ -102,14 +97,7 @@ in
     };
 
     logo = {
-      enable = mkOption {
-        type = types.bool;
-        default = false;
-        description = ''
-          Whether to show a custom logo at the bottom of the splash screen.
-          If left disabled, no logo is shown.
-        '';
-      };
+      enable = mkEnableOption "custom logo at the bottom of the splash screen";
 
       image = mkOption {
         type = types.path;
@@ -151,14 +139,7 @@ in
       '';
     };
 
-    debug = mkOption {
-      type = types.bool;
-      default = false;
-      description = ''
-        Whether to enable plymouth debug logs.
-        Plymouth debug logs are stored in /var/log/plymouth-debug.log.
-      '';
-    };
+    debug = mkEnableOption "plymouth debug logs";
   };
 
   config = mkIf cfg.enable {

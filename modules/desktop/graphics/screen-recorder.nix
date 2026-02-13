@@ -62,9 +62,8 @@ in
 {
   _file = ./screen-recorder.nix;
 
-  options.ghaf.graphics.screen-recorder = {
-    enable = lib.mkEnableOption "Whether to enable screen recording capabilities using gpu-screen-recorder.";
-  };
+  options.ghaf.graphics.screen-recorder.enable =
+    lib.mkEnableOption "screen recording capabilities using gpu-screen-recorder";
 
   config = lib.mkIf cfg.enable {
     # XDG desktop portal screen capture requires pipewire and wireplumber to be enabled
