@@ -1,11 +1,10 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Custom format module to be used with nixos-generators,needs path from
-# nixos-generators flake input as an argument.
+# Format module for Orin targets — wires ghafImage to sdImage.
 #
+{ config, ... }:
 {
   imports = [ ./sdimage.nix ];
-
-  formatAttr = "sdImage";
+  system.build.ghafImage = config.system.build.sdImage;
 }

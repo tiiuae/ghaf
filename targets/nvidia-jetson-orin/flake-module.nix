@@ -10,7 +10,7 @@
   ...
 }:
 let
-  inherit (inputs) nixos-generators jetpack-nixos;
+  inherit (inputs) jetpack-nixos;
   system = "aarch64-linux";
 
   # Unified Ghaf configuration builder
@@ -21,7 +21,6 @@ let
 
   # Orin-specific modules (UEFI patches, OP-TEE, format modules)
   orinSpecificModules = [
-    (nixos-generators + "/format-module.nix")
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
     jetpack-nixos.nixosModules.default
     {
@@ -161,7 +160,7 @@ let
           { ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications = lib.mkForce false; }
         ];
       };
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.ghafImage;
     };
 
   generate-cross-from-x86_64 =
@@ -172,7 +171,7 @@ let
       hostConfiguration = tgt.hostConfiguration.extendModules {
         modules = [ self.nixosModules.cross-compilation-from-x86_64 ];
       };
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.ghafImage;
     };
 
   # Add nodemoapps targets
