@@ -5,6 +5,7 @@
   config,
   lib,
   mkTunedScript,
+  tunedNoDesktop,
   ...
 }:
 let
@@ -328,6 +329,7 @@ in
       };
       services.tuned = {
         inherit (cfg.host.tuned) enable;
+        package = tunedNoDesktop;
 
         settings.profile_dirs = "/etc/tuned/profiles,${
           concatMapStringsSep "," (script: "${script}") (lib.attrValues hostProfileScripts)

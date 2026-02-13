@@ -16,8 +16,6 @@ let
   });
 
   inherit (lib)
-    getExe
-    getExe'
     literalExpression
     mkIf
     mkOption
@@ -96,6 +94,7 @@ in
         config
         lib
         mkTunedScript
+        tunedNoDesktop
         ;
     })
     (import ./guests.nix {
@@ -104,6 +103,7 @@ in
         config
         lib
         mkTunedScript
+        tunedNoDesktop
         ;
     })
   ];
@@ -145,32 +145,5 @@ in
         message = "Enabling the generic VM performance profile ('ghaf.services.performance.vm.enable') requires the 'host' and 'vm' profiles to be disabled.";
       }
     ];
-    services.system76-scheduler = {
-      useStockConfig = false;
-      settings = {
-        processScheduler = {
-          pipewireBoost.enable = false;
-          # cosmic-comp still lacks integration with s76-scheduler
-          foregroundBoost.enable = false;
-          useExecsnoop = true;
-        };
-        cfsProfiles.enable = false;
-      };
-    };
-    services.tuned.package = tunedNoDesktop;
-    systemd.services = mkIf config.ghaf.profiles.debug.enable {
-      tuned = {
-        serviceConfig.ExecStart = [
-          ""
-          "${getExe pkgs.tuned} -P -l -D"
-        ];
-      };
-      tuned-ppd = {
-        serviceConfig.ExecStart = [
-          ""
-          "${getExe' pkgs.tuned "tuned-ppd"} -l -D"
-        ];
-      };
-    };
   };
 }
