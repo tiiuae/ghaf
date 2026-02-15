@@ -90,7 +90,7 @@ in
         withCryptsetup = true;
       };
     }
-    // optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+    // optionalAttrs config.ghaf.storagevm.enable {
       # Enable persistent storage for systemd-homed
       storagevm = {
         directories = [

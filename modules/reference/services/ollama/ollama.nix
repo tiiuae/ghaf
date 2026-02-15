@@ -36,7 +36,7 @@ in
       };
     };
 
-    ghaf = optionalAttrs (builtins.hasAttr "storagevm" config.ghaf) {
+    ghaf = optionalAttrs config.ghaf.storagevm.enable {
       storagevm.maximumSize = 100 * 1024; # 100 GB space for ollama (models can be large)
       storagevm.directories = [
         {

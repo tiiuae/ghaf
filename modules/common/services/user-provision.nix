@@ -61,7 +61,7 @@ let
       };
 
       # Storage configuration (if storagevm is available)
-      storage = optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+      storage = optionalAttrs config.ghaf.storagevm.enable {
         mount_path = config.ghaf.storagevm.mountPath;
       };
     }
@@ -98,7 +98,7 @@ let
       ${optionalString cfg.enableAD ''
         rm -rf /var/lib/sssd/*
       ''}
-      ${optionalString (cfg.enableAD && (lib.hasAttr "storagevm" config.ghaf)) ''
+      ${optionalString (cfg.enableAD && config.ghaf.storagevm.enable) ''
         umount /etc/krb5.keytab || true
         rm -f /etc/krb5.keytab || true
         rm -f ${config.ghaf.storagevm.mountPath}/etc/krb5.keytab || true
@@ -174,7 +174,7 @@ in
     ];
 
     # Create persistent file for provisioning lock
-    ghaf = lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+    ghaf = lib.optionalAttrs config.ghaf.storagevm.enable {
       storagevm.directories = [ "/var/lib/ghaf" ];
     };
 

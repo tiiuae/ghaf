@@ -8,7 +8,7 @@
 }:
 let
   cfg = config.ghaf.reference.services.wireguard-gui;
-  hasStorageVm = (lib.hasAttr "storagevm" config.ghaf) && config.ghaf.storagevm.enable;
+  hasStorageVm = config.ghaf.storagevm.enable;
   wg_app_dir = "/etc/wireguard";
   docUrl = "https://ghaf.tii.ae/ghaf/dev/ref/wireguard-gui/";
   debugFlag = lib.optionalString config.ghaf.profiles.debug.enable "--log-level TRACE";

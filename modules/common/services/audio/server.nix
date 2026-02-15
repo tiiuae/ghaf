@@ -182,7 +182,7 @@ in
           # Enable persistent storage for pipewire state to restore settings on boot
           # This is not necessarily needed as we force the server to restore at 100% volume on boot
           (lib.mkIf cfg.server.restoreOnBoot (
-            lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+            lib.optionalAttrs config.ghaf.storagevm.enable {
               storagevm.directories = [
                 {
                   directory = "/var/lib/pipewire";
