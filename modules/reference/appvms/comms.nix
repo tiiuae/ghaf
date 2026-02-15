@@ -23,7 +23,7 @@ in
   # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
   config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
     # DRY: Only enable and evaluatedConfig at host level.
-    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
+    # All values (name, mem, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.comms = {
       enable = lib.mkDefault true;
 
@@ -34,8 +34,8 @@ in
           pkgs.gpsd
         ]
         ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
-        ramMb = 4096;
-        cores = 4;
+        mem = 4096;
+        vcpu = 4;
         borderColor = "#337aff";
         ghafAudio.enable = lib.mkDefault true;
         vtpm = {

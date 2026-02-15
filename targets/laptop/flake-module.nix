@@ -104,7 +104,7 @@ let
       };
       vmConfig = {
         guivm.mem = 6144;
-        appvms.flatpak.ramMb = 5120;
+        appvms.flatpak.mem = 5120;
       };
     })
 
@@ -148,7 +148,7 @@ let
       };
       vmConfig = {
         guivm.mem = 6144;
-        appvms.flatpak.ramMb = 5120;
+        appvms.flatpak.mem = 5120;
       };
     })
 
@@ -390,7 +390,7 @@ let
       };
       vmConfig = {
         guivm.mem = 6144;
-        appvms.flatpak.ramMb = 5120;
+        appvms.flatpak.mem = 5120;
       };
     })
 
@@ -420,7 +420,7 @@ let
       };
       vmConfig = {
         guivm.mem = 6144;
-        appvms.flatpak.ramMb = 5120;
+        appvms.flatpak.mem = 5120;
       };
     })
 

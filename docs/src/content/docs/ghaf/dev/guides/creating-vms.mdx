@@ -220,7 +220,7 @@ Application VMs use a template pattern for multiple instances.
 
 ### Using mkAppVm
 
-The `mkAppVm` function creates application VMs. All values (name, ramMb, borderColor, applications, vtpm) are defined in the `mkAppVm` call and stored in `evaluatedConfig.config.ghaf.appvm.vmDef`. Host-level options automatically read from there.
+The `mkAppVm` function creates application VMs. All values (name, mem, borderColor, applications, vtpm) are defined in the `mkAppVm` call and stored in `evaluatedConfig.config.ghaf.appvm.vmDef`. Host-level options automatically read from there.
 
 ```nix
 { config, lib, ... }:
@@ -277,7 +277,7 @@ Use the `extensions` option to add modules to an existing app VM without modifyi
 | `usbPassthrough` | list | USB passthrough rules (host-side) |
 | `bootPriority` | enum | Boot priority: "low", "medium", "high" |
 
-Values like `name`, `ramMb`, `borderColor`, `applications`, and `vtpm` are all derived from `evaluatedConfig.config.ghaf.appvm.vmDef` and should be set in the `mkAppVm` call, not at the host level.
+Values like `name`, `mem`, `borderColor`, `applications`, and `vtpm` are all derived from `evaluatedConfig.config.ghaf.appvm.vmDef` and should be set in the `mkAppVm` call, not at the host level.
 
 ### Application Definition
 

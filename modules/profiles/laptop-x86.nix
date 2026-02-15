@@ -213,12 +213,12 @@ in
         mkAppVm =
           vmDef:
           let
-            # Apply vmConfig.appvms overrides (ramMb, cores)
+            # Apply vmConfig.appvms overrides (mem, vcpu)
             vmCfg = config.ghaf.virtualization.vmConfig.appvms.${vmDef.name} or { };
             effectiveDef =
               vmDef
-              // lib.optionalAttrs ((vmCfg.ramMb or null) != null) { inherit (vmCfg) ramMb; }
-              // lib.optionalAttrs ((vmCfg.cores or null) != null) { inherit (vmCfg) cores; }
+              // lib.optionalAttrs ((vmCfg.mem or null) != null) { inherit (vmCfg) mem; }
+              // lib.optionalAttrs ((vmCfg.vcpu or null) != null) { inherit (vmCfg) vcpu; }
               // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
           in
           lib.nixosSystem {

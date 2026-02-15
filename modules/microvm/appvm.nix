@@ -12,7 +12,7 @@
 # The VM-side configuration is in appvm-base.nix, created via mkAppVm in profiles.
 #
 # Extension Pattern:
-#   ALL values (name, ramMb, borderColor, applications, etc.) should be defined ONLY
+#   ALL values (name, mem, borderColor, applications, etc.) should be defined ONLY
 #   in the mkAppVm call. Host-level options automatically read from
 #   evaluatedConfig.config.ghaf.appvm.vmDef. This eliminates duplication.
 #
@@ -59,7 +59,7 @@ let
       evaluatedConfig = finalEvaluatedConfig;
       # Derive values from vmDef - the attrset key is used as fallback for name
       name = vmDef.name or attrName;
-      ramMb = vmDef.ramMb or 4096;
+      mem = vmDef.mem or 4096;
       balloonRatio = vmDef.balloonRatio or 2;
       borderColor = vmDef.borderColor or null;
       applications = vmDef.applications or [ ];
@@ -139,7 +139,7 @@ in
       description = ''
         Read-only attrset of enabled VMs with all values derived from evaluatedConfig.
         Use this instead of accessing vms directly when you need derived values
-        like vtpm, applications, ramMb, etc.
+        like vtpm, applications, mem, etc.
       '';
     };
 
@@ -148,7 +148,7 @@ in
         App VM configurations. Each VM must have evaluatedConfig set via mkAppVm.
 
         Extension Pattern:
-          - ALL values (name, ramMb, borderColor, applications, vtpm, etc.)
+          - ALL values (name, mem, borderColor, applications, vtpm, etc.)
             are derived from evaluatedConfig.config.ghaf.appvm.vmDef
           - You only need to set 'enable' and 'evaluatedConfig' here
           - Use 'extensions' to add modules from external features (e.g., ghaf-intro)

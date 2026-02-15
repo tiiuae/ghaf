@@ -137,14 +137,14 @@ in
   # (reference appvms use laptop-x86.mkAppVm which doesn't exist on other profiles like Orin)
   config = lib.mkIf (cfg.enable && config.ghaf.profiles.laptop-x86.enable or false) {
     # DRY: Only enable and evaluatedConfig at host level.
-    # All values (name, ramMb, borderColor, applications, vtpm) are derived from vmDef.
+    # All values (name, mem, borderColor, applications, vtpm) are derived from vmDef.
     ghaf.virtualization.microvm.appvm.vms.flatpak = {
       enable = lib.mkDefault true;
 
       evaluatedConfig = config.ghaf.profiles.laptop-x86.mkAppVm {
         name = "flatpak";
-        ramMb = 6144;
-        cores = 4;
+        mem = 6144;
+        vcpu = 4;
         bootPriority = "low";
         borderColor = "#FFA500";
         ghafAudio.enable = lib.mkDefault true;

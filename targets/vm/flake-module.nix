@@ -136,8 +136,8 @@ let
                           # Create evaluatedConfig with waypipe disabled (no guivm)
                           evaluatedConfig = vmProfile.mkAppVm {
                             name = "zathura";
-                            ramMb = 512;
-                            cores = 1;
+                            mem = 512;
+                            vcpu = 1;
                             borderColor = "#122263"; # Dark blue — security context indicator
                             waypipe.enable = false; # No guivm, so no waypipe
                             applications = [
