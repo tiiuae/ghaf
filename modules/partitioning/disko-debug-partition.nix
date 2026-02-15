@@ -44,6 +44,8 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    ghaf.partitioning.btrfs-postboot.enable = true;
+
     ghaf.storage.encryption.partitionDevice = lib.mkDefault config.disko.devices.disk.disk1.content.partitions.luks.device;
 
     system.build.ghafImage = config.system.build.diskoImages;
