@@ -9,7 +9,6 @@ let
   inherit (lib)
     mkEnableOption
     mkDefault
-    optionalAttrs
     ;
   cfg = config.ghaf.users.profile;
   hasStorageVm = config.ghaf.storagevm.enable;
@@ -73,10 +72,8 @@ in
     };
 
     # Userborn storage location
-    ghaf = optionalAttrs hasStorageVm {
-      storagevm.directories = [
-        "/var/lib/nixos"
-      ];
-    };
+    ghaf.storagevm.directories = lib.mkIf hasStorageVm [
+      "/var/lib/nixos"
+    ];
   };
 }

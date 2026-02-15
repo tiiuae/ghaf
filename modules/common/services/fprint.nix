@@ -27,10 +27,8 @@ in
       security.audit.extraRules = [
         "-w /var/lib/fprint/ -p wa -k fprint"
       ];
-    }
-    // lib.optionalAttrs config.ghaf.storagevm.enable {
       # Persistent storage
-      storagevm.directories = [
+      storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [
         {
           directory = "/var/lib/fprint";
           user = "root";

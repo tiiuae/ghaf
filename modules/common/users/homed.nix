@@ -90,18 +90,16 @@ in
         withCryptsetup = true;
       };
     }
-    // optionalAttrs config.ghaf.storagevm.enable {
+    // {
       # Enable persistent storage for systemd-homed
-      storagevm = {
-        directories = [
-          {
-            directory = "/var/lib/systemd/home";
-            user = "root";
-            group = "root";
-            mode = "0600";
-          }
-        ];
-      };
+      storagevm.directories = mkIf config.ghaf.storagevm.enable [
+        {
+          directory = "/var/lib/systemd/home";
+          user = "root";
+          group = "root";
+          mode = "0600";
+        }
+      ];
     };
 
     systemd = {

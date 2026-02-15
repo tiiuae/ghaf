@@ -174,9 +174,7 @@ in
     ];
 
     # Create persistent file for provisioning lock
-    ghaf = lib.optionalAttrs config.ghaf.storagevm.enable {
-      storagevm.directories = [ "/var/lib/ghaf" ];
-    };
+    ghaf.storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [ "/var/lib/ghaf" ];
 
     # Install JSON provisioning configuration
     environment.etc."ghaf/provisioning.json".source = provisioningConfig;

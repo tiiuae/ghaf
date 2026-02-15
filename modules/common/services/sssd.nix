@@ -16,7 +16,6 @@ let
     mkIf
     mkMerge
     mkOption
-    optionals
     optionalString
     optionalAttrs
     types
@@ -285,13 +284,13 @@ in
         identity.vmHostNameSetter.enable = true;
 
         # Watch SSSD directory and krb5 keytab
-        security.audit.extraRules = optionals (!hasStorageVM) [
+        security.audit.extraRules = mkIf (!hasStorageVM) [
           "-w /var/lib/sss -p wa -k sssd"
           "-w /etc/krb5.keytab -p wa -k krb5"
         ];
       }
 
-      (optionalAttrs hasStorageVM {
+      (mkIf hasStorageVM {
         storagevm = {
           # SSSD persistent storage
           directories = [

@@ -42,20 +42,16 @@ in
   config = lib.mkIf cfg.enable {
 
     ghaf = {
-      storagevm =
-        (config.ghaf.storagevm or { })
-        // lib.mkIf hasStorageVm {
-          directories = [
-            {
-              directory = "${wg_app_dir}";
-              mode = "0600";
-            }
-            {
-              directory = "${wg_app_dir}/configs";
-              mode = "0600";
-            }
-          ];
-        };
+      storagevm.directories = lib.mkIf hasStorageVm [
+        {
+          directory = "${wg_app_dir}";
+          mode = "0600";
+        }
+        {
+          directory = "${wg_app_dir}/configs";
+          mode = "0600";
+        }
+      ];
 
       givc.appvm.applications = [
         {
