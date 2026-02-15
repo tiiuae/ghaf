@@ -11,7 +11,7 @@
 let
   roothashPlaceholder = "61fe0f0c98eff2a595dd2f63a5e481a0a25387261fa9e34c37e3a4910edf32b8";
   cfg = config.ghaf.partitioning.verity;
-  debugEnable = config.ghaf.profiles.debug.enable;
+  encryptionInteractive = config.ghaf.storage.encryption.interactiveSetup;
 in
 {
   _file = ./verity-partition.nix;
@@ -72,7 +72,7 @@ in
         "roothash=${roothashPlaceholder}"
         "systemd.verity_root_options=panic-on-corruption"
       ]
-      ++ lib.optional debugEnable "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1";
+      ++ lib.optional (!encryptionInteractive) "systemd.setenv=SYSTEMD_SULOGIN_FORCE=1";
 
       # No bootloaders needed yet
       loader = {

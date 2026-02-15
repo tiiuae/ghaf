@@ -22,6 +22,10 @@ in
     # Enable minimal profile as base
     ghaf.profiles.minimal.enable = true;
 
+    # Encryption: non-interactive setup with debug tools in debug profile
+    ghaf.storage.encryption.interactiveSetup = lib.mkDefault false;
+    ghaf.storage.encryption.debugTools = lib.mkDefault true;
+
     # Enable default accounts and passwords
     ghaf = {
       # Enable development on target
