@@ -4,8 +4,6 @@
 { config, lib, ... }:
 let
   cfg = config.ghaf.profiles.host-hardening;
-  has_host = builtins.hasAttr "host" config.ghaf;
-  has_secureBoot = builtins.hasAttr "secureboot" config.ghaf.host;
 in
 {
   _file = ./host-hardening.nix;
@@ -15,13 +13,9 @@ in
   };
 
   config = lib.mkIf cfg.enable {
-    ghaf =
-      { }
-      // lib.optionalAttrs (has_host && has_secureBoot) {
-        host = {
-          # Enable secure boot in the host configuration
-          secureboot.enable = true;
-        };
-      };
+    ghaf.host = {
+      # Enable secure boot in the host configuration
+      secureboot.enable = true;
+    };
   };
 }
