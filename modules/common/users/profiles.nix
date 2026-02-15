@@ -12,7 +12,7 @@ let
     optionalAttrs
     ;
   cfg = config.ghaf.users.profile;
-  hasStorageVm = lib.hasAttr "storagevm" config.ghaf;
+  hasStorageVm = config.ghaf.storagevm.enable;
 in
 {
   _file = ./profiles.nix;

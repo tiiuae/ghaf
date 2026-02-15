@@ -69,7 +69,7 @@ in
     };
 
     # Persistent storage
-    ghaf = lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+    ghaf = lib.optionalAttrs config.ghaf.storagevm.enable {
       storagevm.directories = [
         {
           directory = "/var/lib/bluetooth";

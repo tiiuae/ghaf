@@ -27,7 +27,7 @@ in
     };
 
     ghaf =
-      lib.optionalAttrs (lib.hasAttr "storagevm" config.ghaf) {
+      lib.optionalAttrs config.ghaf.storagevm.enable {
         storagevm.directories = [
           "/etc/NetworkManager/system-connections/"
         ];

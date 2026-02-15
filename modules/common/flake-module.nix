@@ -13,6 +13,7 @@
       ./firewall
       ./global-config.nix
       ./security
+      ./storage-persistence.nix
       ./users
       ./version
       ./virtualization

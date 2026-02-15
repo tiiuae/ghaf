@@ -23,7 +23,7 @@ let
     ;
 
   # Helpers
-  hasStorageVM = lib.hasAttr "storagevm" config.ghaf;
+  hasStorageVM = config.ghaf.storagevm.enable;
   hasKcm = lib.any (d: (d.cacheCredentials && (d.authProvider == "krb5" || d.authProvider == "ad"))) (
     lib.attrValues cfg.domains
   );
