@@ -95,7 +95,7 @@ in
 {
   _file = ./usb-static.nix;
 
-  config = mkIf (builtins.hasAttr "definition" config.ghaf.hardware) (mkMerge [
+  config = mkMerge [
     (mkIf
       (
         config.ghaf.hardware.passthrough.mode == "static"
@@ -118,5 +118,5 @@ in
     {
       ghaf.hardware.passthrough.vmUdevExtraRules = vmUdevExtraRulesUSB;
     }
-  ]);
+  ];
 }

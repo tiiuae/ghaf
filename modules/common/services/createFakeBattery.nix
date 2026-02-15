@@ -23,10 +23,7 @@ in
         cfg.enable
         # fake_battery kernel module only exists for x86_64
         && pkgs.stdenv.hostPlatform.isx86_64
-        && (
-          (builtins.hasAttr "definition" config.ghaf.hardware)
-          && config.ghaf.hardware.definition.type == "laptop"
-        )
+        && (config.ghaf.hardware.definition.type or "unknown") == "laptop"
       )
       {
 
