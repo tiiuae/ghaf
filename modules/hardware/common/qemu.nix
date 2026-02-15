@@ -50,11 +50,11 @@ in
             "-device"
             "acad,use-qmp=false,enable-sysfs=true,probe_interval=5000"
           ]
-          ++ optionals (builtins.hasAttr "gui-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.gui-vm;
+          ++ (config.ghaf.hardware.passthrough.qemuExtraArgs.gui-vm or [ ]);
       };
       audiovm = optionalAttrs (config.ghaf.type == "host") {
         microvm.qemu.extraArgs =
-          optionals (builtins.hasAttr "audio-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.audio-vm
+          (config.ghaf.hardware.passthrough.qemuExtraArgs.audio-vm or [ ])
           ++ optionals (config.ghaf.hardware.definition.type == "laptop") [
             "-device"
             "battery,use-qmp=false,enable-sysfs=true,probe_interval=20000"
@@ -67,7 +67,7 @@ in
           ];
       };
       netvm = optionalAttrs (config.ghaf.type == "host") {
-        microvm.qemu.extraArgs = optionals (builtins.hasAttr "net-vm" config.ghaf.hardware.passthrough.qemuExtraArgs) config.ghaf.hardware.passthrough.qemuExtraArgs.net-vm;
+        microvm.qemu.extraArgs = config.ghaf.hardware.passthrough.qemuExtraArgs.net-vm or [ ];
       };
     };
   };
