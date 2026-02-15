@@ -122,14 +122,14 @@ let
     '';
   };
 
-  enable =
-    ((builtins.hasAttr "verity" config.ghaf.partitioning) && config.ghaf.partitioning.verity.enable)
-    || ((builtins.hasAttr "disko" config.ghaf.partitioning) && config.ghaf.partitioning.disko.enable);
 in
 {
   _file = ./btrfs-postboot.nix;
 
-  config = lib.mkIf enable {
+  options.ghaf.partitioning.btrfs-postboot.enable =
+    lib.mkEnableOption "btrfs post-boot partition extension";
+
+  config = lib.mkIf config.ghaf.partitioning.btrfs-postboot.enable {
 
     # To debug postBootCommands, one may run
     # journalctl -u initrd-nixos-activation.service

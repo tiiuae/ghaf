@@ -38,6 +38,8 @@ in
   ];
 
   config = lib.mkIf cfg.enable {
+    ghaf.partitioning.btrfs-postboot.enable = true;
+
     ghaf.storage.encryption.partitionDevice = lib.mkDefault "/dev/disk/by-partuuid/${
       config.image.repart.partitions."50-persist".repartConfig.UUID
     }";
