@@ -144,11 +144,11 @@ let
       echo ""
 
       ${
-        if config.ghaf.profiles.debug.enable then
+        if !cfg.interactiveSetup then
           ''
-            # Debug mode: automatic encryption with default password as
+            # Automated mode: automatic encryption with default password as
             # systemd-cryptenroll cannot work with empty password
-            echo "! Debug mode: Applying encryption automatically..."
+            echo "! Automated mode: Applying encryption automatically..."
             PASSPHRASE="ghaf"
           ''
         else
@@ -340,7 +340,7 @@ let
                 if PASSWORD="$PASSPHRASE" systemd-cryptenroll \
                   --tpm2-device=auto \
                   --tpm2-pcrs=7 \
-                  ${if config.ghaf.profiles.debug.enable then "--tpm2-with-pin=no" else "--tpm2-with-pin=yes"} \
+                  ${if cfg.interactiveSetup then "--tpm2-with-pin=yes" else "--tpm2-with-pin=no"} \
                   "$LVM_PV" 2>&1; then
 
                   # Add recovery key
@@ -499,7 +499,7 @@ let
         cat /proc/filesystems || true
 
         ${
-          if config.ghaf.profiles.debug.enable then
+          if !cfg.interactiveSetup then
             ''
               echo ""
               echo "+--------------------------------------------------------+"
@@ -538,9 +538,9 @@ let
       rmdir /mnt/esp
 
       ${
-        if config.ghaf.profiles.debug.enable then
+        if !cfg.interactiveSetup then
           ''
-            echo "Debug mode: Rebooting in 5 seconds..."
+            echo "Automated mode: Rebooting in 5 seconds..."
             sleep 5
           ''
         else

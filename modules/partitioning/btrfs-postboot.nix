@@ -82,9 +82,9 @@ let
           # For deferred encryption, the device is unlocked with password (empty in debug mode)
           # cryptsetup resize needs authentication even when device is already open
           ${
-            if config.ghaf.profiles.debug.enable then
+            if !config.ghaf.storage.encryption.interactiveSetup then
               ''
-                # Debug mode: use empty password
+                # Automated mode: use default password
                 printf 'ghaf' | cryptsetup resize -v crypted --key-file=- 2>&1 || {
                   echo "WARNING: LUKS resize failed, trying without key..."
                   cryptsetup resize -v crypted || true
@@ -92,7 +92,7 @@ let
               ''
             else
               ''
-                # Release mode: prompt user for password
+                # Interactive mode: prompt user for password
                 echo "LUKS container needs to be resized to use full disk space."
                 while true; do
                 PASSPHRASE=$(systemd-ask-password --timeout=0 "Enter encryption PIN / password:");

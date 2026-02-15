@@ -33,6 +33,16 @@ in
       type = types.str;
       description = "Device path for the partition to encrypt (set by the active partitioning module)";
     };
+    interactiveSetup = mkOption {
+      type = types.bool;
+      default = true;
+      description = "Whether encryption setup requires user interaction (false = debug/automated)";
+    };
+    debugTools = mkOption {
+      type = types.bool;
+      default = false;
+      description = "Install encryption debug tools (cryptsetup, tpm2-tools, etc.)";
+    };
   };
 
   config = mkIf (cfg.enable && !cfg.deferred) {
@@ -40,7 +50,7 @@ in
 
     environment.systemPackages =
       with pkgs;
-      lib.mkIf config.ghaf.profiles.debug.enable [
+      lib.mkIf cfg.debugTools [
         cryptsetup
         tpm2-tools
         parted
@@ -71,7 +81,7 @@ in
         enrollOpts =
           {
             tpm2 = "--tpm2-device=auto --tpm2-pcrs=7 --tpm2-with-pin=${
-              if config.ghaf.profiles.debug.enable then "no" else "yes"
+              if cfg.interactiveSetup then "yes" else "no"
             }";
             fido2 = "--fido2-device=auto --fido2-with-user-presence=yes --fido2-with-client-pin=yes";
           }
