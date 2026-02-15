@@ -48,16 +48,14 @@ in
   config = mkIf cfg.enable {
     # Ensure there is always a backlight brightness value to restore from on boot
     # ghaf-powercontrol will store the value here via systemd-backlight.service
-    ghaf = lib.optionalAttrs config.ghaf.storagevm.enable {
-      storagevm.directories = [
-        {
-          directory = "/var/lib/systemd/backlight";
-          user = "root";
-          group = "root";
-          mode = "0700";
-        }
-      ];
-    };
+    ghaf.storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [
+      {
+        directory = "/var/lib/systemd/backlight";
+        user = "root";
+        group = "root";
+        mode = "0700";
+      }
+    ];
 
     systemd.services.greetd.serviceConfig = {
       RestartSec = "5";

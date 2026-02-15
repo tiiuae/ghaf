@@ -7,7 +7,7 @@
 }:
 let
   cfg = config.ghaf.reference.services.ollama;
-  inherit (lib) mkEnableOption mkIf optionalAttrs;
+  inherit (lib) mkEnableOption mkIf;
 in
 {
   _file = ./ollama.nix;
@@ -36,9 +36,9 @@ in
       };
     };
 
-    ghaf = optionalAttrs config.ghaf.storagevm.enable {
-      storagevm.maximumSize = 100 * 1024; # 100 GB space for ollama (models can be large)
-      storagevm.directories = [
+    ghaf.storagevm = mkIf config.ghaf.storagevm.enable {
+      maximumSize = 100 * 1024; # 100 GB space for ollama (models can be large)
+      directories = [
         {
           directory = "/var/lib/private/ollama";
           mode = "0700";

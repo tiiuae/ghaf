@@ -26,17 +26,14 @@ in
       };
     };
 
-    ghaf =
-      lib.optionalAttrs config.ghaf.storagevm.enable {
-        storagevm.directories = [
-          "/etc/NetworkManager/system-connections/"
-        ];
-      }
-      // {
-        security.audit.extraRules = [
-          "-w /etc/NetworkManager/ -p wa -k networkmanager"
-        ];
-      };
+    ghaf = {
+      storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [
+        "/etc/NetworkManager/system-connections/"
+      ];
+      security.audit.extraRules = [
+        "-w /etc/NetworkManager/ -p wa -k networkmanager"
+      ];
+    };
 
     environment = {
 

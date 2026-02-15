@@ -181,18 +181,16 @@ in
           }
           # Enable persistent storage for pipewire state to restore settings on boot
           # This is not necessarily needed as we force the server to restore at 100% volume on boot
-          (lib.mkIf cfg.server.restoreOnBoot (
-            lib.optionalAttrs config.ghaf.storagevm.enable {
-              storagevm.directories = [
-                {
-                  directory = "/var/lib/pipewire";
-                  user = "pipewire";
-                  group = "pipewire";
-                  mode = "0700";
-                }
-              ];
-            }
-          ))
+          (lib.mkIf (cfg.server.restoreOnBoot && config.ghaf.storagevm.enable) {
+            storagevm.directories = [
+              {
+                directory = "/var/lib/pipewire";
+                user = "pipewire";
+                group = "pipewire";
+                mode = "0700";
+              }
+            ];
+          })
         ];
       }
       # givc socket proxy is declared in modules/givc/audiovm.nix

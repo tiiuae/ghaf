@@ -69,16 +69,14 @@ in
     };
 
     # Persistent storage
-    ghaf = lib.optionalAttrs config.ghaf.storagevm.enable {
-      storagevm.directories = [
-        {
-          directory = "/var/lib/bluetooth";
-          user = "bluetooth";
-          group = "bluetooth";
-          mode = "0700";
-        }
-      ];
-    };
+    ghaf.storagevm.directories = lib.mkIf config.ghaf.storagevm.enable [
+      {
+        directory = "/var/lib/bluetooth";
+        user = "bluetooth";
+        group = "bluetooth";
+        mode = "0700";
+      }
+    ];
 
     # Uinput kernel module
     boot.kernelModules = [ "uinput" ];
