@@ -30,7 +30,7 @@ in
           let
             vmConfig = lib.ghaf.vm.getConfig config.microvm.vms.${name};
             microvmConfig = vmConfig.microvm;
-            # Use enabledVms which has derived ramMb from evaluatedConfig
+            # Use enabledVms which has derived mem from evaluatedConfig
             vmBaseName = lib.removeSuffix "-vm" name;
             appvmConfig = config.ghaf.virtualization.microvm.appvm.enabledVms.${vmBaseName} or null;
           in
@@ -43,7 +43,7 @@ in
                 Type = "simple";
                 WorkingDirectory = "${config.microvm.stateDir}/${name}";
                 ExecStart = "${pkgs.ghaf-mem-manager}/bin/ghaf-mem-manager -s ${name}.sock -m ${
-                  toString (appvmConfig.ramMb * 1024 * 1024)
+                  toString (appvmConfig.mem * 1024 * 1024)
                 } -M ${toString (microvmConfig.mem * 1024 * 1024)}";
               };
             };

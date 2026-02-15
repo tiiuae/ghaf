@@ -20,8 +20,8 @@ To create an App VM, do the following:
    | name         | str                      | yes        | This name is postfixed with `-vm` and will be shown in microvm list. The name, for example, `chromium-vm` will be also the VM hostname. The length of the name must be 8 characters or less. | “chromium”          |
    | packages     | list of types.package    | no         | Packages to include in a VM. It is possible to make it empty or add several packages.                                                                                                        | [chromium top]      |
    | macAddress   | str                      | yes        | Needed for network configuration.                                                                                                                                                            | "02:00:00:03:03:05" |
-   | ramMb        | int, [1, …, host memory] | no         | Memory in MB.                                                                                                                                                                                | 3072                |
-   | cores        | int, [1, …, host cores]  | no         | Virtual CPU cores.                                                                                                                                                                           |
+   | mem          | int, [1, …, host memory] | no         | Memory in MB.                                                                                                                                                                                | 3072                |
+   | vcpu         | int, [1, …, host cores]  | no         | Virtual CPU cores.                                                                                                                                                                           |
 
 2. Create a new option for your VM in [modules/reference/appvms/default.nix](https://github.com/tiiuae/ghaf/blob/main/modules/reference/appvms/default.nix). For example:
 

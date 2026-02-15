@@ -82,16 +82,16 @@ let
     };
   };
 
-  # App VM configuration submodule (uses ramMb/cores for consistency with appvm definitions)
+  # App VM configuration submodule (uses mem/vcpu for consistency with system VM definitions)
   appVmConfigType = types.submodule {
     options = {
-      ramMb = mkOption {
+      mem = mkOption {
         type = types.nullOr types.int;
         default = null;
         description = "App VM memory allocation in MB.";
       };
 
-      cores = mkOption {
+      vcpu = mkOption {
         type = types.nullOr types.int;
         default = null;
         description = "App VM vCPU count.";
@@ -101,7 +101,7 @@ let
         type = types.nullOr types.int;
         default = null;
         description = ''
-          Memory balloon ratio. The VM is allocated ramMb * (balloonRatio + 1)
+          Memory balloon ratio. The VM is allocated mem * (balloonRatio + 1)
           bytes of memory, with ballooning enabled when balloonRatio > 0.
           If null, uses the default from the VM definition (typically 2).
         '';
@@ -157,8 +157,8 @@ in
       '';
       example = literalExpression ''
         {
-          chromium = { ramMb = 8192; extraModules = [ ./chrome.nix ]; };
-          comms = { ramMb = 4096; };
+          chromium = { mem = 8192; extraModules = [ ./chrome.nix ]; };
+          comms = { mem = 4096; };
         }
       '';
     };

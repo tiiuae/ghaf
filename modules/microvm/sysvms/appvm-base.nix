@@ -9,7 +9,7 @@
 # Unlike singleton VMs (gui-vm, net-vm, etc.), App VMs are instantiated multiple times.
 # Each instance is configured via hostConfig.appvm which contains:
 #   - name: VM name (e.g., "chromium", "comms")
-#   - ramMb, cores: Resource allocation
+#   - mem, vcpu: Resource allocation
 #   - applications: List of apps with name, command, packages, etc.
 #   - packages: Additional packages for the VM
 #   - vtpm, waypipe, ghafAudio: Feature flags
@@ -305,10 +305,10 @@ in
       microvm = {
         optimize.enable = false;
         # Sensible defaults based on vm definition - can be further overridden via vmConfig
-        mem = lib.mkDefault ((vm.ramMb or 4096) * ((vm.balloonRatio or 2) + 1));
+        mem = lib.mkDefault ((vm.mem or 4096) * ((vm.balloonRatio or 2) + 1));
         balloon = (vm.balloonRatio or 2) > 0;
         deflateOnOOM = false;
-        vcpu = lib.mkDefault (vm.cores or 4);
+        vcpu = lib.mkDefault (vm.vcpu or 4);
         hypervisor = "qemu";
 
         shares = [
