@@ -29,15 +29,8 @@ let
     ;
   cfg = config.ghaf.storage.encryption;
 
-  # Determine the LVM partition device
-  # This is the partition that will be encrypted
-  lvmPartition =
-    if config.ghaf.partitioning.verity.enable then
-      # For verity setups, use persist partition
-      "/dev/disk/by-partuuid/${config.image.repart.partitions."50-persist".repartConfig.UUID}"
-    else
-      # For disko setups, use the luks partition (which contains LVM)
-      config.disko.devices.disk.disk1.content.partitions.luks.device;
+  # Partition device to encrypt, set by the active partitioning module
+  lvmPartition = cfg.partitionDevice;
 
   firstBootEncryptScript = pkgs.writeShellApplication {
     name = "first-boot-encrypt";

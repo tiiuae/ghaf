@@ -15,22 +15,6 @@ let
     mkIf
     ;
   cfg = config.ghaf.storage.encryption;
-
-  partitions =
-    if config.ghaf.partitioning.verity.enable then
-      {
-        luks = rec {
-          partConf = config.image.repart.partitions."50-persist".repartConfig;
-          device = "/dev/disk/by-partuuid/${partConf.UUID}";
-        };
-      }
-    else
-      {
-        luks = rec {
-          partConf = config.disko.devices.disk.disk1.content.partitions.luks;
-          inherit (partConf) device;
-        };
-      };
 in
 {
   _file = ./disk-encryption.nix;
@@ -44,6 +28,10 @@ in
         "fido2"
       ];
       default = "tpm2";
+    };
+    partitionDevice = mkOption {
+      type = types.str;
+      description = "Device path for the partition to encrypt (set by the active partitioning module)";
     };
   };
 
@@ -62,7 +50,7 @@ in
 
     boot.initrd.luks.devices = {
       crypted = {
-        inherit (partitions.luks) device;
+        device = cfg.partitionDevice;
         tryEmptyPassphrase = true;
         crypttabExtraOpts =
           {
@@ -97,7 +85,7 @@ in
             tpm2-tools
           ];
           text = ''
-            P_DEVPATH=$(readlink -f ${partitions.luks.device})
+            P_DEVPATH=$(readlink -f ${cfg.partitionDevice})
             if cryptsetup luksDump "$P_DEVPATH" | grep -E '(systemd-tpm2|systemd-fido2)'; then
               echo 'TPM already enrolled'
               exit 0
@@ -132,7 +120,7 @@ in
         wants = [
           "systemd-tpm2-setup.service"
           "nix-store.mount"
-          "${utils.escapeSystemdPath partitions.luks.device}.device"
+          "${utils.escapeSystemdPath cfg.partitionDevice}.device"
         ];
         serviceConfig = {
           Type = "oneshot";

@@ -38,6 +38,9 @@ in
   ];
 
   config = lib.mkIf cfg.enable {
+    ghaf.storage.encryption.partitionDevice = lib.mkDefault "/dev/disk/by-partuuid/${
+      config.image.repart.partitions."50-persist".repartConfig.UUID
+    }";
 
     system.build.ghafImage = config.system.build.image.overrideAttrs (oldAttrs: {
       nativeBuildInputs = oldAttrs.nativeBuildInputs ++ [ pkgs.jq ];
