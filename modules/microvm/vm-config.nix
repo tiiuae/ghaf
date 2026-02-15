@@ -97,6 +97,16 @@ let
         description = "App VM vCPU count.";
       };
 
+      balloonRatio = mkOption {
+        type = types.nullOr types.int;
+        default = null;
+        description = ''
+          Memory balloon ratio. The VM is allocated ramMb * (balloonRatio + 1)
+          bytes of memory, with ballooning enabled when balloonRatio > 0.
+          If null, uses the default from the VM definition (typically 2).
+        '';
+      };
+
       extraModules = mkOption {
         type = types.listOf types.unspecified;
         default = [ ];

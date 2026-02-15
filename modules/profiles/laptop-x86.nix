@@ -218,7 +218,8 @@ in
             effectiveDef =
               vmDef
               // lib.optionalAttrs ((vmCfg.ramMb or null) != null) { inherit (vmCfg) ramMb; }
-              // lib.optionalAttrs ((vmCfg.cores or null) != null) { inherit (vmCfg) cores; };
+              // lib.optionalAttrs ((vmCfg.cores or null) != null) { inherit (vmCfg) cores; }
+              // lib.optionalAttrs ((vmCfg.balloonRatio or null) != null) { inherit (vmCfg) balloonRatio; };
           in
           lib.nixosSystem {
             modules = [
