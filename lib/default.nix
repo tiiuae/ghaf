@@ -134,7 +134,7 @@ in
         depends = lib.mkOption {
           type = lib.types.listOf lib.types.str;
           default = [ ];
-          description = "Services to restart when this policy file changes.";
+          description = "Services to restart after the policy update and after successful execution of the policy script if it is defined.";
         };
         updater = {
           url = lib.mkOption {
