@@ -64,7 +64,12 @@ in
         }
       ];
 
-      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common = {
+        extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+        policies = lib.mkIf cfg.evaluatedConfig.config.ghaf.givc.policyClient.enable {
+          "${vmName}" = cfg.evaluatedConfig.config.ghaf.givc.policyClient.policies;
+        };
+      };
 
       microvm.vms."${vmName}" = {
         autostart = !config.ghaf.microvm-boot.enable;

@@ -290,6 +290,22 @@ in
         in
         lib.foldr lib.recursiveUpdate { } (swtpms ++ proxyServices);
 
+      # Update common policies
+      ghaf.common.policies = lib.foldr lib.recursiveUpdate { } (
+        lib.mapAttrsToList (
+          name: vm:
+          let
+            vmPolicyClient = vm.evaluatedConfig.config.ghaf.givc.policyClient;
+          in
+          if vmPolicyClient.enable then
+            {
+              "${name}-vm" = vmPolicyClient.policies;
+            }
+          else
+            { }
+        ) enabledVms
+      );
+
       # Extra networking hosts
       ghaf.common.extraNetworking.hosts = lib.mapAttrs' (name: vm: {
         name = "${name}-vm";
