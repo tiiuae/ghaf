@@ -109,8 +109,10 @@ in
               {
                 imports = [ ../programs/google-chrome.nix ];
                 ghaf = {
-                  givc.policyClient.enable = true;
-                  givc.policyClient.storePath = policyDir;
+                  givc.policyClient = {
+                    enable = true;
+                    storePath = policyDir;
+                  };
                   storagevm.directories = [
                     {
                       directory = policyDir;
@@ -130,6 +132,21 @@ in
                     allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
                     allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
                   };
+                  givc.policyClient.policies.firewall-rules =
+                    let
+                      rulePath = "/etc/firewall/rules/fw.nft";
+                    in
+                    {
+                      dest = rulePath;
+                      updater = {
+                        url = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/fw.nft";
+                        poll_interval_secs = 300;
+                      };
+
+                      script = pkgs.writeShellScript "apply-nftables" ''
+                        ${pkgs.nftables}/bin/nft -f ${rulePath}
+                      '';
+                    };
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for google-chrome-vm
                 };
               }

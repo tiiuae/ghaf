@@ -4,6 +4,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -24,29 +25,13 @@ let
     strings
     ;
 
-  # Filter policies that have both factory and dest defined.
+  # Filter policies that have a dest defined.
   startupPolicies = filterAttrs (_name: p: p.dest != null) cfg.policyClient.policies;
 
-  tmpFilesRules = lib.flatten (
-    lib.mapAttrsToList (
-      _name: value:
-      if ((value.dest != null) && (strings.trim value.dest != "")) then
-        [
-          "d ${dirOf value.dest} 0755 1000 100 -"
-        ]
-      else
-        [ ]
-    ) cfg.policyClient.policies
-  );
-
-  givcPolicyInitService = {
-    description = "Initialize GIVC policies from factory or updates";
-    wantedBy = [ "sysinit.target" ];
-    after = [ "local-fs.target" ];
-    before = [ "basic.target" ];
-    unitConfig.DefaultDependencies = false;
-    serviceConfig.Type = "oneshot";
-    script = concatStringsSep "\n" (
+  givcPolicyInitApp = pkgs.writeShellApplication {
+    name = "givc-policy-init";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = concatStringsSep "\n" (
       mapAttrsToList (
         name: p:
         let
@@ -74,11 +59,22 @@ let
           else
             echo "Error! file not found:$FACTORY"
           fi
-
         ''
       ) startupPolicies
     );
   };
+
+  tmpFilesRules = lib.flatten (
+    lib.mapAttrsToList (
+      _name: value:
+      if ((value.dest != null) && (strings.trim value.dest != "")) then
+        [
+          "d ${dirOf value.dest} 0755 1000 100 -"
+        ]
+      else
+        [ ]
+    ) cfg.policyClient.policies
+  );
 
 in
 {
@@ -87,7 +83,7 @@ in
       enable = mkEnableOption "Policy admin.";
 
       storePath = mkOption {
-        type = types.str;
+        type = types.path;
         default = "/etc/policies";
         description = "Directory path for policy storage.";
       };
@@ -133,7 +129,17 @@ in
   config = mkIf (cfg.enable && cfg.policyClient.enable) {
     # Initialize startup policies
     systemd.services = {
-      "givc-policy-init" = givcPolicyInitService;
+      "givc-policy-init" = {
+        description = "Initialize GIVC policies from factory or updates";
+        wantedBy = [ "sysinit.target" ];
+        after = [ "local-fs.target" ];
+        before = [ "basic.target" ];
+        unitConfig.DefaultDependencies = false;
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe givcPolicyInitApp;
+        };
+      };
     }
     // (mapAttrs' (
       name: p:

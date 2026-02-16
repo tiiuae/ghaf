@@ -81,7 +81,7 @@ in
     };
 
     proxyPort = lib.mkOption {
-      type = lib.types.int;
+      type = lib.types.port;
       description = "Proxy port";
     };
 

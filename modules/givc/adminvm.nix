@@ -29,8 +29,7 @@ let
       else
         mapAttrsToList (policyName: policyValue: {
           inherit vmName policyName;
-          inherit (policyValue.updater) url;
-          inherit (policyValue.updater) poll_interval_secs;
+          inherit (policyValue.updater) url poll_interval_secs;
         }) vmPoliciesMap
     ) config.ghaf.common.policies
   );
@@ -98,8 +97,7 @@ in
       tls.enable = config.ghaf.givc.enableTls;
       policyAdmin = mkIf policycfg.enable {
         enable = true;
-        inherit (policycfg) storePath;
-        inherit (policycfg) updater;
+        inherit (policycfg) storePath updater;
         policies = groupedPolicies;
       };
     };

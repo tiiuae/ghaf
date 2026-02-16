@@ -301,8 +301,10 @@ in
                 };
 
               # Enable Policy Client
-              givc.policyClient.enable = true;
-              givc.policyClient.storePath = policyDir;
+              givc.policyClient = {
+                enable = true;
+                storePath = policyDir;
+              };
               storagevm = {
                 directories = [
                   {

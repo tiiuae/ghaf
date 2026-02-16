@@ -93,7 +93,7 @@ in
         };
         eventProxy = {
           enable = true;
-          events = [
+          events = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
             {
               transport = {
                 name = guivmName;

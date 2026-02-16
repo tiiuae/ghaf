@@ -266,8 +266,10 @@ in
       description = "Extra firewall rules";
     };
     filter-arp = mkEnableOption "static ARP and MAC/IP rules";
-    updater = {
-      enable = mkEnableOption "live update firewall rules";
+    updater.enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "whether to enable live update firewall rules";
     };
   };
 
@@ -491,21 +493,5 @@ in
       }
       cfg.extraOptions
     ];
-
-    ghaf.givc.policyClient.policies.firewall-rules =
-      let
-        rulePath = "/etc/firewall/rules/fw.nft";
-      in
-      mkIf cfg.updater.enable {
-        dest = rulePath;
-        updater = {
-          url = "https://raw.githubusercontent.com/gngram/policy-store/test-policy/vm-policies/firewall-rules/fw.nft";
-          poll_interval_secs = 30;
-        };
-
-        script = pkgs.writeShellScript "apply-nftables" ''
-          ${pkgs.nftables}/bin/nft -f ${rulePath}
-        '';
-      };
   };
 }
