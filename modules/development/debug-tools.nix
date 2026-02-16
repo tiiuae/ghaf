@@ -43,6 +43,9 @@ in
 
       # For debug complicated issues
       pkgs.strace
+
+      # For finding unwanted dependencies
+      pkgs.nix-tree
     ]
     ++ rmDesktopEntries [
       pkgs.htop
