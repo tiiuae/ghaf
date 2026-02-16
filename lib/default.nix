@@ -114,6 +114,42 @@ in
       };
       # keep-sorted end
     };
+    policy = lib.types.submodule {
+      options = {
+        factory = lib.mkOption {
+          type = lib.types.nullOr lib.types.path;
+          default = null;
+          description = "Initial policy file path or nix store path.";
+        };
+        dest = lib.mkOption {
+          type = lib.types.nullOr lib.types.path;
+          description = "Destination file path (must not be null).";
+          default = null;
+        };
+        script = lib.mkOption {
+          type = lib.types.nullOr lib.types.path;
+          default = null;
+          description = "Script to execute after a policy update.";
+        };
+        depends = lib.mkOption {
+          type = lib.types.listOf lib.types.str;
+          default = [ ];
+          description = "Services to restart when this policy file changes.";
+        };
+        updater = {
+          url = lib.mkOption {
+            type = lib.types.nullOr lib.types.str;
+            default = null;
+            description = "URL to pull updates for this specific policy.";
+          };
+          poll_interval_secs = lib.mkOption {
+            type = lib.types.int;
+            default = 300;
+            description = "Polling interval in seconds.";
+          };
+        };
+      };
+    };
 
     # Global configuration type for ghaf.global-config
     globalConfig = globalConfigLib.globalConfigType;
