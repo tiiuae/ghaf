@@ -53,8 +53,6 @@
                     ];
                   };
                   overlays = [
-                    inputs.ghafpkgs.overlays.default
-                    inputs.givc.overlays.default
                     self.overlays.default
                   ];
                 };
