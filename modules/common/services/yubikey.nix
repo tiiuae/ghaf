@@ -59,6 +59,6 @@ in
       ACTION=="remove", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="1050", ENV{ID_MODEL_ID}=="0407", RUN+="${pkgs.systemd}/bin/loginctl lock-sessions"
     '';
 
-    givc.sysvm.enableCtapModule = true;
+    givc.sysvm.capabilities.ctap.enable = true;
   };
 }

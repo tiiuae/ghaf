@@ -24,6 +24,7 @@
 }:
 let
   vmName = "admin-vm";
+  policyDir = "/etc/admin-policies";
 in
 {
   _file = ./adminvm-base.nix;
@@ -78,6 +79,9 @@ in
     };
 
     givc.adminvm.enable = true;
+    givc.policyAdmin.enable = true;
+    givc.policyAdmin.storePath = policyDir;
+    givc.policyAdmin.updater.perPolicy.enable = true;
 
     # Enable dynamic hostname export for VMs
     identity.vmHostNameExport.enable = true;
@@ -90,7 +94,10 @@ in
         "/etc/locale-givc.conf"
         "/etc/timezone.conf"
       ];
-      directories = lib.mkIf (globalConfig.storage.encryption.enable or false) [
+      directories = [
+        policyDir
+      ]
+      ++ lib.optionals (globalConfig.storage.encryption.enable or false) [
         "/var/lib/swtpm"
       ];
       encryption.enable = globalConfig.storage.encryption.enable or false;
