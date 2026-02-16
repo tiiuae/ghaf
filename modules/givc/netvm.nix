@@ -7,7 +7,9 @@
 }:
 let
   cfg = config.ghaf.givc.netvm;
+  policycfg = config.ghaf.givc.policyClient;
   inherit (lib)
+    mapAttrs
     mkEnableOption
     mkIf
     optionals
@@ -24,45 +26,66 @@ in
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
+    assertions = [
+      {
+        assertion = !config.ghaf.givc.policyAdmin.enable;
+        message = "Policy admin cannot be enabled in netvm.";
+      }
+    ];
+
     # Configure netvm service
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
-        name = config.networking.hostName;
-        addr = hosts.${hostName}.ipv4;
-        port = "9000";
+      network = {
+        agent.transport = {
+          name = config.networking.hostName;
+          addr = hosts.${hostName}.ipv4;
+          port = "9000";
+        };
+        tls.enable = config.ghaf.givc.enableTls;
+        admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
       };
-      services = [
-        "poweroff.target"
-        "reboot.target"
-      ]
-      ++ optionals config.ghaf.services.power-manager.vm.enable [
-        "suspend.target"
-        "systemd-suspend.service"
-      ]
-      ++ optionals config.ghaf.services.performance.net.tuned.enable [
-        "net-powersave.service"
-        "net-balanced.service"
-        "net-performance.service"
-        "net-powersave-battery.service"
-        "net-balanced-battery.service"
-        "net-performance-battery.service"
-      ];
-      hwidService = true;
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      socketProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
-        {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9010";
-            protocol = "tcp";
-          };
-          socket = "/tmp/dbusproxy_net.sock";
-        }
-      ];
+      capabilities = {
+        services = [
+          "poweroff.target"
+          "reboot.target"
+        ]
+        ++ optionals config.ghaf.services.power-manager.vm.enable [
+          "suspend.target"
+          "systemd-suspend.service"
+        ]
+        ++ optionals config.ghaf.services.performance.net.tuned.enable [
+          "net-powersave.service"
+          "net-balanced.service"
+          "net-performance.service"
+          "net-powersave-battery.service"
+          "net-balanced-battery.service"
+          "net-performance-battery.service"
+        ];
+        hwid.enable = true;
+
+        socketProxy = {
+          enable = true;
+          sockets = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+            {
+              transport = {
+                name = guivmName;
+                addr = hosts.${guivmName}.ipv4;
+                port = "9010";
+                protocol = "tcp";
+              };
+              socket = "/tmp/dbusproxy_net.sock";
+            }
+          ];
+        };
+        policy = mkIf policycfg.enable {
+          enable = true;
+          inherit (policycfg) storePath;
+          policies = mapAttrs (_name: value: value.dest) policycfg.policies;
+        };
+
+      };
     };
     givc.dbusproxy = {
       enable = true;
