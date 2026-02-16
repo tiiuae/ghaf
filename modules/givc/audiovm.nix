@@ -8,7 +8,9 @@
 let
   audioCfg = config.ghaf.services.audio;
   cfg = config.ghaf.givc.audiovm;
+  policycfg = config.ghaf.givc.policyClient;
   inherit (lib)
+    mapAttrs
     mkEnableOption
     mkIf
     optionals
@@ -25,57 +27,78 @@ in
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
+    assertions = [
+      {
+        assertion = !config.ghaf.givc.policyAdmin.enable;
+        message = "Policy admin cannot be enabled in audiovm.";
+      }
+    ];
     # Configure audiovm service
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
-        name = hostName;
-        addr = hosts.${hostName}.ipv4;
-        port = "9000";
+      network = {
+        agent.transport = {
+          name = hostName;
+          addr = hosts.${hostName}.ipv4;
+          port = "9000";
+        };
+        tls.enable = config.ghaf.givc.enableTls;
+        admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
       };
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      services = [
-        "poweroff.target"
-        "reboot.target"
-      ]
-      ++ optionals config.ghaf.services.power-manager.vm.enable [
-        "suspend.target"
-        "systemd-suspend.service"
-      ];
-      socketProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
-        {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9011";
-            protocol = "tcp";
-          };
-          socket = "/tmp/dbusproxy_snd.sock";
-        }
-        (lib.optionalAttrs (audioCfg.enable && audioCfg.server.pipewireForwarding.enable) {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            inherit (audioCfg.server.pipewireForwarding) port;
-            protocol = "tcp";
-          };
-          inherit (audioCfg.server.pipewireForwarding) socket;
-        })
-      ];
-      eventProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
-        {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9012";
-            protocol = "tcp";
-          };
-          producer = true;
-          device = "mouse";
-        }
-      ];
+      capabilities = {
+        services = [
+          "poweroff.target"
+          "reboot.target"
+        ]
+        ++ optionals config.ghaf.services.power-manager.vm.enable [
+          "suspend.target"
+          "systemd-suspend.service"
+        ];
+        socketProxy = {
+          enable = true;
+          sockets = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+            {
+              transport = {
+                name = guivmName;
+                addr = hosts.${guivmName}.ipv4;
+                port = "9011";
+                protocol = "tcp";
+              };
+              socket = "/tmp/dbusproxy_snd.sock";
+            }
+            (lib.optionalAttrs (audioCfg.enable && audioCfg.server.pipewireForwarding.enable) {
+              transport = {
+                name = guivmName;
+                addr = hosts.${guivmName}.ipv4;
+                inherit (audioCfg.server.pipewireForwarding) port;
+                protocol = "tcp";
+              };
+              inherit (audioCfg.server.pipewireForwarding) socket;
+            })
+          ];
+        };
+        eventProxy = {
+          enable = true;
+          events = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+            {
+              transport = {
+                name = guivmName;
+                addr = hosts.${guivmName}.ipv4;
+                port = "9012";
+                protocol = "tcp";
+              };
+              producer = true;
+              device = "mouse";
+            }
+          ];
+        };
+        policy = mkIf policycfg.enable {
+          enable = true;
+          inherit (policycfg) storePath;
+          policies = mapAttrs (_name: value: value.dest) policycfg.policies;
+        };
+      };
     };
     givc.dbusproxy = {
       enable = true;
