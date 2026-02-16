@@ -11,6 +11,7 @@
 }:
 let
   cfg = config.ghaf.reference.appvms.chrome;
+  policyDir = "/etc/policies";
 
   chromeWrapper = pkgs.writeShellApplication {
     name = "chrome-wrapper";
@@ -108,6 +109,16 @@ in
               {
                 imports = [ ../programs/google-chrome.nix ];
                 ghaf = {
+                  givc.policyClient.enable = true;
+                  givc.policyClient.storePath = policyDir;
+                  storagevm.directories = [
+                    {
+                      directory = policyDir;
+                      user = config.ghaf.users.appUser.name;
+                      group = config.ghaf.users.appUser.name;
+                      mode = "0774";
+                    }
+                  ];
                   reference.programs.google-chrome.enable = lib.mkDefault true;
                   security.apparmor.enable = lib.mkDefault true;
                   xdgitems = {
@@ -115,6 +126,7 @@ in
                   };
                   xdghandlers.url = true;
                   firewall = {
+                    updater.enable = true;
                     allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
                     allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
                   };
