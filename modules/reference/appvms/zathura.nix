@@ -33,11 +33,7 @@ in
         vcpu = 1;
         bootPriority = "low";
         borderColor = "#122263";
-        vtpm = {
-          enable = lib.mkDefault true;
-          runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-          basePort = 9160;
-        };
+        vtpm.enable = lib.mkDefault true;
         applications = [
           {
             name = "PDF Viewer";

@@ -148,11 +148,7 @@ in
         bootPriority = "low";
         borderColor = "#FFA500";
         ghafAudio.enable = lib.mkDefault true;
-        vtpm = {
-          enable = lib.mkDefault true;
-          runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-          basePort = 9170;
-        };
+        vtpm.enable = lib.mkDefault true;
         applications = [
           {
             name = "App Store";

@@ -38,11 +38,7 @@ in
         vcpu = 4;
         borderColor = "#337aff";
         ghafAudio.enable = lib.mkDefault true;
-        vtpm = {
-          enable = lib.mkDefault true;
-          runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-          basePort = 9130;
-        };
+        vtpm.enable = lib.mkDefault true;
         applications = [
           {
             name = "Element";
