@@ -128,7 +128,13 @@ in
           debug.tools.host.enable = config.ghaf.development.debug.tools.enable;
         };
         logging.client.enable = config.ghaf.logging.enable;
-        common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
+
+        common = {
+          extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
+          policies = lib.mkIf config.ghaf.givc.policyClient.enable {
+            ghaf-host = config.ghaf.givc.policyClient.policies;
+          };
+        };
       };
 
       # Create required host directories
