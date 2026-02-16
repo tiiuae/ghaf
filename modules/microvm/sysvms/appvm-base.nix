@@ -128,8 +128,8 @@ in
       ghaf.appvm.vmDef = vm // {
         applications = allApplications;
         vtpm = {
-          enable = unwrap (vm.vtpm.enable or false);
-          runInVM = unwrap (vm.vtpm.runInVM or false);
+          enable = (unwrap (vm.vtpm.enable or false)) || (globalConfig.storage.encryption.enable or false);
+          runInVM = (unwrap (vm.vtpm.runInVM or false)) || (globalConfig.storage.encryption.enable or false);
           basePort = vm.vtpm.basePort or null;
         };
       };
@@ -213,9 +213,21 @@ in
           inherit vmName;
         };
         # vTPM support
+        #
+        # App VMs use emulated TPM (swtpm) exclusively. Unlike system VMs (netvm, guivm,
+        # etc.) which can use hardware TPM passthrough on x86_64, app VMs rely on the
+        # admin-vm proxy chain: App VM (QEMU tpm-tis) → host swtpm-proxy-shim → admin-vm swtpm.
+        #
+        # When storage encryption is enabled globally, every app VM needs a TPM to satisfy
+        # the storagevm assertion. We auto-enable emulated TPM here so downstream consumers
+        # don't need to configure vtpm explicitly.
+        #
+        # If a different TPM backend is needed for app VMs in the future (e.g. hardware
+        # passthrough with per-VM NV indexes, or a TrustZone-based TA on aarch64), this
+        # logic should be made platform-conditional, mirroring the pattern in netvm-base.nix.
         virtualization.microvm.tpm.emulated = {
-          enable = vm.vtpm.enable or false;
-          runInVM = vm.vtpm.runInVM or false;
+          enable = (unwrap (vm.vtpm.enable or false)) || (globalConfig.storage.encryption.enable or false);
+          runInVM = (unwrap (vm.vtpm.runInVM or false)) || (globalConfig.storage.encryption.enable or false);
           inherit (vm) name;
         };
 

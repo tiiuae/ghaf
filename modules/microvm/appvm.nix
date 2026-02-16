@@ -41,7 +41,7 @@ let
 
   # Get enabled VMs with extensions applied via extendModules
   # Values are derived from the final evaluatedConfig.config.ghaf.appvm.vmDef
-  enabledVms = lib.mapAttrs (
+  enabledVmsRaw = lib.mapAttrs (
     attrName: vm:
     let
       # Apply extensions using NixOS native extendModules
@@ -70,6 +70,40 @@ let
       };
     }
   ) (lib.filterAttrs (_: vm: vm.enable) cfg.vms);
+
+  # Auto-assign vTPM basePorts for VMs using the admin-vm proxy path
+  # (vtpm.enable && vtpm.runInVM). Each VM gets a unique TCP control port
+  # (basePort) and data port (basePort+1) for the swtpm-proxy-shim chain.
+  #
+  # Ports are assigned alphabetically by VM name to be deterministic across
+  # rebuilds. Adding a new VM may shift other VMs' ports, but this is safe —
+  # swtpm state is persisted by VM name, not by port number.
+  autoPortBase = 9100;
+  autoPortStep = 10;
+
+  vmsWithVtpmProxy = lib.filterAttrs (_: vm: vm.vtpm.enable && vm.vtpm.runInVM) enabledVmsRaw;
+
+  sortedVtpmNames = lib.sort lib.lessThan (lib.attrNames vmsWithVtpmProxy);
+
+  autoPortMap = lib.listToAttrs (
+    lib.imap0 (i: name: {
+      inherit name;
+      value = autoPortBase + (i * autoPortStep);
+    }) sortedVtpmNames
+  );
+
+  enabledVms = lib.mapAttrs (
+    name: vm:
+    if autoPortMap ? ${name} then
+      vm
+      // {
+        vtpm = vm.vtpm // {
+          basePort = autoPortMap.${name};
+        };
+      }
+    else
+      vm
+  ) enabledVmsRaw;
 
   # Get VMs with waypipe enabled (from evaluatedConfig)
   vmsWithWaypipe = lib.filterAttrs (

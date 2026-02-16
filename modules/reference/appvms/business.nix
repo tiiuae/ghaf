@@ -153,11 +153,7 @@ in
         vcpu = 4;
         borderColor = "#218838";
         ghafAudio.enable = lib.mkDefault true;
-        vtpm = {
-          enable = lib.mkDefault true;
-          runInVM = config.ghaf.virtualization.storagevm-encryption.enable;
-          basePort = 9110;
-        };
+        vtpm.enable = lib.mkDefault true;
         yubiProxy = true;
         applications = [
           {

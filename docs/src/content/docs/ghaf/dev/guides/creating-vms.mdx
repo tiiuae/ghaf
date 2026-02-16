@@ -279,6 +279,20 @@ Use the `extensions` option to add modules to an existing app VM without modifyi
 
 Values like `name`, `mem`, `borderColor`, `applications`, and `vtpm` are all derived from `evaluatedConfig.config.ghaf.appvm.vmDef` and should be set in the `mkAppVm` call, not at the host level.
 
+### vTPM and Storage Encryption
+
+App VMs get vTPM support automatically when storage encryption is enabled globally — no per-VM configuration is needed. When encryption is off, you can still opt in to vTPM by setting `vtpm.enable`:
+
+```nix
+config.ghaf.profiles.laptop-x86.mkAppVm {
+  name = "my-app";
+  vtpm.enable = lib.mkDefault true;
+  # ...
+};
+```
+
+TCP ports for the swtpm-proxy-shim chain are assigned automatically based on alphabetical VM name ordering. You never need to set `basePort` or `runInVM` manually. See [Virtualized TPM for guests](/ghaf/overview/arch/guest-tpm) for architecture details.
+
 ### Application Definition
 
 Each application in the `applications` list:

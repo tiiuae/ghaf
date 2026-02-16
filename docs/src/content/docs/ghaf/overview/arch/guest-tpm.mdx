@@ -44,6 +44,29 @@ After introducing these changes, the current implementation of the feature is il
 
 ![Ghaf implementation](@assets/ghaf/guest-tpm-hybrid.png)
 
+### App VM vTPM Auto-Configuration
+
+App VMs use emulated TPM exclusively, via the admin-vm proxy chain described above. Two mechanisms automate the setup so that downstream consumers and new app VMs require minimal (or zero) explicit vTPM configuration:
+
+**Automatic enablement.** When storage encryption is enabled globally (`ghaf.virtualization.storagevm-encryption.enable`), every app VM automatically gets an emulated vTPM with `runInVM = true`. This satisfies the storagevm assertion ("VM must have access to a TPM to enable storage encryption") without requiring each VM to set `vtpm` options. Downstream flakes that add app VMs via `mkAppVm` get encryption support for free.
+
+Without encryption, VMs can still opt in to vTPM by setting `vtpm.enable = lib.mkDefault true` in the `mkAppVm` call. In that case, swtpm runs host-side (no proxy chain, no `basePort` needed).
+
+**Automatic port assignment.** Each VM using the proxy path (`vtpm.enable && vtpm.runInVM`) needs a unique TCP `basePort` for the swtpm-proxy-shim (control port at `basePort`, data port at `basePort+1`). Ports are assigned automatically in `appvm.nix`: all proxy VMs are sorted alphabetically by name and assigned ports starting at 9100 in steps of 10. This eliminates manual port management and prevents collisions between upstream and downstream VMs.
+
+Port stability across rebuilds is guaranteed by VM name ordering, not insertion order. Adding a new VM may shift other VMs' ports, but this is safe — swtpm state is persisted by VM name (`/var/lib/swtpm/${name}/state`), not by port number. Ports are runtime TCP channels that are re-established on every boot.
+
+| Encryption | Explicit `vtpm.enable` | Result |
+|------------|----------------------|--------|
+| OFF | not set | No TPM, no encryption |
+| OFF | `true` | Host-side swtpm (no proxy, no basePort) |
+| ON | not set | Admin-vm proxy with auto-assigned basePort |
+| ON | `true` | Admin-vm proxy with auto-assigned basePort |
+
+:::note
+App VMs currently use emulated TPM on all platforms, unlike system VMs which use hardware TPM passthrough on x86_64. If alternative TPM backends for app VMs are introduced in the future (e.g. hardware passthrough with per-VM NV indexes, or TrustZone-based TAs on aarch64), the auto-enablement logic in `appvm-base.nix` would need to become platform-conditional, mirroring the pattern used by system VMs in `netvm-base.nix`.
+:::
+
 ### Remarks
 
 Applications that access the TPM should ideally use TPM 2.0 authenticated sessions. They enable encryption of TPM command payloads, which ensures inspecting or tampering of key material in-transit is not possible. This can be enforced in future updates.
