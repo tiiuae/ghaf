@@ -4,6 +4,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 let
@@ -17,36 +18,19 @@ let
     concatStringsSep
     mapAttrsToList
     escapeShellArg
-    mapAttrs'
-    nameValuePair
-    listToAttrs
-    flatten
     strings
     ;
 
-  # Filter policies that have both factory and dest defined.
+  # Filter policies that have a dest defined.
   startupPolicies = filterAttrs (_name: p: p.dest != null) cfg.policyClient.policies;
+  appvmEnabled = config.ghaf.givc.appvm.enable;
+  appUser = config.ghaf.users.appUser.name;
+  owner = if appvmEnabled then appUser else "root";
 
-  tmpFilesRules = lib.flatten (
-    lib.mapAttrsToList (
-      _name: value:
-      if ((value.dest != null) && (strings.trim value.dest != "")) then
-        [
-          "d ${dirOf value.dest} 0755 1000 100 -"
-        ]
-      else
-        [ ]
-    ) cfg.policyClient.policies
-  );
-
-  givcPolicyInitService = {
-    description = "Initialize GIVC policies from factory or updates";
-    wantedBy = [ "sysinit.target" ];
-    after = [ "local-fs.target" ];
-    before = [ "basic.target" ];
-    unitConfig.DefaultDependencies = false;
-    serviceConfig.Type = "oneshot";
-    script = concatStringsSep "\n" (
+  givcPolicyInitApp = pkgs.writeShellApplication {
+    name = "givc-policy-init";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = concatStringsSep "\n" (
       mapAttrsToList (
         name: p:
         let
@@ -74,11 +58,17 @@ let
           else
             echo "Error! file not found:$FACTORY"
           fi
-
         ''
       ) startupPolicies
     );
   };
+
+  tmpFilesRules = lib.concatMap (
+    value:
+    lib.optional (
+      value.dest != null && strings.trim value.dest != ""
+    ) "d ${dirOf value.dest} 0755 1000 100 -"
+  ) (lib.attrValues cfg.policyClient.policies);
 
 in
 {
@@ -87,7 +77,7 @@ in
       enable = mkEnableOption "Policy admin.";
 
       storePath = mkOption {
-        type = types.str;
+        type = types.path;
         default = "/etc/policies";
         description = "Directory path for policy storage.";
       };
@@ -133,54 +123,76 @@ in
   config = mkIf (cfg.enable && cfg.policyClient.enable) {
     # Initialize startup policies
     systemd.services = {
-      "givc-policy-init" = givcPolicyInitService;
+      "givc-policy-init" = {
+        description = "Initialize GIVC policies from factory or updates";
+        wantedBy = [ "sysinit.target" ];
+        after = [ "local-fs.target" ];
+        before = [ "basic.target" ];
+        unitConfig.DefaultDependencies = false;
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = lib.getExe givcPolicyInitApp;
+        };
+      };
     }
-    // (mapAttrs' (
+    // lib.concatMapAttrs (
       name: p:
-      nameValuePair "givc-policy-${name}" (
-        mkIf (p.script != null) {
+      lib.optionalAttrs (p.script != null) {
+        "givc-policy-${name}" = {
           description = "Trigger script for policy ${name}";
           serviceConfig = {
             Type = "oneshot";
             ExecStart = "${p.script}";
           };
-        }
-      )
-    ) cfg.policyClient.policies);
+          onSuccess = p.depends;
+        };
+      }
+    ) cfg.policyClient.policies;
 
     # Run script in a service for each policy on update
-    systemd.paths =
-      (mapAttrs' (
-        name: p:
-        nameValuePair "givc-policy-${name}" (
-          mkIf (p.script != null) {
+    systemd.paths = lib.concatMapAttrs (
+      name: p:
+
+      if p.script != null then
+        {
+          "givc-policy-${name}" = {
             pathConfig.PathModified = toString p.dest;
             wantedBy = [ "multi-user.target" ];
-          }
+          };
+        }
+      else
+        lib.listToAttrs (
+          map (dep: {
+            name = "givc-policy-${name}-${builtins.replaceStrings [ "." ] [ "-" ] dep}";
+            value = {
+              pathConfig = {
+                PathModified = toString p.dest;
+                Unit = dep;
+              };
+              unitConfig.Description = "Restart ${dep} when policy ${name} changes";
+              wantedBy = [ "multi-user.target" ];
+            };
+          }) p.depends
         )
-      ) cfg.policyClient.policies)
-      //
 
-        # Create a path unit to trigger dependent services on policy update
-        (listToAttrs (
-          flatten (
-            mapAttrsToList (
-              name: p:
-              map (dep: {
-                name = "${dep}";
-                value = {
-                  pathConfig.PathModified = toString p.dest;
-                  unitConfig.Description = "Restart ${dep} when policy ${name} changes";
-                  wantedBy = [ "multi-user.target" ];
-                };
-              }) p.depends
-            ) cfg.policyClient.policies
-          )
-        ));
+    ) cfg.policyClient.policies;
 
-    systemd.tmpfiles.rules = [
-      "d ${cfg.policyClient.storePath} 0755 1000 100 -"
-    ]
-    ++ tmpFilesRules;
+    ghaf.storagevm = mkIf config.ghaf.storagevm.enable {
+      directories = [
+        {
+          directory = cfg.policyClient.storePath;
+          user = owner;
+          group = owner;
+          mode = "0774";
+        }
+      ];
+    };
+
+    systemd.tmpfiles = mkIf appvmEnabled {
+      rules = [
+        "d ${cfg.policyClient.storePath} 0755 ${toString config.ghaf.users.appUser.uid} 100 -"
+      ]
+      ++ tmpFilesRules;
+    };
   };
 }

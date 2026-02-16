@@ -6,10 +6,7 @@ let
   policycfg = config.ghaf.givc.policyAdmin;
 
   inherit (lib)
-    flatten
-    foldl'
     lists
-    mapAttrsToList
     mkEnableOption
     mkIf
     ;
@@ -19,59 +16,35 @@ let
   systemHosts = lists.subtractLists (config.ghaf.common.appHosts ++ [ name ]) (
     builtins.attrNames config.ghaf.networking.hosts
   );
-
-  # Create a list of policies from all VMs
-  policyList = flatten (
-    mapAttrsToList (
-      vmName: vmPoliciesMap:
-      if vmPoliciesMap == { } then
-        [ ]
-      else
-        mapAttrsToList (policyName: policyValue: {
+  policyList = lib.concatLists (
+    lib.mapAttrsToList (
+      vmName:
+      lib.mapAttrsToList (
+        policyName: policyValue: {
           inherit vmName policyName;
-          inherit (policyValue.updater) url;
-          inherit (policyValue.updater) poll_interval_secs;
-        }) vmPoliciesMap
+          inherit (policyValue.updater) url poll_interval_secs;
+        }
+      )
     ) config.ghaf.common.policies
   );
 
-  /*
-    Group policies by policy name in a givc compatible set of policies.
-    Throw error if in the system, there are more than one policies with the same name
-    different URL.
-  */
-  groupedPolicies = foldl' (
-    acc: item:
+  groupedPolicies = lib.mapAttrs (
+    policyName: items:
     let
-      existing =
-        acc.${item.policyName} or {
-          vms = [ ];
-          perPolicyUpdater = {
-            inherit (item) url poll_interval_secs;
-          };
-        };
+      urls = lib.unique (map (i: i.url) items);
+      polls = map (i: i.poll_interval_secs) items;
     in
-    acc
-    // {
-      ${item.policyName} = {
-        vms = existing.vms ++ [ item.vmName ];
-
+    if lib.length urls > 1 then
+      throw "Conflicting URLs in policy ${policyName}: ${toString urls}"
+    else
+      {
+        vms = map (i: i.vmName) items;
         perPolicyUpdater = {
-          url =
-            if (item.url == existing.perPolicyUpdater.url) then
-              item.url
-            else
-              throw "Conflicting URL in policy ${item.policyName} for VM ${item.vmName}";
-
-          poll_interval_secs =
-            if (item.poll_interval_secs < existing.perPolicyUpdater.poll_interval_secs) then
-              item.poll_interval_secs
-            else
-              existing.perPolicyUpdater.poll_interval_secs;
+          url = lib.head urls;
+          poll_interval_secs = lib.foldl' lib.min (lib.head polls) polls;
         };
-      };
-    }
-  ) { } policyList;
+      }
+  ) (builtins.groupBy (i: i.policyName) policyList);
 in
 {
   _file = ./adminvm.nix;
@@ -98,8 +71,7 @@ in
       tls.enable = config.ghaf.givc.enableTls;
       policyAdmin = mkIf policycfg.enable {
         enable = true;
-        inherit (policycfg) storePath;
-        inherit (policycfg) updater;
+        inherit (policycfg) storePath updater;
         policies = groupedPolicies;
       };
     };

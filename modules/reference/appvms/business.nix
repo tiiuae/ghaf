@@ -12,7 +12,6 @@
 }:
 let
   cfg = config.ghaf.reference.appvms.business;
-  policyDir = "/etc/policies";
   inherit (lib) optionals getExe;
   enableOpenNormalExtension = true;
 
@@ -302,17 +301,6 @@ in
 
               # Enable Policy Client
               givc.policyClient.enable = true;
-              givc.policyClient.storePath = policyDir;
-              storagevm = {
-                directories = [
-                  {
-                    directory = policyDir;
-                    user = config.ghaf.users.appUser.name;
-                    group = config.ghaf.users.appUser.name;
-                    mode = "0774";
-                  }
-                ];
-              };
 
               # Enable Proxy Auto-Configuration service for the browser
               reference.services = {
