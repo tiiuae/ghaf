@@ -184,6 +184,7 @@ in
           modules = [
             inputs.microvm.nixosModules.microvm
             inputs.self.nixosModules.netvm-base
+            inputs.self.nixosModules.netvm-features
             # Import nixpkgs config module to get overlays
             {
               nixpkgs = {
