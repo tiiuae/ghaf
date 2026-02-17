@@ -71,26 +71,17 @@ let
            echo "Device is unlocked. Skipping..."
            exit 0
         fi
-        echo "Device is encrypted but NOT unlocked. Attempting recovery..."
+        echo "Device is encrypted but NOT unlocked. Handing off unlock to systemd-cryptsetup..."
 
        # Ensure marker exists
         mkdir -p /run
         touch /run/cryptsetup-pre-checked
 
-        # Try to start the service
-        echo "Starting systemd-cryptsetup@crypted..."
-        systemctl start systemd-cryptsetup@crypted || true
-
-        # Wait for it
-        for _ in {1..10}; do
-          if [ -e "/dev/mapper/crypted" ]; then
-            echo "Device unlocked successfully."
-            exit 0
-          fi
-          sleep 1
-        done
-        echo "Failed to unlock device automatically."
-        exit 1
+        # Start unlock asynchronously and return immediately.
+        # This avoids keeping tty-force attached while TPM2 PIN is requested.
+        echo "Starting systemd-cryptsetup@crypted (non-blocking)..."
+        systemctl start --no-block systemd-cryptsetup@crypted || true
+        exit 0
       fi
 
       # Check for installer/completion markers on the ESP partition.
