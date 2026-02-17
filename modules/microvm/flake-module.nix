@@ -70,6 +70,9 @@ _: {
     # Audio VM feature modules (bluetooth, xpadneo, hardware passthrough)
     audiovm-features = ./audiovm-features;
 
+    # Net VM feature modules (nics hardware passthrough)
+    netvm-features = ./netvm-features;
+
     # Net VM base module for layered composition
     # Use with extendModules pattern:
     #   lib.nixosSystem { modules = [ inputs.self.nixosModules.netvm-base ]; ... }
