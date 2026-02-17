@@ -3,13 +3,11 @@
 #
 # Generic x86_64 computer -target
 {
-  inputs,
   lib,
   self,
   ...
 }:
 let
-  inherit (inputs) nixos-generators;
   name = "generic-x86_64";
   system = "x86_64-linux";
   generic-x86 =
@@ -39,13 +37,7 @@ let
           inherit (self) lib;
         };
         modules = [
-          nixos-generators.nixosModules.raw-efi
-          self.nixosModules.microvm
-          self.nixosModules.hardware-x86_64-generic
-          self.nixosModules.profiles
-          self.nixosModules.reference-host-demo-apps
-          self.nixosModules.reference-programs
-
+          # Use nixpkgs disk-image module for raw EFI image generation
           (
             {
               lib,
@@ -55,8 +47,12 @@ let
               ...
             }:
             {
-              # https://github.com/nix-community/nixos-generators/blob/master/formats/raw-efi.nix#L24-L29
-              system.build.raw = lib.mkOverride 98 (
+              imports = [ "${modulesPath}/virtualisation/disk-image.nix" ];
+
+              image.format = "raw";
+
+              # Override image to add zstd compression
+              system.build.image = lib.mkOverride 98 (
                 import "${toString modulesPath}/../lib/make-disk-image.nix" {
                   inherit lib config pkgs;
                   partitionTableType = "efi";
@@ -67,6 +63,11 @@ let
               );
             }
           )
+          self.nixosModules.microvm
+          self.nixosModules.hardware-x86_64-generic
+          self.nixosModules.profiles
+          self.nixosModules.reference-host-demo-apps
+          self.nixosModules.reference-programs
 
           {
             ghaf = {
@@ -137,7 +138,7 @@ let
     {
       inherit hostConfiguration;
       name = "${name}-${variant}";
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.image;
     };
   debugModules = [ { ghaf.development.usb-serial.enable = true; } ];
   targets = [

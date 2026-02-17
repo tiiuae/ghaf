@@ -70,7 +70,7 @@ let
       inherit hostConfiguration;
       inherit variant;
       name = "${name}-${som}-${variant}";
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.image;
     };
 in
 mkOrinConfiguration

@@ -142,12 +142,6 @@
       };
     };
 
-    # Building various image types for NixOS
-    nixos-generators = {
-      url = "github:nix-community/nixos-generators";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # Hardware specific modules and configurations for NixOS
     nixos-hardware = {
       url = "github:NixOS/nixos-hardware/ae91411396f37d84850e07e7310f251b83fd3a93";

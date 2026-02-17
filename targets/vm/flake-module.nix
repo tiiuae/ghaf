@@ -1,23 +1,44 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 {
-  inputs,
   lib,
   self,
   ...
 }:
 let
-  inherit (inputs) nixos-generators;
   system = "x86_64-linux";
+
+  # Map format names to nixpkgs modules and their system.build output attributes
+  formatSpecs = {
+    vm = {
+      module =
+        { modulesPath, lib, ... }:
+        {
+          imports = [ "${modulesPath}/virtualisation/qemu-vm.nix" ];
+          virtualisation.diskSize = lib.mkDefault (2 * 1024);
+        };
+      buildAttr = "vm";
+    };
+    vmware = {
+      module =
+        { modulesPath, ... }:
+        {
+          imports = [ "${modulesPath}/virtualisation/vmware-image.nix" ];
+        };
+      buildAttr = "image";
+    };
+  };
+
   vm =
     format: variant: withGraphics:
     let
+      spec = formatSpecs.${format};
       hostConfiguration = lib.nixosSystem {
         specialArgs = {
           inherit (self) lib;
         };
         modules = [
-          (builtins.getAttr format nixos-generators.nixosModules)
+          spec.module
           self.nixosModules.common
           self.nixosModules.microvm
           self.nixosModules.profiles
@@ -210,7 +231,7 @@ let
     {
       inherit hostConfiguration;
       name = "${format}-${variant}";
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.${spec.buildAttr};
     };
   targets = [
     (vm "vm" "debug" true)

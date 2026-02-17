@@ -15,7 +15,7 @@ let
           };
         };
       newCfg = cfg.extendModules { modules = [ bpmpEnableModule ]; };
-      package = newCfg.config.system.build.${newCfg.config.formatAttr};
+      package = newCfg.config.system.build.image;
     in
     package;
 in

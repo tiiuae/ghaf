@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 #
 # Module which configures sd-image to generate images to be used with NVIDIA
-# Jetson Orin AGX/NX devices. Supposed to be imported from format-module.nix.
+# Jetson Orin AGX/NX devices.
 #
 # Generates ESP partition contents mimicking systemd-boot installation. Can be
 # used to generate both images to be used in flashing script, and image to be

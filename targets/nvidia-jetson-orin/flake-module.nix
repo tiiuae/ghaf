@@ -10,7 +10,7 @@
   ...
 }:
 let
-  inherit (inputs) nixos-generators jetpack-nixos;
+  inherit (inputs) jetpack-nixos;
 
   orin-configuration = import ./orin-configuration-builder.nix {
     inherit
@@ -23,8 +23,7 @@ let
 
   # setup some commonality between the configurations
   commonModules = [
-    (nixos-generators + "/format-module.nix")
-    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/sdimage.nix
     jetpack-nixos.nixosModules.default
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
@@ -98,7 +97,7 @@ let
           { ghaf.reference.host-demo-apps.demo-apps.enableDemoApplications = lib.mkForce false; }
         ];
       };
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.image;
     };
 
   generate-cross-from-x86_64 =
@@ -107,7 +106,7 @@ let
     // rec {
       name = tgt.name + "-from-x86_64";
       hostConfiguration = tgt.hostConfiguration.extendModules { modules = [ ./cross-compilation.nix ]; };
-      package = hostConfiguration.config.system.build.${hostConfiguration.config.formatAttr};
+      package = hostConfiguration.config.system.build.image;
     };
 
   # Add nodemoapps targets

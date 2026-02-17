@@ -14,7 +14,7 @@ let
   # TODO should this be changed when NX added
   cfg = config.ghaf.hardware.nvidia.orin;
 
-  images = config.system.build.${config.formatAttr};
+  images = config.system.build.image;
   partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
     <partition name="master_boot_record" type="protective_master_boot_record">
       <allocation_policy> sequential </allocation_policy>
