@@ -147,6 +147,53 @@ let
       mkdir -pv "$WORKDIR/bootloader"
       rm -fv "$WORKDIR/bootloader/esp.img"
 
+      ${lib.optionalString (cfg.flashScriptOverrides.signedArtifactsPath != null) ''
+        if [ -z "''${SIGNED_ARTIFACTS_DIR:-}" ]; then
+          SIGNED_ARTIFACTS_DIR=${lib.escapeShellArg cfg.flashScriptOverrides.signedArtifactsPath}
+        fi
+      ''}
+
+      if [ -n "''${SIGNED_ARTIFACTS_DIR:-}" ]; then
+        echo "Using signed artifacts from $SIGNED_ARTIFACTS_DIR"
+
+        for artifact in BOOTAA64.EFI Image; do
+          if [ ! -f "$SIGNED_ARTIFACTS_DIR/$artifact" ]; then
+            echo "ERROR: Missing $artifact in $SIGNED_ARTIFACTS_DIR" >&2
+            exit 1
+          fi
+        done
+
+        export BOOTAA64_EFI="$SIGNED_ARTIFACTS_DIR/BOOTAA64.EFI"
+        export KERNEL_IMAGE="$SIGNED_ARTIFACTS_DIR/Image"
+
+        if [ -f "$SIGNED_ARTIFACTS_DIR/initrd" ]; then
+          export INITRD_IMAGE="$SIGNED_ARTIFACTS_DIR/initrd"
+        fi
+
+        if [ -f "$SIGNED_ARTIFACTS_DIR/dtb" ]; then
+          export DTB_IMAGE="$SIGNED_ARTIFACTS_DIR/dtb"
+        fi
+      fi
+
+      if [ -n "''${BOOTAA64_EFI:-}" ]; then
+        if [ ! -f "$BOOTAA64_EFI" ]; then
+          echo "ERROR: BOOTAA64_EFI not found: $BOOTAA64_EFI" >&2
+          exit 1
+        fi
+        echo "Using external BOOTAA64.EFI: $BOOTAA64_EFI"
+        cp -f "$BOOTAA64_EFI" "$WORKDIR/bootloader/BOOTAA64.EFI"
+      fi
+
+      if [ -n "''${KERNEL_IMAGE:-}" ]; then
+        if [ ! -f "$KERNEL_IMAGE" ]; then
+          echo "ERROR: KERNEL_IMAGE not found: $KERNEL_IMAGE" >&2
+          exit 1
+        fi
+        echo "Using external kernel Image: $KERNEL_IMAGE"
+        mkdir -pv "$WORKDIR/kernel"
+        cp -f "$KERNEL_IMAGE" "$WORKDIR/kernel/Image"
+      fi
+
       ${lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
         # Read partition offsets and sizes from sdImage metadata
         ESP_OFFSET=$(cat "${images}/esp.offset")
