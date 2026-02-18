@@ -39,34 +39,42 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.evaluatedConfig != null;
-        message = ''
-          ghaf.virtualization.microvm.netvm.evaluatedConfig must be set.
-          Use a profile that provides netvmBase (laptop-x86 or orin).
+  config = lib.mkMerge [
+    {
+      ghaf.virtualization.microvm.sysvm.vms.netvm = {
+        inherit vmName;
+        inherit (cfg) enable evaluatedConfig extraNetworking;
+      };
+    }
+    (lib.mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = cfg.evaluatedConfig != null;
+          message = ''
+            ghaf.virtualization.microvm.netvm.evaluatedConfig must be set.
+            Use a profile that provides netvmBase (laptop-x86 or orin).
 
-          For x86 laptops:
-            netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase.extendModules {
-              modules = config.ghaf.hardware.definition.netvm.extraModules or [];
-            };
+            For x86 laptops:
+              netvm.evaluatedConfig = config.ghaf.profiles.laptop-x86.netvmBase.extendModules {
+                modules = config.ghaf.hardware.definition.netvm.extraModules or [];
+              };
 
-          For Jetson (Orin):
-            netvm.evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
-              modules = config.ghaf.hardware.definition.netvm.extraModules or [];
-            };
-        '';
-      }
-    ];
+            For Jetson (Orin):
+              netvm.evaluatedConfig = config.ghaf.profiles.orin.netvmBase.extendModules {
+                modules = config.ghaf.hardware.definition.netvm.extraModules or [];
+              };
+          '';
+        }
+      ];
 
-    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = !config.ghaf.microvm-boot.enable;
-      restartIfChanged = false;
-      inherit (inputs) nixpkgs;
-      inherit (cfg) evaluatedConfig;
-    };
-  };
+      microvm.vms."${vmName}" = {
+        autostart = !config.ghaf.microvm-boot.enable;
+        restartIfChanged = false;
+        inherit (inputs) nixpkgs;
+        inherit (cfg) evaluatedConfig;
+      };
+    })
+  ];
 }

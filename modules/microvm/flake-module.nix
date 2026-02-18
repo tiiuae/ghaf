@@ -18,6 +18,7 @@ _: {
       ./sysvms/audiovm.nix
       ./sysvms/idsvm/idsvm.nix
       ./common/microvm-store-mode.nix
+      ./sysvm-registry.nix
       ./vm-config.nix
     ];
 

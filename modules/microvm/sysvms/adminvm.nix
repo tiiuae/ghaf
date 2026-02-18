@@ -43,26 +43,34 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.evaluatedConfig != null;
-        message = ''
-          ghaf.virtualization.microvm.adminvm.evaluatedConfig must be set.
-          Use adminvmBase.extendModules from a profile (laptop-x86, orin, etc.).
-          Example:
-            ghaf.virtualization.microvm.adminvm.evaluatedConfig =
-              config.ghaf.profiles.laptop-x86.adminvmBase.extendModules { modules = [...]; };
-        '';
-      }
-    ];
+  config = lib.mkMerge [
+    {
+      ghaf.virtualization.microvm.sysvm.vms.adminvm = {
+        inherit vmName;
+        inherit (cfg) enable evaluatedConfig extraNetworking;
+      };
+    }
+    (lib.mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = cfg.evaluatedConfig != null;
+          message = ''
+            ghaf.virtualization.microvm.adminvm.evaluatedConfig must be set.
+            Use adminvmBase.extendModules from a profile (laptop-x86, orin, etc.).
+            Example:
+              ghaf.virtualization.microvm.adminvm.evaluatedConfig =
+                config.ghaf.profiles.laptop-x86.adminvmBase.extendModules { modules = [...]; };
+          '';
+        }
+      ];
 
-    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      inherit (cfg) evaluatedConfig;
-    };
-  };
+      microvm.vms."${vmName}" = {
+        autostart = true;
+        inherit (inputs) nixpkgs;
+        inherit (cfg) evaluatedConfig;
+      };
+    })
+  ];
 }

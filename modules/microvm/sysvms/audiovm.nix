@@ -43,26 +43,34 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.evaluatedConfig != null;
-        message = ''
-          ghaf.virtualization.microvm.audiovm.evaluatedConfig must be set.
-          Use audiovmBase.extendModules from a profile (laptop-x86, orin, etc.).
-          Example:
-            ghaf.virtualization.microvm.audiovm.evaluatedConfig =
-              config.ghaf.profiles.laptop-x86.audiovmBase.extendModules { modules = [...]; };
-        '';
-      }
-    ];
+  config = lib.mkMerge [
+    {
+      ghaf.virtualization.microvm.sysvm.vms.audiovm = {
+        inherit vmName;
+        inherit (cfg) enable evaluatedConfig extraNetworking;
+      };
+    }
+    (lib.mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = cfg.evaluatedConfig != null;
+          message = ''
+            ghaf.virtualization.microvm.audiovm.evaluatedConfig must be set.
+            Use audiovmBase.extendModules from a profile (laptop-x86, orin, etc.).
+            Example:
+              ghaf.virtualization.microvm.audiovm.evaluatedConfig =
+                config.ghaf.profiles.laptop-x86.audiovmBase.extendModules { modules = [...]; };
+          '';
+        }
+      ];
 
-    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = !config.ghaf.microvm-boot.enable;
-      inherit (inputs) nixpkgs;
-      inherit (cfg) evaluatedConfig;
-    };
-  };
+      microvm.vms."${vmName}" = {
+        autostart = !config.ghaf.microvm-boot.enable;
+        inherit (inputs) nixpkgs;
+        inherit (cfg) evaluatedConfig;
+      };
+    })
+  ];
 }
