@@ -51,29 +51,37 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.evaluatedConfig != null;
-        message = ''
-          ghaf.virtualization.microvm.guivm.evaluatedConfig must be set.
-          Use guivmBase.extendModules from a profile (laptop-x86, orin, etc.).
-          Example:
-            ghaf.virtualization.microvm.guivm.evaluatedConfig =
-              lib.ghaf.vm.applyVmConfig {
-                baseConfig = config.ghaf.profiles.laptop-x86.guivmBase.extendModules { ... };
-                ...
-              };
-        '';
-      }
-    ];
+  config = lib.mkMerge [
+    {
+      ghaf.virtualization.microvm.sysvm.vms.guivm = {
+        inherit vmName;
+        inherit (cfg) enable evaluatedConfig extraNetworking;
+      };
+    }
+    (lib.mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = cfg.evaluatedConfig != null;
+          message = ''
+            ghaf.virtualization.microvm.guivm.evaluatedConfig must be set.
+            Use guivmBase.extendModules from a profile (laptop-x86, orin, etc.).
+            Example:
+              ghaf.virtualization.microvm.guivm.evaluatedConfig =
+                lib.ghaf.vm.applyVmConfig {
+                  baseConfig = config.ghaf.profiles.laptop-x86.guivmBase.extendModules { ... };
+                  ...
+                };
+          '';
+        }
+      ];
 
-    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = !config.ghaf.microvm-boot.enable;
-      inherit (inputs) nixpkgs;
-      inherit (cfg) evaluatedConfig;
-    };
-  };
+      microvm.vms."${vmName}" = {
+        autostart = !config.ghaf.microvm-boot.enable;
+        inherit (inputs) nixpkgs;
+        inherit (cfg) evaluatedConfig;
+      };
+    })
+  ];
 }

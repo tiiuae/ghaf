@@ -47,26 +47,34 @@ in
     };
   };
 
-  config = lib.mkIf cfg.enable {
-    assertions = [
-      {
-        assertion = cfg.evaluatedConfig != null;
-        message = ''
-          ghaf.virtualization.microvm.idsvm.evaluatedConfig must be set.
-          Use idsvmBase.extendModules from a profile (laptop-x86, etc.).
-          Example:
-            ghaf.virtualization.microvm.idsvm.evaluatedConfig =
-              config.ghaf.profiles.laptop-x86.idsvmBase.extendModules { modules = [...]; };
-        '';
-      }
-    ];
+  config = lib.mkMerge [
+    {
+      ghaf.virtualization.microvm.sysvm.vms.idsvm = {
+        inherit vmName;
+        inherit (cfg) enable evaluatedConfig extraNetworking;
+      };
+    }
+    (lib.mkIf cfg.enable {
+      assertions = [
+        {
+          assertion = cfg.evaluatedConfig != null;
+          message = ''
+            ghaf.virtualization.microvm.idsvm.evaluatedConfig must be set.
+            Use idsvmBase.extendModules from a profile (laptop-x86, etc.).
+            Example:
+              ghaf.virtualization.microvm.idsvm.evaluatedConfig =
+                config.ghaf.profiles.laptop-x86.idsvmBase.extendModules { modules = [...]; };
+          '';
+        }
+      ];
 
-    ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
+      ghaf.common.extraNetworking.hosts.${vmName} = cfg.extraNetworking;
 
-    microvm.vms."${vmName}" = {
-      autostart = true;
-      inherit (inputs) nixpkgs;
-      inherit (cfg) evaluatedConfig;
-    };
-  };
+      microvm.vms."${vmName}" = {
+        autostart = true;
+        inherit (inputs) nixpkgs;
+        inherit (cfg) evaluatedConfig;
+      };
+    })
+  ];
 }

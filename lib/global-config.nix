@@ -636,6 +636,8 @@ rec {
         # AppVM configurations (needed by guivm for launcher generation)
         # Use enabledVms which has derived values including applications from vmDef
         appvms = config.ghaf.virtualization.microvm.appvm.enabledVms or { };
+        # System VM configurations (for dynamic discovery of enabled system VMs)
+        sysvms = config.ghaf.virtualization.microvm.sysvm.enabledVms or { };
         # GUIVM applications (needed by guivm for local launcher generation)
         guivm = {
           applications = config.ghaf.virtualization.microvm.guivm.applications or [ ];
