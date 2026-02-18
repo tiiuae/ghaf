@@ -406,9 +406,11 @@ The `vmConfig` parameter in `mkGhafConfiguration` allows per-target resource cus
 mkGhafConfiguration {
   # ... other params ...
   vmConfig = {
-    guivm = { mem = 4096; vcpu = 4; };
-    netvm = { mem = 512; vcpu = 1; };
-    myvm = { mem = 2048; vcpu = 2; };
+    sysvms = {
+      guivm = { mem = 4096; vcpu = 4; };
+      netvm = { mem = 512; vcpu = 1; };
+      myvm = { mem = 2048; vcpu = 2; };
+    };
   };
 }
 ```

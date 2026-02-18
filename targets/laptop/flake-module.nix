@@ -103,7 +103,7 @@ let
         };
       };
       vmConfig = {
-        guivm.mem = 6144;
+        sysvms.guivm.mem = 6144;
         appvms.flatpak.mem = 5120;
       };
     })
@@ -147,7 +147,7 @@ let
         partitioning.disko.enable = true;
       };
       vmConfig = {
-        guivm.mem = 6144;
+        sysvms.guivm.mem = 6144;
         appvms.flatpak.mem = 5120;
       };
     })
@@ -178,7 +178,7 @@ let
         partitioning.disko.enable = true;
       };
       vmConfig = {
-        guivm.mem = 2047;
+        sysvms.guivm.mem = 2047;
       };
     })
 
@@ -389,7 +389,7 @@ let
         };
       };
       vmConfig = {
-        guivm.mem = 6144;
+        sysvms.guivm.mem = 6144;
         appvms.flatpak.mem = 5120;
       };
     })
@@ -419,7 +419,7 @@ let
         partitioning.disko.enable = true;
       };
       vmConfig = {
-        guivm.mem = 6144;
+        sysvms.guivm.mem = 6144;
         appvms.flatpak.mem = 5120;
       };
     })

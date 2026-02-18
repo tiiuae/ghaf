@@ -212,7 +212,7 @@ applyVmConfig :: { config, vmName } -> [ Module ]
 1. Base module (e.g., guivm-base.nix) - sets mkDefault values
 2. resourceModule - applies `vmConfig.mem`/`vcpu`
 3. hwModules - `hardware.definition.<vm>.extraModules`
-4. vmConfigModules - `vmConfig.<vm>.extraModules` (highest priority)
+4. vmConfigModules - `vmConfig.sysvms.<vm>.extraModules` (highest priority)
 
 **Example:**
 
@@ -229,7 +229,7 @@ guivmBase.extendModules {
 **What it returns:**
 
 ```nix
-# If vmConfig.guivm = { mem = 4096; vcpu = 4; extraModules = [ myModule ]; }
+# If vmConfig.sysvms.guivm = { mem = 4096; vcpu = 4; extraModules = [ myModule ]; }
 # And hardware.definition.guivm = { extraModules = [ hwModule ]; }
 # Returns:
 [

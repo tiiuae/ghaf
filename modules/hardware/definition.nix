@@ -359,7 +359,7 @@ in
       # These options allow hardware modules to specify VM-level configs
       # that profiles include via extendModules
       #
-      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.guivm
+      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.sysvms.guivm
       guivm = {
         extraModules = mkOption {
           description = ''
@@ -372,7 +372,7 @@ in
             - Device-specific drivers/services
 
             For resource allocation (memory, vCPUs) or profile-specific modules,
-            use ghaf.virtualization.vmConfig.guivm instead.
+            use ghaf.virtualization.vmConfig.sysvms.guivm instead.
           '';
           type = types.listOf types.unspecified;
           default = [ ];
@@ -389,7 +389,7 @@ in
       # These options allow hardware modules to specify VM-level configs
       # that profiles include via extendModules
       #
-      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.audiovm
+      # NOTE: For resource allocation (mem, vcpu), use ghaf.virtualization.vmConfig.sysvms.audiovm
       audiovm = {
         extraModules = mkOption {
           description = ''
@@ -402,7 +402,7 @@ in
             - Hardware detection modules
 
             For resource allocation (memory, vCPUs) or profile-specific modules,
-            use ghaf.virtualization.vmConfig.audiovm instead.
+            use ghaf.virtualization.vmConfig.sysvms.audiovm instead.
           '';
           type = types.listOf types.unspecified;
           default = [ ];
@@ -429,7 +429,7 @@ in
             - Custom kernel parameters
 
             For resource allocation (memory, vCPUs) or profile-specific modules,
-            use ghaf.virtualization.vmConfig.netvm instead.
+            use ghaf.virtualization.vmConfig.sysvms.netvm instead.
           '';
           type = types.listOf types.unspecified;
           default = [ ];

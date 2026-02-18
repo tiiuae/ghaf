@@ -31,7 +31,7 @@ in
 
         # Net VM profile-specific modules - use vmConfig for resource allocation and profile services
         # Hardware-specific modules should go in hardware.definition.netvm.extraModules
-        vmConfig.netvm.extraModules = [
+        vmConfig.sysvms.netvm.extraModules = [
           ../services
           ../personalize
           { ghaf.reference.personalize.keys.enable = true; }
