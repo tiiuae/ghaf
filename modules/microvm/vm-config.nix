@@ -25,7 +25,7 @@
 #   1. Base module (guivm-base.nix)                    <- mkDefault (sensible defaults)
 #   2. Feature modules (desktop-features)              <- profile features
 #   3. hardware.definition.guivm.extraModules          <- hardware-specific (GPU quirks)
-#   4. virtualization.vmConfig.guivm.extraModules      <- profile/downstream (highest priority)
+#   4. virtualization.vmConfig.sysvms.guivm.extraModules <- profile/downstream (highest priority)
 #
 {
   lib,
@@ -119,34 +119,19 @@ in
   _file = ./vm-config.nix;
 
   options.ghaf.virtualization.vmConfig = {
-    guivm = mkOption {
-      type = systemVmConfigType;
+    sysvms = mkOption {
+      type = types.attrsOf systemVmConfigType;
       default = { };
-      description = "GUI VM resource allocation and profile configuration.";
-    };
-
-    netvm = mkOption {
-      type = systemVmConfigType;
-      default = { };
-      description = "Network VM resource allocation and profile configuration.";
-    };
-
-    audiovm = mkOption {
-      type = systemVmConfigType;
-      default = { };
-      description = "Audio VM resource allocation and profile configuration.";
-    };
-
-    adminvm = mkOption {
-      type = systemVmConfigType;
-      default = { };
-      description = "Admin VM resource allocation and profile configuration.";
-    };
-
-    idsvm = mkOption {
-      type = systemVmConfigType;
-      default = { };
-      description = "IDS VM resource allocation and profile configuration.";
+      description = ''
+        Per-system-VM configuration. Keys should match system VM names
+        (e.g., guivm, netvm, audiovm, adminvm, idsvm).
+      '';
+      example = literalExpression ''
+        {
+          guivm = { mem = 16384; vcpu = 8; };
+          netvm = { extraModules = [ ./my-net-config.nix ]; };
+        }
+      '';
     };
 
     appvms = mkOption {

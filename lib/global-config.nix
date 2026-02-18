@@ -679,7 +679,7 @@ rec {
     #   1. Base module (guivm-base.nix) - sets mkDefault values
     #   2. resourceModule - applies vmConfig.mem/vcpu
     #   3. hwModules - hardware.definition.<vm>.extraModules
-    #   4. vmConfigModules - vmConfig.<vm>.extraModules (highest priority)
+    #   4. vmConfigModules - vmConfig.sysvms.<vm>.extraModules (highest priority)
     #
     # Arguments:
     #   config - Host configuration (with ghaf.hardware.definition and ghaf.virtualization.vmConfig)
@@ -698,7 +698,7 @@ rec {
       }:
       let
         hwDef = config.ghaf.hardware.definition.${vmName} or { };
-        vmCfg = config.ghaf.virtualization.vmConfig.${vmName} or { };
+        vmCfg = config.ghaf.virtualization.vmConfig.sysvms.${vmName} or { };
 
         hwModules = hwDef.extraModules or [ ];
         vmConfigModules = vmCfg.extraModules or [ ];

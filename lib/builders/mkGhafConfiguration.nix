@@ -21,7 +21,7 @@
 #     extraModules = [ ... ];
 #     extraConfig = { ... };
 #     vmConfig = {
-#       guivm = { mem = 16384; vcpu = 8; };
+#       sysvms.guivm = { mem = 16384; vcpu = 8; };
 #     };
 #   }
 #
@@ -167,6 +167,31 @@ let
       # Helper: Extend a specific VM with additional modules
       extendVm =
         vmName: modules:
+        let
+          inSysvms = (vmConfig.sysvms or { }) ? ${vmName};
+          inAppvms = (vmConfig.appvms or { }) ? ${vmName};
+          updatedVmConfig =
+            if inSysvms then
+              vmConfig
+              // {
+                sysvms = vmConfig.sysvms // {
+                  ${vmName} = vmConfig.sysvms.${vmName} // {
+                    extraModules = (vmConfig.sysvms.${vmName}.extraModules or [ ]) ++ modules;
+                  };
+                };
+              }
+            else if inAppvms then
+              vmConfig
+              // {
+                appvms = vmConfig.appvms // {
+                  ${vmName} = vmConfig.appvms.${vmName} // {
+                    extraModules = (vmConfig.appvms.${vmName}.extraModules or [ ]) ++ modules;
+                  };
+                };
+              }
+            else
+              throw "extendVm: '${vmName}' not found in vmConfig.sysvms or vmConfig.appvms";
+        in
         mkGhafConfiguration' {
           inherit
             name
@@ -177,11 +202,7 @@ let
             extraModules
             extraConfig
             ;
-          vmConfig = vmConfig // {
-            ${vmName} = (vmConfig.${vmName} or { }) // {
-              extraModules = (vmConfig.${vmName}.extraModules or [ ]) ++ modules;
-            };
-          };
+          vmConfig = updatedVmConfig;
         };
 
       # Helper: Get a VM's final configuration
