@@ -255,7 +255,22 @@ in
         };
 
         # Security
-        security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+        security = {
+          fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+
+          # SPIFFE/SPIRE agent (app VMs always use join_token)
+          spiffe = lib.mkIf (globalConfig.spiffe.enable or false) {
+            enable = true;
+            trustDomain = globalConfig.spiffe.trustDomain or "ghaf.internal";
+            agent = {
+              enable = true;
+              serverAddress =
+                hostConfig.networking.hosts.${globalConfig.spiffe.serverVm or "admin-vm"}.ipv4 or "127.0.0.1";
+              serverPort = globalConfig.spiffe.serverPort or 8081;
+              joinTokenFile = "/etc/common/spire/tokens/${vmName}.token";
+            };
+          };
+        };
       };
 
       # Combined udev rules (yubikey + passthrough)

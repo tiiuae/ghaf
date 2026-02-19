@@ -167,6 +167,37 @@ in
 
       # Audit - from globalConfig
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+
+      # SPIFFE/SPIRE agent
+      spiffe = lib.mkIf (globalConfig.spiffe.enable or false) {
+        enable = true;
+        trustDomain = globalConfig.spiffe.trustDomain or "ghaf.internal";
+        agent = {
+          enable = true;
+          serverAddress =
+            hostConfig.networking.hosts.${globalConfig.spiffe.serverVm or "admin-vm"}.ipv4 or "127.0.0.1";
+          serverPort = globalConfig.spiffe.serverPort or 8081;
+          joinTokenFile = "/etc/common/spire/tokens/${vmName}.token";
+          attestationMode =
+            if
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") == "x86_64-linux")
+            then
+              "tpm_devid"
+            else
+              "join_token";
+        };
+        devidProvision =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") == "x86_64-linux")
+            )
+            {
+              enable = true;
+              inherit vmName;
+            };
+      };
     };
 
     # Common namespace - from hostConfig

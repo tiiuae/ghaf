@@ -1,0 +1,145 @@
+From 7c5149a8f8c0e129d1f1c1261bd6a63d7a96ffd1 Mon Sep 17 00:00:00 2001
+From: Ganga Ram <Ganga.Ram@tii.ae>
+Date: Tue, 17 Feb 2026 12:46:42 +0400
+Subject: [PATCH] remove cloud components to reduce memory footprint
+
+Signed-off-by: Ganga Ram <Ganga.Ram@tii.ae>
+---
+ pkg/agent/catalog/nodeattestor.go     | 28 +++++++++++++--------------
+ pkg/agent/catalog/workloadattestor.go | 12 ++++++------
+ pkg/server/catalog/nodeattestor.go    | 28 +++++++++++++--------------
+ 3 files changed, 34 insertions(+), 34 deletions(-)
+
+diff --git a/pkg/agent/catalog/nodeattestor.go b/pkg/agent/catalog/nodeattestor.go
+index 97af6912a..0c8928911 100644
+--- a/pkg/agent/catalog/nodeattestor.go
++++ b/pkg/agent/catalog/nodeattestor.go
+@@ -2,14 +2,14 @@ package catalog
+ 
+ import (
+ 	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/awsiid"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/azureimds"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/azuremsi"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/gcpiit"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/httpchallenge"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/awsiid"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/azureimds"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/azuremsi"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/gcpiit"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/httpchallenge"
+ 	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/jointoken"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/k8spsat"
+-	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/sshpop"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/k8spsat"
++	//"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/sshpop"
+ 	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/tpmdevid"
+ 	"github.com/spiffe/spire/pkg/agent/plugin/nodeattestor/x509pop"
+ 	"github.com/spiffe/spire/pkg/common/catalog"
+@@ -35,14 +35,14 @@ func (repo *nodeAttestorRepository) Versions() []catalog.Version {
+ 
+ func (repo *nodeAttestorRepository) BuiltIns() []catalog.BuiltIn {
+ 	return []catalog.BuiltIn{
+-		awsiid.BuiltIn(),
+-		azuremsi.BuiltIn(),
+-		azureimds.BuiltIn(),
+-		gcpiit.BuiltIn(),
+-		httpchallenge.BuiltIn(),
++		//awsiid.BuiltIn(),
++		//azuremsi.BuiltIn(),
++		//azureimds.BuiltIn(),
++		//gcpiit.BuiltIn(),
++		//httpchallenge.BuiltIn(),
+ 		jointoken.BuiltIn(),
+-		k8spsat.BuiltIn(),
+-		sshpop.BuiltIn(),
++		//k8spsat.BuiltIn(),
++		//sshpop.BuiltIn(),
+ 		tpmdevid.BuiltIn(),
+ 		x509pop.BuiltIn(),
+ 	}
+diff --git a/pkg/agent/catalog/workloadattestor.go b/pkg/agent/catalog/workloadattestor.go
+index 4e367815b..bbe1a4f60 100644
+--- a/pkg/agent/catalog/workloadattestor.go
++++ b/pkg/agent/catalog/workloadattestor.go
+@@ -2,11 +2,11 @@ package catalog
+ 
+ import (
+ 	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor"
+-	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/docker"
+-	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/k8s"
++	//"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/docker"
++	//"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/k8s"
+ 	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/systemd"
+ 	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/unix"
+-	"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/windows"
++	//"github.com/spiffe/spire/pkg/agent/plugin/workloadattestor/windows"
+ 	"github.com/spiffe/spire/pkg/common/catalog"
+ )
+ 
+@@ -28,11 +28,11 @@ func (repo *workloadAttestorRepository) Versions() []catalog.Version {
+ 
+ func (repo *workloadAttestorRepository) BuiltIns() []catalog.BuiltIn {
+ 	return []catalog.BuiltIn{
+-		docker.BuiltIn(),
+-		k8s.BuiltIn(),
++		//docker.BuiltIn(),
++		//k8s.BuiltIn(),
+ 		systemd.BuiltIn(),
+ 		unix.BuiltIn(),
+-		windows.BuiltIn(),
++		//windows.BuiltIn(),
+ 	}
+ }
+ 
+diff --git a/pkg/server/catalog/nodeattestor.go b/pkg/server/catalog/nodeattestor.go
+index 2e9d540a6..1cc37710d 100644
+--- a/pkg/server/catalog/nodeattestor.go
++++ b/pkg/server/catalog/nodeattestor.go
+@@ -3,14 +3,14 @@ package catalog
+ import (
+ 	"github.com/spiffe/spire/pkg/common/catalog"
+ 	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/awsiid"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/azureimds"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/azuremsi"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/gcpiit"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/httpchallenge"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/awsiid"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/azureimds"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/azuremsi"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/gcpiit"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/httpchallenge"
+ 	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/jointoken"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/k8spsat"
+-	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/sshpop"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/k8spsat"
++	//"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/sshpop"
+ 	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/tpmdevid"
+ 	"github.com/spiffe/spire/pkg/server/plugin/nodeattestor/x509pop"
+ )
+@@ -35,14 +35,14 @@ func (repo *nodeAttestorRepository) Versions() []catalog.Version {
+ 
+ func (repo *nodeAttestorRepository) BuiltIns() []catalog.BuiltIn {
+ 	return []catalog.BuiltIn{
+-		awsiid.BuiltIn(),
+-		azuremsi.BuiltIn(),
+-		azureimds.BuiltIn(),
+-		gcpiit.BuiltIn(),
+-		httpchallenge.BuiltIn(),
++		//awsiid.BuiltIn(),
++		//azuremsi.BuiltIn(),
++		//azureimds.BuiltIn(),
++		//gcpiit.BuiltIn(),
++		//httpchallenge.BuiltIn(),
+ 		jointoken.BuiltIn(),
+-		k8spsat.BuiltIn(),
+-		sshpop.BuiltIn(),
++		//k8spsat.BuiltIn(),
++		//sshpop.BuiltIn(),
+ 		tpmdevid.BuiltIn(),
+ 		x509pop.BuiltIn(),
+ 	}
+-- 
+2.51.2
+

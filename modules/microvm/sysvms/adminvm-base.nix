@@ -90,9 +90,14 @@ in
         "/etc/locale-givc.conf"
         "/etc/timezone.conf"
       ];
-      directories = lib.mkIf (globalConfig.storage.encryption.enable or false) [
-        "/var/lib/swtpm"
-      ];
+      directories = lib.mkIf (globalConfig.storage.encryption.enable or false) (
+        [
+          "/var/lib/swtpm"
+        ]
+        ++ lib.optionals (globalConfig.spiffe.enable or false) [
+          "/var/lib/spire"
+        ]
+      );
       encryption.enable = globalConfig.storage.encryption.enable or false;
     };
 
@@ -155,6 +160,50 @@ in
     security = {
       fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+
+      # SPIFFE/SPIRE — admin-vm is the SPIRE server
+      spiffe = lib.mkIf (globalConfig.spiffe.enable or false) {
+        enable = true;
+        trustDomain = globalConfig.spiffe.trustDomain or "ghaf.internal";
+
+        server = {
+          enable = true;
+          bindPort = globalConfig.spiffe.serverPort or 8081;
+          # Collect VM names for join token generation:
+          # all system VMs + app VMs + ghaf-host
+          spireAgentVMs =
+            let
+              sysvmNames = lib.mapAttrsToList (_: vm: vm.vmName) (hostConfig.sysvms or { });
+              appvmNames = lib.mapAttrsToList (name: _: "${name}-vm") (hostConfig.appvms or { });
+            in
+            sysvmNames ++ appvmNames ++ [ "ghaf-host" ];
+          generateJoinTokens = true;
+          publishBundle = true;
+          createWorkloadEntries = true;
+          workloadEntries = [
+            {
+              name = "workload";
+              selectors = [ "unix:user:ghaf" ];
+            }
+          ];
+          tpmAttestation = lib.mkIf (globalConfig.spiffe.tpmAttestation.enable or false) {
+            enable = true;
+            devidCaPath = "/var/lib/spire/ca/ca.pem";
+            endorsementCaPath = "/var/lib/spire/ca/endorsement-ca.pem";
+          };
+        };
+
+        # admin-vm also runs a SPIRE agent
+        agent = {
+          enable = true;
+          serverAddress = "127.0.0.1";
+          serverPort = globalConfig.spiffe.serverPort or 8081;
+          joinTokenFile = "/etc/common/spire/tokens/${vmName}.token";
+        };
+
+        # DevID CA (signs certs for system VMs with TPM)
+        devidCa.enable = globalConfig.spiffe.tpmAttestation.enable or false;
+      };
     };
   };
 
