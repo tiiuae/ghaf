@@ -129,6 +129,21 @@ in
         };
         logging.client.enable = config.ghaf.logging.enable;
         common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
+
+        # SPIFFE/SPIRE agent on host
+        security.spiffe = lib.mkIf (config.ghaf.global-config.spiffe.enable or false) {
+          enable = true;
+          agent = {
+            enable = true;
+            serverAddress =
+              config.ghaf.networking.hosts.${config.ghaf.global-config.spiffe.serverVm or "admin-vm"}.ipv4
+                or "127.0.0.1";
+            serverPort = config.ghaf.global-config.spiffe.serverPort or 8081;
+            trustDomain = config.ghaf.global-config.spiffe.trustDomain or "ghaf.internal";
+            joinTokenFile = "/persist/common/spire/tokens/${config.networking.hostName}.token";
+            trustBundlePath = "/persist/common/spire/bundle.pem";
+          };
+        };
       };
 
       # Create required host directories
