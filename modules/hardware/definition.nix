@@ -415,6 +415,31 @@ in
         };
       };
 
+      tpm = {
+        endorsementCaVendors = mkOption {
+          type = types.listOf types.str;
+          default = [ ];
+          description = ''
+            TPM manufacturer vendor names (matching TrustedTpm.cab folder names).
+            Examples: "Intel", "Infineon", "AMD", "STMicro", "Nuvoton".
+            Multiple vendors supported for targets that ship with different TPMs
+            depending on SKU or production batch.
+          '';
+          example = [
+            "Intel"
+            "Infineon"
+          ];
+        };
+        endorsementCaCerts = mkOption {
+          type = types.listOf types.path;
+          default = [ ];
+          description = ''
+            Additional custom endorsement CA cert paths (PEM files).
+            Use for TPM vendors not in the TrustedTpm.cab bundle.
+          '';
+        };
+      };
+
       netvm = {
         extraModules = mkOption {
           description = ''

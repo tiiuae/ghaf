@@ -16,7 +16,8 @@
 let
   cfg = config.ghaf.security.spiffe.server;
 
-  tpmAttestationEnabled = cfg.tpmAttestation.enable;
+  # tpm_devid requires the enable flag and a valid endorsement CA bundle
+  tpmAttestationEffective = cfg.tpmAttestation.enable && cfg.tpmAttestation.endorsementCaBundle != "";
 
   # Generate server.conf HCL
   serverConf = ''
@@ -44,11 +45,11 @@ let
         plugin_data {}
       }
   ''
-  + lib.optionalString tpmAttestationEnabled ''
+  + lib.optionalString tpmAttestationEffective ''
     NodeAttestor "tpm_devid" {
       plugin_data {
         devid_ca_path = "${cfg.tpmAttestation.devidCaPath}"
-        endorsement_ca_path = "${cfg.tpmAttestation.endorsementCaPath}"
+        endorsement_ca_path = "${cfg.tpmAttestation.endorsementCaBundle}"
       }
     }
   ''
@@ -163,7 +164,7 @@ let
       echo "Waiting for all $EXPECTED_AGENTS agents to register..."
       AGENT_COUNT=0
       for i in $(seq 1 90); do
-        AGENT_COUNT=$(spire-server agent list -socketPath "$SOCKET" 2>/dev/null | grep "SPIFFE ID" | wc -l)
+        AGENT_COUNT=$(spire-server agent list -socketPath "$SOCKET" 2>/dev/null | grep -c "SPIFFE ID" || true)
         if [ "$AGENT_COUNT" -ge "$EXPECTED_AGENTS" ]; then
           echo "All agents registered: $AGENT_COUNT/$EXPECTED_AGENTS"
           break
@@ -209,7 +210,7 @@ let
           SPIFFE_ID="spiffe://$TRUST_DOMAIN/workload/$WORKLOAD"
 
           # Check if entry exists for this agent+workload combo
-          EXISTS=$(spire-server entry show -socketPath "$SOCKET" 2>/dev/null | grep -A1 "$SPIFFE_ID" | grep "$PARENT_ID" | wc -l)
+          EXISTS=$(spire-server entry show -socketPath "$SOCKET" 2>/dev/null | grep -A1 "$SPIFFE_ID" | grep -c "$PARENT_ID" || true)
 
           if [ "$EXISTS" -gt 0 ]; then
             echo "  [skip] $WORKLOAD"
@@ -339,24 +340,40 @@ in
 
       devidCaPath = lib.mkOption {
         type = lib.types.str;
-        default = "/var/lib/spire/ca/ca.pem";
-        description = "Path to the DevID CA certificate";
+        default = "/etc/common/spire/ca/ca.pem";
+        description = "Path to the DevID CA certificate (virtiofs-published by devid-ca service)";
       };
 
-      endorsementCaPath = lib.mkOption {
+      endorsementCaBundle = lib.mkOption {
         type = lib.types.str;
-        default = "/var/lib/spire/ca/endorsement-ca.pem";
+        default = "";
         description = ''
-          Path to TPM manufacturer endorsement key CA certificate(s).
-          Used to verify TPM genuineness during DevID attestation.
-          For production, bundle real manufacturer root CAs (e.g. Infineon).
-          The DevID CA setup creates a placeholder here on first boot.
+          Combined PEM file with all TPM manufacturer endorsement CAs.
+          Used as endorsement_ca_path in SPIRE server tpm_devid plugin.
+          Populated from globalConfig.
+        '';
+      };
+
+      endorsementCaCerts = lib.mkOption {
+        type = lib.types.listOf lib.types.path;
+        default = [ ];
+        description = ''
+          Deprecated: use endorsementCaBundle instead.
+          Kept for backward compatibility.
         '';
       };
     };
   };
 
   config = lib.mkIf cfg.enable {
+    warnings =
+      lib.optional (cfg.tpmAttestation.enable && cfg.tpmAttestation.endorsementCaBundle == "")
+        ''
+          SPIRE: tpm_devid requested but no endorsement CA bundle configured.
+          Falling back to join_token only attestation.
+          Ensure tpm-endorsement.nix is imported in your hardware definition.
+        '';
+
     environment.systemPackages = [ pkgs.spire ];
 
     users.groups.spire = { };

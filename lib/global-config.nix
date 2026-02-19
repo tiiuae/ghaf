@@ -123,6 +123,32 @@ rec {
         };
         tpmAttestation = {
           enable = mkEnableOption "TPM DevID node attestation for system VMs";
+          endorsementCaCerts = mkOption {
+            type = types.listOf types.path;
+            default = [ ];
+            description = ''
+              TPM manufacturer endorsement CA certs (PEM files).
+              Deprecated: use endorsementCaBundle instead.
+              Kept for backward compatibility.
+            '';
+          };
+          endorsementCaBundle = mkOption {
+            type = types.str;
+            default = "";
+            description = ''
+              Combined PEM file with all TPM manufacturer endorsement CAs.
+              Populated from tpm-endorsement.nix wiring module (points to all.pem).
+              Used by SPIRE server as endorsement_ca_path.
+            '';
+          };
+          endorsementCaVendors = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = ''
+              Expected TPM vendor names (advisory, for warning on mismatch).
+              Populated from hardware definition.
+            '';
+          };
         };
       };
 

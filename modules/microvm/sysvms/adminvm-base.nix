@@ -109,18 +109,18 @@ in
       };
 
       tpm.passthrough = {
-        # TPM passthrough is only supported on x86_64
+        # TPM passthrough supported on x86_64 and aarch64
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
         rootNVIndex = "0x81701000"; # TPM2 NV index for admin-vm LUKS key
       };
 
       tpm.emulated = {
-        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        # Use emulated TPM for platforms without hardware TPM support
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") == "riscv64-linux");
         name = vmName;
       };
     };
@@ -188,8 +188,8 @@ in
           ];
           tpmAttestation = lib.mkIf (globalConfig.spiffe.tpmAttestation.enable or false) {
             enable = true;
-            devidCaPath = "/var/lib/spire/ca/ca.pem";
-            endorsementCaPath = "/var/lib/spire/ca/endorsement-ca.pem";
+            devidCaPath = "/etc/common/spire/ca/ca.pem";
+            endorsementCaBundle = globalConfig.spiffe.tpmAttestation.endorsementCaBundle or "";
           };
         };
 

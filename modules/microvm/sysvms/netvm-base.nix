@@ -108,19 +108,18 @@ in
       };
 
       tpm.passthrough = {
-        # At the moment the TPM is only used for storage encryption, so the features are coupled.
-        # TPM passthrough is only supported on x86_64.
+        # TPM passthrough supported on x86_64 and aarch64
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
         rootNVIndex = "0x81704000"; # TPM2 NV index for net-vm LUKS key
       };
 
       tpm.emulated = {
-        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        # Use emulated TPM for platforms without hardware TPM support
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") == "riscv64-linux");
         name = vmName;
       };
     };
@@ -181,7 +180,7 @@ in
           attestationMode =
             if
               (globalConfig.spiffe.tpmAttestation.enable or false)
-              && ((globalConfig.platform.hostSystem or "") == "x86_64-linux")
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
             then
               "tpm_devid"
             else
@@ -191,11 +190,31 @@ in
           lib.mkIf
             (
               (globalConfig.spiffe.tpmAttestation.enable or false)
-              && ((globalConfig.platform.hostSystem or "") == "x86_64-linux")
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
             )
             {
               enable = true;
               inherit vmName;
+            };
+        tpmVendorDetect =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              expectedVendors = globalConfig.spiffe.tpmAttestation.endorsementCaVendors or [ ];
+            };
+        tpmEkVerify =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              endorsementCaBundle = globalConfig.spiffe.tpmAttestation.endorsementCaBundle or "";
             };
       };
     };

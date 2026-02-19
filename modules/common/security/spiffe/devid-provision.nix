@@ -37,7 +37,8 @@ let
       CERT_DIR="${cfg.certDir}"
 
       mkdir -p "$DEVID_DIR"
-      chmod 0700 "$DEVID_DIR"
+      chmod 0750 "$DEVID_DIR"
+      chown root:spire "$DEVID_DIR"
 
       PRIV_BLOB="$DEVID_DIR/devid.priv"
       PUB_BLOB="$DEVID_DIR/devid.pub"
@@ -57,8 +58,15 @@ let
       else
         echo "Generating DevID key for $VM_NAME..."
 
-        # Create ephemeral primary key
-        tpm2_createprimary -C owner -c "$DEVID_DIR/primary.ctx" -Q
+        # Try to create primary key — hierarchies may be disabled when TPM is shared
+        if ! tpm2_createprimary -C owner -c "$DEVID_DIR/primary.ctx" -Q 2>/dev/null && \
+           ! tpm2_createprimary -C endorsement -c "$DEVID_DIR/primary.ctx" -Q 2>/dev/null; then
+          echo "WARNING: Cannot create TPM primary key — all hierarchies disabled"
+          echo "This is expected when TPM is shared across VMs with LUKS encryption"
+          echo "Falling back to join_token attestation"
+          echo "no-hierarchy" > /run/tpm/devid-status 2>/dev/null || true
+          exit 0
+        fi
 
         # Create RSA-2048 signing key under the primary
         tpm2_create -C "$DEVID_DIR/primary.ctx" -G rsa2048:rsassa:sha256 \
@@ -89,7 +97,8 @@ let
         # Clean up transient context files
         rm -f "$DEVID_DIR/primary.ctx" "$DEVID_DIR/devid.ctx"
 
-        chmod 0600 "$PRIV_BLOB" "$PUB_BLOB"
+        chown root:spire "$PRIV_BLOB" "$PUB_BLOB"
+        chmod 0640 "$PRIV_BLOB" "$PUB_BLOB"
         echo "DevID key blobs created"
 
         # Submit CSR to admin-vm via virtiofs
@@ -105,6 +114,7 @@ let
       for i in $(seq 1 120); do
         if [ -f "$CERT_DIR/$VM_NAME.pem" ]; then
           cp "$CERT_DIR/$VM_NAME.pem" "$CERT_FILE"
+          chown root:spire "$CERT_FILE"
           chmod 0644 "$CERT_FILE"
           echo "DevID certificate received and stored at $CERT_FILE"
           exit 0

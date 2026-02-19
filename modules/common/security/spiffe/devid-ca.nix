@@ -56,18 +56,6 @@ let
       cp "$CA_CERT" "${caPublishPath}"
       chmod 0644 "${caPublishPath}"
       echo "Published CA cert to ${caPublishPath}"
-
-      # Create placeholder endorsement CA for SPIRE tpm_devid plugin.
-      # The tpm_devid NodeAttestor requires endorsement_ca_path (TPM manufacturer
-      # EK root cert). For production, replace with real manufacturer CAs
-      # (e.g. Infineon). This placeholder lets SPIRE server start; actual TPM
-      # DevID attestation will fail EK verification until real CAs are bundled.
-      ENDORSEMENT_CA="${caDir}/endorsement-ca.pem"
-      if [ ! -f "$ENDORSEMENT_CA" ]; then
-        cp "$CA_CERT" "$ENDORSEMENT_CA"
-        chmod 0644 "$ENDORSEMENT_CA"
-        echo "Created placeholder endorsement CA at $ENDORSEMENT_CA"
-      fi
     '';
   };
 

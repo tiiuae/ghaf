@@ -18,6 +18,8 @@ in
     ./agent.nix
     ./devid-ca.nix
     ./devid-provision.nix
+    ./tpm-vendor-detect.nix
+    ./tpm-ek-verify.nix
   ];
 
   options.ghaf.security.spiffe = {

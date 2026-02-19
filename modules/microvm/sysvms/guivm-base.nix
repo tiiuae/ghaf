@@ -156,18 +156,18 @@ in
       };
 
       tpm.passthrough = {
-        # TPM passthrough is only supported on x86_64
+        # TPM passthrough supported on x86_64 and aarch64
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
         rootNVIndex = "0x81703000"; # TPM2 NV index for gui-vm LUKS key
       };
 
       tpm.emulated = {
-        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        # Use emulated TPM for platforms without hardware TPM support
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") == "riscv64-linux");
         name = vmName;
       };
     };
@@ -262,11 +262,11 @@ in
             hostConfig.networking.hosts.${globalConfig.spiffe.serverVm or "admin-vm"}.ipv4 or "127.0.0.1";
           serverPort = globalConfig.spiffe.serverPort or 8081;
           joinTokenFile = "/etc/common/spire/tokens/${vmName}.token";
-          # Use TPM DevID attestation if enabled and this VM has hardware TPM
+          # Use TPM DevID attestation if enabled and platform supports hardware TPM
           attestationMode =
             if
               (globalConfig.spiffe.tpmAttestation.enable or false)
-              && ((globalConfig.platform.hostSystem or "") == "x86_64-linux")
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
             then
               "tpm_devid"
             else
@@ -277,11 +277,33 @@ in
           lib.mkIf
             (
               (globalConfig.spiffe.tpmAttestation.enable or false)
-              && ((globalConfig.platform.hostSystem or "") == "x86_64-linux")
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
             )
             {
               enable = true;
               inherit vmName;
+            };
+        # Runtime TPM vendor detection (advisory)
+        tpmVendorDetect =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              expectedVendors = globalConfig.spiffe.tpmAttestation.endorsementCaVendors or [ ];
+            };
+        # Runtime EK cert chain validation (defense-in-depth)
+        tpmEkVerify =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              endorsementCaBundle = globalConfig.spiffe.tpmAttestation.endorsementCaBundle or "";
             };
       };
     };
