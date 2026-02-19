@@ -20,7 +20,8 @@ let
 
   useTpmDevid = cfg.attestationMode == "tpm_devid";
 
-  agentConf = ''
+  # Common agent config (shared between tpm_devid and join_token modes)
+  agentConfCommon = ''
     agent {
       data_dir = "${cfg.dataDir}"
       log_level = "${cfg.logLevel}"
@@ -29,34 +30,19 @@ let
       trust_domain = "${cfg.trustDomain}"
       trust_bundle_path = "${cfg.trustBundlePath}"
       socket_path = "${cfg.socketPath}"
-  ''
-  + lib.optionalString (!useTpmDevid) ''
-    join_token_file = "${cfg.joinTokenFile}"
-  ''
-  + ''
+  '';
+
+  agentConfTpmDevid = agentConfCommon + ''
     }
 
     plugins {
-  ''
-  + (
-    if useTpmDevid then
-      ''
-        NodeAttestor "tpm_devid" {
-          plugin_data {
-            devid_cert_path = "${cfg.tpmDevid.certPath}"
-            devid_priv_path = "${cfg.tpmDevid.privPath}"
-            devid_pub_path = "${cfg.tpmDevid.pubPath}"
-          }
+      NodeAttestor "tpm_devid" {
+        plugin_data {
+          devid_cert_path = "${cfg.tpmDevid.certPath}"
+          devid_priv_path = "${cfg.tpmDevid.privPath}"
+          devid_pub_path = "${cfg.tpmDevid.pubPath}"
         }
-      ''
-    else
-      ''
-        NodeAttestor "join_token" {
-          plugin_data {}
-        }
-      ''
-  )
-  + ''
+      }
 
       WorkloadAttestor "unix" {
         plugin_data {}
@@ -68,6 +54,46 @@ let
         }
       }
     }
+  '';
+
+  agentConfJoinToken = agentConfCommon + ''
+    join_token_file = "${cfg.joinTokenFile}"
+    }
+
+    plugins {
+      NodeAttestor "join_token" {
+        plugin_data {}
+      }
+
+      WorkloadAttestor "unix" {
+        plugin_data {}
+      }
+
+      KeyManager "disk" {
+        plugin_data {
+          directory = "${cfg.dataDir}/keys"
+        }
+      }
+    }
+  '';
+
+  # For tpm_devid mode, generate both configs and select at runtime
+
+  # Runtime config selector: checks if DevID files exist, falls back to join_token
+  agentConfSelector = pkgs.writeShellScript "spire-agent-select-config" ''
+    if [ "${toString useTpmDevid}" = "1" ]; then
+      if [ -f "${cfg.tpmDevid.certPath}" ] && \
+         [ -f "${cfg.tpmDevid.privPath}" ] && \
+         [ -f "${cfg.tpmDevid.pubPath}" ]; then
+        echo "DevID files found, using tpm_devid attestation"
+        ln -sf /etc/spire/agent-tpm-devid.conf /run/spire/agent.conf
+      else
+        echo "DevID files not found, falling back to join_token attestation"
+        ln -sf /etc/spire/agent-join-token.conf /run/spire/agent.conf
+      fi
+    else
+      ln -sf /etc/spire/agent-join-token.conf /run/spire/agent.conf
+    fi
   '';
 in
 {
@@ -185,7 +211,10 @@ in
       extraGroups = lib.mkAfter [ cfg.workloadApiGroup ];
     }));
 
-    environment.etc."spire/agent.conf".text = agentConf;
+    environment.etc."spire/agent-join-token.conf".text = agentConfJoinToken;
+    environment.etc."spire/agent-tpm-devid.conf" = lib.mkIf useTpmDevid {
+      text = agentConfTpmDevid;
+    };
 
     # Own /run/spire via tmpfiles with group access for spiffe users
     systemd.tmpfiles.rules = [
@@ -200,8 +229,17 @@ in
       after = [
         "network-online.target"
       ]
-      ++ lib.optionals useTpmDevid [ "spire-devid-provision.service" ];
-      wants = [ "network-online.target" ];
+      ++ lib.optionals useTpmDevid [
+        "tpm-vendor-detect.service"
+        "tpm-ek-verify.service"
+        "spire-devid-provision.service"
+      ];
+      wants = [
+        "network-online.target"
+      ]
+      ++ lib.optionals useTpmDevid [
+        "spire-devid-provision.service"
+      ];
       unitConfig = {
         RequiresMountsFor = [ "/etc/common" ];
       };
@@ -221,7 +259,8 @@ in
           config.security.tpm2.tssGroup or "tss"
         ];
 
-        ExecStart = "${pkgs.spire}/bin/spire-agent run -config /etc/spire/agent.conf";
+        ExecStartPre = "+${agentConfSelector}";
+        ExecStart = "${pkgs.spire}/bin/spire-agent run -config /run/spire/agent.conf";
 
         StateDirectory = "spire/agent";
         StateDirectoryMode = "0750";
