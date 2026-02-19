@@ -146,6 +146,7 @@ export default defineConfig({
                       items: [
                         "ghaf/dev/architecture",
                         "ghaf/dev/architecture/vm-composition",
+                        "ghaf/dev/architecture/vm-memory-management",
                         "ghaf/dev/architecture/config-propagation",
                         "ghaf/dev/architecture/module-conventions",
                         "ghaf/dev/architecture/anti-patterns",

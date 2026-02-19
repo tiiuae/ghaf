@@ -207,6 +207,8 @@ in
           encryption.enable = globalConfig.storage.encryption.enable or false;
         };
 
+        virtualization.microvm.swap.enable = true;
+
         # Networking
         virtualization.microvm.vm-networking = {
           enable = true;
@@ -319,7 +321,7 @@ in
         # Sensible defaults based on vm definition - can be further overridden via vmConfig
         mem = lib.mkDefault ((vm.mem or 4096) * ((vm.balloonRatio or 2) + 1));
         balloon = (vm.balloonRatio or 2) > 0;
-        deflateOnOOM = false;
+        deflateOnOOM = true;
         vcpu = lib.mkDefault (vm.vcpu or 4);
         hypervisor = "qemu";
 

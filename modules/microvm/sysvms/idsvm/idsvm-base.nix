@@ -66,6 +66,8 @@ in
       nix-setup.enable = lib.mkDefault (globalConfig.development.nix-setup.enable or false);
     };
 
+    virtualization.microvm.swap.enable = true;
+
     # Networking - IDS VM acts as gateway
     virtualization.microvm.vm-networking = {
       enable = true;
