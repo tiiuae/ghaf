@@ -46,3 +46,7 @@ For implementation details and configuration knobs, see [Memory Wipe on Boot and
 ## Summary
 
 VM shutdown is a sensitive moment because memory pages leave one trust domain and return to the host allocator. Ghaf eliminates the risk of residual data reuse by enabling kernel features that wipe memory on free and zero memory on allocation. This protects secrets, prevents cross-VM leakage, and keeps the VM boundary trustworthy throughout the VM lifecycle.
+
+## See Also
+
+- [VM Memory Management](/ghaf/dev/architecture/vm-memory-management) -- how Ghaf uses zram swap and balloon deflation to prevent OOM crashes during runtime

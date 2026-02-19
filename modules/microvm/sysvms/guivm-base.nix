@@ -153,6 +153,8 @@ in
 
     # Networking
     virtualization.microvm = {
+      swap.enable = true;
+
       vm-networking = {
         enable = true;
         inherit vmName;
