@@ -104,33 +104,25 @@ in
       When enabled, locale values can be changed imperatively
       without rebuilding the system configuration.
     '';
-    propagate =
-      mkEnableOption ''
-        propagating runtime timezone changes from the system
-        to the host using `givc`.
+    propagate = mkEnableOption ''
+      propagating runtime timezone changes from the system
+      to the host using `givc`.
 
-        This keeps the host locale in sync with user-selected
-        desktop locale settings.
-      ''
-      // {
-        default = true;
-      };
-    overrideSystemLocale =
-      mkEnableOption ''
-        overriding the system-wide locale defined by `i18n.defaultLocale`
-        with runtime locale settings.
+      This keeps the host locale in sync with user-selected
+      desktop locale settings.
+    '';
+    overrideSystemLocale = mkEnableOption ''
+      overriding the system-wide locale defined by `i18n.defaultLocale`
+      with runtime locale settings.
 
-        When enabled, values from `/etc/locale.conf` are exported
-        into `/etc/profile` so that early services (e.g. greeter,
-        login shells) inherit the updated locale before a user
-        session starts.
+      When enabled, values from `/etc/locale.conf` are exported
+      into `/etc/profile` so that early services (e.g. greeter,
+      login shells) inherit the updated locale before a user
+      session starts.
 
-        Runtime locale variables are stored in
-        `/var/lib/locale/.locale-env` and sourced by `/etc/profile`.
-      ''
-      // {
-        default = true;
-      };
+      Runtime locale variables are stored in
+      `/var/lib/locale/.locale-env` and sourced by `/etc/profile`.
+    '';
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -164,8 +156,18 @@ in
       systemd.paths.ghaf-global-locale-listener = {
         description = "Ghaf Global Locale Listener";
         pathConfig.PathModified = "/etc/locale.conf";
-        partOf = [ "graphical.target" ];
         wantedBy = [ "graphical.target" ];
+      };
+    }
+
+    (mkIf cfg.propagate {
+      systemd.user.services.ghaf-locale-forwarder = {
+        description = "Ghaf Locale Forwarder";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${lib.getExe ghafLocaleHandler} givc";
+        };
+        wantedBy = [ "ghaf-global-locale-listener.path" ];
       };
 
       security.polkit = {
@@ -179,17 +181,6 @@ in
             }
           });
         '';
-      };
-    }
-
-    (mkIf cfg.propagate {
-      systemd.user.services.ghaf-locale-forwarder = {
-        description = "Ghaf Locale Forwarder";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${lib.getExe ghafLocaleHandler} givc";
-        };
-        wantedBy = [ "ghaf-global-locale-listener.path" ];
       };
     })
 

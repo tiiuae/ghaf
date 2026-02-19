@@ -17,15 +17,6 @@
 let
   # Only enable if ghaf-intro is enabled in the host's reference desktop config
   ghafIntroEnabled = hostConfig.reference.desktop.ghaf-intro.enable or false;
-
-  # Launch ghaf-intro in chrome-vm via givc-cli (it's a Chrome-based app)
-  introCommand =
-    let
-      wrapper = pkgs.writeShellScriptBin "ghaf-intro-autostart" ''
-        ${pkgs.givc-cli}/bin/givc-cli ${hostConfig.givc.cliArgs or ""} start app --vm chrome-vm ghaf-intro
-      '';
-    in
-    "${lib.getExe wrapper}";
 in
 {
   _file = ./ghaf-intro.nix;
@@ -42,7 +33,7 @@ in
       description = "Ghaf Introduction first-boot launcher";
       serviceConfig = {
         Type = "oneshot";
-        ExecStart = introCommand;
+        ExecStart = "${lib.getExe pkgs.ghaf-open} ghaf-intro";
       };
     };
   };

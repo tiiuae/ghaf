@@ -245,9 +245,16 @@ in
         repo = "ghaf-bugreports";
       };
 
-      timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
+      timezone = {
+        enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
+        propagate = true;
+      };
 
-      locale.enable = lib.mkDefault localeEnabled;
+      locale = {
+        enable = lib.mkDefault localeEnabled;
+        propagate = true;
+        overrideSystemLocale = true;
+      };
 
       disks.enable = true;
     };

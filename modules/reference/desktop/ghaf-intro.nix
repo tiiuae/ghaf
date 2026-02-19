@@ -52,8 +52,9 @@ in
 
         ghaf.appvm.applications = [
           {
-            name = "chrome-__nix_store_850v4wcrr356skfy90gj6j8w95lmx6mq-ghaf-intro-1.0.0_index.html-Default";
+            name = "ghaf-intro";
             desktopName = "Getting Started";
+            startupWMClass = "chrome-__nix_store_850v4wcrr356skfy90gj6j8w95lmx6mq-ghaf-intro-1.0.0_index.html-Default";
             categories = [
               "Utility"
               "Documentation"

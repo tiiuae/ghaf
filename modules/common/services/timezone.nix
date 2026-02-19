@@ -39,17 +39,13 @@ in
       When enabled, system timezone can be changed imperatively
       without rebuilding the system configuration.
     '';
-    propagate =
-      mkEnableOption ''
-        propagating runtime timezone changes from the system
-        to the host using `givc`.
+    propagate = mkEnableOption ''
+      propagating runtime timezone changes from the system
+      to the host using `givc`.
 
-        This keeps the host locale in sync with user-selected
-        desktop locale settings.
-      ''
-      // {
-        default = true;
-      };
+      This keeps the host locale in sync with user-selected
+      desktop locale settings.
+    '';
   };
 
   config = mkIf cfg.enable (mkMerge [
@@ -64,6 +60,26 @@ in
 
       # Allow runtime timezone management
       time.timeZone = null;
+    }
+
+    (mkIf cfg.propagate {
+      systemd = {
+        timers.ghaf-timezone-listener = {
+          description = "Ghaf Timezone Listener";
+          timerConfig = {
+            OnTimezoneChange = true;
+            Unit = "ghaf-timezone-forwarder.service";
+          };
+          wantedBy = [ "graphical.target" ];
+        };
+        services.ghaf-timezone-forwarder = {
+          description = "Ghaf Timezone Forwarder";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${lib.getExe ghafTimezoneHandler}";
+          };
+        };
+      };
 
       security.polkit = {
         enable = true;
@@ -76,27 +92,6 @@ in
             }
           });
         '';
-      };
-    }
-
-    (mkIf cfg.propagate {
-      systemd = {
-        paths.ghaf-timezone-listener = {
-          description = "Ghaf Timezone Listener";
-          pathConfig = {
-            PathModified = "/etc/localtime";
-            Unit = "ghaf-timezone-forwarder.service";
-          };
-          partOf = [ "graphical.target" ];
-          wantedBy = [ "graphical.target" ];
-        };
-        services.ghaf-timezone-forwarder = {
-          description = "Ghaf Timezone Forwarder";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${lib.getExe ghafTimezoneHandler}";
-          };
-        };
       };
     })
   ]);
