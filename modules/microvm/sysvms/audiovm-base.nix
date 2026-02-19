@@ -30,6 +30,7 @@ let
   bluetoothEnabled = lib.ghaf.features.isEnabledFor globalConfig "bluetooth" vmName;
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
 in
 {
   _file = ./audiovm-base.nix;
@@ -139,6 +140,8 @@ in
         enable = lib.mkDefault performanceEnabled;
         vm.enable = true;
       };
+
+      timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
     };
 
     # Logging - from globalConfig
@@ -172,6 +175,8 @@ in
     security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
   };
 
+  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
+
   environment = {
     systemPackages = [
       pkgs.pulseaudio
@@ -181,8 +186,6 @@ in
     ++ lib.optional (config.ghaf.development.debug.tools.enable or false) pkgs.alsa-utils;
   };
 
-  # Allow runtime timezone changes via GIVC set-timezone.
-  time.timeZone = null;
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {

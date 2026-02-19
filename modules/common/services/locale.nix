@@ -15,6 +15,7 @@ let
     getExe
     ;
   useGivc = config.ghaf.givc.enable;
+  useStorageVm = config.ghaf.storagevm.enable;
   globalConfPath = "/var/lib/locale/.locale-env";
   cfg = config.ghaf.services.locale;
 
@@ -97,22 +98,35 @@ in
   _file = ./locale.nix;
 
   options.ghaf.services.locale = {
-    enable = mkEnableOption "configuring locale settings imperatively.";
-    propagate = mkEnableOption "propagating locale settings from the DE to host via givc-cli." // {
-      default = true;
-    };
-    overrideGlobal =
+    enable = mkEnableOption ''
+      runtime management of user and system locale settings.
+
+      When enabled, locale values can be changed imperatively
+      without rebuilding the system configuration.
+    '';
+    propagate =
       mkEnableOption ''
-        overriding global system locale settings.
+        propagating runtime timezone changes from the system
+        to the host using `givc`.
 
-        If enabled, this will override the NixOS default `i18n.defaultLocale`
-        by exporting locale settings from `/etc/locale.conf` to the common `/etc/profile`.
+        This keeps the host locale in sync with user-selected
+        desktop locale settings.
+      ''
+      // {
+        default = true;
+      };
+    overrideSystemLocale =
+      mkEnableOption ''
+        overriding the system-wide locale defined by `i18n.defaultLocale`
+        with runtime locale settings.
 
-        This may be needed for the greeter, shells, etc. to inherit locale
-        settings properly prior to starting a user session.
+        When enabled, values from `/etc/locale.conf` are exported
+        into `/etc/profile` so that early services (e.g. greeter,
+        login shells) inherit the updated locale before a user
+        session starts.
 
-        The intermediate locale settings will be stored at `/var/lib/locale/.locale-env`,
-        which will be imported by `/etc/profile`.
+        Runtime locale variables are stored in
+        `/var/lib/locale/.locale-env` and sourced by `/etc/profile`.
       ''
       // {
         default = true;
@@ -121,6 +135,17 @@ in
 
   config = mkIf cfg.enable (mkMerge [
     {
+      assertions = [
+        {
+          assertion = cfg.overrideSystemLocale -> useStorageVm;
+          message = "Enabling the overriding of system locale ('ghaf.services.locale.overrideSystemLocale') requires the Storage VM to be enabled in the system.";
+        }
+        {
+          assertion = cfg.propagate -> useGivc;
+          message = "Enabling locale settings propagation ('ghaf.services.locale.propagate') requires GIVC to be enabled in the system.";
+        }
+      ];
+
       systemd.user = {
         paths.ghaf-locale-listener = {
           description = "Ghaf Locale Listener";
@@ -134,6 +159,13 @@ in
             ExecStart = "${getExe ghafLocaleHandler}";
           };
         };
+      };
+
+      systemd.paths.ghaf-global-locale-listener = {
+        description = "Ghaf Global Locale Listener";
+        pathConfig.PathModified = "/etc/locale.conf";
+        partOf = [ "graphical.target" ];
+        wantedBy = [ "graphical.target" ];
       };
 
       security.polkit = {
@@ -150,30 +182,23 @@ in
       };
     }
 
-    (mkIf (cfg.propagate && useGivc) {
+    (mkIf cfg.propagate {
       systemd.user.services.ghaf-locale-forwarder = {
         description = "Ghaf Locale Forwarder";
         serviceConfig = {
           Type = "oneshot";
           ExecStart = "${lib.getExe ghafLocaleHandler} givc";
         };
-        wantedBy = [ "ghaf-locale-listener.path" ];
+        wantedBy = [ "ghaf-global-locale-listener.path" ];
       };
     })
 
-    (mkIf (cfg.overrideGlobal && config.ghaf.storagevm.enable) {
-      systemd = {
-        paths.ghaf-global-locale-listener = {
-          description = "Ghaf Global Locale Listener";
-          wantedBy = [ "graphical.target" ];
-          pathConfig.PathModified = "/etc/locale.conf";
-        };
-        services.ghaf-global-locale-listener = {
-          description = "Ghaf Global Locale Listener";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${getExe ghafLocaleHandler} global";
-          };
+    (mkIf cfg.overrideSystemLocale {
+      systemd.services.ghaf-global-locale-listener = {
+        description = "Ghaf Global Locale Listener";
+        serviceConfig = {
+          Type = "oneshot";
+          ExecStart = "${getExe ghafLocaleHandler} global";
         };
       };
 

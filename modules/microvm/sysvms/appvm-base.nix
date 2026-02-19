@@ -293,8 +293,7 @@ in
 
       system.stateVersion = lib.trivial.release;
 
-      # Allow runtime timezone changes via GIVC set-timezone.
-      time.timeZone = null;
+      time.timeZone = lib.mkDefault globalConfig.platform.timeZone;
 
       nixpkgs = {
         buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";

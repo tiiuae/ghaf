@@ -44,6 +44,8 @@ let
   brightnessEnabled = lib.ghaf.features.isEnabledFor globalConfig "brightness" vmName;
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
+  localeEnabled = lib.ghaf.features.isEnabledFor globalConfig "locale" vmName;
+  timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
 
   # A list of applications from all AppVMs (accessed via hostConfig)
   enabledVms = lib.filterAttrs (_: vm: vm.enable) (hostConfig.appvms or { });
@@ -243,14 +245,18 @@ in
         repo = "ghaf-bugreports";
       };
 
-      timezone.enable = true;
-      locale.enable = true;
+      timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
+
+      locale.enable = lib.mkDefault localeEnabled;
+
       disks.enable = true;
     };
 
     xdgitems.enable = true;
     security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
   };
+
+  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
 
   services = {
     # We dont enable services.blueman because it adds blueman desktop entry
@@ -334,9 +340,6 @@ in
     );
   };
 
-  # Allow runtime timezone changes via timedatectl/COSMIC settings.
-  # Setting to null prevents NixOS from blocking timedatectl set-timezone.
-  time.timeZone = null;
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {
