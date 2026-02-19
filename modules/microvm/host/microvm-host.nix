@@ -166,6 +166,7 @@ in
         in
         [
           "d /persist/common 0755 root root -"
+          "d /persist/sysupdate 0755 root root -"
           "d /persist/storagevm 0755 root root -"
           "d /persist/storagevm/img 0700 microvm kvm -"
           "f /tmp/cancel 0770 microvm kvm -"

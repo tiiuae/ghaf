@@ -40,6 +40,12 @@ in
 
       # FSS (Forward Secure Sealing) integrity test
       fss-test
+
+      # For debug complicated issues
+      pkgs.strace
+
+      # For finding unwanted dependencies
+      pkgs.nix-tree
     ]
     ++ rmDesktopEntries [
       pkgs.htop

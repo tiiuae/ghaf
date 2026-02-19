@@ -19,3 +19,6 @@ __pycache__/
 .vscode
 plans/
 CLAUDE.md
+
+# Ignore VIM backup files (hide them from reuse lint)
+*.swp

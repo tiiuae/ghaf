@@ -18,6 +18,7 @@
 }:
 let
   vmName = "net-vm";
+
   cfg = config.ghaf.virtualization.microvm.netvm;
 in
 {
