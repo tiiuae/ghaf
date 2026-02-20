@@ -13,54 +13,78 @@ let
     mkIf
     mkMerge
     getExe
+    getExe'
+    escapeShellArg
     ;
   useGivc = config.ghaf.givc.enable;
   useStorageVm = config.ghaf.storagevm.enable;
+  localeConf = "/etc/locale.conf";
   globalConfPath = "/var/lib/locale/.locale-env";
   cfg = config.ghaf.services.locale;
 
   ghafLocaleHandler = pkgs.writeShellApplication {
     name = "ghaf-locale-handler";
+    runtimeInputs = with pkgs; [
+      gawk
+      givc-cli
+      systemd
+    ];
     text = ''
-      LOCALE_FILE="/etc/locale.conf"
+      LOCALE_FILE=${escapeShellArg localeConf}
+      GLOBAL_CONF_PATH="${escapeShellArg globalConfPath}"
 
       forward_givc() {
         # Forward locale settings via givc
-        mapfile -t locale_settings < $LOCALE_FILE
-        givc-cli ${config.ghaf.givc.cliArgs} set-locale "''${locale_settings[@]}" || echo "Failed to apply locale settings: ' ''${locale_settings[*]} '"
+        mapfile -t locale_settings < "$LOCALE_FILE"
+        givc-cli ${config.ghaf.givc.cliArgs} set-locale "''${locale_settings[@]}" \
+          || echo "Failed to apply locale settings: ' ''${locale_settings[*]} '"
         exit 0
       }
 
+      # Set the global locale config env vars
+      # which will be used by the greeter, shells, etc.
       set_global() {
-        GLOBAL_CONF_PATH="${globalConfPath}"
-        # Set the global locale config env vars
-        # which will be used by the greeter, shells, etc.
-        rm -f "$GLOBAL_CONF_PATH"
-        touch "$GLOBAL_CONF_PATH"
-        while IFS= read -r line; do
-          # Skip empty lines or lines starting with #
-          [[ -z "$line" || "$line" =~ ^# ]] && continue
-          echo "export $line" >> "$GLOBAL_CONF_PATH"
-        done < "$LOCALE_FILE"
+        awk 'NF && $0 !~ /^#/ { print "export " $0 }' "$LOCALE_FILE" > "$GLOBAL_CONF_PATH"
 
         # Also set LANGUAGE for highest priority localization
-        if [[ -n "$LANG_VALUE" ]]; then
-          echo "export LANGUAGE=$LANG_VALUE" >> "$GLOBAL_CONF_PATH"
+        if [ -n "$LANG_VALUE" ]; then
+            echo "export LANGUAGE=$LANG_VALUE" >> "$GLOBAL_CONF_PATH"
         fi
+      }
+
+      monitor() {
+        # Create target file in case it doesn't exist
+        touch "$GLOBAL_CONF_PATH"
+
+        if [ -s "$GLOBAL_CONF_PATH" ]; then
+            # Read non-empty lines, strip "export " prefix
+            mapfile -t boot_locale < <(grep -v '^\s*$' "$GLOBAL_CONF_PATH" | sed -E 's/^export\s+//')
+
+            # Set initial locale settings
+            localectl set-locale "''${boot_locale[@]}"
+            echo "Initialized locale settings from existing config"
+        fi
+        # Safe to start monitoring
+        ${getExe' pkgs.systemd "busctl"} monitor org.freedesktop.locale1 --system \
+          | while read -r line; do
+              if echo "$line" | grep -q "PropertiesChanged"; then
+                echo "Locale change detected, updating persistent config"
+                set_global
+              fi
+            done
         exit 0
       }
 
       # Don't do anything if locale.conf not found
-      [ -f $LOCALE_FILE ] || exit 0
+      [ -f "$LOCALE_FILE" ] || exit 0
 
       LANG_VALUE=$(grep '^LANG=' "$LOCALE_FILE" | cut -d= -f2-)
 
       if [ $# -eq 1 ]; then
-        if [ "$1" = "givc" ]; then
-          forward_givc
-        elif [ "$1" = "global" ]; then
-          set_global
-        fi
+        case "$1" in
+          givc) forward_givc ;;
+          monitor) monitor ;;
+        esac
       fi
 
       PROFILE_FILE="$HOME/.profile"
@@ -77,17 +101,19 @@ let
 
       [ -f "$PROFILE_FILE" ] || touch "$PROFILE_FILE"
 
-      if ! grep -Fxq "$SOURCE_LINE" "$PROFILE_FILE" 2>/dev/null; then
-          cat >> "$PROFILE_FILE" <<'EOF'
+      # Avoid duplicating source line
+      grep -Fq "$SOURCE_LINE" "$PROFILE_FILE" || {
+        cat >> "$PROFILE_FILE" <<'EOF'
 
       # Load dynamic locale
       [ -f "$HOME/.locale-env" ] && . "$HOME/.locale-env"
       EOF
-      fi
+      }
 
+      # Write user locale env file
       if [[ -n "$LANG_VALUE" ]]; then
           cat > "$LOCALE_ENV_FILE" <<EOF
-      # Auto-generated from $LOCALE_FILE
+      # Auto-generated from "$LOCALE_FILE"
       export LANGUAGE=$LANG_VALUE
       EOF
       fi
@@ -129,8 +155,8 @@ in
     {
       assertions = [
         {
-          assertion = cfg.overrideSystemLocale -> useStorageVm;
-          message = "Enabling the overriding of system locale ('ghaf.services.locale.overrideSystemLocale') requires the Storage VM to be enabled in the system.";
+          assertion = useStorageVm;
+          message = "Runtime locale management requires the Storage VM to be enabled in the system.";
         }
         {
           assertion = cfg.propagate -> useGivc;
@@ -138,25 +164,43 @@ in
         }
       ];
 
-      systemd.user = {
-        paths.ghaf-locale-listener = {
-          description = "Ghaf Locale Listener";
-          wantedBy = [ "ghaf-session.target" ];
-          pathConfig.PathModified = "/etc/locale.conf";
-        };
-        services.ghaf-locale-listener = {
-          description = "Ghaf Locale Listener";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${getExe ghafLocaleHandler}";
+      ghaf.storagevm.directories = [
+        {
+          directory = dirOf globalConfPath;
+          mode = "0755";
+        }
+      ];
+
+      systemd = {
+        user = {
+          paths.ghaf-locale-listener = {
+            description = "Ghaf Locale Listener";
+            wantedBy = [ "ghaf-session.target" ];
+            pathConfig = {
+              PathModified = globalConfPath;
+              Unit = "ghaf-locale-handler.service";
+            };
+          };
+          services.ghaf-locale-handler = {
+            description = "Ghaf Locale Handler";
+            serviceConfig = {
+              Type = "oneshot";
+              ExecStart = "${getExe ghafLocaleHandler}";
+            };
           };
         };
-      };
-
-      systemd.paths.ghaf-global-locale-listener = {
-        description = "Ghaf Global Locale Listener";
-        pathConfig.PathModified = "/etc/locale.conf";
-        wantedBy = [ "graphical.target" ];
+        services.locale1-monitor = {
+          description = "Locale1 D-Bus Properties Monitor";
+          wantedBy = [ "multi-user.target" ];
+          after = [
+            "dbus.service"
+            "systemd-localed.service"
+          ];
+          serviceConfig = {
+            Type = "simple";
+            ExecStart = "${getExe ghafLocaleHandler} monitor";
+          };
+        };
       };
     }
 
@@ -165,9 +209,9 @@ in
         description = "Ghaf Locale Forwarder";
         serviceConfig = {
           Type = "oneshot";
-          ExecStart = "${lib.getExe ghafLocaleHandler} givc";
+          ExecStart = "${getExe ghafLocaleHandler} givc";
         };
-        wantedBy = [ "ghaf-global-locale-listener.path" ];
+        wantedBy = [ "ghaf-locale-listener.path" ];
       };
 
       security.polkit = {
@@ -185,21 +229,6 @@ in
     })
 
     (mkIf cfg.overrideSystemLocale {
-      systemd.services.ghaf-global-locale-listener = {
-        description = "Ghaf Global Locale Listener";
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = "${getExe ghafLocaleHandler} global";
-        };
-      };
-
-      ghaf.storagevm.directories = [
-        {
-          directory = dirOf globalConfPath;
-          mode = "0755";
-        }
-      ];
-
       environment.extraInit = ''
         [ -f "${globalConfPath}" ] && . "${globalConfPath}"
       '';

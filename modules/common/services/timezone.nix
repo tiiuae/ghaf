@@ -8,7 +8,12 @@
   ...
 }:
 let
-  inherit (lib) mkEnableOption mkIf mkMerge;
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkMerge
+    getExe
+    ;
   useGivc = config.ghaf.givc.enable;
   cfg = config.ghaf.services.timezone;
 
@@ -76,7 +81,7 @@ in
           description = "Ghaf Timezone Forwarder";
           serviceConfig = {
             Type = "oneshot";
-            ExecStart = "${lib.getExe ghafTimezoneHandler}";
+            ExecStart = "${getExe ghafTimezoneHandler}";
           };
         };
       };
