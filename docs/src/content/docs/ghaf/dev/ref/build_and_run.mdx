@@ -90,6 +90,9 @@ This is the primary reference device for Ghaf on AArch64 architecture, built usi
    # For 32GB AGX version (cross-compiled):
    nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
 
+   # For 32GB AGX with generic LUKS passphrase rootfs encryption:
+   nix build .#nvidia-jetson-orin-agx-debug-luks-from-x86_64-flash-script
+
    # For 64GB AGX version (cross-compiled):
    nix build .#nvidia-jetson-orin-agx64-debug-from-x86_64-flash-script
    ```
@@ -106,6 +109,16 @@ This is the primary reference device for Ghaf on AArch64 architecture, built usi
    cd result
    sudo ./flash.sh
    ```
+
+   For `*-luks-*` targets, use the legacy flashing entrypoint so rootfs can be
+   encrypted before APP is written:
+
+   ```sh
+   sudo ./result/bin/flash-ghaf-host
+   ```
+
+   This prompts for a shared LUKS passphrase, encrypts the extracted root image,
+   and then flashes it. On boot, initrd prompts for the same passphrase.
 
 ## Alternative Build Targets
 

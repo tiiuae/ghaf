@@ -48,6 +48,22 @@ in
       type = types.str;
       default = "bsp-default";
     };
+
+    diskEncryption = {
+      enable = mkEnableOption "generic LUKS root filesystem encryption for eMMC APP partition";
+
+      mode = mkOption {
+        description = "Disk encryption mode for Jetson root filesystem";
+        type = types.enum [ "generic-luks-passphrase" ];
+        default = "generic-luks-passphrase";
+      };
+
+      mapperName = mkOption {
+        description = "Mapped device name used by initrd after LUKS unlock";
+        type = types.str;
+        default = "cryptroot";
+      };
+    };
   };
 
   config = mkIf cfg.enable {
@@ -85,7 +101,76 @@ in
             VIRTIO_VSOCKETS_COMMON = yes;
           };
         }
+      ]
+      ++ lib.optionals (cfg.diskEncryption.enable && cfg.kernelVersion == "upstream-6-6") [
+        {
+          name = "dm-crypt-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            BLK_DEV_DM = yes;
+            DM_BUFIO = yes;
+            DM_BIO_PRISON = yes;
+            DM_CRYPT = yes;
+            CRYPTO_USER_API = yes;
+            CRYPTO_USER_API_HASH = yes;
+            CRYPTO_USER_API_SKCIPHER = yes;
+            CRYPTO_XTS = yes;
+          };
+        }
       ];
+
+    };
+
+    boot.initrd = mkIf cfg.diskEncryption.enable {
+      # Keep module selection aligned with the Orin JetPack baseline and avoid
+      # requesting dm-crypt as a loadable module for upstream-6-6.
+      availableKernelModules = lib.mkForce [
+        "xhci-tegra"
+        "ucsi_ccg"
+        "typec_ucsi"
+        "typec"
+        "nvme"
+        "tegra_mce"
+        "phy-tegra-xusb"
+        "i2c-tegra"
+        "fusb301"
+        "phy_tegra194_p2u"
+        "pcie_tegra194"
+        "nvpps"
+        "nvethernet"
+      ];
+      kernelModules = lib.mkForce [ ];
+      # algif_skcipher is not available with the upstream-6-6 kernel variant
+      # used by current Orin reference targets.
+      luks.cryptoModules = lib.mkForce [
+        "aes"
+        "aes_generic"
+        "cbc"
+        "xts"
+        "sha1"
+        "sha256"
+        "sha512"
+        "af_alg"
+      ];
+      luks.devices.${cfg.diskEncryption.mapperName} = {
+        device = "/dev/mmcblk0p1";
+        allowDiscards = true;
+      };
+
+      systemd.services."systemd-cryptsetup@${cfg.diskEncryption.mapperName}" = {
+        overrideStrategy = "asDropin";
+        unitConfig.After = [
+          "initrd-root-device.target"
+          "cryptsetup.target"
+        ];
+      };
+    };
+
+    fileSystems = mkIf cfg.diskEncryption.enable {
+      "/" = lib.mkForce {
+        device = "/dev/mapper/${cfg.diskEncryption.mapperName}";
+        fsType = "ext4";
+      };
     };
 
     services.nvpmodel = {

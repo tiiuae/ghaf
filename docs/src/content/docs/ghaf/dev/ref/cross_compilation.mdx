@@ -24,6 +24,7 @@ The NVIDIA Jetson family represents Ghaf's primary AArch64 platform with full cr
 ```sh
 # Debug variants
 nix build .#nvidia-jetson-orin-agx-debug-from-x86_64
+nix build .#nvidia-jetson-orin-agx-debug-luks-from-x86_64
 nix build .#nvidia-jetson-orin-agx-debug-nodemoapps-from-x86_64
 
 # Release variants
@@ -32,6 +33,7 @@ nix build .#nvidia-jetson-orin-agx-release-nodemoapps-from-x86_64
 
 # Flash script generation
 nix build .#nvidia-jetson-orin-agx-debug-from-x86_64-flash-script
+nix build .#nvidia-jetson-orin-agx-debug-luks-from-x86_64-flash-script
 ```
 
 #### Jetson AGX Orin (64GB)
