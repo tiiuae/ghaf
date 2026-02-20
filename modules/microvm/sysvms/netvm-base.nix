@@ -28,6 +28,7 @@ let
   powerManagerEnabled = lib.ghaf.features.isEnabledFor globalConfig "power-manager" vmName;
   performanceEnabled = lib.ghaf.features.isEnabledFor globalConfig "performance" vmName;
   wifiEnabled = lib.ghaf.features.isEnabledFor globalConfig "wifi" vmName;
+  timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
 in
 {
   _file = ./netvm-base.nix;
@@ -150,6 +151,8 @@ in
         enable = lib.mkDefault performanceEnabled;
         net.enable = pkgs.stdenv.hostPlatform.isx86;
       };
+
+      timezone.enable = lib.mkDefault (timezoneEnabled && globalConfig.platform.timeZone == null);
     };
 
     # Logging - from globalConfig (includes listener address)
@@ -178,8 +181,8 @@ in
     # from hardware.definition.netvm.extraModules if needed
   };
 
-  # Allow runtime timezone changes via GIVC set-timezone.
-  time.timeZone = null;
+  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
+
   system.stateVersion = lib.trivial.release;
 
   nixpkgs = {

@@ -8,80 +8,96 @@
   ...
 }:
 let
-  inherit (lib) mkEnableOption mkIf;
+  inherit (lib)
+    mkEnableOption
+    mkIf
+    mkMerge
+    getExe
+    ;
   useGivc = config.ghaf.givc.enable;
   cfg = config.ghaf.services.timezone;
 
-  ghafTimezoneListener = pkgs.writeShellApplication {
-    name = "ghaf-timezone-listener";
+  ghafTimezoneHandler = pkgs.writeShellApplication {
+    name = "ghaf-timezone-handler";
     runtimeInputs = with pkgs; [
-      dbus
       systemd
       givc-cli
-      gawk
     ];
-    # timedate1 is a system service, this script should be run as a system service
-    # Propagate timezone changes from the gui-vm to givc-cli
     text = ''
-      # shellcheck disable=SC2016
-      busctl monitor org.freedesktop.timedate1 | stdbuf -oL awk '
-        /^$/ {
-          if (in_block && found_timezone && timezone != "") {
-            print timezone
-          }
-          in_block = 0;
-          found_timezone = 0;
-          timezone = "";
-        }
-        /PropertiesChanged/ {
-          in_block = 1;
-        }
-        /"Timezone"/ {
-          if (in_block) found_timezone = 1;
-        }
-        /STRING/ {
-          if (found_timezone && timezone == "" && match($0, /"[^"]+"/)) {
-            tz = substr($0, RSTART+1, RLENGTH-2);
-            if (tz != "Timezone") timezone = tz;
-          }
-      }' | while read -r tz; do
-             echo "New timezone detected: $tz"
-             givc-cli ${config.ghaf.givc.cliArgs} set-timezone "$tz" || echo "Failed to set timezone to $tz"
-           done
+      TZ_FILE="/etc/localtime"
+      [ -f $TZ_FILE ] || exit 0
+
+      TZ=$(timedatectl show | grep '^Timezone=' | cut -d= -f2-)
+
+      echo "New timezone detected: $TZ"
+      givc-cli ${config.ghaf.givc.cliArgs} set-timezone "$TZ" || echo "Failed to set timezone to $TZ"
     '';
   };
 in
 {
   _file = ./timezone.nix;
 
-  options.ghaf.services.timezone.enable =
-    mkEnableOption "Propagate timezone changes from the system to givc-cli";
+  options.ghaf.services.timezone = {
+    enable = mkEnableOption ''
+      runtime management of timezone settings.
 
-  config = mkIf (cfg.enable && useGivc) {
-    systemd.services = {
-      ghaf-timezone-listener = {
-        enable = true;
-        description = "Ghaf timezone listener";
-        serviceConfig = {
-          Type = "simple";
-          ExecStart = "${lib.getExe ghafTimezoneListener}";
-        };
-        partOf = [ "graphical.target" ];
-        wantedBy = [ "graphical.target" ];
-      };
-    };
+      When enabled, system timezone can be changed imperatively
+      without rebuilding the system configuration.
+    '';
+    propagate = mkEnableOption ''
+      propagating runtime timezone changes from the system
+      to the host using `givc`.
 
-    security.polkit = {
-      enable = true;
-      extraConfig = ''
-        // Allow users to set timezone (needed for COSMIC Settings)
-        polkit.addRule(function(action, subject) {
-        if (action.id == "org.freedesktop.timedate1.set-timezone" &&
-            subject.isInGroup ("users")) {
-          return polkit.Result.YES;
-          }
-        });
-      '';
-    };
+      This keeps the host locale in sync with user-selected
+      desktop locale settings.
+    '';
   };
+
+  config = mkIf cfg.enable (mkMerge [
+    {
+
+      assertions = [
+        {
+          assertion = cfg.propagate -> useGivc;
+          message = "Enabling timezone settings propagation ('ghaf.services.timezone.enable') requires GIVC to be enabled in the system.";
+        }
+      ];
+
+      # Allow runtime timezone management
+      time.timeZone = null;
+    }
+
+    (mkIf cfg.propagate {
+      systemd = {
+        timers.ghaf-timezone-listener = {
+          description = "Ghaf Timezone Listener";
+          timerConfig = {
+            OnTimezoneChange = true;
+            Unit = "ghaf-timezone-forwarder.service";
+          };
+          wantedBy = [ "graphical.target" ];
+        };
+        services.ghaf-timezone-forwarder = {
+          description = "Ghaf Timezone Forwarder";
+          serviceConfig = {
+            Type = "oneshot";
+            ExecStart = "${getExe ghafTimezoneHandler}";
+          };
+        };
+      };
+
+      security.polkit = {
+        enable = true;
+        extraConfig = ''
+          // Allow users to set timezone (needed for COSMIC Settings)
+          polkit.addRule(function(action, subject) {
+          if (action.id == "org.freedesktop.timedate1.set-timezone" &&
+              subject.isInGroup ("users")) {
+            return polkit.Result.YES;
+            }
+          });
+        '';
+      };
+    })
+  ]);
 }
