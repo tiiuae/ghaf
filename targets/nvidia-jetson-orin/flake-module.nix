@@ -191,7 +191,7 @@ in
         // builtins.listToAttrs (
           map (
             t:
-            lib.nameValuePair "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.legacyFlashScript
+            lib.nameValuePair "${t.name}-flash-script" t.hostConfiguration.pkgs.nvidia-jetpack.initrdFlashScript
           ) crossTargets
         )
         // builtins.listToAttrs (
