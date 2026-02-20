@@ -114,6 +114,11 @@ in
 
         # Let systemd use default ordering for audit-rules instead of early-boot
         unitConfig.DefaultDependencies = lib.mkForce true;
+        unitConfig.RequiresMountsFor = [
+          "/etc/givc"
+          "/etc/common/journal-fss"
+          "/var/log/journal"
+        ];
         before = lib.mkForce [ ];
       };
 
