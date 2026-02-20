@@ -143,23 +143,28 @@
     ];
 
     hardware-nvidia-jetson-orin-agx-industrial.imports = [
-      inputs.self.nixosModules.jetpack
+      inputs.self.nixosModules.jetpack-orin
       ./jetpack/agx/orin-agx-industrial.nix
     ];
 
     hardware-nvidia-jetson-orin-agx.imports = [
-      inputs.self.nixosModules.jetpack
+      inputs.self.nixosModules.jetpack-orin
       ./jetpack/agx/orin-agx.nix
     ];
 
     hardware-nvidia-jetson-orin-agx64.imports = [
-      inputs.self.nixosModules.jetpack
+      inputs.self.nixosModules.jetpack-orin
       ./jetpack/agx/orin-agx64.nix
     ];
 
     hardware-nvidia-jetson-orin-nx.imports = [
-      inputs.self.nixosModules.jetpack
+      inputs.self.nixosModules.jetpack-orin
       ./jetpack/nx/orin-nx.nix
+    ];
+
+    hardware-nvidia-jetson-thor-agx.imports = [
+      inputs.self.nixosModules.jetpack-thor
+      ./jetpack/agx/thor-agx.nix
     ];
 
     imx8.imports = [
@@ -167,9 +172,14 @@
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
 
-    jetpack.imports = [
+    jetpack-orin.imports = [
       ./jetpack
       ./jetpack/nvidia-jetson-orin/optee.nix
+      inputs.self.nixosModules.hardware-aarch64-generic
+    ];
+
+    jetpack-thor.imports = [
+      ./jetpack/nvidia-jetson-thor
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
 

@@ -245,16 +245,17 @@ in
       '';
     };
 
+    # TODO Does this work on orin with full path? On Thor, it does not
     renderDevice = mkOption {
-      type = types.nullOr types.path;
+      type = types.nullOr types.str;
       default = null;
       defaultText = "null";
-      example = "/dev/dri/renderD129";
+      example = "renderD129";
       description = ''
-        Path to the render device to be used by the COSMIC compositor.
+        Render device name to be used by the COSMIC compositor.
 
         If set, this will be assigned to the `COSMIC_RENDER_DEVICE` environment variable,
-        directing COSMIC to use the specified device (e.g., /dev/dri/renderD129).
+        directing COSMIC to use the specified device (e.g., renderD129).
 
         This option can be useful in systems with multiple GPUs to explicitly select
         which device the compositor should use.

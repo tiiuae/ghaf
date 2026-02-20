@@ -1,0 +1,147 @@
+---
+title: Flashing NVIDIA Jetson Thor AGX
+---
+
+This guide covers building and flashing Ghaf on the NVIDIA Jetson Thor AGX development kit.
+
+import { Aside } from "@astrojs/starlight/components";
+
+## Prerequisites
+
+### Hardware Requirements
+
+- NVIDIA Jetson Thor AGX Developer Kit (P3834 SOM + P4071 carrier board)
+- USB-C cable for flashing and serial console
+
+<Aside type="tip">
+  USB cable quality is critical for Thor flashing. Poor cables can cause inconsistent QSPI flashing errors (e.g., script stalls at random points) and USB gadget detection failures. Use high-quality USB-C data cables.
+</Aside>
+
+### Software Requirements
+
+Follow the [Build and Run](/ghaf/dev/ref/build_and_run#prerequisites) guide to set up Nix with flakes and clone the Ghaf repository.
+
+## Flash Architecture
+
+Thor uses NVMe for root filesystem storage (no eMMC). The flash process uses a two-stage approach:
+
+```text
+Host: flash-thor wrapper script
+├─ 1. Extract ESP/root images from sdImage
+├─ 2. Record existing /dev/sd* devices
+├─ 3. Call jetpack flash script (flashes QSPI)
+├─ 4. Wait for new /dev/sd* device (Thor's NVMe via USB)
+├─ 5. Auto-detects or prompts user to confirm target device
+└─ 6. Write GPT, ESP, rootfs, completion marker
+                    ↕ USB
+Device: flashInitrd (runs on Thor)
+├─ 1. Flash QSPI partitions
+├─ 2. Expose /dev/nvme0n1 as USB mass storage
+├─ 3. Wait for completion marker from host
+└─ 4. Cleanup and signal success
+```
+
+## Building the Flash Script
+
+Build the Thor flash script using cross-compilation from x86_64:
+
+```sh
+nix build .#nvidia-jetson-thor-agx-debug-from-x86_64-flash-ghaf
+```
+
+### Available Packages
+
+| Package | Description |
+| --------- | ------------- |
+| `*-flash-ghaf` | Full flash with NVMe support (recommended) |
+| `*-flash-qspi` | Raw jetpack script (QSPI only, no rootfs) |
+
+<Aside type="tip">
+  Use `*-flash-ghaf` for a one-stop solution to flash qspi and the ghaf image. Alternatively, use `*-flash-qspi` and install Ghaf via an ISO image.
+  The latter has not yet been implemented.
+</Aside>
+
+## Hardware Setup
+
+### Cable Connections
+
+1. **Flash/Recovery**: Connect USB-C cable from host to Thor's USB-C (next to HDMI port)
+2. **Serial Console** (optional): Connect USB-C cable for serial access to debug port
+
+### Thor AGX Hardware Identifiers
+
+| Component | ID |
+| ----------- | ----- |
+| SOM | P3834-0008 |
+| Carrier Board | P4071-0000 |
+| Device Tree | `tegra264-p4071-0000+p3834-0008-nv.dtb` |
+| Target Board | `jetson-agx-thor-devkit` |
+
+## Entering Recovery Mode
+
+To flash the device, put it in Force Recovery Mode:
+
+1. **Hold** the RECOVERY button (labeled "REC" or "FORCE RECOVERY")
+2. While holding RECOVERY, **press and release** the RESET button (or connect power)
+3. **Release** the RECOVERY button after 2 seconds
+
+### Verify Recovery Mode
+
+```sh
+lsusb | grep -i nvidia
+```
+
+Expected output:
+
+```text
+Bus 00x Device 0xx: ID 0955:7523 NVIDIA Corp. APX
+```
+
+## Flashing the Device
+
+Once in recovery mode, run the flash script:
+
+```sh
+sudo ./result/bin/flash-thor
+```
+
+The script will:
+
+1. Extract images from the sdImage
+2. Flash QSPI firmware to Thor
+3. Wait for Thor's NVMe to appear as USB storage (`/dev/sdX`)
+4. Auto-detects Thor's NVMe **or** prompt you to confirm the target device before writing
+5. Flash the full disk image (partition table, ESP, and rootfs)
+6. Signal completion to device
+
+## Post-Flash Verification
+
+After flashing completes:
+
+1. **Disconnect** the flashing USB-C cable
+2. **Reset** or power cycle the device
+3. The device should boot into Ghaf
+
+### Serial Console Access
+
+To monitor boot progress:
+
+```sh
+# Device boot logs
+sudo picocom -b 115200 /dev/ttyACM0
+
+# Ghaf boot logs
+sudo picocom -b 115200 /dev/ttyACM1
+```
+
+## Debug vs Release Builds
+
+| Build Type | Package Name |
+| ------------ | -------------- |
+| Debug | `nvidia-jetson-thor-agx-debug-from-x86_64-flash-ghaf` |
+| Release | `nvidia-jetson-thor-agx-release-from-x86_64-flash-ghaf` |
+
+## References
+
+- [NVIDIA Jetson Thor Adaptation and Bring-Up](https://docs.nvidia.com/jetson/archives/r38.4/DeveloperGuide/HR/JetsonModuleAdaptationAndBringUp/JetsonThorAdaptationBringUp.html)
+- [Flashing Support for Jetson Thor](https://docs.nvidia.com/jetson/archives/r38.2/DeveloperGuide/SD/FlashingSupportJetsonThor.html)
