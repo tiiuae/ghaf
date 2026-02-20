@@ -19,6 +19,26 @@
         ghaf.hardware.definition.netvm.extraModules = [
           (import ./alienware/net-config.nix)
         ];
+        # Intel Raptor Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-dell-latitude-7230.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix; }
+      {
+        # Intel Alder Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-dell-latitude-7330.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix; }
+      {
+        # Intel Tiger Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
       }
     ];
 
@@ -56,6 +76,11 @@
           definition.guivm.extraModules = [
             (import ./intel-laptop/extra-config.nix)
           ];
+          # Generic Intel laptop — Intel PTT fTPM, possibly Infineon dTPM on some SKUs
+          definition.tpm.endorsementCaVendors = [
+            "Intel"
+            "Infineon"
+          ];
         };
       }
     ];
@@ -67,6 +92,68 @@
         # Hardware-specific VM configs via hardware definition
         ghaf.hardware.definition.guivm.extraModules = [
           ./lenovo-t14-amd/gpu-config.nix
+        ];
+        # AMD Ryzen — AMD fTPM or Infineon dTPM depending on SKU
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [
+          "AMD"
+          "Infineon"
+        ];
+      }
+    ];
+
+    hardware-lenovo-x1-2-in-1-gen9.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix; }
+      {
+        # Intel Meteor Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen10.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix; }
+      {
+        # Intel Alder Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen11.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix; }
+      {
+        # Intel Raptor Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen12.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix; }
+      {
+        # Intel Meteor Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-lenovo-x1-carbon-gen13.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix; }
+      {
+        # Intel Lunar Lake — Intel PTT fTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [ "Intel" ];
+      }
+    ];
+
+    hardware-system76-darp11-b.imports = [
+      inputs.self.nixosModules.hardware-x86_64-workstation
+      { ghaf.hardware.definition = import ./system76/definitions/system76-darp11-b.nix; }
+      {
+        # Intel Arrow Lake — Intel PTT fTPM, possibly Infineon dTPM
+        ghaf.hardware.definition.tpm.endorsementCaVendors = [
+          "Intel"
+          "Infineon"
         ];
       }
     ];
@@ -83,62 +170,6 @@
           ];
           passthrough.pci.autoDetectNet = true;
         };
-      }
-    ];
-
-    hardware-dell-latitude-7230.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7230.nix;
-      }
-    ];
-
-    hardware-dell-latitude-7330.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./dell-latitude/definitions/dell-latitude-7330.nix;
-      }
-    ];
-
-    hardware-lenovo-x1-2-in-1-gen9.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-2-in-1-gen-9.nix;
-      }
-    ];
-
-    hardware-lenovo-x1-carbon-gen10.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen10.nix;
-      }
-    ];
-
-    hardware-lenovo-x1-carbon-gen11.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen11.nix;
-      }
-    ];
-
-    hardware-lenovo-x1-carbon-gen12.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen12.nix;
-      }
-    ];
-
-    hardware-lenovo-x1-carbon-gen13.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./lenovo-x1/definitions/x1-gen13.nix;
-      }
-    ];
-
-    hardware-system76-darp11-b.imports = [
-      inputs.self.nixosModules.hardware-x86_64-workstation
-      {
-        ghaf.hardware.definition = import ./system76/definitions/system76-darp11-b.nix;
       }
     ];
 

@@ -110,19 +110,18 @@ in
       };
 
       tpm.passthrough = {
-        # At the moment the TPM is only used for storage encryption, so the features are coupled.
-        # TPM passthrough is only supported on x86_64.
+        # TPM passthrough supported on x86_64 and aarch64
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
         rootNVIndex = "0x81704000"; # TPM2 NV index for net-vm LUKS key
       };
 
       tpm.emulated = {
-        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        # Use emulated TPM for platforms without hardware TPM support
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") == "riscv64-linux");
         name = vmName;
       };
     };
@@ -169,6 +168,57 @@ in
 
       # Audit - from globalConfig
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+
+      # SPIFFE/SPIRE agent
+      spiffe = lib.mkIf (globalConfig.spiffe.enable or false) {
+        enable = true;
+        trustDomain = globalConfig.spiffe.trustDomain or "ghaf.internal";
+        agent = {
+          enable = true;
+          serverAddress =
+            hostConfig.networking.hosts.${globalConfig.spiffe.serverVm or "admin-vm"}.ipv4 or "127.0.0.1";
+          serverPort = globalConfig.spiffe.serverPort or 8081;
+          joinTokenFile = "/etc/common/spire/tokens/${vmName}.token";
+          attestationMode =
+            if
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            then
+              "tpm_devid"
+            else
+              "join_token";
+        };
+        devidProvision =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              inherit vmName;
+            };
+        tpmVendorDetect =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              expectedVendors = globalConfig.spiffe.tpmAttestation.endorsementCaVendors or [ ];
+            };
+        tpmEkVerify =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              endorsementCaBundle = globalConfig.spiffe.tpmAttestation.endorsementCaBundle or "";
+            };
+      };
     };
 
     # Common namespace - from hostConfig

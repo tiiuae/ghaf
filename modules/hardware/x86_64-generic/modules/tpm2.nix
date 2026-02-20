@@ -30,8 +30,8 @@ in
 
     assertions = [
       {
-        assertion = pkgs.stdenv.isx86_64;
-        message = "TPM2 is only supported on x86_64";
+        assertion = pkgs.stdenv.isx86_64 || pkgs.stdenv.isAarch64;
+        message = "TPM2 is only supported on x86_64 and aarch64";
       }
     ];
   };

@@ -98,9 +98,6 @@ in
       };
     };
 
-    # Security - from globalConfig
-    security.audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
-
     development = {
       ssh.daemon.enable = lib.mkDefault (globalConfig.development.ssh.daemon.enable or false);
       debug.tools.enable = lib.mkDefault (globalConfig.development.debug.tools.enable or false);
@@ -161,18 +158,18 @@ in
       };
 
       tpm.passthrough = {
-        # TPM passthrough is only supported on x86_64
+        # TPM passthrough supported on x86_64 and aarch64
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") == "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
         rootNVIndex = "0x81703000"; # TPM2 NV index for gui-vm LUKS key
       };
 
       tpm.emulated = {
-        # Use emulated TPM for non-x86_64 systems when encryption is enabled
+        # Use emulated TPM for platforms without hardware TPM support
         enable =
           (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") != "x86_64-linux");
+          && ((globalConfig.platform.hostSystem or "") == "riscv64-linux");
         name = vmName;
       };
     };
@@ -251,7 +248,67 @@ in
     };
 
     xdgitems.enable = true;
-    security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+
+    security = {
+      fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+      # Security - from globalConfig
+      audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
+
+      # SPIFFE/SPIRE agent
+      spiffe = lib.mkIf (globalConfig.spiffe.enable or false) {
+        enable = true;
+        trustDomain = globalConfig.spiffe.trustDomain or "ghaf.internal";
+        agent = {
+          enable = true;
+          serverAddress =
+            hostConfig.networking.hosts.${globalConfig.spiffe.serverVm or "admin-vm"}.ipv4 or "127.0.0.1";
+          serverPort = globalConfig.spiffe.serverPort or 8081;
+          joinTokenFile = "/etc/common/spire/tokens/${vmName}.token";
+          # Use TPM DevID attestation if enabled and platform supports hardware TPM
+          attestationMode =
+            if
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            then
+              "tpm_devid"
+            else
+              "join_token";
+        };
+        # DevID provisioning for system VMs with TPM
+        devidProvision =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              inherit vmName;
+            };
+        # Runtime TPM vendor detection (advisory)
+        tpmVendorDetect =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              expectedVendors = globalConfig.spiffe.tpmAttestation.endorsementCaVendors or [ ];
+            };
+        # Runtime EK cert chain validation (defense-in-depth)
+        tpmEkVerify =
+          lib.mkIf
+            (
+              (globalConfig.spiffe.tpmAttestation.enable or false)
+              && ((globalConfig.platform.hostSystem or "") != "riscv64-linux")
+            )
+            {
+              enable = true;
+              endorsementCaBundle = globalConfig.spiffe.tpmAttestation.endorsementCaBundle or "";
+            };
+      };
+    };
   };
 
   services = {
