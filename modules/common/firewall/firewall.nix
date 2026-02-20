@@ -266,9 +266,20 @@ in
       description = "Extra firewall rules";
     };
     filter-arp = mkEnableOption "static ARP and MAC/IP rules";
+    updater.enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "whether to enable live update firewall rules";
+    };
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !(cfg.updater.enable && !config.ghaf.givc.policyClient.enable);
+        message = "Policy Client must be enabled to update firewall rules.";
+      }
+    ];
 
     # Include required kernel modules for firewall
     ghaf.firewall.kernel-modules.enable = true;
@@ -482,6 +493,5 @@ in
       }
       cfg.extraOptions
     ];
-
   };
 }
