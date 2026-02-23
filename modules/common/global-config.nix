@@ -35,7 +35,7 @@
       platform = {
         buildSystem = lib.mkDefault config.nixpkgs.buildPlatform.system;
         hostSystem = lib.mkDefault config.nixpkgs.hostPlatform.system;
-        timeZone = lib.mkDefault (if config.time.timeZone != null then config.time.timeZone else "UTC");
+        timeZone = lib.mkDefault config.time.timeZone;
       };
 
       # Propagate host storeOnDisk setting to global-config for VMs

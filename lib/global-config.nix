@@ -118,8 +118,8 @@ rec {
         };
 
         timeZone = mkOption {
-          type = types.str;
-          default = "UTC";
+          type = lib.types.nullOr types.str;
+          default = null;
           description = "System timezone";
         };
       };
@@ -139,61 +139,8 @@ rec {
       #
       # VM base modules check: lib.ghaf.features.isEnabledFor globalConfig "fprint" vmName
       #
+      # keep-sorted start skip_lines=1 block=yes newline_separated=yes
       features = {
-        # Hardware authentication services
-        fprint = {
-          enable = mkEnableOption "fingerprint authentication support" // {
-            default = true;
-          };
-          targetVms = mkOption {
-            type = types.listOf types.str;
-            default = [ "gui-vm" ];
-            example = [
-              "gui-vm"
-              "admin-vm"
-            ];
-            description = "VMs that should have fingerprint support";
-          };
-        };
-
-        yubikey = {
-          enable = mkEnableOption "Yubikey 2FA support" // {
-            default = true;
-          };
-          targetVms = mkOption {
-            type = types.listOf types.str;
-            default = [ "gui-vm" ];
-            example = [
-              "gui-vm"
-              "admin-vm"
-            ];
-            description = "VMs that should have Yubikey support";
-          };
-        };
-
-        brightness = {
-          enable = mkEnableOption "brightness control via VirtIO" // {
-            default = true;
-          };
-          targetVms = mkOption {
-            type = types.listOf types.str;
-            default = [ "gui-vm" ];
-            description = "VMs that should have brightness control";
-          };
-        };
-
-        # Networking services
-        wifi = {
-          enable = mkEnableOption "WiFi networking support" // {
-            default = true;
-          };
-          targetVms = mkOption {
-            type = types.listOf types.str;
-            default = [ "net-vm" ];
-            description = "VMs that should have WiFi support";
-          };
-        };
-
         # Audio services
         audio = {
           enable = mkEnableOption "audio services" // {
@@ -217,12 +164,44 @@ rec {
           };
         };
 
-        power-manager = {
-          enable = mkEnableOption "Ghaf power management";
+        brightness = {
+          enable = mkEnableOption "brightness control via VirtIO" // {
+            default = true;
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "gui-vm" ];
+            description = "VMs that should have brightness control";
+          };
+        };
+
+        # Hardware authentication services
+        fprint = {
+          enable = mkEnableOption "fingerprint authentication support" // {
+            default = true;
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "gui-vm" ];
+            example = [
+              "gui-vm"
+              "admin-vm"
+            ];
+            description = "VMs that should have fingerprint support";
+          };
+        };
+
+        locale = {
+          enable = mkEnableOption "runtime management of user and system locale settings";
           targetVms = mkOption {
             type = types.listOf types.str;
             default = [ ];
-            description = "VMs where Ghaf power management should be enabled";
+            description = ''
+              VMs where runtime locale management should be enabled.
+
+              Typically, this should only be a VM which allows user-friendly
+              locale adjustments, e.g. via a Desktop Environment such as on GUI VM.
+            '';
           };
         };
 
@@ -234,7 +213,58 @@ rec {
             description = "VMs where Ghaf performance and PPD profiles should be enabled";
           };
         };
+
+        power-manager = {
+          enable = mkEnableOption "Ghaf power management";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = "VMs where Ghaf power management should be enabled";
+          };
+        };
+
+        timezone = {
+          enable = mkEnableOption "runtime management of timezone settings and propagation to host";
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = ''
+              VMs where runtime timezone settings management should be enabled.
+
+              Propagation will only be enabled on GUI VM.
+            '';
+          };
+        };
+
+        # Networking services
+        wifi = {
+          enable = mkEnableOption "WiFi networking support" // {
+            default = true;
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "net-vm" ];
+            description = "VMs that should have WiFi support";
+          };
+        };
+
+        yubikey = {
+          enable = mkEnableOption "Yubikey 2FA support" // {
+            default = true;
+          };
+          targetVms = mkOption {
+            type = types.listOf types.str;
+            default = [ "gui-vm" ];
+            example = [
+              "gui-vm"
+              "admin-vm"
+            ];
+            description = "VMs that should have Yubikey support";
+          };
+        };
+
       };
+      # keep-sorted end
     };
   };
 
@@ -355,6 +385,21 @@ rec {
             "net-vm"
           ];
         };
+        locale = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+          ];
+        };
+        timezone = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "net-vm"
+            "admin-vm"
+            "audio-vm"
+          ];
+        };
       };
     };
 
@@ -426,6 +471,21 @@ rec {
             "gui-vm"
             "audio-vm"
             "net-vm"
+          ];
+        };
+        locale = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+          ];
+        };
+        timezone = {
+          enable = true;
+          targetVms = [
+            "gui-vm"
+            "net-vm"
+            "admin-vm"
+            "audio-vm"
           ];
         };
       };

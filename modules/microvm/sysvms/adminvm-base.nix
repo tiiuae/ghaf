@@ -24,6 +24,7 @@
 }:
 let
   vmName = "admin-vm";
+  timezoneEnabled = lib.ghaf.features.isEnabledFor globalConfig "timezone" vmName;
 in
 {
   _file = ./adminvm-base.nix;
@@ -158,11 +159,15 @@ in
       fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
       audit.enable = lib.mkDefault (globalConfig.security.audit.enable or false);
     };
+
+    services.timezone.enable = lib.mkDefault (
+      timezoneEnabled && globalConfig.platform.timeZone == null
+    );
   };
 
+  time.timeZone = lib.mkIf (!timezoneEnabled) (lib.mkDefault globalConfig.platform.timeZone);
+
   system.stateVersion = lib.trivial.release;
-  # Allow runtime timezone changes via GIVC set-timezone.
-  time.timeZone = null;
 
   nixpkgs = {
     buildPlatform.system = globalConfig.platform.buildSystem or "x86_64-linux";
