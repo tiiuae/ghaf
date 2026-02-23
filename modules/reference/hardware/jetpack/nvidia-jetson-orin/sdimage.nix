@@ -13,7 +13,6 @@
 #
 {
   config,
-  pkgs,
   modulesPath,
   lib,
   ...
@@ -26,28 +25,7 @@
 
   sdImage =
     let
-      # TODO do we really need replaceVars just to set the python string in the
-      # shbang?
-      mkESPContentSource = pkgs.replaceVars ./mk-esp-contents.py {
-        inherit (pkgs.buildPackages) python3;
-      };
-      mkESPContent =
-        pkgs.runCommand "mk-esp-contents"
-          {
-            nativeBuildInputs = with pkgs; [
-              mypy
-              python3
-            ];
-          }
-          ''
-            install -m755 ${mkESPContentSource} $out
-            mypy \
-              --no-implicit-optional \
-              --disallow-untyped-calls \
-              --disallow-untyped-defs \
-              $out
-          '';
-      fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
+      inherit (config.system.build) mkESPContent fdtPath;
     in
     {
       firmwareSize = 256;

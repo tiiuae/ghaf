@@ -4,6 +4,7 @@
 # Top-level module entry point for the Orin family of chips
 {
   imports = [
+    ./esp-utils.nix
     ./partition-template.nix
     ./jetson-orin.nix
     ./pci-passthrough-common.nix
