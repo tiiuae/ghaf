@@ -41,6 +41,33 @@ let
     self.nixosModules.profiles
   ];
 
+  # A/B verity boot targets: LVM-based A/B slots + UKI instead of the sd-card
+  # format module
+  orinVerityModules = [
+    jetpack-nixos.nixosModules.default
+    self.nixosModules.reference-host-demo-apps
+    self.nixosModules.reference-profiles-orin
+    self.nixosModules.profiles
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
+    inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
+    ../../modules/partitioning/verity-volume.nix
+    ../../modules/partitioning/btrfs-postboot.nix
+    # Enable dm-verity and erofs in the kernel (not in the BSP default config)
+    {
+      boot.kernelPatches = [
+        {
+          name = "dm-verity-support";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            DM_VERITY = module;
+            EROFS_FS = module;
+          };
+        }
+      ];
+    }
+  ];
+
   # All Orin configurations using mkGhafConfiguration
   target-configs = [
     # ============================================================
@@ -169,7 +196,32 @@ let
         graphics.cosmic.renderDevice = "/dev/dri/renderD128";
       };
     })
-  ];
+
+    # ============================================================
+    # A/B Verity Boot Configurations (AGX only)
+    # ============================================================
+  ]
+  ++
+    map
+      (
+        variant:
+        ghaf-configuration {
+          name = "nvidia-jetson-orin-agx-verity";
+          inherit system;
+          profile = "orin";
+          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+          inherit variant;
+          extraModules = orinVerityModules;
+          extraConfig = {
+            reference.profiles.mvp-orinuser-trial.enable = true;
+            partitioning.verity.enable = true;
+          };
+        }
+      )
+      [
+        "debug"
+        "release"
+      ];
 
   generate-nodemoapps =
     tgt:
@@ -262,6 +314,10 @@ let
         fi
       '';
     };
+
+  # Filter verity targets (those with verity-volume enabled) for ghafImage output
+  isVerityTarget = t: (t.hostConfiguration.config.ghaf.partitioning.verity.enable or false);
+  verityCrossTargets = builtins.filter isVerityTarget crossTargets;
 in
 {
   flake = {
@@ -288,6 +344,12 @@ in
             #Note: secureTarget does not toggle between secureboot on/off!!
             lib.nameValuePair "${t.name}-flash-qspi" (lazyPackage "${t.name}-flash-qspi" (secureTarget t true))
           ) crossTargets
+        )
+        # OTA update artifacts for verity targets
+        // builtins.listToAttrs (
+          map (
+            t: lib.nameValuePair "${t.name}-ghafImage" t.hostConfiguration.config.system.build.ghafImage
+          ) verityCrossTargets
         );
     };
   };

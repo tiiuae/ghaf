@@ -17,6 +17,11 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+    # /nix/store is a read-only dm-verity volume; generations are replaced by
+    # whole-image A/B updates, so garbage collection has nothing to do and the
+    # nix-gc service would only fail.
+    nix.gc.automatic = lib.mkForce false;
+
     system.build.ghafImage =
       let
         inherit (config.ghaf) version;
