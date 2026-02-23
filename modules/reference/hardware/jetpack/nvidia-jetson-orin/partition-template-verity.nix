@@ -1,11 +1,14 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
-# Module which provides partition template for NVIDIA Jetson AGX Orin flash-script.
+# Partition template for A/B verity boot on NVIDIA Jetson Orin AGX.
 #
-# This module configures legacyFlashScript to extract ESP and root partitions
-# from the compressed sdImage at flash time, then patches the partition sizes
-# into flash.xml before running NVIDIA's flash.sh.
+# Produces a flash.xml with two partitions on eMMC:
+#   - ESP (512M, vfat) with systemd-boot + UKI
+#   - APP (LVM PV) with A/B root+verity slots, swap, persist
+#
+# preFlashCommands copies pre-built images from verity-image.nix into the
+# flash workdir and patches flash.xml with actual paths and sizes.
 #
 {
   pkgs,
@@ -16,11 +19,10 @@
 let
   cfg = config.ghaf.hardware.nvidia.orin;
 
-  # sdImage containing ESP and root partitions (compressed)
-  images = config.system.build.${config.formatAttr};
+  inherit (config.system.build) verityImages;
 
   # Partition XML with placeholders (substituted at flash time by preFlashCommands)
-  partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
+  partitionsEmmc = pkgs.writeText "sdmmc-verity.xml" ''
     <partition name="master_boot_record" type="protective_master_boot_record">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
@@ -40,27 +42,25 @@ let
     <partition name="esp" id="2" type="data">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
-      <size> ESP_SIZE </size>
+      <size> 536870912 </size>
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <percent_reserved> 0 </percent_reserved>
-      <filename> bootloader/esp.img </filename>
+      <filename> ESP_IMG_PATH </filename>
       <partition_type_guid> C12A7328-F81F-11D2-BA4B-00A0C93EC93B </partition_type_guid>
-      <description> EFI system partition with systemd-boot. </description>
+      <description> EFI system partition with systemd-boot + UKI. </description>
     </partition>
     <partition name="APP" id="1" type="data">
       <allocation_policy> sequential </allocation_policy>
       <filesystem_type> basic </filesystem_type>
-      <size> ROOT_SIZE </size>
+      <size> LVM_SIZE </size>
       <file_system_attribute> 0 </file_system_attribute>
       <allocation_attribute> 0x8 </allocation_attribute>
       <align_boundary> 16384 </align_boundary>
       <percent_reserved> 0x808 </percent_reserved>
       <unique_guid> APPUUID </unique_guid>
-      <filename> root.img </filename>
-      <description> **Required.** Contains the rootfs. This partition must be assigned
-        the "1" for id as it is physically put to the end of the device, so that it
-        can be accessed as the fixed known special device `/dev/mmcblk0p1`. </description>
+      <filename> LVM_IMG_PATH </filename>
+      <description> LVM PV containing A/B root+verity slots, swap, persist. </description>
     </partition>
     <partition name="secondary_gpt" type="secondary_gpt">
       <allocation_policy> sequential </allocation_policy>
@@ -81,27 +81,14 @@ let
   # - flash_t234_qspi_sdmmc_industrial.xml (industrial variant)
   partitionTemplateReplaceRange =
     if (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") then
-      if (!cfg.flashScriptOverrides.onlyQSPI) then
-        {
-          firstLineCount = 631;
-          lastLineCount = 2;
-        }
-      else
-        {
-          # QSPI-only: remove entire sdmmc_user device section
-          firstLineCount = 630;
-          lastLineCount = 1;
-        }
-    else if !cfg.flashScriptOverrides.onlyQSPI then
       {
-        firstLineCount = 618;
+        firstLineCount = 631;
         lastLineCount = 2;
       }
     else
       {
-        # QSPI-only: remove entire sdmmc_user device section
-        firstLineCount = 617;
-        lastLineCount = 1;
+        firstLineCount = 618;
+        lastLineCount = 2;
       };
 
   # Build the final flash.xml by splicing our partition layout into NVIDIA's template
@@ -115,69 +102,47 @@ let
         else
           "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml";
     in
-    pkgs.runCommand "flash.xml" { } (
-      ''
-        head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${xmlFile} >"$out"
-      ''
-      + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-        cat ${partitionsEmmc} >>"$out"
-      ''
-      + ''
-        tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${xmlFile} >>"$out"
-      ''
-    );
+    pkgs.runCommand "flash-verity.xml" { } ''
+      head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${xmlFile} >"$out"
+      cat ${partitionsEmmc} >>"$out"
+      tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${xmlFile} >>"$out"
+    '';
 
-  # preFlashCommands: Extract images from sdImage and patch flash.xml
+  # preFlashCommands: Copy pre-built images and patch flash.xml
   preFlashCommands = ''
     echo "============================================================"
-    echo "Ghaf flash script for NVIDIA Jetson"
+    echo "Ghaf A/B verity flash script for NVIDIA Jetson"
     echo "============================================================"
     echo "Version: ${config.ghaf.version}"
     echo "SoM: ${config.hardware.nvidia-jetpack.som}"
     echo "Carrier board: ${config.hardware.nvidia-jetpack.carrierBoard}"
     echo "============================================================"
     echo ""
+
     mkdir -pv "$WORKDIR/bootloader"
-    rm -fv "$WORKDIR/bootloader/esp.img"
-  ''
-  + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
 
-    # Read partition offsets and sizes from sdImage metadata
-    ESP_OFFSET=$(cat "${images}/esp.offset")
-    ESP_SIZE=$(cat "${images}/esp.size")
-    ROOT_OFFSET=$(cat "${images}/root.offset")
-    ROOT_SIZE=$(cat "${images}/root.size")
+    # jetpack-nixos sets NO_ESP_IMG=1; override so flash.sh assigns
+    # localespfile=esp.img (needed for -k esp). The -r flag already
+    # prevents flash.sh from rebuilding esp.img via create_espimage.
+    export NO_ESP_IMG=0
 
-    img="${images}/sd-image/${config.image.fileName}"
-    echo "Source image: $img"
-    echo "ESP: offset=$ESP_OFFSET sectors, size=$ESP_SIZE sectors"
-    echo "Root: offset=$ROOT_OFFSET sectors, size=$ROOT_SIZE sectors"
-    echo ""
+    echo "Decompressing pre-built ESP image..."
+    "${pkgs.pkgsBuildBuild.zstd}/bin/zstd" -f -d "${verityImages}/esp.img.zst" -o "$WORKDIR/bootloader/esp.img"
 
-    echo "Extracting ESP partition..."
-    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) \
-       of="$WORKDIR/bootloader/esp.img" \
-       bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE" status=progress
+    echo "Decompressing pre-built system (LVM) sparse image..."
+    "${pkgs.pkgsBuildBuild.zstd}/bin/zstd" -f -d "${verityImages}/system.img.zst" -o "$WORKDIR/bootloader/system.img"
+    # flash.sh -k APP looks for system.img relative to $WORKDIR
+    ln -sf "$WORKDIR/bootloader/system.img" "$WORKDIR/system.img"
 
-    echo "Extracting root partition..."
-    dd if=<("${pkgs.pkgsBuildBuild.zstd}/bin/pzstd" -d "$img" -c) \
-       of="$WORKDIR/bootloader/root.img" \
-       bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
+    LVM_SIZE=$(cat "${verityImages}/system.raw_size")
+    echo "LVM raw size: $LVM_SIZE bytes (sparse image: $("${pkgs.pkgsBuildBuild.coreutils}/bin/stat" -c%s "$WORKDIR/bootloader/system.img") bytes)"
 
-    echo ""
     echo "Patching flash.xml with image paths and sizes..."
     "${pkgs.pkgsBuildBuild.gnused}/bin/sed" -i \
-      -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
-      -e "s#root.img#$WORKDIR/bootloader/root.img#" \
-      -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
-      -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
+      -e "s#ESP_IMG_PATH#esp.img#" \
+      -e "s#LVM_IMG_PATH#system.img#" \
+      -e "s#LVM_SIZE#$LVM_SIZE#" \
       flash.xml
-  ''
-  + lib.optionalString cfg.flashScriptOverrides.onlyQSPI ''
-
-    echo "QSPI-only mode: skipping ESP and root partition extraction."
-  ''
-  + ''
 
     echo ""
     echo "Ready to flash!"
@@ -185,10 +150,7 @@ let
   '';
 in
 {
-  # Only apply the sdImage-based flash layout when verity-volume is NOT enabled.
-  # When verity-volume is enabled, partition-template-verity.nix provides the
-  # LVM-based A/B flash layout instead.
-  config = lib.mkIf (cfg.enable && !config.ghaf.partitioning.verity-volume.enable) {
+  config = lib.mkIf (cfg.enable && config.ghaf.partitioning.verity-volume.enable) {
     hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
     hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = preFlashCommands;
   };
