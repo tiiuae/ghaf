@@ -10,6 +10,7 @@
 {
   pkgs,
   config,
+  options,
   lib,
   ...
 }:
@@ -184,8 +185,19 @@ let
   };
 in
 {
-  config = lib.mkIf cfg.enable {
-    hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
-    hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = "${preFlashScript}/bin/pre-flash-commands";
-  };
+  # Only apply the sdImage-based flash layout when verity-volume is NOT enabled.
+  # When verity-volume is enabled, partition-template-verity.nix provides the
+  # LVM-based A/B flash layout instead.
+  config =
+    lib.mkIf
+      (
+        cfg.enable
+        && !(
+          options ? ghaf.partitioning.verity-volume.enable && config.ghaf.partitioning.verity-volume.enable
+        )
+      )
+      {
+        hardware.nvidia-jetpack.flashScriptOverrides.partitionTemplate = partitionTemplate;
+        hardware.nvidia-jetpack.flashScriptOverrides.preFlashCommands = "${preFlashScript}/bin/pre-flash-commands";
+      };
 }

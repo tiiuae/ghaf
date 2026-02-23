@@ -19,17 +19,38 @@ let
     inherit (self) lib;
   };
 
-  # Orin-specific modules (UEFI patches, OP-TEE, format modules)
-  orinSpecificModules = [
-    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+  # Base modules shared by all Orin targets (jetpack, UEFI patches, OP-TEE).
+  orinBaseModules = [
     jetpack-nixos.nixosModules.default
-  ];
-
-  # Common modules shared across all Orin configurations
-  commonModules = orinSpecificModules ++ [
     self.nixosModules.reference-host-demo-apps
     self.nixosModules.reference-profiles-orin
-    self.nixosModules.profiles
+  ];
+
+  # sdImage-based targets: add the sd-card format module
+  commonModules = orinBaseModules ++ [
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
+  ];
+
+  # A/B verity boot targets: LVM-based A/B slots + UKI instead of sdImage
+  orinVerityModules = orinBaseModules ++ [
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/verity-image.nix
+    ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
+    inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
+    ../../modules/partitioning/verity-volume.nix
+    ../../modules/partitioning/btrfs-postboot.nix
+    # Enable dm-verity and erofs in the kernel (not in the BSP default config)
+    {
+      boot.kernelPatches = [
+        {
+          name = "dm-verity-support";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            DM_VERITY = module;
+            EROFS_FS = module;
+          };
+        }
+      ];
+    }
   ];
 
   # All Orin configurations using mkGhafConfiguration
@@ -137,7 +158,32 @@ let
         reference.profiles.mvp-orinuser-trial.enable = true;
       };
     })
-  ];
+
+    # ============================================================
+    # A/B Verity Boot Configurations (AGX only)
+    # ============================================================
+  ]
+  ++
+    map
+      (
+        variant:
+        ghaf-configuration {
+          name = "nvidia-jetson-orin-agx-verity";
+          inherit system;
+          profile = "orin";
+          hardwareModule = self.nixosModules.hardware-nvidia-jetson-orin-agx;
+          inherit variant;
+          extraModules = orinVerityModules;
+          extraConfig = {
+            reference.profiles.mvp-orinuser-trial.enable = true;
+            partitioning.verity-volume.enable = true;
+          };
+        }
+      )
+      [
+        "debug"
+        "release"
+      ];
 
   generate-nodemoapps =
     tgt:
@@ -166,6 +212,10 @@ let
   # Add nodemoapps targets
   targets = target-configs ++ (map generate-nodemoapps target-configs);
   crossTargets = map generate-cross-from-x86_64 targets;
+
+  # Filter verity targets (those with verity-volume enabled) for ghafImage output
+  isVerityTarget = t: (t.hostConfiguration.config.ghaf.partitioning.verity-volume.enable or false);
+  verityCrossTargets = builtins.filter isVerityTarget crossTargets;
 in
 {
   flake = {
@@ -191,6 +241,12 @@ in
                 modules = [ { ghaf.hardware.nvidia.orin.flashScriptOverrides.onlyQSPI = true; } ];
               }).pkgs.nvidia-jetpack.flashScript
           ) crossTargets
+        )
+        # OTA update artifacts for verity targets
+        // builtins.listToAttrs (
+          map (
+            t: lib.nameValuePair "${t.name}-ghafImage" t.hostConfiguration.config.system.build.ghafImage
+          ) verityCrossTargets
         );
     };
   };
