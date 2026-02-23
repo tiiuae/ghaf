@@ -2,10 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 com.system76.CosmicAppletTime:
   first_day_of_week: 0
-  military_time: false,
-  show_seconds: false,
-  show_date_in_top_panel: true,
-  show_weekday: false,
+  military_time: true
+  show_seconds: false
+  show_date_in_top_panel: true
+  show_weekday: false
 
 com.system76.CosmicAppList:
   favorites: |
