@@ -206,6 +206,7 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
       };
+      buildSysupdateImage = true;
     })
 
     (ghaf-configuration {
@@ -246,23 +247,6 @@ let
         partitioning.disko.enable = true;
       };
     })
-
-    ## FIXME: cleanup old verity stuff
-    /*
-        (ghaf-configuration {
-          name = "lenovo-x1-gen11-hardening";
-          inherit system;
-          profile = "laptop-x86";
-          hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
-          variant = "debug";
-          extraModules = commonModules;
-          extraConfig = {
-            # TODO profiles.kernel-hardening.enable = true;
-            reference.profiles.mvp-user-trial-extras.enable = true;
-            partitioning.verity.enable = true;
-          };
-        })
-    */
 
     (ghaf-configuration {
       name = "system76-darp11-b";
@@ -465,6 +449,7 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
       };
+      buildSysupdateImage = true;
     })
 
     (ghaf-configuration {
@@ -505,23 +490,6 @@ let
         partitioning.disko.enable = true;
       };
     })
-
-    ## FIXME: cleanup old verity stuff
-    /*
-        (ghaf-configuration {
-          name = "lenovo-x1-gen11-hardening";
-          inherit system;
-          profile = "laptop-x86";
-          hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
-          variant = "release";
-          extraModules = commonModules;
-          extraConfig = {
-            # TODO profiles.kernel-hardening.enable = true;
-            reference.profiles.mvp-user-trial-extras.enable = true;
-            partitioning.verity.enable = true;
-          };
-        })
-    */
 
     (ghaf-configuration {
       name = "system76-darp11-b";
@@ -588,21 +556,6 @@ let
     # keep-sorted end
   ];
 
-  ## FIXME: Rebase kludge, keep commented out to be rwritten later
-  /*
-      (laptop-configuration "lenovo-x1-gen11-sysupdate" "debug" (withCommonModules [
-      self.nixosModules.hardware-lenovo-x1-carbon-gen11
-      {
-        ghaf = {
-          # TODO profiles.kernel-hardening.enable = true;
-          reference.profiles.mvp-user-trial-extras.enable = true;
-          partitioning.verity-volume.enable = true;
-          partitioning.disko.enable = true;
-        };
-      }
-    ]))
-  */
-
   # Map all of the defined configurations to an installer image
   target-installers = map (
     t:
@@ -623,7 +576,7 @@ let
     // {
       name = "${t.name}-sysupdate";
     }
-  ) target-configs;
+  ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
 
   targets = target-configs ++ target-installers ++ target-sysupdates;
 in
