@@ -48,7 +48,7 @@ let
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/partition-template-verity.nix
     inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
     ../../modules/partitioning/verity-volume.nix
-    ../../modules/partitioning/btrfs-postboot.nix
+    ../../modules/partitioning/firstboot-persist.nix
     # Enable dm-verity and erofs in the kernel (not in the BSP default config)
     {
       boot.kernelPatches = [
@@ -57,6 +57,7 @@ let
           patch = null;
           structuredExtraConfig = with lib.kernel; {
             DM_VERITY = module;
+            DM_CRYPT = module; # encrypted swap (randomEncryption)
             EROFS_FS = module;
             EROFS_FS_ZIP = yes; # lz4 compression support (lz4 is default, auto-selects LZ4_DECOMPRESS)
             # TODO: switch to zstd when kernel >= 6.10 (EROFS_FS_ZIP_ZSTD, commit 7c35de4df105)
