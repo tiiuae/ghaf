@@ -9,12 +9,13 @@
 #            sd-stub skips fixup and the kernel uses the firmware's DTB
 #            already in the EFI Configuration Table (installed by DtPlatformDxe).
 #
-# LVM image: PV containing volume group "pool" with:
+# LVM image: PV containing volume group "pool" with only the A-slot:
 #   - root_<ver>_<hash>  (erofs nix-store image from ghafImage)
 #   - verity_<ver>_<hash> (dm-verity hash tree from ghafImage)
-#   - root_empty / verity_empty (inactive B slot, zeroed)
-#   - swap (4G)
-#   - persist (256M, expanded on first boot by btrfs-postboot)
+#
+# Swap, persist and B-slot LVs are created on first boot by
+# firstboot-persist.nix, which resizes the APP partition to fill the
+# eMMC and uses the free VG space.
 {
   config,
   pkgs,
@@ -30,11 +31,6 @@ let
   #   ghaf_kernel_<ver>_<hash>.efi     — UKI with real roothash
   #   ghaf_<ver>_<hash>.manifest       — JSON manifest
   inherit (config.system.build) ghafImage;
-
-  # Fixed partition sizes in MiB — root and verity slots are computed at
-  # build time from the actual image sizes (+ headroom).
-  swapSizeMiB = 4096; # 4G swap
-  persistSizeMiB = 256; # minimal, expanded on first boot by btrfs-postboot
 
   espImage =
     pkgs.runCommand "esp-image"
@@ -117,7 +113,6 @@ let
       buildInputs = with buildPkgs; [
         lvm2
         util-linux
-        btrfs-progs
         zstd
         jq
       ];
@@ -149,8 +144,10 @@ let
         echo "Root image: $root_bytes bytes -> LV size: $root_mib MiB"
         echo "Verity image: $verity_bytes bytes -> LV size: $verity_mib MiB"
 
-        # Total LVM PV: 2x root + 2x verity + swap + persist + 64M overhead
-        lvm_mib=$(( 2 * root_mib + 2 * verity_mib + ${toString swapSizeMiB} + ${toString persistSizeMiB} + 64 ))
+        # Only A-slot: root + verity + 64M LVM metadata overhead.
+        # B-slot, swap and persist are created on first boot by
+        # firstboot-persist.nix after the APP partition is resized.
+        lvm_mib=$(( root_mib + verity_mib + 64 ))
         echo "LVM PV size: $lvm_mib MiB"
 
         ${buildPkgs.qemu}/bin/qemu-img create -f raw "$out/system.img" ''${lvm_mib}M
@@ -164,16 +161,11 @@ let
       QEMU_OPTS = ''-drive file="$out"/system.img,if=virtio,cache=unsafe,werror=report,format=raw'';
 
       # postVM runs on the build host after the VM exits.
-      # Convert raw → NVIDIA sparse format, then compress with zstd.
-      # tegradevflash unsparsifies on the fly, skipping zero-filled blocks —
-      # this cuts flash time dramatically for mostly-empty images.
+      # The image is small (only A-slot, ~5.5 GiB) so we just
+      # zstd-compress the raw image directly — no sparse conversion needed.
       postVM = ''
-        # Save raw image size (needed for GPT partition table in flash.xml)
         ${buildPkgs.coreutils}/bin/stat -c%s "$out/system.img" > "$out/system.raw_size"
-        # Using NVIDIA's mksparse (not img2simg) for format compatibility.
-        ${pkgs.nvidia-jetpack.bspSrc}/bootloader/mksparse --fillpattern=0 "$out/system.img" "$out/system.simg"
-        rm "$out/system.img"
-        ${buildPkgs.zstd}/bin/zstd --compress --rm "$out/system.simg" -o "$out/system.img.zst"
+        ${buildPkgs.zstd}/bin/zstd --compress --rm "$out/system.img" -o "$out/system.img.zst"
       '';
 
       buildCommand = ''
@@ -213,13 +205,10 @@ let
         verity_mib=$(cat /tmp/xchg/verity_size_mib)
         echo "Root slot size: $root_mib MiB, Verity slot size: $verity_mib MiB"
 
-        # Create logical volumes with correct names for the veritysetup generator
+        # Create A-slot logical volumes only. B-slot, swap and persist
+        # are created on first boot by firstboot-persist.nix.
         lvcreate -L "''${root_mib}M"   -n "root_$lv_suffix"   pool
         lvcreate -L "''${verity_mib}M" -n "verity_$lv_suffix" pool
-        lvcreate -L "''${root_mib}M"   -n root_empty          pool
-        lvcreate -L "''${verity_mib}M" -n verity_empty        pool
-        lvcreate -L ${toString swapSizeMiB}M    -n swap        pool
-        lvcreate -L ${toString persistSizeMiB}M -n persist     pool
 
         # Decompress and write erofs image into root LV
         echo "Writing erofs image to root_$lv_suffix..."
@@ -228,12 +217,6 @@ let
         # Decompress and write verity hash tree into verity LV
         echo "Writing verity data to verity_$lv_suffix..."
         zstd -d "${ghafImage}/$verity_file" --stdout | dd of="/dev/pool/verity_$lv_suffix" bs=4M conv=notrunc status=progress
-
-        # Format swap
-        mkswap -L swap /dev/pool/swap
-
-        # Format persist with btrfs
-        mkfs.btrfs -L persist /dev/pool/persist
 
         # Deactivate VG before finishing
         vgchange -an pool
@@ -250,25 +233,15 @@ in
       ln -s ${lvmImage}/system.raw_size $out/system.raw_size
     '';
 
-    # Configure filesystem mounts for the verity layout
+    # Configure filesystem mounts for the verity layout.
+    # /persist and swap are declared in firstboot-persist.nix.
     fileSystems = {
       "/boot" = {
         device = "/dev/disk/by-label/ESP";
         fsType = "vfat";
         options = [ "umask=0077" ];
       };
-      "/persist" = {
-        device = "/dev/pool/persist";
-        fsType = "btrfs";
-        neededForBoot = true;
-      };
     };
-
-    swapDevices = [
-      {
-        device = "/dev/pool/swap";
-      }
-    ];
 
     # Disable systemd-boot-dtb and NixOS boot installer — ESP is built at image time.
     ghaf.hardware.aarch64.systemd-boot-dtb.enable = lib.mkForce false;
