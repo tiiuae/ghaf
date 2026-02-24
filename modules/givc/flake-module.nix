@@ -6,6 +6,7 @@
 
   flake.nixosModules = {
     givc.imports = [
+      inputs.givc.nixosModules.packages
       inputs.givc.nixosModules.admin
       inputs.givc.nixosModules.host
       inputs.givc.nixosModules.tls
