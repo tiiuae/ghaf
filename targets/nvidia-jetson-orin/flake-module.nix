@@ -179,6 +179,8 @@ let
           extraModules = orinVerityModules;
           extraConfig = {
             reference.profiles.mvp-orinuser-trial.enable = true;
+            givc.enable = lib.mkForce true;
+            global-config.givc.enable = lib.mkForce true;
             partitioning.verity-volume.enable = true;
           };
         }
