@@ -27,10 +27,12 @@ Using "sudo sbctl create-keys" command user can create secure keys on the truste
 
 ## Current Implementation
 
-For demonstration purposes, we use pre-generated secure keys which are **unsecure** as whoever has keys can break into the system.
-Secure Boot enrollment is performed by the installer when invoked with `-s`. The
-installer uses the key material staged at `/etc/ghaf/secureboot/keys` and enrolls
-PK/KEK/db using EFI authentication files (`.auth`).
+By default, Ghaf ships pre-generated public enrollment artifacts staged from
+`/etc/ghaf/secureboot/keys`. Secure Boot enrollment is performed by the installer
+when invoked with `-s`, and it enrolls PK/KEK/db using EFI authentication files
+(`.auth`).
+
+The current key set is sourced from `tiiuae/ghaf-infra-pki` (`yubi-uefi`).
 
 ### Secure Boot Verification
 
