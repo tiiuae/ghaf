@@ -25,7 +25,7 @@ in
         fsImage = "$out/${id}_root_@v_@u.raw";
         verityImage = "$out/${id}_verity_@v_@u.raw";
         kernelImage = "$out/${id}_kernel_@v_@u.efi";
-
+        # TODO: switch to -zzstd when kernel >= 6.10 (better compression & decompression speed)
         # Experimental high-performance patch for `mkfs.erofs`
         # FIXME: Question for review -- move to overlays, vendor patch
         erofs-utils-nix = pkgs.buildPackages.erofs-utils.overrideAttrs (_: {
@@ -62,7 +62,7 @@ in
           fi
 
           time ${erofs-utils-nix}/bin/mkfs.erofs \
-            -T 1 --all-root \
+            -zlz4hc,9 -T 1 --all-root \
             --workers="$mkfsWorkers" \
             -L nix-store \
             ${fsImage} \
