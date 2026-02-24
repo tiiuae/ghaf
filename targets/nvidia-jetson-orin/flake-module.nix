@@ -179,6 +179,8 @@ let
           extraModules = orinVerityModules;
           extraConfig = {
             reference.profiles.mvp-orinuser-trial.enable = true;
+            givc.enable = true;
+            global-config.givc.enable = true;
             partitioning.verity-volume.enable = true;
           };
         }
