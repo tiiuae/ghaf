@@ -250,45 +250,45 @@ in
 
   ## 30-ospp-v42-1-create-failed.rules
   ## Unsuccessful file creation (open with O_CREAT)
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&0100 -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&0100 -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-create"
-  "-a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-create"
+  "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+  "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+  "-a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+  "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+  "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+  "-a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
   ## 30-ospp-v42-1-create-success.rules
   ## Successful file creation (open with O_CREAT)
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&0100 -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-create"
-  "-a always,exit -F arch=b64 -S open -F a1&0100 -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-create"
-  "-a always,exit -F arch=b64 -S creat -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-create"
+  "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F success=1 -F auid!=unset -F key=successful-create"
+  "-a always,exit -F arch=b64 -S open -F a1&0100 -F success=1 -F auid!=unset -F key=successful-create"
+  "-a always,exit -F arch=b64 -S creat -F success=1 -F auid!=unset -F key=successful-create"
 
   ## 30-ospp-v42-2-modify-failed.rules
   ## Unsuccessful file modifications (open for write or truncate)
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
   ## 30-ospp-v42-2-modify-success.rules
   ## Successful file modifications (open for write or truncate)
-  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-modification"
-  "-a always,exit -F arch=b64 -S truncate,ftruncate -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-modification"
+  "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F success=1 -F auid!=unset -F key=successful-modification"
+  "-a always,exit -F arch=b64 -S open -F a1&01003 -F success=1 -F auid!=unset -F key=successful-modification"
+  "-a always,exit -F arch=b64 -S truncate,ftruncate -F success=1 -F auid!=unset -F key=successful-modification"
 
   ## 30-ospp-v42-3-access-failed.rules
-  ## Unsuccessful file access (any other opens) This has to go last.
+  ## Unsuccessful file access
   "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
   "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
 
   ## 30-ospp-v42-4-delete-failed.rules
   ## Unsuccessful file delete
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-delete"
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-delete"
+  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F exit=-EACCES -F auid!=unset -F key=unsuccessful-delete"
+  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F exit=-EPERM -F auid!=unset -F key=unsuccessful-delete"
 
   ## 30-ospp-v42-4-delete-success.rules
   ## Successful file delete
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-delete"
+  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F success=1 -F auid!=unset -F key=successful-delete"
 
   ## 30-ospp-v42-5-perm-change-failed.rules
   ## Unsuccessful permission change
