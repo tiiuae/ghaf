@@ -47,6 +47,8 @@ let
           structuredExtraConfig = with lib.kernel; {
             DM_VERITY = module;
             EROFS_FS = module;
+            EROFS_FS_ZIP = yes; # lz4 compression support (lz4 is default, auto-selects LZ4_DECOMPRESS)
+            # TODO: switch to zstd when kernel >= 6.10 (EROFS_FS_ZIP_ZSTD, commit 7c35de4df105)
           };
         }
       ];
