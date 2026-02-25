@@ -52,7 +52,7 @@ index 19bea634c7..eb876803eb 100644
 @@ -2940,6 +2940,12 @@ S: Maintained
  F: hw/acpi/acad.*
  F: docs/specs/acad.rst
- 
+
 +Button
 +M: Leonid Bloch <lb.workbox@gmail.com>
 +S: Maintained
@@ -276,7 +276,7 @@ index 9d28c3addf..6600685855 100644
 @@ -73,6 +73,10 @@ config AC_ADAPTER
      bool
      depends on ACPI
- 
+
 +config BUTTON
 +    bool
 +    depends on ACPI
@@ -773,9 +773,9 @@ index 588fbbd05f..4f5bcc15da 100644
      ACPI_GENERIC_ERROR = 128,
      ACPI_BATTERY_CHANGE_STATUS = 256,
      ACPI_AC_ADAPTER_CHANGE_STATUS = 512,
-+    ACPI_BUTTON_CHANGE_STATUS = 1024,
++    ACPI_BUTTON_CHANGE_STATUS = 2048,
  } AcpiEventStatusBits;
- 
+
  #define TYPE_ACPI_DEVICE_IF "acpi-device-interface"
 diff --git a/include/hw/acpi/button.h b/include/hw/acpi/button.h
 new file mode 100644
@@ -865,5 +865,5 @@ index 52e151f0e6..bcbddbfbd5 100644
 +##
 +{ 'command': 'query-lid-button',
 +  'returns': 'LidButtonInfo' }
--- 
+--
 2.50.1
