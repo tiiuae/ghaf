@@ -153,8 +153,11 @@ let
           case "$action" in
             suspend)
               echo "Suspending PCI devices for $vm_name..."
-              vhotplugcli pci suspend --vm "$vm_name"
-
+              if ! vhotplugcli pci suspend --vm "$vm_name"; then
+                echo "Failed to detach PCI devices for $vm_name. Please check the logs."
+                echo "Fallback: restarting $vm_name to ensure clean state before suspend..."
+                systemctl restart microvm@"$vm_name".service
+              fi
               ;;
             resume)
               echo "Resuming PCI devices for $vm_name..."

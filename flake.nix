@@ -186,7 +186,7 @@
 
     # Hot-plugging USB devices into virtual machines
     vhotplug = {
-      url = "github:tiiuae/vhotplug";
+      url = "github:brianmcgillion/vhotplug/fix-device-recheck";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";
