@@ -67,17 +67,34 @@ in
 
           # Replace the placeholder with the real roothash in the target .raw file
           verityRoothash=$(cat $out/dm-verity-root-hash)
+
+          # SAFETY: root hash later validated in mk-manifest.py
+          test -n "$verityRoothash" || (echo "bad root hash" >&2 && exit 1)
+
+          # FIXME: Call `ukify` directly and avoid sed/placeholder hack
           sed -i \
             "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$verityRoothash/" \
             ${kernelImage}
+
+          # FIXME: move compression into mk-manifest.py and compute unpacked sizes there.
+          rootUnpackedSize=$(stat -c%s ${fsImage})
+          verityUnpackedSize=$(stat -c%s ${verityImage})
 
           # Compress the image
           ${pkgs.buildPackages.zstd}/bin/zstd --compress $out/*raw
           rm -f $out/*raw
 
-          # Inject hash fragment into file names and create manifest for `ota-update`
-          # (see ./inject-uuids.py for implementation details)
-          ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} ${version} $out/dm-verity-root-hash ${fsImage}.zst ${verityImage}.zst ${kernelImage} $out/${id}_@v_@u.manifest
+          # Create artifacts and manifest.
+          ${pkgs.buildPackages.python3}/bin/python ${./mk-manifest.py} \
+            --version ${version} \
+            --system ${config.nixpkgs.hostPlatform.system} \
+            --hash-file $out/dm-verity-root-hash \
+            --root-image ${fsImage}.zst \
+            --verity-image ${verityImage}.zst \
+            --kernel-image ${kernelImage} \
+            --manifest $out/${id}_@v_@u.manifest \
+            --root-unpacked-size "$rootUnpackedSize" \
+            --verity-unpacked-size "$verityUnpackedSize"
 
           # Clean-up
           rm -f $out/dm-verity-root-hash
