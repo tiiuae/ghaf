@@ -25,7 +25,17 @@ in
         fsImage = "$out/${id}_root_@v_@u.raw";
         verityImage = "$out/${id}_verity_@v_@u.raw";
         kernelImage = "$out/${id}_kernel_@v_@u.efi";
-        mkfsCommand = "mkfs.erofs -T 1 --all-root -L nix-store --mount-point=/nix/store ${fsImage} --hard-dereference --tar=f";
+
+        # Experimental high-performance patch for `mkfs.erofs`
+        # FIXME: Question for review -- move to overlays, vendor patch
+        erofs-utils-nix = pkgs.buildPackages.erofs-utils.overrideAttrs (_: {
+          src = pkgs.fetchFromGitHub {
+            owner = "avnik";
+            repo = "erofs-utils";
+            rev = "1f24c4d03527189d2bdab87a564cec297d1b6b9a"; # branch: avnik/ghaf
+            hash = "sha256-4kCFIIqIMpz0hnewBvHCQF2OODDzH3xmRux7PPWdJJ4=";
+          };
+        });
         regInfo = pkgs.closureInfo {
           rootPaths = [ config.system.build.toplevel ];
         };
@@ -34,8 +44,6 @@ in
         {
           nativeBuildInputs = [
             pkgs.buildPackages.time
-            pkgs.buildPackages.gnutar
-            pkgs.buildPackages.erofs-utils
             pkgs.buildPackages.cryptsetup
           ];
           passthru = {
@@ -47,13 +55,19 @@ in
         ''
           mkdir $out
           echo Creating a store image
-          tar --create \
-            --absolute-names \
-            --verbatim-files-from \
-            --transform 'flags=rSh;s|/nix/store/||' \
-            --transform 'flags=rSh;s|~nix~case~hack~[[:digit:]]\+||g' \
-            --files-from ${regInfo}/store-paths \
-            | time ${mkfsCommand}
+
+          mkfsWorkers="''${NIX_BUILD_CORES:-1}"
+          if [ "$mkfsWorkers" -gt 8 ]; then
+            mkfsWorkers=8
+          fi
+
+          time ${erofs-utils-nix}/bin/mkfs.erofs \
+            -T 1 --all-root \
+            --workers="$mkfsWorkers" \
+            -L nix-store \
+            ${fsImage} \
+            --hard-dereference \
+            --nix-closure "${regInfo}/store-paths";
 
           # Align file to block boundary
           truncate -s %4096 ${fsImage}
