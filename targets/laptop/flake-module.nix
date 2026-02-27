@@ -326,11 +326,6 @@ let
           }
         ];
       };
-      vmConfig = {
-        # storeOnDisk enables EROFS-backed stores in sysvms and increases
-        # page-cache/readahead pressure during boot; give net-vm more headroom.
-        sysvms.netvm.mem = 1024;
-      };
     })
 
     (ghaf-configuration {
@@ -582,11 +577,6 @@ let
             };
           }
         ];
-      };
-      vmConfig = {
-        # storeOnDisk enables EROFS-backed stores in sysvms and increases
-        # page-cache/readahead pressure during boot; give net-vm more headroom.
-        sysvms.netvm.mem = 1024;
       };
     })
     # keep-sorted end
