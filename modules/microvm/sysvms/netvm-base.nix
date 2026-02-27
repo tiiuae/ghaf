@@ -201,7 +201,8 @@ in
     optimize.enable = false;
     # Sensible defaults - can be overridden via vmConfig
     vcpu = lib.mkDefault 2;
-    mem = lib.mkDefault 512;
+    # Memory default is set to 1GB as some WiFi drivers require at least that much memory to function properly. This can be overridden via vmConfig.
+    mem = lib.mkDefault 1024;
     hypervisor = "qemu";
 
     shares = [
