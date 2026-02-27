@@ -24,7 +24,13 @@ let
     --ccastvm-ip ${chromecastVmIpAddr}/24
   '';
   nw-pckt-fwd-launcher = pkgs.writeShellScriptBin "nw-pckt-fwd" ''
-    ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
+    # Wait until the external interface has an IPv4 address (e.g. Wi-Fi connected).
+    while [ -z "$(${pkgs.iproute2}/bin/ip -4 -o addr show dev ${cfg.externalNic} scope global 2>/dev/null)" ]; do
+      echo "Waiting for IPv4 address on interface ${cfg.externalNic}..."
+      sleep 10
+    done
+
+    exec ${pkgs.ghaf-nw-packet-forwarder}/bin/nw-pckt-fwd \
     --external-iface ${cfg.externalNic} \
     --internal-iface ${cfg.internalNic} \
     --internal-ip ${cfg.internalIp} ${chromecastFlags}
@@ -123,6 +129,7 @@ in
       serviceConfig = {
         Type = "simple";
         ExecStart = "${nw-pckt-fwd-launcher}/bin/nw-pckt-fwd";
+        TimeoutStartSec = "0";
         Restart = "always";
         RestartSec = "15s";
       };
