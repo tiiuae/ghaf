@@ -32,17 +32,17 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
+      network.agent.transport = {
         name = hostName;
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      services = [
+      network.admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.tls.enable = config.ghaf.givc.enableTls;
+      capabilities.services = [
         "poweroff.target"
         "reboot.target"
       ];
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
     };
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${name}"
