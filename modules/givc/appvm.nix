@@ -34,14 +34,14 @@ in
       enable = true;
       inherit (config.ghaf.givc) debug;
       inherit (config.ghaf.users.homedUser) uid;
-      transport = {
+      network.agent.transport = {
         name = hostName;
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      inherit (cfg) applications;
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.tls.enable = config.ghaf.givc.enableTls;
+      capabilities.applications = cfg.applications;
     };
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"
