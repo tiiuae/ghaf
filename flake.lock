@@ -292,15 +292,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1770013237,
-        "narHash": "sha256-u11RLik9RL+FfKMKkmlkc3Fg+yxKd0wyu8wt9DnsKhg=",
-        "owner": "tiiuae",
+        "lastModified": 1772610363,
+        "narHash": "sha256-ZGjoYH/xxjGkFrVgIHCtllM9kybCA0iSNAr06oXAEfQ=",
+        "owner": "enesoztrk",
         "repo": "ghafpkgs",
-        "rev": "438ebc71ed03b47425db596d959732fb3311ae6d",
+        "rev": "7077b118fdc922833a14c97156bbcab9042f9150",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "enesoztrk",
+        "ref": "feat/sni-dbus",
         "repo": "ghafpkgs",
         "type": "github"
       }
@@ -376,15 +377,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1769692703,
-        "narHash": "sha256-5waDbPvk0Pf0E63cDkEJRPA2DOKAUjiZHiaNSpn1wls=",
-        "owner": "tiiuae",
+        "lastModified": 1772180336,
+        "narHash": "sha256-Y71PD+SMVoSsMg5cyjhuDfsVhK1WWxbpge1PxKuOUoM=",
+        "owner": "enesoztrk",
         "repo": "ghaf-givc",
-        "rev": "5731cbae603f1a29737526366a6e931680c3dd84",
+        "rev": "f586cabbf151aa99eebb59fe9884d5700d54c2b0",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "enesoztrk",
+        "ref": "no-filter-new",
         "repo": "ghaf-givc",
         "type": "github"
       }
