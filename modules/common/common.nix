@@ -110,6 +110,11 @@ in
         default = [ ];
         description = "List of app hosts currently enabled.";
       };
+      sniVms = mkOption {
+        type = types.listOf types.str;
+        default = [ ];
+        description = "List of app VMs that have SNI tray icon forwarding enabled.";
+      };
       extraNetworking = {
         hosts = mkOption {
           type = types.attrsOf lib.types.networking;
@@ -240,6 +245,17 @@ in
                   vmConfig = lib.ghaf.vm.getConfig v;
                 in
                 lib.optionalString (vmConfig != null && vmConfig.ghaf.type == "app-vm") n
+              ) config.microvm.vms
+            );
+            sniVms = lib.lists.remove "" (
+              lib.attrsets.mapAttrsToList (
+                n: v:
+                let
+                  vmConfig = lib.ghaf.vm.getConfig v;
+                in
+                lib.optionalString (
+                  vmConfig != null && vmConfig.ghaf.type == "app-vm" && (vmConfig.ghaf.givc.sni.enable or false)
+                ) n
               ) config.microvm.vms
             );
             hardware = {

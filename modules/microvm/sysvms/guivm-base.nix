@@ -138,6 +138,7 @@ in
       debug = globalConfig.givc.debug or false;
     };
     givc.guivm.enable = true;
+    givc.sni.enable = true;
 
     # Storage - from globalConfig
     storagevm = {

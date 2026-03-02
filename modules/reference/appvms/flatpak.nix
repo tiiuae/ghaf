@@ -333,6 +333,7 @@ in
           ];
         extraModules = [
           {
+            ghaf.givc.sni.enable = true;
             services = {
               flatpak.enable = lib.mkDefault true;
               packagekit.enable = lib.mkDefault true;
