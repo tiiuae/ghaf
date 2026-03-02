@@ -5,19 +5,27 @@
 # from https://github.com/TLATER/dotfiles
 { config, lib, ... }:
 let
-  inherit (lib) mkEnableOption mkOption types;
+  inherit (lib)
+    mkEnableOption
+    mkOption
+    types
+    optionalAttrs
+    optionals
+    ;
   inherit (config.ghaf.graphics.hybrid-setup.prime) nvidiaBusId intelBusId;
   cfg = config.ghaf.graphics.hybrid-setup.prime;
-  environmentVariables = {
-    # To run an application offloaded to the NVIDIA GPU
-    __NV_PRIME_RENDER_OFFLOAD = "1";
-  };
 in
 {
   _file = ./prime.nix;
 
   options.ghaf.graphics.hybrid-setup.prime = {
     enable = mkEnableOption "NVIDIA PRIME offload rendering";
+
+    forceNvidiaOffload = mkEnableOption ''
+      Force all graphical applications to use NVIDIA via PRIME
+      render offload by setting __NV_PRIME_RENDER_OFFLOAD=1
+      globally in the session environment.
+    '';
 
     nvidiaBusId = mkOption {
       description = ''
@@ -42,7 +50,7 @@ in
 
   config = lib.mkIf cfg.enable {
 
-    assertions = [
+    assertions = optionals config.services.xserver.enable [
       {
         assertion = nvidiaBusId != "";
         message = "Please provide Nvidia Bus ID or disable the prime module.";
@@ -57,13 +65,17 @@ in
       prime = {
         offload.enable = true;
         offload.enableOffloadCmd = true;
-        inherit nvidiaBusId;
-        inherit intelBusId;
+        # These values are not used on Wayland, so we set them to a dummy string to satisfy the assertion
+        nvidiaBusId = if cfg.nvidiaBusId == "" then "PCI:0@0:0:0" else cfg.nvidiaBusId;
+        intelBusId = if cfg.intelBusId == "" then "PCI:0@0:0:0" else cfg.intelBusId;
       };
 
       powerManagement.finegrained = true;
     };
 
-    environment.sessionVariables = environmentVariables;
+    environment.sessionVariables = optionalAttrs cfg.forceNvidiaOffload {
+      # Run all applications offloaded to the NVIDIA GPU
+      __NV_PRIME_RENDER_OFFLOAD = "1";
+    };
   };
 }

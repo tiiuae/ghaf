@@ -11,11 +11,7 @@
     enable = true;
     prime = {
       enable = true;
-      # Make sure to use the correct Bus ID values for your system
-      # TODO: Need to investigate does prime really uses mentioned Ids here?
-      # Hardcoded to what is enumerated in guivm, values may change in future
-      nvidiaBusId = "PCI:14:0:0";
-      intelBusId = "PCI:13:0:0";
+      forceNvidiaOffload = true;
     };
   };
 

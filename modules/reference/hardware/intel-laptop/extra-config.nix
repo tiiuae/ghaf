@@ -11,4 +11,9 @@
     "-drive"
     "file=${pkgs.OVMF.fd}/FV/OVMF_VARS.fd,if=pflash,unit=1,readonly=true"
   ];
+
+  ghaf.graphics.hybrid-setup = {
+    enable = true;
+    prime.enable = true;
+  };
 }
