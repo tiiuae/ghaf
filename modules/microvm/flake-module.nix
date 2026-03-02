@@ -37,6 +37,7 @@ _: {
       ./common/waypipe.nix
       ./common/xdghandlers.nix
       ./common/xdgitems.nix
+      ./common/sni.nix
     ];
 
     # GUI VM base module for layered composition
