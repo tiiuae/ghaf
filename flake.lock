@@ -41,11 +41,11 @@
     },
     "crane": {
       "locked": {
-        "lastModified": 1766774972,
-        "narHash": "sha256-8qxEFpj4dVmIuPn9j9z6NTbU+hrcGjBOvaxTzre5HmM=",
+        "lastModified": 1773115265,
+        "narHash": "sha256-5fDkKTYEgue2klksd52WvcXfZdY1EIlbk0QggAwpFog=",
         "owner": "ipetkov",
         "repo": "crane",
-        "rev": "01bc1d404a51a0a07e9d8759cd50a7903e218c82",
+        "rev": "27711550d109bf6236478dc9f53b9e29c1a374c5",
         "type": "github"
       },
       "original": {
@@ -292,15 +292,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1770013237,
-        "narHash": "sha256-u11RLik9RL+FfKMKkmlkc3Fg+yxKd0wyu8wt9DnsKhg=",
-        "owner": "tiiuae",
+        "lastModified": 1773154267,
+        "narHash": "sha256-nGWOifx+/LPHr1XjspC/kPRpMy+TnX0emxbk3S9N39A=",
+        "owner": "enesoztrk",
         "repo": "ghafpkgs",
-        "rev": "438ebc71ed03b47425db596d959732fb3311ae6d",
+        "rev": "7cf04a062087692b0769f4e1e536414ec77cc465",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "enesoztrk",
+        "ref": "feat/sni-dbus",
         "repo": "ghafpkgs",
         "type": "github"
       }
