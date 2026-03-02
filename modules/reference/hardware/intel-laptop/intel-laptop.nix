@@ -15,7 +15,7 @@
         "iommu=pt"
         "acpi_backlight=vendor"
         "acpi_osi=linux"
-        "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus"
+        "module_blacklist=i915,xe,iwlwifi,snd_hda_intel,snd_sof_pci_intel_tgl,bluetooth,btusb,snd_pcm,mei_me,xesnd_hda_intel,snd_sof_pci_intel_lnl,spi_intel_pci,i801_smbus,nouveau,nvidia,nvidiafb,i2c_nvidia_gpu"
       ];
     };
 

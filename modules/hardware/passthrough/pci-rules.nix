@@ -40,6 +40,7 @@ let
         description = "Auto-detected PCI Devices for GUIVM";
         targetVm = "gui-vm";
         skipOnSuspend = true;
+        pciIommuAddAll = true;
         allow = [
           {
             deviceClass = 3;
