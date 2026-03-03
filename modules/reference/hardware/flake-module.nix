@@ -169,7 +169,7 @@
 
     jetpack.imports = [
       ./jetpack
-      ./jetpack/nvidia-jetson-orin/optee.nix
+      ./jetpack/nvidia-jetson-orin/optee/optee.nix
       inputs.self.nixosModules.hardware-aarch64-generic
     ];
 
