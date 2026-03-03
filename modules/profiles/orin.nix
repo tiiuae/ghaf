@@ -223,6 +223,7 @@ in
       # 2. ghaf.global-config.givc.enable (propagates to VMs via specialArgs)
       givc.enable = false;
       global-config.givc.enable = false;
+      global-config.spiffe.tpmAttestation.endorsementCaBundle = "/etc/common/spire/ca/endorsement-bundle.pem";
 
       host.networking = {
         enable = true;

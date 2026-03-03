@@ -403,8 +403,10 @@ in
       ];
       wants = [ "network-online.target" ];
       unitConfig = {
-        # Ensure dataDir bind mount from encrypted storage is ready
-        RequiresMountsFor = [ cfg.dataDir ];
+        # SPIRE server must always start even if optional encrypted guestStorage
+        # mount plumbing is unavailable on some platforms/boot races.
+        # Require only the shared common mount that carries SPIRE bundle/CA data.
+        RequiresMountsFor = [ "/etc/common" ];
       };
 
       serviceConfig = {
