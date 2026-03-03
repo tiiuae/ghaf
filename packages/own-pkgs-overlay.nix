@@ -1,9 +1,17 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 #
+let
+  python3PackagesOverride =
+    final: prev:
+    final.callPackage ./pkgs-by-name/tpm2-pytss/python3-packages.nix {
+      inherit (prev) python3Packages;
+      tpm2PytssCrossPatch = ./patches/tpm2-pytss-cross-cpp.patch;
+    };
+in
 {
   # keep-sorted start skip_lines=1
-  flake.overlays.own-pkgs-overlay = final: _prev: {
+  flake.overlays.own-pkgs-overlay = final: prev: {
     audit-rules = final.callPackage ./pkgs-by-name/audit-rules/package.nix { };
     chrome-extensions = final.callPackage ./chrome-extensions { };
     dendrite-pinecone = final.callPackage ./pkgs-by-name/dendrite-pinecone/package.nix { };
@@ -22,6 +30,7 @@
     make-checks = final.callPackage ./pkgs-by-name/make-checks/package.nix { };
     memsocket = final.callPackage ./pkgs-by-name/memsocket/package.nix { };
     pci-binder = final.callPackage ./pkgs-by-name/pci-binder/package.nix { };
+    python3Packages = python3PackagesOverride final prev;
     rtl8126 = final.callPackage ./pkgs-by-name/rtl8126/package.nix { };
     tpm-endorsement-certs = final.callPackage ./pkgs-by-name/tpm-endorsement-certs/package.nix { };
     update-docs-depends = final.callPackage ./pkgs-by-name/update-docs-depends/package.nix { };

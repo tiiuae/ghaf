@@ -70,8 +70,7 @@ in
   config = lib.mkIf cfg.enable {
     security.tpm2 = {
       enable = true;
-      # tpm2-pkcs11 cross-compilation is broken on aarch64 (tpm2-pytss patch conflict)
-      pkcs11.enable = pkgs.stdenv.isx86_64;
+      pkcs11.enable = pkgs.stdenv.isx86_64 || pkgs.stdenv.isAarch64;
       abrmd.enable = false;
     };
 

@@ -25,6 +25,18 @@
           })
         else
           python-prev.setuptools-rust;
+
+      tpm2-pytss = python-prev.tpm2-pytss.overrideAttrs (old: {
+        patches = map (
+          p:
+          if final.lib.hasSuffix "cross.patch" (toString p) then
+            final.replaceVars ../../packages/patches/tpm2-pytss-cross-cpp.patch {
+              crossPrefix = final.stdenv.hostPlatform.config;
+            }
+          else
+            p
+        ) (old.patches or [ ]);
+      });
     })
   ];
 

@@ -85,6 +85,16 @@ in
             VIRTIO_VSOCKETS_COMMON = yes;
           };
         }
+        {
+          name = "vtpm-proxy-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            EXPERT = yes;
+            DM_CRYPT = module;
+            TCG_FTPM_TEE = module;
+            TCG_VTPM_PROXY = module;
+          };
+        }
       ];
     };
 

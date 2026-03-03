@@ -30,6 +30,15 @@ stdenv.mkDerivation {
     export GOCACHE="$TMPDIR/go-cache"
     export GO111MODULE=on
     export CGO_ENABLED=1
+    export GOOS=linux
+    export GOARCH=${
+      if stdenv.hostPlatform.isAarch64 then
+        "arm64"
+      else if stdenv.hostPlatform.isx86_64 then
+        "amd64"
+      else
+        throw "unsupported platform for vtpm-abrmd-forwarder"
+    }
     go build -trimpath -o vtpm-abrmd-forwarder \
       ./main.go \
       ./backend_helper.go \
