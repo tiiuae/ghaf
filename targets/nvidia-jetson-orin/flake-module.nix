@@ -33,7 +33,6 @@ let
         ./0001-Remove-nvidia-display-config.patch
       ];
     }
-    (import ./optee.nix { })
   ];
 
   # Common modules shared across all Orin configurations

@@ -8,6 +8,6 @@
     ./jetson-orin.nix
     ./pci-passthrough-common.nix
     ./virtualization
-    ./optee.nix
+    ./optee/optee.nix
   ];
 }
