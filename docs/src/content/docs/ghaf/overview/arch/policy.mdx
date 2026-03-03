@@ -1,0 +1,111 @@
+---
+title: Ghaf Policy Management
+---
+
+## Overview
+
+This module introduces a way to manage policies dynamically within the Ghaf using the ghaf-givc framework. It allows the system to fetch, distribute, and apply policy updates such as firewall rules, proxy settings or any custom policy to running virtual machines in real-time, without needing a full system rebuild.System policies can be hosted remotely in a GitHub repository, or individual policy files can be hosted at any URL. The module provides a mechanism to automatically sync the system's policies with these remote sources on a regular configurable schedule. Additionally, it includes configuration options to define exactly how custom policies should be applied once downloaded.
+
+## Components
+
+### Policy Updater
+
+The mechanism responsible for retrieving remote policy files. It is designed to be flexible, supporting both centralized and distributed policy management. Each defined policy can specify its own updater configuration, which includes a url pointing directly to where the remote policy file is hosted.
+
+### Factory
+
+This represents the default, or baseline state of a policy. In the Nix configuration, it is defined as the "Initial policy file path or nix store path". When the system boots, a dedicated initialization service (givc-policy-init) runs before core services start. If a policy has a defined factory file and if there is no update for this policy, this service securely copies it into the active destination path. This ensures the system always boots with a secure baseline configuration before it syncs local policy with remote sources.
+
+### PolicyAdmin
+
+The central orchestrator of the framework, enabled on the `admin-vm`. It aggregates every policy defined across the entire system. It acts as the authority that coordinates and pushes updates to the respective client VMs.
+
+### PolicyClient
+
+The enforcement agent that runs on `AppVMs`  and `SysVMs`. When enabled, it allows the local VM to download policies pushed by PolicyAdmin and apply them.
+
+
+### Script
+
+The perpolicy execution hook that actually applies the downloaded policy.
+This is optional. It allows developers to define custom shell commands through config options. For example, when dynamic firewall rules are updated, the script attribute can be used to run the nft -f command against the newly downloaded .nft file, applying the rules instantly without rebooting.
+
+### Depends
+
+A lifecycle management tool for systemd services. This component accepts a list of "Services to restart when this policy file changes". If a policy update modifies a configuration file that a background daemon relies on (but that daemon doesn't support live-reloading), the framework will automatically restart the services listed in depends to ensure the new configuration takes effect immediately.
+
+### Sync Interval
+
+This defines the frequency at which the Policy Updater checks the remote URL for changes, configured via the poll_interval_secs option. A value 0 instructs  the updater to sync the remote policy only once during each boot cycle.
+
+
+## Examples:
+
+### Admin-vm Configuration:
+
+The Admin-VM acts as the centralized policy admin and must be configured with policyAdmin enabled:
+
+```nix
+    ghaf.givc = {
+      adminvm.enable = true;
+      policyAdmin = {
+        enable = true;
+        storePath = policyDir;
+        updater.perPolicy.enable = true;
+      };
+    };
+```
+
+### non-Admin VM Configuration:
+
+To enable a virtual machine to receive updates, the policy client must be activated and provided a writable storage path:
+
+```nix
+ghaf.givc.policyClient = {
+  enable = true;
+  storePath = "/etc/policies";
+};
+```
+
+## Policy Example:
+
+### Dynamic Firewall Rules
+
+This configuration allows any VM(chrome-vm) to continuously poll a remote repository for new firewall rules and apply them automatically.
+
+```nix
+ghaf.givc.policyClient.policies.firewall-rules = let
+  rulePath = "/etc/firewall/rules/fw.nft";
+in {
+  dest = rulePath;
+  updater = {
+    url = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/fw.nft";
+    poll_interval_secs = 300;
+  };
+  script = pkgs.writeShellScript "apply-nftables" ''
+    ${pkgs.nftables}/bin/nft -f ${rulePath}
+  ''; #
+};
+```
+
+#### Behavior:
+
+The policy client checks the defined GitHub URL every 300 seconds. If updates are found, it downloads them to /etc/firewall/rules/fw.nft and immediately executes the provided shell script to apply the rules using the nft command.
+
+### Dynamic Proxy Auto-Configuration (PAC)
+
+This configuration fetches a proxy routing file dynamically. Unlike the firewall rules, this configuration is fetched exactly once per boot cycle.
+
+```nix
+ghaf.givc.policyClient.policies.proxy-config = {
+      dest = "/etc/proxy/ghaf.pac"; #
+      updater = {
+        url = "https://raw.githubusercontent.com/tiiuae/ghaf-rt-config/refs/heads/main/network/proxy/ghaf.pac";
+        poll_interval_secs = 0;
+      };
+    };
+```
+
+#### Behavior:
+
+It downloads the PAC file to /etc/proxy/ghaf.pac. Because poll_interval_secs is set to 0, the system pulls the configuration only once during the boot process. Since there is no `script` and `depends` configuration is defined for this so policy client will just download the file and put it in the `dest` directory.
