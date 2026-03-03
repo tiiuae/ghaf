@@ -26,6 +26,7 @@
     tpm-endorsement-certs = final.callPackage ./pkgs-by-name/tpm-endorsement-certs/package.nix { };
     update-docs-depends = final.callPackage ./pkgs-by-name/update-docs-depends/package.nix { };
     user-provision = final.callPackage ./pkgs-by-name/user-provision/package.nix { };
+    vtpm-abrmd-forwarder = final.callPackage ./pkgs-by-name/vtpm-abrmd-forwarder/package.nix { };
     wait-for-unit = final.callPackage ./pkgs-by-name/wait-for-unit/package.nix { };
     windows-launcher = final.callPackage ./pkgs-by-name/windows-launcher/package.nix { };
   };

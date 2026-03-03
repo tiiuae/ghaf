@@ -63,49 +63,181 @@ let
     name = "spire-devid-sign";
     runtimeInputs = [
       pkgs.coreutils
+      pkgs.diffutils
+      pkgs.gnugrep
       pkgs.openssl
       pkgs.inotify-tools
     ];
     text = ''
       CA_KEY="${caDir}/ca.key"
       CA_CERT="${caDir}/ca.pem"
+      CA_SERIAL="${caDir}/ca.srl"
 
       if [ ! -f "$CA_KEY" ]; then
         echo "ERROR: CA key not found at $CA_KEY" >&2
         exit 1
       fi
 
+      cert_matches_pub() {
+        local cert_file="$1"
+        local pub_file="$2"
+        local cert_pub=""
+        local req_pub=""
+
+        if [ ! -s "$cert_file" ] || [ ! -s "$pub_file" ]; then
+          return 1
+        fi
+
+        cert_pub=$(mktemp)
+        req_pub=$(mktemp)
+
+        if ! openssl x509 -in "$cert_file" -pubkey -noout 2>/dev/null | \
+          openssl pkey -pubin -outform pem > "$cert_pub" 2>/dev/null; then
+          rm -f "$cert_pub" "$req_pub"
+          return 1
+        fi
+
+        if ! openssl pkey -pubin -in "$pub_file" -outform pem > "$req_pub" 2>/dev/null; then
+          rm -f "$cert_pub" "$req_pub"
+          return 1
+        fi
+
+        cmp -s "$cert_pub" "$req_pub"
+        local rc=$?
+        rm -f "$cert_pub" "$req_pub"
+        return "$rc"
+      }
+
       sign_csr() {
         local csr="$1"
         local base
         base="$(basename "$csr" .csr)"
         local out="${certDir}/''${base}.pem"
+        local tmp_out="''${out}.tmp"
 
         if [ -f "$out" ]; then
-          echo "Certificate already exists for $base, skipping"
-          return
+          if [ -s "$out" ]; then
+            echo "Certificate already exists for $base, skipping"
+            return
+          fi
+          echo "WARNING: Found empty certificate for $base, regenerating"
+          rm -f "$out"
+        fi
+
+        if [ ! -s "$csr" ]; then
+          echo "WARNING: CSR for $base is empty, skipping"
+          return 1
+        fi
+
+        if [ -f "$CA_SERIAL" ] && ! grep -Eq '^[0-9A-Fa-f]+$' "$CA_SERIAL"; then
+          echo "WARNING: Invalid CA serial file, recreating $CA_SERIAL"
+          rm -f "$CA_SERIAL"
         fi
 
         echo "Signing CSR for $base..."
-        openssl x509 -req -in "$csr" \
+        if ! openssl x509 -req -in "$csr" \
           -CA "$CA_CERT" -CAkey "$CA_KEY" -CAcreateserial \
+          -CAserial "$CA_SERIAL" \
           -days 365 -sha256 \
-          -out "$out"
+          -out "$tmp_out"; then
+          echo "ERROR: Failed to sign CSR for $base"
+          rm -f "$tmp_out"
+          return 1
+        fi
+
+        if [ ! -s "$tmp_out" ]; then
+          echo "ERROR: Signed certificate for $base is empty"
+          rm -f "$tmp_out"
+          return 1
+        fi
+
+        mv -f "$tmp_out" "$out"
         chmod 0644 "$out"
         echo "Signed certificate written to $out"
       }
 
-      # Sign any existing CSRs first
-      for csr in "${csrDir}"/*.csr; do
-        [ -f "$csr" ] && sign_csr "$csr"
-      done
+      sign_pub_request() {
+        local pub="$1"
+        local base
+        base="$(basename "$pub" .pub.pem)"
+        local out="${certDir}/''${base}.pem"
+        local tmp_out="''${out}.tmp"
 
-      # Watch for new CSRs
-      echo "Watching ${csrDir} for new CSRs..."
-      inotifywait -m -e close_write -e moved_to "${csrDir}" --format '%f' | while read -r filename; do
-        if [[ "$filename" == *.csr ]]; then
-          sign_csr "${csrDir}/$filename"
+        if [ -f "$out" ]; then
+          if [ -s "$out" ]; then
+            if cert_matches_pub "$out" "$pub"; then
+              echo "Certificate already exists for $base, skipping"
+              return
+            fi
+
+            echo "Certificate exists for $base but key changed, regenerating"
+            rm -f "$out"
+          else
+            echo "WARNING: Found empty certificate for $base, regenerating"
+            rm -f "$out"
+          fi
         fi
+
+        if [ ! -s "$pub" ]; then
+          echo "WARNING: Public key request for $base is empty, skipping"
+          return 1
+        fi
+
+        if ! openssl pkey -pubin -in "$pub" -noout >/dev/null 2>&1; then
+          echo "WARNING: Public key request for $base is invalid, skipping"
+          return 1
+        fi
+
+        if [ -f "$CA_SERIAL" ] && ! grep -Eq '^[0-9A-Fa-f]+$' "$CA_SERIAL"; then
+          echo "WARNING: Invalid CA serial file, recreating $CA_SERIAL"
+          rm -f "$CA_SERIAL"
+        fi
+
+        echo "Signing public key request for $base..."
+        if ! openssl x509 -new \
+          -force_pubkey "$pub" \
+          -set_subject "/CN=$base/O=Ghaf/OU=DevID" \
+          -CA "$CA_CERT" -CAkey "$CA_KEY" -CAcreateserial \
+          -CAserial "$CA_SERIAL" \
+          -days 365 -sha256 \
+          -out "$tmp_out"; then
+          echo "ERROR: Failed to sign public key request for $base"
+          rm -f "$tmp_out"
+          return 1
+        fi
+
+        if [ ! -s "$tmp_out" ]; then
+          echo "ERROR: Signed certificate for $base is empty"
+          rm -f "$tmp_out"
+          return 1
+        fi
+
+        mv -f "$tmp_out" "$out"
+        chmod 0644 "$out"
+        echo "Signed certificate written to $out"
+      }
+
+      scan_pending_requests() {
+        local count=0
+        shopt -s nullglob
+        for pub in "${csrDir}"/*.pub.pem; do
+          count=$((count + 1))
+          sign_pub_request "$pub" || true
+        done
+        for csr in "${csrDir}"/*.csr; do
+          count=$((count + 1))
+          sign_csr "$csr" || true
+        done
+        shopt -u nullglob
+        echo "Request scan complete: found $count request(s)"
+      }
+
+      # Startup sweep + resilient inotify/poll loop.
+      # Polling fallback handles virtiofs/inotify event loss.
+      while true; do
+        scan_pending_requests
+        echo "Watching ${csrDir} for new requests (5s window)..."
+        inotifywait -q -t 5 -e close_write -e moved_to "${csrDir}" >/dev/null 2>&1 || true
       done
     '';
   };

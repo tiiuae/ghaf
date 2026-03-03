@@ -110,10 +110,8 @@ in
       };
 
       tpm.passthrough = {
-        # TPM passthrough supported on x86_64 and aarch64
-        enable =
-          (globalConfig.storage.encryption.enable or false)
-          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
+        # Disabled in favor of TPM mux for non-riscv64 platforms.
+        enable = false;
         rootNVIndex = "0x81704000"; # TPM2 NV index for net-vm LUKS key
       };
 
@@ -122,6 +120,13 @@ in
         enable =
           (globalConfig.storage.encryption.enable or false)
           && ((globalConfig.platform.hostSystem or "") == "riscv64-linux");
+        name = vmName;
+      };
+
+      tpm.muxed = {
+        enable =
+          (globalConfig.storage.encryption.enable or false)
+          && ((globalConfig.platform.hostSystem or "") != "riscv64-linux");
         name = vmName;
       };
     };

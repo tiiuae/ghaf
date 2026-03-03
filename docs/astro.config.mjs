@@ -62,6 +62,7 @@ export default defineConfig({
                         "ghaf/overview/arch/secureboot",
                         "ghaf/overview/arch/stack",
                         "ghaf/overview/arch/guest-tpm",
+                        "ghaf/overview/arch/tpm-mux",
                       ],
                     },
                     {

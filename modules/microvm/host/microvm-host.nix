@@ -45,6 +45,7 @@ in
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
+    ./tpm-mux.nix
     ./vtpm-proxy.nix
   ];
 
@@ -142,6 +143,8 @@ in
             trustDomain = config.ghaf.global-config.spiffe.trustDomain or "ghaf.internal";
             joinTokenFile = "/persist/common/spire/tokens/${config.networking.hostName}.token";
             trustBundlePath = "/persist/common/spire/bundle.pem";
+            # Host reads common dir at /persist/common (not /etc/common like VMs)
+            commonMountPath = "/persist/common";
           };
         };
       };
@@ -272,12 +275,38 @@ in
                 };
             }
           ) { } (lib.attrNames vmsWithEncryptedStorage);
+
+          vmsWithGivcTlsStorage = lib.filterAttrs (
+            _name: vm:
+            let
+              vmConfig = lib.ghaf.vm.getConfig vm;
+            in
+            vmConfig != null
+            && lib.hasAttr "ghaf" vmConfig
+            && lib.hasAttr "givc" vmConfig.ghaf
+            && lib.hasAttr "storagevm" vmConfig.ghaf
+            && (vmConfig.ghaf.givc.enable or false)
+            && (vmConfig.ghaf.givc.enableTls or false)
+            && (vmConfig.ghaf.storagevm.enable or false)
+          ) config.microvm.vms;
+
+          givcStorageOrdering = lib.foldl' (
+            result: name:
+            result
+            // {
+              "microvm@${name}" = {
+                after = [ "givc-key-setup.service" ];
+                requires = [ "givc-key-setup.service" ];
+              };
+            }
+          ) { } (lib.attrNames vmsWithGivcTlsStorage);
         in
         {
           # Device-id and machine-id generation moved to ghaf.identity.dynamicHostName module
         }
         // patchedMicrovmServices
-        // vmstorageSetupServices;
+        // vmstorageSetupServices
+        // givcStorageOrdering;
     })
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.

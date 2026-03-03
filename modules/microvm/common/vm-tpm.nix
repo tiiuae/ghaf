@@ -28,6 +28,22 @@ in
       };
     };
 
+    muxed = {
+      enable = mkEnableOption "Passthrough via host TPM mux forwarder";
+
+      name = mkOption {
+        description = "Name of the VM";
+        type = types.str;
+        internal = true;
+      };
+
+      devicePath = mkOption {
+        type = types.str;
+        default = "/run/ghaf-vtpm/${cfg.muxed.name}.tpm";
+        description = "Host path exported by TPM mux forwarder for this VM";
+      };
+    };
+
     emulated = {
       enable = mkEnableOption "Emulated TPM with swtpm";
 
@@ -42,11 +58,16 @@ in
   };
 
   config = mkMerge [
-    (mkIf (cfg.passthrough.enable || cfg.emulated.enable) {
+    (mkIf (cfg.passthrough.enable || cfg.muxed.enable || cfg.emulated.enable) {
       assertions = [
         {
-          assertion = !(cfg.passthrough.enable && cfg.emulated.enable);
-          message = "Cannot enable TPM passthrough and TPM emulation at the same time";
+          assertion =
+            (
+              (if cfg.passthrough.enable then 1 else 0)
+              + (if cfg.muxed.enable then 1 else 0)
+              + (if cfg.emulated.enable then 1 else 0)
+            ) <= 1;
+          message = "Cannot enable TPM passthrough, muxed, and emulated modes at the same time";
         }
       ];
 
@@ -67,6 +88,10 @@ in
         }
       ];
 
+      services.udev.extraRules = ''
+        KERNEL=="tpm0", MODE="0660", GROUP="${config.security.tpm2.tssGroup or "tss"}"
+      '';
+
       microvm.qemu = {
         extraArgs =
           let
@@ -83,6 +108,33 @@ in
         # Workaround a bug when machine type is `microvm`
         #   tpm_tis MSFT0101:00: [Firmware Bug]: failed to get TPM2 ACPI table
         # Only relevant for x86_64 (aarch64 uses "virt" machine type set by VM bases)
+        machine = mkIf pkgs.stdenv.isx86_64 "q35";
+      };
+    })
+    (mkIf cfg.muxed.enable {
+      assertions = [
+        {
+          assertion = pkgs.stdenv.isx86_64 || pkgs.stdenv.isAarch64;
+          message = "TPM muxed passthrough is only supported on x86_64 and aarch64";
+        }
+      ];
+
+      services.udev.extraRules = ''
+        KERNEL=="tpm0", MODE="0660", GROUP="${config.security.tpm2.tssGroup or "tss"}"
+      '';
+
+      microvm.qemu = {
+        extraArgs =
+          let
+            tpmDevice = if pkgs.stdenv.isx86_64 then "tpm-tis" else "tpm-tis-device";
+          in
+          [
+            "-tpmdev"
+            "passthrough,id=tpm0,path=${cfg.muxed.devicePath},cancel-path=/tmp/cancel"
+            "-device"
+            "${tpmDevice},tpmdev=tpm0"
+          ];
+
         machine = mkIf pkgs.stdenv.isx86_64 "q35";
       };
     })

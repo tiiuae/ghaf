@@ -395,8 +395,17 @@ in
     systemd.services.spire-server = {
       description = "SPIRE Server";
       wantedBy = [ "multi-user.target" ];
-      after = [ "network-online.target" ];
+      after = [
+        "network-online.target"
+      ]
+      ++ lib.optionals config.ghaf.storagevm.encryption.enable [
+        "storagevm-enroll.service"
+      ];
       wants = [ "network-online.target" ];
+      unitConfig = {
+        # Ensure dataDir bind mount from encrypted storage is ready
+        RequiresMountsFor = [ cfg.dataDir ];
+      };
 
       serviceConfig = {
         User = "spire";
