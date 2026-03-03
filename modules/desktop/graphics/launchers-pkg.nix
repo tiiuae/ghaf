@@ -11,6 +11,26 @@ let
     launcherElem:
     let
       prefix = if launcherElem.vm != null then "[${launcherElem.vm}] " else "";
+      businessPrefix =
+        if (launcherElem.vm != null && lib.strings.hasInfix "business" launcherElem.vm) then
+          "(${lib.strings.removeSuffix "-vm" launcherElem.vm}) "
+        else
+          "";
+      commsSuffix =
+        if (launcherElem.vm != null && lib.strings.hasInfix "comms" launcherElem.vm) then
+          " (${lib.strings.removeSuffix "-vm" launcherElem.vm})"
+        else
+          "";
+      chromeSuffix =
+        if (launcherElem.vm != null && lib.strings.hasInfix "chrome" launcherElem.vm) then
+          " [${launcherElem.vm}]"
+        else
+          "";
+      flatpakPrefix =
+        if (launcherElem.vm != null && lib.strings.hasInfix "flatpak" launcherElem.vm) then
+          "[${lib.strings.removeSuffix "-vm" launcherElem.vm}] "
+        else
+          "";
       icon =
         if launcherElem.icon != null then
           launcherElem.icon
@@ -32,12 +52,12 @@ let
     (pkgs.makeDesktopItem {
       inherit (launcherElem)
         name
-        desktopName
         genericName
         categories
         exec
         ;
       inherit icon startupWMClass;
+      desktopName = "${businessPrefix}${flatpakPrefix}${launcherElem.desktopName}${commsSuffix}${chromeSuffix}";
       comment = "${prefix}${launcherElem.description}";
     }).overrideAttrs
       (prevAttrs: {

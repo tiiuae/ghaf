@@ -72,6 +72,8 @@ writeShellApplication {
         build_target="$2"
         shift 2
 
+        NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
+
         # Parse flags
         args=()
         for arg in "$@"; do
@@ -82,13 +84,16 @@ writeShellApplication {
             --force-local)
               args+=(--builders \'\')
               ;;
+            --insecure)
+              NIX_SSHOPTS+=" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+              ;;
             *)
               args+=("$arg")
               ;;
           esac
         done
 
-        export NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
+        export NIX_SSHOPTS
         nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${args[@]}"
   '';
   meta = {
