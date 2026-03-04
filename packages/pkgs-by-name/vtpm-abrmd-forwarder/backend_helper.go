@@ -20,13 +20,7 @@ type backendHelper struct {
 }
 
 func startBackendHelper(backendDevice string) (*backendHelper, error) {
-	h := &backendHelper{backendDevice: backendDevice}
-	h.mu.Lock()
-	defer h.mu.Unlock()
-	if err := h.restartLocked(); err != nil {
-		return nil, err
-	}
-	return h, nil
+	return &backendHelper{backendDevice: backendDevice}, nil
 }
 
 func (h *backendHelper) Close() {
