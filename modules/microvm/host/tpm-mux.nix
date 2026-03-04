@@ -70,7 +70,11 @@ in
               wantedBy = [ "microvms.target" ];
               before = [ "microvm@${vmName}.service" ];
               wants = [ "tpm2-abrmd.service" ];
-              after = [ "tpm2-abrmd.service" ];
+              after = [
+                "tpm2-abrmd.service"
+              ]
+              ++ lib.optionals (cfg.backendDevice == "/dev/tpmrm0") [ "dev-tpmrm0.device" ];
+              requires = lib.optionals (cfg.backendDevice == "/dev/tpmrm0") [ "dev-tpmrm0.device" ];
               serviceConfig = {
                 Type = "notify";
                 NotifyAccess = "main";

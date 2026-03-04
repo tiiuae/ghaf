@@ -266,6 +266,14 @@ in
 
       modprobeConfig.enable = true;
 
+      # Orin fTPM and encrypted microvm storage paths are module-based.
+      # Load these early so TPM mux forwarders and storage setup services do not
+      # race module autoload during boot.
+      kernelModules = [
+        "dm_crypt"
+        "tpm_ftpm_tee"
+      ];
+
       kernelPatches = [
         {
           name = "vsock-config";
