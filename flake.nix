@@ -36,7 +36,7 @@
 
     # VM control interface for Ghaf
     ctrl-panel = {
-      url = "github:tiiuae/ghaf-ctrl-panel";
+      url = "github:tiiuae/ghaf-ctrl-panel/7855dc850e09776f36e452111dfaca792a06e87b";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-utils.follows = "flake-utils";
@@ -105,7 +105,7 @@
 
     # Ghaf Inter VM communication and control library
     givc = {
-      url = "github:tiiuae/ghaf-givc";
+      url = "github:tiiuae/ghaf-givc/dee9a14a6556295c8bebae9e9f4d1476995364ad";
       inputs = {
         nixpkgs.follows = "nixpkgs";
         flake-parts.follows = "flake-parts";

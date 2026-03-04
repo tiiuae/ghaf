@@ -19,6 +19,7 @@
     ./power.nix
     ./storewatcher.nix
     ./sssd.nix
+    ./sysinfo.nix
     ./timezone.nix
     ./user-provision.nix
     ./wifi.nix

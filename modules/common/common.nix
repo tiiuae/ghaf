@@ -34,6 +34,12 @@ in
 
   options.ghaf = {
     common = {
+      policies = mkOption {
+        description = "System policies";
+        default = { };
+        # <vm-name>.<policy-name> = {}
+        type = types.attrsOf (types.attrsOf lib.types.policy);
+      };
       vms = mkOption {
         type = types.listOf types.str;
         default = [ ];
