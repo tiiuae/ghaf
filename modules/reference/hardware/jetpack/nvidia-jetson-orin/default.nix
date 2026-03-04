@@ -6,6 +6,7 @@
   imports = [
     ./partition-template.nix
     ./jetson-orin.nix
+    ./secureboot.nix
     ./pci-passthrough-common.nix
     ./virtualization
     ./optee.nix
