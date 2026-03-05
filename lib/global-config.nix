@@ -27,6 +27,7 @@
 { lib }:
 let
   inherit (lib) mkOption mkEnableOption types;
+  defaultLoggingEndpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
 in
 rec {
   # Type definition for global config options
@@ -322,7 +323,7 @@ rec {
       # modules/common/global-config.nix (no need to set it per profile).
       logging = {
         enable = true;
-        server.endpoint = "https://loki.ghaflogs.vedenemo.dev/loki/api/v1/push";
+        server.endpoint = defaultLoggingEndpoint;
       };
 
       security.audit.enable = false;
@@ -413,7 +414,10 @@ rec {
         nix-setup.enable = false;
       };
 
-      logging.enable = false;
+      logging = {
+        enable = true;
+        server.endpoint = defaultLoggingEndpoint;
+      };
       security.audit.enable = true;
 
       givc = {
