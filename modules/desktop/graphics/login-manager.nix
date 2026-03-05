@@ -23,24 +23,26 @@ in
 
   options.ghaf.graphics.login-manager = {
     enable = mkEnableOption "Ghaf login manager config using greetd";
+    # PAM faillock module configuration
     failLock = {
       enable = mkEnableOption ''
         Account locking after repeated failed login attempts.
         When activated, the system will temporarily lock accounts that
         exceed the maximum allowed authentication failures.
       '';
+
       maxTries = mkOption {
         description = ''
-          Defines the number of authentication failures required before locking the account.
+          Defines the maximum number of consecutive failed authentication
+          attempts allowed before the account is temporarily locked.
+
           Key details:
-            1 authentication failure = 5 consecutive failed login attempts
-            The system aggregates 5 incorrect password attempts into one recorded authentication failure.
-            When maxTries = 2, locking occurs after:
-            2 authentication failures × 5 attempts each = 10 total failed login attempts
-          The counter resets after successful authentication
+            - Each incorrect password submission increments the failure counter by one.
+            - Reaching this configured threshold immediately triggers the account lock.
+            - The internal failure counter resets upon a successful login.
         '';
         type = types.int;
-        default = 2;
+        default = 5;
       };
     };
   };
