@@ -31,62 +31,74 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
+      network.agent.transport = {
         name = hostName;
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      services = [
+      network.admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.tls.enable = config.ghaf.givc.enableTls;
+      capabilities.services = [
         "reboot.target"
         "poweroff.target"
       ];
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      tls.enable = config.ghaf.givc.enableTls;
       enableUserTlsAccess = true;
       notifier.enable = true;
-      socketProxy =
-        lib.optionals (builtins.elem netvmName config.ghaf.common.vms) [
-          {
-            transport = {
-              name = netvmName;
-              addr = hosts.${netvmName}.ipv4;
-              port = "9010";
-              protocol = "tcp";
-            };
-            socket = "/tmp/dbusproxy_net.sock";
-          }
-        ]
-        ++ lib.optionals (builtins.elem audiovmName config.ghaf.common.vms) [
-          {
-            transport = {
-              name = audiovmName;
-              addr = hosts.${audiovmName}.ipv4;
-              port = "9011";
-              protocol = "tcp";
-            };
-            socket = "/tmp/dbusproxy_snd.sock";
-          }
-          (lib.optionalAttrs (audioCfg.enable && audioCfg.client.pipewireControl.enable) {
-            transport = {
-              name = audiovmName;
-              addr = hosts.${audiovmName}.ipv4;
-              inherit (audioCfg.server.pipewireForwarding) port;
-              protocol = "tcp";
-            };
-            inherit (audioCfg.client.pipewireControl) socket;
-          })
-        ];
-      eventProxy = [
+      capabilities.socketProxy =
+        let
+          sockets =
+            lib.optionals (builtins.elem netvmName config.ghaf.common.vms) [
+              {
+                transport = {
+                  name = netvmName;
+                  addr = hosts.${netvmName}.ipv4;
+                  port = "9010";
+                  protocol = "tcp";
+                };
+                socket = "/tmp/dbusproxy_net.sock";
+              }
+            ]
+            ++ lib.optionals (builtins.elem audiovmName config.ghaf.common.vms) [
+              {
+                transport = {
+                  name = audiovmName;
+                  addr = hosts.${audiovmName}.ipv4;
+                  port = "9011";
+                  protocol = "tcp";
+                };
+                socket = "/tmp/dbusproxy_snd.sock";
+              }
+            ]
+            ++ lib.optionals (audioCfg.enable && audioCfg.client.pipewireControl.enable) [
+              {
+                transport = {
+                  name = audiovmName;
+                  addr = hosts.${audiovmName}.ipv4;
+                  inherit (audioCfg.server.pipewireForwarding) port;
+                  protocol = "tcp";
+                };
+                inherit (audioCfg.client.pipewireControl) socket;
+              }
+            ];
+        in
         {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9012";
-            protocol = "tcp";
-          };
-          producer = false;
-        }
-      ];
+          enable = sockets != [ ];
+          inherit sockets;
+        };
+      capabilities.eventProxy = {
+        enable = true;
+        events = [
+          {
+            transport = {
+              name = guivmName;
+              addr = hosts.${guivmName}.ipv4;
+              port = "9012";
+              protocol = "tcp";
+            };
+            producer = false;
+          }
+        ];
+      };
     };
     systemd.services.dbus-proxy-networkmanager = {
       description = "DBus proxy for Network Manager ${guivmName}";
