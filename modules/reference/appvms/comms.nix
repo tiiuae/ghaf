@@ -32,6 +32,7 @@ in
         packages = [
           pkgs.google-chrome
           pkgs.gpsd
+          pkgs.fake-tray
         ]
         ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
         mem = 4096;
@@ -82,6 +83,13 @@ in
             description = "Zoom Videoconferencing Application";
             icon = "Zoom";
             exec = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
+          }
+          {
+            name = "Tray icon";
+            desktopName = "Fake Tray";
+            description = "Fake tray application for testing purposes";
+            icon = "utilities-system-monitor";
+            exec = "faketray";
           }
         ];
         extraModules = [
