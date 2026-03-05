@@ -11,6 +11,7 @@ let
     mkEnableOption
     mkOption
     types
+    hasPrefix
     optionalString
     ;
   cfg = config.ghaf.logging.client;
@@ -130,6 +131,18 @@ in
     };
 
     services.alloy.enable = true;
+
+    systemd.services.alloy.unitConfig.RequiresMountsFor = lib.unique (
+      lib.optionals (cfg.tls.certFile != null && hasPrefix "/etc/givc/" (toString cfg.tls.certFile)) [
+        (dirOf (toString cfg.tls.certFile))
+      ]
+      ++ lib.optionals (cfg.tls.keyFile != null && hasPrefix "/etc/givc/" (toString cfg.tls.keyFile)) [
+        (dirOf (toString cfg.tls.keyFile))
+      ]
+      ++ lib.optionals (cfg.tls.caFile != null && hasPrefix "/etc/givc/" (toString cfg.tls.caFile)) [
+        (dirOf (toString cfg.tls.caFile))
+      ]
+    );
 
     systemd.services.alloy.serviceConfig = {
       after = [

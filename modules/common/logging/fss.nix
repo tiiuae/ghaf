@@ -453,6 +453,14 @@ in
         after = [ "systemd-journald.service" ];
         wants = [ "systemd-journald.service" ];
 
+        unitConfig = {
+          RequiresMountsFor = [
+            cfg.keyPath
+            "/var/log/journal"
+            "/run/log/journal"
+          ];
+        };
+
         serviceConfig = {
           Type = "oneshot";
           RemainAfterExit = true;
@@ -477,6 +485,11 @@ in
         unitConfig = {
           # Only run if FSS setup has completed successfully
           ConditionPathExists = "${cfg.keyPath}/initialized";
+          RequiresMountsFor = [
+            cfg.keyPath
+            "/var/log/journal"
+            "/run/log/journal"
+          ];
         };
 
         serviceConfig = {
@@ -516,7 +529,7 @@ in
     # Audit rules to monitor FSS key and journal access
     ghaf.security.audit.extraRules = [
       # Monitor FSS key directory for any write or attribute changes
-      "-w ${cfg.keyPath} -p wa -k journal_fss_keys"
+      "-w ${dirOf cfg.keyPath} -p wa -k journal_fss_keys"
       # Monitor sealed journal logs for tampering attempts
       "-w /var/log/journal -p wa -k journal_sealed_logs"
       # Monitor machine-id reads (critical for journal path resolution)
