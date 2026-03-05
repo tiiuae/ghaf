@@ -16,7 +16,7 @@ in
   config = lib.mkIf cfg.enable {
     image.repart = {
       name = "ghaf";
-      version = "0.0.1";
+      inherit (cfg) version;
 
       partitions = {
         "00-esp" = {
@@ -82,73 +82,42 @@ in
           };
         };
 
-        # 'B' blank partitions.
+        # 'B' blank partitions — sysupdate writes here during A/B updates.
+        # Type must match the A slot so sysupdate's MatchPartitionType can find them.
         "20-root-verity-b" = {
           repartConfig = {
-            Type = "linux-generic";
+            Type = "root-verity";
             SizeMinBytes = "64M";
-            SizeMaxBytes = "64M";
             Label = "_empty";
             ReadOnly = 1;
+            SplitName = "-";
+            Weight = 0;
           };
         };
         "21-root-b" = {
           repartConfig = {
-            Type = "linux-generic";
-            SizeMinBytes = "512M";
-            SizeMaxBytes = "512M";
-            Label = "_emptyb";
+            Type = "root";
+            SizeMinBytes = cfg.bSlotSize;
+            SizeMaxBytes = cfg.bSlotSize;
+            Label = "_empty";
             ReadOnly = 1;
+            SplitName = "-";
+            Weight = 0;
           };
         };
 
-        "40-swap" = {
-          repartConfig = {
-            Type = "swap";
-            Format = "swap";
-            Label = "swap";
-            UUID = "0657fd6d-a4ab-43c4-84e5-0933c84b4f4f";
-          }
-          // (
-            if config.ghaf.storage.encryption.enable then
-              {
-                Encrypt = "key-file";
-                # Since the partition is pre-encrypted, it doesn't compress well
-                # (compressed size ~= initial size) and takes up a large portion
-                # of the image file.
-                # Make the initial swap small and expand it later on the device
-                SizeMinBytes = "64M";
-                SizeMaxBytes = "64M";
-                # Free space to expand on device
-                PaddingMinBytes = "8G";
-                PaddingMaxBytes = "8G";
-              }
-            else
-              {
-                SizeMinBytes = "8G";
-                SizeMaxBytes = "8G";
-              }
-          );
-        };
-
-        # Persistence partition.
-        "50-persist" = {
+        # Data partition — LVM (PV/VG/LVs) is initialized on first boot by
+        # verity-data-init.service.  The raw zeros compress to nearly nothing
+        # with zstd, keeping the image small.
+        "40-data" = {
           repartConfig = {
             Type = "linux-generic";
-            Label = "persist";
-            Format = "btrfs";
-            SizeMinBytes = "500M";
-            MakeDirectories = toString [
-              "/storagevm"
-            ];
-            UUID = "20936304-3d57-49c2-8762-bbba07edbe75";
-            # When Encrypt is "key-file" and the key file isn't specified, the
-            # disk will be LUKS formatted with an empty passphrase
-            Encrypt = lib.mkIf config.ghaf.storage.encryption.enable "key-file";
-
-            # Factory reset option will format this partition, which stores all
-            # the system & user state.
+            Label = "data";
+            UUID = "a142865b-37e4-48e1-acab-0118bfa6215f";
+            SizeMinBytes = "14G";
             FactoryReset = "yes";
+            # No Format — LVM is created by the first-boot initrd service
+            # No Encrypt — encryption is deferred to first boot
           };
         };
       };

@@ -297,6 +297,42 @@ let
     })
 
     (ghaf-configuration {
+      name = "system76-darp11-b-ab";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-system76-darp11-b;
+      variant = "debug";
+      extraModules = commonModules ++ [
+        { hardware.system76.kernel-modules.enable = true; }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.verity = {
+          enable = true;
+          split = true;
+          sysupdate = true;
+          version = "0.1.0";
+          deltaUpdate.enable = true;
+        };
+        services.power-manager.suspend.mode = "s2idle";
+        virtualization.microvm.storeOnDisk = true;
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
+        };
+        hardware.definition.guivm.extraModules = [
+          {
+            hardware.system76 = {
+              power-daemon.enable = false;
+              kernel-modules.enable = true;
+              firmware-daemon.enable = false;
+            };
+          }
+        ];
+      };
+    })
+
+    (ghaf-configuration {
       name = "system76-darp11-b-storeDisk";
       inherit system;
       profile = "laptop-x86";
@@ -554,6 +590,42 @@ let
     })
 
     (ghaf-configuration {
+      name = "system76-darp11-b-ab";
+      inherit system;
+      profile = "laptop-x86";
+      hardwareModule = self.nixosModules.hardware-system76-darp11-b;
+      variant = "release";
+      extraModules = commonModules ++ [
+        { hardware.system76.kernel-modules.enable = true; }
+      ];
+      extraConfig = {
+        reference.profiles.mvp-user-trial.enable = true;
+        partitioning.verity = {
+          enable = true;
+          split = true;
+          sysupdate = true;
+          version = "0.1.0";
+          deltaUpdate.enable = true;
+        };
+        services.power-manager.suspend.mode = "s2idle";
+        virtualization.microvm.storeOnDisk = true;
+        hardware.passthrough.pciAcsOverride = {
+          enable = true;
+          ids = [ "8086:550a" ];
+        };
+        hardware.definition.guivm.extraModules = [
+          {
+            hardware.system76 = {
+              power-daemon.enable = false;
+              kernel-modules.enable = true;
+              firmware-daemon.enable = false;
+            };
+          }
+        ];
+      };
+    })
+
+    (ghaf-configuration {
       name = "system76-darp11-b-storeDisk";
       inherit system;
       profile = "laptop-x86";
@@ -603,12 +675,22 @@ let
   ) target-configs;
 
   targets = target-configs ++ target-installers;
+
+  # Targets that produce OTA update packages (verity A/B with split enabled)
+  ab-targets = builtins.filter (
+    t: (t.hostConfiguration.config.ghaf.partitioning.verity.split or false)
+  ) target-configs;
 in
 {
   flake = {
     nixosConfigurations = builtins.listToAttrs (
       map (t: lib.nameValuePair t.name t.hostConfiguration) targets
     );
-    packages.${system} = builtins.listToAttrs (map (t: lib.nameValuePair t.name t.package) targets);
+    packages.${system} = builtins.listToAttrs (
+      (map (t: lib.nameValuePair t.name t.package) targets)
+      ++ (map (
+        t: lib.nameValuePair "${t.name}-update" t.hostConfiguration.config.system.build.updatePackage
+      ) ab-targets)
+    );
   };
 }

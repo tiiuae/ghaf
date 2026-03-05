@@ -15,6 +15,9 @@
       ./verity-partition.nix
       ./verity-repart.nix
       ./verity-sysupdate.nix
+      ./verity-update-package.nix
+      ./verity-delta-update.nix
+      ./deferred-disk-encryption.nix
       ./btrfs-postboot.nix
     ];
   };
