@@ -113,7 +113,7 @@ in
       # Process applications for GIVC
       givcApps = map (app: {
         name = lib.strings.toLower (lib.replaceStrings [ " " ] [ "-" ] app.desktopName);
-        command = "${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/${app.exec}";
+        command = "${config.ghaf.givc.appPrefix}/${app.exec}";
         args = app.givcArgs or [ ];
       }) allApplications;
 
@@ -236,6 +236,10 @@ in
         # Waypipe support
         waypipe = {
           enable = vm.waypipe.enable or true;
+          persistentWaypipeServer = {
+            enable = vm.persistentWaypipe.enable or true;
+            xDisplay = vm.persistentWaypipe.xDisplay or ":99";
+          };
           inherit vm;
           vmCid = hostConfig.networking.thisVm.cid or 0;
           guivmCid = hostConfig.networking.hosts."gui-vm".cid or 3;
