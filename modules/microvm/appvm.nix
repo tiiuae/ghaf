@@ -308,7 +308,7 @@ in
         {
           systemd.user.services = lib.mapAttrs' (name: vm: {
             name = "waypipe-${name}-vm";
-            value = vm.evaluatedConfig.config.ghaf.waypipe.waypipeService;
+            value = vm.evaluatedConfig.config.ghaf.waypipe.waypipeClientService;
           }) vmsWithWaypipe;
         }
       ];

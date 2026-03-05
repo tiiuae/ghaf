@@ -56,7 +56,7 @@ in
       givc.appvm.applications = [
         {
           name = "wireguard-gui";
-          command = "${config.ghaf.givc.appPrefix}/run-waypipe ${wireguard-gui-launcher}/bin/wireguard-gui-launcher";
+          command = "${wireguard-gui-launcher}/bin/wireguard-gui-launcher";
         }
       ];
 

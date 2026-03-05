@@ -17,7 +17,7 @@ let
     text = ''
       file="$1"
       echo "XDG open PDF: $file"
-      ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/zathura "$file"
+      ${config.ghaf.givc.appPrefix}/zathura "$file"
       rm "$file"
     '';
   };
@@ -29,7 +29,7 @@ let
     text = ''
       file="$1"
       echo "XDG open image: $file"
-      ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/oculante "$file"
+      ${config.ghaf.givc.appPrefix}/oculante "$file"
       rm "$file"
     '';
   };
@@ -53,8 +53,7 @@ let
       }
 
       start_browser() {
-       ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
-          --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+       "${config.ghaf.givc.appPrefix}/$1" --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
       }
 
       # Try to detect available browsers
@@ -84,7 +83,7 @@ let
         exit 1
       fi
       echo "XDG open element: $url"
-      ${config.ghaf.givc.appPrefix}/run-waypipe ${config.ghaf.givc.appPrefix}/element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+      ${config.ghaf.givc.appPrefix}/element-desktop --enable-logging --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
     '';
   };
 
