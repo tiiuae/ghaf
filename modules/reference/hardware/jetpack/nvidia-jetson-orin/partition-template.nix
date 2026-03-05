@@ -133,6 +133,7 @@ let
     runtimeInputs = [
       pkgs.pkgsBuildBuild.zstd
       pkgs.pkgsBuildBuild.gnused
+      pkgs.pkgsBuildBuild.cryptsetup
     ];
     text = ''
       echo "============================================================"
@@ -166,15 +167,69 @@ let
            bs=512 iseek="$ESP_OFFSET" count="$ESP_SIZE" status=progress
 
         echo "Extracting root partition..."
+        ROOT_IMAGE_PATH="$WORKDIR/bootloader/root.img"
+        ${lib.optionalString cfg.diskEncryption.enable ''
+          ROOT_IMAGE_PATH="$WORKDIR/bootloader/root.enc.img"
+        ''}
         dd if=<(pzstd -d "$img" -c) \
-           of="$WORKDIR/bootloader/root.img" \
+           of="$ROOT_IMAGE_PATH" \
            bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
+
+        ${lib.optionalString cfg.diskEncryption.enable ''
+          echo ""
+          echo "Generic LUKS rootfs encryption is enabled."
+          GHAF_SKIP_LUKS_ENCRYPTION=0
+
+          if [ -n "''${GHAF_LUKS_PASSPHRASE-}" ]; then
+            GHAF_LUKS_PASSPHRASE_CONFIRM="$GHAF_LUKS_PASSPHRASE"
+          elif [ -t 0 ] && [ -t 1 ]; then
+            while true; do
+              read -r -s -p "Enter shared LUKS passphrase: " GHAF_LUKS_PASSPHRASE
+              echo ""
+              read -r -s -p "Confirm shared LUKS passphrase: " GHAF_LUKS_PASSPHRASE_CONFIRM
+              echo ""
+
+              if [ -z "$GHAF_LUKS_PASSPHRASE" ]; then
+                echo "Passphrase cannot be empty."
+                continue
+              fi
+
+              if [ "$GHAF_LUKS_PASSPHRASE" != "$GHAF_LUKS_PASSPHRASE_CONFIRM" ]; then
+                echo "Passphrases do not match. Try again."
+                continue
+              fi
+
+              break
+            done
+          else
+            GHAF_SKIP_LUKS_ENCRYPTION=1
+            echo "Non-interactive environment without GHAF_LUKS_PASSPHRASE; skipping root image encryption."
+          fi
+
+          if [ "$GHAF_SKIP_LUKS_ENCRYPTION" -eq 0 ]; then
+            GHAF_LUKS_PASSPHRASE_FILE=$(mktemp "$WORKDIR/.luks-passphrase.XXXXXX")
+            chmod 600 "$GHAF_LUKS_PASSPHRASE_FILE"
+            printf '%s' "$GHAF_LUKS_PASSPHRASE" > "$GHAF_LUKS_PASSPHRASE_FILE"
+            unset GHAF_LUKS_PASSPHRASE GHAF_LUKS_PASSPHRASE_CONFIRM
+
+            echo "Encrypting extracted root image with LUKS2 ..."
+            cryptsetup reencrypt \
+              --encrypt \
+              --type luks2 \
+              --batch-mode \
+              --reduce-device-size $((16 * 1024 * 1024)) \
+              --key-file "$GHAF_LUKS_PASSPHRASE_FILE" \
+              "$ROOT_IMAGE_PATH"
+
+            rm -f "$GHAF_LUKS_PASSPHRASE_FILE"
+          fi
+        ''}
 
         echo ""
         echo "Patching flash.xml with image paths and sizes..."
         sed -i \
           -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
-          -e "s#root.img#$WORKDIR/bootloader/root.img#" \
+          -e "s#root.img#$ROOT_IMAGE_PATH#" \
           -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
           -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
           flash.xml
