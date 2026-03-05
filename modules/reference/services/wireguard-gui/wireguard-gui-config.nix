@@ -3,6 +3,7 @@
 {
   config,
   lib,
+  hostConfig ? { },
   ...
 }:
 let
@@ -11,17 +12,18 @@ let
     mkIf
     hasAttrByPath
     mkForce
+    mkDefault
     lists
     attrByPath
     attrsets
-    filterAttrs
     mkEnableOption
     ;
   isHost = hasAttrByPath [
     "hardware"
     "devices"
   ] config.ghaf;
-  appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "vms" ] { } config;
+  inheritedVmConfig = attrByPath [ "reference" "services" "wireguard-gui-vmconfig" ] { } hostConfig;
+  appVms = lib.attrByPath [ "ghaf" "virtualization" "microvm" "appvm" "enabledVms" ] { } config;
   # Extract all VMs where wireguard-gui is enabled
   # Look through applications and their extraModules (new composition model)
   # Flatten: for each VM -> for each application -> for each extraModule
@@ -36,16 +38,19 @@ let
         wgService != null && (wgService.enable or false)
       )
       (
-        lists.concatMap
-          (
-            vm:
-            lists.concatMap (
+        lists.concatMap (
+          vm:
+          let
+            vmDef = attrByPath [ "evaluatedConfig" "config" "ghaf" "appvm" "vmDef" ] { } vm;
+            vmApplications = vmDef.applications or [ ];
+            vmExtraModules = vmDef.extraModules or [ ];
+            appExtraModules = lists.concatMap (
               appDef: map (extraMod: extraMod // { vmName = "${vm.name}-vm"; }) (appDef.extraModules or [ ])
-            ) (vm.applications or [ ])
-          )
-          (
-            attrsets.mapAttrsToList (name: vm: { inherit name; } // vm) (filterAttrs (_: vm: vm.enable) appVms)
-          )
+            ) vmApplications;
+            topLevelExtraModules = map (extraMod: extraMod // { vmName = "${vm.name}-vm"; }) vmExtraModules;
+          in
+          appExtraModules ++ topLevelExtraModules
+        ) (attrsets.mapAttrsToList (_name: vm: vm) appVms)
       );
 
   # Map only the vmName values
@@ -75,14 +80,23 @@ in
   ];
   config = mkIf cfg.enable {
 
-    ghaf.reference.services.wireguard-gui-vmconfig = {
-      netVmExternalNic = mkIf isHost (
-        mkForce (lib.head config.ghaf.hardware.definition.network.pciDevices).name
-      );
-
-      enabledVmNames = mkIf (wgEnabledVmNames != [ ]) (mkForce wgEnabledVmNames);
-
-      serverPortsByVm = mkIf (wgServerPortsByVm != [ ]) (mkForce wgServerPortsByVm);
-    };
+    ghaf.reference.services.wireguard-gui-vmconfig = lib.mkMerge [
+      (mkIf isHost {
+        netVmExternalNic = mkForce (lib.head config.ghaf.hardware.definition.network.pciDevices).name;
+        enabledVmNames = mkIf (wgEnabledVmNames != [ ]) (mkForce wgEnabledVmNames);
+        serverPortsByVm = mkIf (wgServerPortsByVm != [ ]) (mkForce wgServerPortsByVm);
+      })
+      (mkIf (!isHost) {
+        netVmExternalNic = mkIf ((inheritedVmConfig.netVmExternalNic or "") != "") (
+          mkDefault inheritedVmConfig.netVmExternalNic
+        );
+        enabledVmNames = mkIf ((inheritedVmConfig.enabledVmNames or [ ]) != [ ]) (
+          mkDefault inheritedVmConfig.enabledVmNames
+        );
+        serverPortsByVm = mkIf ((inheritedVmConfig.serverPortsByVm or [ ]) != [ ]) (
+          mkDefault inheritedVmConfig.serverPortsByVm
+        );
+      })
+    ];
   };
 }
