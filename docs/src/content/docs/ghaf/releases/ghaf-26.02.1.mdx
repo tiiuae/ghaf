@@ -1,0 +1,104 @@
+---
+title: Release ghaf-26.02.1
+sidebar:
+  order: 9971
+  badge:
+    text: Latest
+    variant: success
+
+---
+
+This is monthly Ghaf release which has been fully tested on Nvidia Orin NX, Nvidia Orin AGX, Lenovo X1 Carbon Gen11 and System76 Darter Pro platforms
+
+## Release Tag
+
+https://github.com/tiiuae/ghaf/releases/tag/ghaf-26.02.1
+
+## Supported Hardware
+
+The following target hardware is supported by this release:
+
+- NVIDIA Jetson Orin AGX
+- NVIDIA Jetson Orin NX
+- Lenovo ThinkPad X1 Carbon Gen 10/11/12/13, Gen9 2-in-1
+- Lenovo T14 AMD
+- Dell Latitude 7230, 7330
+- Alienware M18
+- System76 Darter Pro
+- NXP i.MX 8M Plus
+
+## What's Changed
+* build(deps): bump astral-sh/setup-uv from 7.2.0 to 7.3.0 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1737
+* build(deps): bump github/codeql-action from 4.31.11 to 4.32.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1736
+* build(deps): bump step-security/harden-runner from 2.14.1 to 2.14.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1735
+* Refactor bit by bit by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1729
+* Fix intel-laptop target by @nesteroff in https://github.com/tiiuae/ghaf/pull/1728
+* firewall: add IP blacklisting for ping flood attacks by @enesoztrk in https://github.com/tiiuae/ghaf/pull/1731
+* nvidia-jetpack: move pre-flash commands into writeShellApplication by @vunnyso in https://github.com/tiiuae/ghaf/pull/1740
+* Refine deferred disk encryption and passphrase handling by @vunnyso in https://github.com/tiiuae/ghaf/pull/1726
+* docs: bump the docs by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1743
+* version bump by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1745
+* suspend: switch from deep -> s2idle for darp11 by @kajusnau in https://github.com/tiiuae/ghaf/pull/1715
+* Post refactor fixup by @kajusnau in https://github.com/tiiuae/ghaf/pull/1747
+* docs: add 26.01.1 release note by @clayhill66 in https://github.com/tiiuae/ghaf/pull/1746
+* Fixup broken refactor by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1748
+* refactor: embrace the features! by @kajusnau in https://github.com/tiiuae/ghaf/pull/1749
+* cleanup: basic formatting changes by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1750
+* fix: nixos-generators deprecated by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1751
+* Fix interfaces vm by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1754
+* Fix/encryption verity decoupling by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1755
+* Decouple encryption from debug profile by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1756
+* vtpm: auto assign the baseport to avoid issues by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1757
+* build(deps): bump cachix/install-nix-action from 31.9.0 to 31.9.1 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1759
+* build(deps): bump tj-actions/changed-files from 47.0.1 to 47.0.2 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1760
+* build(deps): bump github/codeql-action from 4.32.2 to 4.32.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1761
+* desktop: refactor launchers, fix app icons in dock, alt-tab by @kajusnau in https://github.com/tiiuae/ghaf/pull/1732
+* net-vm: add net-vm features module by @kajusnau in https://github.com/tiiuae/ghaf/pull/1763
+* Create sysvm attrset by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1766
+* partitioning: avoid blocking initrd TTY during TPM2 unlock handoff by @vunnyso in https://github.com/tiiuae/ghaf/pull/1764
+* fix(laptop): increase net-vm memory for darp11 storeDisk configs by @vunnyso in https://github.com/tiiuae/ghaf/pull/1769
+* zram: enable zram swap for the vms to reduce pressure by @brianmcgillion in https://github.com/tiiuae/ghaf/pull/1770
+* build(deps): bump github/codeql-action from 4.32.3 to 4.32.4 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1778
+* build(deps): bump actions/dependency-review-action from 4.8.2 to 4.8.3 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1777
+* build(deps): bump tj-actions/changed-files from 47.0.2 to 47.0.4 by @dependabot[bot] in https://github.com/tiiuae/ghaf/pull/1776
+* Update smoke test by @leivos-unikie in https://github.com/tiiuae/ghaf/pull/1783
+* qemu: fix patch to properly handle lid events by @kajusnau in https://github.com/tiiuae/ghaf/pull/1785
+* secureboot: rotate bundled enrollment keys from ghaf-infra-pki by @vadika in https://github.com/tiiuae/ghaf/pull/1781
+* audit: adjust OSPP file activity rules for session users by @everton-dematos in https://github.com/tiiuae/ghaf/pull/1782
+* Docs: fix broken source url in glossary referencing the Ghaf tree by @mnaamani in https://github.com/tiiuae/ghaf/pull/1773
+
+## New Contributors
+* @mnaamani made their first contribution in https://github.com/tiiuae/ghaf/pull/1773
+
+**Full Changelog**: https://github.com/tiiuae/ghaf/compare/ghaf-26.01.1...ghaf-26.02.1
+
+## Bug fixes
+
+Fixed bugs that were present in the previous release
+
+* (System76) Suspension has been disabled - s2idle suspension is now supported
+* Ping flooding doesn't trigger blacklisting
+* Laptop is not locked or suspended when the lid is closed
+* (X1) Downloading large file (~10GB) crashes the browser
+* Cosmic settings timezone change does not work
+
+## Known Issues and Limitations
+
+| Issue                                                                                                     | Status      | Comments                                                                   |
+| --------------------------------------------------------------------------------------------------------- | ----------- | -------------------------------------------------------------------------- |
+| **x86**                                                                                             |             |                                                                            |
+| (X1) Unlock with fingerprint doesn't work                            | In Progress                                                       | Issue is under investigation
+| Screenshot is not saved to Pictures | In Progress | Workaround: Creating Pictures folder manually and saving then |
+| WireGuard option missing from chrome-vm and business-vm | In Progress | Will be fixed in next release |
+| **NVIDIA Jetson AGX Orin / Orin NX**                                                                      |             |                                                                            |
+| GUI login does not work | In Progress | Issue is under investigation |
+| Device boots to black screen with only cursor blinking | In Progress | Workaround: Boot with display connected or launch login screen manually by ctrl+C |
+| If suspended, device doesn't wake-up                                            | In Progress | Issue is under investigation                       |
+| Locking the device from power menu doesn't work | On Hold |  |
+| Unlocking from lock screen does not work | On Hold |  |
+
+## Installation Instructions
+
+Released images are available at https://archive.vedenemo.dev/
+
+Download the required image and use the following instructions: [Build and Run](https://ghaf.tii.ae/ghaf/dev/ref/build_and_run).
