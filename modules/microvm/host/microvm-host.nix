@@ -45,6 +45,7 @@ in
     ./networking.nix
     ./shared-mem.nix
     ./boot.nix
+    ./tpm-mux.nix
     ./vtpm-proxy.nix
   ];
 
@@ -129,6 +130,66 @@ in
         };
         logging.client.enable = config.ghaf.logging.enable;
         common.extraNetworking.hosts.ghaf-host = cfg.extraNetworking;
+
+        # SPIFFE/SPIRE agent on host
+        security.spiffe = lib.mkIf (config.ghaf.global-config.spiffe.enable or false) {
+          enable = true;
+          agent = {
+            enable = true;
+            serverAddress =
+              config.ghaf.networking.hosts.${config.ghaf.global-config.spiffe.serverVm or "admin-vm"}.ipv4
+                or "127.0.0.1";
+            serverPort = config.ghaf.global-config.spiffe.serverPort or 8081;
+            trustDomain = config.ghaf.global-config.spiffe.trustDomain or "ghaf.internal";
+            joinTokenFile = "/persist/common/spire/tokens/${config.networking.hostName}.token";
+            attestationMode =
+              if
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              then
+                "tpm_devid"
+              else
+                "join_token";
+            trustBundlePath = "/persist/common/spire/bundle.pem";
+            # Host reads common dir at /persist/common (not /etc/common like VMs)
+            commonMountPath = "/persist/common";
+          };
+
+          devidProvision =
+            lib.mkIf
+              (
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              )
+              {
+                enable = true;
+                vmName = config.networking.hostName;
+                csrDir = "/persist/common/spire/devid/requests";
+                certDir = "/persist/common/spire/devid/certs";
+              };
+
+          tpmVendorDetect =
+            lib.mkIf
+              (
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              )
+              {
+                enable = true;
+                expectedVendors = config.ghaf.global-config.spiffe.tpmAttestation.endorsementCaVendors or [ ];
+              };
+
+          tpmEkVerify =
+            lib.mkIf
+              (
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              )
+              {
+                enable = true;
+                endorsementCaBundle = config.ghaf.global-config.spiffe.tpmAttestation.endorsementCaBundle or "";
+              };
+        };
       };
 
       # Create required host directories
@@ -257,12 +318,38 @@ in
                 };
             }
           ) { } (lib.attrNames vmsWithEncryptedStorage);
+
+          vmsWithGivcTlsStorage = lib.filterAttrs (
+            _name: vm:
+            let
+              vmConfig = lib.ghaf.vm.getConfig vm;
+            in
+            vmConfig != null
+            && lib.hasAttr "ghaf" vmConfig
+            && lib.hasAttr "givc" vmConfig.ghaf
+            && lib.hasAttr "storagevm" vmConfig.ghaf
+            && (vmConfig.ghaf.givc.enable or false)
+            && (vmConfig.ghaf.givc.enableTls or false)
+            && (vmConfig.ghaf.storagevm.enable or false)
+          ) config.microvm.vms;
+
+          givcStorageOrdering = lib.foldl' (
+            result: name:
+            result
+            // {
+              "microvm@${name}" = {
+                after = [ "givc-key-setup.service" ];
+                requires = [ "givc-key-setup.service" ];
+              };
+            }
+          ) { } (lib.attrNames vmsWithGivcTlsStorage);
         in
         {
           # Device-id and machine-id generation moved to ghaf.identity.dynamicHostName module
         }
         // patchedMicrovmServices
-        // vmstorageSetupServices;
+        // vmstorageSetupServices
+        // givcStorageOrdering;
     })
     (mkIf cfg.sharedVmDirectory.enable {
       # Create directories required for sharing files with correct permissions.

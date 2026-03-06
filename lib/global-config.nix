@@ -103,6 +103,55 @@ rec {
       # IDS VM specific settings
       idsvm.mitmproxy.enable = mkEnableOption "MITM proxy in IDS VM for traffic inspection";
 
+      # SPIFFE/SPIRE identity framework
+      spiffe = {
+        enable = mkEnableOption "SPIFFE/SPIRE identity framework";
+        trustDomain = mkOption {
+          type = types.str;
+          default = "ghaf.internal";
+          description = "SPIFFE trust domain used by SPIRE";
+        };
+        serverPort = mkOption {
+          type = types.port;
+          default = 8081;
+          description = "SPIRE server bind port";
+        };
+        serverVm = mkOption {
+          type = types.str;
+          default = "admin-vm";
+          description = "VM that runs the SPIRE server";
+        };
+        tpmAttestation = {
+          enable = mkEnableOption "TPM DevID node attestation for system VMs";
+          endorsementCaCerts = mkOption {
+            type = types.listOf types.path;
+            default = [ ];
+            description = ''
+              TPM manufacturer endorsement CA certs (PEM files).
+              Deprecated: use endorsementCaBundle instead.
+              Kept for backward compatibility.
+            '';
+          };
+          endorsementCaBundle = mkOption {
+            type = types.str;
+            default = "";
+            description = ''
+              Combined PEM file with all TPM manufacturer endorsement CAs.
+              Populated from tpm-endorsement.nix wiring module (points to all.pem).
+              Used by SPIRE server as endorsement_ca_path.
+            '';
+          };
+          endorsementCaVendors = mkOption {
+            type = types.listOf types.str;
+            default = [ ];
+            description = ''
+              Expected TPM vendor names (advisory, for warning on mismatch).
+              Populated from hardware definition.
+            '';
+          };
+        };
+      };
+
       # Platform information (populated from host config)
       platform = {
         buildSystem = mkOption {
@@ -304,11 +353,16 @@ rec {
       };
 
       storage = {
-        encryption.enable = false;
+        encryption.enable = true;
         storeOnDisk = false;
       };
 
       graphics.boot.enable = true;
+
+      spiffe = {
+        enable = true;
+        tpmAttestation.enable = true;
+      };
 
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
@@ -383,6 +437,11 @@ rec {
 
       graphics.boot.enable = true;
 
+      spiffe = {
+        enable = true;
+        tpmAttestation.enable = true;
+      };
+
       shm.enable = false;
       idsvm.mitmproxy.enable = false;
 
@@ -452,6 +511,11 @@ rec {
       storage = {
         encryption.enable = false;
         storeOnDisk = false;
+      };
+
+      spiffe = {
+        enable = false;
+        tpmAttestation.enable = false;
       };
 
       shm.enable = false;
