@@ -12,22 +12,108 @@
 let
   cfg = config.ghaf.reference.appvms.flatpak;
 
-  runAppCenter = pkgs.writeShellApplication {
-    name = "run-flatpak";
+  runCosmicStore = pkgs.writeShellApplication {
+    name = "run-cosmic-store";
+    text = ''
+      # PATH override is needed for apps to launch from app store directly
+      # TODO: Investigate
+      export PATH=/run/wrappers/bin:/run/current-system/sw/bin
+      # Quite verbose by default, so we set the logging to error
+      RUST_LOG=error ${pkgs.cosmic-store}/bin/cosmic-store
+    '';
+  };
+
+  runFlatpakAppId = pkgs.writeShellApplication {
+    name = "run-flatpak-app";
     runtimeInputs = [
-      pkgs.systemd
-      pkgs.cosmic-store
+      pkgs.flatpak
     ];
     text = ''
-      export XDG_SESSION_TYPE="wayland"
-      export DISPLAY=":0"
-      export PATH=/run/wrappers/bin:/run/current-system/sw/bin
+      # GIVC does not support passing simple arguments to apps,
+      # so we pass a fake URL, which we then trim here
+      app="''${1#http://}"
 
-      systemctl --user start run-xwayland
-      systemctl --user set-environment WAYLAND_DISPLAY="$WAYLAND_DISPLAY"
-      systemctl --user restart xdg-desktop-portal-gtk.service
+      FLATPAK_APPS="/var/lib/flatpak/exports/share/applications"
 
-      cosmic-store
+      desktop_file=$(find "$FLATPAK_APPS" -name "$app.desktop" 2>/dev/null | head -n 1)
+
+      if [[ -z "$desktop_file" ]]; then
+        echo "No .desktop file found for $app"
+        echo "Will attempt to run the app optimistically with the app ID as command"
+        exec_cmd="flatpak run $app"
+      else
+        exec_cmd=$(grep -E '^Exec=' "$desktop_file" | head -n 1 | cut -d'=' -f2-)
+      fi
+
+      if [[ -z "$exec_cmd" ]]; then
+        echo "No Exec line found in $desktop_file"
+        echo "Will attempt to run the app optimistically with the app ID as command"
+        exec_cmd="flatpak run $app"
+      fi
+
+      # Strip .desktop field codes
+      # Preserve Flatpak file-forwarding markers @@ and @@u
+      filtered_args=()
+      first=true
+      for token in $exec_cmd; do
+        if [[ "$first" == true ]]; then
+          filtered_args+=("$token")
+          first=false
+        elif [[ "$token" != %* ]]; then
+          filtered_args+=("$token")
+        fi
+      done
+
+      echo "Running: ''${filtered_args[*]}"
+      exec env "''${filtered_args[@]}"
+    '';
+  };
+
+  installFlatpakShare = pkgs.writeShellApplication {
+    name = "install-flatpak-share";
+    text = ''
+      UNSAFE_SHARE_DIR="/home/${config.ghaf.users.appUser.name}/Unsafe share/.flatpak-share"
+      DESKTOP_DIR="$UNSAFE_SHARE_DIR/share/applications"
+      EXPORTS_DIR="/var/lib/flatpak/exports/share"
+
+      [[ ! -d "$EXPORTS_DIR" ]] && exit 0
+
+      rm -rf "$UNSAFE_SHARE_DIR"
+      mkdir -p "$UNSAFE_SHARE_DIR"
+
+      # Copy flatpak export shares to the Unsafe share
+      cp -rL "$EXPORTS_DIR" "$UNSAFE_SHARE_DIR" \
+        && echo "Copied flatpak 'exports/share' to $UNSAFE_SHARE_DIR" \
+        || echo "Failed to copy flatpak desktop entries to $UNSAFE_SHARE_DIR"
+
+      # Fix desktop entry Exec fields to run from gui-vm
+      if [[ -d "$DESKTOP_DIR" ]]; then
+        for desktop in "$DESKTOP_DIR"/*.desktop; do
+          # Skip if no .desktop files exist
+          [[ -e "$desktop" ]] || continue
+
+          # Extract the base name (APP-ID) without .desktop
+          app_id="$(basename "$desktop" .desktop)"
+
+          # Validate app_id to prevent path traversal or injection
+          if [[ ! "$app_id" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+            echo "Skipping suspicious desktop file: $desktop"
+            rm -f "$desktop"
+            continue
+          fi
+
+          # Fixup Exec, remove TryExec and Path entries for security
+          sed -i \
+            "s|^Exec=.*|Exec=ghaf-open flatpak-run -- http://$app_id|; \
+            s|^TryExec=.*||; \
+            s|^Path=.*||" "$desktop"
+          # Strip any desktop action sections entirely
+          sed -i '/^\[Desktop Action/,/^\[/{/^Exec=/d}' "$desktop"
+        done
+        echo "Updated Exec lines in .desktop files under $DESKTOP_DIR"
+      else
+        echo "No desktop files found in $DESKTOP_DIR"
+      fi
     '';
   };
 
@@ -63,12 +149,10 @@ let
       }
 
       start_browser() {
-        ${config.ghaf.givc.appPrefix}/run-waypipe "${config.ghaf.givc.appPrefix}/$1" \
-          --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
+        "${config.ghaf.givc.appPrefix}/$1" --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland "$url"
       }
 
       start_flatpak_browser() {
-
         local browsers="com.google.Chrome org.chromium.Chromium org.mozilla.firefox com.brave.Browser com.opera.Opera"
         local browser=""
 
@@ -78,18 +162,18 @@ let
                 break
             fi
         done
+
         if [[ -z "$browser" ]]; then
             return 1
         fi
+
         if [ "$browser" = "org.mozilla.firefox" ]; then
-          options="--new-window"
+          options=(--new-window)
         else
-          options="--disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland"
+          options=(--disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland)
         fi
 
-        XDG_SESSION_TYPE="wayland" WAYLAND_DISPLAY="wayland-1" DISPLAY=":0" ${config.ghaf.givc.appPrefix}/run-waypipe \
-              ${lib.getExe pkgs.flatpak} run "$browser" \
-                "$options" "$url"
+        ${lib.getExe pkgs.flatpak} run "$browser" "''${options[@]}" "$url"
         return 0
       }
 
@@ -159,11 +243,22 @@ in
             ];
             description = "App Store to install Flatpak applications";
             packages = [
-              pkgs.cosmic-store
-              runAppCenter
+              runCosmicStore
             ];
             icon = "rocs";
-            exec = "run-flatpak";
+            exec = "run-cosmic-store";
+          }
+          {
+            name = "flatpak-run";
+            desktopName = "Flatpak Run";
+            description = "Run an installed Flatpak application by its app ID";
+            packages = [
+              pkgs.flatpak
+              runFlatpakAppId
+            ];
+            givcArgs = [ "url" ];
+            exec = "run-flatpak-app";
+            noDisplay = true;
           }
         ];
         extraModules = [
@@ -223,16 +318,11 @@ in
                 xdgOpenUsePortal = true;
                 enable = lib.mkDefault true;
                 extraPortals = [
-                  pkgs.xdg-desktop-portal-cosmic
                   pkgs.xdg-desktop-portal-gtk
                 ];
-                config = {
-                  common = {
-                    default = [
-                      "gtk"
-                    ];
-                  };
-                };
+                config.common.default = [
+                  "gtk"
+                ];
               };
               mime = {
                 enable = lib.mkDefault true;
@@ -247,29 +337,41 @@ in
             programs.dconf.enable = lib.mkDefault true;
 
             systemd = {
-              services.flatpak-repo = {
-                description = "Add Flathub system-wide Flatpak repository";
-                wantedBy = [ "multi-user.target" ];
-                after = [ "network-online.target" ];
-                requires = [ "network-online.target" ];
-                serviceConfig = {
-                  Type = "oneshot";
-                  Restart = "on-failure";
-                  RestartSec = "2s";
+              services = {
+                flatpak-repo = {
+                  description = "Add Flathub system-wide Flatpak repository";
+                  wantedBy = [ "multi-user.target" ];
+                  after = [ "network-online.target" ];
+                  requires = [ "network-online.target" ];
+                  serviceConfig = {
+                    Type = "oneshot";
+                    Restart = "on-failure";
+                    RestartSec = "2s";
+                  };
+                  path = [ pkgs.flatpak ];
+                  script = ''
+                    flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+                    flatpak update --appstream --noninteractive
+                  '';
                 };
-                path = [ pkgs.flatpak ];
-                script = ''
-                  flatpak remote-add --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
-                  flatpak update --appstream --noninteractive
-                '';
+                flatpak-share-installer = {
+                  description = "Flatpak Share Installer";
+                  serviceConfig = {
+                    ExecStart = "${lib.getExe installFlatpakShare}";
+                    User = "${config.ghaf.users.appUser.name}";
+                  };
+                };
               };
 
-              user.services."run-xwayland" = {
-                description = "Grants rootless Xwayland integration to any Wayland compositor";
-                serviceConfig = {
-                  ExecStart = "${config.ghaf.givc.appPrefix}/run-waypipe  ${lib.getExe pkgs.xwayland-satellite}";
-                  Restart = "on-failure";
-                  RestartSec = "2s";
+              paths.flatpak-apps-listener = {
+                description = "Flatpak Apps Listener";
+                wantedBy = [ "multi-user.target" ];
+                # Trigger once at boot
+                wants = [ "flatpak-share-installer.service" ];
+                # And then watch for changes
+                pathConfig = {
+                  PathChanged = "/var/lib/flatpak/exports/share/applications";
+                  Unit = "flatpak-share-installer.service";
                 };
               };
             };

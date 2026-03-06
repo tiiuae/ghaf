@@ -167,6 +167,11 @@ in
           type = lib.types.str;
           description = "The name of the desktop file (excluding the .desktop or .directory file extensions)";
         };
+        noDisplay = lib.mkOption {
+          type = lib.types.bool;
+          description = "The `NoDisplay` field of the desktop entry";
+          default = false;
+        };
         packages = lib.mkOption {
           type = lib.types.listOf lib.types.package;
           description = "Packages required for this application";

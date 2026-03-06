@@ -347,6 +347,10 @@ in
         GIVC_HOST_KEY = "/run/givc/key.pem";
       }
     );
+    # Add flatpak desktop entries if flatpak vm is enabled
+    profiles = lib.optionals (hostConfig.appvms.flatpak.enable or false) [
+      "/Shares/Unsafe flatpak-vm share/.flatpak-share"
+    ];
   };
 
   system.stateVersion = lib.trivial.release;
