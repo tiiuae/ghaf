@@ -26,6 +26,7 @@ let
       bind_port = ${toString cfg.bindPort}
       trust_domain = "${cfg.trustDomain}"
       data_dir = "${cfg.dataDir}"
+      ca_ttl = "${cfg.caTtl}"
       log_level = "${cfg.logLevel}"
       socket_path = "${cfg.socketPath}"
     }
@@ -261,6 +262,12 @@ in
       description = "SPIRE server state directory";
     };
 
+    caTtl = lib.mkOption {
+      type = lib.types.str;
+      default = "168h";
+      description = "SPIRE server CA certificate TTL";
+    };
+
     logLevel = lib.mkOption {
       type = lib.types.str;
       default = "INFO";
@@ -301,6 +308,12 @@ in
       type = lib.types.bool;
       default = false;
       description = "Publish the SPIRE trust bundle to bundleOutPath";
+    };
+
+    bundleRefreshInterval = lib.mkOption {
+      type = lib.types.str;
+      default = "30m";
+      description = "Interval for republishing the SPIRE trust bundle";
     };
 
     socketPath = lib.mkOption {
@@ -464,6 +477,18 @@ in
         Type = "oneshot";
         User = "root";
         ExecStart = lib.getExe spirePublishBundleApp;
+      };
+    };
+
+    systemd.timers.spire-publish-bundle = lib.mkIf cfg.publishBundle {
+      description = "Periodically publish SPIRE trust bundle";
+      wantedBy = [ "timers.target" ];
+
+      timerConfig = {
+        OnBootSec = "5m";
+        OnUnitActiveSec = cfg.bundleRefreshInterval;
+        Persistent = true;
+        Unit = "spire-publish-bundle.service";
       };
     };
 
