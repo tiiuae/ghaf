@@ -9,6 +9,11 @@ in
   _file = ./debug.nix;
 
   config = lib.mkIf cfg.enable {
+    hardware.nvidia-jetpack.firmware.optee = {
+      coreLogLevel = 1;
+      taLogLevel = 1;
+    };
+
     # Enable default accounts and passwords
     ghaf.hardware.nvidia.orin.optee = {
       xtest = true;

@@ -154,6 +154,54 @@ let
     '';
   };
 
+  clearTpmLockoutApp = pkgs.writeShellApplication {
+    name = "ghaf-clear-tpm-lockout";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.tpm2-tools
+    ];
+    text = ''
+      set -euo pipefail
+
+      export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
+      STATUS_FILE="/run/tpm/lockout-status"
+
+      mkdir -p /run/tpm
+
+      is_in_lockout() {
+        timeout -k 2s 5s tpm2_getcap properties-variable 2>/dev/null | grep -q "inLockout:[[:space:]]*1"
+      }
+
+      if ! timeout -k 2s 5s tpm2_getcap properties-variable >/dev/null 2>&1; then
+        echo "tpm-unavailable" > "$STATUS_FILE"
+        echo "TPM not ready for lockout check"
+        exit 0
+      fi
+
+      if ! is_in_lockout; then
+        echo "not-locked" > "$STATUS_FILE"
+        echo "TPM is not in DA lockout mode"
+        exit 0
+      fi
+
+      echo "TPM is in DA lockout mode, attempting clear"
+      if timeout -k 2s 5s tpm2_dictionarylockout -c >/dev/null 2>&1; then
+        sleep 1
+        if is_in_lockout; then
+          echo "still-locked" > "$STATUS_FILE"
+          echo "WARNING: Lockout clear command completed but TPM remains locked"
+        else
+          echo "cleared" > "$STATUS_FILE"
+          echo "TPM lockout cleared"
+        fi
+      else
+        echo "clear-failed" > "$STATUS_FILE"
+        echo "WARNING: Failed to clear TPM lockout"
+      fi
+    '';
+  };
+
   exportEkBundleApp = pkgs.writeShellApplication {
     name = "ghaf-export-ek-endorsement-bundle";
     runtimeInputs = [
@@ -205,6 +253,90 @@ let
       echo "Wrote endorsement bundle to $BUNDLE"
     '';
   };
+
+  normalizeTpmDaParamsApp = pkgs.writeShellApplication {
+    name = "ghaf-normalize-tpm-da-params";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.gnugrep
+      pkgs.tpm2-tools
+    ];
+    text = ''
+      set -euo pipefail
+
+      export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
+      STATUS_FILE="/run/tpm/da-params-status"
+
+      mkdir -p /run/tpm
+
+      caps="$(timeout -k 2s 8s tpm2_getcap properties-variable 2>/dev/null || true)"
+      if [ -z "$caps" ]; then
+        echo "tpm-unavailable" > "$STATUS_FILE"
+        exit 0
+      fi
+
+      if ! printf '%s\n' "$caps" | grep -qE 'TPM2_PT_MAX_AUTH_FAIL:[[:space:]]*(0x0|0)$'; then
+        echo "ok" > "$STATUS_FILE"
+        exit 0
+      fi
+
+      echo "normalizing" > "$STATUS_FILE"
+      if timeout -k 2s 8s tpm2_dictionarylockout --setup-parameters \
+        --max-tries=3 \
+        --recovery-time=1000 \
+        --lockout-recovery-time=1000 >/dev/null 2>&1; then
+        echo "normalized" > "$STATUS_FILE"
+      else
+        echo "normalize-failed" > "$STATUS_FILE"
+      fi
+    '';
+  };
+
+  firmwareEkbImage =
+    pkgs.buildPackages.runCommand "ghaf-eks-t234"
+      {
+        nativeBuildInputs = [
+          pkgs.buildPackages.openssl
+          pkgs.buildPackages.nvidia-jetpack.genEkb
+        ];
+      }
+      ''
+                        set -euo pipefail
+
+                        mkdir -p "$out"
+
+                        # Development key for unfused devices (OEM_K1 all-zero key).
+                cat > oem_k1.key <<'EOF'
+        0x0000000000000000000000000000000000000000000000000000000000000000
+        EOF
+
+                # Avoid interactive prompt in gen_ekb.py by providing UEFI auth key.
+                cat > auth.key <<'EOF'
+        0x00000000000000000000000000000000
+        EOF
+
+                        openssl req -x509 -newkey rsa:2048 -sha256 -nodes \
+                          -keyout ek-rsa-key.pem -out ek-rsa.pem \
+                          -subj "/CN=Jetson Orin fTPM EK RSA/O=Ghaf" \
+                          -days 36500
+
+                        openssl ecparam -name prime256v1 -genkey -noout -out ek-ecc-key.pem
+                        openssl req -x509 -new -sha256 \
+                          -key ek-ecc-key.pem -out ek-ecc.pem \
+                          -subj "/CN=Jetson Orin fTPM EK ECC/O=Ghaf" \
+                          -days 36500
+
+                        openssl x509 -in ek-rsa.pem -outform DER -out ek-rsa.der
+                        openssl x509 -in ek-ecc.pem -outform DER -out ek-ecc.der
+
+                ${pkgs.buildPackages.nvidia-jetpack.genEkb}/bin/gen_ekb.py \
+                  -chip t234 \
+                  -oem_k1_key oem_k1.key \
+                  -in_auth_key auth.key \
+                  -in_ftpm_rsa_ek_cert ek-rsa.der \
+                  -in_ftpm_ec_ek_cert ek-ecc.der \
+                  -out "$out/eks_t234.img"
+      '';
   inherit (lib)
     mkEnableOption
     mkOption
@@ -244,9 +376,29 @@ in
       type = types.str;
       default = "bsp-default";
     };
+
+    runtimeEkProvision.enable = mkOption {
+      description = "Provision EK certificates into TPM NV indices at runtime";
+      type = types.bool;
+      default = true;
+    };
+
+    lockoutClear.enable = mkOption {
+      description = "Attempt TPM DA lockout clear during host boot";
+      type = types.bool;
+      default = false;
+    };
+
+    daNormalize.enable = mkOption {
+      description = "Normalize TPM dictionary-attack parameters when maxAuthFail is zero";
+      type = types.bool;
+      default = true;
+    };
+
   };
 
   config = mkIf cfg.enable {
+    hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
@@ -297,17 +449,69 @@ in
             DM_CRYPT = module;
             TCG_FTPM_TEE = module;
             TCG_VTPM_PROXY = module;
+            HW_RANDOM_TPM = no;
           };
         }
       ];
     };
 
-    systemd.services.ghaf-provision-ek-certs = {
-      description = "Provision fTPM EK certificates into standard NV indices";
+    systemd.services.ghaf-clear-tpm-lockout = mkIf cfg.lockoutClear.enable {
+      description = "Attempt to clear TPM DA lockout before VM startup";
+      wantedBy = [ "multi-user.target" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
+        "dev-tpmrm0.device"
       ];
+      requires = [ "dev-tpmrm0.device" ];
+      unitConfig.ConditionPathExists = "/dev/tpmrm0";
+
+      serviceConfig = {
+        Type = "oneshot";
+        TimeoutStartSec = "20s";
+        TimeoutStopSec = "2s";
+        KillMode = "control-group";
+        UMask = "0077";
+        ExecStart = lib.getExe clearTpmLockoutApp;
+      };
+    };
+
+    systemd.services.ghaf-normalize-tpm-da-params = mkIf cfg.daNormalize.enable {
+      description = "Normalize TPM dictionary-attack parameters";
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "local-fs.target"
+        "systemd-modules-load.service"
+        "dev-tpmrm0.device"
+      ];
+      requires = [ "dev-tpmrm0.device" ];
+      unitConfig.ConditionPathExists = "/dev/tpmrm0";
+
+      serviceConfig = {
+        Type = "oneshot";
+        TimeoutStartSec = "20s";
+        TimeoutStopSec = "2s";
+        KillMode = "control-group";
+        UMask = "0077";
+        ExecStart = lib.getExe normalizeTpmDaParamsApp;
+      };
+    };
+
+    systemd.services.ghaf-provision-ek-certs = mkIf cfg.runtimeEkProvision.enable {
+      description = "Provision fTPM EK certificates into standard NV indices";
+      wantedBy = [ "multi-user.target" ];
+      after = [
+        "local-fs.target"
+        "systemd-modules-load.service"
+        "dev-tpmrm0.device"
+      ]
+      ++ lib.optionals cfg.daNormalize.enable [
+        "ghaf-normalize-tpm-da-params.service"
+      ]
+      ++ lib.optionals cfg.lockoutClear.enable [
+        "ghaf-clear-tpm-lockout.service"
+      ];
+      requires = [ "dev-tpmrm0.device" ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
       unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
 
@@ -324,10 +528,14 @@ in
     systemd.services.ghaf-export-ek-endorsement-bundle = {
       description = "Export EK certs and build endorsement CA bundle";
       wantedBy = [ "multi-user.target" ];
-      before = [ "microvms.target" ];
       after = [
         "local-fs.target"
         "systemd-modules-load.service"
+      ]
+      ++ lib.optionals cfg.lockoutClear.enable [
+        "ghaf-clear-tpm-lockout.service"
+      ]
+      ++ lib.optionals cfg.runtimeEkProvision.enable [
         "ghaf-provision-ek-certs.service"
       ];
       unitConfig.ConditionPathExists = "/dev/tpmrm0";
@@ -340,15 +548,7 @@ in
       };
     };
 
-    systemd.timers.ghaf-provision-ek-certs = {
-      description = "Run fTPM EK certificate provisioning after boot";
-      wantedBy = [ "timers.target" ];
-      timerConfig = {
-        OnBootSec = "2min";
-        RandomizedDelaySec = "30s";
-        Unit = "ghaf-provision-ek-certs.service";
-      };
-    };
+    systemd.timers.ghaf-provision-ek-certs.enable = false;
 
     services.nvpmodel = {
       enable = lib.mkDefault true;
