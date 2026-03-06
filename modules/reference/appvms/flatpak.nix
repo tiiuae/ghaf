@@ -23,97 +23,152 @@ let
     '';
   };
 
-  runFlatpakAppId = pkgs.writeShellApplication {
-    name = "run-flatpak-app";
-    runtimeInputs = [
-      pkgs.flatpak
-    ];
+  flatpakManager = pkgs.writeShellApplication {
+    name = "flatpak-manager";
+    runtimeInputs = [ pkgs.flatpak ];
     text = ''
-      # GIVC does not support passing simple arguments to apps,
-      # so we pass a fake URL, which we then trim here
-      app="''${1#http://}"
+      action="$1"
+      app="''${2#http://}"
 
-      FLATPAK_APPS="/var/lib/flatpak/exports/share/applications"
-
-      desktop_file=$(find "$FLATPAK_APPS" -name "$app.desktop" 2>/dev/null | head -n 1)
-
-      if [[ -z "$desktop_file" ]]; then
-        echo "No .desktop file found for $app"
-        echo "Will attempt to run the app optimistically with the app ID as command"
-        exec_cmd="flatpak run $app"
-      else
-        exec_cmd=$(grep -E '^Exec=' "$desktop_file" | head -n 1 | cut -d'=' -f2-)
+      if [[ -z "$action" ]] || [[ -z "$app" ]]; then
+        echo "Usage: flatpak-manager <run|uninstall|kill> <app-id>"
+        exit 1
       fi
 
-      if [[ -z "$exec_cmd" ]]; then
-        echo "No Exec line found in $desktop_file"
-        echo "Will attempt to run the app optimistically with the app ID as command"
-        exec_cmd="flatpak run $app"
-      fi
+      case "$action" in
+        run)
+          FLATPAK_APPS="/var/lib/flatpak/exports/share/applications"
+          desktop_file=$(find "$FLATPAK_APPS" -name "$app.desktop" 2>/dev/null | head -n 1)
 
-      # Strip .desktop field codes
-      # Preserve Flatpak file-forwarding markers @@ and @@u
-      filtered_args=()
-      first=true
-      for token in $exec_cmd; do
-        if [[ "$first" == true ]]; then
-          filtered_args+=("$token")
-          first=false
-        elif [[ "$token" != %* ]]; then
-          filtered_args+=("$token")
-        fi
-      done
+          if [[ -z "$desktop_file" ]]; then
+            echo "No .desktop file found for $app"
+            echo "Will attempt to run the app optimistically with the app ID as command"
+            exec_cmd="flatpak run $app"
+          else
+            exec_cmd=$(grep -E '^Exec=' "$desktop_file" | head -n 1 | cut -d'=' -f2-)
+          fi
 
-      echo "Running: ''${filtered_args[*]}"
-      exec env "''${filtered_args[@]}"
+          if [[ -z "$exec_cmd" ]]; then
+            echo "No Exec line found in $desktop_file"
+            echo "Will attempt to run the app optimistically with the app ID as command"
+            exec_cmd="flatpak run $app"
+          fi
+
+          # Strip .desktop field codes
+          filtered_args=()
+          first=true
+          for token in $exec_cmd; do
+            if [[ "$first" == true ]]; then
+              filtered_args+=("$token")
+              first=false
+            elif [[ "$token" != %* ]]; then
+              filtered_args+=("$token")
+            fi
+          done
+
+          echo "Running: ''${filtered_args[*]}"
+          exec env "''${filtered_args[@]}"
+          ;;
+
+        uninstall)
+          echo "Uninstall for $app requested"
+          echo "Killing any possible running instances of $app"
+          flatpak kill "$app" || true
+          echo "Uninstalling $app"
+          flatpak uninstall --system --noninteractive --force-remove --delete-data "$app"
+          echo "Uninstall complete"
+          ;;
+
+        kill)
+          echo "Force quitting $app..."
+          flatpak kill "$app"
+          ;;
+
+        *)
+          echo "Unknown action: $action"
+          echo "Valid actions: run, uninstall, kill"
+          exit 1
+          ;;
+      esac
     '';
   };
 
   installFlatpakShare = pkgs.writeShellApplication {
     name = "install-flatpak-share";
     text = ''
-      UNSAFE_SHARE_DIR="/home/${config.ghaf.users.appUser.name}/Unsafe share/.flatpak-share"
-      DESKTOP_DIR="$UNSAFE_SHARE_DIR/share/applications"
-      EXPORTS_DIR="/var/lib/flatpak/exports/share"
+          UNSAFE_SHARE_DIR="/home/${config.ghaf.users.appUser.name}/Unsafe share/.flatpak-share"
+          DESKTOP_DIR="$UNSAFE_SHARE_DIR/share/applications"
+          EXPORTS_DIR="/var/lib/flatpak/exports/share"
 
-      [[ ! -d "$EXPORTS_DIR" ]] && exit 0
+          [[ ! -d "$EXPORTS_DIR" ]] && exit 0
 
-      rm -rf "$UNSAFE_SHARE_DIR"
-      mkdir -p "$UNSAFE_SHARE_DIR"
+          rm -rf "$UNSAFE_SHARE_DIR"
+          mkdir -p "$UNSAFE_SHARE_DIR"
 
-      # Copy flatpak export shares to the Unsafe share
-      cp -rL "$EXPORTS_DIR" "$UNSAFE_SHARE_DIR" \
-        && echo "Copied flatpak 'exports/share' to $UNSAFE_SHARE_DIR" \
-        || echo "Failed to copy flatpak desktop entries to $UNSAFE_SHARE_DIR"
+          # Copy flatpak export shares to the Unsafe share
+          cp -rL "$EXPORTS_DIR" "$UNSAFE_SHARE_DIR" \
+            && echo "Copied flatpak 'exports/share' to $UNSAFE_SHARE_DIR" \
+            || echo "Failed to copy flatpak desktop entries to $UNSAFE_SHARE_DIR"
 
-      # Fix desktop entry Exec fields to run from gui-vm
-      if [[ -d "$DESKTOP_DIR" ]]; then
-        for desktop in "$DESKTOP_DIR"/*.desktop; do
-          # Skip if no .desktop files exist
-          [[ -e "$desktop" ]] || continue
+          add_desktop_actions() {
+            # Action display names
+            declare -A ACTION_NAMES=(
+              [uninstall]="Uninstall"
+              [force-quit]="Force Quit"
+            )
+            desktop="$1"
+            app_id="$2"
+            shift 2
+            actions=("$@")
 
-          # Extract the base name (APP-ID) without .desktop
-          app_id="$(basename "$desktop" .desktop)"
+            actions_value=$(printf '%s;' "''${actions[@]}")
 
-          # Validate app_id to prevent path traversal or injection
-          if [[ ! "$app_id" =~ ^[a-zA-Z0-9._-]+$ ]]; then
-            echo "Skipping suspicious desktop file: $desktop"
-            rm -f "$desktop"
-            continue
+            if grep -q '^Actions=' "$desktop"; then
+              sed -i "s|^Actions=.*|Actions=$actions_value|" "$desktop"
+            else
+              sed -i "/^\[Desktop Entry\]/a Actions=$actions_value" "$desktop"
+            fi
+
+            for action in "''${actions[@]}"; do
+              local name="''${ACTION_NAMES[$action]:-$action}"
+              cat >> "$desktop" << EOF
+
+      [Desktop Action $action]
+      Name=$name
+      Exec=ghaf-open flatpak-$action -- http://$app_id
+      EOF
+            done
+          }
+
+          # Fix desktop entry Exec fields to run from gui-vm
+          if [[ -d "$DESKTOP_DIR" ]]; then
+            for desktop in "$DESKTOP_DIR"/*.desktop; do
+              # Skip if no .desktop files exist
+              [[ -e "$desktop" ]] || continue
+
+              # Extract the base name (APP-ID) without .desktop
+              app_id="$(basename "$desktop" .desktop)"
+
+              # Validate app_id to prevent path traversal or injection
+              if [[ ! "$app_id" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+                echo "Skipping suspicious desktop file: $desktop"
+                rm -f "$desktop"
+                continue
+              fi
+
+              # Fixup Exec, remove TryExec and Path, strip existing action sections
+              sed -i \
+                "s|^Exec=.*|Exec=ghaf-open flatpak-run -- http://$app_id|; \
+                s|^TryExec=.*||; \
+                s|^Path=.*||; \
+                /^\[Desktop Action/,/^\[/{/^Exec=/d}" "$desktop"
+
+              add_desktop_actions "$desktop" "$app_id" "uninstall" "force-quit"
+            done
+            echo "Updated Exec lines in .desktop files under $DESKTOP_DIR"
+          else
+            echo "No desktop files found in $DESKTOP_DIR"
           fi
-
-          # Fixup Exec, remove TryExec and Path entries for security
-          sed -i \
-            "s|^Exec=.*|Exec=ghaf-open flatpak-run -- http://$app_id|; \
-            s|^TryExec=.*||; \
-            s|^Path=.*||" "$desktop"
-          # Strip any desktop action sections entirely
-          sed -i '/^\[Desktop Action/,/^\[/{/^Exec=/d}' "$desktop"
-        done
-        echo "Updated Exec lines in .desktop files under $DESKTOP_DIR"
-      else
-        echo "No desktop files found in $DESKTOP_DIR"
-      fi
     '';
   };
 
@@ -233,34 +288,46 @@ in
         borderColor = "#FFA500";
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
-        applications = [
-          {
-            name = "com.system76.CosmicStore";
-            desktopName = "App Store";
-            categories = [
-              "System"
-              "PackageManager"
-            ];
-            description = "App Store to install Flatpak applications";
-            packages = [
-              runCosmicStore
-            ];
-            icon = "rocs";
-            exec = "run-cosmic-store";
-          }
-          {
-            name = "flatpak-run";
-            desktopName = "Flatpak Run";
-            description = "Run an installed Flatpak application by its app ID";
-            packages = [
-              pkgs.flatpak
-              runFlatpakAppId
-            ];
-            givcArgs = [ "url" ];
-            exec = "run-flatpak-app";
-            noDisplay = true;
-          }
-        ];
+        applications =
+          let
+            flatpakManagerApp = action: {
+              name =
+                {
+                  "run" = "flatpak-run";
+                  "uninstall" = "flatpak-uninstall";
+                  "kill" = "flatpak-force-quit";
+                }
+                .${action};
+              desktopName = "${action} Flatpak App";
+              description = "${action} a Flatpak application by its app ID";
+              exec = "flatpak-manager ${action}";
+              packages = [
+                pkgs.flatpak
+                flatpakManager
+              ];
+              givcArgs = [ "url" ];
+              noDisplay = true;
+            };
+          in
+          [
+            {
+              name = "com.system76.CosmicStore";
+              desktopName = "App Store";
+              categories = [
+                "System"
+                "PackageManager"
+              ];
+              description = "App Store to install Flatpak applications";
+              packages = [ runCosmicStore ];
+              icon = "rocs";
+              exec = "run-cosmic-store";
+            }
+          ]
+          ++ map flatpakManagerApp [
+            "run"
+            "uninstall"
+            "kill"
+          ];
         extraModules = [
           {
             services = {
@@ -271,7 +338,6 @@ in
               rtkit.enable = lib.mkForce true;
               polkit = {
                 enable = lib.mkDefault true;
-                debug = true;
                 extraConfig = ''
                     polkit.addRule(function(action, subject) {
                       if (action.id.startsWith("org.freedesktop.Flatpak.") &&
@@ -357,6 +423,7 @@ in
                 flatpak-share-installer = {
                   description = "Flatpak Share Installer";
                   serviceConfig = {
+                    Type = "oneshot";
                     ExecStart = "${lib.getExe installFlatpakShare}";
                     User = "${config.ghaf.users.appUser.name}";
                   };
