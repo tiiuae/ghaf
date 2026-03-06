@@ -266,9 +266,20 @@ in
       description = "Extra firewall rules";
     };
     filter-arp = mkEnableOption "static ARP and MAC/IP rules";
+    updater.enable = mkOption {
+      type = types.bool;
+      default = false;
+      description = "whether to enable live update firewall rules";
+    };
   };
 
   config = mkIf cfg.enable {
+    assertions = [
+      {
+        assertion = !(cfg.updater.enable && !config.ghaf.givc.policyClient.enable);
+        message = "Policy Client must be enabled to update firewall rules.";
+      }
+    ];
 
     # Include required kernel modules for firewall
     ghaf.firewall.kernel-modules.enable = true;
@@ -483,5 +494,22 @@ in
       cfg.extraOptions
     ];
 
+    ghaf.givc.policyClient.policies = mkIf cfg.updater.enable {
+      firewall-rules =
+        let
+          rulePath = "/etc/firewall/rules/fw.nft";
+        in
+        {
+          dest = rulePath;
+          updater = {
+            url = "https://raw.githubusercontent.com/tiiuae/ghaf-policies/deploy/vm-policies/firewall-rules/fw.nft";
+            poll_interval_secs = 300;
+          };
+
+          script = pkgs.writeShellScript "apply-nftables" ''
+            ${pkgs.nftables}/bin/nft -f ${rulePath}
+          '';
+        };
+    };
   };
 }
