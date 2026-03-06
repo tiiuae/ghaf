@@ -47,8 +47,8 @@ static uint32_t tcti_transmit(void *ctx, size_t len, uint8_t *buf) {
   return Tss2_Tcti_Transmit((TSS2_TCTI_CONTEXT *)ctx, len, buf);
 }
 
-static uint32_t tcti_receive(void *ctx, size_t *len, uint8_t *buf) {
-  return Tss2_Tcti_Receive((TSS2_TCTI_CONTEXT *)ctx, len, buf, TSS2_TCTI_TIMEOUT_BLOCK);
+static uint32_t tcti_receive(void *ctx, size_t *len, uint8_t *buf, int32_t timeout_ms) {
+  return Tss2_Tcti_Receive((TSS2_TCTI_CONTEXT *)ctx, len, buf, timeout_ms);
 }
 
 static uint32_t rc_try_again(void) {
@@ -65,6 +65,11 @@ import (
 	"fmt"
 	"time"
 	"unsafe"
+)
+
+const (
+	tctiReceiveSlice = 250 * time.Millisecond
+	tctiReceiveTotal = 1200 * time.Millisecond
 )
 
 func tctiInit() (unsafe.Pointer, error) {
@@ -90,10 +95,16 @@ func tctiTransact(ctx unsafe.Pointer, req []byte) ([]byte, error) {
 		return nil, fmt.Errorf("Transmit failed rc=0x%08x", rc)
 	}
 
+	receiveDeadline := time.Now().Add(tctiReceiveTotal)
 	for {
+		if time.Now().After(receiveDeadline) {
+			return nil, fmt.Errorf("Receive timed out after %s", tctiReceiveTotal)
+		}
+
 		resp := make([]byte, 4096)
 		got := C.size_t(len(resp))
-		rc = uint32(C.tcti_receive(ctx, &got, (*C.uint8_t)(unsafe.Pointer(&resp[0]))))
+		timeoutMs := C.int32_t(tctiReceiveSlice / time.Millisecond)
+		rc = uint32(C.tcti_receive(ctx, &got, (*C.uint8_t)(unsafe.Pointer(&resp[0])), timeoutMs))
 
 		if rc == uint32(C.rc_try_again()) {
 			time.Sleep(10 * time.Millisecond)
@@ -103,7 +114,7 @@ func tctiTransact(ctx unsafe.Pointer, req []byte) ([]byte, error) {
 		if rc == uint32(C.rc_insufficient_buffer()) && int(got) > len(resp) && int(got) <= maxTPMPacketSize {
 			resp = make([]byte, int(got))
 			got = C.size_t(len(resp))
-			rc = uint32(C.tcti_receive(ctx, &got, (*C.uint8_t)(unsafe.Pointer(&resp[0]))))
+			rc = uint32(C.tcti_receive(ctx, &got, (*C.uint8_t)(unsafe.Pointer(&resp[0])), timeoutMs))
 			if rc == uint32(C.rc_try_again()) {
 				time.Sleep(10 * time.Millisecond)
 				continue

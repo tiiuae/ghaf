@@ -37,9 +37,46 @@ const (
 
 	helperRestartBackoffMin = 200 * time.Millisecond
 	helperRestartBackoffMax = 5 * time.Second
+
+	backendLockWaitDefault   = 250 * time.Millisecond
+	backendLockWaitGetRandom = 100 * time.Millisecond
+	backendBudgetDefault     = 1200 * time.Millisecond
+	backendBudgetGetRandom   = 300 * time.Millisecond
+	backendRetryPause        = 20 * time.Millisecond
+
+	backendBusyTripThreshold = 6
+	backendBusyCooldown      = 3 * time.Second
 )
 
 var errBackendBusy = errors.New("backend busy")
+
+type saturationGuard struct {
+	streak        int
+	cooldownUntil time.Time
+}
+
+func (g *saturationGuard) active(now time.Time) bool {
+	return now.Before(g.cooldownUntil)
+}
+
+func (g *saturationGuard) noteBusy(now time.Time) bool {
+	g.streak++
+	if g.streak < backendBusyTripThreshold {
+		return false
+	}
+
+	g.streak = 0
+	if now.Before(g.cooldownUntil) {
+		return false
+	}
+
+	g.cooldownUntil = now.Add(backendBusyCooldown)
+	return true
+}
+
+func (g *saturationGuard) noteSuccess() {
+	g.streak = 0
+}
 
 func main() {
 	var vmName string
@@ -140,8 +177,11 @@ func forwardProxyLoop(vmName string, proxyFD *os.File, helper *backendHelper, ba
 	var totalCmd uint64
 	var okCmd uint64
 	var backendErrCmd uint64
+	var backendBusyCmd uint64
+	var backendCircuitCmd uint64
 	var proxyWriteErrCmd uint64
 	var debugCmdCount int32
+	guard := &saturationGuard{}
 
 	for {
 		select {
@@ -197,8 +237,17 @@ func forwardProxyLoop(vmName string, proxyFD *os.File, helper *backendHelper, ba
 		}
 
 		start := time.Now()
-		resp, err := transactBackend(helper, backendLock, cmdCC, cmd)
-		if err != nil {
+		var (
+			resp       []byte
+			backendErr error
+		)
+		if guard.active(start) {
+			backendErr = errBackendBusy
+			backendCircuitCmd++
+		} else {
+			resp, backendErr = transactBackend(helper, backendLock, cmdCC, cmd)
+		}
+		if backendErr != nil {
 			backendErrCmd++
 			if err := writeAll(proxyFD, tpmRetryResponse(cmd)); err != nil {
 				proxyWriteErrCmd++
@@ -206,14 +255,19 @@ func forwardProxyLoop(vmName string, proxyFD *os.File, helper *backendHelper, ba
 				time.Sleep(100 * time.Millisecond)
 				continue
 			}
-			if errors.Is(err, errBackendBusy) {
+			if errors.Is(backendErr, errBackendBusy) {
+				backendBusyCmd++
+				if guard.noteBusy(time.Now()) {
+					log.Printf("backend saturation guard engaged vm=%s cooldown=%s", vmName, backendBusyCooldown)
+				}
 				log.Printf("backend busy cc=0x%08x(%s) dur=%s, replied TPM2_RC_RETRY", cmdCC, cmdName, time.Since(start).Round(time.Millisecond))
 			} else {
-				log.Printf("backend transact failed cc=0x%08x(%s) dur=%s (%v), replied TPM2_RC_RETRY", cmdCC, cmdName, time.Since(start).Round(time.Millisecond), err)
+				log.Printf("backend transact failed cc=0x%08x(%s) dur=%s (%v), replied TPM2_RC_RETRY", cmdCC, cmdName, time.Since(start).Round(time.Millisecond), backendErr)
 				time.Sleep(25 * time.Millisecond)
 			}
 			continue
 		}
+		guard.noteSuccess()
 		okCmd++
 
 		dur := time.Since(start)
@@ -237,16 +291,18 @@ func forwardProxyLoop(vmName string, proxyFD *os.File, helper *backendHelper, ba
 		}
 
 		if totalCmd%100 == 0 {
-			log.Printf("forwarder stats vm=%s total=%d ok=%d backend_err=%d write_err=%d", vmName, totalCmd, okCmd, backendErrCmd, proxyWriteErrCmd)
+			log.Printf("forwarder stats vm=%s total=%d ok=%d backend_err=%d backend_busy=%d circuit=%d write_err=%d", vmName, totalCmd, okCmd, backendErrCmd, backendBusyCmd, backendCircuitCmd, proxyWriteErrCmd)
 		}
 	}
 }
 
 func transactBackend(helper *backendHelper, backendLock *os.File, cmdCC uint32, cmd []byte) ([]byte, error) {
 	var lastErr error
-	lockWait := 1500 * time.Millisecond
+	lockWait := backendLockWaitDefault
+	budget := backendBudgetDefault
 	if cmdCC == tpm2GetRandomCC {
-		lockWait = 1200 * time.Millisecond
+		lockWait = backendLockWaitGetRandom
+		budget = backendBudgetGetRandom
 	}
 
 	if err := acquireBackendLock(backendLock, lockWait); err != nil {
@@ -256,17 +312,22 @@ func transactBackend(helper *backendHelper, backendLock *os.File, cmdCC uint32, 
 		_ = syscall.Flock(int(backendLock.Fd()), syscall.LOCK_UN)
 	}()
 
-	for attempt := 1; attempt <= 6; attempt++ {
+	deadline := time.Now().Add(budget)
+	for attempt := 1; attempt <= 2; attempt++ {
+		if time.Now().After(deadline) {
+			return nil, errBackendBusy
+		}
+
 		resp, err := helper.Transact(cmd)
 		if err != nil {
 			lastErr = err
-			time.Sleep(50 * time.Millisecond)
+			time.Sleep(backendRetryPause)
 			continue
 		}
 
 		if isTransientRC(resp) {
 			lastErr = fmt.Errorf("transient rc=0x%08x", binary.BigEndian.Uint32(resp[6:10]))
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(backendRetryPause)
 			continue
 		}
 
