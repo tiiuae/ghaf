@@ -106,9 +106,8 @@ in
         pkgs.vulkan-loader
       ];
     };
-    environment = {
-      systemPackages = lib.optionals config.ghaf.profiles.debug.enable [ pkgs.ghaf-open ];
-    };
+    # Useful for debugging, also used for dynamic flatpak desktop entries
+    environment.systemPackages = [ pkgs.ghaf-open ];
 
     services.displayManager = {
       autoLogin = mkIf cfg.autoLogin.enable {
