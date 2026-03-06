@@ -7,8 +7,24 @@
   ...
 }:
 let
-  passwordFilesLocation =
-    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc";
+  inherit (pkgs.stdenv.hostPlatform) isAarch64;
+  chownSyscalls = if isAarch64 then "fchown,fchownat" else "chown,fchown,lchown,fchownat";
+  chmodSyscalls = if isAarch64 then "fchmod,fchmodat" else "chmod,fchmod,fchmodat";
+  deleteSyscalls = if isAarch64 then "unlinkat,renameat" else "rename,unlink,rmdir,renameat,unlinkat";
+  osppDeleteSyscalls = if isAarch64 then "unlinkat,renameat" else "unlink,unlinkat,rename,renameat";
+  accessSyscalls =
+    if isAarch64 then
+      "truncate,ftruncate,openat,open_by_handle_at"
+    else
+      "open,creat,truncate,ftruncate,openat,open_by_handle_at";
+  stigAccessSyscalls =
+    if isAarch64 then
+      "truncate,ftruncate,openat,openat2,open_by_handle_at"
+    else
+      "open,truncate,ftruncate,creat,openat,openat2,open_by_handle_at";
+  osppAccessSyscalls =
+    if isAarch64 then "openat,openat2,open_by_handle_at" else "open,openat,openat2,open_by_handle_at";
+  osppPermChangeSyscalls = "${chmodSyscalls},setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr";
 in
 [
   ## === Common :: Nix/NixOS-specific ===
@@ -52,16 +68,16 @@ in
   "-a always,exit -F arch=b64 -S setxattr,fsetxattr,lsetxattr,removexattr,fremovexattr,lremovexattr -F auid>=1000 -F auid!=-1 -k perm_mod"
   "-a always,exit -F arch=b64 -S setxattr,fsetxattr,lsetxattr,removexattr,fremovexattr,lremovexattr -F auid=0 -k perm_mod"
   # V-268099
-  "-a always,exit -F arch=b64 -S chown,fchown,lchown,fchownat -F auid>=1000 -F auid!=unset -F key=perm_mod"
+  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F auid>=1000 -F auid!=unset -F key=perm_mod"
   # V-268098
-  "-a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access"
-  "-a always,exit -F arch=b64 -S open,creat,truncate,ftruncate,openat,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access"
+  "-a always,exit -F arch=b64 -S ${accessSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access"
+  "-a always,exit -F arch=b64 -S ${accessSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access"
   # V-268096
   "-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -F auid>=1000 -F auid!=unset -k module_chng"
   # V-268095
-  "-a always,exit -F arch=b64 -S rename,unlink,rmdir,renameat,unlinkat -F auid>=1000 -F auid!=unset -k delete"
+  "-a always,exit -F arch=b64 -S ${deleteSyscalls} -F auid>=1000 -F auid!=unset -k delete"
   # V-268100
-  "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat -F auid>=1000 -F auid!=unset -F key=perm_mod"
+  "-a always,exit -F arch=b64 -S ${chmodSyscalls} -F auid>=1000 -F auid!=unset -F key=perm_mod"
 
   ## === Common :: OSPP-derived ===
   # 11-loginuid.rules && V-268119
@@ -132,9 +148,15 @@ in
   "-a always,exit -F arch=b64 -F path=/etc/localtime -F perm=wa -F key=time-change"
   ## Things that affect identity
   # Handled in common rules - V-268167
-  "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/group -F perm=wa -F key=identity"
-  "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/passwd -F perm=wa -F key=identity"
-  "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/shadow -F perm=wa -F key=identity"
+  "-a always,exit -F arch=b64 -F path=${
+    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+  }/group -F perm=wa -F key=identity"
+  "-a always,exit -F arch=b64 -F path=${
+    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+  }/passwd -F perm=wa -F key=identity"
+  "-a always,exit -F arch=b64 -F path=${
+    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+  }/shadow -F perm=wa -F key=identity"
   ## Things that could affect system locale
   "-a always,exit -F arch=b64 -S sethostname,setdomainname -F key=system-locale"
   "-a always,exit -F arch=b64 -F path=/etc/issue -F perm=wa -F key=system-locale"
@@ -186,8 +208,8 @@ in
 
   ##- Unauthorized access attempts to files (unsuccessful)
   # Handled partially in common rules - V-268098
-  "-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,openat2,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access"
-  "-a always,exit -F arch=b64 -S open,truncate,ftruncate,creat,openat,openat2,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access"
+  "-a always,exit -F arch=b64 -S ${stigAccessSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access"
+  "-a always,exit -F arch=b64 -S ${stigAccessSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access"
 
   ##- Use of print command (unsuccessful and successful)
   ##- Export to media (successful)
@@ -198,8 +220,7 @@ in
 
   ##- System startup and shutdown (unsuccessful and successful)
   ##- Files and programs deleted by the user (successful and unsuccessful)
-  # Handled partially in common rules - V-268095
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=unset -F key=delete"
+  # Handled in common rules - V-268095
 
   ##- All system administration actions
   ##- All security personnel actions
@@ -251,79 +272,109 @@ in
   ## 30-ospp-v42-1-create-failed.rules
   ## Unsuccessful file creation (open with O_CREAT)
   "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+]
+++ lib.optionals (!isAarch64) [
   "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
   "-a always,exit -F arch=b64 -S creat -F exit=-EACCES -F auid!=unset -F key=unsuccessful-create"
+]
+++ [
   "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+]
+++ lib.optionals (!isAarch64) [
   "-a always,exit -F arch=b64 -S open -F a1&0100 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
   "-a always,exit -F arch=b64 -S creat -F exit=-EPERM -F auid!=unset -F key=unsuccessful-create"
+]
+++ [
   ## 30-ospp-v42-1-create-success.rules
   ## Successful file creation (open with O_CREAT)
   "-a always,exit -F arch=b64 -S openat,openat2,open_by_handle_at -F a2&0100 -F success=1 -F auid!=unset -F key=successful-create"
+]
+++ lib.optionals (!isAarch64) [
   "-a always,exit -F arch=b64 -S open -F a1&0100 -F success=1 -F auid!=unset -F key=successful-create"
   "-a always,exit -F arch=b64 -S creat -F success=1 -F auid!=unset -F key=successful-create"
+]
+++ [
 
   ## 30-ospp-v42-2-modify-failed.rules
   ## Unsuccessful file modifications (open for write or truncate)
   "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
   "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
   "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
   "-a always,exit -F arch=b64 -S truncate,ftruncate -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+]
+++ lib.optionals (!isAarch64) [
+  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EACCES -F auid!=unset -F key=unsuccessful-modification"
+  "-a always,exit -F arch=b64 -S open -F a1&01003 -F exit=-EPERM -F auid!=unset -F key=unsuccessful-modification"
+]
+++ [
   ## 30-ospp-v42-2-modify-success.rules
   ## Successful file modifications (open for write or truncate)
   "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&01003 -F success=1 -F auid!=unset -F key=successful-modification"
-  "-a always,exit -F arch=b64 -S open -F a1&01003 -F success=1 -F auid!=unset -F key=successful-modification"
   "-a always,exit -F arch=b64 -S truncate,ftruncate -F success=1 -F auid!=unset -F key=successful-modification"
+]
+++ lib.optionals (!isAarch64) [
+  "-a always,exit -F arch=b64 -S open -F a1&01003 -F success=1 -F auid!=unset -F key=successful-modification"
+]
+++ [
 
   ## 30-ospp-v42-3-access-failed.rules
   ## Unsuccessful file access
-  "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
-  "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
+  "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
+  "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-access"
 
   ## 30-ospp-v42-4-delete-failed.rules
   ## Unsuccessful file delete
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F exit=-EACCES -F auid!=unset -F key=unsuccessful-delete"
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F exit=-EPERM -F auid!=unset -F key=unsuccessful-delete"
+  "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F exit=-EACCES -F auid!=unset -F key=unsuccessful-delete"
+  "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F exit=-EPERM -F auid!=unset -F key=unsuccessful-delete"
 
   ## 30-ospp-v42-4-delete-success.rules
   ## Successful file delete
-  "-a always,exit -F arch=b64 -S unlink,unlinkat,rename,renameat -F success=1 -F auid!=unset -F key=successful-delete"
+  "-a always,exit -F arch=b64 -S ${osppDeleteSyscalls} -F success=1 -F auid!=unset -F key=successful-delete"
 
   ## 30-ospp-v42-5-perm-change-failed.rules
   ## Unsuccessful permission change
-  "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat,setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
-  "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat,setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
+  "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
+  "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-perm-change"
 
   ## 30-ospp-v42-5-perm-change-success.rules
   ## Successful permission change
-  "-a always,exit -F arch=b64 -S chmod,fchmod,fchmodat,setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-perm-change"
+  "-a always,exit -F arch=b64 -S ${osppPermChangeSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-perm-change"
 
   ## 30-ospp-v42-6-owner-change-failed.rules
   ## Unsuccessful ownership change
-  "-a always,exit -F arch=b64 -S lchown,fchown,chown,fchownat -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
-  "-a always,exit -F arch=b64 -S lchown,fchown,chown,fchownat -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
+  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
+  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=unsuccessful-owner-change"
 
   ## 30-ospp-v42-6-owner-change-success.rules
   ## Successful ownership change
-  "-a always,exit -F arch=b64 -S lchown,fchown,chown,fchownat -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-owner-change"
+  "-a always,exit -F arch=b64 -S ${chownSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-owner-change"
 
   ## User add delete modify. This is covered by pam. However, someone could
   ## open a file and directly create or modify a user, so we'll watch passwd and
   ## shadow for writes
   "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
   "-a always,exit -F arch=b64 -S openat,open_by_handle_at -F a2&03 -F path=/etc/shadow -F auid>=1000 -F auid!=unset -F key=user-modify"
+]
+++ lib.optionals (!isAarch64) [
+  "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/passwd -F auid>=1000 -F auid!=unset -F key=user-modify"
   "-a always,exit -F arch=b64 -S open -F a1&03 -F path=/etc/shadow -F auid>=1000 -F auid!=unset -F key=user-modify"
+]
+++ [
 
   ## User enable and disable. This is entirely handled by pam.
   ## Group add delete modify. This is covered by pam. However, someone could
   ## open a file and directly create or modify a user, so we'll watch group and
   ## gshadow for writes
-  "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/passwd -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/shadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
-  "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/group -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
-  # "-a always,exit -F arch=b64 -F path=${passwordFilesLocation}/gshadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
+  "-a always,exit -F arch=b64 -F path=${
+    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+  }/passwd -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
+  "-a always,exit -F arch=b64 -F path=${
+    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+  }/shadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=user-modify"
+  "-a always,exit -F arch=b64 -F path=${
+    if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"
+  }/group -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
+  # "-a always,exit -F arch=b64 -F path=${if config.services.userborn.enable then config.services.userborn.passwordFilesLocation else "/etc"}/gshadow -F perm=wa -F auid>=1000 -F auid!=unset -F key=group-modify"
 
   ## Use of special rights for config changes. This would be use of setuid
   ## programs that relate to user accts. This is not all setuid apps because
@@ -381,5 +432,5 @@ in
   ## 30-ospp-v42-3-access-success.rules
   ## Successful file access (any other opens) This has to go last.
   ## This are likely to result in a whole lot of events
-  "-a always,exit -F arch=b64 -S open,openat,openat2,open_by_handle_at -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-access"
+  "-a always,exit -F arch=b64 -S ${osppAccessSyscalls} -F success=1 -F auid>=1000 -F auid!=unset -F key=successful-access"
 ]
