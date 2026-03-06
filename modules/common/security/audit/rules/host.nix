@@ -2,9 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   config,
+  pkgs,
   lib,
   ...
 }:
+let
+  inherit (pkgs.stdenv.hostPlatform) isAarch64;
+  nixStoreMutationSyscalls =
+    if isAarch64 then
+      "openat,truncate,renameat,linkat,unlinkat,symlinkat"
+    else
+      "open,openat,creat,truncate,rename,renameat,link,unlink,unlinkat,symlink";
+in
 [
   ## === Host :: Nix/NixOS-specific ===
   # Nix profiles & system generations (symlink flips = important)
@@ -35,5 +44,5 @@
 
   ## === Host :: nixos-rebuild ===
   # Nix store modifications
-  "-a always,exit -F arch=b64 -S open,openat,creat,truncate,rename,renameat,link,unlink,unlinkat,symlink -F dir=/nix/store -F perm=wa -k nixos_rebuild_store"
+  "-a always,exit -F arch=b64 -S ${nixStoreMutationSyscalls} -F dir=/nix/store -F perm=wa -k nixos_rebuild_store"
 ]

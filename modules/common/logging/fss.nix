@@ -83,6 +83,8 @@ let
     ;
   cfg = config.ghaf.logging.fss;
   loggingEnabled = config.ghaf.logging.enable;
+  fssBasePath =
+    if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
 
   # Script to setup FSS keys on first boot
   setupScript = pkgs.writeShellApplication {
@@ -318,10 +320,8 @@ in
       default =
         let
           componentName = config.networking.hostName;
-          basePath =
-            if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
         in
-        "${basePath}/${componentName}";
+        "${fssBasePath}/${componentName}";
       description = ''
         Directory to store FSS keys and metadata for this component.
 
@@ -515,8 +515,8 @@ in
 
     # Audit rules to monitor FSS key and journal access
     ghaf.security.audit.extraRules = [
-      # Monitor FSS key directory for any write or attribute changes
-      "-w ${cfg.keyPath} -p wa -k journal_fss_keys"
+      # Monitor shared FSS key tree.
+      "-w ${fssBasePath} -p wa -k journal_fss_keys"
       # Monitor sealed journal logs for tampering attempts
       "-w /var/log/journal -p wa -k journal_sealed_logs"
       # Monitor machine-id reads (critical for journal path resolution)
