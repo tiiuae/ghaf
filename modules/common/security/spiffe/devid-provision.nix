@@ -120,6 +120,10 @@ let
         return 1
       }
 
+      tpm_in_lockout() {
+        timeout 5 tpm2_getcap properties-variable 2>/dev/null | grep -q "inLockout:[[:space:]]*1"
+      }
+
       load_existing_devid_key() {
         cleanup_contexts
 
@@ -194,6 +198,12 @@ let
 
       # Check if key blobs already exist
       if [ -f "$PRIV_BLOB" ] && [ -f "$PUB_BLOB" ]; then
+        if tpm_in_lockout; then
+          echo "WARNING: TPM in DA lockout mode, falling back to join_token attestation"
+          echo "tpm-lockout" > /run/tpm/devid-status 2>/dev/null || true
+          exit 0
+        fi
+
         PUB_HEAD=$(od -An -tx1 -N2 "$PUB_BLOB" 2>/dev/null | tr -d ' \n')
         if [ "$PUB_HEAD" != "0001" ] && [ "$PUB_HEAD" != "0023" ]; then
           echo "WARNING: Existing DevID public blob is not TPMT_PUBLIC, regenerating key blobs"
@@ -344,32 +354,25 @@ let
         echo "DevID key blobs created"
       fi
 
-      # Wait for signed cert from admin-vm
-      echo "Waiting for signed DevID certificate..."
-      for i in $(seq 1 120); do
-        if [ -s "$SHARED_CERT_FILE" ] && openssl x509 -in "$SHARED_CERT_FILE" -noout >/dev/null 2>&1; then
-          if [ -f "$PUB_PEM" ] && ! cert_matches_pub "$SHARED_CERT_FILE" "$PUB_PEM"; then
-            echo "WARNING: Signed cert for $VM_NAME does not match TPM key, waiting for refresh"
-            sleep 2
-            continue
-          fi
-
-          cp "$SHARED_CERT_FILE" "$CERT_FILE"
-          chown root:spire "$CERT_FILE"
-          chmod 0644 "$CERT_FILE"
-          echo "DevID certificate received and stored at $CERT_FILE"
+      # Non-blocking cert pickup: if admin-vm has already signed it, store it now.
+      # Otherwise exit cleanly and let SPIRE selector fall back to join_token until
+      # cert material is available.
+      if [ -s "$SHARED_CERT_FILE" ] && openssl x509 -in "$SHARED_CERT_FILE" -noout >/dev/null 2>&1; then
+        if [ -f "$PUB_PEM" ] && ! cert_matches_pub "$SHARED_CERT_FILE" "$PUB_PEM"; then
+          echo "WARNING: Signed cert for $VM_NAME does not match TPM key"
+          echo "cert-mismatch" > /run/tpm/devid-status 2>/dev/null || true
           exit 0
-        elif [ -f "$SHARED_CERT_FILE" ]; then
-          echo "WARNING: Signed cert for $VM_NAME is empty/invalid, waiting for refresh"
         fi
-        if [ $((i % 10)) -eq 0 ]; then
-          echo "Still waiting for cert... ($i/120)"
-        fi
-        sleep 2
-      done
 
-      echo "WARNING: Timed out waiting for DevID certificate"
-      exit 1
+        cp "$SHARED_CERT_FILE" "$CERT_FILE"
+        chown root:spire "$CERT_FILE"
+        chmod 0644 "$CERT_FILE"
+        echo "DevID certificate received and stored at $CERT_FILE"
+      else
+        echo "DevID cert not ready yet; continuing with join_token fallback"
+        echo "cert-pending" > /run/tpm/devid-status 2>/dev/null || true
+      fi
+      exit 0
     '';
   };
 in
@@ -407,7 +410,6 @@ in
     systemd.services.spire-devid-provision = {
       description = "SPIRE DevID key provisioning (TPM)";
       wantedBy = [ "multi-user.target" ];
-      before = [ "spire-agent.service" ];
       wants = [ "storagevm-enroll.service" ];
       after = [
         "local-fs.target"
@@ -417,6 +419,9 @@ in
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        TimeoutStartSec = "45s";
+        TimeoutStopSec = "2s";
+        KillMode = "control-group";
         ExecStart = lib.getExe spireDevidProvisionApp;
       };
     };

@@ -28,6 +28,10 @@ let
       pkgs.openssl
     ];
     text = ''
+      set -euo pipefail
+
+      export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
+
       EK_NV_RSA="0x01C00002"
       EK_NV_ECC="0x01C0000A"
       BUNDLE_PATH="${cfg.endorsementCaBundle}"
@@ -36,9 +40,9 @@ let
 
       # Try to read RSA EK cert first, fall back to ECC
       EK_TYPE=""
-      if tpm2_nvread "$EK_NV_RSA" -o /run/tpm/ek-cert.der 2>/dev/null; then
+      if timeout -k 2s 8s tpm2_nvread "$EK_NV_RSA" -o /run/tpm/ek-cert.der 2>/dev/null; then
         EK_TYPE="RSA"
-      elif tpm2_nvread "$EK_NV_ECC" -o /run/tpm/ek-cert.der 2>/dev/null; then
+      elif timeout -k 2s 8s tpm2_nvread "$EK_NV_ECC" -o /run/tpm/ek-cert.der 2>/dev/null; then
         EK_TYPE="ECC"
       else
         echo "WARNING: No EK cert found in TPM NV RAM"
@@ -87,13 +91,14 @@ in
       wantedBy = [ "multi-user.target" ];
       after = [
         "local-fs.target"
-        "tpm-vendor-detect.service"
       ];
-      before = [ "spire-devid-provision.service" ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        TimeoutStartSec = "20s";
+        TimeoutStopSec = "2s";
+        KillMode = "control-group";
         ExecStart = lib.getExe tpmEkVerifyApp;
       };
     };

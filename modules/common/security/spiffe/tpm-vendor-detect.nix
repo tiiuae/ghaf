@@ -28,10 +28,14 @@ let
       pkgs.tpm2-tools
     ];
     text = ''
+      set -euo pipefail
+
+      export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
+
       mkdir -p /run/tpm
 
       # Read TPM manufacturer code
-      VENDOR_HEX=$(tpm2_getcap properties-fixed 2>/dev/null \
+      VENDOR_HEX=$(timeout -k 2s 8s tpm2_getcap properties-fixed 2>/dev/null \
         | grep TPM2_PT_MANUFACTURER -A1 | grep 'raw:' | awk '{print $2}') || true
 
       if [ -z "$VENDOR_HEX" ]; then
@@ -103,14 +107,13 @@ in
       description = "Detect TPM manufacturer at boot";
       wantedBy = [ "multi-user.target" ];
       after = [ "local-fs.target" ];
-      before = [
-        "tpm-ek-verify.service"
-        "spire-devid-provision.service"
-      ];
 
       serviceConfig = {
         Type = "oneshot";
         RemainAfterExit = true;
+        TimeoutStartSec = "20s";
+        TimeoutStopSec = "2s";
+        KillMode = "control-group";
         ExecStart = lib.getExe tpmVendorDetectApp;
       };
     };

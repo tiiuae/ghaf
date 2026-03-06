@@ -38,7 +38,7 @@ let
     plugins {
       NodeAttestor "tpm_devid" {
         plugin_data {
-          tpm_device_path = "/dev/tpm0"
+          tpm_device_path = "${cfg.tpmDevid.devicePath}"
           devid_cert_path = "${cfg.tpmDevid.certPath}"
           devid_priv_path = "${cfg.tpmDevid.privPath}"
           devid_pub_path = "${cfg.tpmDevid.pubPath}"
@@ -82,10 +82,33 @@ let
 
   # Runtime config selector: checks if DevID files exist, falls back to join_token
   agentConfSelector = pkgs.writeShellScript "spire-agent-select-config" ''
+    export TPM2TOOLS_TCTI="device:${cfg.tpmDevid.devicePath}"
+
+    ek_index_available() {
+      local idx="$1"
+      ${pkgs.coreutils}/bin/timeout -k 2 5 ${pkgs.tpm2-tools}/bin/tpm2_nvreadpublic "$idx" >/dev/null 2>&1
+    }
+
+    tpm_in_lockout() {
+      ${pkgs.coreutils}/bin/timeout -k 2 5 ${pkgs.tpm2-tools}/bin/tpm2_getcap properties-variable 2>/dev/null | ${pkgs.gnugrep}/bin/grep -q "inLockout:[[:space:]]*1"
+    }
+
     if [ "${toString useTpmDevid}" = "1" ]; then
       if [ -f "${cfg.tpmDevid.certPath}" ] && \
          [ -f "${cfg.tpmDevid.privPath}" ] && \
          [ -f "${cfg.tpmDevid.pubPath}" ]; then
+        if tpm_in_lockout; then
+          echo "TPM is in DA lockout mode, falling back to join_token attestation"
+          ln -sf /etc/spire/agent-join-token.conf /run/spire/agent.conf
+          exit 0
+        fi
+
+        if ! ek_index_available 0x01C00002 && ! ek_index_available 0x01C0000A; then
+          echo "EK cert NV indices are missing, falling back to join_token attestation"
+          ln -sf /etc/spire/agent-join-token.conf /run/spire/agent.conf
+          exit 0
+        fi
+
         if [ -d "${cfg.dataDir}" ] && grep -Rqs "/spire/agent/join_token/" "${cfg.dataDir}" 2>/dev/null; then
           echo "Join-token SVID cache detected, resetting SPIRE agent state for tpm_devid"
           for entry in "${cfg.dataDir}"/* "${cfg.dataDir}"/.[!.]* "${cfg.dataDir}"/..?*; do
@@ -112,11 +135,11 @@ let
       ${pkgs.coreutils}/bin/sleep "$delay"
     fi
 
-    export TPM2TOOLS_TCTI="device:/dev/tpm0"
+    export TPM2TOOLS_TCTI="device:${cfg.tpmDevid.devicePath}"
 
     ready_seq=0
     for attempt in $(seq 1 30); do
-      if ${pkgs.coreutils}/bin/timeout 3 ${pkgs.tpm2-tools}/bin/tpm2_getcap properties-fixed >/dev/null 2>&1; then
+      if ${pkgs.coreutils}/bin/timeout -k 1 3 ${pkgs.tpm2-tools}/bin/tpm2_getcap properties-fixed >/dev/null 2>&1; then
         ready_seq=$((ready_seq + 1))
         if [ "$ready_seq" -ge 2 ]; then
           exit 0
@@ -196,6 +219,11 @@ in
     };
 
     tpmDevid = {
+      devicePath = lib.mkOption {
+        type = lib.types.str;
+        default = "/dev/tpmrm0";
+        description = "Path to the TPM device used for tpm_devid attestation";
+      };
       certPath = lib.mkOption {
         type = lib.types.str;
         default = "/var/lib/spire/devid/devid.pem";
@@ -268,20 +296,8 @@ in
       wantedBy = [ "multi-user.target" ];
 
       requires = [ "network-online.target" ];
-      after = [
-        "network-online.target"
-      ]
-      ++ lib.optionals useTpmDevid [
-        "tpm-vendor-detect.service"
-        "tpm-ek-verify.service"
-        "spire-devid-provision.service"
-      ];
-      wants = [
-        "network-online.target"
-      ]
-      ++ lib.optionals useTpmDevid [
-        "spire-devid-provision.service"
-      ];
+      after = [ "network-online.target" ];
+      wants = [ "network-online.target" ];
       unitConfig = {
         RequiresMountsFor = [ cfg.commonMountPath ];
       };
@@ -319,7 +335,7 @@ in
           "/run/spire"
         ]
         ++ lib.optionals useTpmDevid [
-          "/dev/tpm0"
+          cfg.tpmDevid.devicePath
         ];
       };
     };
