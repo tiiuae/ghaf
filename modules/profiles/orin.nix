@@ -163,6 +163,22 @@ in
 
       # Virtualization options
       virtualization = {
+        vmConfig.sysvms = {
+          # Interim safety: keep an empty-password recovery unlock path for
+          # encrypted storage images while Jetson fTPM lockout behavior is
+          # being stabilized.
+          netvm.extraModules = [
+            {
+              ghaf.storagevm.encryption.keepDefaultPassword = true;
+            }
+          ];
+          adminvm.extraModules = [
+            {
+              ghaf.storagevm.encryption.keepDefaultPassword = true;
+            }
+          ];
+        };
+
         microvm-host = {
           enable = true;
           networkSupport = true;
@@ -194,8 +210,13 @@ in
 
           adminvm = {
             enable = true;
-            # Use evaluatedConfig pattern - common is passed via hostConfig
-            evaluatedConfig = cfg.adminvmBase;
+            # Use evaluatedConfig pattern - extend adminvmBase with vmConfig modules
+            evaluatedConfig = cfg.adminvmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "adminvm";
+              };
+            };
           };
 
           idsvm = {

@@ -142,10 +142,53 @@ in
             serverPort = config.ghaf.global-config.spiffe.serverPort or 8081;
             trustDomain = config.ghaf.global-config.spiffe.trustDomain or "ghaf.internal";
             joinTokenFile = "/persist/common/spire/tokens/${config.networking.hostName}.token";
+            attestationMode =
+              if
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              then
+                "tpm_devid"
+              else
+                "join_token";
             trustBundlePath = "/persist/common/spire/bundle.pem";
             # Host reads common dir at /persist/common (not /etc/common like VMs)
             commonMountPath = "/persist/common";
           };
+
+          devidProvision =
+            lib.mkIf
+              (
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              )
+              {
+                enable = true;
+                vmName = config.networking.hostName;
+                csrDir = "/persist/common/spire/devid/requests";
+                certDir = "/persist/common/spire/devid/certs";
+              };
+
+          tpmVendorDetect =
+            lib.mkIf
+              (
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              )
+              {
+                enable = true;
+                expectedVendors = config.ghaf.global-config.spiffe.tpmAttestation.endorsementCaVendors or [ ];
+              };
+
+          tpmEkVerify =
+            lib.mkIf
+              (
+                (config.ghaf.global-config.spiffe.tpmAttestation.enable or false)
+                && ((config.ghaf.global-config.platform.hostSystem or "") != "riscv64-linux")
+              )
+              {
+                enable = true;
+                endorsementCaBundle = config.ghaf.global-config.spiffe.tpmAttestation.endorsementCaBundle or "";
+              };
         };
       };
 
