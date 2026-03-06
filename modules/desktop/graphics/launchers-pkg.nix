@@ -36,6 +36,7 @@ let
         genericName
         categories
         exec
+        noDisplay
         ;
       inherit icon startupWMClass;
       comment = "${prefix}${launcherElem.description}";
