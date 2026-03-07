@@ -28,12 +28,14 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
+      network.agent.transport = {
         name = config.networking.hostName;
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      services = [
+      network.admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.tls.enable = config.ghaf.givc.enableTls;
+      capabilities.services = [
         "poweroff.target"
         "reboot.target"
       ]
@@ -49,20 +51,25 @@ in
         "net-balanced-battery.service"
         "net-performance-battery.service"
       ];
-      hwidService = true;
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      socketProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+      capabilities.hwid.enable = true;
+      capabilities.socketProxy =
+        let
+          sockets = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+            {
+              transport = {
+                name = guivmName;
+                addr = hosts.${guivmName}.ipv4;
+                port = "9010";
+                protocol = "tcp";
+              };
+              socket = "/tmp/dbusproxy_net.sock";
+            }
+          ];
+        in
         {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9010";
-            protocol = "tcp";
-          };
-          socket = "/tmp/dbusproxy_net.sock";
-        }
-      ];
+          enable = sockets != [ ];
+          inherit sockets;
+        };
     };
     givc.dbusproxy = {
       enable = true;

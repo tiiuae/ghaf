@@ -199,6 +199,7 @@ in
       allowedUDPPorts = [ dnsPort ];
     };
 
+  systemd.tmpfiles.rules = [ "d /persist/sysupdate 0755 ghaf root -" ]; # Set permissions for mountpoint
   microvm = {
     # Optimize is disabled because when it is enabled, qemu is built without libusb
     optimize.enable = false;
@@ -213,6 +214,12 @@ in
         tag = "ghaf-common";
         source = "/persist/common";
         mountPoint = "/etc/common";
+        proto = "virtiofs";
+      }
+      {
+        tag = "sysupdate";
+        source = "/persist/sysupdate";
+        mountPoint = "/persist/sysupdate";
         proto = "virtiofs";
       }
     ]
