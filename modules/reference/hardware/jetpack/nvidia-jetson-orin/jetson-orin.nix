@@ -5,10 +5,13 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+  rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
+  rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
   inherit (lib)
     mkEnableOption
     mkOption
@@ -85,7 +88,88 @@ in
             VIRTIO_VSOCKETS_COMMON = yes;
           };
         }
+        {
+          name = "disable-rtc-hctosys";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            RTC_HCTOSYS = lib.mkForce no;
+          };
+        }
       ];
+    };
+
+    services.udev.extraRules = ''
+      SUBSYSTEM=="rtc", KERNEL=="rtc0", TEST=="/var/lib/systemd/timesync/clock", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ghaf-seed-time-from-rtc@%k.service"
+    '';
+
+    systemd.services."ghaf-seed-time-from-rtc@" = {
+      description = "Seed system time from plausible RTC value (%I)";
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = false;
+      };
+      script = ''
+        set -eu
+
+        rtc_device="$1"
+        rtc_since_epoch_path="/sys/class/rtc/$rtc_device/since_epoch"
+        anchor_path="/var/lib/systemd/timesync/clock"
+        max_ahead_seconds=${toString rtcSeedMaxAheadSeconds}
+        min_epoch_seconds=${toString rtcSeedMinEpochSeconds}
+
+        if [ ! -e "$anchor_path" ]; then
+          echo "RTC seed skipped: $anchor_path is missing"
+          exit 0
+        fi
+
+        if [ ! -r "$rtc_since_epoch_path" ]; then
+          echo "RTC seed skipped: $rtc_since_epoch_path not readable"
+          exit 0
+        fi
+
+        rtc_epoch="$(${pkgs.coreutils}/bin/tr -d '\n' < "$rtc_since_epoch_path")"
+        if ! [[ "$rtc_epoch" =~ ^[0-9]+$ ]]; then
+          echo "RTC seed skipped: non-numeric RTC epoch '$rtc_epoch'"
+          exit 0
+        fi
+
+        if [ "$rtc_epoch" -lt "$min_epoch_seconds" ]; then
+          echo "RTC seed skipped: RTC epoch $rtc_epoch below minimum $min_epoch_seconds"
+          exit 0
+        fi
+
+        anchor_epoch="$(${pkgs.coreutils}/bin/stat -c %Y "$anchor_path" 2>/dev/null || echo 0)"
+        if ! [[ "$anchor_epoch" =~ ^[0-9]+$ ]]; then
+          echo "RTC seed skipped: invalid anchor mtime '$anchor_epoch'"
+          exit 0
+        fi
+
+        if [ "$anchor_epoch" -le 0 ]; then
+          echo "RTC seed skipped: anchor mtime is not positive ($anchor_epoch)"
+          exit 0
+        fi
+
+        if [ "$rtc_epoch" -lt "$anchor_epoch" ]; then
+          echo "RTC seed skipped: RTC epoch $rtc_epoch is behind anchor $anchor_epoch"
+          exit 0
+        fi
+
+        ahead_seconds=$((rtc_epoch - anchor_epoch))
+        if [ "$ahead_seconds" -gt "$max_ahead_seconds" ]; then
+          echo "RTC seed skipped: RTC ahead by $ahead_seconds seconds (> $max_ahead_seconds)"
+          exit 0
+        fi
+
+        current_epoch="$(${pkgs.coreutils}/bin/date -u +%s)"
+        if [ "$rtc_epoch" -le "$current_epoch" ]; then
+          echo "RTC seed skipped: system time already >= RTC (now=$current_epoch rtc=$rtc_epoch)"
+          exit 0
+        fi
+
+        ${pkgs.coreutils}/bin/date -u -s "@$rtc_epoch" >/dev/null
+        echo "RTC seed applied: system time set to epoch $rtc_epoch from $rtc_device"
+      '';
+      scriptArgs = "%i";
     };
 
     services.nvpmodel = {
