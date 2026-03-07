@@ -9,6 +9,13 @@ in
   _file = ./debug.nix;
 
   config = lib.mkIf cfg.enable {
+    # Reduce OP-TEE core and TA log verbosity to prevent serial flood that
+    # slows boot and saturates the single-lane fTPM TA on Orin platforms.
+    hardware.nvidia-jetpack.firmware.optee = {
+      coreLogLevel = 1;
+      taLogLevel = 1;
+    };
+
     # Enable default accounts and passwords
     ghaf.hardware.nvidia.orin.optee = {
       xtest = true;
