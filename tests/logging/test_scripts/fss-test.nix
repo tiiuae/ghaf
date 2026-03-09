@@ -16,6 +16,10 @@
 #   environment.systemPackages = [ pkgs.fss-test ];
 #   Then run: sudo fss-test
 #
+# For a full evidence packet on warning/failure:
+#   environment.systemPackages = [ pkgs.fss-debug ];
+#   Then run: sudo fss-debug
+#
 # Tests performed:
 #   1. FSS setup service status - verifies journal-fss-setup ran
 #   2. Sealing key existence - checks /var/log/journal/<machine-id>/fss
@@ -35,6 +39,9 @@
   systemd,
   gnugrep,
 }:
+let
+  verifyClassifierLib = builtins.readFile ../../../modules/common/logging/fss-verify-classifier.sh;
+in
 writeShellApplication {
   name = "fss-test";
   runtimeInputs = [
@@ -58,6 +65,7 @@ writeShellApplication {
     fail() { echo -e "''${RED}[FAIL]''${NC} $1"; FAILED=$((FAILED + 1)); }
     warn() { echo -e "''${YELLOW}[WARN]''${NC} $1"; WARNED=$((WARNED + 1)); }
     info() { echo -e "[INFO] $1"; }
+    ${verifyClassifierLib}
 
     echo "=========================================="
     echo "  FSS (Forward Secure Sealing) Test Suite"
@@ -128,14 +136,32 @@ writeShellApplication {
     # Test 3: Check verification key
     info "Test 3: Checking verification key..."
     FOUND_VERIFY_KEY=false
+    VERIFY_KEY_PATH=""
+    VERIFY_KEY_UNREADABLE=false
 
-    if [ -n "$KEY_DIR" ] && [ -f "$KEY_DIR/verification-key" ] && [ -s "$KEY_DIR/verification-key" ]; then
-      pass "Verification key exists at $KEY_DIR/verification-key"
-      FOUND_VERIFY_KEY=true
+    if [ -n "$KEY_DIR" ] && [ -e "$KEY_DIR/verification-key" ]; then
+      VERIFY_KEY_PATH="$KEY_DIR/verification-key"
+      if [ -s "$VERIFY_KEY_PATH" ] && [ -r "$VERIFY_KEY_PATH" ]; then
+        pass "Verification key exists at $VERIFY_KEY_PATH"
+        FOUND_VERIFY_KEY=true
+      elif [ -s "$VERIFY_KEY_PATH" ]; then
+        VERIFY_KEY_UNREADABLE=true
+        if [ "$(id -u)" -eq 0 ]; then
+          fail "Verification key exists but is unreadable at $VERIFY_KEY_PATH"
+        else
+          warn "Verification key exists but is unreadable as $(id -un); rerun fss-test as root"
+        fi
+      else
+        fail "Verification key exists but is empty at $VERIFY_KEY_PATH"
+      fi
     fi
 
-    if [ "$FOUND_VERIFY_KEY" = false ]; then
-      warn "Verification key not found - offline verification won't be possible"
+    if [ "$FOUND_VERIFY_KEY" = false ] && [ "$VERIFY_KEY_UNREADABLE" = false ]; then
+      if [ -n "$KEY_DIR" ]; then
+        fail "Verification key not found - journal verification cannot validate sealed logs"
+      else
+        warn "Verification key directory could not be discovered"
+      fi
     fi
 
     # Test 4: Check initialized sentinel
@@ -154,61 +180,60 @@ writeShellApplication {
     # Test 5: Run journal verification
     info "Test 5: Running journal verification..."
 
-    # Find and use verification key (same logic as verify service)
-    # Without the key, sealed journals will fail verification with "Required key not available"
     VERIFY_KEY=""
-    if [ -n "$KEY_DIR" ] && [ -f "$KEY_DIR/verification-key" ] && [ -s "$KEY_DIR/verification-key" ]; then
-      VERIFY_KEY=$(cat "$KEY_DIR/verification-key")
-      echo "   Using verification key from $KEY_DIR/verification-key"
-    fi
-
-    VERIFY_CMD="journalctl --verify"
-    if [ -n "$VERIFY_KEY" ]; then
-      VERIFY_CMD="journalctl --verify --verify-key=$VERIFY_KEY"
+    SHOULD_RUN_VERIFY=true
+    if [ -n "$VERIFY_KEY_PATH" ] && [ -r "$VERIFY_KEY_PATH" ] && [ -s "$VERIFY_KEY_PATH" ]; then
+      VERIFY_KEY=$(cat "$VERIFY_KEY_PATH")
+      echo "   Using verification key from $VERIFY_KEY_PATH"
+    elif [ "$VERIFY_KEY_UNREADABLE" = true ] && [ "$(id -u)" -ne 0 ]; then
+      warn "Skipping sealed journal verification because the verification key is unreadable as $(id -un)"
+      SHOULD_RUN_VERIFY=false
+    elif [ -n "$KEY_DIR" ]; then
+      fail "Skipping sealed journal verification because the verification key is unavailable"
+      SHOULD_RUN_VERIFY=false
     else
-      echo "   WARNING: No verification key found - sealed journals may fail verification"
+      warn "Skipping sealed journal verification because the verification key directory is unknown"
+      SHOULD_RUN_VERIFY=false
     fi
 
-    VERIFY_OUTPUT=""
-    VERIFY_EXIT=0
-
-    if VERIFY_OUTPUT=$($VERIFY_CMD 2>&1); then
+    if [ "$SHOULD_RUN_VERIFY" = true ]; then
+      VERIFY_OUTPUT=""
       VERIFY_EXIT=0
-    else
-      VERIFY_EXIT=$?
-    fi
+      VERIFY_CMD="journalctl --verify --verify-key=$VERIFY_KEY"
 
-    # Categorize failures:
-    # - System journal (system.journal): failures are critical
-    # - User journals (user-*.journal): failures are expected for pre-FSS entries, warn only
-    # - Archived journals (system@*.journal): failures expected for pre-FSS entries, warn only
-    # - Temp files (*.journal~): ignore completely
-    SYSTEM_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '/system\.journal' | grep -v '\.journal~' || true)
-    USER_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '/user-[0-9]+.*\.journal' | grep -v '\.journal~' || true)
-    ARCHIVED_FAILURES=$(echo "$VERIFY_OUTPUT" | grep -i "FAIL" | grep -E '@.*\.journal' | grep -v '\.journal~' || true)
-
-    if [ -n "$SYSTEM_FAILURES" ]; then
-      fail "System journal verification failed - potential integrity issue"
-      echo "   Failures: $SYSTEM_FAILURES"
-    elif [ -n "$USER_FAILURES" ]; then
-      # User journals may contain entries written before FSS initialization
-      # This is expected and does not indicate tampering
-      warn "User journal verification failed (expected for pre-FSS entries)"
-      echo "   Failures: $USER_FAILURES"
-      echo "   Note: User journals with pre-FSS entries will fail until rotated out"
-    elif [ -n "$ARCHIVED_FAILURES" ]; then
-      # Archived journals may fail if they predate FSS activation - this is expected
-      warn "Archived journals failed verification (expected for pre-FSS entries)"
-      echo "   Archives: $ARCHIVED_FAILURES"
-      echo "   Note: Run 'journalctl --vacuum-time=1s' to remove old archives if needed"
-    elif [ "$VERIFY_EXIT" -eq 0 ]; then
-      pass "Journal verification passed"
-    else
-      # Check for filesystem errors
-      if echo "$VERIFY_OUTPUT" | grep -qi "read-only\|permission denied"; then
-        warn "Verification encountered filesystem restrictions (not an integrity failure)"
+      if VERIFY_OUTPUT=$($VERIFY_CMD 2>&1); then
+        VERIFY_EXIT=0
       else
-        warn "Verification returned exit code $VERIFY_EXIT but no critical failures detected"
+        VERIFY_EXIT=$?
+      fi
+
+      VERIFY_TAGS=$(fss_reason_tags_from_output "$VERIFY_OUTPUT")
+      fss_classify_verify_output "$VERIFY_OUTPUT"
+      VERIFY_TAGS=$(fss_classification_tags "$VERIFY_TAGS")
+
+      if [ "$FSS_KEY_PARSE_ERROR" -eq 1 ] || [ "$FSS_KEY_REQUIRED_ERROR" -eq 1 ]; then
+        fail "Journal verification failed due to verification key defect [$VERIFY_TAGS]"
+        echo "   Output: $VERIFY_OUTPUT"
+      elif [ -n "$FSS_ACTIVE_SYSTEM_FAILURES" ]; then
+        fail "Active system journal verification failed [$VERIFY_TAGS]"
+        echo "   Output: $VERIFY_OUTPUT"
+      elif [ -n "$FSS_OTHER_FAILURES" ]; then
+        fail "Journal verification found unclassified critical failures [$VERIFY_TAGS]"
+        echo "   Output: $VERIFY_OUTPUT"
+      elif [ -n "$FSS_ARCHIVED_SYSTEM_FAILURES" ] || [ -n "$FSS_USER_FAILURES" ]; then
+        warn "Journal verification passed with archive/user warnings [$VERIFY_TAGS]"
+        echo "   Output: $VERIFY_OUTPUT"
+      elif [ -n "$FSS_TEMP_FAILURES" ]; then
+        pass "Journal verification passed (temporary journal files ignored)"
+        echo "   Ignored temp failures: $FSS_TEMP_FAILURES"
+      elif [ "$VERIFY_EXIT" -eq 0 ]; then
+        pass "Journal verification passed"
+      elif [ "$FSS_FILESYSTEM_RESTRICTION" -eq 1 ]; then
+        warn "Verification encountered filesystem restrictions [$VERIFY_TAGS]"
+        echo "   Output: $VERIFY_OUTPUT"
+      else
+        warn "Verification returned exit code $VERIFY_EXIT without critical failures [$VERIFY_TAGS]"
+        echo "   Output: $VERIFY_OUTPUT"
       fi
     fi
 
@@ -257,6 +282,11 @@ writeShellApplication {
     echo -e "  ''${RED}Failed:''${NC}  $FAILED"
     echo -e "  ''${YELLOW}Warned:''${NC}  $WARNED"
     echo ""
+
+    if command -v fss-debug >/dev/null 2>&1 && { [ "$FAILED" -gt 0 ] || [ "$WARNED" -gt 0 ]; }; then
+      echo "Detailed evidence capture: sudo fss-debug"
+      echo ""
+    fi
 
     if [ "$FAILED" -gt 0 ]; then
       echo -e "''${RED}Some tests failed. FSS may not be working correctly.''${NC}"
