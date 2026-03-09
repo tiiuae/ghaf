@@ -8,6 +8,7 @@
 }:
 let
   inherit (lib)
+    getExe
     mkEnableOption
     mkIf
     mkOption
@@ -15,6 +16,40 @@ let
     concatStrings
     ;
   cfg = config.ghaf.services.yubikey;
+  fido2MarkerPath = "/run/fido2/enrolled";
+
+  syncFido2Marker = pkgs.writeShellApplication {
+    name = "ghaf-sync-fido2-marker";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.jq
+      pkgs.systemd
+    ];
+    text = ''
+      marker="${fido2MarkerPath}"
+      has_fido2=0
+
+      if homectl list --no-legend >/dev/null 2>&1; then
+        while IFS= read -r line; do
+          user="''${line%% *}"
+          [ -n "$user" ] || continue
+          if homectl inspect "$user" --json=short 2>/dev/null | jq -e '
+            . | to_entries[] | select(.key | test("^fido2")) | .value | any(length > 0)
+          ' >/dev/null 2>&1; then
+            has_fido2=1
+            break
+          fi
+        done < <(homectl list --no-legend 2>/dev/null)
+      fi
+
+      if [ "$has_fido2" -eq 1 ]; then
+        mkdir -p "$(dirname "$marker")"
+        touch "$marker"
+      else
+        rm -f "$marker"
+      fi
+    '';
+  };
 in
 {
   _file = ./yubikey.nix;
@@ -56,8 +91,28 @@ in
     # Below rules are needed for screen locker (gtklock) to work
     services.udev.extraRules = ''
       KERNEL=="hidraw*", SUBSYSTEM=="hidraw", ATTRS{idVendor}=="1050", ATTRS{idProduct}=="0407", TAG+="uaccess", GROUP="kvm", MODE="0666"
-      ACTION=="remove", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="1050", ENV{ID_MODEL_ID}=="0407", RUN+="${pkgs.systemd}/bin/loginctl lock-sessions"
+      ACTION=="remove", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="1050", ENV{ID_MODEL_ID}=="0407", TEST=="${fido2MarkerPath}", RUN+="${pkgs.systemd}/bin/loginctl lock-sessions"
     '';
+
+    systemd.services.ghaf-homed-fido2-sync = {
+      description = "Sync Ghaf FIDO2 marker with systemd-homed users";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-homed.service" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = getExe syncFido2Marker;
+      };
+    };
+
+    systemd.paths.ghaf-homed-fido2-sync = {
+      description = "Watch systemd-homed records and sync Ghaf FIDO2 marker";
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "ghaf-homed-fido2-sync.service" ];
+      pathConfig = {
+        PathChanged = "/var/lib/systemd/home";
+        Unit = "ghaf-homed-fido2-sync.service";
+      };
+    };
 
     givc.sysvm.enableCtapModule = true;
   };
