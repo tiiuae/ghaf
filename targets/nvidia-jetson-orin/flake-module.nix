@@ -182,6 +182,10 @@ let
             givc.enable = true;
             global-config.givc.enable = true;
             partitioning.verity-volume.enable = true;
+            partitioning.verity-volume.uki-signing-key-dir = lib.mkIf (
+              variant == "debug"
+            ) ../../modules/secureboot/dev-keys;
+            hardware.nvidia.orin.secureboot.enable = true;
           };
         }
       )

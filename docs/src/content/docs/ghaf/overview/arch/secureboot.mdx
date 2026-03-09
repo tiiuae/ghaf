@@ -43,3 +43,149 @@ efi-readvar -v PK
 efi-readvar -v KEK
 efi-readvar -v db
 ```
+
+## Jetson Orin Secure Boot
+
+On Jetson Orin targets with verity boot, Secure Boot is handled differently from
+the x86 laptop flow. The NVIDIA UEFI firmware supports standard UEFI Secure Boot
+key enrollment via a device tree overlay, and EFI binaries (systemd-boot and UKIs)
+are signed at flash time rather than build time.
+
+This keeps private signing keys out of the Nix store while still producing a
+fully signed boot chain.
+
+### How it works
+
+1. **Key enrollment**: During flash, a DTB overlay (`UefiDefaultSecurityKeys.dtbo`)
+   embeds PK, KEK, and db certificates into the firmware. On first boot, the UEFI
+   enrolls these keys and transitions from Setup Mode to User Mode.
+
+2. **EFI signing**: The flash script builds the ESP image at flash time. Before
+   copying EFI binaries into the FAT partition, it signs each `.efi` file with
+   `sbsign` using the db private key. This signs both systemd-boot (`BOOTAA64.efi`)
+   and the UKI.
+
+3. **Enforcement**: Once in User Mode (SetupMode=0, SecureBoot=1), the UEFI
+   firmware rejects any unsigned or incorrectly signed EFI binary with
+   "Access denied".
+
+### Key material
+
+The repository contains two sets of keys:
+
+- **`modules/secureboot/keys/`** — Production certificates generated from a
+  NetHSM. Contains only `.crt` and `.auth` files (public material).
+
+- **`modules/secureboot/dev-keys/`** — Self-signed development keys for testing.
+  Contains both `.crt` (public) and `.key` (private) files. These keys are
+  checked into the repository for convenience — they are explicitly **not secret**
+  and must not be used in production.
+
+### Configuration
+
+Secure Boot is enabled by default for Orin targets via `jetson-orin.nix`:
+
+```nix
+ghaf.hardware.nvidia.orin.secureboot.enable = lib.mkDefault true;
+```
+
+The Orin profile overrides the enrollment certificates to use dev keys:
+
+```nix
+ghaf.hardware.nvidia.orin.secureboot.keysSource = lib.mkDefault ../secureboot/dev-keys;
+```
+
+Available options:
+
+| Option | Description |
+|--------|-------------|
+| `ghaf.hardware.nvidia.orin.secureboot.enable` | Enable/disable UEFI Secure Boot key enrollment |
+| `ghaf.hardware.nvidia.orin.secureboot.keysSource` | Directory with `PK.crt`, `KEK.crt`, `db.crt` for enrollment |
+| `ghaf.hardware.nvidia.orin.secureboot.signingKeyDir` | Directory with `db.key` and `db.crt` for flash-time signing |
+
+### Flashing with Secure Boot
+
+The flash script reads the signing key from `SECURE_BOOT_SIGNING_KEY_DIR` (or
+falls back to the `signingKeyDir` option). Since private keys are not copied into
+the Nix store, you must point the environment variable to the working tree:
+
+```sh
+# Build the flash script
+nix build .#nvidia-jetson-orin-agx-verity-debug-from-x86_64-flash-script
+
+# Flash with dev keys (device must be in recovery mode)
+sudo SECURE_BOOT_SIGNING_KEY_DIR=$PWD/modules/secureboot/dev-keys \
+  ./result/bin/flash-ghaf-host
+```
+
+The flash script will:
+1. Sign `BOOTAA64.efi` and the UKI with the db key
+2. Build the ESP FAT image with the signed binaries
+3. Flash QSPI firmware (with key enrollment DTB overlay) and eMMC partitions
+
+### OTA update image signing
+
+UKIs in OTA update images must also be signed for Secure Boot to accept them.
+
+In **debug builds**, the `uki-signing-key-dir` option signs UKIs at Nix build
+time using the dev keys. This is gated by an assertion — it cannot be used in
+release builds because it places private keys in the Nix store:
+
+```nix
+ghaf.partitioning.verity-volume.uki-signing-key-dir = ./path/to/dev-keys;
+```
+
+In **production**, the OTA update server is responsible for signing UKIs before
+distributing them to devices. The device never holds private signing keys.
+The exact signing integration depends on the update server implementation
+and is not yet implemented.
+
+### Production key workflow
+
+For production builds, replace the key material:
+
+1. Generate production PK/KEK/db certificates (e.g., from a Hardware Security
+   Module).
+2. Set `keysSource` to the directory containing the production `.crt` files.
+3. At flash time, set `SECURE_BOOT_SIGNING_KEY_DIR` to a directory containing
+   the production `db.key` and `db.crt` (e.g., from an HSM-backed PKCS#11
+   token or a secure build machine).
+
+```nix
+ghaf.hardware.nvidia.orin.secureboot = {
+  keysSource = /path/to/production/certs;  # PK.crt, KEK.crt, db.crt
+  signingKeyDir = "/secure/signing/keys";  # db.key, db.crt (runtime path)
+};
+```
+
+### Verification
+
+After flashing and booting, verify Secure Boot is active:
+
+```sh
+# Check UEFI variables
+efi-readvar
+
+# Check boot status
+bootctl status | head -10
+# Should show: Secure Boot: enabled (user)
+
+# Check SetupMode is off (enforcing)
+hexdump -C /sys/firmware/efi/efivars/SetupMode-8be4df61-93ca-11d2-aa0d-00e098032b8c
+# Last byte should be 00 (not in setup mode)
+```
+
+### Generating new dev keys
+
+To regenerate the development keys:
+
+```sh
+cd modules/secureboot/dev-keys
+for name in PK KEK db; do
+  openssl req -new -x509 -newkey rsa:2048 -nodes \
+    -keyout "$name.key" -out "$name.crt" \
+    -subj "/CN=Ghaf Dev Secure Boot $name/" -days 3650
+done
+```
+
+After regenerating, you must reflash the device for the new keys to take effect.
