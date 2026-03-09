@@ -14,6 +14,7 @@ let
   nvpmodel-check = pkgs.callPackage ./scripts/nvpmodel_check.nix { };
   fss-test = pkgs.callPackage ../../tests/logging/test_scripts/fss-test.nix { };
   fss-debug = pkgs.callPackage ../../tests/logging/test_scripts/fss-debug.nix { };
+  fss-rootcause = pkgs.callPackage ../../tests/logging/test_scripts/fss-rootcause.nix { };
 
   inherit (lib) mkEnableOption mkIf rmDesktopEntries;
 in
@@ -42,6 +43,7 @@ in
       # FSS (Forward Secure Sealing) integrity test
       fss-test
       fss-debug
+      fss-rootcause
     ]
     ++ rmDesktopEntries [
       pkgs.htop

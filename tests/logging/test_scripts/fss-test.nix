@@ -285,6 +285,10 @@ writeShellApplication {
 
     if command -v fss-debug >/dev/null 2>&1 && { [ "$FAILED" -gt 0 ] || [ "$WARNED" -gt 0 ]; }; then
       echo "Detailed evidence capture: sudo fss-debug"
+    fi
+
+    if command -v fss-rootcause >/dev/null 2>&1 && { [ "$FAILED" -gt 0 ] || [ "$WARNED" -gt 0 ]; }; then
+      echo "Checkpoint workflow: sudo fss-rootcause help"
       echo ""
     fi
 

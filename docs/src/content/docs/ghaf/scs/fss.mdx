@@ -28,7 +28,7 @@ ghaf.logging.fss = {
 ### Seal Interval Considerations
 
 | Interval | Tamper Granularity | Storage Overhead | Verification Time |
-|----------|--------------------|------------------|-------------------|
+| -------- | ------------------ | ---------------- | ----------------- |
 | 5min     | Fine               | Higher (~2%)     | Longer            |
 | 15min    | Moderate           | Moderate (~0.5%) | Moderate          |
 | 1h       | Coarse             | Lower (~0.1%)    | Faster            |
@@ -37,10 +37,10 @@ ghaf.logging.fss = {
 
 ### Key Locations
 
-| Component | Sealing Key | Verification Key |
-|-----------|-------------|------------------|
-| Host | `/var/log/journal/<id>/fss` | `/persist/common/journal-fss/ghaf-host/verification-key` |
-| VMs | `/var/log/journal/<id>/fss` | `/etc/common/journal-fss/<vm-name>/verification-key` |
+| Component | Sealing Key                 | Verification Key                                         |
+| --------- | --------------------------- | -------------------------------------------------------- |
+| Host      | `/var/log/journal/<id>/fss` | `/persist/common/journal-fss/ghaf-host/verification-key` |
+| VMs       | `/var/log/journal/<id>/fss` | `/etc/common/journal-fss/<vm-name>/verification-key`     |
 
 ### Verification Key Backup
 
@@ -55,6 +55,7 @@ cat /persist/common/journal-fss/ghaf-host/verification-key
 ```
 
 The verification key enables:
+
 - Independent verification of exported journal archives
 - Audit by external parties without access to the live system
 - Disaster recovery verification
@@ -90,11 +91,13 @@ Two scripts are available for deployed systems:
 
 - `fss-test`: quick health check and policy classification
 - `fss-debug`: full evidence packet for root-cause analysis
+- `fss-rootcause`: labeled checkpoint workflow and packet comparison for intermittent issues
 
 ```bash
 # Build the scripts
 nix build .#checks.x86_64-linux.fss-test
 nix build .#checks.x86_64-linux.fss-debug
+nix build .#checks.x86_64-linux.fss-rootcause
 
 # Deploy and run the quick health check
 scp result/bin/fss-test root@ghaf-host:/tmp/
@@ -103,9 +106,14 @@ ssh root@ghaf-host /tmp/fss-test
 # Deploy and run the deep debug tool
 scp result/bin/fss-debug root@ghaf-host:/tmp/
 ssh root@ghaf-host sudo /tmp/fss-debug
+
+# Deploy and run the root-cause workflow helper
+scp result/bin/fss-rootcause root@ghaf-host:/tmp/
+ssh root@ghaf-host sudo /tmp/fss-rootcause help
 ```
 
 `fss-test` verifies:
+
 1. FSS setup service completed
 2. Sealing key exists
 3. Verification key extracted
@@ -123,6 +131,24 @@ ssh root@ghaf-host sudo /tmp/fss-debug
 5. Current journald configuration and audit rules
 6. Full `journalctl --verify` output plus per-file isolates for failed journals
 7. A summary classifying the result with the same policy as `journal-fss-verify.service`
+
+`fss-rootcause` wraps repeated `fss-debug` packets into a reproducible investigation session. Use it when failures are intermittent or seem correlated with idle/suspend transitions:
+
+```bash
+sudo fss-rootcause capture-guest --session-dir /var/tmp/gui-rootcause --label pre-idle
+sleep 900
+sudo fss-rootcause capture-guest --session-dir /var/tmp/gui-rootcause --label post-idle
+sudo systemctl suspend
+sudo fss-rootcause capture-guest --session-dir /var/tmp/gui-rootcause --label post-suspend
+sudo fss-rootcause compare --session-dir /var/tmp/gui-rootcause --from pre-idle --to post-idle
+sudo fss-rootcause compare --session-dir /var/tmp/gui-rootcause --from post-idle --to post-suspend
+```
+
+On the host, collect the matching microvm and power-management context:
+
+```bash
+sudo fss-rootcause capture-host --session-dir /var/tmp/gui-rootcause --vm-name gui-vm --label post-suspend
+```
 
 ### Key Rotation
 
@@ -180,6 +206,12 @@ For a full local evidence packet instead of ad-hoc command collection:
 
 ```bash
 sudo fss-debug
+```
+
+For intermittent `user-*.journal`, `system@...journal`, or suspend/resume-correlated corruption, use the checkpoint workflow instead of one-off commands:
+
+```bash
+sudo fss-rootcause help
 ```
 
 ### "Failed to parse seed" Error

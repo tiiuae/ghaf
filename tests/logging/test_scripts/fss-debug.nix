@@ -342,8 +342,8 @@ writeShellApplication {
         - \`identity/\`: runtime hostname, machine-id, Ghaf shared identity files, device-id
         - \`layout/\`: journal directory inventory, mounts, path resolution, file metadata
         - \`config/\`: journald config, unit definitions, audit rules
-        - \`services/\`: systemd unit state for FSS, journald, recovery, and identity services
-        - \`logs/\`: recent unit logs, journald logs, boot tail, optional dmesg excerpt
+        - \`services/\`: systemd unit state for FSS, journald, logind, user managers, recovery, and identity services
+        - \`logs/\`: recent unit logs, journald logs, power/suspend events, user manager logs, boot tail, optional dmesg excerpt
         - \`verify/\`: full verify output, active \`system.journal\` isolate, failed-file isolates, optional \`fss-test\`
 
         Sensitive material:
@@ -548,8 +548,8 @@ writeShellApplication {
                 "systemd-analyze cat-config systemd/journald.conf 2>/dev/null || true"
               capture_shell \
                 "$OUT_DIR/config/01-unit-definitions.txt" \
-                "systemctl cat journal-fss-setup.service journal-fss-verify.service journal-fss-verify.timer systemd-journald.service ghaf-dynamic-hostname.service set-dynamic-hostname.service ghaf-clock-jump-watcher.service ghaf-journal-alloy-recover.service alloy.service" \
-                "systemctl cat journal-fss-setup.service journal-fss-verify.service journal-fss-verify.timer systemd-journald.service ghaf-dynamic-hostname.service set-dynamic-hostname.service ghaf-clock-jump-watcher.service ghaf-journal-alloy-recover.service alloy.service 2>/dev/null || true"
+                "systemctl cat journal-fss-setup.service journal-fss-verify.service journal-fss-verify.timer systemd-journald.service systemd-logind.service ghaf-dynamic-hostname.service set-dynamic-hostname.service ghaf-clock-jump-watcher.service ghaf-journal-alloy-recover.service alloy.service" \
+                "systemctl cat journal-fss-setup.service journal-fss-verify.service journal-fss-verify.timer systemd-journald.service systemd-logind.service ghaf-dynamic-hostname.service set-dynamic-hostname.service ghaf-clock-jump-watcher.service ghaf-journal-alloy-recover.service alloy.service 2>/dev/null || true"
               capture_shell \
                 "$OUT_DIR/config/02-audit-rules.txt" \
                 "auditctl -l" \
@@ -593,6 +593,22 @@ writeShellApplication {
                 "$OUT_DIR/services/08-optional-services.txt" \
                 "systemctl status ghaf-dynamic-hostname.service set-dynamic-hostname.service ghaf-clock-jump-watcher.service ghaf-journal-alloy-recover.service alloy.service" \
                 "for unit in ghaf-dynamic-hostname.service set-dynamic-hostname.service ghaf-clock-jump-watcher.service ghaf-journal-alloy-recover.service alloy.service; do echo \"== \$unit ==\"; systemctl show \"\$unit\" -p LoadState,UnitFileState,ActiveState,SubState,Result,ExecMainStatus,ExecMainCode,FragmentPath --no-pager 2>/dev/null || true; systemctl status --no-pager \"\$unit\" 2>/dev/null || true; echo; done"
+              capture_shell \
+                "$OUT_DIR/services/09-systemd-logind.show.txt" \
+                "systemctl show systemd-logind.service" \
+                "systemctl show systemd-logind.service -p Id,Names,LoadState,UnitFileState,ActiveState,SubState,Result,ExecMainStatus,ExecMainCode,FragmentPath --no-pager 2>/dev/null || true"
+              capture_shell \
+                "$OUT_DIR/services/10-systemd-logind.status.txt" \
+                "systemctl status systemd-logind.service" \
+                "systemctl status --no-pager systemd-logind.service 2>/dev/null || true"
+              capture_shell \
+                "$OUT_DIR/services/11-user-services.txt" \
+                "systemctl show/status user@*.service" \
+                "units=\$(systemctl list-units --all --plain --no-legend 'user@*.service' 2>/dev/null | awk '{print \$1}' | sort -u); if [ -z \"\$units\" ]; then echo 'No user@*.service units found'; else for unit in \$units; do echo \"== \$unit ==\"; systemctl show \"\$unit\" -p LoadState,UnitFileState,ActiveState,SubState,Result,ExecMainStatus,ExecMainCode,FragmentPath --no-pager 2>/dev/null || true; systemctl status --no-pager \"\$unit\" 2>/dev/null || true; echo; done; fi"
+              capture_shell \
+                "$OUT_DIR/services/12-loginctl.txt" \
+                "loginctl sessions and users" \
+                "echo '== loginctl list-users =='; loginctl list-users --no-legend 2>/dev/null || true; echo; echo '== loginctl list-sessions =='; loginctl list-sessions --no-legend 2>/dev/null || true; echo; users=\$(loginctl list-users --no-legend 2>/dev/null | awk '{print \$1}' | sort -u); if [ -n \"\$users\" ]; then for user_id in \$users; do echo \"== loginctl user-status \$user_id ==\"; loginctl user-status \"\$user_id\" 2>/dev/null || true; echo; done; fi; sessions=\$(loginctl list-sessions --no-legend 2>/dev/null | awk '{print \$1}' | sort -u); if [ -n \"\$sessions\" ]; then for session_id in \$sessions; do echo \"== loginctl session-status \$session_id ==\"; loginctl session-status \"\$session_id\" 2>/dev/null || true; echo; done; fi"
             }
 
             collect_logs() {
@@ -616,10 +632,22 @@ writeShellApplication {
                 "$OUT_DIR/logs/04-boot-tail.txt" \
                 "journalctl -b -n $BOOT_LOG_LINES" \
                 "journalctl -b --no-pager -n $BOOT_LOG_LINES 2>/dev/null || true"
+              capture_shell \
+                "$OUT_DIR/logs/05-systemd-logind.log.txt" \
+                "journalctl -u systemd-logind.service -b -n $SERVICE_LOG_LINES" \
+                "journalctl -u systemd-logind.service --no-pager -b -n $SERVICE_LOG_LINES 2>/dev/null || true"
+              capture_shell \
+                "$OUT_DIR/logs/06-power-events.txt" \
+                "journalctl -b | grep power and suspend patterns" \
+                "journalctl -b --no-pager 2>/dev/null | grep -Ei 'suspend|resume|sleep|hibernate|freeze|logind|power|lid|idle' | tail -n $BOOT_LOG_LINES || true"
+              capture_shell \
+                "$OUT_DIR/logs/07-user-services.log.txt" \
+                "journalctl -u user@*.service -b -n $SERVICE_LOG_LINES" \
+                "units=\$(systemctl list-units --all --plain --no-legend 'user@*.service' 2>/dev/null | awk '{print \$1}' | sort -u); if [ -z \"\$units\" ]; then echo 'No user@*.service units found'; else for unit in \$units; do echo \"== \$unit ==\"; journalctl -u \"\$unit\" --no-pager -b -n $SERVICE_LOG_LINES 2>/dev/null || true; echo; done; fi"
 
               if [ "$INCLUDE_DMESG" -eq 1 ]; then
                 capture_shell \
-                  "$OUT_DIR/logs/05-dmesg-alerts.txt" \
+                  "$OUT_DIR/logs/08-dmesg-alerts.txt" \
                   "dmesg | grep storage and corruption patterns" \
                   "dmesg 2>/dev/null | grep -Ei 'I/O|ext4|btrfs|blk|nvme|virtio|corrupt|error|journal' || true"
               else
@@ -627,7 +655,7 @@ writeShellApplication {
                   printf '# collected_at=%s\n\n' "$(date -u +%FT%TZ)"
                   echo 'dmesg capture skipped'
                   printf '\n__exit_code=0\n'
-                } >"$OUT_DIR/logs/05-dmesg-alerts.txt"
+                } >"$OUT_DIR/logs/08-dmesg-alerts.txt"
               fi
             }
 
@@ -748,6 +776,8 @@ writeShellApplication {
               local timer_next=""
               local fss_test_exit=""
               local journald_alert_count=0
+              local power_event_count=0
+              local user_service_unit_count=0
               local active_count=0
               local archived_count=0
               local user_count=0
@@ -772,6 +802,8 @@ writeShellApplication {
               timer_next="$(extract_systemctl_field "$OUT_DIR/services/04-journal-fss-verify.timer.show.txt" "NextElapseUSecRealtime")"
               fss_test_exit="$(extract_exit_code "$OUT_DIR/verify/03-fss-test.txt")"
               journald_alert_count="$(payload_lines "$OUT_DIR/logs/03-systemd-journald-alerts.txt" | sed '/^$/d' | wc -l)"
+              power_event_count="$(payload_lines "$OUT_DIR/logs/06-power-events.txt" | sed '/^$/d' | wc -l)"
+              user_service_unit_count="$(payload_lines "$OUT_DIR/services/11-user-services.txt" | grep -c '^== user@' || true)"
 
               active_count="$(count_nonempty_lines "$FSS_ACTIVE_SYSTEM_FAILURES")"
               archived_count="$(count_nonempty_lines "$FSS_ARCHIVED_SYSTEM_FAILURES")"
@@ -820,7 +852,7 @@ writeShellApplication {
                   next_actions="Inspect verification-key extraction, fss-config, and key permissions. Compare the configured key dir with the path written by journal-fss-setup."
                   ;;
                 warning_only)
-                  next_actions="Active system journal is currently clean. Treat remaining failures as archived/user residuals and correlate them with rotation or recovery history."
+                  next_actions="Active system journal is currently clean. Treat remaining failures as archived/user residuals, then compare repeated packets across idle and suspend/resume checkpoints to identify when new failed files appear."
                   ;;
                 temp_only)
                   next_actions="Only temporary journal files failed. Re-check after journal rotation and confirm the active system journal remains clean."
@@ -881,6 +913,8 @@ writeShellApplication {
         - journal_fss_verify_timer_active_state: ''${timer_state:-unknown}
         - journal_fss_verify_timer_next: ''${timer_next:-unknown}
         - journald_alert_count: ''${journald_alert_count}
+        - power_event_count: ''${power_event_count}
+        - user_service_unit_count: ''${user_service_unit_count}
         - filesystem_restriction_detected: ''${filesystem_restriction}
 
         ## Failure Buckets
@@ -918,6 +952,9 @@ writeShellApplication {
         - failed-file isolates: ''${OUT_DIR}/verify/02-failed-files.txt
         - verify service logs: ''${OUT_DIR}/logs/01-journal-fss-verify.log.txt
         - journald alerts: ''${OUT_DIR}/logs/03-systemd-journald-alerts.txt
+        - systemd-logind log: ''${OUT_DIR}/logs/05-systemd-logind.log.txt
+        - power events: ''${OUT_DIR}/logs/06-power-events.txt
+        - user services: ''${OUT_DIR}/services/11-user-services.txt
         - journald config: ''${OUT_DIR}/config/00-journald-config.txt
     EOF
             }
