@@ -163,11 +163,35 @@ in
 
       # Virtualization options
       virtualization = {
+        vmConfig.sysvms = {
+          # Interim safety: keep an empty-password recovery unlock path for
+          # encrypted storage images while Jetson fTPM lockout behavior is
+          # being stabilized.
+          netvm.extraModules = [
+            {
+              ghaf.storagevm.encryption.keepDefaultPassword = true;
+            }
+          ];
+          adminvm.extraModules = [
+            {
+              ghaf.storagevm.encryption.keepDefaultPassword = true;
+            }
+          ];
+        };
+
         microvm-host = {
           enable = true;
           networkSupport = true;
           sharedVmDirectory = {
             enable = false;
+          };
+          tpmMux = {
+            enable = true;
+            # Keep explicit list to avoid evaluation-order misses in auto-discovery.
+            vms = [
+              "admin-vm"
+              "net-vm"
+            ];
           };
         };
 
@@ -186,8 +210,13 @@ in
 
           adminvm = {
             enable = true;
-            # Use evaluatedConfig pattern - common is passed via hostConfig
-            evaluatedConfig = cfg.adminvmBase;
+            # Use evaluatedConfig pattern - extend adminvmBase with vmConfig modules
+            evaluatedConfig = cfg.adminvmBase.extendModules {
+              modules = lib.ghaf.vm.applyVmConfig {
+                inherit config;
+                vmName = "adminvm";
+              };
+            };
           };
 
           idsvm = {
@@ -215,6 +244,7 @@ in
       # 2. ghaf.global-config.givc.enable (propagates to VMs via specialArgs)
       givc.enable = false;
       global-config.givc.enable = false;
+      global-config.spiffe.tpmAttestation.endorsementCaBundle = "/etc/common/spire/ca/endorsement-bundle.pem";
 
       host.networking = {
         enable = true;

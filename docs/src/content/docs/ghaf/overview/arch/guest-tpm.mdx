@@ -69,4 +69,6 @@ App VMs currently use emulated TPM on all platforms, unlike system VMs which use
 
 ### Remarks
 
+For the host-side shared hardware TPM mux architecture used by system VMs, see [TPM Mux for System VMs](/ghaf/overview/arch/tpm-mux).
+
 Applications that access the TPM should ideally use TPM 2.0 authenticated sessions. They enable encryption of TPM command payloads, which ensures inspecting or tampering of key material in-transit is not possible. This can be enforced in future updates.

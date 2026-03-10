@@ -276,6 +276,16 @@ in
           sharedVmDirectory = {
             enable = true;
           };
+          tpmMux = {
+            enable = true;
+            # Keep explicit list to avoid evaluation-order misses in auto-discovery.
+            vms = [
+              "admin-vm"
+              "audio-vm"
+              "gui-vm"
+              "net-vm"
+            ];
+          };
         };
 
         microvm = {

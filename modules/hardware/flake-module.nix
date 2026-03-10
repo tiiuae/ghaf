@@ -24,6 +24,7 @@
     hardware-aarch64-generic.imports = [
       ./definition.nix
       ./aarch64/systemd-boot-dtb.nix
+      ./common/tpm-endorsement.nix
       ./passthrough
     ];
   };

@@ -1,0 +1,160 @@
+---
+title: TPM Mux for System VMs
+description: Architecture, implementation, and test plan for shared hardware TPM access in Ghaf system VMs
+---
+
+## Overview
+
+Ghaf system VMs can share one hardware TPM through a host-side mux layer instead of direct passthrough. This design keeps the trust anchor in hardware while avoiding direct concurrent access from multiple guests.
+
+The current non-riscv64 system VM profile uses this model for:
+
+- `admin-vm`
+- `audio-vm`
+- `gui-vm`
+- `net-vm`
+
+On riscv64, system VMs continue to use emulated TPM.
+
+## Why This Exists
+
+Direct passthrough from multiple guests to one TPM can lead to command contention, unreliable startup sequencing, and lockup-like timeout behavior under load. The TPM mux architecture addresses this by introducing controlled fan-out on the host:
+
+- one backend hardware TPM resource manager device (`/dev/tpmrm0` by default)
+- one per-VM forwarder process
+- one per-VM proxy endpoint exposed to QEMU
+
+This preserves VM isolation while making startup and runtime behavior more predictable.
+
+## Architecture
+
+The system is composed of four layers:
+
+1. **Host TPM backend**
+   - `tpm2-abrmd` and host kernel TPM stack
+   - hardware device path defaults to `/dev/tpmrm0`
+2. **Per-VM mux forwarder**
+   - service `ghaf-vtpm-forwarder-<vm>.service`
+   - binary `vtpm-abrmd-forwarder`
+3. **QEMU guest TPM device wiring**
+   - `-tpmdev passthrough,id=tpm0,path=/run/ghaf-vtpm/<vm>.tpm,cancel-path=/tmp/cancel`
+   - `-device tpm-tis` (x86_64) or `tpm-tis-device` (aarch64)
+4. **Guest userspace consumers**
+   - storage encryption helpers
+   - SPIFFE DevID provisioning and attestation
+
+### Boot Ordering
+
+Host systemd ordering enforces forwarder readiness before VM launch:
+
+- `ghaf-vtpm-forwarder-<vm>.service` starts before `microvm@<vm>.service`
+- `microvm@<vm>.service` requires the corresponding forwarder service
+- forwarders use `Type=notify` and become ready only after link endpoint setup
+
+## Implementation Details
+
+### Host Module
+
+Host orchestration is defined in `modules/microvm/host/tpm-mux.nix`:
+
+- enables host TPM stack and `tpm2-abrmd`
+- loads kernel module `tpm_vtpm_proxy`
+- creates runtime directory (`/run/ghaf-vtpm` by default)
+- creates one forwarder service per mux-enabled VM
+- auto-discovers VM list when `ghaf.virtualization.microvm-host.tpmMux.vms = [ ]`
+
+### Guest Module
+
+Guest TPM mode wiring is in `modules/microvm/common/vm-tpm.nix`:
+
+- exactly one TPM mode can be enabled (`passthrough`, `muxed`, or `emulated`)
+- mux mode exports host path as QEMU passthrough backend
+- guest `tpm0` permissions are configured for TPM userspace components
+
+### System VM Base Integration
+
+System VM defaults now select mux mode on non-riscv64 when storage encryption is enabled:
+
+- `modules/microvm/sysvms/adminvm-base.nix`
+- `modules/microvm/sysvms/audiovm-base.nix`
+- `modules/microvm/sysvms/guivm-base.nix`
+- `modules/microvm/sysvms/netvm-base.nix`
+
+The laptop profile host mux config currently sets an explicit system VM list:
+
+- `modules/profiles/laptop-x86.nix`
+
+## SPIFFE / DevID Considerations
+
+The TPM mux layer is transparent to SPIFFE from a consumer perspective (`/dev/tpm0` inside guests), but it affects timing and reliability characteristics. For TPM DevID flows, keep these guardrails:
+
+- ensure provisioning and attestation are resilient to transient TPM retries/timeouts
+- validate DevID cert public key matches VM TPM key before accepting cached certs
+- prefer restart-safe provisioning behavior over one-shot assumptions
+
+## Testing Strategy
+
+Use a staged test plan for each change.
+
+### 1. Static and Policy Checks
+
+- `nix fmt -- --fail-on-change`
+- `nix develop --command reuse lint`
+
+### 2. Build and Evaluation
+
+- evaluate affected target(s)
+- build image/closure that includes updated VM bases and host mux module
+
+### 3. Boot and Service Readiness
+
+On host:
+
+- verify `tpm2-abrmd.service` is active
+- verify `ghaf-vtpm-forwarder-<vm>.service` is active for each system VM
+- verify `microvm@<vm>.service` starts after the matching forwarder
+
+In each VM (`admin-vm`, `audio-vm`, `gui-vm`, `net-vm`):
+
+- verify `/dev/tpm0` exists and has expected ownership/mode
+- run basic command smoke test, for example `tpm2_getrandom 8`
+
+### 4. Concurrency and Stress
+
+Run concurrent TPM command loops in all system VMs and monitor:
+
+- VM command success rate
+- forwarder restarts and error counters
+- host kernel TPM timeout messages
+
+Gate condition: sustained test window with no forwarder crashes and acceptable command success ratio.
+
+### 5. SPIFFE End-to-End
+
+For TPM DevID-enabled VMs:
+
+- restart `spire-devid-provision` and `spire-agent`
+- verify successful node attestation in agent logs
+- verify matching successful request completion in server logs
+- verify agent restarts load existing SVID without re-entering failure loops
+
+## Troubleshooting Checklist
+
+If a VM shows TPM failures:
+
+1. Confirm forwarder service for that VM is active on host.
+2. Confirm VM started after forwarder (systemd ordering).
+3. Check host logs for `tpm tpm2: Operation Timed out` or retry loops.
+4. Check forwarder logs for backend receive latency and proxy write/read errors.
+5. For SPIFFE failures, verify DevID cert/public-key match before retrying attestation.
+
+## Known Constraints
+
+- Shared hardware TPM is still a serialized resource; under heavy multi-VM load, latency spikes can occur.
+- Some TPM commands are more sensitive to contention and timeout behavior.
+- Operational reliability depends on both mux correctness and consumer retry/backoff behavior.
+
+## Related Documents
+
+- [Virtualized TPM for guests](/ghaf/overview/arch/guest-tpm)
+- [Ghaf Architecture Overview](/ghaf/overview/arch/system-architecture)
