@@ -131,6 +131,29 @@ in
                   echo 'TPM already enrolled'
                   exit 0
                 fi
+
+                # Wait for the TPM owner hierarchy to become accessible (max 60s).
+                # The host re-enables it after VM initrd LUKS operations complete.
+                TPM_READY=0
+                for attempt in $(seq 1 30); do
+                  if tpm2_createprimary -C owner -c /tmp/tpm-hierarchy-test.ctx -Q 2>/dev/null; then
+                    rm -f /tmp/tpm-hierarchy-test.ctx
+                    echo "TPM owner hierarchy is accessible"
+                    TPM_READY=1
+                    break
+                  fi
+                  rm -f /tmp/tpm-hierarchy-test.ctx
+                  echo "Waiting for TPM owner hierarchy... ($attempt/30)"
+                  sleep 2
+                done
+                if [ "$TPM_READY" -eq 0 ]; then
+                  TPM_ERR=$(tpm2_createprimary -C owner -c /tmp/tpm-hierarchy-test.ctx -Q 2>&1) || true
+                  rm -f /tmp/tpm-hierarchy-test.ctx
+                  echo "TPM owner hierarchy not accessible after 60s: $TPM_ERR"
+                  echo "Skipping TPM enrollment — LUKS will use password-only unlock"
+                  exit 0
+                fi
+
                 ${lib.optionalString tpm.passthrough.enable ''
                   tpm2_evictcontrol -C owner -c ${tpm.passthrough.rootNVIndex} || true
                   tpm2_createprimary -C owner -c storage.ctx

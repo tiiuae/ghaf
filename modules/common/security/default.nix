@@ -9,6 +9,7 @@
     ./disk-encryption.nix
     ./fail2ban.nix
     ./pwquality.nix
+    ./spiffe
     ./ssh-tarpit
     ./fleet
     ../../secureboot/secureboot.nix

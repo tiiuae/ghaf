@@ -7,5 +7,6 @@
     ./input.nix
     ./kernel.nix
     ./qemu.nix
+    ./tpm-endorsement.nix
   ];
 }

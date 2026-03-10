@@ -62,22 +62,28 @@ in
     (mkIf cfg.passthrough.enable {
       assertions = [
         {
-          assertion = pkgs.stdenv.isx86_64;
-          message = "TPM passthrough is only supported on x86_64";
+          assertion = pkgs.stdenv.isx86_64 || pkgs.stdenv.isAarch64;
+          message = "TPM passthrough is only supported on x86_64 and aarch64";
         }
       ];
 
       microvm.qemu = {
-        extraArgs = [
-          "-tpmdev"
-          "passthrough,id=tpmrm0,path=/dev/tpmrm0,cancel-path=/tmp/cancel"
-          "-device"
-          "tpm-tis,tpmdev=tpmrm0"
-        ];
+        extraArgs =
+          let
+            # x86_64 uses tpm-tis (ISA/LPC bus), aarch64 uses tpm-tis-device (MMIO/platform bus)
+            tpmDevice = if pkgs.stdenv.isx86_64 then "tpm-tis" else "tpm-tis-device";
+          in
+          [
+            "-tpmdev"
+            "passthrough,id=tpmrm0,path=/dev/tpmrm0,cancel-path=/tmp/cancel"
+            "-device"
+            "${tpmDevice},tpmdev=tpmrm0"
+          ];
 
         # Workaround a bug when machine type is `microvm`
         #   tpm_tis MSFT0101:00: [Firmware Bug]: failed to get TPM2 ACPI table
-        machine = "q35";
+        # Only relevant for x86_64 (aarch64 uses "virt" machine type set by VM bases)
+        machine = mkIf pkgs.stdenv.isx86_64 "q35";
       };
     })
     (mkIf cfg.emulated.enable {
