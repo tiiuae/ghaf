@@ -213,8 +213,14 @@ in
       # that isn't set up for Orin devices. This must be set in both:
       # 1. ghaf.givc.enable (host-level option)
       # 2. ghaf.global-config.givc.enable (propagates to VMs via specialArgs)
-      givc.enable = false;
-      global-config.givc.enable = false;
+      givc.enable = true;
+      global-config.givc.enable = true;
+
+      # Use development keys for both enrollment and signing.
+      # Production builds should override keysSource with the real
+      # certs and set SECURE_BOOT_SIGNING_KEY_DIR to the HSM-backed
+      # key directory at flash time.
+      hardware.nvidia.orin.secureboot.keysSource = lib.mkDefault ../secureboot/dev-keys;
 
       host.networking = {
         enable = true;

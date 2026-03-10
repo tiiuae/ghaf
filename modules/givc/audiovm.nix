@@ -29,14 +29,14 @@ in
     givc.sysvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
+      network.agent.transport = {
         name = hostName;
         addr = hosts.${hostName}.ipv4;
         port = "9000";
       };
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      services = [
+      network.admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.tls.enable = config.ghaf.givc.enableTls;
+      capabilities.services = [
         "poweroff.target"
         "reboot.target"
       ]
@@ -44,38 +44,55 @@ in
         "suspend.target"
         "systemd-suspend.service"
       ];
-      socketProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+      capabilities.socketProxy =
+        let
+          sockets =
+            lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+              {
+                transport = {
+                  name = guivmName;
+                  addr = hosts.${guivmName}.ipv4;
+                  port = "9011";
+                  protocol = "tcp";
+                };
+                socket = "/tmp/dbusproxy_snd.sock";
+              }
+            ]
+            ++ lib.optionals (audioCfg.enable && audioCfg.server.pipewireForwarding.enable) [
+              {
+                transport = {
+                  name = guivmName;
+                  addr = hosts.${guivmName}.ipv4;
+                  inherit (audioCfg.server.pipewireForwarding) port;
+                  protocol = "tcp";
+                };
+                inherit (audioCfg.server.pipewireForwarding) socket;
+              }
+            ];
+        in
         {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9011";
-            protocol = "tcp";
-          };
-          socket = "/tmp/dbusproxy_snd.sock";
-        }
-        (lib.optionalAttrs (audioCfg.enable && audioCfg.server.pipewireForwarding.enable) {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            inherit (audioCfg.server.pipewireForwarding) port;
-            protocol = "tcp";
-          };
-          inherit (audioCfg.server.pipewireForwarding) socket;
-        })
-      ];
-      eventProxy = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+          enable = sockets != [ ];
+          inherit sockets;
+        };
+      capabilities.eventProxy =
+        let
+          events = lib.optionals (builtins.elem guivmName config.ghaf.common.vms) [
+            {
+              transport = {
+                name = guivmName;
+                addr = hosts.${guivmName}.ipv4;
+                port = "9012";
+                protocol = "tcp";
+              };
+              producer = true;
+              device = "mouse";
+            }
+          ];
+        in
         {
-          transport = {
-            name = guivmName;
-            addr = hosts.${guivmName}.ipv4;
-            port = "9012";
-            protocol = "tcp";
-          };
-          producer = true;
-          device = "mouse";
-        }
-      ];
+          enable = events != [ ];
+          inherit events;
+        };
     };
     givc.dbusproxy = {
       enable = true;
