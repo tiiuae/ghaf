@@ -64,6 +64,7 @@ let
       extraModules ? [ ],
       extraConfig ? { },
       vmConfig ? { },
+      buildSysupdateImage ? false,
     }:
     let
       # Select the profile module based on target type
@@ -222,6 +223,7 @@ let
         extendHost
         extendVm
         getVmConfig
+        buildSysupdateImage
         ;
       name = fullName;
     };
