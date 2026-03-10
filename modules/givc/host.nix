@@ -26,12 +26,14 @@ in
     givc.host = {
       enable = true;
       inherit (config.ghaf.givc) debug;
-      transport = {
+      network.agent.transport = {
         name = config.networking.hostName;
         addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
         port = "9000";
       };
-      services = [
+      network.admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+      network.tls.enable = config.ghaf.givc.enableTls;
+      capabilities.services = [
         "reboot.target"
         "poweroff.target"
         "suspend.target"
@@ -44,14 +46,16 @@ in
         "host-balanced-battery.service"
         "host-performance-battery.service"
       ];
-      adminVm = optionalString (
+      capabilities.vmServices.adminVm = optionalString (
         config.ghaf.common.adminHost != null
       ) "microvm@${config.ghaf.common.adminHost}.service";
-      systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
-      appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      enableExecModule = true;
+      capabilities.vmServices.systemVms = map (
+        vmName: "microvm@${vmName}.service"
+      ) config.ghaf.common.systemHosts;
+      capabilities.vmServices.appVms = map (
+        vmName: "microvm@${vmName}.service"
+      ) config.ghaf.common.appHosts;
+      capabilities.exec.enable = true;
     };
 
     givc.tls = {

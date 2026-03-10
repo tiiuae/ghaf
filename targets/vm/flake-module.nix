@@ -54,34 +54,40 @@ let
               # GIVC config for netvm - point socket proxy to host
               netvmGivcModule = lib.optionalAttrs withGraphics {
                 givc.sysvm = {
-                  hwidService = lib.mkForce false;
-                  socketProxy = lib.mkForce [
-                    {
-                      transport = {
-                        name = hostName;
-                        addr = hostIpv4;
-                        port = "9010"; # GIVC netvm proxy port
-                        protocol = "tcp";
-                      };
-                      socket = "/tmp/dbusproxy_net.sock"; # D-Bus proxy for NetworkManager
-                    }
-                  ];
+                  capabilities.hwid.enable = lib.mkForce false;
+                  capabilities.socketProxy = lib.mkForce {
+                    enable = true;
+                    sockets = [
+                      {
+                        transport = {
+                          name = hostName;
+                          addr = hostIpv4;
+                          port = "9010"; # GIVC netvm proxy port
+                          protocol = "tcp";
+                        };
+                        socket = "/tmp/dbusproxy_net.sock"; # D-Bus proxy for NetworkManager
+                      }
+                    ];
+                  };
                 };
               };
 
               # GIVC config for audiovm - point socket proxy to host
               audiovmGivcModule = lib.optionalAttrs withGraphics {
-                givc.sysvm.socketProxy = lib.mkForce [
-                  {
-                    transport = {
-                      name = hostName;
-                      addr = hostIpv4;
-                      port = "9011"; # GIVC audiovm proxy port
-                      protocol = "tcp";
-                    };
-                    socket = "/tmp/dbusproxy_snd.sock"; # D-Bus proxy for PulseAudio/Blueman
-                  }
-                ];
+                givc.sysvm.capabilities.socketProxy = lib.mkForce {
+                  enable = true;
+                  sockets = [
+                    {
+                      transport = {
+                        name = hostName;
+                        addr = hostIpv4;
+                        port = "9011"; # GIVC audiovm proxy port
+                        protocol = "tcp";
+                      };
+                      socket = "/tmp/dbusproxy_snd.sock"; # D-Bus proxy for PulseAudio/Blueman
+                    }
+                  ];
+                };
               };
 
               # Reference to profile for convenience
@@ -211,13 +217,16 @@ let
 
               # Enable GUI component on host
               givc.sysvm = lib.optionalAttrs withGraphics {
-                transport = {
+                network.agent.transport = {
                   name = lib.mkForce "ghaf-host-gui";
                   addr = config.ghaf.networking.hosts.ghaf-host.ipv4;
                   port = lib.mkForce "9002"; # GIVC host GUI transport port
                 };
-                services = [ ];
-                eventProxy = lib.mkForce [ ];
+                capabilities.services = [ ];
+                capabilities.eventProxy = lib.mkForce {
+                  enable = false;
+                  events = [ ];
+                };
               };
 
               # Reorder some GIVC services to ensure proper startup order in host
