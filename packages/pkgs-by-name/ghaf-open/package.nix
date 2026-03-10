@@ -76,7 +76,11 @@ writeShellApplication {
                 /^\[Desktop Entry\]/ { in_section=1; next }
                 /^\[/ { in_section=0 }
 
-                in_section && /^Name=/      { n = ($2 == name) }
+                in_section && /^Name=/ {
+                    val = $2
+                    gsub(/^\[[^]]*\][[:space:]]*/, "", val)
+                    n = (val == name || $2 == name)
+                }
                 in_section && /^Exec=/      { e = 1 }
                 in_section && /^NoDisplay=/ { nd = ($2 == "true") }
 
@@ -99,6 +103,21 @@ writeShellApplication {
             return 1
         fi
         echo "Found $APP"
+
+        if [[ -z "''${WAYLAND_DISPLAY:-}" ]] && [[ -n "''${XDG_RUNTIME_DIR:-}" ]]; then
+            echo "WAYLAND_DISPLAY is unset, searching in XDG_RUNTIME_DIR..."
+            for sock in "$XDG_RUNTIME_DIR"/wayland-*; do
+                if [[ -S "$sock" ]]; then
+                    export WAYLAND_DISPLAY="''${sock##*/}"
+                    echo "Found Wayland socket: $WAYLAND_DISPLAY"
+                    break
+                fi
+            done
+            if [[ -z "$WAYLAND_DISPLAY" ]]; then
+                echo "No Wayland socket found, continuing without WAYLAND_DISPLAY"
+            fi
+        fi
+
         exec_cmd=$(extract_exec "$APP")
         if [[ -n "$exec_cmd" ]]; then
             echo "Starting application from $APP with command: $exec_cmd"

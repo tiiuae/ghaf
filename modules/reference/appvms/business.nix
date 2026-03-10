@@ -208,10 +208,11 @@ in
           }
           {
             name = "chrome-outlook.office.com__mail_-Default";
-            desktopName = "Microsoft Outlook";
+            desktopName = "Outlook";
             categories = [
-              "Email"
               "Calendar"
+              "Email"
+              "Office"
             ];
             description = "Microsoft Email Client";
             icon = "ms-outlook";

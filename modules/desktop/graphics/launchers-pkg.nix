@@ -10,7 +10,8 @@ let
   toDesktop =
     launcherElem:
     let
-      prefix = if launcherElem.vm != null then "[${launcherElem.vm}] " else "";
+      prefix =
+        if launcherElem.vm != null then "[${lib.strings.removeSuffix "-vm" launcherElem.vm}] " else "";
       icon =
         if launcherElem.icon != null then
           launcherElem.icon
@@ -32,13 +33,13 @@ let
     (pkgs.makeDesktopItem {
       inherit (launcherElem)
         name
-        desktopName
         genericName
         categories
         exec
         noDisplay
         ;
       inherit icon startupWMClass;
+      desktopName = "${prefix}${launcherElem.desktopName}";
       comment = "${prefix}${launcherElem.description}";
     }).overrideAttrs
       (prevAttrs: {

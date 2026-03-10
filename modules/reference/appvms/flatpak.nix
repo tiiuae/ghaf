@@ -163,6 +163,9 @@ let
                 s|^Path=.*||; \
                 /^\[Desktop Action/,/^\[/{/^Exec=/d}" "$desktop"
 
+              # Add VM labels while preserving localizations
+              sed -i "s|^Name\(.*\)=\(.*\)|Name\1=[flatpak] \2|" "$desktop"
+
               add_desktop_actions "$desktop" "$app_id" "uninstall" "force-quit"
             done
             echo "Updated Exec lines in .desktop files under $DESKTOP_DIR"
