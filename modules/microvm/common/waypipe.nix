@@ -162,7 +162,7 @@ in
               RestartSec = "1";
               ExecStart =
                 let
-                  titlePrefix = ''--title-prefix "[${cfg.vm.name}-vm] "'';
+                  titlePrefix = ''--title-prefix "[${cfg.vm.name}] "'';
                   secctx = "--secctx \"${cfg.vm.name}\"";
                 in
                 ''
