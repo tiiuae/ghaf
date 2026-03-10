@@ -1,11 +1,5 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
-#
-# Builds standalone ESP and root partition images for initrd-based flashing.
-# These replace the legacy sdImage approach: instead of a single disk image,
-# we build ESP (FAT32) and root (ext4) as independent compressed images that
-# are written to eMMC partitions created on-device by sgdisk.
-#
 {
   config,
   pkgs,
@@ -38,7 +32,7 @@ let
 
   fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
 
-  # ESP image: FAT32 with systemd-boot, kernel, initrd, device tree
+  # ESP image
   espSizeMiB = 256;
   espSizeBytes = espSizeMiB * 1024 * 1024;
 
@@ -68,14 +62,42 @@ let
         done
       '';
 
-  # Root image: ext4 containing the NixOS closure, auto-sized to contents
+  # For symlinks into /nix/store
+  inherit (config.system.build) toplevel;
+  systemBaseName = baseNameOf toplevel;
+
+  # Root image: ext4 containing the full NixOS closure (incl. boot)
   rootImage = pkgs.callPackage (modulesPath + "/../lib/make-ext4-fs.nix") {
-    storePaths = [ config.system.build.toplevel ];
+    storePaths = [
+      config.system.build.toplevel
+      config.boot.kernelPackages.kernel
+      config.system.build.initialRamdisk
+      config.system.build.bootStage2
+    ];
+
     volumeLabel = "NIXOS_ROOT";
+
+    # NOTE: Correct parameter name is populateImageCommands
+    # make-ext4-fs.nix will itself add /nix-path-registration to rootImage.
     populateImageCommands = ''
+      mkdir -p ./files
       mkdir -p ./files/etc
-      echo "${config.system.build.toplevel}" > ./files/etc/.nixos-toplevel
-      cp ${config.system.build.toplevel}/etc/os-release ./files/etc/os-release
+      mkdir -p ./files/run
+      mkdir -p ./files/nix/var/nix/profiles
+      mkdir -p ./files/nix/var/nix/gcroots/profiles
+
+      # Mark as NixOS and pin the toplevel path for traceability
+      echo -n > ./files/etc/NIXOS
+      echo "${toplevel}" > ./files/etc/.nixos-toplevel
+      cp ${toplevel}/etc/os-release ./files/etc/os-release
+
+      # GC roots that protect the system even before profile is set
+      ln -sfn /nix/store/${systemBaseName} ./files/nix/var/nix/gcroots/profiles/system
+      ln -sfn /nix/store/${systemBaseName} ./files/run/current-system
+      ln -sfn /nix/store/${systemBaseName} ./files/run/booted-system
+
+      # Let systemd generate a machine-id
+      : > ./files/etc/machine-id
     '';
   };
 in
@@ -94,11 +116,22 @@ in
       fsType = "vfat";
     };
 
+    # >>> First-boot finalization (mirrors sd-image.nix) <<<
+    # Loads /nix-path-registration written by make-ext4-fs.nix and
+    # sets the "system" profile so GC roots are persistent thereafter.
+    boot.postBootCommands = ''
+      set -eu
+      reg="/nix-path-registration"
+      if [ -f "$reg" ]; then
+        ${config.nix.package.out}/bin/nix-store --load-db < "$reg"
+        touch /etc/NIXOS
+        ${config.nix.package.out}/bin/nix-env -p /nix/var/nix/profiles/system --set /run/current-system
+        rm -f "$reg"
+      fi
+    '';
+
     system.build.ghafFlashImages =
-      pkgs.runCommand "ghaf-flash-images"
-        {
-          nativeBuildInputs = [ pkgs.zstd ];
-        }
+      pkgs.runCommand "ghaf-flash-images" { nativeBuildInputs = [ pkgs.zstd ]; }
         ''
           mkdir -p $out
           zstd -19 -T$NIX_BUILD_CORES ${espImage} -o $out/esp.img.zst
