@@ -328,6 +328,8 @@ in
         vcpu = lib.mkDefault (vm.vcpu or 4);
         hypervisor = "qemu";
 
+        virtiofsd.extraArgs = [ "--cache=always" ];
+
         shares = [
           {
             tag = "ghaf-common";
