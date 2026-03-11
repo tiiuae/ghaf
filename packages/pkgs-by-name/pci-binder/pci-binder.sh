@@ -156,7 +156,7 @@ parse_input() {
 init_pci_unbind() {
 
   # Add all PCI devices that are passed through to this guest
-  declare -a pci_device_paths
+  declare -a pci_device_paths=()
 
   for device in "${PCI_INPUT_DEVICES[@]}"; do
     if guest_pci_id=$(lspci -n | grep -i "${device}" | awk '{print $1}'); then
