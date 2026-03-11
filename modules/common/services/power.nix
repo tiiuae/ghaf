@@ -128,8 +128,7 @@ let
           case "$action" in
             suspend)
               echo "Signaling suspend to $vm_name..."
-              vm=''${vm_name/-vm/}
-              ${givc-cli} start service --vm "$vm" suspend.target &
+              ${givc-cli} start service --vm "$vm_name" suspend.target &
               # Wait until suspend is active
               ${getExe pkgs.wait-for-unit} ${config.ghaf.networking.hosts.admin-vm.ipv4} 9001 \
               "$vm_name" systemd-suspend.service 5 \
@@ -535,7 +534,7 @@ in
         mkDefault {
           HandleLidSwitch = lidEvent;
           HandleLidSwitchDocked = "ignore";
-          HandleLidSwitchExternalPower = "ignore";
+          HandleLidSwitchExternalPower = lidEvent;
           # Below keys are usually handled by host anyway
           HandleSuspendKey = "ignore";
           HandleHibernateKey = "ignore";
