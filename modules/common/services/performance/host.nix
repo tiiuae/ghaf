@@ -157,7 +157,7 @@ let
       scsi_host.alpm = "min_power";
 
       sysctl = {
-        "vm.swappiness" = "30";
+        "vm.swappiness" = "5";
         "vm.laptop_mode" = "5";
         "vm.dirty_writeback_centisecs" = "1500";
         "kernel.nmi_watchdog" = "0";
@@ -186,12 +186,14 @@ let
         transparent_hugepages = "madvise";
       };
 
+      disk.readahead = ">2048";
+
       audio.timeout = "10";
 
       scsi_host.alpm = "medium_power";
 
       sysctl = {
-        "vm.swappiness" = "20";
+        "vm.swappiness" = "5";
         "vm.dirty_writeback_centisecs" = "1500";
         "vm.laptop_mode" = "2";
       };
@@ -217,6 +219,7 @@ let
       vm = {
         dirty_bytes = "40%";
         dirty_background_bytes = "10%";
+        transparent_hugepages = "madvise";
       };
 
       disk.readahead = ">4096";
@@ -224,7 +227,7 @@ let
       scsi_host.alpm = "max_performance";
 
       sysctl = {
-        "vm.swappiness" = "10";
+        "vm.swappiness" = "5";
         "net.core.somaxconn" = ">2048";
         "vm.dirty_writeback_centisecs" = "1500";
         "vm.laptop_mode" = "0";
@@ -240,7 +243,7 @@ in
       enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for the host.";
       scheduler = {
         enable = mkEnableOption "system76-scheduler on host for Ghaf-specific process scheduling." // {
-          default = true;
+          default = false;
         };
       };
       tuned = {
