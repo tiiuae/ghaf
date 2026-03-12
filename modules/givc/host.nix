@@ -7,7 +7,9 @@
 }:
 let
   cfg = config.ghaf.givc.host;
+  policycfg = config.ghaf.givc.policyClient;
   inherit (lib)
+    mapAttrs
     mkEnableOption
     mkIf
     optionalString
@@ -22,36 +24,53 @@ in
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
-    # Configure host service
+    assertions = [
+      {
+        assertion = !config.ghaf.givc.policyAdmin.enable;
+        message = "Policy admin cannot be enabled in host.";
+      }
+    ];
     givc.host = {
       enable = true;
+
       inherit (config.ghaf.givc) debug;
-      transport = {
-        name = config.networking.hostName;
-        addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
-        port = "9000";
+      network = {
+        agent.transport = {
+          name = config.networking.hostName;
+          addr = config.ghaf.networking.hosts.${config.networking.hostName}.ipv4;
+          port = "9000";
+        };
+        tls.enable = config.ghaf.givc.enableTls;
+        admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
       };
-      services = [
-        "reboot.target"
-        "poweroff.target"
-        "suspend.target"
-      ]
-      ++ optionals config.ghaf.services.performance.host.tuned.enable [
-        "host-powersave.service"
-        "host-balanced.service"
-        "host-performance.service"
-        "host-powersave-battery.service"
-        "host-balanced-battery.service"
-        "host-performance-battery.service"
-      ];
-      adminVm = optionalString (
-        config.ghaf.common.adminHost != null
-      ) "microvm@${config.ghaf.common.adminHost}.service";
-      systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
-      appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
-      enableExecModule = true;
+      capabilities = {
+        services = [
+          "reboot.target"
+          "poweroff.target"
+          "suspend.target"
+        ]
+        ++ optionals config.ghaf.services.performance.host.tuned.enable [
+          "host-powersave.service"
+          "host-balanced.service"
+          "host-performance.service"
+          "host-powersave-battery.service"
+          "host-balanced-battery.service"
+          "host-performance-battery.service"
+        ];
+        vmServices = {
+          adminVm = optionalString (
+            config.ghaf.common.adminHost != null
+          ) "microvm@${config.ghaf.common.adminHost}.service";
+          systemVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.systemHosts;
+          appVms = map (vmName: "microvm@${vmName}.service") config.ghaf.common.appHosts;
+        };
+        exec.enable = true;
+        policy = mkIf policycfg.enable {
+          enable = true;
+          inherit (policycfg) storePath;
+          policies = mapAttrs (_name: value: value.dest) policycfg.policies;
+        };
+      };
     };
 
     givc.tls = {

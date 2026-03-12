@@ -7,11 +7,13 @@
 }:
 let
   cfg = config.ghaf.givc.appvm;
+  policycfg = config.ghaf.givc.policyClient;
   inherit (lib)
     mkOption
     mkEnableOption
     mkIf
     types
+    mapAttrs
     ;
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
@@ -29,19 +31,35 @@ in
   };
 
   config = mkIf (cfg.enable && config.ghaf.givc.enable) {
+    assertions = [
+      {
+        assertion = !config.ghaf.givc.policyAdmin.enable;
+        message = "Policy admin cannot be enabled in appvm.";
+      }
+    ];
     # Configure appvm service
     givc.appvm = {
       enable = true;
       inherit (config.ghaf.givc) debug;
       inherit (config.ghaf.users.homedUser) uid;
-      transport = {
-        name = hostName;
-        addr = hosts.${hostName}.ipv4;
-        port = "9000";
+      network = {
+        agent.transport = {
+          name = hostName;
+          addr = hosts.${hostName}.ipv4;
+          port = "9000";
+        };
+        admin.transport = lib.head config.ghaf.givc.adminConfig.addresses;
+        tls.enable = config.ghaf.givc.enableTls;
       };
-      inherit (cfg) applications;
-      tls.enable = config.ghaf.givc.enableTls;
-      admin = lib.head config.ghaf.givc.adminConfig.addresses;
+      capabilities = {
+        inherit (cfg) applications;
+
+        policy = mkIf policycfg.enable {
+          enable = true;
+          inherit (policycfg) storePath;
+          policies = mapAttrs (_name: value: value.dest) policycfg.policies;
+        };
+      };
     };
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"

@@ -28,7 +28,7 @@ jobs:
             cancel-in-progress: true
         steps:
             - name: Harden the runner (Audit all outbound calls)
-              uses: step-security/harden-runner@a90bcbc6539c36a85cdfeb73f7e2f433735f215b # v2.15.0
+              uses: step-security/harden-runner@58077d3c7e43986b6b15fba718e8ea69e387dfcc # v2.15.1
               with:
                   egress-policy: audit
 
@@ -40,7 +40,7 @@ jobs:
                   persist-credentials: false
 
             - name: Install nix
-              uses: cachix/install-nix-action@2126ae7fc54c9df00dd18f7f18754393182c73cd # v31.9.1
+              uses: cachix/install-nix-action@19effe9fe722874e6d46dd7182e4b8b7a43c4a99 # v31.10.0
 
             - name: Evaluate (job ${{ matrix.jobid }}/${{ strategy.job-total }})
               env:

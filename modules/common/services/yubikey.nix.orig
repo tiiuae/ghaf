@@ -94,6 +94,7 @@ in
       ACTION=="remove", ENV{ID_BUS}=="usb", ENV{ID_VENDOR_ID}=="1050", ENV{ID_MODEL_ID}=="0407", TEST=="${fido2MarkerPath}", RUN+="${pkgs.systemd}/bin/loginctl lock-sessions"
     '';
 
+<<<<<<< HEAD
     systemd.services.ghaf-homed-fido2-sync = {
       description = "Sync Ghaf FIDO2 marker with systemd-homed users";
       wantedBy = [ "multi-user.target" ];
@@ -114,6 +115,9 @@ in
       };
     };
 
+    givc.sysvm.enableCtapModule = true;
+=======
     givc.sysvm.capabilities.ctap.enable = true;
+>>>>>>> 9a11d1f9 (enable policy admin in admin vm)
   };
 }

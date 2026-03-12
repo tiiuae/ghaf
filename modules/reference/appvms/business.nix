@@ -12,7 +12,6 @@
 }:
 let
   cfg = config.ghaf.reference.appvms.business;
-
   inherit (lib) optionals getExe;
   enableOpenNormalExtension = true;
 
@@ -209,10 +208,11 @@ in
           }
           {
             name = "chrome-outlook.office.com__mail_-Default";
-            desktopName = "Microsoft Outlook";
+            desktopName = "Outlook";
             categories = [
-              "Email"
               "Calendar"
+              "Email"
+              "Office"
             ];
             description = "Microsoft Email Client";
             icon = "ms-outlook";
@@ -299,12 +299,19 @@ in
                     "! -o tun0 -p udp -m multiport --dports 80,443 -j nixos-fw-log-refuse"
                   ];
                 };
+
+              # Enable Policy Client
+              givc.policyClient.enable = true;
+
               # Enable Proxy Auto-Configuration service for the browser
               reference.services = {
                 pac = {
                   enable = lib.mkDefault true;
-                  proxyAddress = config.ghaf.reference.services.proxy-server.internalAddress;
-                  proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
+                  pacFileFetcher = {
+                    enable = false;
+                    proxyAddress = config.ghaf.reference.services.proxy-server.internalAddress;
+                    proxyPort = config.ghaf.reference.services.proxy-server.bindPort;
+                  };
                 };
 
                 # Enable WireGuard GUI

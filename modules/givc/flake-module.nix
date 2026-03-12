@@ -19,6 +19,7 @@
       ./netvm.nix
       ./audiovm.nix
       ./appvm.nix
+      ./policy.nix
     ];
   };
 }

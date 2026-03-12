@@ -78,7 +78,13 @@ in
       withHardenedConfigs = true;
     };
 
-    givc.adminvm.enable = true;
+    givc = {
+      adminvm.enable = true;
+      policyAdmin = {
+        enable = true;
+        updater.perPolicy.enable = true;
+      };
+    };
 
     # Enable dynamic hostname export for VMs
     identity.vmHostNameExport.enable = true;

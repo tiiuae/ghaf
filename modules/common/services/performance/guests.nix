@@ -180,7 +180,7 @@ in
       enable = mkEnableOption "Ghaf-specific scheduler and power optimizations for gui-vm.";
       scheduler = {
         enable = mkEnableOption "system76-scheduler on gui-vm for Ghaf-specific process scheduling." // {
-          default = true;
+          default = false;
         };
       };
       tuned = {
