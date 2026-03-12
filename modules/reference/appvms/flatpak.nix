@@ -333,21 +333,7 @@ in
           ];
         extraModules = [
           {
-            # Override SNI socket proxy port: flatpak-vm uses port 9031
-            # (comms-vm uses 9030; each appvm needs a dedicated port on gui-vm)
-            givc.appvm.socketProxy = lib.mkForce [
-              {
-                transport = {
-                  name = "gui-vm";
-                  addr = config.ghaf.networking.hosts."gui-vm".ipv4;
-                  port = "9031";
-                  protocol = "tcp";
-                };
-                socket = "/tmp/dbusproxy_sni.sock";
-              }
-            ];
-          }
-          {
+            ghaf.givc.sni.enable = true;
             services = {
               flatpak.enable = lib.mkDefault true;
               packagekit.enable = lib.mkDefault true;

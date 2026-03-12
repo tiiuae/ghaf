@@ -32,7 +32,6 @@ in
         packages = [
           pkgs.google-chrome
           pkgs.gpsd
-          pkgs.fake-tray
         ]
         ++ lib.optionals config.ghaf.profiles.debug.enable [ pkgs.tcpdump ];
         mem = 4096;
@@ -84,13 +83,6 @@ in
             icon = "Zoom";
             exec = "google-chrome-stable --disable-gpu --enable-features=UseOzonePlatform --ozone-platform=wayland --app=https://app.zoom.us/wc/home ${config.ghaf.givc.idsExtraArgs}";
           }
-          {
-            name = "Tray icon";
-            desktopName = "Fake Tray";
-            description = "Fake tray application for testing purposes";
-            icon = "utilities-system-monitor";
-            exec = "faketray";
-          }
         ];
         extraModules = [
           {
@@ -103,6 +95,7 @@ in
               # Open external URLs locally in comms-vm's browser instead of forwarding to a dedicated URL-handling VM
               xdghandlers.url = true;
               xdgitems.enable = lib.mkDefault true;
+              givc.sni.enable = true;
               # Disable serial debug console on comms-vm as it makes the serial device owned by
               # 'tty' group. gpsd runs hardcoded with effective gid of 'dialout' group, and thus
               # can't access the device if this is enabled.

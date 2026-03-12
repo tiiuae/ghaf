@@ -17,12 +17,9 @@ let
     ;
   netvmName = "net-vm";
   audiovmName = "audio-vm";
-  commsvmName = "comms-vm";
-  flatpakvmName = "flatpak-vm";
   guivmName = "gui-vm";
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
-  homedUid = toString config.ghaf.users.homedUser.uid;
 in
 {
   _file = ./guivm.nix;
@@ -92,29 +89,7 @@ in
                 };
                 inherit (audioCfg.client.pipewireControl) socket;
               })
-            ]
-                    ++ lib.optionals (builtins.elem commsvmName config.ghaf.common.vms) [
-          {
-            transport = {
-              name = commsvmName;
-              addr = hosts.${commsvmName}.ipv4;
-              port = "9030";
-              protocol = "tcp";
-            };
-            socket = "/tmp/dbusproxy_sni.sock";
-          }
-        ]
-        ++ lib.optionals (builtins.elem flatpakvmName config.ghaf.common.vms) [
-          {
-            transport = {
-              name = flatpakvmName;
-              addr = hosts.${flatpakvmName}.ipv4;
-              port = "9031";
-              protocol = "tcp";
-            };
-            socket = "/tmp/dbusproxy_sni_flatpak.sock";
-          }
-        ];
+            ];
         };
         eventProxy = {
           enable = true;
@@ -137,6 +112,7 @@ in
         };
       };
     };
+
     systemd.services.dbus-proxy-networkmanager = {
       description = "DBus proxy for Network Manager ${guivmName}";
       # Wait for GIVC to create the socket before starting
@@ -168,74 +144,6 @@ in
       startLimitIntervalSec = 0;
       wantedBy = [ "multi-user.target" ];
     };
-
-    systemd.services.dbus-proxy-sni = {
-      description = "DBus proxy for SNI tray icons ${guivmName}";
-      after = [ "graphical.target" ];
-      wants = [ "graphical.target" ];
-      serviceConfig = {
-        Type = "simple";
-        Restart = "always";
-        RestartSec = "1s";
-        ExecStartPre = [
-          # Wait for tunnel socket from AppVM
-          "${pkgs.coreutils}/bin/timeout 30 ${pkgs.bash}/bin/bash -c 'until [ -S /tmp/dbusproxy_sni.sock ]; do sleep 0.5; done'"
-          # Wait for user session bus (available after login)
-          "${pkgs.coreutils}/bin/timeout 60 ${pkgs.bash}/bin/bash -c 'until [ -S /run/user/${homedUid}/bus ]; do sleep 0.5; done'"
-        ];
-        Environment = [
-          "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_sni.sock"
-          "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${homedUid}/bus"
-        ];
-        User = homedUid;
-        # Run as session bus owner (root can't connect to user session bus)
-        ExecStart = [
-          ''
-            ${lib.getExe pkgs.dbus-proxy} \
-              --sni-mode \
-              --source-bus-type system \
-              --target-bus-type session \
-              --log-level=verbose
-          ''
-        ];
-      };
-      startLimitIntervalSec = 0;
-      wantedBy = [ "graphical.target" ];
-    };
-    systemd.services.dbus-proxy-sni-flatpak =
-      lib.mkIf (builtins.elem flatpakvmName config.ghaf.common.vms)
-        {
-          description = "DBus proxy for SNI tray icons from ${flatpakvmName}";
-          after = [ "graphical.target" ];
-          wants = [ "graphical.target" ];
-          serviceConfig = {
-            Type = "simple";
-            Restart = "always";
-            RestartSec = "1s";
-            ExecStartPre = [
-              # Wait for tunnel socket from flatpak-vm
-              "${pkgs.coreutils}/bin/timeout 30 ${pkgs.bash}/bin/bash -c 'until [ -S /tmp/dbusproxy_sni_flatpak.sock ]; do sleep 0.5; done'"
-              # Wait for user session bus (available after login)
-              "${pkgs.coreutils}/bin/timeout 60 ${pkgs.bash}/bin/bash -c 'until [ -S /run/user/${homedUid}/bus ]; do sleep 0.5; done'"
-            ];
-            Environment = [
-              "DBUS_SYSTEM_BUS_ADDRESS=unix:path=/tmp/dbusproxy_sni_flatpak.sock"
-              "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${homedUid}/bus"
-            ];
-            User = homedUid;
-            ExecStart = [
-              ''
-                ${lib.getExe pkgs.dbus-proxy} \
-                  --sni-mode \
-                  --source-bus-type system \
-                  --target-bus-type session \
-                  --log-level=verbose
-              ''
-            ];
-          };
-          startLimitIntervalSec = 0;
-          wantedBy = [ "graphical.target" ];
-        };
 
     services.dbus.packages = [ pkgs.networkmanager ];
     ghaf.security.audit.extraRules = [
