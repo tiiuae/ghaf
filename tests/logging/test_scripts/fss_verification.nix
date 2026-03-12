@@ -145,14 +145,4 @@ _: ''
           else:
               print(f"Verification service returned: {output}")
 
-  with subtest("fss-debug produces a local evidence packet"):
-      machine.succeed("rm -rf /tmp/fss-debug-report")
-      machine.succeed("fss-debug --out-dir /tmp/fss-debug-report --failed-file-limit 4")
-      machine.succeed("test -s /tmp/fss-debug-report/summary/summary.md")
-      machine.succeed("test -s /tmp/fss-debug-report/layout/00-runtime-layout.txt")
-      machine.succeed("test -s /tmp/fss-debug-report/verify/00-full.txt")
-      summary = machine.succeed("cat /tmp/fss-debug-report/summary/summary.md")
-      assert "classification:" in summary, summary
-      assert "machine_id:" in summary, summary
-      assert "verification_key_path:" in summary, summary
 ''

@@ -88,8 +88,6 @@ pkgs.testers.nixosTest {
           coreutils
           gnugrep
           util-linux
-          (callPackage ./test_scripts/fss-debug.nix { })
-          (callPackage ./test_scripts/fss-rootcause.nix { })
         ];
       };
     };

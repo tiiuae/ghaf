@@ -16,10 +16,6 @@
 #   environment.systemPackages = [ pkgs.fss-test ];
 #   Then run: sudo fss-test
 #
-# For a full evidence packet on warning/failure:
-#   environment.systemPackages = [ pkgs.fss-debug ];
-#   Then run: sudo fss-debug
-#
 # Tests performed:
 #   1. FSS setup service status - verifies journal-fss-setup ran
 #   2. Sealing key existence - checks /var/log/journal/<machine-id>/fss
@@ -282,15 +278,6 @@ writeShellApplication {
     echo -e "  ''${RED}Failed:''${NC}  $FAILED"
     echo -e "  ''${YELLOW}Warned:''${NC}  $WARNED"
     echo ""
-
-    if command -v fss-debug >/dev/null 2>&1 && { [ "$FAILED" -gt 0 ] || [ "$WARNED" -gt 0 ]; }; then
-      echo "Detailed evidence capture: sudo fss-debug"
-    fi
-
-    if command -v fss-rootcause >/dev/null 2>&1 && { [ "$FAILED" -gt 0 ] || [ "$WARNED" -gt 0 ]; }; then
-      echo "Checkpoint workflow: sudo fss-rootcause help"
-      echo ""
-    fi
 
     if [ "$FAILED" -gt 0 ]; then
       echo -e "''${RED}Some tests failed. FSS may not be working correctly.''${NC}"

@@ -87,32 +87,18 @@ journalctl -t journal-fss
 
 ### Hardware Testing
 
-Two scripts are available for deployed systems:
-
-- `fss-test`: quick health check and policy classification
-- `fss-debug`: full evidence packet for root-cause analysis
-- `fss-rootcause`: labeled checkpoint workflow and packet comparison for intermittent issues
+A test script is available for deployed systems:
 
 ```bash
-# Build the scripts
+# Build the test
 nix build .#checks.x86_64-linux.fss-test
-nix build .#checks.x86_64-linux.fss-debug
-nix build .#checks.x86_64-linux.fss-rootcause
 
-# Deploy and run the quick health check
+# Deploy and run
 scp result/bin/fss-test root@ghaf-host:/tmp/
 ssh root@ghaf-host /tmp/fss-test
-
-# Deploy and run the deep debug tool
-scp result/bin/fss-debug root@ghaf-host:/tmp/
-ssh root@ghaf-host sudo /tmp/fss-debug
-
-# Deploy and run the root-cause workflow helper
-scp result/bin/fss-rootcause root@ghaf-host:/tmp/
-ssh root@ghaf-host sudo /tmp/fss-rootcause help
 ```
 
-`fss-test` verifies:
+The test verifies:
 
 1. FSS setup service completed
 2. Sealing key exists
@@ -121,34 +107,6 @@ ssh root@ghaf-host sudo /tmp/fss-rootcause help
 5. Journal integrity passes
 6. Verification timer active
 7. Audit rules configured
-
-`fss-debug` writes a timestamped packet under `/var/tmp/fss-debug-<UTC>/` by default and captures:
-
-1. System identity (`hostname`, `machine-id`, shared Ghaf identity files, `device-id`)
-2. FSS runtime layout (`fss-config`, sealing key path, verification key path, active `system.journal`)
-3. Journal directory inventory, mounts, and file metadata
-4. Relevant unit state and recent logs for FSS, journald, identity, and recovery services
-5. Current journald configuration and audit rules
-6. Full `journalctl --verify` output plus per-file isolates for failed journals
-7. A summary classifying the result with the same policy as `journal-fss-verify.service`
-
-`fss-rootcause` wraps repeated `fss-debug` packets into a reproducible investigation session. Use it when failures are intermittent or seem correlated with idle/suspend transitions:
-
-```bash
-sudo fss-rootcause capture-guest --session-dir /var/tmp/gui-rootcause --label pre-idle
-sleep 900
-sudo fss-rootcause capture-guest --session-dir /var/tmp/gui-rootcause --label post-idle
-sudo systemctl suspend
-sudo fss-rootcause capture-guest --session-dir /var/tmp/gui-rootcause --label post-suspend
-sudo fss-rootcause compare --session-dir /var/tmp/gui-rootcause --from pre-idle --to post-idle
-sudo fss-rootcause compare --session-dir /var/tmp/gui-rootcause --from post-idle --to post-suspend
-```
-
-On the host, collect the matching microvm and power-management context:
-
-```bash
-sudo fss-rootcause capture-host --session-dir /var/tmp/gui-rootcause --vm-name gui-vm --label post-suspend
-```
 
 ### Key Rotation
 
@@ -190,7 +148,7 @@ journalctl --verify --verify-key=<verification-key> --file=journal.export
 
 ### Verification Fails with "FAIL"
 
-Indicates potential tampering or corruption:
+Indicates an integrity or corruption issue:
 
 ```bash
 # Check which files failed
@@ -200,18 +158,6 @@ journalctl --verify 2>&1 | grep FAIL
 # If only user-*.journal or system@*.journal fail while system.journal passes,
 # treat this as a warning and investigate journal rotation/recovery timing.
 # Active system.journal failures remain critical.
-```
-
-For a full local evidence packet instead of ad-hoc command collection:
-
-```bash
-sudo fss-debug
-```
-
-For intermittent `user-*.journal`, `system@...journal`, or suspend/resume-correlated corruption, use the checkpoint workflow instead of one-off commands:
-
-```bash
-sudo fss-rootcause help
 ```
 
 ### "Failed to parse seed" Error
