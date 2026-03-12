@@ -107,6 +107,10 @@ This is the primary reference device for Ghaf on AArch64 architecture, built usi
    sudo ./flash.sh
    ```
 
+<Aside type="note">
+  **Jetson boot time and clock sync**: Some Jetson boards may expose an RTC value that is not valid after a cold boot. Ghaf prevents invalid RTC data from rewinding host wall clock time during boot. When the RTC device appears, Ghaf can seed system time from RTC only when the RTC value is plausible: at or above the persisted `/var/lib/systemd/timesync/clock` anchor and not more than 180 days ahead. Native `systemd-timesyncd` then converges to network time when available.
+</Aside>
+
 ## Alternative Build Targets
 
 ## Virtual Machine (For Testing)

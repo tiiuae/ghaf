@@ -5,10 +5,73 @@
 {
   lib,
   config,
+  pkgs,
   ...
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+  rtcSeedAnchorPath = "/var/lib/systemd/timesync/clock";
+  rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
+  rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
+  rtcSeedTimeFromRtc = pkgs.writeShellApplication {
+    name = "ghaf-seed-time-from-rtc";
+    runtimeInputs = [ pkgs.coreutils ];
+    text = ''
+      rtc_device="$1"
+      rtc_since_epoch_path="/sys/class/rtc/$rtc_device/since_epoch"
+      anchor_path=${lib.escapeShellArg rtcSeedAnchorPath}
+      max_ahead_seconds=${toString rtcSeedMaxAheadSeconds}
+      min_epoch_seconds=${toString rtcSeedMinEpochSeconds}
+
+      skip() {
+        echo "RTC seed skipped: $*"
+        exit 0
+      }
+
+      if [ ! -f "$anchor_path" ]; then
+        skip "$anchor_path is missing or not a regular file"
+      fi
+
+      if [ ! -r "$rtc_since_epoch_path" ]; then
+        skip "$rtc_since_epoch_path not readable"
+      fi
+
+      rtc_epoch="$(tr -d '\n' < "$rtc_since_epoch_path")"
+      if ! [[ "$rtc_epoch" =~ ^[0-9]+$ ]]; then
+        skip "non-numeric RTC epoch '$rtc_epoch'"
+      fi
+
+      if [ "$rtc_epoch" -lt "$min_epoch_seconds" ]; then
+        skip "RTC epoch $rtc_epoch below minimum $min_epoch_seconds"
+      fi
+
+      anchor_epoch="$(stat -c %Y "$anchor_path" 2>/dev/null || echo 0)"
+      if ! [[ "$anchor_epoch" =~ ^[0-9]+$ ]]; then
+        skip "invalid anchor mtime '$anchor_epoch'"
+      fi
+
+      if [ "$anchor_epoch" -le 0 ]; then
+        skip "anchor mtime is not positive ($anchor_epoch)"
+      fi
+
+      if [ "$rtc_epoch" -lt "$anchor_epoch" ]; then
+        skip "RTC epoch $rtc_epoch is behind anchor $anchor_epoch"
+      fi
+
+      ahead_seconds=$((rtc_epoch - anchor_epoch))
+      if [ "$ahead_seconds" -gt "$max_ahead_seconds" ]; then
+        skip "RTC ahead by $ahead_seconds seconds (> $max_ahead_seconds)"
+      fi
+
+      current_epoch="$(date -u +%s)"
+      if [ "$rtc_epoch" -le "$current_epoch" ]; then
+        skip "system time already >= RTC (now=$current_epoch rtc=$rtc_epoch)"
+      fi
+
+      date -u -s "@$rtc_epoch" >/dev/null
+      echo "RTC seed applied: system time set to epoch $rtc_epoch from $rtc_device"
+    '';
+  };
   inherit (lib)
     mkEnableOption
     mkOption
@@ -85,7 +148,33 @@ in
             VIRTIO_VSOCKETS_COMMON = yes;
           };
         }
+        {
+          name = "disable-rtc-hctosys";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            RTC_HCTOSYS = lib.mkForce no;
+          };
+        }
       ];
+    };
+
+    services.udev.extraRules = ''
+      SUBSYSTEM=="rtc", KERNEL=="rtc0", TEST=="${rtcSeedAnchorPath}", TAG+="systemd", ENV{SYSTEMD_WANTS}+="ghaf-seed-time-from-rtc@%k.service"
+    '';
+
+    systemd.services."ghaf-seed-time-from-rtc@" = {
+      description = "Seed system time from plausible RTC value (%I)";
+      unitConfig = {
+        ConditionPathExists = [
+          "/sys/class/rtc/%I/since_epoch"
+          rtcSeedAnchorPath
+        ];
+      };
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = false;
+        ExecStart = "${lib.getExe rtcSeedTimeFromRtc} %I";
+      };
     };
 
     services.nvpmodel = {
