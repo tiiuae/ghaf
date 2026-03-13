@@ -19,6 +19,7 @@
 let
   sniCfg = config.ghaf.givc.sni;
   inherit (lib)
+    getExe
     listToAttrs
     mkEnableOption
     mkIf
@@ -26,6 +27,7 @@ let
     mkOption
     nameValuePair
     types
+    optionalString
     ;
   inherit (config.ghaf.networking) hosts;
   inherit (config.networking) hostName;
@@ -91,9 +93,7 @@ in
     # Appvm side
     (mkIf (sniCfg.enable && config.ghaf.givc.appvm.enable && config.ghaf.givc.enable) (
       let
-        myPort = lib.traceVal (
-          portMap.${hostName} or (throw "ghaf.givc.sni: ${hostName} not in ghaf.givc.sni.vms")
-        );
+        myPort = portMap.${hostName} or (throw "ghaf.givc.sni: ${hostName} not in ghaf.givc.sni.vms");
       in
       {
         # Tunnel the local SNI dbusproxy socket to gui-vm at our auto-assigned port
@@ -122,10 +122,12 @@ in
           description = "SNI renamer for ${hostName}: bridge unique-name tray apps to well-known names";
           after = [ "dbus.socket" ];
           requires = [ "dbus.socket" ];
+          wantedBy = [ "multi-user.target" ];
+
           serviceConfig = {
-            Type = "simple";
+            Type = "exec";
             Restart = "always";
-            RestartSec = "1s";
+            RestartSec = "30s";
             User = appUserUid;
             Environment = [
               "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${appUserUid}/bus"
@@ -133,7 +135,6 @@ in
             ExecStart = [ "${lib.getExe pkgs.dbus-proxy} --renamer-mode" ];
           };
           startLimitIntervalSec = 0;
-          wantedBy = [ "multi-user.target" ];
         };
 
         # dbusproxy: expose a filtered session bus socket for the GIVC tunnel
@@ -159,12 +160,7 @@ in
 
     # Guivm side
     (mkIf
-      (
-        sniCfg.enable
-        && config.ghaf.givc.guivm.enable
-        && config.ghaf.givc.enable
-        && lib.traceValSeq sniSources != [ ]
-      )
+      (sniCfg.enable && config.ghaf.givc.guivm.enable && config.ghaf.givc.enable && sniSources != [ ])
       {
 
         # Socket proxy entries: one per appvm in appHosts
@@ -203,30 +199,24 @@ in
             src:
             nameValuePair "dbus-proxy-sni-${src.vmName}" {
               description = "DBus proxy for SNI tray icons from ${src.vmName}";
-              after = [ "graphical.target" ];
+              after = [ "user-login.service" ];
               wants = [ "graphical.target" ];
               serviceConfig = {
-                Type = "simple";
-                Restart = "on-failure";
-                RestartSec = "1s";
-                ExecStartPre = [
-                  # Wait for the user session bus (available after login)
-                  "${pkgs.coreutils}/bin/timeout 60 ${pkgs.bash}/bin/bash -c 'until [ -S /run/user/${homedUid}/bus ]; do sleep 0.5; done'"
-                ];
+                Type = "exec";
+                Restart = "always";
+                RestartSec = "30s";
                 Environment = [
                   "DBUS_SYSTEM_BUS_ADDRESS=unix:path=${src.socket}"
                   "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/${homedUid}/bus"
                 ];
                 User = homedUid;
-                ExecStart = [
-                  ''
-                    ${lib.getExe pkgs.dbus-proxy} \
-                      --sni-mode \
-                      --source-bus-type system \
-                      --target-bus-type session ${lib.optionalString config.ghaf.profiles.debug.enable "--log-level=verbose"}
+                ExecStart = ''
+                  ${getExe pkgs.dbus-proxy} \
+                    --sni-mode \
+                    --source-bus-type system \
+                    --target-bus-type session ${optionalString config.ghaf.profiles.debug.enable "--log-level=verbose"}
 
-                  ''
-                ];
+                '';
               };
               startLimitIntervalSec = 0;
             }
