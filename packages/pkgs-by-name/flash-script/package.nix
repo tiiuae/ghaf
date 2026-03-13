@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 {
   coreutils,
+  gawk,
   util-linux,
   writeShellApplication,
   zstd,
@@ -11,6 +12,7 @@ writeShellApplication {
   name = "flash-script";
   runtimeInputs = [
     coreutils
+    gawk
     util-linux
     zstd
     pv
