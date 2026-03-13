@@ -1,18 +1,18 @@
-From bd2074bea17243edd791c83f894f016a0cabb4b1 Mon Sep 17 00:00:00 2001
+From 6b69f5c248d85a15be4e08c0c4ed80fd7e35e557 Mon Sep 17 00:00:00 2001
 From: Kajus Naujokaitis <kajusn@gmail.com>
-Date: Tue, 27 Jan 2026 08:50:12 +0200
-Subject: [PATCH] network applet hide airplane mode toggle
+Date: Fri, 13 Mar 2026 11:17:20 +0200
+Subject: [PATCH] hide airplane mode toggle
 
-Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  cosmic-applet-network/src/app.rs | 14 --------------
  1 file changed, 14 deletions(-)
 
 diff --git a/cosmic-applet-network/src/app.rs b/cosmic-applet-network/src/app.rs
-index ae956bd1..21118154 100644
+index 0c15d2bd..6bafb16a 100644
 --- a/cosmic-applet-network/src/app.rs
 +++ b/cosmic-applet-network/src/app.rs
-@@ -1587,20 +1587,6 @@ impl cosmic::Application for CosmicNetworkApplet {
+@@ -1603,20 +1603,6 @@ impl cosmic::Application for CosmicNetworkApplet {
                  Element::from(
                      column![
                          vpn_ethernet_col,
@@ -33,6 +33,6 @@ index ae956bd1..21118154 100644
                      ]
                      .align_x(Alignment::Center)
                  ),
--- 
-2.52.0
+--
+2.53.0
 

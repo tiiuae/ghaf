@@ -1,9 +1,9 @@
-From 9a1b84b51ca2ee9bcf54fba716116a916700fdd7 Mon Sep 17 00:00:00 2001
+From 336069e296c1af613d301f9582226e4772ca0122 Mon Sep 17 00:00:00 2001
 From: Kajus Naujokaitis <kajusn@gmail.com>
-Date: Tue, 27 Jan 2026 08:47:39 +0200
-Subject: [PATCH] bluetooth applet hide settings button
+Date: Fri, 13 Mar 2026 11:18:34 +0200
+Subject: [PATCH] hide bluetooth settings button
 
-Signed-off-by: Kajus Naujokaitis <kajus.naujokaitis@unikie.com>
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  cosmic-applet-bluetooth/src/app.rs | 3 ---
  1 file changed, 3 deletions(-)
@@ -23,4 +23,5 @@ index 3fed7463..70f7359e 100644
          self.core.applet.popup_container(content).into()
      }
 --
-2.52.0
+2.53.0
+
