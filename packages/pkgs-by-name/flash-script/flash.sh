@@ -2,10 +2,18 @@
 # SPDX-FileCopyrightText: 2022-2026 TII (SSRC) and the Ghaf contributors
 # SPDX-License-Identifier: Apache-2.0
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[0;33m'
-ENDCOLOR='\e[0m'
+# Only emit ANSI formatting when stdout is a terminal.
+if [ -t 1 ]; then
+  GREEN='\033[0;32m'
+  RED='\033[0;31m'
+  YELLOW='\033[0;33m'
+  ENDCOLOR='\e[0m'
+else
+  GREEN=''
+  RED=''
+  YELLOW=''
+  ENDCOLOR=''
+fi
 FORCE=false
 IMGSIZE=""
 
@@ -13,6 +21,7 @@ error() { echo -e "${RED}$*${ENDCOLOR}"; }
 success() { echo -e "${GREEN}$*${ENDCOLOR}"; }
 warn() { echo -e "${YELLOW}$*${ENDCOLOR}"; }
 clear_lines() {
+  [ -t 1 ] || return 0
   for ((i = 0; i < $1; i++)); do printf "\033[2K\033[1A\033[G"; done
   printf "\033[2K\033[G"
 }
