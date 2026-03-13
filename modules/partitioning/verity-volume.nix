@@ -8,7 +8,6 @@
 }:
 
 let
-  roothashPlaceholder = "61fe0f0c98eff2a595dd2f63a5e481a0a25387261fa9e34c37e3a4910edf32b8";
   cfg = config.ghaf.partitioning.verity-volume;
   debugEnable = config.ghaf.profiles.debug.enable;
 in
@@ -85,10 +84,14 @@ in
           # SAFETY: root hash later validated in mk-manifest.py
           test -n "$verityRoothash" || (echo "bad root hash" >&2 && exit 1)
 
-          # FIXME: Call `ukify` directly and avoid sed/placeholder hack
-          sed -i \
-            "0,/${roothashPlaceholder}/ s/${roothashPlaceholder}/$verityRoothash/" \
-            ${kernelImage}
+          # Create UKI kernel with embedded verityhash
+          sed -E "s/^(Cmdline=.*)/\1 ghaf.storehash=$verityRoothash/" \
+            ${config.boot.uki.configFile} >ukify-verity.conf
+          ${pkgs.buildPackages.systemdUkify}/lib/systemd/ukify build \
+            --config=ukify-verity.conf \
+            --output="kernel.efi"
+          # ${kernelImage} don't work for some reasons, so move kernel in place
+          mv kernel.efi ${kernelImage}
 
           # FIXME: move compression into mk-manifest.py and compute unpacked sizes there.
           rootUnpackedSize=$(stat -c%s ${fsImage})
@@ -120,7 +123,6 @@ in
     };
     boot = {
       kernelParams = [
-        "ghaf.storehash=${roothashPlaceholder}" # See `ghaf-store-veritysetup.enable` for details
         "systemd.verity_root_options=panic-on-corruption"
         "ghaf.revision=${config.ghaf.version}" # Help ghaf-veritysetup-generator to find root and verity volumes
       ]
