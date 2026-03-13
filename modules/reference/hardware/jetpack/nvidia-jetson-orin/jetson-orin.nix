@@ -10,6 +10,7 @@
 }:
 let
   cfg = config.ghaf.hardware.nvidia.orin;
+
   rtcSeedAnchorPath = "/var/lib/systemd/timesync/clock";
   rtcSeedMaxAheadSeconds = 180 * 24 * 60 * 60;
   rtcSeedMinEpochSeconds = 1704067200; # 2024-01-01T00:00:00Z
@@ -72,6 +73,184 @@ let
       echo "RTC seed applied: system time set to epoch $rtc_epoch from $rtc_device"
     '';
   };
+
+  provisionEkCertsApp = pkgs.writeShellApplication {
+    name = "ghaf-provision-ek-certs";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.nvidia-jetpack.ftpmHelper
+      pkgs.nvidia-jetpack.ftpmSimTooling
+      pkgs.openssl
+      pkgs.tpm2-tools
+    ];
+    text = ''
+      set -euo pipefail
+
+      export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
+
+      RSA_EK_CERT_HANDLE="0x01C00002"
+      ECC_EK_CERT_HANDLE="0x01C0000A"
+
+      if timeout 5s tpm2_nvreadpublic "$RSA_EK_CERT_HANDLE" >/dev/null 2>&1 &&
+        timeout 5s tpm2_nvreadpublic "$ECC_EK_CERT_HANDLE" >/dev/null 2>&1; then
+        echo "EK cert NV indices already present, skipping provisioning"
+        exit 0
+      fi
+
+      export PATH="${pkgs.nvidia-jetpack.ftpmHelper}/bin:$PATH"
+
+      # NVIDIA SIM tool expects to run from its own tree where ./conf exists.
+      # This is for unfused development/testing flow, not production provisioning.
+      ${pkgs.nvidia-jetpack.ftpmSimTooling}/bin/ftpm_sim_provisioning_tool.sh ek_prov
+
+      if ! timeout 5s tpm2_nvreadpublic "$RSA_EK_CERT_HANDLE" >/dev/null 2>&1 ||
+        ! timeout 5s tpm2_nvreadpublic "$ECC_EK_CERT_HANDLE" >/dev/null 2>&1; then
+        echo "NVIDIA SIM provisioning did not produce expected EK NV indices" >&2
+        exit 1
+      fi
+
+      echo "Provisioned fTPM EK certs using NVIDIA SIM tooling"
+    '';
+  };
+
+  exportEkBundleApp = pkgs.writeShellApplication {
+    name = "ghaf-export-ek-endorsement-bundle";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.openssl
+      pkgs.tpm2-tools
+    ];
+    text = ''
+      set -euo pipefail
+
+      export TPM2TOOLS_TCTI="device:/dev/tpmrm0"
+
+      EK_NV_RSA="0x01C00002"
+      EK_NV_ECC="0x01C0000A"
+      WORKDIR="/run/ghaf-ek-export"
+      OUTDIR="/persist/common/spire/ca"
+      BUNDLE="${"$"}OUTDIR/endorsement-bundle.pem"
+      BUNDLE_TMP="$WORKDIR/endorsement-bundle.pem"
+      EXPORTED_ANY=0
+
+      cleanup() {
+        rm -rf "$WORKDIR"
+      }
+      trap cleanup EXIT
+
+      mkdir -p "$WORKDIR" "$OUTDIR"
+      chmod 0755 /persist/common /persist/common/spire "$OUTDIR"
+      : > "$BUNDLE_TMP"
+
+      export_one() {
+        local idx="$1"
+        local pem="$2"
+        local der
+        der="$WORKDIR/$(basename "$pem" .pem).der"
+
+        if ! timeout 5s tpm2_nvreadpublic "$idx" >/dev/null 2>&1; then
+          echo "EK index $idx missing, skipping export"
+          return 0
+        fi
+
+        timeout 8s tpm2_nvread "$idx" -o "$der"
+        openssl x509 -inform DER -in "$der" -out "$pem"
+        chmod 0644 "$pem"
+        cat "$pem" >> "$BUNDLE_TMP"
+        EXPORTED_ANY=1
+      }
+
+      export_one "$EK_NV_RSA" "$OUTDIR/ek-rsa.pem"
+      export_one "$EK_NV_ECC" "$OUTDIR/ek-ecc.pem"
+
+      if [ "$EXPORTED_ANY" -eq 0 ]; then
+        echo "No EK certs exported, preserving existing endorsement bundle"
+        exit 0
+      fi
+
+      cp "$BUNDLE_TMP" "$BUNDLE"
+      chmod 0644 "$BUNDLE"
+      echo "Wrote endorsement bundle to $BUNDLE"
+    '';
+  };
+
+  loadFtpmModuleApp = pkgs.writeShellApplication {
+    name = "ghaf-load-ftpm-module";
+    runtimeInputs = [
+      pkgs.coreutils
+      pkgs.kmod
+      pkgs.systemd
+    ];
+    text = ''
+      set -euo pipefail
+
+      if [ -e /dev/tpmrm0 ]; then
+        echo "fTPM device already present, skipping"
+        exit 0
+      fi
+
+      if ! systemctl is-active --quiet tee-supplicant.service; then
+        echo "tee-supplicant is not active" >&2
+        exit 1
+      fi
+
+      if ! timeout 20s modprobe tpm_ftpm_tee; then
+        echo "Failed to load tpm_ftpm_tee" >&2
+        exit 1
+      fi
+
+      udevadm settle --timeout=5 || true
+      if [ ! -e /dev/tpmrm0 ]; then
+        echo "tpm_ftpm_tee loaded but /dev/tpmrm0 is missing" >&2
+        exit 1
+      fi
+
+      echo "Loaded tpm_ftpm_tee"
+    '';
+  };
+
+  firmwareEkbImage =
+    pkgs.buildPackages.runCommand "ghaf-eks-t234"
+      {
+        nativeBuildInputs = [
+          pkgs.buildPackages.openssl
+          pkgs.buildPackages.nvidia-jetpack.genEkb
+        ];
+      }
+      ''
+                set -euo pipefail
+
+                mkdir -p "$out"
+
+                # Development key for unfused devices (OEM_K1 all-zero key).
+        printf '%s' "0x0000000000000000000000000000000000000000000000000000000000000000" > oem_k1.key
+
+        # Avoid interactive prompt in gen_ekb.py by providing UEFI auth key.
+        printf '%s' "0x00000000000000000000000000000000" > auth.key
+
+                openssl req -x509 -newkey rsa:2048 -sha256 -nodes \
+                  -keyout ek-rsa-key.pem -out ek-rsa.pem \
+                  -subj "/CN=Jetson Orin fTPM EK RSA/O=Ghaf" \
+                  -days 36500
+
+                openssl ecparam -name prime256v1 -genkey -noout -out ek-ecc-key.pem
+                openssl req -x509 -new -sha256 \
+                  -key ek-ecc-key.pem -out ek-ecc.pem \
+                  -subj "/CN=Jetson Orin fTPM EK ECC/O=Ghaf" \
+                  -days 36500
+
+                openssl x509 -in ek-rsa.pem -outform DER -out ek-rsa.der
+                openssl x509 -in ek-ecc.pem -outform DER -out ek-ecc.der
+
+        ${pkgs.buildPackages.nvidia-jetpack.genEkb}/bin/gen_ekb.py \
+          -chip t234 \
+          -oem_k1_key oem_k1.key \
+          -in_auth_key auth.key \
+          -in_ftpm_rsa_ek_cert ek-rsa.der \
+          -in_ftpm_ec_ek_cert ek-ecc.der \
+          -out "$out/eks_t234.img"
+      '';
+
   inherit (lib)
     mkEnableOption
     mkOption
@@ -111,9 +290,17 @@ in
       type = types.str;
       default = "bsp-default";
     };
+
+    runtimeEkProvision.enable = mkOption {
+      description = "Provision EK certificates into TPM NV indices at runtime";
+      type = types.bool;
+      default = true;
+    };
+
   };
 
   config = mkIf cfg.enable {
+    hardware.nvidia-jetpack.firmware.eksFile = "${firmwareEkbImage}/eks_t234.img";
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
@@ -132,6 +319,10 @@ in
       };
 
       modprobeConfig.enable = true;
+
+      # Prevent early autoload; load in stage-2 after local filesystems
+      # and tee-supplicant are up.
+      blacklistedKernelModules = [ "tpm_ftpm_tee" ];
 
       kernelPatches = [
         {
@@ -153,6 +344,17 @@ in
           patch = null;
           structuredExtraConfig = with lib.kernel; {
             RTC_HCTOSYS = lib.mkForce no;
+          };
+        }
+        {
+          name = "ftpm-config";
+          patch = null;
+          structuredExtraConfig = with lib.kernel; {
+            EXPERT = yes;
+            TCG_FTPM_TEE = module;
+            # Disable TPM hwrng to prevent constant fTPM polling pressure
+            # that can saturate the OP-TEE single-lane fTPM TA under load.
+            HW_RANDOM_TPM = no;
           };
         }
       ];
@@ -177,11 +379,84 @@ in
       };
     };
 
+    systemd.services.ghaf-load-ftpm-module = {
+      description = "Load fTPM module after stage-2 OP-TEE readiness";
+      wantedBy = [ "multi-user.target" ];
+      wants = [
+        "local-fs.target"
+        "tee-supplicant.service"
+      ];
+      after = [
+        "local-fs.target"
+        "systemd-modules-load.service"
+        "tee-supplicant.service"
+      ];
+      before = [
+        "ghaf-provision-ek-certs.service"
+        "ghaf-export-ek-endorsement-bundle.service"
+      ];
+      unitConfig.ConditionPathExists = "!/dev/tpmrm0";
+
+      serviceConfig = {
+        Type = "oneshot";
+        TimeoutStartSec = "80s";
+        ExecStart = lib.getExe loadFtpmModuleApp;
+      };
+    };
+
+    systemd.services.ghaf-provision-ek-certs = mkIf cfg.runtimeEkProvision.enable {
+      description = "Provision fTPM EK certificates into standard NV indices";
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "tee-supplicant.service" ];
+      after = [
+        "local-fs.target"
+        "systemd-modules-load.service"
+        "dev-tpmrm0.device"
+        "tee-supplicant.service"
+        "ghaf-load-ftpm-module.service"
+      ];
+      requires = [ "dev-tpmrm0.device" ];
+      unitConfig.ConditionPathExists = "/dev/tpmrm0";
+      unitConfig.OnSuccess = [ "ghaf-export-ek-endorsement-bundle.service" ];
+
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        TimeoutStartSec = "90s";
+        UMask = "0077";
+        ExecStart = lib.getExe provisionEkCertsApp;
+      };
+    };
+
+    systemd.services.ghaf-export-ek-endorsement-bundle = {
+      description = "Export EK certs and build endorsement CA bundle";
+      wantedBy = [ "multi-user.target" ];
+      wants = [ "tee-supplicant.service" ];
+      after = [
+        "local-fs.target"
+        "systemd-modules-load.service"
+        "tee-supplicant.service"
+        "ghaf-load-ftpm-module.service"
+      ]
+      ++ lib.optionals cfg.runtimeEkProvision.enable [
+        "ghaf-provision-ek-certs.service"
+      ];
+      unitConfig.ConditionPathExists = "/dev/tpmrm0";
+
+      serviceConfig = {
+        Type = "oneshot";
+        TimeoutStartSec = "45s";
+        UMask = "0077";
+        ExecStart = lib.getExe exportEkBundleApp;
+      };
+    };
+
     services.nvpmodel = {
       enable = lib.mkDefault true;
       # Enable all CPU cores, full power consumption (50W on AGX, 25W on NX)
       profileNumber = lib.mkDefault 3;
     };
+
     hardware.deviceTree = {
       enable = lib.mkDefault true;
       # Add the include paths to build the dtb overlays
