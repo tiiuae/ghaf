@@ -3,6 +3,7 @@
 #
 {
   config,
+  options,
   pkgs,
   lib,
   ...
@@ -15,6 +16,7 @@ let
     flatten
     getExe
     literalExpression
+    hasAttrByPath
     mkDefault
     mkEnableOption
     mkIf
@@ -260,6 +262,25 @@ let
     AllowSuspend=no
   '';
 
+  genericSleepSettings = {
+    AllowHibernation = "no";
+    AllowHybridSleep = "no";
+    AllowSuspendThenHibernate = "no";
+  }
+  // optionalAttrs (!cfg.suspend.enable) {
+    AllowSuspend = "no";
+  };
+
+  sleepOptionConfig =
+    if hasAttrByPath [ "systemd" "sleep" "settings" "Sleep" ] options then
+      {
+        settings.Sleep = genericSleepSettings;
+      }
+    else
+      {
+        extraConfig = genericSleepConf;
+      };
+
 in
 {
   _file = ./power.nix;
@@ -449,7 +470,7 @@ in
         }
       ];
 
-      systemd.sleep.extraConfig = genericSleepConf;
+      systemd.sleep = sleepOptionConfig;
 
       powerManagement = optionalAttrs cfg.vm.enable {
         powerDownCommands = optionalString cfg.vm.pciSuspend (
@@ -555,14 +576,14 @@ in
         HandlePowerKey = mkDefault "ignore";
       };
 
-      # We can accomplish the same via systemd.sleep.extraConfig MemorySleepMode
+      # We can accomplish the same via systemd.sleep.settings.Sleep.MemorySleepMode
       # but it seems keyboard wakeup stops functioning with that approach
       boot.kernelParams = optionals (cfg.suspend.mode != null) [
         "mem_sleep_default=${cfg.suspend.mode}"
       ];
 
       systemd = {
-        sleep.extraConfig = genericSleepConf;
+        sleep = sleepOptionConfig;
 
         targets = optionalAttrs cfg.suspend.enable {
           "pre-sleep-actions" = {
