@@ -206,6 +206,7 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
       };
+      buildSysupdateImage = true;
     })
 
     (ghaf-configuration {
@@ -244,20 +245,6 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial-extras.enable = true;
         partitioning.disko.enable = true;
-      };
-    })
-
-    (ghaf-configuration {
-      name = "lenovo-x1-gen11-hardening";
-      inherit system;
-      profile = "laptop-x86";
-      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
-      variant = "debug";
-      extraModules = commonModules;
-      extraConfig = {
-        # TODO profiles.kernel-hardening.enable = true;
-        reference.profiles.mvp-user-trial-extras.enable = true;
-        partitioning.verity.enable = true;
       };
     })
 
@@ -462,6 +449,7 @@ let
         reference.profiles.mvp-user-trial.enable = true;
         partitioning.disko.enable = true;
       };
+      buildSysupdateImage = true;
     })
 
     (ghaf-configuration {
@@ -500,20 +488,6 @@ let
       extraConfig = {
         reference.profiles.mvp-user-trial-extras.enable = true;
         partitioning.disko.enable = true;
-      };
-    })
-
-    (ghaf-configuration {
-      name = "lenovo-x1-gen11-hardening";
-      inherit system;
-      profile = "laptop-x86";
-      hardwareModule = self.nixosModules.hardware-lenovo-x1-carbon-gen11;
-      variant = "release";
-      extraModules = commonModules;
-      extraConfig = {
-        # TODO profiles.kernel-hardening.enable = true;
-        reference.profiles.mvp-user-trial-extras.enable = true;
-        partitioning.verity.enable = true;
       };
     })
 
@@ -592,7 +566,19 @@ let
     }
   ) target-configs;
 
-  targets = target-configs ++ target-installers;
+  target-sysupdates = map (
+    t:
+    (t.extendHost [
+      {
+        ghaf.partitioning.verity-volume.enable = true;
+      }
+    ])
+    // {
+      name = "${t.name}-sysupdate";
+    }
+  ) (builtins.filter (x: x.buildSysupdateImage) target-configs);
+
+  targets = target-configs ++ target-installers ++ target-sysupdates;
 in
 {
   flake = {
