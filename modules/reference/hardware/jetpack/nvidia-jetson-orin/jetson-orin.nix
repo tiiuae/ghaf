@@ -117,6 +117,11 @@ in
     hardware.nvidia-jetpack.kernel.version = "${cfg.kernelVersion}";
     nixpkgs.hostPlatform.system = "aarch64-linux";
 
+    ghaf.givc.enable = true;
+    ghaf.givc.debug = false;
+
+    ghaf.global-config.givc.enable = true;
+    ghaf.global-config.logging.enable = true;
     ghaf.hardware = {
       aarch64.systemd-boot-dtb.enable = true;
       passthrough = {
