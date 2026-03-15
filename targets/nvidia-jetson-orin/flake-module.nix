@@ -23,16 +23,6 @@ let
   orinSpecificModules = [
     ../../modules/reference/hardware/jetpack/nvidia-jetson-orin/format-module.nix
     jetpack-nixos.nixosModules.default
-    {
-      hardware.nvidia-jetpack.firmware.uefi.edk2NvidiaPatches = [
-        # Jetpack-nixos enters into boot loop if display is connected to NX/AGX device.
-        # EDK2-Nvidia has had fixes/workarounds for display related issues.
-        # As a workaround, UEFI display is disabled from UEFI config.
-        # NOTE: Display stays blank until kernel starts to print. No Nvidia logo,
-        # no UEFI menu and no Ghaf splash screen!!
-        ./0001-Remove-nvidia-display-config.patch
-      ];
-    }
   ];
 
   # Common modules shared across all Orin configurations
