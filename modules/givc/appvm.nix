@@ -53,7 +53,6 @@ in
       };
       capabilities = {
         inherit (cfg) applications;
-
         policy = mkIf policycfg.enable {
           enable = true;
           inherit (policycfg) storePath;

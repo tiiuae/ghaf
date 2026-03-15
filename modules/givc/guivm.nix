@@ -112,6 +112,7 @@ in
         };
       };
     };
+
     systemd.services.dbus-proxy-networkmanager = {
       description = "DBus proxy for Network Manager ${guivmName}";
       # Wait for GIVC to create the socket before starting
@@ -136,14 +137,14 @@ in
               --source-object-path /org/freedesktop/NetworkManager \
               --proxy-bus-name org.freedesktop.NetworkManager \
               --source-bus-type session \
-              --target-bus-type system \
-              --nm-mode
+              --target-bus-type system
           ''
         ];
       };
       startLimitIntervalSec = 0;
       wantedBy = [ "multi-user.target" ];
     };
+
     services.dbus.packages = [ pkgs.networkmanager ];
     ghaf.security.audit.extraRules = [
       "-w /etc/givc/ -p wa -k givc-${hostName}"
