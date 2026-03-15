@@ -376,15 +376,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1772039319,
-        "narHash": "sha256-7CoyKfH6ZtUakjzrVbFa9xRaY+GEGX6BC8qsQtMjZCg=",
-        "owner": "tiiuae",
+        "lastModified": 1773418341,
+        "narHash": "sha256-AxhkglNsTs/v+W0WaTkTkPe50wQJZdEio47fEFMfaTg=",
+        "owner": "vadika",
         "repo": "ghaf-givc",
-        "rev": "c558084d15012a11329f8c77f4ebf761d9b754fe",
+        "rev": "a89ba0a8cb3fa9a8867be232b085702bc6811f30",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
+        "owner": "vadika",
+        "ref": "vadika/cross-givc-packages",
         "repo": "ghaf-givc",
         "type": "github"
       }

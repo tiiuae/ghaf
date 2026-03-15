@@ -108,17 +108,15 @@ let
       # 1. ghaf.profiles.{debug,release}.enable for host-side module activation
       # 2. ghaf.global-config to the corresponding profile for VM-side config propagation
       #
-      # Note: global-config uses mkDefault so that platform-specific profiles (like orin.nix)
-      # can override specific values. For example, orin.nix sets ghaf.givc.enable = false
-      # and this should propagate to VMs via ghaf.global-config.givc.enable.
+      # Note: global-config uses mkDefault so target modules can still override specific
+      # values when needed.
+
       variantModule = {
         ghaf.profiles = {
           debug.enable = variant == "debug";
           release.enable = variant == "release";
         };
         # Set global-config to match the variant's profile using mkDefault
-        # This allows profile modules to override specific global-config values
-        # Example: orin.nix can set ghaf.global-config.givc.enable = false
         ghaf.global-config = lib.mapAttrsRecursive (_: v: lib.mkDefault v) (
           lib.ghaf.profiles.${variant} or lib.ghaf.profiles.minimal
         );
