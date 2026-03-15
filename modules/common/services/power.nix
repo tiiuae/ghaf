@@ -250,14 +250,14 @@ let
     '';
   };
 
-  genericSleepConf = ''
-    AllowHibernation=no
-    AllowHybridSleep=no
-    AllowSuspendThenHibernate=no
-  ''
-  + optionalString (!cfg.suspend.enable) ''
-    AllowSuspend=no
-  '';
+  genericSleepConf = {
+    AllowHibernation = "no";
+    AllowHybridSleep = "no";
+    AllowSuspendThenHibernate = "no";
+  }
+  // optionalAttrs (!cfg.suspend.enable) {
+    AllowSuspend = "no";
+  };
 
 in
 {
@@ -448,7 +448,7 @@ in
         }
       ];
 
-      systemd.sleep.extraConfig = genericSleepConf;
+      systemd.sleep.settings.Sleep = genericSleepConf;
 
       powerManagement = optionalAttrs cfg.vm.enable {
         powerDownCommands = optionalString cfg.vm.pciSuspend (
@@ -491,13 +491,9 @@ in
 
       # Shutdown displays early before suspend
       powerManagement = {
-        # This is misleading, as it is executed only on suspend, not shutdown
         powerDownCommands = lib.mkBefore ''
           ${getExe ghaf-powercontrol} turn-on-displays '*'
           ${getExe ghaf-powercontrol} turn-off-displays '*'
-        '';
-        powerUpCommands = lib.mkBefore ''
-          ${getExe ghaf-powercontrol} turn-on-displays '*'
         '';
       };
 
@@ -522,6 +518,25 @@ in
           serviceConfig = {
             Type = "oneshot";
             ExecStart = "${getExe guest-shutdown-interceptor}";
+          };
+        };
+
+        resume-actions = {
+          description = "Resume Actions";
+          wantedBy = [
+            "sleep.target"
+          ];
+          before = [
+            "sleep.target"
+          ];
+          unitConfig = {
+            DefaultDependencies = false;
+            StopWhenUnneeded = true;
+          };
+          serviceConfig = {
+            Type = "oneshot";
+            RemainAfterExit = true;
+            ExecStop = "${getExe ghaf-powercontrol} turn-on-displays '*'";
           };
         };
       };
@@ -554,14 +569,14 @@ in
         HandlePowerKey = mkDefault "ignore";
       };
 
-      # We can accomplish the same via systemd.sleep.extraConfig MemorySleepMode
+      # We can accomplish the same via systemd.sleep.settings.Sleep MemorySleepMode
       # but it seems keyboard wakeup stops functioning with that approach
       boot.kernelParams = optionals (cfg.suspend.mode != null) [
         "mem_sleep_default=${cfg.suspend.mode}"
       ];
 
       systemd = {
-        sleep.extraConfig = genericSleepConf;
+        sleep.settings.Sleep = genericSleepConf;
 
         targets = optionalAttrs cfg.suspend.enable {
           "pre-sleep-actions" = {

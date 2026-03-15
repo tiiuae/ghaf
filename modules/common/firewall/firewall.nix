@@ -266,11 +266,7 @@ in
       description = "Extra firewall rules";
     };
     filter-arp = mkEnableOption "static ARP and MAC/IP rules";
-    updater.enable = mkOption {
-      type = types.bool;
-      default = false;
-      description = "whether to enable live update firewall rules";
-    };
+    updater.enable = mkEnableOption "live update firewall rules";
   };
 
   config = mkIf cfg.enable {

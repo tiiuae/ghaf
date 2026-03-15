@@ -13,18 +13,18 @@
   freetype,
   fontconfig,
   dbus,
-  libXi,
-  libXcursor,
-  libXdamage,
-  libXrandr,
-  libXcomposite,
-  libXext,
-  libXfixes,
+  libxi,
+  libxcursor,
+  libxdamage,
+  libxrandr,
+  libxcomposite,
+  libxext,
+  libxfixes,
   libxcb,
-  libXrender,
-  libX11,
-  libXtst,
-  libXScrnSaver,
+  libxrender,
+  libx11,
+  libxtst,
+  libxscrnsaver,
   nss,
   nspr,
   alsa-lib,
@@ -55,18 +55,18 @@ let
     freetype
     fontconfig
     dbus
-    libXi
-    libXcursor
-    libXdamage
-    libXrandr
-    libXcomposite
-    libXext
-    libXfixes
+    libxi
+    libxcursor
+    libxdamage
+    libxrandr
+    libxcomposite
+    libxext
+    libxfixes
     libxcb
-    libXrender
-    libX11
-    libXtst
-    libXScrnSaver
+    libxrender
+    libx11
+    libxtst
+    libxscrnsaver
     nss
     nspr
     alsa-lib
