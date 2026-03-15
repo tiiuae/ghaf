@@ -27,7 +27,6 @@ set -euo pipefail
 #   --app-type 8300           # GPT type for root (default 8300)
 #   --app-guid <UUID>         # Optional fixed PARTITION GUID for APP (root)
 #   --keep-raw                # Keep uncompressed raw disk.img alongside output
-#   --no-sync-esp           # do not rewrite ESP loader entries
 #   --no-fix-root-profile   # do not create/repair /nix/var/nix/profiles/system
 #
 # Notes:
@@ -44,22 +43,21 @@ SECTOR_SIZE=512
 ESP_NAME="esp"
 APP_NAME="APP"
 ESP_TYPE="EF00"
-APP_TYPE="b921b045-1df0-41c3-af44-4c6f280d3fae" # This is root type
-#APP_TYPE="8300" This was linux-filesystem
-APP_GUID="b921b045-1df0-41c3-af44-4c6f280d3fae"
+APP_TYPE="8305"
+APP_GUID=""
+
 KEEP_RAW=0
 SYNC_ESP_TO_ROOT=1
 FIX_ROOT_PROFILE=1
+VERIFY_ESP=1
 
 ESP_IN=""
 ROOT_IN=""
 OUT_ZST=""
-
 usage() {
-  cat <<"USAGE"
+  cat <<'USAGE'
 Usage:
   ./makediskimage.sh --esp esp.img[.zst] --root root.img[.zst] --out disk.img.zst
-
 Options:
   --sector-size 512
   --esp-name esp
@@ -70,6 +68,7 @@ Options:
   --keep-raw
   --no-sync-esp
   --no-fix-root-profile
+  --no-verify-esp
 USAGE
 }
 
@@ -124,6 +123,10 @@ while [[ $# -gt 0 ]]; do
     FIX_ROOT_PROFILE=0
     shift 1
     ;;
+  --no-verify-esp)
+    VERIFY_ESP=0
+    shift 1
+    ;;
   -h | --help)
     sed -n '1,200p' "$0"
     exit 0
@@ -135,7 +138,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z ${ESP_IN} || -z ${ROOT_IN} || -z ${OUT_ZST} ]]; then
+if [[ -z ${ESP_IN:-} || -z ${ROOT_IN:-} || -z ${OUT_ZST:-} ]]; then
   echo "Error: --esp, --root and --out are required." >&2
   usage
   exit 1
@@ -181,6 +184,109 @@ DISK_IMG="$WORKDIR/disk.img"
 echo "==> Preparing inputs in: $WORKDIR"
 decompress_if_needed "$ESP_IN" "$ESP_IMG"
 decompress_if_needed "$ROOT_IN" "$ROOT_IMG"
+
+# Keep using the decompressed ESP image, not the original input path
+# ESP_IMG already points to "$WORKDIR/esp.img"
+
+###############################################################################
+# ESP verification helpers
+###############################################################################
+verify_esp_image() {
+  local img="$1" mesp
+  mesp="$(mktemp -d -t verify-esp-in-XXXXXX)"
+  # Non-fatal fsck (if available)
+  if command -v fsck.vfat >/dev/null 2>&1; then
+    # Warn only if fsck.vfat reports problems (non-zero exit)
+    fsck.vfat -n "$img" || echo "WARN: fsck.vfat reported issues (continuing)"
+  fi
+  if ! mount -t vfat -o ro,loop "$img" "$mesp" 2>/dev/null; then
+    echo "ERROR: Input ESP not mountable as FAT: $img"
+    rmdir "$mesp"
+    return 1
+  fi
+  if [[ ! -f "$mesp/EFI/BOOT/BOOTAA64.EFI" ]]; then
+    printf 'ERROR: Missing \\EFI\\BOOT\\BOOTAA64.EFI in input ESP\n'
+    umount "$mesp"
+    rmdir "$mesp"
+    return 1
+  fi
+  if [[ ! -d "$mesp/loader/entries" ]]; then
+    printf 'ERROR: Missing \\loader\\entries in input ESP\n'
+    umount "$mesp"
+    rmdir "$mesp"
+    return 1
+  fi
+  # Validate each referenced path exists
+  shopt -s nullglob
+  local e line path ok=1
+  for e in "$mesp"/loader/entries/*.conf; do
+    while IFS= read -r line; do
+      case "$line" in
+      linux\ * | initrd\ * | devicetree\ *)
+        path="${line#* }"
+        # normalize double-slash prefixes some generators use
+        path="${path#//}"
+        [[ -z $path ]] && continue
+        if [[ ! -e "$mesp/$path" ]]; then
+          echo "ERROR: $e references missing path: $path"
+          ok=0
+        fi
+        ;;
+      esac
+    done <"$e"
+  done
+  shopt -u nullglob
+
+  umount "$mesp"
+  rmdir "$mesp"
+  # Return success only if all referenced paths existed
+  if ((ok != 1)); then
+    return 1
+  fi
+  echo "OK: Input ESP verification passed."
+  return 0
+}
+
+verify_merged_disk_esp() {
+  local disk="$1" mp loopdev p1 out
+  mp="$(mktemp -d -t verify-esp-disk-XXXXXX)"
+  if ! command -v kpartx >/dev/null 2>&1; then
+    echo "WARN: kpartx not available; skipping post-merge ESP verification."
+    rmdir "$mp"
+    return 0
+  fi
+  out="$(kpartx -av "$disk" 2>/dev/null || true)"
+  loopdev="$(echo "$out" | awk '/add map/ && /p1/ {print $3}' | head -n1)"
+  if [[ -z $loopdev ]]; then
+    echo "WARN: Could not map partitions; skipping post-merge ESP verification."
+    rmdir "$mp"
+    return 0
+  fi
+  p1="/dev/mapper/$loopdev"
+  if ! mount -t vfat -o ro "$p1" "$mp" 2>/dev/null; then
+    echo "ERROR: Merged ESP (p1) not mountable."
+    kpartx -dv "$disk" >/dev/null 2>&1 || true
+    rmdir "$mp"
+    return 1
+  fi
+  # Require fallback + loader entries in the merged ESP
+  if [[ ! -f "$mp/EFI/BOOT/BOOTAA64.EFI" ]] || [[ ! -d "$mp/loader/entries" ]]; then
+    echo "ERROR: Merged ESP missing BOOTAA64.EFI or loader/entries"
+    umount "$mp"
+    kpartx -dv "$disk" >/dev/null 2>&1 || true
+    rmdir "$mp"
+    return 1
+  fi
+  umount "$mp"
+  kpartx -dv "$disk" >/dev/null 2>&1 || true
+  rmdir "$mp"
+  echo "OK: Post-merge ESP verification passed."
+}
+
+if ((VERIFY_ESP)); then
+  echo "==> Verifying input ESP image..."
+  verify_esp_image "$ESP_IMG"
+fi
 
 # Add slack to root image.
 ROOT_SLACK_MIB="${ROOT_SLACK_MIB:-512}"
@@ -246,8 +352,15 @@ ensure_root_profile_and_sync() {
     return 0
   fi
 
-  # Mount ESP (ro is enough for read; we may later write if we need to sync)
-  mount -o loop,ro "$ESP_IMG" "$mtesp"
+  # Mount ESP only if we intend to sync it
+  local esp_mounted=0
+  if ((SYNC_ESP_TO_ROOT)); then
+    if mount -t vfat -o ro,loop "$ESP_IMG" "$mtesp" 2>/dev/null; then
+      esp_mounted=1
+    else
+      echo "WARN: Could not mount ESP_IMG read-only; skipping ESP sync."
+    fi
+  fi
 
   # Mount root rw to allow creating the symlink
   if ! mount -o loop,rw "$ROOT_IMG" "$mtroot"; then
@@ -256,7 +369,13 @@ ensure_root_profile_and_sync() {
   fi
 
   local desired
-  desired="$(extract_init_store_from_esp)"
+
+  # Only try to read loader entries if ESP is actually mounted
+  if ((esp_mounted)); then
+    desired="$(extract_init_store_from_esp)"
+  else
+    desired=""
+  fi
 
   # Validate desired path exists in root; if not, try to detect from root store
   if [[ -n $desired && -e "$mtroot$desired/init" ]]; then
@@ -275,25 +394,32 @@ ensure_root_profile_and_sync() {
     desired="$detected"
 
     # If allowed, sync ESP entries to match this closure
-    if ((SYNC_ESP_TO_ROOT)); then
+    if ((SYNC_ESP_TO_ROOT)) && ((esp_mounted)) &&
+      mount | grep -q "on $mtesp type"; then
       echo "==> Updating ESP loader entries to: $desired"
-      mount -o remount,rw "$mtesp" || true
-      shopt -s nullglob
-      local cfg
-      for cfg in "$mtesp"/loader/entries/*.conf; do
-        # init=
-        if grep -qE '(^|\s)init=/nix/store/[^ ]+/init(\s|$)' "$cfg"; then
-          sed -i -E "s#(^|\\s)init=/nix/store/[^ ]+/init(\\s|$)# init=${desired}/init #g" "$cfg"
-        fi
-        # systemConfig=
-        if grep -qE '(^|\s)systemConfig=/nix/store/[^ ]+(\s|$)' "$cfg"; then
-          sed -i -E "s#(^|\\s)systemConfig=/nix/store/[^ ]+(\\s|$)# systemConfig=${desired} #g" "$cfg"
-        fi
-      done
-      shopt -u nullglob
-      sync || true
+      if mount | grep -q "on $mtesp type .* (rw"; then
+        :
+      else
+        mount -o remount,rw "$mtesp" || echo "WARN: Could not remount ESP rw; skipping ESP sync."
+      fi
+      if mount | grep -q "on $mtesp type .* (rw"; then
+        shopt -s nullglob
+        local cfg
+        for cfg in "$mtesp"/loader/entries/*.conf; do
+          if grep -qE '(^|\\s)init=/nix/store/[^ ]+/init(\\s|$)' "$cfg"; then
+            sed -i -E "s#(^|\\s)init=/nix/store/[^ ]+/init(\\s|$)# init=${desired}/init #g" "$cfg"
+          fi
+          if grep -qE '(^|\\s)systemConfig=/nix/store/[^ ]+(\\s|$)' "$cfg"; then
+            sed -i -E "s#(^|\\s)systemConfig=/nix/store/[^ ]+(\\s|$)# systemConfig=${desired} #g" "$cfg"
+          fi
+        done
+        shopt -u nullglob
+        sync || true
+      else
+        echo "WARN: ESP not writable; skipping ESP sync."
+      fi
     else
-      echo "NOTE: --no-sync-esp set; not updating ESP entries."
+      echo "NOTE: Skipping ESP sync (disabled or not mounted)."
     fi
   fi
 
@@ -326,7 +452,7 @@ ensure_root_profile_and_sync() {
 
   # Unmount; trap will recheck anyway
   umount "$mtroot" || true
-  umount "$mtesp" || true
+  ((esp_mounted)) && umount "$mtesp" || true
 }
 
 # Prefer reading the system closure from /nix/var/nix/profiles/system.
@@ -488,12 +614,11 @@ ROOT_NSECT=$(bytes_to_sectors "$ROOT_SIZE_BYTES" "$SECTOR_SIZE")
 # Template-derived constants
 HEAD_GAP_SECTORS=$((512 + 19968)) # 20480 sectors (10MiB @ 512B)
 APP_ALIGN_SECTORS=16384           # 8MiB alignment
-ESP_ALIGN_SECTORS=2048            # 1MiB alignment
 BACKUP_GPT_SECTORS=33             # 1 header + 32 table sectors (128 entries)
 MID_GAP_SECTORS=2048              # 1MiB nicety between ESP and APP
 
 # ESP after the head reservation (aligned)
-ESP_START_LBA=$(ceil_align "$HEAD_GAP_SECTORS" "$ESP_ALIGN_SECTORS")
+ESP_START_LBA=2048
 ESP_END_LBA=$((ESP_START_LBA + ESP_NSECT - 1))
 
 # Provisional disk size so APP can be aligned at end
@@ -536,34 +661,35 @@ echo "==> Creating sparse disk image"
 truncate -s "$DISK_SIZE_BYTES" "$DISK_IMG"
 
 echo "==> Creating GPT and partitions with sgdisk"
-sgdisk --clear "$DISK_IMG" >/dev/null
+sgdisk -Z "$DISK_IMG" >/dev/null
 
-# ESP must be #2; APP must be #1.
-if [[ -n $APP_GUID ]]; then
+# Create ESP as partition 1
+sgdisk \
+  --new=1:${ESP_START_LBA}:${ESP_END_LBA} \
+  --typecode=1:"${ESP_TYPE}" \
+  --change-name=1:"${ESP_NAME}" \
+  "$DISK_IMG"
+
+# Create APP (root) as partition 2
+if [[ -n ${APP_GUID:-} ]]; then
   sgdisk \
-    --new=1:"${ESP_START_LBA}":"${ESP_END_LBA}" \
-    --typecode=1:"${ESP_TYPE}" \
-    --change-name=1:"${ESP_NAME}" \
     --new=2:"${APP_START_LBA}":"${APP_END_LBA}" \
     --typecode=2:"${APP_TYPE}" \
     --change-name=2:"${APP_NAME}" \
-    --partition-guid=1:"${APP_GUID}" \
-    "$DISK_IMG" >/dev/null
+    --partition-guid=2:"${APP_GUID}" \
+    "$DISK_IMG"
 else
   sgdisk \
-    --new=1:"${ESP_START_LBA}":"${ESP_END_LBA}" \
-    --typecode=1:"${ESP_TYPE}" \
-    --change-name=1:"${ESP_NAME}" \
     --new=2:"${APP_START_LBA}":"${APP_END_LBA}" \
     --typecode=2:"${APP_TYPE}" \
     --change-name=2:"${APP_NAME}" \
-    "$DISK_IMG" >/dev/null
+    "$DISK_IMG"
 fi
 
-echo "==> Writing ESP payload -> partition #2 at LBA ${ESP_START_LBA}"
+echo "==> Writing ESP payload -> partition #1 at LBA ${ESP_START_LBA}"
 dd if="$ESP_IMG" of="$DISK_IMG" bs="$SECTOR_SIZE" seek="$ESP_START_LBA" conv=notrunc status=progress
 
-echo "==> Writing APP (root) payload -> partition #1 at LBA ${APP_START_LBA}"
+echo "==> Writing APP (root) payload -> partition #2 at LBA ${APP_START_LBA}"
 dd if="$ROOT_IMG" of="$DISK_IMG" bs="$SECTOR_SIZE" seek="$APP_START_LBA" conv=notrunc status=progress
 
 echo "==> Partition table summary:"
@@ -584,3 +710,12 @@ if [[ $KEEP_RAW -eq 1 ]]; then
 fi
 
 echo " Done. Output: $OUT_ZST"
+
+# Post-merge ESP verification (defaults to on)
+if ((VERIFY_ESP)); then
+  echo "==> Verifying ESP inside merged disk image..."
+  verify_merged_disk_esp "$DISK_IMG" || {
+    echo "ERROR: Post-merge ESP verification failed."
+    exit 1
+  }
+fi

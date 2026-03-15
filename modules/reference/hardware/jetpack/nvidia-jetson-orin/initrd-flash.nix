@@ -383,80 +383,7 @@ let
   # Host-side: DTS overlay to force USB peripheral mode
   # Replicated from upstream initrdflash-script.nix
   # ---------------------------------------------------------------------------
-
-  inherit (pkgs.nvidia-jetpack) l4tMajorMinorPatchVersion;
   jetpackAtLeast = lib.versionAtLeast jetpackCfg.majorVersion;
-
-  forceXusbPeripheralDts =
-    let
-      overridePaths = {
-        "38" = {
-          thor = {
-            xudcPadctlPath = "bus@0/padctl@a808680000";
-            xudcPath = "bus@0/usb@a808670000";
-          };
-        };
-        "36" = {
-          orin = {
-            xudcPadctlPath = "bus@0/padctl@3520000";
-            xudcPath = "bus@0/usb@3550000";
-          };
-        };
-        "35" = {
-          orin = {
-            xudcPadctlPath = "xusb_padctl@3520000";
-            xudcPath = "xudc@3550000";
-          };
-          xavier = {
-            xudcPadctlPath = "xusb_padctl@3520000";
-            xudcPath = "xudc@3550000";
-          };
-        };
-      };
-      l4tMajor = lib.versions.major l4tMajorMinorPatchVersion;
-      soc = builtins.elemAt (lib.strings.split "-" jetpackCfg.som) 0;
-      inherit (overridePaths.${l4tMajor}.${soc}) xudcPadctlPath xudcPath;
-    in
-    flasherPkgs.writeText "force-xusb-peripheral.dts" ''
-      /dts-v1/;
-
-      / {
-        fragment@0 {
-          target-path = "/${xudcPadctlPath}/ports/usb2-0";
-
-          board_config {
-            sw-modules = "kernel", "uefi";
-          };
-
-          __overlay__ {
-            mode = "peripheral";
-            usb-role-switch;
-            connector {
-              compatible = "usb-b-connector", "gpio-usb-b-connector";
-              label = "usb-recovery";
-              cable-connected-on-boot = <2>;
-            };
-          };
-        };
-
-        fragment@1 {
-          target-path = "/${xudcPath}";
-
-          board_config {
-            sw-modules = "kernel", "uefi";
-          };
-
-          __overlay__ {
-            status = "okay";
-          };
-        };
-      };
-    '';
-
-  forceXusbPeripheralDtbo = flasherPkgs.deviceTree.compileDTS {
-    name = "force-xusb-peripheral.dtbo";
-    dtsFile = forceXusbPeripheralDts;
-  };
 
   # ---------------------------------------------------------------------------
   # Host-side: RCM boot script text
@@ -514,12 +441,10 @@ let
               cd bootloader; bash ./flashcmd.txt
             )
           '';
+    additionalDtbOverlays = lib.filter (
+      path: (path.name or "") != "DefaultBootOrder.dtbo"
+    ) jetpackCfg.flashScriptOverrides.additionalDtbOverlays;
 
-    additionalDtbOverlays =
-      (lib.filter (
-        path: (path.name or "") != "DefaultBootOrder.dtbo"
-      ) jetpackCfg.flashScriptOverrides.additionalDtbOverlays)
-      ++ [ forceXusbPeripheralDtbo ];
   };
 
   # ---------------------------------------------------------------------------
@@ -747,7 +672,7 @@ let
               FLASH_IMAGES="${ghafFlashImages}"
               echo "Writing ESP image to ''${EMMC_DEV}1"
               zstd -d "$FLASH_IMAGES/esp.img.zst" --stdout | dd of="''${EMMC_DEV}1" bs=4M status=progress
-              echo "Writing ESP image to ''${EMMC_DEV}2"
+              echo "Writing ROOT image to ''${EMMC_DEV}2"
               zstd -d "$FLASH_IMAGES/root.img.zst" --stdout | dd of="''${EMMC_DEV}2" bs=4M status=progress
               sync
 

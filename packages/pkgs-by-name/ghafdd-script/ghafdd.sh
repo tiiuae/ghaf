@@ -158,13 +158,20 @@ if [[ -z ${FILE:-} ]]; then
         exit 1
       fi
 
+      # Always create merged disk image in a writable temp file
+      OUTFILE="/tmp/disk.img.zst"
+
+      # Remove old file if it exists
+      rm -f "$OUTFILE" 2>/dev/null || true
+
       "$MAKE_DISK_IMG_CMD" \
         --esp "$ESP" \
         --root "$ROOT" \
-        --out ./disk.img.zst
+        --out "$OUTFILE"
 
-      FILE="./disk.img.zst"
-      echo "Created merged disk image."
+      FILE="$OUTFILE"
+      echo "Created merged disk image at $OUTFILE"
+
       continue_processing="yes"
       break
     fi
