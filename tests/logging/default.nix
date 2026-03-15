@@ -74,6 +74,9 @@ pkgs.testers.nixosTest {
           Seal=yes
         '';
 
+        environment.etc."fss-verify-classifier.sh".text =
+          builtins.readFile ../../modules/common/logging/fss-verify-classifier.sh;
+
         # Create required directories
         systemd.tmpfiles.rules = [
           "d /persist/common/journal-fss 0755 root root - -"
