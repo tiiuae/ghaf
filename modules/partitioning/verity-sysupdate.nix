@@ -6,7 +6,6 @@
   ...
 }:
 let
-  url = "https://github.com/tiiuae/ghaf/releases/latest/download";
   id = "ghaf";
   cfg = config.ghaf.partitioning.verity;
 in
@@ -14,18 +13,21 @@ in
   _file = ./verity-sysupdate.nix;
 
   config = lib.mkIf cfg.sysupdate {
-    # TODO: This is a placeholder for future implementation.
-    systemd.sysupdate = {
+    # When delta updates are enabled, the delta service handles all artifacts
+    # (root, verity, UKI) — disable sysupdate entirely to avoid duplication.
+    systemd.sysupdate = lib.mkIf (!cfg.deltaUpdate.enable) {
       enable = true;
       reboot.enable = true;
       transfers = {
         "10-uki" = {
           Transfer = {
+            ProtectVersion = "%A";
+            # TODO: enable signature verification
             Verify = "no";
           };
           Source = {
             Type = "url-file";
-            Path = url;
+            Path = cfg.updateUrl;
             MatchPattern = "${config.boot.uki.name}_@v.efi";
           };
           Target = {
@@ -41,28 +43,30 @@ in
         };
         "20-root-verity" = {
           Transfer = {
+            # TODO: enable signature verification
             Verify = "no";
           };
           Source = {
             Type = "url-file";
-            Path = url;
+            Path = cfg.updateUrl;
             MatchPattern = "${id}_@v_@u.verity";
           };
           Target = {
             Type = "partition";
             Path = "auto";
-            MatchPattern = "verity-@v";
+            MatchPattern = "root-verity-@v";
             MatchPartitionType = "root-verity";
             ReadOnly = 1;
           };
         };
         "22-root" = {
           Transfer = {
+            # TODO: enable signature verification
             Verify = "no";
           };
           Source = {
             Type = "url-file";
-            Path = url;
+            Path = cfg.updateUrl;
             MatchPattern = "${id}_@v_@u.root";
           };
           Target = {
@@ -76,12 +80,12 @@ in
       };
     };
 
-    #  https://github.com/NixOS/nixpkgs/pull/436893
-    #  https://github.com/NixOS/nixpkgs/pull/437869
-    #  TODO: remove the below these changes
-    # systemd.additionalUpstreamSystemUnits = [
-    #   "systemd-bless-boot.service"
-    #   "boot-complete.target"
-    # ];
+    # Ensure boot is only blessed after critical services are up.
+    # systemd-bless-boot.service marks the current boot as good by removing
+    # the tries suffix from the UKI filename, preventing rollback.
+    systemd.targets.boot-complete = {
+      wants = [ "multi-user.target" ];
+      after = [ "multi-user.target" ];
+    };
   };
 }
