@@ -89,6 +89,13 @@ def make_efi_name(store_file_path: str, root: str = "/") -> str:
     return os.path.join(root, f"EFI/nixos/{store_dir}-{suffix}.efi")
 
 
+def make_dtb_name(store_file_path: str, root: str = "/") -> str:
+    """Like make_efi_name but preserves .dtb extension instead of adding .efi"""
+    suffix = os.path.basename(store_file_path)
+    store_dir = os.path.basename(os.path.dirname(store_file_path))
+    return os.path.join(root, f"EFI/nixos/{store_dir}-{suffix}")
+
+
 def copy_loader(loader: str, esp: str, target_name: str) -> None:
     efi = os.path.join(esp, "EFI")
     copy_file(loader, os.path.join(efi, "systemd", os.path.basename(loader)))
@@ -99,7 +106,7 @@ def copy_nixos(esp: str, kernel: str, initrd: str, dtb: str | None = None) -> No
     copy_file(kernel, make_efi_name(kernel, esp))
     copy_file(initrd, make_efi_name(initrd, esp))
     if dtb:
-        copy_file(dtb, make_efi_name(dtb, esp))
+        copy_file(dtb, make_dtb_name(dtb, esp))
 
 
 def write_loader_entry(
@@ -123,8 +130,8 @@ def write_loader_entry(
         entry += f"machine-id {machine_id}"
 
     if device_tree:
-        dt = make_efi_name(device_tree)
-        entry += f"\ndevicetree /{dt}"
+        dt = make_dtb_name(device_tree)
+        entry += f"\ndevicetree {dt}"
 
     write_file(os.path.join(esp, "loader/entries/nixos-generation-1.conf"), entry)
     write_file(os.path.join(esp, "loader/loader.conf"), LOADER_CONF)

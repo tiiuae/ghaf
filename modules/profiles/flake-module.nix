@@ -36,6 +36,12 @@
       ./orin.nix
     ];
 
+    profiles-thor.imports = [
+      inputs.self.nixosModules.profiles
+      inputs.self.nixosModules.microvm
+      ./thor.nix
+    ];
+
     # Profile for VM targets that run GUI on host (no gui-vm)
     profiles-vm.imports = [
       inputs.self.nixosModules.profiles
