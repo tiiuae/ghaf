@@ -367,8 +367,6 @@ in
     mem = lib.mkDefault 12288;
     hypervisor = "qemu";
 
-    virtiofsd.extraArgs = [ "--cache=always" ];
-
     shares = [
       {
         tag = "ghaf-common";
