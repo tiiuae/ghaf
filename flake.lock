@@ -434,16 +434,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1773399582,
-        "narHash": "sha256-gWD439pm5DbdcLhtKtb/0cg4fmC7GprduJ8OFSwSC8U=",
-        "owner": "tiiuae",
+        "lastModified": 1773869262,
+        "narHash": "sha256-xOKqdDVBJvbZ3Cn7Fi9UKJs4g/0RuNbgYvOJ+sFML70=",
+        "owner": "vadika",
         "repo": "jetpack-nixos",
-        "rev": "80b35192c184dd57b64e7c109702d302f6552c4b",
+        "rev": "56888858400a8a29a5b1d75742450c179ed96f7f",
         "type": "github"
       },
       "original": {
-        "owner": "tiiuae",
-        "ref": "feb-rebase",
+        "owner": "vadika",
+        "ref": "refactor/flash-signed-sd-image",
         "repo": "jetpack-nixos",
         "type": "github"
       }
