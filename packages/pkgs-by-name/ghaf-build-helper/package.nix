@@ -49,6 +49,9 @@ writeShellApplication {
       --force-local      Force the build to be performed on the local machine.
                          Adds: --builders ""
 
+      --insecure         Disable SSH host key checking for this invocation.
+                         Adds: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+
       *                  Any additional options are passed directly to nixos-rebuild.
                          See https://nixos.wiki/wiki/Nixos-rebuild or run nixos-rebuild --help.
 
@@ -72,6 +75,8 @@ writeShellApplication {
         build_target="$2"
         shift 2
 
+        NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
+
         # Parse flags
         args=()
         for arg in "$@"; do
@@ -82,13 +87,16 @@ writeShellApplication {
             --force-local)
               args+=(--builders \'\')
               ;;
+            --insecure)
+              NIX_SSHOPTS+=" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+              ;;
             *)
               args+=("$arg")
               ;;
           esac
         done
 
-        export NIX_SSHOPTS="-o ProxyJump=root@$proxy_jump"
+        export NIX_SSHOPTS
         nixos-rebuild --flake "$build_target" --target-host root@ghaf-host --no-reexec "''${args[@]}"
   '';
   meta = {
