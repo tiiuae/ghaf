@@ -1,15 +1,16 @@
-From a30eafe28f638078c6f4f919ed90ebb67b5a676a Mon Sep 17 00:00:00 2001
+From 6cd886a1936f7c7ba51b692f87d401cc9010ab34 Mon Sep 17 00:00:00 2001
 From: Yuri Nesterov <yuriy.nesterov@unikie.com>
-Date: Fri, 2 May 2025 20:43:32 +0300
+Date: Fri, 13 Mar 2026 15:10:45 +0200
 Subject: [PATCH] Add security context indicator
 
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
 ---
  cosmic-comp-config/src/lib.rs         | 24 +++++++++
  src/backend/render/mod.rs             |  7 +++
  src/shell/grabs/moving.rs             | 75 +++++++++++++++++++++------
  src/shell/layout/floating/mod.rs      | 36 +++++++++++--
- src/wayland/handlers/xdg_shell/mod.rs | 42 +++++++++++++++
- 5 files changed, 165 insertions(+), 19 deletions(-)
+ src/wayland/handlers/xdg_shell/mod.rs | 59 ++++++++++++++++++++-
+ 5 files changed, 180 insertions(+), 21 deletions(-)
 
 diff --git a/cosmic-comp-config/src/lib.rs b/cosmic-comp-config/src/lib.rs
 index 6063d476..43c5bccf 100644
@@ -21,7 +22,7 @@ index 6063d476..43c5bccf 100644
      pub appearance_settings: AppearanceConfig,
 +    pub security_context: SecurityContextConfig,
  }
- 
+
  impl Default for CosmicCompConfig {
 @@ -135,6 +136,7 @@ impl Default for CosmicCompConfig {
              edge_snap_threshold: 0,
@@ -58,7 +59,7 @@ index 6063d476..43c5bccf 100644
 +    }
 +}
 diff --git a/src/backend/render/mod.rs b/src/backend/render/mod.rs
-index c7d79967..cb7ee466 100644
+index 0e22c8ea..525c8464 100644
 --- a/src/backend/render/mod.rs
 +++ b/src/backend/render/mod.rs
 @@ -137,6 +137,13 @@ pub enum Usage {
@@ -73,14 +74,14 @@ index c7d79967..cb7ee466 100644
 +    pub border_color: [f32; 3],
 +    pub border_size: u8,
  }
- 
+
  #[derive(Clone)]
 diff --git a/src/shell/grabs/moving.rs b/src/shell/grabs/moving.rs
-index f59f93d6..35ef8ba7 100644
+index 8b01d086..52280697 100644
 --- a/src/shell/grabs/moving.rs
 +++ b/src/shell/grabs/moving.rs
 @@ -2,7 +2,7 @@
- 
+
  use crate::{
      backend::render::{
 -        BackdropShader, IndicatorShader, Key, Usage, cursor::CursorState, element::AsGlowRenderer,
@@ -91,7 +92,7 @@ index f59f93d6..35ef8ba7 100644
 @@ -108,26 +108,67 @@ impl MoveGrabState {
              + self.window_offset
              - scaling_offset;
- 
+
 +        // Security context indicator
 +        let mut secctx_element = None;
 +        let mut secctx_border_size = 0;
@@ -130,7 +131,7 @@ index f59f93d6..35ef8ba7 100644
 +        let mut radius = self
              .element()
              .corner_radius(window_geo.size, self.indicator_thickness);
- 
+
          let focus_element = if self.indicator_thickness > 0 {
 -            Some(CosmicMappedRenderElement::from(
 -                IndicatorShader::focus_element(
@@ -190,12 +191,12 @@ index f59f93d6..35ef8ba7 100644
                  w_elements
                      .into_iter()
 diff --git a/src/shell/layout/floating/mod.rs b/src/shell/layout/floating/mod.rs
-index 1f3a7334..c047743e 100644
+index 582ec1b4..0b767520 100644
 --- a/src/shell/layout/floating/mod.rs
 +++ b/src/shell/layout/floating/mod.rs
 @@ -25,7 +25,7 @@ use smithay::{
  };
- 
+
  use crate::{
 -    backend::render::{IndicatorShader, Key, Usage, element::AsGlowRenderer},
 +    backend::render::{IndicatorShader, Key, Usage, element::AsGlowRenderer, SecurityContextIndicatorSettings},
@@ -205,7 +206,7 @@ index 1f3a7334..c047743e 100644
 @@ -1590,6 +1590,27 @@ impl FloatingLayout {
                      .collect();
              }
- 
+
 +            // Security context indicator
 +            let mut secctx_border_size = 0;
 +            if elem.is_window() {
@@ -232,7 +233,7 @@ index 1f3a7334..c047743e 100644
                      let mut resize_geometry = geometry;
 @@ -1615,12 +1636,21 @@ impl FloatingLayout {
                  }
- 
+
                  let active_window_hint = crate::theme::active_window_hint(theme);
 -                let radius = elem.corner_radius(geometry.size.as_logical(), indicator_thickness);
 +                let mut radius = elem.corner_radius(geometry.size.as_logical(), indicator_thickness);
@@ -255,7 +256,7 @@ index 1f3a7334..c047743e 100644
                          radius,
                          alpha,
 diff --git a/src/wayland/handlers/xdg_shell/mod.rs b/src/wayland/handlers/xdg_shell/mod.rs
-index 43e6a46d..dcf69aca 100644
+index 0826db76..a3be931e 100644
 --- a/src/wayland/handlers/xdg_shell/mod.rs
 +++ b/src/wayland/handlers/xdg_shell/mod.rs
 @@ -3,6 +3,8 @@
@@ -275,52 +276,75 @@ index 43e6a46d..dcf69aca 100644
      },
      utils::{Logical, Point, Serial},
      wayland::{
-@@ -45,6 +48,45 @@ impl XdgShellHandler for State {
-         let mut shell = self.common.shell.write();
-         let seat = shell.seats.last_active().clone();
-         let window = CosmicSurface::from(surface);
+@@ -52,14 +55,66 @@ impl XdgShellHandler for State {
+             .is_none()
+         {
+             let surface = CosmicSurface::from(surface);
 +
-+        // Get security context data
-+        if let Some(client) = window.wl_surface().unwrap().client() {
-+            let client_data = self
-+                .common
-+                .display_handle
-+                .backend_handle()
-+                .get_client_data(client.id().clone())
-+                .ok();
++            // Get security context data
++            if let Some(wl_surface) = surface.wl_surface() {
++                if let Some(client) = wl_surface.client() {
++                    let client_data = self
++                        .common
++                        .display_handle
++                        .backend_handle()
++                        .get_client_data(client.id().clone())
++                        .ok();
 +
-+            if let Some(security_context) = client_data
-+                .as_ref()
-+                .and_then(|data| data.downcast_ref::<ClientState>())
-+                .and_then(|data| data.security_context.as_ref()) {
-+                // Try to find a security context rule by sandbox engine and appid
-+                let sandbox_engine = security_context
-+                    .sandbox_engine
-+                    .as_deref()
-+                    .unwrap_or_default();
-+                let app_id = security_context.app_id.as_deref().unwrap_or_default();
-+                let border_color = self
-+                    .common.config.cosmic_conf.security_context.rules
-+                    .iter()
-+                    .find(|config| {
-+                        config.sandbox_engine == sandbox_engine && config.app_id == app_id
-+                    })
-+                    .map(|config| config.border_color.clone());
++                    if let Some(security_context) = client_data
++                        .as_ref()
++                        .and_then(|data| data.downcast_ref::<ClientState>())
++                        .and_then(|data| data.security_context.as_ref())
++                    {
++                        let sandbox_engine = security_context
++                            .sandbox_engine
++                            .as_deref()
++                            .unwrap_or_default();
++                        let app_id = security_context.app_id.as_deref().unwrap_or_default();
++                        let border_color = self
++                            .common
++                            .config
++                            .cosmic_conf
++                            .security_context
++                            .rules
++                            .iter()
++                            .find(|config| {
++                                config.sandbox_engine == sandbox_engine && config.app_id == app_id
++                            })
++                            .map(|config| config.border_color.clone());
 +
-+                if let Some(color) = border_color {
-+                    // Add security context indicator settings to the user data
-+                    let indicator = SecurityContextIndicatorSettings {
-+                        border_color: color,
-+                        border_size: self.common.config.cosmic_conf.security_context.border_size,
-+                    };
-+                    window.user_data().get_or_insert_threadsafe(|| indicator.clone());
++                        if let Some(color) = border_color {
++                            // Add security context indicator settings to the user data
++                            let indicator = SecurityContextIndicatorSettings {
++                                border_color: color,
++                                border_size: self
++                                    .common
++                                    .config
++                                    .cosmic_conf
++                                    .security_context
++                                    .border_size,
++                            };
++                            surface
++                                .user_data()
++                                .get_or_insert_threadsafe(|| indicator.clone());
++                        }
++                    }
 +                }
 +            }
-+        }
 +
-         shell.pending_windows.push(PendingWindow {
-             surface: window,
-             seat,
--- 
-2.43.0
++            // We will position the window after the first commit, when we know its size hints
+             shell.pending_windows.push(PendingWindow {
+                 surface,
+                 seat,
+                 fullscreen: None,
+                 maximized: false,
+-            })
++            });
+         }
+-        // We will position the window after the first commit, when we know its size hints
+     }
+
+     fn new_popup(&mut self, surface: PopupSurface, positioner: PositionerState) {
+--
+2.53.0
 

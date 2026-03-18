@@ -243,6 +243,9 @@ in
         settings.profile_dirs = "/etc/tuned/profiles,${
           concatMapStringsSep "," (script: "${script}") (lib.attrValues guiProfileScripts)
         }";
+        recommend = {
+          "${cfg.gui.tuned.defaultProfile}" = { };
+        };
         ppdSettings = {
           main.default = "balanced";
           battery = {
@@ -277,9 +280,6 @@ in
           };
         };
       };
-      environment.etc."tuned/recommend.conf".text = ''
-        [${cfg.gui.tuned.defaultProfile}]
-      '';
     })
 
     (mkIf cfg.net.enable (
@@ -291,6 +291,9 @@ in
           settings.profile_dirs = "/etc/tuned/profiles,${
             concatMapStringsSep "," (script: "${script}") (lib.attrValues netProfileScripts)
           }";
+          recommend = {
+            "${cfg.net.tuned.defaultProfile}" = { };
+          };
           ppdSettings = {
             main.default = "balanced";
             battery = {
@@ -317,9 +320,6 @@ in
             };
           };
         };
-        environment.etc."tuned/recommend.conf".text = ''
-          [${cfg.net.tuned.defaultProfile}]
-        '';
       }
       # Service units to set Ghaf PPD profiles on the net-vm when requested from GUI VM
       # These must be whitelisted in modules/givc/netvm.nix
@@ -356,10 +356,10 @@ in
         profiles = {
           vm-balanced = tunedProfiles.vm;
         };
+        recommend = {
+          vm-balanced = { };
+        };
       };
-      environment.etc."tuned/recommend.conf".text = ''
-        [vm-balanced]
-      '';
     })
   ]);
 }

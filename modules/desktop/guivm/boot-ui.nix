@@ -34,9 +34,7 @@ let
       echo "User with ID=$USER_ID is now active"
 
       echo "Waiting for user-session to be running..."
-      state="inactive"
-      while [[ "$state" != "active" ]]; do
-        state=$(systemctl --user is-active session.slice --machine="$USER_ID"@.host) || true
+      while [ ! -S "/run/user/$USER_ID/bus" ]; do
         sleep 1
       done
       echo "User-session is active"
