@@ -61,6 +61,11 @@ in
         default = "TLS12";
         description = "Minimum TLS version for the outbound connection.";
       };
+      serverName = mkOption {
+        type = types.nullOr types.str;
+        default = if listener.serverName != null then listener.serverName else "admin-vm";
+        description = "Expected TLS server_name (SNI) for validating the admin-vm listener certificate.";
+      };
     };
   };
 
@@ -124,6 +129,7 @@ in
               cert_file   = sys.env("CREDENTIALS_DIRECTORY") + "/client_cert"
               key_file    = sys.env("CREDENTIALS_DIRECTORY") + "/client_key"
               min_version = "${cfg.tls.minVersion}"
+              ${optionalString (cfg.tls.serverName != null) ''server_name = "${cfg.tls.serverName}"''}
             }
           }
         }
