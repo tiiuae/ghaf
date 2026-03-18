@@ -15,13 +15,16 @@ else
   ENDCOLOR=''
 fi
 FORCE=false
+NON_INTERACTIVE=false
+[ ! -t 2 ] && NON_INTERACTIVE=true
+PROGRESS_INTERVAL=5
 IMGSIZE=""
 
 error() { echo -e "${RED}$*${ENDCOLOR}"; }
 success() { echo -e "${GREEN}$*${ENDCOLOR}"; }
 warn() { echo -e "${YELLOW}$*${ENDCOLOR}"; }
 clear_lines() {
-  [ -t 1 ] || return 0
+  [ -t 1 ] && ! $NON_INTERACTIVE || return 0
   for ((i = 0; i < $1; i++)); do printf "\033[2K\033[1A\033[G"; done
   printf "\033[2K\033[G"
 }
@@ -40,6 +43,12 @@ help_msg() {
 
     -f      Force operation. Will not prompt the user for confirmation.
 
+    -n      Non-interactive mode. Progress is emitted as plain newline-terminated
+            log lines instead of a live terminal display, pv is not used. Use this
+            in CI/CD pipelines (e.g. Jenkins) where there is no TTY.
+
+    -p      Progress interval in seconds for non-interactive mode (default: 5).
+
   Example:
     $(basename "$0") -d /dev/sda -i <IMAGE_FILE>.zst
 
@@ -47,7 +56,7 @@ EOF
   exit 1
 }
 
-deps=(zstd awk tr dd blkdiscard lsblk numfmt stat blockdev sync umount)
+deps=(zstd awk tr dd blkdiscard lsblk numfmt stat blockdev sync umount grep)
 # Check dependencies
 for cmd in "${deps[@]}"; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -69,11 +78,19 @@ if [ "$EUID" -ne 0 ]; then
 fi
 
 # Parse the parameters
-while getopts "d:i:f" opt; do
+while getopts "d:i:fnp:" opt; do
   case $opt in
   d) DEVICE="$OPTARG" ;;
   i) FILENAME="$OPTARG" ;;
   f) FORCE=true ;;
+  n) NON_INTERACTIVE=true ;;
+  p)
+    if ! [[ $OPTARG =~ ^[1-9][0-9]*$ ]]; then
+      error "Invalid progress interval: '${OPTARG}' (must be a positive integer)"
+      exit 1
+    fi
+    PROGRESS_INTERVAL="$OPTARG"
+    ;;
   *) help_msg ;;
   esac
 done
@@ -107,7 +124,7 @@ show_summary() {
   dev_size="$(lsblk -no SIZE "$DEVICE" | head -n 1)"
   printf "%b" "
 ================ FLASH SUMMARY ================
-  Image :  $FILENAME
+   Image:  $FILENAME
     Size:  $img_size
   Target:  $DEVICE
     Size:  $dev_size
@@ -154,6 +171,19 @@ wipe_filesystem() {
 USE_PV=false
 command -v pv >/dev/null 2>&1 && USE_PV=true
 
+dd_with_progress() {
+  dd "$@" 2> >(grep -v records >&2) &
+  local dd_pid=$!
+
+  while kill -0 "$dd_pid" 2>/dev/null; do
+    sleep "$PROGRESS_INTERVAL"
+    # SIGUSR1 causes dd to print its current statistics to stderr as one line
+    kill -USR1 "$dd_pid" 2>/dev/null || true
+  done
+
+  wait "$dd_pid"
+}
+
 case "$FILENAME" in
 *.zst)
   echo "Estimating uncompressed size..."
@@ -161,22 +191,22 @@ case "$FILENAME" in
   clear_lines 1
   wipe_filesystem
 
-  if $USE_PV; then
+  if $USE_PV && ! $NON_INTERACTIVE; then
     PV_CMD=(pv -tpreb -N "$FILENAME")
     [[ -n $IMGSIZE ]] && PV_CMD+=(-s "$IMGSIZE")
     zstdcat "$FILENAME" | "${PV_CMD[@]}" | dd of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
   else
-    zstdcat "$FILENAME" | dd of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=progress
+    zstdcat "$FILENAME" | dd_with_progress of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock
   fi
   ;;
 *.iso | *.img)
   IMGSIZE="$(stat -c%s "$FILENAME")"
   wipe_filesystem
 
-  if $USE_PV; then
+  if $USE_PV && ! $NON_INTERACTIVE; then
     pv -tpreb "$FILENAME" -N "$FILENAME" -s "$IMGSIZE" | dd of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
   else
-    dd if="$FILENAME" of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=progress
+    dd_with_progress if="$FILENAME" of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock
   fi
   ;;
 *)

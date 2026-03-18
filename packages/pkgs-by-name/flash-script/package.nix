@@ -3,6 +3,7 @@
 {
   coreutils,
   gawk,
+  gnugrep,
   util-linux,
   writeShellApplication,
   zstd,
@@ -13,6 +14,7 @@ writeShellApplication {
   runtimeInputs = [
     coreutils
     gawk
+    gnugrep
     util-linux
     zstd
     pv
