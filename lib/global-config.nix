@@ -52,6 +52,12 @@ rec {
             description = "Logging listener address";
           };
 
+          serverName = mkOption {
+            type = types.nullOr types.str;
+            default = null;
+            description = "Optional TLS server name for validating the admin-vm logging listener certificate";
+          };
+
           port = mkOption {
             type = types.port;
             default = 9999;

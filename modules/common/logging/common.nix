@@ -178,6 +178,15 @@ in
       default = 9999;
     };
 
+    listener.serverName = mkOption {
+      description = ''
+        Optional TLS server name used by log producers when
+        verifying the admin-vm listener certificate.
+      '';
+      type = types.nullOr types.str;
+      default = null;
+    };
+
     journalRetention = {
       enable = mkOption {
         description = ''

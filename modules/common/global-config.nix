@@ -47,6 +47,10 @@
       logging.listener.address = lib.mkIf (
         config.ghaf.global-config.logging.enable && config.ghaf.common.adminHost != null
       ) (lib.mkDefault config.ghaf.networking.hosts.admin-vm.ipv4);
+      # Auto-populate logging TLS server_name for producer-side certificate validation.
+      logging.listener.serverName = lib.mkIf (
+        config.ghaf.global-config.logging.enable && config.ghaf.common.adminHost != null
+      ) (lib.mkDefault "admin-vm");
     };
   };
 }
