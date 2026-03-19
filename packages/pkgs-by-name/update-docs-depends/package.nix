@@ -84,13 +84,12 @@ writeShellApplication {
 
     if [ "$UPGRADE" = true ]; then
       echo "[update-docs-deps] Running npm upgrade in $DOCS_DIR (latest versions)"
-      # npm upgrade requires npm-check-updates or manual package.json edits
-      # We'll use npx to run npm-check-updates to upgrade package.json, then npm install
       if command -v npx &> /dev/null; then
         npx --yes npm-check-updates -u
+        # Remove stale lock file and node_modules to avoid peer dependency conflicts
+        rm -f package-lock.json
+        rm -rf node_modules
         npm install
-        echo "[update-docs-deps] Running npm update in $DOCS_DIR (within semver constraints)"
-        npm update
       else
         echo "Error: npx not found. Cannot run upgrade mode." >&2
         exit 1
