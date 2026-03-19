@@ -17,6 +17,9 @@
     "starlight-links-validator": "^0.20.1",
     "starlight-sidebar-topics-dropdown": "^0.6.0"
   },
+  "overrides": {
+    "fast-xml-parser": "5.5.6"
+  },
   "description": "Ghaf project documentation",
   "main": "index.js",
   "author": "",
