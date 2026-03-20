@@ -131,7 +131,7 @@ in
   session-buddy = mkExtension {
     name = "session-buddy";
     id = "edacconmaakjimmfgnblocblbcdcpbko";
-    hash = "sha256-iwvPxZe0PfBhgtdVJYj4+4VA+8k/3Pvj20yCoFs07S0=";
-    version = "4.1.0";
+    hash = "sha256-EmsJtQ058gzSJlPgUJanuq+SKuPxuXDwzEIGbfQRW1Y=";
+    version = "4.1.1";
   };
 }
