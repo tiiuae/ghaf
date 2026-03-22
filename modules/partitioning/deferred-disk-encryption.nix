@@ -39,7 +39,7 @@ let
       pkgs.lvm2
       pkgs.systemd
       pkgs.util-linux
-      pkgs.tpm2-tools
+      config.ghaf.security.tpm2.tools
       pkgs.e2fsprogs
       pkgs.btrfs-progs
       pkgs.coreutils
@@ -576,7 +576,7 @@ in
     environment.systemPackages = [
       pkgs.cryptsetup
       pkgs.lvm2
-      pkgs.tpm2-tools
+      config.ghaf.security.tpm2.tools
       pkgs.util-linux
       pkgs.parted
       pkgs.gptfdisk
@@ -589,7 +589,7 @@ in
           pkgs.cryptsetup
           pkgs.lvm2
           pkgs.systemd
-          pkgs.tpm2-tools
+          config.ghaf.security.tpm2.tools
           pkgs.util-linux
           pkgs.coreutils
           pkgs.gnugrep

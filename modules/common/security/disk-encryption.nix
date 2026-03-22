@@ -48,15 +48,13 @@ in
   config = mkIf (cfg.enable && !cfg.deferred) {
     security.tpm2.enable = true;
 
-    environment.systemPackages =
-      with pkgs;
-      lib.mkIf cfg.debugTools [
-        cryptsetup
-        tpm2-tools
-        parted
-        util-linux
-        gptfdisk
-      ];
+    environment.systemPackages = lib.mkIf cfg.debugTools [
+      pkgs.cryptsetup
+      config.ghaf.security.tpm2.tools
+      pkgs.parted
+      pkgs.util-linux
+      pkgs.gptfdisk
+    ];
 
     boot.initrd.luks.devices = {
       crypted = {
@@ -88,11 +86,11 @@ in
           .${cfg.backendType};
         unitScript = pkgs.writeShellApplication {
           name = "luks-enroll-tpm-unit-script";
-          runtimeInputs = with pkgs; [
-            gnugrep
-            cryptsetup
-            plymouth
-            tpm2-tools
+          runtimeInputs = [
+            pkgs.gnugrep
+            pkgs.cryptsetup
+            pkgs.plymouth
+            config.ghaf.security.tpm2.tools
           ];
           text = ''
             P_DEVPATH=$(readlink -f ${cfg.partitionDevice})

@@ -25,7 +25,7 @@ in
 
     environment.systemPackages = lib.mkIf config.ghaf.profiles.debug.enable [
       pkgs.opensc
-      pkgs.tpm2-tools
+      config.ghaf.security.tpm2.tools
     ];
 
     assertions = [
