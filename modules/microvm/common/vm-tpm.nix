@@ -53,9 +53,9 @@ in
       security.tpm2.enable = true;
 
       environment.systemPackages = [
-        pkgs.tpm2-tools
+        config.ghaf.security.tpm2.tools
         pkgs.tpm2-tss
-        pkgs.tpm2-pkcs11
+        config.ghaf.security.tpm2.pkcs11
         pkgs.tpm2-openssl
       ];
     })

@@ -81,7 +81,7 @@ let
       pkgs.nvidia-jetpack.ftpmHelper
       pkgs.nvidia-jetpack.ftpmSimTooling
       pkgs.openssl
-      pkgs.tpm2-tools
+      config.ghaf.security.tpm2.tools
     ];
     text = ''
       set -euo pipefail
@@ -118,7 +118,7 @@ let
     runtimeInputs = [
       pkgs.coreutils
       pkgs.openssl
-      pkgs.tpm2-tools
+      config.ghaf.security.tpm2.tools
     ];
     text = ''
       set -euo pipefail

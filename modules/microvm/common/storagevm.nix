@@ -120,10 +120,10 @@ in
 
             enrollStorageScript = pkgs.writeShellApplication {
               name = "storagevm-enroll-script";
-              runtimeInputs = with pkgs; [
-                util-linux
-                tpm2-tools
-                cryptsetup
+              runtimeInputs = [
+                pkgs.util-linux
+                config.ghaf.security.tpm2.tools
+                pkgs.cryptsetup
               ];
               text = ''
                 set -x
