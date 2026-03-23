@@ -4,6 +4,16 @@
 # This overlay is for specific fixes needed only to enable cross-compilation.
 #
 (final: prev: {
+  # Remove gfortran from FFTW to avoid cross-compiling the entire Fortran
+  # toolchain. FFTW is pulled in by PipeWire for audio processing. The Fortran
+  # wrapper generation is only needed when building docs (--disable-doc already
+  # strips the Fortran codegen step). Ghaf does not use the Fortran bindings.
+  fftwFloat = prev.fftwFloat.overrideAttrs (old: {
+    nativeBuildInputs = builtins.filter (d: !(final.lib.hasPrefix "gfortran" (d.pname or ""))) (
+      old.nativeBuildInputs or [ ]
+    );
+  });
+
   # Fix for setuptools-rust cross-compilation hook mismatch.
   # When building Python packages natively (host == target), the setuptools-rust
   # hook was incorrectly setting PYO3_CROSS_LIB_DIR to pythonOnTargetForTarget
