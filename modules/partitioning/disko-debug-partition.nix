@@ -54,6 +54,9 @@ in
     disko = {
       imageBuilder = {
         extraPostVM = lib.mkIf (cfg.imageBuilder.compression == "zstd") ''
+          for raw in "$out"/*.raw; do
+            ${pkgs.bmaptool}/bin/bmaptool create -o "''${raw%.raw}.bmap" "$raw"
+          done
           ${pkgs.zstd}/bin/zstd --compress $out/*raw
           rm $out/*raw
         '';

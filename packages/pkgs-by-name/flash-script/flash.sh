@@ -19,6 +19,10 @@ NON_INTERACTIVE=false
 [ ! -t 2 ] && NON_INTERACTIVE=true
 PROGRESS_INTERVAL=5
 IMGSIZE=""
+TEMP_DIR=""
+SPARSE_IMAGE=""
+SPARSE_BMAP=""
+PREBUILT_BMAP=""
 
 error() { echo -e "${RED}$*${ENDCOLOR}"; }
 success() { echo -e "${GREEN}$*${ENDCOLOR}"; }
@@ -56,7 +60,7 @@ EOF
   exit 1
 }
 
-deps=(zstd awk tr dd blkdiscard lsblk numfmt stat blockdev sync umount grep)
+deps=(zstd awk tr dd blkdiscard lsblk numfmt stat blockdev sync umount grep bmaptool)
 # Check dependencies
 for cmd in "${deps[@]}"; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -133,7 +137,20 @@ show_summary() {
 "
 }
 
-ask_confirmation() {
+cleanup() {
+  [ -n "$TEMP_DIR" ] && rm -rf "$TEMP_DIR"
+}
+
+trap cleanup EXIT
+
+unmount_device_tree() {
+  mapfile -t mounted_nodes < <(lsblk -nrpo NAME,MOUNTPOINTS "$DEVICE" | awk 'NF > 1 { print $1 }' | tac)
+  for node in "${mounted_nodes[@]}"; do
+    umount -q "$node" || true
+  done
+}
+
+confirm_flash() {
   warn "WARNING: This will erase ALL DATA on $DEVICE"
   read -p "Proceed? (Y): " -n 1 -r
   clear_lines 9
@@ -143,10 +160,7 @@ ask_confirmation() {
   fi
 }
 
-# Function to wipe any ZFS leftovers existing on the disk
-wipe_filesystem() {
-  show_summary
-  $FORCE || ask_confirmation
+wipe_device() {
   echo "Wiping filesystem..."
 
   blkdiscard -f "$DEVICE" &>/dev/null || true
@@ -159,7 +173,8 @@ wipe_filesystem() {
   SECTORS=$(blockdev --getsz "$DEVICE")
   # Unmount possible mounted filesystems
   sync
-  umount -q "$DEVICE"* || true
+  unmount_device_tree
+  blockdev --flushbufs "$DEVICE" || true
   # Wipe first 10MiB of disk
   dd if=/dev/zero of="$DEVICE" bs="$SECTOR" count="$MIB_TO_SECTORS" conv=fsync status=none
   # Wipe last 10MiB of disk
@@ -184,13 +199,33 @@ dd_with_progress() {
   wait "$dd_pid"
 }
 
-case "$FILENAME" in
-*.zst)
-  echo "Estimating uncompressed size..."
-  IMGSIZE="$(zstd -l "$FILENAME" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
-  clear_lines 1
-  wipe_filesystem
+flash_zst_with_bmap() {
+  wipe_device
+  TEMP_DIR="$(mktemp -d -t ghaf-flash.XXXXXX)"
+  sparse_name="$(basename "$FILENAME")"
+  sparse_name="${sparse_name%.zst}.raw"
+  SPARSE_IMAGE="$TEMP_DIR/$sparse_name"
 
+  echo "Preparing sparse image for faster flashing..."
+  zstdcat "$FILENAME" | dd_with_progress of="$SPARSE_IMAGE" bs=32M conv=sparse,fsync iflag=fullblock status=none
+  PREBUILT_BMAP="${FILENAME%.zst}.bmap"
+  if [ -f "$PREBUILT_BMAP" ]; then
+    SPARSE_BMAP="$PREBUILT_BMAP"
+    echo "Using prebuilt block map: $SPARSE_BMAP"
+  else
+    SPARSE_BMAP="$SPARSE_IMAGE.bmap"
+    echo "Generating block map..."
+    bmaptool create -o "$SPARSE_BMAP" "$SPARSE_IMAGE" >/dev/null
+  fi
+  echo "Flashing with sparse-aware copy..."
+  if ! bmaptool copy --bmap "$SPARSE_BMAP" "$SPARSE_IMAGE" "$DEVICE"; then
+    warn "Sparse-aware flashing failed, likely because the device is still busy."
+    return 1
+  fi
+}
+
+flash_zst_stream() {
+  wipe_device
   if $USE_PV && ! $NON_INTERACTIVE; then
     PV_CMD=(pv -tpreb -N "$FILENAME")
     [[ -n $IMGSIZE ]] && PV_CMD+=(-s "$IMGSIZE")
@@ -198,16 +233,35 @@ case "$FILENAME" in
   else
     zstdcat "$FILENAME" | dd_with_progress of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock
   fi
-  ;;
-*.iso | *.img)
-  IMGSIZE="$(stat -c%s "$FILENAME")"
-  wipe_filesystem
+}
 
+flash_raw_stream() {
+  wipe_device
   if $USE_PV && ! $NON_INTERACTIVE; then
     pv -tpreb "$FILENAME" -N "$FILENAME" -s "$IMGSIZE" | dd of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock status=none
   else
     dd_with_progress if="$FILENAME" of="$DEVICE" bs=32M conv=fsync oflag=direct iflag=fullblock
   fi
+}
+
+case "$FILENAME" in
+*.zst)
+  echo "Estimating uncompressed size..."
+  IMGSIZE="$(zstd -l "$FILENAME" -v 2>/dev/null | awk '/Decompressed Size:/ {print $5}' | tr -d '()')"
+  clear_lines 1
+  show_summary
+  $FORCE || confirm_flash
+
+  if ! flash_zst_with_bmap; then
+    warn "Falling back to streaming dd."
+    flash_zst_stream
+  fi
+  ;;
+*.iso | *.img)
+  IMGSIZE="$(stat -c%s "$FILENAME")"
+  show_summary
+  $FORCE || confirm_flash
+  flash_raw_stream
   ;;
 *)
   error "Unsupported file format"
