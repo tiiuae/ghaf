@@ -34,6 +34,8 @@ in
         bootPriority = "low";
         borderColor = "#122263";
         vtpm.enable = lib.mkDefault true;
+        xdghandlers.pdf = true;
+        xdghandlers.image = true;
         applications = [
           {
             name = "org.pwmt.zathura";
@@ -58,12 +60,6 @@ in
           {
             # This vm should be stateless so nothing stored between boots
             ghaf.storagevm.enable = lib.mkForce false;
-
-            # Handle PDF and image open requests
-            ghaf.xdghandlers = {
-              pdf = true;
-              image = true;
-            };
           }
         ];
       };

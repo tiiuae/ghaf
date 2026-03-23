@@ -58,12 +58,6 @@ let
 
   # Yubikey CTAP proxy support
   yubiPackages = lib.optional (vm.yubiProxy or false) pkgs.qubes-ctap;
-
-  sharedVmDirectory =
-    hostConfig.sharedVmDirectory or {
-      enable = false;
-      vms = [ ];
-    };
 in
 {
   _file = ./appvm-base.nix;
@@ -123,7 +117,7 @@ in
       );
     in
     {
-      # Set vmDef with merged applications and unwrapped vtpm values
+      # Set vmDef with merged applications and unwrapped feature flags
       # vtpm values use mkDefault which wraps them - unwrap for host-side access
       ghaf.appvm.vmDef = vm // {
         applications = allApplications;
@@ -132,6 +126,14 @@ in
           runInVM = (unwrap (vm.vtpm.runInVM or false)) || (globalConfig.storage.encryption.enable or false);
           basePort = vm.vtpm.basePort or null;
         };
+        # Feature flags for host-side access (channels, etc.)
+        xdgitems.enable = unwrap (vm.xdgitems.enable or false);
+        xdghandlers = {
+          pdf = unwrap (vm.xdghandlers.pdf or false);
+          image = unwrap (vm.xdghandlers.image or false);
+          url = unwrap (vm.xdghandlers.url or false);
+        };
+        desktopShare.enable = unwrap (vm.desktopShare.enable or false);
       };
 
       ghaf = {
@@ -202,8 +204,6 @@ in
                   mode = "0700";
                 }
               ];
-          shared-folders.enable =
-            (sharedVmDirectory.enable or false) && builtins.elem vmName (sharedVmDirectory.vms or [ ]);
           encryption.enable = globalConfig.storage.encryption.enable or false;
         };
 
@@ -262,6 +262,16 @@ in
 
         # Security
         security.fail2ban.enable = globalConfig.development.ssh.daemon.enable or false;
+
+        # XDG items - enable if vmDef flag is set
+        xdgitems.enable = unwrap (vm.xdgitems.enable or false);
+
+        # XDG handlers - enable based on vmDef flags
+        xdghandlers = {
+          pdf = unwrap (vm.xdghandlers.pdf or false);
+          image = unwrap (vm.xdghandlers.image or false);
+          url = unwrap (vm.xdghandlers.url or false);
+        };
       };
 
       # Combined udev rules (yubikey + passthrough)
@@ -328,16 +338,8 @@ in
         vcpu = lib.mkDefault (vm.vcpu or 4);
         hypervisor = "qemu";
 
-        shares = [
-          {
-            tag = "ghaf-common";
-            source = "/persist/common";
-            mountPoint = "/etc/common";
-            proto = "virtiofs";
-          }
-        ]
         # Shared store (when not using storeOnDisk)
-        ++ lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
+        shares = lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
           {
             tag = "ro-store";
             source = "/nix/store";

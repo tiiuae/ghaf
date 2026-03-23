@@ -36,6 +36,8 @@ in
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
         yubiProxy = true;
+        xdgitems.enable = true;
+        xdghandlers.url = true;
         applications = [
           {
             # The SPKI fingerprint is calculated like this:
@@ -58,16 +60,17 @@ in
 
                 ghaf = {
                   reference.programs.chromium.enable = lib.mkDefault true;
-                  xdgitems = {
-                    enable = lib.mkDefault true;
-                  };
-                  xdghandlers.url = true;
-
                   storagevm.maximumSize = 100 * 1024; # 100 GB space for chrome-vm
-
                   firewall = {
                     allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
                     allowedTCPPorts = config.ghaf.reference.services.chromecast.tcpPorts;
+                  };
+                  security.clamav = {
+                    enable = true;
+                    scan.on-modify = {
+                      enable = true;
+                      directories = [ "/home" ];
+                    };
                   };
                 };
               }

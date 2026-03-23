@@ -1,0 +1,268 @@
+---
+title: Storage Channels
+sidebar:
+  label: Channels
+---
+
+Storage channels provide controlled file sharing between VMs in a virtualized Ghaf system. Since shared data crosses security boundaries, channels enforce isolation and optional malware scanning to maintain the security posture of the system.
+
+Channel configuration is host-orchestrated and depends on the VM setup. The host manages the underlying storage infrastructure and coordinates file distribution between participants.
+
+## Channel Modes
+
+Channels support different modes that balance isolation, security, and performance.
+
+### Untrusted
+
+The default mode for sharing data from potentially untrusted sources.
+
+| Aspect | Detail |
+| ------ | ------ |
+| Isolation | Per-writer directories prevent cross-contamination |
+| Scanning | Enabled by default via ClamAV integration |
+| Distribution | Files aggregated and scanned before readers see them |
+
+Suitable for: user data, downloads, external inputs, cross-VM file exchange.
+
+---
+
+### Trusted
+
+For sharing data from known, trusted sources where scanning overhead is unnecessary.
+
+| Aspect | Detail |
+| ------ | ------ |
+| Isolation | Per-writer directories maintained |
+| Scanning | Disabled |
+| Distribution | Direct aggregation without scanning delay |
+
+Suitable for: system configuration, internal service data, host-provided resources.
+
+---
+
+### Fallback
+
+A simple virtiofs share without channel infrastructure.
+
+| Aspect | Detail |
+| ------ | ------ |
+| Isolation | None - single shared directory |
+| Scanning | None |
+| Distribution | Direct filesystem access |
+
+Suitable for: quick testing, legacy compatibility, trusted environments where isolation is not required.
+
+> **Note:** Manual virtiofs configuration outside the channel abstraction is possible but not provided by this module. Use fallback mode or configure virtiofs shares directly for custom setups.
+
+---
+
+## Participant Permissions
+
+Each channel defines participants with specific access levels. The permission model enables control over data flow between VMs.
+
+### Read-Write
+
+Bidirectional access for collaborative scenarios.
+
+- Participants can both read and write to the channel
+- Content from all read-write participants is visible to each other
+- Changes synchronize across all read-write members
+
+Use for: shared workspaces, bidirectional data exchange between VMs.
+
+---
+
+### Read-Only
+
+Consume-only access for data distribution.
+
+- Participants can read aggregated content from all writers
+- Cannot modify or add files to the channel
+- Sees the combined output of all write-capable participants
+
+Use for: configuration distribution, receiving shared resources, consuming broadcast data.
+
+---
+
+### Write-Only (or write-once)
+
+Diode mode for secure data collection.
+
+- Diodes (write-only) participants can freely read or write their own files
+- Diodes cannot read files from other diodes
+
+- Read-write producers can see aggregated data from diodes
+- Only new (non-existent) content from diodes is aggregated, overwriting existing data is not possible
+- RW producers can overwrite existing data from any diode, which IS propagated
+
+This prevents information leakage between writers - a VM submitting data cannot observe what other VMs have submitted.
+Additionally, diodes can change the content they see, but not the aggregated content (not even their own).
+Thus, they cannot overwrite their own data once written. This is a limitation as well as a property that allows to assert
+that content cannot be tampered with, once written.
+
+Use for: secure data collection, audit log aggregation, key submission workflows.
+
+> **Note:** This is an experimental feature and may be changed or removed.
+
+---
+
+## Example Use Cases
+
+### Identity Data Distribution
+
+A host system maintains identity information that VMs need to operate correctly.
+
+| Aspect | Configuration |
+| ------ | ------------- |
+| Writer | Host (single authoritative source) |
+| Readers | All VMs requiring identity data |
+| Mode | Trusted (host is implicitly trusted) |
+| Direction | Host to VMs |
+
+The host writes identity data once; all VMs receive a read-only view. Since the host is the trusted source of this data, scanning is unnecessary.
+
+---
+
+### Public Key Collection
+
+VMs generate public keys that need to be collected by an administrative VM for external journal verification.
+
+| Aspect | Configuration |
+| ------ | ------------- |
+| Writers | Individual VMs (write-only) |
+| Reader | Admin-VM (collects all keys) |
+| Mode | Untrusted (data from various sources) |
+| Direction | VMs to Admin-VM |
+
+Write-only (diode) mode ensures that:
+
+- VMs can submit their public keys and init flags
+- No VM can see/modify data submitted by other VMs
+- Only Admin-VM sees the complete collection
+
+---
+
+## Integration with ClamAV
+
+Channels integrate with the ClamAV scanning infrastructure for untrusted mode operation. See [ClamAV Antivirus](/ghaf/dev/ref/clamav) for details on:
+
+- Scanner configuration and deployment options
+- Detection actions (log, quarantine, delete)
+- Performance considerations for scanning
+- Notification setup for detected threats
+
+When a channel operates in untrusted mode, files pass through the scanning pipeline before becoming visible to participants. This adds latency but ensures potentially malicious content is caught before distribution.
+
+---
+
+## Default Channels
+
+Ghaf provides built-in channels for common data sharing patterns. These are enabled via `ghaf.global-config.storage.channels` or the per-machine channel options.
+
+### XDG Channel
+
+Shares application data between AppVMs and the GUI-VM.
+
+| Property | Value |
+| -------- | ----- |
+| Option | `ghaf.storage.channels.xdg.enable` |
+| Mount point | `/run/xdg` |
+| Mode | Untrusted |
+| Writers | AppVMs with `xdgitems` or `xdghandlers` enabled, GUI-VM (or host if graphics enabled) |
+
+---
+
+### Identity Channel
+
+Distributes host identity data (machine ID, certificates) to all VMs.
+
+| Property | Value |
+| -------- | ----- |
+| Option | `ghaf.storage.channels.ghafIdentity.enable` |
+| Mount point | `/etc/ghaf-identity` |
+| Mode | Trusted |
+| Writer | Host |
+| Readers | All enabled VMs |
+
+The host is the single authoritative source for identity data. Scanning is unnecessary since the host is implicitly trusted.
+
+---
+
+### Public Keys Channel
+
+Collects public keys from VMs for administrative purposes (journal verification keys, initialization flags).
+
+| Property | Value |
+| -------- | ----- |
+| Option | `ghaf.storage.channels.ghafPublicKeys.enable` |
+| Mount point | `/etc/ghaf-keys` |
+| Mode | Untrusted |
+| Read-Write | Admin-VM |
+| Write-Only | Host, all other VMs |
+
+Uses diode (write-only) mode to prevent VMs from modifying keys/flags submitted by other VMs. Only Admin-VM has read-write access to the complete collection.
+
+---
+
+### Desktop Share Channels
+
+Provides file sharing between GUI-VM and individual AppVMs for user convenience.
+
+| Property | Value |
+| -------- | ----- |
+| Option | `ghaf.storage.channels.desktopShares.enable` |
+| GUI mount point | `/Shares/{appvm-name}` |
+| AppVM mount point | `/home/{user}/Desktop Share` (configurable via `appvmMountPoint`) |
+| Mode | Untrusted |
+| Read-Write | GUI-VM and the specific AppVM |
+
+Each AppVM with `desktopShare = true` gets a dedicated bidirectional share with GUI-VM. Files are scanned as they pass through.
+
+---
+
+## Custom Channels
+
+Additional channels can be defined via `ghaf.storage.channels.extraChannels`:
+
+```nix
+ghaf.storage.channels.extraChannels = {
+  my-channel = {
+    mode = "trusted";  # or "untrusted", "fallback"
+    readWrite = {
+      vm-a = { mountPoint = "/shared"; };
+      vm-b = { mountPoint = "/shared"; };
+    };
+    readOnly = {
+      vm-c = { mountPoint = "/data"; };
+    };
+    writeOnly = {
+      vm-d = { mountPoint = "/submit"; };
+    };
+  };
+};
+```
+
+### Channel Configuration Options
+
+Each channel supports the following configuration:
+
+| Option | Type | Default | Description |
+| ------ | ---- | ------- | ----------- |
+| `mode` | enum | `"untrusted"` | `"trusted"` (no scanning), `"untrusted"` (scanned), or `"fallback"` (simple shared directory) |
+| `scanning.enable` | bool | `true` | Enable malware scanning for this channel |
+| `scanning.permissive` | bool | `false` | Treat scanning errors as clean files |
+| `scanning.infectedAction` | enum | `"quarantine"` | Action on detection: `"log"`, `"quarantine"`, or `"delete"` |
+| `scanning.ignoreFilePatterns` | list | `[".crdownload", ".part", ".tmp", "~$"]` | File patterns to skip scanning |
+| `debounceMs` | int | `300` | Milliseconds to wait before scanning after file changes |
+| `userNotify.enable` | bool | `false` | Enable desktop notifications for scan events |
+| `guestNotify.port` | int | `3401` | Vsock port for guest notifications |
+
+Per-participant options (in `readWrite`, `readOnly`, `writeOnly`):
+
+| Option | Type | Default | Description |
+| ------ | ---- | ------- | ----------- |
+| `mountPoint` | path | required | Mount point in the VM |
+| `user` | string | `"root"` | Owner user for the mount |
+| `group` | string | `"root"` | Owner group for the mount |
+| `mode` | string | `"0755"` | Permission mode for the mount |
+| `notify` | bool | `false` | Enable vsock notifications (readWrite only) |

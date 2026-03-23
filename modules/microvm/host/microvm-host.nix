@@ -18,7 +18,6 @@ let
     mkEnableOption
     mkIf
     mkMerge
-    mkOption
     types
     ;
   userConfig =
@@ -55,24 +54,6 @@ in
       type = types.networking;
       description = "Extra Networking option";
       default = { };
-    };
-    sharedVmDirectory = {
-      enable = mkEnableOption "shared directory" // {
-        default = true;
-      };
-
-      vms = mkOption {
-        description = ''
-          List of names of virtual machines for which unsafe shared folder will be enabled.
-        '';
-        type = types.listOf types.str;
-        default = [ ];
-      };
-
-      inotifyPassthrough = mkEnableOption "inotify passthrough" // {
-        default = true;
-      };
-
     };
   };
 
@@ -138,56 +119,22 @@ in
       };
 
       # Create required host directories
-      systemd.tmpfiles.rules =
-        let
-          vmsWithXdg = lib.filter (
-            vm:
-            let
-              vmConfig = lib.ghaf.vm.getConfig vm;
-              # Safe check for xdgitems.enable - avoid triggering option evaluation
-              hasXdgEnabled =
-                vmConfig != null
-                && lib.hasAttr "ghaf" vmConfig
-                && lib.hasAttr "xdgitems" vmConfig.ghaf
-                && lib.hasAttr "enable" vmConfig.ghaf.xdgitems
-                && vmConfig.ghaf.xdgitems.enable;
-            in
-            hasXdgEnabled
-          ) (builtins.attrValues config.microvm.vms);
-          xdgDirs = lib.flatten (
-            map (
-              vm:
-              let
-                vmConfig = lib.ghaf.vm.getConfig vm;
-                # Safe access to xdgHostPaths - readOnly option that may not be set
-                # Use tryEval to handle the case where option has no value
-                xdgPathsAttempt = builtins.tryEval (vmConfig.ghaf.xdgitems.xdgHostPaths or [ ]);
-              in
-              if xdgPathsAttempt.success then xdgPathsAttempt.value else [ ]
-            ) vmsWithXdg
-          );
-          xdgRules = map (
-            xdgPath: "D ${xdgPath} 0700 ${toString config.ghaf.users.homedUser.uid} users -"
-          ) xdgDirs;
-        in
-        [
-          "d /persist/common 0755 root root -"
-          "d /persist/sysupdate 0755 root root -"
-          "d /persist/storagevm 0755 root root -"
-          "d /persist/storagevm/img 0700 microvm kvm -"
-          "f /tmp/cancel 0770 microvm kvm -"
-        ]
-        ++ lib.optionals config.ghaf.givc.enable [
-          "d /persist/storagevm/givc 0700 microvm kvm -"
-        ]
-        ++ lib.optionals hasLoginUser [
-          "d /persist/storagevm/homes 0700 microvm kvm -"
-        ]
-        # Allow permission to microvm user to read ACPI tables of soundcard mic array
-        ++ lib.optionals hasAudioVmAcpiPath [
-          "f ${config.ghaf.hardware.definition.audio.acpiPath} 0400 microvm kvm -"
-        ]
-        ++ xdgRules;
+      systemd.tmpfiles.rules = [
+        "d /persist/sysupdate 0755 root root -"
+        "d /persist/storagevm 0755 root root -"
+        "d /persist/storagevm/img 0700 microvm kvm -"
+        "f /tmp/cancel 0770 microvm kvm -"
+      ]
+      ++ lib.optionals config.ghaf.givc.enable [
+        "d /persist/storagevm/givc 0700 microvm kvm -"
+      ]
+      ++ lib.optionals hasLoginUser [
+        "d /persist/storagevm/homes 0700 microvm kvm -"
+      ]
+      # Allow permission to microvm user to read ACPI tables of soundcard mic array
+      ++ lib.optionals hasAudioVmAcpiPath [
+        "f ${config.ghaf.hardware.definition.audio.acpiPath} 0400 microvm kvm -"
+      ];
 
       systemd.services =
         let
@@ -271,48 +218,6 @@ in
         // patchedMicrovmServices
         // vmstorageSetupServices;
     })
-    (mkIf cfg.sharedVmDirectory.enable {
-      # Create directories required for sharing files with correct permissions.
-      systemd.tmpfiles.rules =
-        let
-          vmDirs = map (
-            n:
-            "d /persist/storagevm/shared/shares/Unsafe\\x20${n}\\x20share/ 0760 ${toString config.ghaf.users.homedUser.uid} users"
-          ) cfg.sharedVmDirectory.vms;
-        in
-        [
-          "d /persist/storagevm/shared 0755 root root"
-          "d /persist/storagevm/shared/shares 0760 ${toString config.ghaf.users.homedUser.uid} users"
-        ]
-        ++ vmDirs;
-    })
-    (mkIf
-      (
-        cfg.sharedVmDirectory.enable
-        && cfg.sharedVmDirectory.inotifyPassthrough
-        && config.ghaf.virtualization.microvm.guivm.enable
-      )
-      {
-        # Enable passthrough of the shared folder inotify events from the host to the GUI VM
-        # This is required for the file manager to refresh the shared folder content when it is updated from AppVMs
-        systemd.services.vinotify = {
-          enable = true;
-          description = "vinotify";
-          wantedBy = [ "multi-user.target" ];
-          before = [ "multi-user.target" ];
-          serviceConfig = {
-            Type = "simple";
-            Restart = "always";
-            RestartSec = "1";
-            ExecStart = "${pkgs.vinotify}/bin/vinotify --cid ${toString config.ghaf.networking.hosts.gui-vm.cid} --port 2000 --path /persist/storagevm/shared/shares --mode host";
-          };
-          startLimitIntervalSec = 0;
-        };
-
-        # Shared folders guest config is now provided by guivm-desktop-features module
-        # See: modules/desktop/guivm/shared-folders.nix
-      }
-    )
     (mkIf (cfg.enable && config.services.userborn.enable) {
       system.activationScripts.microvm-host = lib.mkForce "";
       systemd.services."microvm-host-startup" =

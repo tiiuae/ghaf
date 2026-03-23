@@ -166,9 +166,6 @@ in
         microvm-host = {
           enable = true;
           networkSupport = true;
-          sharedVmDirectory = {
-            enable = false;
-          };
         };
 
         microvm = {

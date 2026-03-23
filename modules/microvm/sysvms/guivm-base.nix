@@ -146,10 +146,6 @@ in
     storagevm = {
       enable = true;
       name = vmName;
-      shared-folders = {
-        enable = true;
-        isGuiVm = true;
-      };
       encryption.enable = globalConfig.storage.encryption.enable or false;
     };
 
@@ -259,6 +255,7 @@ in
       };
 
       disks.enable = true;
+
     };
 
     xdgitems.enable = true;
@@ -274,10 +271,9 @@ in
     orbit = {
       enable = true;
       # CI/dev injects enroll secret via virtiofs to avoid baking secrets into images.
-      enrollSecretPath = "/etc/common/ghaf/fleet/enroll";
+      enrollSecretPath = "/etc/ghaf-identity/ghaf/fleet/enroll";
       fleetUrl = "https://fleetdm.vedenemo.dev";
-      hostnameFile = "/etc/common/ghaf/hostname";
-      rootDir = "/etc/common/ghaf/orbit";
+      hostnameFile = "/etc/ghaf-identity/ghaf/hostname";
       enableScripts = true;
       hostIdentifier = "specified";
       osqueryPackage = lib.mkForce pkgs."osquery-with-hostname";
@@ -367,16 +363,8 @@ in
     mem = lib.mkDefault 12288;
     hypervisor = "qemu";
 
-    shares = [
-      {
-        tag = "ghaf-common";
-        source = "/persist/common";
-        mountPoint = "/etc/common";
-        proto = "virtiofs";
-      }
-    ]
     # Shared store (when not using storeOnDisk)
-    ++ lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
+    shares = lib.optionals (!(globalConfig.storage.storeOnDisk or false)) [
       {
         tag = "ro-store";
         source = "/nix/store";

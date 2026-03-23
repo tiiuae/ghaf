@@ -17,13 +17,13 @@
 # - Setup service: One-shot service that generates keys on first boot for each component
 # - Verify service: Periodic integrity checks (default: hourly + on boot)
 # - Alerts: Verification failures logged via systemd-cat and forwarded to admin-vm
-# - Shared storage: Verification keys stored in virtiofs-mounted /persist/common for backup access
+# - Shared storage: Verification keys stored in virtiofs-mounted /etc/ghaf-keys for backup access
 #
 # Per-Component Isolation:
 # -----------------------
 # Each component (host + all VMs) generates and maintains its own FSS key pair:
-# - Host: /persist/common/journal-fss/ghaf-host/{initialized, verification-key}
-# - VMs:  /etc/common/journal-fss/<vm-name>/{initialized, verification-key}
+# - Host: /etc/ghaf-keys/journal-fss/ghaf-host/{initialized, verification-key}
+# - VMs:  /etc/ghaf-keys/journal-fss/<vm-name>/{initialized, verification-key}
 # This ensures tamper detection works correctly - each component's journals are
 # sealed with its own sealing key and verified with its matching verification key.
 #
@@ -52,8 +52,8 @@
 #
 # 3. Key Management:
 #    - Sealing keys NEVER leave their component (security-critical)
-#    - Verification keys stored per-component in shared /persist/common
-#    - Backup entire /persist/common/journal-fss/ tree for offline verification
+#    - Verification keys stored per-component in shared /etc/ghaf-keys
+#    - Backup entire /etc/ghaf-keys/journal-fss/ tree for offline verification
 #    - Key rotation requires per-component journal archive, clear, and reboot
 #
 # 4. Monitoring:
@@ -83,8 +83,7 @@ let
     ;
   cfg = config.ghaf.logging.fss;
   loggingEnabled = config.ghaf.logging.enable;
-  fssBasePath =
-    if config.ghaf.type == "host" then "/persist/common/journal-fss" else "/etc/common/journal-fss";
+  fssBasePath = "/etc/ghaf-keys/journal-fss";
 
   # Script to setup FSS keys on first boot
   setupScript = pkgs.writeShellApplication {
@@ -101,6 +100,13 @@ let
       INIT_FILE="$KEY_DIR/initialized"
       MACHINE_ID=$(cat /etc/machine-id)
 
+      # Use private temp for intermediate files (service has PrivateTmp=true)
+      # This prevents other VMs from seeing sensitive setup output via shared virtiofs
+      PRIVATE_TMP="/tmp/fss-setup-$$"
+      mkdir -p "$PRIVATE_TMP"
+      chmod 0700 "$PRIVATE_TMP"
+      trap 'rm -rf "$PRIVATE_TMP"' EXIT
+
       # Support both persistent and volatile storage
       FSS_KEY_FILE="/var/log/journal/$MACHINE_ID/fss"
       if [ ! -f "$FSS_KEY_FILE" ] && [ -f "/run/log/journal/$MACHINE_ID/fss" ]; then
@@ -110,7 +116,7 @@ let
 
       # Create key directory if it doesn't exist
       mkdir -p "$KEY_DIR"
-      chmod 0700 "$KEY_DIR"
+      chmod 0700 "$KEY_DIR" 2>/dev/null || true
 
       # Ensure journal directory exists (for persistent storage)
       mkdir -p "/var/log/journal/$MACHINE_ID"
@@ -136,11 +142,11 @@ let
         exit 0
       fi
 
-      # Generate new FSS keys
+      # Generate new FSS keys in private temp directory
       echo "Setting up Forward Secure Sealing keys..."
-      if ! journalctl --setup-keys --interval="${cfg.sealInterval}" > "$KEY_DIR/setup-output.txt" 2>&1; then
+      if ! journalctl --setup-keys --interval="${cfg.sealInterval}" > "$PRIVATE_TMP/setup-output.txt" 2>&1; then
         echo "Error: journalctl --setup-keys failed"
-        cat "$KEY_DIR/setup-output.txt"
+        cat "$PRIVATE_TMP/setup-output.txt"
         exit 1
       fi
 
@@ -148,10 +154,12 @@ let
       # The verification key is the last line of output
       # Format: seed-hex-with-hyphens/start-hex-interval-hex
       # Example: f90032-d54bd1-57dd7a-d09e1b/190250-35a4e900
-      if tail -1 "$KEY_DIR/setup-output.txt" | tr -d '[:space:]' > "$KEY_DIR/verification-key"; then
-        if [ -s "$KEY_DIR/verification-key" ]; then
-          chmod 0400 "$KEY_DIR/verification-key"
-          echo "FSS verification key extracted successfully"
+      if tail -1 "$PRIVATE_TMP/setup-output.txt" | tr -d '[:space:]' > "$PRIVATE_TMP/verification-key"; then
+        if [ -s "$PRIVATE_TMP/verification-key" ]; then
+          # Export only the public verification key to shared storage
+          cp "$PRIVATE_TMP/verification-key" "$KEY_DIR/verification-key"
+          chmod 0444 "$KEY_DIR/verification-key"
+          echo "FSS verification key exported to $KEY_DIR/verification-key"
           echo "IMPORTANT: Store verification key off-host in a secure vault"
         else
           echo "Warning: Verification key file is empty"
@@ -160,8 +168,7 @@ let
         echo "Warning: Could not extract verification key from output"
       fi
 
-      # Securely remove setup output (contains sensitive key material)
-      shred -u "$KEY_DIR/setup-output.txt" 2>/dev/null || rm -f "$KEY_DIR/setup-output.txt"
+      # Private temp cleanup handled by trap
 
       # Verify sealing key was created
       if [ ! -f "$FSS_KEY_FILE" ]; then
@@ -190,8 +197,8 @@ let
       touch "/var/log/journal/$MACHINE_ID/fss-rotated"
 
       echo "Forward Secure Sealing initialization complete"
-      echo "Sealing key: $FSS_KEY_FILE"
-      echo "Verification key: $KEY_DIR/verification-key (if extracted)"
+      echo "Sealing key: $FSS_KEY_FILE (private, never exported)"
+      echo "Verification key: $KEY_DIR/verification-key (public, safe to share)"
     '';
   };
 
@@ -322,6 +329,7 @@ in
           componentName = config.networking.hostName;
         in
         "${fssBasePath}/${componentName}";
+      readOnly = true;
       description = ''
         Directory to store FSS keys and metadata for this component.
 
@@ -329,13 +337,13 @@ in
         independent FSS key pairs for proper tamper detection.
 
         Path structure:
-        - Host: /persist/common/journal-fss/ghaf-host/ (direct persist access)
-        - VMs:  /etc/common/journal-fss/<vm-name>/ (virtiofs mount from host)
+        - Host: /etc/ghaf-keys/journal-fss/ghaf-host/ (direct persist access)
+        - VMs:  /etc/ghaf-keys/journal-fss/<vm-name>/ (virtiofs mount from host)
 
         Examples:
-        - Host: /persist/common/journal-fss/ghaf-host/verification-key
-        - Audio-VM: /etc/common/journal-fss/audio-vm/verification-key
-        - Admin-VM: /etc/common/journal-fss/admin-vm/verification-key
+        - Host: /etc/ghaf-keys/journal-fss/ghaf-host/verification-key
+        - Audio-VM: /etc/ghaf-keys/journal-fss/audio-vm/verification-key
+        - Admin-VM: /etc/ghaf-keys/journal-fss/admin-vm/verification-key
 
         Contains:
         - initialized: Sentinel file (prevents re-initialization)
@@ -395,7 +403,7 @@ in
         - Changing this value after deployment requires:
           1. Archive and verify existing journals
           2. Clear /var/log/journal/<machine-id>/
-          3. Delete ${cfg.keyPath}/initialized
+          3. Delete ${cfg.keyPath}/initialized and verification key (admin-vm)
           4. Reboot to trigger new key generation
         - All VMs in the system can use different seal intervals independently
       '';
@@ -425,91 +433,79 @@ in
   };
 
   config = mkIf cfg.enable {
-    # Enable audit subsystem for FSS monitoring
-    # This provides auditctl and enables the audit rules defined below
-    # FSS requires audit to be enabled, so we use mkForce to ensure it's on
-    # regardless of profile settings (audit is fundamental to FSS functionality)
-    ghaf.security.audit.enable = lib.mkForce true;
 
-    # Create key directory and journal directory via tmpfiles
-    # Note: In VMs, ${cfg.keyPath} is a virtiofs mount point, so we only create it on host
-    systemd = {
-      tmpfiles.rules =
-        lib.optionals (config.ghaf.type == "host") [
-          "d /persist/common/journal-fss 0755 root root - -"
-          "d ${cfg.keyPath} 0700 root root - -"
-        ]
-        ++ [
-          "d /var/log/journal 0755 root systemd-journal - -"
-        ];
+    # Create key directory via tmpfiles
+    systemd.tmpfiles.rules = lib.optionals (!config.ghaf.storage.channels.ghafIdentity.enable) [
+      "d ${cfg.keyPath} 0700 root root - -"
+    ];
 
-      # One-shot service to generate FSS keys on first boot
-      # Runs after journald is ready, then restarts journald to enable sealing
-      services.journal-fss-setup = {
-        description = "Setup Forward Secure Sealing keys for systemd journal";
-        documentation = [ "man:journalctl(1)" ];
+    # One-shot service to generate FSS keys on first boot
+    # Runs after journald is ready, then restarts journald to enable sealing
+    systemd.services.journal-fss-setup = {
+      description = "Setup Forward Secure Sealing keys for systemd journal";
+      documentation = [ "man:journalctl(1)" ];
 
-        wantedBy = [ "multi-user.target" ];
-        after = [ "systemd-journald.service" ];
-        wants = [ "systemd-journald.service" ];
+      wantedBy = [ "multi-user.target" ];
+      after = [ "systemd-journald.service" ];
+      wants = [ "systemd-journald.service" ];
 
-        serviceConfig = {
-          Type = "oneshot";
-          RemainAfterExit = true;
-          ExecStart = getExe setupScript;
-        };
+      serviceConfig = {
+        Type = "oneshot";
+        RemainAfterExit = true;
+        ExecStart = getExe setupScript;
+        PrivateTmp = true;
+      };
+    };
+
+    # Service to verify journal integrity
+    systemd.services.journal-fss-verify = {
+      description = "Verify systemd journal integrity using Forward Secure Sealing";
+      documentation = [ "man:journalctl(1)" ];
+
+      after = [
+        "systemd-journald.service"
+        "journal-fss-setup.service"
+      ];
+      wants = [
+        "systemd-journald.service"
+        "journal-fss-setup.service"
+      ];
+
+      unitConfig = {
+        # Only run if FSS setup has completed successfully
+        ConditionPathExists = "${cfg.keyPath}/initialized";
       };
 
-      # Service to verify journal integrity
-      services.journal-fss-verify = {
-        description = "Verify systemd journal integrity using Forward Secure Sealing";
-        documentation = [ "man:journalctl(1)" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = getExe verifyScript;
+        WorkingDirectory = "/";
 
-        after = [
-          "systemd-journald.service"
-          "journal-fss-setup.service"
+        # File system access required for journal verification
+        # journalctl --verify needs write access to create verification metadata
+        # Also needs read access to verification key for sealed journal validation
+        ReadWritePaths = [
+          "/var/log/journal"
+          "/run/log/journal"
+          cfg.keyPath
         ];
-        wants = [
-          "systemd-journald.service"
-          "journal-fss-setup.service"
-        ];
-
-        unitConfig = {
-          # Only run if FSS setup has completed successfully
-          ConditionPathExists = "${cfg.keyPath}/initialized";
-        };
-
-        serviceConfig = {
-          Type = "oneshot";
-          ExecStart = getExe verifyScript;
-          WorkingDirectory = "/";
-
-          # File system access required for journal verification
-          # journalctl --verify needs write access to create verification metadata
-          # Also needs read access to verification key for sealed journal validation
-          ReadWritePaths = [
-            "/var/log/journal"
-            "/run/log/journal"
-            cfg.keyPath
-          ];
-        };
       };
+    };
 
-      # Timer for periodic verification
-      timers.journal-fss-verify = {
-        description = "Timer for periodic journal integrity verification";
-        documentation = [ "man:journalctl(1)" ];
+    # Timer for periodic verification
+    systemd.timers.journal-fss-verify = {
+      description = "Timer for periodic journal integrity verification";
+      documentation = [ "man:journalctl(1)" ];
 
-        wantedBy = [ "timers.target" ];
+      wantedBy = [ "timers.target" ];
 
-        timerConfig = {
-          OnCalendar = cfg.verifySchedule;
-          Persistent = true;
-          RandomizedDelaySec = "5min";
-        }
-        // optionalAttrs cfg.verifyOnBoot {
-          OnBootSec = "10min";
-        };
+      timerConfig = {
+        OnCalendar = cfg.verifySchedule;
+        Persistent = true;
+        RandomizedDelaySec = "5min";
+      }
+      // optionalAttrs cfg.verifyOnBoot {
+        OnBootSec = "10min";
       };
     };
 

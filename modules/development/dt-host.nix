@@ -19,6 +19,8 @@ in
   options.ghaf.development.debug.tools.host.enable = lib.mkEnableOption "Host Debugging Tools";
 
   config = lib.mkIf cfg.enable {
+    ghaf.development.virtiofs-tests.enable = true;
+
     environment.systemPackages =
       (rmDesktopEntries [
         # EFI tools for enrolling certs

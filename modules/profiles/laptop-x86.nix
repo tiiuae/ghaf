@@ -247,12 +247,6 @@ in
                 // {
                   # App VM-specific hostConfig fields
                   appvm = effectiveDef;
-                  # Pass shared directory config for storage
-                  sharedVmDirectory =
-                    config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
-                      enable = false;
-                      vms = [ ];
-                    };
                 };
             };
           };
@@ -273,9 +267,6 @@ in
         microvm-host = {
           enable = true;
           networkSupport = true;
-          sharedVmDirectory = {
-            enable = true;
-          };
         };
 
         microvm = {

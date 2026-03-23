@@ -85,6 +85,9 @@ in
         ghafAudio.enable = lib.mkDefault true;
         vtpm.enable = lib.mkDefault true;
         yubiProxy = true;
+        xdgitems.enable = true;
+        xdghandlers.url = true;
+        desktopShare.enable = true;
         applications = [
           {
             # The SPKI fingerprint is calculated like this:
@@ -111,10 +114,6 @@ in
                   givc.policyClient.enable = true;
                   reference.programs.google-chrome.enable = lib.mkDefault true;
                   security.apparmor.enable = lib.mkDefault true;
-                  xdgitems = {
-                    enable = lib.mkDefault true;
-                  };
-                  xdghandlers.url = true;
                   firewall = {
                     updater.enable = true;
                     allowedUDPPorts = config.ghaf.reference.services.chromecast.udpPorts;
@@ -154,12 +153,22 @@ in
             imports = [
               ../services/wireguard-gui/wireguard-gui.nix
             ];
-            # Enable WireGuard GUI
-            ghaf.reference.services.wireguard-gui = {
-              enable = config.ghaf.reference.services.wireguard-gui;
-              serverPorts = [
-                51822
-              ];
+            ghaf = {
+              # Enable WireGuard GUI
+              reference.services.wireguard-gui = {
+                enable = config.ghaf.reference.services.wireguard-gui;
+                serverPorts = [
+                  51822
+                ];
+              };
+              # ClamAV malware scanning for user files
+              security.clamav = {
+                enable = true;
+                scan.on-modify = {
+                  enable = true;
+                  directories = [ "/home" ];
+                };
+              };
             };
           }
         ];

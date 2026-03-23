@@ -28,13 +28,6 @@ in
       };
 
       virtualization = {
-        # Enable shared directories for the selected VMs
-        microvm-host.sharedVmDirectory.vms = [
-          "business-vm"
-          "comms-vm"
-          "chrome-vm"
-          "flatpak-vm"
-        ];
 
         microvm = {
           appvm = {

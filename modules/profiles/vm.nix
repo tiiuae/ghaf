@@ -161,11 +161,6 @@ in
               // {
                 # App VM-specific hostConfig fields
                 appvm = vmDef;
-                sharedVmDirectory =
-                  config.ghaf.virtualization.microvm-host.sharedVmDirectory or {
-                    enable = false;
-                    vms = [ ];
-                  };
               };
           };
         };

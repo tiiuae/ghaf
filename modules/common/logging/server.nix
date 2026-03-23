@@ -42,8 +42,8 @@ in
         we can identify its origin.
       '';
       type = types.nullOr types.path;
-      example = "/etc/common/device-id";
-      default = "/etc/common/device-id";
+      example = "/etc/ghaf-identity/device-id";
+      default = "/etc/ghaf-identity/device-id";
     };
 
     tls = {
