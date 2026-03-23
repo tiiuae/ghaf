@@ -19,92 +19,85 @@ let
   # sdImage containing ESP and root partitions (compressed)
   images = config.system.build.sdImage;
 
-  # Partition XML with placeholders (substituted at flash time by preFlashCommands)
-  partitionsEmmc = pkgs.writeText "sdmmc.xml" ''
-    <partition name="master_boot_record" type="protective_master_boot_record">
-      <allocation_policy> sequential </allocation_policy>
-      <filesystem_type> basic </filesystem_type>
-      <size> 512 </size>
-      <file_system_attribute> 0 </file_system_attribute>
-      <allocation_attribute> 8 </allocation_attribute>
-      <percent_reserved> 0 </percent_reserved>
-    </partition>
-    <partition name="primary_gpt" type="primary_gpt">
-      <allocation_policy> sequential </allocation_policy>
-      <filesystem_type> basic </filesystem_type>
-      <size> 19968 </size>
-      <file_system_attribute> 0 </file_system_attribute>
-      <allocation_attribute> 8 </allocation_attribute>
-      <percent_reserved> 0 </percent_reserved>
-    </partition>
-    <partition name="esp" id="2" type="data">
-      <allocation_policy> sequential </allocation_policy>
-      <filesystem_type> basic </filesystem_type>
-      <size> ESP_SIZE </size>
-      <file_system_attribute> 0 </file_system_attribute>
-      <allocation_attribute> 0x8 </allocation_attribute>
-      <percent_reserved> 0 </percent_reserved>
-      <filename> bootloader/esp.img </filename>
-      <partition_type_guid> C12A7328-F81F-11D2-BA4B-00A0C93EC93B </partition_type_guid>
-      <description> EFI system partition with systemd-boot. </description>
-    </partition>
-    <partition name="APP" id="1" type="data">
-      <allocation_policy> sequential </allocation_policy>
-      <filesystem_type> basic </filesystem_type>
-      <size> ROOT_SIZE </size>
-      <file_system_attribute> 0 </file_system_attribute>
-      <allocation_attribute> 0x8 </allocation_attribute>
-      <align_boundary> 16384 </align_boundary>
-      <percent_reserved> 0x808 </percent_reserved>
-      <unique_guid> APPUUID </unique_guid>
-      <filename> root.img </filename>
-      <description> **Required.** Contains the rootfs. This partition must be assigned
-        the "1" for id as it is physically put to the end of the device, so that it
-        can be accessed as the fixed known special device `/dev/mmcblk0p1`. </description>
-    </partition>
-    <partition name="secondary_gpt" type="secondary_gpt">
-      <allocation_policy> sequential </allocation_policy>
-      <filesystem_type> basic </filesystem_type>
-      <size> 0xFFFFFFFFFFFFFFFF </size>
-      <file_system_attribute> 0 </file_system_attribute>
-      <allocation_attribute> 8 </allocation_attribute>
-      <percent_reserved> 0 </percent_reserved>
-    </partition>
-  '';
-
-  # Line counts for replacing the sdmmc_user device section in NVIDIA's flash XML.
-  # These numbers specify where to splice our custom partition layout.
+  # eMMC partition layout as structured Nix data.
+  # Serialized to JSON and spliced into NVIDIA's flash XML by
+  # splice-flash-xml.py, which replaces the <device type="sdmmc_user">
+  # children. This avoids fragile line-count splicing.
   #
-  # WARNING: When updating jetpack-nixos/BSP version, verify these line counts
-  # still match the <device type="sdmmc_user"> section boundaries in:
-  # - flash_t234_qspi_sdmmc.xml (standard)
-  # - flash_t234_qspi_sdmmc_industrial.xml (industrial variant)
-  partitionTemplateReplaceRange =
-    if (config.hardware.nvidia-jetpack.som == "orin-agx-industrial") then
-      if (!cfg.flashScriptOverrides.onlyQSPI) then
-        {
-          firstLineCount = 631;
-          lastLineCount = 2;
-        }
-      else
-        {
-          # QSPI-only: remove entire sdmmc_user device section
-          firstLineCount = 630;
-          lastLineCount = 1;
-        }
-    else if !cfg.flashScriptOverrides.onlyQSPI then
-      {
-        firstLineCount = 618;
-        lastLineCount = 2;
-      }
-    else
-      {
-        # QSPI-only: remove entire sdmmc_user device section
-        firstLineCount = 617;
-        lastLineCount = 1;
+  # Partition sizes are injected at build time from the sdImage metadata
+  # via --set (sectors * 512 → bytes).
+  partitionsEmmc = [
+    {
+      name = "master_boot_record";
+      type = "protective_master_boot_record";
+      children = {
+        allocation_policy = "sequential";
+        filesystem_type = "basic";
+        size = "512";
+        file_system_attribute = "0";
+        allocation_attribute = "8";
+        percent_reserved = "0";
       };
+    }
+    {
+      name = "primary_gpt";
+      type = "primary_gpt";
+      children = {
+        allocation_policy = "sequential";
+        filesystem_type = "basic";
+        size = "19968";
+        file_system_attribute = "0";
+        allocation_attribute = "8";
+        percent_reserved = "0";
+      };
+    }
+    {
+      name = "esp";
+      type = "data";
+      children = {
+        allocation_policy = "sequential";
+        filesystem_type = "basic";
+        size = "0"; # overridden by --set from sdImage metadata at build time
+        file_system_attribute = "0";
+        allocation_attribute = "0x8";
+        percent_reserved = "0";
+        filename = "bootloader/esp.img";
+        partition_type_guid = "C12A7328-F81F-11D2-BA4B-00A0C93EC93B";
+        description = "EFI system partition with systemd-boot.";
+      };
+    }
+    {
+      name = "APP";
+      type = "data";
+      children = {
+        allocation_policy = "sequential";
+        filesystem_type = "basic";
+        size = "0"; # overridden by --set from sdImage metadata at build time
+        file_system_attribute = "0";
+        allocation_attribute = "0x8";
+        align_boundary = "16384";
+        percent_reserved = "0x808";
+        unique_guid = "APPUUID";
+        filename = "root.img";
+        description = "Contains the rootfs, placed at the end of the device as /dev/mmcblk0p1.";
+      };
+    }
+    {
+      name = "secondary_gpt";
+      type = "secondary_gpt";
+      children = {
+        allocation_policy = "sequential";
+        filesystem_type = "basic";
+        size = "0xFFFFFFFFFFFFFFFF";
+        file_system_attribute = "0";
+        allocation_attribute = "8";
+        percent_reserved = "0";
+      };
+    }
+  ];
 
-  # Build the final flash.xml by splicing our partition layout into NVIDIA's template
+  # Build the final flash.xml by replacing the sdmmc_user partitions
+  # in NVIDIA's template with our layout using XML-aware splicing.
   partitionTemplate =
     let
       inherit (pkgs.nvidia-jetpack) bspSrc;
@@ -115,17 +108,19 @@ let
         else
           "${bspSrc}/bootloader/generic/cfg/flash_t234_qspi_sdmmc.xml";
     in
-    pkgs.runCommand "flash.xml" { } (
+    pkgs.runCommand "flash.xml"
+      {
+        nativeBuildInputs = [ pkgs.buildPackages.python3 ];
+      }
       ''
-        head -n ${toString partitionTemplateReplaceRange.firstLineCount} ${xmlFile} >"$out"
-      ''
-      + lib.optionalString (!cfg.flashScriptOverrides.onlyQSPI) ''
-        cat ${partitionsEmmc} >>"$out"
-      ''
-      + ''
-        tail -n ${toString partitionTemplateReplaceRange.lastLineCount} ${xmlFile} >>"$out"
-      ''
-    );
+        python3 ${./splice-flash-xml.py} \
+          ${lib.optionalString cfg.flashScriptOverrides.onlyQSPI "--remove-device"} \
+          --set "esp.size=$(($(cat ${images}/esp.size) * 512))" \
+          --set "APP.size=$(($(cat ${images}/root.size) * 512))" \
+          ${xmlFile} \
+          ${pkgs.writeText "sdmmc.json" (builtins.toJSON partitionsEmmc)} \
+          "$out"
+      '';
 
   # preFlashCommands: Extract images from sdImage and patch flash.xml
   preFlashScript = pkgs.writeShellApplication {
@@ -171,12 +166,10 @@ let
            bs=512 iseek="$ROOT_OFFSET" count="$ROOT_SIZE" status=progress
 
         echo ""
-        echo "Patching flash.xml with image paths and sizes..."
+        echo "Patching flash.xml with image paths..."
         sed -i \
           -e "s#bootloader/esp.img#$WORKDIR/bootloader/esp.img#" \
           -e "s#root.img#$WORKDIR/bootloader/root.img#" \
-          -e "s#ESP_SIZE#$((ESP_SIZE * 512))#" \
-          -e "s#ROOT_SIZE#$((ROOT_SIZE * 512))#" \
           flash.xml
       ''}
 
