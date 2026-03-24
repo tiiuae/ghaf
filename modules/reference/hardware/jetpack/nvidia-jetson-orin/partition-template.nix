@@ -142,6 +142,7 @@ let
       echo "Version: ${config.ghaf.version}"
       echo "SoM: ${config.hardware.nvidia-jetpack.som}"
       echo "Carrier board: ${config.hardware.nvidia-jetpack.carrierBoard}"
+      echo "Disk encryption: ${lib.boolToString cfg.diskEncryption.enable}"
       echo "============================================================"
       echo ""
       WORKDIR=$PWD
