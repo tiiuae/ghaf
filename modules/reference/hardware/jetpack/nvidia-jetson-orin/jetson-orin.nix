@@ -549,7 +549,7 @@ in
           "sysroot.mount"
           "initrd-root-fs.target"
         ];
-        after = [ "cryptsetup.target" ];
+        after = [ "systemd-cryptsetup@${cfg.diskEncryption.mapperName}.service" ];
         unitConfig = {
           DefaultDependencies = false;
         };
@@ -564,14 +564,6 @@ in
       };
 
       supportedFilesystems = [ "ext4" ];
-
-      systemd.services."systemd-cryptsetup@${cfg.diskEncryption.mapperName}" = {
-        overrideStrategy = "asDropin";
-        unitConfig.After = [
-          "initrd-root-device.target"
-          "cryptsetup.target"
-        ];
-      };
     };
 
     fileSystems = mkIf cfg.diskEncryption.enable {
