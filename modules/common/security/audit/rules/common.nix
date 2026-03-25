@@ -26,8 +26,9 @@ let
     if isAarch64 then "openat,openat2,open_by_handle_at" else "open,openat,openat2,open_by_handle_at";
   osppPermChangeSyscalls = "${chmodSyscalls},setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr";
 in
-[
+lib.optionals config.nix.enable [
   ## === Common :: Nix/NixOS-specific ===
+  # Enable Nix tools/state auditing only when Nix is enabled in the target system.
   "-a always,exit -F arch=b64 -S execve -F exe=${pkgs.nix}/bin/nix-daemon -k nix-daemon-exec"
   "-a always,exit -F arch=b64 -S execve -S execveat -F exe=${pkgs.nix}/bin/nix -F auid>=1000 -F auid!=unset -k nix-tools"
   "-w ${pkgs.nix}/bin/nix -p x -k nix-exec"
@@ -44,6 +45,12 @@ in
   "-w /etc/systemd/system/nix-daemon.service -p wa -k nix_daemon_unit"
   "-w /etc/systemd/system/nix-daemon.socket -p war -k nix_daemon_unit"
   "-w /etc/systemd/system/sockets.target.wants/nix-daemon.socket -p wa -k nix_daemon_unit"
+]
+++ [
+  # System generation switch symlink is critical on both hosts and guests.
+  "-w /run/current-system -p wa -k nix_system"
+  "-w /bin/sh -p wa -k nix_system"
+  "-w /usr/bin/env -p wa -k nix_system"
 
   ## === Common :: STIG-derived ===
   # Rules borrowed from https://stigviewer.com/stigs/anduril_nixos
