@@ -1,0 +1,38 @@
+From 825a7550672f21fe4e40fc3391a336281e529277 Mon Sep 17 00:00:00 2001
+From: Kajus Naujokaitis <kajusn@gmail.com>
+Date: Wed, 25 Mar 2026 14:47:53 +0200
+Subject: [PATCH] Hide language settings, show location settings
+
+Signed-off-by: Kajus Naujokaitis <kajusn@gmail.com>
+---
+ src/page/mod.rs | 7 -------
+ 1 file changed, 7 deletions(-)
+
+diff --git a/src/page/mod.rs b/src/page/mod.rs
+index 2fef9be..13d5a10 100644
+--- a/src/page/mod.rs
++++ b/src/page/mod.rs
+@@ -31,12 +31,6 @@ pub fn pages(mode: AppMode) -> IndexMap<TypeId, Box<dyn Page>> {
+     if let AppMode::NewInstall { create_user } = mode {
+         pages.insert(TypeId::of::<wifi::Page>(), Box::new(wifi::Page::default()));
+ 
+-        #[cfg(not(feature = "nixos"))]
+-        pages.insert(
+-            TypeId::of::<language::Page>(),
+-            Box::new(language::Page::new()),
+-        );
+-
+         pages.insert(
+             TypeId::of::<keyboard::Page>(),
+             Box::new(keyboard::Page::new()),
+@@ -46,7 +40,6 @@ pub fn pages(mode: AppMode) -> IndexMap<TypeId, Box<dyn Page>> {
+             pages.insert(TypeId::of::<user::Page>(), Box::new(user::Page::default()));
+         }
+ 
+-        #[cfg(not(feature = "nixos"))]
+         pages.insert(
+             TypeId::of::<location::Page>(),
+             Box::new(location::Page::new()),
+-- 
+2.53.0
+
