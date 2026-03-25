@@ -360,7 +360,7 @@ in
         wantedBy = [ "cosmic-session.target" ];
       };
 
-      # Kill cosmic-osd and cosmic-applet-audio if they exceed CPU usage threshold
+      # Kill cosmic-osd if it exceeds CPU usage threshold
       # TODO: remove when upstream fixes the issue
       # ref https://github.com/pop-os/cosmic-osd/issues/70
       cosmic-cpu-watchdog =
@@ -377,7 +377,7 @@ in
               PROCESSES=("cosmic-osd")
 
               THRESHOLD=80
-              INTERVAL=10
+              INTERVAL=20
               COOLDOWN=60
               LAST_KILL=0
 
@@ -385,7 +385,7 @@ in
                   NOW=$(date +%s)
 
                   for PROC in "''${PROCESSES[@]}"; do
-                      PID=$(pgrep -n -f "$PROC" 2>/dev/null) || continue
+                      PID=$(pidof -s "$PROC" 2>/dev/null) || continue
                       CPU=$(ps -o %cpu= -p "$PID" 2>/dev/null | awk '{print int($1)}')
                       [[ -z "$CPU" ]] && continue
 
@@ -393,7 +393,7 @@ in
                           if (( NOW - LAST_KILL >= COOLDOWN )); then
                               echo "$(date) High CPU detected ($PROC: ''${CPU}%), killing processes..."
                               for KILL_PROC in "''${PROCESSES[@]}"; do
-                                  pkill -xf "$KILL_PROC" && echo "$(date) Killed $KILL_PROC"
+                                  pkill -x "$KILL_PROC" && echo "$(date) Killed $KILL_PROC"
                               done
                               LAST_KILL=$NOW
                           fi
@@ -407,10 +407,7 @@ in
         in
         {
           description = "Ghaf COSMIC CPU usage watchdog";
-          serviceConfig = {
-            Type = "oneshot";
-            ExecStart = "${getExe cosmic-cpu-watchdog}";
-          };
+          serviceConfig.ExecStart = "${getExe cosmic-cpu-watchdog}";
           after = [ "cosmic-session.target" ];
           wantedBy = [ "cosmic-session.target" ];
         };
