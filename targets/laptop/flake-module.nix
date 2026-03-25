@@ -570,7 +570,7 @@ let
     t:
     (t.extendHost [
       {
-        ghaf.partitioning.verity-volume.enable = true;
+        ghaf.partitioning.verity.enable = true;
       }
     ])
     // {

@@ -13,10 +13,7 @@
     ];
     verity-release-partition.imports = [
       inputs.nix-store-veritysetup-generator.nixosModules.ghaf-store-veritysetup-generator
-      ./verity-partition.nix
       ./verity-volume.nix
-      ./verity-repart.nix
-      ./verity-sysupdate.nix
       ./btrfs-postboot.nix
     ];
   };
