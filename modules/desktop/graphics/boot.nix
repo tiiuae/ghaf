@@ -26,7 +26,7 @@ let
         # so no need to adjust bgrt theme separately
         mkdir -p $out/share/plymouth/themes/spinner
         # Resize the image to a height of 200px, keeping aspect ratio
-        convert "${cfg.firmwareLogo.image}" \
+        magick convert "${cfg.firmwareLogo.image}" \
           -background transparent -resize x200 \
           $out/share/plymouth/themes/spinner/bgrt-fallback.png
       fi
