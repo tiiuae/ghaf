@@ -49,7 +49,7 @@ in
     ghaf.storage.encryption.partitionDevice = lib.mkDefault config.disko.devices.disk.disk1.content.partitions.luks.device;
 
     system.build.ghafImage = lib.mkIf (
-      !config.ghaf.partitioning.verity-volume.enable
+      !config.ghaf.partitioning.verity.enable
     ) config.system.build.diskoImages;
     disko = {
       imageBuilder = {
