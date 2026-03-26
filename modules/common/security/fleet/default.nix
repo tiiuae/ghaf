@@ -160,8 +160,10 @@ in
           "syslog.service"
         ];
 
-        unitConfig = lib.mkIf (cfg.hostnameFile != null) {
-          ConditionPathExists = cfg.hostnameFile;
+        unitConfig = lib.mkIf (cfg.hostnameFile != null || cfg.enrollSecretPath != null) {
+          ConditionPathExists =
+            lib.optionals (cfg.hostnameFile != null) [ cfg.hostnameFile ]
+            ++ lib.optionals (cfg.enrollSecretPath != null) [ cfg.enrollSecretPath ];
         };
 
         environment = lib.mkMerge [
