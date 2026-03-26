@@ -273,12 +273,47 @@ let
       DISK="/dev/mmcblk0"
       PART_NUM=1
       PART_DEV="/dev/mmcblk0p1"
+      RESIZE_MARKER=".ghaf-resize-done"
+      ESP_MOUNT="/mnt-esp"
 
       RESIZE_TARGET="$PART_DEV"
       ${lib.optionalString cfg.diskEncryption.enable ''
         MAPPER_NAME="${cfg.diskEncryption.mapperName}"
         RESIZE_TARGET="/dev/mapper/$MAPPER_NAME"
       ''}
+
+      find_esp_device() {
+        for _ in {1..30}; do
+          ESP_DEVICE=""
+          while IFS=' ' read -r path partlabel; do
+            case "''${partlabel,,}" in
+              *esp*)
+                ESP_DEVICE="$path"
+                break
+                ;;
+            esac
+          done < <(${pkgs.util-linux}/bin/lsblk -pn -o PATH,PARTLABEL)
+          [ -n "$ESP_DEVICE" ] && return 0
+          sleep 1
+        done
+        return 1
+      }
+
+      mkdir -p "$ESP_MOUNT"
+      if find_esp_device; then
+        if mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+          if [ -f "$ESP_MOUNT/$RESIZE_MARKER" ]; then
+            echo "Resize already performed, skipping."
+            umount "$ESP_MOUNT"
+            exit 0
+          fi
+          umount "$ESP_MOUNT"
+        else
+          echo "Failed to mount ESP $ESP_DEVICE, continuing without marker check."
+        fi
+      else
+        echo "ESP partition not found, continuing without marker check."
+      fi
 
       # Wait for the device to be available
       for _ in {1..30}; do
@@ -289,17 +324,6 @@ let
       if [ ! -b "$RESIZE_TARGET" ]; then
         echo "Target device $RESIZE_TARGET not found, skipping."
         exit 0
-      fi
-
-      # Check for marker file by mounting temporarily
-      mkdir -p /mnt-resize
-      if mount "$RESIZE_TARGET" /mnt-resize; then
-        if [ -f /mnt-resize/var/lib/ghaf-resize-done ]; then
-          echo "Resize already performed, skipping."
-          umount /mnt-resize
-          exit 0
-        fi
-        umount /mnt-resize
       fi
 
       echo "Fixing GPT..."
@@ -335,11 +359,13 @@ let
       e2fsck -fy "$RESIZE_TARGET" || true
       resize2fs "$RESIZE_TARGET"
 
-      # Create marker file
-      if mount "$RESIZE_TARGET" /mnt-resize; then
-        mkdir -p /mnt-resize/var/lib
-        touch /mnt-resize/var/lib/ghaf-resize-done
-        umount /mnt-resize
+      # Persist completion on the ESP so later initrd boots can skip the
+      # service without mounting the root filesystem and racing fsck.
+      if find_esp_device && mount "$ESP_DEVICE" "$ESP_MOUNT"; then
+        touch "$ESP_MOUNT/$RESIZE_MARKER"
+        umount "$ESP_MOUNT"
+      else
+        echo "Failed to persist resize marker on ESP."
       fi
     '';
   };
@@ -546,6 +572,7 @@ in
         description = "Resize partitions to fill the disk on first boot";
         wantedBy = [ "initrd.target" ];
         before = [
+          "systemd-fsck-root.service"
           "sysroot.mount"
           "initrd-root-fs.target"
         ];
@@ -563,7 +590,10 @@ in
         };
       };
 
-      supportedFilesystems = [ "ext4" ];
+      supportedFilesystems = [
+        "ext4"
+        "vfat"
+      ];
     };
 
     fileSystems = mkIf cfg.diskEncryption.enable {

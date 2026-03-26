@@ -29,6 +29,40 @@
 let
   cfg = config.ghaf.profiles.orin;
   hostGlobalConfig = config.ghaf.global-config;
+  ensureSystemProfile = pkgs.writeShellApplication {
+    name = "ghaf-ensure-system-profile";
+    runtimeInputs = with pkgs; [
+      coreutils
+      nix
+    ];
+    text = ''
+      set -euo pipefail
+
+      profile=/nix/var/nix/profiles/system
+      registration=/nix-path-registration
+      current_system=$(${pkgs.coreutils}/bin/readlink -f /run/current-system)
+      generation_link=/nix/var/nix/profiles/system-1-link
+
+      if [ -z "$current_system" ] || [ ! -e "$current_system" ]; then
+        echo "Current system closure is unavailable" >&2
+        exit 1
+      fi
+
+      if [ ! -f "$registration" ] && [ -L "$profile" ] && [ "$(${pkgs.coreutils}/bin/readlink -f "$profile")" = "$current_system" ]; then
+        exit 0
+      fi
+
+      if [ -f "$registration" ]; then
+        ${pkgs.nix}/bin/nix-store --load-db < "$registration"
+        rm -f "$registration"
+        touch /etc/NIXOS
+      fi
+
+      mkdir -p /nix/var/nix/profiles
+      ln -sfn "$current_system" "$generation_link"
+      ln -sfn system-1-link "$profile"
+    '';
+  };
 in
 {
   _file = ./orin.nix;
@@ -222,6 +256,16 @@ in
 
       # Allow admin UI login
       users.admin.enableUILogin = true;
+    };
+
+    systemd.services.ghaf-ensure-system-profile = {
+      description = "Ensure persistent NixOS system profile exists";
+      wantedBy = [ "multi-user.target" ];
+      after = [ "local-fs.target" ];
+      serviceConfig = {
+        Type = "oneshot";
+        ExecStart = "${ensureSystemProfile}/bin/ghaf-ensure-system-profile";
+      };
     };
 
     hardware.graphics.extraPackages = lib.mkAfter [
