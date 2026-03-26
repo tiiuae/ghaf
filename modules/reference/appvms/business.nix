@@ -238,7 +238,7 @@ in
             exec = "trusted-browser-wrapper --app=https://teams.microsoft.com";
           }
           {
-            name = "chrome-gala.atrc.azure-atrc.androidinthecloud.net__-Default";
+            name = "chrome-gala-atrc.azure-atrc.androidinthecloud.net__-Default";
             desktopName = "Gala";
             categories = [
               "Network"
@@ -246,7 +246,7 @@ in
             ];
             description = "Secure Android-in-the-Cloud";
             icon = "distributor-logo-android";
-            exec = "trusted-browser-wrapper --app=https://gala.atrc.azure-atrc.androidinthecloud.net/#/login";
+            exec = "trusted-browser-wrapper --app=https://gala-atrc.azure-atrc.androidinthecloud.net/#/login";
           }
           {
             name = "VPN";
