@@ -106,7 +106,7 @@ Ghaf uses hardware-derived hostnames for device identification. The `ghaf-dynami
 
 This file is shared with VMs via virtiofs and mounted at `/etc/common/ghaf/hostname`. The Fleet module is patched to read the hostname from this file via the `hostnameFile` option, ensuring devices are consistently identified on the Fleet server.
 
-The orbit service includes a `ConditionPathExists` directive to wait for the hostname file before starting.
+The orbit service includes a `ConditionPathExists` directive to wait for the hostname file and, when `enrollSecretPath` is used, to enroll the secret file before starting.
 
 ## Systemd Services
 
@@ -138,6 +138,11 @@ The Ghaf Fleet integration includes patches for NixOS compatibility:
 Check if the hostname file exists:
 ```bash
 ls -la /etc/common/ghaf/hostname
+```
+
+If you use `enrollSecretPath`, also verify the secret file is present:
+```bash
+ls -la /etc/common/ghaf/fleet/enroll
 ```
 
 Check service status:
