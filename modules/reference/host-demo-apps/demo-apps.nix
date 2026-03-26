@@ -74,7 +74,7 @@ in
         icon = "element-desktop";
       }
       ++ lib.optional cfg.gala {
-        name = "chrome-gala.atrc.azure-atrc.androidinthecloud.net__-Default";
+        name = "chrome-gala-atrc.azure-atrc.androidinthecloud.net__-Default";
         desktopName = "GALA";
         description = "Secure Android-in-the-Cloud";
         exec = "${pkgs.gala}/bin/gala --enable-features=UseOzonePlatform --ozone-platform=wayland";
