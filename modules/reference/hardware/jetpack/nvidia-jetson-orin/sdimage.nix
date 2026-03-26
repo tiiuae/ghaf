@@ -18,6 +18,58 @@
   lib,
   ...
 }:
+let
+  rootfsImageBase = pkgs.callPackage config.sdImage.rootFilesystemCreator (
+    {
+      inherit (config.sdImage) storePaths;
+      inherit (config.sdImage) compressImage;
+      populateImageCommands = config.sdImage.populateRootCommands;
+      volumeLabel = config.sdImage.rootVolumeLabel;
+    }
+    // lib.optionalAttrs (config.sdImage.rootPartitionUUID != null) {
+      uuid = config.sdImage.rootPartitionUUID;
+    }
+  );
+
+  # The flash-time LUKS conversion needs more headroom than the stock sd-image
+  # builder leaves after its final resize2fs pass.
+  rootfsExtraSlackMiB = 64;
+
+  rootfsImageWithSlack =
+    pkgs.runCommand
+      "orin-rootfs-with-slack.img${lib.optionalString config.sdImage.compressImage ".zst"}"
+      {
+        nativeBuildInputs =
+          with pkgs;
+          [
+            e2fsprogs
+          ]
+          ++ lib.optional config.sdImage.compressImage zstd;
+      }
+      ''
+        rootfs_img=./rootfs.img
+        ${lib.optionalString config.sdImage.compressImage ''
+          zstd -d --no-progress ${rootfsImageBase} -o "$rootfs_img"
+        ''}
+        ${lib.optionalString (!config.sdImage.compressImage) ''
+          cp ${rootfsImageBase} "$rootfs_img"
+        ''}
+
+        chmod u+w "$rootfs_img"
+        e2fsck -fy "$rootfs_img"
+        current_blocks=$(dumpe2fs -h "$rootfs_img" 2>/dev/null | sed -n 's/^Block count:[[:space:]]*//p')
+        block_size=$(dumpe2fs -h "$rootfs_img" 2>/dev/null | sed -n 's/^Block size:[[:space:]]*//p')
+        extra_blocks=$(( ${toString rootfsExtraSlackMiB} * 1024 * 1024 / block_size ))
+        resize2fs "$rootfs_img" "$((current_blocks + extra_blocks))"
+
+        ${lib.optionalString config.sdImage.compressImage ''
+          zstd -T$NIX_BUILD_CORES -v --no-progress "$rootfs_img" -o $out
+        ''}
+        ${lib.optionalString (!config.sdImage.compressImage) ''
+          cp "$rootfs_img" $out
+        ''}
+      '';
+in
 {
   imports = [ (modulesPath + "/installer/sd-card/sd-image.nix") ];
 
@@ -50,6 +102,7 @@
       fdtPath = "${config.hardware.deviceTree.package}/${config.hardware.deviceTree.name}";
     in
     {
+      rootFilesystemImage = rootfsImageWithSlack;
       firmwareSize = 256;
       populateFirmwareCommands = ''
         mkdir -pv firmware
