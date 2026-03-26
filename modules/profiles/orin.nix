@@ -262,6 +262,7 @@ in
       description = "Ensure persistent NixOS system profile exists";
       wantedBy = [ "multi-user.target" ];
       after = [ "local-fs.target" ];
+      before = [ "nix-gc.service" ]
       serviceConfig = {
         Type = "oneshot";
         ExecStart = "${ensureSystemProfile}/bin/ghaf-ensure-system-profile";
