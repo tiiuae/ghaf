@@ -3,6 +3,7 @@
 {
   description = "Ghaf Framework: Documentation and implementation for TII SSRC Secure Technologies";
 
+  
   nixConfig = {
     substituters = [
       "https://ghaf-dev.cachix.org"
