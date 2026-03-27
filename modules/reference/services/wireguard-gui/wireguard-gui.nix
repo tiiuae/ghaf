@@ -104,7 +104,7 @@ in
                               "${pkgs.wireguard-gui}/bin/.wireguard-gui-wrapped --config-owner ${config.ghaf.users.appUser.name} --config-owner-group users";
           polkit.log("Expected commandline = " + expectedcmdline);
           if (action.id == "org.freedesktop.policykit.exec" &&
-            RegExp('^/run/current-system/sw/bin/env WAYLAND_DISPLAY=wayland-([a-zA-Z0-9]){10} $').test(action.lookup("command_line").slice(0,66)) === true &&
+            RegExp('^/run/current-system/sw/bin/env WAYLAND_DISPLAY=wayland-[a-zA-Z0-9]+ ').test(action.lookup("command_line")) === true &&
             subject.user == "${config.ghaf.users.appUser.name}") {
           return polkit.Result.YES;
             }
