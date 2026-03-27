@@ -358,11 +358,11 @@
         ]
       },
       "locked": {
-        "lastModified": 1772039319,
-        "narHash": "sha256-7CoyKfH6ZtUakjzrVbFa9xRaY+GEGX6BC8qsQtMjZCg=",
+        "lastModified": 1775026398,
+        "narHash": "sha256-yW4IqDvbKXraIdUlbNDAV/wTmo/rdixDeLbDciLkelY=",
         "owner": "tiiuae",
         "repo": "ghaf-givc",
-        "rev": "c558084d15012a11329f8c77f4ebf761d9b754fe",
+        "rev": "e1cf2fc9227b03c2e354f34272ff756e803d037e",
         "type": "github"
       },
       "original": {
